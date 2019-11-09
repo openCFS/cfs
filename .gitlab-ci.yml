@@ -87,7 +87,29 @@ pipeline-changes:
   cache: {} # disable
   only:
     changes:
-      - .gitlab-ci.yml    
+      - .gitlab-ci.yml
+
+# this job is intended as a warning if the piepline has been skipped by commit messages
+#  
+pipeline-skip:
+  extends: .default_pipeline_rules
+  stage: check
+  tags:
+    - linux
+  before_script:
+    - echo "$CI_COMMIT_MESSAGE" > message
+    - cat message
+    - sed -z 's/\n/ /g' message > message-oneline
+  script:
+    # print files without match (-L) and check for "message", i.e. "skip-XXX" is not in commit message 
+    - grep -v skip-platform-builds message-oneline
+    - grep -v skip-stable-tests message-oneline
+    - grep -v skip-testsuite-tests message-oneline
+    - grep -v skip-gcc-builds message-oneline
+    - grep -v skip-python-tests message-oneline
+  after_script: []
+  allow_failure: true
+  cache: {} # disable 
 
 #################################################
 # BUILD STAGE
@@ -95,6 +117,11 @@ pipeline-changes:
 # Here we define the build jobs, if one fails we do not need to test
 
 .default_build_job: &default_build_job
+  extends: .default_pipeline_rules
+  # do not add this job if commit message contains 'skip-gcc-builds'
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
   script:
     - cat pre_cmd || touch pre_cmd # be sure pre_cmd exists (it may contain scl-enable)
     # we use the devtoolset for any second-level configure things to have the correct environment
@@ -113,7 +140,6 @@ pipeline-changes:
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/config_cmd # needed in test to apply same configure command on different runner
     expire_in: 3 days
-  <<: *default_pipeline_rules
 
 .gcc_before: &gcc_before
   before_script:
@@ -219,6 +245,9 @@ build:gcc7max:
   only:
     variables:
       - $PLATFORM && $IMAGE =~ $PLATFORM
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-platform-builds/
   # disable artifacts and cache
   artifacts: {}
   cache: {}
@@ -301,6 +330,11 @@ complete-build:linux:
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
+  extends: .default_pipeline_rules
+  # disable if a) we have no gcc builds
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
   before_script:
     - mkdir -p build
     - cd build # descend in build
@@ -314,11 +348,16 @@ complete-build:linux:
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
   # no chache for testing necessary - binary comes from artifacts
   cache: {}
-  <<: *default_pipeline_rules
 
 
 # this is the config that has to pass
 .test_stable: &test_stable
+  extends: .ctest_default
+  # disable also if 'skip-stable-tests' is contained in commit message
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   script:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
@@ -326,10 +365,15 @@ complete-build:linux:
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon" --track $CDASH_TRACK # exclude the install step and the failing tests
-  <<: *ctest_default
 
 # test everything
 .test_all_multicore: &test_all_multicore
+  extends: .ctest_default
+  # disable also if 'skip-testsuite-tests' is contained in commit message
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   script:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
@@ -337,7 +381,6 @@ complete-build:linux:
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
-  <<: *ctest_default
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependecies
@@ -456,6 +499,10 @@ testsuite:gcc7max:linux:
 
 python:stable:
   extends: .ctest_default
+  # disable if 'skip-python-tests' is found in commit message
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-python-tests/
   tags:
     - python
   stage: test
