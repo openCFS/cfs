@@ -600,29 +600,22 @@ INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-# Switch support for testing off by default. It will be switched on by the
-# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
-# cache. Cf. ctest_scripts/*.cmake
+# Switch support for testing ON if the default testsuite dir is used, i.e.
+# the git submodule 'Testing'
 #-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
+SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  SET(BUILD_TESTING ON CACHE BOOL "Build the testing tree.")
+ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  SET(BUILD_TESTING OFF CACHE BOOL "Build the testing tree.")
+ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
 CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
 IF(BUILD_TESTING)
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
-  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
-  #-----------------------------------------------------------------------------
-  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
-  # test cases will be generated in the current binary directory.
-  #-----------------------------------------------------------------------------
-  IF(NOT TESTSUITE_DIR_DEFAULT)
-    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
-  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
-
-  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-
-  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+  # check if TESTSUITE_DIR is correct (contains TESTSUIT)
     IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
     ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
@@ -634,8 +627,7 @@ IF(BUILD_TESTING)
       SET(MSG "${MSG}   'git pull --recurse-submodules'\n")
       MESSAGE(FATAL_ERROR "${MSG}")
     ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-  # check if we have options
+  # check if we have dependent options set correctly
   # In order to perform tests we need the CFSTOOL and HDF5!
   if(NOT BUILD_CFSTOOL)
     message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
