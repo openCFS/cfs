@@ -121,6 +121,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgns.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmsh.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_palm.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_palm.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmv.hh")
 

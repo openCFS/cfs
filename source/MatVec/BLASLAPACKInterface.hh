@@ -37,6 +37,9 @@ namespace CoupledField
                int*, const std::complex<double>*, int*, std::complex<double>*,
                std::complex<double>*,int*);
     
+    void cblas_zdscal(const int __N, const double __alpha, void *__X, const int __incX);
+    double cblas_dznrm2(const int __N, const void *__X, const int __incX);
+
   }
 
 
@@ -122,8 +125,48 @@ namespace CoupledField
 
     void dgecon( char*, int*, double*, int*, double*, double*, double*, int*, int*);
 
-    // ! To be continued ...
 
+    void dgesvd(char* , char* , int *, int *, double*, int *, double*,
+                      double*, int *, double*, int *, double*, int *, int *);
+
+    int dscal(int *, double *, double *, int *);
+
+    double dznrm2_( int*, std::complex<double>*, int*);
+
+    void zdscal_(int* N,double* DA,std::complex<double>* ZX, int* INCX);
+
+
+    void znaupd(int *IDO, const char *BMAT,int *N,const char *WHICH,int *NEV,double *TOL,std::complex<double> *RESID,int *NCV,std::complex<double> *V,
+                 int *LDV,int *IPARAM,int *IPNTR,std::complex<double> *WORKD,std::complex<double> *WORKL,int *LWORKL, double *RWORK,
+                 int *INFO,int _BMAT, int _WHICH    // The length of the actual WHICH argument
+                );
+
+    void zneupd(bool *RVEC,
+                 const char *HOWMNY,
+                 bool *SELECT,
+                 std::complex<double> *D,
+				 std::complex<double> *Z,
+                 int *LDZ,
+				 std::complex<double> *SIGMA,
+				 std::complex<double> *WORKEV,
+                 const char *BMAT,
+                 int *N,
+                 const char *WHICH,
+                 int *NEV,
+                 double *TOL,
+				 std::complex<double> *RESID,
+                 int *NCV,
+				 std::complex<double> *V,
+                 int *LDV,
+                 int *IPARAM,
+                 int *IPNTR,
+                 std::complex<double> *WORKD,
+				 std::complex<double> *WORKL,
+                 int *LWORKL,
+                 double *RWORK,
+                 int *INFO
+                );
+    // ! To be continued ...
   }
 
 }

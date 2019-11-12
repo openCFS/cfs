@@ -71,6 +71,19 @@ class SingleVector;
           freq[i] = sqrt(std::abs(eigRe[i]))/twoPi; // take the absolute value only to avoid problems with very small but negative EVs
         }
     }
+    void QuadEig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq_undamped, Vector<Double> &freq_damped, Vector<Double> & damp ) {
+        assert( eigRe.GetSize() == eigIm.GetSize() );
+        freq_undamped.Resize( eigRe.GetSize() );
+        freq_damped.Resize( eigRe.GetSize() );
+        damp.Resize( eigRe.GetSize() );
+        Double twoPi = 8.0*atan(1.0);
+        for (UInt i=0; i < eigRe.GetSize(); i++) {
+            double eigRatio = eigIm[i]/eigRe[i];
+            damp[i] = sqrt( 1.0/(1.0+eigRatio*eigRatio) );
+            freq_undamped[i] = std::abs(eigRe[i])/damp[i]/twoPi;
+            freq_damped[i] = std::abs(eigIm[i])/twoPi;
+        }
+    }
     void Eig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq, Vector<Double> & damp ) {
         assert( eigRe.GetSize() == eigIm.GetSize() );
         freq.Resize( eigRe.GetSize() );
@@ -82,6 +95,7 @@ class SingleVector;
             freq[i] = std::abs(eigRe[i])/damp[i]/twoPi;
         }
     }
+
     void Eig2FreqDamp(Vector<Complex>& eig, Vector<Double> & freq, Vector<Double> & damp ) {
         //assert( eigRe.GetSize() == eigIm.GetSize() );
         freq.Resize( eig.GetSize() );

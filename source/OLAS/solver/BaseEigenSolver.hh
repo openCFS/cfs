@@ -31,7 +31,7 @@ namespace CoupledField {
   public:
     //! Type of EigenSolver
 
-    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST, FEAST} EigenSolverType;
+    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST, FEAST, PALM} EigenSolverType;
     //! This enumeration data type describes the type of eigensolver which is
     //! applied to solve a generalized eigenvalue problem. The enumeration
     //! contains the following:
@@ -39,7 +39,10 @@ namespace CoupledField {
     //! - ARPACK
     //! - PHIST
     //! - FEAST
+    //! - PALM
     static Enum<EigenSolverType> eigenSolverType;
+
+    EigenSolverType eigenSolverType_;
 
     typedef enum {NONE, MAX, NORM} ModeNormalization;
     //! Defines how to normalized the modes
@@ -55,7 +58,8 @@ namespace CoupledField {
                      PtrParamNode solverList,
                      PtrParamNode precondList,
                      PtrParamNode eigenInfo )
-      : solStrat_(strat),
+      : eigenSolverType_(NO_EIGENSOLVER),
+        solStrat_(strat),
         xml_(eSolverXML),
         solverList_(solverList),
         precondList_(precondList),

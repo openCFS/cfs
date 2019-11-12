@@ -1476,6 +1476,34 @@
     </xsd:complexContent>
   </xsd:complexType>  
   
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    PALM EIGENVALUE SOLVER                    == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+
+  <xsd:element name="palm" type="DT_EigenSolverPALM" substitutionGroup="EigenSolverBasic"/>
+
+  <xsd:complexType name="DT_EigenSolverPALM">
+    <xsd:complexContent>
+      <xsd:extension base="DT_EigenSolverBasic">
+        <xsd:all>
+
+          <!-- Allow separate solver within eigenfrequency calculation -->
+          <!-- <xsd:element name="solver" minOccurs="0" >
+            <xsd:complexType>
+              <xsd:attribute name="id"  type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>-->
+          <xsd:element name="PadeOrder" type="xsd:nonNegativeInteger" minOccurs="0" default="1">
+            <xsd:annotation>
+              <xsd:documentation>Order of the Padè-Approximation</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:all>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
     <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                    PHIST Linear SOLVER                    == -->

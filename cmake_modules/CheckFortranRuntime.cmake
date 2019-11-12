@@ -267,12 +267,14 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   zgetrf
   zgetri
   ilaver
+  cblas_zdscal
+  cblas_dznrm2
   # ARPACK
   dsaupd
   dseupd
+  debug
   znaupd
   zneupd
-  debug
   # Pardiso
   pardisoinit
   pardiso
