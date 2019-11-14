@@ -13,7 +13,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
     // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
     // the check was removed. It came down to 2011 from andi hauk.
     val_ = val;
-    isSymmetric_ = false; // from technical point of view: should be symmetric as a matrix with only one element can be considered symmteric
+    this->isSymmetric_ = true;
   }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val, 
@@ -33,7 +33,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val,
   if((val_->GetDependency() != CoefFunction::CONSTANT) && (val_->GetDependency() != CoefFunction::TIMEFREQ)) {
     EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
   }
-  isSymmetric_ = false;
+  this->isSymmetric_ = true;
 }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real, 
@@ -57,7 +57,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real,
   if((val_->GetDependency() != CoefFunction::CONSTANT) && (val_->GetDependency() != CoefFunction::TIMEFREQ)) {
     EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
   }
-   isSymmetric_ = false;
+   this->isSymmetric_ = true;
 }
 
 
