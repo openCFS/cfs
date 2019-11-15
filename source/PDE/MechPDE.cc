@@ -796,43 +796,59 @@ namespace CoupledField {
       }
 
       //========================================================================================
-      // Normal Stiffness : assumes a normal traction proprtional to the normal displacement
+      // Normal X : assumes a normal traction proportional to the normal Y
+      // X/Y = Stiffness/Displacement or Damping/Velocity or Mass/Acceleration
+      // Essentially the mechanic boundary traction arising in the weak form u'*t_n
+      // is replaced by u'*k u_n = u'*(k u*n n) = k u'*n u*n
+      // where k is the parameter read from the input file, and u represents the unknown Y
       //========================================================================================
-      LOG_DBG(mechpde) << "Reading normalStiffness definition";
-      StdVector<shared_ptr<EntityList> > ent;
-      StdVector<PtrCoefFct > kCoef;
-      StdVector<std::string> volumeRegions;
-      ReadRhsExcitation("normalStiffness", feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames, ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
-      for( UInt i = 0; i < ent.GetSize(); ++i ) {
-        // get the volume region for defining the correct normal direction
-        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
-        std::set<RegionIdType> volRegion;
-        volRegion.insert(aRegion);
-        // check type of entitylist
-        if (ent[i]->GetType() == EntityList::NODE_LIST) {
-          EXCEPTION("normalStiffness must be defined on (surface) elements")
-        }
-        // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
-        BiLinearForm * tangInt = NULL;
-        if(isComplex_) {
-          if (dim_ == 2){
-            tangInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
-          } else {
-            tangInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+      typedef std::pair<std::string, FEMatrixType> normalBCtype;
+      std::vector<normalBCtype> normalBCs;
+      normalBCs.push_back(std::make_pair("normalStiffness", STIFFNESS));
+      normalBCs.push_back(std::make_pair("normalDamping", DAMPING));
+      normalBCs.push_back(std::make_pair("normalMass", MASS));
+      for( std::vector<normalBCtype>::iterator it = normalBCs.begin() ; it != normalBCs.end(); ++it ){
+        std::string xmlName = it->first;
+        FEMatrixType feMat = it->second;
+        LOG_DBG(mechpde) << "Reading '" << xmlName << "' definition";
+        StdVector<shared_ptr<EntityList> > ent;
+        StdVector<PtrCoefFct > kCoef;
+        StdVector<std::string> volumeRegions;
+        ReadRhsExcitation( xmlName , feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames, ResultInfo::SCALAR, ent, kCoef, updatedGeo_, volumeRegions);
+        for( UInt i = 0; i < ent.GetSize(); ++i ) {
+          // get the volume region for defining the correct normal direction
+          RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+          std::set<RegionIdType> volRegion;
+          volRegion.insert(aRegion);
+          // check type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION( xmlName << " must be defined on (surface) elements")
           }
-        } else {
-          if (dim_ == 2){
-            tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
-          } else {
-            tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          if ( kCoef[i]->IsComplex() && !(isComplex_) ) {
+            EXCEPTION( xmlName << " is defied as complex but PDE is not")
           }
+          // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
+          BiLinearForm * tangInt = NULL;
+          if( kCoef[i]->IsComplex() ) {
+            if (dim_ == 2){
+              tangInt = new SurfaceBBInt<Complex,Double>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              tangInt = new SurfaceBBInt<Complex,Double>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+            }
+          } else {
+            if (dim_ == 2){
+              tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+            } else {
+              tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+            }
+          }
+          tangInt->SetName(xmlName + "Integrator");
+          BiLinFormContext *tangContext = new BiLinFormContext(tangInt, feMat );
+          tangContext->SetEntities( ent[i], ent[i]);
+          tangContext->SetFeFunctions( feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+          feFunctions_[MECH_DISPLACEMENT]->AddEntityList( ent[i] );
+          assemble_->AddBiLinearForm( tangContext );
         }
-        tangInt->SetName("tangIntegrator");
-        BiLinFormContext *tangContext = new BiLinFormContext(tangInt, STIFFNESS );
-        tangContext->SetEntities( ent[i], ent[i]);
-        tangContext->SetFeFunctions( feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
-        feFunctions_[MECH_DISPLACEMENT]->AddEntityList( ent[i] );
-        assemble_->AddBiLinearForm( tangContext );
       }
 
       // Bloch-periodic boundary conditions
