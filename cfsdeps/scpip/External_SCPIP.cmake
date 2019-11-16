@@ -83,6 +83,13 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${scpip_prefix}/scpip-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of SCPIP libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
+MARK_AS_ADVANCED(SCPIP_LIBRARY)
+
 #-------------------------------------------------------------------------------
 # The scpip external project
 #-------------------------------------------------------------------------------
@@ -98,6 +105,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${SCPIP_LIBRARY}
   )
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
@@ -110,6 +118,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL_MD5 ${SCPIP_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${SCPIP_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -145,13 +154,4 @@ SET(CFSDEPS
 )
 
 SET(SCPIP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-----------------------------------------------------------------------------
-# Determine paths of SCPIP libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
-
-MARK_AS_ADVANCED(SCPIP_LIBRARY)
 MARK_AS_ADVANCED(SCPIP_INCLUDE_DIR)
-
