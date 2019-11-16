@@ -303,6 +303,11 @@ ELSEIF(UNIX) # end MSVC
       RESULT_VARIABLE RETVAL)
   
     IF(RETVAL EQUAL 0)
+      # replace the intel-version with the fortran version needed for ARPACK
+      # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
+      IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+        string(REPLACE "libmkl_intel_lp64" "libmkl_gf_lp64" MKL_INFO "${MKL_INFO}")
+      ENDIF()
       FILE(WRITE "${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake" ${MKL_INFO})
       FILE(REMOVE_RECURSE "${COMPILE_MKL_TEST_DIR}")
   
