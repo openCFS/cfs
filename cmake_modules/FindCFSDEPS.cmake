@@ -88,7 +88,6 @@ FILE(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
 
 # for configure projectes we may not use ninja but need make
 if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-  message("CMAKE_GENERATOR = ${CMAKE_GENERATOR}")
   find_program(CONFIGURE_MAKE_PROGRAM make)
 else()
   set(CONFIGURE_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build configure projects")
