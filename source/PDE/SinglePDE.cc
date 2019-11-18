@@ -2541,12 +2541,12 @@ namespace CoupledField {
                             definedDofs, updateGeo );
   }
 
-  void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
+  void SinglePDE::ReadEntities( const std::string& elemName,
                                      const StdVector<std::string>& compNames,
                                      ResultInfo::EntryType type,
-                                     bool isComplex,
-                                     StdVector<shared_ptr<EntityList> >& entities, 
-                                     StdVector<PtrCoefFct >& coef,
+                                     StdVector<shared_ptr<EntityList> >& entities,
+                                     StdVector<PtrParamNode>& xmls,
+                                     StdVector<PtrCoefFct>& coef,
                                      bool& updateGeo,
                                      PtrParamNode input) {
 
@@ -2567,20 +2567,22 @@ namespace CoupledField {
       end = elems.GetSize();
     }
 
+    // allocate
     entities.Resize(elems.GetSize());
+    xmls.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
 
     for( UInt i = 0; i < end; ++i ) {
       PtrParamNode xml = elems[i];
       bool hasName = xml->Has("name");
       bool hasRegionList = xml->Has("regionList");
-      
+
       if (hasName && hasRegionList) {
         EXCEPTION(elemName << " element contains name attribute and regionList element, both are not allowed together");
       } else if (!hasName && !hasRegionList) {
         EXCEPTION(elemName << " element contains neither name attribute nor regionList element, exactly one these is required");
       }
-      
+
       std::string entName;
       if (hasRegionList) {
         StdVector<PtrParamNode> regs = xml->Get("regionList")->GetList("region");
@@ -2608,11 +2610,11 @@ namespace CoupledField {
         try {
           // determine list type: In case we have have surface elements, generate explicitly
           // a surface element list
-          EntityList::ListType listType = EntityList::ELEM_LIST; 
+          EntityList::ListType listType = EntityList::ELEM_LIST;
           if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
             listType = EntityList::SURF_ELEM_LIST;
           }
-  
+
           switch( ptGrid_->GetEntityType(entName) ) {
             case EntityList::NAMED_NODES:
               entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
@@ -2631,9 +2633,53 @@ namespace CoupledField {
         }
       }
       std::set<UInt> definedDofs;
-      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                          definedDofs, updateGeo );
+      xmls[i] = xml;
     } // loop: elements
+  }
+
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
+                                     const StdVector<std::string>& compNames,
+                                     ResultInfo::EntryType type,
+                                     bool isComplex,
+                                     StdVector<shared_ptr<EntityList> >& entities, 
+                                     StdVector<PtrCoefFct >& coef,
+                                     bool& updateGeo,
+                                     PtrParamNode input) {
+    // read entities and allocate xmls, coef
+    StdVector<PtrParamNode> xmls;
+    ReadEntities( elemName, compNames, type, entities, xmls, coef, updateGeo, input);
+    // read field values
+    for( UInt i = 0; i < xmls.GetSize(); ++i ) {
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xmls[i],compNames,type,isComplex,coef[i],definedDofs, updateGeo );
+    } // loop: elements
+  }
+
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                       const StdVector<std::string>& compNames,
+                                       ResultInfo::EntryType type,
+                                       StdVector<shared_ptr<EntityList> >& entities,
+                                       StdVector<PtrCoefFct >& coef,
+                                       bool& updateGeo,
+                                       PtrParamNode input) {
+    StdVector<PtrParamNode> xmls;
+    ReadEntities( elemName, compNames, type, entities, xmls, coef, updateGeo, input);
+    for( UInt i = 0; i < xmls.GetSize(); ++i ) {
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xmls[i],compNames,type,coef[i],definedDofs, updateGeo );
+    } // loop: elements
+  }
+
+  void SinglePDE::ReadVolumeRegions( const std::string& elemName, StdVector<std::string>& volumeRegions){
+    ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+    // read the Volume Region from each node
+    volumeRegions.Resize(elems.GetSize());
+    for( UInt i = 0; i < elems.GetSize(); ++i ) {
+      PtrParamNode xml = elems[i];
+      std::string volRegName;
+      xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
+      volumeRegions[i] = volRegName;
+    }
   }
 
   void SinglePDE::ReadRhsExcitation( const std::string& elemName,
@@ -2644,18 +2690,23 @@ namespace CoupledField {
                                   StdVector<PtrCoefFct>& coef,
                                   bool& updateGeo,
                                   StdVector<std::string>& volumeRegions){
-      // get nodes
-      ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
-      // read the Volume Region from each node
-      volumeRegions.Resize(elems.GetSize());
-      for( UInt i = 0; i < elems.GetSize(); ++i ) {
-          PtrParamNode xml = elems[i];
-          std::string volRegName;
-          xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
-          volumeRegions[i] = volRegName;
-      }
+      // read volume regions
+      ReadVolumeRegions(elemName, volumeRegions);
       // read the rest
       ReadRhsExcitation(elemName,compNames,type,isComplex,entities,coef,updateGeo);
+  }
+
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  StdVector<shared_ptr<EntityList> >& entities,
+                                  StdVector<PtrCoefFct>& coef,
+                                  bool& updateGeo,
+                                  StdVector<std::string>& volumeRegions){
+      // read volume regions
+      ReadVolumeRegions(elemName, volumeRegions);
+      // read the rest
+      ReadRhsExcitation(elemName,compNames,type,entities,coef,updateGeo);
   }
 
   template<typename T>
@@ -2728,6 +2779,17 @@ namespace CoupledField {
     in->ResetTempRegionName();
   }
 
+  void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
+                                         PtrParamNode valueNode,
+                                         const StdVector<std::string>& compNames,
+                                         ResultInfo::EntryType type,
+                                         PtrCoefFct & coef,
+                                         std::set<UInt>& definedDofs,
+                                         bool& updateGeo){
+    bool isComplex;
+    valueNode->GetValue("isComplex", isComplex, ParamNode::PASS );
+    ReadUserFieldValues(list, valueNode, compNames, type, isComplex, coef, definedDofs, updateGeo);
+  }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
                                        PtrParamNode valueNode,
