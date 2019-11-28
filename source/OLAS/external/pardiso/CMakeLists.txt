@@ -19,3 +19,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(pardiso-olas ${TARGET_LL})
 
+ADD_DEPENDENCIES(pardiso-olas boost)

@@ -14,13 +14,6 @@ set(BOOST_source  "${BOOST_prefix}/src/boost")
 set(BOOST_install "${BOOST_prefix}/install")
 
 #-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-#SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-patch.cmake.in")
-#SET(PFN "${ARPACK_prefix}/arpack-patch.cmake")
-#CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
 # number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
@@ -69,6 +62,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 
 SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
+MARK_AS_ADVANCED(Boost_LIBRARY_DIR)
 
 IF(UNIX)
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -79,7 +73,9 @@ SET(BOOST_EXTRA_PARAMS "") # both bootstrap and jam
 SET(BOOST_BOOTSTRAP_PARAMS "")
 SET(BOOST_JAM_PATCH_COMMAND "")
 SET(BOOST_JAM_PARAMS "")
+
 IF(MINGW)
+
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 
   STRING(REPLACE "." ";" COMPVER "${CFS_CXX_COMPILER_VER}")
@@ -89,49 +85,19 @@ IF(MINGW)
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
   SET(BOOST_EXTRA_PARAMS ${BOOST_EXTRA_PARAMS} target-os=windows architecture=x86 address-model=64 release )
-  SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=gcc --without-libraries=context --without-libraries=coroutine)
+  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=gcc --without-libraries=context --without-libraries=coroutine)
   SET(BOOST_JAM_PATCH_COMMAND echo "using gcc : mingw : x86_64-w64-mingw32-gcc $<SEMICOLON>" > user-config.jam)
-  SET(BOOST_JAM_PARAMS --user-config=user-config.jam toolset=gcc-mingw )
+  SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} --user-config=user-config.jam toolset=gcc-mingw )
 
-  SET(EXT_ZLIB_zlib_prefix "${BOOST_prefix}/ext_zlib" )
+ENDIF()
 
-  SET(EXT_ZLIB_MIRRORS
-    "http://zlib.net/${ZLIB_GZ}"
-    "http://fossies.org/linux/misc/${ZLIB_GZ}"
-    "${ZLIB_URL}/${ZLIB_GZ}"
-  )
-  SET(EXT_ZLIB_LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
-  SET(EXT_ZLIB_MD5_SUM ${ZLIB_MD5})
+get_filename_component(BOOST_DEP_LIBPATH ${ZLIB_LIBRARY} DIRECTORY) # get the library path without filename from library location
 
-  SET(EXT_ZLIB_DLFN "${zlib_prefix}/zlib-download.cmake")
-  CONFIGURE_FILE(
-    "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-    "${EXT_ZLIB_DLFN}"
-    @ONLY
-  )
+SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} "-sZLIB_INCLUDE=${CFS_BINARY_DIR}/include" "-sZLIB_LIBPATH=${BOOST_DEP_LIBPATH}" "-sNO_ZLIB=0" )
 
-  ExternalProject_Add(boost_download_zlib
-    PREFIX ${EXT_ZLIB_zlib_prefix}
-    SOURCE_DIR ${EXT_ZLIB_zlib_source}
-    URL ${EXT_ZLIB_LOCAL_FILE}
-    URL_MD5 ${ZLIB_MD5}
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND "ls"
-    INSTALL_COMMAND ""
-  )
-
-  ExternalProject_Add_Step(boost_download_zlib cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${EXT_ZLIB_DLFN}"
-    DEPENDERS download
-    DEPENDS "${EXT_ZLIB_DLFN}"
-    WORKING_DIRECTORY ${zlib_prefix}
-  )
-
-  SET(BOOST_ZLIB_SOURCE ${EXT_ZLIB_zlib_prefix}/src/boost_download_zlib)
-  SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} -s ZLIB_SOURCE="${BOOST_ZLIB_SOURCE}" -s ZLIB_INCLUDE="${BOOST_ZLIB_SOURCE}" -s NO_ZLIB=0 ) #-s NO_BZIP2=1)
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=intel-linux)
-  SET(BOOST_JAM_PARAMS cxxflags=\"-gxx-name=g++-7\" cxxflags=\"-gcc-name=gcc-7\")
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux)
+  SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\")
 ENDIF()
 
 
@@ -187,10 +153,6 @@ ELSE()
     INSTALL_COMMAND ./b2 ${BOOST_EXTRA_PARAMS} ${BOOST_JAM_PARAMS} threading=multi install
   )
 
-  IF(MINGW)
-    ADD_DEPENDENCIES(boost boost_download_zlib)
-  ENDIF()
-
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors
   # instead of just a single URL.
@@ -224,3 +186,4 @@ ENDIF()
 #-------------------------------------------------------------------------------
 SET(CFSDEPS ${CFSDEPS} boost)
 
+ADD_DEPENDENCIES(boost zlib)

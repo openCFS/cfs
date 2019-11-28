@@ -14,6 +14,7 @@
 using namespace std;
 using namespace boost;
 int ijk2n(int i, int j, int k) {
+  // maps from three indices to one index
   return(i+4*j+16*k);
 }
 
@@ -48,25 +49,29 @@ void tricubic_partialderiv(vector<vector<vector<double> > > & dEda,vector<vector
     vector<vector<vector<double> > > & dEdadbdc,vector<double>a,vector<double>b,vector<double>c,vector<vector<vector<double> > >E){
   //Approximation of the derivatives with finite differences at the grid points
 
-
   int m = a.size();
   int n = b.size();
   int o = c.size();
+
+  double da = 1./(m);
+  double db = 1./(n);
+  double dc = 1./(o);
+
   for (int i=1;i<m-1;i++) {
     for (int j=1;j<n-1;j++) {
       for (int k=1;k<o-1;k++) {
         //f(i+1,j,k)-f(i-1,j,k) / 2
-        dEda[i][j][k] = (E[i+1][j][k] - E[i-1][j][k]) /2.;
-        dEdb[i][j][k] = (E[i][j+1][k] - E[i][j-1][k]) /2.;
-        dEdc[i][j][k] = (E[i][j][k+1] - E[i][j][k-1]) /2.;
+        dEda[i][j][k] = (E[i+1][j][k] - E[i-1][j][k]) /(2.*da);
+        dEdb[i][j][k] = (E[i][j+1][k] - E[i][j-1][k]) /(2.*db);
+        dEdc[i][j][k] = (E[i][j][k+1] - E[i][j][k-1]) /(2.*dc);
         //f(i+1,j+1,k)-f(i+1,j-1,k)-f(i-1,j+1,k)+f(i-1,j-1,k))/4
-        dEdadb[i][j][k] = (E[i+1][j+1][k]-E[i+1][j-1][k] - E[i-1][j+1][k]+E[i-1][j-1][k])/4.;
-        dEdadc[i][j][k] = (E[i+1][j][k+1]-E[i+1][j][k-1] - E[i-1][j][k+1]+E[i-1][j][k-1])/4.;
-        dEdbdc[i][j][k] = (E[i][j+1][k+1]-E[i][j+1][k-1] - E[i][j-1][k+1]+E[i][j-1][k-1])/4.;
+        dEdadb[i][j][k] = (E[i+1][j+1][k]-E[i+1][j-1][k] - E[i-1][j+1][k]+E[i-1][j-1][k])/(4. * da * db);
+        dEdadc[i][j][k] = (E[i+1][j][k+1]-E[i+1][j][k-1] - E[i-1][j][k+1]+E[i-1][j][k-1])/(4. * da * dc);
+        dEdbdc[i][j][k] = (E[i][j+1][k+1]-E[i][j+1][k-1] - E[i][j-1][k+1]+E[i][j-1][k-1])/(4. * db * dc);
         //(f(i+1,j+1,z+1) - f(i+1,j,k-1) - f(i+1,j-1,k+1) + f(i+1,j-1,k-1) - f(i-1,j+1,k+1) + f(i-1,j+1,k-1)
         //+ f(i-1,j-1,k+1) - f(i-1,j-1,k-1))/8
         dEdadbdc[i][j][k] = (E[i+1][j+1][k+1]-E[i+1][j+1][k-1]-E[i+1][j-1][k+1]+E[i+1][j-1][k-1]-E[i-1][j+1][k+1]+
-            E[i-1][j+1][k-1]+E[i-1][j-1][k+1]-E[i-1][j-1][k-1])/8.;
+            E[i-1][j+1][k-1]+E[i-1][j-1][k+1]-E[i-1][j-1][k-1])/(8. * da * db * dc);
       }
     }
   }

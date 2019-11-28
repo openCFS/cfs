@@ -28,6 +28,7 @@ public:
   struct ResultDef{
     ResultDef(){
       isComplex = false;
+      isStatic = false;
     }
     //! CFS result deifintion
     shared_ptr<ResultInfo> res;
@@ -41,6 +42,8 @@ public:
     StdVector<bool> isValid_;
 
     bool isComplex;
+    
+    bool isStatic;
 
     bool multByCellVol;
   };
@@ -93,6 +96,8 @@ private:
   void GetElemResult( UInt sequenceStep,
       UInt stepValue,
       shared_ptr<BaseResult> result);
+  
+  void FillResultMap(SolutionType sType, ResultInfo::EntryType eType);
 
   //! creates a map for CFS<->Ensight results
   virtual void FillResultMap();

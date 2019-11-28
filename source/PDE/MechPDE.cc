@@ -1586,7 +1586,7 @@ namespace CoupledField {
     // ===============
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
-    ReadRhsExcitation("pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    ReadRhsExcitation("pressure", empty, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -2471,18 +2471,7 @@ namespace CoupledField {
     } else {
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
-    
-    if ( isThermalStrain )  {
-      //add thermal strain to mechanical strain
-      shared_ptr<CoefFunction> totalStrain;
-      totalStrain =
-              CoefFunction::Generate( mp_, part,
-              CoefXprBinOp(mp_,strainFunc,thermalStrain_,CoefXpr::OP_ADD));
-      DefineFieldResult( totalStrain, strain );
-    }
-    else {
-      DefineFieldResult( strainFunc, strain );
-    }
+    DefineFieldResult( strainFunc, strain );
     stiffFormCoefs_.insert(strainFunc);
     
     // === MECHANIC PRINCIPAL STRAIN ===
@@ -3025,6 +3014,26 @@ namespace CoupledField {
     ms->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
     
+    // === MECH_ELEM_VOL for free and parameterized material optimization
+    shared_ptr<ResultInfo> mev(new ResultInfo);
+    mev->resultType = MECH_ELEM_VOL;
+    mev->dofNames = "elemVol";
+    mev->unit = "";
+    mev->entryType = ResultInfo::SCALAR;
+    mev->definedOn = ResultInfo::ELEMENT;
+    mev->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mev);
+
+    // === MECH_ELEM_POROSITY for parameterized material optimization (currently only necessary for two-scale optimization)
+    shared_ptr<ResultInfo> mep(new ResultInfo);
+    mep->resultType = MECH_ELEM_POROSITY;
+    mep->dofNames = "elemPorosity";
+    mep->unit = "";
+    mep->entryType = ResultInfo::SCALAR;
+    mep->definedOn = ResultInfo::ELEMENT;
+    mep->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mep);
+
     // the OPT_RESULT_* are added via the optimization stuff in DesignSpace.
   }
   

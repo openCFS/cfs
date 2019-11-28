@@ -1,4 +1,4 @@
-function [nodes,elems,BCs] = readmesh(meshfile)
+function [nodes,elems,BCs,regions] = readmesh(meshfile)
 
 [~,~,ext] = fileparts(meshfile);
 
@@ -53,21 +53,25 @@ if strcmp(ext,'.mesh')
     end
     fgetl(fid);
     fgetl(fid);
+    
+    elems = [];
+    regions = [];
 
     % Read 2D elements
     if numTriangle > 0
-        elems = fscanf(fid,'%d 4 3 mech\n%d %d %d',[4,numTriangle]);
-        elems = elems(2:4,:)';
+        elems = fscanf(fid,'%d 4 3 %d\n%d %d %d',[5,numTriangle]);
+        regions = elems(2,:)';
+        elems = elems(3:end,:)';
     end
     if numTriangleQuad > 0
-        elems = fscanf(fid,'%d 5 3 mech\n%d %d %d',[4,numTriangleQuad]);
-        elems = elems(2:4,:)';
+        elems = fscanf(fid,'%d 5 3 %d\n%d %d %d',[5,numTriangleQuad]);
+        regions = elems(2,:)';
+        elems = elems(3:end,:)';
     end
     if numQuadr > 0
-        elems = fscanf(fid,'%d 6 4 mech\n%d %d %d %d',[5,numQuadr]);
-        elems = elems(2:5,:)';
-    %     elems = fscanf(fid,'%d 6 4 region%d\n %d %d %d %d',[6,num2DElems]);
-    %     elems = elems(3:6,:)';
+        elems = fscanf(fid,'%d 6 4 %d\n%d %d %d %d',[6,numQuadr]);
+        regions = elems(2,:)';
+        elems = elems(3:end,:)';
     end
 
     % Jump to BC section
@@ -82,6 +86,7 @@ if strcmp(ext,'.mesh')
     pos_bc = ftell(fid);
     % node names: 1 border, 2 controlpoints, 3 bottom, 4 top, 5 left, 6 right
     fgetl(fid);
+    %TODO: FIX
     BCs = fscanf(fid,'%8d nodes%d\n',[2,numNodeBC]);
     
     % : bottom, up, left, right, front, back
@@ -136,5 +141,6 @@ else % density file
     nodes = flipud(nodes');
     elems = [];
     BCs = [];
+    regions = [];
     
 end

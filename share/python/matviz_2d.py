@@ -69,7 +69,9 @@ def calc_volume(s1, s2):
   vol = 0.0
   for i in range(len(s1)):
     vol += s1[i] + s2[i] - s1[i] * s2[i]
-  return (vol / len(s1))[0]  # somehow this is a numpy.ndarry
+  if vol.ndim > 1:
+    vol = vol[0]
+  return (vol / len(s1))
 
 
 # # generate polygon vertices out of rotation data

@@ -187,7 +187,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
       // this is similar to ErsatzMaterial::CalcVolume but calculates derivatives w.r.t. shape
       Grid* grd = domain->GetGrid();
       bool isObjective = g == NULL;
-      double fraction = isObjective ? volume_fraction_ : g->volume_fraction; // this already considers everything
+      double fraction = isObjective ? volumeFraction_ : g->volume_fraction; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
         volume = CalcVolume(c, g, false, normalized);

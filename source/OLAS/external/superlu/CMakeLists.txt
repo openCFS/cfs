@@ -16,6 +16,8 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(superlu-olas ${TARGET_LL})
 
+ADD_DEPENDENCIES(superlu-olas boost)
+
 ADD_EXECUTABLE(dlinsolx2 dlinsolx2.cc)
 TARGET_LINK_LIBRARIES(dlinsolx2 ${TARGET_LL})
 

@@ -39,16 +39,16 @@ def num_nodes_by_type(type_id):
 # # give back elements with barycenters
 # works 2D and 3D
 # @return list barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
-def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered=True):
-  all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
-  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'].value
+def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered = True):
+  all_elements = hdf5_file['/Mesh/Elements/Connectivity'][()]  # for all regions
+  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'][()]
   
   # check if reg_elements is list of list and flatten if necessary
   if any(isinstance(el, numpy.ndarray) for el in reg_elements):
     reg_elements = [el[0] for el in reg_elements]
-    
-  types = hdf5_file['/Mesh/Elements/Types'].value
-  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
+  
+  types = hdf5_file['/Mesh/Elements/Types'][()]
+  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'][()]
   reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
   if region_force != None:
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
@@ -169,7 +169,7 @@ def last_h5_step(hdf5_file,multistep=1):
   return int(last[5:])
 
 def read_displacement(hdf5_file,region = 'mech'):
-  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'].value
+  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'][()]
   return u
 
 # dumps meta data    
@@ -195,9 +195,8 @@ def dump_h5_meta(hdf5_file):
   for name in ms:
     size = len(hdf5_file['/Mesh/Regions/' + name + '/Elements'])
     print('  ' + name + ' with ' + str(size) + ' elements')
-    
     des = None
-          
+    
 # # Test for result
 def has_element(hdf5_file, name, given_step=99999):
   try:   
@@ -216,9 +215,38 @@ def get_element(hdf5_file, name, region, given_step=99999):
   step = min((given_step, last_h5_step(hdf5_file)))
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
   try:
-    return hdf5_file[key].value
+    return hdf5_file[key][()]
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
+
+def get_step_values(h5) :
+  """
+  return the step values as a list of arrays for each multi-sequence step
+
+  Parameters
+  ----------
+  h5: h5py.File object
+
+  Returns
+  -------
+  out : list of arrays
+  """
+  from numpy import allclose
+  try:
+    multisteps = h5['Results/Mesh']
+  except:
+    raise Exception("no Mesh results in %s"%h5.filename)
+  step_values = []
+  for msk in multisteps.keys():
+    result_keys = list(multisteps[msk]['ResultDescription'].keys())
+    rev_vals = multisteps[msk]['ResultDescription'][result_keys[0]]['StepValues'][()]
+    # check step vals
+    for rk in result_keys[1:]:
+      if not allclose(rev_vals,multisteps[msk]['ResultDescription'][rk]['StepValues'][()]) :
+        Exception("step values are different for '" + rk + "' and '"+result_keys[0]+"' in " + msk)
+      #[()]s(
+    step_values.append(rev_vals)
+  return step_values
 
 # returns nodal or elemental results as numpy array
 def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
@@ -256,7 +284,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     if step=='last':
         steps=[last_h5_step(hdf5_file,multistep)]
     elif step=='all' :
-        steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)].value
+        steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)][()]
     elif type(step)==int :
         steps=[step]
     elif hasattr(step, '__iter__') :
@@ -273,10 +301,21 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
         h5_res_reg = h5_res[region] # extraxt region
         res_type = list(h5_res_reg.keys())[0] # read result type (Nodes or Elements)
         if 'Imag' in h5_res_reg[res_type].keys() :
-            res.append( h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value )
+            res.append( h5_res_reg[res_type]['Real'][()] + 1j*h5_res_reg[res_type]['Imag'][()] )
         else :
-            res.append( h5_res_reg[res_type]['Real'].value )
+            res.append( h5_res_reg[res_type]['Real'][()] )
     return squeeze(array(res))
+
+def get_all_results(hdf5_file,region=None,step='last',multistep=1):
+  ms = hdf5_file['/Results/Mesh/MultiStep_%i/ResultDescription'%multistep]
+  res = dict()
+  for name in ms:
+    design = ms[name]
+    if name == None:
+      continue
+    res[name] = get_result(hdf5_file,name,region,step,multistep)
+
+  return res
 
 def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     """
@@ -313,9 +352,9 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
        [ 0.,  0.,  0.]])
     """
     from numpy import array, argwhere
-    Is = hdf5_file['Mesh']['Regions'][subregion][rtype].value-1
-    Ir = hdf5_file['Mesh']['Regions'][region][rtype].value-1
-    Isr = array([argwhere(Ir==i)[0][0] for i in Is])
+    Is = hdf5_file['Mesh']['Regions'][subregion][rtype][()]-1
+    Ir = hdf5_file['Mesh']['Regions'][region][rtype][()]-1
+    Isr = array([argwhere(Ir==i).ravel() for i in Is if i in Ir]).ravel()
     return Isr
 
 
@@ -345,10 +384,10 @@ def get_coordinates(hdf5_file,region=None) :
            [  0.5,   7.2,   0. ]])
     """
     if not region==None :
-        I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'].value - 1
-        return hdf5_file['Mesh/Nodes/Coordinates'].value[I,:]
+        I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'][()] - 1
+        return hdf5_file['Mesh/Nodes/Coordinates'][()][I,:]
     else :
-        return hdf5_file['Mesh/Nodes/Coordinates'].value
+        return hdf5_file['Mesh/Nodes/Coordinates'][()]
 
 def get_centroids(hdf5_file,region=None) :
     """
@@ -379,18 +418,18 @@ def get_centroids(hdf5_file,region=None) :
     """
     from numpy import sum, unique, argwhere, zeros, arange, mean
     # get connectivity and nodal coordinates
-    conn = hdf5_file['Mesh/Elements/Connectivity'].value
-    coord = hdf5_file['Mesh/Nodes/Coordinates'].value
+    conn = hdf5_file['Mesh/Elements/Connectivity'][()]
+    coord = hdf5_file['Mesh/Nodes/Coordinates'][()]
     # determine indices of region
     if not region==None:
         validate_region(hdf5_file,region)
-        I = hdf5_file['Mesh/Regions/%s/Elements'%region].value - 1
+        I = hdf5_file['Mesh/Regions/%s/Elements'%region][()] - 1
     else :
         I = arange(conn.shape[0])
     # allocate result
     center = zeros([len(I),coord.shape[1]])
     # compute the centriods
-    etype = hdf5_file['Mesh/Elements/Types'].value[I] # element types
+    etype = hdf5_file['Mesh/Elements/Types'][()][I] # element types
     for et in unique(etype) : # sum operations for unique element types
         It = argwhere(etype == et)[:,0] # index of the type-elements in region
         Nnodes = sum(conn[I[It[0]]]>0) # determine how many nodes the element-type has

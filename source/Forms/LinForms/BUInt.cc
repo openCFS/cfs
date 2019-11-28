@@ -147,7 +147,6 @@ BUIntegrator(BaseBOperator * bOp,
          } else {
            rhsCoefs_->GetVector(cVec,lp);
            if (SURFACE && (ptFeSpace_->GetSpaceType() == FeSpace::HCURL)) {
-
              //uxn
              pt1 = lp.normal;
              cVec.CrossProduct(pt1,pt2);
@@ -159,7 +158,9 @@ BUIntegrator(BaseBOperator * bOp,
              TF = JacT * lp.jac;
              TF.Invert(TFinv);
 
+             // Transformation of a function in curl space (see Zaglmayer Lemma 4.15)
              cVec = (TFinv * JacT) * pt2;
+             fac *= lp.lpmVol->jacDet;
            }
          }
        }

@@ -41,6 +41,9 @@ namespace CoupledField
     /** special result index for (fd_grad - alg_grad)/(fd_grad). -1 = no index! */
     int error_result_index_;
     
+    /** here we change the design values and set them */
+    StdVector<double> design_values;
+
     /** Shortcut */
     DesignSpace* design;
   };

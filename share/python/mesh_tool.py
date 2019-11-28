@@ -474,7 +474,7 @@ def write_gid_elements(out, elements, dim):
         out.write(str(e.nodes[n] + 1) + ("\n" if n == nodes_by_type(e.type) - 1 else " "))  # write one based node numbers
 
 
-def write_gid_mesh(mesh, filename,scale = 1):
+def write_gid_mesh(mesh, filename, scale = 1):
   # Warning: mesh dimensions should be in [m]
   quad4 = count_elements(mesh.elements, QUAD4)
   hexa8 = count_elements(mesh.elements, HEXA8)
@@ -554,7 +554,12 @@ def write_gid_mesh(mesh, filename,scale = 1):
   for b in range(len(mesh.bc)):
     bc = mesh.bc[b]
     for n in range(len(bc[1])):
-      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n") # bc[1][n]+1 is node number and bc[0] label
+      v = bc[1][n]
+      if v >= len(mesh.nodes):
+        print(bc[0], v, ' larger', len(mesh.nodes)-1)
+      assert(v >= 0)
+      assert(v < len(mesh.nodes))
+      out.write(str(v + 1) + " " + bc[0] + "\n") # bc[1][n]+1 is node number and bc[0] label
   
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
@@ -652,7 +657,7 @@ def validate_periodicity(mesh):
    #create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None, pfem=False):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
+  assert(type == 'bulk2d' or type == 'cantilever2d' or  type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -788,7 +793,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
-  
+
   if type == 'two_load':
     mid = int((nx+1.)/2.)
     mesh.bc.append(("load1", list(range(mid,mid+1))))
@@ -908,7 +913,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz" or type == "box_lufo")
 
   nx = x_res  
-   
+  eps = 1e-6 
   if type == "bulk3d": 
     ny = y_res if y_res != None else x_res 
     nz = z_res if z_res != None else x_res 
@@ -961,7 +966,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   #    |
   # z (.)--> x
   # 
-  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # These are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
   # x is the fastet variable, z is the slowest variable
   #
   #       2 --------- 3         
@@ -971,9 +976,15 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   #    |  |        |  |
   #    |  |        |  |
   #    |  0 -------|- 1
+  
   #    | /         | /
   #    |/          |/
   #    4 --------- 5
+  # 
+  # definition of cube faces:
+  # left: x=0, right x=1
+  # bottom: y=0, top: y=1
+  # back z=0, front: z=1
   
 
   for z in range(nnz):  # slowest variable
@@ -1012,7 +1023,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
           mech_count = mech_count + 1
-          
+
         # assign nodes 
         # left: x=0, right x=1
         # bottom: y=0, top: y=1
@@ -1077,6 +1088,100 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   
   if second > 0: 
     print(str(second) + ' elements of secondary region (' + str(100.0 * second / (nnx * nny * nnz)) + '%)') 
+   
+  return mesh
+
+## creates a mesh of predefined geometry# inclusion is optional  
+# data and threshold for sparse mesh from create_density. data is a numpy.array in 3D! 
+# @param ext_mesh if given use it 
+# @return a mesh, either ext_mesh or a newly created 
+def create_3d_matlab_mesh(type, x_res, y_res = None, z_res = None, width_res = None, height_res = None, depth_res = None): 
+  assert(type == "matlab3d")
+
+  nx = x_res   
+  ny = y_res if y_res != None else x_res  
+  nz = z_res if z_res != None else x_res 
+  width = width_res if width_res != None else 1 
+  height = height_res if height_res != None else 1 
+  depth = depth_res if depth_res != None else 1 
+      
+  dx = width / nx 
+  dy = height / ny 
+  dz = depth / nz 
+      
+  mesh = Mesh(nx, ny, nz)
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+    
+  print('width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz))
+  
+  
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # These are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # y is the fastet variable, z is the slowest variable
+  #
+  #       3 --------- 2         
+  #      /|          /|
+  #     / |         / |
+  #    7 --------- 6  |
+  #    |  |        |  |
+  #    |  |        |  |
+  #    |  0 -------|- 1
+  #    | /         | /
+  #    |/          |/
+  #    4 --------- 5
+  # 
+  # definition of cube faces:
+  # left: x=0, right x=1
+  # bottom: y=0, top: y=1
+  # back z=0, front: z=1
+  
+
+  for z in range(nnz):  # slowest variable
+    for x in range(nnx):
+      for y in range(nny-1,-1,-1):  # fastest variable
+        mesh.nodes.append((x * dx, y * dy, z * dz))
+  
+  # count second region 
+  second = 0
+ 
+  # count second region
+  second = 0 
+  mech_count = 0
+  
+  for z in range(nz):
+    for x in range(nx):
+      for y in range(ny-1,-1,-1):
+        e = Element()
+        e.density = 1.0
+        e.type = HEXA8
+        e.region = 'mech'
+        mech_count = mech_count + 1
+        # assign nodes 
+        ll = nnx*nny*z + nny*x + (nny - y - 1)  #   left-lower-back of current element 
+        # Local nodes definifing element: see paper Liu and Tovar: An efficient 3d Topology optimization code written in Matlab
+        e.nodes = (( ll, ll+nny, ll+nny-1, ll-1, ll+(nnx*nny), ll+nny+(nnx*nny), ll+nny-1+(nnx*nny), ll-1+(nnx*nny)))  
+        mesh.elements.append(e)      
+          
+  assert(mesh != None)
+  assert(mesh.nz > 0)  
+  
+  # need to be extended for other named nodes, node numbering is explained in the paper "An efficient 3D topology optimization code written in Matlab by Kai Liu nad Andres Tovar"
+  for i in range(0,nnz*nny*nnx,nnx*nny):
+    mesh.bc.append(("left",list(range(i,i+nny))))
+    mesh.bc.append(("right_lower",[i+nnx*nny-1]))
+
+  
+  msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
+  msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
+  print(msg)
    
   return mesh
 

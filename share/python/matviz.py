@@ -5,7 +5,6 @@ from matviz_vtk import *
 from matviz_unstructured_mesh import *
 from matviz_2d  import *
 from matviz_streamline import *
-from hdf5_tools import *
 from mesh_tool import *
 from optimization_tools import *
 import argparse
@@ -210,8 +209,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
       if h5_read:
         design = read_design(f, dim_2D, args)
       else:
-        angle, s1, s2, coords = read_stiff_angle_matlab(args.input)
-
+       design, coords = read_stiff_angle_matlab(args.input)
+        
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
       # add angle bias, e.g. by 90 deg to correct thomas
@@ -223,8 +222,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         design['angle'] *= args.angle_factor
       
       for key, value in design.items():
-        print('unscaled {:s} in [{:f}:{:f}]'.format(key, numpy.min(value), numpy.max(value)))
-  
+        print('unscaled {:s} in [{:s}:{:s}]'.format(key, str(numpy.min(value)), str(numpy.max(value))))  
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
         if args.show == "hom_rect": 
@@ -462,6 +460,7 @@ parser.add_argument("--h5_nondes", help="non-design (solid) region name (default
 parser.add_argument("--h5_nondes_void", help="non-design (void) region name (default 'non-design')", default="None")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
+parser.add_argument('--hist', help='plot histograms of the results in the h5 file. Has to be used with --show', type=int, default=0)
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
@@ -678,6 +677,28 @@ else:
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
   
+  if args.hist:
+    if args.show == None:
+      print('ERROR: The option --hist can only be used in combination with --show.')
+      sys.exit()
+    design = read_design(f, dim_2D, args)
+    s1 = design['s1']
+    s2 = design['s2']
+    if dim_2D:
+      vol = s1 + s2 - s1*s2
+    else:
+      s3 = design['s3']
+      vol = pow(s1,2) + pow(s2,2) + pow(s3,2) - (pow(s1,2)*s2+pow(s1,2)*s3+pow(s2,2)*s1+pow(s2,2)*s3+pow(s3,2)*s1+pow(s3,2)*s2)/6.0 *2.0 # rough approximation
+    matplotlib.pyplot.hist(vol,args.hist)
+    matplotlib.pyplot.title('element volume')
+    matplotlib.pyplot.xlim((min(vol),max(vol)))
+    matplotlib.pyplot.show()
+    for des in design:
+      val = design[des]
+      if val.ndim != 1:
+        continue
+    sys.exit()   
+
 # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.h5_nondes != "None" or args.h5_nondes_void != "None":

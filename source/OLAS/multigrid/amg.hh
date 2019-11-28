@@ -19,6 +19,7 @@
 namespace CoupledField {
 /**********************************************************/
 
+
 //! AMG solver or preconditioner
 
 /*! This class encapsulates a AMG matrix hierarchy and other needed

@@ -116,9 +116,15 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
   # we assue C++11 for CFS for any compiler
-  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   SET(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
   SET(CFS_C_FLAGS "-std=c11")
+
+  IF(DEBUG_USE_FSANITIZE)
+    SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
+    #SET(CFSDEPS_CXX_FLAGS " -fsanitize=address ${CFSDEPS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS " -fsanitize=address ${CFS_C_FLAGS}")
+  ENDIF()
   
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
@@ -177,7 +183,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
     # on macOS with gcc-7.1 
     # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined -Wno-stringop-truncation")
   ENDIF()
   
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
@@ -298,9 +304,9 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
   # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
   # If we have newest intel compiler we assume that we have newest gcc as well
   #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
-    SET(CFS_C_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFSDEPS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
   #ENDIF()
   
   #---------------------------------------------------------------------------

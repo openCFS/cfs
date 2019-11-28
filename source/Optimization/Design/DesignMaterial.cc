@@ -41,6 +41,7 @@ using std::string;
 Enum<DesignMaterial::Type> DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation> DesignMaterial::notation;
+Enum<DesignMaterial::RotationType> DesignMaterial::rotationType;
 
 DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space)
 #ifdef USE_SGPP
@@ -69,6 +70,10 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
   space_ = space;
+
+  rotationType_ = RotationType::XYZ;
+  if(pn->Has("rotationtype"))
+    rotationType_ = rotationType.Parse(pn->Get("rotationtype")->As<std::string>());
 
   // initialize, maybe overwritten later
   interpolation_ = DesignMaterial::NOTYPE;
@@ -536,12 +541,12 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   Notation notation =  homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
 
   PtrParamNode data = homRect->GetByVal("data", "a", a, "b", b);
-  hom_rect_samples_[idx][DesignElement::MECH_11 - DesignElement::MECH_11] = data->Get("e11")->As<double>();
-  hom_rect_samples_[idx][DesignElement::MECH_12 - DesignElement::MECH_11] = data->Get("e12")->As<double>();
-  hom_rect_samples_[idx][DesignElement::MECH_22 - DesignElement::MECH_11] = data->Get("e22")->As<double>();
-  hom_rect_samples_[idx][DesignElement::MECH_33 - DesignElement::MECH_11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
-  hom_rect_samples_[idx][DesignElement::MECH_13 - DesignElement::MECH_11] = 0.0;
-  hom_rect_samples_[idx][DesignElement::MECH_23 - DesignElement::MECH_11] = 0.0;
+  hom_rect_samples_[idx][0] = data->Get("e11")->As<double>();
+  hom_rect_samples_[idx][5] = data->Get("e12")->As<double>();
+  hom_rect_samples_[idx][1] = data->Get("e22")->As<double>();
+  hom_rect_samples_[idx][2] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
+  hom_rect_samples_[idx][4] = 0.0;
+  hom_rect_samples_[idx][3] = 0.0;
 }
 
 bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem)
@@ -607,7 +612,7 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
     if (dim == 2)
       return r + (material == OptimizationMaterial::MECH ? 6 : 15);
     else
-      return r + (material == OptimizationMaterial::MECH ? 9 : 15);
+      return r + (material == OptimizationMaterial::MECH ? 21 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r + 2;
@@ -675,6 +680,7 @@ bool DesignMaterial::CheckRequiredDesigns(
           || design.Find(DesignElement::DAMPINGBETA) < 0)) {
     return (false);
   }
+
   switch (type_) {
   case FMO:
     if (dim == 2) {
@@ -686,13 +692,25 @@ bool DesignMaterial::CheckRequiredDesigns(
           && design.Find(DesignElement::MECH_12) >= 0);
     } else {
       return (design.Find(DesignElement::MECH_11) >= 0
-          && design.Find(DesignElement::MECH_22) >= 0
-          && design.Find(DesignElement::MECH_33) >= 0
-          && design.Find(DesignElement::MECH_23) >= 0
-          && design.Find(DesignElement::MECH_13) >= 0
           && design.Find(DesignElement::MECH_12) >= 0
+          && design.Find(DesignElement::MECH_13) >= 0
+          && design.Find(DesignElement::MECH_14) >= 0
+          && design.Find(DesignElement::MECH_15) >= 0
+          && design.Find(DesignElement::MECH_16) >= 0
+          && design.Find(DesignElement::MECH_22) >= 0
+          && design.Find(DesignElement::MECH_23) >= 0
+          && design.Find(DesignElement::MECH_24) >= 0
+          && design.Find(DesignElement::MECH_25) >= 0
+          && design.Find(DesignElement::MECH_26) >= 0
+          && design.Find(DesignElement::MECH_33) >= 0
+          && design.Find(DesignElement::MECH_34) >= 0
+          && design.Find(DesignElement::MECH_35) >= 0
+          && design.Find(DesignElement::MECH_36) >= 0
           && design.Find(DesignElement::MECH_44) >= 0
+          && design.Find(DesignElement::MECH_45) >= 0
+          && design.Find(DesignElement::MECH_46) >= 0
           && design.Find(DesignElement::MECH_55) >= 0
+          && design.Find(DesignElement::MECH_56) >= 0
           && design.Find(DesignElement::MECH_66) >= 0);
     }
   case ISOTROPIC:
@@ -727,15 +745,20 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::GMODUL) >= 0
-        && (dim != 2 || design.Find(DesignElement::ROTANGLE))
-        && (dim != 3 || (design.Find(DesignElement::POISSONISO) >= 0 && design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 ) ) );
+        && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
+        && (dim != 3 || (design.Find(DesignElement::POISSONISO) >= 0
+                        && design.Find(DesignElement::ROTANGLEFIRST) >= 0
+                        && design.Find(DesignElement::ROTANGLESECOND) >= 0
+                        && design.Find(DesignElement::ROTANGLETHIRD) >= 0) ) );
   case DENSITY_TIMES_ROT_PA12:
     return (design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::EMODULISO) >= 0
         && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::GMODUL) >= 0
         && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
-        && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 ) ) );
+        && (dim != 3 || (design.Find(DesignElement::ROTANGLEFIRST) >= 0
+                        && design.Find(DesignElement::ROTANGLESECOND) >= 0
+                        && design.Find(DesignElement::ROTANGLETHIRD) >= 0) ) );
   case D_INTERP_TENSOR:
     return (design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::INTERPOLATION) >=0);
@@ -744,7 +767,9 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::EMODUL) >=0
         && design.Find(DesignElement::INTERPOLATION) >=0
         && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
-        && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 && design.Find(DesignElement::ROTANGLEZ) >= 0 ) ) );
+        && (dim != 3 || (design.Find(DesignElement::ROTANGLEFIRST) >= 0
+                        && design.Find(DesignElement::ROTANGLESECOND) >= 0
+                        && design.Find(DesignElement::ROTANGLETHIRD) >= 0) ) );
   case ORTHOTROPIC:
     return(design.Find(DesignElement::MECH_11) >= 0
         && design.Find(DesignElement::MECH_22) >= 0
@@ -810,8 +835,8 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
           && design.Find(DesignElement::STIFF3) >= 0
-          && design.Find(DesignElement::ROTANGLEX) >= 0
-          && design.Find(DesignElement::ROTANGLEY) >= 0);
+          && design.Find(DesignElement::ROTANGLETHIRD) >= 0
+          && design.Find(DesignElement::ROTANGLESECOND) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
@@ -821,8 +846,8 @@ bool DesignMaterial::CheckRequiredDesigns(
   case HOM_ISO_C1:
     if (dim == 3) {
       return (design.Find(DesignElement::STIFF1) >= 0
-          && design.Find(DesignElement::ROTANGLEX) >= 0
-          && design.Find(DesignElement::ROTANGLEY) >= 0);
+          && design.Find(DesignElement::ROTANGLETHIRD) >= 0
+          && design.Find(DesignElement::ROTANGLESECOND) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::ROTANGLE) >= 0);
@@ -832,8 +857,8 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
           && design.Find(DesignElement::STIFF3) >= 0
-          && design.Find(DesignElement::ROTANGLEX) >= 0
-          && design.Find(DesignElement::ROTANGLEY) >= 0);
+          && design.Find(DesignElement::ROTANGLETHIRD) >= 0
+          && design.Find(DesignElement::ROTANGLESECOND) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
@@ -1055,7 +1080,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
       double rotAngle = GetParameter(DesignElement::ROTANGLE);
       LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
-      RotateTensor(t, direction, notation, CW,true, rotAngle);
+      RotateTensor(t, direction, notation, CW, true, rotAngle);
       LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
 
       //    static int count(0);
@@ -1104,8 +1129,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   case DesignElement::NO_DERIVATIVE:
   case DesignElement::DENSITY: // almost the same as no derivative, we only changed the factor above
   case DesignElement::ROTANGLE:
-  case DesignElement::ROTANGLEX:
-  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLETHIRD:
+  case DesignElement::ROTANGLESECOND:
   {
     double D = (1.0-n3)*f;
     double D3 = (1.0-nu)*E3/c;
@@ -1183,7 +1208,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
     // RotateTensor needs Hill-Mandel matrix
     t.VoigtToHillMandel();
-    RotateTensor(t, direction,VOIGT,CCW);
+    RotateTensor(t, direction, VOIGT, CCW);
     LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString(2);
   }
   if(notation == HILL_MANDEL || notation == HILL_MANDEL_NO_DENSITY){
@@ -1452,16 +1477,32 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
   bool set = direction == DesignElement::NO_DERIVATIVE; //|| direction == DesignElement::ROTANGLE;
 
   double e11 = set ? GetParameter(map, DesignElement::MECH_11) : 0;
-  double e22 = set ? GetParameter(map, DesignElement::MECH_22) : 0;
-  double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
-  double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
-  double e13 = set ? GetParameter(map, DesignElement::MECH_13) : 0;
   double e12 = set ? GetParameter(map, DesignElement::MECH_12) : 0;
-  double e44, e55, e66;
+  double e13 = set ? GetParameter(map, DesignElement::MECH_13) : 0;
+  double e22 = set ? GetParameter(map, DesignElement::MECH_22) : 0;
+  double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
+  double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
+
+
+
+
+  double e14 = 0, e15 = 0, e16 = 0, e24 = 0, e25 = 0, e26 = 0, e34 = 0, e35 = 0, e36 = 0, e44 = 0, e45 = 0, e46 = 0, e55 = 0, e56 = 0, e66 = 0;
   if (subTensor == FULL) {
-    // orthotropic 3D tensor
+    // 3D tensor
+    e14 = set ? GetParameter(map, DesignElement::MECH_14) : 0;
+    e15 = set ? GetParameter(map, DesignElement::MECH_15) : 0;
+    e16 = set ? GetParameter(map, DesignElement::MECH_16) : 0;
+    e24 = set ? GetParameter(map, DesignElement::MECH_24) : 0;
+    e25 = set ? GetParameter(map, DesignElement::MECH_25) : 0;
+    e26 = set ? GetParameter(map, DesignElement::MECH_26) : 0;
+    e34 = set ? GetParameter(map, DesignElement::MECH_34) : 0;
+    e35 = set ? GetParameter(map, DesignElement::MECH_35) : 0;
+    e36 = set ? GetParameter(map, DesignElement::MECH_36) : 0;
     e44 = set ? GetParameter(map, DesignElement::MECH_44) : 0;
+    e45 = set ? GetParameter(map, DesignElement::MECH_45) : 0;
+    e46 = set ? GetParameter(map, DesignElement::MECH_46) : 0;
     e55 = set ? GetParameter(map, DesignElement::MECH_55) : 0;
+    e56 = set ? GetParameter(map, DesignElement::MECH_56) : 0;
     e66 = set ? GetParameter(map, DesignElement::MECH_66) : 0;
   }
 
@@ -1475,71 +1516,110 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
       Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
     } else {
       // temporarily: orthotropic 3D tensor
-      SetOrthotropicTensor(E,subTensor, e11,e12,e13,e22,e23,e33,e44,e55,e66);
+      Set3dVoigtTensor(E,subTensor, e11,e12,e13,e14,e15,e16,e22,e23,e24,e25,e26,e33,e34,e35,e36,e44,e45,e46,e55,e56,e66);
     }
     break;
   case DesignElement::MECH_11:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 1.0,0.,0.,0.,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_12:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,1.0,0.,0.,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_13:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,1.0,0.,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
+    break;
+  case DesignElement::MECH_14:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_15:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_16:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     break;
   case DesignElement::MECH_22:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,1.0,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_23:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,1.0,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
+    break;
+  case DesignElement::MECH_24:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_25:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_26:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     break;
   case DesignElement::MECH_33:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,1.0,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
+    break;
+  case DesignElement::MECH_34:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_35:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_36:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.);
     break;
   case DesignElement::MECH_44:
-    if (subTensor != FULL) {
-      EXCEPTION("MECH_44 is only defined for 3D! Check the code.\n");
-    } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,1.0,0.,0.);
-    }
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_45:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_46:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.);
     break;
   case DesignElement::MECH_55:
-    if (subTensor != FULL) {
-      EXCEPTION("MECH_55 is only defined for 3D! Check the code.\n");
-    } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,1.0,0.);
-    }
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.);
+    break;
+  case DesignElement::MECH_56:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.);
     break;
   case DesignElement::MECH_66:
-    if (subTensor != FULL) {
-      EXCEPTION("MECH_66 is only defined for 3D! Check the code.\n");
-    } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,1.0);
-    }
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.);
     break;
   default:
     // for piezo FMO the derivative w.r.E. dielec_11, ... is zero
@@ -1603,8 +1683,8 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
   case DesignElement::ROTANGLE:
-  case DesignElement::ROTANGLEX:
-  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLETHIRD:
+  case DesignElement::ROTANGLESECOND:
   case DesignElement::DENSITY:
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
@@ -1702,18 +1782,18 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
   E.Resize(3, 3);
   E.Init(); // for off-diagonal
   Vector<double> data;
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_11 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 0);
   
   E[1 - 1][1 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 11=" << E[1-1][1-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_12 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 5);
   E[1 - 1][2 - 1] = shape * data;
   E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
   LOG_DBG(dm)<< "AHRT 12=" << E[1-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_22 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 1);
   E[2 - 1][2 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 22=" << E[2-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_33 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 2);
   E[3 - 1][3 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 }
@@ -1743,7 +1823,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     E.Init(); // for off-diagonal
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
-        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
       E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
       E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
@@ -1776,7 +1856,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
   } else {
     E.Resize(3,3);
     E.Init(); // for off-diagonal
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (o == 0) { // no shearing
         E[1-1][1-1] = EvaluateC1Interpolation(p, hom_rect_coeff11_,da,db,j,k,m,n);
         E[1-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff12_,da,db ,j,k,m,n);
@@ -1843,7 +1923,7 @@ void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
     E.Init(); // for off-diagonal
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
-        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da,da,da,j,j,j,m,m,m);
       E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da,da,da,j,j,j,m,m,m);
       E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da,da,da,j,j,j,m,m,m);
@@ -1916,7 +1996,7 @@ void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
   } else {
     E.Resize(3,3);
     E.Init();
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       E[1-1][1-1] = EvaluateC1Interpolation(p, hom_rect_coeff11_, da,da,j,j,m,m);
       E[1-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff12_, da,da,j,j,m,m);
       E[2-1][1-1] = E[1-1][2-1];
@@ -2361,7 +2441,7 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
   E.Init(); // for off-diagonal
 
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (!shearIsDesign_) { // no shearing
         E[1-1][1-1] = op_eval_->eval(alpha1_, point);
         E[1-1][2-1] = op_eval_->eval(alpha2_, point);
@@ -2402,7 +2482,7 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
           <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     }
   } else {
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (!shearIsDesign_) { // no shearing
         E[1-1][1-1] = op_naive_eval_->eval(alpha1_, point);
         E[1-1][2-1] = op_naive_eval_->eval(alpha2_, point);
@@ -2470,7 +2550,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
         if ((i2 < 1-margin) || (i2 > 64+margin)) continue;
         double bspl_val;
         // evaluate tensor product B-spline
-        if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+        if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
           // 6 because 64 is 2 to the 6th
           bspl_val = bspline.eval(6, i1, p[0]) * bspline.eval(6, i2, p[1]);
         } else if (direction == DesignElement::STIFF1) {
@@ -2491,7 +2571,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
       }
     }
 //    // take positive part (if we're not calculating derivatives)
-//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
 //      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
 //      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
 //      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
@@ -2524,7 +2604,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
           if ((i3 < 1-margin) || (i3 > 63+margin)) continue;
           double bspl_val;
           // evaluate tensor product B-spline
-          if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+          if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
             // 6 because 64 is 2 to the 6th
             bspl_val = bspline.eval(6, i1, p[0]) * bspline.eval(6, i2, p[1]) * bspline.eval(6, i3, p[2]);
           } else if (direction == DesignElement::STIFF1) {
@@ -2550,7 +2630,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
       }
     }
 //    // take positive part (if we're not calculating derivatives)
-//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
 //      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
 //      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
 //      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
@@ -2705,11 +2785,10 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
 }
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
-  double eps = 1e-6;
   int nRows = interval.GetNumRows();
   assert(nRows > 0);
   double h = interval[1][0] - interval[0][0];
-  assert(h > -eps);
+  assert(h > -1e-6);
   int idx = -1;
   // set index for values close to boundaries manually
   if (close(point, interval[nRows - 1][0])) {
@@ -3236,9 +3315,9 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t12,
   t[2][2] = t33;
 }
 
-void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
-    SubTensorType subTensor, double e11, double e12, double e13, double e22,
-    double e23, double e33, double e44, double e55, double e66) {
+void DesignMaterial::Set3dVoigtTensor(Matrix<double>& t,
+    SubTensorType subTensor, double e11, double e12, double e13, double e14, double e15, double e16, double e22, double e23, double e24, double e25, double e26,
+    double e33, double e34, double e35, double e36, double e44, double e45, double e46, double e55, double e56, double e66) {
   switch (subTensor) {
     case FULL:
       t.Resize(6, 6);
@@ -3246,14 +3325,38 @@ void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
       t[0][0] = e11;
       t[0][1] = e12;
       t[0][2] = e13;
+      t[0][3] = e14;
+      t[0][4] = e15;
+      t[0][5] = e16;
       t[1][0] = e12;
+      t[2][0] = e13;
+      t[3][0] = e14;
+      t[4][0] = e15;
+      t[5][0] = e16;
       t[1][1] = e22;
       t[1][2] = e23;
-      t[2][0] = e13;
+      t[1][3] = e24;
+      t[1][4] = e25;
+      t[1][5] = e26;
       t[2][1] = e23;
+      t[3][1] = e24;
+      t[4][1] = e25;
+      t[5][1] = e26;
       t[2][2] = e33;
+      t[2][3] = e34;
+      t[2][4] = e35;
+      t[2][5] = e36;
+      t[3][2] = e34;
+      t[4][2] = e35;
+      t[5][2] = e36;
       t[3][3] = e44;
+      t[3][4] = e45;
+      t[3][5] = e46;
+      t[4][3] = e45;
+      t[5][3] = e46;
       t[4][4] = e55;
+      t[4][5] = e56;
+      t[5][4] = e56;
       t[5][5] = e66;
       break;
     case PLANE_STRAIN:
@@ -3429,8 +3532,8 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
 void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles, double rx, double ry, double rz){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
-  // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
-  // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
+  // rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
+  // direction of rotation around an axis is positive (ccw), i.e. right hand rule applies
   // this is identical to BaseMaterial::RotateTensorByRotationAngles
 
   // tranform temporarily to Voigt notation (assumes that all matrices are HILL_MANDEL in the Optimization
@@ -3443,46 +3546,38 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     dim = 2;
   }
 
-  double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
+  double theta3 = 0.0, theta2 = 0.0, theta1 = 0.0;
   if(dim == 3){
     if (angles) {
-      thetax = rx;
-      thetay = ry;
-      thetaz = rz;
+      theta3 = rx;
+      theta2 = ry;
+      theta1 = rz;
     } else {
-      thetax = GetParameter(DesignElement::ROTANGLEX);
-      thetay = GetParameter(DesignElement::ROTANGLEY);
-      thetaz = 0.0;
-      if(HasParameter(DesignElement::ROTANGLEZ))
-        thetaz = GetParameter(DesignElement::ROTANGLEZ);
-      else if(transIsoType_ != TRANSISO_XY)
-        throw Exception("The parameterization of the rotation is incompatible to the choice of the isotropic plane");
+      theta3 = GetParameter(DesignElement::ROTANGLETHIRD);
+      theta2 = GetParameter(DesignElement::ROTANGLESECOND);
+      theta1 = 0.0;
+      if(HasParameter(DesignElement::ROTANGLEFIRST))
+        theta1 = GetParameter(DesignElement::ROTANGLEFIRST);
     }
   }else{ // dim == 2
     if (angles) {
       // this is correct
-      thetaz = rx;
+      theta1 = rx;
     } else {
-      thetaz = GetParameter(DesignElement::ROTANGLE);
+      theta1 = GetParameter(DesignElement::ROTANGLE);
     }
   }
 
   // if rotation is clockwise, change rotation angles
   if (dim == 2 && clock == CW) {
-    thetax = -thetax;
-    thetay = -thetay;
-    thetaz = -thetaz;
+    theta3 = -theta3;
+    theta2 = -theta2;
+    theta1 = -theta1;
   }
 
-  double sthetax = sin(thetax);
-  double cthetax = cos(thetax);
-  double sthetay = sin(thetay);
-  double cthetay = cos(thetay);
-  double sthetaz = sin(thetaz);
-  double cthetaz = cos(thetaz);
   Matrix<Double> R(dim, dim);
-  SetRotationMatrix(R, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz);
-  LOG_DBG3(dm) << "Rotation matrix for tx=" << thetax << ", ty=" << thetay << ", tz=" << thetaz << " is " << R.ToString();
+  SetRotationMatrix(R, theta1, theta2, theta3);
+
   // see also baseMaterial.cc for this
   int dimQ = dim == 3 ? 6 : 3;
   Matrix<Double> Q(dimQ, dimQ);
@@ -3528,7 +3623,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
   }
   LOG_DBG3(dm) << "Corresponding Q is " << Q.ToString();
-  if(direction != DesignElement::ROTANGLEX && direction != DesignElement::ROTANGLEY && direction != DesignElement::ROTANGLEZ && direction != DesignElement::ROTANGLE){
+  if(direction != DesignElement::ROTANGLETHIRD && direction != DesignElement::ROTANGLESECOND && direction != DesignElement::ROTANGLEFIRST && direction != DesignElement::ROTANGLE){
     // calculate Q*t*Q' and store back to t. unfortunately MultT is the wrong way
     Matrix<Double> help(dimQ, dimQ);
     Q.Mult(t, help);
@@ -3538,8 +3633,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     help.Mult(QT, t);
   }else{ // we need a derivative
     Matrix<Double> dR(dim, dim);
-    SetRotationMatrix(dR, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz, direction); // this now produces the derivative
-    LOG_DBG3(dm) << "Corresponding dR is " << dR.ToString();
+    SetRotationMatrix(dR, theta1, theta2, theta3, direction); // this now produces the derivative
 
     Matrix<Double> dQ(dimQ, dimQ);
     // this part can be produced from the definition of Q above by sed 's/Q/dQ;s/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/(dR\1*R\2+R\1*dR\2)/g', effectively using the product rule
@@ -3609,48 +3703,136 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     t.VoigtToHillMandel();
   }
 }
-void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction){
-  // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
-  // and also found in Wikipedia Drehmatrix (german)
-  // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
-  // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
+void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis, bool derivative) {
+  // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis
+
+  double stheta, ctheta, dx;
+  if(!derivative) {
+    stheta = sin(theta);
+    ctheta = cos(theta);
+    dx = 1;
+  }  else {
+    stheta = cos(theta);
+    ctheta = -sin(theta);
+    dx = 0;
+  }
+
+  Matrix<double> Q;
+  Q.Resize(2,2);
+  Q[0][0] = ctheta;
+  Q[0][1] = -stheta;
+  Q[1][0] = stheta;
+  Q[1][1] = ctheta;
+
   R.Resize(dim, dim);
-  double ndx = 1.0, ndy = 1.0, ndz = 1.0;
-  // for the derivative, we replace the correspond sin by cos and cos by -sin and set nd to 0.0
-  switch(direction){
-  case DesignElement::ROTANGLEX:
-    ndx = sthetax;
-    sthetax = cthetax;
-    cthetax = -ndx;
-    ndx = 0.0;
-    break;
-  case DesignElement::ROTANGLEY:
-    ndy = sthetay;
-    sthetay = cthetay;
-    cthetay = -ndy;
-    ndy = 0.0;
-    break;
-  case DesignElement::ROTANGLEZ:
-  case DesignElement::ROTANGLE:
-    ndz = sthetaz;
-    sthetaz = cthetaz;
-    cthetaz = -ndz;
-    ndz = 0.0;
-    break;
-  default:
-    break;
+  if (dim == 2)
+    R = Q;
+  else {
+    // For three dimensions shift entries modulo 3
+    R.Init();
+    R[axis][axis] = dx;
+    for (int row = 0; row < 2; ++row) {
+      int new_row = (row+axis+1) % 3;
+      for (int col = 0; col < 2; ++col) {
+        int new_col = (col+axis+1) % 3;
+        R[new_row][new_col] = Q[row][col];
+      }
+    }
   }
-  R[0][0] =  ndx * cthetay * cthetaz;
-  R[0][1] = -ndx * cthetay * sthetaz;
-  R[1][0] =  cthetax * ndy * sthetaz + sthetax * sthetay * cthetaz;
-  R[1][1] =  cthetax * ndy * cthetaz - sthetax * sthetay * sthetaz;
-  if(dim == 3){
-    R[0][2] =  ndx * sthetay * ndz;
-    R[1][2] = -sthetax * cthetay * ndz;
-    R[2][0] =  sthetax * ndy * sthetaz - cthetax * sthetay * cthetaz;
-    R[2][1] =  sthetax * ndy * cthetaz + cthetax * sthetay * sthetaz;
-    R[2][2] =  cthetax * cthetay * ndz;
+  LOG_DBG2(dm) << "SOARM: rotation matrix around axis " << axis << " = " << R.ToString();
+}
+
+void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction) {
+  // rotation axes ares given by rotationType (default XYZ, i.e. first z, then y, then x)
+  // direction of rotation around an axis is positive (ccw), i.e. right hand rule applies
+  R.Resize(dim, dim);
+
+  if(dim == 2) {
+    SetOneAxisRotationMatrix(R, theta1, NONE, direction == DesignElement::ROTANGLE);
+  } else {
+    Matrix<double> R1, R2, R3;
+    R1.Resize(dim, dim);
+    R2.Resize(dim, dim);
+    R3.Resize(dim, dim);
+
+    int axis1, axis2, axis3;
+    switch(rotationType_) {
+    case RotationType::ZXZ:
+      axis3 = 2;
+      axis2 = 0;
+      axis1 = 2;
+      break;
+    case RotationType::ZYZ:
+      axis3 = 2;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    case RotationType::YZY:
+      axis3 = 1;
+      axis2 = 2;
+      axis1 = 1;
+      break;
+    case RotationType::YXY:
+      axis3 = 1;
+      axis2 = 0;
+      axis1 = 1;
+      break;
+    case RotationType::XYX:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 0;
+      break;
+    case RotationType::XZX:
+      axis3 = 0;
+      axis2 = 2;
+      axis1 = 0;
+      break;
+    case RotationType::XYZ:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    case RotationType::YXZ:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    case RotationType::XZY:
+      axis3 = 0;
+      axis2 = 2;
+      axis1 = 1;
+      break;
+    case RotationType::ZXY:
+      axis3 = 2;
+      axis2 = 0;
+      axis1 = 1;
+      break;
+    case RotationType::ZYX:
+      axis3 = 2;
+      axis2 = 1;
+      axis1 = 0;
+      break;
+    case RotationType::YZX:
+      axis3 = 1;
+      axis2 = 2;
+      axis1 = 0;
+      break;
+    default:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    }
+    SetOneAxisRotationMatrix(R1, theta1, axis1, direction == DesignElement::ROTANGLEFIRST);
+    SetOneAxisRotationMatrix(R2, theta2, axis2, direction == DesignElement::ROTANGLESECOND);
+    SetOneAxisRotationMatrix(R3, theta3, axis3, direction == DesignElement::ROTANGLETHIRD);
+
+    // we use R as temporary cache: R=R2*R1, R1=R3*R, R<-R1
+    R2.Mult(R1,R);
+    R3.Mult(R,R1);
+    R = R1;
   }
+  LOG_DBG3(dm)  << "SRM:Rotation matrix for t1=" << theta1 << ", t2=" << theta2 << ", t3=" << theta3 << " with derivative w.r.t. to " << direction << " is \n" << R.ToString();
 }
 
 void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
@@ -4097,5 +4279,19 @@ void DesignMaterial::SetEnums() {
   notation.Add(VOIGT, "voigt");
   notation.Add(HILL_MANDEL, "hill_mandel");
   notation.Add(HILL_MANDEL_NO_DENSITY, "hill_mandel_no_density");
+
+  rotationType.SetName("RotationType");
+  rotationType.Add(ZXZ, "zxz");
+  rotationType.Add(ZYZ, "zyz");
+  rotationType.Add(YZY, "yzy");
+  rotationType.Add(YXY, "yxy");
+  rotationType.Add(XYX, "xyx");
+  rotationType.Add(XZX, "xzx");
+  rotationType.Add(XYZ, "xyz");
+  rotationType.Add(YXZ, "yxz");
+  rotationType.Add(XZY, "xzy");
+  rotationType.Add(ZXY, "zxy");
+  rotationType.Add(ZYX, "zyx");
+  rotationType.Add(YZX, "yzx");
 }
 

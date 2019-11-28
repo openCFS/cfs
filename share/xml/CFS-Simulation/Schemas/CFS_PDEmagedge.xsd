@@ -55,12 +55,24 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining nonlinear types -->
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Definnes the non-matching interfaces</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
           <!-- List defining nonlinear types -->
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -106,7 +118,7 @@
                 <!-- Dirichlet Boundary Conditions -->
                 <xsd:element name="fluxParallel" type="DT_BcHomScalar">
                   <xsd:annotation>
-                    <xsd:documentation>Magnetic field lines are forced to be parallel to the surface </xsd:documentation>
+                    <xsd:documentation>Magnetic field lines are forced to be parallel to the surface. This corresponds to homogeneous Neumann BCs for all edge degrees of freedom on the surface.</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="potential" type="DT_BcInhomVector">
@@ -115,6 +127,18 @@
                   </xsd:annotation>
                 </xsd:element>
 
+                <xsd:element name="elecPotential" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Electric scalar potential</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <xsd:element name="voltOnEfield" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>hard to explain</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>
@@ -139,6 +163,16 @@
             maxOccurs="1"/>
 
         </xsd:sequence>
+
+        <xsd:attribute name="formulation" use="optional" default="A">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="A"/>
+              <xsd:enumeration value="A-V"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute> 
+
 
       </xsd:extension>
     </xsd:complexContent>
@@ -255,7 +289,10 @@
 
   <!-- Definition of nodal result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeNodeResult">
-    <xsd:restriction base="xsd:token"> </xsd:restriction>
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
+      <xsd:enumeration value="elecPotential"/>
+    </xsd:restriction>
   </xsd:simpleType>
   
 
@@ -266,6 +303,7 @@
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="gradElecPotential"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
@@ -273,6 +311,7 @@
       <xsd:enumeration value="magForceLorentzDensity"/>
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magElemPermeability"/>
+      <xsd:enumeration value="magElemReluctivity"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
@@ -293,6 +332,7 @@
       <xsd:enumeration value="magEddyPower"/>
       <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magCoreLoss"/>
+      <xsd:enumeration value="magJouleLossPower"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -300,6 +340,8 @@
   <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magEddyCurrent1"/>
+      <xsd:enumeration value="magEddyCurrent2"/>
       <xsd:enumeration value="magFlux"/>
       <xsd:enumeration value="magForceVWP"/>
       <xsd:enumeration value="magForceMaxwell"/>

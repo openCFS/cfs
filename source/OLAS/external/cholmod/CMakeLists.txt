@@ -27,3 +27,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(cholmod-olas ${TARGET_LL} )
 
+ADD_DEPENDENCIES(cholmod-olas boost)

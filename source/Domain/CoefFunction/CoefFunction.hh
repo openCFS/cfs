@@ -37,6 +37,7 @@ namespace CoupledField{
 class CoordSystem;
 class CoefXpr;
 class CoefFunction;
+template < typename TYPE > class CoefFunctionConst;
 class FeSpace;
 class BaseFeFunction;
 
@@ -270,7 +271,7 @@ public:
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
+    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen "
         << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
@@ -330,6 +331,19 @@ public:
   
   //@}
 
+  virtual void Init(shared_ptr<BaseFeFunction> feFct,
+            shared_ptr<FeSpace> feSpc,
+            const StdVector<RegionIdType>& regions,
+            std::map<RegionIdType, BaseMaterial*>& materials,
+            Grid* ptGrid,
+            PtrCoefFct magFluxCoef,
+            const UInt& N,
+            const UInt& M,
+            const Double& baseFreq,
+            const UInt& nFFT){
+    EXCEPTION("Not implemented here in base class");
+    return;
+  }
 
   //! Set associated coordinate system
   virtual void SetCoordinateSystem(CoordSystem* cSys){
@@ -392,6 +406,14 @@ public:
     return isComplex_;
   }
 
+  /** helper for using simplified CoefFunctionConst interface GetScalar(), ... without lpm.
+   * For performance reason don't use shared pointers, hence don't store the pointer!
+   * Does NOT return a const version but a CoefFunctionCons cast!
+   * To be used like double val = coef->AsConst<double>->GetScalar();
+   * @return NULL if the type is wrong (is just a dynamic cast) */
+  template<class TYPE>
+  CoefFunctionConst<TYPE>* AsConst(bool throw_exception = false);
+
   //! stes the coefFnc as active (just used for inverse source identififcation)
   virtual void SetActive(bool val) {
     isActive_ = val;
@@ -427,7 +449,7 @@ public:
   //! set all parameters for inverse scheme
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
 		                        Double& freq, std::string fileNameMeasdata,
-								std::string logLevel) {
+								std::string logLevel, Double& scalVal) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
 
@@ -437,7 +459,7 @@ public:
   }
 
   //! update the source values (amplitude and phase)
-  virtual void UpdateSource(Double& stepLength, bool lineSearch) {
+  virtual void UpdateSource(Double& stepLength, bool lineSearch, bool scaleBack=false) {
 	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
   }
 
@@ -587,6 +609,22 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(const UInt& iRegion,
+                                                      const std::string& name,
+                                                      const bool nonLin,
+                                                      shared_ptr<ElemList> actSDList){
+    EXCEPTION("Not implemented in base class");
+  }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                                     const UInt& iRegion){
+    EXCEPTION("Not implemented in base class");
+  }
+
+
   //! Functions needed for Hystersis
   virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
 	  EXCEPTION("SetPreviousHystVals not available");
@@ -734,7 +772,7 @@ protected:
   //! sets the rhsFnc active
   bool isActive_;
 
-  //! approximate source terms with delta fu	nctions
+  //! approximate source terms with delta functions
   CoefInverseSourceApprox approxSourceType_;
 };
 

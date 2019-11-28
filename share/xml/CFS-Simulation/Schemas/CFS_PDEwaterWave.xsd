@@ -139,6 +139,11 @@
                     <xsd:documentation>pressure is set to zero</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="displacement" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>displacement is prescribed: -rho*omega^2 u_n</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
                 <!-- RHS Load Values-->
                 <xsd:element name="surfaceLoad" type="DT_BcInhomScalar">
@@ -434,7 +439,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="waterPressure"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
-      <xsd:enumeration value="waterWaveRhsLoad"/>
+      <xsd:enumeration value="waterRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -442,6 +447,7 @@
   <xsd:simpleType name="DT_WaterWaveElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density"/>
+      <xsd:enumeration value="waterPosition"/>
       <xsd:enumeration value="pmlDampFactor"/>
     </xsd:restriction>
   </xsd:simpleType>

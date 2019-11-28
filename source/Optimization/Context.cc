@@ -90,6 +90,7 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     break;
 
   case BasePDE::MULTI_SEQUENCE:
+  case BasePDE::MULTIHARMONIC:
   case BasePDE::NO_ANALYSIS:
     assert(false);
     break;

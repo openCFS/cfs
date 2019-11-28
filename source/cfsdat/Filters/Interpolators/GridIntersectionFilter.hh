@@ -58,6 +58,9 @@ private:
 
   CRS_Matrix<Double>* InterpolationMatrix;
 
+  //! Global Factor for scaling the result
+  Double globalFactor_;
+
 };
 
 }

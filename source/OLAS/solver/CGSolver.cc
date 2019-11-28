@@ -162,7 +162,7 @@ namespace CoupledField {
       resNorm = r_->NormL2();
 
       if(consoleConvergence == true){
-        std::cout<<"Residual of iteration "<<niter<<" = "<<resNorm<<std::endl;
+        std::cout<<"Residual L2 norm of iteration "<<niter<<" = "<<resNorm<<std::endl;
       }
 
       // Compute s = M^-1*r by applying preconditioner

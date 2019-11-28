@@ -34,10 +34,32 @@ namespace CoupledField {
                            const LocPointMapped& lp,
                            const Elem* elem, UInt comp = 1 );
 
+    virtual void GetShFnc( Vector<Double>& S,  LocPoint& lp,
+                           const Elem* ptElem,  UInt comp = 1 ){
+      EXCEPTION("This GetShFnc is not implemented for HCurl elements")
+    }
+
+    virtual void GetShFnc( Matrix<Double>& S,  LocPoint& lp,
+                           const Elem* ptElem,  UInt comp = 1 ){
+      EXCEPTION("This GetShFnc is not implemented for HCurl elements")
+    }
+
     //! Return global curl of shape functions
     virtual void GetCurlShFnc( Matrix<Double>& curl, 
                                const LocPointMapped& lp,
                                const Elem* elem, UInt comp = 1 );
+
+    //! Return global derivative of shape functions
+    virtual void GetGlobDerivShFnc( Matrix<Double>& deriv,
+                            const LocPointMapped& lp,
+                            const Elem* elem, UInt comp = 1 ){
+      EXCEPTION("GetGlobDerivShFnc not allowed for HCurl space");
+    }
+
+    virtual std::string GetFeSpaceName(){
+      std::string r = "HCurl";
+      return r;
+    }
 
   protected:
     

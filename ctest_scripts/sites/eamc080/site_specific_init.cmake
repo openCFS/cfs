@@ -13,27 +13,25 @@ SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
 IF(${SITE_DIR} MATCHES "master_stingl")
-  SET(CTEST_BUILD_NAME "Update Testsuite stingl master")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
+  # Testsuite is a submodule of cfs.
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
+
+  SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
+
+  # don't know if this even works!!
+  # create new empty directory in test specific cmake files, not here!
+  # SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
+
+  MESSAGE("\n---------------------------------------------------")
+  MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
+  MESSAGE("---------------------------------------------------\n")
+
+  FIND_PROGRAM(CTEST_GIT_COMMAND NAMES git)
+  SET(CTEST_UPDATE_TYPE "git")
+
+  CTEST_START(Nightly)
+  CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+  CTEST_SUBMIT()
 ENDIF()
-
-SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
-
-# don't know if this even works!!
-# create new empty directory in test specific cmake files, not here!
-# SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
-
-MESSAGE("\n---------------------------------------------------")
-MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
-MESSAGE("---------------------------------------------------\n")
-
-FIND_PROGRAM(CTEST_GIT_COMMAND NAMES git)
-SET(CTEST_UPDATE_TYPE "git")
-
-CTEST_START(Nightly)
-CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-CTEST_SUBMIT()
-

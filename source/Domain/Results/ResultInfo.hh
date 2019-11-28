@@ -102,6 +102,9 @@ namespace CoupledField {
 
     //! Is this result provided from the optimization part
     bool fromOptimization;
+    
+    //! this is true if the result is not depending on time/frequency
+    bool isStatic;
 
     /** Gives back a debug summary of the result info */
     std::string ToString() const; 

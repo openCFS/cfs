@@ -245,6 +245,14 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( regList->HasByVal("surfRegion", "polyId", id ) ) {
           usedPolys.insert(polys[i]);
         }
+        // check for "velPolyId" and "presPolyId" in the PDE definition (used in LinFlowPDE)
+        std::vector<std::string> polyIds = {"velPolyId", "presPolyId"};
+        for (const std::string & polyId :polyIds)
+        {
+          if ( aNode->HasByVal(polyId,id) ) {
+            usedPolys.insert(polys[i]);
+          }
+        }
       }
       
       // check consistency of referenced polynomials
@@ -912,7 +920,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   // GENERATE REGION SPECIFIC DATA AND PROCESS USER INPUT
   // ************************************************************************
   void FeSpace::SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId){
-    
     std::string regionName = ptGrid_->GetRegion().ToString(region);
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
     

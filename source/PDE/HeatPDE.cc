@@ -15,10 +15,12 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
+#include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -785,8 +787,7 @@ void HeatPDE::HeatTransferBC(){
         PtrCoefFct coeffRHS = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor2, bulkTimesAlpha, CoefXpr::OP_MULT ) );
 
         if(isComplex_) {
-          EXCEPTION("Heat transfer BC not yet implemented for complex case");
-          //lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coeffRHS, coefUpdateGeo);
         }
@@ -963,6 +964,27 @@ void HeatPDE::DefinePrimaryResults() {
   res1->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
   DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res1 );
 
+  shared_ptr<ResultInfo> res2( new ResultInfo);
+  res2->resultType = HEAT_MEAN_TEMPERATURE;
+  res2->dofNames = "";
+  res2->unit = "K";
+  res2->definedOn = ResultInfo::NODE;
+  res2->entryType = ResultInfo::SCALAR;
+  results_.Push_back( res2 );
+  availResults_.insert( res2 );
+  //PtrCoefFct tmpReal = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_,feFunctions_[HEAT_TEMPERATURE],CoefXpr::OP_RE ) );
+  //DefineFieldResult( tmpReal, res2 );
+  // Define new CoefFunction
+  PtrCoefFct tmpReal = NULL;
+  // Reset it to be a changetype coef
+  tmpReal.reset(new CoefFunctionComplexToReal<Double>(feFunctions_[HEAT_TEMPERATURE], ptGrid_));
+  DefineFieldResult( tmpReal, res2 );
+
+  //  DefineFieldResult( convecVelCoef_, velocity );
+  //  res2->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
+  //  DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res2 );
+
+
 
   // -----------------------------------
   //  Define xml-names of Dirichlet BCs
@@ -1026,20 +1048,48 @@ void HeatPDE::DefinePostProcResults() {
   DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
   // === HEAT FLUX DENSITY ===
-  shared_ptr<ResultInfo> flux ( new ResultInfo );
-  flux->resultType = HEAT_FLUX_DENSITY;
-  flux->SetVectorDOFs(dim_, isaxi_);
-  flux->unit = "W/m^2";
-  flux->definedOn = ResultInfo::ELEMENT;
-  flux->entryType = ResultInfo::VECTOR;
-  shared_ptr<CoefFunctionFormBased> fluxFunc;
+  shared_ptr<ResultInfo> fluxDens ( new ResultInfo );
+  fluxDens->resultType = HEAT_FLUX_DENSITY;
+  fluxDens->SetVectorDOFs(dim_, isaxi_);
+  fluxDens->unit = "W/m^2";
+  fluxDens->definedOn = ResultInfo::ELEMENT;
+  fluxDens->entryType = ResultInfo::VECTOR;
+  shared_ptr<CoefFunctionFormBased> fluxDensFunc;
   if( isComplex_ ) {
-    fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, Complex(-1.0)));
+    fluxDensFunc.reset(new CoefFunctionFlux<Complex>(feFct, fluxDens, Complex(-1.0)));
   } else {
-    fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
+    fluxDensFunc.reset(new CoefFunctionFlux<Double>(feFct, fluxDens, -1.0));
   }
-  DefineFieldResult( fluxFunc, flux );
-  stiffFormCoefs_.insert(fluxFunc);
+  DefineFieldResult( fluxDensFunc, fluxDens );
+  stiffFormCoefs_.insert(fluxDensFunc);
+
+  // === HEAT FLUX INTENSITY ===
+  shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );
+  fluxNormal->resultType = HEAT_FLUX_INTENSITY;
+  fluxNormal->unit = "W/m^2";
+  fluxNormal->dofNames = "";
+  fluxNormal->definedOn = ResultInfo::SURF_ELEM;
+  fluxNormal->entryType = ResultInfo::SCALAR;
+  shared_ptr<CoefFunctionSurf> fluxNormalFunc;
+  fluxNormalFunc.reset(new CoefFunctionSurf(true, 1.0, fluxNormal));
+  DefineFieldResult( fluxNormalFunc, fluxNormal );
+  surfCoefFcts_[fluxNormalFunc] = fluxDensFunc;
+
+  // === HEAT FLUX ===
+  shared_ptr<ResultInfo> flux ( new ResultInfo );
+  flux->resultType = HEAT_FLUX;
+  flux->unit = "W";
+  flux->dofNames = "";
+  flux->definedOn = ResultInfo::SURF_REGION;
+  flux->entryType = ResultInfo::SCALAR;
+  shared_ptr<ResultFunctor> fluxFunc;
+  availResults_.insert( flux );
+  if( isComplex_ ) {
+    fluxFunc.reset(new ResultFunctorIntegrate<Complex>(fluxNormalFunc, feFct, flux) );
+  } else {
+    fluxFunc.reset(new ResultFunctorIntegrate<Double>(fluxNormalFunc, feFct, flux) );
+  }
+  resultFunctors_[HEAT_FLUX] = fluxFunc;
 
   // optimization results are provided in DesignSpace::ExtractResults()
   // copied from MechPDE

@@ -30,6 +30,7 @@ namespace CoupledField {
     maxKrylovDim_   = 0;
     problemDim_     = 0;
     hMatNumRows_    = 0;
+    consoleConvergence_ = false;
 
     // Generate object for performing Givens rotations
     givens_ = new GivensRotation( GivensRotation::OLAS );
@@ -93,7 +94,7 @@ namespace CoupledField {
 #endif
     UInt newKrylovDim = 50;
     xml_->GetValue("maxKrylovDim", newKrylovDim, ParamNode::INSERT);
-    
+    xml_->GetValue("consoleConvergence", consoleConvergence_, ParamNode::INSERT);
 
     // Check that matrix is square
     assert(nCols == nRows); 
@@ -223,6 +224,10 @@ namespace CoupledField {
       // (Will serve in constructing base vector for next inner loop)
       sysMat.CompRes( *(vMat_[1]), sol, rhs );
       resNorm = vMat_[1]->NormL2();
+
+      if(consoleConvergence_ == true){
+        std::cout<<"Residual L2 norm of iteration "<<stepCountGlobal<<" = "<<resNorm<<std::endl;
+      }
 
       // If InnerLoop says approximation is fine, test for false
       // convergence. If everything is fine, stop iteration.

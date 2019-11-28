@@ -59,6 +59,11 @@ namespace CoupledField {
     virtual void GetShFnc( Vector<Double>& S, const LocPoint& lp,
                            const Elem* ptElem,  UInt comp = 1 );
     
+    virtual void GetShFnc( Matrix<Double>& S,  LocPoint& lp,
+                           const Elem* ptElem,  UInt comp = 1 ){
+      EXCEPTION("This GetShFnc is not implemented for H1 elements")
+    }
+
     //! Return global derivative of shape functions
     void GetGlobDerivShFnc( Matrix<Double>& deriv, 
                             const LocPointMapped& lp,
@@ -102,6 +107,12 @@ namespace CoupledField {
     void GetLocDerivShFncICModes( Matrix<Double>& deriv, 
                                   const LocPoint& lp,
                                   const Elem* elem, UInt comp = 1 );
+
+    virtual std::string GetFeSpaceName(){
+      std::string r = "H1";
+      return r;
+    }
+
     //@}
     
   protected:

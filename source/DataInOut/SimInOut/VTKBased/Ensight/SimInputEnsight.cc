@@ -128,15 +128,18 @@ void SimInputEnsight::CreateReader(){
     PtrParamNode varNode = variableDef[aNode];
     std::string cfsVarName = varNode->Get("CFSVarName")->As<std::string>();
     std::string varNames = varNode->Get("EnsightVarName")->As<std::string>();
+    bool staticVar = varNode->Get("static")->As<bool>();
     boost::char_separator<char> sep(" ,");
     boost::tokenizer<boost::char_separator<char> > varTok(varNames, sep);
     SolutionType cfsSol = SolutionTypeEnum.Parse(cfsVarName);
 
+    this->cfsEnsightResMap_[cfsSol].multByCellVol = false;
+    this->cfsEnsightResMap_[cfsSol].isComplex = false;
+    this->cfsEnsightResMap_[cfsSol].isStatic = staticVar;
     for(boost::tokenizer<boost::char_separator<char> >::iterator beg=varTok.begin(); beg!=varTok.end();++beg){
       reader->SetPointArrayStatus(beg->c_str(), 1);
       this->cfsEnsightResMap_[cfsSol].dofNameMap.Push_back(beg->c_str());
       this->cfsEnsightResMap_[cfsSol].isValid_.Push_back(false);
-      this->cfsEnsightResMap_[cfsSol].multByCellVol = false;
     }
   }
   ValidateResultDefinition();
@@ -218,202 +221,70 @@ void SimInputEnsight::GetResultTypes( UInt sequenceStep,
                                            bool isHistory ){
   std::set<SolutionType>::iterator aRes = availResults_.begin();
   while(aRes != availResults_.end()){
+    this->cfsEnsightResMap_[*aRes].res->isStatic = cfsEnsightResMap_[*aRes].isStatic;
     infos.Push_back(this->cfsEnsightResMap_[*aRes].res);
     aRes++;
   }
 }
 
+void SimInputEnsight::FillResultMap(SolutionType sType, ResultInfo::EntryType eType) {
+  this->cfsEnsightResMap_[sType].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> resInfoPtr = this->cfsEnsightResMap_[sType].res;
+  resInfoPtr->resultType = sType;
+  resInfoPtr->resultName = SolutionTypeEnum.ToString(sType);
+  if (eType == ResultInfo::TENSOR) {
+    if(dim_ == 3) {
+      resInfoPtr->dofNames = "xx", "xy", "xz", "yx", "yy", "yz", "zx", "zy", "zz"; 
+    } else {
+      resInfoPtr->dofNames = "xx", "xy", "yx", "yy";
+    }
+  } else if (eType == ResultInfo::VECTOR) {
+    if(dim_ == 3) {
+      resInfoPtr->dofNames = "x", "y", "z"; 
+    } else {
+      resInfoPtr->dofNames = "x", "y";
+    }
+  } else {
+    resInfoPtr->dofNames = "";
+  }
+  resInfoPtr->unit = MapSolTypeToUnit(sType);
+  resInfoPtr->definedOn = ResultInfo::NODE;
+  resInfoPtr->entryType = eType;
+}
+
 void SimInputEnsight::FillResultMap(){
-  //================================================
-  // FluidMechVelocity
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> velocity = this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res;
-  velocity->resultType = FLUIDMECH_VELOCITY;
-  velocity->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
-  if(dim_ == 3)
-    velocity->dofNames = "x", "y", "z";
-  else
-    velocity->dofNames = "x", "y";
-  velocity->unit = "m/s";
-
-  velocity->definedOn = ResultInfo::NODE;
-  velocity->entryType = ResultInfo::VECTOR;
-
-
-  //================================================
-  // FluidMechPressure
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_PRESSURE].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> pressure = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE].res;
-  pressure->resultType = FLUIDMECH_PRESSURE;
-  pressure->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
-  pressure->dofNames = "";
-  pressure->unit = "Pa";
-
-  pressure->definedOn = ResultInfo::NODE;
-  pressure->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // Time derivative of FluidMechPressure
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_TIME_DERIV_1].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> pressureTD1 = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_TIME_DERIV_1].res;
-  pressureTD1->resultType = FLUIDMECH_PRESSURE_TIME_DERIV_1;
-  pressureTD1->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_TIME_DERIV_1);
-  pressureTD1->dofNames = "";
-  pressureTD1->unit = "Pa/s";
-
-  pressureTD1->definedOn = ResultInfo::NODE;
-  pressureTD1->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // Laplacian of FluidMechPressure
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_2].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> pressureD2 = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_2].res;
-  pressureD2->resultType = FLUIDMECH_PRESSURE_DERIV_2;
-  pressureD2->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_DERIV_2);
-  pressureD2->dofNames = "";
-  pressureD2->unit = "Pa/m^2";
-
-  pressureD2->definedOn = ResultInfo::NODE;
-  pressureD2->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // Gradient of FluidMechPressure
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_1].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> gradP = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_1].res;
-  gradP->resultType = FLUIDMECH_PRESSURE_DERIV_1;
-  gradP->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_DERIV_1);
-  if(dim_ == 3)
-    gradP->dofNames = "x", "y", "z";
-  else
-    gradP->dofNames = "x", "y";
-  gradP->unit = "Pa/m";
-
-  gradP->definedOn = ResultInfo::NODE;
-  gradP->entryType = ResultInfo::VECTOR;
-
-  //================================================
-  // FluidMechVorticity
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_VORTICITY].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> vor = this->cfsEnsightResMap_[FLUIDMECH_VORTICITY].res;
-  vor->resultType = FLUIDMECH_VORTICITY;
-  vor->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VORTICITY);
-  if(dim_ == 3)
-    vor->dofNames = "x", "y", "z";
-  else
-    vor->dofNames = "z";
-  vor->unit = "1/s";
-
-  vor->definedOn = ResultInfo::NODE;
-  vor->entryType = ResultInfo::VECTOR;
-
-  //================================================
-  // MeanFluidMechVelocity
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[MEAN_FLUIDMECH_VELOCITY].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> vel = this->cfsEnsightResMap_[MEAN_FLUIDMECH_VELOCITY].res;
-  vel->resultType = MEAN_FLUIDMECH_VELOCITY;
-  vel->resultName = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
-  if(dim_ == 3)
-    vel->dofNames = "x", "y", "z";
-  else
-    vel->dofNames = "x", "y";
-  vel->unit = "m/s";
-
-  vel->definedOn = ResultInfo::NODE;
-  vel->entryType = ResultInfo::VECTOR;
-
-  //================================================
-  // FluidMechDensity
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_DENSITY].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> dens = this->cfsEnsightResMap_[FLUIDMECH_DENSITY].res;
-  dens->resultType = FLUIDMECH_DENSITY;
-  dens->resultName = SolutionTypeEnum.ToString(FLUIDMECH_DENSITY);
-  dens->dofNames = "";
-  dens->unit = "kg/m^3";
-
-  dens->definedOn = ResultInfo::NODE;
-  dens->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // FluidMech Turbulent Eddy Frequency (epsilon)
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_TEF].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> tef = this->cfsEnsightResMap_[FLUIDMECH_TEF].res;
-  tef->resultType = FLUIDMECH_TEF;
-  tef->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TEF);
-  tef->dofNames = "";
-  tef->unit = "kg/m^3";
-
-  tef->definedOn = ResultInfo::NODE;
-  tef->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // FluidMechTemperature
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_TEMP].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> temp = this->cfsEnsightResMap_[FLUIDMECH_TEMP].res;
-  temp->resultType = FLUIDMECH_TEMP;
-  temp->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TEMP);
-  temp->dofNames = "";
-  temp->unit = "K";
-
-  temp->definedOn = ResultInfo::NODE;
-  temp->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // FluidMech Turbulent Kinetic Energy
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_TKE].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> tke = this->cfsEnsightResMap_[FLUIDMECH_TKE].res;
-  tke->resultType = FLUIDMECH_TKE;
-  tke->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TKE);
-  tke->dofNames = "";
-  tke->unit = "m^2/s^2";
-
-  tke->definedOn = ResultInfo::NODE;
-  tke->entryType = ResultInfo::SCALAR;
-
-  //================================================
-  // FluidMech specific Turbulent Dissipation Rate (omega)
-  //================================================
-  //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_TDR].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> tdr = this->cfsEnsightResMap_[FLUIDMECH_TDR].res;
-  tdr->resultType = FLUIDMECH_TDR;
-  tdr->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TDR);
-  tdr->dofNames = "";
-  tdr->unit = "1/s";
-
-  tdr->definedOn = ResultInfo::NODE;
-  tdr->entryType = ResultInfo::SCALAR;
-
-
-  // IF you want to add a new CFS Variable as Ensight input
-  // 1. "define a section like the one above for FluidMechDensity
-  // 2. define the relevant format (dofs and so on)
-  // 3. register FLUIDMECH_DENSITY in Environment.hh
-  // 4. add xml name of FLUIDMECH_DENSITY to SetEnvironmentEnums() in Environment.cc
-  // 5. add unit of FLUIDMECH_DENSITY to SetEnvironmentEnums() in Environment.cc
-  // DONE
-
+  FillResultMap(FLUIDMECH_VELOCITY, ResultInfo::VECTOR);
+  FillResultMap(FLUIDMECH_PRESSURE, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_PRESSURE_TIME_DERIV_1, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_PRESSURE_DERIV_2, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_PRESSURE_DERIV_1, ResultInfo::VECTOR);
+  FillResultMap(FLUIDMECH_VORTICITY, ResultInfo::VECTOR);
+  FillResultMap(MEAN_FLUIDMECH_VELOCITY, ResultInfo::VECTOR);
+  FillResultMap(FLUIDMECH_DENSITY, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_TEF, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_TEMP, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_TKE, ResultInfo::SCALAR);
+  FillResultMap(FLUIDMECH_TDR, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_1, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_2, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_3, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_4, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_5, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_6, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_7, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_8, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_9, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_10, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_11, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_12, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_13, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_14, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_15, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_16, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_17, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_18, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_19, ResultInfo::SCALAR);
+  FillResultMap(OPT_RESULT_20, ResultInfo::SCALAR);
 }
 
 

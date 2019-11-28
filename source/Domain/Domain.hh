@@ -5,6 +5,7 @@
 #include "Utils/StdVector.hh"
 #include "General/Environment.hh"  
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/SimState.hh"
 
 namespace CoupledField
 {
@@ -176,7 +177,7 @@ namespace CoupledField
     /** works only with a single grid */
     Grid* GetGrid()
     {
-      assert(gridMap_.size() == 1);
+      //assert(gridMap_.size() == 1);
       return gridMap_.begin()->second;
     }
 
