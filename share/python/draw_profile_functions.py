@@ -980,9 +980,11 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
             
   if verbose == "polar_plot":
     plt.gcf().clear()
-    plt.rcParams.update({'font.size': 24})
-    plt.figure(figsize=(10,10))
+    plt.rcParams.update({'font.size': 30})
+    plt.figure(figsize=(13,13))
     ax = plt.axes(polar=True)
+    #ax.set_rlabel_position(-22.5) 
+#     ax.set_rticks([0.05,0.1,0.2,0.3])
     #ax.set_rticks([0,0.05, 0.1, 0.15, 0.2])
     theta = np.linspace(0, 2.0*np.pi,360)
     #plt.plot(theta,map[:,0],linewidth=5.0)
@@ -991,17 +993,17 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
 #       plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
 #     plt.plot(theta,map[:,int(res/4)],linewidth=5.0)
     dir = ""
-    plt.plot(theta,map[:,0],linewidth=5.0,label=dirToString(profile.direction)+"=0")
-    plt.plot(theta,map[:,int(res/4)],linewidth=5.0,label=dirToString(profile.direction)+"=0.25")
-    plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0,label=dirToString(profile.direction)+"=0.5")
-    plt.legend(loc='best', bbox_to_anchor=(0.2, 1.1))
+    plt.plot(theta,map[:,5],linewidth=6.0,label=dirToString(profile.direction)+"=0.1")
+    plt.plot(theta,map[:,int(res/4)],linewidth=6.0,label=dirToString(profile.direction)+"=0.25")
+    plt.plot(theta,map[:,int(res/2)-2],linewidth=6.0,label=dirToString(profile.direction)+"=0.5")
+    plt.legend(loc='best', bbox_to_anchor=(1.07, 1.15))
     
 #     for i,bisec in enumerate(profile.bisecs_left):
 #       phi = bisec.angle + np.pi/2.0 * i
 #       plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
 #     plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
 #     plt.show()
-    plt.savefig('polar-plot_dir-'+str(profile.direction) + '.png', dpi=800)
+    plt.savefig('polar-plot_dir-'+str(profile.direction) + '.png', dpi=1000)
         
   if verbose == 'profile_map':
     ha.set_xlabel('X')

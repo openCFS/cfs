@@ -617,7 +617,7 @@ def name_bc_nodes(mesh):
   mesh.bc.append(("bottom_left",list(range(0,nnx*nny*nnz-nnx-1,nnx*nny))))
   mesh.bc.append(("bottom_right",list(range(nnx-1,nnx*nny*nnz-1-1,nnx*nny))))
   mesh.bc.append(("top_back",list(range(nnx*nny-nnx,nnx*nny))))
-  mesh.bc.append(("top_front",list(range(nnx*nny*nny-nnx,nnx*nny*nny))))
+  mesh.bc.append(("top_front",list(range(nnx*nny*nny-nnx,nnx*nny*nnz))))
   mesh.bc.append(("top_left",list(range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny))))
   mesh.bc.append(("top_right",list(range(nnx*nny-1,nnx*nny*nnz,nnx*nny))))
   mesh.bc.append(("back_left",list(range(0,nnx*nny-nnx+1,nnx))))
@@ -625,8 +625,8 @@ def name_bc_nodes(mesh):
   mesh.bc.append(("front_left",list(range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx))))
   mesh.bc.append(("front_right",list(range(nnx * nny * nz + nx,nnx * nny * nnz,nnx))))
   
+  return mesh
   
-  return mesh  
  
 def validate_periodicity(mesh):
 #   assert(mesh.nz > 1)
@@ -743,41 +743,52 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
         mesh.elements.append(e)
     
-    if pfem:    
-      # create lines on west and east boundaries for pfem
-      for y in range(ny):
-        for x in [0, nx]:
-          e1 = Element()
-          e.type = LINE
-          e.density = 1
-          # assign nodes
-          ll = (nx+1) * y + x  # lowerleft
-          e.nodes = ((ll,ll+nx+1))
-          # set region for appropriate load case
-          e.region = "west_surf" if x == 0 else "east_surf"
-          mesh.elements.append(e)
+  if pfem:  
+    # create lines on west and east boundaries for pfem
+    for y in range(ny):
+      for x in [0, nx]:
+        e = Element()
+        e.type = LINE
+        e.density = 1
+        # assign nodes
+        ll = (nx+1) * y + x  # lowerleft
+        e.nodes = ((ll,ll+nx+1))
+        # set region for appropriate load case
+        e.region = "west_surf" if x == 0 else "east_surf"
+        mesh.elements.append(e)
+        
+        # add load elements
+        if e.region == "east_surf":
+          if y < int(0.15*(ny+1)):
+            e2 =  Element()
+            e2.type = e.type
+            e2.density = e.density
+            e2.nodes = e.nodes
+            e2.region = "load_surf"
+            mesh.elements.append(e2)
+    
+    # create lines on north and south boundaries for pfem
+    for x in range(nx):
+      for y in [0, ny]:
+        e = Element()
+        e.type = LINE
+        e.density = 1
+        # assign nodes
+        ll = (nx+1) * y + x  # lowerleft
+        e.nodes = ((ll,ll+1))
+        # set region for appropriate load case
+        e.region = "south_surf" if y == 0 else "north_surf"
+        mesh.elements.append(e)    
       
-      # create lines on north and south boundaries for pfem
-      for x in range(nx):
-        for y in [0, ny]:
-          e1 = Element()
-          e.type = LINE
-          e.density = 1
-          # assign nodes
-          ll = (nx+1) * y + x  # lowerleft
-          e.nodes = ((ll,ll+nx+1))
-          # set region for appropriate load case
-          e.region = "south_surf" if x == 0 else "north_surf"
-          mesh.elements.append(e)    
-      
-    mesh.bc.append(("south", list(range(0, nx + 1))))
-    mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
-    mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
-    mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-    mesh.bc.append(("left_lower", [0]))
-    mesh.bc.append(("right_lower", [nx]))
-    mesh.bc.append(("left_upper", [(nx+1)*ny]))
-    mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  mesh.bc.append(("south", list(range(0, nx + 1))))
+  mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+  mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+  mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
   if type == 'two_load':
     mid = int((nx+1.)/2.)
     mesh.bc.append(("load1", list(range(mid,mid+1))))
@@ -926,9 +937,6 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     width = scale
     height = scale*float(ny)/nx 
     depth = scale*float(nz)/nx  
- 
-
-    
      
   dx = width / nx 
   dy = height / ny 
@@ -973,12 +981,11 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       for x in range(nnx):  # fastest variable
         mesh.nodes.append((x * dx, y * dy, z * dz))
   
-  # count second region 
-  second = 0
- 
   # count second region
   second = 0 
   mech_count = 0
+  
+  eps = 1e-6
   
   for z in range(nz):
     for y in range(ny):
@@ -994,7 +1001,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
           e.region = 'inner' if not threshold or e.density > threshold else 'void'  
           second += 1
-        elif inclusion == "top_panel" and y == ny-int(ny*0.1+0.5+1e-6):
+        elif inclusion == "top_panel" and y > ny-1-int(0.05*ny+0.5+eps):
           e.region = 'non-design'
           second += 1  
           e.region = "non-design" if not threshold or e.density > threshold else 'void'    
@@ -1005,91 +1012,63 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
           mech_count = mech_count + 1
-          # assign nodes 
-          # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 
-        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element 
-        # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane 
-        # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
-        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
+          
+        # assign nodes 
+        # left: x=0, right x=1
+        # bottom: y=0, top: y=1
+        # back z=0, front: z=1
+        ll = nnx*nny*z + nnx*y + x  #   left-bottom-back of current element 
+        # Local nodes definifing element: 0-1-3-2-4-5-7-6
+        e.nodes = ( (ll, ll+1, ll+nnx+1,  ll+nnx, ll+nnx*nny, ll+(nnx*nny)+1, ll+nnx+(nnx*nny)+1,ll+nnx+(nnx*nny)) )   
         mesh.elements.append(e)
   
-#  if type == "traegerblz":
-#    side = (("top_mech", []))
-#    mesh.bc.append(side)
-#    for z in range(0, nnz):
-#      for x in range(0, nnx):
-#        if (z*dz <= 2.0000001) or (x*dx >= 24.9999):
-#          side[1].append((z * nny + ny) * nnx + x)
- 
+  
   if pfem:
-    for z in range(nz):
-      for y in range(ny):
-        for x in [0,nx]:
-          e = Element()
-          e.type = QUAD4
-          e.density = 1
-          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
-          e.nodes = ((ll,ll+nnx,ll+nnx*nny+nnx,ll+nnx*nny))
-          mesh.elements.append(e)
-          e.region = "left_surf" if x == 0 else "right_surf"
-          # set surface elements for load
-          if type == "cantilever3d" and e.region == "right_surf":
-            if z >= int(0.85*nz) and y <= int(0.15*ny):
-              e2 =  Element()
-              e2.type = e.type
-              e2.density = e.density
-              e2.nodes = e.nodes
-              e2.region = "load_surf"
-              mesh.elements.append(e2)
-          
-    for z in range(nz):
-      for x in range(nx):
-        for y in [0,ny]:
-          e = Element()
-          e.type = QUAD4
-          e.density = 1
-          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
-          e.nodes = ((ll,ll+nnx*nny,ll+nnx*nny+1,ll+1))
-          e.region = "bottom_surf" if y == 0 else "top_surf"
-          mesh.elements.append(e)      
-     
-    for y in range(ny):
-      for x in range(nx):
-        for z in [0,nz]:
-          e = Element()
-          e.type = QUAD4
-          e.density = 1
-          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
-          e.nodes = ((ll,ll+1,ll+nnx+1,ll+nnx))
-          e.region = "back_surf" if z == 0 else "front_surf"
-          mesh.elements.append(e)      
-          
-  # assign nodes
+    mesh = add_2d_surface_elems_pfem(mesh)
+  
   if type == "bulk3d" and inclusion == "top_panel":
     # width of support area 
-    sa = 0.1
+    sa = 0.05
+    sz = 0.1
     # number of elements on each side
-    nsa_x = nx * sa
-    nsa_z = nz * sa
+    nsa_x = nx * sa+1
+    nsa_z = nz * sz+1
     
-    eps = 1e-6
-    
-    # x == 0, y == 0
+    # x == 0:0.1*nx, y == 0
     for i in range(int(nsa_x+0.5+eps)):
       mesh.bc.append(("support",list(range(i,nnx*nny*nnz-nnx-1,nnx*nny))))
-    
-#     sys.exit()  
-    # y == 0, z == 0
+      # add surface elements for support
+      if pfem:
+        node_ids = list(range(i,nnx*nny*nnz-nnx-1,nnx*nny))
+        # last nodes are on domain boundary, thus loop only until second last
+        for nid in node_ids[:-1]:
+          e = Element()
+          e.type = QUAD4
+          e.density = 1
+          ll = nid  # lower-left-front of current element
+          e.nodes = ((ll,ll+nnx*nny,ll+nnx*nny+1,ll+1))
+          e.region = "support_surf"
+          mesh.elements.append(e)
+
+    # y == 0, z == 0:0.1*nz
     for i in range(int(nsa_z+0.5+eps)):
       mesh.bc.append(("support",list(range(i*nnx*nny,i*nnx*nny+nnx,1))))
-      
+#       # add surface elements for support
+      if pfem:
+        node_ids = list(range(i*nnx*nny,i*nnx*nny+nnx,1))
+        for nid in node_ids[:-1]:
+          e = Element()
+          e.type = QUAD4
+          e.density = 1
+          ll = nid # lower-left-front of current element
+          e.nodes = ((ll,ll+nnx*nny,ll+nnx*nny+1,ll+1))
+          e.region = "support_surf"
+          mesh.elements.append(e)
+          
     # loads are all nodes in x-z plane for y == nny
     for i in range(0,nnz):
       mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
-    name_bc_nodes(mesh)
-    
-  name_bc_nodes(mesh)    
-        
+      
   mesh = name_bc_nodes(mesh)  
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
@@ -1723,10 +1702,10 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #   print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
   #mesh = add_bc_for_ppbox(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
-  mesh = add_bc_for_box_varel(mesh,bounds)
-  mesh = name_bb_faces(mesh,bounds)
+  #mesh = add_bc_for_box_varel(mesh,bounds)
+  #mesh = name_bb_faces(mesh,bounds)
 
-#  mesh = add_nodes_for_periodic_bc(mesh)
+  mesh = add_nodes_for_periodic_bc(mesh)
 
   write_gid_mesh(mesh, meshfile[:-4]+".mesh") 
   
@@ -2653,34 +2632,54 @@ def create_volume_mesh_with_gmsh(stlName):
   cfs_utils.execute(command)
   create_mesh_from_gmsh(baseName)  
   
-def add_bc_for_box_varel(mesh,bounds):
+def add_bc_for_box_varel(mesh,bounds,pfem=None):
+  print("bounds:",bounds)
   load = []
   support = []
   nodes = mesh.nodes
-  eps = 1e-6
-  for i in range(len(nodes)):
-    # load on top panel y=1
-    if numpy.isclose(nodes[i][1],1.0,1e-5):
-    #if numpy.isclose(nodes[i][1],0.0):
-    #if nodes[i][1] < 0.0001:
-      load.append(i)
-      continue
+  eps = 1e-4
+  if not pfem:
+    for i in range(len(nodes)):
+      # load on top panel y=1
+      if numpy.isclose(nodes[i][1],1.0,1e-5):
+      #if numpy.isclose(nodes[i][1],0.0):
+      #if nodes[i][1] < 0.0001:
+        load.append(i)
+        continue
+      # support edges 
+      #if numpy.isclose(nodes[i][1],0.0,1e-3):
+      if nodes[i][1] < 1e-3:
+      #if numpy.isclose(nodes[i][1],1.0):
+      #if nodes[i][1] > 0.9999:
+        if nodes[i][0] <= 1/20 + eps:
+          support.append(i)
+        elif nodes[i][2] <= 1/20 + eps:
+          support.append(i)
+          
+    print("load:",len(load))
+    print("support:",len(support))
     
-    # support edges 
-    if numpy.isclose(nodes[i][1],0.0,1e-3):
-    #if numpy.isclose(nodes[i][1],1.0):
-    #if nodes[i][1] > 0.9999:
-      if nodes[i][0] <= 1/20 + eps:
-        support.append(i)
-      elif nodes[i][2] <= 1/20 + eps:
-        support.append(i)
-        
-  print("load:",len(load))
-  print("support:",len(support))
-  
-  mesh.bc.append(("load", load))
-  mesh.bc.append(("support", support))
-  
+    mesh.bc.append(("load", load))
+    mesh.bc.append(("support", support))
+  else:
+    assert(pfem)
+    for e in mesh.elements:
+      bac = calc_barycenter(mesh,e)
+      # define support surfaces
+      if bac[1] < 1e-3:
+        for b in [bac[0],bac[2]]:
+          if b <= 1/20 + eps:
+            surf = Element()
+            surf.type = e.type 
+            surf.density = 1
+            surf.nodes = e.nodes
+            surf.region = "support_surf"
+            mesh.elements.append(surf) 
+    
+    print("added support surface elements for box varel")
+    mesh = add_surf_elems_on_bb_faces(mesh, bounds)
+    print("added support surface elements for bounding box faces")       
+     
   return mesh        
       
 def add_bc_for_ppbox(mesh,bounds):
@@ -2706,11 +2705,6 @@ def add_bc_for_ppbox(mesh,bounds):
       print("add ",bcnames[0], " with ", len(bcnames[1])," elems to load")
       load.extend(bcnames[1])
   
-  print("pressure load:",len(load))
-  print("small cylinder:",len(load_sc))
-  print("big cylinder:",len(load_bc))
-  print("support:",len(support))
-  
   nodes = mesh.nodes
   for i in range(len(nodes)):
     # all nodes on big cylinder
@@ -2722,12 +2716,14 @@ def add_bc_for_ppbox(mesh,bounds):
       load_sc.append(i)
       continue
 
-    if nodes[i][2] < zmin+eps:
+    if 27.27 <= nodes[i][2] <= zmin+eps:
       # support only on the edges of skin
-      if numpy.isclose(nodes[i][0],xmin,1e-3) or numpy.isclose(nodes[i][0],xmax,1e-3):
+      if  72.3458-eps <= nodes[i][0] <= 72.75+eps or -72.75-eps <= nodes[i][0] <= -72.3458+eps: 
+#       if numpy.isclose(nodes[i][0],xmin,1e-3) or numpy.isclose(nodes[i][0],xmax,1e-3):
         support.append(i)
         continue
-      if numpy.isclose(nodes[i][1],ymin,1e-3) or numpy.isclose(nodes[i][1],ymax,1e-3):
+      if 40.609-eps <= nodes[i][1] <= 41.0+eps or -41.0-eps <= nodes[i][1] <= -40.609+eps: 
+#       if numpy.isclose(nodes[i][1],ymin,1e-3) or numpy.isclose(nodes[i][1],ymax,1e-3):
         support.append(i)
         continue
       
@@ -2735,6 +2731,11 @@ def add_bc_for_ppbox(mesh,bounds):
   mesh.bc.append(("support", support))
   mesh.bc.append(("big_cylinder", load_bc))
   mesh.bc.append(("small_cylinder", load_sc))
+  
+  print("pressure load:",len(load))
+  print("small cylinder:",len(load_sc))
+  print("big cylinder:",len(load_bc))
+  print("support:",len(support))
   
   return mesh  
 
@@ -2801,3 +2802,94 @@ def name_bb_faces(mesh,bounds):
   mesh.bc.append(("back",back))
    
   return mesh      
+
+# need this for pfem
+# loop over all mesh elements and for each bb face, add respective surface elements
+# for surface boundary conditions
+def add_surf_elems_on_bb_faces(mesh,bounds):
+  elems = mesh.elements()
+  xmin,ymin,zmin,xmax,ymax,zmax = bounds
+  
+  for e in elems:
+    baryc = calc_barycenter(mesh, e)
+    surf = Element()
+    reg = None
+#     if numpy.isclose(baryc[0],xmin,1e-4):
+#       reg = "left"
+#     elif numpy.isclose(baryc[0],xmax,1e-4):
+#       reg = "right"
+#     elif numpy.isclose(baryc[1],ymin,1e-4):
+#       reg = "front"
+#     elif numpy.isclose(baryc[1],ymax,1e-4):
+#       reg = "back"
+#     elif numpy.isclose(baryc[2],zmin,1e-4):
+#       reg = "bottom"
+#     elif numpy.isclose(baryc[2],zmax,1e-4):
+#       reg = "top"
+      
+    if numpy.isclose(baryc[1],ymax,1e-4):
+      reg = "back"  
+    else:
+      continue
+#     # elem e not on bb face  
+#     if reg is None:
+#       continue
+#     else:
+    surf.type = e.type
+    surf.nodes = e.nodes
+    mesh.elements.append(surf) 
+    
+  
+  return mesh    
+def add_2d_surface_elems_pfem(mesh):
+  nx = mesh.nx
+  ny = mesh.ny
+  nz = mesh.nz
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+    
+  for z in range(nz):
+      for y in range(ny):
+        for x in [0,nx]:
+          e = Element()
+          e.type = QUAD4
+          e.density = 1
+          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+          e.nodes = ((ll,ll+nnx,ll+nnx*nny+nnx,ll+nnx*nny))
+          mesh.elements.append(e)
+          e.region = "left_surf" if x == 0 else "right_surf"
+          # set surface elements for load
+          if type == "cantilever3d" and e.region == "right_surf":
+            if int(0.5*nz+0.5) <= z <= int(0.65*nz+0.5) and int(0.1*ny+0.5) <= y <= int(0.25*ny+0.5):
+              e2 =  Element()
+              e2.type = e.type
+              e2.density = e.density
+              e2.nodes = e.nodes
+              e2.region = "load_surf"
+              mesh.elements.append(e2)
+          
+  for z in range(nz):
+    for x in range(nx):
+      for y in [0,ny]:
+        e = Element()
+        e.type = QUAD4
+        e.density = 1
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        e.nodes = ((ll,ll+nnx*nny,ll+nnx*nny+1,ll+1))
+        e.region = "bottom_surf" if y == 0 else "top_surf"
+        mesh.elements.append(e)      
+     
+  for y in range(ny):
+    for x in range(nx):
+      for z in [0,nz]:
+        e = Element()
+        e.type = QUAD4
+        e.density = 1
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        e.nodes = ((ll,ll+1,ll+nnx+1,ll+nnx))
+        e.region = "back_surf" if z == 0 else "front_surf"
+        mesh.elements.append(e)
+
+  return mesh
