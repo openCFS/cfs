@@ -276,7 +276,6 @@ namespace CoupledField
       map<MaterialType, Matrix<Complex> >::const_iterator posTens = tensorParams_.find(mt);
       map<MaterialType, Complex >::const_iterator         posScal = scalarParams_.find(mt);
       map<MaterialType, string >::const_iterator          posStr  = stringParams_.find(mt);
-      map<MaterialType, Integer >::const_iterator         posInt  = integerParams_.find(mt);
 
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
@@ -328,9 +327,6 @@ namespace CoupledField
 
       if(posStr != stringParams_.end())
         in_->Get("value")->SetValue(posStr->second);
-
-      if(posInt != integerParams_.end())
-        in_->Get("value")->SetValue(posInt->second);
     }
   }
 

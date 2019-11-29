@@ -524,7 +524,7 @@ namespace CoupledField {
     handleMap scalarStringHandlesImag_;
         
     //! map, which knows about the actual tensorial material parameters 
-    typedef std::map<MaterialType, Vector<Complex> > vectorParams_;
+    std::map<MaterialType, Vector<Complex> > vectorParams_;
 
     //! map, which knows about the actual tensorial material parameters 
     tensorMap tensorParams_;
