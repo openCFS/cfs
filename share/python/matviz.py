@@ -345,7 +345,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   if not args.save: # write surface mesh in case we haven't done it before
                     matviz_vtk.write_stl(viz, name)
                   
-                  create_volume_mesh_from_stl(name)
+                  write_gid_mesh(create_volume_mesh_from_stl(name),name[:-4]+".mesh")
                   if not args.save:
                     viz = None # avoid showing or writing vtp file
                 viz = None    
