@@ -411,8 +411,7 @@ namespace CoupledField {
       SingleEntryBiLinInt* stiffInt = NULL;
 
       shared_ptr<CoefFunction> coefFunc(new CoefFunctionLBM<Double>(this,feFunc,results_[0]));
-      stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc);
-
+      stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc, false); // we want non-symmetric system matrix
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
 

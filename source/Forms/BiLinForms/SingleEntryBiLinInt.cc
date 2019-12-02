@@ -5,7 +5,7 @@
 namespace CoupledField {
 
 
-SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
+SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val, bool isSymmetric )
     : BiLinearForm() {
 
     name_ = "SingleEntryBiLinInt";
@@ -13,7 +13,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
     // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
     // the check was removed. It came down to 2011 from andi hauk.
     val_ = val;
-    this->isSymmetric_ = true;
+    this->isSymmetric_ = isSymmetric;
   }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val, 
