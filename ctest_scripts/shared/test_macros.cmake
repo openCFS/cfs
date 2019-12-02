@@ -1,3 +1,21 @@
+# test_macros.cmake is either called by nightly_test.cmake or by the site specific linux64_shared_opt_no_prec_gcc_release.cmake, ... scripts
+if(NOT CTEST_SCRIPTS_DIR)
+  # shall be /home/fwein/code/shared/ctest_scripts 
+  # test for CMAKE_CURRENT_LIST_DIR=/home/fwein/code/shared/ctest_scripts/shared
+  if(CMAKE_CURRENT_LIST_DIR)
+    set(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
+  else()
+    message(FATAL_ERROR "neither CTEST_SCRIPTS_DIR nor CMAKE_CURRENT_LIST_DIR set")
+  endif()  
+endif()  
+
+if(NOT CFS_macros)
+  include("${CTEST_SCRIPTS_DIR}/../cmake_modules/CFS_macros.cmake")
+  assert_set(CFS_macros)
+endif()
+
+# Include informations about development server.
+include("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
 
 MACRO(SET_GLOBAL_VARS)
   # =========================================================================
@@ -66,22 +84,10 @@ MACRO(SET_SITE_SPECIFIC_VARS)
     LIST(GET PWDLINE 5 HOME)
   ENDIF()
 
-#  MESSAGE("Entering SET_SITE_SPECIFIC_VARS...")
   INCLUDE("${SITE_DIR}/site_specific_vars.cmake" OPTIONAL)
-#  MESSAGE("Leaving SET_SITE_SPECIFIC_VARS...")
 
-  MESSAGE(
-  "
-=============================================================================
- Environment:
-=============================================================================
-  "
-  )
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -E environment
-  #  WORKING_DIRECTORY "${BUILDDIR}"
-    RESULT_VARIABLE RETVAL
-    )
+  # this would print all variables
+  #EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E environment  RESULT_VARIABLE RETVAL)
 
 ENDMACRO()
 
@@ -137,20 +143,15 @@ MACRO(PERFORM_TEST TEST_NAME)
   #  
   # =========================================================================
 
-  MESSAGE(
-"
-=============================================================================
- Performing test: ${TEST_NAME}...
-=============================================================================
-"
-  )
+  headline("Performing test: ${TEST_NAME}...")
+
   # this is unnecessary use: SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE) instead
   #IF(EXISTS "${CTEST_BINARY_DIRECTORY}")
   #  MESSAGE("Removing previous build directory ${CTEST_BINARY_DIRECTORY}...")
   #  FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
   #ENDIF()
 
-  IF(UNIX)
+  if(UNIX)
     STRING(REPLACE "_" ";" TARGET_ARCH_ENV_LIST "${TEST_NAME}")
     LIST(GET TARGET_ARCH_ENV_LIST 0 TARGET_ARCH)
 
@@ -158,28 +159,21 @@ MACRO(PERFORM_TEST TEST_NAME)
       EXECUTE_PROCESS(
         COMMAND ${TARGET_ARCH} ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
         WORKING_DIRECTORY "."
-        RESULT_VARIABLE RETVAL
-      )
+        RESULT_VARIABLE RETVAL)
     ELSE()
       EXECUTE_PROCESS(
         COMMAND ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
         WORKING_DIRECTORY "."
-        RESULT_VARIABLE RETVAL
-      )
+        RESULT_VARIABLE RETVAL)
     ENDIF()
-  ELSE(UNIX)
-
+  else()
     LIST(APPEND TEST_CMD "\\\"${CTEST_COMMAND}\\\"" -V -S "\\\"${SITE_DIR}/${TEST_NAME}.ctest\\\"")
-
     MESSAGE(STATUS "TEST_CMD: ${TEST_CMD}")
-
     EXECUTE_PROCESS(
       COMMAND ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
       WORKING_DIRECTORY "."
-      RESULT_VARIABLE RETVAL
-      )
-
-  ENDIF(UNIX)
+      RESULT_VARIABLE RETVAL)
+  endif()
 
   # Copy nightly test logs of CTest over to ${SITE_DIR}/logs/${TEST_NAME}
   # so that they may be examined even if the corresponding VBox is already
@@ -204,21 +198,16 @@ ENDMACRO()
 
 
 
+#  Deploy built binaries.
+#
+#  For some tests, we do not want to throw away the built binaries but
+#  rather make them available to others via a network share.
+#  
+#  This macro looks for a script ${SITE_DIR}/${TEST_NAME}_deploy.cmake
+#  in which the actions for the deployment of the binaries can be carried
+#  out. If the script can be found it will be exectued. If no such script
+#  exists, nothing will happen.
 MACRO(DEPLOY_TEST TEST_NAME)
-
-  # =========================================================================
-  #
-  #  Deploy built binaries.
-  #
-  #  For some tests, we do not want to throw away the built binaries but
-  #  rather make them available to others via a network share.
-  #  
-  #  This macro looks for a script ${SITE_DIR}/${TEST_NAME}_deploy.cmake
-  #  in which the actions for the deployment of the binaries can be carried
-  #  out. If the script can be found it will be exectued. If no such script
-  #  exists, nothing will happen.
-  #  
-  # =========================================================================
 
   SET(DEPLOY_SCRIPT "${SITE_DIR}/${TEST_NAME}_deploy.cmake")
   IF(EXISTS "${DEPLOY_SCRIPT}")
@@ -231,20 +220,11 @@ MACRO(DEPLOY_TEST TEST_NAME)
 ENDMACRO()
 
 
-
+#  Clean up after test has finished.
+#
+#  Does nothing at the moment...
 MACRO(CLEANUP_TEST TEST_NAME)
-
-  # =========================================================================
-  #
-  #  Clean up after test has finished.
-  #
-  #  Does nothing at the moment...
-  #
-  # =========================================================================
-
-  MESSAGE("Cleaning up ${CTEST_BINARY_DIRECTORY}")
-
-#  FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+  MESSAGE("Would cleaning up ${CTEST_BINARY_DIRECTORY} it there would be anything implemented...")
 ENDMACRO()
 
 
@@ -332,7 +312,7 @@ MACRO(GET_CTEST_BINARY_DIRECTORY TEST_NAME)
   ENDFOREACH()
 
   STRING(REPLACE "\$ENV{" "\\\$ENV{" CTEST_BINARY_DIRECTORY_STR "${CTEST_BINARY_DIRECTORY_STR}")
-  MESSAGE(STATUS "CTEST_BINARY_DIRECTORY_STR ${CTEST_BINARY_DIRECTORY_STR}")
+  # MESSAGE(STATUS "CTEST_BINARY_DIRECTORY_STR ${CTEST_BINARY_DIRECTORY_STR}")
   EVAL("${CTEST_BINARY_DIRECTORY_STR}")
   FILE(TO_CMAKE_PATH "${CTEST_BINARY_DIRECTORY}" CTEST_BINARY_DIRECTORY)
   MESSAGE(STATUS "CTEST_BINARY_DIRECTORY ${CTEST_BINARY_DIRECTORY}")
@@ -341,40 +321,24 @@ ENDMACRO()
 
 
 
+#  Perform site-specific initialization before testing.
+#
+#  A site can provide ${SITE_DIR}/site_specific_init.cmake if certain 
+#  tasks have to be carried out before testing can start (e.g. update 
+#  working copies, kill/start virtual machines, etc.)
 MACRO(SITE_SPECIFIC_INIT)
-
-  # =========================================================================
-  #
-  #  Perform site-specific initialization before testing.
-  #
-  #  A site can provide ${SITE_DIR}/site_specific_init.cmake if certain 
-  #  tasks have to be carried out before testing can start (e.g. update 
-  #  working copies, kill/start virtual machines, etc.)
-  #
-  # =========================================================================
-
-#  MESSAGE("Entering SITE_SPECIFIC_INIT...")
   INCLUDE("${SITE_DIR}/site_specific_init.cmake" OPTIONAL)
-#  MESSAGE("Leaving SITE_SPECIFIC_INIT...")
 ENDMACRO()
 
 
 
+#  Perform site-specific finalization after testing.
+#
+#  A site can provide ${SITE_DIR}/site_specific_finish.cmake if certain
+#  tasks have to be carried out after testing has finished (e.g. put built
+#  binaries into proper locations, etc.)
 MACRO(SITE_SPECIFIC_FINISH)
-
-  # =========================================================================
-  #
-  #  Perform site-specific finalization after testing.
-  #
-  #  A site can provide ${SITE_DIR}/site_specific_finish.cmake if certain
-  #  tasks have to be carried out after testing has finished (e.g. put built
-  #  binaries into proper locations, etc.)
-  #
-  # =========================================================================
-
-#  MESSAGE("Entering SITE_SPECIFIC_FINISH...")
   INCLUDE("${SITE_DIR}/site_specific_finish.cmake" OPTIONAL)
-#  MESSAGE("Leaving SITE_SPECIFIC_FINISH...")
 ENDMACRO()
 
 
@@ -408,7 +372,7 @@ MACRO(IDENTIFY_DISTRO)
   INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 ENDMACRO()
 
-# condigures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
+# configures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
 MACRO(WRITE_CTEST_CONFIG)
   # copy over CTestConfig.cmake.in
   # puts it into the binary dir

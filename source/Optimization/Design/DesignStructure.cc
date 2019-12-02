@@ -148,6 +148,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       throw Exception("expect 'robust_excitation' for 'filter' as more than one filter is defined for the design");
   }
 
+  // Filter ref is something heavy we copy for each element where the meta data data is copied.
   Filter ref;
 
   ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
@@ -231,12 +232,13 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
-  #pragma omp parallel shared(ref)
+  // we modify ref, therefore we need firstprivate
+  #pragma omp parallel firstprivate(ref)
   {
     // don't do it in for-loop, thread local vector
     StdVector<Filter::NeighbourElement> neighbors;
 
-    #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours) firstprivate(radius)
+    #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours)
     for(unsigned int e = start; e < end; e++)
     {
       DesignElement* de = &data[e];
@@ -250,8 +252,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       }
       de->simp->filter.Push_back(ref); // copy the reference data
 
-      assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
-
+      /* what does this assert do? deactivating for now */
+      //assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
       // for unstructured grids only "radius" filter makes sense
       assert(regular || filter_space_ == RADIUS);
 

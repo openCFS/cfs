@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <mutex>
 
 // use boost accumulators to gather usage statistics of the graph
 #include <boost/accumulators/accumulators.hpp>
@@ -26,6 +27,7 @@ extern "C"{
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/Sloan.hh"
+#include "Utils/Timer.hh"
 
 DECLARE_LOG(graph)
 DEFINE_LOG(graph, "graph")
@@ -597,6 +599,9 @@ namespace CoupledField {
         Integer numflag = 1;
         int nNodes = (int)numNodes_;
 
+        if (nNodes < 0)
+          EXCEPTION("METIS: signed nNodes is negative (" << nNodes << ") numNodes = " << numNodes_ << " -> Turn off reordering!");
+
         // Note that what for metis is the inverse permutation vector,
         // for us is the re-ordering vector
         METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
@@ -816,7 +821,7 @@ namespace CoupledField {
   }
   
   StdVector<std::pair<UInt,UInt> >& BaseGraph::GetColBlockDefinition() {
-    
+
     // check, if we have coupling graphs set
     if( colDiagGraph_ != NULL) {
       return colDiagGraph_->GetColBlockDefinition();
@@ -825,18 +830,28 @@ namespace CoupledField {
     }
   }
 
-  void BaseGraph::MapSetToVector(){
+  void BaseGraph::MapSetToVector()
+  {
     //convert set to vector
-    if(!setToElemDone_){
-  #pragma omp parallel for schedule(dynamic,10) num_threads(CFS_NUM_THREADS)
-      for(UInt i=0;i<numNodes_;i++){
-        element_[i].resize(setElements_[i].size());
-        std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
-        setElements_[i].clear();
+    CoupledField::Timer t("", false, true); // start immediately
+
+    /*static std::mutex io_mutex;
+    {
+        std::lock_guard<std::mutex> lk(io_mutex);*/
+      if(!setToElemDone_){
+        #pragma omp parallel for schedule(dynamic,10) num_threads(CFS_NUM_THREADS)
+        for(UInt i=0;i<numNodes_;i++){
+          element_[i].resize(setElements_[i].size());
+          std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
+          setElements_[i].clear();
+        }
+        delete [] ( setElements_ );  setElements_  = NULL;
+        setToElemDone_ = true;
       }
-      delete [] ( setElements_ );  setElements_  = NULL;
-      setToElemDone_ = true;
-    }
+    //}
+    t.Stop();
+
+    //std::cout << "[BaseGraph::MapSetToVector] Wall time: " << t.GetWallTime() << "s, CPU time: " << t.GetCPUTime() << "s" << std::endl;
   }
 
 

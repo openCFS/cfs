@@ -35,9 +35,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://ftp.uni-erlangen.de/mirrors/GNU/gmp/${GMP_BZ2}"
-  "http://ftp.gwdg.de/pub/misc/gnu/ftp/gnu/gmp/${GMP_BZ2}"
-  "http://ftp.gnu.org/gnu/gmp/${GMP_BZ2}"
+  "http://ftpmirror.gnu.org/gnu/gmp/${GMP_BZ2}"
   "${GMP_URL}/${GMP_BZ2}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gmp/${GMP_BZ2}")

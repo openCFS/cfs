@@ -73,7 +73,11 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case MECH_11:
     case MECH_22:
     case MECH_33:
-    // Tensor trace for param mat
+    case MECH_44:
+    case MECH_55:
+    case MECH_66:
+
+      // Tensor trace for param mat
     case STIFF1:
     case STIFF2:
     case STIFF3:
@@ -100,11 +104,23 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case MECH_11:
     case MECH_12:
     case MECH_13:
+    case MECH_14:
+    case MECH_15:
+    case MECH_16:
     case MECH_22:
     case MECH_23:
+    case MECH_24:
+    case MECH_25:
+    case MECH_26:
     case MECH_33:
+    case MECH_34:
+    case MECH_35:
+    case MECH_36:
     case MECH_44:
+    case MECH_45:
+    case MECH_46:
     case MECH_55:
+    case MECH_56:
     case MECH_66:
       return true;
     default:
@@ -363,6 +379,7 @@ void DesignElement::Init()
   type_           = NO_TYPE;
   pseudoElementIndex_ = -1;
   elemVol_        = -1.0;
+  elemPorosity_   = -1.0;
 }
 
 
@@ -405,6 +422,15 @@ double DesignElement::CalcVolume()
 
   elemVol_ = domain->GetGrid()->GetElemShapeMap(elem, false)->CalcVolume();
   return elemVol_;
+}
+
+void DesignElement::SetElemPorosity(double vol)
+{
+  elemPorosity_ = vol;
+}
+
+double DesignElement::GetElemPorosity() {
+  return elemPorosity_;
 }
 
 unsigned int DesignElement::GetElementSolutionIndex() const
@@ -483,6 +509,41 @@ int DesignElement::GetOptResultIndex(SolutionType st)
       return 29;
   case OPT_RESULT_31:
       return 30;
+  case OPT_RESULT_32: return 31;
+  case OPT_RESULT_33: return 32;
+  case OPT_RESULT_34: return 33;
+  case OPT_RESULT_35: return 34;
+  case OPT_RESULT_36: return 35;
+  case OPT_RESULT_37: return 36;
+  case OPT_RESULT_38: return 37;
+  case OPT_RESULT_39: return 38;
+  case OPT_RESULT_40: return 39;
+  case OPT_RESULT_41: return 40;
+  case OPT_RESULT_42: return 41;
+  case OPT_RESULT_43: return 42;
+  case OPT_RESULT_44: return 43;
+  case OPT_RESULT_45: return 44;
+  case OPT_RESULT_46: return 45;
+  case OPT_RESULT_47: return 46;
+  case OPT_RESULT_48: return 47;
+  case OPT_RESULT_49: return 48;
+  case OPT_RESULT_50: return 49;
+  case OPT_RESULT_51: return 50;
+  case OPT_RESULT_52: return 51;
+  case OPT_RESULT_53: return 52;
+  case OPT_RESULT_54: return 53;
+  case OPT_RESULT_55: return 54;
+  case OPT_RESULT_56: return 55;
+  case OPT_RESULT_57: return 56;
+  case OPT_RESULT_58: return 57;
+  case OPT_RESULT_59: return 58;
+  case OPT_RESULT_60: return 59;
+  case OPT_RESULT_61: return 60;
+  case OPT_RESULT_62: return 61;
+  case OPT_RESULT_63: return 62;
+  case OPT_RESULT_64: return 63;
+  case OPT_RESULT_65: return 64;
+  case OPT_RESULT_66: return 65;
   default:
     return -1;
   }
@@ -623,6 +684,27 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   return -1.0; // cannot happen due to default in switch but to please the compiler :(
 }
 
+double DesignElement::GetPlainMechTrace() const
+{
+
+  assert(space_ != NULL);
+
+  double sum = 0.0;
+
+  for(unsigned int d = 0; d < space_->design.GetSize(); d++)
+  {
+    if(IsCompatible(MECH_TRACE, space_->design[d].design) && IsCompatible(MECH_ALL, space_->design[d].design))
+    {
+      BaseDesignElement* de = space_->Find(elem->elemNum, space_->design[d].design, true);
+      assert(de->GetType() == space_->design[d].design);
+      sum += de->GetPlainDesignValue();
+    }
+  }
+
+  return sum;
+}
+
+
 
 double DesignElement::GetDesign(Access access) const
 {
@@ -732,8 +814,10 @@ void DesignElement::SetEnums()
   Filter::sensitivity.Add(Filter::PLAIN, "plain");
   Filter::sensitivity.Add(Filter::SHARP_PLAIN, "sharp_plain");
   Filter::sensitivity.Add(Filter::SIGMUND, "sigmund");
+  Filter::sensitivity.Add(Filter::SIGMUND_TRACE, "sigmund_trace");
   Filter::sensitivity.Add(Filter::SHARP_SIGMUND, "sharp_sigmund");
   Filter::sensitivity.Add(Filter::BORRVALL, "borrvall");
+
 
   Filter::density.SetName("Filter::Density");
   Filter::density.Add(Filter::STANDARD, "standard");
@@ -778,13 +862,25 @@ void DesignElement::SetEnums()
   type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
   type.Add(MECH_11, "mech_11");
-  type.Add(MECH_22, "mech_22");
-  type.Add(MECH_33, "mech_33");
-  type.Add(MECH_23, "mech_23");
-  type.Add(MECH_13, "mech_13");
   type.Add(MECH_12, "mech_12");
+  type.Add(MECH_13, "mech_13");
+  type.Add(MECH_14, "mech_14");
+  type.Add(MECH_15, "mech_15");
+  type.Add(MECH_16, "mech_16");
+  type.Add(MECH_22, "mech_22");
+  type.Add(MECH_23, "mech_23");
+  type.Add(MECH_24, "mech_24");
+  type.Add(MECH_25, "mech_25");
+  type.Add(MECH_26, "mech_26");
+  type.Add(MECH_33, "mech_33");
+  type.Add(MECH_34, "mech_34");
+  type.Add(MECH_35, "mech_35");
+  type.Add(MECH_36, "mech_36");
   type.Add(MECH_44, "mech_44");
+  type.Add(MECH_45, "mech_45");
+  type.Add(MECH_46, "mech_46");
   type.Add(MECH_55, "mech_55");
+  type.Add(MECH_56, "mech_56");
   type.Add(MECH_66, "mech_66");
   type.Add(DIELEC_11, "dielec_11");
   type.Add(DIELEC_12, "dielec_12");
@@ -901,25 +997,32 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   // Sigmund  = sum_i w(x_i) * p_i * f_i' / p_e * sum_i w(x_i)
   // Sharp Sigmund  = sum_i (i=e ? 1:0 : w(x_i)) * p_i * f_i' / p_e * sum_i w(x_i) + "bug" in normalized weighting
   // Borrvall = sum_i w(x_i) * p_i * f_i' / sum_i p_i * w(x_i)
+  // Safe Borrvall if |p_i| = epsilon for all i use plain filter, otherwise  Borrvall filter, usefull for filtering
+  // of variables which are not bounded away from zero
+
   // plain    = sum_i w(x_i) * f_i' / sum_i w(x_i)
   // sharp plain = plain, just the filter is setup with normalized weights with a "bug"
 
   // factor design in numerator (SIGMUND and BORRVALL) for densitiy filtering the value is any in
   bool numerator_design = f.sensitivity_ != Filter::PLAIN && f.sensitivity_ != Filter::SHARP_PLAIN;
   // factor design in denominator sum (BORRVALL)
-  bool denominator_design = f.sensitivity_ == Filter::BORRVALL;
+  bool denominator_design = (f.sensitivity_ == Filter::BORRVALL);
   // weight the denominator by this design (SIGMUND)
   bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SHARP_SIGMUND;
   // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
   bool cheat_this_weight = f.sensitivity_ == Filter::SHARP_SIGMUND || f.sensitivity_ == Filter::SHARP_PLAIN;
+  // weight the denominator by trace (SIGMUND_TRACE)
+  bool sigmund_trace = f.sensitivity_ == Filter::SIGMUND_TRACE;
 
-  LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum
+  LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum
+                << " t=" << de_->ToString()
                 << " sp=" << DesignElement::valueSpecifier.ToString(sp)
                 << " dens=" << Filter::density.ToString(f.density_)
                 << " numerator_design=" << numerator_design
                 << " denominator_design=" << denominator_design
                 << " sigmund_denominator=" << sigmund_denominator
-                << " cheat_this_weight=" << cheat_this_weight;
+                << " cheat_this_weight=" << cheat_this_weight
+                << " sigmund_trace=" << sigmund_trace;
 
 
   double numerator = 0.0;
@@ -934,7 +1037,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
     double w = i == -1 ?  f.weight : ne->weight;
     double nw = cheat_this_weight && i == -1 ? 1.0 : w;
     double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(g));
-    double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+    double x = sigmund_trace ?  de->GetPlainMechTrace() : de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
 
     double numerator_summand   = nw * v * (numerator_design ? x : 1.0);
     double denominator_summand = w * (denominator_design ? x : 1.0);
@@ -942,18 +1045,19 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
     numerator   += numerator_summand;
     denominator += denominator_summand;
 
-    LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
                   << " w= " << w  << " nw=" << nw << " x=" << x << " v=" << v << " ns=" << numerator_summand
                   << " ds=" << denominator_summand << " num=" << numerator << " den=" << denominator;
   }
 
   if(sigmund_denominator)
     denominator *= de_->GetDesign(DesignElement::PLAIN);
+  if(sigmund_trace)
+    denominator *= de_->GetPlainMechTrace();
 
-  LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum << ": result=" << numerator
-                << "/" << denominator << " -> " << (numerator / denominator);
+  LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum << ": result=" << numerator << "/" << denominator << " -> " << (numerator / denominator);
 
-  return numerator / denominator;
+  return (fabs(denominator) < std::numeric_limits<float>::epsilon()) ? de_->GetPlainValue(sp, dynamic_cast<Condition*>(g)) : (numerator / denominator);
 }
 
 

@@ -13,6 +13,7 @@ import scipy, scipy.sparse, scipy.sparse.linalg
 from hdf5_tools import *
 from optimization_tools import *
 from mesh_tool import *
+import matviz_rot
 from decimal import *
 import os.path
 import os
@@ -127,6 +128,9 @@ parser.add_argument("--big", help="specify number of cfs.rel runs in parallel, i
 parser.add_argument("--epsilon", help="number of frames/crosses in the cell problem", type=int, default=1)
 parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
 parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
+
+# skip reading .info.xml for parameter at bound 0 or 1 and add trivial coefficients eps or +1 instead
+parser.add_argument("--skip_bounds", help="skip searching for parameter values 0 or 1 and take trivial (1e-6 or 1) coeffs", action='store_true', default=False)
 
 
 
@@ -357,9 +361,6 @@ if dim == 2:
     if not args.design:
       x += 1
 elif dim == 3:
-  start = 0.1
-  end = 0.8
-  d = (end-start)/steps
   # Read homogenized material tensors from cell problems in 3D and create detailed_stats table
   x = 0
   while x < steps + 1:
@@ -367,45 +368,116 @@ elif dim == 3:
     while y < steps + 1:
       z= 0
       while z < steps + 1:
-        if args.penalization:
-          steps_p = args.penalization
-          x_tmp = x
-          y_tmp = y
-          z_tmp = z
-          x = float(x) / steps_p if x > 0 else 0
-          y = float(y)/ steps_p if y > 0 else 0
-          z = float(z)/ steps_p if z > 0 else 0
-          if args.design:
+        vol = None
+        sampl = np.array([x,y,z])
+        # only on parameter is 0
+        if False:
+          print("skip ",x,y,z)
+#           z += 1
+#           continue
+        else:  
+          if args.penalization:
+            steps_p = args.penalization
+            x_tmp = x
+            y_tmp = y
+            z_tmp = z
+            x = float(x) / steps_p if x > 0 else 0
+            y = float(y)/ steps_p if y > 0 else 0
+            z = float(z)/ steps_p if z > 0 else 0
+            if args.design:
+              tmp = args.design.split(',')
+              x = float(steps * float(tmp[0]))
+              y = float(steps * float(tmp[1]))
+              z = int(steps * float(tmp[2]))  
+          elif args.design:
             tmp = args.design.split(',')
-            x = float(steps * float(tmp[0]))
-            y = float(steps * float(tmp[1]))
-            z = int(steps * float(tmp[2]))  
-        elif args.design:
-          tmp = args.design.split(',')
-          x = int(steps * float(tmp[0]))
-          y = int(steps * float(tmp[1]))
-          z = int(steps * float(tmp[2]))
-        infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
-        # print infoxml
-        if os.path.isfile(infoxml):      
-          doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
-          #xml = doc.xpathNewContext()
-          # complex values!  
-          print(infoxml + ' -> ')
-          matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
-          res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
-          ts = np.asarray(res)
-          print(infoxml + ' -> '+ str(ts))
-          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
-          vol = xpath(doc, "//domain/@structure_volume")
-          if vol != "cannot_determine":
-            vol = float(vol)
-            out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
+            x = int(steps * float(tmp[0]))
+            y = int(steps * float(tmp[1]))
+            z = int(steps * float(tmp[2]))
+          infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
+          if np.sum(sampl == 0) == 2 and x == 0:
+            if y == 0:
+              infoxml = str(folder) + "/" + str(z) + "-0-0.info.xml"
+            else:
+              assert(z == 0)
+              infoxml = str(folder) + "/" + str(y) + "-0-0.info.xml"
+          if np.sum(sampl == 0) == 1 and x == 0:
+            infoxml = str(folder) + "/" + str(z) + "-" + str(y) +  "-0.info.xml"
+          elif np.sum(sampl == 0) == 1 and y == 0:        
+            infoxml = str(folder) + "/" + str(x) + "-" + str(z) +  "-0.info.xml"
+          # print infoxml
+          if os.path.isfile(infoxml):      
+            doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
+            #xml = doc.xpathNewContext()
+            # complex values!  
+            print(infoxml + ' -> ')
+            matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
+            res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
+            ts = np.asarray(res)
+            print(infoxml + ' -> '+ str(ts))
+            
+            if np.sum(sampl == 0) > 0:
+              assert(dim == 3)
+              tens = ts.reshape(6,6) 
+              Q = None # rotation matrix
+              
+              # two params = 0, find out which one is != 0 in order to rotate tensor properly
+              # we only have homogenized tensors for s1 != and s2=s3=0
+              if np.sum(sampl == 0) == 2:
+                if  x == 0:
+                  if y == 0:
+                    # x1 -> z1: rotate around y-axis by 90° 
+                    Q = matviz_rot.get_rot_6x6(0,np.pi/2,0)
+                  else:
+                    assert(z == 0)  
+                    # x1 -> y1: rotate around z-axis by 90°
+                    Q = matviz_rot.get_rot_6x6(0,0,np.pi/2)
+                else: # x != 0
+                  Q = np.eye(6)
+                
+              # one param s_{1,2,3} is 0
+              else:
+                assert(np.sum(sampl == 0) == 1)
+                ts_vals = []
+                if x == 0:
+                  print("\n here x:",x,y,z)
+                  # s1 =0 , s2 > 0, s3 > 0
+                  # keep y1 and rotate x1 onto z1
+                  
+                  # x1 -> z1: rotate around y-axis by 90° 
+                  Q = matviz_rot.get_rot_6x6(0,np.pi/2,0)
+                elif y == 0:
+                  print("\n here y:",x,y,z)
+                  # s1 > 0, s2 = 0, s3 > 0
+                  # keep x1 and rotate y1 onto z1
+                  # x1 -> z1: rotate around x-axis by 90°
+                  Q = matviz_rot.get_rot_6x6(np.pi/2,0,0)
+                else: 
+                  print("\n here else:",x,y,z)
+                  #s1 > 0, s2 > 0, s3 = 0
+                  # just take identity matrix -> no rotation
+                  Q = np.eye(6)
+                
+              assert(Q is not None)
+              rot_tens =  np.dot(Q, np.dot(tens, Q.transpose()))
+              out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(rot_tens[0,0]) + ' ' + str(rot_tens[1,0]) + ' ' + str(rot_tens[2,0]) + ' ' + str(rot_tens[1,1]) + ' ' + str(rot_tens[1,2]) + ' ' + str(rot_tens[2,2]) + ' ' + str(rot_tens[3,3]) + ' ' + str(rot_tens[4,4]) + ' ' + str(rot_tens[5,5]) + "\n")  
+              # we have to use .density.xml files, thus read volume from optimization part
+              vol = xpath(doc, "//iteration/@volume")
+              out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + vol + '\n')    
+                  
+            else:  # neither s1, s2 or s3 = 0
+              out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
+              vol = xpath(doc, "//domain/@structure_volume")
+              
+              if vol != "cannot_determine":
+                vol = float(vol)
+                out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
           
           # if x != y:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
-        else:
-          print('file ' + infoxml + ' not found')
+          else:
+            print('file ' + infoxml + ' not found')
+            
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
@@ -425,10 +497,28 @@ out.close()
 out_vol.close()
 
 
-
-
-
-
+# rotate 3d tensor around one axis by given angle
+# @tensor: 6x6 numpy array
+# @axis: 0,1 or 2
+# @angle: rotation angle in degrees
+# returns rotated tensor
+def rotate_3d_tensor(tensor,axis,angle):
+  assert(tensor.shape == (6,6))
+  assert(-1e-6 <= angle <= 360+1e-6)
+  assert(0 <= axis <= 2)
+  rad = np.radians(angle)
+  Q = None
+  if axis == 0:
+    Q = matviz_rot.get_rot_6x6(rad,0,0)
+  elif axis == 1:
+    Q = matviz_rot.get_rot_6x6(0,rad,0)
+  else: # axis == 2
+    Q = matviz_rot.get_rot_6x6(0,0,rad)
+    
+  assert(Q is not None)
+  print("rotated tensor by ", angle, " around axis ",axis)
+  
+  return np.dot(Q, dot(tensor, Q.transpose()))
 
 
 # FUNCTIONS NOT USED CURRENTLY

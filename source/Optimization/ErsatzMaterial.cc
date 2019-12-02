@@ -3200,6 +3200,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       {
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
+
+        // save design element volume, eg. two-scale volume
+        if (dynamic_cast<DesignElement*> (id.element) != NULL && (f->GetType() == Function::TWO_SCALE_VOL || f->GetType() ==  Function::GLOBAL_TWO_SCALE_VOL))
+        {
+          id.element->SetElemPorosity(1.-(fv/dynamic_cast<DesignElement*>(id.element)->CalcVolume() * local->total_vol_));
+        }
         res += fv;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
                      << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign

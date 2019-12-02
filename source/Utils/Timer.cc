@@ -4,7 +4,7 @@
 using namespace CoupledField;
 using std::string;
 
-Timer::Timer(const std::string& name, bool sub) :
+Timer::Timer(const std::string& name, bool sub, bool start_immediately) :
   calls_(0),
   running(false),
   start_clock(0),
@@ -12,6 +12,8 @@ Timer::Timer(const std::string& name, bool sub) :
   label_(name),
   sub_(sub)
 {
+  if(start_immediately)
+    Start();
 }
 
 

@@ -86,6 +86,7 @@ if strcmp(ext,'.mesh')
     pos_bc = ftell(fid);
     % node names: 1 border, 2 controlpoints, 3 bottom, 4 top, 5 left, 6 right
     fgetl(fid);
+    %TODO: FIX
     BCs = fscanf(fid,'%8d nodes%d\n',[2,numNodeBC]);
     
     % : bottom, up, left, right, front, back

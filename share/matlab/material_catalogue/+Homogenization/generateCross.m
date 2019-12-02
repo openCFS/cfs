@@ -61,6 +61,10 @@ volume = s1 + s2 - s1*s2;
 
 dimension = 2;
 
+% Initial number of elements
+nx = min(max(nx,ceil(128/500/min(s1,s2*3))),4096);
+ny = min(max(ny,ceil(128/500/min(s1*3,s2))),4096);
+
 % Nodes
 % Nodes are separated into three parts:
 % 0 to remainder / remainder to remainder + s / remainder + s to 1
@@ -71,10 +75,10 @@ xremainder = (1-s2)/2;
 
 % Points in each part
 px1 = ceil(xremainder*nx)+1;
-px2 = ceil(s2*nx)+1;
+px2 = max(ceil(s2*nx)+1,3);
 px3 = px1;
 py1 = ceil(yremainder*ny)+1;
-py2 = ceil(s1*ny)+1;
+py2 = max(ceil(s1*ny)+1,3);
 py3 = py1;
 
 % Coordinates of points in each part
@@ -214,7 +218,7 @@ fprintf(fid,'[Node BC]\n');
 fprintf(fid,'#NodeNr Level\n');
 if ~isempty(bottom)
     fprintf(fid,'% 8d bottom\n',int32(bottom));
-    fprintf(fid,'% 8d up\n',int32(top));
+    fprintf(fid,'% 8d top\n',int32(top));
 end
 if ~isempty(left)
     fprintf(fid,'% 8d left\n',int32(left));

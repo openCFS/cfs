@@ -65,6 +65,11 @@ volume = CalcCross3DVolume(s1, s2, s3);
 
 dimension = 3;
 
+% Initial number of elements
+nx = min(max(nx,ceil(16/500/min(s1,s2*3,s3*3))),128);
+ny = min(max(ny,ceil(16/500/min(s1*3,s2,s3*3))),128);
+nz = min(max(nz,ceil(16/500/min(s1*3,s2*3,s3))),128);
+
 % Nodes
 % Nodes are eparated into three parts:
 % 0 to remainder / remainder to remainder + s / remainder + s to 1
@@ -77,23 +82,23 @@ zremainder = (1-s3)/2;
 % Points in each part
 minx = min(yremainder,zremainder);
 maxx = max(yremainder,zremainder);
-px1 = ceil(minx*nx)+1;
-px2 = ceil((maxx-minx)*nx)+1;
-px3 = ceil(min(s2,s3)*nx)+1;
+px1 = max(ceil(minx*nx)+1,3);
+px2 = max(ceil((maxx-minx)*nx)+1,3);
+px3 = max(ceil(min(s2,s3)*nx)+1,3);
 px4 = px2;
 px5 = px1;
 miny = min(xremainder,zremainder);
 maxy = max(xremainder,zremainder);
-py1 = ceil(miny*ny)+1;
-py2 = ceil((maxy-miny)*ny)+1;
-py3 = ceil(min(s1,s3)*ny)+1;
+py1 = max(ceil(miny*ny)+1,3);
+py2 = max(ceil((maxy-miny)*ny)+1,3);
+py3 = max(ceil(min(s1,s3)*ny)+1,3);
 py4 = py2;
 py5 = py1;
 minz = min(xremainder,yremainder);
 maxz = max(xremainder,yremainder);
-pz1 = ceil(minz*nz)+1;
-pz2 = ceil((maxz-minz)*nz)+1;
-pz3 = ceil(min(s1,s2)*nz)+1;
+pz1 = max(ceil(minz*nz)+1,3);
+pz2 = max(ceil((maxz-minz)*nz)+1,3);
+pz3 = max(ceil(min(s1,s2)*nz)+1,3);
 pz4 = pz2;
 pz5 = pz1;
 

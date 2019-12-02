@@ -10,6 +10,7 @@ import mesh_tool
 import cfs_utils
 import argparse
 import draw_profile_functions
+from draw_profile_functions import calc_distance
 import numpy as np
 from scipy import interpolate
 import matviz_vtk
@@ -18,10 +19,11 @@ import sys
 
 # return list with length len(points)
 # for each point, this list gives the ids of its neighbors
+# assume that idx of 'points' is also the point id
 def getConnectivity(points,cells):
   # for each point ( id = array index), store tuple with all neighboring id nodes
   connectivity = [set() for index in range(len(points))]
-  for t in cells:
+  for i,t in enumerate(cells):
     assert(t[0] < len(points))
     assert(t[1] < len(points))
     assert(t[2] < len(points))
@@ -36,48 +38,94 @@ def getConnectivity(points,cells):
   
   return connectivity
 
-def taubin_smoothing(points,connectivity,niter):
-  assert(niter > 0)
+def taubin_smoothing(points,connectivity,bounds=None,niter=0,lamb = None):
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
-  lamb = 0.6
+  assert(lamb is not None)  
   new_points = points
-  for i in range(niter):
-    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.03)
-    
-  print("Taubin smoothing with ", niter, " iterations")
+  old_points = new_points
+  i = 0
+  res = 0
+  while res > 1e-2 or i < niter:
+    print("iter:",i, "res:",res)
+    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb,bounds=bounds),connectivity,-lamb-0.04,bounds=bounds)
+    res = residual(old_points, new_points)
+    old_points = np.copy(new_points)
+    i += 1
+  
+#   print("Taubin smoothing with ", i, " iterations and res=",res, " niter:",niter)  
+  print("Taubin smoothing with ", i, " iterations")
     
   return new_points
 
+# for 2 list of points, calculate norm of difference
+def residual(old,new):
+  assert(len(old) == len(new))
+  diff = 0
+  for i in range(len(old)):
+    diff += np.linalg.norm(np.asarray(old[i]) - np.asarray(new[i]))
+  
+  return diff/len(old)  
+  
 # laplacian smoothing: p_i = p_i + \lambda * L(p_i)
-# using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k   
-def laplacian_smoothing(points,connectivity,lamb):
-  new_points = [None] * len(points) 
-  for i,p in enumerate(points):
-    # calculate gradient   
-    if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
+# using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k
+# bounds: tuple/list with 6 entries - points on these boundaries are not smoothed   
+# bounds order: xmin,ymin,zmin,xmax,ymax,zmax
+def laplacian_smoothing(points,connectivity,lamb,start=0,end=None,bounds=None,rank=None):
+  if end == None:
+    end = len(points)
+  new_points = points[:]
+  if bounds is None:
+    bounds = [-9999,-9999,-9999,9999,9999,9999] # default unit cube
+    
+  #print("rank:",rank," smoothing start:",start," end:",end, " lambda:",lamb)  
+  for i in range(start,end):
+    p = points[i]
+    # don't smooth at the boundary
+    if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
       new_points[i] = p
+      assert(new_points[i] is not None)
     else:
       # calculate L(p_i)
       # w_ij*p_j + w_ik*p_k
-      num = np.asarray([0,0,0])
-      denom = 0
       L = 0
       # nid is id of a neighbor node
-      neighborhood = connectivity[i] 
+      neighborhood = connectivity[i]
+      #print("neighborhood: ",neighborhood)
       for nid in neighborhood:
         # n are coords of neighbor with id nid
-        n = points[nid]
+        n = np.asarray(points[nid])
+        assert(n is not None)
         # distance between neighbor and this node
         w = 1.0 / np.linalg.norm(len(neighborhood))
-        L = L + w * (n-p)
+        assert(p is not None)
+        L += w * (n-p)
+        #print("w:",w," n:",n," p:",p)
+        #print("n-p:",n-p," w*(n-p):",w*(n-p)," L:",L)
+        
       new_points[i] = p + lamb * L   
+      #print(p,"+",lamb,"*",L)
+      #print("old:",points[i]," new:",new_points[i])
+      assert(new_points[i] is not None)
+      
+  assert(len(new_points) == len(points))
+  for i,p in enumerate(new_points):
+    if p is None:
+      print("Rank:",rank," i:",i, " has None")
+    assert(p is not None)
+    
+  #for i in range(len(points)):
+  #  print("old:",points[i]," new:",new_points[i])
   
   return new_points  
 
-def calc_volume(array,infoXml=None):
-  res, res, res = array.shape
+def calc_volume(array,multRegions=False,infoXml=None):
+  res = array.shape[0]
   
-  elems = np.where(array != -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
+  elems = 0
+  if multRegions:
+    elems = np.where(array != -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
+  else:
+    elems = np.where(array > 0,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
   
   vol = float(elems)/float(res**3)
   
@@ -89,7 +137,7 @@ def calc_volume(array,infoXml=None):
   return vol
 
 def visualize_structure(points,cells,show,save):
-  polydata = matviz_vtk.fill_vtk_polydata(points,cells)
+  polydata, _ = matviz_vtk.fill_vtk_polydata(points,cells)
   
   if save:
     show_write_vtk(polydata,1000,save)
@@ -125,8 +173,10 @@ def calc_radius(stiff):
   return val 
 
 if __name__ == "__main__":
-#   import doctest, draw_profile_functions
-#   doctest.testmod(draw_profile_functions)
+#   import doctest, marching_cubes, draw_profile_functions
+#   doctest.testmod(marching_cubes,verbose=True,raise_on_error=False)
+#   doctest.testmod(draw_profile_functions,verbose=True)
+  
   parser = argparse.ArgumentParser()
   parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
   parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
@@ -139,6 +189,7 @@ if __name__ == "__main__":
   parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 < z1 < 1", type=float)
   parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 < z2 < 1", type=float)
   parser.add_argument('--input', help="thickness bascell parameters for lazy people, e.g. x1,x2,y1,y2,z1,z2", default="")
+  parser.add_argument('--lower', help="value for void (default 0)", type=float, default=0)
   parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
   parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
   parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
@@ -147,7 +198,7 @@ if __name__ == "__main__":
   parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
   parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
   parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
-  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh"], required=True)
+  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","marching_cubes","surface_mesh","image"], required=True)
   parser.add_argument('--save', help="overwrite default target name")
   parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
   parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
@@ -159,6 +210,8 @@ if __name__ == "__main__":
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
   parser.add_argument('--smooth_iter', help="number of steps for Taubin's surface smoothing",type=int, default=30)
+  parser.add_argument('--smooth_lambda', help="smoothing factor(between 0 and 1), default=0.4",type=float, default=0.4)
+  parser.add_argument('--simplify', help="collapse short edges to reduce number of triangles", action='store_true', default=False)
   
   args = parser.parse_args()
   
@@ -237,6 +290,8 @@ if __name__ == "__main__":
     fileNameBase += "_skip_y" if args.skip_y else ""
     fileNameBase += "_skip_z" if args.skip_z else ""
     fileNameBase += "_" + args.target
+    if args.simplify:
+      fileNameBase += "_reduced"
     args.save = fileNameBase  
   else:
     if args.save.endswith(".stl") or args.save.endswith(".vtp"):
@@ -287,51 +342,93 @@ if __name__ == "__main__":
     assert(infoStr)
     infoXml.write(infoStr + "/>\n\n")  
   
+  
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
+  args.bc_flags = None
   array, points, cells = draw_profile_functions.generate_basecell(args,infoXml)
-  volume = calc_volume(array, infoXml)
+  volume = calc_volume(array, args.multiple_regions, infoXml)
   
-  if args.target.startswith("surface"):
+#   x = np.arange(0,array.shape[0]+1,1)
+#   y = np.arange(0,array.data.shape[1]+1,1)
+#   z = np.arange(0,array.data.shape[2]+1,1)
+#   from pyevtk.hl import gridToVTK
+#   gridToVTK("array",x,y,z,cellData={"voxels":array.astype(int)})
+  
+  if args.target == "surface_mesh":
     connectivity = getConnectivity(points,cells)
-    points = taubin_smoothing(points,connectivity,args.smooth_iter)
-#     smesh = Surface_Mesh(points, cells)
-#     smesh.smooth(args.smooth_iter)
-#     points = smesh.points
-#     cells = smesh.cells
+    print("smoothing with niter:",args.smooth_iter," and lambda=",args.smooth_lambda)
+    points = taubin_smoothing(points,connectivity,bounds=[0,0,0,1,1,1],niter=args.smooth_iter,lamb=float(args.smooth_lambda))
   
+  if args.target == "image":  
+    x = np.arange(0,array.shape[0]+1,1)
+    y = np.arange(0,array.shape[1]+1,1)
+    z = np.arange(0,array.shape[1]+1,1)
+    
+    coordsx = np.zeros((len(x)-1,len(y)-1,len(z)-1))
+    coordsy = np.zeros((len(x)-1,len(y)-1,len(z)-1))
+    coordsz = np.zeros((len(x)-1,len(y)-1,len(z)-1))
+    
+    for j in range(len(y)-1):
+      for k in range(len(z)-1):
+        for i in range(len(x)-1):
+          coordsx[i,j,k] = i
+    for i in range(len(x)-1):
+      for k in range(len(z)-1):
+        for j in range(len(y)-1):
+          coordsy[i,j,k] = j
+    for i in range(len(x)-1):
+      for j in range(len(y)-1):
+        for k in range(len(z)-1):
+          coordsz[i,j,k] = k
+    
+    coords = (coordsx,coordsy,coordsz)
+                
+    from pyevtk.hl import gridToVTK
+    gridToVTK("image",x,y,z,cellData={"array":array,"coords":coords})
+    
+    # find out which skimage version we have
+    # for versions < 0.14.0 calling mc via measure.marching_cubes
+    # for versions >= 0.14.0 calling mc via measure.marching_cubes_lewiner
+    from distutils.version import LooseVersion
+    import skimage
+    if LooseVersion(skimage.__version__) < LooseVersion("0.14.0"):
+      from skimage import measure
+      points, cells, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
+    else:
+      assert(LooseVersion(skimage.__version__) > LooseVersion("0.14.0"))
+      from skimage import measure
+      points, cells, _, _ = measure.marching_cubes_lewiner(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
+  
+#     from marching_cubes import marching_cubes
+#     marching_cubes(array,(1/args.res,1/args.res,1/args.res))   
+#     sys.exit()
+    
+      
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
   mesh = None
+  # gives list of points with only coordinate entries
   polydata = matviz_vtk.fill_vtk_polydata(points,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
   ################### take care of gid mesh ##############
-  if args.target.startswith("volume"):
+  if args.target == "volume_mesh":
     if args.z1 == 0.0 and args.z2 == 0.0:
       mesh = create_2d_mesh_from_array(array)
     else:
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
     
     mesh_tool.validate_periodicity(mesh)
-  elif args.target.startswith("surface") or args.target.startswith("surface"):
-    stlName = fileNameBase + ".stl"
-    if args.tets: # create tetrahedralized volume mesh from surface description
-      mesh = mesh_tool.create_volume_mesh_with_gmsh(stlName)    
-  
-  if args.target == "volume_mesh" or args.target == "surface_mesh" and args.tets:   
-    file = fileNameBase + '.mesh'
-    assert(file.endswith('.mesh'))
     
-    assert(mesh is not None)
-    mesh_tool.write_gid_mesh(mesh, file)
+    mesh_tool.write_gid_mesh(mesh, fileNameBase+".mesh") 
   
   ################ take care of stl and vtp files ##############  
-  if args.target.startswith("volume"):
+  if args.target == "volume_mesh":
     vtpName = fileNameBase + ".vtp"
     matviz_vtk.show_write_vtk(polydata,1000,vtpName)
-  elif args.target.startswith("surface"):
+  elif args.target == "surface_mesh" or args.target == "marching_cubes":
     stlName = fileNameBase + ".stl"
     # make sure normals are oriented consistently
     normals = vtk.vtkPolyDataNormals()
@@ -342,8 +439,10 @@ if __name__ == "__main__":
     matviz_vtk.write_stl(normals.GetOutput(),stlName)
     if args.save_vtp:
       matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
-  else:
-    print("Ohohohoh....")
+    if args.tets: # create tetrahedralized volume mesh from surface description
+      mesh_tool.create_volume_mesh_with_gmsh(stlName)
+  else:    
+    print("Error: Missing if branch for writing output!")
     sys.exit()
               
   if infoXml != None:
@@ -351,7 +450,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface",res_surf_lines=None,tets=False):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,bc_flags=None,lower=0):
     self.res = res
     self.x1 = x1
     self.x2 = x2
@@ -360,7 +459,10 @@ class Basecell_Data():
     self.z1 = z1
     self.z2 = z2
     self.bend = bend
-    self.tets = tets
+    self.tets = False
+    self.lower= lower
+    # flags = [0,nx-1,0,ny-1,0,nz-1]
+    self.bc_flags = bc_flags
     assert(interpolation == "linear" or interpolation == "heaviside")
     if interpolation == "heaviside":
       assert(beta is not None and eta is not None)
@@ -387,34 +489,46 @@ class Basecell_Data():
     self.save_vtp = False
     self.to_info_xml = False
     self.stiffness_as_diameter = False
+    self.multiple_regions = False
     
     if not res_surf_lines:
       self.res_surf_lines = res
+  
+  def dump(self):
+    print("\nbase cell data")
+    print("x1,x2,y1,y2,z1,z2:",self.x1,self.x2,self.y1,self.y2,self.z1,self.z2)
+    print("bend:",self.bend)  
+    print("type:",self.target)
     
 class Basecell():
   # data is an object of type Basecell_Data()
-  def __init__(self,data):
+  # idx = (i,j,k)
+  def __init__(self,data,idx=None):
     assert(type(data) is Basecell_Data)
     self.data = data
-    _, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
-    
+    self.idx = idx
+    self.voxels, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
+    assert(self.points is not None)
+    assert(self.cells is not None)
+
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
     if data.target != "volume_mesh":
       self.update()
+    if data.target == "surface_mesh":
+      connectivity = getConnectivity(self.points,self.cells)
+      self.points = taubin_smoothing(self.points,connectivity)  
       
     self.center = np.asarray([0.5,0.5,0.5])
     
   def scale(self,scalex,scaley,scalez):
-    for i in range(len(self.points)):
-      self.points[i] = np.asanyarray(self.points[i]) * np.asarray([scalex,scaley,scalez])
-    
+    scale = np.asarray([scalex,scaley,scalez])
+    self.points = [p*scale for p in self.points]
     self.center = self.center * np.asarray([scalex,scaley,scalez])
   def translate(self,x,y,z):
-    for i in range(len(self.points)):
-      self.points[i] = np.asanyarray(self.points[i]) + np.asanyarray([x,y,z])
-    
-    self.center = self.center + np.asanyarray([x,y,z])
+    shift = np.asarray([x,y,z])
+    self.points = [p+shift for p in self.points]
+    self.center += shift
     
   # recalculate bounds after rescaling and translating
   def update(self):
@@ -424,7 +538,6 @@ class Basecell():
     self.bounds[3] = np.max(np.asarray(self.points)[:,0])
     self.bounds[4] = np.max(np.asarray(self.points)[:,1])
     self.bounds[5] = np.max(np.asarray(self.points)[:,2])
-    
   
 ############## info xml scheme #####################
 # <basecell>
