@@ -198,7 +198,7 @@ class BaseFieldFunctor;
     
     /** Define all RHS linearforms for load / excitation
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
-    virtual void DefineRhsLoadIntegrators(PtrParamNode input) { assert(false); }
+    virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
     virtual void DefineRhsLoadIntegrators() { DefineRhsLoadIntegrators(PtrParamNode()); } // Only where we do optimization we use the parameter
 
     /** identify this pde for logging debug purpose */

@@ -1871,6 +1871,11 @@ int DesignSpace::FindRegion(RegionIdType regionId) const
 template <class T>
 void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
 {
+  // in the load ersatz material case the context is not set
+  assert(Optimization::context);
+  Optimization::context->Update();
+
+
   // our results are up to now scalar!
   Result<T>& result = dynamic_cast<Result<T> &>(*base_result);
   // the description of the result

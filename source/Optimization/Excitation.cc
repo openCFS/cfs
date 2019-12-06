@@ -373,8 +373,6 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   if(num_wave > 0)
     SetBlochWaves(ctxt, context_base, num_wave);
 
-  assert(!(num_freq == 1 && num_loads == 1));
-
   // when we do magnetic coupling with 1 frequency but two loads
   if(ctxt->IsHarmonic() && (num_freq > 1 || num_loads <= 1))
     SetHarmonic(ctxt, context_base, num_freq);

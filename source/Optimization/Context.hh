@@ -122,7 +122,7 @@ class Context
    * @see SetPDEs() */
   static App::Type ToApp(const SinglePDE* pde);
 
-  App::Type ToApp() const { return ToApp(pde); }
+  App::Type ToApp() const { assert(pde != NULL); return ToApp(pde); }
 
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
@@ -182,8 +182,9 @@ class Context
 
 private:
 
-  /** make shortcuts for the currently available PDEs in pdes */
-  void SetPDEs();
+  /** make shortcuts for the currently available PDEs in pdes.
+   * @return fals if it was too early and the pdes are not set in the system yet */
+  bool SetPDEs();
 
   /** are we harmonic/EV or static/transient? */
   bool complex_;

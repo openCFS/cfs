@@ -239,8 +239,7 @@ SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
   return NULL;
 }
 
-
-void Context::SetPDEs()
+bool Context::SetPDEs()
 {
   const StdVector<SinglePDE*> avail = domain->GetSinglePDEs();
 
@@ -292,6 +291,8 @@ void Context::SetPDEs()
   }
 
   assert(pdes.size() == avail.GetSize());
+
+  return !avail.IsEmpty();
 }
 
 BiLinFormContext* Context::GetBiLinFormContext(const RegionIdType reg, App::Type app1, App::Type app2, bool throw_exception)
