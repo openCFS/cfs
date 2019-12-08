@@ -1193,6 +1193,9 @@ namespace CoupledField {
       case SYSTEM_BAK:
         out = "system_bak";
         break;
+      case TANGENTIAL_STIFFNESS:
+        out = "tangential_stiffness";
+        break;
 
       default:
         EXCEPTION( "No string value found for the specified value of the "
@@ -1314,6 +1317,8 @@ namespace CoupledField {
       out = SYSTEM_DELTAMAT_JACOBIAN;
     else if ( in == "system_bak")
       out = SYSTEM_BAK;
+    else if ( in == "tangental_stiffness")
+          out = TANGENTIAL_STIFFNESS;
     else {
       EXCEPTION( "String '" << in << "' cannot be converted to item of "
                  << "'FEMatrixType'!" );
@@ -1955,6 +1960,7 @@ namespace CoupledField {
     feMatrixType.Add( SYSTEM_FIXPOINT, "system_fixpoint" );
     feMatrixType.Add( SYSTEM_FD_JACOBIAN, "system_fd_Jacobian" );
     feMatrixType.Add( SYSTEM_DELTAMAT_JACOBIAN, "system_deltaMat_Jacobian" );
+    feMatrixType.Add( TANGENTIAL_STIFFNESS, "tangental_stiffness" );
     feMatrixType.Add( SYSTEM_BAK, "system_bak" );
 
     // ==== Initialization of ApproxCurveTypes ====

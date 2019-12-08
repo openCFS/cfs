@@ -92,7 +92,7 @@ protected:
     /** Returns an integrator for prestressing
      * @param preStressFct is a tensor coefficient function for prestressing
      * @param isComplex either from complex material or bloch mode */
-    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex);
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, Double factor = 1.0);
 
     /** Returns an integrator for prestressing
      * @param preStressFct is a tensor coefficient function for prestressing

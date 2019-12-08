@@ -120,7 +120,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
     }
-    // set the eigensolver type (should probably go into the constructor)
+
     retSolver->eigenSolverType_ = solver;
     return retSolver;
   }

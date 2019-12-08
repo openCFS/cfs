@@ -9,7 +9,7 @@
 #include "MultiHarmonicDriver.hh"
 #include "EigenFrequencyDriver.hh"
 #include "InverseSourceDriver.hh"
-
+#include "BucklingDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"
 #include "Domain/Domain.hh"
@@ -237,6 +237,9 @@ DEFINE_LOG(msDriver, "msDriver")
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {
         actDriver_ = new EigenFrequencyDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+      }
+      else if( analysisPerStep_[sequenceStep] == BasePDE::BUCKLING ) {
+              actDriver_ = new BucklingDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::MULTIHARMONIC ) {
         actDriver_ = new MultiHarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );

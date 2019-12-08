@@ -482,10 +482,10 @@ namespace CoupledField {
   //!                    (i.e. K_FD_Jac = K_eff + df_hyst/du), using a finite difference approximation of df_hyst/du
   //! - SYSTEM_DELTAMAT_JACOBIAN - as FD_JACOBIAN, but df_hyst/du is approximated using the deltaMat approach
   //!                    (i.e. no full FD_JACOBIAN but difference quotient between current and previous values)
-  //!
+  //! - TANGENTIAL_STIFFNESS - used in Buckling Analysis
 
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, CONVECTION, MASS, AUXILIARY, STIFFNESS_UPDATE, DAMPING_UPDATE , MASS_UPDATE,
-    SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, SYSTEM_BAK}
+    SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, SYSTEM_BAK, TANGENTIAL_STIFFNESS}
   FEMatrixType;
   extern Enum<FEMatrixType> feMatrixType;
 

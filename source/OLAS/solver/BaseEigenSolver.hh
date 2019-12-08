@@ -74,7 +74,8 @@ namespace CoupledField {
         isHermitian_(false),
         a_(NULL),
         eigenProblemType_(NO_TYPE),
-        modeNormalization_(NONE)
+        modeNormalization_(NONE),
+        eigenSolverName_(NO_EIGENSOLVER)
     {
     }
     
@@ -274,6 +275,8 @@ namespace CoupledField {
       modeNormalization_ = normType;
     }
 
+    virtual EigenSolverType GetEigenSolverName(){ return eigenSolverName_;}
+
   protected: 
 
     //! Pointer to solution strategy object
@@ -335,6 +338,10 @@ namespace CoupledField {
 
     //! defines the mode normalization
     ModeNormalization modeNormalization_;
+
+  public:
+    //! Solver Type Name
+    EigenSolverType eigenSolverName_;
   };
   
 }

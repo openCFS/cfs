@@ -7,6 +7,7 @@
 #include <Driver/MultiHarmonicDriver.hh>
 #include <Driver/InverseSourceDriver.hh>
 #include <Driver/EigenFrequencyDriver.hh>
+#include <Driver/BucklingDriver.hh>
 #include <Driver/TransientDriver.hh>
 #include <Driver/StaticDriver.hh>
 #include <Driver/MultiSequenceDriver.hh>
