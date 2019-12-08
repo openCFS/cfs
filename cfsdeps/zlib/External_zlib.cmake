@@ -68,6 +68,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://zlib.net/${ZLIB_GZ}"
+  "https://sourceforge.net/projects/libpng/files/zlib/${ZLIB_VER}/${ZLIB_GZ}/download?use_mirror=vorboss&download="
   "http://fossies.org/linux/misc/${ZLIB_GZ}"
   "${ZLIB_URL}/${ZLIB_GZ}"
 )
