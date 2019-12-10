@@ -22,6 +22,9 @@
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="eigenFrequency"/>
               <xsd:enumeration value="inverseSource"/>
+              
+              <xsd:enumeration value="buckling"></>
+              
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -269,6 +272,44 @@
         <!-- Arpack, our only EV solver, sometimes presents unsorted evs. 
              By this option the evs are sorted by magnitude. For quadratic problems with real complex evs
             this makes not sense. For bloch it is ok as the imaginary part is only spurious (Hermitian system)  -->
+        <xsd:attribute name="sort" use="optional" type="xsd:boolean" default="true"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element Buckling-->
+  <!-- ******************************************************************* -->
+  <xsd:element name="buckling" type="DT_Buckling" substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for static analysis -->
+  <xsd:complexType name="DT_Buckling">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+        <!-- False if conventional buckling!!! -->
+        <xsd:element name="linearBuck" type="DT_CFSBool"/>
+        <xsd:choice>
+            <xsd:sequence>
+              <xsd:element name="numModes" type="xsd:token"/>
+              <xsd:element name="freqShift" type="DT_NonNegFloat"/>
+            </xsd:sequence>
+            <xsd:sequence>
+              <xsd:element name="minVal" type="xsd:token" default="0" minOccurs="0"/>
+              <xsd:element name="maxVal" type="xsd:token"/>
+            </xsd:sequence>
+        </xsd:choice>
+        <xsd:element name="writeModes">
+            <xsd:complexType>
+              <xsd:simpleContent>
+                <xsd:extension base="DT_CFSBool">
+                  <xsd:attribute name="normalization" type="DT_ModeNormalization"/>
+                </xsd:extension>
+              </xsd:simpleContent>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
         <xsd:attribute name="sort" use="optional" type="xsd:boolean" default="true"/>
       </xsd:extension>
     </xsd:complexContent>

@@ -663,6 +663,47 @@ namespace CoupledField {
       
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
+
+
+
+
+
+
+
+      // ====================================================================
+          //  Tangential Stiffness Matrix for Buckling Analysis
+          // ====================================================================
+          bool isLinearBuck = false;
+          myParam_->GetValue( "linearBuck", isLinearBuck, ParamNode::PASS );
+
+          if (analysistype_ == BUCKLING) {
+          	if (isLinearBuck == true){
+          		EXCEPTION("Linear Buckling not implemented yet!");
+          		// see non linear strain operator
+          	}
+          	// Generate Stress Dependent Stiffness Matrix
+          	BaseBDBInt *buckStressInt = NULL;
+
+          	PtrCoefFct preStressFct = CreatePreStressFct(false, preStressNode);
+			regionPreStress_[actRegion] = preStressFct;
+
+          	buckStressInt = GetPreStressIntegrator(preStressFct, actRegion, false);
+
+      		buckStressInt->SetName("buckStressInt");
+      		buckStressInt->SetFeSpace( mySpace );
+
+      		BiLinFormContext *buckStressContext =  new BiLinFormContext( buckStressInt, TANGENTIAL_STIFFNESS);
+      		buckStressContext->SetEntities( actSDList, actSDList );
+      		buckStressContext->SetFeFunctions( myFct, myFct );
+
+      		assemble_->AddBiLinearForm( buckStressContext );
+          }
+
+
+
+
+
+
     }
     
     // ====================================================================
@@ -670,7 +711,7 @@ namespace CoupledField {
     // ====================================================================
     DefineConcentratedElems();
   }
-  
+
   
   void MechPDE::DefineSurfaceIntegrators( ){
 

@@ -84,7 +84,7 @@ namespace CoupledField {
     algsys_->InitMatrix();
     
     // Check for analysistype
-    if ( analysistype_ != EIGENFREQUENCY ) {
+    if ( analysistype_ != EIGENFREQUENCY || analysistype_ != BUCKLING) {
       
       // create solver and preconditioner
       algsys_->CreateSolver();
