@@ -2221,20 +2221,7 @@ namespace CoupledField
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    Double omega;
-    if(isMultHarmDiag){
-      omega = 2 * M_PI * f;
-    }else{
-      omega = mp_->Eval( mHandle_ );
-    }
-
-
-    // for bloch mode we need special handling. The mass matrix needs to be complex but
-    // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC ||
-        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC ||
-        domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-        omega == 0.0);
+    Double omega = isMultHarmDiag ? 2 * M_PI * f : mp_->Eval(mHandle_);
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
