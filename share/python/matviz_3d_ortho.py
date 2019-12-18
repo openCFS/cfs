@@ -5,7 +5,6 @@ import matviz_vtk
 import vtk
 import math
 import sys
-from sympy.printing.llvmjitcode import ll
 
 try:
   import meshpy.triangle as triangle

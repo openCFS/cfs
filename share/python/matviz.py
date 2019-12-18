@@ -14,12 +14,12 @@ import io
 import xml.etree.ElementTree
 import xml.dom.minidom
 from cfs_utils import *
+
 try:
   from mpi4py import MPI
-  import matviz_3d_ortho # two scale 3d ortho stuff
-except:
-  print("WARNING:Could not load mpi4py!")
-
+except ImportError:
+  print("WARNING: Could not load mpi4py")
+import matviz_3d_ortho # two scale 3d ortho stuff
 
 TWO_SCALE = (
   "hom_rot_cross",
@@ -393,7 +393,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         exit() 
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
-    if (get_MPI_rank()==0):  
+    if get_MPI_rank()==0:  
 	    if viz is None:
 	      print('Error: no visualization calculated!')
 	    else:
@@ -453,12 +453,11 @@ def read_input_from_info_xml(infoXmlName):
   return input
 
 def get_MPI_rank():
-  import sys 
-  
-  if 'mpi4py' not in sys.modules:
-    return 0
-  else:
+  try:
     return MPI.COMM_WORLD.Get_rank()
+  except NameError: # shall be name 'MPI' is not defined when from mpi4py import MPI failed
+    return 0  
+    
       
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
@@ -655,7 +654,7 @@ else:
     
     design_elems = None 
   if args.h5_nondes != "None" or args.h5_nondes_void != "None":
-    if (get_MPI_rank() == 0):
+    if get_MPI_rank() == 0:
       nondes_regs = args.h5_nondes
       # in case we have more than 1 non-design solid region
       if "," in args.h5_nondes:
@@ -679,7 +678,7 @@ else:
     
     print("args.h5_nondes_void:",args.h5_nondes_void)        
     if args.h5_nondes_void != "None":
-      if (get_MPI_rank() == 0): 
+      if get_MPI_rank() == 0: 
         nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
          
   dim_2D = min_bb[2] == max_bb[2]
@@ -713,7 +712,7 @@ if not args.target_volume:
     nondes_void = None
     nondes_solid = None
     design = None
-    if (get_MPI_rank() == 0):
+    if get_MPI_rank() == 0:
       if args.h5_nondes != "None":
         nondes_solid = (nondes_elements, nondes_min, nondes_max)
       if args.h5_nondes_void != "None":   
