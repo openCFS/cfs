@@ -123,6 +123,7 @@ class Function
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
       OVERHANG_VERT,             /*!< Overhang constraint for vertical (dof=x) shape mapping structures for additive manufacturing.  */
       OVERHANG_HOR,              /*!< Overhang constraint for horizontal (dof=y) shape mapping structures for additive manufacturing */
+      CONES,                     /*!< Cone constraints for injectivity of spline box in feature mapping */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -384,7 +385,7 @@ class Function
       /** The phase for oscillation constraint only to define two constraints with different
        * feature sizes for material and void */
       typedef enum {
-        BOTH = -1000,   // syn the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
+        BOTH = -1000,   // sync the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
         VOID_MAT = -1,  // with VOID MINGW I386 GCC 4.7.1 DEBUG complains about "error: expected identifier before 'void'"
         MATERIAL = 1
       } Phase;
@@ -441,11 +442,14 @@ class Function
         /** @param prev if NONE neighbor is size 1 otherwise size two */
         Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si = NO_SIGN);
 
-        /** Identifier when we have a neighborgood defined by a radius - eg mole */
+        /** Identifier when we have a neighborhood defined by a radius - eg mole */
         Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si = NO_SIGN);
 
+        /** Identifier when we have a neighborhood defined by a radius - eg mole */
+        Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, StdVector<BaseDesignElement*> sb_buddies, int si = NO_SIGN);
+
         /** Returns the element
-         * @param idx == -1 for elem, otherwise form neighbors */
+         * @param idx == -1 for elem, otherwise from neighbors */
         BaseDesignElement* GetElement(int idx) {
           return idx == -1 ? element : neighbor[idx];
         }
@@ -484,6 +488,10 @@ class Function
         /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
         double CalcOverhang(Function::Type ft, double eps) const;
         double CalcOverhangGradient(int neigh_idx, Function::Type ft, double eps) const;
+
+        /** calculate the cone constraint for spline box variables */
+        double CalcCones(const Local* local) const;
+        double CalcConesGradient(int neigh_idx, const Local* local) const;
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
@@ -588,9 +596,15 @@ class Function
          * @see GetElement() */
         StdVector<BaseDesignElement*> neighbor;
 
-        /** sign is only needed if we treat slope constraints as two separate constraints
-         *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
+        StdVector<BaseDesignElement*> sb_neighbor;
+
+        /** sign is only needed if we treat slope constraints as two separate constraints.
+         *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P.
+         *  for spline box design with cones constraints, sign will be between -12 and 12
+         *  and indicate which equation of linear cone to use */
         int sign;
+
+        StdVector<int> signs;
       private:
         /** to be reused */
         static StdVector<double> tmp1;
@@ -670,7 +684,7 @@ class Function
        * continuation. This is (global) checkerboard. -1 is real max = infinity */
       double beta_;
 
-      /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. For (global) mole only */
+      /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. */
       double eps_;
 
       /** power for globalization */

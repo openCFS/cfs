@@ -37,7 +37,9 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   analyticFunc.Add(FILE, "File");
   analyticFunc.Add(SUM_OF_SINE, "SumOfSine");
   analyticFunc.Add(MAX_SINE, "MaxSine");
-
+  analyticFunc.Add(SINE_X, "SineX");
+  analyticFunc.Add(SINE_Y, "SineY");
+  analyticFunc.Add(SINE_Z, "SineZ");
 
   this->dim_ = domain->GetGrid()->GetDim();
   this->export_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
@@ -57,13 +59,14 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   if(!pn->Has("splineBox/boundingBox")) {
     bounding_box_ = domain->GetGrid()->CalcGridBoundingBox();
   } else {
-    bounding_box_[0][0] = pn->Get("splineBox/boundingBox/lowerXLimit")->As<double>();
-    bounding_box_[0][1] = pn->Get("splineBox/boundingBox/upperXLimit")->As<double>();
-    bounding_box_[1][0] = pn->Get("splineBox/boundingBox/lowerYLimit")->As<double>();
-    bounding_box_[1][1] = pn->Get("splineBox/boundingBox/upperYLimit")->As<double>();
+    PtrParamNode pt = pn->Get("splineBox/boundingBox");
+    bounding_box_[0][0] = pt->Get("lowerXLimit")->As<double>();
+    bounding_box_[0][1] = pt->Get("upperXLimit")->As<double>();
+    bounding_box_[1][0] = pt->Get("lowerYLimit")->As<double>();
+    bounding_box_[1][1] = pt->Get("upperYLimit")->As<double>();
     if(this->dim_ == 3) {
-      bounding_box_[2][0] = pn->Get("splineBox/boundingBox/lowerZLimit")->As<double>();
-      bounding_box_[2][1] = pn->Get("splineBox/boundingBox/upperZLimit")->As<double>();
+      bounding_box_[2][0] = pt->Get("lowerZLimit")->As<double>();
+      bounding_box_[2][1] = pt->Get("upperZLimit")->As<double>();
     }
   }
 
@@ -77,7 +80,7 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   }
 
   // set initial control_points to greville abscissae
-  this->init_control_points_.Reserve(this->total_num_cp_);
+  this->initial_control_points_.Reserve(this->total_num_cp_);
   for(unsigned int i = 0; i < this->total_num_cp_; ++i) {
     StdVector<int> sub(this->dim_);
     Ind2Sub(this->num_cp_, i, sub);
@@ -85,9 +88,9 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
     for(unsigned int j = 0; j < this->dim_; ++j) {
       p[j] = GAbscissae[j][sub[j]];
     }
-    this->init_control_points_.Push_back(p);
+    this->initial_control_points_.Push_back(p);
   }
-  SetControlPoints(init_control_points_, false);
+  SetControlPoints(initial_control_points_, false);
 
   this->mapping_timer_  = info_->Get("splineBox/mapping/timer")->AsTimer();
   this->mapping_timer_->SetLabel("splineBox_map");
@@ -101,23 +104,49 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
     if(pn->Get("splineBox/feature/type")->As<string>() == "file") {
       this->analyticFunc_ = AnalyticFunc::FILE;
       if(!pn->Has("splineBox/feature/file")) {
-        Exception("Feature density file has to be given");
+        throw Exception("Feature density file has to be given");
       } else {
-        ReadFeature( pn->Get("splineBox/feature/file")->As<string>() );
+        cover_box_.Resize(this->dim_, 2);
+        if(!pn->Has("splineBox/feature/file/coverBox")) {
+          cover_box_[0][0] = 0.0;
+          cover_box_[0][1] = 1.0;
+          cover_box_[1][0] = 0.0;
+          cover_box_[1][1] = 1.0;
+          if(this->dim_ == 3) {
+            cover_box_[2][0] = 0.0;
+            cover_box_[2][1] = 1.0;
+          }
+        } else {
+          PtrParamNode pt = pn->Get("splineBox/feature/file/coverBox");
+          cover_box_[0][0] = pt->Get("lowerXLimit")->As<double>();
+          cover_box_[0][1] = pt->Get("upperXLimit")->As<double>();
+          cover_box_[1][0] = pt->Get("lowerYLimit")->As<double>();
+          cover_box_[1][1] = pt->Get("upperYLimit")->As<double>();
+          if(this->dim_ == 3) {
+            cover_box_[2][0] = pt->Get("lowerZLimit")->As<double>();
+            cover_box_[2][1] = pt->Get("upperZLimit")->As<double>();
+          }
+        }
 
-        string interpol = pn->Get("splineBox/feature/interpolation/type")->As<string>();
+        string set = pn->Get("splineBox/feature/file/set")->As<string>();
+        ReadFeature(pn->Get("splineBox/feature/file/path")->As<string>(), set);
+
+        this->periodic_ = pn->Get("splineBox/feature/file/periodic")->As<bool>();
+        this->feature_scale_ = pn->Get("splineBox/feature/file/scale")->As<double>();
+
+        string interpol = pn->Get("splineBox/feature/file/interpolation/type")->As<string>();
         this->interpolation_ = interpolation.Parse(interpol);
-        this->beta_ = pn->Get("splineBox/feature/interpolation/beta")->As<double>();
+        this->beta_ = pn->Get("splineBox/feature/file/interpolation/beta")->As<double>();
         assert(this->beta_ < 500);
         LOG_DBG(SBD) << "SBD: interpolation= " << interpol << " beta= " << this->beta_;
-
         InterpolateFeature();
       }
     } else {
       // type is "analytic"
-      string func = pn->Get("splineBox/feature/function")->As<string>();
+      string func = pn->Get("splineBox/feature/function/name")->As<string>();
       this->analyticFunc_ = analyticFunc.Parse(func);
-      this->analyticPeriod_ = pn->Get("splineBox/feature/period")->As<double>();
+      this->feature_scale_ = pn->Get("splineBox/feature/function/scale")->As<double>();
+      this->periodic_ = true;
       this->beta_ = 100;
     }
   } else {
@@ -138,7 +167,7 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   StdVector<Point> offset(total_num_cp_);
   for(unsigned int i = 0; i < offset.GetSize(); ++i) {
     for(unsigned int j = 0; j < dim_; ++j) {
-      offset[i][j] = distortion_[i*dim_ + j].GetDesign(BaseDesignElement::Access::PLAIN);
+      offset[i][j] = param_[i*dim_ + j].GetDesign(BaseDesignElement::Access::PLAIN);
     }
   }
   SetControlPoints(offset, true);
@@ -162,9 +191,10 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
      <cp index="0" dof="X|Y|Z" lower="0" upper="1" initial="0.5"/>
    </splinebox> */
 void SplineBoxDesign::SetupDesign(PtrParamNode pn) {
+  // shape, i.e. distortion of control points
   unsigned int nshapeparams = total_num_cp_ * dim_;
-  double l = -1.0;
-  double u = 1.0;
+  double l = -std::numeric_limits<double>::infinity();
+  double u =  std::numeric_limits<double>::infinity();
   double v = 0.0;
 
   if(pn->Has("allControlPoints")){
@@ -172,23 +202,21 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn) {
     u = pn->Get("allControlPoints")->Get("upper")->As<double>();
   }
 
-  distortion_.Reserve(nshapeparams);
+  param_.Reserve(nshapeparams);
 
-  // set design elements, i.e. distortion of control points
   for(unsigned int i = 0; i < nshapeparams; ++i) {
-    ShapeParamElement de(BaseDesignElement::Type::CP, distortion_.GetSize());
+    ShapeParamElement de(BaseDesignElement::Type::CP, param_.GetSize());
     de.SetLowerBound(l);
     de.SetUpperBound(u);
     de.SetDesign(v);
-    distortion_.Push_back(de);
+    param_.Push_back(de);
   }
-
   ParamNodeList cp = pn->GetList("controlpoint");
   if(!cp.IsEmpty()) {
     unsigned int ind;
     for(unsigned int i = 0; i < cp.GetSize(); ++i) {
       unsigned int index = cp[i]->Get("index")->As<unsigned int>();
-      std::string dof = cp[i]->Get("dof")->As<std::string>();
+      string dof = cp[i]->Get("dof")->As<string>();
       if(cp[i]->Has("lower")) {
         l = cp[i]->Get("lower")->As<double>();
       }
@@ -199,6 +227,7 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn) {
         v = cp[i]->Get("initial")->As<double>();
       }
 
+
       if(dof == "x") {
         ind = index*dim_;
       } else if(dof == "y") {
@@ -207,11 +236,11 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn) {
         ind = index*dim_ + 2;
       }
 
-      ShapeParamElement& de = distortion_[ind];
+      ShapeParamElement& de = param_[ind];
       de.SetLowerBound(l);
       de.SetUpperBound(u);
       de.SetDesign(v);
-      LOG_DBG3(SBD) << "SD: distortion_[" << ind << "]= " << v;
+      LOG_DBG3(SBD) << "SD: param_[" << ind << "]= " << v;
     }
   }
 
@@ -230,8 +259,6 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn) {
   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
   {
     map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
-    // each design node connects to two density elements, also for 3D center node rods
-    // this comes from the bilinear interpolation.
     map_[i].min_corner_value.Resize(1);
     map_[i].max_corner_value.Resize(1);
   }
@@ -239,11 +266,13 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn) {
 }
 
 void SplineBoxDesign::SetupOptParam() {
-  assert(distortion_.GetSize() == total_num_cp_ * dim_);
+  unsigned int nshapeparams = total_num_cp_ * dim_;
+  assert(param_.GetSize() == nshapeparams);
 
-  is_opt_.Resize(distortion_.GetSize(), false);
-  opt_distortion_.Reserve(distortion_.GetSize());
-  for(unsigned int i = 0; i < distortion_.GetSize(); ++i) {
+  is_opt_.Resize(param_.GetSize(), false);
+  opt_param_.Reserve(param_.GetSize());
+  // distortion
+  for(unsigned int i = 0; i < nshapeparams; ++i) {
     StdVector<int> sub(dim_);
     // intentional integer division to map dof -> cp_index -> cp_sub
     Ind2Sub(num_cp_, i/dim_, sub);
@@ -251,17 +280,18 @@ void SplineBoxDesign::SetupOptParam() {
     bool isOnBoundary = sub[0] == 0 || sub[1] == 0 || (dim_ == 3 ? sub[2] == 0 : false )
         || sub[0] == (int)num_cp_[0]-1 || sub[1] == (int)num_cp_[1]-1 || ((dim_ == 3) ? sub[2] == (int)num_cp_[2]-1 : false);
     if(!(fixed_boundary_ && isOnBoundary)) {
-      opt_distortion_.Push_back(&distortion_[i]);
+      opt_param_.Push_back(&param_[i]);
       is_opt_[i] = true;
     }
   }
-  opt_distortion_.Trim();
 
-  for(unsigned int i = 0, n = opt_distortion_.GetSize(); i < n; i++) {
-    opt_distortion_[i]->SetOptIndex(i);
+  opt_param_.Trim();
+
+  for(unsigned int i = 0, n = opt_param_.GetSize(); i < n; i++) {
+    opt_param_[i]->SetOptIndex(i);
   }
 
-  LOG_DBG(SBD)<< "SOP: opt_d=" << opt_distortion_.GetSize() << " d=" << distortion_.GetSize() << " data=" << data.GetSize();
+  LOG_DBG(SBD)<< "SOP: opt_d=" << opt_param_.GetSize() << " d=" << param_.GetSize() << " data=" << data.GetSize();
 }
 
 void SplineBoxDesign::PostInit(int objectives, int constraints) {
@@ -275,18 +305,18 @@ void SplineBoxDesign::PostInit(int objectives, int constraints) {
 
   assert(objectives > 0);
 
-  for(unsigned int i = 0; i < distortion_.GetSize(); ++i) {
-    distortion_[i].PostInit(objectives, constraints);
+  for(unsigned int i = 0; i < param_.GetSize(); ++i) {
+    param_[i].PostInit(objectives, constraints);
   }
 
   Write();
 }
 
 bool SplineBoxDesign::CompareDesign(const double* space_in) {
-  for(unsigned int i=0; i < opt_distortion_.GetSize(); i++)
+  for(unsigned int i=0; i < opt_param_.GetSize(); i++)
   {
     double v = space_in[i] * scaling_;
-    if(v != opt_distortion_[i]->GetPlainDesignValue())
+    if(v != opt_param_[i]->GetPlainDesignValue())
       return false;
   }
 
@@ -299,6 +329,13 @@ void SplineBoxDesign::CheckPlausibility() {
   if(  (opt_->constraints.Has(Function::VOLUME) && opt_->constraints.Get(Function::VOLUME)->IsLinear())
     || (opt_->objectives.Has(Function::VOLUME) && opt_->objectives.Get(Function::VOLUME)->IsLinear()))
       throw Exception("Set 'volume' function to non-linear with splinebox design");
+
+  if(num_cp_[0] < degree_)
+    throw Exception("Number of control points has to be at least degree+1");
+  if(num_cp_[1] < degree_)
+    throw Exception("Number of control points has to be at least degree+1");
+  if(dim_ == 3 && num_cp_[2] < degree_)
+    throw Exception("Number of control points has to be at least degree+1");
 }
 
 int SplineBoxDesign::ReadDesignFromExtern(const double* space_in) {
@@ -310,16 +347,16 @@ int SplineBoxDesign::ReadDesignFromExtern(const double* space_in) {
 
   bool new_design = false;
 
-  for(unsigned int i = 0; i < opt_distortion_.GetSize(); ++i) {
+  for(unsigned int i = 0; i < opt_param_.GetSize(); ++i) {
     double v = space_in[i] * scaling_;
     assert(!std::isnan(v));
-    if(!new_design && v != opt_distortion_[i]->GetPlainDesignValue()) {
+    if(!new_design && v != opt_param_[i]->GetPlainDesignValue()) {
       new_design = true;
     }
 
-    opt_distortion_[i]->SetDesign(v);
+    opt_param_[i]->SetDesign(v);
 
-    LOG_DBG3(SBD) << "RDFE: i=" << i << ", " << opt_distortion_[i]->ToString() << " -> " << v;
+    LOG_DBG3(SBD) << "RDFE: i=" << i << ", " << opt_param_[i]->ToString() << " -> " << v;
   }
 
   // append aux design, might also change design_id
@@ -330,7 +367,7 @@ int SplineBoxDesign::ReadDesignFromExtern(const double* space_in) {
     unsigned int k = 0;
     for(unsigned int i = 0; i < offset.GetSize(); ++i) {
       for(unsigned int j = 0; j < dim_; ++j) {
-        offset[i][j] = is_opt_[i*dim_ + j] ? opt_distortion_[k++]->GetDesign(BaseDesignElement::Access::PLAIN) : 0.0;
+        offset[i][j] = is_opt_[i*dim_ + j] ? opt_param_[k++]->GetDesign(BaseDesignElement::Access::PLAIN) : 0.0;
       }
     }
     SetControlPoints(offset, true);
@@ -412,6 +449,486 @@ StdVector<Vector<double>> SplineBoxDesign::EvalDerivative(Vector<double> point) 
     mtx.GetRow(out[d],0);
   }
   return out;
+}
+
+
+void SplineBoxDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
+{
+  // FIXME Todo copy from SetupVirtualMultiShapeElementMap
+  assert(f != NULL);
+  assert(f->IsLocal(f->GetType()));
+  // we shall be called by Local::PostInit() therefore local shall exist
+  assert(f->GetLocal() != NULL);
+
+  assert(locality == Function::Local::NEXT || locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT || locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE);
+
+  // a lot copy&paste from Function::SetupVirtualElementMap()
+  bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
+  // next is always true!
+  bool two_signs = locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE;
+
+  assert(f->GetType() == Function::CONES);
+  assert(f->GetDesignType() == DesignElement::SPLINE_BOX);
+
+  // we don't set Function::Local::element_dimension_
+  // we wont't use the full space as the individual shape_ are not connected
+  unsigned int nRows = 0.0;
+  Vector<unsigned int> ncp(dim_);
+  for(unsigned int d = 0; d < dim_; ++d) {
+    ncp = num_cp_;
+    --ncp[d];
+    nRows += ncp.Product();
+  }
+  nRows *= std::pow(2, dim_-1);
+  vem.Reserve(nRows);
+
+  for(int e = 0; e < (int)total_num_cp_; ++e) {
+    int psz = param_.GetSize();
+
+    ShapeParamElement* bde = &param_[e*dim_];
+    assert(f->GetDesignType() == bde->GetType());
+    assert(bde->dof_ == ShapeParamElement::Dof::X);
+
+    int prev_idx = (e-1)*dim_;
+    int next_idx = (e+1)*dim_;
+    BaseDesignElement* prev_de = prev ? prev_idx < 0 ? NULL : &param_[prev_idx] : NULL;
+    BaseDesignElement* next_de =        next_idx > psz ? NULL : &param_[next_idx];
+
+    LOG_DBG3(SBD) << "SVSEM po=" << (prev_de != NULL ? (int) prev_de->GetOptIndex() : -1) << " eo=" << e << " no=" << (next_de != NULL ? (int) next_de->GetOptIndex() : -1)
+                       << " p="  << (prev_de != NULL ? (int) prev_de->GetIndex() : -1)    << " e=" << bde->GetIndex() << " n=" << (next_de != NULL ? (int) next_de->GetIndex() : -1);
+
+    // we add constraints only if control point is subject to optimization
+    if(!(is_opt_[e] || is_opt_[e+1] || is_opt_[e+2]) && !(1))
+      continue;
+
+    vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, 1));
+    vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, 2));
+    vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, 3));
+    vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, 4));
+  }
+
+  LOG_DBG(SBD) << "SVSEM final f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
+}
+
+void SplineBoxDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
+{
+  assert(f != NULL);
+  assert(f->IsLocal(f->GetType()));
+  // we shall be called by Local::PostInit() therefore local shall exist
+  assert(f->GetLocal() != NULL);
+
+  assert(locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT);
+
+  // a lot copy&paste from SetupVirtualShapeElementMap()
+  bool prev = locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT;
+
+  assert(f->GetType() == Function::CONES);
+  assert(f->GetDesignType() == DesignElement::SPLINE_BOX || f->GetDesignType() == DesignElement::CP);
+
+  // we don't set Function::Local::element_dimension_
+  // we wont't use the full space as the individual shape_ are not connected
+  unsigned int nRows = 0.0;
+  Vector<unsigned int> ncp(dim_);
+  for(unsigned int d = 0; d < dim_; ++d) {
+    ncp = num_cp_;
+    --ncp[d];
+    nRows += ncp.Product();
+  }
+  nRows *= std::pow(2, dim_-1);
+  vem.Reserve(nRows);
+
+  StdVector<BaseDesignElement*> opt_buddies; // to be reused temporary vector
+  StdVector<BaseDesignElement*> all_buddies; // to be reused temporary vector
+  int nsp = total_num_cp_ * dim_;
+  BaseDesignElement *bde;
+  BaseDesignElement *bdex, *prev_dex, *next_dex;
+  BaseDesignElement *bdey, *prev_dey, *next_dey;
+  BaseDesignElement *bdez, *prev_dez, *next_dez;
+
+  // traverse control points only and do the corresponding coordinates implicitly
+  for(int e = 0; e < (int)total_num_cp_; ++e) {
+    // we add a constraint only if the involved control point is subject to optimization
+    if(is_opt_[e*dim_] || is_opt_[e*dim_+1] || (dim_ == 3 ? is_opt_[e*dim_+2] : false)) {
+      // neighbors in x direction
+      int curr_idx =  e     *dim_;
+      int prev_idx = (e - 1)*dim_;
+      int next_idx = (e + 1)*dim_;
+      // In x direction we check, if the control points are in the same row.
+      // Imagine the following simple two by two cp grid:
+      //   2 -- 3
+      //   |    |
+      //   0 -- 1
+      // Without the row check, the predecessor of "2" would be "1".
+      // With the check we have curr_row = 1 != 0 = prev_row.
+      int curr_row = curr_idx / (num_cp_[0] * dim_); // intentional integer division
+      int prev_row = prev_idx / (num_cp_[0] * dim_); // intentional integer division
+      int next_row = next_idx / (num_cp_[0] * dim_); // intentional integer division
+      bdex = &param_[curr_idx];
+      assert(bdex->GetType() == DesignElement::CP);
+      prev_dex = prev ? (prev_idx > -1 && prev_row == curr_row ? &param_[prev_idx] : NULL) : NULL;
+      next_dex =        next_idx < nsp && next_row == curr_row ? &param_[next_idx] : NULL;
+
+      curr_idx =  e     *dim_+1;
+      prev_idx = (e - 1)*dim_+1;
+      next_idx = (e + 1)*dim_+1;
+      bdey = &param_[curr_idx];
+      prev_dey = prev ? (prev_idx > -1 && prev_row == curr_row ? &param_[prev_idx] : NULL) : NULL;
+      next_dey =        next_idx < nsp && next_row == curr_row ? &param_[next_idx] : NULL;
+
+      if(dim_ == 3) {
+        curr_idx =  e     *dim_+2;
+        prev_idx = (e - 1)*dim_+2;
+        next_idx = (e + 1)*dim_+2;
+        bdez = &param_[curr_idx];
+        prev_dez = prev ? (prev_idx > -1 && prev_row == curr_row ? &param_[prev_idx] : NULL) : NULL;
+        next_dez =        next_idx < nsp && next_row == curr_row ? &param_[next_idx] : NULL;
+      }
+
+
+      if(prev_dex) {
+        opt_buddies.Clear(true);
+        if(is_opt_[bdex->GetIndex()]) {
+          bde = bdex;
+          if(is_opt_[bdey->GetIndex()])
+            opt_buddies.Push_back(bdey);
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else if(is_opt_[bdey->GetIndex()]) {
+          bde = bdey;
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else {
+          bde = bdez;
+        }
+        if(is_opt_[prev_dex->GetIndex()])
+          opt_buddies.Push_back(prev_dex);
+        if(is_opt_[prev_dey->GetIndex()])
+          opt_buddies.Push_back(prev_dey);
+        if(dim_ == 3 && is_opt_[prev_dez->GetIndex()])
+          opt_buddies.Push_back(prev_dez);
+
+        all_buddies.Clear(true);
+        all_buddies.Push_back(bdex);
+        all_buddies.Push_back(bdey);
+        if(dim_ == 3)
+          all_buddies.Push_back(bdez);
+        all_buddies.Push_back(prev_dex);
+        all_buddies.Push_back(prev_dey);
+        if(dim_ == 3)
+          all_buddies.Push_back(prev_dez);
+        // 2D: cases 1 and 2 describe cone in x direction
+        vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -1));
+        vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -2));
+        if(dim_ == 3) {
+          // 3D: cases 1,2,3 and 4 describe cone in x direction
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -3));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -4));
+        }
+        LOG_DBG3(SBD) << "SVMSEM: x opt_buddies=";
+        for(auto b : opt_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+        LOG_DBG3(SBD) << "SVMSEM: x all_buddies=";
+        for(auto b : all_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+      }
+
+      if(next_dex) {
+        opt_buddies.Clear(true);
+        if(is_opt_[bdex->GetIndex()]) {
+          bde = bdex;
+          if(is_opt_[bdey->GetIndex()])
+            opt_buddies.Push_back(bdey);
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else if(is_opt_[bdey->GetIndex()]) {
+          bde = bdey;
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else {
+          bde = bdez;
+        }
+        if(is_opt_[next_dex->GetIndex()])
+          opt_buddies.Push_back(next_dex);
+        if(is_opt_[next_dey->GetIndex()])
+          opt_buddies.Push_back(next_dey);
+        if(dim_ == 3 && is_opt_[next_dez->GetIndex()])
+          opt_buddies.Push_back(next_dez);
+
+        all_buddies.Clear(true);
+        all_buddies.Push_back(bdex);
+        all_buddies.Push_back(bdey);
+        if(dim_ == 3)
+          all_buddies.Push_back(bdez);
+        all_buddies.Push_back(next_dex);
+        all_buddies.Push_back(next_dey);
+        if(dim_ == 3)
+          all_buddies.Push_back(next_dez);
+        // 2D: cases 1 and 2 describe cone in x direction
+        vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 1));
+        vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 2));
+        if(dim_ == 3) {
+          // 3D: cases 1,2,3 and 4 describe cone in x direction
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 3));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 4));
+        }
+        LOG_DBG3(SBD) << "SVMSEM: x opt_buddies=";
+        for(auto b : opt_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+        LOG_DBG3(SBD) << "SVMSEM: x all_buddies=";
+        for(auto b : all_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+      }
+
+      LOG_DBG3(SBD) << "SVMSEM: x p="  << (prev_dex != NULL ? (int) prev_dex->GetIndex() : -1)
+          << " e=" << bde->GetIndex() << " n=" << (next_dex != NULL ? (int) next_dex->GetIndex() : -1);
+
+      // neighbors in y direction
+      curr_idx =  e              *dim_;
+      prev_idx = (e - num_cp_[0])*dim_;
+      next_idx = (e + num_cp_[0])*dim_;
+      // See explanation above. The check "prev_row == curr_row" matters only in 3D
+      // and will always return true in 2D. Those 'rows' are slices in the x-y-plane.
+      curr_row = curr_idx / (num_cp_[0] * num_cp_[1] * dim_); // intentional integer division
+      prev_row = prev_idx / (num_cp_[0] * num_cp_[1] * dim_); // intentional integer division
+      next_row = next_idx / (num_cp_[0] * num_cp_[1] * dim_); // intentional integer division
+      bdex = &param_[curr_idx];
+      prev_dex = prev ? (prev_idx > -1 && prev_row == curr_row ? &param_[prev_idx] : NULL) : NULL;
+      next_dex =        next_idx < nsp && next_row == curr_row ? &param_[next_idx] : NULL;
+
+      curr_idx =  e              *dim_+1;
+      prev_idx = (e - num_cp_[0])*dim_+1;
+      next_idx = (e + num_cp_[0])*dim_+1;
+      bdey = &param_[curr_idx];
+      prev_dey = prev ? (prev_idx > -1 && prev_row == curr_row ? &param_[prev_idx] : NULL) : NULL;
+      next_dey =        next_idx < nsp && next_row == curr_row ? &param_[next_idx] : NULL;
+
+      if(dim_ == 3) {
+        curr_idx =  e              *dim_+2;
+        prev_idx = (e - num_cp_[0])*dim_+2;
+        next_idx = (e + num_cp_[0])*dim_+2;
+        bdez = &param_[curr_idx];
+        prev_dez = prev ? (prev_idx > -1 && prev_row == curr_row ? &param_[prev_idx] : NULL) : NULL;
+        next_dez =        next_idx < nsp && next_row == curr_row ? &param_[next_idx] : NULL;
+      }
+
+
+      if(prev_dex) {
+        opt_buddies.Clear(true);
+        if(is_opt_[bdex->GetIndex()]) {
+          bde = bdex;
+          if(is_opt_[bdey->GetIndex()])
+            opt_buddies.Push_back(bdey);
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else if(is_opt_[bdey->GetIndex()]) {
+          bde = bdey;
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else {
+          bde = bdez;
+        }
+        if(is_opt_[prev_dex->GetIndex()])
+          opt_buddies.Push_back(prev_dex);
+        if(is_opt_[prev_dey->GetIndex()])
+          opt_buddies.Push_back(prev_dey);
+        if(dim_ == 3 && is_opt_[prev_dez->GetIndex()])
+          opt_buddies.Push_back(prev_dez);
+
+        all_buddies.Clear(true);
+        all_buddies.Push_back(bdex);
+        all_buddies.Push_back(bdey);
+        if(dim_ == 3)
+          all_buddies.Push_back(bdez);
+        all_buddies.Push_back(prev_dex);
+        all_buddies.Push_back(prev_dey);
+        if(dim_ == 3)
+          all_buddies.Push_back(prev_dez);
+        // 2D: cases 3 and 4 describe cone in y direction
+        if(dim_ == 2) {
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -3));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -4));
+        } else {
+          // 3D: cases 5,6,7 and 8 describe cone in y direction
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -5));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -6));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -7));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -8));
+        }
+        LOG_DBG3(SBD) << "SVMSEM: y opt_buddies=";
+        for(auto b : opt_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+        LOG_DBG3(SBD) << "SVMSEM: y all_buddies=";
+        for(auto b : all_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+      }
+
+      if(next_dex) {
+        opt_buddies.Clear(true);
+        if(is_opt_[bdex->GetIndex()]) {
+          bde = bdex;
+          if(is_opt_[bdey->GetIndex()])
+            opt_buddies.Push_back(bdey);
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else if(is_opt_[bdey->GetIndex()]) {
+          bde = bdey;
+          if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+            opt_buddies.Push_back(bdez);
+        } else {
+          bde = bdez;
+        }
+        if(is_opt_[next_dex->GetIndex()])
+          opt_buddies.Push_back(next_dex);
+        if(is_opt_[next_dey->GetIndex()])
+          opt_buddies.Push_back(next_dey);
+        if(dim_ == 3 && is_opt_[next_dez->GetIndex()])
+          opt_buddies.Push_back(next_dez);
+
+        all_buddies.Clear(true);
+        all_buddies.Push_back(bdex);
+        all_buddies.Push_back(bdey);
+        if(dim_ == 3)
+          all_buddies.Push_back(bdez);
+        all_buddies.Push_back(next_dex);
+        all_buddies.Push_back(next_dey);
+        if(dim_ == 3)
+          all_buddies.Push_back(next_dez);
+        // 2D: cases 3 and 4 describe cone in y direction
+        if(dim_ == 2) {
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 3));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 4));
+        } else {
+          // 3D: cases 5,6,7 and 8 describe cone in y direction
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 5));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 6));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 7));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 8));
+        }
+        LOG_DBG3(SBD) << "SVMSEM: y opt_buddies=";
+        for(auto b : opt_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+        LOG_DBG3(SBD) << "SVMSEM: y all_buddies=";
+        for(auto b : all_buddies)
+          LOG_DBG3(SBD) << b->GetIndex();
+      }
+      LOG_DBG3(SBD) << "SVMSEM: y p="  << (prev_dex != NULL ? (int) prev_dex->GetIndex() : -1)
+        << " e=" << bde->GetIndex() << " n=" << (next_dex != NULL ? (int) next_dex->GetIndex() : -1);
+
+      if(dim_ == 3) {
+        // neighbors in z direction
+        curr_idx =  e                         *dim_;
+        prev_idx = (e - num_cp_[0]*num_cp_[1])*dim_;
+        next_idx = (e + num_cp_[0]*num_cp_[1])*dim_;
+        // No need for a row check
+        bdex = &param_[curr_idx];
+        prev_dex = prev ? (prev_idx > -1 ? &param_[prev_idx] : NULL) : NULL;
+        next_dex =        next_idx < nsp ? &param_[next_idx] : NULL;
+
+        curr_idx =  e                         *dim_+1;
+        prev_idx = (e - num_cp_[0]*num_cp_[1])*dim_+1;
+        next_idx = (e + num_cp_[0]*num_cp_[1])*dim_+1;
+        bdey = &param_[curr_idx];
+        prev_dey = prev ? (prev_idx > -1 ? &param_[prev_idx] : NULL) : NULL;
+        next_dey =        next_idx < nsp ? &param_[next_idx] : NULL;
+
+        curr_idx =  e                         *dim_+2;
+        prev_idx = (e - num_cp_[0]*num_cp_[1])*dim_+2;
+        next_idx = (e + num_cp_[0]*num_cp_[1])*dim_+2;
+        bdez = &param_[curr_idx];
+        prev_dez = prev ? (prev_idx > -1 ? &param_[prev_idx] : NULL) : NULL;
+        next_dez =        next_idx < nsp ? &param_[next_idx] : NULL;
+
+
+        if(prev_dex) {
+          opt_buddies.Clear(true);
+          if(is_opt_[bdex->GetIndex()]) {
+            bde = bdex;
+            if(is_opt_[bdey->GetIndex()])
+              opt_buddies.Push_back(bdey);
+            if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+              opt_buddies.Push_back(bdez);
+          } else if(is_opt_[bdey->GetIndex()]) {
+            bde = bdey;
+            if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+              opt_buddies.Push_back(bdez);
+          } else {
+            bde = bdez;
+          }
+          if(is_opt_[prev_dex->GetIndex()])
+            opt_buddies.Push_back(prev_dex);
+          if(is_opt_[prev_dey->GetIndex()])
+            opt_buddies.Push_back(prev_dey);
+          if(dim_ == 3 && is_opt_[prev_dez->GetIndex()])
+            opt_buddies.Push_back(prev_dez);
+
+          all_buddies.Clear(true);
+          all_buddies.Push_back(bdex);
+          all_buddies.Push_back(bdey);
+          all_buddies.Push_back(bdez);
+          all_buddies.Push_back(prev_dex);
+          all_buddies.Push_back(prev_dey);
+          all_buddies.Push_back(prev_dez);
+          // 3D: cases 9,10,11 and 12 describe cone in y direction
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -9));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -10));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -11));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, -12));
+          LOG_DBG3(SBD) << "SVMSEM: z opt_buddies=";
+          for(auto b : opt_buddies)
+            LOG_DBG3(SBD) << b->GetIndex();
+          LOG_DBG3(SBD) << "SVMSEM: z all_buddies=";
+          for(auto b : all_buddies)
+            LOG_DBG3(SBD) << b->GetIndex();
+        }
+
+        if(next_dex) {
+          opt_buddies.Clear(true);
+          if(is_opt_[bdex->GetIndex()]) {
+            bde = bdex;
+            if(is_opt_[bdey->GetIndex()])
+              opt_buddies.Push_back(bdey);
+            if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+              opt_buddies.Push_back(bdez);
+          } else if(is_opt_[bdey->GetIndex()]) {
+            bde = bdey;
+            if(dim_ == 3 && is_opt_[bdez->GetIndex()])
+              opt_buddies.Push_back(bdez);
+          } else {
+            bde = bdez;
+          }
+          if(is_opt_[next_dex->GetIndex()])
+            opt_buddies.Push_back(next_dex);
+          if(is_opt_[next_dey->GetIndex()])
+            opt_buddies.Push_back(next_dey);
+          if(dim_ == 3 && is_opt_[next_dez->GetIndex()])
+            opt_buddies.Push_back(next_dez);
+
+          all_buddies.Clear(true);
+          all_buddies.Push_back(bdex);
+          all_buddies.Push_back(bdey);
+          all_buddies.Push_back(bdez);
+          all_buddies.Push_back(next_dex);
+          all_buddies.Push_back(next_dey);
+          all_buddies.Push_back(next_dez);
+          // 3D: cases 9,10,11 and 12 describe cone in y direction
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 9));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 10));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 11));
+          vem.Push_back(Function::Local::Identifier(bde, opt_buddies, all_buddies, 12));
+          LOG_DBG3(SBD) << "SVMSEM: z opt_buddies=";
+          for(auto b : opt_buddies)
+            LOG_DBG3(SBD) << b->GetIndex();
+          LOG_DBG3(SBD) << "SVMSEM: z all_buddies=";
+          for(auto b : all_buddies)
+            LOG_DBG3(SBD) << b->GetIndex();
+        }
+        LOG_DBG3(SBD) << "SVMSEM: z p="  << (prev_dex != NULL ? (int) prev_dex->GetIndex() : -1)
+          << " e=" << bde->GetIndex() << " n=" << (next_dex != NULL ? (int) next_dex->GetIndex() : -1);
+      }
+    }
+  }
+  vem.Trim();
+  LOG_DBG(SBD) << "SVMSEM: final f=" << f->ToString() << " loc=" << locality << " prev=" << prev << " -> vem=" << vem.GetSize();
 }
 
 void SplineBoxDesign::MapFeatureToDensity() {
@@ -541,12 +1058,12 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f) {
 
   // to speed up performance and allow parallelization we have to not call BaseDesignElement::AddGradient()
   // within each integration point but have a flat vector which is added after the map loop
-  Vector<double> shape_f_grad(opt_distortion_.GetSize());
+  Vector<double> shape_f_grad(opt_param_.GetSize());
   shape_f_grad.Init(0.0);
 
   Grid* grid = domain->GetGrid();
 
-  #pragma omp parallel
+  //#pragma omp parallel
   {
     // this are thread private constructs to be reused over the for loop iterations
 
@@ -614,8 +1131,8 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f) {
               log_dip_rho += dip_rho_norm;
 
               // derivative of integration point w.r.t. control point
-              assert(distortion_.GetSize() == total_num_cp_*dim_);
-              Vector<double> dcp_rho(opt_distortion_.GetSize());
+              assert(param_.GetSize() == total_num_cp_*dim_);
+              Vector<double> dcp_rho(opt_param_.GetSize());
               Matrix<double> mtx = GetBasisMatrix(ip); // derivative of integration point w.r.t. control point
               unsigned int k = 0;
               for(unsigned int cp = 0; cp < total_num_cp_; ++cp) {
@@ -634,7 +1151,7 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f) {
           } // end ip_y
         } // end ip_x
       } // normalize by integration points.
-      LOG_DBG2(SBD) << "MSG: el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " dip_rho=" << log_dip_rho.ToString();
+      LOG_DBG3(SBD) << "MSG: el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " dip_rho=" << log_dip_rho.ToString();
 
       if(res_idx_dip_rho_x >= 0)
         de->specialResult[res_idx_dip_rho_x] = log_dip_rho[0];
@@ -655,13 +1172,13 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f) {
   } // end of omp parallel
 
   // write back shape_f_grad
-  LOG_DBG3(SBD) << "MSG: f=" << f->ToString() << " sfg=" << shape_f_grad.ToString();
+  LOG_DBG2(SBD) << "MSG: f=" << f->ToString() << " sfg=" << shape_f_grad.ToString();
 
-  assert(shape_f_grad.GetSize() == opt_distortion_.GetSize());
+  assert(shape_f_grad.GetSize() == opt_param_.GetSize());
   for(unsigned int i = 0; i < shape_f_grad.GetSize(); i++) {
     // if it is not an opt variable DesignElement::*Gradient has size zero. Note negative gradients!
     if(shape_f_grad[i] != 0) {
-      opt_distortion_[i]->AddGradient(f, shape_f_grad[i]);
+      opt_param_[i]->AddGradient(f, shape_f_grad[i]);
     }
   }
   gradient_timer_->Stop();
@@ -700,7 +1217,7 @@ void SplineBoxDesign::EvalAllCornerValues() {
       } else {
         // Todo
         vals[i] = 0.0;
-        Exception("Not implemented");
+        throw Exception("Not implemented");
       }
     }
 
@@ -713,7 +1230,7 @@ void SplineBoxDesign::EvalAllCornerValues() {
 inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const {
   double val = 0.0;
 //  if(!IsInside(point)) {
-//    Exception("point outside of spline box");
+//    throw Exception("point outside of spline box");
 //    return 0.0; // never reached
 //  } else {
   if(analyticFunc_ == AnalyticFunc::FILE) {
@@ -722,6 +1239,14 @@ inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const {
       // Assume that bounding_box of initial spline box is equal to bounding box of density, i.e.
       // spline box covers density. Thus relative_coords are relative to (constant) density bounding box.
       relative_coords[d] = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
+      if(periodic_) {
+        while(relative_coords[d] < 0) {
+          ++relative_coords[d];
+        }
+        while(relative_coords[d] > 1) {
+          --relative_coords[d];
+        }
+      }
     }
     if(interpolation_ == Interpolation::CUBIC) {
       // These are lower and upper bounds for the density.
@@ -756,7 +1281,8 @@ inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const {
     StdVector<double> values(dim_);
     for(unsigned int d = 0; d < dim_; ++d) {
       relative_coords = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
-      sub[d] = (relative_coords * analyticPeriod_ + 1./4.) * 2. * M_PI;
+      // shift sine by pi/2 -> could use cosine instead
+      sub[d] = (relative_coords / feature_scale_ + 1./4.) * 2. * M_PI;
       values[d] = std::sin(sub[d]) / 2. + .5;
     }
 
@@ -767,8 +1293,18 @@ inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const {
     case AnalyticFunc::MAX_SINE:
       val = SmoothMax(values, beta_);
       break;
+    case AnalyticFunc::SINE_X:
+      val = values[0];
+      break;
+    case AnalyticFunc::SINE_Y:
+      val = values[1];
+      break;
+    case AnalyticFunc::SINE_Z:
+      assert(dim_ == 3);
+      val = values[2];
+      break;
     default:
-      Exception("Function not implemented");
+      throw Exception("Function not implemented");
     }
   }
   return val;
@@ -778,7 +1314,7 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
   Vector<double> out(dim_, 0.0);
 
 //  if(!IsInside(point)) {
-//    Exception("point outside of spline box");
+//    throw Exception("point outside of spline box");
 //    return out; // never reached
 //  } else {
   if(analyticFunc_ == AnalyticFunc::FILE) {
@@ -786,6 +1322,14 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
     for(unsigned int d = 0; d < dim_; ++d) {
       // @see EvalAtCoord
       relative_coords[d] = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
+      if(periodic_) {
+        while(relative_coords[d] < 0) {
+          ++relative_coords[d];
+        }
+        while(relative_coords[d] > 1) {
+          --relative_coords[d];
+        }
+      }
     }
     if(interpolation_ == Interpolation::CUBIC) {
       double val;
@@ -806,7 +1350,7 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
       for(unsigned int d = 0; d < dim_; ++d) {
         // derivative normalized w.r.t. size of density
         out[d] *= density_resolution_[d];
-        // derivative normalized w.r.t. size of FE mesh
+        // derivative normalized w.r.t. size of spline box
         out[d] *= 1/(bounding_box_[d][1]-bounding_box_[d][0]);
       }
     } else {
@@ -828,21 +1372,30 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
     StdVector<double> values(dim_);
     for(unsigned int d = 0; d < dim_; ++d) {
       relative_coords = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
-      sub[d] = (relative_coords * analyticPeriod_ + 1./4.) * 2. * M_PI;
+      sub[d] = (relative_coords / feature_scale_ + 1./4.) * 2. * M_PI;
       values[d] = std::sin(sub[d]) / 2. + .5;
     }
     for(unsigned int d = 0; d < dim_; ++d) {
       switch(analyticFunc_) {
       case AnalyticFunc::SUM_OF_SINE:
-        out[d] = std::cos(sub[d]) / (bounding_box_[d][1] - bounding_box_[d][0]) * analyticPeriod_ * M_PI / 4. / dim_;
+        out[d] = 1.0 / dim_;
         break;
       case AnalyticFunc::MAX_SINE:
         out[d] = DerivSmoothMax(values, beta_, d);
-        out[d] *= std::cos(sub[d]) / (bounding_box_[d][1] - bounding_box_[d][0]) * analyticPeriod_ * M_PI / 4.;
+        break;
+      case AnalyticFunc::SINE_X:
+        out[d] = d == 0 ? 1.0 : 0.0;
+        break;
+      case AnalyticFunc::SINE_Y:
+        out[d] = d == 1 ? 1.0 : 0.0;
+        break;
+      case AnalyticFunc::SINE_Z:
+        out[d] = d == 2 ? 1.0 : 0.0;
         break;
       default:
-        Exception("Function not implemented");
+        throw Exception("Function not implemented");
       }
+      out[d] *= std::cos(sub[d]) / (bounding_box_[d][1] - bounding_box_[d][0]) / feature_scale_ * M_PI;
     }
   }
   return out;
@@ -853,13 +1406,210 @@ void SplineBoxDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, 
   MapFeatureToDensity();
 }
 
+Matrix<double> SplineBoxDesign::GetInjectivityMatrix() {
+  double tana = std::tan(45./180. * M_PI);
+  unsigned int nRows = 0.0;
+  Vector<unsigned int> ncp(dim_);
+  for(unsigned int d = 0; d < dim_; ++d) {
+    ncp = num_cp_;
+    --ncp[d];
+    nRows += ncp.Product();
+  }
+  nRows *= std::pow(2, dim_-1);
+
+  Matrix<double> mtx(nRows, num_cp_.Product()*dim_);
+
+  unsigned int idx = 0;
+  if(dim_ == 2) {
+    // finite differences in x direction
+    for(unsigned int y = 0; y < num_cp_[1]; ++y) {
+      for(unsigned int x = 0; x < num_cp_[0] - 1; ++x) {
+        unsigned int index1 = y * num_cp_[0] + x;
+        unsigned int index2 = y * num_cp_[0] + x + 1;
+        index1 *= dim_;
+        index2 *= dim_;
+
+        // a_1 * x >= y -> - a_1 * x + y <= 0 -> - a_1 * x_1 + a_1 * x_0 + y_1 - y_0 <= 0
+        mtx[idx][index1    ] =  tana;
+        mtx[idx][index1 + 1] =    -1;
+        mtx[idx][index2    ] = -tana;
+        mtx[idx][index2 + 1] =     1;
+        ++idx;
+        // a_2 * x >= -y -> - a_2 * x - y <= 0 -> - a_2 * x_1 + a_2 * x_0 - y_1 + y_0 <= 0
+        mtx[idx][index1    ] =  tana;
+        mtx[idx][index1 + 1] =     1;
+        mtx[idx][index2    ] = -tana;
+        mtx[idx][index2 + 1] =    -1;
+        ++idx;
+      }
+    }
+    // finite differences in y direction
+    for(unsigned int y = 0; y < num_cp_[1] - 1; ++y) {
+      for(unsigned int x = 0; x < num_cp_[0]; ++x) {
+        unsigned int index1 = y * num_cp_[0] + x;
+        unsigned int index2 = y * num_cp_[0] + x + num_cp_[0];
+        index1 *= dim_;
+        index2 *= dim_;
+
+        // b_1 * y >= x -> x - b_1 * y <= 0 -> x_1 - x_0 - b_1 * y_1 + b_1 * y_0 <= 0
+        mtx[idx][index1    ] =    -1;
+        mtx[idx][index1 + 1] =  tana;
+        mtx[idx][index2    ] =     1;
+        mtx[idx][index2 + 1] = -tana;
+        ++idx;
+        // b_2 * y >= - x -> - x - b_2 * y <= 0 -> - x_1 + x_0 - b_2 * y_1 + b_2 * y_0 <= 0
+        mtx[idx][index1    ] =     1;
+        mtx[idx][index1 + 1] =  tana;
+        mtx[idx][index2    ] =    -1;
+        mtx[idx][index2 + 1] = -tana;
+        ++idx;
+      }
+    }
+  } else {
+    // finite differences in x direction
+    for(unsigned int z = 0; z < num_cp_[2]; ++z) {
+      for(unsigned int y = 0; y < num_cp_[1]; ++y) {
+        for(unsigned int x = 0; x < num_cp_[0] - 1; ++x) {
+          unsigned int index1 = z * num_cp_[1] * num_cp_[0] + y * num_cp_[0] + x;
+          unsigned int index2 = z * num_cp_[1] * num_cp_[0] + y * num_cp_[0] + x+1;
+          index1 *= dim_;
+          index2 *= dim_;
+
+          // x >= y + z -> - x + y + z <= 0 -> - x_1 + x_0 + y_1 - y_0 + z_1 - z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] = -1;
+          mtx[idx][index1 + 2] = -1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] =  1;
+          mtx[idx][index2 + 2] =  1;
+          ++idx;
+          // x >= y - z -> - x + y - z <= 0 -> - x_1 + x_0 + y_1 - y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] = -1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] =  1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+          // x >= - y + z -> - x - y + z <= 0 -> - x_1 + x_0 - y_1 + y_0 + z_1 - z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] = -1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] =  1;
+          ++idx;
+          // x >= - y - z -> - x - y - z <= 0 -> - x_1 + x_0 - y_1 + y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+        }
+      }
+    }
+    // finite differences in y direction
+    for(unsigned int z = 0; z < num_cp_[2]; ++z) {
+      for(unsigned int y = 0; y < num_cp_[1] - 1; ++y) {
+        for(unsigned int x = 0; x < num_cp_[0]; ++x) {
+          unsigned int index1 = z * num_cp_[1] * num_cp_[0] + y * num_cp_[0] + x;
+          unsigned int index2 = z * num_cp_[1] * num_cp_[0] + (y+1) * num_cp_[0] + x;
+          index1 *= dim_;
+          index2 *= dim_;
+
+          // y >= x - z -> x - y - z <= 0 -> x_1 - x_0 - y_1 + y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] = -1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] =  1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+          // y >= x + z -> x - y + z <= 0 -> x_1 - x_0 - y_1 + y_0 + z_1 - z_0 <= 0
+          mtx[idx][index1    ] = -1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] = -1;
+          mtx[idx][index2    ] =  1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] =  1;
+          ++idx;
+          // y >= - x + z -> - x - y + z <= 0 -> - x_1 + x_0 - y_1 + y_0 + z_1 - z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] = -1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] =  1;
+          ++idx;
+          // y >= - x - z -> - x - y - z <= 0 -> - x_1 + x_0 - y_1 + y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+        }
+      }
+    }
+    // finite differences in z direction
+    for(unsigned int z = 0; z < num_cp_[2] - 1; ++z) {
+      for(unsigned int y = 0; y < num_cp_[1]; ++y) {
+        for(unsigned int x = 0; x < num_cp_[0]; ++x) {
+          unsigned int index1 = z * num_cp_[1] * num_cp_[0] + y * num_cp_[0] + x;
+          unsigned int index2 = (z+1) * num_cp_[1] * num_cp_[0] + y * num_cp_[0] + x;
+          index1 *= dim_;
+          index2 *= dim_;
+
+          // x >= y + z -> - x + y + z <= 0 -> - x_1 + x_0 + y_1 - y_0 + z_1 - z_0 <= 0
+          mtx[idx][index1    ] = -1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] =  1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+          // z >= - x + y -> - x + y - z <= 0 -> - x_1 + x_0 + y_1 - y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] = -1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] =  1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+          // z >= x + y -> x + y - z <= 0 -> x_1 - x_0 + y_1 - y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] = -1;
+          mtx[idx][index1 + 1] = -1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] =  1;
+          mtx[idx][index2 + 1] =  1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+          // z >= - x - y -> - x - y - z <= 0 -> - x_1 + x_0 - y_1 + y_0 - z_1 + z_0 <= 0
+          mtx[idx][index1    ] =  1;
+          mtx[idx][index1 + 1] =  1;
+          mtx[idx][index1 + 2] =  1;
+          mtx[idx][index2    ] = -1;
+          mtx[idx][index2 + 1] = -1;
+          mtx[idx][index2 + 2] = -1;
+          ++idx;
+        }
+      }
+    }
+  }
+
+  return mtx;
+}
+
 void SplineBoxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
   assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::CP);
-  for(unsigned int i=0; i < opt_distortion_.GetSize(); i++)
+  for(unsigned int i=0; i < opt_param_.GetSize(); i++)
   {
-    opt_distortion_[i]->Reset(vs);
-//    assert(!opt_distortion_[i].costGradient.IsEmpty());
+    opt_param_[i]->Reset(vs);
+//    assert(!opt_param_[i].costGradient.IsEmpty());
   }
 
   AuxDesign::Reset(vs, design);
@@ -867,10 +1617,10 @@ void SplineBoxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Typ
 
 void SplineBoxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
-  for(unsigned int i=0; i < opt_distortion_.GetSize(); i++)
+  for(unsigned int i=0; i < opt_param_.GetSize(); i++)
   {
-    x_l[i] = opt_distortion_[i]->GetLowerBound() / scaling_;
-    x_u[i] = opt_distortion_[i]->GetUpperBound() / scaling_;
+    x_l[i] = opt_param_[i]->GetLowerBound() / scaling_;
+    x_u[i] = opt_param_[i]->GetUpperBound() / scaling_;
     LOG_DBG3(SBD) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
   }
 
@@ -879,14 +1629,35 @@ void SplineBoxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 
 inline unsigned int SplineBoxDesign::GetNumberOfVariables() const
 {
-  return aux_design_.GetSize() + opt_distortion_.GetSize();
+  return aux_design_.GetSize() + opt_param_.GetSize();
 }
 
 
+int SplineBoxDesign::FindDesign(DesignElement::Type dt, bool throw_exception) const
+{
+  // check for DENSITY, ...
+  int idx = DesignSpace::FindDesign(dt, false);
+  if(idx >= 0)
+    return idx;
+
+  assert(dt == DesignElement::CP || dt == DesignElement::SPLINE_BOX);
+
+  if(dt == DesignElement::SPLINE_BOX)
+    dt = DesignElement::CP; // return the node index
+
+  for(unsigned int i = 0; i < param_.GetSize(); i++)
+    if(param_[i].GetType() == dt)
+      return i;
+
+  if(throw_exception)
+    EXCEPTION("Design " << DesignElement::type.ToString(dt) << " no FEM based and no shape mapping design.");
+  return -1;
+}
+
 inline BaseDesignElement* SplineBoxDesign::GetDesignElement(unsigned int idx)
 {
-  if(idx < opt_distortion_.GetSize())
-    return opt_distortion_[idx];
+  if(idx < opt_param_.GetSize())
+    return opt_param_[idx];
   else
     return AuxDesign::GetDesignElement(idx); // handles its offset properly
 }
@@ -899,9 +1670,9 @@ void SplineBoxDesign::ToInfo(ErsatzMaterial* em)
   PtrParamNode msh = sb->Get("mesh");
   numInt_.ToInfo(sb->Get("numInt"));
   PtrParamNode base = info_->Get("designVariables");
-  for(unsigned int i = 0; i < distortion_.GetSize(); i++) {
+  for(unsigned int i = 0; i < param_.GetSize(); i++) {
     PtrParamNode sBP = base->Get("splineBoxParam", ParamNode::APPEND);
-    ShapeParamElement& de = distortion_[i];
+    ShapeParamElement& de = param_[i];
     sBP->Get("lower")->SetValue(de.GetLowerBound());
     sBP->Get("upper")->SetValue(de.GetUpperBound());
     sBP->Get("design")->SetValue(de.GetPlainDesignValue());
@@ -1034,7 +1805,7 @@ int SplineBoxDesign::Item::GetOrder(Vector<int>& order, const SplineBoxDesign::N
   {
     double min_val = min_corner_value[s];
     double max_val = max_corner_value[s];
-    LOG_DBG(SBD) << std::setprecision(10) << "I::GO: min_val= " << min_val << " max_val= " << max_val;
+    LOG_DBG3(SBD) << std::setprecision(10) << "I:GO: min_val= " << min_val << " max_val= " << max_val;
 
     assert(min_val >= -0.02);
     assert(max_val >= min_val);
@@ -1089,8 +1860,8 @@ void SplineBoxDesign::NumInt::ToInfo(PtrParamNode info) const
 int SplineBoxDesign::WriteDesignToExtern(double* space_out, bool scaling) const {
   double rscaling = scaling ? 1.0 / scaling_ : 1.0;
 
-  for(unsigned int i=0; i < opt_distortion_.GetSize(); ++i) {
-    space_out[i] = opt_distortion_[i]->GetPlainDesignValue() * rscaling;
+  for(unsigned int i=0; i < opt_param_.GetSize(); ++i) {
+    space_out[i] = opt_param_[i]->GetPlainDesignValue() * rscaling;
     LOG_DBG3(SBD) << "WDTE: out[" << i << "]=" << space_out[i];
   }
 
@@ -1101,7 +1872,7 @@ int SplineBoxDesign::WriteDesignToExtern(double* space_out, bool scaling) const 
 }
 
 void SplineBoxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling) {
-  LOG_DBG2(SBD) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << distortion_.GetSize()
+  LOG_DBG2(SBD) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << param_.GetSize()
       << " out=" << out.GetSize() << " outwindowstart=" << out.window.GetStart() << " outwindowsz=" << out.window.GetSize();
   assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
 
@@ -1124,16 +1895,16 @@ void SplineBoxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElemen
   // Here we assume that out has a window set where to write to for the given function.
   if(f->HasDenseJacobian())
   {
-    unsigned int end_opt = opt_distortion_.GetSize();
+    unsigned int end_opt = opt_param_.GetSize();
     LOG_DBG(SBD) << "WGTE: end_opt=" << end_opt << " ad=" << aux_design_.GetSize() << " w=" << out.window.GetSize();
     assert(end_opt + aux_design_.GetSize() == out.window.GetSize());
     for(unsigned int s = 0; s < end_opt; ++s)
     {
       assert(out.InWindow(base + s));
 
-      double opt = opt_distortion_[s]->GetPlainGradient(f);
+      double opt = opt_param_[s]->GetPlainGradient(f);
 
-      LOG_DBG3(SBD) << "WGTE de=" << opt_distortion_[s]->ToString();
+      LOG_DBG3(SBD) << "WGTE de=" << opt_param_[s]->ToString();
       assert(!std::isnan(opt));
 
       out[base + s] = opt * scaling;
@@ -1153,14 +1924,14 @@ void SplineBoxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElemen
     for(unsigned int i = 0; i < sparsity.GetSize(); i++)
     {
       unsigned int s = sparsity[i];
-      assert(s < opt_distortion_.GetSize());
+      assert(s < opt_param_.GetSize());
       LOG_DBG3(SBD) << "WGTE i=" << i << " s=" << s << " base=" << base << " b+s=" << (base+s);
 
       assert(out.InWindow(base + i));
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
 
-      double opt = opt_distortion_[s]->GetPlainGradient(f);
+      double opt = opt_param_[s]->GetPlainGradient(f);
 
       out[base + i] = opt * scale;
     }
@@ -1173,7 +1944,7 @@ void SplineBoxDesign::SetControlPoint(int idx, Point coords, bool add) {
   if(add == false) {
     control_points_[idx] = coords;
   } else {
-    control_points_[idx] = init_control_points_[idx] + coords;
+    control_points_[idx] = initial_control_points_[idx] + coords;
   }
 }
 
@@ -1184,7 +1955,7 @@ void SplineBoxDesign::SetControlPoints(StdVector<Point> coords, bool add) {
     control_points_ = coords;
   } else {
     for(unsigned int i = 0; i < coords.GetSize(); ++i) {
-      control_points_[i] = init_control_points_[i] + coords[i];
+      control_points_[i] = initial_control_points_[i] + coords[i];
     }
   }
 }
@@ -1202,7 +1973,7 @@ void SplineBoxDesign::UpdateFEMesh(Matrix<double> new_coords) {
   }
 }
 
-void SplineBoxDesign::ReadFeature(string file_in) {
+void SplineBoxDesign::ReadFeature(string file_in, string key) {
 
   std::cout << "++ Reading feature ... \"" << file_in << "\"" << std::flush;
 
@@ -1215,35 +1986,35 @@ void SplineBoxDesign::ReadFeature(string file_in) {
     density_resolution_[2] = xml->Get("header/mesh/z")->As<unsigned int>();
   }
 
-  if (xml->Count("set") == 0)
-    throw Exception("There are no design sets in the ersatz material file");
-
   // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
   PtrParamNode set;
-  set = xml->GetList("set").Last();
+  if (key == "first")
+    set = xml->GetList("set")[0];
+  if (key == "last")
+    set = xml->GetList("set").Last();
+  if (set == NULL)
+    set = xml->GetByVal("set", "id", key);
+  if (xml->Count("set") == 0)
+    throw Exception("There are no design sets in the ersatz material file");
 
   ParamNodeList elems = set->GetList("element"); // we be 0 for shape map
 
   const unsigned int elsize = elems.GetSize();
 
   density_.Resize(elsize);
-
   for (unsigned int e = 0; e < elsize; ++e) {
     unsigned int nr = elems[e]->Get("nr")->As<unsigned int>(); // 1-based
-
     string name = "design";
     if (elems[e]->Has(name))
       density_[nr-1] = elems[e]->Get(name)->As<double>();
   }
 
   density_derivative_.Resize(dim_);
-
   // finite differenzen
   unsigned int h = 1; // in elements of density field discretization
   unsigned int num_density_elem = density_resolution_.Product();
   for(unsigned int d = 0; d < dim_; ++d) {
     assert(h < density_resolution_[d]);
-
     density_derivative_[d].Resize(num_density_elem);
     for(unsigned int e = 0; e < num_density_elem; ++e) {
       unsigned int left, right;
@@ -1388,7 +2159,7 @@ Matrix<double> SplineBoxDesign::GetBasisMatrix() {
       num_nodes_inside += 1;
     }
   }
-  LOG_DBG(SBD) << "num_nodes_inside: " << num_nodes_inside;
+  LOG_DBG2(SBD) << "num_nodes_inside: " << num_nodes_inside;
 
   StdVector<int> sub(dim_);
   Matrix<double> mtx;

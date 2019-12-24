@@ -172,6 +172,11 @@ Function::Function(PtrParamNode pn) {
       throw Exception("'overhang' function requires design to be set to shape variables ('shape_map')");
     break;
 
+  case CONES:
+    if(!BaseDesignElement::IsSplineBoxType(design_))
+      throw Exception("'cones' function requires design to be set to spline box variables");
+    break;
+
   default:
     break;
   }
@@ -187,6 +192,7 @@ Function::Function(PtrParamNode pn) {
   case PERIODIC:
   case CURVATURE:
   case OVERHANG_VERT:
+  case CONES: // might be also nonlinear in the future
     linear_ = true;
     break;
 //  case TENSOR_TRACE:
@@ -428,6 +434,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -643,6 +650,7 @@ bool Function::IsLocal(Type t) {
   case CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case PERIODIC:
   case DESIGN:
   case SUM_MODULI:
@@ -758,6 +766,7 @@ bool Function::ForSensitivityFiltering() const {
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -922,6 +931,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -1113,6 +1123,12 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
     break;
 
+  case CONES:
+    if(locality_ != MULT_DESIGNS_PREV_NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_PREV_NEXT;
+    break;
+
   case GLOBAL_SLOPE:
     if (locality_ != NEXT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
@@ -1227,6 +1243,7 @@ void Function::Local::PostInit()
 
   // this is actually pure constructor work, just extracted to handle function size
   ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
+  SplineBoxDesign* sbd = dynamic_cast<SplineBoxDesign*>(space);
   assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfFeatureMappingVariables() == 0));
 
   switch (locality_)
@@ -1261,6 +1278,8 @@ void Function::Local::PostInit()
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
       smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
+    else if(BaseDesignElement::IsSplineBoxType(func_->GetDesignType()))
+      sbd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupMultDesignsVirtualElementMap(func_);
     break;
@@ -1283,6 +1302,8 @@ void Function::Local::PostInit()
   default:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
       smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
+    else if(BaseDesignElement::IsSplineBoxType(func_->GetDesignType()))
+      sbd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupVirtualElementMap(phase_);
     break;
@@ -2041,6 +2062,16 @@ Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseD
   this->sign = si;
 }
 
+Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, StdVector<BaseDesignElement*> sb_buddies, int si)
+{
+  this->element = elem;
+  this->neighbor = buddies;
+  this->sb_neighbor = sb_buddies;
+  assert(sb_buddies.GetSize() == 2 * domain->GetGrid()->GetDim());
+  assert(elem->GetType() == DesignElement::Type::CP && si >= -12 && si <= 12);
+  this->sign = si;
+}
+
 const BaseDesignElement* Function::Local::Identifier::GetElementByType(DesignElement::Type type) const
 {
   for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
@@ -2130,6 +2161,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case OVERHANG_VERT:
   case OVERHANG_HOR:
     fv = CalcOverhang(f->type_, local->eps_); // not GetEps() as we don't need it for VERT
+    break;
+
+  case CONES:
+    fv = CalcCones(local);
     break;
 
   case SUM_MODULI:
@@ -2313,6 +2348,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case OVERHANG_VERT:
     case OVERHANG_HOR:
       gv = CalcOverhangGradient(n, g->type_, local->eps_); // no GetEps()!
+      break;
+
+    case CONES:
+      gv = CalcConesGradient(n, local);
       break;
 
     case STRESS:
@@ -2561,6 +2600,220 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
     return df;
 }
 
+double Function::Local::Identifier::CalcCones(const Local* local) const {
+  assert(local->GetLocality() == MULT_DESIGNS_PREV_NEXT);
+  unsigned int dim = domain->GetGrid()->GetDim();
+
+  assert(sb_neighbor.GetSize() == 2 * dim);
+  assert(element->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < neighbor.GetSize(); ++i)
+    assert(neighbor[i]->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < sb_neighbor.GetSize(); ++i)
+    assert(sb_neighbor[i]->GetType() == DesignElement::CP);
+
+  // this->x is implicit, then this->y, then this->z, then either prev->x ... or next->x ...
+  double x, y, z, xo, yo, zo;
+  x = sb_neighbor[0]->GetPlainDesignValue(); // this
+  y = sb_neighbor[1]->GetPlainDesignValue();
+  if(dim == 2) {
+    xo = sb_neighbor[2]->GetPlainDesignValue(); // other
+    yo = sb_neighbor[3]->GetPlainDesignValue();
+  } else {
+    z = sb_neighbor[2]->GetPlainDesignValue();
+    xo = sb_neighbor[3]->GetPlainDesignValue(); // other
+    yo = sb_neighbor[4]->GetPlainDesignValue();
+    zo = sb_neighbor[5]->GetPlainDesignValue();
+  }
+
+  // add initial control point position to design elements
+  SplineBoxDesign* sbd = dynamic_cast<SplineBoxDesign*>(local->space);
+  // intentional integer division
+  unsigned int cp_idx_e = sb_neighbor[0]->GetIndex() / dim;
+  unsigned int cp_idx_n = sb_neighbor[3]->GetIndex() / dim;
+  Point cp_e = sbd->GetInitialControlPoint(cp_idx_e);
+  Point cp_n = sbd->GetInitialControlPoint(cp_idx_n);
+  x += cp_e[0];
+  y += cp_e[1];
+  z += cp_e[2];
+  xo += cp_n[0];
+  yo += cp_n[1];
+  zo += cp_n[2];
+
+
+  assert(sign >= -12 && sign <= 12);
+  assert((dim == 2 && sign >= -4 && sign <= 4) || dim == 3);
+
+  double angle = local->func_->parameter_;
+  assert(angle >= 0);
+  double tana = std::tan(angle/180. * M_PI);
+
+  double res = -1.0;
+
+  // in the following comments we have comment(x) = code(xo) - code(x),
+  // comment(x_0) = code(x), comment(x_1) = code(xo) and comment(a|b_*) = code(tana)
+  // cases 1 and 2 describe cone in x direction,
+  // cases 3 and 4 describe cone in y direction
+  if(dim == 2) {
+    switch(std::abs(sign)) {
+    case 1:
+      // a_1 * x >= y -> - a_1 * x + y <= 0 -> - a_1 * x_1 + a_1 * x_0 + y_1 - y_0 <= 0
+      res =   tana * x - y - tana * xo + yo;
+      break;
+    case 2:
+      // a_2 * x >= -y -> - a_2 * x - y <= 0 -> - a_2 * x_1 + a_2 * x_0 - y_1 + y_0 <= 0
+      res =   tana * x + y - tana * xo - yo;
+      break;
+    case 3:
+      // b_1 * y >= x -> x - b_1 * y <= 0 -> x_1 - x_0 - b_1 * y_1 + b_1 * y_0 <= 0
+      res = - x + tana * y + xo - tana * yo;
+      break;
+    case 4:
+      // b_2 * y >= - x -> - x - b_2 * y <= 0 -> - x_1 + x_0 - b_2 * y_1 + b_2 * y_0 <= 0
+      res =   x + tana * y - xo - tana * yo;
+      break;
+    }
+    LOG_DBG3(func) << "F:L:I:CC e=" << element->GetIndex() << " (" << x << "," << y << ") en="
+        << sb_neighbor[3]->GetIndex() << " (" << x << "," << y << ") res=" << res;
+  } else {
+    // Todo implement angle
+    // cases 1,2,3 and 4 describe cone in x direction,
+    // cases 5,6,7 and 8 describe cone in y direction,
+    // cases 9,10,11 and 12 describe cone in y direction
+    switch(std::abs(sign)) {
+    case 1:
+      res = + x - y - z - xo + yo + zo;
+      break;
+    case 2:
+    case 10:
+      res = + x - y + z - xo + yo - zo;
+      break;
+    case 3:
+    case 7:
+      res = + x + y - z - xo - yo + zo;
+      break;
+    case 4:
+    case 8:
+    case 12:
+      res = + x + y + z - xo - yo - zo;
+      break;
+    case 5:
+    case 9:
+      res = - x + y + z + xo - yo - zo;
+      break;
+    case 6:
+      res = - x + y - z + xo - yo + zo;
+      break;
+    case 11:
+      res = - x - y + z + xo + yo - zo;
+      break;
+    }
+    LOG_DBG3(func) << "F:L:I:CC e=" << element->GetIndex() << " (" << x << "," << y << "," << z << ") en="
+        << neighbor[3]->GetIndex() << " (" << x << "," << y << "," << z << ") res=" << res;
+  }
+
+  res *= sign < 0 ? -1.0 : 1.0;
+
+  // Multiply with -1. Then the regularization parameter is a positive lower bound.
+  res *= -1;
+
+  return res;
+}
+
+double Function::Local::Identifier::CalcConesGradient(int neigh_idx, const Local* local) const {
+  assert(local->GetLocality() == MULT_DESIGNS_PREV_NEXT);
+  unsigned int dim = domain->GetGrid()->GetDim();
+
+  assert(sb_neighbor.GetSize() == 2 * dim);
+  assert(element->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < neighbor.GetSize(); ++i)
+    assert(neighbor[i]->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < sb_neighbor.GetSize(); ++i)
+    assert(sb_neighbor[i]->GetType() == DesignElement::CP);
+
+  assert(sign >= -12 && sign <= 12);
+  assert((dim == 2 && sign >= -4 && sign <= 4) || dim == 3);
+
+  double angle = local->func_->parameter_;
+  assert(angle >= 0);
+  double tana = std::tan(angle/180. * M_PI);
+
+  const BaseDesignElement* bde = GetElement(neigh_idx);
+  int sb_neigh_idx = sb_neighbor.Find(const_cast<BaseDesignElement*>(bde));
+  LOG_DBG(func) << "F:L:I:CCG: e=" << bde->GetIndex() << " sb_neigh_idx=" << sb_neigh_idx;
+
+  double df = 0.0;
+
+  // this->x is implicit, then this->y, then this->z, then either prev->x ... or next->x ...
+  if(dim == 2) {
+    switch(std::abs(sign)) {
+    case 1:
+      // res =   tana * x - y - tana * xn + yn;
+      df  = (sb_neigh_idx == 0 || sb_neigh_idx == 3) ? 1 : -1;
+      df *= (sb_neigh_idx == 0 || sb_neigh_idx == 2) ? tana : 1;
+      break;
+    case 2:
+      // res =   tana * x + y - tana * xn - yn;
+      df  = (sb_neigh_idx == 0 || sb_neigh_idx == 1) ? 1 : -1;
+      df *= (sb_neigh_idx == 0 || sb_neigh_idx == 2) ? tana : 1;
+      break;
+    case 3:
+      // res = - x + tana * y + xn - tana * yn;
+      df  = (sb_neigh_idx == 1 || sb_neigh_idx == 2) ? 1 : -1;
+      df *= (sb_neigh_idx == 1 || sb_neigh_idx == 3) ? tana : 1;
+      break;
+    case 4:
+      // res =   x + tana * y - xn - tana * yn;
+      df  = (sb_neigh_idx == 0 || sb_neigh_idx == 1) ? 1 : -1;
+      df *= (sb_neigh_idx == 1 || sb_neigh_idx == 3) ? tana : 1;
+      break;
+    }
+  } else {
+    switch(std::abs(sign)) {
+    // Todo @see CalcCones
+    case 1:
+      // res = + x - y - z - xn + yn + zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 4 || sb_neigh_idx == 5) ? 1 : -1;
+      break;
+    case 2:
+    case 10:
+      // res = + x - y + z - xn + yn - zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 2 || sb_neigh_idx == 4) ? 1 : -1;
+      break;
+    case 3:
+    case 7:
+      // res = + x + y - z - xn - yn + zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 1 || sb_neigh_idx == 5) ? 1 : -1;
+      break;
+    case 4:
+    case 8:
+    case 12:
+      // res = + x + y + z - xn - yn - zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 1 || sb_neigh_idx == 2) ? 1 : -1;
+      break;
+    case 5:
+    case 9:
+      // res = - x + y + z + xn - yn - zn;
+      df = (sb_neigh_idx == 1 || sb_neigh_idx == 2 || sb_neigh_idx == 3) ? 1 : -1;
+      break;
+    case 6:
+      // res = - x + y - z + xn - yn + zn;
+      df = (sb_neigh_idx == 1 || sb_neigh_idx == 3 || sb_neigh_idx == 5) ? 1 : -1;
+      break;
+    case 11:
+      // res = - x - y + z + xn + yn - zn;
+      df = (sb_neigh_idx == 2 || sb_neigh_idx == 3 || sb_neigh_idx == 4) ? 1 : -1;
+      break;
+    }
+  }
+
+  df *= sign < 0 ? -1.0 : 1.0;
+
+  // @see CalcCones
+  df *= -1;
+
+  return df;
+}
+
 double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const
 {
   // P = sum_k^K l_k ( sqrt( (<p>_k)**2 + eps**2 ) - eps )
@@ -2746,7 +2999,7 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps) 
   // see comments in the forward function implementation
   // three cases for the sensitivity analysis: first, intermediate, last
 
-  // sort all values in a sequence -> TODO! optimize and do not copy and pase
+  // sort all values in a sequence -> TODO! optimize and do not copy and paste
   tmp1.Resize(0); // is static and keeps capacity
   for (unsigned int i = 0; i < neighbor.GetSize() / 2; i++)
     tmp1.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));

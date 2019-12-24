@@ -294,6 +294,9 @@ unsigned int TriCubicInterpolate::GetLocalValues(double x, double y, double z, d
   x = (x - offsetX_) * scaleX_;
   y = (y - offsetY_) * scaleY_;
   z = (y - offsetY_) * scaleZ_;
+  assert(0 <= x && x <= 1);
+  assert(0 <= y && y <= 1);
+  assert(0 <= z && z <= 1);
 
   // get index of last element
   const unsigned int kxend = x_.GetSize() - 1;

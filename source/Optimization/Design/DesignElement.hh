@@ -194,6 +194,10 @@ public:
    * @see ShapeMapDesign::Convert() */
   static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE || type == SHAPE_MAP; }
 
+  /** checks if the type is a splinebox feature mapping type.
+   * @see ShapeMapDesign::Convert() */
+  static bool IsSplineBoxType(Type type) { return type == SPLINE_BOX || type == CP; }
+
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
 

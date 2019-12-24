@@ -42,13 +42,17 @@ public:
 
   virtual unsigned int GetNumberOfVariables() const;
 
-  virtual int GetNumberOfFeatureMappingVariables() const { return distortion_.GetSize(); }
+  virtual int GetNumberOfFeatureMappingVariables() const { return param_.GetSize(); }
+
+  /** In case DesignSpace::FindDesign() searches for SPLINE_BOX and CP.
+   * @return either DesignSpace::FindDesign() or the index within param_ */
+  virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
   /** goes on opt_distortion only! */
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
   /** does not go on opt_distortion but on distortion */
-  ShapeParamElement* GetSplineBoxDesignElement(unsigned int idx) { return &(distortion_[idx]);}
+  ShapeParamElement* GetSplineBoxDesignElement(unsigned int idx) { return &(param_[idx]);}
 
   virtual void ToInfo(ErsatzMaterial* em);
 
@@ -58,8 +62,14 @@ public:
   /** Set or move all control points*/
   void SetControlPoints(StdVector<Point> coords, bool add = false);
 
-  /** Returns the control points of the BSpline curve */
+  /** Returns the current control points of the BSpline curve */
   StdVector<Point> GetControlPoints() { return this->control_points_; }
+
+  /** Returns the initial control points of the BSpline curve */
+  StdVector<Point> GetInitialControlPoints() { return this->initial_control_points_; }
+
+  /** Returns one initial control point of the BSpline curve */
+  Point GetInitialControlPoint(unsigned int index) { return this->initial_control_points_[index]; }
 
   /** Evaluates basis
    *  @param Matrix<double> output of size num_nodes_inside x 3
@@ -81,6 +91,19 @@ public:
    * @param set the set from the density.xml
    * @param lower_violation the maximal violation */
   void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation);
+
+  /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
+   * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
+   * @param locality just given to assert() it is PREV_AND_NEXT */
+  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
+
+  /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
+  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
+
+  /** Returns the matrix for linear injectivity constraints
+   *  such that A*cp < 0 assures injectivity. The matrix
+   *  applies to the control points and not the deformation. */
+  Matrix<double> GetInjectivityMatrix();
 
   /** The integration strategy applied forItem::GetOrder() */
   typedef enum { CONSTANT_FULL, FULL_OR_NOTHING } IntStrategy;
@@ -166,7 +189,7 @@ private:
   void MapFeatureGradient(const Function* f);
 
   /** assumes rectangular grid */
-  void ReadFeature(string file_in);
+  void ReadFeature(string file_in, string key = "last");
 
   void InterpolateFeature();
 
@@ -200,7 +223,7 @@ private:
   StdVector<Point> control_points_;
 
   /** vector of initial control points */
-  StdVector<Point> init_control_points_;
+  StdVector<Point> initial_control_points_;
 
   /** bounding box of spline box */
   Matrix<double> bounding_box_;
@@ -211,16 +234,20 @@ private:
   /** if forward (FE mesh optimization) or backward (feature mapping) thinking */
   bool forward_;
 
-  /** This are the design variables, which are offset to initial control_points
-   *  (i.e. distortion/deformation). Contains offset for all control_points*/
-  StdVector<ShapeParamElement> distortion_;
+  /** This are the design variables, which is distortion and rotation.
+   *  distortion variables are offset to initial control_points
+   *  (i.e. deformation). Contains offset for all control_points.
+   *  Last three variables are rotation variables for X, Y and Z axis.
+   *  Rotation will always be first Z, then Y, then X.
+   *  In 2D the angles for Y and X are 0. */
+  StdVector<ShapeParamElement> param_;
 
-  /** If distortion variable is subject to optimization. same size as distortion_ */
+  /** If design variable is subject to optimization. same size as param_ */
   StdVector<bool> is_opt_;
 
-  /** This are the external distortion variables which means shape_param
-   *  w/o fixed and optional symmetry */
-  StdVector<ShapeParamElement*> opt_distortion_;
+  /** This are the external optimization variables which means
+   *  distortion and rotation w/o fixed*/
+  StdVector<ShapeParamElement*> opt_param_;
 
   StdVector<BSpline*> bsplines_;
 
@@ -244,11 +271,11 @@ private:
   /** derivatives/finite differences of density field */
   StdVector<StdVector<double>> density_derivative_;
 
+  /** if density field should be assumed to be periodic */
+  bool periodic_;
+
   /** interpolation method for density field */
   Interpolation interpolation_;
-
-  /** factor for smooth max function after interpolation */
-  double beta_;
 
   /** 2D interpolator for density field */
   BiCubicInterpolate* bicubicInterpolator_;
@@ -256,13 +283,20 @@ private:
   /** 3D interpolator for density field */
   TriCubicInterpolate* tricubicInterpolator_;
 
-  typedef enum { FILE, SUM_OF_SINE, MAX_SINE } AnalyticFunc;
+  /** bounding box of spline box w.r.t. density field */
+  Matrix<double> cover_box_;
+
+  typedef enum { FILE, SUM_OF_SINE, MAX_SINE, SINE_X, SINE_Y, SINE_Z } AnalyticFunc;
 
   static Enum<AnalyticFunc> analyticFunc;
 
   AnalyticFunc analyticFunc_;
 
-  double analyticPeriod_;
+  /** factor for smooth max or min function */
+  double beta_;
+
+  /** factor to scale the feature */
+  double feature_scale_;
 
 
   /** reference to optimization as we need it in MapFeatureGradient() to get the functions */
@@ -276,6 +310,8 @@ private:
 
   /** Measure MapFeatureGradient() */
   shared_ptr<Timer> gradient_timer_;
+
+  Matrix<double> injMatrix_;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item

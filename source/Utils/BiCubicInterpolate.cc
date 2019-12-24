@@ -216,6 +216,8 @@ unsigned int BiCubicInterpolate::GetLocalValues(double x, double y, double& xloc
   // scale to [0,1] like in constructor
   x = (x - offsetX_) * scaleX_;
   y = (y - offsetY_) * scaleY_;
+  assert(0 <= x && x <= 1);
+  assert(0 <= y && y <= 1);
 
   // get index of last element
   const unsigned int kxend = x_.GetSize() - 1;
