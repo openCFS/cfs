@@ -1,8 +1,7 @@
 #ifndef OPTIMIZATION_DESIGN_SPLINEBOXDESIGN_HH_
 #define OPTIMIZATION_DESIGN_SPLINEBOXDESIGN_HH_
 
-#include "Optimization/Design/AuxDesign.hh"
-#include "Optimization/Design/SplineBoxDesign.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Utils/BiCubicInterpolate.hh"
 #include "Utils/TriCubicInterpolate.hh"
 #include "Utils/BSpline.hh"
@@ -11,7 +10,7 @@ namespace CoupledField {
 
 class Optimization;
 
-class SplineBoxDesign : public AuxDesign
+class SplineBoxDesign : public FeaturedDesign
 {
 public:
 
@@ -42,17 +41,12 @@ public:
 
   virtual unsigned int GetNumberOfVariables() const;
 
-  virtual int GetNumberOfFeatureMappingVariables() const { return param_.GetSize(); }
-
   /** In case DesignSpace::FindDesign() searches for SPLINE_BOX and CP.
    * @return either DesignSpace::FindDesign() or the index within param_ */
   virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
-  /** goes on opt_distortion only! */
+  /** goes on opt_shape_param_ only! */
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
-
-  /** does not go on opt_distortion but on distortion */
-  ShapeParamElement* GetSplineBoxDesignElement(unsigned int idx) { return &(param_[idx]);}
 
   virtual void ToInfo(ErsatzMaterial* em);
 
@@ -94,7 +88,7 @@ public:
 
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
-   * @param locality just given to assert() it is PREV_AND_NEXT */
+   * @param locality the local type */
   void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
   /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
@@ -104,44 +98,6 @@ public:
    *  such that A*cp < 0 assures injectivity. The matrix
    *  applies to the control points and not the deformation. */
   Matrix<double> GetInjectivityMatrix();
-
-  /** The integration strategy applied forItem::GetOrder() */
-  typedef enum { CONSTANT_FULL, FULL_OR_NOTHING } IntStrategy;
-
-  static Enum<IntStrategy> intStrategy;
-
-  /** combines our settings for numerical integration */
-  struct NumInt
-  {
-    /** the constructor with the ShapeMap pn. Calls SetTailored conditionally */
-    void Init(SplineBoxDesign* sb, PtrParamNode pn, PtrParamNode info);
-
-    /** standard output, does not print warning here */
-    void ToInfo(PtrParamNode info) const;
-
-    /** for Item::GetOrder(), however it makes only sense in debug to reduce it. */
-    int max_order;
-
-    IntStrategy strategy;
-
-    /** this is the decision value for CloseEnough() */
-    double sensitivity;
-
-    /** for statistics: cells which need integration */
-    unsigned int int_cells_cnt = 0;
-
-    /** for statistics: sum of 1D integration on cells we integrate (-> avg. order)  */
-    unsigned int int_cells_order_sum = 0;
-
-  private:
-    double beta = -1.0;
-
-    /** number of elements in FE mesh */
-    unsigned int cells_;
-
-    /** what GetTailoredOrder() returns in the LINEAR case with 1st order integration */
-    int linear_int_order_ = -1;
-  };
 
   typedef enum { NONE, CUBIC } Interpolation;
 
@@ -199,17 +155,6 @@ private:
 
   Vector<double> EvalDerivativeAtCoord(Vector<double> point) const;
 
-  /** Multiple subscripts from linear index
-   *  This function corresponds to ShapeMapDesign::DensityIdx(int x, int y, int z)*/
-  void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind) const;
-
-  /** Linear index from multiple subscripts
-   *  This function corresponds to ShapeMapDesign::DensityIdx(unsigned int i, Vector<unsigned int>& idx)*/
-  void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub) const;
-
-  /** dimension */
-  static unsigned int dim_;
-
   /** degree of splines */
   unsigned int degree_;
 
@@ -234,20 +179,8 @@ private:
   /** if forward (FE mesh optimization) or backward (feature mapping) thinking */
   bool forward_;
 
-  /** This are the design variables, which is distortion and rotation.
-   *  distortion variables are offset to initial control_points
-   *  (i.e. deformation). Contains offset for all control_points.
-   *  Last three variables are rotation variables for X, Y and Z axis.
-   *  Rotation will always be first Z, then Y, then X.
-   *  In 2D the angles for Y and X are 0. */
-  StdVector<ShapeParamElement> param_;
-
   /** If design variable is subject to optimization. same size as param_ */
   StdVector<bool> is_opt_;
-
-  /** This are the external optimization variables which means
-   *  distortion and rotation w/o fixed*/
-  StdVector<ShapeParamElement*> opt_param_;
 
   StdVector<BSpline*> bsplines_;
 
@@ -305,48 +238,9 @@ private:
   /** this is the design_id for the last MapFeatureToDensity() run */
   int mapped_design_ = -1;
 
-  /** Measure MapFeatureToDensity() */
-  shared_ptr<Timer> mapping_timer_;
-
-  /** Measure MapFeatureGradient() */
-  shared_ptr<Timer> gradient_timer_;
-
   Matrix<double> injMatrix_;
 
-  /** to conveniently handle the mapping shape param to design */
-  struct Item
-  {
-    /** our Design Element */
-    DesignElement* rho;
-
-    /** This is the minimal corner value of all corners. Set by EvalAllCorners() */
-    Vector<double> min_corner_value;
-    Vector<double> max_corner_value;
-
-    /** Determines based on corner_vals the order of integration for each shape. 0=void, 1=solid, >=2 integration.
-     * @param order output
-     * @param max_order the maximal order. This may conflict with sensitivity
-     * @return the maximal number in order. This is <= the parameter max_order */
-    int GetOrder(Vector<int>& order, const NumInt& numInt) const;
-
-    /** Set generalized integration points and weights.
-     *  Assumes rectangular finite elements!
-     * @param ip result: vector [0...1]^dim
-     * @param ip_x, ip_y, ip_y index of integration < max_order
-     * @return closed Newton-Cotes weight for the 2D/3D point */
-    static double SetIPGetWeight(const SplineBoxDesign* sbd, StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
-
-    /** maximal diff max_corner_value and min_corner_value for all shapes */
-    double MaxDiffCornerValue() const;
-  };
-
-  /** mapping with size of rho from ShapeParamElement pointers to distortion */
-  StdVector<Item> map_;
-
-  unsigned int int_order_;
-
   NumInt numInt_;
-
 };
 
 } //end of namespace

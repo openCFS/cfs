@@ -311,7 +311,7 @@ public:
   ShapeDesignElement(unsigned int index);
 };
 
-/** for ShapeMapDesign. Holds a shape parameter. E.g. node with dof=x ny+1 times with ny is number of elements */
+/** for FeaturedDesign. Holds a shape parameter. E.g. node with dof=x ny+1 times with ny is number of elements */
 class ShapeParamElement : public BaseDesignElement
 {
 public:

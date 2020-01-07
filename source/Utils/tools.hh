@@ -343,6 +343,12 @@ namespace CoupledField {
    * @see https://de.wikipedia.org/wiki/Newton-Cotes-Formeln */
   StdVector<Vector<double> > GetNewtonCotes();
 
+  /** Multiple subscripts from linear index */
+  void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind);
+
+  /** Linear index from multiple subscripts */
+  void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub);
+
   /** Return a linspace similar to numpy.python where the ends are always included
    * s=1, e=4, n=5 -> 1, 1.75, 2.5, 3.25, 4. Order can be reversed! */
   Vector<double> Linspace(double start, double end, int n);

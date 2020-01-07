@@ -18,6 +18,7 @@
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
@@ -267,7 +268,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   bool enforce_bounds = false;
   if(space->GetMethod() == ErsatzMaterial::Method::SHAPE_MAP)
      dynamic_cast<ShapeMapDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
-  if(space->GetMethod() == ErsatzMaterial::Method::SPLINE_BOX)
+  else if(space->GetMethod() == ErsatzMaterial::Method::SPLINE_BOX)
      dynamic_cast<SplineBoxDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
   else
    enforce_bounds = ReadDensity(pn, elems, force_region, space, lower_violation, upper_violation);
@@ -339,8 +340,8 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
 
 
   // for shape map we also want to export DesignSpace::data even if this are no design variables
-  assert((space_->GetNumberOfFeatureMappingVariables() >  0 && (dynamic_cast<ShapeMapDesign*>(space_) != NULL || dynamic_cast<SplineBoxDesign*>(space_) != NULL) ) ||
-         (space_->GetNumberOfFeatureMappingVariables() == 0 &&  dynamic_cast<ShapeMapDesign*>(space_) == NULL && dynamic_cast<SplineBoxDesign*>(space_) == NULL));
+  assert((space_->GetNumberOfFeatureMappingVariables() >  0 && (dynamic_cast<ShapeMapDesign*>(space_) != NULL || dynamic_cast<FeaturedDesign*>(space_) != NULL) ) ||
+         (space_->GetNumberOfFeatureMappingVariables() == 0 &&  dynamic_cast<ShapeMapDesign*>(space_) == NULL && dynamic_cast<FeaturedDesign*>(space_) == NULL));
 
   unsigned int size = (write_density_ ? space_->data.GetSize() : 0) + space_->GetNumberOfFeatureMappingVariables();
   if(space_->HasSlackVariable())
@@ -398,7 +399,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     // skip the aux variables slack and alpha -> they are written to the info.xml
     for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
     {
-      ShapeParamElement* spe = smd->GetShapeMapDesignElement(i);
+      ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetFeaturedDesignElement(i));
       assert(spe != NULL);
 
       ShapeMapDesign::ShapeParam* shape = smd->GetShape(spe);
@@ -423,7 +424,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     // skip the aux variables slack and alpha -> they are written to the info.xml
     for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
     {
-      BaseDesignElement* de = sbd->GetSplineBoxDesignElement(i);
+      BaseDesignElement* de = sbd->GetFeaturedDesignElement(i);
       assert(de != NULL);
 
       std::stringstream ss;

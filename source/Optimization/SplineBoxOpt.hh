@@ -5,7 +5,8 @@
 
 namespace CoupledField {
 
-class SplineBoxOpt : public SIMP {
+class SplineBoxOpt : public SIMP
+{
 public:
 
   SplineBoxOpt();

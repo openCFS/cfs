@@ -5,6 +5,7 @@ SET(DESIGN_SRCS
   DesignMaterial.cc
   DesignSpace.cc
   DesignStructure.cc
+  FeaturedDesign.cc
   Filter.cc
   LocalElementCache.cc
   ShapeDesign.cc
