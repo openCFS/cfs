@@ -167,7 +167,14 @@ public:
                    MECH_TRACE = -7, // MECH_11, MECH_22, MECH_33
                    MECH_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_22, MECH_33, MECH_23, MECH_13, MECH_12, MECH_44, MECH_55, MECH_66, SLACK, ALPHA,
+                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA = 12,
+                   MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16,
+                   MECH_22, MECH_23, MECH_24, MECH_25, MECH_26,
+                   MECH_33, MECH_34, MECH_35, MECH_36,
+                   MECH_44, MECH_45, MECH_46,
+                   MECH_55, MECH_56,
+                   MECH_66,
+                   SLACK = 34, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                    ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD,
                    MULTIMATERIAL, INTERPOLATION,
@@ -217,6 +224,12 @@ public:
 
   /** returns the type */
   virtual std::string ToString() const;
+
+  /** Set porosity per element, currently only implemented for two-scale volume */
+  virtual void SetElemPorosity (double vol) {EXCEPTION("Not implemented");};
+
+  /** Get porosity per element, currently only implemented for two-scale volume */
+  virtual double GetElemPorosity () {EXCEPTION("Not implemented");};
 
   /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
   double GetPlainDesignValue() const { return design; }
@@ -436,6 +449,9 @@ public:
      * @param g for sp = CONSTRAINT_GRADIENT only */
     virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
+    /** returns the sum of all design elements compatible to MECH_TRACE */
+    double GetPlainMechTrace() const;
+
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
     
@@ -456,6 +472,12 @@ public:
     /** Calculates the volume of the element, used static helpers.
      * caches the result, hence cheap to query again */
     double CalcVolume();
+
+    /** Sets porosity per element, currently only implemented for two-scale volume*/
+    virtual void SetElemPorosity(double vol);
+
+    /** Get porosity per element, currently only implemented for two-scale volume*/
+    virtual double GetElemPorosity();
 
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
@@ -521,6 +543,9 @@ private:
 
   /** the element volume calculated on request by CalcVolume() */
   double elemVol_;
+
+  /** the element porosity calculated by eg. CalcTwoScaleVolume() */
+  double elemPorosity_;
 
   /** up to now only needed to extract 'penalizedDesign'. Make it protected
    * if you need it. */

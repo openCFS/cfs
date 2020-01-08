@@ -380,7 +380,7 @@ OPTION(USE_FLANN
   ${USE_FLANN_DEFAULT})
 
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
-OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
+OPTION(PROFILING "Set profiling compiler options for Release (-g)." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
 OPTION(BUILD_CFSTOOL "Build CFS++ converter tool (cfstool)."  ${BUILD_CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
@@ -390,7 +390,11 @@ OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 IF(CFSDAT AND NOT USE_CGAL)
   MESSAGE(FATAL_ERROR "CFSDAT requires USE_CGAL=ON, correct your configuration.")
 ENDIF()
-  
+
+IF(DEBUG)
+   OPTION(DEBUG_USE_FSANITIZE "Use -fsanitize to check for memory leaks and general errors. Very costly during runtime!" ${DEBUG_USE_FSANITIZE_DEFAULT})
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
 #-----------------------------------------------------------------------------

@@ -1,3 +1,5 @@
+# easy check if already loaded
+set(CFS_macros "1")
 #
 # A big shout out to the cmake gurus @ compiz
 #
@@ -444,3 +446,31 @@ macro(DUMP_DIR DIR)
     message("${_NAME}")
   endforeach()  
 endmacro()
+
+
+# This is a simple assert to check if a cmake variable is set.
+# use like assert_set(CTEST_SCRIPTS_DIR) or assert_set("CTEST_SCRIPTS_DIR")
+macro(assert_set test)
+  if(NOT ${test})
+     message(FATAL_ERROR "assertion failed, the variable ${test} is not set")
+  endif()
+endmacro()
+
+# This is a simple assert to check if a cmake variable is unset.
+# see assert_set() 
+macro(assert_unset test)
+  if(${test})
+     message(FATAL_ERROR  "assertion failed, the variable ${test} is already set to '${test}'")
+  endif()
+endmacro()
+
+# simple headline macro. Prints emptly line, ======, text, ===== empty line
+# use like headline("Starting nightly tests on ${DATE_OUT}...")
+macro(headline text)
+  message("")
+  message("=============================================================================")
+  message("${text}")
+  message("=============================================================================")
+  message("")
+endmacro()
+

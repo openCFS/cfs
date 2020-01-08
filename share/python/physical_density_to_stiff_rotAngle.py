@@ -18,18 +18,36 @@ parser.add_argument("--rot_ordering", help="option for ordering of the rotation 
 parser.add_argument("--out_dat", help="file name for table of design variables")
 parser.add_argument("--dim", help="dimension of output file, default: 2 (2D)", type=int, default=2)
 parser.add_argument("--input_dat", help="input text file name with matrix of design variables")
+parser.add_argument("--upper_bound", help="upper_bound for lattice cells recogniztion, output: how many lattice,void,solid cells",type=float, default=0.99999999)
+parser.add_argument("--lower_bound", help="lower_bound for lattice cells recogniztion, output: how many lattice,void,solid cells",type=float, default=1e-6)
 
 
 
 
 
 args = parser.parse_args()
-if args.dim ==2 and not args.input_dat:
+if args.dim ==2 and not args.input_dat and (not args.lower_bound or not args.upper_bound):
   d = read_density_as_vector(args.input, "design")
 elif args.input_dat:
   d = numpy.loadtxt(args.input_dat)
   d[:,0] *= -1. 
   write_multi_design_file(args.output, d, ["rotAngle","stiff1", "stiff2"])
+elif args.lower_bound or args.upper_bound:
+  d = read_multi_design(args.input, "stiff1", "stiff2", "stiff3")
+  lattice_count = 0
+  void_count = 0
+  solid_count = 0
+  for i in range(len(d)):
+    if d[i,0] < args.lower_bound and d[i,1] < args.lower_bound and d[i,2] < args.lower_bound:
+      void_count += 1
+    elif d[i,0] <= args.upper_bound and d[i,1] <= args.upper_bound and d[i,2] <= args.upper_bound: 
+      lattice_count += 1
+    elif d[i,0] > args.upper_bound or d[i,1] > args.upper_bound or d[i,2] > args.upper_bound: 
+      solid_count +=1
+    else:
+      print('not counted: ' +str(d[i,0]) + ', ' +str(d[i,1]) + ', ' +str(d[i,2]) + '\n')
+  print('Percent of lattice: ' + str(100.*float(lattice_count)/len(d)) + ', Percent of void: '+ str(100.*float(void_count)/len(d)) + ' Percent of solid: '+str(100.*float(solid_count)/len(d)) + '\n')
+  print(' total number of elements: '+str(len(d)) + ', total number counted: '+str(lattice_count + void_count + solid_count) + '\n')  
 else:
   d = read_density_as_vector(args.input, "density","physical")
 if args.rot: 
@@ -119,7 +137,7 @@ else:
           data[i, 2] = d2[i, 2]         
     write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
   else:
-    if not args.input_dat:
+    if not args.input_dat and not args.lower_bound and not args.upper_bound:
       data = numpy.zeros((len(d), 3)) 
       for i in range(len(d)): 
         # data[i,0] = 1.-numpy.sqrt(1.-d[i])

@@ -520,6 +520,7 @@ namespace CoupledField
       UInt numT = CFS_NUM_THREADS;
       UInt aThread = GetThreadNum();
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
+      biLinForms.Init(NULL);
 
       UInt chunksize = std::floor(size/numT);
       UInt start = chunksize * aThread;

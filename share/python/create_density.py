@@ -227,6 +227,36 @@ def channel(dim, res, vol, lower):
   
   print("created channel with " + str(res*res-countSolids) + " elems" + " and solid volume " + str(countSolids/float(res*res)))
   return data
+
+
+#creates a cylinder in x-direction with height 1
+def cylinder(res,rad,lower):
+  data = numpy.full((res,res,res),lower)  
+
+  from skimage.draw import circle
+  radius = rad if rad is not None else numpy.sqrt(vol/numpy.pi)
+  circ = numpy.zeros((res,res), dtype=numpy.uint8)
+  rr, cc = circle(int(res/2), int(res/2), int(radius*res))
+  circ[rr,cc] = 1
+  
+  # map 2d circle to 3d layers
+  for x in range(res):
+    data[x,:,:] += circ
+    
+  print("volume:",(data > lower+1e-6).sum()/res**3)  
+    
+  return data  
+
+# creates a cylinder in x- and y-direction
+def two_cylinders(res, radii, lower):
+  data = cylinder(res, radii[1], lower)
+  # rotate cylinder
+  data = data.swapaxes(0,1)
+  data += cylinder(res, radii[0], lower)
+
+  # make sure overlapping does not create densities > 1
+  return data.clip(0,1)
+  
 ## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
 def hashtag_dist_2d(x, y, amplitude, speed):
   #  0.1*sin(2*x*pi+pi/2) + 0.25, 0.25, -0.1*sin(2*x*pi+pi/2) + 0.75, 0.75
@@ -256,6 +286,18 @@ def hashtag_dist_3d(x, y, z, amplitude, speed):
   yz_dist = max(x_dist, hash_dist)
   
   return min(xy_dist, yz_dist)
+
+# generates 3d orthotropic base cell with given s1, s2, s3
+# these things are hard coded: beta and eta for heaviside interpolation
+def cell_3d_ortho(res,params,bend,lower,skip):
+  import basecell
+  s1, s2, s3 = params
+  bc_input  = basecell.Basecell_Data(res,bend,s1,s1,s2,s2,s3,s3,"heaviside",beta=7,eta=0.6,target="volume_mesh",lower=lower)
+  bc_input.stiffness_as_diameter = True
+  bc_input.skip_x, bc_input.skip_y, bc_input.skip_z = skip 
+  cell_obj = basecell.Basecell(bc_input)
+  
+  return cell_obj.voxels
   
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="edge discretization of length 1m", type=int, required = True )
@@ -268,12 +310,20 @@ parser.add_argument('--cross', help="make a simple binary cross", action='store_
 parser.add_argument('--rect', help="make a simple binary rectangle inclusion", action='store_true')
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
 parser.add_argument('--channel',help="rectangular channel from one side of the domain to the other one", action='store_true')
+parser.add_argument('--cylinder',help="cylinder in x-direction from one side of the domain to the other one", action='store_true')
+parser.add_argument('--two_cylinders',help="two cylinders in x- and y-direction from one side of the domain to the other one", action='store_true')
+parser.add_argument('--bc', help="3d orthotropic base cell", action='store_true')
+parser.add_argument('--bc_diams', help="3 params/diameters for 3d ortho base cell, e.g. 0.1,0.1,0.1")
+parser.add_argument('--bc_bend', help="bending for 3d ortho base cell (default 0.8)",type=float,default=0.8)
+parser.add_argument('--bc_skip', help="3 values indicating for skipping a rod - default 0,0,0: don't skip any rod", default="0,0,0")
 parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
+parser.add_argument('--radius', help="cylinder radius")
 parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
 parser.add_argument('--show', help="additionaly visualize the image", action='store_true')
 parser.add_argument('--save', help="overwrite default filename, when it ends with an image extension the image is written")
 parser.add_argument('--write_mesh', help="optionally create a sparse mesh. For more options use process_image.py", action='store_true')
+
 
 # parser.add_argument('--elem_nr', help="for debug purpose only (rotation). Ignore vol, dim, order, invert and give the design the 1-based element number", action='store_true')
 args = parser.parse_args()
@@ -305,6 +355,41 @@ elif args.channel:
     sys.exit()
   data = channel(args.dim, args.res, args.vol, args.lower)
   filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
+elif args.cylinder:
+  # args.radius is a string with possibly one (one cylinder) or two (two cylinders) radii as strings
+  assert(not "," in args.radius)
+  assert(args.dim == 3)
+  rad = float(args.radius)
+  data = cylinder( args.res, rad, args.lower)
+  filename = "cylinder_radius_" + str(rad) + "_res-" + str(args.res) + ".density.xml"
+elif args.two_cylinders:
+  radii = args.radius.split(",")
+  assert(len(radii) == 2)
+  radii = [float(r) for r in radii]
+  print("creating two intersecting (90°) cylinders with radii",radii)
+  assert(args.dim == 3)
+  data = two_cylinders(args.res, radii, args.lower)
+  filename = "two_cylinders_radii-" +  str(radii[0]) + "-" + str(radii[1]) + "_res-" + str(args.res) + ".density.xml"
+
+elif args.bc:
+  assert(args.bc_diams is not None)
+  params = args.bc_diams.split(",")
+  params = [float(p) for p in params]
+  assert(len(params) == 3)
+  for p in params:
+    assert(0 < p < 1)
+    
+  assert(0 < args.bc_bend < 1+1e-6)  
+  
+  skip = args.bc_skip.split(",")
+  skip = [int(p) for p in skip]
+  assert(len(skip) == 3)
+  
+  data = cell_3d_ortho(args.res,params,args.bc_bend,args.lower,skip)
+  filename = "ortho-3d_s1-" + str(params[0]) + "_s2-" + str(params[1]) + "_s3-" + str(params[2]) + "_bend-" + str(args.bc_bend) + "_res-" + str(args.res)
+  for i,s in enumerate(skip):
+    if s:
+      filename += "_skip-" + str(i) 
 else:
   data = find_radius(args.dim, args.res, vol, args.order, args.invert, args.lower)
   filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(args.res) + ".density.xml"
@@ -320,7 +405,7 @@ elif not args.write_mesh:
   print("generated density file '" + filename + "'") 
 
 if args.write_mesh:
-  mesh = Mesh()  
+  mesh = Mesh(data.shape[0],data.shape[1],data.shape[2])  
   create_dense_mesh_density(data, mesh, threshold=0.5, scale=1.0, rhomin = 1e-3) # rhomin is irrelevant as we make sparse
   sparse = convert_to_sparse_mesh(mesh)
   mesh_name = filename.replace('.density.xml', '.mesh')

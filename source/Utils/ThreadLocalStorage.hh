@@ -156,6 +156,7 @@ public:
     tlsContainer_.Clear();
   }
 
+  /** distributes the serializable object to all entries */
   void Set(const T* serialObjToCopy){
     for(UInt i=0;i<numSlots_;i++){
       if(tlsContainer_[i]){
@@ -166,6 +167,14 @@ public:
     for(UInt i=0;i<numSlots_;i++){
       tlsContainer_[i] = serialObjToCopy->Clone();
     }
+  }
+
+  /** distribute the object via copy constructor to all entries */
+  void Set(const T& ref)
+  {
+    tlsContainer_.Resize(numSlots_);
+    for(unsigned int i = 0; i < numSlots_; i++)
+      tlsContainer_[i] = ref;
   }
 
    inline T*& Mine(Integer tNum = -1){

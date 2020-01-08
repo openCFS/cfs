@@ -34,12 +34,8 @@
 # http://vtk.org/Wiki/CMake_Testing_With_CTest
 # http://vtk.org/Wiki/CMake_Scripting_Of_CTest
 
-
 # We need at least CMake 2.8.9 for this to work
-CMAKE_MINIMUM_REQUIRED(
-  VERSION "2.8.9"
-  FATAL_ERROR
-)
+CMAKE_MINIMUM_REQUIRED(VERSION "2.8.9" FATAL_ERROR)
 
 # List command no longer ignores empty elements.
 CMAKE_POLICY(SET CMP0007 NEW)
@@ -47,10 +43,8 @@ CMAKE_POLICY(SET CMP0007 NEW)
 # Get base path of current script in order to include additional macros.
 GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-# Include informations about development server.
-INCLUDE("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
-
-# Include further macros required for testing.
+include("${CTEST_SCRIPTS_DIR}/../cmake_modules/CFS_macros.cmake")
+# Include information about development server and further macros required for testing.
 INCLUDE("${CTEST_SCRIPTS_DIR}/shared/test_macros.cmake")
 
 # Determine date and time.
@@ -60,13 +54,7 @@ EXECUTE_PROCESS(
 )
 STRING(REPLACE "\n" "" DATE_OUT ${DATE_OUT})
 STRING(STRIP ${DATE_OUT} DATE_OUT)
-MESSAGE(
-"
-=============================================================================
- Starting nightly tests on ${DATE_OUT}...
-=============================================================================
-"
-)
+headline("Starting nightly tests on ${DATE_OUT}...")
 
 # Set global variables, e.g. path to ctest exe, site base dir, host name etc.
 SET_GLOBAL_VARS()
@@ -74,24 +62,26 @@ SET_GLOBAL_VARS()
 # Set site specific variables, e.g. test user home dir, svn user password, etc.
 SET_SITE_SPECIFIC_VARS()
 
-MESSAGE(
-"
-=============================================================================
- Global variables on ${HOSTNAME}...
-=============================================================================
-"
-)
-MESSAGE("CMAKE_COMMAND: ${CMAKE_COMMAND}")
-MESSAGE("CMAKE_EXECUTABLE_SUFFIX: ${CMAKE_EXECUTABLE_SUFFIX}")
-MESSAGE("CTEST_COMMAND: ${CTEST_COMMAND}")
-MESSAGE("CMAKE_CURRENT_LIST_FILE: ${CMAKE_CURRENT_LIST_FILE}")
-MESSAGE("SITE_BASE_DIR: ${SITE_BASE_DIR}")
-MESSAGE("NIGHTLY_ARCHIVES_DIR: ${NIGHTLY_ARCHIVES_DIR}")
-MESSAGE("HOSTNAME: ${HOSTNAME}")
-MESSAGE("SITE_DIR: ${SITE_DIR}")
-MESSAGE("TESTUSER: ${TESTUSER}")
-MESSAGE("HOME: ${HOME}")
-MESSAGE("DAYOFWEEK: ${DAYOFWEEK}")
+headline("Selected global variables on ${HOSTNAME}...")
+
+message("CMAKE_COMMAND: ${CMAKE_COMMAND}")
+message("CMAKE_EXECUTABLE_SUFFIX: ${CMAKE_EXECUTABLE_SUFFIX}")
+message("CMAKE_CURRENT_LIST_FILE: ${CMAKE_CURRENT_LIST_FILE}")
+message("CTEST_COMMAND: ${CTEST_COMMAND}")
+message("CTEST_SCRIPT_DIRECTORY: ${CTEST_SCRIPT_DIRECTORY}")
+message("CTEST_SOURCE_DIRECTORY: ${CTEST_SOURCE_DIRECTORY}")
+message("SITE_BASE_DIR: ${SITE_BASE_DIR}")
+message("NIGHTLY_ARCHIVES_DIR: ${NIGHTLY_ARCHIVES_DIR}")
+message("HOSTNAME: ${HOSTNAME}")
+message("SITE_DIR: ${SITE_DIR}")
+message("TESTUSER: ${TESTUSER}")
+message("HOME: ${HOME}")
+message("DAYOFWEEK: ${DAYOFWEEK}")
+message("")
+
+# we all use git
+find_program(CTEST_GIT_COMMAND NAMES git)
+set(CTEST_UPDATE_TYPE "git")
 
 # Perform site specific initialization tasks, e.g. update working copies,
 # start VBoxes, etc.
@@ -104,11 +94,7 @@ GET_TEST_NAMES(TEST_NAMES)
 FOREACH(TEST_NAME IN ITEMS ${TEST_NAMES})
 
   GET_CTEST_BINARY_DIRECTORY(${TEST_NAME})
-  
-  # Update CFS source directory
-  find_program(CTEST_GIT_COMMAND NAMES git)
-  set(CTEST_UPDATE_TYPE "git")
-  
+ 
   # Actually run the test
   PERFORM_TEST(${TEST_NAME})
   

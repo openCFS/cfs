@@ -15,14 +15,18 @@ from numpy import cos
 from numpy import sqrt
 
 ## print tensor nicely
-def dump_tensor(tensor):
+def dump_tensor(tensor, toString=False):
+  out = ""
   for y in range(tensor.shape[0]):
     msg = '{:2}: '.format(y+1)
     for x in range(tensor.shape[1]):
       msg += '{:10.4g} '.format(tensor[y][x])
-    print(msg)    
+    if toString:
+      out += msg + "\n"
+    else:
+      print(msg)    
 
-
+  return out
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
 def get_rot_2x2(angle):
   R = numpy.zeros((2,2))
@@ -327,7 +331,6 @@ def Voigt2HillMandel(tensor):
 # creates a 2D elasticity tensor. To the HillMandel2Voigt conversion if necessary!
 def to_mech_tensor(input):
   assert(len(input) == 6 or len(input) == 21)
-        
       
 
   if len(input) == 6:

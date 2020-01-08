@@ -1190,7 +1190,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     Function* f = objectives.data[i];
 
     std::stringstream ss;
-    ss << std::setprecision(10) << f->GetValue();
+    ss << std::setprecision(15) << f->GetValue();
 
     iteration->Get(f->ToString())->SetValue(ss.str());
     if(f->GetType() == Function::BANDGAP)

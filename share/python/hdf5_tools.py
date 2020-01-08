@@ -19,6 +19,7 @@ def element_dimensions(elem_id, all_elements, all_nodes):
   node_coords = []
   for n in range(len(all_elements[elem_id])):
     node_coords.append(all_nodes[all_elements[elem_id][n] - 1])  # numbers are one-based
+#   print("all_nodes:",all_nodes)
   ma = numpy.array([max(node_coords, key=operator.itemgetter(0))[0], max(node_coords, key=operator.itemgetter(1))[1], max(node_coords, key=operator.itemgetter(2))[2]])
   mi = numpy.array([min(node_coords, key=operator.itemgetter(0))[0], min(node_coords, key=operator.itemgetter(1))[1], min(node_coords, key=operator.itemgetter(2))[2]])
   elem_dim = ma - mi
@@ -41,6 +42,11 @@ def num_nodes_by_type(type_id):
 def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered = True):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'][()]  # for all regions
   reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'][()]
+  
+  # check if reg_elements is list of list and flatten if necessary
+  if any(isinstance(el, numpy.ndarray) for el in reg_elements):
+    reg_elements = [el[0] for el in reg_elements]
+  
   types = hdf5_file['/Mesh/Elements/Types'][()]
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'][()]
   reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
@@ -48,7 +54,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
   if region_support != None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
-  
+    
   # determine elem_dim from first region element dimensions or from all
   elem_dim = None
   if all_elem_dim:
@@ -79,8 +85,15 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
   else:
     nodes_support = None
     
-  min_dim = min(nodes[:, 0]), min(nodes[:, 1]), min(nodes[:, 2])  
-  max_dim = max(nodes[:, 0]), max(nodes[:, 1]), max(nodes[:, 2])   
+  min_dim = [min(nodes[:, 0]), min(nodes[:, 1]), min(nodes[:, 2])]  
+  max_dim = [max(nodes[:, 0]), max(nodes[:, 1]), max(nodes[:, 2])] 
+  
+  # element vertices described by node coords
+  elements = []  
+  # element vertices described by node ids
+  elems_connectivity = []
+  # coords all vertices in given region
+  nodes_in_region = []
     
   result = []
   if centered:
@@ -99,8 +112,20 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     # append nodes to result instead of element centers
     for i in range(len(nodes[:,0])):
       result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
+  
+  # extract elements - each element is defined by its vertices
+  for e in range(len(reg_elements)):
+    elem = []
+    idx = reg_elements[e] - 1
+    nod = all_elements[idx]
+    len_nod = num_nodes_by_type(types[idx])
+    for n in range(len_nod):
+      elem.append(all_nodes[nod[n] - 1])
       
-  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, reg_elements
+    elements.append(elem)  
+    elems_connectivity.append(nod)
+    
+  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, elements, elems_connectivity, nodes, reg_nodes
                 
 # # find minimal and maximal coordinate
 # @param coordinates as from centered_elements
