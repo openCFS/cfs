@@ -180,12 +180,16 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new") 
   ENDIF()
 
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
+  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
     # on macOS with gcc-7.1 
     # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined -Wno-stringop-truncation")
-  ENDIF()
-  
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined ")
+  endif()
+
+  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "8.0")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-stringop-truncation ")
+  endif()
+
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
