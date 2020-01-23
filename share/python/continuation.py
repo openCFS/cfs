@@ -6,7 +6,7 @@ from cfs_utils import *
 ## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on
 # @param cnt counter of the calls (start with 0) for qsub only to define dependencies 
-def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None, plot = None):
+def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None, plot = None, maxIter = None):
 
   assert(range_idx < 26) # is 25 is z
   # to make use of range_idx. In the -1 case we don't use this below anyway
@@ -70,6 +70,10 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
     if r == 0:
       raise RuntimeError(" no '" + type + "' found")               
   
+  if maxIter is not None:
+    rmi = replace(xml, "//cfs:optimizer/@maxIterations", str(maxIter))
+    if rdf == 0:
+      raise RuntimeError("maxIterations not found for optimizer")
   xml.write(var_problem + ".xml")
   
   cmd = executable + " " + start + " -m " + mesh + " " + var_problem
@@ -153,7 +157,8 @@ if args.var == 'warmstart':
   vals = list(range(int(args.start if args.start else 1), int(args.end+1)))
   for idx, v in enumerate(vals):
     old_var = -1 if idx == 0 else v-1
-    continuation(args.initial, cnt = idx, type = args.var, old_var=old_var, var=v, range_idx = v, mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub, plot = plot)  
+    continuation(args.initial, cnt = idx, type = args.var, old_var=old_var, var=v, range_idx = v, mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub, plot = plot)
+        
 elif args.range:
   if args.start != 1 or args.end or args.inc or args.step:
     print("don't give start, end, inc or step together with range")
@@ -192,13 +197,14 @@ else:
       success = var_problem + dens_ext
       var -= args.inc
   while var <= args.end:
-   continuation(args.initial, cnt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub, plot=plot)
-   old = digits(var, dig)
-   if args.inc:
-     var += var * args.inc
-   else:
-     var += args.step
-   i += 1
+    maxIter = None if var == args.end else 20
+    continuation(args.initial, cnt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub, plot=plot,maxIter=maxIter)
+    old = digits(var, dig)
+    if args.inc:
+      var += var * args.inc
+    else:
+      var += args.step
+    i += 1
 
 if plot:
   print("saving meta plot file '" + args.problem + ".dat'")

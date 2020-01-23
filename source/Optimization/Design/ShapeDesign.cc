@@ -25,7 +25,7 @@ ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, Ers
   : AuxDesign(regions, pn, method)
 {
   dim_ = domain->GetGrid()->GetDim();
-  exoprt_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
+  export_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 
 ShapeDesign::~ShapeDesign(){

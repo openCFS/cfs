@@ -17,6 +17,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -564,7 +565,12 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PROJECTION
       || rd.value == SHAPE_MAP_GRAD
       || rd.value == SHAPE_MAP_ORDER
-      || rd.value == SHAPE_MAP_CORNER)
+      || rd.value == SHAPE_MAP_CORNER
+      || rd.value == SPLINE_BOX_GRAD_X
+      || rd.value == SPLINE_BOX_GRAD_Y
+      || rd.value == SPLINE_BOX_GRAD_Z
+      || rd.value == SPLINE_BOX_INT_ORDER
+      || rd.value == SPLINE_BOX_INT_CORNER)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -906,6 +912,8 @@ void DesignElement::SetEnums()
   type.Add(INTERPOLATION, "interpolation");
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
+  type.Add(SPLINE_BOX, "spline_box");
+  type.Add(CP, "controlpoint");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
@@ -934,6 +942,11 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
   valueSpecifier.Add(SHAPE_MAP_ORDER, "shapeMapIntOrder");
   valueSpecifier.Add(SHAPE_MAP_CORNER, "shapeMapMinMaxCorner");
+  valueSpecifier.Add(SPLINE_BOX_GRAD_X, "splineBoxGradX");
+  valueSpecifier.Add(SPLINE_BOX_GRAD_Y, "splineBoxGradY");
+  valueSpecifier.Add(SPLINE_BOX_GRAD_Z, "splineBoxGradZ");
+  valueSpecifier.Add(SPLINE_BOX_INT_ORDER, "splineBoxIntOrder");
+  valueSpecifier.Add(SPLINE_BOX_INT_CORNER, "splineBoxMinMaxCorner");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
@@ -976,6 +989,7 @@ void DesignElement::SetEnums()
   detail.Add(SM_NODE_A, "node_a");
   detail.Add(SM_NODE_B, "node_b");
   detail.Add(SM_PROFILE, "profile");
+  detail.Add(SP_CP, "controlpoint");
 }
 
 

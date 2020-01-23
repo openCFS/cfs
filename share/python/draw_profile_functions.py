@@ -1,23 +1,19 @@
-#!/usr/bin/env python
 #coding=utf-8
-import numpy as np
-from numpy import outer
-import sympy.solvers
-from sympy import Symbol, symbols
-import sys
+from enum import Enum
 import math
+import sys
 
-import matplotlib
-#matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import matplotlib
+from numpy import outer
 from scipy import interpolate
+from sympy import Symbol, symbols
+import sympy.solvers
 
-try:
-  import meshpy.triangle as triangle
-  from meshpy.tet import MeshInfo, build
-except:
-  print("Failed to load meshpy - need it for tetrahedralized mesh")
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+
+#matplotlib.use('tkagg')
   
 try:
   from skimage import measure
@@ -93,7 +89,6 @@ class Cubic_spline():
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
-#     return outer(3*(1-t)**2,self.CP[:,0]-self.CP[:,1]) + outer(6.0*t*(1-t), self.CP[:,1] - self.CP[:,2]) + outer(3*t**2 ,self.CP[:,2]-self.CP[:,3])
   
   def calc_param_grad_1(self):
     if self.t_1 is not None:
@@ -110,6 +105,7 @@ class Cubic_spline():
       t = sol[1]
     else:
       print("No t found where dx/dy = 1 ",sol)
+      return None
     # conversion from t as sympy.Float to regular Python float necessary  
     self.t_1 = float(t)
     return self.t_1
@@ -143,6 +139,8 @@ class Cubic_spline():
     
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
+    if t1 is None:
+      return None
     ret = self.eval_t(t1) # array of array with 1 elem, due to outer product
     return np.array((ret[0][0],ret[1][0]))
   
@@ -182,13 +180,26 @@ def degree_to_rad_quadrant(degree):
   else:
     return 2*np.pi-rad
   
-def cartesian_to_grid_coords(x,res,eps):
+def cartesian_to_grid_coord(x,res,eps=1e-6):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
   return int(round((x-h/2.0) / h+eps)) 
 
-def grid_to_cartesian_coords(i,res):
-  h = 1.0 / res # assume domain is 1m x 1m x 1m
-  return i * h + h/2.0
+def grid_to_cartesian_coords(voxel,res,h=None):
+  assert(len(voxel) == 3)
+  if h is None:
+    h = []
+    if type(res) is int:
+      for i in range(len(voxel)):
+        h.append(1.0 / res)
+    else:
+      for r in res:
+        h.append(1.0 / res) # assume domain is 1m x 1m x 1m
+  
+  p = np.zeros(len(voxel))  
+  for i,v in enumerate(voxel):
+    p[i] = v * h[i] + h[i]/2.0
+     
+  return p 
 
 # @param offset: value added to converted cartesian
 def polar_to_cartesian(radius,radians,offset=0.5):
@@ -293,6 +304,11 @@ class PrincipleSpline():
     self.spline = Cubic_spline(P)
     # coordinate where slope is 1
     self.coords_cut = self.calc_coords_grad_1()
+    
+    if self.coords_cut is None:
+      print("ERROR: Cannot create spline x1=",x1," y1=",y1)
+      sys.exit()
+      
     if not self.left:
       self.coords_cut = [1.0 - self.coords_cut[0],self.coords_cut[1]] 
     
@@ -580,6 +596,10 @@ class BisecSpline:
     
   def plot_all(self):
     plt.gcf().clear()
+    plt.rcParams.update({'font.size': 28})
+    plt.figure(figsize=(10,10))
+    plt.rc('axes', linewidth=3.5)
+
     
     x = None 
     if self.left:
@@ -600,8 +620,10 @@ class BisecSpline:
       plt.xlim((0,0.5))
     else:
       plt.xlim((0.5,1.0))
-        
+    
     plt.ylim((0.5,1.0))
+    plt.xlabel("x")
+    plt.ylabel("r")
     bc_label = 'bicubic*' if self.type == 'bicubic' else 'bicubic'
     sp_label = 'bspline*' if self.type == 'bspline' else 'bspline'
     lin_label = 'linear*' if self.type == 'linear' else 'linear' 
@@ -611,11 +633,12 @@ class BisecSpline:
     plt.plot(x,linear,label=lin_label,linewidth=5.0)
     plt.plot(x,heavi,label=hv_label,linewidth=5.0)
     if self.left:
-      plt.plot(cut[0],cut[1],marker='o',color='red',markersize=15)
+      plt.plot(cut[0],cut[1],marker='o',color='black',markersize=15)
     else:
-      plt.plot(1-cut[0],cut[1],marker='o',color='red',markersize=15) 
+      plt.plot(1-cut[0],cut[1],marker='o',color='black',markersize=15) 
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
-    plt.show()  
+#     plt.show()  
+    plt.savefig('test.png', dpi=800)
     
   def angle(self):
     return self.angle
@@ -807,7 +830,7 @@ def get_surface_point_candidate(profile,alpha,x):
 
 # calc distance between two points
 def calc_distance(p1,p2):
-  return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
+  return np.linalg.norm(np.asarray(p1)-np.asarray(p2))
 
 # returns points and cells describing basecell 
 def generate_basecell(args,info):
@@ -819,7 +842,9 @@ def generate_basecell(args,info):
   global infoXml
   infoXml = info
   
-  array = np.ones((res,res,res)) * (-1)
+  array = np.full((res,res,res),args.lower,dtype=float)
+  if args.multiple_regions:
+    array = np.ones((res,res,res),dtype=np.int) * (-1)
   
   profiles = create_profiles(args,infoXml)
   
@@ -827,6 +852,7 @@ def generate_basecell(args,info):
   polydata = None
   new_surf_points = None
   faces = None
+  bp_lists = None
   
   if args.verbose != "off" or args.target == "3dlines":
     hf = plt.figure()
@@ -865,16 +891,12 @@ def generate_basecell(args,info):
       
       plt.show()
       
-    if args.target == "volume_mesh" or args.target == "surface_mesh":
+    if args.target == "volume_mesh" or args.target == "surface_mesh" or args.target == "marching_cubes" or args.target == "image":
       global symmetric
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
       symmetric = False
-      write_profile_to_array(array, profiles[i])
-    
-    if args.target == "volume_mesh":
-      points, cells = voxels_to_points_and_cells(array)
-      
+      write_profile_to_array(array, profiles[i],args.multiple_regions)
     if args.target == "3dlines":
       if args.save_vtp: #write 3 .vtp files
         points = vtk.vtkPoints()
@@ -887,41 +909,53 @@ def generate_basecell(args,info):
         matviz_vtk.show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
+  
+  if args.target == "volume_mesh":
+#     h = 1.0/res
+#     x = np.arange(0,1+h,h)
+#     from pyevtk.hl import gridToVTK
+#     gridToVTK("array",x,x,x,cellData={"array":array})
 
-  if args.target == "surface_mesh":
+    points, cells = voxels_to_points_and_cells(array,multRegions=args.multiple_regions)
+      
+  if args.target == "surface_mesh" or args.target == "marching_cubes":
     ############################ new surface mesh approach ####################
-    # binary helper array
-    helper = np.zeros(array.shape[0:3],dtype=int)
-    # use voxel info for Marching cubes algorithm
-    # set voxels on boundary wit value 0
-    # set voxels inside structure with value 1
-    # voxels outside structure have value -1
-    for i in range(0,args.res):
-      for j in range(0,args.res):
-        for k in range(0,args.res):
-          if array[i,j,k] > -1: # valid voxel
-            helper[i,j,k] = 1
-    
     # Use marching cubes to obtain the surface mesh of voxelized structure
     # marching_cubes expect float values (not double)
     h = np.float32(1.0/args.res)
     # coords of vertices lie in [0,1-h]
-    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h),allow_degenerate=False)
+    import time
+#     start = time.time()
+    verts = []
+    faces = []
+    normals = []
+     
+    points, cells, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=1)
     
     # marching_cubes returns float values
-    verts = np.asarray(verts)
-    
-    verts += (h/2.0,h/2.0,h/2.0)
-    
+    points = np.asarray(points)
+    # scale structure to [0,1]^3
     # moves structure to [0,1]^3
+    points += (h/2.0,h/2.0,h/2.0)
+  
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
-    points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
-    points, cells = mesh_boundary_circles(points, faces, bp_lists)
-    
+    # points: list with 3d coords
+    if args.target == "surface_mesh" or args.target == "marching_cubes":
+      points, bp_lists = adjust_and_extract_boundary_points(profiles, points)
+      if args.target == "surface_mesh" :
+        points, cells = mesh_boundary_circles(points, cells, bp_lists, args.bc_flags)
+      
+#       points, cells, _ = pymesh.remove_duplicated_vertices_raw(points,cells)
+#       marching_cubes.write_vtp(points, cells, (h,h,h), "test.vtp")
+      
+      if args.simplify:  
+        marching_cubes.write_vtp(points,cells,(h,h,h),name="mc_lewiner.vtp")
+        points, cells = collapse_short_edges(points, cells)
+      
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
-  
+    
   return array, points, cells
 
 # creates map with info on profile depending on radius
@@ -942,24 +976,34 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   else:
     for i,x in enumerate(np.arange(0,1.0,h)):
       for alpha in range(0,360):
-        map[alpha,i] = calc_radius(profile, x, radians(alpha))
+        map[alpha,i] = calc_radius(profile, x, np.radians(alpha))
             
   if verbose == "polar_plot":
     plt.gcf().clear()
+    plt.rcParams.update({'font.size': 30})
+    plt.figure(figsize=(13,13))
     ax = plt.axes(polar=True)
+    #ax.set_rlabel_position(-22.5) 
+#     ax.set_rticks([0.05,0.1,0.2,0.3])
+    #ax.set_rticks([0,0.05, 0.1, 0.15, 0.2])
     theta = np.linspace(0, 2.0*np.pi,360)
     #plt.plot(theta,map[:,0],linewidth=5.0)
-    for i,bisec in enumerate(profile.bisecs_left):
-      phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
-    plt.plot(theta,map[:,int(res/2)+1],linewidth=5.0)
+#     for i,bisec in enumerate(profile.bisecs_left):
+#       phi = bisec.angle + np.pi/2.0 * i
+#       plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
+#     plt.plot(theta,map[:,int(res/4)],linewidth=5.0)
+    dir = ""
+    plt.plot(theta,map[:,5],linewidth=6.0,label=dirToString(profile.direction)+"=0.1")
+    plt.plot(theta,map[:,int(res/4)],linewidth=6.0,label=dirToString(profile.direction)+"=0.25")
+    plt.plot(theta,map[:,int(res/2)-2],linewidth=6.0,label=dirToString(profile.direction)+"=0.5")
+    plt.legend(loc='best', bbox_to_anchor=(1.07, 1.15))
     
-    for i,bisec in enumerate(profile.bisecs_left):
-      phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
-    plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
-    plt.rcParams.update({'font.size': 18})
-    plt.show()
+#     for i,bisec in enumerate(profile.bisecs_left):
+#       phi = bisec.angle + np.pi/2.0 * i
+#       plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
+#     plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
+#     plt.show()
+    plt.savefig('polar-plot_dir-'+str(profile.direction) + '.png', dpi=1000)
         
   if verbose == 'profile_map':
     ha.set_xlabel('X')
@@ -1035,7 +1079,8 @@ def calc_radius(profile,x,rad):
 # and mirror the rest
 # @param array: stores voxelized info on profile
 # @param profile: profile of interest
-def write_profile_to_array(array,profile):
+# @param multiple_regions: fill array with 0,1 or 2 (profile direction), else make array binary
+def write_profile_to_array(array,profile,multiple_regions):
   res = array.shape[0]
   
   bound = res if not symmetric else int(res/2)
@@ -1043,9 +1088,7 @@ def write_profile_to_array(array,profile):
   for i in range(0,bound):
     for j in range(0,bound):
       for k in range(0,bound):
-        x = grid_to_cartesian_coords(i, res)
-        y = grid_to_cartesian_coords(j, res)
-        z = grid_to_cartesian_coords(k, res)
+        x, y, z = grid_to_cartesian_coords((i,j,k), res)
         valx = cartesian_to_polar(y, z, (0.5,0.5))
         
         phi = angle_to_center((y,z))
@@ -1063,8 +1106,8 @@ def write_profile_to_array(array,profile):
         # inside the voxel, but this is too costly
 #         projection = calc_projection(profile, center)
         if (valx-r <= 1e-6):
-          array[idx[major],idx[minor_1],idx[minor_2]] = major
-            
+          array[idx[major],idx[minor_1],idx[minor_2]] = major if multiple_regions else 1
+
   if symmetric:
     # mirror octant
     array[0:bound,0:bound,bound:res] = array[0:bound,0:bound,0:bound][:,:,::-1]
@@ -1177,7 +1220,7 @@ def calc_heaviside_interpolation(alpha,beta,eta):
   a = -c * calc_tanh(beta, eta, 0)
   
   if abs(a+c*calc_tanh(beta, eta, 0)) > eps:
-    print(a+c*calc_tanh(beta, eta, 0))
+    print("CHI:",a+c*calc_tanh(beta, eta, 0))
   assert(abs(a+c*calc_tanh(beta, eta, 0)) < eps) 
   assert(abs(a+c*calc_tanh(beta, eta, 1)) >= 1-eps)
   
@@ -1260,13 +1303,9 @@ def adjust_and_extract_boundary_points(profiles,points):
   zmin = min(points, key=lambda t: t[2])[2]
   zmax = max(points, key=lambda t: t[2])[2]
   
-#   assert(np.isclose(xmin,0.0,1e-6))
-#   assert(np.isclose(ymin,0.0,1e-6))
-#   assert(np.isclose(zmin,0.0,1e-6))
-#   assert(np.isclose(xmax,1.0,1e-6))
-#   assert(np.isclose(ymax,1.0,1e-6))
-#   assert(np.isclose(zmax,1.0,1e-6))
+#   print("dimensions:",xmin,ymin,zmin,xmax,ymax,zmax)
   
+  vertices = [None] * len(points)
   lists = [[] for i in range(6)]
   major_dir = -1
   for id in range(len(points)):
@@ -1280,24 +1319,24 @@ def adjust_and_extract_boundary_points(profiles,points):
     elif np.isclose(p[0],xmax,1e-6):
       # move x to 1
       points[id][0] = 1.0
-      lists[1].append((points[id],id))
+      lists[3].append((points[id],id))
       major_dir = 0
     # y
     elif np.isclose(p[1],ymin,1e-6):
       # move y to 0
       points[id][1] = 0
-      lists[2].append((points[id],id))
+      lists[1].append((points[id],id))
       major_dir = 1
     elif np.isclose(p[1],ymax,1e-6):
       # move y to 1
       points[id][1] = 1.0
-      lists[3].append((points[id],id))
+      lists[4].append((points[id],id))
       major_dir = 1  
     # z
     elif np.isclose(p[2],zmin,1e-6):
       # move z to 0
       points[id][2] = 0
-      lists[4].append((points[id],id))
+      lists[2].append((points[id],id))
       major_dir = 2
     elif np.isclose(p[2],zmax,1e-6):
       # move z to 1
@@ -1305,101 +1344,68 @@ def adjust_and_extract_boundary_points(profiles,points):
       lists[5].append((points[id],id))
       major_dir = 2
     else:
+      vertices[id] = points[id]
       continue
     
     assert(major_dir > -1 and major_dir < 3)
     minor1, minor2 = give_normal_plane_axes(major_dir)
     phi = angle_to_center((p[minor1],p[minor2]))
-    points[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
+    vertices[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
   
   for l in lists:
-    assert(len(l) > 0)
-      
-  return points, lists
- 
-def round_trip_connect(start, end):
-  result = []
-  for i in range(start, end):
-    result.append((i, i+1))
-  result.append((end, start))
-  return result
-
-# for a given list with 3d points, return a list with 2d points
-# omitting the coordinate component 'dir'
-def extract_plane_coordinates(list,dir):
-  new = []
+    for i in range(len(l)):
+      l[i] = (vertices[l[i][1]],l[i][1])
   
-  for e in list:
-    # get components except that one equals 'dir'
-    new.append([ e[0][(dir+1)%3],e[0][(dir+2)%3],e[1] ])
+  for i,l in enumerate(lists):
+    major = i%3
+    minor1, minor2 = give_normal_plane_axes(major)
+    assert(len(l) > 0)
+    # sort points in cyclic order
+    # here we live in [0,1]^3
+    cell_center = np.asarray([0.5,0.5,0.5])
+    l.sort(key=lambda c:math.atan2(np.asarray(c[0][minor1])-cell_center[0], np.asarray(c[0][minor2])-cell_center[1]))
     
-  return new
+  return vertices, lists
+ 
+# returns list of coordinates for given boundary 'bound'
+# using order {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
+# @param bpoints: six lists with boundary points for each face of the bounding box
+# order: min_x,min_y,min_z,max_x,max_y,max_z
+# @param cc_3d: basecell center, has also to be projected onto right plane
+def extract_2d_bc_boundary_coords(bpoints,bound):
+  result = []
+  # depending on boundary flag, determine which coordinate component to compare
+  # order: xmin, ymin, zmin, ymax, ymax, zmax
+  # bound -> major_dir: 0->0, 1->1, 2->2, 3->0, 4->1, 5->2 
+  major_dir = bound%3
+  minor_1, minor_2 = give_normal_plane_axes(major_dir)
+  
+  for p in bpoints[bound]:
+#     print("bc_bounds[bound]:",bc_bounds,bound,bc_bounds[bound])
+    result.append( ((p[0][minor_1],p[0][minor_2]),p[1]) )
+  
+  return result  
 
-def mesh_boundary_circles(points,cells,bp_lists):
-  assert(len(bp_lists) == 6)
+# @param flags: 6 flags indicating which boundary circle to mesh and which not
+# order of flags: xmin,xmax,ymin,ymax,zmin,zmax
+# @param bp_lists: 6 lists with boundary points for each bounding box face
+# @param points: list with 3d coords
+def mesh_boundary_circles(points,cells,bpoints,flags=None):
+  print("meshed boundary circles")
+  assert(len(bpoints) == 6)
    
   lists_2d = []
   points = list(points)
   cells = list(cells)
-   
-  count = 0
-  for dir in (0,1,2):
-    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
-    count += 1
-    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
-    count += 1
   
-  for count,l in enumerate(lists_2d):
-    # component 0 and 1 store plane coordinates
-    # component 2 store vtk point id
-    assert(len(l) > 0)
-    l.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
-    info = triangle.MeshInfo()
-    test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in l]
-    info.set_points(test)
-    info.set_facets(round_trip_connect(0,len(l)-1))
-    mesh = triangle.build(info,generate_faces=True) 
-   
-    mesh_points = np.array(mesh.points)
-    mesh_tris = np.array(mesh.elements)
-     
-#     plt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
-#     plt.show()
-     
-    major_dir = -1
-    if count == 0 or count == 1:
-      major_dir = 0
-    elif count == 2 or count == 3:  
-      major_dir = 1
-    else:
-      major_dir = 2
-    
-    new_points = []  
-    next_id = len(points)
-    minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
-    # up to len(l), l and mesh_points have the same ordering of points
-    # map from local mesh_points point ids to global ones
-    lookup = np.ones(len(mesh_points),dtype=int) * (-1)
-    for i in range(0,len(l)):
-      lookup[i] = l[i][2]
-    for i in range (len(l),len(mesh_points)):
-      point = np.zeros(3)
-      if count%2 == 0: # left side of profile
-        point[major_dir] = 0.0
-      else:
-        point[major_dir] = 1.0
-           
-      point[minor_dir_2] = mesh_points[i][0]
-      point[minor_dir_1] = mesh_points[i][1]
-      # id of new point  
-      lookup[i] = next_id
-      next_id += 1
-      new_points.append(point)
-    
-    points += new_points
-    # use lookup table to set new triangles from meshed boundary circle
-    for tri in mesh_tris:
-      cells.append((lookup[tri[0]], lookup[tri[1]], lookup[tri[2]]))
+  # if not set, mesh everything
+  if flags is None:
+    flags = [True] * 6
+  # give basecell boundary circles to be meshed
+  bounds_to_mesh = np.where(flags)[0]
+  for b in bounds_to_mesh:
+    bcoords_2d = extract_2d_bc_boundary_coords(bpoints,b)
+    points, cells = mesh_basecell_boundary(points,cells,bcoords_2d,b)
   
   return points, cells    
 
@@ -1418,31 +1424,198 @@ def radius_to_3d_coords(profile,x,phi):
  
   return point
 
-def voxels_to_points_and_cells(array):
-  res, res, res = array.shape
+def voxels_to_points_and_cells(array,multRegions=False,wx=1.0,wy=1.0,wz=1.0):
+  resx, resy, resz = array.shape
   
-  h = 1.0 / res
+  hx = wx / resx
+  hy = wy / resx
+  hz = wz / resx
   
   centers = []
   
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        x = i * h + h/2.0
-        y = j * h + h/2.0 
-        z = k * h + h/2.0
+  for i in range(0,resx):
+    for j in range(0,resy):
+      for k in range(0,resz):
+        x = i * hx + hx/2.0
+        y = j * hy + hy/2.0 
+        z = k * hz + hz/2.0
         
-        if array[i,j,k] >= 0:
-          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
-            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-              centers.append([x,y,z])
+        if (array[i,j,k] >= 0 and multRegions) or(array[i,j,k] > 0 and not multRegions):
+          if i > 0 and j > 0 and k > 0 and i < resx-1 and j < resy-1 and k < resz - 1:
+            if multRegions:
+              if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+                centers.append([x,y,z])
+            else:      
+              if array[i-1,j,k] == 0 or array[i+1,j,k] == 0 or array[i,j-1,k] == 0 or array[i,j+1,k] == 0 or array[i,j,k-1] == 0 or array[i,j,k+1] == 0:
+                centers.append([x,y,z])
           else:
-            centers.append([x,y,z]) 
-  
+            centers.append([x,y,z])       
+        
   # dummy objects, create_centered_bars needs them
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   # simple python lists
-  points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[h,h,h])
+  points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[hx,hy,hz])
   
   return points, cells
+
+# here we only deal with 3 dimensions
+# @param points: list of all created 3d point coords
+# @param bound: which of the 6 boundary faces to mesh
+# order: xmin,xmax,ymin,ymax,zmin,zmax
+def mesh_basecell_boundary(points,cells,coords_2d,bound):
+  # here we live in [0,1]^3
+  cell_center = np.asarray([0.5,0.5,0.5])
+  # need this for mapping between planar and space coordinate
+  major_dir = bound%3
+  minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
+  # sort points in circle order
+  coords_2d.sort(key=lambda c:math.atan2(np.asarray(c[0][0])-cell_center[0], np.asarray(c[0][1])-cell_center[1]))
+
+  test = [ [np.float64(elem[0][0]),np.float64(elem[0][1])] for elem in coords_2d]
+
+  import triangle
+
+  tri = dict(vertices=np.asarray(test))
+  mesh = triangle.triangulate(tri, 'q32.5a0.1C')
+#   import triangle.plot as plot
+#   import matplotlib.pyplot as plt  
+#   triangle.plot.compare(plt, tri, mesh)
+#   plt.show()
+  mesh_points = mesh['vertices']
+  mesh_tris = mesh['triangles']
+  
+  # up to len(l), l and mesh_points have the same ordering of points
+  # map from local mesh_points point ids to global ones
+  map = [-1] * len(mesh_points)
+  assert(len(mesh_points) > 0)
+  for i in range(0,len(coords_2d)):
+#     print(coords_2d[i][1])
+#     print(map[i])
+    map[i] = int(coords_2d[i][1])
+    assert(type(coords_2d[i][1]) is int)
+    
+  ######### mapping back to 3d ########################
+  # 0,1,2 -> 0.0  3,4,5 -> 1.0
+  comp = 0.0 if 0 <= bound <= 2 else 1.0
+  new_points = []
+  next_id = len(points)
+  # map from 2d point to 3d point
+  for i in range (len(coords_2d),len(mesh_points)):
+    new_p = np.zeros(3)
+    new_p[major_dir] = comp
+    new_p[minor_dir_1] = mesh_points[i][0]
+    new_p[minor_dir_2] = mesh_points[i][1]
+    # id of new pointcoords_2d
+    new_points.append(new_p)
+    assert(type(next_id) is int)
+    map[i] = next_id
+    next_id +=1
+  
+  points.extend(new_points)
+  # use lookup table to set new triangles from meshed boundary circle  
+  for tri in mesh_tris:
+    cells.append((map[tri[0]], map[tri[1]], map[tri[2]]))
+    assert(type(map[tri[0]]) is int)
+    assert(type(map[tri[1]]) is int)
+    assert(type(map[tri[2]]) is int)
+#   import matplotlib
+#   matplotlib.use('tkagg')
+#   from matplotlib import pyplot as plt
+#   plt.gcf()
+#   labels = []
+#   for i in range(len(points)):
+#     labels.append(i)
+#   points = np.asanyarray(points)
+#   plt.plot(points[:,minor_dir_1],points[:,minor_dir_2],'o')
+#   for i, label in enumerate(labels):
+#     plt.text(points[i,minor_dir_1],points[i,minor_dir_2],labels[i])
+#   plt.triplot(points[:,minor_dir_1],points[:,minor_dir_2],cells)
+#   plt.show()
+    
+  return points,cells
+
+
+def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz,log=False):
+  """
+    Returns voxel coordinates (i,j,k) for given cartesian coords (x,y,z)
+    @param point described in cartesian coords
+    @param minx: smallest x value of domain
+    @param miny: smallest y value of domain
+    @param minz: smallest z value of domain
+    @param hx,hy,hz: lattice spacing
+    
+    >>> cartesian_to_voxel_coords((0.0,0.0,0.0),0.0,0.0,0.0,1,1,1)
+    (0, 0, 0)
+    
+    >>> cartesian_to_voxel_coords((0.4,0.4,0.4),0.0,0.0,0.0,0.1,0.1,0.1)
+    (4, 4, 4)
+    
+    >>> cartesian_to_voxel_coords((0.4,0.4,0.4),-2.0,5.0,0.4,0.1,0.1,0.1)
+    (23, -45, 0)
+  """
+  if log:
+    print("point:",point)
+  i = int((point[0]-minx) / hx-1e-6)
+  j = int((point[1]-miny) / hy-1e-6)
+  k = int((point[2]-minz) / hz-1e-6)
+  
+  return i,j,k
+
+def voxel_to_cartesian_coords(voxel,lbounds,h):
+  """ 
+    Returns cartesian coordinates (x,y,z) for given voxel coords (i,j,k)
+    @param voxel: (i,j,k)
+    @param lbounds: lower bounds (3 values) of domain
+    @param h: lattice spacings for the 3 coordinate directions
+    
+    >>>   
+  """
+  
+  assert(len(lbounds) == len(h))
+  x = voxel[0] * h[0] + lbounds[0] + 1e-6
+  y = voxel[1] * h[1] + lbounds[1] + 1e-6
+  z = voxel[2] * h[2] + lbounds[2] + 1e-6
+  
+  return np.array([x,y,z])
+
+def calc_edge_lengths(mesh):
+  import pymesh
+  minEdge = 9999
+  av = 0
+  maxEdge = -9999
+  for i,f in enumerate(mesh.faces):
+    # a triangle faces has 3 edges
+    v0 = mesh.vertices[f[0]]
+    v1 = mesh.vertices[f[1]]
+    v2 = mesh.vertices[f[2]]
+   
+    tmp = min(np.linalg.norm(v1-v0),np.linalg.norm(v2-v0),np.linalg.norm(v2-v1))
+    if minEdge > tmp:
+      minEdge = tmp
+    tmp = max(np.linalg.norm(v1-v0),np.linalg.norm(v2-v0),np.linalg.norm(v2-v1))
+    if maxEdge < tmp:
+      maxEdge = tmp
+
+    av += np.linalg.norm(v1-v0)
+    av += np.linalg.norm(v2-v0)
+    av += np.linalg.norm(v2-v1)
+
+  av = av / 3.0 / len(mesh.faces)
+   
+  print("min,max,av:",minEdge,maxEdge,av)
+  return minEdge, maxEdge, av
+
+# use pymesh to collapse short edges and afterwards to repair obtuse triangles
+def collapse_short_edges(verts,faces,abs_thresh=None):
+  import pymesh
+  mesh = pymesh.form_mesh(np.asarray(verts),np.asarray(faces))
+  minl,maxnl,avl = calc_edge_lengths(mesh)
+  t = abs_thresh
+  if abs_thresh is None:
+    t = 0.8*avl
+  mesh, info = pymesh.collapse_short_edges(mesh, abs_threshold=t,preserve_feature=True)
+  print("info:",info)
+  mesh, info = pymesh.remove_obtuse_triangles(mesh,130)
+  print("info:",info)
+  return mesh.vertices, mesh.faces

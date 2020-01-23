@@ -380,7 +380,7 @@ OPTION(USE_FLANN
   ${USE_FLANN_DEFAULT})
 
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
-OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
+OPTION(PROFILING "Set profiling compiler options for Release (-g)." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
 OPTION(BUILD_CFSTOOL "Build CFS++ converter tool (cfstool)."  ${BUILD_CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})

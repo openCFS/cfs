@@ -93,6 +93,8 @@ namespace CoupledField
        return designMaterial->GetType();
      }
 
+     ErsatzMaterial::Method GetMethod() const { return this->method_; };
+
      /** Do we do multiscale FEM, where we model not the tensor as in FEM but the local element matrix */
      bool DoMSFEM() const { return designMaterial != NULL && designMaterial->GetType() == DesignMaterial::MSFEM_C1; }
 
@@ -357,7 +359,7 @@ namespace CoupledField
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
      /** this is the number of shape mapping param variables. > 0 means we do shape mapping */
-     virtual int GetNumberOfShapeMappingVariables() const { return 0; }
+     virtual int GetNumberOfFeatureMappingVariables() const { return 0; }
 
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!

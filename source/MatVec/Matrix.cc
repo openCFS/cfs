@@ -1535,8 +1535,12 @@ namespace CoupledField
   template<class TYPE>
   TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("incompatible dimension");
+#endif
 
     TYPE result(0);
 
@@ -1549,8 +1553,12 @@ namespace CoupledField
   template<>
   Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("incompatible dimension");
+#endif
 
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
       data_[0][k] *= other_mat.data_[0][k];

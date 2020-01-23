@@ -599,6 +599,9 @@ namespace CoupledField {
         Integer numflag = 1;
         int nNodes = (int)numNodes_;
 
+        if (nNodes < 0)
+          EXCEPTION("METIS: signed nNodes is negative (" << nNodes << ") numNodes = " << numNodes_ << " -> Turn off reordering!");
+
         // Note that what for metis is the inverse permutation vector,
         // for us is the re-ordering vector
         METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
