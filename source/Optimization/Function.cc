@@ -1018,7 +1018,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     //read interpolation data for volume calculation in 3D
     //std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
     string p_node = "";
-    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1 || space->getDesignMaterialType() == DesignMaterial::FMO) {
+    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1 || space->getDesignMaterialType() == DesignMaterial::SGP_MATLAB) {
       p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homRectC1";
     } else {
       p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1";

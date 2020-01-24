@@ -124,9 +124,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 
   std::string interpolation_str;
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == FMO) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == SGP_MATLAB) {
     string p_node = "";
-    if (type_ == HOM_RECT_C1 || type_ == FMO) {
+    if (type_ == HOM_RECT_C1 || type_ == SGP_MATLAB) {
       p_node = "homRectC1";
     } else {
       p_node = "homIsoC1";
@@ -613,6 +613,12 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
       return r + (material == OptimizationMaterial::MECH ? 6 : 15);
     else
       return r + (material == OptimizationMaterial::MECH ? 21 : 15);
+  case SGP_MATLAB:
+    assert(material == OptimizationMaterial::MECH || material == OptimizationMaterial::PIEZOCOUPLING);
+    if (dim == 2)
+      return r + (material == OptimizationMaterial::MECH ? 9 : 15);
+    else
+      return r + (material == OptimizationMaterial::MECH ? 25 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r + 2;
@@ -683,6 +689,7 @@ bool DesignMaterial::CheckRequiredDesigns(
 
   switch (type_) {
   case FMO:
+  case SGP_MATLAB:
     if (dim == 2) {
       return (design.Find(DesignElement::MECH_11) >= 0
           && design.Find(DesignElement::MECH_22) >= 0
@@ -4010,7 +4017,7 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
 
 bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1 && type_ != SGP_MATLAB  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
   // make the code save and remove the lock in calling DesingSpace!
   if(!CollectMaterialParametersForElement(space_, elem))
@@ -4020,6 +4027,9 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   case FMO:
       GetElasticFMOTensor(t, subTensor, direction, notation);
     break;
+  case SGP_MATLAB:
+      GetElasticFMOTensor(t, subTensor, direction, notation);
+      break;
   case ORTHOTROPIC:
   case DENSITY_TIMES_ORTHOTROPIC:
     GetOrthotropicMaterialTensor(t, subTensor, direction, notation);
@@ -4268,6 +4278,7 @@ void DesignMaterial::SetEnums() {
   type.Add(HOM_RECT_C1, "hom-rect-C1");
   type.Add(HOM_ISO_C1, "hom-iso-C1");
   type.Add(MSFEM_C1, "msfem-C1");
+  type.Add(SGP_MATLAB, "sgp-matlab");
   type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
   type.Add(D_INTERP_TENSOR_ROT, "density-times-rotated-interpolated-tensor");
   transIsoType.SetName("DesignMaterial::TransIsoType");

@@ -2690,6 +2690,7 @@
           <!-- samples for homogenizes a-b rectangulars for C1-interpolation. -->
           <xsd:enumeration value="hom-rect-C1" />
           <xsd:enumeration value="hom-iso-C1" />
+          <xsd:enumeration value="sgp-matlab" />
           <!-- msfem material catalog for C1-interpolation. -->
           <xsd:enumeration value="msfem-C1" />
         </xsd:restriction>
