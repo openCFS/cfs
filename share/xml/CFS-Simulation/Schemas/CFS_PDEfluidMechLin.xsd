@@ -79,11 +79,11 @@
           <!-- List defining flows -->
           <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
-              <xsd:documentation>Defines the basic flow in a perturbation ansatz</xsd:documentation>
+              <xsd:documentation>Defines the basic (background) flow in a perturbation ansatz</xsd:documentation>
             </xsd:annotation>
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="flow" type="DT_BcInhomVector"/>
+                <xsd:element name="velocity" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -218,8 +218,22 @@
         <xsd:attribute name="presIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="velIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="factorC1" type="xsd:double" default="2.0"/>
-        <xsd:attribute name="enableC2" type="xsd:boolean" default="false"/>
+        <xsd:attribute name="enableC2" type="xsd:boolean" default="false">
+          <xsd:annotation>
+            <xsd:documentation>Enables the second convective term in the balance of momentum:
+              v' . ( rho0 Grad(v0) . v )
+              Only useful if background flow v0 is inhomogeneous.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="enableC3" type="xsd:boolean" default="false">
+          <xsd:annotation>
+            <xsd:documentation>Enables the third convective term in the balance of momentum:
+              v' . rho0/(gamma p0) v0.Grad(v0) p
+              Only active if formulation=compressible.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

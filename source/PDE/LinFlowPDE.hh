@@ -115,7 +115,7 @@ namespace CoupledField
     //! This coefficient function describes the flow field. As this 
     //! is in general different for each region and will most likely
     //! not be given in a close form, it is described by a CoefFunctionMulti.
-    shared_ptr<CoefFunctionMulti> meanFlowCoef_;
+    shared_ptr<CoefFunctionMulti> meanVelocityCoef_;
     shared_ptr<CoefFunction> meanFlowCoefScattered_;
     shared_ptr<BaseFeFunction> meanFlowFeFct_;
     shared_ptr<FeSpace> meanFlowFeSpace_;
@@ -140,12 +140,11 @@ namespace CoupledField
 
     //! considers a varying background flow
     bool enableC2_;
-
-    //! amplitude factor for first convective term in case of varying background flow
-    Double factorC1_;
+    bool enableC3_;
 
     //! true, if coupled to Heat PDE
     bool isHeatCoupled_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
