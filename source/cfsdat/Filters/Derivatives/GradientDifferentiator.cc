@@ -227,6 +227,7 @@ void GradientDifferentiator::AdaptFilterResults(){
                 "You better interpolate the element-values to nodes (e.g. Cell2Node) \n"
                 "and differentiate afterwards\n"
                 "============================================================")<<std::endl;
+    EXCEPTION("GradientDifferentiator requires input to be defined on nodes");
   }
 
   resultManager_->CopyResultData(upResIds[0],filterResIds[0]);

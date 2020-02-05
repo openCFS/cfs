@@ -243,6 +243,7 @@ void DivergenceDifferentiator::AdaptFilterResults(){
                 "You better interpolate the element-values to nodes (e.g. Cell2Node) \n"
                 "and differentiate afterwards\n"
                 "============================================================")<<std::endl;
+    EXCEPTION("DivergenceDifferentiator requires input to be defined on nodes");
   }
   std::cout << " adaptfilterrresults Divergence " << std::endl;
 
