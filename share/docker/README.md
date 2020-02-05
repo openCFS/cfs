@@ -11,18 +11,19 @@ pulled from [docker hub](https://hub.docker.com/).
 To select which image should be used set an environment variable, e.g.
 `export IMAGE=fedora`.
 Docker images are always built from the *context* i.e. the current working direcory.
-In odrder to have files in the CFS source available in the expected locations, run docker
+In order to have files in the CFS source available in the expected locations, run docker
 from the root CFS source directory. Here we have a [.dockerignore](../../.dockerignore) file,
 which ignores all but the required sources.
 
-To build the image got to the CFS root dir and run
+To build the image go to the root directory of the CFS repo and run
 ```shell
 docker build -t cfs-devel-$IMAGE --build-arg BASE_IMAGE=$IMAGE --build-arg IMAGE=$IMAGE -f share/docker/Dockerfile .
 ```
 This will execute our generic [Dockefile](Dockerfile) which, starting from a `BASE_IMAGE`
 1. installs build dependencies
 2. and creates a user
-The `-t` option tagged the image.
+
+The `-t` option tags the image.
 
 You can then list all images using
 ```shell
@@ -30,7 +31,7 @@ docker image ls
 ```
 
 To use the image interactively run `docker run -it cfs-devel-$IMAGE bash`.
-In order to have the source code availabe, mount a volume e.g. `docker run -v ~/cfs/CFS:/cfs -it cfs-devel-fedora bash` to mount the host dir `~/cfs/CFS` to `/cfs` in the container.
+In order to have the source code availabe, mount a volume e.g. `docker run -v ~/cfs/CFS:/cfs -it cfs-devel-$IMAGE bash` to mount the host dir `~/cfs/CFS` to `/cfs` in the container `cfs-devel-$IMAGE`.
 
 Updating Images
 ---------------
@@ -44,6 +45,11 @@ you need to fix them.
    * try with `docker build -t cfs-devel-$IMAGE:<tag> --build-arg BASE_IMAGE=$IMAGE:<tag> --build-arg IMAGE=$IMAGE`
    * copy the original `build-dependencies.$IMAGE.md` to a fitting name `build-dependencies.$IMAGE:<tag>.md`
 2. Fix the error in the latest version
+3. Adapt the build pipeline in `.gitlab-ci.yml` to include both versions (or clean up if the old one is obsolete)
+
+One can run the base image interactively to debug
+1. start it by `docker run -it $IMAGE bash`
+2. run the instructions from `share/doc/developer/build-dependencies/$IMAGE.md` in sequence
 
 References and Notes
 --------------------

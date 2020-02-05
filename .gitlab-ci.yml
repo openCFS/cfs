@@ -275,6 +275,7 @@ platform:fedora:
   variables:
     IMAGE: "fedora"
 
+# the latest LTS release
 platform:ubuntu:
   extends: .platform:image
   image: ubuntu
@@ -286,6 +287,13 @@ platform:ubuntu:16.04:
   image: ubuntu:16.04
   variables:
     IMAGE: "ubuntu:16.04"
+
+# the latest stable release, regardless of LTS status
+platform:ubuntu:rolling:
+  extends: .platform:image
+  image: ubuntu:rolling
+  variables:
+    IMAGE: "ubuntu:rolling"
 
 platform:debian:
   extends: .platform:image
