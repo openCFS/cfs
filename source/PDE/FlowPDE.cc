@@ -377,17 +377,14 @@ namespace CoupledField {
         //now create the integrators
         BiLinearForm *convectivevV = NULL;
         PtrCoefFct coeffConvec;
-        PtrCoefFct constCoeff = CoefFunction::Generate(mp_, Global::REAL, "1.0");
         if( dim_ == 2 ) {
           bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
           coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Double,2>( density, constCoeff,
-                                                              bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
+              new CoefFunctionMeanFlowConvection<Double,2>( density, bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
         } else {
           bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
           coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Double,3>( density, constCoeff,
-                                                              bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
+              new CoefFunctionMeanFlowConvection<Double,3>( density, bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
         }
         convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
 

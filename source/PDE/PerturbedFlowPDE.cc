@@ -415,14 +415,12 @@ namespace CoupledField {
             if( dim_ == 2 ) {
               bOpGrad = new GradientOperator<FeH1,2, 1, Complex>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
-                                                               bOpGrad, meanVelFct )
+                new CoefFunctionMeanFlowConvection<Complex,2>( density, bOpGrad, meanVelFct )
                 );
             } else {
               bOpGrad = new GradientOperator<FeH1,3, 1, Complex>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
-                                                               bOpGrad, meanVelFct )
+                new CoefFunctionMeanFlowConvection<Complex,3>( density, bOpGrad, meanVelFct )
                 );
             }          
             convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
@@ -431,14 +429,12 @@ namespace CoupledField {
             if( dim_ == 2 ) {
               bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
-                                                              bOpGrad, meanVelFct )
+                new CoefFunctionMeanFlowConvection<Double,2>( density, bOpGrad, meanVelFct )
                 );
             } else {
               bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
-                                                              bOpGrad, meanVelFct )
+                new CoefFunctionMeanFlowConvection<Double,3>( density, bOpGrad, meanVelFct )
                 );
             }
             convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );

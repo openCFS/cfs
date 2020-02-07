@@ -1,22 +1,35 @@
 #include "CoefFunctionMeanFlowConvection.hh"
 #include "FeBasis/FeSpace.hh"
 
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 namespace CoupledField{
+DEFINE_LOG(coefMeanFlowConv, "CoefFunctionMeanFlowConvection")
 
   template<typename T, UInt DOFS>
-  CoefFunctionMeanFlowConvection<T,DOFS>::CoefFunctionMeanFlowConvection(PtrCoefFct density,
-                                                                         PtrCoefFct viscosity,
+  CoefFunctionMeanFlowConvection<T,DOFS>::CoefFunctionMeanFlowConvection(PtrCoefFct scalarCoef,
                                                                          BaseBOperator* opt,
                                                                          shared_ptr<BaseFeFunction> feFnc)
     : CoefFunction(),
-      density_(density),  
-      viscosity_(viscosity),
+      factor_(scalarCoef),
       bOperator_(opt),
       feFct_(feFnc)
   {
     dimType_ = TENSOR;
+    dim_ = DOFS;
   }
-  
+
+  template<typename T, UInt DOFS>
+  CoefFunctionMeanFlowConvection<T,DOFS>::CoefFunctionMeanFlowConvection(BaseBOperator* opt, shared_ptr<BaseFeFunction> feFnc)
+    : CoefFunction(),
+      bOperator_(opt),
+      feFct_(feFnc)
+  {
+    dimType_ = VECTOR;
+    dim_ = DOFS;
+    factor_ = NULL;
+  }
+
   template<typename T, UInt DOFS>
   void CoefFunctionMeanFlowConvection<T,DOFS>::GetTensor( Matrix<T>& tensor, 
                                                           const LocPointMapped& lpm ) {
@@ -27,30 +40,48 @@ namespace CoupledField{
     BaseFE* ptFe =  feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
     StdVector< Vector<T> > eSolComp(DOFS);
     StdVector< Vector<T> > VDerivs(DOFS);
-    UInt eN=eSolV.GetSize()/DOFS;
+    UInt eN=eSolV.GetSize()/DOFS; // number of nodes
     tensor.Resize(DOFS, DOFS);
     tensor.Init();
-    Double dens = 0;
-    density_->GetScalar(dens,lpm);
+    T fact;
+    if (factor_) {
+      factor_->GetScalar(fact,lpm);
+    } else {
+      fact = T(1.0);
+    }
 
-
+    LOG_DBG(coefMeanFlowConv) << el->elemNum << ":\n";
     for(UInt rdof=0; rdof < DOFS; rdof++) 
-    {      
+    {
       eSolComp[rdof].Resize(eN);
-      
+
       for(UInt eI=0; eI < eN; eI++) 
       {
-        eSolComp[rdof][eI] = eSolV[eI*DOFS+rdof];
+        eSolComp[rdof][eI] = eSolV[eI*DOFS+rdof];// extract the x,y,z components of the nodal values
       }
-      
+      LOG_DBG(coefMeanFlowConv) << " eSolComp = " << eSolComp[rdof].ToString() << "\n";
       bOperator_->ApplyOp( VDerivs[rdof], lpm, ptFe, eSolComp[rdof] );
+      LOG_DBG(coefMeanFlowConv) << " VDerivs = " << VDerivs.ToString() << "\n";
 
       for(UInt dof=0; dof < DOFS; dof++) 
       {
-        tensor[dof][rdof] = dens * VDerivs[rdof][dof];
+        tensor[dof][rdof] = fact * VDerivs[rdof][dof];
       }
     }
+    LOG_DBG(coefMeanFlowConv) <<" tensor = " << tensor.ToString() << "\n";
   }
+
+
+  template<typename T, UInt DOFS>
+  void CoefFunctionMeanFlowConvection<T,DOFS>::GetVector( Vector<T>& tensor, const LocPointMapped& lpm ) {
+    Matrix<T> gradV;
+    this->GetTensor(gradV,lpm);
+    Vector<T> v;
+    feFct_->GetVector(v,lpm);
+    tensor.Resize(dim_);
+    tensor = gradV * v;
+  }
+
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionMeanFlowConvection<Double,2>;
