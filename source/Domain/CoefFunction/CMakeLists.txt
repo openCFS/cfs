@@ -27,6 +27,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionHarmBalance.cc
   CoefFunctionComplexToReal.cc
   CoefFunctionDiagTensorFromScalar.cc
+  CoefFunctionConversion.hh
 )
 
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
