@@ -159,7 +159,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   if design6:
     designs = 6
     
-  length = len(sett) / designs
+  length = int(len(sett) / designs)
   offset = int(sett[0].get("nr")) - 1
   out = numpy.zeros((length, designs))
   nr_vec = numpy.zeros((length,1))
@@ -186,6 +186,14 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       if tmp is None:
         print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
+      # here we assume that the density.xml is ordered like it is written from cfs:
+      # <element nr="1" type="design1" design="0.0"/>
+      # <element nr="2" type="design1" design="0.0"/>
+      # <element nr="3" type="design1" design="0.0"/>
+      # ...
+      # <element nr="1" type="design2" design="0.0"/>
+      # <element nr="2" type="design2" design="0.0"/>
+      # ...
       if idx != idx_old:
         counter = 0
       des = float(tmp)
@@ -193,6 +201,14 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       nr_vec[counter] = int(element.get("nr"))
       counter += 1
       idx_old = idx
+    else:
+      # type != designX
+      # i.e. either type is not requested or the requested design was not found in the xml
+      pass
+  if counter < length:
+    # There are designs specified in the xml which are not requested.
+    # Thus the array 'out' is too large.
+    out = out[0:counter, :]
   if matrix:
     output = numpy.zeros((x, y, z, designs))
     for t in range(designs):

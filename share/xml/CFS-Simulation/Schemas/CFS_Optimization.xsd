@@ -1544,6 +1544,7 @@
                       <xsd:enumeration value="optResult_63"/>
                       <xsd:enumeration value="optResult_64"/>
                       <xsd:enumeration value="optResult_65"/>  
+                      <xsd:enumeration value="optResult_66"/>  
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
