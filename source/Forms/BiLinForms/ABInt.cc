@@ -225,6 +225,11 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   //   in order to determine a consistent normal direction
   //3. obtain pointers to associated volume elements
   //4. loop over int points of surface element and do a standard integration
+  //5. Hamideh: ptFeSpace1_ and ptFeSpace2_ points to Master and Slave unknowns.
+  // The true feSpace for test function and  unknow will be taken from coupling direction
+  // For example in the case of LinFlowMechNitsche coupling:
+  // Master --> Fespace1_(mechanics displacement)
+  // Slave --> FeSpace2_(LinFlow Velocity)
 
   const SurfElem* sElem1 = ent1.GetSurfElem();
   const SurfElem* sElem2 = ent2.GetSurfElem();
@@ -240,8 +245,8 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   // where to acquire the equation numbers
   bool useMaster1 = false,useMaster2 = false;
   this->GetVolFromSurfElem(useMaster1,useMaster2);
-  const Elem* ptVolElem1 = (useMaster1) ? mSe->ptMaster->ptVolElems[0] : mSe->ptSlave->ptVolElems[0] ;
-  const Elem* ptVolElem2 = (useMaster2) ? mSe->ptMaster->ptVolElems[0] : mSe->ptSlave->ptVolElems[0] ;
+  const Elem* ptVolElem1 = (useMaster1) ? mSe->ptMaster->ptVolElems[0] : mSe->ptSlave->ptVolElems[0] ; // take pointer volume element of test function
+  const Elem* ptVolElem2 = (useMaster2) ? mSe->ptMaster->ptVolElems[0] : mSe->ptSlave->ptVolElems[0] ; // take pointer volume element of unknown
 
   Matrix<MAT_DATA_TYPE> aMat, bMat;
   MAT_DATA_TYPE fac(0.0);
@@ -255,9 +260,22 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   this->ptFeSpace1_->GetIntegration(ptFeMaster, mSe->ptMaster->ptVolElems[0]->regionId, method1, order1);
   this->ptFeSpace2_->GetIntegration(ptFeSlave, mSe->ptSlave->ptVolElems[0]->regionId, method2, order2);
 
-  // Obtain FE element from FeSpace
-  BaseFE* ptFeA =   this->ptFeSpace1_->GetFe(ptVolElem1->elemNum);
-  BaseFE* ptFeB =   this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+  // Obtain FE element from FeSpace for operators according to the coupling direction
+  BaseFE* ptFeA = NULL;
+  BaseFE* ptFeB = NULL;
+  if (useMaster1 && useMaster2){
+    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
+    ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
+  }else if(useMaster1 && !useMaster2){
+    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
+    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
+  } else if(!useMaster1 && useMaster2){
+    ptFeA = this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
+    ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
+  }else{
+    ptFeA = this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
+    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
+  }
 
   const UInt nrFncsA = ptFeA->GetNumFncs();
   const UInt nrFncsB = ptFeB->GetNumFncs();
@@ -282,7 +300,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     //obtain pointer to basis functions
     BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe->ptMaster->elemNum);
-    BaseFE* SFe2 = this->ptFeSpace1_->GetFe(mSe->ptSlave->elemNum);
+    BaseFE* SFe2 = this->ptFeSpace2_->GetFe(mSe->ptSlave->elemNum);
 
     MAT_DATA_TYPE tmp(2.0);
     Double min,max;
