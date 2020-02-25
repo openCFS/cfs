@@ -84,7 +84,7 @@ class BiLinearForm;
                                     const std::map< RegionIdType, PtrCoefFct >& muFuncs,
                                     const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                     const std::set< RegionIdType >& flowRegions);
-    
+
    //! Subtype of related mechanical PDE
     std::string subType_;
     
@@ -97,6 +97,7 @@ class BiLinearForm;
 
     //! Lagrange multiplier order is same as velocity?
     bool lmOrderSameAsVel_;
+    bool IsLagrangeMultiplierMethod_;
   };
 
 

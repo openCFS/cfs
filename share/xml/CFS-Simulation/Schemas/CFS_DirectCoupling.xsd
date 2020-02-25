@@ -565,6 +565,8 @@
                   <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required" />
+                      <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"/>
+                      <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -575,12 +577,12 @@
             <xsd:element name="storeResults" type="DT_FluidMechDirectStoreResults"
               minOccurs="0" maxOccurs="1"/>          
           </xsd:sequence>
+          <xsd:attribute name="IsLagrangeMultiplierMethod" type="xsd:boolean" default="false"/>
           <xsd:attribute name="lmOrderSameAsVel" type="xsd:boolean" default="true"/>
         </xsd:extension>
       </xsd:complexContent>
     </xsd:complexType>
   </xsd:element> 
-  
   
   <!-- ******************************************************************* -->
   <!--   Definition of Post Processing Results -->
