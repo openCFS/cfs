@@ -1551,15 +1551,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     DefineFieldResult(PHYSICAL_RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
 
     if( analysistype_ != STATIC ){
-      shared_ptr<ResultInfo> jld(new ResultInfo);
-      jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
-      jld->dofNames = "";
-      jld->unit = "W/m^3";
-      jld->definedOn = ResultInfo::ELEMENT;
-      jld->entryType = ResultInfo::SCALAR;
-      shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
-      DefineFieldResult( jldCoef, jld );
-
       shared_ptr<ResultInfo> jldN(new ResultInfo);
       jldN->resultType = MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES;
       jldN->dofNames = "";
