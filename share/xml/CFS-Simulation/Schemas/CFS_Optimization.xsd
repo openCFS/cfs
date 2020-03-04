@@ -367,6 +367,7 @@
                 <xsd:enumeration value="overhang_hor" />
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic" />
+                <xsd:enumeration value="cones" />
                 <!-- the global perimeter constraint -->
                 <xsd:enumeration value="perimeter" />
                 <xsd:enumeration value="jump" />
@@ -1068,6 +1069,7 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 <xsd:attribute name="use_mat_filt" type="DT_Bool_Default" use="optional" />
+                <xsd:attribute name="write_mat_filt" type="DT_Bool_Default" use="optional" />
               </xsd:complexType>
             </xsd:element>
 
@@ -1140,7 +1142,7 @@
               </xsd:unique>
             </xsd:element> <!-- end of shapeOpt -->
 
-            <!-- parametric shape optimization mapped to density -->
+            <!-- parametric shape optimization mapped to density (shape map)-->
             <xsd:element name="shapeMap" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -1257,7 +1259,7 @@
                 <xsd:attribute name="relative_node_bound" use="optional" type="xsd:float" default="-1.0" />
                 <xsd:attribute name="relative_profile_bound" use="optional" type="xsd:float" default="-1.0" />
 
-                <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
+                <!-- elements with an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
                 <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-9" />
 
                 <!-- the maximal order of interpolation. Actually it is superfluous as Item::GetOrder() shall work based on sensitivity. However it makes sense to reduce the number for debug purpose. Needs to be >= 2 -->
@@ -1277,6 +1279,146 @@
                   </xsd:simpleType>
                 </xsd:attribute>
 
+              </xsd:complexType>
+            </xsd:element>
+
+
+            <!-- parametric shape optimization mapped to density (spline box)-->
+            <xsd:element name="splineBox" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="feature" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="file" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                            <xsd:all minOccurs="0"> 
+                              <xsd:element name="interpolation" minOccurs="0" maxOccurs="1">
+                                <xsd:complexType>
+                                  <xsd:attribute name="type" use="required">
+                                    <xsd:simpleType>
+                                      <xsd:restriction base="xsd:token">
+                                        <xsd:enumeration value="none" />
+                                        <xsd:enumeration value="cubic" />
+                                      </xsd:restriction>
+                                    </xsd:simpleType>
+                                  </xsd:attribute>
+                                  <xsd:attribute name="beta" use="optional" type="xsd:float" default="1" />
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="coverBox" minOccurs="0" maxOccurs="1" >
+                                <xsd:complexType>
+                                  <xsd:attribute name="lowerXLimit" type="xsd:token" use="optional"/>
+                                  <xsd:attribute name="upperXLimit" type="xsd:token" use="optional"/>
+                                  <xsd:attribute name="lowerYLimit" type="xsd:token" use="optional"/>
+                                  <xsd:attribute name="upperYLimit" type="xsd:token" use="optional"/>
+                                  <xsd:attribute name="lowerZLimit" type="xsd:token" use="optional"/>
+                                  <xsd:attribute name="upperZLimit" type="xsd:token" use="optional"/>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:all>
+                            <xsd:attribute name="path" use="required" type="xsd:token"/>
+                            <!-- this is either "first", "last" or anything a match to the <set id="*" .../> in the material file -->
+                            <xsd:attribute name="set" use="optional" type="xsd:token" default="last"/>
+                            <xsd:attribute name="scale" use="optional" type="xsd:float" default="1.0"/>
+                            <xsd:attribute name="periodic" use="optional" type="xsd:boolean" default="false"></xsd:attribute>
+                          </xsd:complexType>
+                        </xsd:element>
+                        <xsd:element name="function" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                            <xsd:attribute name="name" use="required">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="SumOfSine" />
+                                  <xsd:enumeration value="MaxSine" />
+                                  <xsd:enumeration value="SineX" />
+                                  <xsd:enumeration value="SineY" />
+                                  <xsd:enumeration value="SineZ" />
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            <xsd:attribute name="scale" use="optional" type="xsd:float" default="1.0"/>
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:choice>
+                      
+                      <xsd:attribute name="type" use="required">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="file" />
+                            <xsd:enumeration value="analytic" />
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                    </xsd:complexType>
+                  </xsd:element>
+
+                  <xsd:element name="boundingBox" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="lowerXLimit" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="upperXLimit" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="lowerYLimit" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="upperYLimit" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="lowerZLimit" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="upperZLimit" type="xsd:token" use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
+
+                  <xsd:element name="rotation" minOccurs="0" maxOccurs="3">
+                    <xsd:complexType>
+                      <xsd:attribute name="axis" type="DT_Axis" use="required" />
+                      <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                      <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                      <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                      <xsd:attribute name="fixed" type="xsd:boolean" use="optional"  default="false"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                
+                  <xsd:element name="allControlPoints" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                      <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                    </xsd:complexType>
+                  </xsd:element>
+
+                  <xsd:element name="controlpoint" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="index" type="xsd:token" use="required" />
+                      <xsd:attribute name="dof" type="DT_Axis" use="required" />
+                      <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                      <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                      <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                      <xsd:attribute name="fixed" type="xsd:boolean" use="optional"  default="false"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+                
+                <xsd:attribute name="degree" use="optional" type="xsd:positiveInteger" default="3" />
+                
+                <xsd:attribute name="cp_x" use="optional" type="xsd:positiveInteger" default="4" />
+                <xsd:attribute name="cp_y" use="optional" type="xsd:positiveInteger" default="4" />
+                <xsd:attribute name="cp_z" use="optional" type="xsd:positiveInteger" default="4" />
+                
+                <xsd:attribute name="fixedBoundary" use="optional" type="xsd:boolean" default="false" />
+
+                <!-- elements with an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
+                <xsd:attribute name="sensitivity" use="optional" type="xsd:float" default="1e-9" />
+
+                <!-- the maximal order of interpolation. Actually it is superfluous as Item::GetOrder() shall work based on sensitivity. However it makes sense to reduce the number for debug purpose. Needs to be >= 2 -->
+                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="11" />
+
+                <!-- For developing only. Allow to play with actual determination of actual order of integration -->
+                <xsd:attribute name="integration_strategy" use="optional" default="constant_full">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!-- stupid full integration -->
+                      <xsd:enumeration value="constant_full" />
+                      <!-- all or nothing. If difference within element is above sensitivity use full order. Is legacy behaviour -->
+                      <xsd:enumeration value="full_or_nothing" />
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                
               </xsd:complexType>
             </xsd:element>
 
@@ -1423,7 +1565,7 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
-                <!-- Whe have to specifiy which entry of the design element we want -->
+                <!-- We have to specifiy which entry of the design element we want -->
                 <xsd:attribute name="value" use="required">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
@@ -1445,6 +1587,16 @@
                       <xsd:enumeration value="shapeMapIntOrder" />
                       <!-- for shape mapping the difference of maximal to minimal corner value -->
                       <xsd:enumeration value="shapeMapMinMaxCorner" />
+                      <!-- for feature mapping (spline box) the gradient of the feature in x direction -->
+                      <xsd:enumeration value="splineBoxGradX" />
+                      <!-- for feature mapping (spline box) the gradient of the feature in y direction -->
+                      <xsd:enumeration value="splineBoxGradY" />
+                      <!-- for feature mapping (spline box) the gradient of the feature in z direction -->
+                      <xsd:enumeration value="splineBoxGradZ" />
+                      <!-- for feature mapping (spline box) the order for numerical integration -->
+                      <xsd:enumeration value="splineBoxIntOrder" />
+                      <!-- for feature mapping (spline box) the difference of maximal to minimal corner value -->
+                      <xsd:enumeration value="splineBoxMinMaxCorner" />
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient" />
                       <xsd:enumeration value="weight" />
@@ -1527,6 +1679,7 @@
                 <xsd:enumeration value="shapeParamMat" />
                 <!-- parametric shape is mapped to density -->
                 <xsd:enumeration value="shapeMap" />
+                <xsd:enumeration value="splineBox" />
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1673,6 +1826,8 @@
       <xsd:enumeration value="mech_trace" />
       <!-- summarized the shape mapping variables node and profile -->
       <xsd:enumeration value="shape_map" />
+      <!-- summarized the spline box variables -->
+      <xsd:enumeration value="spline_box" />
       <!-- all elasticity tensor coefficients for elast FMO -->
       <xsd:enumeration value="mech_all" />
       <!-- trace for piezo FMO for permitivity -->
@@ -1732,6 +1887,9 @@
       <!-- for shape map -->
       <xsd:enumeration value="node" />
       <xsd:enumeration value="profile" />
+      <!-- for spline box -->
+      <xsd:enumeration value="allControlPoints" />
+      <xsd:enumeration value="controlpoint" />
       <xsd:enumeration value="stiff1" />
       <xsd:enumeration value="stiff2" />
       <xsd:enumeration value="shear1" />
@@ -2562,6 +2720,7 @@
           <!-- samples for homogenizes a-b rectangulars for C1-interpolation. -->
           <xsd:enumeration value="hom-rect-C1" />
           <xsd:enumeration value="hom-iso-C1" />
+          <xsd:enumeration value="sgp-matlab" />
           <!-- msfem material catalog for C1-interpolation. -->
           <xsd:enumeration value="msfem-C1" />
         </xsd:restriction>

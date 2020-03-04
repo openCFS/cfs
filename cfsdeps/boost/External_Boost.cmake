@@ -72,7 +72,8 @@ ENDIF(UNIX)
 SET(BOOST_EXTRA_PARAMS "") # both bootstrap and jam
 SET(BOOST_BOOTSTRAP_PARAMS "")
 SET(BOOST_JAM_PATCH_COMMAND "")
-SET(BOOST_JAM_PARAMS "")
+# see closed issue Boost build error nach Systemupgrade auf Ubuntu 18.04 in Group Stingl
+SET(BOOST_JAM_PARAMS "cxxflags=-fPIC")
 
 IF(MINGW)
 

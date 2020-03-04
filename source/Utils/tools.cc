@@ -738,6 +738,44 @@ Vector<double> Linspace(double start, double end, int n)
   return res;
 }
 
+void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind)
+{
+  assert(size.GetSize() >= sub.GetSize());
+
+  // cumulative product
+  StdVector<int> cumprod = StdVector<int>(size.GetSize());
+  cumprod[0] = size[0];
+  for(unsigned int i = 1; i < size.GetSize(); ++i) {
+    cumprod[i] = cumprod[i-1] * size[i];
+  }
+
+  int idx = sub[0] + 1; // zero based
+  for(unsigned int i = 1; i < sub.GetSize(); ++i) {
+    idx += sub[i] * cumprod[i-1];
+  }
+  ind = idx - 1; // zero based
+}
+
+void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub)
+{
+  sub.Resize(size.GetSize());
+
+  // cumulative product
+  StdVector<int> cumprod = StdVector<int>(size.GetSize());
+  cumprod[0] = size[0];
+  for(unsigned int i = 1; i < size.GetSize(); ++i) {
+    cumprod[i] = cumprod[i-1] * size[i];
+  }
+
+  unsigned int idx = ind + 1; //zero based
+  for(unsigned int i = sub.GetSize()-1; i > 0; i--) {
+    int v = (idx-1) % cumprod[i-1] + 1;
+    sub[i] = (idx - v) / cumprod[i-1];
+    idx = v;
+  }
+  sub[0] = idx-1;
+}
+
 Vector<double> LogspaceBase(double start, double end, int n)
 {
   Vector<double> res(n);

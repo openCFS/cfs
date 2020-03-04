@@ -6,6 +6,7 @@ SET(OPTIMIZATION_SRCS
   Condition.cc
   ShapeOpt.cc
   ShapeMapping.cc
+  SplineBoxOpt.cc
   TopGrad.cc
   OptimizationMaterial.cc
   Excitation.cc
