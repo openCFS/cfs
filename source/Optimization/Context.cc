@@ -7,6 +7,7 @@
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/MultiSequenceDriver.hh"
 #include "Driver/Assemble.hh"
+#include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -217,9 +218,13 @@ App::Type Context::ToApp(const SinglePDE* pde)
   if(pde->GetName() == "heatConduction") return App::HEAT;
   if(pde->GetName() == "acoustic") return App::ACOUSTIC;
   if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
+  if(pde->GetName() == "magnetic") return App::MAG;
+  if(pde->GetName() == "magneticEdge") return App::MAG;
 
   throw Exception("invalid");
 }
+
+
 
 SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
 {
@@ -234,8 +239,7 @@ SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
   return NULL;
 }
 
-
-void Context::SetPDEs()
+bool Context::SetPDEs()
 {
   const StdVector<SinglePDE*> avail = domain->GetSinglePDEs();
 
@@ -249,6 +253,16 @@ void Context::SetPDEs()
     if(sp->GetName() == "heatConduction") {
       pde = domain->GetSinglePDE("heatConduction", true);
       pdes[App::HEAT] = pde;
+    }
+
+    if(sp->GetName() == "magnetic") {
+      pde = domain->GetSinglePDE("magnetic", true);
+      pdes[App::MAG] = pde;
+    }
+
+    if(sp->GetName() == "magneticEdge") {
+      pde = domain->GetSinglePDE("magneticEdge", true);
+      pdes[App::MAG] = pde;
     }
 
     if(sp->GetName() == "acoustic") {
@@ -277,7 +291,55 @@ void Context::SetPDEs()
   }
 
   assert(pdes.size() == avail.GetSize());
+
+  return !avail.IsEmpty();
 }
+
+BiLinFormContext* Context::GetBiLinFormContext(const RegionIdType reg, App::Type app1, App::Type app2, bool throw_exception)
+{
+  App::Type a1, a2;
+  string integrator = "";
+
+  if(app1 == App::MECH && (app2 == App::MECH || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::MECH;
+    integrator = "LinElastInt";
+  }
+  if(app1 == App::ELEC && (app2 == App::ELEC || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::ELEC;
+    integrator = "LinGradBDBInt";
+  }
+  if((app1 == App::MECH && app2 == App::ELEC) || (app1 == App::ELEC && app2 == App::MECH) || (app1 == App::PIEZO_COUPLING && app2 == App::NO_APP))
+  {
+    a1 = App::MECH;
+    a2 = App::ELEC;
+    integrator = "LinPiezoCoupling";
+  }
+  if(app1 == App::MASS && (app2 == App::MASS || app2 == App::NO_APP))
+  {
+    a1 = a2 =App:: MASS;
+    integrator = "MassInt";
+  }
+
+  assert(integrator != "");
+
+  SinglePDE* pde1 = ToPDE(a1, throw_exception);
+  SinglePDE* pde2 = ToPDE(a2, throw_exception);
+
+  if(pde1 == NULL || pde2 == NULL)
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
+  }
+
+  // in pre-FE-Space there was also the entry type!
+  assert(pde2 != NULL); // otherwise it would be a LinearForm
+  return pde1->GetAssemble()->GetBiLinForm(integrator, reg, pde1, pde2, !throw_exception);
+}
+
 
 ContextManager::ContextManager()
 {

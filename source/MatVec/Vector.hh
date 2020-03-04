@@ -252,6 +252,14 @@ template<typename T> class ElemStoreSol;
     //    virtual void Add(Complex a, const SingleVector& vec1,
     //                     Complex b, const SingleVector& vec2);
 
+
+    /** this = a * vec. Like Add() with initial 0 */
+    void Set(T a, const SingleVector &vec);
+
+
+    /** Hadamard product. Pointwise this[i] = v1[i] * v2[i] */
+    void Hadamard(const Vector<T>& v1, const Vector<T>& v2);
+
     //! Compute inner product
 
     //! The method computes the value of the inner product between this vector
@@ -274,11 +282,11 @@ template<typename T> class ElemStoreSol;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
     //! Compute Euclidean norm of this vector object
-    double NormL2() const;
+    virtual double NormL2() const;
 
     /**  this functions localized the maximal component (absolute value) and returns it with its original sign
 		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
-    Double SignedMax() const; 
+    virtual Double SignedMax() const;
 
     /** diff norm */
     double NormL2(const Vector<T>& other) const;

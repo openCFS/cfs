@@ -65,6 +65,8 @@ namespace CoupledField
       return integrator_->IsNewtonBilinearForm();
     }
 
+    static void SetEnums();
+
     //! Get destination matrix
     FEMatrixType GetDestMat() const { return destMat_; }
 
@@ -291,7 +293,7 @@ namespace CoupledField
   protected:
 
     //! Pointer to linearform
-    LinearForm * integrator_;
+    LinearForm* integrator_;
 
     // ======================================================
     //  MAPPING DATA

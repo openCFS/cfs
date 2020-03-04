@@ -40,7 +40,7 @@ void ParamMat::PostInit()
 
 
 template <class T1, class T2>
-void ParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode mode, double ev)
+void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode mode, double ev)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
@@ -57,14 +57,14 @@ void ParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunct
     Assign(out, tmp, 1.0);
     if(context->IsComplex())
     {
-      AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
+      AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
 
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-        AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
+        AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
 
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
@@ -87,8 +87,8 @@ void ParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunct
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template void ParamMat::SetElementK<double, double>(Context*, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
-template void ParamMat::SetElementK<Complex, Complex>(Context*, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
-template void ParamMat::SetElementK<Complex, double>(Context*, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<double, double>( Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<Complex, Complex>(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<Complex, double>(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
 #endif
 

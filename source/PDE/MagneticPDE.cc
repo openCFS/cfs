@@ -28,6 +28,8 @@
 #include "Materials/Models/Preisach.hh"
 //#include "Materials/Models/VectorPreisach.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -63,6 +65,10 @@ namespace CoupledField {
     
     regionApproxSet_ = false;
     
+    coilOptimization_ = false;
+
+    isMixed_ = false;
+
     // can the reluctivity be complex? before the change it had the same type as the PDE
     reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, false));
     
@@ -250,8 +256,15 @@ namespace CoupledField {
 		  //  NONLINEAR BH RELATION (NON-HYSTERETIC)
 		  // ====================================================================
 		  if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+		    CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
 			  PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
+
+        if(domain->HasDesign())
+        {
+          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
+          nuNl.reset(cfo);
+        }
         
 			  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 			  PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
@@ -277,6 +290,11 @@ namespace CoupledField {
 			  stiffContext->SetEntities( actSDList, actSDList );
 			  stiffContext->SetFeFunctions( myFct, myFct );
 			  assemble_->AddBiLinearForm( stiffContext );
+
+        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+        if(cfo)
+          cfo->SetForm(stiffInt);
+
 			  // Important: Add bdb-integrator to global list, as we need them later
 			  // for calculation of postprocessing results
 			  bdbInts_[actRegion] = stiffInt;
@@ -291,7 +309,7 @@ namespace CoupledField {
 			  if( nonLinMethod_ == NEWTON ) {
 				  PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
                   Global::REAL, magFluxCoef );
-          
+
 				  //create stiffness integrator
 				  BiLinearForm* stiff2 = NULL;
 				  //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
@@ -325,6 +343,8 @@ namespace CoupledField {
 			  // ====================================================================
 			  shared_ptr<CoefFunction > curCoef;
         
+			  CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
+
         if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
           /* for both the delta material method as well as the std fixpoint method we have to know
            * which regions are affected by hysteresis
@@ -344,8 +364,14 @@ namespace CoupledField {
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
 				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType, Global::REAL );
+
 				  // for postprocessing
 				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
+			    if(domain->HasDesign())
+			    {
+			      cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+			      curCoef.reset(cfo);
+			    }
 				  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 			  }
         
@@ -365,13 +391,16 @@ namespace CoupledField {
 			  }
 			  stiffInt->SetName("CurlCurlIntegrator");
 			  stiffInt->SetFeSpace( mySpace);
-			  BiLinFormContext * stiffIntDescr =
-                new BiLinFormContext(stiffInt, STIFFNESS );
+			  BiLinFormContext* stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 			  stiffIntDescr->SetEntities( actSDList, actSDList );
 			  stiffIntDescr->SetFeFunctions( myFct, myFct );
         
 			  assemble_->AddBiLinearForm( stiffIntDescr );
         
+			  // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+        if(cfo)
+          cfo->SetForm(stiffInt);
+
 			  // Important: Add bdb-integrator to global list, as we need them later
 			  // for calculation of postprocessing results
 			  bdbInts_[actRegion] = stiffInt;
@@ -433,52 +462,117 @@ namespace CoupledField {
 			  // insert mass integrator to list of defined mass integrators
 			  massInts_[actRegion] = massInt;
 		  }
-              
-              // ====================================================================
-              //  3D MIXED CASE (coupling between vector and scalar potential)
-              // ====================================================================
-              if( isMixed_ && conductivity > EPS ) {
-                shared_ptr<BaseFeFunction> potFct = feFunctions_[ELEC_POTENTIAL];
-                shared_ptr<FeSpace> potSpace = potFct->GetFeSpace();
-                // Important: set region approximation also at space for scalar
-                // potential
-                potSpace->SetRegionApproximation(actRegion, polyId,integId);
-                
-                // add region to feFunction for scalar potential
-                potFct->AddEntityList( actSDList );
-                
-                // ------------------------------
-                // diagonal mass matrix M_phiphi
-                // ------------------------------
-                {
-                  BiLinearForm * phiDivInt =
-                          new BBInt<>(new GradientOperator<FeH1,3,1,Double>(), conducCoef, factor, updatedGeo_);
-                  phiDivInt->SetName("MassIntegrator_PhiPhi");
-                  BiLinFormContext * massContext =
-                          new BiLinFormContext(phiDivInt, DAMPING);
-                  massContext->SetEntities( actSDList, actSDList );
-                  massContext->SetFeFunctions( potFct, potFct );
-                  assemble_->AddBiLinearForm( massContext );
-                }
-                
-                // ------------------------------
-                // off-diagonal mass matrix M_A_phi
-                // ------------------------------
-                {
-                  BiLinearForm * cplInt =
-                          new ABInt<>(new IdentityOperator<FeH1,3,3,Double>() ,
-                          new GradientOperator<FeH1,3,1,Double>(), conducCoef, factor, updatedGeo_);
-                  cplInt->SetName("MassIntegrator_Coupling_Phi_A");
-                  BiLinFormContext * cplContext =
-                          new BiLinFormContext(cplInt, DAMPING );
-                  cplContext->SetCounterPart(true);
-                  cplContext->SetEntities( actSDList, actSDList );
-                  cplContext->SetFeFunctions( myFct, potFct );
-                  assemble_->AddBiLinearForm( cplContext );
-                }
-              } // mixed
-              
-              // linear part
+
+		  // ====================================================================
+      //  3D MIXED CASE (coupling between vector and scalar potential)
+      // ====================================================================
+      if( isMixed_ && conductivity > EPS ) {
+        shared_ptr<BaseFeFunction> potFct = feFunctions_[ELEC_POTENTIAL];
+        shared_ptr<FeSpace> potSpace = potFct->GetFeSpace();
+        // Important: set region approximation also at space for scalar
+        // potential
+        potSpace->SetRegionApproximation(actRegion, polyId,integId);
+
+        // add region to feFunction for scalar potential
+        potFct->AddEntityList( actSDList );
+
+        // ------------------------------
+        // diagonal mass matrix M_phiphi
+        // ------------------------------
+        {
+          BiLinearForm * phiDivInt = new BBInt<>(new GradientOperator<FeH1,3,1,Double>(), conducCoef, factor, updatedGeo_);
+          phiDivInt->SetName("MassIntegrator_PhiPhi");
+          BiLinFormContext * massContext = new BiLinFormContext(phiDivInt, DAMPING);
+          massContext->SetEntities( actSDList, actSDList );
+          massContext->SetFeFunctions( potFct, potFct );
+          assemble_->AddBiLinearForm( massContext );
+        }
+
+        // ------------------------------
+        // off-diagonal mass matrix M_A_phi
+        // ------------------------------
+        {
+          BiLinearForm * cplInt =
+          new ABInt<>(new IdentityOperator<FeH1,3,3,Double>() ,
+          new GradientOperator<FeH1,3,1,Double>(), conducCoef, factor, updatedGeo_);
+          cplInt->SetName("MassIntegrator_Coupling_Phi_A");
+          BiLinFormContext * cplContext = new BiLinFormContext(cplInt, DAMPING );
+          cplContext->SetCounterPart(true);
+          cplContext->SetEntities( actSDList, actSDList );
+          cplContext->SetFeFunctions( myFct, potFct );
+          assemble_->AddBiLinearForm( cplContext );
+        }
+      } // mixed
+
+      // linear part
+
+      // ====================================================================
+      // check for velocity
+      // ====================================================================
+      std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+      if(velocityId != "")
+      {
+        // Get result info object for flow
+        shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+
+        // Add the region information
+        PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+
+        // Read velocity coefficient function for this region and add it to velocity functor
+        PtrCoefFct regionMoving;
+        std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
+        //we assume that velocity is real
+        ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
+        VelocityCoef_->AddRegion( actRegion, regionMoving );
+
+        //coef-Fnc for electric conductivity
+        Matrix<Double> reluc;
+        Double conductivity = 0.0;
+
+        // get conductivity
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+        assert(conductivity != 0.0);
+        //PtrCoefFct coeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+
+        // Create the integrators
+        BaseBDBInt   *velocityStiff = NULL;
+
+        if( isComplex_ )
+        {
+//          if(dim_ == 2)
+//          {
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new CurlOperatorMag<FeH1,2,Double,Complex>(), coeff, 1.0, coefUpdateGeo);
+//          }
+//          else
+//          {
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new CurlOperatorMag<FeH1,3,Double,Complex>(), coeff, 1.0, coefUpdateGeo);
+//          }
+        }
+        else
+        {
+          if(dim_ == 2)
+          {
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new CurlOperatorMag<FeH1,2,Double>(),coeff, 1.0, coefUpdateGeo);
+          }
+          else
+          {
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new CurlOperatorMag<FeH1,3,Double>(),coeff, 1.0, coefUpdateGeo);
+          }
+        }
+        assert(velocityStiff != NULL);
+
+        velocityStiff->SetBCoefFunctionOpB(VelocityCoef_);
+        velocityStiff->SetName("VelocityStiffInt");
+        velocityInts_[actRegion] = velocityStiff;
+
+        BiLinFormContext *VelocityContextStiff =  new BiLinFormContext(velocityStiff, STIFFNESS );
+        VelocityContextStiff->SetEntities( actSDList, actSDList );
+        VelocityContextStiff->SetFeFunctions( feFunctions_[MAG_POTENTIAL],myFct);
+        assemble_->AddBiLinearForm( VelocityContextStiff );
+      }
+
 	  } // regions
     
 	  // ============================
@@ -502,9 +596,8 @@ namespace CoupledField {
          Sens. and Act., 2nd edition, p. 131ff
          =====================================================
          */
-			  for( partIt = actCoil.parts_.begin();
-                partIt != actCoil.parts_.end();
-                partIt++ ) {
+			  for(partIt = actCoil.parts_.begin(); partIt != actCoil.parts_.end(); partIt++)
+			  {
 				  Coil::Part & actPart = *(partIt->second);
 				  RegionIdType actRegion = partIt->first;
 				  shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
@@ -512,31 +605,41 @@ namespace CoupledField {
 				  LinearForm* curInt = NULL;
           
 				  // generate source current vector
+				  CoefFunctionOpt* cfoc = NULL; // we might do optimization and then we have such a thing
 				  PtrCoefFct jFct;
 				  if( actCoil.sourceType_ == Coil::CURRENT ){
-					  CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
-                    CoefXpr::OP_MULT);
+					  CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_, CoefXpr::OP_MULT);
 					  PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
             
-					  CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
-                    CoefXpr::OP_DIV);
+					  CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
 					  jFct = CoefFunction::Generate(mp_, part, jVec);
 				  } else {
 					  jFct = coilPartsExtJ_[partIt->second];
 				  }
+
+
+				  if(actCoil.coilOptimization_ == true)
+				  {
+				    coilOptimization_ = true;
+	          if(domain->HasDesign())
+	          {
+	            cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct, this);
+	            jFct.reset(cfoc);
+	          }
+				  }
+
 				  coilCurrentDens_[actRegion] = jFct;
-          
+
+
 				  if( dim_ == 3 ) {
 					  // ===========
             //  3D CASE
             // ===========
             if( isComplex_ ) {
-              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                      factor, jFct, updatedGeo_);
+              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(), factor, jFct, updatedGeo_, true, false, (string) actCoil.coilId_);
             }
             else {
-              curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                      factor, jFct, updatedGeo_);
+              curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(), factor, jFct, updatedGeo_, true, false, (string) actCoil.coilId_);
             }
             
 				  } else {
@@ -545,11 +648,11 @@ namespace CoupledField {
 					  // ===============
             
 					  if( isComplex_ ) {
-						  curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
-                      factor, jFct, updatedGeo_);
+	            curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
+	                factor, jFct, updatedGeo_, true, false, actCoil.coilId_);
 					  } else {
-						  curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
-                      factor, jFct, updatedGeo_);
+	            curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
+	                factor, jFct, updatedGeo_, true, false, actCoil.coilId_);
 					  }
 				  }
           
@@ -559,6 +662,10 @@ namespace CoupledField {
 				  coilContext->SetEntities( actSDList );
 				  coilContext->SetFeFunction( myFct );
 				  assemble_->AddLinearForm( coilContext );
+
+	        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+	        if(cfoc)
+	          cfoc->SetForm(curInt);
 				  // obtain coefficient function
 			  } // loop: parts
         
@@ -627,19 +734,19 @@ namespace CoupledField {
 				  LinearForm* psiDotInt;
 				  if( dim_ == 3 ) {
 					  if( isComplex_ ) {
-						  psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+	            psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
+	                -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  } else {
 						  psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+                      -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  }
 				  } else {
 					  if( isComplex_ ) {
 						  psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+                      -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  } else {
 						  psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+                      -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  }
 				  }
 				  psiDotInt->SetName("CoilVoltCouplInt");
@@ -658,18 +765,18 @@ namespace CoupledField {
 					  if( dim_ == 3 ) {
 						  if( isComplex_ ) {
 							  psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  } else {
 							  psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  }
 					  } else {
 						  if( isComplex_ ) {
 							  psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  } else {
 							  psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  }
 					  }
 					  psiDotIntT->SetName("CoilVoltCouplIntTransposed");
@@ -1811,6 +1918,13 @@ namespace CoupledField {
     jld->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );
+
+    // optimization results are provided in DesignSpace::ExtractResults()
+    DefineFieldResult(PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+
   }
   
   void MagneticPDE::FinalizePostProcResults() {

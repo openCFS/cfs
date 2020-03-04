@@ -131,6 +131,10 @@ class BaseFieldFunctor;
     //! Define a field result
     void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
 
+    /** Shortcut for DefineFieldResult() */
+    void DefineFieldResult(SolutionType solType, ResultInfo::EntryType entryType, ResultInfo::EntityUnknownType definedOn, const std::string& dofNames, bool fromOptimization);
+
+
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     

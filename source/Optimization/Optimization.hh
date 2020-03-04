@@ -302,7 +302,7 @@ namespace CoupledField
         virtual void StoreResults(double step_val = -1.0);
 
 
-        /** Our MultipleExcitation objecte - by default disabled. Even if we have potenitally more than one
+        /** Our MultipleExcitation object - by default disabled. Even if we have potentially more than one
          * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have
          * only one MultipleExcitaiton object. However some of the information is stored in the corresponding context
          * @see Optimization::contextManager */
@@ -339,7 +339,8 @@ namespace CoupledField
          * Usually they are separated as the adjoint is only necessary for the gradient and in the line search case we don't need it.
          * However it is necessary to solve the adjoint directly after the state in case of multiple harmonic excitations
          * (each frequency assembles a new system matrix) and in the case of multiple sequences as for each sequence step a
-         * new system matrix is assembled (here we do not check if there is actually and adjoint computed for the sequence). */
+         * new system matrix is assembled (here we do not check if there is actually and adjoint computed for the sequence).
+         * In the harmonic magnetic coupling we have multiple harmonic extiations of the same frequencies, however we need all forward states first, hence return false */
         bool DoSolveAdjointWithState() const;
 
         /** The way the date is stored. Forward/ adjoint/ both and stride. 

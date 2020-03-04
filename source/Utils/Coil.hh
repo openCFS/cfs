@@ -95,6 +95,8 @@ namespace CoupledField {
      //! Scalar value of excitation (voltage, current)
      PtrCoefFct srcVal_;
      
+     //! Do coil Optimization with toppology optimization variable magCoilPseudoDensity?
+     bool coilOptimization_;
      //! Values of excitation in different harmonics.
      //! Key is the harmonic (only prescribe positive harmonics,
      //! because the mirroring to the negative spectrum is performed

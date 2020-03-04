@@ -19,6 +19,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 
 
 
@@ -26,12 +27,15 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/GradientOperator.hh"
 
 //time stepping
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -189,6 +193,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // ================================
         //  Nonlinear Stiffness Integrator
         // =================================
+        
+        // create stiffness integrator
+        //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+        CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
+        PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
         PtrCoefFct nuNl = NULL;
         if ( analysistype_ == MULTIHARMONIC ) {
           // register element list of region
@@ -201,7 +210,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
         }
 
-
+        // replace in optimization case
+        if(domain->HasDesign())
+        {
+          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
+          nuNl.reset(cfo);
+        }
 
         //compute permeability
         PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -235,8 +249,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // add also material to global, distributed reluctivity coefficient function
        reluc_->AddRegion(actRegion, nuNl);
 
-
-
+       // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+       if(cfo)
+         cfo->SetForm(stiff1);
 
        // ================================================
        //  Nonlinear Stiffness Integrator (only Newton )
@@ -273,10 +288,19 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         PtrCoefFct curCoef =
             //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
             actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+
+        CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
+
         //compute permeability
         PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
         PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
         matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+
+        if(domain->HasDesign())
+        {
+          cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+          curCoef.reset(cfo);
+        }
 
         BaseBDBInt* curlcurl;
         //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
@@ -288,6 +312,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        stiffContext->SetEntities( actSDList, actSDList );
        stiffContext->SetFeFunctions( feFunc, feFunc );
        assemble_->AddBiLinearForm( stiffContext );
+
+       // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+       if(cfo)
+         cfo->SetForm(curlcurl);
 
        // Important: Add bdb-integrator to global list, as we need them later
        // for calculation of postprocessing results
@@ -393,7 +421,73 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       }// End of nonlin/lin mass matrix part
 
 
+      // ====================================================================
+      // check for velocity
+      // ====================================================================
+      std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+      if(velocityId != "")
+      {
+        // Get result info object for flow
+        shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
 
+        // Add the region information
+        PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+
+        // Read velocity coefficient function for this region and add it to velocity functor
+        PtrCoefFct regionMoving;
+        std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
+        //we assume that velocity is real
+        ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
+        VelocityCoef_->AddRegion( actRegion, regionMoving );
+
+        //coef-Fnc for electric conductivity
+        Matrix<Double> reluc;
+        Double conductivity = 0.0;
+
+        // get conductivity
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+        assert(conductivity != 0.0);
+        //PtrCoefFct coeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+
+        // Create the integrators
+        BaseBDBInt   *velocityStiff = NULL;
+
+        // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
+        if( isComplex_ )
+        {
+//          if(dim_ == 2)
+//          {
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new ConvectiveOperator<FeHCurl,2,1,Complex>(), coeff, 1.0, coefUpdateGeo);
+//          }
+//          else
+//          {
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new ConvectiveOperator<FeHCurl,3,1,Complex>(), coeff, 1.0, coefUpdateGeo);
+//          }
+        }
+        else
+        {
+          if(dim_ == 2)
+          {
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),coeff, 1.0, coefUpdateGeo);
+          }
+          else
+          {
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),coeff, 1.0, coefUpdateGeo);
+          }
+        }
+        assert(velocityStiff != NULL);
+
+        velocityStiff->SetBCoefFunctionOpB(VelocityCoef_);
+        velocityStiff->SetName("VelocityStiffInt");
+        velocityInts_[actRegion] = velocityStiff;
+
+        BiLinFormContext *VelocityContextStiff =  new BiLinFormContext(velocityStiff, STIFFNESS );
+        VelocityContextStiff->SetEntities( actSDList, actSDList );
+        VelocityContextStiff->SetFeFunctions( feFunctions_[MAG_POTENTIAL],feFunc);
+        assemble_->AddBiLinearForm( VelocityContextStiff );
+      }
     } // end for regions
 
     // ============================
@@ -956,6 +1050,38 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     permeability->unit = "Vs/Am";
     permeability->definedOn = ResultInfo::ELEMENT;
     permeability->entryType = ResultInfo::SCALAR;
+
+    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+    matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+    DefineFieldResult(permFct, permeability);
+
+    //creates the velocity
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
+    //// === VELOCITY ===
+    shared_ptr<ResultInfo> velocity( new ResultInfo);
+    velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
+    velocity->dofNames = vecDofNames;
+    velocity->unit = "m/s";
+
+    velocity->definedOn = ResultInfo::NODE;
+    velocity->entryType = ResultInfo::VECTOR;
+
+    VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    DefineFieldResult( VelocityCoef_, velocity );
+
+    results_.Push_back( velocity );
+    availResults_.insert( velocity );
+
     // In multiharmonic analysis we have complex permeability
     if(analysistype_ == MULTIHARMONIC){
       shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, true));
@@ -1409,16 +1535,22 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
     // === JOULE LOSS Power DENSITY INTEGRATED OVER PERIOD	 ===
-    if( analysistype_ != STATIC ){
-      shared_ptr<ResultInfo> jld(new ResultInfo);
-      jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
-      jld->dofNames = "";
-      jld->unit = "W/m^3";
-      jld->definedOn = ResultInfo::ELEMENT;
-      jld->entryType = ResultInfo::SCALAR;
-      shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
-      DefineFieldResult( jldCoef, jld );
+    shared_ptr<ResultInfo> jld(new ResultInfo);
+    jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
+    jld->dofNames = "";
+    jld->unit = "W/m^3";
+    jld->definedOn = ResultInfo::ELEMENT;
+    jld->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
+    DefineFieldResult( jldCoef, jld );
 
+    // optimization results are provided in DesignSpace::ExtractResults()
+    DefineFieldResult(PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+
+    if( analysistype_ != STATIC ){
       shared_ptr<ResultInfo> jldN(new ResultInfo);
       jldN->resultType = MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES;
       jldN->dofNames = "";

@@ -12,6 +12,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
 
 
@@ -169,6 +170,10 @@ namespace CoupledField
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
+    void SetSolveVecZero(){
+      solVec_.Init();
+    }
+
   protected:
     
     // ========================================================
@@ -178,20 +183,10 @@ namespace CoupledField
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
     
-    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, 
-                                          const UInt solStep,
-                                          const UInt iterationCounter,
-                                          const Double residualErr, 
-                                          const Double incrementalErr, 
-                                          double etaLineSearch=0.0);
-
-    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, 
-                                          const UInt coupledIterStep,
-                                          const UInt solStep,
-                                          const UInt iterationCounter,
-                                          const Double residualErr, 
-                                          const Double incrementalErr, 
-                                          double etaLineSearch=0.0);
+    /** Checks programOpt->DoDetail()  */
+    void WriteNonLinIterToInfoXML(const std::string& pdeName, UInt solStep,
+                                  UInt iterationCounter, Double residualErr, Double incrementalErr,
+                                  double etaLineSearch, int coupledIterStep = -1);
     
 
     //------------- storage vectors for nonlinear analysis --------------
@@ -271,6 +266,7 @@ namespace CoupledField
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
+    Timer static_non_lin_step_timer_;
 
     std::ofstream logFile_;
     MathParser::HandleType mHandle_;

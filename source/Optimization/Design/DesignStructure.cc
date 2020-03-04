@@ -288,7 +288,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       sum_radius += radius;
       sum_neighbours += neighbors.GetSize();
       if(done && neighbors.GetSize() > 1000) {
-        #pragma omp critical
+        //#pragma omp critical
         in->SetWarning("Filter radius too large. Neighborhood for some elements is bigger than 1000!");
         done = false;
       }
@@ -307,6 +307,28 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     space->density_filter.Push_back(filter_mat);
     int filter_index =space->density_filter.GetSize() - 1 ;
     space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index);
+  }
+
+  if (space->write_matrix_filt && sum_neighbours > 0) {
+    // writes filter matrix to .mtx file for first filter radius > 1
+    DensityFilterMat filter_mat;
+    space->density_filter.Push_back(filter_mat);
+    int filter_index =space->density_filter.GetSize() - 1 ;
+    // This are the designs we deal with
+    unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
+    unsigned int end = start + space->GetNumberOfElements();
+    //std::vector<DesignElement>   sub(&data[start],&data[end]);
+    //StdVector<DesignElement> data_red(sub);
+    //std::vector<DesignElement>::const_iterator first = data.Begin() + start;
+    //std::vector<DesignElement>::const_iterator last = data.Begin() + end;
+    //std::vector<DesignElement> sub(data.Begin() + start, data.Begin() + end);
+    //DesignElement *arrayOfT = &data[0] + start;
+    //size_t arrayOfTLength = (end - start);
+    //StdVector<DesignElement> data_red(arrayOfT);
+    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index,start,end);
+    space->density_filter.Last().ExportDensityFilterMatrix();
+    // makes sure that matrix is only written once for first filter radius > 1
+    space->write_matrix_filt = false;
   }
 }
 

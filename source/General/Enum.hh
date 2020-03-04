@@ -197,7 +197,9 @@ typedef std::multimap<int, std::string> EnumMap;
         const std::string& ToString(T type) const
         {
           EnumMap::const_iterator it = map.find(static_cast<Integer>(type));
-          if(it != map.end()) return it->second;
+
+          if(it != map.end())
+            return it->second;
 
           EXCEPTION("Invalid key " << type << " for '" + name_ + "'");
         }  
@@ -220,7 +222,7 @@ typedef std::multimap<int, std::string> EnumMap;
           {
             if(force_uniqueness)
               EXCEPTION("You want to set " << key << ":'" << value << "' in enum "
-                        << name_ << " but key is already used");
+                        << name_ << " but key is already used with value " << ToString(key));
           }
           
           // check if we already have the value

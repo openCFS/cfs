@@ -443,7 +443,6 @@ namespace CoupledField {
   {
   }
 
-  void LatticeBoltzmannPDE::DefineSurfaceIntegrators() {}
 
   std::map<SolutionType, shared_ptr<FeSpace> > LatticeBoltzmannPDE::CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode )
   {
@@ -457,8 +456,6 @@ namespace CoupledField {
     }
     return crSpaces;
   }
-
-  void LatticeBoltzmannPDE::DefineNcIntegrators() {}
 
   void LatticeBoltzmannPDE::DefineSolveStep()
   {

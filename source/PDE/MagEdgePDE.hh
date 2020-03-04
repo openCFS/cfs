@@ -33,6 +33,9 @@ namespace CoupledField
     //! specifying coil results.
     shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
 
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
+
   protected:
     
     //! Initialize NonLinearities
@@ -125,6 +128,11 @@ namespace CoupledField
     shared_ptr<CoefFunction> multiHarmCoef_;
 
   private:
+    //! This coefficient function describes the velocity field.
+    shared_ptr<CoefFunctionMulti> VelocityCoef_;
+
+    //! store velocity bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> velocityInts_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

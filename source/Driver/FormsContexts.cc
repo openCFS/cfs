@@ -9,6 +9,8 @@
 
 namespace CoupledField {
 
+Enum<BiLinearForm::Type> BiLinearForm::type;
+
 
   BiLinFormContext::BiLinFormContext( BiLinearForm* biLinForm,
                                       FEMatrixType destMat) {
@@ -48,6 +50,19 @@ namespace CoupledField {
     
   }
   
+  void BiLinFormContext::SetEnums()
+  {
+    BiLinearForm::type.SetName("BiLinearForm::Type");
+    BiLinearForm::type.Add(BiLinearForm::NO_BILIN_TYPE, "no bilinear form type");
+    BiLinearForm::type.Add(BiLinearForm::BILIN_WRAPPED_LIN, "BiLinWarappenLinForm");
+    BiLinearForm::type.Add(BiLinearForm::BDB_INT, "BDBInt");
+    BiLinearForm::type.Add(BiLinearForm::BB_INT, "BBInt");
+    BiLinearForm::type.Add(BiLinearForm::AB_INT, "ABInt");
+    BiLinearForm::type.Add(BiLinearForm::ADB_INT, "ABDInt");
+    BiLinearForm::type.Add(BiLinearForm::SINGLE_ENTRY_BILIN_INT, "SingleEntryBiLinInt");
+    BiLinearForm::type.Add(BiLinearForm::IC_MODES_INT, "ICModesInt");
+  }
+
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
                                   EntityIterator& it2,
                                   StdVector<Integer>& eqnVec1, 

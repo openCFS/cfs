@@ -40,6 +40,14 @@ namespace CoupledField
     //! specifying coil results.
     shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
     
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
+
+    bool coilOptimization_;
+
+    //! Is heat source (RHS) definition driven by interface between solid and void?
+    inline bool DoCoilOptimization() { return coilOptimization_; }
+
   protected:
     
     //! Initialize NonLinearities
@@ -55,7 +63,7 @@ namespace CoupledField
     
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators();
-    
+
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
     
@@ -110,7 +118,7 @@ namespace CoupledField
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
     
-    //! Query parameter object for information on coils
+    /** Query parameter object for information on coils */
     void ReadCoils();
     
     //! Initialize time stepping method
@@ -142,6 +150,13 @@ namespace CoupledField
     shared_ptr<CoefFunctionMulti> hysteresisPolarization_;
     shared_ptr<CoefFunctionMulti> hysteresisMagnetization_;
     
+  private:
+    //! This coefficient function describes the velocity field.
+    shared_ptr<CoefFunctionMulti> VelocityCoef_;
+
+    //! store velocity bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> velocityInts_;
+
   };
   
 } // end of namespace

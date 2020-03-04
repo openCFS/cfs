@@ -121,11 +121,13 @@ namespace CoupledField
   
   BiLinFormContext* Assemble::GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1, SinglePDE* pde2, bool silent)
   {
+    //std::cout << "pde1= " << pde1 << "pde2= " << pde2 << "silent= " << silent << std::endl;
     for(std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin(); it != allBiLinForms_.end(); ++it )
     {
       BiLinFormContext& context = **it;
 
-      if(context.GetIntegrator()->GetName() != integrator)
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
         continue;
 
       if(context.GetFirstEntities()->GetRegion() != regionId)
@@ -147,29 +149,27 @@ namespace CoupledField
     return NULL;
   }
 
-  LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearFormContext* Assemble::GetLinForm(const std::string& integrator, RegionIdType regionId, StdPDE* pde, bool silent)
   {
-     LinearForm* result = NULL;
+    for(std::set<LinearFormContext*>::iterator it = allLinForms_.begin(); it != allLinForms_.end(); ++it )
+    {
+      LinearFormContext& context = **it;
 
-     // iterate over all descriptors
-     for(unsigned int i = 0; i < linForms_.GetSize(); i++)
-     {
-       // we are wrong if the region does not match
-       LinearFormContext* lfc = linForms_[i];
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
+        continue;
 
+      if(pde != NULL && pde != context.GetPde())
+        continue;
 
-       // when pde1 is given we compare it by name and continue if the names are different
-       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+      return &context;
+    }
 
-       // we come here because we had no contradiction - check for uniqueness
-       if(result != NULL) throw Exception("parameters not unique!");
-       result = lfc->GetIntegrator();
-     }
+    if(!silent)
+      EXCEPTION("cannot find integrator " << integrator << " in region " << domain->GetGrid()->GetRegion().ToString(regionId)
+                << " for pde=" << (pde != NULL ? pde->GetName() : "null"));
 
-     if(result == NULL && !silent)
-       EXCEPTION("LinearFormContext '" << integrator << "' not found");
-     return result;
+    return NULL;
   }
 
   bool Assemble::UseRegion(RegionIdType reg)
@@ -278,6 +278,9 @@ namespace CoupledField
     assert(linContext->GetPde() != NULL);
     assert(linContext->GetEntities() != NULL);
     assert(linContext->GetPde()->GetAnalysisType() == analysisType_);
+
+    // Store linear form
+    allLinForms_.insert(linContext);
 
     linForms_.Push_back(linContext);
 
@@ -485,18 +488,19 @@ namespace CoupledField
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
 
-      if( printProgressBar_)
+      if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
 
-      if ( !isNewtonPart) {
+      if(!isNewtonPart)
+      {
         // First loop over all integrators to check, if any of them
         // gets re-assembled
         // Loop over all bilinearforms
         bool anyReassemble = false;
 
-        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
-
+        for(UInt iForm = 0; iForm < forms.GetSize(); ++iForm)
+        {
           BiLinFormContext & actContext = *forms[iForm];
 
           // get matrix destinations
@@ -506,13 +510,12 @@ namespace CoupledField
           // If assemble was already called and the current destination
           // matrix must not be reassembled -> continue with next iterator
           if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
-            continue;
+            continue; // check next form
           anyReassemble = true;
-        }
-        if( !anyReassemble ) {
-          continue;
-        }
-      }
+        } // end form loop
+        if(!anyReassemble)
+          continue; // assemble next bilin form
+      } // end !isNewtonPart
 
 
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
@@ -544,13 +547,12 @@ namespace CoupledField
       it1.Begin();
       it2.Begin();
       //take account for const space
-      if( firstEntities.GetSize() != 1 ) {
+      if(firstEntities.GetSize() != 1 ) {
         it1+=start;
       }
       if( secondEntities.GetSize() != 1 ) {
         it2+=start;
       }
-
 
       Matrix<Double> elemMatrix;
       Matrix<Complex> elemMatrixC;
@@ -584,9 +586,8 @@ namespace CoupledField
             // If assemble was already called and the current destination
             // matrix must not be reassembled -> continue with next iterator
             if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
-              continue;
-            }
-
+              continue; // check next form
+          }
           // Update flag
           matrixUpdated_ = true;
           BiLinearForm * form =nullptr;
@@ -609,7 +610,9 @@ namespace CoupledField
               LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString(2);
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              LOG_DBG3(assemble) << "AM_Std: real CEM -> " << elemMatrix.ToString(2);
+              if(it1.IsElemType())
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+              LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString(2);
               if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
@@ -1529,11 +1532,11 @@ namespace CoupledField
   
   void Assemble::AssembleLinRHS()
   {
-    AssembleRHSLinForms(false );
+    AssembleRHSLinForms(false);
   }
 
   void Assemble::AssembleNonLinRHS() {
-    AssembleRHSLinForms(true );
+    AssembleRHSLinForms(true);
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
@@ -1612,14 +1615,15 @@ namespace CoupledField
 
             // Calculate real valued element vector
             // check if only the real part of a complex value shall be considered
-            if( form->IsExtractReal()  ){
+            if( form->IsExtractReal() ){
             	Vector<Complex> tmp;
             	form->CalcElemVector(tmp, entIt);
             	elemVec = tmp.GetPart(Global::REAL);
             }else{
             	form->CalcElemVector(elemVec, entIt);
             }
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
 
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);
@@ -1659,6 +1663,7 @@ namespace CoupledField
       PtrParamNode inf = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
       inf->Get("integrator")->SetValue(form->GetName());
+      inf->Get("type")->SetValue(form->type.ToString(form->GetType()));
       inf->Get("complex")->SetValue(form->IsComplex());
 
       BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
@@ -1768,19 +1773,16 @@ namespace CoupledField
 
       // region name of entity list
       std::string regionName;
-      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
-      {
+      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
         shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
-      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
-      {
+      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST ) {
         shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
 
       form->Get("region")->SetValue(regionName);
-      
 
       // add information about row / column coordinate
       PtrParamNode row = form->Get("row", ParamNode::APPEND);
@@ -1796,7 +1798,6 @@ namespace CoupledField
       // isSolDependent
       tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
       row->Get("solutionDependent")->SetValue( tmp );
-
     }
   }
 
@@ -1805,8 +1806,7 @@ namespace CoupledField
     // iterate over all bilinearforms
     std::set<BiLinFormContext*>::iterator it;
 
-    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
-    {
+    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
@@ -1814,7 +1814,6 @@ namespace CoupledField
     		  || analysisType_ ==BasePDE::INVERSESOURCE
 			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
-        
         matReassemble_[actContext.GetDestMat()] = true;
         if ( actContext.GetSecDestMat() != NOTYPE )
           matReassemble_[actContext.GetSecDestMat()] = true;
@@ -1856,7 +1855,6 @@ namespace CoupledField
         LOG_DBG(assemble) <<  "\t" << feMatrixType.ToString(it2->first)
                     << ": " << (it2->second ? "true" : "false");
       }
-
     }
   }
 

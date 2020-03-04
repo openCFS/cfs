@@ -69,6 +69,9 @@ public:
    * assert() if vector exists (debug mode, NULL in release) */
   SingleVector* GetVector(StorageType st);
 
+  template<class T>
+  Vector<T>& GetVectorRef(StorageType st);
+
   /** return (eventually create) a nodal vector.
    *  creates what is desired when the vector does not exist yet and hence always return a vector.
    * @see GetVector() */
@@ -112,7 +115,6 @@ private:
   template<class T>
   void Write(SinglePDE* pde);
 
-  /** common helper for the Get*Vector() stuff */
   template<class T>
   SingleVector* GetVector(StorageType st, bool create);
 

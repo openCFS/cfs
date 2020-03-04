@@ -1383,7 +1383,6 @@ namespace CoupledField {
         delim = fap.delim;
       }
       
-      
       // print out information
       if( isComplex_ ){
         // cast solution vector
@@ -2065,7 +2064,7 @@ namespace CoupledField {
     // =====================================================================
     // homogeneous Dirichlet BC
     // =====================================================================
-    // iterate over all available result tyes
+    // iterate over all available result types
     std::map<SolutionType,std::string>::const_iterator hdbcIt;
     hdbcIt = hdbcSolNameMap_.begin();
     for( ; hdbcIt != hdbcSolNameMap_.end(); ++hdbcIt ) {
@@ -3346,6 +3345,17 @@ namespace CoupledField {
     availResults_.insert(res);
   }
   
+  void SinglePDE::DefineFieldResult(SolutionType solType, ResultInfo::EntryType entryType, ResultInfo::EntityUnknownType definedOn, const std::string& dofNames, bool fromOptimization)
+  {
+    shared_ptr<ResultInfo> ri(new ResultInfo);
+    ri->resultType = solType;
+    ri->entryType = entryType;
+    ri->definedOn = definedOn;
+    ri->dofNames = dofNames;
+    ri->fromOptimization = fromOptimization;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ri);
+  }
+
   void SinglePDE::DefineTimeDerivResult( SolutionType derivSolType,
                                          UInt timeDerivOrder,
                                          SolutionType primSolType ) {

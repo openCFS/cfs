@@ -35,11 +35,13 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
+#include "Optimization/MagSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
 #include "Optimization/ShapeMapping.hh"
+#include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
@@ -366,6 +368,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
   Function::type.Add(Function::OVERHANG_VERT, "overhang_vert");
   Function::type.Add(Function::OVERHANG_HOR, "overhang_hor");
+  Function::type.Add(Function::CONES, "cones");
   Function::type.Add(Function::DESIGN, "design");
   Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
   Function::type.Add(Function::PERIODIC, "periodic");
@@ -395,6 +398,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
+  Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
+  Function::type.Add(Function::MAG_COUPLING,"magCoupling");
 
   Function::slackFnct.SetName("Function::SlackFnct");
   Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
@@ -472,6 +480,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
@@ -484,6 +493,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MAG, "magnetic");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
   OptimizationMaterial::system.Add(OptimizationMaterial::LBM, "lbm");
 
@@ -491,6 +501,7 @@ void Optimization::SetEnums()
   application.Add(App::NO_APP, "no_app");
   application.Add(App::ACOUSTIC, "acoustic");
   application.Add(App::HEAT, "heat");
+  application.Add(App::MAG, "magnetic");
   application.Add(App::LAPLACE, "laplace");
   application.Add(App::MECH, "mech");
   application.Add(App::MASS, "mass");
@@ -648,6 +659,10 @@ Optimization* Optimization::CreateInstance()
       opt = new PiezoSIMP();
       break;
 
+    case OptimizationMaterial::MAG:
+      opt = new MagSIMP();
+      break;
+
     default:
       assert(false);
       break;
@@ -670,6 +685,9 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SHAPE_MAP:
     opt = new ShapeMapping();
+    break;
+  case ErsatzMaterial::SPLINE_BOX:
+    opt = new SplineBoxOpt();
     break;
   default: throw Exception("Optimization not implemented");
   }
@@ -720,7 +738,12 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
+  // easy case
+  if(context->DoMultiSequence() || context->DoLBM())
+    return true;
+
+  // don't do it within forward when we can do it later
+  if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
     return true;
   else
     return false;

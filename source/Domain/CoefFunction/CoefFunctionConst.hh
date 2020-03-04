@@ -56,10 +56,16 @@ public:
   }
 
   //! \copydoc CoefFunction::GetTensor
- void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm) {
-   // we are the const version
-   GetTensor(coefMat);
- }
+  void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm) {
+    // we are the const version
+    GetTensor(coefMat);
+  }
+
+  const Matrix<T>& GetTensor() const
+  {
+    assert(dimType_ == TENSOR);
+    return constCoefMat_;
+  }
 
   //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<T>& coefVec, const LocPointMapped& lpm )
@@ -104,13 +110,18 @@ public:
       coefVec = coefVec_;
   }
 
+  const Vector<T>& GetVector() const {
+      assert(this->dimType_ == VECTOR);
+      return coefVec_;
+    }
 
 
   /** special CoefFunctionConst variant without lpm which is not used anyway! */
-  T GetScalar() {
+  T GetScalar() const {
     assert(this->dimType_ == SCALAR);
     return coefScalar_;
   }
+
 
   /** special CoefFunctionConst variant without lpm which is not used anyway! */
   void GetScalar(T& coefScalar) {

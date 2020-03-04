@@ -17,6 +17,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -185,6 +186,43 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
       return false;
   }
 
+}
+
+BaseDesignElement::Type BaseDesignElement::MapSolutionType(SolutionType soltype, bool throw_exception)
+{
+  switch(soltype)
+  {
+  case MECH_PSEUDO_DENSITY:
+  case PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+    return DENSITY;
+
+  case RHS_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+    return RHS_DENSITY;
+
+  default:
+    break;
+  }
+
+  if(throw_exception)
+    EXCEPTION("no DesignElement::Type for SolutionType " << soltype);
+
+  return NO_TYPE;
+}
+
+bool BaseDesignElement::IsPhysical(SolutionType soltype)
+{
+  switch(soltype)
+  {
+  case PHYSICAL_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+  case ELEC_PHYSICAL_PSEUDO_DENSITY:
+    return true;
+
+  default:
+    return false;
+  }
 }
 
 BaseDesignElement::BaseDesignElement(Type t) {
@@ -388,6 +426,7 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
   switch(ctxt->ToApp()) // will fail for piezo ?!
   {
   case App::MECH:
+  case App::MAG:
     return DENSITY;
   case App::ACOUSTIC:
     return ACOU_DENSITY;
@@ -564,7 +603,12 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PROJECTION
       || rd.value == SHAPE_MAP_GRAD
       || rd.value == SHAPE_MAP_ORDER
-      || rd.value == SHAPE_MAP_CORNER)
+      || rd.value == SHAPE_MAP_CORNER
+      || rd.value == SPLINE_BOX_GRAD_X
+      || rd.value == SPLINE_BOX_GRAD_Y
+      || rd.value == SPLINE_BOX_GRAD_Z
+      || rd.value == SPLINE_BOX_INT_ORDER
+      || rd.value == SPLINE_BOX_INT_CORNER)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -580,7 +624,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     if(dofs == 1)
     {
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(NULL);
+        out[0] = GetPhysicalDesign(Optimization::context);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(Optimization::context);
       else
@@ -730,7 +774,7 @@ double DesignElement::GetPhysicalDesign(const Context* ctxt) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
+  return(type_ == DENSITY || type_ == RHS_DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
 }
 
 
@@ -848,6 +892,7 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
+  type.Add(RHS_DENSITY, "rhsDensity");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");
@@ -906,6 +951,8 @@ void DesignElement::SetEnums()
   type.Add(INTERPOLATION, "interpolation");
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
+  type.Add(SPLINE_BOX, "spline_box");
+  type.Add(CP, "controlpoint");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
@@ -934,6 +981,11 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
   valueSpecifier.Add(SHAPE_MAP_ORDER, "shapeMapIntOrder");
   valueSpecifier.Add(SHAPE_MAP_CORNER, "shapeMapMinMaxCorner");
+  valueSpecifier.Add(SPLINE_BOX_GRAD_X, "splineBoxGradX");
+  valueSpecifier.Add(SPLINE_BOX_GRAD_Y, "splineBoxGradY");
+  valueSpecifier.Add(SPLINE_BOX_GRAD_Z, "splineBoxGradZ");
+  valueSpecifier.Add(SPLINE_BOX_INT_ORDER, "splineBoxIntOrder");
+  valueSpecifier.Add(SPLINE_BOX_INT_CORNER, "splineBoxMinMaxCorner");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
@@ -976,6 +1028,7 @@ void DesignElement::SetEnums()
   detail.Add(SM_NODE_A, "node_a");
   detail.Add(SM_NODE_B, "node_b");
   detail.Add(SM_PROFILE, "profile");
+  detail.Add(SP_CP, "controlpoint");
 }
 
 

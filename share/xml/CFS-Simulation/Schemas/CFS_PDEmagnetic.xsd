@@ -40,9 +40,9 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
-                      > </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -73,6 +73,15 @@
                 </xsd:element>
               </xsd:choice>
 
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Type of velocity (optional) -->
+          <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="velocity" type="DT_BcInhomVector"/>
+              </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
@@ -318,6 +327,25 @@
       <xsd:enumeration value="magPolarization"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
+      
+      <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
+      <xsd:enumeration value="pseudoDensity" />
+      <!-- physical application of design variable in the simulation -->
+      <xsd:enumeration value="physicalPseudoDensity" />
+      <!-- topology optimization for coils - the variable itself for non-magnetic materials, e.g. copper -->
+      <xsd:enumeration value="rhsPseudoDensity" />
+      <!-- physical (filtered) variant -->
+      <xsd:enumeration value="physicalRhsPseudoDensity" />
+      <!-- further element results from optimization, specifically configured in optimization --> 
+      <xsd:enumeration value="optResult_1"/>
+      <xsd:enumeration value="optResult_2"/>
+      <xsd:enumeration value="optResult_3"/>
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -151,7 +151,12 @@ public:
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
     SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
     SHAPE_MAP_ORDER, /* the number of integration points for this element */
-    SHAPE_MAP_CORNER /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
+    SHAPE_MAP_CORNER, /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
+    SPLINE_BOX_GRAD_X, /* gradient (sum over all ip w.r.t. control point movement in x direction) for a rho element for spline box mapping */
+    SPLINE_BOX_GRAD_Y, /* gradient (sum over all ip w.r.t. control point movement in y direction) for a rho element for spline box mapping */
+    SPLINE_BOX_GRAD_Z, /* gradient (sum over all ip w.r.t. control point movement in z direction) for a rho element for spline box mapping */
+    SPLINE_BOX_INT_ORDER, /* the number of integration points for this element */
+    SPLINE_BOX_INT_CORNER /* the difference between the minimal and maximal corner values*/
   } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
@@ -162,11 +167,21 @@ public:
                    MECH_TRACE = -7, // MECH_11, MECH_22, MECH_33
                    MECH_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16, MECH_22, MECH_23, MECH_24, MECH_25, MECH_26, MECH_33, MECH_34, MECH_35, MECH_36,MECH_44, MECH_45, MECH_46, MECH_55, MECH_56, MECH_66, SLACK, ALPHA,
+                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA = 12,
+                   MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16,
+                   MECH_22, MECH_23, MECH_24, MECH_25, MECH_26,
+                   MECH_33, MECH_34, MECH_35, MECH_36,
+                   MECH_44, MECH_45, MECH_46,
+                   MECH_55, MECH_56,
+                   MECH_66,
+                   SLACK = 34, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD,
-                   MULTIMATERIAL, INTERPOLATION,
-                   NODE, PROFILE, ALL_DESIGNS } Type;
+                   ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, 
+                   MULTIMATERIAL,INTERPOLATION,
+                   NODE, PROFILE, // shape mapping 
+                   RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
+                   SPLINE_BOX, CP,
+                   ALL_DESIGNS } Type;
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -187,6 +202,16 @@ public:
    * @see ShapeMapDesign::Convert() */
   static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE || type == SHAPE_MAP; }
 
+  /** maps from SolutionType to DesignElement::Type. In the PHYSICAL_* case to the standard case */
+  static Type MapSolutionType(SolutionType soltype, bool throw_exception = true);
+
+  /** checks if this is a physical solution type where we filter and penalize */
+  static bool IsPhysical(SolutionType soltype);
+
+  /** checks if the type is a splinebox feature mapping type.
+   * @see ShapeMapDesign::Convert() */
+  static bool IsSplineBoxType(Type type) { return type == SPLINE_BOX || type == CP; }
+
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
 
@@ -201,7 +226,7 @@ public:
   unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
 
   /** When only part of the design space is really for optimization (e.g. ShapeMapDesign with symmetry) the design exported
-   * to the optimizers need their own consecutive index returned by GetOptIndex() -> overloaded is ShapeParamElement */
+   * to the optimizers need their own consecutive index returned by GetOptIndex() -> overloaded in ShapeParamElement */
   virtual unsigned int GetOptIndex() const { return GetIndex(); }
 
   /** returns the type */
@@ -306,8 +331,7 @@ public:
   ShapeDesignElement(unsigned int index);
 };
 
-
-/** for ShapeMapDesign. Holds a shape parameter. E.g. node with dof=x ny+1 times with ny is number of elements */
+/** for FeaturedDesign. Holds a shape parameter. E.g. node with dof=x ny+1 times with ny is number of elements */
 class ShapeParamElement : public BaseDesignElement
 {
 public:
@@ -402,7 +426,8 @@ public:
       SM_NODE, /*!< for 2D shape map */
       SM_NODE_A, /*!< for 3D shape map */
       SM_NODE_B, /*!< for 3D shape map */
-      SM_PROFILE  /*!< for shape map */
+      SM_PROFILE,  /*!< for shape map */
+      SP_CP, /*!< for spline box mapping */
     } Detail;
 
     /** Gets the design element

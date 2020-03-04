@@ -429,8 +429,8 @@ bool SnOpt::get_nlp_info()
 
 bool SnOpt::eval_f(int n, const double* x, double &obj_value)
 {
-  LOG_DBG(snopt) << "eval_f";
   obj_value = EvalObjective(n, x, true); // as with SCPIP we do always autoscale!
+  LOG_DBG(snopt) << "eval_f -> " << obj_value;
   return true;
 }
 

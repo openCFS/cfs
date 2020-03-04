@@ -1,16 +1,19 @@
 SET(UTILS_SRCS
   ApproxData.cc
+  BiLinInterpolate.cc
+  BiCubicInterpolate.cc
+  TriCubicInterpolate.cc
+  BSpline.cc
   Coil.cc
   Interpolate1D.cc
   LinInterpolate.cc
-  BiLinInterpolate.cc
-  TriLinInterpolate.cc
   mathfunctions.cc
-  Polynomial.cc
-  Timer.cc
-  SmoothSpline.cc
-  tools.cc
   Point.cc
+  Polynomial.cc
+  SmoothSpline.cc
+  Timer.cc
+  tools.cc
+  TriLinInterpolate.cc
   )
 
 ADD_LIBRARY(utils STATIC ${UTILS_SRCS})

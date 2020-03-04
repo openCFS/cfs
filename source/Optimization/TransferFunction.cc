@@ -108,6 +108,8 @@ App::Type TransferFunction::Default(const Context* ctxt)
     return App::LAPLACE;
   case App::LBM:
     return App::LBM;
+  case App::MAG:
+    return App::MAG;
   default:
     throw Exception("invalid");
   }
@@ -159,10 +161,16 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
     return App::MECH;
+
   case DesignElement::ACOU_DENSITY:
     return App::LAPLACE;
+
   case DesignElement::POLARIZATION:
     return App::PIEZO_COUPLING;
+
+  case DesignElement::RHS_DENSITY:
+    return App::MAG;
+
   default:
     throw Exception("invalid request for transfer function");
   }

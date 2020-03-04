@@ -6,6 +6,7 @@ SET(OPTIMIZATION_SRCS
   Condition.cc
   ShapeOpt.cc
   ShapeMapping.cc
+  SplineBoxOpt.cc
   TopGrad.cc
   OptimizationMaterial.cc
   Excitation.cc
@@ -13,6 +14,7 @@ SET(OPTIMIZATION_SRCS
   StateSolution.cc
   SIMP.cc
   PiezoSIMP.cc
+  MagSIMP.cc
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc

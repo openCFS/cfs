@@ -343,7 +343,7 @@ void Domain::PostInit(UInt sequenceStep)
 
   // For optimization the design needs to be already set to initialize the proper material coefficients
   // in the multisequence case init does something else and was already called above
-  // not that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
+  // note that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
   if(domain->GetMultiSequenceDriver() == NULL)
     driver->Init(restart);
 

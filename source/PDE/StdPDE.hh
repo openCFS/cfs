@@ -128,16 +128,16 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>  GetMaterialData() { return materials_; }
     
     //! Return assemble class, which holds all integrators
-    Assemble * GetAssemble() { return assemble_; }
+    Assemble* GetAssemble() { return assemble_; }
     
     //! Return all regions of the PDE
     StdVector<RegionIdType> GetRegions() { return regions_; }
     
     //! Return pointer to algebraic system
-    AlgebraicSys * GetAlgSys() { return algsys_; }
+    AlgebraicSys* GetAlgSys() { return algsys_; }
     
     //! Return pointer to grid the PDE is defined on
-    Grid * GetGrid() { return ptGrid_; }
+    Grid* GetGrid() { return ptGrid_; }
     
     /** Give the damping type by region.
      * @return NONE if no damping in map! */

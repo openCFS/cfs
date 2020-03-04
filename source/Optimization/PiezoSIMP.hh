@@ -55,17 +55,17 @@ protected:
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form App::ELEC and
    * App::PIEZO_COUPLING ( + transposed) */
-  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
+  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
   {
-    if(ctxt->IsComplex())
-      SetElementK<std::complex<double>, double >(ctxt, de, tf, app, out, derivative, calcMode, ev);
+    if(f->ctxt->IsComplex())
+      SetElementK<std::complex<double>, double >( f, de, tf, app, out, derivative, calcMode, ev);
     else
-      SetElementK<double, double>(ctxt, de, tf, app, out, derivative, calcMode, ev);
+      SetElementK<double, double>( f, de, tf, app, out, derivative, calcMode, ev);
   }
 private:
 
   template <class T1, class T2>
-  void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
 
   /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */

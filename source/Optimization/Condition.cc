@@ -80,10 +80,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // validated in StressConstraint::GetApplications()
   stressType_ = stressType.Parse(pn->Get("stress")->As<string>());
 
-  // default is set in Function, may this moves later to Function, too
-  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
-    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
-
   // set number of displacement constraints realized by multiple output constraints
   if (pn->Has("output") && pn->Get("output")->Has("displacement") && pn->Get("output")->Get("displacement")->Has("multiple_nodes"))
     output_multiple_nodes = pn->Get("output")->Get("displacement")->Get("multiple_nodes")->As<double>();
@@ -839,9 +835,6 @@ void Condition::ToInfo(PtrParamNode in)
   //  in->Get("delta_logging")->SetWarning("no value given");
   // else
   //  in->Get("delta_logging")->SetValue(delta_logging);
-
-  if(region != ALL_REGIONS)
-    in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
 
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());

@@ -47,6 +47,10 @@ namespace CoupledField {
     //! MatrixEntryType.
     virtual BaseMatrix::EntryType GetEntryType() const = 0;
 
+
+    /** is the entry type a constant one? */
+    bool IsComplex() const { return GetEntryType() == BaseMatrix::COMPLEX || GetEntryType() == BaseMatrix::F77COMPLEX16; }
+
     //! Export vector to file
 
     //! This method can be used to export the vector to an ascii file. The

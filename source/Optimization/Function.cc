@@ -23,9 +23,10 @@
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
@@ -89,6 +90,10 @@ Function::Function(PtrParamNode pn) {
   this->type_ = type.Parse(pn->Get("type")->As<string>());
 
   slackFnct_ = slackFnct.Parse(pn->Get("function")->As<string>());
+
+  // default is set in Function, may this moves later to Function, too
+  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
+    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
 
   if(type_ == SLACK_FNCT && slackFnct_ == NO_FUNCTION)
     EXCEPTION("a function 'slackFunction' requires the attribute 'function' to be set");
@@ -171,6 +176,23 @@ Function::Function(PtrParamNode pn) {
       throw Exception("'overhang' function requires design to be set to shape variables ('shape_map')");
     break;
 
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+    if(domain->GetGrid()->IsAxi())
+      throw Exception("not for axis symmetric setting: " + type.ToString(type_));
+    break;
+
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  if(!domain->GetGrid()->IsAxi())
+      throw Exception("only for axis symmetric setting: " + type.ToString(type_));
+  break;
+
+  case CONES:
+    if(!BaseDesignElement::IsSplineBoxType(design_))
+      throw Exception("'cones' function requires design to be set to spline box variables");
+    break;
+
   default:
     break;
   }
@@ -186,6 +208,7 @@ Function::Function(PtrParamNode pn) {
   case PERIODIC:
   case CURVATURE:
   case OVERHANG_VERT:
+  case CONES: // might be also nonlinear in the future
     linear_ = true;
     break;
 //  case TENSOR_TRACE:
@@ -232,8 +255,7 @@ void Function::Init() {
   // function value to be evaluated
   this->value_ = -1.0;
 
-  // -2 is unset, -1 is all, >= 0 the excitation index
-  this->excite_ = -1;
+  this->excite_ = UNSET_EX;
   this->sample_excitation_ = NULL;
   this->excite_sensitive_ = false;
 
@@ -350,6 +372,9 @@ void Function::ToInfo(PtrParamNode info) {
 
   info->Get("filtered")->SetValue(ForDensityFiltering() || ForSensitivityFiltering());
 
+  if(region != ALL_REGIONS)
+    info->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
+
   if(local != NULL)
     local->ToInfo(info_);
 }
@@ -427,6 +452,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -448,9 +474,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
-  case PRESSURE_DROP:
-  case HEAT_ENEGRY:
-  case TEMP_TRACKING_AT_INTERFACE:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
@@ -484,7 +507,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     }
     break;
 
-  // this stuff is to be avaluated always
+  // this stuff is to be evaluated always
   case COMPLIANCE:
   case OUTPUT:
   case SQUARED_OUTPUT:
@@ -496,13 +519,30 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case ELEC_ENERGY:
   case TEMPERATURE:
+  case PRESSURE_DROP:
+  case HEAT_ENEGRY:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case TEMP_TRACKING_AT_INTERFACE:
     assert(excite_index < 0);
-    if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
-      excite_ = -1; // all excitations within this sequence/ context
-    else {
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all") {
+      excite_ = ALL_EX; // all excitations within this sequence/ context
+      // why is there no excite_sensitive_ = true; ??
+    } else {
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       excite_sensitive_ = true;
     }
+    break;
+
+  case MAG_COUPLING:
+    // enforces the excitation to be manually set to "0_1" for the first two excitations
+    assert(excite_index < 0);
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() != "0_1")
+       throw Exception("function " + type.ToString(MAG_COUPLING) + " requires excitation='0_1'");
+    excite_ = COMBINED_0_1_EX;
+    excite_sensitive_ = true;
     break;
 
   case STRESS:
@@ -510,9 +550,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
-      excite_ = excite_index == -2 ? -1 : excite_index;
+      excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
     } else {
-      assert(excite_index == -2); // assert there is no conflict
+      assert(excite_index == UNSET_EX); // assert there is no conflict
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
     }
     excite_sensitive_ = true;
@@ -533,11 +573,14 @@ bool Function::DoEvaluate(const Excitation* excite) const {
   if(DoEvaluateAlways(excite->sequence))
     return true;
 
+  if(excite_ == COMBINED_0_1_EX)
+    return excite->index == 0 || excite->index == 1;
+
   return excite->index == excite_;
 }
 
 bool Function::DoEvaluateAlways(int context_sequence) const {
-  if(excite_ != -1)
+  if(excite_ != ALL_EX)
     return false;
 
   return ctxt->sequence == context_sequence; // excite_ == -1 is already assured
@@ -562,6 +605,11 @@ bool Function::IsAdjointBased() const {
   case STRESS:
   case STRESS_DENSITY:
   case TEMP_TRACKING_AT_INTERFACE:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case MAG_COUPLING:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -642,6 +690,7 @@ bool Function::IsLocal(Type t) {
   case CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case PERIODIC:
   case DESIGN:
   case SUM_MODULI:
@@ -732,6 +781,11 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS_DENSITY:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case MAG_COUPLING:
   case EIGENFREQUENCY:
   case BANDGAP:
   case FILTERING_GAP:
@@ -757,6 +811,7 @@ bool Function::ForSensitivityFiltering() const {
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -840,18 +895,21 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
           DesignElement* de = &(space->data[i]);
           elements.Push_back(de);
         }
-      } else {
-        for (unsigned int i = 0; i < space->data.GetSize(); i++) {
+      } else
+      {
+        for(unsigned int i = 0; i < space->data.GetSize(); i++)
+        {
           DesignElement* de = &(space->data[i]);
-          if(DesignElement::IsCompatible(design_, de->GetType())
-             && (region == ALL_REGIONS || de->elem->regionId == region))
+          if(DesignElement::IsCompatible(design_, de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
             elements.Push_back(de);
         }
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      if(type_ != STRESS && type_ != STRESS_DENSITY)
+      //TODO help, this is ugly
+      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING && type_ != LOSS_MAG_FLUX_RZ)
       {
+        string a = grid->GetRegion().ToString(region);
         string msg = "region " + grid->GetRegion().ToString(region)
             + " of condition " + type.ToString(type_)
             + " not within design domain";
@@ -899,7 +957,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
 {
   if(BaseDesignElement::IsShapeMapType(design_))
   {
-    if(space->GetNumberOfShapeMappingVariables() == 0)
+    if(space->GetNumberOfFeatureMappingVariables() == 0)
       EXCEPTION("Function " << ToString() << " has shape mapping design type '" << BaseDesignElement::type.ToString(design_) << "' but 'ersatzMaterial@method' is not 'shapeMap'");
     if(!IsLocal(type_))
       EXCEPTION("Shape mapping design type " << BaseDesignElement::type.ToString(design_) << " for non-local function " << ToString());
@@ -921,6 +979,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case CONES:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -1007,7 +1066,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     //read interpolation data for volume calculation in 3D
     //std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
     string p_node = "";
-    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1) {
+    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1 || space->getDesignMaterialType() == DesignMaterial::SGP_MATLAB) {
       p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homRectC1";
     } else {
       p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1";
@@ -1110,6 +1169,12 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
+    break;
+
+  case CONES:
+    if(locality_ != MULT_DESIGNS_PREV_NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_PREV_NEXT;
     break;
 
   case GLOBAL_SLOPE:
@@ -1226,7 +1291,8 @@ void Function::Local::PostInit()
 
   // this is actually pure constructor work, just extracted to handle function size
   ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
-  assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
+  SplineBoxDesign* sbd = dynamic_cast<SplineBoxDesign*>(space);
+  assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfFeatureMappingVariables() == 0));
 
   switch (locality_)
   {
@@ -1260,6 +1326,8 @@ void Function::Local::PostInit()
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
       smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
+    else if(BaseDesignElement::IsSplineBoxType(func_->GetDesignType()))
+      sbd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupMultDesignsVirtualElementMap(func_);
     break;
@@ -1282,6 +1350,8 @@ void Function::Local::PostInit()
   default:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
       smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
+    else if(BaseDesignElement::IsSplineBoxType(func_->GetDesignType()))
+      sbd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupVirtualElementMap(phase_);
     break;
@@ -2040,6 +2110,16 @@ Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseD
   this->sign = si;
 }
 
+Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, StdVector<BaseDesignElement*> sb_buddies, int si)
+{
+  this->element = elem;
+  this->neighbor = buddies;
+  this->sb_neighbor = sb_buddies;
+  assert(sb_buddies.GetSize() == 2 * domain->GetGrid()->GetDim());
+  assert(elem->GetType() == DesignElement::Type::CP && si >= -12 && si <= 12);
+  this->sign = si;
+}
+
 const BaseDesignElement* Function::Local::Identifier::GetElementByType(DesignElement::Type type) const
 {
   for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
@@ -2129,6 +2209,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case OVERHANG_VERT:
   case OVERHANG_HOR:
     fv = CalcOverhang(f->type_, local->eps_); // not GetEps() as we don't need it for VERT
+    break;
+
+  case CONES:
+    fv = CalcCones(local);
     break;
 
   case SUM_MODULI:
@@ -2312,6 +2396,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case OVERHANG_VERT:
     case OVERHANG_HOR:
       gv = CalcOverhangGradient(n, g->type_, local->eps_); // no GetEps()!
+      break;
+
+    case CONES:
+      gv = CalcConesGradient(n, local);
       break;
 
     case STRESS:
@@ -2560,6 +2648,220 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
     return df;
 }
 
+double Function::Local::Identifier::CalcCones(const Local* local) const {
+  assert(local->GetLocality() == MULT_DESIGNS_PREV_NEXT);
+  unsigned int dim = domain->GetGrid()->GetDim();
+
+  assert(sb_neighbor.GetSize() == 2 * dim);
+  assert(element->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < neighbor.GetSize(); ++i)
+    assert(neighbor[i]->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < sb_neighbor.GetSize(); ++i)
+    assert(sb_neighbor[i]->GetType() == DesignElement::CP);
+
+  // this->x is implicit, then this->y, then this->z, then either prev->x ... or next->x ...
+  double x, y, z, xo, yo, zo;
+  x = sb_neighbor[0]->GetPlainDesignValue(); // this
+  y = sb_neighbor[1]->GetPlainDesignValue();
+  if(dim == 2) {
+    xo = sb_neighbor[2]->GetPlainDesignValue(); // other
+    yo = sb_neighbor[3]->GetPlainDesignValue();
+  } else {
+    z = sb_neighbor[2]->GetPlainDesignValue();
+    xo = sb_neighbor[3]->GetPlainDesignValue(); // other
+    yo = sb_neighbor[4]->GetPlainDesignValue();
+    zo = sb_neighbor[5]->GetPlainDesignValue();
+  }
+
+  // add initial control point position to design elements
+  SplineBoxDesign* sbd = dynamic_cast<SplineBoxDesign*>(local->space);
+  // intentional integer division
+  unsigned int cp_idx_e = sb_neighbor[0]->GetIndex() / dim;
+  unsigned int cp_idx_n = sb_neighbor[3]->GetIndex() / dim;
+  Point cp_e = sbd->GetInitialControlPoint(cp_idx_e);
+  Point cp_n = sbd->GetInitialControlPoint(cp_idx_n);
+  x += cp_e[0];
+  y += cp_e[1];
+  z += cp_e[2];
+  xo += cp_n[0];
+  yo += cp_n[1];
+  zo += cp_n[2];
+
+
+  assert(sign >= -12 && sign <= 12);
+  assert((dim == 2 && sign >= -4 && sign <= 4) || dim == 3);
+
+  double angle = local->func_->parameter_;
+  assert(angle >= 0);
+  double tana = std::tan(angle/180. * M_PI);
+
+  double res = -1.0;
+
+  // in the following comments we have comment(x) = code(xo) - code(x),
+  // comment(x_0) = code(x), comment(x_1) = code(xo) and comment(a|b_*) = code(tana)
+  // cases 1 and 2 describe cone in x direction,
+  // cases 3 and 4 describe cone in y direction
+  if(dim == 2) {
+    switch(std::abs(sign)) {
+    case 1:
+      // a_1 * x >= y -> - a_1 * x + y <= 0 -> - a_1 * x_1 + a_1 * x_0 + y_1 - y_0 <= 0
+      res =   tana * x - y - tana * xo + yo;
+      break;
+    case 2:
+      // a_2 * x >= -y -> - a_2 * x - y <= 0 -> - a_2 * x_1 + a_2 * x_0 - y_1 + y_0 <= 0
+      res =   tana * x + y - tana * xo - yo;
+      break;
+    case 3:
+      // b_1 * y >= x -> x - b_1 * y <= 0 -> x_1 - x_0 - b_1 * y_1 + b_1 * y_0 <= 0
+      res = - x + tana * y + xo - tana * yo;
+      break;
+    case 4:
+      // b_2 * y >= - x -> - x - b_2 * y <= 0 -> - x_1 + x_0 - b_2 * y_1 + b_2 * y_0 <= 0
+      res =   x + tana * y - xo - tana * yo;
+      break;
+    }
+    LOG_DBG3(func) << "F:L:I:CC e=" << element->GetIndex() << " (" << x << "," << y << ") en="
+        << sb_neighbor[3]->GetIndex() << " (" << x << "," << y << ") res=" << res;
+  } else {
+    // Todo implement angle
+    // cases 1,2,3 and 4 describe cone in x direction,
+    // cases 5,6,7 and 8 describe cone in y direction,
+    // cases 9,10,11 and 12 describe cone in y direction
+    switch(std::abs(sign)) {
+    case 1:
+      res = + x - y - z - xo + yo + zo;
+      break;
+    case 2:
+    case 10:
+      res = + x - y + z - xo + yo - zo;
+      break;
+    case 3:
+    case 7:
+      res = + x + y - z - xo - yo + zo;
+      break;
+    case 4:
+    case 8:
+    case 12:
+      res = + x + y + z - xo - yo - zo;
+      break;
+    case 5:
+    case 9:
+      res = - x + y + z + xo - yo - zo;
+      break;
+    case 6:
+      res = - x + y - z + xo - yo + zo;
+      break;
+    case 11:
+      res = - x - y + z + xo + yo - zo;
+      break;
+    }
+    LOG_DBG3(func) << "F:L:I:CC e=" << element->GetIndex() << " (" << x << "," << y << "," << z << ") en="
+        << neighbor[3]->GetIndex() << " (" << x << "," << y << "," << z << ") res=" << res;
+  }
+
+  res *= sign < 0 ? -1.0 : 1.0;
+
+  // Multiply with -1. Then the regularization parameter is a positive lower bound.
+  res *= -1;
+
+  return res;
+}
+
+double Function::Local::Identifier::CalcConesGradient(int neigh_idx, const Local* local) const {
+  assert(local->GetLocality() == MULT_DESIGNS_PREV_NEXT);
+  unsigned int dim = domain->GetGrid()->GetDim();
+
+  assert(sb_neighbor.GetSize() == 2 * dim);
+  assert(element->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < neighbor.GetSize(); ++i)
+    assert(neighbor[i]->GetType() == DesignElement::CP);
+  for(unsigned int i = 0; i < sb_neighbor.GetSize(); ++i)
+    assert(sb_neighbor[i]->GetType() == DesignElement::CP);
+
+  assert(sign >= -12 && sign <= 12);
+  assert((dim == 2 && sign >= -4 && sign <= 4) || dim == 3);
+
+  double angle = local->func_->parameter_;
+  assert(angle >= 0);
+  double tana = std::tan(angle/180. * M_PI);
+
+  const BaseDesignElement* bde = GetElement(neigh_idx);
+  int sb_neigh_idx = sb_neighbor.Find(const_cast<BaseDesignElement*>(bde));
+  LOG_DBG(func) << "F:L:I:CCG: e=" << bde->GetIndex() << " sb_neigh_idx=" << sb_neigh_idx;
+
+  double df = 0.0;
+
+  // this->x is implicit, then this->y, then this->z, then either prev->x ... or next->x ...
+  if(dim == 2) {
+    switch(std::abs(sign)) {
+    case 1:
+      // res =   tana * x - y - tana * xn + yn;
+      df  = (sb_neigh_idx == 0 || sb_neigh_idx == 3) ? 1 : -1;
+      df *= (sb_neigh_idx == 0 || sb_neigh_idx == 2) ? tana : 1;
+      break;
+    case 2:
+      // res =   tana * x + y - tana * xn - yn;
+      df  = (sb_neigh_idx == 0 || sb_neigh_idx == 1) ? 1 : -1;
+      df *= (sb_neigh_idx == 0 || sb_neigh_idx == 2) ? tana : 1;
+      break;
+    case 3:
+      // res = - x + tana * y + xn - tana * yn;
+      df  = (sb_neigh_idx == 1 || sb_neigh_idx == 2) ? 1 : -1;
+      df *= (sb_neigh_idx == 1 || sb_neigh_idx == 3) ? tana : 1;
+      break;
+    case 4:
+      // res =   x + tana * y - xn - tana * yn;
+      df  = (sb_neigh_idx == 0 || sb_neigh_idx == 1) ? 1 : -1;
+      df *= (sb_neigh_idx == 1 || sb_neigh_idx == 3) ? tana : 1;
+      break;
+    }
+  } else {
+    switch(std::abs(sign)) {
+    // Todo @see CalcCones
+    case 1:
+      // res = + x - y - z - xn + yn + zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 4 || sb_neigh_idx == 5) ? 1 : -1;
+      break;
+    case 2:
+    case 10:
+      // res = + x - y + z - xn + yn - zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 2 || sb_neigh_idx == 4) ? 1 : -1;
+      break;
+    case 3:
+    case 7:
+      // res = + x + y - z - xn - yn + zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 1 || sb_neigh_idx == 5) ? 1 : -1;
+      break;
+    case 4:
+    case 8:
+    case 12:
+      // res = + x + y + z - xn - yn - zn;
+      df = (sb_neigh_idx == 0 || sb_neigh_idx == 1 || sb_neigh_idx == 2) ? 1 : -1;
+      break;
+    case 5:
+    case 9:
+      // res = - x + y + z + xn - yn - zn;
+      df = (sb_neigh_idx == 1 || sb_neigh_idx == 2 || sb_neigh_idx == 3) ? 1 : -1;
+      break;
+    case 6:
+      // res = - x + y - z + xn - yn + zn;
+      df = (sb_neigh_idx == 1 || sb_neigh_idx == 3 || sb_neigh_idx == 5) ? 1 : -1;
+      break;
+    case 11:
+      // res = - x - y + z + xn + yn - zn;
+      df = (sb_neigh_idx == 2 || sb_neigh_idx == 3 || sb_neigh_idx == 4) ? 1 : -1;
+      break;
+    }
+  }
+
+  df *= sign < 0 ? -1.0 : 1.0;
+
+  // @see CalcCones
+  df *= -1;
+
+  return df;
+}
+
 double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const
 {
   // P = sum_k^K l_k ( sqrt( (<p>_k)**2 + eps**2 ) - eps )
@@ -2745,7 +3047,7 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps) 
   // see comments in the forward function implementation
   // three cases for the sensitivity analysis: first, intermediate, last
 
-  // sort all values in a sequence -> TODO! optimize and do not copy and pase
+  // sort all values in a sequence -> TODO! optimize and do not copy and paste
   tmp1.Resize(0); // is static and keeps capacity
   for (unsigned int i = 0; i < neighbor.GetSize() / 2; i++)
     tmp1.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
@@ -3619,7 +3921,9 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
       {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " mi=" << dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index << " -> " << ret;
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " -> ret";
+        // does not work in the mag opt case with density + rhsDensity
+        // << " mi=" << (dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index
       }
     }
     else

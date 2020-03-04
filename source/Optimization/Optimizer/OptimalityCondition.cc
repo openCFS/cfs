@@ -125,6 +125,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
+  std::cout << type_;
   
   PostInitScale(1.0, true);
 }

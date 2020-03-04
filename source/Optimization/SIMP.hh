@@ -26,7 +26,7 @@ template <class TYPE> class Matrix;
 
 
 /** In SIMP many sensitivities are with a non-sensitive RHS. This is not
- * necessary true for PiezoSIMP when we excite with a charge density. But
+ * necessarily true for PiezoSIMP when we excite with a charge density. But
  * even in pure mech SIMP we can excite with a pressure.
  * Then in CalcU1KU2 for the grad case we actually calc \f$<l,K'u-f'>\f$.
  * This helper stores the information we need to calculate this. The tricky stuff
@@ -44,20 +44,21 @@ template <class TYPE> class Matrix;
 class DesignDependentRHS
 {
 public:
-  DesignDependentRHS();
+  /** Only MAG needs no init, all other are not valid up to init */
+  DesignDependentRHS(App::Type app = App::NO_APP);
   ~DesignDependentRHS();
 
   /** This is kind of constructor. The return value/status is reflected in valid.
-   * @param app is either PRESSURE or App::CHARGE_DENSITY
+   * @param app is either PRESSURE or App::CHARGE_DENSITY or left when set in constructor
    * @return true if the linear form was found and the variables are init. */
   template <class T>
-  bool Init(DesignSpace* design, App::Type app);
+  bool Init(DesignSpace* design, App::Type app = App::NO_APP);
 
   /** In this mode the test strain is kept.
-   * @param app needs to be STRESS
+   * @param app needs to be STRESS or left when set in constructor
    * @param test_strain taken from the excitation by MechPDE::testStrain.Parse(excitation.label) */
   template <class T>
-  bool Init(App::Type app, std::string excite_label);
+  bool Init(std::string excite_label, App::Type app = App::NO_APP);
 
   /** kind of inhom Neumbann. From Init() */
   App::Type app;
@@ -120,7 +121,7 @@ protected:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates.
    * @param tf for heat and acoustic we canot uniquely identify the transfer function by app therefore give it. */
-  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
   /** the mechanical element rhs, complex or real */
   DesignDependentRHS mechRHS;
@@ -131,7 +132,7 @@ private:
    * T1 is the out matrix type
    * T2 is the element matrix type */
   template <class T1, class T2>
-  void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
+  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 
 };
 

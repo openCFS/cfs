@@ -58,11 +58,14 @@ public:
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators();
 
-  virtual void DefineSurfaceIntegrators();
+  /** @see SinglePDE::DefineSurfaceIntegrators() */
+  void DefineSurfaceIntegrators() {} ;
+
+  /** @see SinglePDE::DefineNcIntegrators() */
+  void DefineNcIntegrators() {} ;
 
   virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode );
 
-  virtual void DefineNcIntegrators();
 
   //! define the SoltionStep-Driver
   virtual void DefineSolveStep();

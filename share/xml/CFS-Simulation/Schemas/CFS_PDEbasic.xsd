@@ -1266,7 +1266,7 @@
   <!--   Definition of coil result description  -->
   <!-- ******************************************************************** -->
 
-  <!-- Please but documentation here -->
+  <!-- Please put documentation here -->
   <xsd:complexType name="DT_CoilResultDescr">
     <xsd:attribute name="id" type="xsd:token" use="required"/>
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
@@ -1514,10 +1514,12 @@
                 <xsd:complexType>
                   <xsd:attribute name="area" type="xsd:token" use="required"/>
                   <!--xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/-->
+                  <!-- eanable topology optimization of the coil with magCoilPseudoDensity variable -->
+                  <xsd:attribute name="coil_top_opt" type="xsd:boolean" use="optional" default="false" />
                 </xsd:complexType>
               </xsd:element>
             </xsd:choice>
-
+            
             <!-- Resistance of coil (given explicitly) -->
             <xsd:element name="resistance" minOccurs="0">
               <xsd:complexType>

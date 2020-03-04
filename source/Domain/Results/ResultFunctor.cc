@@ -27,7 +27,6 @@ template<class TYPE> FieldCoefFunctor<TYPE>::~FieldCoefFunctor() {
 template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseResult> res )
 {
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
-
   // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
   if(res->GetResultInfo()->fromOptimization)
   {

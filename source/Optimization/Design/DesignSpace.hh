@@ -44,8 +44,9 @@ namespace CoupledField
       Vector<double> inv_weighted_sum;
       Vector<double> filtered_vec;
       CRS_Matrix<double> filter_mat;
-      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx);
+      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx, unsigned int start = 0, unsigned int end = 0);
       void CacheDensityFilteredValue(const Vector<double>& design_vec);
+      void ExportDensityFilterMatrix();
 
     };
   /** This is the container of DesingElements which also holds the transferFunctions.
@@ -92,6 +93,8 @@ namespace CoupledField
        return designMaterial->GetType();
      }
 
+     ErsatzMaterial::Method GetMethod() const { return this->method_; };
+
      /** Do we do multiscale FEM, where we model not the tensor as in FEM but the local element matrix */
      bool DoMSFEM() const { return designMaterial != NULL && designMaterial->GetType() == DesignMaterial::MSFEM_C1; }
 
@@ -134,6 +137,9 @@ namespace CoupledField
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
      double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
+
+     /** @return 1.0 if there could be no proper transfer function found and save_transfer_function is true. Otherwise exception */
+     double GetErsatzMaterialFactor(DesignElement* de, App::Type applic, bool forBimaterial = false, bool save_transfer_function = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
@@ -356,7 +362,7 @@ namespace CoupledField
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
      /** this is the number of shape mapping param variables. > 0 means we do shape mapping */
-     virtual int GetNumberOfShapeMappingVariables() const { return 0; }
+     virtual int GetNumberOfFeatureMappingVariables() const { return 0; }
 
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
@@ -545,9 +551,9 @@ namespace CoupledField
      // this internal bool is set to true in default mode if the number of different design is one
      bool is_matrix_filt;
 
-
-
-
+     // If set filtering matrix is written to MatrixMarket format file
+     // this internal bool is set to false in default mode
+     bool write_matrix_filt;
 
     protected:
 

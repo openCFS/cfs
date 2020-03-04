@@ -119,7 +119,7 @@ parser.add_argument('--end', help="last variable which will be calculated", type
 parser.add_argument('--inc', help="variable increment b += inc*b. inc=1 doubles", type=float)
 parser.add_argument('--step', help="variable increment b += step. Alternative to inc", type=float)
 parser.add_argument('--range', help='alternative to start, end, inc/step; e.g. --range "0.01, 0.05, 0.1" or even "0.1, 0.1, 0.1"!')
-parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
+parser.add_argument('--executable', help="what to call for cfs", default='cfs')
 parser.add_argument('--noshow', help="suppress calling show_density.py, e.g. for 3d! (standard for qsub)", action='store_true')
 parser.add_argument('--failsafe', help="ignore cfs exiting with error", action='store_true')
 parser.add_argument('--qsub', help="template file to generate depenend job scripts for RRZE HPC (e.g. 'qsub_template.sh'")
