@@ -86,7 +86,7 @@ void LogConfigurator::ParseLogConfFile(const std::string& confFile) {
     ParamNodeList appenderNodes = classNode->GetChildren();
 
     boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
-    sink->set_filter(expr::attr<int>("Severity") > logLevel && expressions::attr<std::string>("bAttrClassName") == className);
+    sink->set_filter(expr::attr<int>("Severity") >= logLevel && expressions::attr<std::string>("bAttrClassName") == className);
 
     sink->set_formatter(expr::stream << expr::attr< boost::posix_time::ptime >("TimeStamp") <<
         " [" << bAttrClassName << ":" << expr::attr< unsigned int >("LineID") << "] " << expr::smessage);
