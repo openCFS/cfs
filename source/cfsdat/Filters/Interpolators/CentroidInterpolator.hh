@@ -18,6 +18,8 @@
 
 #include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
+#include "MatVec/CRS_Matrix.hh"
+
 
 namespace CFSDat{
 
@@ -44,9 +46,14 @@ protected:
   virtual void AdaptFilterResults();
 
 private:
+//  void CreateCRS(const Grid* inGrid, const Grid* trgGrid);
+
+//  void FillInterpolationMatrix(const StdVector<ElemIntersect::VolCenterInfo> & infos);
+
+  CRS_Matrix<Double>* InterpolationMatrix;
 
 
-  std::vector<QuantityStruct> interpolData_;
+//  std::vector<QuantityStruct> interpolData_;
 
   //! Global Factor for scaling the result
   Double globalFactor_;

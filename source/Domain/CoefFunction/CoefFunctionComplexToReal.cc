@@ -19,7 +19,6 @@
 
 namespace CoupledField
 {
-DECLARE_LOG(coeffctcomplextoreal)
 DEFINE_LOG(coeffctcomplextoreal, "coeffctcomplextoreal")
 
 

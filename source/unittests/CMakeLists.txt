@@ -20,6 +20,9 @@ SET(TARGET_LL
   matvec
   design
   cfsgeneral
+  utils
+  datainout
+  paramh
 )
 
 IF(MKL_BLAS_LIB)

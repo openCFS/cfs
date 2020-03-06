@@ -43,7 +43,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(eleccurrentpde)
   DEFINE_LOG(eleccurrentpde, "pde.electricCurrent")
 
   // ***************
@@ -534,6 +533,32 @@ namespace CoupledField {
     }
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
+
+
+    // \int_\Omega_C grad(V) \cdot grad(V)
+    shared_ptr<ResultInfo> elecGradVInt( new ResultInfo );
+    elecGradVInt->resultType = ELEC_GRAD_V_INT;
+    elecGradVInt->definedOn = ResultInfo::REGION;
+    elecGradVInt->entryType = ResultInfo::SCALAR;
+    elecGradVInt->dofNames = "";
+    elecGradVInt->unit = "A";
+    shared_ptr<CoefFunctionFormBased> sigmaElecGradVFunc;
+    if( isComplex_ ) {
+      sigmaElecGradVFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 1.0));
+    } else {
+      sigmaElecGradVFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 1.0));
+    }
+    stiffFormCoefs_.insert(sigmaElecGradVFunc);
+
+    shared_ptr<ResultFunctor> ElecGradVIntFunc;
+    if( isComplex_ ) {
+      ElecGradVIntFunc.reset(new ResultFunctorIntegrate<Complex>(sigmaElecGradVFunc, feFct, elecGradVInt));
+    } else {
+      ElecGradVIntFunc.reset(new ResultFunctorIntegrate<Double>(sigmaElecGradVFunc, feFct, elecGradVInt));
+    }
+    resultFunctors_[ELEC_GRAD_V_INT] = ElecGradVIntFunc;
+    availResults_.insert( elecGradVInt );
+
 
     // == ELECTRIC_NORMAL_CURRENT_DENSITY ==
     shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );

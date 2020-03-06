@@ -91,6 +91,7 @@
             </xsd:complexType>
           </xsd:element>
 
+
           <!-- Surface regions on which results can be calculated-->
 
           <!-- Non-conforming interfaces of the PDE -->
@@ -169,8 +170,6 @@
           </xsd:element>
 
           <!-- Section for specifying initial conditions (optional) -->
-
-          <!-- Section for specifying reference conditions (optional) -->
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_HeatStoreResults" minOccurs="0" maxOccurs="1">
@@ -306,6 +305,11 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Definition of field variables (union of nodal and element results) -->
+  <xsd:simpleType name="DT_HeatSensorArrayResult">
+    <xsd:union memberTypes="DT_HeatNodeResult DT_HeatElemResult"/>
+  </xsd:simpleType>
+
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_HeatStoreResults">
     <xsd:sequence>
@@ -350,6 +354,17 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
                 <xsd:attribute name="type" type="DT_HeatSurfRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_HeatSensorArrayResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

@@ -19,7 +19,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(msDriver)
 DEFINE_LOG(msDriver, "msDriver")
 
   // ***************

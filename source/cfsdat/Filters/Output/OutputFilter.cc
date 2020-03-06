@@ -236,7 +236,9 @@ void OutputFilter::AdaptFilterResults(){
         std::cout << "Using time line from result " << res1->resultName << "\n with "  \
                   << res1->timeLine->GetSize() << " steps from " << (*res1->timeLine.get())[0] << " to "\
                   << (*res1->timeLine.get())[res1->timeLine->GetSize()-1] << std::endl;
-        std::cout << "Assumed delta " << (*res1->timeLine.get())[1]-(*res1->timeLine.get())[0] << std::endl;
+        if(res1->timeLine->GetSize()>1){
+          std::cout << "Assumed delta " << (*res1->timeLine.get())[1]-(*res1->timeLine.get())[0] << std::endl;
+        }
         CF::StdVector<Double> & timeVal = (*res1->timeLine.get());
         //CF::StdVector<UInt> & timeStep = (*res1->stepNumbers.get());
         for(UInt i=0;i<timeVal.GetSize(); ++i){

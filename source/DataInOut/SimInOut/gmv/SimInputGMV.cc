@@ -28,6 +28,7 @@ namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
+  EXTERN_LOG(gmvread)
 
   std::vector< std::string > SimInputGMV::mPossibleAttribs;
   gmv_data_struct gmv_data;

@@ -47,7 +47,6 @@
 
 namespace CoupledField{
 
-  DECLARE_LOG(waterWavepde)
   DEFINE_LOG(waterWavepde, "pde.waterWave")
 
 

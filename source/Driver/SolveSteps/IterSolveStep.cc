@@ -14,7 +14,6 @@ namespace CoupledField
 
 
 // declare logging stream
-DECLARE_LOG(itersolvestep)
 DEFINE_LOG(itersolvestep, "itersolvestep")
 
 // ======================================================================

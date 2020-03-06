@@ -41,15 +41,24 @@ Node2CellInterpolator::~Node2CellInterpolator(){
 
 bool Node2CellInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
   /// this is the vector, which will be filled with the result
-  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
   Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
-
-  // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
-
-  Node2Cell(returnVec, filterResIds[0], inVec, interpolData_);
   
-  returnVec.ScalarMult(globalFactor_);
+	if(resultManager_->GetExtInfo(filterResIds[0])->dType == ExtendedResultInfo::COMPLEX){
+	  Vector<Complex>& returnVec = GetOwnResultVector<Complex>(filterResIds[0]);
+	  // vector, containing the source data values
+	  Vector<Complex>& inVec = GetUpstreamResultVector<Complex>(upResIds[0], stepIndex);
+    Node2Cell(returnVec, filterResIds[0], inVec, interpolData_);
+
+    returnVec.ScalarMult(globalFactor_);
+	} else {
+    Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+    // vector, containing the source data values
+    Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+
+    Node2Cell(returnVec, filterResIds[0], inVec, interpolData_);
+
+    returnVec.ScalarMult(globalFactor_);
+	}
 
   return true;
 }

@@ -4,7 +4,6 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "General/Exception.hh"
@@ -14,13 +13,9 @@
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 
-
 using namespace CoupledField;
 
-
-DECLARE_LOG(trans)
 DEFINE_LOG(trans, "transferFunction")
-
 
 Enum<TransferFunction::Type> TransferFunction::type;
 

@@ -234,6 +234,7 @@
   <xsd:simpleType name="DT_ElecConductionRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPower"/>
+      <xsd:enumeration value="elecGradVInt"/>
     </xsd:restriction>
   </xsd:simpleType>
 

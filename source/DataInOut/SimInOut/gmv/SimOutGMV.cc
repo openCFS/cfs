@@ -20,7 +20,6 @@
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simOutputGMV)
   DEFINE_LOG(simOutputGMV, "SimOutputGMV")
 
   #define CODE_NAME "CFS++"

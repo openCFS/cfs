@@ -14,15 +14,12 @@
 #include "DataInOut/ParamHandling/LibXml2.hh"
 #include "General/Exception.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
-
-DECLARE_LOG(libxml2)
-DEFINE_LOG(libxml2, "libxml2")
 
 using std::string;
 
 namespace CoupledField
 {
+DEFINE_LOG(libxml2, "libxml2")
 
 PtrParamNode LibXml2::ParseFile(const std::string& file, const std::string& schema)
 {

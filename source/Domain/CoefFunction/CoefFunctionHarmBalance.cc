@@ -19,7 +19,6 @@
 
 namespace CoupledField
 {
-DECLARE_LOG(coeffctharmbalance)
 DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
   // ==========================================================================

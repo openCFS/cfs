@@ -14,7 +14,7 @@ namespace CoupledField {
   { }
 
   template<class TYPE>
-  StdVector<TYPE>::StdVector(unsigned int size) :
+  StdVector<TYPE>::StdVector(size_type size) :
     size_(size),
     capacity_(size),
     data_(new TYPE [size])
@@ -44,6 +44,17 @@ namespace CoupledField {
   }
 
   template<class TYPE>
+  template<class InputIterator>
+  StdVector<TYPE>::StdVector(InputIterator first, InputIterator last) {
+    size_ = 0;
+    capacity_ = size_;
+    data_ = NULL;
+    for (; first != last; ++first)
+      Push_back(*first);
+  }
+  
+  
+  template<class TYPE>
   StdVector<TYPE>::~StdVector()
   {
     delete[] data_;
@@ -68,7 +79,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Reserve(unsigned int capacity)
+  void StdVector<TYPE>::Reserve(size_type capacity)
   {
     unsigned int old_size = size_;
 
@@ -94,7 +105,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Resize(const unsigned int size)
+  void StdVector<TYPE>::Resize(size_type size)
   {
 #ifdef CHECK_INITIALIZED
     if(capacity_ < size_)
@@ -124,7 +135,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Resize(const unsigned int size, TYPE entry)
+  void StdVector<TYPE>::Resize(size_type size, TYPE entry)
   {
     Resize(size);
     Init(entry);
@@ -158,6 +169,7 @@ namespace CoupledField {
 
     // Copy entries
     size_ = vec.size_;
+    if (data_)
     std::copy(vec.data_, vec.data_+size_, data_);
 
     return *this;
@@ -179,13 +191,14 @@ namespace CoupledField {
 
     size_ = vec.size();
     
+    if (data_)
     std::copy(vec.begin(), vec.end(), data_);
 
     return *this;
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Import(const TYPE* source, unsigned int size)
+  void StdVector<TYPE>::Import(const TYPE* source, size_type size)
   {
     if(source == NULL) EXCEPTION("cannot import NULL");
 
@@ -229,7 +242,7 @@ namespace CoupledField {
   // *********
   //   Erase
   // *********
-  template<class TYPE> void StdVector<TYPE>::Erase( const unsigned int pos ) {
+  template<class TYPE> void StdVector<TYPE>::Erase( size_type pos ) {
 #ifdef CHECK_INITIALIZED
     if (size_ == 0) EXCEPTION( "Vector: Undefined Vector in function Erase" );
 #endif
@@ -258,7 +271,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Insert(const unsigned int pos, const TYPE& dat)
+  void StdVector<TYPE>::Insert(size_type pos, const TYPE& dat)
   {
 #ifdef CHECK_INDEX
     if (pos > size_) EXCEPTION( "Invalid index for Insert" );
@@ -270,6 +283,15 @@ namespace CoupledField {
       data_[i] = data_[i-1];
 
     data_[pos] = dat;
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Append(const StdVector<TYPE>& vec ) {
+
+    unsigned int vecSize = vec.GetSize();
+    unsigned int oldSize = size_;
+    Resize(size_ + vecSize);
+    std::copy(vec.data_, vec.data_+vecSize, data_+oldSize);
   }
 
   template<class TYPE>
@@ -518,7 +540,7 @@ namespace CoupledField {
   }
   
   template<class TYPE>
-  void StdVector<TYPE>::Swap(unsigned int idx1, unsigned int idx2)
+  void StdVector<TYPE>::Swap(size_type idx1, size_type idx2)
   {
     TYPE tmp = data_[idx1];
     data_[idx1] = data_[idx2];

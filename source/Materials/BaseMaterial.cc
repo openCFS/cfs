@@ -14,7 +14,8 @@
 #include "Materials/Models/Preisach.hh"
 //#include "Materials/Models/VectorPreisach.hh"
 //#include "Materials/Models/VectorPreisachv7.hh"
-#include "Materials/Models/VectorPreisachv10.hh"
+#include "Materials/Models/VectorPreisachMayergoyz.hh"
+#include "Materials/Models/VectorPreisachSutor.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -28,6 +29,8 @@
 
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
+#include "Utils/helperStructs.hh"
+
 using std::string;
 using std::map;
 using std::set;
@@ -124,9 +127,28 @@ namespace CoupledField
     else {
       param=pos->second;
     }
-  }    
+  }
 
-  void BaseMaterial::SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data ) {
+    void BaseMaterial::GetScalar(Integer& param, MaterialType matType, Global::ComplexPart dataType ) const
+    {
+      integerMap::const_iterator pos;
+      pos = integerParams_.find( matType );
+
+      if ( pos == integerParams_.end() ) {
+        string dim = "scalar";
+        matTypeNotInDataBase( matType, dim );
+      }
+      else {
+        if ( dataType == Global::INTEGER ) {
+          string msg = "GetScalar-Integer";
+          dataTypeNotAllowed4SetGet( dataType, msg );
+        }
+        Integer val = pos->second;
+        param = val;
+      }
+    }
+
+    void BaseMaterial::SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data ) {
     
     if( nonlinIsoParams_.find(matType) != nonlinIsoParams_.end() ) {
       EXCEPTION( "Nonlinear material parameter '" << MaterialTypeEnum.ToString(matType)
@@ -683,131 +705,144 @@ namespace CoupledField
      * is this function ever called?
      * -> grep shows NO call to InitHyst;
      *    instead everything is handled via CoefFunctionHyst
+     * -> BUT linker needs some reference to Preisach and VectorPreisach
+     *    if we comment out the calls below (even though they are never used)
+     *    the classes are loaded in correct order for linker
      */
-    isHystInverse_      = isInverse;
-    computeHystInverse_ = computeHystInverse;
+    // just make dummy calls for linker
+    ParameterPreisachOperators operatorParams = ParameterPreisachOperators();
+    ParameterPreisachWeights weightParams = ParameterPreisachWeights();
+    bool isVirgin = false;
+    bool ignoreAnhystPart = false;
+    Integer numElem = 1;
 
-    string val = stringParams_[HYST_MODEL];
-    if ( val != "preisach" ) {
-      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
-    }
-    else {
-
-
-      isHysteresis_ = true;
-
-      Double Xsat, Ysat;
-      GetScalar(Xsat, X_SATURATION, Global::REAL);
-      GetScalar(Ysat, Y_SATURATION, Global::REAL);
-      Matrix<Double> weights;
-      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
-      bool isVirgin = true;   
-
-      if(dim == 1){
-
-        hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
-
-      } else if(dim > 1 && dim <= 3){
-
-        Double rotationalResistance = 1.0;
-        GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
-
-
-        double tmp;
-        GetScalar(tmp, EVAL_VERSION);
-        int evalVersion = tmp;
-
-        Double angDistance;
-        Double angClipping;
-        Matrix<Double> easyAxis_Matrix;
-        Vector<Double> easyAxis = Vector<Double>(dim);
-        GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
-        GetScalar(angClipping, ANG_CLIPPING, Global::REAL);
-
-      /*
-       * should be obsolete as hyst_ is initialized in coefFctHyst
-       */
-
-      bool classical;
-
-      if(evalVersion == 1){
-        classical = true; // original vector preisach model -> sutor2012
-
-        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else if(evalVersion == 2){
-        classical = false; // revised vector preisach model -> sutor2015
-
-        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else if(evalVersion == 10){
-        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
-
-        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else if(evalVersion == 20){
-        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
-
-        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else {
-        EXCEPTION("evalVersion has to be one of the following: \n "
-            "1: classical vector model (sutor2012) \n"
-            "2: revised vector model (sutor2015) [DEFAULT] \n"
-            "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
-            "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
-      }
-
-//        if((evalVersion == 7)||(evalVersion == 8)){
-//          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
-//        } else if((evalVersion == 9)||(evalVersion == 10)){
-//		  Vector<Double> easyAxis = Vector<Double>(dim_);
-//		  Double phaseLag = 0.0;
-//		  hyst_ = new VectorPreisachv10(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
-//        } else {
-//          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
-//        }
-
-      }
-
-
-      // set map: global to local element number
-      EntityIterator it = actSDList->GetIterator();
-      UInt iel = 0;
-      UInt globalElNr;
-      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-
-      globalElNr = it.GetElem()->elemNum;
-      globalElem2Local_[globalElNr] = iel;
-      }
-    }
-
-    //allocate memory for previous results, needed for the
-    //effective material parameter formulation
-    if(dim == 1){
-      Xprevious_.Resize(numElemSD);
-      Yprevious_.Resize(numElemSD);
-      Xprevious_.Init();
-      Yprevious_.Init();
-    }  else if(dim > 1 && dim <= 3){
-      XpreviousVEC_ = new Vector<Double>[numElemSD];
-      YpreviousVEC_ = new Vector<Double>[numElemSD];
-
-      for(UInt i = 0; i < numElemSD; i++){
-        XpreviousVEC_[i].Resize(dim_);
-        XpreviousVEC_[i].Init();
-
-        YpreviousVEC_[i].Resize(dim_);
-        YpreviousVEC_[i].Init();
-       }
-    }
-
+    hyst_ = new Preisach(numElem,operatorParams,weightParams,isVirgin,ignoreAnhystPart);
+    hyst_ = new VectorPreisachSutor(numElem,operatorParams,weightParams,dim,isVirgin);
+    hyst_ = new VectorPreisachMayergoyz(numElem,operatorParams,weightParams,dim,isVirgin);
+    EXCEPTION( "BaseMaterial::InitHyst should not be used anymore" );
+//
+//    isHystInverse_      = isInverse;
+//    computeHystInverse_ = computeHystInverse;
+//
+//    string val = stringParams_[HYST_MODEL];
+//    if ( val != "preisach" ) {
+//      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
+//    }
+//    else {
+//     // EXCEPTION( "BaseMaterial::InitHyst should not be used anymore" );
+////
+////      isHysteresis_ = true;
+////
+////      Double Xsat, Ysat;
+////      GetScalar(Xsat, X_SATURATION, Global::REAL);
+////      GetScalar(Ysat, Y_SATURATION, Global::REAL);
+////      Matrix<Double> weights;
+////      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
+////      bool isVirgin = true;
+////
+////      if(dim == 1){
+////
+////        hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
+////
+////      } else if(dim > 1 && dim <= 3){
+////
+////        Double rotationalResistance = 1.0;
+////        GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
+////
+////        int evalVersion;
+////        GetScalar(evalVersion, EVAL_VERSION);
+////
+////        int isTesting;
+////        GetScalar(isTesting, IS_TESTING);
+////
+////        Double angDistance;
+////        Matrix<Double> easyAxis_Matrix;
+////        Vector<Double> easyAxis = Vector<Double>(dim);
+////        GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
+////
+////      /*
+////       * should be obsolete as hyst_ is initialized in coefFctHyst
+////       */
+////
+////      bool classical;
+////
+////      if(evalVersion == 1){
+////        classical = true; // original vector preisach model -> sutor2012
+////
+////        hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else if(evalVersion == 2){
+////        classical = false; // revised vector preisach model -> sutor2015
+////
+////        hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else if(evalVersion == 10){
+////        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
+////
+////        hyst_ = new VectorPreisachSutor_MatrixApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else if(evalVersion == 20){
+////        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
+////
+////        hyst_ = new VectorPreisachSutor_MatrixApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else {
+////        EXCEPTION("evalVersion has to be one of the following: \n "
+////            "1: classical vector model (sutor2012) \n"
+////            "2: revised vector model (sutor2015) [DEFAULT] \n"
+////            "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+////            "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+////      }
+////
+//////        if((evalVersion == 7)||(evalVersion == 8)){
+//////          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//////        } else if((evalVersion == 9)||(evalVersion == 10)){
+//////		  Vector<Double> easyAxis = Vector<Double>(dim_);
+//////		  Double phaseLag = 0.0;
+//////		  hyst_ = new VectorPreisachSutor(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
+//////        } else {
+//////          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//////        }
+////
+////      }
+////
+////
+////      // set map: global to local element number
+////      EntityIterator it = actSDList->GetIterator();
+////      UInt iel = 0;
+////      UInt globalElNr;
+////      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+////
+////      globalElNr = it.GetElem()->elemNum;
+////      globalElem2Local_[globalElNr] = iel;
+////      }
+////    }
+////
+////    //allocate memory for previous results, needed for the
+////    //effective material parameter formulation
+////    if(dim == 1){
+////      Xprevious_.Resize(numElemSD);
+////      Yprevious_.Resize(numElemSD);
+////      Xprevious_.Init();
+////      Yprevious_.Init();
+////    }  else if(dim > 1 && dim <= 3){
+////      XpreviousVEC_ = new Vector<Double>[numElemSD];
+////      YpreviousVEC_ = new Vector<Double>[numElemSD];
+////
+////      for(UInt i = 0; i < numElemSD; i++){
+////        XpreviousVEC_[i].Resize(dim_);
+////        XpreviousVEC_[i].Init();
+////
+////        YpreviousVEC_[i].Resize(dim_);
+////        YpreviousVEC_[i].Init();
+////       }
+////
+//    }
   }
-
 
   void BaseMaterial::InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                   UInt dim ) {

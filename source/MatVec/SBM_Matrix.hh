@@ -267,10 +267,27 @@ namespace CoupledField {
     //@{
     //! Return matrix as separated string
     std::string ToString( char colSeparator = ' ',
-                          char rowSeparator = '\n' ) const {
-      WARN( "ToString not implemented for SBM_Matrix");
+    char rowSeparator = '\n' ) const {
 
-      return "SBM_Matrix";
+      std::stringstream os;
+      for( UInt i = 0; i < nrows_; i++ ) {
+        for( UInt j = 0; j < ncols_; j++ ) {
+
+          if( subMat_[ComputeIndex(i,j)] != NULL ) {
+            os <<   "sub-matrix #" << i << " - " << j << "\n";
+            os << "\n--------------\n";
+            os <<  subMat_[ComputeIndex(i,j)]->ToString(colSeparator, rowSeparator );
+          } else {
+            os <<   "sub-matrix #" << i << " - " << j << "\n";
+            os << "\n-EMPTY-\n";
+          }
+        }
+      }
+      return os.str();
+
+      //      WARN( "ToString not implemented for SBM_Matrix");
+      //
+      //      return "SBM_Matrix";
     }
 
     /** stupid debug info for developers to understand the stuff better */

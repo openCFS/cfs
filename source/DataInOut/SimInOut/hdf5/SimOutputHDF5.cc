@@ -32,7 +32,6 @@ namespace CoupledField {
     EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
   }
 
-  DECLARE_LOG(h5Out)
   DEFINE_LOG(h5Out, "hdf5Out")
 
 

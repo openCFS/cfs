@@ -87,13 +87,13 @@ using std::string;
 
 // used for getting coils from the pde
 #include "MagEdgePDE.hh"
+#include "MagEdgeSpecialAVPDE.hh"
 #include "MagneticPDE.hh"
 
 
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(singlepde)
   DEFINE_LOG(singlepde, "singlePde")
 
   SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode,
@@ -496,7 +496,6 @@ namespace CoupledField {
     // Check, if "nonLinList" is present
     PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
-      //std::cout << "NonLinListFound" << std::endl;
       // Get nonlinear types
       ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
@@ -555,7 +554,6 @@ namespace CoupledField {
                   << "' was not defined in 'nonLinList'");
             continue;
           }
-          
           regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
           
           //write info
@@ -572,21 +570,33 @@ namespace CoupledField {
             //or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )// enum removed
             //fixpoint iteration can be selected via evaluationParameter flag
             // > see stdSolveStep for more details
+          } else {
+            // new flag used by std solvestep hyst
+            // it indicates, if there are additional nonlinearities, which are not due to
+            // hysteresis (e.g. nonlinear bhcurve in a different region)
+            // this information is needed for the residual computation
+            // pure hysteretic case uses the linear system matrix during residual computation
+            // nonlinear bh-curve used the nonlinear system matrix
+            nonLinNonHyst_ = true;
           }
 
         }
       }
 
-      // Here we need in addition the nonLinMethod_ for the definition
-      // of the integrators
-      nonLinMethod_ = FIXEDPOINT;
-      PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
-      // NEW: additionally check if nonLinearity is used at all for some region
-      // otherwise we do not have to search for nonlinear methods
-      if(( nonLinNode ) && (nonLin_ == true)) {
-        std::string methodString;
-        nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-        nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+      if(isHysteresis_ == false){
+        // Here we need in addition the nonLinMethod_ for the definition
+        // of the integrators
+        nonLinMethod_ = FIXEDPOINT;
+        PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
+        // NEW: additionally check if nonLinearity is used at all for some region
+        // otherwise we do not have to search for nonlinear methods
+        if(( nonLinNode ) && (nonLin_ == true)) {
+          std::string methodString;
+          nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+          nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+        }
+      } else {
+        // > read in during solveStep hyst
       }
     }
   }
@@ -1070,20 +1080,23 @@ namespace CoupledField {
 				  if( candidate->definedOn != ResultInfo::COIL ){
 					  actList = ptGrid_->GetEntityList( entityType, histNames[i] );
 				  } else {
-					  // The grid does not know about coils beause depending on the space used
-					  // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
-					  // But we know that we want only one result per coil, not for each element in the coil.
-					  shared_ptr<Coil> actCoil;
-					  if( pdename_ == "magneticEdge" ){
-						  MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
-						  actCoil = askThePDE->GetCoilById( histNames[i] );
-					  } else {
-						  MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
-						  actCoil = askThePDE->GetCoilById( histNames[i] );
-					  }
-					  shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
-					  singleCoilList->AddCoil( actCoil );
-					  actList = singleCoilList;
+				    // The grid does not know about coils beause depending on the space used
+				    // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
+				    // But we know that we want only one result per coil, not for each element in the coil.
+				    shared_ptr<Coil> actCoil;
+				    if( pdename_ == "magneticEdge" ){
+				      MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
+				      actCoil = askThePDE->GetCoilById( histNames[i] );
+				    } else if( pdename_ == "magneticEdgeSpecialAV" ){
+				      MagEdgeSpecialAVPDE* askThePDE = dynamic_cast<MagEdgeSpecialAVPDE*>(this);
+				      actCoil = askThePDE->GetCoilById( histNames[i] );
+				    } else {
+				      MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
+				      actCoil = askThePDE->GetCoilById( histNames[i] );
+				    }
+				    shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
+				    singleCoilList->AddCoil( actCoil );
+				    actList = singleCoilList;
 				  }
 				  shared_ptr<BaseResult> actSol;
 				  if( isComplex_ ) {
@@ -1551,7 +1564,6 @@ namespace CoupledField {
       } else {
         // no slash in filename -> do nothing
       }
-
       actField.csv = actNode->Get("csv")->As<bool>();
       std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
       actField.coordSys = domain_->GetCoordSystem(coordSysId);
@@ -2528,12 +2540,12 @@ namespace CoupledField {
                             definedDofs, updateGeo );
   }
 
-  void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
+  void SinglePDE::ReadEntities( const std::string& elemName,
                                      const StdVector<std::string>& compNames,
                                      ResultInfo::EntryType type,
-                                     bool isComplex,
-                                     StdVector<shared_ptr<EntityList> >& entities, 
-                                     StdVector<PtrCoefFct >& coef,
+                                     StdVector<shared_ptr<EntityList> >& entities,
+                                     StdVector<PtrParamNode>& xmls,
+                                     StdVector<PtrCoefFct>& coef,
                                      bool& updateGeo,
                                      PtrParamNode input) {
 
@@ -2554,20 +2566,22 @@ namespace CoupledField {
       end = elems.GetSize();
     }
 
+    // allocate
     entities.Resize(elems.GetSize());
+    xmls.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
 
     for( UInt i = 0; i < end; ++i ) {
       PtrParamNode xml = elems[i];
       bool hasName = xml->Has("name");
       bool hasRegionList = xml->Has("regionList");
-      
+
       if (hasName && hasRegionList) {
         EXCEPTION(elemName << " element contains name attribute and regionList element, both are not allowed together");
       } else if (!hasName && !hasRegionList) {
         EXCEPTION(elemName << " element contains neither name attribute nor regionList element, exactly one these is required");
       }
-      
+
       std::string entName;
       if (hasRegionList) {
         StdVector<PtrParamNode> regs = xml->Get("regionList")->GetList("region");
@@ -2595,11 +2609,11 @@ namespace CoupledField {
         try {
           // determine list type: In case we have have surface elements, generate explicitly
           // a surface element list
-          EntityList::ListType listType = EntityList::ELEM_LIST; 
+          EntityList::ListType listType = EntityList::ELEM_LIST;
           if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
             listType = EntityList::SURF_ELEM_LIST;
           }
-  
+
           switch( ptGrid_->GetEntityType(entName) ) {
             case EntityList::NAMED_NODES:
               entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
@@ -2618,9 +2632,53 @@ namespace CoupledField {
         }
       }
       std::set<UInt> definedDofs;
-      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                          definedDofs, updateGeo );
+      xmls[i] = xml;
     } // loop: elements
+  }
+
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
+                                     const StdVector<std::string>& compNames,
+                                     ResultInfo::EntryType type,
+                                     bool isComplex,
+                                     StdVector<shared_ptr<EntityList> >& entities, 
+                                     StdVector<PtrCoefFct >& coef,
+                                     bool& updateGeo,
+                                     PtrParamNode input) {
+    // read entities and allocate xmls, coef
+    StdVector<PtrParamNode> xmls;
+    ReadEntities( elemName, compNames, type, entities, xmls, coef, updateGeo, input);
+    // read field values
+    for( UInt i = 0; i < xmls.GetSize(); ++i ) {
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xmls[i],compNames,type,isComplex,coef[i],definedDofs, updateGeo );
+    } // loop: elements
+  }
+
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                       const StdVector<std::string>& compNames,
+                                       ResultInfo::EntryType type,
+                                       StdVector<shared_ptr<EntityList> >& entities,
+                                       StdVector<PtrCoefFct >& coef,
+                                       bool& updateGeo,
+                                       PtrParamNode input) {
+    StdVector<PtrParamNode> xmls;
+    ReadEntities( elemName, compNames, type, entities, xmls, coef, updateGeo, input);
+    for( UInt i = 0; i < xmls.GetSize(); ++i ) {
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xmls[i],compNames,type,coef[i],definedDofs, updateGeo );
+    } // loop: elements
+  }
+
+  void SinglePDE::ReadVolumeRegions( const std::string& elemName, StdVector<std::string>& volumeRegions){
+    ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+    // read the Volume Region from each node
+    volumeRegions.Resize(elems.GetSize());
+    for( UInt i = 0; i < elems.GetSize(); ++i ) {
+      PtrParamNode xml = elems[i];
+      std::string volRegName;
+      xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
+      volumeRegions[i] = volRegName;
+    }
   }
 
   void SinglePDE::ReadRhsExcitation( const std::string& elemName,
@@ -2631,18 +2689,105 @@ namespace CoupledField {
                                   StdVector<PtrCoefFct>& coef,
                                   bool& updateGeo,
                                   StdVector<std::string>& volumeRegions){
-      // get nodes
-      ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
-      // read the Volume Region from each node
-      volumeRegions.Resize(elems.GetSize());
-      for( UInt i = 0; i < elems.GetSize(); ++i ) {
-          PtrParamNode xml = elems[i];
-          std::string volRegName;
-          xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
-          volumeRegions[i] = volRegName;
-      }
+      // read volume regions
+      ReadVolumeRegions(elemName, volumeRegions);
       // read the rest
       ReadRhsExcitation(elemName,compNames,type,isComplex,entities,coef,updateGeo);
+  }
+
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  StdVector<shared_ptr<EntityList> >& entities,
+                                  StdVector<PtrCoefFct>& coef,
+                                  bool& updateGeo,
+                                  StdVector<std::string>& volumeRegions){
+      // read volume regions
+      ReadVolumeRegions(elemName, volumeRegions);
+      // read the rest
+      ReadRhsExcitation(elemName,compNames,type,entities,coef,updateGeo);
+  }
+
+  template<typename T>
+  void SinglePDE::ReadUserHistValues( PtrParamNode valueNode,
+                           ResultInfo::EntryType type,
+                           Vector<T>& resV,
+                           std::string regionName){
+
+    // some checks
+    if( !valueNode->Has("sequenceStep") ) EXCEPTION("History results can only be read for sequence steps!")
+    if( type != ResultInfo::EntryType::SCALAR ) EXCEPTION("History result currently needs to be a scalar!")
+
+    PtrParamNode esNode = valueNode->Get("sequenceStep");
+    PtrParamNode qNode = esNode->Get("quantity");
+    PtrParamNode tfm = esNode->Get("timeFreqMapping");
+    std::string tfmString =  tfm->GetChild()->GetName();
+    if( tfmString != "constant") EXCEPTION("Only 'constant' interpolation allowed");
+
+    // obtain fileId and SequenceStep
+    std::string fileId;
+    UInt sequenceStep = 0;
+    std::string quantityName = qNode->Get("name")->As<std::string>();
+    std::string pdeName = qNode->Get("pdeName")->As<std::string>();
+    SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+
+    Domain * inDomain = NULL;
+    // create SimState (for input)
+    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+    shared_ptr<SimInput> reader;
+    shared_ptr<SimInputHDF5> in;
+    sequenceStep = esNode->Get("index")->As<UInt>();
+    // create new simState from current hdf file
+    if( !simState_->GetOutputWriter() ){
+      // Sometimes the writer is not yet set if using initial values and external data.
+      // Therefore the SimState is instructed to create it now.
+      shared_ptr<SimOutputHDF5> writer;
+      simState_->SetOutputHdf5Writer( writer );
+    }
+    std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
+    // create new param and info node (without logging to console) for the
+    // newly created Domain object
+    PtrParamNode node(new ParamNode());
+    PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
+    in.reset(new SimInputHDF5(fileName, node, infoNode));
+    inState->SetInputHdf5Reader(in);
+
+    // Get grid map of own domain, as the grids can be re-used
+    SimState::GridMap gridMap = domain_->GetGridMap();
+
+    inDomain = inState->GetDomain(sequenceStep, gridMap);
+
+    // Obtain same PDE from new domain
+    SinglePDE * inPDE = inDomain->GetSinglePDE(pdeName);
+
+    // remeber input simState and domain
+    inputs_[inState] = inDomain;
+    // set domain to one specific step
+    inState->SetInterpolation( SimState::CONSTANT, mp_, analysistype_ , 0 );
+    UInt stepNum = tfm->Get("constant")->Get("step")->As<UInt>();
+    inState->UpdateToStep(sequenceStep, stepNum);
+    shared_ptr<ResultInfo> rInfo = inPDE->GetResultInfo(solType);
+    inPDE->ReadStoreResults();
+    ResultMap rMap = inPDE->GetResults();
+    ResultList rList = rMap[rInfo];
+    shared_ptr<BaseResult> res = rList[0];
+    in->SetTempRegionName(regionName);
+    in->GetResult(sequenceStep, stepNum, res, true);
+    resV = dynamic_cast<Result<T>&>(*res).GetVector();
+    inDomain->GetResultHandler()->FinishMultiSequenceStep();
+    in->ResetTempRegionName();
+  }
+
+  void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
+                                         PtrParamNode valueNode,
+                                         const StdVector<std::string>& compNames,
+                                         ResultInfo::EntryType type,
+                                         PtrCoefFct & coef,
+                                         std::set<UInt>& definedDofs,
+                                         bool& updateGeo){
+    bool isComplex;
+    valueNode->GetValue("isComplex", isComplex, ParamNode::PASS );
+    ReadUserFieldValues(list, valueNode, compNames, type, isComplex, coef, definedDofs, updateGeo);
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
@@ -2809,6 +2954,7 @@ namespace CoupledField {
           EXCEPTION( "Time / frequency mapping of type '" << tfmString 
                      << "' not known.");
         }
+
 
         // Return coefficient function
         coef = inPDE->GetCoefFct(solType);
@@ -3722,7 +3868,11 @@ namespace CoupledField {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == ELEC_POTENTIAL ) {
-      factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+    	if(additionalCoef){
+    		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_CONDUCTIVITY, Global::REAL );
+    	}else{
+    		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+    	}
     }
     else if ( solType == MAG_POTENTIAL) {
       //TODO Clean this up
@@ -3848,7 +3998,7 @@ namespace CoupledField {
               factor, beta, curcpl, updatedGeo_, true, true);
     }
     else  {
-      if(pdename_ == "magneticEdge"){
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
         if(additionalCoef){
           // multiharmonic case
           penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -3885,7 +4035,7 @@ namespace CoupledField {
     		               factor, -1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-    	  if(pdename_ == "magneticEdge"){
+    	  if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
     	    if(additionalCoef){
     	      // multiharmonic case
     	      flux_du1_v1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -3923,7 +4073,7 @@ namespace CoupledField {
                            factor, -1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             flux_u1_dv1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -3956,7 +4106,7 @@ namespace CoupledField {
                         factor, beta * -1.0, curcpl, updatedGeo_, true, true);
     }
     else {
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -3995,7 +4145,7 @@ namespace CoupledField {
     	}
     	else {
 
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             flux_du1_v2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4028,7 +4178,7 @@ namespace CoupledField {
     }
     else {
 
-      if(pdename_ == "magneticEdge"){
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
         if(additionalCoef){
           // multiharmonic case
           penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4075,7 +4225,6 @@ namespace CoupledField {
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
-      //if(pdename_ == "magneticEdge") EXCEPTION("No moving region in MagEdgePDE possible...yet!");
       if(changeForms){
         Double betaDamp = iface.nitscheFactorDamp;
         BiLinearForm *penalty_u1_v1_M = NULL;
@@ -4086,7 +4235,7 @@ namespace CoupledField {
         SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
 
         curcpl = BiLinearForm::MASTER_MASTER;
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             penalty_u1_v1_M = new SurfaceNitscheABInt<Complex,Complex>
@@ -4110,7 +4259,7 @@ namespace CoupledField {
         penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
 
         curcpl = BiLinearForm::SLAVE_SLAVE;
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             penalty_u2_v2_M = new SurfaceNitscheABInt<Complex,Complex>
@@ -4134,7 +4283,7 @@ namespace CoupledField {
         penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
 
         curcpl = BiLinearForm::MASTER_SLAVE;
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" ){
           if(additionalCoef){
             // multiharmonic case
             penalty_u1_v2_M = new SurfaceNitscheABInt<Complex,Complex>
@@ -4227,6 +4376,8 @@ namespace CoupledField {
   }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&, std::string);
+  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Complex>&, std::string);
   template void SinglePDE::DefineMortarCoupling<2,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);

@@ -134,7 +134,7 @@ namespace CoupledField {
     void GetResult( UInt sequenceStep,
                     UInt stepNum,
                     shared_ptr<BaseResult> result,
-                    bool isHistory = false );
+                    bool isHist = false);
 
     //! Read one the strings in the user data group.
     void ReadStringFromUserData(const std::string& dSetName,
@@ -212,7 +212,7 @@ namespace CoupledField {
     
     //! Read history result
     void GetHistResult( UInt sequenceStep, UInt stepNum,
-                           shared_ptr<BaseResult> result );
+                           shared_ptr<BaseResult> result);
     
     void LinearizeElems(const StdVector<UInt>& readElems,
                         StdVector<Integer>& elemTypes, 

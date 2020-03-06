@@ -171,6 +171,5 @@ BUIntegrator(BaseBOperator * bOp,
        elemVec += bMat * cVec * fac;
 
      }
-
   }
 }

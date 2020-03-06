@@ -290,7 +290,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         ENDIF()
 
       ELSE()
-        MESSAGE("Download failed: ${DL_MSG}")
+        MESSAGE(WARNING "Download failed for ${URL}: ${DL_MSG}")
         FILE(REMOVE ${LOCAL_FILE})
       ENDIF()
 

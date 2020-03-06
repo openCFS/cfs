@@ -96,6 +96,9 @@ namespace CoupledField {
     //! \param matName Name of the material to be read
     void ReadElectricConduction(BaseMaterial *material, PtrParamNode pn);
 
+    //! Read hysteresis; central function to avoid endless duplicates
+    void ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode);
+    void ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains);
   };
   
 }

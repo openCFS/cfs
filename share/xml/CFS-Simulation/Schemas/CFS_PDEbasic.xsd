@@ -63,7 +63,7 @@
       <xsd:enumeration value="INVMEASURE"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
 
   <!-- Mode of interpolation -->
   <xsd:simpleType name="DT_CoefGridInterpolMode">
@@ -80,22 +80,27 @@
           <xsd:element name="defaultGrid">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1" type="xsd:token"/>
+                <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1"
+                  type="xsd:token"/>
               </xsd:sequence>
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
-              <xsd:attribute name="measureNodes" type="xsd:string" />
+              <xsd:attribute name="measureNodes" type="xsd:string"/>
               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1"/>
-              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional"
+                default="false"/>
               <xsd:attribute name="verboseSum" type="xsd:boolean" use="optional" default="false"/>
-              <xsd:attribute name="verboseTimeFreqFactor" type="xsd:boolean" use="optional" default="true"/>
+              <xsd:attribute name="verboseTimeFreqFactor" type="xsd:boolean" use="optional"
+                default="true"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="externalGrid">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="notInterpolatedNodesFile" maxOccurs="1" minOccurs="0" default="" type="xsd:token"/>
-                <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1" type="xsd:token"/>
+                <xsd:element name="notInterpolatedNodesFile" maxOccurs="1" minOccurs="0" default=""
+                  type="xsd:token"/>
+                <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1"
+                  type="xsd:token"/>
                 <xsd:element name="globalTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="localTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
@@ -123,12 +128,15 @@
               <xsd:attribute name="inputId" type="xsd:token" use="required"/>
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
-              <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional" default="standard"/>
+              <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional"
+                default="standard"/>
               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1"/>
               <xsd:attribute name="verbose" type="xsd:boolean" use="optional" default="false"/>
-              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional"
+                default="false"/>
               <xsd:attribute name="verboseSum" type="xsd:boolean" use="optional" default="false"/>
-              <xsd:attribute name="verboseTimeFreqFactor" type="xsd:boolean" use="optional" default="true"/>
+              <xsd:attribute name="verboseTimeFreqFactor" type="xsd:boolean" use="optional"
+                default="true"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -198,7 +206,8 @@
                 <!-- a) fixed time / frequency step -->
                 <xsd:element name="constant">
                   <xsd:complexType>
-                    <xsd:attribute name="step" type="xsd:nonNegativeInteger" use="optional" default="1"/>
+                    <xsd:attribute name="step" type="xsd:nonNegativeInteger" use="optional"
+                      default="1"/>
                   </xsd:complexType>
                 </xsd:element>
 
@@ -250,8 +259,7 @@
                 <!-- a) fixed time / frequency step -->
                 <xsd:element name="constant">
                   <xsd:complexType>
-                    <xsd:attribute name="step" type="xsd:integer" use="optional" default="1"
-                    />
+                    <xsd:attribute name="step" type="xsd:integer" use="optional" default="1"/>
                   </xsd:complexType>
                 </xsd:element>
 
@@ -383,13 +391,14 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <!-- Same Simulation, other sequenceStep -->
           <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
         </xsd:choice>
         <xsd:attribute name="value" type="xsd:token" use="optional"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
         <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
+        <xsd:attribute name="isComplex" type="xsd:boolean" use="optional" default="false"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -533,7 +542,7 @@
         Defines Bloch-periodic boundary conditions with a factor diven by its absolute value and the argument, i.e. phase (IN RADIANS!). 
         One can also specify the approach the boundary conditions are to be handled: eiter mortar of Nitsche.
       </xsd:documentation>
-    </xsd:annotation>    
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:sequence>
@@ -547,9 +556,10 @@
         </xsd:sequence>
         <xsd:attribute default="1.0" name="factor_value" type="xsd:token"/>
         <xsd:attribute default="0.0" name="factor_phase" type="xsd:token"/>
-        <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche" />
-        <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100" />
-        <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2" />
+        <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"
+          default="Nitsche"/>
+        <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100"/>
+        <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2"/>
         <xsd:attribute name="lagrangeMultType" use="optional" default="standard">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
@@ -798,7 +808,7 @@
               <xsd:attribute name="power" type="xsd:token" default="0" use="optional"/>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Frequency shift for CFS-PML -->
           <xsd:element name="frqShiftCoef" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
@@ -817,7 +827,8 @@
           <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
 
-        <xsd:attribute name="formulation" type="DT_PMLFormulation" default="classic" use="optional"/>
+        <xsd:attribute name="formulation" type="DT_PMLFormulation" default="classic" use="optional"
+        />
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -826,16 +837,16 @@
   <!-- ******************************************************************* -->
   <!--   Definition of Mapping -->
   <!-- ******************************************************************* -->
-  
+
   <!-- Definition of Mapping damping type -->
   <xsd:complexType name="DT_DampingMapping">
     <xsd:complexContent>
       <xsd:extension base="DT_DampingBasic">
         <xsd:sequence>
-          
+
           <!-- Reference coordinate system, in which Mapping damping is defined -->
           <xsd:element name="coordSysId" minOccurs="0" maxOccurs="1" type="xsd:token"/>
-          
+
           <!-- Geometric definition of region -->
           <xsd:element name="propRegion" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -850,7 +861,7 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Type of Mapping -->
           <xsd:element name="type" minOccurs="0" maxOccurs="1" default="tangens">
             <xsd:annotation>
@@ -864,7 +875,7 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          
+
           <!-- Damping factor -->
           <xsd:element name="dampFactor" type="xsd:token" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
@@ -872,7 +883,7 @@
             </xsd:annotation>
           </xsd:element>
         </xsd:sequence>
-        
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -1294,17 +1305,17 @@
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
           <!-- =========================== -->
           <!--  B) External file           -->
-          <!-- =========================== -->          
+          <!-- =========================== -->
           <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
           <!-- =========================== -->
           <!--  C) Sequence step           -->
-          <!-- =========================== -->           
+          <!-- =========================== -->
           <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
           <!-- =========================== -->
           <!--  D) External grid           -->
           <!-- =========================== -->
           <!-- Read Data from external Grids -->
-          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/> 
+          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1324,31 +1335,31 @@
 
   <!-- data type for specifying external inputs, similar to DT_BcInhomScalar -->
   <xsd:complexType name="DT_ExtCurrentDens">
-      <xsd:choice>
-          <!-- Read Data from external Grids -->
-          <xsd:element name="grid" minOccurs="0" maxOccurs="1" type="DT_BaseGridData"/>
+    <xsd:choice>
+      <!-- Read Data from external Grids -->
+      <xsd:element name="grid" minOccurs="0" maxOccurs="1" type="DT_BaseGridData"/>
 
-          <!-- Obtain data from iterative coupling -->
-          <xsd:element name="coupling" minOccurs="0" maxOccurs="1" type="DT_IterCplData"/>
+      <!-- Obtain data from iterative coupling -->
+      <xsd:element name="coupling" minOccurs="0" maxOccurs="1" type="DT_IterCplData"/>
 
-          <!-- External HDF5 file -->
-          <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+      <!-- External HDF5 file -->
+      <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
 
-          <!-- =========================== -->
-          <!--  Scattered data from CSV -->
-          <!-- =========================== -->
-          <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
+      <!-- =========================== -->
+      <!--  Scattered data from CSV -->
+      <!-- =========================== -->
+      <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
                 Scattered data coming from CSV files.
               </xsd:documentation>
-            </xsd:annotation>
-          </xsd:element>
-          
-          <!-- Same Simulation, other sequenceStep -->
-          <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
-      </xsd:choice>
-      <xsd:attribute default="yes" name="normalise" type="DT_CFSBool"/>
+        </xsd:annotation>
+      </xsd:element>
+
+      <!-- Same Simulation, other sequenceStep -->
+      <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
+    </xsd:choice>
+    <xsd:attribute default="yes" name="normalise" type="DT_CFSBool"/>
   </xsd:complexType>
 
   <!-- Data type for basic coil -->
@@ -1364,6 +1375,8 @@
                 <xsd:restriction base="xsd:token">
                   <xsd:enumeration value="current"/>
                   <xsd:enumeration value="voltage"/>
+                  <xsd:enumeration value="specialvoltage"> </xsd:enumeration>
+                  <xsd:enumeration value="specialcurrent"/>
                   <xsd:enumeration value="external">
                     <xsd:annotation>
                       <xsd:documentation xml:lang="en">
@@ -1379,7 +1392,7 @@
             <xsd:attribute name="phase" type="xsd:token" default="0.0"/>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- Definition for multiharmonic coil-->
         <xsd:element name="sourceMultiharmonic" minOccurs="0" maxOccurs="1">
           <xsd:complexType>
@@ -1402,6 +1415,7 @@
                 <xsd:restriction base="xsd:token">
                   <xsd:enumeration value="current"/>
                   <xsd:enumeration value="voltage"/>
+                  <xsd:enumeration value="specialvoltage"/>
                   <xsd:enumeration value="external">
                     <xsd:annotation>
                       <xsd:documentation xml:lang="en">
@@ -1416,7 +1430,7 @@
           </xsd:complexType>
         </xsd:element>
       </xsd:choice>
-      
+
 
       <!-- Define parts of coil -->
       <xsd:element name="part" minOccurs="1" maxOccurs="unbounded">
@@ -1453,7 +1467,8 @@
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>
-                      <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default="default"/>
+                      <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+                        default="default"/>
                       <xsd:attribute default="yes" name="normalise" type="DT_CFSBool"/>
                     </xsd:complexType>
                   </xsd:element>
@@ -1490,13 +1505,28 @@
                   </xsd:element>
 
                   <!-- c) external -->
-                  <xsd:element name="external" minOccurs="0" maxOccurs="1" type="DT_ExtCurrentDens"/>
+                  <xsd:element name="external" minOccurs="0" maxOccurs="1" type="DT_ExtCurrentDens"
+                  />
                 </xsd:choice>
                 <xsd:attribute name="orientation" default="1" type="DT_DirFlag" use="optional"/>
                 <!--xsd:attribute name="uniformCurrentDensity" default="yes" type="DT_CFSBool"
                   use="optional"/-->
               </xsd:complexType>
             </xsd:element>
+
+
+
+            <!--Specify the reading of grad(V)*grad(V) (needed in special A-V formulation) -->
+            <xsd:element name="gradV_in_gradV" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <!-- c) external -->
+                  <xsd:element name="external" minOccurs="0" maxOccurs="1" type="DT_ExtCurrentDens"
+                  />
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+
 
             <!-- Define layout of coil. Here we allow for two different
                  definitions:

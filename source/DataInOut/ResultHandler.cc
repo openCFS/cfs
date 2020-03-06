@@ -20,9 +20,6 @@
 
 namespace CoupledField {
 
-
-  // declare logging stream
-  DECLARE_LOG(resHandler)
   DEFINE_LOG(resHandler, "resultHandler")
     
   ResultHandler::ResultHandler( PtrParamNode paramNode) {

@@ -1,33 +1,28 @@
 CFS++
 ==============================
 
-[![pipeline status](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/pipeline.svg)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) [![Testsuite stable](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=stable:gcc4:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master)
-
-#### Code Score
-* [![build gcc4](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=build:gcc4)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC4 build
-* [![build gcc6](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=build:gcc6)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC6 build
-* [![build gcc7](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=build:gcc7)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC7 build
-
-#### Testsuite Runs
-* [![Testsuite gcc4](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=testsuite:gcc4:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) of all tests on GCC4 build
-* [![Testsuite gcc6](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=testsuite:gcc6:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) of all tests on GCC6 build
-* [![Testsuite gcc7](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=testsuite:gcc7:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) of all tests on GCC7 build
-
-
 This is the git repository of CFS++.
 
 Building
 --------
 
 For building you need
-* cmake
+* [CMake](https://cmake.org)
 * C++ and Fortran compilers
+* some additional dependecies depending on the build configuration
+
+There are installation instructions for required dependencies for
+[Ubuntu](share/doc/developer/build-dependencies/ubuntu.md), 
+[Debian](share/doc/developer/build-dependencies/debian.md),  
+[Centos](share/doc/developer/build-dependencies/centos.md) and
+[Fedora](share/doc/developer/build-dependencies/fedora.md).
+They are regularly tested on the newest releases using [docker containers](share/docker/README.md), via our CI/CD [pipeline](.gitlab-ci.yml). 
 
 We use CMake so it might be as simple as
-```
+```shell
 mkdir build && cd build
 cmake ..
-ccmake . # to review the options
+cmake .
 make
 ```
 
@@ -37,7 +32,7 @@ Running
 ------------
 
 After a sucessful build you can execute
-```
+```shell
 ./bin/cfs
 ```
 For details visit the [user documentation](https://cfs-doc.mdmt.tuwien.ac.at) with plenty of examples.

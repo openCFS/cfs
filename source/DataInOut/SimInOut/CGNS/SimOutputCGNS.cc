@@ -19,7 +19,6 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simOutputCGNS)
   DEFINE_LOG(simOutputCGNS, "simOutput.CGNS")
 
   // ***************

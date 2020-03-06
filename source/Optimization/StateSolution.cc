@@ -2,7 +2,6 @@
 
 #include "Optimization/StateSolution.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Driver/Assemble.hh"
@@ -15,7 +14,6 @@ using namespace std;
 
 using namespace CoupledField;
 
-DECLARE_LOG(statesol)
 DEFINE_LOG(statesol, "stateSolution")
 
 StateContainer::StateContainer()

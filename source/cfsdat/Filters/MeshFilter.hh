@@ -113,11 +113,11 @@ protected:
   //! \param resId (in) result-id of the current filter results
   //! \param inVec (in) Vector containing the node-results
   //! \param interpolData (in) information of elements of target-regions
-  void Node2Cell(Vector<Double>& returnVec,
+  template<typename T>
+  void Node2Cell(Vector<T>& returnVec,
                 const boost::uuids::uuid& resId,
-                const Vector<Double>& inVec,
+                const Vector<T>& inVec,
                 const std::vector<QuantityStruct>& interpolData);
-
 
 
   //! Interpolation from cell-center (element-results) to node-results by

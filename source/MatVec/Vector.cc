@@ -1,6 +1,7 @@
 
 #include "Vector.hh"
 #include "opdefs.hh"
+#include "Matrix.hh"
 #include <boost/type_traits/is_complex.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 
@@ -190,6 +191,7 @@ namespace CoupledField {
   // *********
   //   Inner
   // *********
+
   template <typename T>
   void Vector<T>::Inner(const SingleVector &vec, T &sum) const
   {
@@ -307,6 +309,23 @@ namespace CoupledField {
       sum += OpType<T>::zConjz(data_[i] - other[i]);
 
     return sqrt(sum);
+  }
+
+  /*
+   * sometimes NormL2^2 is needed (e.g. for trust region checking for
+   * hysteresis; in these cases it makes no sense to take the sqrt and
+   * then square it; just skip the sqrt
+   */
+  template <typename T>
+  inline Double Vector<T>::NormL2_squared() const
+  {
+    double sum = 0;
+
+    //#pragma omp parallel for reduction(+:sum)
+    for(unsigned int i = 0; i < size_; ++i)
+      sum += OpType<T>::zConjz(data_[i]);
+
+    return sum;
   }
 
   template <typename T>
@@ -1196,7 +1215,7 @@ namespace CoupledField {
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  
    
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<typename T>
   Vector<T> &Vector<T>::operator=(const Vector<T> &x)

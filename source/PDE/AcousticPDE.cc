@@ -47,7 +47,6 @@
 
 namespace CoupledField{
 
-  DECLARE_LOG(acousticpde)
    DEFINE_LOG(acousticpde, "pde.acoustic")
 
 
@@ -1149,8 +1148,85 @@ namespace CoupledField{
         feFunctions_[formulation_]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( impedContext );
       }
-    }
-  }
+
+      //========================================================================================
+      // boundary Layers
+      //========================================================================================
+      ParamNodeList blNodes = bcNode->GetList( "boundaryLayer" );
+
+      for( UInt i = 0; i < blNodes.GetSize(); ++i ) {
+        if ( !(formulation_ == ACOU_PRESSURE) || !(this->analysistype_ == HARMONIC) ) EXCEPTION("bounadryLayer only available for harmonic pressure formulation");
+
+        std::string regionName = blNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
+        std::string volRegName = blNodes[i]->Get("volumeRegion")->As<std::string>();
+        RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+        PtrCoefFct rho0 = materials_[volRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+        PtrCoefFct K = materials_[volRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        PtrCoefFct cp = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("cp")->As<std::string>() );
+        PtrCoefFct cv = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("cv")->As<std::string>() );
+        PtrCoefFct nu = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("nu")->As<std::string>() );
+        PtrCoefFct k = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("k")->As<std::string>() );
+
+        PtrCoefFct omegaHalv = CoefFunction::Generate( mp_,  Global::REAL, "pi*f");//
+        // deltaV = sqrt( 2*nu/omega )
+        PtrCoefFct deltaV = CoefFunction::Generate(mp_,Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, nu, omegaHalv, CoefXpr::OP_DIV ) , CoefXpr::OP_SQRT));
+        // deltaT = sqrt( 2*k/(omega*rho0*cp) )
+        PtrCoefFct deltaT = CoefFunction::Generate(mp_,Global::COMPLEX,
+            CoefXprUnaryOp(mp_,
+                CoefXprBinOp(mp_,
+                    k, CoefXprBinOp(mp_,CoefXprBinOp(mp_, cp, rho0, CoefXpr::OP_MULT ),omegaHalv, CoefXpr::OP_MULT ),
+                    CoefXpr::OP_DIV ),
+                    CoefXpr::OP_SQRT));
+        // 1-i ... common factor for both terms
+        PtrCoefFct oneMinusI =  CoefFunction::Generate( mp_,  Global::COMPLEX, "1", "-1");
+        // gamma = cp/cv -> gamma-1 = (cp-cv)/cv
+        PtrCoefFct gammaMinusOne = CoefFunction::Generate(mp_,Global::COMPLEX, CoefXprBinOp(mp_, CoefXprBinOp(mp_,cp,cv,CoefXpr::OP_SUB), cv, CoefXpr::OP_DIV));
+
+        // Mass matrix
+        PtrCoefFct coefM =  CoefFunction::Generate(mp_,Global::COMPLEX,
+            CoefXprBinOp(mp_,
+                CoefXprBinOp(mp_,
+                    CoefXprBinOp(mp_, deltaT, CoefXprBinOp(mp_, rho0, K, CoefXpr::OP_DIV), CoefXpr::OP_MULT),
+                    oneMinusI,
+                    CoefXpr::OP_MULT),
+                    gammaMinusOne,
+                    CoefXpr::OP_MULT)
+        );
+        BiLinearForm * blmInt = NULL;
+        if( dim_ == 2 ) {
+          blmInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), coefM, 0.5, updatedGeo_ );
+        } else {
+          blmInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), coefM, 0.5, updatedGeo_ );
+        }
+        blmInt->SetName("blMassIntegrator");
+        BiLinFormContext *blmContext = new BiLinFormContext(blmInt, MASS);
+        blmContext->SetEntities(actSDList, actSDList);
+        blmContext->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+        feFunctions_[formulation_]->AddEntityList(actSDList);
+        assemble_->AddBiLinearForm(blmContext);
+
+        // Stiffness matrix
+        PtrCoefFct coefK = CoefFunction::Generate(mp_,Global::COMPLEX, CoefXprBinOp(mp_, deltaV, oneMinusI, CoefXpr::OP_MULT) );
+        BiLinearForm * blkInt = NULL;
+        std::set<RegionIdType> volRegions;
+        volRegions.insert(volRegion);
+        if( dim_ == 2 ) {
+          blkInt = new BBInt<Complex>(new GradientOperator<FeH1,2,1, Complex>(), coefK, -0.5, updatedGeo_ );
+        } else {
+          blkInt = new BBInt<Complex>(new GradientOperator<FeH1,3,1, Complex>(), coefK, -0.5, updatedGeo_ );
+        }
+        blkInt->SetName("blStiffnessIntegrator");
+        BiLinFormContext *blkContext = new BiLinFormContext(blkInt, STIFFNESS);
+        blkContext->SetEntities(actSDList, actSDList);
+        blkContext->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+        feFunctions_[formulation_]->AddEntityList(actSDList);
+        assemble_->AddBiLinearForm(blkContext);
+
+      } // boundary Layers
+    } // end if ( bcNode )
+  } // DefineSurfaceIntegrators
 
   void AcousticPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(acousticpde) << "Defining rhs load integrators for acoustic PDE";

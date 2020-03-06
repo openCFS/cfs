@@ -452,9 +452,7 @@ namespace CFSTool
     }
 
     // param->ToXML(std::cout);
-    
 
-    logConf.reset(new LogConfigurator(param_logConfFile));
-    logConf->ParseLogConfFile();
+    LogConfigurator::ParseLogConfFile(param_logConfFile);
   }
 }

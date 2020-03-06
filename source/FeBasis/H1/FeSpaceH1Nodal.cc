@@ -24,7 +24,6 @@
 #include <omp.h>
 #endif
 
-DECLARE_LOG(feSpaceH1Nodal)
 DEFINE_LOG(feSpaceH1Nodal, "feSpaceH1Nodal")
 namespace CoupledField{
 
@@ -142,7 +141,7 @@ namespace CoupledField{
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION(__PRETTY_FUNCTION__
-                << ": requested FEType is not supported by space");
+                << ": requested FEType ("<<ptElem->type<<") is not supported by space");
     }
 #ifdef USE_OPENMP
     BaseFE * myFe;
@@ -471,6 +470,7 @@ namespace CoupledField{
     //but it could be, that the PDE requires a minimum order of elements..
     ApproxOrder order (ptGrid_->GetDim());
     order.SetIsoOrder(1);
+
     if(orderOffset_>0){
       order.SetIsoOrder(orderOffset_);
       SetRegionElements(ALL_REGIONS,POLYNOMIAL,order,infoNode);

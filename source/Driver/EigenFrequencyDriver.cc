@@ -26,7 +26,6 @@ using std::string;
 
 namespace CoupledField {
 
-  DECLARE_LOG(efd)
   DEFINE_LOG(efd, "eigenFrequencyDriver")
 
   // forward declaration

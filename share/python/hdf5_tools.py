@@ -219,34 +219,56 @@ def get_element(hdf5_file, name, region, given_step=99999):
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
 
-def get_step_values(h5) :
-  """
-  return the step values as a list of arrays for each multi-sequence step
+def get_step_values(hdf5_file) :
+    """
+    return the step values as a list of arrays for each multi-sequence step
 
-  Parameters
-  ----------
-  h5: h5py.File object
+    Parameters
+    ----------
+    h5: h5py.File object or str
 
-  Returns
-  -------
-  out : list of arrays
-  """
-  from numpy import allclose
-  try:
-    multisteps = h5['Results/Mesh']
-  except:
-    raise Exception("no Mesh results in %s"%h5.filename)
-  step_values = []
-  for msk in multisteps.keys():
-    result_keys = list(multisteps[msk]['ResultDescription'].keys())
-    rev_vals = multisteps[msk]['ResultDescription'][result_keys[0]]['StepValues'][()]
-    # check step vals
-    for rk in result_keys[1:]:
-      if not allclose(rev_vals,multisteps[msk]['ResultDescription'][rk]['StepValues'][()]) :
-        Exception("step values are different for '" + rk + "' and '"+result_keys[0]+"' in " + msk)
-      #[()]s(
-    step_values.append(rev_vals)
-  return step_values
+    Returns
+    -------
+    out : list of arrays
+
+    Example
+    -------
+    A single step at frequency 1
+    >>> get_step_values('./TESTSUIT/Singlefield/Mechanics/uniaxStrainPwavePML3d/uniaxStrainPwavePML3d.h5ref')
+    [array([1.])]
+
+    A single eigenfrequecy step
+    >>> get_step_values(dampedEV2D)
+    [array([ 254.66060483,  636.80184511,  681.93162371, 1133.77662285,
+            1144.0149628 , 1378.19737112, 1668.47028788, 1931.85306237,
+            1987.25030061, 1992.65687422, 2194.52472254, 2305.77247832])]
+
+    Check how many steps there are
+    >>> step_val_list = get_step_values(dampedEV2D)
+    >>> len(step_val_list)
+    1
+    """
+    if type(hdf5_file) == str :
+        from h5py import File
+        with File(hdf5_file,'r') as h5:
+            return get_step_values(h5)
+    else:
+        from numpy import allclose
+        try:
+          multisteps = hdf5_file['Results/Mesh']
+        except:
+          raise Exception("no Mesh results in %s"%hdf5_file.filename)
+        step_values = []
+        for msk in multisteps.keys():
+          result_keys = list(multisteps[msk]['ResultDescription'].keys())
+          rev_vals = multisteps[msk]['ResultDescription'][result_keys[0]]['StepValues'][:]
+          # check step vals
+          for rk in result_keys[1:]:
+            if not allclose(rev_vals,multisteps[msk]['ResultDescription'][rk]['StepValues'][:]) :
+              Exception("step values are different for '" + rk + "' and '"+result_keys[0]+"' in " + msk)
+            #.values(
+          step_values.append(rev_vals)
+        return step_values
 
 # returns nodal or elemental results as numpy array
 def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
@@ -255,13 +277,15 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     
     Parameters
     ----------
+    hdf5_file : h5py.File or str
+        CFS++ hdf5 data file
     result: string 
-      specifies the results to return: e.g. 'accuPressure','mechDisplacement',...
+        specifies the results to return: e.g. 'accuPressure','mechDisplacement',...
     region: string 
-      region name
+        region name
     step: integer, list, or string  
-      defining the step as single integer, list of integersor or 'last' for laststep or
-      'all' for all steps 
+        defining the step as single integer, list of integersor or 'last' for laststep or
+        'all' for all steps
       
     Returns
     -------
@@ -272,39 +296,44 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     Extract real data
     >>> U = get_result(Plate3D,'mechDisplacement')
     >>> U[-6:,:]
-    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-       [ -2.01311228e-05,   2.01311228e-05,   2.80932210e-05],
-       [ -4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
-       [  4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
-       [ -4.28143434e-04,   4.28143434e-04,   2.07611520e-02],
-       [  4.28143434e-04,   4.28143434e-04,   2.07611520e-02]])
+    array([[ 0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+       	   [-2.01311228e-05,   2.01311228e-05,   2.80932210e-05],
+           [-4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
+           [ 4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
+           [-4.28143434e-04,   4.28143434e-04,   2.07611520e-02],
+           [ 4.28143434e-04,   4.28143434e-04,   2.07611520e-02]])
     """
-    from numpy import array, squeeze
-    h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
-    if step=='last':
-        steps=[last_h5_step(hdf5_file,multistep)]
-    elif step=='all' :
-        steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)][()]
-    elif type(step)==int :
-        steps=[step]
-    elif hasattr(step, '__iter__') :
-        steps=step
-    res = []
-    for step in steps:
-        h5_s = h5_ms['Step_%i'%step] # extract step
-        h5_res = h5_s[result] # extract result
-        if region==None :
-            if len(h5_res.keys())>1 :
-                raise Exception("No region specified but more than one region present for result '"+result+"'in '"+hdf5_file.filename+"', MultiStep_%i, Step_%i"%(multistep,step)+" Available regions: "+", ".join(h5_res.keys()))
+    if type(hdf5_file) == str :
+        from h5py import File
+        with File(hdf5_file,'r') as h5:
+            return get_result(h5,result,region,step,multistep)
+    else:
+        from numpy import array, squeeze
+        h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
+        if step=='last':
+            steps=[last_h5_step(hdf5_file,multistep)]
+        elif step=='all' :
+            steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)][:]
+        elif type(step)==int :
+            steps=[step]
+        elif hasattr(step, '__iter__') :
+            steps=step
+        res = []
+        for step in steps:
+            h5_s = h5_ms['Step_%i'%step] # extract step
+            h5_res = h5_s[result] # extract result
+            if region==None :
+                if len(h5_res.keys())>1 :
+                    raise Exception("No region specified but more than one region present for result '"+result+"'in '"+hdf5_file.filename+"', MultiStep_%i, Step_%i"%(multistep,step)+" Available regions: "+", ".join(h5_res.keys()))
+                else :
+                    region = [k for k in h5_res.keys()][0]
+            h5_res_reg = h5_res[region] # extraxt region
+            res_type = list(h5_res_reg.keys())[0] # read result type (Nodes or Elements)
+            if 'Imag' in h5_res_reg[res_type].keys() :
+                res.append( h5_res_reg[res_type]['Real'][:] + 1j*h5_res_reg[res_type]['Imag'][:] )
             else :
-                region = [k for k in h5_res.keys()][0]
-        h5_res_reg = h5_res[region] # extraxt region
-        res_type = list(h5_res_reg.keys())[0] # read result type (Nodes or Elements)
-        if 'Imag' in h5_res_reg[res_type].keys() :
-            res.append( h5_res_reg[res_type]['Real'][()] + 1j*h5_res_reg[res_type]['Imag'][()] )
-        else :
-            res.append( h5_res_reg[res_type]['Real'][()] )
-    return squeeze(array(res))
+                res.append( h5_res_reg[res_type]['Real'][:] )
+        return squeeze(array(res))
 
 def get_all_results(hdf5_file,region=None,step='last',multistep=1):
   ms = hdf5_file['/Results/Mesh/MultiStep_%i/ResultDescription'%multistep]
@@ -323,13 +352,13 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
 
     Parameters
     ----------
-    hdf5_file : hdf5file
+    hdf5_file : h5py.File or str
         CFS++ hdf5 data file
     region : string
         region name
     sugregion : string
         subregion name
-    rtype : string, oprional
+    rtype : string (optional)
         Either 'Nodes'(default) or 'Elements', defines the region type
 
     Returns
@@ -344,19 +373,21 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
 
     # Of course, all displacements on the clamped side mst be zero
     >>> U[I,:] # doctest: +ELLIPSIS
-    array([[ 0.,  0.,  0.],
-       [ 0.,  0.,  0.],
-       [ 0.,  0.,  0.],
-       ...
-       [ 0.,  0.,  0.],
-       [ 0.,  0.,  0.]])
+    array([[0.,  0.,  0.],
+           [0.,  0.,  0.],
+      ...
+           [0.,  0.,  0.]])
     """
-    from numpy import array, argwhere
-    Is = hdf5_file['Mesh']['Regions'][subregion][rtype][()]-1
-    Ir = hdf5_file['Mesh']['Regions'][region][rtype][()]-1
-    Isr = array([argwhere(Ir==i).ravel() for i in Is if i in Ir]).ravel()
-    return Isr
-
+    if type(hdf5_file) == str :
+        from h5py import File
+        with File(hdf5_file,'r') as h5:
+            return get_subregion_idx(h5,region,subregion,rtype)
+    else:
+        from numpy import array, argwhere
+        Is = hdf5_file['Mesh']['Regions'][subregion][rtype][:]-1
+        Ir = hdf5_file['Mesh']['Regions'][region][rtype][:]-1
+        Isr = array([argwhere(Ir==i).ravel() for i in Is if i in Ir]).ravel()
+        return Isr
 
 def get_coordinates(hdf5_file,region=None) :
     """
@@ -364,7 +395,7 @@ def get_coordinates(hdf5_file,region=None) :
 
     Parameters
     ----------
-    hdf5_file : hdf5file
+    hdf5_file : h5py.File or str
         CFS++ hdf5 data file
     region : string, optional
         region name for a subset of coordinates
@@ -377,17 +408,22 @@ def get_coordinates(hdf5_file,region=None) :
     --------
     >>> X = get_coordinates(Plate3D)
 
-    # Show coordinates of nodes 2, 4, 6 (index shift)X[[1,3,5],:]
+    # Show coordinates of nodes 2, 4, 6 (index shift) -> X[[1,3,5],:]
     >>> X[[1,3,5],:]
-    array([[ 12. ,   7.2,   0. ],
-           [ 11.5,   4.8,   0. ],
-           [  0.5,   7.2,   0. ]])
+    array([[12. ,   7.2,   0. ],
+           [11.5,   4.8,   0. ],
+           [ 0.5,   7.2,   0. ]])
     """
-    if not region==None :
-        I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'][()] - 1
-        return hdf5_file['Mesh/Nodes/Coordinates'][()][I,:]
-    else :
-        return hdf5_file['Mesh/Nodes/Coordinates'][()]
+  if type(hdf5_file) == str :
+        from h5py import File
+        with File(hdf5_file,'r') as h5:
+            return get_coordinates(h5,region)
+    else:
+        if not region==None :
+            I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'][:] - 1
+            return hdf5_file['Mesh/Nodes/Coordinates'][:][I,:]
+        else :
+            return hdf5_file['Mesh/Nodes/Coordinates'][:]
 
 def get_centroids(hdf5_file,region=None) :
     """
@@ -397,7 +433,7 @@ def get_centroids(hdf5_file,region=None) :
 
     Parameters
     ----------
-    hdf5_file : hdf5file
+    hdf5_file : h5py.File or str
         CFS++ hdf5 data file
     region : string, optional
         region name for a subset of elements
@@ -412,30 +448,43 @@ def get_centroids(hdf5_file,region=None) :
     Get centroids for a single region result file
     >>> C = get_centroids(Plate3D)
     >>> C[0,:] # first element
-    array([ 11.75 ,   6.   ,   0.175])
+    array([11.75 , 6. , 0.175])
     >>> C[-1,:] # last element
-    array([ 9.35,  9.35,  0.35])
+    array([9.35, 9.35, 0.35])
+
+    Reading directly from a file path
+    >>> get_centroids('TESTSUIT/Singlefield/Mechanics/uniaxStrainPwavePML3d/uniaxStrainPwavePML3d.h5ref') # doctest: +ELLIPSIS
+    array([[0.5 , 0.  , 0.05],
+           [0.5 , 0.  , 0.15],
+           ...
+           [1.  , 1.  , 2.85],
+           [1.  , 1.  , 2.95]])
     """
-    from numpy import sum, unique, argwhere, zeros, arange, mean
-    # get connectivity and nodal coordinates
-    conn = hdf5_file['Mesh/Elements/Connectivity'][()]
-    coord = hdf5_file['Mesh/Nodes/Coordinates'][()]
-    # determine indices of region
-    if not region==None:
-        validate_region(hdf5_file,region)
-        I = hdf5_file['Mesh/Regions/%s/Elements'%region][()] - 1
-    else :
-        I = arange(conn.shape[0])
-    # allocate result
-    center = zeros([len(I),coord.shape[1]])
-    # compute the centriods
-    etype = hdf5_file['Mesh/Elements/Types'][()][I] # element types
-    for et in unique(etype) : # sum operations for unique element types
-        It = argwhere(etype == et)[:,0] # index of the type-elements in region
-        Nnodes = sum(conn[I[It[0]]]>0) # determine how many nodes the element-type has
-        nids = conn[I[It],:Nnodes] # node ids, only take used columns
-        center[It,:] = mean(coord[nids-1,:],axis=1) # compute center as arithmetic mean
-    return center
+    if type(hdf5_file) == str :
+        from h5py import File
+        with File(hdf5_file,'r') as h5:
+            return get_centroids(h5,region)
+    else:
+        from numpy import sum, unique, argwhere, zeros, arange, mean
+        # get connectivity and nodal coordinates
+        conn = hdf5_file['Mesh/Elements/Connectivity'][:]
+        coord = hdf5_file['Mesh/Nodes/Coordinates'][:]
+        # determine indices of region
+        if not region==None:
+            validate_region(hdf5_file,region)
+            I = hdf5_file['Mesh/Regions/%s/Elements'%region][:] - 1
+        else :
+            I = arange(conn.shape[0])
+        # allocate result
+        center = zeros([len(I),coord.shape[1]])
+        # compute the centriods
+        etype = hdf5_file['Mesh/Elements/Types'][:][I] # element types
+        for et in unique(etype) : # sum operations for unique element types
+            It = argwhere(etype == et)[:,0] # index of the type-elements in region
+            Nnodes = sum(conn[I[It[0]]]>0) # determine how many nodes the element-type has
+            nids = conn[I[It],:Nnodes] # node ids, only take used columns
+            center[It,:] = mean(coord[nids-1,:],axis=1) # compute center as arithmetic mean
+        return center
 
 if __name__ == "__main__":
 
@@ -452,4 +501,7 @@ if __name__ == "__main__":
 
     # finally run doctest
     import doctest
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+    result = doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+
+    # and exit with the number of failures as exit code
+    sys.exit(result.failed)

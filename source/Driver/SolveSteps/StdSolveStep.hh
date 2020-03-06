@@ -240,6 +240,7 @@ namespace CoupledField
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
+    UInt minLoggingToTerminal_;
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
 

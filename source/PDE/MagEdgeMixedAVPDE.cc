@@ -43,7 +43,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(magEdgeMixedAVPde)
 DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
 
@@ -315,8 +314,32 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
 
   void MagEdgeMixedAVPDE::DefineNcIntegrators() {
-    EXCEPTION("Nonconforming interfaces not implemented for MagEdgeMixedAVPDE!!\n"
-              "This will be a bit shitty");
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        EXCEPTION("MagEdgeMixedAVPDE: Mortar NC interfaces not tested!");
+      case NC_NITSCHE:
+      {
+        /*
+         * that's kind of a dirty hack because for Nitsche NC, we need to access the
+         * electric conductivity as MAG_CONDUCTIVITY. But this should only be done in
+         * the MagEdgeMixedAVPDE
+         */
+        shared_ptr<CoefFunctionMulti> identifier = NULL;
+        identifier.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
+        if (dim_ == 2)
+          EXCEPTION("MagEdgeMixedAVPDE possible only in 3D!")
+        else
+          //DefineNitscheCoupling<3,1>(ELEC_POTENTIAL, *ncIt, identifier );
+          DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
+        break;
+      }
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
   }
 
 

@@ -125,6 +125,15 @@ namespace CoupledField {
       nonlinNode_ = param_->Get("nonLinear");
     }
     
+    // <hysteresis> element
+    if( !node->Has("hysteretic")) {
+      hystNode_.reset(new ParamNode());
+      hystNode_->SetName("hysteretic");
+      param_->AddChildNode(hystNode_);
+    } else {
+      hystNode_ = param_->Get("hysteretic");
+    }
+
     // <timeStepping> element
     if( !node->Has("timeStepping")) {
       tsNode_.reset(new ParamNode());
@@ -234,6 +243,11 @@ namespace CoupledField {
   PtrParamNode SolStrategyStd::GetNonLinNode(){
     return nonlinNode_;
   }
+
+  PtrParamNode SolStrategyStd::GetHystNode(){
+    return hystNode_;
+  }
+
   PtrParamNode SolStrategyStd::GetTimeSteppingNode(){
     PtrParamNode ret;
     return ret;
@@ -284,6 +298,7 @@ namespace CoupledField {
     solverNodes_.Resize(numSolSteps_);
     precondNodes_.Resize(numSolSteps_);
     nonLinNodes_.Resize(numSolSteps_);
+    hystNodes_.Resize(numSolSteps_);
     timeStepNodes_.Resize(numSolSteps_);
     
     
@@ -303,6 +318,9 @@ namespace CoupledField {
       
       // <nonLinear> element
       nonLinNodes_[i] = stepNode->Get("nonLinear",ParamNode::INSERT);
+
+      // <hysteretic> element
+      hystNodes_[i] = stepNode->Get("hysteretic",ParamNode::INSERT);
 
       // <timeStepping> element
       timeStepNodes_[i] = stepNode->Get("timeStepping", ParamNode::INSERT);
@@ -429,6 +447,11 @@ namespace CoupledField {
   PtrParamNode SolStrategyTwoLevel::GetNonLinNode(){
     return nonLinNodes_[curSolStep_];
   }
+
+  PtrParamNode SolStrategyTwoLevel::GetHystNode(){
+    return hystNodes_[curSolStep_];
+  }
+
   PtrParamNode SolStrategyTwoLevel::GetTimeSteppingNode(){
     PtrParamNode ret;
     return ret;

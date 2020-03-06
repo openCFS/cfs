@@ -2,7 +2,6 @@
 #include <unordered_set>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -14,7 +13,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(SBD)
 DEFINE_LOG(SBD, "SplineBoxDesign")
 
 Enum<SplineBoxDesign::Interpolation> SplineBoxDesign::interpolation;

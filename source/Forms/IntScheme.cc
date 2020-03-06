@@ -10,7 +10,6 @@ namespace CoupledField {
 
 
 // declare logging stream
-DECLARE_LOG(intscheme)
 DEFINE_LOG(intscheme, "intScheme")
 
    IntegOrder::IntegOrder() {

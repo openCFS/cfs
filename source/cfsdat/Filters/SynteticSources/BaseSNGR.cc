@@ -8,7 +8,7 @@
  *       \brief    <Description>
  *
  *       \date     Nov 01, 2017
- *       \author   r.krusche
+ *       \author   r.krusche, Stefan Schoder, Michael Weitz
  */
 //================================================================================================
 
@@ -22,17 +22,46 @@ namespace CFSDat{
 SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
         :BaseFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
+
+  globalTemp_ = 1.0;
+  globalDensity_ = 1.0;
+
   //INPUT from CFD
   this->inTKE_ = config->Get("TKE/resultName")->As<std::string>();
   this->inTEF_ = config->Get("TEF/resultName")->As<std::string>();
   this->inVelocity_ = config->Get("meanVelocity/resultName")->As<std::string>();
-  this->inDensity_ = config->Get("localDensity/resultName")->As<std::string>();
-  this->inTemp_ = config->Get("localTemp/resultName")->As<std::string>();
+  this->inDensity_ = "const1234";
+  this->inTemp_ = "const1234";
+
+
   //DECLARE Input
   upResNames.insert(inTKE_);
   upResNames.insert(inVelocity_);
-  upResNames.insert(inDensity_);
-  upResNames.insert(inTemp_);
+
+  if(config->Has("localDensity/resultName")){
+    this->inDensity_ = config->Get("localDensity/resultName")->As<std::string>();
+    upResNames.insert(inDensity_);
+  } else if (config->Has("localDensity/value")) {
+    globalDensity_ = config->Get("localDensity/value")->As<Double>();
+  } else {
+    EXCEPTION("Specify the resultName or a constant value of the density.");
+  }
+
+  if(config->Has("localTemp/resultName")){
+    this->inTemp_ = config->Get("localTemp/resultName")->As<std::string>();
+    upResNames.insert(inTemp_);
+  } else if (config->Has("localTemp/value")) {
+    globalTemp_ = config->Get("localTemp/value")->As<Double>();
+  } else {
+    EXCEPTION("Specify the resultName or a constant value of the temperature.");
+  }
+
+  if (this->inDensity_ == "const1234" && this->inTemp_ != "const1234"){
+    EXCEPTION("Both Density and Temperature must be constant or not.");
+  } else if (this->inDensity_ != "const1234" && this->inTemp_ == "const1234"){
+    EXCEPTION("Both Density and Temperature must be constant or not.");
+  }
+
   upResNames.insert(inTEF_);
 
   //OUTPUT mandatory
@@ -46,7 +75,7 @@ SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
 
   // using the TKE-criterion, the source region in the CFD-domain used for reconstructing turbulent velocity, is controlled
   // typical value in literature is 10%
-  // only nodes, where a threshold of 10% of the max TKE in the whole domain is exceeded, are processed in SNGR-Algorithm
+  // only nodes with TKE exceeding TKEcrit_*TKEmax are used for reconstruction (typically TKEcrit_ = 0.1)
   this->TKEcrit_ = config->Get("tkeCriterion")->As<Double>();
 
   // if specific length of output signal is needed, define it by "signalLength"-tag
@@ -61,8 +90,8 @@ SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
   this->method_ = config->Get("method")->As<std::string>();
 
   // frequency, the user wants to dissolve acoustically
-  this->maxFreq_ = config->Get("frequencyBounds/maxFreq")->As<UInt>();
-  this->minFreq_ = config->Get("frequencyBounds/minFreq")->As<UInt>();
+  this->maxFreq_ = config->Get("frequencyBounds/maxFreq")->As<UInt>(); //TODO is this important
+  this->minFreq_ = config->Get("frequencyBounds/minFreq")->As<UInt>(); //TODO is this important
 
   // for maxWN and minWN percentage of the peak wave number are expected
   // typical values in literature: minWN = 0.1*peakWN; maxWN = 10*peakWN
@@ -72,22 +101,23 @@ SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
   // enable ensemble-average at microphone location
   this->ensemble_ = config->Get("ensembles")->As<UInt>();
 
+
 }
 
 void SNGRFilter::PrepareCalculation(){
 
-  //input Grid
+  //input grid
   inGrid_ = resultManager_->GetExtInfo(upResIds[0])->ptGrid;
 
-  // setup global stuff, read RANS data etc.
+  // set global parameters, read RANS data, etc.
   this->PrepareMethod();
 
   // chose method
   if(method_ == "BaillySNGR"){
     // go with Bailly, 1999
     std::cout << "Start reconstruction of synthetic turbulent velocity field using SNGR by Bailly & Juve, 1999." << std::endl;
-    std::cout << "Acording to publication: A Stochastic Approach To Compute Subsonic Noise Using Linearized Euler's Equations." << std::endl;
-    std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
+    std::cout << "According to publication: A Stochastic Approach To Compute Subsonic Noise Using Linearized Euler's Equations." << std::endl;
+    std::cout << "Doing " << ensemble_ << " independent reconstruction(s)." << std::endl;
 
     // TODO remove debug output
     std::cout << "readInResultName, TKE: " << inTKE_ << std::endl;
@@ -102,16 +132,16 @@ void SNGRFilter::PrepareCalculation(){
   else if(method_ == "BillsonSNGR"){
     // go with Billson, 2003
     std::cout << "Start reconstruction of synthetic turbulent velocity field using SNGR by Billson, Eriksson & Davidson, 2003." << std::endl;
-    std::cout << "Acording to publication: Jet Noise Prediction Using Stochastic Turbulence Modeling." << std::endl;
-    std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
+    std::cout << "According to publication: Jet Noise Prediction Using Stochastic Turbulence Modeling." << std::endl;
+    std::cout << "Doing " << ensemble_ << " independent reconstruction(s)." << std::endl;
 
     // Initialize SNGR method
   }
   else if(method_ == "Lafitte"){
     // go with Lafitte 2014
     std::cout << "Start reconstruction of synthetic turbulent velocity field using SNGR by Lafitte, Le Garrec, Bailly & Laurendeau, 2014." << std::endl;
-    std::cout << "Acording to publication: Turbulence Generation from a Sweeping-Based Stochastic Model." << std::endl;
-    std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
+    std::cout << "According to publication: Turbulence Generation from a Sweeping-Based Stochastic Model." << std::endl;
+    std::cout << "Doing " << ensemble_ << " independent reconstruction(s)." << std::endl;
 
     this->InitArraysLafitte();
   }
@@ -125,8 +155,12 @@ bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults){
   resultManager_->ActivateResult(tkeId_);
   resultManager_->ActivateResult(tefId_);
   resultManager_->ActivateResult(velocityId_);
-  resultManager_->ActivateResult(densityId_);
-  resultManager_->ActivateResult(temperatureId_);
+  if (this->inDensity_ != "const1234"){
+    resultManager_->ActivateResult(densityId_);
+  }
+  if (this->inTemp_ != "const1234"){
+    resultManager_->ActivateResult(temperatureId_);
+  }
   resultManager_->DeactivateResult(outId_);
   if(params_->Has("intermediateResult")) resultManager_->DeactivateResult(interId_);
 
@@ -191,9 +225,14 @@ ResultIdList SNGRFilter::SetUpstreamResults(){
   ResultIdList generated = SetDefaultUpstreamResults();
   tkeId_ = upResNameIds[inTKE_];
   velocityId_ = upResNameIds[inVelocity_];
-  tefId_ = upResNameIds[inTEF_];
-  densityId_ = upResNameIds[inDensity_];
-  temperatureId_ = upResNameIds[inTemp_];
+  tefId_ = upResNameIds[inTEF_]; //TODO is this and do we ahve to do this?
+  if (this->inDensity_ != "const1234"){
+    densityId_ = upResNameIds[inDensity_];
+  }
+  if (this->inTemp_ != "const1234"){
+    temperatureId_ = upResNameIds[inTemp_];
+  }
+
   return generated;
 }
 
@@ -232,6 +271,9 @@ void SNGRFilter::GetTkeThreshold(){
     if(TKE_[i]>=minTKE_){
 			idsNodesToProcess_.Push_back(i);
     }
+    else{
+      idsNodesToProcessOnlyMeanVelocity_.Push_back(i); // nodes where only mean velocity is considered
+    }
   }
 }
 
@@ -241,13 +283,9 @@ void SNGRFilter::SetRandVectors(UInt k, UInt j,Double rmsOfVelFluct,Vector<Doubl
   std::mt19937 generator_uniform (seed_uniform);
   std::uniform_real_distribution<double> uniform01(0.0, 1.0);
 
-  Double theta = 2 * M_PI * uniform01(generator_uniform);
-  Double phi = acos(1 - 2 * uniform01(generator_uniform));
-//    retVec[i*2] = 2 * M_PI * uniform01(generator);
-//    retVec[i*2+1] = acos(1 - 2 * uniform01(generator));
+  Double theta = 0.5 * (1 - cos(M_PI * uniform01(generator_uniform)));
+  Double phi = 2 * M_PI * uniform01(generator_uniform);
 
-  // random values for wave vector
-  //Vector<Double>& randAngles_ = SNGRUtils::GetRandValues(numModes_);
 
   // phase and direction of mode.
   //srand(time(NULL));      // initialize random seed.
@@ -279,7 +317,7 @@ void SNGRFilter::SetRandVectors(UInt k, UInt j,Double rmsOfVelFluct,Vector<Doubl
   dirVec_[g+1] = cos(phi)*cos(alpha);
   dirVec_[g+2] = sin(phi)*cos(alpha)*sin(theta)+sin(alpha)*cos(theta);
 
-  // check if sufficiently perperndicular
+  // check if sufficiently perpendicular
   Double perp = waveVec_[g]*dirVec_[g]+waveVec_[g+1]*dirVec_[g+1]+waveVec_[g+2]*dirVec_[g+2];
   if(abs(perp) > 1.0e-9){
      perpFAIL_++;
@@ -356,8 +394,12 @@ void SNGRFilter::PrepareMethod(){
 
   TKE_ = GetUpstreamResultVector<Double>(tkeId_,numEqation);
   meanVelocity_ = GetUpstreamResultVector<Double>(velocityId_,numEqation);
-  localDensity_ = GetUpstreamResultVector<Double>(densityId_,numEqation);
-  localTemp_ = GetUpstreamResultVector<Double>(temperatureId_,numEqation);
+  if (this->inDensity_ != "const1234"){
+    localDensity_ = GetUpstreamResultVector<Double>(densityId_,numEqation);
+  }
+  if (this->inTemp_ != "const1234"){
+    localTemp_ = GetUpstreamResultVector<Double>(temperatureId_,numEqation);
+  }
   TEF_ = GetUpstreamResultVector<Double>(tefId_,numEqation);
 
   // get tke threshold, actually gets the ids of all nodes that pass the tke criterion
@@ -393,7 +435,11 @@ void SNGRFilter::InitResultMethodBailly(){
       else{
         TDR = TEF_[i];
       }
-      Double kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
+      Double kinVisco = (18.132941775e-6*(291.15+120.0)/(globalTemp_+120.0)*pow(globalTemp_/291.15,(3.0/2.0)))/globalDensity_;
+      if (this->inDensity_ != "const1234" && this->inTemp_ != "const1234"){
+        kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
+      }
+
       // turbulent length scale
       Double rmsOfVelFluct = sqrt(2.0/3.0*TKE_[i]);
       //turbLengthScale_[i] = fL*pow(rmsOfVelFluct,3.0)/TDR; //
@@ -498,7 +544,10 @@ void SNGRFilter::UpdateResultBillson(){
       else{
         TDR = TEF_[i];
       }
-      Double kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
+      Double kinVisco = (18.132941775e-6*(291.15+120.0)/(globalTemp_+120.0)*pow(globalTemp_/291.15,(3.0/2.0)))/globalDensity_;
+      if (this->inDensity_ != "const1234" && this->inTemp_ != "const1234"){
+        kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
+      }
       // turbulent length scale
       Double rmsOfVelFluct = sqrt(2.0/3.0*TKE_[i]);
       //turbLengthScale_[i] = fL*pow(rmsOfVelFluct,3.0)/TDR; //

@@ -999,7 +999,5 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> 
   this->CalcOpMat(tmpMat,lp,ptFe);
   bMat = Transpose(tmpMat);
 }
-
-
 }
 #endif

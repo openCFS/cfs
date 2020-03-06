@@ -14,7 +14,6 @@
 #include "DataInOut/SimState.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(stdr)
 DEFINE_LOG(stdr, "staticDriver")
 
 

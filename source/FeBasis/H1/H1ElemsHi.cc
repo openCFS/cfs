@@ -18,7 +18,6 @@ namespace CoupledField {
 #define USE_INNER 1
 
 // declare class specific logging stream
-DECLARE_LOG(feH1Hi)
 DEFINE_LOG(feH1Hi, "feH1Hi")
 
 

@@ -1,4 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -55,6 +54,7 @@
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
+#include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
@@ -72,6 +72,7 @@
 #include "CoupledPDE/WaterWaveMechCoupling.hh"
 #include "CoupledPDE/LinFlowHeatCoupling.hh"
 #include "CoupledPDE/LinFlowAcouCoupling.hh"
+#include "CoupledPDE/LinFlowMechCoupling.hh"
 // Include driver
 #include "Driver/BaseDriver.hh"
 #include "Driver/SingleDriver.hh"
@@ -748,6 +749,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       }else{
         if(formulation == "A-V"){
           ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        }else if(formulation == "specialA-V"){
+          ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
         }else{
           EXCEPTION("Formulation of MagEdgePDE not known!");
         }
@@ -990,6 +993,15 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       coupling = new LinFlowAcouCoupling(pde1, pde2, pairNodes[i], info_,
     		                             simState_, this );
+    }
+    else if (couplingName == "linFlowMechDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("mechanic");
+
+      coupling = new LinFlowMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                     simState_, this );
     }
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***

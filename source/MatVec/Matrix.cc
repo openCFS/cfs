@@ -640,7 +640,7 @@ namespace CoupledField
 
         long red, green, blue;
 
-        Double scaling = std::abs(data_[idy][idx]);
+        Double scaling = abs(data_[idy][idx]);
 
         /*
          * OLD
@@ -947,7 +947,7 @@ namespace CoupledField
 
       //helpMat   = (*this) * QT;
       //retMat = Q * helpMat;
-      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+//      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {
@@ -1131,29 +1131,23 @@ namespace CoupledField
     Resize(other.size_row_, other.size_col_);  
   }
 
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
   {
-    // allows to copy an empty matrix. !
-
-    // Note! it shall be possible to copy an empty matrix!
-//#ifdef CHECK_INITIALIZED
-//    if (x.size_row_ == 0 || x.size_col_ == 0) 
-//      EXCEPTION("undefined Matrix");
-//#endif  
-
     if (this == &x)
       return *this;
 
     // set the size in any case to the size of the assigned matrix
     Resize(x.size_row_, x.size_col_);
   
-    // copy the entries
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      data_[0][k] = x.data_[0][k];
-  
+    // allows to copy an empty matrix. !
+    if (size_row_ > 0 && size_col_ > 0) {
+      // copy the entries
+      std::memcpy(data_[0], x.data_[0], size_row_ * size_col_ * sizeof(TYPE));
+    }
+
     return *this;
   }
 
@@ -1245,7 +1239,7 @@ namespace CoupledField
   }
 
 
-#endif // EXPR_TEMPLATES
+#endif // USE_EXPRESSION_TEMPLATES
   
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE x)
@@ -2040,13 +2034,6 @@ namespace CoupledField
       EXCEPTION( "Undefined Matrix!" );
 #endif
 
-#ifdef CHECK_INDEX
-    if (size_row_ != size_col_ ) {
-      //EXCEPTION( "No quadratic matrix!" );
-      PseudoInvert(inv);
-    }
-#endif
-//TODO
     if(size_row_== size_col_) {
       TYPE det;
       TYPE invDet;
@@ -2129,6 +2116,10 @@ namespace CoupledField
           }
         }
       }
+    else {
+      PseudoInvert(inv);
+    }
+
   }
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
@@ -2669,6 +2660,22 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  TYPE Matrix<TYPE>::GetMax() const
+  {
+    Vector<TYPE> maxCol;
+    GetColMax(maxCol);
+    return maxCol.Max();
+  }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::GetMin() const
+  {
+    Vector<TYPE> minCol;
+    GetColMin(minCol);
+    return minCol.Min();
+  }
+
+  template<class TYPE>
   void Matrix<TYPE>::GetColMax(Vector<TYPE>& vec) const
   {
     GetCol(vec, 0);
@@ -2690,14 +2697,27 @@ namespace CoupledField
       }
   }
 
+  template<class TYPE>
+  void Matrix<TYPE>::GetAbsValues(Matrix<TYPE>& AbsMatrix) const
+  {
+    assert(!(size_row_ == 0 || size_col_ == 0));
 
+    AbsMatrix.Resize(size_row_, size_col_);
+
+    for (UInt i = 0; i < size_row_; i++){
+      for (UInt j = 0; j < size_col_; j++){
+        AbsMatrix[i][j] = Abs(data_[i][j]);
+      }
+    }
+
+  }
 
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
   void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != size_col_ ); // check for square matrix
+    assert(!(size_row_ == 0 || size_col_ == 0));
+    assert(size_row_ == size_col_ ); // check for square matrix
 
     columnMat.Resize(size_row_, 1);
     columnMat.Init();

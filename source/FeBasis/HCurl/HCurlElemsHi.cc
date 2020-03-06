@@ -10,7 +10,6 @@ namespace CoupledField {
 #define USE_INNER 1
 
 // declare class specific logging stream
-DECLARE_LOG(feHCurlHi)
 DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
 

@@ -55,12 +55,12 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
+                    <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -83,6 +83,11 @@
                     <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -99,7 +104,7 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -180,6 +185,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="A"/>
               <xsd:enumeration value="A-V"/>
+              <xsd:enumeration value="specialA-V"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
@@ -326,7 +332,6 @@
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
-
       <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
       <xsd:enumeration value="pseudoDensity" />
       <!-- physical application of design variable in the simulation -->
@@ -341,7 +346,8 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-
+      <xsd:enumeration value="magMagnetization"/>
+      <xsd:enumeration value="magPolarization"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -378,7 +384,7 @@
   <!-- Definition of coil result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeCoilResult">
     <xsd:restriction base="xsd:token">
-      <!--xsd:enumeration value="coilInductance"/--><!-- not implemented -->
+      <xsd:enumeration value="coilVoltage"/>
       <xsd:enumeration value="coilCurrent"/>
       <xsd:enumeration value="coilInducedVoltage"/>
       <xsd:enumeration value="coilLinkedFlux"/>

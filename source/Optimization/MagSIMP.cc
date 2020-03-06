@@ -12,7 +12,6 @@
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "FeBasis/H1/H1Elems.hh"
@@ -29,7 +28,6 @@ class DenseMatrix;
 
 using namespace CoupledField;
 
-DECLARE_LOG(ms)
 DEFINE_LOG(ms, "magSimp")
 
 double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);

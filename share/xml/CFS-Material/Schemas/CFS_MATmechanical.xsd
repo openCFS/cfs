@@ -24,7 +24,8 @@
         minOccurs="0"/>
       <xsd:element name="thermalExpanison" type="DT_ThermalExpansion" minOccurs="0"/>
       <xsd:element name="mechanicalDamping" type="DT_MechDamping" minOccurs="0"/>
-        <xsd:element name="magnetoStrictionTensor_h_mech" type="DT_MagStrictTensor_mech" minOccurs="0"/>
+      <xsd:element name="magnetoStrictionTensor_h_mech" type="DT_MagStrictTensor_mech" minOccurs="0"
+      />
     </xsd:sequence>
   </xsd:complexType>
 
@@ -37,19 +38,19 @@
             <xsd:maxLength value="18"/>
           </xsd:restriction>
         </xsd:simpleType>
-      </xsd:element> 
+      </xsd:element>
       <xsd:element name="imag" minOccurs="0">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:maxLength value="18"/>
           </xsd:restriction>
         </xsd:simpleType>
-      </xsd:element> 
+      </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
     <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of mechanical elasticity tensor                        -->
   <!-- ******************************************************************* -->
@@ -145,12 +146,12 @@
         <xsd:element name="compressionModulus" type="DT_NonNegFloat"/>
       </xsd:sequence> -->
       <xsd:sequence>
-        <xsd:element name="shearModulus" type="DT_NonNegFloat"/>
-        <xsd:element name="compressionModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="shearModulus" type="xsd:token"/>
+        <xsd:element name="compressionModulus" type="xsd:token"/>
       </xsd:sequence>
       <xsd:sequence>
-        <xsd:element name="lameParameterMu" type="DT_NonNegFloat"/>
-        <xsd:element name="lameParameterLamda" type="DT_NonNegFloat"/>
+        <xsd:element name="lameParameterMu" type="xsd:token"/>
+        <xsd:element name="lameParameterLamda" type="xsd:token"/>
       </xsd:sequence>
     </xsd:choice>
   </xsd:complexType>

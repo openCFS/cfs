@@ -9,7 +9,6 @@
 namespace CoupledField
 { 
 
-DECLARE_LOG(bilinappx)  
 DEFINE_LOG(bilinappx, "bilinappx")
 
   BiLinInterpolate::BiLinInterpolate(std::string nlFileName, MaterialType matType )

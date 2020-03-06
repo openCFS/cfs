@@ -221,7 +221,8 @@ public:
   static shared_ptr<FeSpace> CreateInstance(PtrParamNode aNode, 
                                             PtrParamNode infoNode,
                                             SpaceType reqType,
-                                            Grid* ptGrid );
+                                            Grid* ptGrid,
+                                            bool isAVExc = false );
   
   // ========================================================================
   //  INITIALIZATION 
@@ -444,6 +445,9 @@ public:
   //! active set of equations is switched between lowest order equations only 
   //! and the full set.
   virtual void UpdateToSolStrategy() {;}
+
+  virtual void InsertElemsToCoilList(shared_ptr<ElemList> eL, shared_ptr<CoilList> cL){}
+
  //@}
 
   void SetLagrSurfSpace() 

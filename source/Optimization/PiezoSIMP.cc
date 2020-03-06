@@ -6,7 +6,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -37,10 +36,9 @@ class DenseMatrix;
 
 using namespace CoupledField;
 
+EXTERN_LOG(simp)
+
 using std::complex;
-
-DECLARE_LOG(simp)
-
 
 PiezoSIMP::PiezoSIMP()
 {

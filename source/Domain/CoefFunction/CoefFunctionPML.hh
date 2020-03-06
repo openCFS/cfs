@@ -127,9 +127,9 @@ public:
     //Double z = pos/thickness;
     //Double x = DampFactor*tan(z*M_PI/2.0);
     //return 2.0*DampFactor/(M_PI*(DampFactor*DampFactor+x*x));
-    Double L = DampFactor*sos;
+    Double L = DampFactor*sos; // L corresponds to kappa in the IML paper
     Double c = cos(z/constFactor);
-    return constFactor*c*c/L; // same but possibly faster
+    return c*c/L; // same but possibly faster
   }
 
 };
@@ -143,7 +143,7 @@ public:
 
   Double ComputeFactor(Double z, Double sos){
     //Double z = pos/thickness; // coordinate in layer
-    Double L = DampFactor*sos;
+    Double L = DampFactor*sos; // L corresponds to kappa in the IML paper
     Double x = z*L/(1.0 - z); // x-coordinate
     return L/((x+L)*(x+L)); // dz/dx=eta(x)=eta(x(z))
   }

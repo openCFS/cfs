@@ -36,7 +36,6 @@
 namespace CoupledField{
 
 // declare class specific logging stream
-DECLARE_LOG(coeffunctiongridnodalinterp)
 DEFINE_LOG(coeffunctiongridnodalinterp, "coeffunctiongridnodalinterp")
 
 template<typename DATA_TYPE>

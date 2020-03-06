@@ -239,7 +239,7 @@ namespace CoupledField {
         BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate ){
         this->name_ = "SurfaceBBInt";
         volRegions_ = volRegions;
-        this->isSymmetric_ = false;
+        this->isSymmetric_ = true;
       }
 
      SurfaceBBInt(const SurfaceBBInt & right)

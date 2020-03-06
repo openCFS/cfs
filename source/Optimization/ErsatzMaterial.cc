@@ -6,7 +6,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Domain.hh"
@@ -81,12 +80,9 @@ struct ResultInfo;
 
 using namespace std;
 
-DECLARE_LOG(conditions)
-DEFINE_LOG(conditions, "conditions")
+EXTERN_LOG(conditions)
 
-DECLARE_LOG(em)
 DEFINE_LOG(em, "ersatzMaterial")
-
 
 namespace CoupledField {
 

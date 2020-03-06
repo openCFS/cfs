@@ -5,14 +5,10 @@
 //    Description:  File Reader for the cgns file format
 //                  Based on OpenFOAM reader
 // 
-//        Version:  1.0
-//        Created:  02/22/2011 12:51:01 PM
-//       Revision:  none
-//       Compiler:  g++
-// 
 //        Authors:  Simon Triebenbacher, simon.triebenbacher@tuwien.ac.at
 //                  Andreas Hueppe (AHU), andreas.hueppe@uni-klu.ac.at
-//        Company:  TU Wien, Universitaet Klagenfurt
+//                  Jens Grabinger, jens.grabinger@simetris.de
+//        Company:  TU Wien, Universitaet Klagenfurt, SIMetris GmbH
 // 
 // =====================================================================================
 
@@ -74,68 +70,92 @@ namespace CoupledField{
     SimInputCGNS( std::string fileName, PtrParamNode inputNode,
                   PtrParamNode infoNode );
     
+    //! Destructor
     virtual ~SimInputCGNS();
     
+    //! Initializes the reader and reads files' contents
     virtual void InitModule();
     
+    //! Fill a Grid object with stored mesh
     virtual void ReadMesh(Grid* ptGrid);
     
+    //! @copydoc SimInput::GetDim()
     virtual UInt GetDim() { return dim_; }
 
-    virtual UInt GetNumNodes()
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetNumNodes()
+    virtual UInt GetNumNodes() { return numNodes_; }
 
-    virtual UInt GetNumElems(Integer)
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetNumElems()
+    virtual UInt GetNumElems(Integer);
 
+    //! @copydoc SimInput::GetNumRegions()
     virtual UInt GetNumRegions() { return numRegions_; }
 
-    virtual UInt GetNumNamedNodes()
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetNumNamedNodes()
+    virtual UInt GetNumNamedNodes() { return namedNodes_.size(); }
 
-    virtual UInt GetNumNamedElems()
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetNumNamedElems()
+    virtual UInt GetNumNamedElems() { return namedElems_.size(); }
 
-    virtual void GetAllRegionNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetAllRegionNames()
+    virtual void GetAllRegionNames(StdVector<std::string> &regionNames) {
+      regionNames = regionNames_;
+    }
 
-    virtual void GetRegionNamesOfDim(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&, UInt)
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetRegionNamesOfDim()
+    virtual void GetRegionNamesOfDim(StdVector<std::string> & regionNames, const UInt dim ) {
+      EXCEPTION("Not implemented");
+    }
 
-    virtual void GetNodeNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetNodeNames()
+    virtual void GetNodeNames(StdVector<std::string>& nodeNames) {
+      nodeNames = namedNodes_;
+    }
 
-    virtual void GetElemNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
-    { EXCEPTION("Not implemented!"); }
+    //! @copydoc SimInput::GetElemNames()
+    virtual void GetElemNames(StdVector<std::string>& elemNames) {
+      elemNames = namedElems_;
+    }
+
+    //! @copydoc SimInput::GetNumNodesElemsByName()
+    virtual void GetNumNodesElemsByName(const std::string &name,
+                                        UInt &numNodes, UInt &numElems);
+
 
     // =========================================================================
     //  GENERAL SOLUTION INFORMATION
     // =========================================================================
     //@{ \name General Solution Information
 
-    //! Return multisequence steps and their analysistypes
+    //! @copydoc SimInput::GetNumMultiSequenceSteps()
     void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
                                    std::map<UInt, UInt>& numSteps,
                                    bool isHistory = false );
 
-    //! Obtain list with result types in each sequence step
+    //! @copydoc SimInput::GetResultTypes()
     void GetResultTypes( UInt sequenceStep, 
                          StdVector<shared_ptr<ResultInfo> >& infos,
                          bool isHistory = false );
 
-    //! Return list with time / frequency values and step for a given result
+    //! @copydoc SimInput::GetStepValues()
     virtual void GetStepValues( UInt sequenceStep,
                                 shared_ptr<ResultInfo> info,
                                 std::map<UInt, Double>& steps,
                                 bool isHistory = false );
 
-    //! Return entitylist the result is defined on
+    //! @copydoc SimInput::GetResultEntities()
     void GetResultEntities( UInt sequenceStep,
                             shared_ptr<ResultInfo> info,
                             StdVector<shared_ptr<EntityList> >& list,
                             bool isHistory = false );
 
-    //! Fill pre-initialized results object with values of specified step
+    //! @copydoc SimInput::GetResultEntityNames()
+    void GetResultEntityNames( UInt sequenceStep,
+                               shared_ptr<ResultInfo> info,
+                               StdVector<std::string> &names,
+                               bool isHistory = false);
+
+    //! @copydoc SimInput::GetResult()
     void GetResult( UInt sequenceStep,
                     UInt stepNum,
                     shared_ptr<BaseResult> result,
@@ -144,54 +164,132 @@ namespace CoupledField{
 
 
   protected:
-    UInt numElems_;
-    UInt numVertices_;
-    std::map<Double, std::string>  fileNames_;
-    std::string fileDir_;
-    std::map<int,Elem::FEType> elemTypeMap_;
- 
-    //! Number of regions
-    UInt numRegions_;
 
-    //! Number of time steps
-    UInt numSteps_;
-   
+    //! Open a CGNS file
+    void OpenFile(const std::string &fileName);
+    
+    //! Read contents of a CGNS file
+    //! There is no return value, info is stored in member variables results_,
+    //! stepMap_, resultSteps_, resultsEntities_, analysis_
+    void ReadFileContents(const std::string &fileName);
+    
+    //! Read an unstructured zone from the current CGNS file and store its
+    //! topology in the Grid object pointed to by this->mi_
+    void ReadUnstructuredZone(Integer base, Integer zone);
+    
+    //! Print the name of an element type on the trace logging stream
+    void PrintElementType(ElementType_t eType);
+    
+    //! Initialize static class variable SinInputCGNS::elemTypeMap_
+    void InitElemTypeMap();
+    
+    //! Re-order CGNS element connectivity to match NACS ordering
+    static void TranslateConnectivity(Elem::FEType feType,
+                               cgsize_t* cgnsConn,
+                               StdVector<UInt>& connect,
+                               UInt offset = 0);
+    
+    //! Convert a polygon into proper element(s)
+    static Elem::FEType PolygonToFE(cgsize_t numNodes, cgsize_t *nodes,
+                                    StdVector< StdVector<UInt> > &elems,
+                                    UInt offset = 0);
+    
+    //! Triangulate a polygon
+    //! IMPORTANT: Extends the connectivity vector, nothing will be overwritten
+    template<typename T>
+    static void Triangulate(cgsize_t numNodes, T* nodes,
+                            StdVector< StdVector<UInt> > &elems,
+                            UInt offset = 0);
+    
+    //! Convert a polyhedron into a proper element
+    static Elem::FEType PolyhedronToFE(cgsize_t numFaces, cgsize_t *faces,
+        boost::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > & polyConn,
+        StdVector< StdVector<UInt> > &connect, UInt offset = 0);
+    
+    //! Convert CGNS field name to NACS solution type
+    static SolutionType GetFieldType(const char* field,
+                                     ResultInfo::EntryType & entryType);
+    
+    //! Convert NACS solution type to CGNS field name 
+    static void GetFieldNames(SolutionType solType,
+                             StdVector<std::string> &fieldNames);
+    
+    //! Error callback routine called by CGNS library
+    static void ErrorCallback(int isError, char *errMsg);
+    
+    //! Mapping of element types from CGNS to NACS
+    static std::map<Integer, Elem::FEType> elemTypeMap_;
+ 
+    //! Mapping from time value to file name
+    std::map<Double, std::string>  fileNames_;
+ 
+    //! File handle to be used with calls to the CGNS library
+    Integer fileHandle_;
+
     //! Dimension of the cells; 3 for volume cells, 2 for surface cells and 1
     //! for line cells. 
-    Integer dim_;
+    Integer cellDim_;
 
-    //! Number of coordinates required to define a vector in the field.
-    Integer physDim_;
+    //! Number of bases in the CGNS file
+    Integer numBases_;
+    
+    //! Base index that contains the grid and result data
+    Integer baseIndex_;
+    
+    //! Number of zones in the current base
+    Integer numZones_;
+    
+    //! Number of nodes
+    UInt numNodes_;
 
-    //! Number of vertices, cells, and boundary vertices in each (index)-
-    //! dimension.
-    cgsize_t vertSize_[9];
+    //! Number of elements
+    UInt numElems_;
+
+    //! Number of regions
+    UInt numRegions_;
 
     //! Remember number of nodes in grid before we add our own ones.
     UInt nodeOffset_;
 
-    float cgVersion_;
+    //! Remember number of elements in grid before we add our own ones.
+    UInt elemOffset_;
+
+    //! Remember the number of polygons, because StarCCM+ apparently does not
+    //! count these when exporting to CGNS.
+    Integer numPolyFaces_;
     
-  private:
-    void ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames);
-    Integer GetFileHandle(std::string fName);
-    void CheckFileValidity(Integer fileHandle);
-    UInt MapCoordinateIndex(char* coordName);
-    void ReadUnstructuredGrid(Integer fileHandle, Integer dim, cgsize_t* size);
-    void PrintElementType(ElementType_t eType);
-    void InitElemTypeMap();
-    void CalcNumNodesPerRegion();
-    UInt MapVelocityIndex(char* coordName);
-    UInt MapFrictionIndex(char* coordName);
-    UInt MapForceIndex(char* coordName);
+    //! List of region names
+    StdVector<std::string> regionNames_;
+    
+    // Number of nodes per region or group
+    std::map<std::string, UInt> numNodesPerName_;
+    
+    // Number of elements per region or group
+    std::map<std::string, UInt> numElemsPerName_;
+    
+    // Mapping from region or group name to zone index
+    std::map<std::string, Integer> nameToZoneIdx_;
+    
+    //! Mapping (per zone) from NACS element number to CGNS cell index 
+    StdVector< boost::unordered_map<UInt, cgsize_t> > elemToCellIdx_;
+    
+    //! Range of cell indices per region or group
+    std::map<std::string, std::pair<cgsize_t, cgsize_t> > cellRange_;
+    
+    //! Analysis type
+    BasePDE::AnalysisType analysis_;
+    
+    //! List of available results
+    StdVector< shared_ptr<ResultInfo> > results_;
+    
+    //! Mapping from step numbers to step values
+    std::map<UInt, Double> stepMap_;
 
-    void AddRegionToGrid(RegionIdType& regionId,
-                         const Elem::FEType feType,
-                         const std::string& sectionName);
+    //! Steps number per result
+    std::map< shared_ptr<ResultInfo>, std::set<Double> > resultSteps_;
 
-    void TranslateConnectivity(Elem::FEType feType,
-                               cgsize_t* cgnsConn,
-                               StdVector<UInt>& connect);
+    //! Entities per result
+    std::map< shared_ptr<ResultInfo>, std::set<std::string> > resultEntities_;
   };
 }
 

@@ -87,6 +87,49 @@ bool InputFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
 
     if(resultManager_->GetExtInfo(*aIter)->dType == ExtendedResultInfo::COMPLEX){
 
+        CF::StdVector<UInt> eqnVec;
+        Vector<Complex>& fullVec =  resultManager_->GetResultVector<Complex>(*aIter,eqnVec);
+
+        UInt stepNumber = 1;
+
+        if(!resultManager_->IsStatic(*aIter)){
+          Double reqValue = resultManager_->GetStepValue(*aIter);
+          CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-7) );
+          if(val == fileResult.timeLine->End()){
+            if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
+              std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
+            else
+              std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
+            fullVec.Init();
+            continue;
+          }
+          UInt idx = std::distance(fileResult.timeLine->Begin(), val);
+          stepNumber = (*fileResult.stepNumbers.get())[idx];
+        }
+
+        CF::SolutionType solType = fileResult.resultType;
+        std::set<std::string>::const_iterator regIter = aInfo->regNames->begin();
+
+        for(; regIter != aInfo->regNames->end(); ++regIter){
+          Vector<Complex> resVec;
+          shared_ptr<BaseResult> inResult = inFile_->GetResult(fileResult.sequenceStep,stepNumber,solType,*regIter);
+          try{
+            Result<Complex>* myResult = dynamic_cast<Result<Complex>* >(inResult.get());
+            resVec =   myResult->GetVector();
+          }catch(...){
+            EXCEPTION("Cannot cast to desired vector type. Are you trying to load real data into a harmonic computation?");
+          }
+          RegionIdType regId = aInfo->ptGrid->GetRegion().Parse(*regIter);
+          eqnVec.Clear(true);
+          resultManager_->GetEqnMap(*aIter)->GetRegionEquations(eqnVec,regId);
+          for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
+  //TODO REGION_PROBLEM: if more than one target-region is specified in the xml-scheme, e.g. fluid and one boundary, then
+            //the result vector contains exactly ONE more entry than without the boundary, independent of the number of
+            //additional boundary regions
+            fullVec[eqnVec[aEq]] = resVec[aEq];
+          }
+        }
+
     }else{
 
       CF::StdVector<UInt> eqnVec;

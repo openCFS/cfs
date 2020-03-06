@@ -20,7 +20,6 @@ using std::string;
 
 namespace CoupledField{
 
-DECLARE_LOG(petsc)
 DEFINE_LOG(petsc, "petscSolver")
 //initialize PETSCSolver class
 PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){

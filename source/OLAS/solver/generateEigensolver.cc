@@ -24,7 +24,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(genEigSolver)
 DEFINE_LOG(genEigSolver, "genEigSolver")
 
   // *********************************

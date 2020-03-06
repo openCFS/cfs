@@ -107,6 +107,9 @@ public:
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode() = 0;
   
+  //! Return pointer to <hysteresis> element
+  virtual PtrParamNode GetHystNode() = 0;
+
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode() = 0;
   
@@ -238,6 +241,9 @@ public:
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode();
 
+  //! Return pointer to <hysteresis> element
+  virtual PtrParamNode GetHystNode();
+
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode();
 
@@ -261,6 +267,9 @@ protected:
   //! <nonLinear> element
   PtrParamNode nonlinNode_;
   
+  //! <hysteresis> element
+  PtrParamNode hystNode_;
+
   //! <timeStepping> element
   PtrParamNode tsNode_;
   
@@ -333,6 +342,9 @@ public:
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode();
 
+  //! Return pointer to <hysteresis> element
+  virtual PtrParamNode GetHystNode();
+
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode();
 
@@ -356,6 +368,9 @@ protected:
   //! Nonlinear nodes per solution step
   ParamNodeList nonLinNodes_;
   
+    //! Nonlinear nodes per solution step
+  ParamNodeList hystNodes_;
+
   //! Timestepping nodes per solution step
   ParamNodeList timeStepNodes_;
 

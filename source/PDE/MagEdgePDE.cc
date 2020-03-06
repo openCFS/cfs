@@ -26,6 +26,7 @@
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
@@ -47,7 +48,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(magEdgePde)
 DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
@@ -57,48 +57,24 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   MagEdgePDE::MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode,
                           PtrParamNode infoNode,
                           shared_ptr<SimState> simState, Domain* domain )
-    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
+    :MagBasePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
     // =====================================================================
     // set solution information
     // =====================================================================
     pdename_          = "magneticEdge";
     pdematerialclass_ = ELECTROMAGNETIC;
+    formulation_ = MagBasePDE::EDGE;
 
     //! Always use updated Lagrangian formulation
     updatedGeo_        = true; //true;
 
     // check if we have a 3d setup
-    bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
-    if ( !is3d )
+//    bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
+    if ( !is3d_ )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
 
-    // initialize material coef functions covering all regions
-    reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
-    conduc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
-
-    // determine if there are coils excited by voltage
-    hasVoltCoils_ = false;
-    PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
-    if ( coilNode ){
-      ParamNodeList coilNodes = coilNode->GetChildren();
-      for( UInt k = 0; k < coilNodes.GetSize(); k++ ){
-        if( coilNodes[k]->Has("source") ){
-          std::string exType = coilNodes[k]->Get("source")->Get("type")->As<std::string>();
-          if( exType == "voltage" ){
-            hasVoltCoils_ = true;
-            break;
-          }
-        }
-      }
-    }
-
-
-
     multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>());
-
-
-
   }
 
 
@@ -108,34 +84,17 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   MagEdgePDE::~MagEdgePDE() {
   }
 
-  shared_ptr<Coil> MagEdgePDE::GetCoilById(const Coil::IdType& id) {
-    return coils_.at(id);
-  }
-
-  void MagEdgePDE::ReadSpecialBCs() {
-
-
-    // --------------------------------------------------------------------
-    //   Get information about coils and open files for measurement coils
-    // --------------------------------------------------------------------
-    ReadCoils();
-
-  }
-
-
-  // ****************************
-  //  Initialize Nonlinearities
-  // ****************************
-  void MagEdgePDE::InitNonLin() {
-
-    SinglePDE::InitNonLin();
-  }
-
-
   // *****************************
   //  Definition of Integrators
   // *****************************
   void MagEdgePDE::DefineIntegrators() {
+    this->DefineStandardIntegrators();
+    // in MagBasePDE
+    DefineCoilIntegrators(1.0);
+  }
+
+
+  void MagEdgePDE::DefineStandardIntegrators(){
 
     // FIXME This is a dirty fix, the problem is described in gitlab issue #5
     if(analysistype_ == MULTIHARMONIC){
@@ -189,7 +148,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
       // Switch, if region is linear / nonlinear
-      if ( (nonLinTypes.GetSize() > 0) || (analysistype_ == MULTIHARMONIC) ) {
+      if ( ( nonLinTypes.Find(HYSTERESIS) == -1 ) && ( (nonLinTypes.GetSize() > 0) || (analysistype_ == MULTIHARMONIC) ) ) {
+//        std::cout <<  "StiffnessMatrix - Case1: NonLin or Multiharmonic" << std::endl;
+
         // ================================
         //  Nonlinear Stiffness Integrator
         // =================================
@@ -238,93 +199,111 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
         stiff1->SetName("CurlCurlIntegrator-NL");
 
-       BiLinFormContext * stiffContext =
-           new BiLinFormContext(stiff1, STIFFNESS );
-       stiffContext->SetEntities( actSDList, actSDList );
-       stiffContext->SetFeFunctions( feFunc, feFunc );
-       assemble_->AddBiLinearForm( stiffContext );
-       // Important: Add bdb-integrator to global list, as we need them later
-       // for calculation of postprocessing results
-       bdbInts_[actRegion] = stiff1;
-       // add also material to global, distributed reluctivity coefficient function
-       reluc_->AddRegion(actRegion, nuNl);
+        BiLinFormContext * stiffContext = new BiLinFormContext(stiff1, STIFFNESS );
+        stiffContext->SetEntities( actSDList, actSDList );
+        stiffContext->SetFeFunctions( feFunc, feFunc );
+        assemble_->AddBiLinearForm( stiffContext );
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        bdbInts_[actRegion] = stiff1;
+        // add also material to global, distributed reluctivity coefficient function
+        reluc_->AddRegion(actRegion, nuNl);
 
-       // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
-       if(cfo)
-         cfo->SetForm(stiff1);
+        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+        if(cfo)
+          cfo->SetForm(stiff1);
 
-       // ================================================
-       //  Nonlinear Stiffness Integrator (only Newton )
-       // ================================================
-       // Note: currently we set the nonlinear method hard-coded to NEWTON for
-       // testing purpose
-       if( nonLinMethod_ == NEWTON ) {
+        // ================================================
+        //  Nonlinear Stiffness Integrator (only Newton )
+        // ================================================
+        // Note: currently we set the nonlinear method hard-coded to NEWTON for
+        // testing purpose
+        if( nonLinMethod_ == NEWTON ) {
 
-         //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
-         PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-         PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, FULL, Global::REAL, magFluxCoef );
+          //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+          PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+          PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, FULL, Global::REAL, magFluxCoef );
 
-         //create stiffness integrator
-         BiLinearForm* stiff2 = NULL;
-         stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
-         stiff2->SetName("CurlCurlIntegrator-NL-Newton");
-         stiff2->SetNewtonBilinearForm();
+          //create stiffness integrator
+          BiLinearForm* stiff2 = NULL;
+          stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
+          stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+          stiff2->SetNewtonBilinearForm();
 
-         BiLinFormContext * stiffContext2 = new BiLinFormContext(stiff2, STIFFNESS );
-         stiffContext2->SetEntities( actSDList, actSDList );
-         stiffContext2->SetFeFunctions( feFunc, feFunc );
-         assemble_->AddBiLinearForm( stiffContext2 );
-       }
-
-      } else {
-
-       // ***************************************
-       // LINEAR PART
-       // ***************************************
-
-       // ===============================
-       //  Standard Stiffness Integrator
-       // ===============================
-        PtrCoefFct curCoef =
-            //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
-            actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
-
-        CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
-
-        //compute permeability
-        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
-        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
-
-        if(domain->HasDesign())
-        {
-          cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
-          curCoef.reset(cfo);
+          BiLinFormContext * stiffContext2 = new BiLinFormContext(stiff2, STIFFNESS );
+          stiffContext2->SetEntities( actSDList, actSDList );
+          stiffContext2->SetFeFunctions( feFunc, feFunc );
+          assemble_->AddBiLinearForm( stiffContext2 );
         }
+      } else {
+        //        std::cout << "StiffnessMatrix - Case2: Hyst or Linear" << std::endl;
+        // ***************************************
+        // HYSTERESIS + LINEAR PART
+        // ***************************************
+        PtrCoefFct curCoef;
+        BaseBDBInt* curlcurl = NULL;
+        if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
+          /* for both the delta material method as well as the std fixpoint method we have to know
+           * which regions are affected by hysteresis
+           */
+          curCoef = GenerateHystereticCoefFunctions(actRegion);
+          curlcurl = GeHystStiffInt( 1.0, curCoef );
 
-        BaseBDBInt* curlcurl;
-        //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
-        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), curCoef,1.0, updatedGeo_) ;
-        curlcurl->SetName("CurlCurlIntegrator");
+          //        std::cout << "Add full tensor" << std::endl;
+          relucTensor_->AddRegion(actRegion, curCoef); // full tensor
+          //        std::cout << "Add scalar - hyst - actRegionId = " << actRegion << std::endl;
+          PtrCoefFct curCoefDet = CoefFunction::Generate( mp_,  Global::REAL, CoefXprUnaryOp( mp_, curCoef, CoefXpr::OP_DET ));
+          reluc_->AddRegion(actRegion, curCoefDet);
+        } else{
+          // ===============================
+          //  Standard Stiffness Integrator
+          // ===============================
+          curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+          //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
 
-       BiLinFormContext * stiffContext =
-           new BiLinFormContext(curlcurl, STIFFNESS );
-       stiffContext->SetEntities( actSDList, actSDList );
-       stiffContext->SetFeFunctions( feFunc, feFunc );
-       assemble_->AddBiLinearForm( stiffContext );
+          // ===============================
+          //  Standard Stiffness Integrator
+          // ===============================
+          PtrCoefFct curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
 
-       // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
-       if(cfo)
-         cfo->SetForm(curlcurl);
+          CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
 
-       // Important: Add bdb-integrator to global list, as we need them later
-       // for calculation of postprocessing results
-       bdbInts_[actRegion] = curlcurl;
+          //compute permeability
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
+          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 
-       // add also material to global, distributed reluctivity coefficient function
-       reluc_->AddRegion(actRegion, curCoef);
+          if(domain->HasDesign())
+          {
+            cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+            curCoef.reset(cfo);
+          }
 
-     } // END OF NONLIN/LIN PART
+          curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), curCoef,1.0, updatedGeo_) ;
+
+          // Important: Add bdb-integrator to global list, as we need them later
+          // for calculation of postprocessing results
+          bdbInts_[actRegion] = curlcurl;
+          curlcurl->SetName("CurlCurlIntegrator");
+
+          BiLinFormContext * stiffContext = new BiLinFormContext(curlcurl, STIFFNESS );
+          stiffContext->SetEntities( actSDList, actSDList );
+          stiffContext->SetFeFunctions( feFunc, feFunc );
+          assemble_->AddBiLinearForm( stiffContext );
+
+          // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+          if(cfo)
+            cfo->SetForm(curlcurl);
+
+          // Important: Add bdb-integrator to global list, as we need them later
+          // for calculation of postprocessing results
+          bdbInts_[actRegion] = curlcurl;
+
+          //        std::cout << "Add scalar - linear - actRegionId = " << actRegion << std::endl;
+          // add also material to global, distributed reluctivity coefficient function
+          reluc_->AddRegion(actRegion, curCoef);
+
+        } // END OF NONLIN/LIN PART
 
 
       // ============================================================
@@ -332,94 +311,100 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // ============================================================
       if ( (matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && nonLinTypes.GetSize() == 0) ||
           (matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && analysistype_ == MULTIHARMONIC) ) {
-          // =================================================
-          // Pure temperature-dependent nonlinear Mass Matrix
-          // =================================================
-          // purely temperature dependent (no further non linearity)
-          PtrCoefFct coef;
-          shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
-          StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
-          shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+        // =================================================
+        // Pure temperature-dependent nonlinear Mass Matrix
+        // =================================================
+        // purely temperature dependent (no further non linearity)
+        PtrCoefFct coef;
+        shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
+        StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+        shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
 
-          //get coeff-Fnc to evaluate the temperature
-          ReadMaterialDependency( "electricConductivity", dispDofNames, ResultInfo::SCALAR, false,
-                                  ent, coef, updatedGeo_ );
-          //coef-Fnc for electric conductivity
-          PtrCoefFct condNL = actMat->GetScalCoefFncNonLin( MAG_CONDUCTIVITY, Global::REAL, coef);
-          if ( analysistype_ == STATIC ) {
-        	  EXCEPTION("No temperature-dependent conductivity implemented for static magnetic analysis");
-          }
-          conduc_->AddRegion(actRegion, condNL);
-          BaseBDBInt *massInt;
-          BiLinFormContext * massContext;
-          massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-                                        condNL, 1.0, updatedGeo_);
-          massContext = new BiLinFormContext(massInt, DAMPING );
-          massInt->SetName("MassIntegrator-NL");
-          massContext->SetEntities( actSDList, actSDList );
-          massContext->SetFeFunctions( feFunc, feFunc );
-          assemble_->AddBiLinearForm( massContext );
+        //get coeff-Fnc to evaluate the temperature
+        ReadMaterialDependency( "electricConductivity", dispDofNames, ResultInfo::SCALAR, false,
+            ent, coef, updatedGeo_ );
+        //coef-Fnc for electric conductivity
+        PtrCoefFct condNL = actMat->GetScalCoefFncNonLin( MAG_CONDUCTIVITY, Global::REAL, coef);
+        if ( analysistype_ == STATIC ) {
+          EXCEPTION("No temperature-dependent conductivity implemented for static magnetic analysis");
+        }
+        conduc_->AddRegion(actRegion, condNL);
+        BaseBDBInt *massInt;
+        BiLinFormContext * massContext;
+        massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
+            condNL, 1.0, updatedGeo_);
+        massContext = new BiLinFormContext(massInt, DAMPING );
+        massInt->SetName("MassIntegrator-NL");
+        massContext->SetEntities( actSDList, actSDList );
+        massContext->SetFeFunctions( feFunc, feFunc );
+        assemble_->AddBiLinearForm( massContext );
 
-          // insert mass integrator to list of defined mass integrators
-          massInts_[actRegion] = massInt;
+        // insert mass integrator to list of defined mass integrators
+        massInts_[actRegion] = massInt;
 
       }else{
+//        std::cout <<  "MassMatrix - Case2: Standard linear Mass Matrix" << std::endl;
           // =================================================
           // Standard linear Mass Matrix
           // =================================================
-    	    Double conductivity = 0.0; //
-    	        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
-    	        bool scaleByEdgeSize = false;
-    	        // use gradient of shape functions?
-    	        //bool useGrad = true;
-    	        if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
-    	          Matrix<Double> reluc;
-    	          // get tensor of permeability and determine max. value
-    	          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
-    	          conductivity =  regularizationFactor * reluc[0][0];
-    	          scaleByEdgeSize = true;
-    	          // add region to set of "regularized" regions
-    	          regularizedRegions_.insert(actRegion);
-    	        }
+          PtrCoefFct conductivityCoeff;
+          Double conductivity = 0.0;
+          if ( materials_[actRegion]->GetSymmetryType(MAG_CONDUCTIVITY) == BaseMaterial::GENERAL ){
+            conductivityCoeff = materials_[actRegion]->GetTensorCoefFnc(MAG_CONDUCTIVITY, FULL, Global::REAL);
+            Matrix<Double> conduc;
+            materials_[actRegion]->GetTensor( conduc, MAG_CONDUCTIVITY, Global::REAL );
+            conductivity = ( conduc[0][0]+conduc[1][1]+conduc[2][2] )/3;
+          }else{
+            materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+            conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(conductivity));
+          }
+          // regularize
+          bool scaleByEdgeSize = false;
+          if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
+            Matrix<Double> reluc;
+            // get tensor of permeability and determine max. value
+            materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
+            conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
+            scaleByEdgeSize = true;
+            regularizedRegions_.insert(actRegion);
+          }
 
-    	        PtrCoefFct coeff =
-    	            CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
-    	        // add also material to global, distributed reluctivity coefficient function
-    	        conduc_->AddRegion(actRegion, coeff);
-    	        BaseBDBInt *massInt;
 
+          conduc_->AddRegion(actRegion, conductivityCoeff);
+          BaseBDBInt *massInt;
     	        BiLinFormContext * massContext;
     	        if ( analysistype_ == STATIC) {
     	          // we have to guarantee, that we add some mass to curl-curl integrator.
     	          // Additionally, the integrator gets scaled by the edge size for a uniform
     	          // conditioning
     	          massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
-    	                                        coeff,1.0);
+    	                                        conductivityCoeff,1.0);
     	          massInt->SetName("MassIntegrator");
     	          massContext =  new BiLinFormContext(massInt, STIFFNESS );
     	        } else {
     	          // here we add the "normal" mass integrator, which gets not scaled by the
     	          // edge size
-    	          if( scaleByEdgeSize ) {
+
+    	          if( scaleByEdgeSize ) { // this is for non-conducting regions
     	            massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
-    	                                          coeff,1.0, updatedGeo_);
+    	                                          conductivityCoeff,1.0, updatedGeo_);
     	            massContext = new BiLinFormContext(massInt, STIFFNESS );
     	          } else {
-    	            massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-    	                                          coeff,1.0, updatedGeo_);
-    	            massContext = new BiLinFormContext(massInt, DAMPING );
+                  if ( conductivityCoeff->GetDimType() == CoefFunction::TENSOR ) {
+                    massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(), conductivityCoeff, 1.0, updatedGeo_);
+                  } else {
+                    massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(), conductivityCoeff, 1.0, updatedGeo_);
+                  }
+                  massContext = new BiLinFormContext(massInt, DAMPING );
     	          }
     	          massInt->SetName("MassIntegrator");
-
     	        }
     	        massContext->SetEntities( actSDList, actSDList );
     	        massContext->SetFeFunctions( feFunc, feFunc );
     	        assemble_->AddBiLinearForm( massContext );
-
     	        // insert mass integrator to list of defined mass integrators
     	        massInts_[actRegion] = massInt;
       }// End of nonlin/lin mass matrix part
-
 
       // ====================================================================
       // check for velocity
@@ -457,25 +442,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
         if( isComplex_ )
         {
-//          if(dim_ == 2)
-//          {
-//            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new ConvectiveOperator<FeHCurl,2,1,Complex>(), coeff, 1.0, coefUpdateGeo);
-//          }
-//          else
-//          {
-//            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new ConvectiveOperator<FeHCurl,3,1,Complex>(), coeff, 1.0, coefUpdateGeo);
-//          }
-        }
-        else
-        {
+          EXCEPTION("MagEdgePDE: VelocityStiffInt not implemented for complex case!");
+        } else {
           if(dim_ == 2)
-          {
             velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),coeff, 1.0, coefUpdateGeo);
-          }
           else
-          {
             velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),coeff, 1.0, coefUpdateGeo);
-          }
         }
         assert(velocityStiff != NULL);
 
@@ -487,292 +459,73 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         VelocityContextStiff->SetEntities( actSDList, actSDList );
         VelocityContextStiff->SetFeFunctions( feFunctions_[MAG_POTENTIAL],feFunc);
         assemble_->AddBiLinearForm( VelocityContextStiff );
+      } // end velocityId
       }
     } // end for regions
+  }
 
-    // ============================
-    // COIL INTEGRATORS
-    // ============================
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+  LinearForm* MagEdgePDE::GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId)
+  {
+    LinearForm * ret = NULL;
+    // -------------------
+    //  EDGE FORMULATION
+    // -------------------
+    // ===  3D CASE ===
+    if( dim_ == 3 ) {
+      if( isComplex_ )
+        ret = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(), factor, coef, updatedGeo_);
+      else
+        ret = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(), factor, coef, updatedGeo_);
+    } else {
+      // ===  2D / AXI CASE ===
+      EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
+    }
+    return ret;
+  }
 
-    std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;
-    coilIt = coils_.begin();
-    for( ; coilIt != coils_.end(); coilIt++ ) {
-      Coil& actCoil = *(coilIt->second);
-      // run over all parts
-      std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
-      partIt = actCoil.parts_.begin();
-      if(( actCoil.sourceType_ == Coil::CURRENT )||
-         ( actCoil.sourceType_ == Coil::CURRENT_MULTHARM )||
-         ( actCoil.sourceType_ == Coil::EXTERNAL )) {
+  LinearForm* MagEdgePDE::GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){
+    LinearForm * lin = NULL;
+    bool coefUpdateGeo = true;
 
-        /*
-        =====================================================
-         1) CURRENT driven coils OR EXTERNAL current density
+    // -------------------
+    //  EDGE FORMULATION
+    // -------------------
+    // ===  3D CASE ===
+    if( dim_ == 3 ) {
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
+                Complex(factor), rhsMag, coefUpdateGeo, fullEvaluation);
+      } else {
+        lin = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
+                factor, rhsMag, coefUpdateGeo, fullEvaluation);
+      }
+    } else {
+      // ===  2D / AXI CASE ===
+      EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
+    }
+    return lin;
+  }
 
-         Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
-              Sens. and Act., 2nd edition, p. 131ff
-        =====================================================
-        */
+  BaseBDBInt* MagEdgePDE::GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ){
+    BaseBDBInt* stiffInt = NULL;
 
-        for( partIt = actCoil.parts_.begin();
-            partIt != actCoil.parts_.end();
-            partIt++ ) {
-          Coil::Part & actPart = *(partIt->second);
-          RegionIdType actRegion = partIt->first;
-          shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-          actSDList->SetRegion( actRegion );
+    // -------------------
+    //  EDGE FORMULATION
+    // -------------------
+    // ===  3D CASE ===
+    if( dim_ == 3 ) {
+      stiffInt = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), tensorReluctivity, factor, updatedGeo_) ;
+    } else {
+      // ===  2D / AXI CASE ===
+      EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
+    }
 
-          /*
-            generate source current vector
-            for the non-multiharmonic case it is a simple PtrCoefFct type
-            but due to the flexibility to use multiharmonic excitation,
-            we need a map of PtrCoefFct's, where the key is the harmonic number.
-            So in the non-multiharmonic case, we simply have one key "0"
-          */
-          std::map<UInt, PtrCoefFct> jFct;
-          if( actCoil.sourceType_ == Coil::CURRENT ){
-            CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
-                                                   CoefXpr::OP_MULT);
-            PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
-
-            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
-                                                   CoefXpr::OP_DIV);
-            jFct[0] = CoefFunction::Generate(mp_, part, jVec);
-          } else if( actCoil.sourceType_ == Coil::CURRENT_MULTHARM ){
-
-            if( (actCoil.srcValMH_.find(0) != actCoil.srcValMH_.end()) && (!dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->fullSystem_) ){
-              EXCEPTION("You specified an excitation in harmonic 0 but didn't set the"
-                        "<fullSystem> tag to true in the analysis section!");
-            }
-
-            // loop over all inserted harmonics of the xml file; type is std::map<Integer, PtrCoefFct>
-            for(auto& h : actCoil.srcValMH_){
-              CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, h.second  , CoefXpr::OP_MULT);
-              PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
-              CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
-              jFct[h.first] = CoefFunction::Generate(mp_, part, jVec);
-            }
-          } else {
-            jFct[0] = coilPartsExtJ_[partIt->second];
-          }
-
-
-          // This switch is necessary because we need to select which harmonic component
-          // we want to assemble in the rhs
-          if( actCoil.sourceType_ == Coil::CURRENT_MULTHARM ){
-            // Multiharmonic Case
-            LinearForm* curInt;
-            for(auto& h : jFct){
-              coilCurrentDens_[actRegion] = h.second;
-              if( isComplex_ ) {
-                curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                                                    1.0, h.second, updatedGeo_);
-              }
-              else {
-                curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
-                                                   1.0, h.second, updatedGeo_);
-              }
-              curInt->SetName("CoilIntegrator");
-              curInt->SetHarm(h.first);
-              LinearFormContext * coilContext = new LinearFormContext( curInt );
-              coilContext->SetEntities( actSDList );
-              coilContext->SetFeFunction( feFunc );
-              assemble_->AddLinearForm( coilContext );
-            }
-          }else{
-            // Classic Case
-            LinearForm* curInt;
-            coilCurrentDens_[actRegion] = jFct[0];
-            if( isComplex_ ) {
-              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                                                  1.0, jFct[0], updatedGeo_);
-            }
-            else {
-              curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
-                                                 1.0, jFct[0], updatedGeo_);
-            }
-            curInt->SetName("CoilIntegrator");
-            LinearFormContext * coilContext = new LinearFormContext( curInt );
-            coilContext->SetEntities( actSDList );
-            coilContext->SetFeFunction( feFunc );
-            assemble_->AddLinearForm( coilContext );
-
-          }
-
-
-
-
-
-        } // loop: parts
-
-      }else{
-
-        /*
-        ============================================
-         2) VOLTAGE driven coils
-
-         Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
-              Sens. and Act., 2nd edition, p. 211ff
-        ============================================
-         The coupled equation system in this case looks like
-           ( M_A     0 ) ( A_dot ) + ( K_A -f_A ) ( A ) = ( 0 )
-           ( (f_A)^T 0 ) ( i_dot )   ( 0     R  ) ( i )   ( u )
-        */
-
-        std::string totRstr = "";
-        shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
-        singleCoilList->AddCoil( coilIt->second );
-        feFunctions_[COIL_CURRENT]->AddEntityList( singleCoilList );
-
-        for( partIt = actCoil.parts_.begin();
-             partIt != actCoil.parts_.end();
-             partIt++ ) {
-
-          Coil::Part & actPart = *(partIt->second);
-
-          if( totRstr.empty() ){
-            totRstr = actPart.resistance;
-          } else {
-            totRstr += " + " + actPart.resistance;
-          }
-
-          CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
-              boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV );
-          PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
-
-          shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
-          RegionIdType actRegion = partIt->first;
-          actSDList->SetRegion( actRegion );
-
-          // implementation of coil current density is difficult because of FeSpaceConst;
-          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section;
-          // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
-          //    for elements in order to evaluate its expression (FeFunction::GetScalar);
-          //    although the origin of this problem does not seem to be the FeFunction;
-          //    the coil result coil current works properly
-          // 2) the automatic calculation of the cross section of the coil
-          //    must be implemented because we need the number of turns or the coil cross
-          //    section (only the winding cross section is not enough!)
-          //    or
-          //    number of turns or coil cross section could be additionally specified in xml;
-          // However, the effects are not severe: Current density results are not available
-          // for coils with voltage sources, which is generally not interesting anyway.
-          // With the 2 points resolved, the code could look like:
-          /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
-            GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
-          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );*/
-          // now the division by the cross section would be necessary
-          // the unit vector of the current density is added as dummy so that the other
-          // current density results do not get mixed up
-          coilCurrentDens_[actRegion] = actPart.jUnitVec;
-
-          // === -f_A ===
-          LinearForm* psiDotInt;
-          if( isComplex_ ) {
-            psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                -1.0, eJscaled, updatedGeo_);
-          } else {
-            psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
-                -1.0, eJscaled, updatedGeo_);
-          }
-          psiDotInt->SetName("CoilVoltCouplInt");
-
-          bool assembleTransposed = false;
-          BiLinearForm* pseudoBiLin = new BiLinWrappedLinForm( psiDotInt, assembleTransposed );
-          BiLinFormContext* voltCoilContext = new BiLinFormContext( pseudoBiLin, STIFFNESS );
-          voltCoilContext->SetEntities( actSDList, singleCoilList );
-          voltCoilContext->SetFeFunctions( feFunc, feFunctions_[COIL_CURRENT] );
-          voltCoilContext->SetCounterPart(false);
-          assemble_->AddBiLinearForm( voltCoilContext );
-
-          // === (f_A)^T ===
-          if( analysistype_ != STATIC ){
-            LinearForm* psiDotIntT;
-            if( isComplex_ ) {
-              psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                  1.0, eJscaled, updatedGeo_);
-            } else {
-              psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
-                  1.0, eJscaled, updatedGeo_);
-            }
-            psiDotIntT->SetName("CoilVoltCouplIntTransposed");
-
-            assembleTransposed = true;
-            BiLinearForm* pseudoBiLinT = new BiLinWrappedLinForm( psiDotIntT, assembleTransposed );
-            BiLinFormContext* voltCoilContextT = new BiLinFormContext( pseudoBiLinT, DAMPING );
-            voltCoilContextT->SetEntities( singleCoilList, actSDList );
-            voltCoilContextT->SetFeFunctions( feFunctions_[COIL_CURRENT], feFunc );
-            voltCoilContextT->SetCounterPart(false);
-            assemble_->AddBiLinearForm( voltCoilContextT );
-          }
-
-        } // loop: parts
-
-        // === R ===
-        PtrCoefFct totR = CoefFunction::Generate( mp_, part, totRstr, "0.0" );
-        LinearForm* totRint = new SingleEntryInt( totR );
-        totRint->SetName( "CoilResistanceInt" );
-        BiLinearForm* totRBiLin = new BiLinWrappedLinForm( totRint, false );
-        BiLinFormContext* totRcontext = new BiLinFormContext( totRBiLin, STIFFNESS );
-        totRcontext->SetEntities( singleCoilList, singleCoilList );
-        totRcontext->SetFeFunctions( feFunctions_[COIL_CURRENT], feFunctions_[COIL_CURRENT] );
-        totRcontext->SetCounterPart(false);
-        assemble_->AddBiLinearForm( totRcontext );
-
-        // === u ===
-        LinearForm* voltInt = new SingleEntryInt( actCoil.srcVal_ );
-        voltInt->SetName( "CoilVoltageLoadInt" );
-        LinearFormContext* voltContext = new LinearFormContext( voltInt );
-        voltContext->SetEntities( singleCoilList );
-        voltContext->SetFeFunction( feFunctions_[COIL_CURRENT] );
-        assemble_->AddLinearForm( voltContext );
-
-      } // if: current / voltage driven
-    } // loop: coils
-
-    /*
-      // ============================
-      // PERMANENT MAGNETS
-      // ============================
-      //
-      // check, if this subdomain is a permanent magnet
-      for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
-        if ( actRegion == magnetsDomain_[perm] ) {
-          EXCEPTION("Currently magnetic 3D with edge elements do not support permanent magnets");
-
-          Vector<Double> magnetization(dim_);
-          magnetization[0] = magnetsOriX_[perm];
-          magnetization[1] = magnetsOriY_[perm];
-          magnetization[2] = magnetsOriZ_[perm];
-
-          // Get reluctivity for this domain and perform consistency check
-          Double reluctivity;
-          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
-
-          std::string fncname = "none";
-          LinearForm *permSource =
-            new MagPerm3DInt(magnetization, reluctivity,
-                             isaxi_, upLagrangeForm );
-
-          LinearFormContext * permContext =
-            new LinearFormContext( permSource );
-          permContext->SetPtPde( this );
-          permContext->SetResult( results_[0], actSDList );
-          assemble_->AddLinearForm( permContext );
-        }
-      }*/
-
-  } // end DefineIntegrators
-
+    return stiffInt;
+  }
   
   void MagEdgePDE::DefineNcIntegrators() {
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
     for ( ; ncIt != endIt; ++ncIt ) {
-      if( analysistype_ == STATIC ){
-        EXCEPTION("Nitsche interface not yet tested for static analysis!\n"
-                  "You only have to delete this exception and verify the results");
-      }
       switch (ncIt->type) {
         case NC_MORTAR:
           EXCEPTION("No Mortar nonconforming interface for magnetic PDE with edge elements.\n"
@@ -807,6 +560,63 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     LinearForm * lin = NULL;
     StdVector<std::string> vecDofNames = myFct->GetResultInfo()->dofNames;
     bool coefUpdateGeo = true;
+
+    double magStrictFactor = 1.0;
+    //    if ( isMagnetoStrictCoupled_ == true ){
+    //      magStrictFactor = -1.0;
+    //    }
+
+    // =================================
+    //  Magnetization -> from hysteresis (VOLUME)
+    // =================================
+    //check for hysteresis
+    if ( isHysteresis_ ){
+//          std::cout << "Putting magnetization to rhs" << std::endl;
+      LOG_DBG(magEdgePde) << "Putting magnetization to rhs";
+
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+
+        // get regionIdType
+        RegionIdType curReg = it->first;
+
+//        std::cout << "curRegionId: " << curReg << std::endl;
+
+        if(it->second == NULL){
+          continue;
+        }
+        // get SDList
+        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+        actSDList->SetRegion( curReg );
+
+        // set fullevaluation to trigger evaluation at each integration point
+        // the nonlinear parameter "evaluation depth" determines if each
+        // integration point gets mapped to midpoint (> fullevaluation = false)
+        // or if hyst operator really is evaluated at the actual int. point
+        bool fullevaluation = true;
+
+        // NEW: we do not pass the hysteresis coefficient function
+        // directly but instead a special class that returns the
+        // correctly weighted term
+        // even though, we have a similar function for output,
+        // we need a separate coefFunction here as rhsMag might
+        // be evaluated at another timestep/interation step as outputMag
+        shared_ptr<CoefFunction> rhsMag = it->second->GenerateRHSCoefFnc("MagMagnetization");
+
+        lin = GetRHSHystInt( magStrictFactor, rhsMag, fullevaluation );
+
+        lin->SetName("rhs_magnetization");
+        lin->SetSolDependent();
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( actSDList );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+        // Add entity list will add nothing, if entities were already assigned
+        myFct->AddEntityList(actSDList);
+      }
+    }
+//    std::cout << "DONE Putting magnetization to rhs" << std::endl;
     // ==================
     //  FLUX DENSITY
     // ==================
@@ -820,18 +630,49 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
         EXCEPTION("Prescribed magnetic flux density can only be specified in a volume!")
       }
-      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-      PtrCoefFct factor = CoefFunction::Generate(mp_, part,
-                                                 CoefXprBinOp(mp_, reluc_, coef[i] , CoefXpr::OP_MULT ) );
 
-      if(isComplex_) {
-        lin = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
-                                         Complex(1.0), factor, coefUpdateGeo);
+      bool forceSolDependency = false;
+      shared_ptr<CoefFunction> rhsCoefFunctionToBeUsed;
+
+      // check for hysteresis on current entity
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+
+      if(regionCoefs.count(ent[i]->GetRegion())){
+//        std::cout << "RHS-Hysteresis" << std::endl;
+        // HYST CASE > compare with MagneticPDE.cc
+        // GenerateRHSCoefFnc("MagPolarization",coef[i]) returns coef[i] - MagPolarization = B - J
+        // together with the reluctivityTensor we get M on rhs
+        rhsCoefFunctionToBeUsed = regionCoefs[ent[i]->GetRegion()]->GenerateRHSCoefFnc("MagPolarization",coef[i]);
+        forceSolDependency = true;
+
+        if(isComplex_) {
+          lin = new BDUIntegrator<CurlOperator<FeHCurl,3,Double>,Complex>(Complex(magStrictFactor),
+                  rhsCoefFunctionToBeUsed, relucTensor_,coefUpdateGeo);
+        } else {
+          lin = new BDUIntegrator<CurlOperator<FeHCurl,3,Double>,Double>(magStrictFactor, rhsCoefFunctionToBeUsed, relucTensor_,coefUpdateGeo);
+        }
+
+
       } else {
-        lin = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
-                                        1.0, factor, coefUpdateGeo);
+        // classical implementation
+        Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+        PtrCoefFct factor = CoefFunction::Generate(mp_, part,
+                CoefXprBinOp(mp_, reluc_, coef[i] , CoefXpr::OP_MULT ) );
+
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
+                  Complex(magStrictFactor), factor, coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
+                  magStrictFactor, factor, coefUpdateGeo);
+        }
       }
+
       lin->SetName("FluxIntegrator");
+      if(forceSolDependency){
+        lin->SetSolDependent();
+      }
+
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
@@ -870,143 +711,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       myFct->AddEntityList(ent[i]);
 
     } // for
+
+//    std::cout << "DONE Define RHS Integrators" << std::endl;
+
   }
-
-
-  void MagEdgePDE::DefineSolveStep()
-  {
-    solveStep_ = new StdSolveStep(*this);
-  }
-
 
   // ======================================================
-  // TIME-STEPPING SECTION
+  // TIME-STEPPING SECTION > MagBasePDE
   // ======================================================
-
-  void MagEdgePDE::InitTimeStepping() {
-	// Use complete implicit scheme
-    Double gamma = 1.0;
-    GLMScheme * scheme = new Trapezoidal(gamma);
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-
-    feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
-
-    if( hasVoltCoils_ ){
-      // Important: Create a new time scheme just for the current unknowns, as otherwise the
-      // size of the vectors does not match!
-      GLMScheme * scheme2 = new Trapezoidal(gamma);
-      shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(scheme2, 0, nlType) );
-
-      feFunctions_[COIL_CURRENT]->SetTimeScheme(myScheme2);
-    }
-
-  }
-
-  // ******************************************************
-  //   Query parameter object for information about coils
-  // ******************************************************
-  void MagEdgePDE::ReadCoils() {
-    // Check if the element "coils" is present at all.
-    // Otherwise leave
-    PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
-    PtrParamNode coilInfoNode = myInfo_->Get( "coilList", ParamNode::PASS );
-    if ( !coilNode )
-      return;
-
-    // Get single coil nodes
-    ParamNodeList coilNodes = coilNode->GetChildren();
-
-    // Trigger reading in of definitions
-    Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
-    if( coilNodes.GetSize() > 0 ) {
-      for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
-
-        // get coil and id
-        std::string coilId = coilNodes[i]->Get("id")->As<std::string>();
-
-        // Check if coil with same ID already exists
-        if( coils_.find(coilId) != coils_.end() ) {
-          EXCEPTION("A coil with ID '" << coilId << "' was already defined.")
-        }
-
-        // Create new coil
-        shared_ptr<Coil> actCoil( new Coil( coilNodes[i], coilInfoNode,
-                                            ptGrid_, mp_, cplx ) );
-        coils_[coilId] = actCoil;
-
-        // Associate mapping of coil parts with regions
-        std::map<RegionIdType, shared_ptr<Coil::Part> >::const_iterator it;
-        for( it = actCoil->parts_.begin(); it != actCoil->parts_.end(); it++ ) {
-          coilRegions_[it->first] = actCoil;
-        }
-      }
-
-      // Insert the current densities which are defined externally (simulation or sequence step).
-      // This is done here because it is impossible for the coil to use a PDE pointer.
-      // We have to distinguish between external current density direction and external source.
-      // External source includes the direction, but not vice versa. Therefore, the external source
-      // must be stored per part anyway, although it counts for the whole coil. Additionally, the
-      // parts need the regions and coef functions.
-      std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;
-      for( coilIt = coils_.begin(); coilIt != coils_.end(); ++coilIt ){
-        std::map<shared_ptr<Coil::Part>, PtrParamNode >::iterator extPartIt;
-        for( extPartIt = coilIt->second->partsExtJDir_.begin();
-            extPartIt != coilIt->second->partsExtJDir_.end(); ++extPartIt ){
-          PtrParamNode extNode = extPartIt->second;
-          // determine if normalise is set
-          bool normalise = true;
-          if ( extNode->Has("normalise") ) {
-              if ( extNode->Get("normalise")->As<std::string>() == "no" ) {
-                  normalise = false;
-              }
-          }
-
-          shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-              isComplex_));
-          shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-                        isComplex_));
-          for( UInt k_reg = 0; k_reg < extPartIt->first->regions.GetSize(); ++k_reg ){
-            std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
-            shared_ptr<EntityList> elems;
-            elems = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regName );
-            PtrCoefFct regCurrDens; // ReadUserFieldValues assigns a value to this
-            StdVector<std::string> vecComponents;
-            vecComponents = "x", "y", "z";
-            std::set<UInt> definedDofs; // ReadUserFieldValues assigns a value to this
-            bool updateGeo; // ReadUserFieldValues assigns a value to this
-            ReadUserFieldValues(elems,extNode,vecComponents,
-                ResultInfo::VECTOR,isComplex_,regCurrDens,
-                definedDofs,updateGeo);
-            // take the read values and normalise to a length of 1
-            PtrCoefFct unitDir;
-            if ( normalise ) {
-                cplx = Global::REAL;
-                CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
-                PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
-                CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
-                unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
-            }
-            else {
-                unitDir = regCurrDens;
-            }
-            unitCurrDens->AddRegion(extPartIt->first->regions[k_reg],unitDir);
-            if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
-              currDens->AddRegion(extPartIt->first->regions[k_reg],regCurrDens);
-            }
-          }
-          extPartIt->first->jUnitVec = unitCurrDens;
-          if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
-            coilPartsExtJ_[extPartIt->first] = currDens;
-          }
-        }
-      }
-
-      // Adjust printing of coil information to info node
-      WARN("Adapt printing of coils to InfoNode");
-    }
-  }
-
 
   void MagEdgePDE::DefinePrimaryResults() {
 
@@ -1092,7 +804,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
       DefineFieldResult(permFct, permeability);
     }
-
   }
 
   void MagEdgePDE::DefinePostProcResults() {
@@ -1129,23 +840,30 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     }
 
-
-    // === MAGNETIC FLUX DENSITY ===
-    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-    fluxDens->resultType = MAG_FLUX_DENSITY;
-    fluxDens->dofNames = vecComponents;
-    fluxDens->unit = "Vs/m^2";
-    fluxDens->definedOn = ResultInfo::ELEMENT;
-    fluxDens->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionFormBased> bFunc;
-    if( isComplex_ ) {
-      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-    } else {
-      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+    if(!fluxDensityDefined_){
+      DefineMagFluxDensity();
     }
-    DefineFieldResult( bFunc, fluxDens );
-    stiffFormCoefs_.insert(bFunc);
+//    else {
+//      std::cout << "Flux density already defined" << std::endl;
+//    }
 
+//    shared_ptr<CoefFunctionFormBased>
+    PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
+//    // === MAGNETIC FLUX DENSITY ===
+//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
+//    fluxDens->resultType = MAG_FLUX_DENSITY;
+//    fluxDens->dofNames = vecComponents;
+//    fluxDens->unit = "Vs/m^2";
+//    fluxDens->definedOn = ResultInfo::ELEMENT;
+//    fluxDens->entryType = ResultInfo::VECTOR;
+//    shared_ptr<CoefFunctionFormBased> bFunc;
+//    if( isComplex_ ) {
+//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
+//    } else {
+//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+//    }
+//    DefineFieldResult( bFunc, fluxDens );
+//    stiffFormCoefs_.insert(bFunc);
 
     // === MAGNETIC NORMAL FLUX DENSITY ===
     shared_ptr<ResultInfo> normFlux(new ResultInfo);
@@ -1400,64 +1118,95 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     // assemble coefficient function hFunc = reluctivity * (flux density - remanence)
     // has to be done in finalize because RHS is not known now
-    shared_ptr<CoefFunctionMulti> hFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-                                                                isComplex_));
-    DefineFieldResult( hFunc, magIntens );
+    if ( !isHysteresis_){
+      shared_ptr<CoefFunctionMulti> hFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+                                                                  isComplex_));
+      DefineFieldResult( hFunc, magIntens );
+    }
+
+    // currently take field intensity directly from coef function hyst, i.e. do not subtract remancence like above
+    // however, inside the hyst. material there should be no additional remancence except the one created by the hyst
+    // operator itself
+    if ( isHysteresis_){
+//      std::cout << "DEFINE  HYSTEREITIC RESULTS" << std::endl;
+      shared_ptr<ResultInfo> magJ ( new ResultInfo );
+      magJ->resultType = MAG_POLARIZATION;
+      magJ->SetVectorDOFs(dim_, isaxi_);
+      magJ->unit = "Vs/m^2";
+      magJ->definedOn = ResultInfo::ELEMENT;
+      magJ->entryType = ResultInfo::VECTOR;
+
+      DefineFieldResult( hysteresisPolarization_, magJ );
+      availResults_.insert( magJ );
+
+      shared_ptr<ResultInfo> magM ( new ResultInfo );
+      magM->resultType = MAG_MAGNETIZATION;
+      magM->SetVectorDOFs(dim_, isaxi_);
+      magM->unit = "A/m";
+      magM->definedOn = ResultInfo::ELEMENT;
+      magM->entryType = ResultInfo::VECTOR;
+
+      DefineFieldResult( hysteresisMagnetization_, magM );
+      availResults_.insert( magM );
+
+      DefineFieldResult( hysteresisFieldIntensity_, magIntens );
+      availResults_.insert( magIntens );
+    }
 
     if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
-    	// === MAXWELL FORCE DENSITY ===
-    	shared_ptr<ResultInfo> mfd(new ResultInfo);
-    	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
-    	mfd->dofNames = vecComponents;
-    	mfd->unit = "N/m^3";
-    	mfd->definedOn = ResultInfo::SURF_ELEM;
-    	mfd->entryType = ResultInfo::VECTOR;
-    	availResults_.insert( mfd );
-    	// Note: The positive normal direction in this case is defined as the
-    	//       inward facing one.
-    	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, -1.0, mfd));
-    	DefineFieldResult( maxForceDens, mfd);
-    	surfCoefFcts_[maxForceDens] = bFunc;
+    // === MAXWELL FORCE DENSITY ===
+    shared_ptr<ResultInfo> mfd(new ResultInfo);
+    mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
+    mfd->dofNames = vecComponents;
+    mfd->unit = "N/m^3";
+    mfd->definedOn = ResultInfo::SURF_ELEM;
+    mfd->entryType = ResultInfo::VECTOR;
+    availResults_.insert( mfd );
+    // Note: The positive normal direction in this case is defined as the
+    //       inward facing one.
+    shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, -1.0, mfd));
+    DefineFieldResult( maxForceDens, mfd);
+    surfCoefFcts_[maxForceDens] = bFunc;
 
-    	// === MAXWELL FORCE (TOTAL) ===
-    	shared_ptr<ResultInfo> mf(new ResultInfo);
-    	mf->resultType = MAG_FORCE_MAXWELL;
-    	mf->dofNames = vecComponents;
-    	mf->unit = "N";
-    	mf->definedOn = ResultInfo::SURF_REGION;
-    	mf->entryType = ResultInfo::VECTOR;
-    	availResults_.insert( mf );
+    // === MAXWELL FORCE (TOTAL) ===
+    shared_ptr<ResultInfo> mf(new ResultInfo);
+    mf->resultType = MAG_FORCE_MAXWELL;
+    mf->dofNames = vecComponents;
+    mf->unit = "N";
+    mf->definedOn = ResultInfo::SURF_REGION;
+    mf->entryType = ResultInfo::VECTOR;
+    availResults_.insert( mf );
 
-    	// build result functor for integration
-    	shared_ptr<ResultFunctor> mfFunc;
-    	if( isComplex_ ) {
-    		mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
-    	} else {
-    		mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
-    	}
-    	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
+    // build result functor for integration
+    shared_ptr<ResultFunctor> mfFunc;
+    if( isComplex_ ) {
+    mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
+    } else {
+    mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
+    }
+    resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
 
-    	// === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
-    	shared_ptr<ResultInfo> vwp(new ResultInfo);
-    	vwp->resultType = MAG_FORCE_VWP;
-    	vwp->dofNames = vecComponents;
-    	vwp->unit = "N";
-    	vwp->definedOn = ResultInfo::SURF_REGION;
-    	vwp->entryType = ResultInfo::VECTOR;
-    	availResults_.insert( vwp );
+    // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
+    shared_ptr<ResultInfo> vwp(new ResultInfo);
+    vwp->resultType = MAG_FORCE_VWP;
+    vwp->dofNames = vecComponents;
+    vwp->unit = "N";
+    vwp->definedOn = ResultInfo::SURF_REGION;
+    vwp->entryType = ResultInfo::VECTOR;
+    availResults_.insert( vwp );
 
-    	// define and save coefFunction
-    	shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_, 1.0, vwp));
-    	surfCoefFcts_[vwpForce] = bFunc;
+    // define and save coefFunction
+    shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_, 1.0, vwp));
+    surfCoefFcts_[vwpForce] = bFunc;
 
-    	// build result functor for integration
-    	shared_ptr<ResultFunctor> vwpFunc;
-    	if( isComplex_ ) {
-    	  vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
-    	} else {
-    	  vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
-    	}
-    	resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
+    // build result functor for integration
+    shared_ptr<ResultFunctor> vwpFunc;
+    if( isComplex_ ) {
+      vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
+    } else {
+      vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
+    }
+    resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
     }
 
 
@@ -1532,7 +1281,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // it is an integrated result but we need to save the coef function
     // somewhere for the finalization
     fieldCoefs_[MAG_CORE_LOSS] = coreLossCoef;
-
 
     // === JOULE LOSS Power DENSITY INTEGRATED OVER PERIOD	 ===
     shared_ptr<ResultInfo> jld(new ResultInfo);
@@ -1638,19 +1386,22 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
     // === H field ===
-    // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
-    // the remanence is the RHS load flux density
-    shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
-    regIt = regions_.Begin();
-    for( ; regIt != regions_.End(); ++regIt ){
-      if( bRHSRegions_.find( *regIt ) != bRHSRegions_.end() ){
-        PtrCoefFct bPM = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, this->GetCoefFct(MAG_FLUX_DENSITY),
-                bRHSRegions_[*regIt], CoefXpr::OP_SUB ) );
-        PtrCoefFct hPM = CoefFunction::Generate( mp_, part, CoefXprVecScalOp( mp_, bPM, reluc_, CoefXpr::OP_MULT ) );
-        hCoef->AddRegion(*regIt,hPM);
-      } else {
-        PtrCoefFct h = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, reluc_, this->GetCoefFct(MAG_FLUX_DENSITY), CoefXpr::OP_MULT ) );
-        hCoef->AddRegion(*regIt,h);
+    if(!isHysteresis_){
+//          std::cout << "FINALIZE H-FIELD" << std::endl;
+      // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
+      // the remanence is the RHS load flux density
+      shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
+      regIt = regions_.Begin();
+      for( ; regIt != regions_.End(); ++regIt ){
+        if( bRHSRegions_.find( *regIt ) != bRHSRegions_.end() ){
+          PtrCoefFct bPM = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, this->GetCoefFct(MAG_FLUX_DENSITY),
+                  bRHSRegions_[*regIt], CoefXpr::OP_SUB ) );
+          PtrCoefFct hPM = CoefFunction::Generate( mp_, part, CoefXprVecScalOp( mp_, bPM, reluc_, CoefXpr::OP_MULT ) );
+          hCoef->AddRegion(*regIt,hPM);
+        } else {
+          PtrCoefFct h = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, reluc_, this->GetCoefFct(MAG_FLUX_DENSITY), CoefXpr::OP_MULT ) );
+          hCoef->AddRegion(*regIt,h);
+        }
       }
     }
 
@@ -1707,33 +1458,33 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 // get an error in AddRegion, due to the multiplication of a real- and a complex-valued
 // coefficient function. CHECK THIS !!!
     if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
-		shared_ptr<CoefFunctionMulti> cldCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
-		BaseMaterial* actMat = NULL;
-		regIt = regions_.Begin();
-		for( ; regIt != regions_.End(); ++regIt ) {
-		  RegionIdType actRegion = *regIt;
-		  actMat = materials_[actRegion];
-		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
-		  cldCoef->AddRegion(actRegion, coreLossFct);
-		}
+shared_ptr<CoefFunctionMulti> cldCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
+BaseMaterial* actMat = NULL;
+regIt = regions_.Begin();
+for( ; regIt != regions_.End(); ++regIt ) {
+  RegionIdType actRegion = *regIt;
+  actMat = materials_[actRegion];
+  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+  cldCoef->AddRegion(actRegion, coreLossFct);
+}
 
-		// === CORE LOSS ===
-		// The core loss per kg has to be multiplied by the density to get it per m^3.
-		// Then we can integrate over the volume in order to get the core loss.
-		shared_ptr<CoefFunctionMulti> clCoef =
-			dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
-		actMat = NULL;
-		regIt = regions_.Begin();
-		for( ; regIt != regions_.End(); ++regIt ) {
-		  RegionIdType actRegion = *regIt;
-		  actMat = materials_[actRegion];
-		  // core loss density in W/kg
-		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
-		  // core loss density in W/m^3, which deserves to be called density
-		  PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
-		  PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
-		  clCoef->AddRegion( actRegion, coreLossDensCoef );
-		}
+// === CORE LOSS ===
+// The core loss per kg has to be multiplied by the density to get it per m^3.
+// Then we can integrate over the volume in order to get the core loss.
+shared_ptr<CoefFunctionMulti> clCoef =
+dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
+actMat = NULL;
+regIt = regions_.Begin();
+for( ; regIt != regions_.End(); ++regIt ) {
+  RegionIdType actRegion = *regIt;
+  actMat = materials_[actRegion];
+  // core loss density in W/kg
+  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+  // core loss density in W/m^3, which deserves to be called density
+  PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
+  PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
+  clCoef->AddRegion( actRegion, coreLossDensCoef );
+}
     }
 
 
@@ -1766,8 +1517,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             coefFreqFactor = CoefFunction::Generate( mp_, part, "-2*pi*f");
         }
         else {
-        	// for harmonic
-        	coefFreqFactor = CoefFunction::Generate( mp_, part, "-pi*f");
+        // for harmonic
+        coefFreqFactor = CoefFunction::Generate( mp_, part, "-pi*f");
         }
         eddyLossCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, coefIm, CoefXpr::OP_MULT) ) );
         eddyLossCoefN->AddRegion(actRegion, CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, coefIm, CoefXpr::OP_MULT) ) );
@@ -1775,19 +1526,19 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     }
 
     if( analysistype_ == TRANSIENT){
-		shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
-		shared_ptr<CoefFunctionMulti> eddyLossCoefN = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES]);
-		regIt = regions_.Begin();
-		for( ; regIt != regions_.End(); ++regIt ) {
-		  RegionIdType actRegion = *regIt;
-		  // J_total * E = J_total * dA/dt
-		  PtrCoefFct partTmp = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
-		  //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
+shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+shared_ptr<CoefFunctionMulti> eddyLossCoefN = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES]);
+regIt = regions_.Begin();
+for( ; regIt != regions_.End(); ++regIt ) {
+  RegionIdType actRegion = *regIt;
+  // J_total * E = J_total * dA/dt
+  PtrCoefFct partTmp = CoefFunction::Generate( mp_, part,
+  CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
+  //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
 
-		  eddyLossCoef->AddRegion(actRegion, partTmp);
-		  eddyLossCoefN->AddRegion(actRegion, partTmp);
-		}
+  eddyLossCoef->AddRegion(actRegion, partTmp);
+  eddyLossCoefN->AddRegion(actRegion, partTmp);
+}
     }
 
   }
@@ -1831,4 +1582,3 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   }
 
 } // end of namespace
-

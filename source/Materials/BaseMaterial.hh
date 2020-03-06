@@ -82,6 +82,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, Vector<Complex> > vectorMap;
     typedef std::map<MaterialType, std::string > stringMap;
+    typedef std::map<MaterialType, Integer > integerMap;
     typedef std::map<MaterialType, MathParser::HandleType > handleMap;
     typedef std::map<MaterialType, PtrCoefFct> CoefMap;
     typedef std::map<MaterialType, MatDescriptorNl> nonLinIsoMap;
@@ -278,6 +279,14 @@ namespace CoupledField {
     //! get a string material parameter
     virtual void GetScalar( std::string& param, MaterialType matType) const;
     
+    //! get a integer material parameter
+    virtual void GetScalar( Integer& param, MaterialType matType) const
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
+
+    void GetScalar( Integer& param, MaterialType matType, Global::ComplexPart dataType) const;
+
     //! get a scalar real material parameter
     virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType = Global::REAL) const
     {
@@ -508,6 +517,9 @@ namespace CoupledField {
 
     //! map, which knows about the material data defined by strings
     stringMap stringParams_;
+
+    //! map, which knows about the material data defined by strings
+    integerMap integerParams_;
 
     //! map, which knows about the scalar material parameters being set during read in 
     scalarMap scalarParams_;

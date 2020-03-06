@@ -4,7 +4,6 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include <mutex>
 
 // use boost accumulators to gather usage statistics of the graph
 #include <boost/accumulators/accumulators.hpp>
@@ -12,6 +11,9 @@
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/statistics/sum.hpp>
 #include <boost/accumulators/statistics/moment.hpp>
+
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 using namespace boost::accumulators;
 
 #include <def_use_metis.hh>
@@ -24,21 +26,16 @@ extern "C"{
 }
 #endif
 
-#include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/Sloan.hh"
-#include "Utils/Timer.hh"
-
-DECLARE_LOG(graph)
-DEFINE_LOG(graph, "graph")
 
 namespace CoupledField {
+  DEFINE_LOG(graphLogger, "graph")
 
   // ***************
   //   Constructor
   // ***************
   BaseGraph::BaseGraph( UInt nRows, UInt nCols ) {
-
 
     // Avoid problems with partially empty graphs
     if ( nRows == 0 || nCols ==0 ) {
@@ -174,7 +171,7 @@ namespace CoupledField {
   // ********************
   void BaseGraph::ReorderForBlocks( StdVector<UInt>& order ) {
     
-    LOG_TRACE(graph) << "Calling ReorderForBlocks";
+    LOG_TRACE(graphLogger) << "Calling ReorderForBlocks";
     
     // Check, if we are not yet finalized
     if( amAssembled_ ) {
@@ -200,11 +197,11 @@ namespace CoupledField {
     UInt newIndex = 0;
     UInt numBlocks = unsortedBlocks_->GetSize();
     UInt blockStart = 0, blockEnd = 0;
-    LOG_DBG(graph) << "graph has " << numBlocks << " blocks";
+    LOG_DBG(graphLogger) << "graph has " << numBlocks << " blocks";
     sortedBlocks_.Reserve(numBlocks);
     
     for( UInt i = 0; i < numBlocks; ++i ) {
-      LOG_DBG3(graph) << "treating block " << i;
+      LOG_DBG3(graphLogger) << "treating block " << i;
       const StdVector<UInt> & actBlock = (*unsortedBlocks_)[i]; 
       UInt blockSize = actBlock.GetSize();
       
@@ -215,7 +212,7 @@ namespace CoupledField {
       blockStart =  newIndex;
       for( UInt j = 0; j < blockSize; ++j ) {
 
-        LOG_DBG3(graph) << "\tblock-size is " << blockSize;
+        LOG_DBG3(graphLogger) << "\tblock-size is " << blockSize;
         // check, if index was already used in different block
         const UInt & index = actBlock[j]; 
         if( usedIndices.find(index) != usedIndices.end() ) {
@@ -223,7 +220,7 @@ namespace CoupledField {
         }
         usedIndices.insert(index);
         order[index] = ++newIndex;
-        LOG_DBG3(graph) << "\torder[" << index << "] = " << newIndex;
+        LOG_DBG3(graphLogger) << "\torder[" << index << "] = " << newIndex;
       } // entries in one block
       
       blockEnd = newIndex-1;
@@ -433,7 +430,7 @@ namespace CoupledField {
 #ifndef NDEBUG
     UInt totalSize = 0;     // number of entries, including doubles
     UInt totalCapacity = 0; // total capacity 
-    accumulator_set<Double, stats<tag::mean, tag::moment<2>, tag::sum > > size;
+    boost::accumulators::accumulator_set<Double, stats<boost::accumulators::tag::mean, boost::accumulators::tag::moment<2>, boost::accumulators::tag::sum > > size;
 #endif
     // Sort lists and remove duplicate entries 
     for ( UInt i = 0; i < numNodes_; i++ ) {
@@ -491,17 +488,15 @@ namespace CoupledField {
       }
     }
 
-    // Debugging output
-    if (IS_LOG_ENABLED(graph, dbg3) ) {
-      LOG_DBG3(graph) << "Graph in CRS format:";
+    /** Please leave here if someone needs a debug
+      LOG_DBG3(graphLogger) << "Graph in CRS format:";
       for ( i = 0; i < numNodes_; i++ ) {
-        LOG_DBG3(graph) << " Row " << i << ": ";
+        LOG_DBG3(graphLogger) << " Row " << i << ": ";
         for ( j = csNodes_[i]; j < csNodes_[i+1]; j++ ) {
-          LOG_DBG3(graph) << csEdges_[j] << " ";
+          LOG_DBG3(graphLogger) << csEdges_[j] << " ";
         }
-        LOG_DBG3(graph) << std::endl;
-      }
-    }
+        LOG_DBG3(graphLogger) << std::endl;
+      }*/
 
   }
 
@@ -547,15 +542,15 @@ namespace CoupledField {
     }
         
     // Debugging output
-    if (IS_LOG_ENABLED(graph, dbg3) ) {
-      LOG_DBG3(graph) << "Graph in CRS format (minus self references): " << std::endl;
+    #ifdef DEBUG_BASEGRAPH
+      LOG_DBG3(graphLogger) << "Graph in CRS format (minus self references): " << std::endl;
       for ( i = 0; i < numNodes_; i++ ) {
         for ( j = (*rptr)[i]; j < (*rptr)[i+1]; j++ ) {
-          LOG_DBG3(graph) << (*cidx)[j-1] << " ";
+          LOG_DBG3(graphLogger) << (*cidx)[j-1] << " ";
         }
-        LOG_DBG3(graph) << std::endl;
+        LOG_DBG3(graphLogger) << std::endl;
       }
-    }
+    #endif
   }
 
 
@@ -599,9 +594,6 @@ namespace CoupledField {
         Integer numflag = 1;
         int nNodes = (int)numNodes_;
 
-        if (nNodes < 0)
-          EXCEPTION("METIS: signed nNodes is negative (" << nNodes << ") numNodes = " << numNodes_ << " -> Turn off reordering!");
-
         // Note that what for metis is the inverse permutation vector,
         // for us is the re-ordering vector
         METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
@@ -614,7 +606,7 @@ namespace CoupledField {
         delete [] ( cidx );  cidx  = NULL;
 
         // Generate log message
-        LOG_DBG(graph) << " Reordering: Re-ordered graph using Metis" << std::endl;
+        LOG_DBG(graphLogger) << " Reordering: Re-ordered graph using Metis" << std::endl;
 
 #else
         EXCEPTION("Re-compile with USE_METIS = yes to get Metis support");
@@ -628,7 +620,7 @@ namespace CoupledField {
         MapSetToVector();
 
         // Generate log message
-        LOG_DBG(graph) << " -----------------------------------------------\n"
+        LOG_DBG(graphLogger) << " -----------------------------------------------\n"
                << " Sloan Reordering:"
                << std::endl;
 
@@ -663,14 +655,14 @@ namespace CoupledField {
         reorder.GetProfile( profOld, profNew );
 
         // Start report
-        LOG_DBG(graph) << "\n --> Old Profile: " << profOld
+        LOG_DBG(graphLogger) << "\n --> Old Profile: " << profOld
                        << "\n --> New Profile: " << profNew
                         << std::endl;
 
         // If new ordering does not improve the profile, discard it
         if ( profOld <= profNew ) {
 
-          LOG_DBG(graph) << " Discarded re-ordering, since new profile >="
+          LOG_DBG(graphLogger) << " Discarded re-ordering, since new profile >="
                          << " old one\n";
 
           for ( i = 0; i < numNodes_; i++ ) {
@@ -679,13 +671,13 @@ namespace CoupledField {
         }
 
         else {
-          LOG_DBG(graph) << " --> Profile reduced to "
+          LOG_DBG(graphLogger) << " --> Profile reduced to "
                          << profNew/profOld * 100.0 << "%\n\n"
                          << " Accepted re-ordering\n";
         }
 
         // Finish report
-        LOG_DBG(graph)  << " -----------------------------------------------"
+        LOG_DBG(graphLogger)  << " -----------------------------------------------"
                         << std::endl;
 
         // put it to zero based
@@ -821,7 +813,7 @@ namespace CoupledField {
   }
   
   StdVector<std::pair<UInt,UInt> >& BaseGraph::GetColBlockDefinition() {
-
+    
     // check, if we have coupling graphs set
     if( colDiagGraph_ != NULL) {
       return colDiagGraph_->GetColBlockDefinition();
@@ -830,28 +822,18 @@ namespace CoupledField {
     }
   }
 
-  void BaseGraph::MapSetToVector()
-  {
+  void BaseGraph::MapSetToVector(){
     //convert set to vector
-    CoupledField::Timer t("", false, true); // start immediately
-
-    /*static std::mutex io_mutex;
-    {
-        std::lock_guard<std::mutex> lk(io_mutex);*/
-      if(!setToElemDone_){
-        #pragma omp parallel for schedule(dynamic,10) num_threads(CFS_NUM_THREADS)
-        for(UInt i=0;i<numNodes_;i++){
-          element_[i].resize(setElements_[i].size());
-          std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
-          setElements_[i].clear();
-        }
-        delete [] ( setElements_ );  setElements_  = NULL;
-        setToElemDone_ = true;
+    if(!setToElemDone_){
+  #pragma omp parallel for schedule(dynamic,10) num_threads(CFS_NUM_THREADS)
+      for(UInt i=0;i<numNodes_;i++){
+        element_[i].resize(setElements_[i].size());
+        std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
+        setElements_[i].clear();
       }
-    //}
-    t.Stop();
-
-    //std::cout << "[BaseGraph::MapSetToVector] Wall time: " << t.GetWallTime() << "s, CPU time: " << t.GetCPUTime() << "s" << std::endl;
+      delete [] ( setElements_ );  setElements_  = NULL;
+      setToElemDone_ = true;
+    }
   }
 
 

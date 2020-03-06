@@ -7,7 +7,6 @@
 namespace CoupledField {
 
 // define logging stream
-DECLARE_LOG(genIdbc)
 DEFINE_LOG(genIdbc, "genIdbc")
 
 

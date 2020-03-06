@@ -1,12 +1,10 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Utils/TriCubicInterpolate.hh"
 #include "Utils/TriCubicInterpolateCoeff.hh"
 
 namespace CoupledField
 {
 
-DECLARE_LOG(tricubicappx)
 DEFINE_LOG(tricubicappx, "tricubicappx")
 
 TriCubicInterpolate::TriCubicInterpolate(StdVector<double> data, StdVector<double> a, StdVector<double> b, StdVector<double> c, bool periodic) {

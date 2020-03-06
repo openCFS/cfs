@@ -167,12 +167,26 @@ class BaseFieldFunctor;
     void ReadRhsExcitation( const std::string& elemName,
                                 const StdVector<std::string>& compNames,
                                 ResultInfo::EntryType type,
+                                StdVector<shared_ptr<EntityList> >& entities,
+                                StdVector<PtrCoefFct>& coef,
+                                bool& updateGeo,
+                                PtrParamNode input = PtrParamNode());
+
+    void ReadRhsExcitation( const std::string& elemName,
+                                const StdVector<std::string>& compNames,
+                                ResultInfo::EntryType type,
                                 bool isComplex,
                                 StdVector<shared_ptr<EntityList> >& entities,
                                 StdVector<PtrCoefFct>& coef,
                                 bool& updateGeo,
                                 StdVector<std::string>& volumeRegions);
-
+    void ReadRhsExcitation( const std::string& elemName,
+                                    const StdVector<std::string>& compNames,
+                                    ResultInfo::EntryType type,
+                                    StdVector<shared_ptr<EntityList> >& entities,
+                                    StdVector<PtrCoefFct>& coef,
+                                    bool& updateGeo,
+                                    StdVector<std::string>& volumeRegions);
 
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
@@ -195,7 +209,23 @@ class BaseFieldFunctor;
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
-    
+    //! as ReadUserFieldValues but determine isComplex from xml-input
+    void ReadUserFieldValues( shared_ptr<EntityList> list,
+                                  PtrParamNode valueNode,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  PtrCoefFct & coef,
+                                  std::set<UInt>& definedDofs,
+                                  bool& updateGeo);
+
+    //! Read history result
+    template<typename T>
+    void ReadUserHistValues(  PtrParamNode valueNode,
+        ResultInfo::EntryType type,
+        Vector<T>& res,
+        std::string regionName);
+
+
     /** Define all RHS linearforms for load / excitation
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
@@ -221,6 +251,19 @@ class BaseFieldFunctor;
       // For compiler
       return *this;
       }
+
+    //! Helper function for ReadRhsLoad ...
+    void ReadEntities( const std::string& elemName,
+                                         const StdVector<std::string>& compNames,
+                                         ResultInfo::EntryType type,
+                                         StdVector<shared_ptr<EntityList> >& entities,
+                                         StdVector<PtrParamNode >& xmls,
+                                         StdVector<PtrCoefFct >& coef,
+                                         bool& updateGeo,
+                                         PtrParamNode input);
+
+    //! Helper function for ReadRhsLoad ...
+    void ReadVolumeRegions( const std::string& elemName, StdVector<std::string>& volumeRegions);
 
     // ======================================================
     // INITIALIZATION METHODS
