@@ -222,11 +222,11 @@ namespace CoupledField {
       return ret; 
     };
 
-   //! set a scalar string material parameter
-    virtual void SetScalar(const std::string& param, MaterialType matType);
-
     //! set a scalar integer material parameter
-    // virtual void SetScalar(int param, MaterialType matType);
+    void SetScalar(int param, MaterialType matType);
+
+    //! set a scalar string material parameter
+    virtual void SetScalar(const std::string& param, MaterialType matType);
 
     //! set a scalar real material parameter
     virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType = Global::REAL)

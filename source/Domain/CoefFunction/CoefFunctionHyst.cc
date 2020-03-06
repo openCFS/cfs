@@ -1360,7 +1360,7 @@ namespace CoupledField {
     std::string usedHystModel;
     material->GetScalar(usedHystModel, MaterialType(HYST_MODEL+enumOffset));
 
-    double isPreisachType_Int = 1;
+    int isPreisachType_Int = 1;
     material->GetScalar(isPreisachType_Int, MaterialType(HYST_TYPE_IS_PREISACH+enumOffset));
 
     if(isPreisachType_Int == 0){

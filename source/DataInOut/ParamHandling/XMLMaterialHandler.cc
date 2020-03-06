@@ -2101,7 +2101,7 @@ namespace CoupledField {
       return;
     }
 
-    UInt isPreisachType_int = 0;
+    int isPreisachType_int = 0;
     if(isPreisachType){
       isPreisachType_int = 1;
     }

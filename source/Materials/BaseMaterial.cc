@@ -110,10 +110,22 @@ namespace CoupledField
       }
 
       stringParams_[matType] = param;
-      
+
+  }
+
+  void BaseMaterial::SetScalar(int param, MaterialType matType) {
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      string dim = "scalar";
+      matTypeNotAllowed( matType, dim );
     }
+    else {
+      isSet_.insert( matType );
+      integerParams_[matType] = param;
+    }
+  }
   
-    void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
+  void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
 
     stringMap::const_iterator pos;
