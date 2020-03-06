@@ -839,7 +839,7 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
 bool MultipleExcitation::DoRobust(const Context* ctxt) const
 {
   assert(ctxt != NULL);
-  return robust_[ctxt->context_idx].num_robust;
+  return robust_[ctxt->context_idx].num_robust > 1;
 }
 
 unsigned int MultipleExcitation::GetNumberRobust(const Context* ctxt, bool mininum_one) const

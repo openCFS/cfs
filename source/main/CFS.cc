@@ -299,6 +299,8 @@ int CFS::Run()
       cerr << endl << ">> Error: " << ex.what() << endl;
     }
 
+    cerr.flush();
+
     // Print error cause to info file
     if(infoNode != NULL)
     {

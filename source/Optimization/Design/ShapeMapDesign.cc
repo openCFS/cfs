@@ -1767,7 +1767,7 @@ int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double a
 void ShapeMapDesign::MapFeatureToDensity()
 {
   assert(data.GetSize() == map_.GetSize());
-  mapping_timer_->Start();
+  //mapping_timer_->Start();
 
   LOG_DBG(SMD) << "MSTD: di=" << design_id;
 
@@ -1783,7 +1783,7 @@ void ShapeMapDesign::MapFeatureToDensity()
   int cells_cnt = 0;
   int cells_order_sum = 0;
 
-#pragma omp parallel
+  #pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
     // these are thread local objects reused over the for loop iterations
     Vector<unsigned int> idx(dim_);
@@ -1795,7 +1795,7 @@ void ShapeMapDesign::MapFeatureToDensity()
     EvalAtIp eval(this);
 
     // the integration effort is not evenly distributed
-#pragma omp for schedule(dynamic) reduction(+:cells_cnt,cells_order_sum)
+    #pragma omp for schedule(dynamic) reduction(+:cells_cnt,cells_order_sum)
     for(unsigned int r = 0; r < map_.GetSize(); r++)
     {
       Item& item = map_[r];
@@ -1899,7 +1899,7 @@ void ShapeMapDesign::MapFeatureToDensity()
   numInt_.int_cells_order_sum_ = cells_order_sum;
   numInt_.ToInfo(info_->Get("shapeMap/numInt"));
   mapped_design_ = design_id;
-  mapping_timer_->Stop();
+  //mapping_timer_->Stop();
 }
 
 void ShapeMapDesign::MapFeatureGradient(const Function* f)
@@ -1940,7 +1940,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
   Vector<double> shape_f_grad(shape_param_.GetSize());
   shape_f_grad.Init(0.0);
 
-#pragma omp parallel
+  #pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
     // this are thread private constructs to be reused over the for loop iterations
 
@@ -2112,7 +2112,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
 
     // now gather private_shape_f_grad to shape_f_grad as we may not use array reduction yet
     // https://stackoverflow.com/questions/20413995/reducing-on-array-in-openmp
-#pragma omp critical
+    #pragma omp critical
     {
       // we are in the omp parallel section with n threads. The critical only of the n threads at one time
       // but this is executed for all.
