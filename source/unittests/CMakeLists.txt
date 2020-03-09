@@ -10,7 +10,7 @@ ENDIF(MKL_INCLUDE_DIR)
 SET(UNIT_TESTS
   unittests.cc
 #  bsplinetests.cc
-  bicubicinttests.cc
+#  bicubicinttests.cc
 )
 
 # Main CFS++ Dat executable target.
