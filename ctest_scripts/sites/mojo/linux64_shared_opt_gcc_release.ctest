@@ -5,9 +5,9 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
+# note that setting this variable in site_specific_init.cmake does not give it to this script
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_release")
-message("CTEST_SOURCE_DIRECTORY=${CTEST_SOURCE_DIRECTORY}")
-message("CTEST_BINARY_DIRECTORY=${CTEST_BINARY_DIRECTORY}")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
