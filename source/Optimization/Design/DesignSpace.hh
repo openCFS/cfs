@@ -138,6 +138,9 @@ namespace CoupledField
       * @return a good factor or an exception is thrown */
      double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
 
+     /** @return 1.0 if there could be no proper transfer function found and save_transfer_function is true. Otherwise exception */
+     double GetErsatzMaterialFactor(DesignElement* de, App::Type applic, bool forBimaterial = false, bool save_transfer_function = false);
+
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
       * This method is only to be used via domain. ErsatzMaterial has its own implementation in AddMassToStiffness() */

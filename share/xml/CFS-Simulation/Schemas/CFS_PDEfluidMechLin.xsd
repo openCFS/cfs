@@ -122,6 +122,26 @@
                     <xsd:documentation>Prescribes the velocity at the surface</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="normalSurfaceMass" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Defines an inertia term acting in normal-direction of the boundary. The scalar value is a mass per surface area. When using a sufficiently high value one can use this BC to enforce zero velocity in normal direction (useful if the boundary is not oriented parallel to the coordinate axes).
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- RHS Load Values-->
+                <xsd:element name="traction" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Prescribes the traction vector at the surface</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element> 
+                <xsd:element name="normalTraction" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Prescribes the traction in normal-direction of the boundary
+                      This is equivalent to an external surface pressure
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>                     
               </xsd:choice>
             </xsd:complexType>
 

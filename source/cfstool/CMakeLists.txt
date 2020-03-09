@@ -66,10 +66,6 @@ IF(USE_HDF5)
   LIST(APPEND TARGET_LL siminouthdf5)
 ENDIF(USE_HDF5)
 
-IF(USE_ANSYSRST)
-  LIST(APPEND TARGET_LL simoutansysrst)
-ENDIF(USE_ANSYSRST)
-
 # Target link libraries for cfstool target.
 # add optimization to avoid a strange linke problem introduced in @13977 
 LIST(APPEND TARGET_LL
@@ -134,11 +130,6 @@ TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
 #ENDIF()
 
 SET(CFS_LINK_FLAGS "")
-
-# Make sure CFS Tool gets linked with system libgcc.so instead of ANSYS libgcc.so.
-IF(UNIX AND USE_ANSYSRST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
-ENDIF(UNIX AND USE_ANSYSRST)
 
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.

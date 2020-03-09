@@ -14,6 +14,8 @@
 #include "SimInputUnv.hh"
 #include "unv.hh"
 
+DEFINE_LOG(simInputUNV, "SimInputUnv")
+
 unv::~unv() {
 
   if (num_connections>0)

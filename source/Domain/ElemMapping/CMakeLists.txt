@@ -3,18 +3,15 @@ SET(MAPPINGS_SRCS
   Elem.cc
   ElemShapeMap.cc
   EntityLists.cc
-  )
+  ElementAccess.cc )
 
 
 ADD_LIBRARY(elemmapping STATIC ${MAPPINGS_SRCS})
 
-SET(TARGET_LL
+SET(TARGET_LL 
   utils
-  domain
-  )
+  domain )
 
 
-TARGET_LINK_LIBRARIES(elemmapping
-  ${TARGET_LL}
-  )
+TARGET_LINK_LIBRARIES(elemmapping ${TARGET_LL} )
   

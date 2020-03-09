@@ -31,7 +31,6 @@ namespace CoupledField
 {
 
   // declare class specific logging stream
-  DECLARE_LOG(grid)
   DEFINE_LOG(grid, "grid")
 
   Grid::Grid(PtrParamNode param, PtrParamNode infoNode)
@@ -611,7 +610,6 @@ namespace CoupledField
   Grid::FiniteVolumeRepresentation& Grid::GetFiniteVolumeRepresentation() {
     return fvr_;    
   }
-
 
   // =========================================================================
   // NONCONFORMING INTERFACES SECTION

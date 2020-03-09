@@ -58,6 +58,8 @@ template <class TYPE> class Matrix;
     //! get a scalar complex real material parameter
     void GetScalar( Complex& param, MaterialType matType, Global::ComplexPart dataType ) const;
 
+    void GetScalar( Integer& param, MaterialType matType)  const;
+
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType, Global::ComplexPart dataType,
                    SubTensorType = FULL ) const;  

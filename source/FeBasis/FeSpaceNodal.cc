@@ -15,7 +15,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(feSpaceNodal)
 DEFINE_LOG(feSpaceNodal, "feSpaceNodal")
 
 FeSpaceNodal ::FeSpaceNodal (PtrParamNode paramNode, PtrParamNode infoNode, 

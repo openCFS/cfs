@@ -6,7 +6,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Domain.hh"
@@ -14,6 +13,8 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
@@ -25,6 +26,8 @@
 #include "FeBasis/FeSpace.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
@@ -59,12 +62,14 @@
 #include "PDE/BasePDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/HeatPDE.hh"
+#include "PDE/MagneticPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
 #include "Utils/Timer.hh"
+#include "Domain/Mesh/Grid.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -75,12 +80,9 @@ struct ResultInfo;
 
 using namespace std;
 
-DECLARE_LOG(conditions)
-DEFINE_LOG(conditions, "conditions")
+EXTERN_LOG(conditions)
 
-DECLARE_LOG(em)
 DEFINE_LOG(em, "ersatzMaterial")
-
 
 namespace CoupledField {
 
@@ -287,7 +289,7 @@ void ErsatzMaterial::PostInit()
       StdVector<shared_ptr<EntityList> > ent;
       StdVector<PtrCoefFct > coef;
       bool geo = false;
-      assert(!context->DoMultiSequence()); // the pdes are not know yet!
+      assert(!context->DoMultiSequence()); // the pdes are not known yet!
       SinglePDE* pde = context->pde;
 
       if(output->Has("displacement"))
@@ -714,8 +716,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // loop over all elements
         DesignElement* de = &design->data[base + e];
         bool notDampingElement = de->GetType() != DesignElement::DAMPINGALPHA && de->GetType() != DesignElement::DAMPINGBETA;
-        SetElementK(f->ctxt, de, ktf, App::MECH, dynamic_cast<DenseMatrix*>(&dK), notDampingElement);
-        SetElementK(f->ctxt, de, mtf, App::MASS, dynamic_cast<DenseMatrix*>(&dM), notDampingElement);
+        SetElementK(f, de, ktf, App::MECH, dynamic_cast<DenseMatrix*>(&dK), notDampingElement);
+        SetElementK(f, de, mtf, App::MASS, dynamic_cast<DenseMatrix*>(&dM), notDampingElement);
         // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
         // We need to get alpha and beta, from the integrators
         // if we get Damping Information from the DesignSpace, we use that, else we use the "traditional" one
@@ -810,22 +812,28 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // the dimensions of our matrix is determined by u1_vec and u2_vec.
     Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
     Vector<T> mat_vec(u1[0]->GetSize());
-    TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
     // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
     Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
     // traverse over our elements
     // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
+    // for the multi-design case, e.g. for coil opt in magnetics, we have the designs, we have the transfer function for.
     int elements = design->GetNumberOfElements();
-    int base_lower = 0;
-    int base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
+    bool design_dependend = design->designMaterial == NULL && !design->HasMultiMaterial();
+    assert(!(design_dependend && tf->GetDesign() == DesignElement::DEFAULT));
+    int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
+    int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
+
+    elements = design->GetNumberOfElements();
+    //int base_lower = 0;
+    base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
     if(design->designMaterial == NULL && !design->HasMultiMaterial())
     {
       base_lower = design->FindDesign(tf->GetDesign()) * elements;
       base_upper = base_lower + elements;
     }
-    LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+    LOG_DBG(em) << "CalcU1KU2: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
     // create an element list to gain the iterator in the loop
     ElemList elemList(grid);
 
@@ -854,37 +862,28 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
         // u1^T (K' u2 - f') -> find "K'"
-        SetElementK(f->ctxt, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
-        LOG_DBG3(em) << "mat: " << mat.ToString();
+        SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
+
+        LOG_DBG3(em) << "CalcU1KU2: mat: " << mat.ToString();
+        LOG_DBG2(em) << "CalcU1KU2: mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString();
 
         // We generally solve u1^T (K' u2 - f')
         // u1^T (K' u2 - f') -> calc "K' u2"
         mat_vec = mat * u2_vec;
-        LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
+        LOG_DBG3(em) << "CalcU1KU2: mat * u2: " << mat_vec.ToString();
 
         // u1^T (K' u2 - f') -> calc "- f'"
-        assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
-        assert(!(rtf != NULL && f->ctxt->IsStrainExcitedSystem()));
+        assert(!(calcMode == CONJ_QUAD && rhs != NULL));// no sensitive rhs here!
+        assert(!(rhs != NULL && f->ctxt->IsStrainExcitedSystem()));
 
-        if(rtf != NULL) {
-          if (rhs->isInterfaceDriven_)
-            SubstractInterfaceDrivenGradRHS(f, tf, de, mat_vec);
-          else
-            SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+        if(rhs) {
+          SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<SingleVector*>(&mat_vec));
+          LOG_DBG3(em) << "-f': " << mat_vec.ToString();
         }
-
-        if(f->ctxt->IsStrainExcitedSystem())
-          SubtractGradStrainRHS(de, tf, rhs, mat_vec);
-
-        LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
         // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *>
         // the difference is the conjugate complex in the harmonic inner product case!
-        T sp;
-        if(calcMode == CONJ_QUAD || calcMode == EIGENFREQ)
-          mat_vec.Inner(u1_vec, sp);// u1 = u2 = u!
-        else
-          sp = mat_vec * u1_vec;
+        T sp = (calcMode == CONJ_QUAD || calcMode == EIGENFREQ) ? mat_vec.Inner(u1_vec) : mat_vec * u1_vec;
 
         // when doing complex Jensen 22.07.07 shows that we always have 2 * Re(lamda * grad S * u)
         // the factor gives the negative sign
@@ -1060,11 +1059,39 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
           de->interfaceDrivenLoadGrad_[n] = design->EvalInterfaceFunction(node, true) / design->data.GetSize() * factor * tf->Derivative(de, DesignElement::SMART,false);
 
+          LOG_DBG3(em) << " design->EvalInterfaceFunction= " << design->EvalInterfaceFunction(node, true) << " design->data.GetSize= " << design->data.GetSize() << " factor= " << factor << " tf->Derivative= " << tf->Derivative(de, DesignElement::SMART,false) ;
         } //if
       } // node
     } // elem
 
   } // function
+
+
+  void ErsatzMaterial::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec)
+  {
+    if(f->ctxt->IsComplex())
+      SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<Vector<complex<double> >& >(*mat_vec));
+    else
+      SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<Vector<double>& >(*mat_vec));
+  }
+
+  template<class T>
+  void ErsatzMaterial::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, Vector<T>& mat_vec)
+  {
+    // not the fastest as not cached
+    TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(de->GetType(), rhs->app) : NULL;
+
+    if(rtf != NULL) {
+      if (rhs->isInterfaceDriven_)
+        SubstractInterfaceDrivenGradRHS(f, tf, de, mat_vec);
+      else
+        SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+    }
+
+    if(f->ctxt->IsStrainExcitedSystem())
+      SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+  }
+
 
   template<class T>
   void ErsatzMaterial::SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out)
@@ -1128,7 +1155,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     {
       // if there s no "coord" set it is only meant for evaluate for forward homogenization
       StdVector<double> tmp;
-      CalcHomogenizedTensorEntry(f->ctxt, c->coord, true, tmp, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, c->coord, true, tmp, f->GetExcitation()->meta_index);
       for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
       design->data[e].AddGradient(c, NULL, tmp[e]);
       return 0.0;
@@ -1177,6 +1204,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // for legacy reasions there is also the difference between Objective and Condition, to be replaced once
     Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
     Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
+    //std::cout << "f= " << f << std::endl;
+    //std::cout << "c= " << c << std::endl;
     double result = 0.0;// stays  for the derivative
     switch(f->GetType())
     {
@@ -1355,6 +1384,14 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       case Function::HEAT_ENEGRY:
       result = CalcHeatEnergy(excite, c, g, derivative);
+      break;
+
+      case Function::SQR_MAG_FLUX_DENS_Y:
+      case Function::SQR_MAG_FLUX_DENS_X:
+      case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::LOSS_MAG_FLUX_RZ:
+      case Function::MAG_COUPLING:
+        assert(false); // shall be handled in MagSIMP
       break;
 
       case Function::ELEC_ENERGY:
@@ -1814,8 +1851,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       DesignDependentRHS* rhs = NULL;
       if (heat->HasInterfaceDrivenRHS())
       {
-        rhs = new DesignDependentRHS();
-        rhs->Init<double>(design,App::HEAT);
+        rhs = new DesignDependentRHS(App::HEAT);
+        rhs->Init<double>(design);
         // f'^Tu de->AddGradient(f, this_value);
         StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::HEAT];
         for (unsigned int id = 0; id < design->data.GetSize(); id++) {
@@ -1835,6 +1872,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
     return res;
   }
+
+
 
   template<class T>
   double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
@@ -2298,8 +2337,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       DesignDependentRHS* rhs = NULL;
       if (heat->HasInterfaceDrivenRHS())
       {
-        rhs = new DesignDependentRHS();
-        rhs->Init<double>(design,App::HEAT);
+        rhs = new DesignDependentRHS(App::HEAT);
+        rhs->Init<double>(design);
         StdVector<SingleVector* >& all_u_elem = forward.Get(excite)->elem[App::HEAT];
 
         if (!interfaceDrivenGradCalc_) {
@@ -2422,7 +2461,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result;
   }
 
-
   double ErsatzMaterial::CalcStateTrackingAtNode(int node)
   {
     assert(node > 0);
@@ -2464,7 +2502,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // tempAtInterface(node) = load(node) * temp(node), here load is normed to 1
     NodeList nodeList(domain->GetGrid());
-    StdVector<UInt> nodeId(1);
+    StdVector<unsigned int> nodeId(1);
     nodeId[0] = node;
     nodeList.SetNodes(nodeId);
 
@@ -2485,17 +2523,16 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
   {
-    Vector<double> stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+    const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
     out.Resize(stateSol.GetSize(),0.0);
 
-    Vector<double> loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+    const Vector<double>& loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
     double factor = 0.0;
     f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     for (unsigned int i = 0; i < stateSol.GetSize(); i++)
       out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize() / factor;
   }
-
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
@@ -2604,11 +2641,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // PLANE_STRESS: E = E11 * (1-v^2)
 
       StdVector<double> dE11;
-      CalcHomogenizedTensorEntry(f->ctxt, boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
       StdVector<double> dE12;
-      CalcHomogenizedTensorEntry(f->ctxt, boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
       StdVector<double> dE22;
-      CalcHomogenizedTensorEntry(f->ctxt, boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
 
       double grad(0.0);
 
@@ -2754,7 +2791,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           LOG_DBG3(em) << "CHT f=" << f->ToString() << " ij=" << ij << " kl=" << kl << " e=" << e << " u2=" << u2_vec.ToString();
 
           // transformed de
-          double p = CalcHomogenizedElementProduct(this, f->ctxt, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+          double p = CalcHomogenizedElementProduct(this, f, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
 
           assert(p < 1e100);
 
@@ -2814,7 +2851,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
-          double p = CalcHomogenizedElementProduct(this, f->ctxt, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+          double p = CalcHomogenizedElementProduct(this, f, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
           hom_tensor_deriv[ij][kl] = p / cube_vol;// normalize for volume
         } // end of kl loop
 
@@ -2825,7 +2862,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       double grad = -1.0 * diff_tensor.FrobeniusProduct(hom_tensor_deriv);
       de->AddGradient(f, grad);
     } // element loop
-
   }
 
   void ErsatzMaterial::CalcHomFrobeniusProductGradient(const Matrix<double>& par, const Matrix<double>& hom, Function* f)
@@ -2841,7 +2877,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       {
         boost::tuple<int,int,double> entry = boost::make_tuple(x + 1, y + 1, 0.0);
         tmp_grad_out.Init(0.0);
-        CalcHomogenizedTensorEntry(f->ctxt, entry, true, tmp_grad_out, meta);
+        CalcHomogenizedTensorEntry(f, entry, true, tmp_grad_out, meta);
         double d_ij = par[y][x];
         for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
         {
@@ -2849,9 +2885,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           de->AddGradient(f, tmp_grad_out[e] * d_ij);
         }
       }
-
     }
-
   }
 
   double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool derivative)
@@ -2868,7 +2902,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     for(unsigned int i = 0; i < g->coords.GetSize(); i++)
     {
       boost::tuple<int, int, double>& entry = g->coords[i];
-      double t = CalcHomogenizedTensorEntry(g->ctxt, entry, derivative, grad, meta);
+      double t = CalcHomogenizedTensorEntry(g, entry, derivative, grad, meta);
       double factor = boost::get<2>(entry);
 
       if(derivative)
@@ -2899,9 +2933,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result;
   }
 
-  double ErsatzMaterial::CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
+  double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
     const double cube_vol = grid->CalcHullVolume();
+    Context* ctxt = f->ctxt;
 
     assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2937,7 +2972,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       DesignElement* de = design->ApplyTransformations(&design->data[e], &design->data[e], trans);
 
       // prepare for calculation
-      double p = CalcHomogenizedElementProduct(this, ctxt, de, derivative, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+      double p = CalcHomogenizedElementProduct(this, f, de, derivative, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
       result += p / cube_vol;// normalize for volume
 
       LOG_DBG2(em) << "CHTE ij=" << ij << " kl=" << kl << " der=" << derivative << " meta=" << meta << " e=" << e << "de=" << de->ToString() << " p=" << p << " re=" << result;
@@ -2952,8 +2987,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result; // in the non-derivative case this is the sum.
   }
 
-
-  double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Context* ctxt, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
+  double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
   {
     assert(u1_vec.NormL2() > 0);
     assert(u2_vec.NormL2() > 0);
@@ -3002,7 +3036,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // reuse tmp_mat as elementK-Matrix
     // Matrix<double> k_mat;
     TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, App::MECH);
-    obj->SetElementK(ctxt, de, tf, App::MECH, &tmp_mat, derivative);
+    obj->SetElementK(f, de, tf, App::MECH, &tmp_mat, derivative);
 
     assert(tmp_mat.GetNumRows() == tmp_mat.GetNumCols() && tmp_mat.GetNumCols() == u1_0.GetSize());
 
@@ -3082,7 +3116,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
     return result;
   }
-
 
   double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   {
@@ -3274,11 +3307,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       if(!context->DoLBM() && !IsTransient()) // transient solutions are read per timestep
       {
         // in the eigenvalue case we store the modes separately, similar to timesteps
-        if(!context->IsEigenvalue())
-          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
-        else
+        if(context->IsEigenvalue())
+        {
           for(int m = 0; m < (int) context->GetEigenFrequencyDriver()->eigenFreqs->GetSize() ; m++)
             StorePDESolution(forward, excite, NULL, m, true, true, true, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
+        }
+        else
+          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
       }
 
       // check for each excitation all functions if we shall solve the adjoint - take care about the context!
@@ -3356,18 +3391,19 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       stringstream ss;
       ss << "SPDES: prob=" << comment << " excite=" << excite.index << " pde: " << it->first << " timestep_mode=" << timestep_mode;
 
+      LOG_DBG(em) << ss.str() << " read_sol=" << read_sol << " read_rhs=" << read_rhs;
       if(read_sol)
       {
         sol.Read(StateSolution::ELEMENT_VECTORS, it->second, it->first, save_sol, derivative);
         raw = sol.Read(StateSolution::RAW_VECTOR, it->second, it->first, save_sol, derivative);
 
-        LOG_DBG2(em) << ss.str() << " sol: " << raw->ToString();
+        LOG_DBG3(em) << ss.str() << " sol: " << raw->ToString();
       }
 
       if(read_rhs)
       {
         sol.Read(StateSolution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
-        LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
+        LOG_DBG3(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
       }
 
       if(context->IsEigenvalue())
@@ -3528,6 +3564,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::STRESS:
       case Function::TEMP_TRACKING_AT_INTERFACE: // track boundary driven load
       case Function::STRESS_DENSITY:
+      case Function::SQR_MAG_FLUX_DENS_X:
+      case Function::SQR_MAG_FLUX_DENS_Y:
+      case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::LOSS_MAG_FLUX_RZ:
+      case Function::MAG_COUPLING:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
         // they are directly solved after the StateProblem
@@ -3536,11 +3577,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
         // the forward problem was already solved and stored !!
 
-        // Set the rhs and solve for it
-        SetAndSolveAdjointRHS<T>(*excite, f);
+        // Set the rhs
+        SystemState state = PrepareAdjointSystem(*excite, f);
+        context->pde->GetAssemble()->GetAlgSys()->Solve();
 
         // store the stuff -> no rhs but special handling of element results
         StorePDESolution(adjoint, *excite, f, -1, true, false, true, NO_DERIVTYPE, "adjoint");
+
+        // restore system state
+        RestoreStateSystem(state);
 
         // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
         forward.Get(excite)->Write(context->pde);
@@ -3554,15 +3599,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       eval_timer->Start();
   }
 
-  template<class T>
-  void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
+  ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& excite, Function* f)
   {
     assert(context->sequence == excite.sequence);
     assert(f->ctxt == context);
     Assemble* assemble = context->pde->GetAssemble();
 
+    SystemState state;
     // the adjoint RHS might be an output stuff, then the loads are changed.
     // save and restore them in any case.
+    state.forms = assemble->GetLinForms(); // org forms
+
     StdVector<LinearFormContext*> org_forms = assemble->GetLinForms();
     // set pseudo loads (if there are output nodes)
     if (f->NeedsSelectionVector()) // TODO: rhs? no, since selection vector is assembled automatically
@@ -3570,14 +3617,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // any adjoint PDE has HDBC instead of IDBC. We Store the IDBC, add the BC as HDBC, solve, reset the IDBC and remove the additional HDBC
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType()); // no reference but copy constructor
-    IdBcList  org_idbc = fe->GetInHomDirichletBCs();
-    fe->GetHomDirichletBCs().Reserve(org_idbc.GetSize()); // what will be added temporarily
-    for(unsigned int i = 0; i < org_idbc.GetSize(); i++)
+
+    state.idbc = fe->GetInHomDirichletBCs(); // org idbc
+    fe->GetHomDirichletBCs().Reserve(state.idbc.GetSize()); // what will be added temporarily
+    for(unsigned int i = 0; i < state.idbc.GetSize(); i++)
     {
       shared_ptr<HomDirichletBc> hdbc(new HomDirichletBc);
-      hdbc->dofs = org_idbc[i]->dofs;
-      hdbc->entities = org_idbc[i]->entities;
-      hdbc->result = org_idbc[i]->result;
+      hdbc->dofs = state.idbc[i]->dofs;
+      hdbc->entities = state.idbc[i]->entities;
+      hdbc->result = state.idbc[i]->result;
       fe->GetHomDirichletBCs().Push_back(hdbc);
     }
     fe->GetInHomDirichletBCs().Resize(0);
@@ -3589,19 +3637,31 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     assert(context->GetDriver()->GetAnalysisId().adjoint == false);
     context->GetDriver()->GetAnalysisId().adjoint = true;
 
-    // calculate adjoint problem
-    assemble->GetAlgSys()->Solve();
+    return state;
 
+    // next is
+    // * assemble->GetAlgSys()->Solve();     // calculate adjoint problem. Note that is is a linear solution what we usually want for the adjoint case!
+    // * read data
+    // * restore system (after reading data ans the BC are imposed on the data!)
+  }
+
+
+  void ErsatzMaterial::RestoreStateSystem(ErsatzMaterial::SystemState& state)
+  {
     context->GetDriver()->GetAnalysisId().adjoint = false;
+    Assemble* assemble = context->pde->GetAssemble();
+
+    shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType()); // no reference but copy constructor
 
     // reset the boundary conditions
-    fe->GetInHomDirichletBCs() = org_idbc; // I love copy constructors
-    fe->GetHomDirichletBCs().Resize(fe->GetHomDirichletBCs().GetSize() - org_idbc.GetSize()); // remove "artificial" hdbc
+    fe->GetInHomDirichletBCs() = state.idbc; // I love copy constructors
+    fe->GetHomDirichletBCs().Resize(fe->GetHomDirichletBCs().GetSize() - state.idbc.GetSize()); // remove "artificial" hdbc
     fe->ApplyBC();
 
     // reset the original loads, they have been changed in the output case
-    assemble->GetLinForms() = org_forms;
+    assemble->GetLinForms() = state.forms;
   }
+
 
   void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
   {
@@ -3656,13 +3716,14 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       }
       case Function::TEMP_TRACKING_AT_INTERFACE:
-      {
         CalcAdjointRHSStateTracking(excite, f, f->GetParameter(), rhs);
         break;
-      }
+
       default:
-      assert(false);
-      break;
+        // Let's hope this is overwritten, e.g. my MagSIMP */
+        if(!FillRealAdjointRHS(excite, f, rhs))
+          throw Exception("FillRealAdjointRHS for " + f->ToString() + " not handled");
+        break;
     }
 
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
@@ -3746,7 +3807,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       }
 
-      default:
+      default:// Let's hope this is overwritten, e.g. my MagSIMP */
+        if(!FillComplexAdjointRHS(excite, f, rhs))
+          throw Exception("FillRealAdjointRHS for " + f->ToString() + " not handled");
       assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
     }
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());

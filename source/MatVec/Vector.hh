@@ -10,7 +10,7 @@
 #include "Utils/tools.hh"
 #include "Utils/boost-serialization.hh"
 
-#ifdef EXPR_TEMPLATES
+#ifdef USE_EXPRESSION_TEMPLATES
 #include "exprt/xpr1.hh"
 #else
 #include "promote.hh"
@@ -27,7 +27,7 @@ template<typename T> class ElemStoreSol;
   //! Class for dense array-based algebraic vector
   template <typename T>
   
-#ifdef EXPR_TEMPLATES
+#ifdef USE_EXPRESSION_TEMPLATES
   class Vector : public SingleVector, public Dim1<T, Vector<T> >
 #else 
   class Vector : public SingleVector 
@@ -252,6 +252,14 @@ template<typename T> class ElemStoreSol;
     //    virtual void Add(Complex a, const SingleVector& vec1,
     //                     Complex b, const SingleVector& vec2);
 
+
+    /** this = a * vec. Like Add() with initial 0 */
+    void Set(T a, const SingleVector &vec);
+
+
+    /** Hadamard product. Pointwise this[i] = v1[i] * v2[i] */
+    void Hadamard(const Vector<T>& v1, const Vector<T>& v2);
+
     //! Compute inner product
 
     //! The method computes the value of the inner product between this vector
@@ -274,11 +282,12 @@ template<typename T> class ElemStoreSol;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
     //! Compute Euclidean norm of this vector object
-    double NormL2() const;
+    virtual double NormL2() const;
+    virtual double NormL2_squared() const;
 
     /**  this functions localized the maximal component (absolute value) and returns it with its original sign
 		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
-    Double SignedMax() const; 
+    virtual Double SignedMax() const;
 
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
@@ -356,7 +365,7 @@ template<typename T> class ElemStoreSol;
 //@}
 
 
-#ifdef EXPR_TEMPLATES
+#ifdef USE_EXPRESSION_TEMPLATES
     
     // =======================================================================
     // INTERFACE TO EXPRESSION TEMPLATES
@@ -457,10 +466,10 @@ template<typename T> class ElemStoreSol;
     Vector<T> &operator*= (T x);
     //@}
 
-#endif // EXPR_TEMPLATES
+#endif // USE_EXPRESSION_TEMPLATES
 
 
-    //! Equality operator - outside EXPR_TEMPLATES
+    //! Equality operator - outside USE_EXPRESSION_TEMPLATES
     bool operator==(const Vector<T> &x) const;
 
     /** comparison is done via memcmp */
@@ -651,7 +660,7 @@ template<typename T> class ElemStoreSol;
   // ************************************************************
   //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE
   // ************************************************************
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
   
   template<typename T> template<typename T2>
   Vector<PROMOTE(T,T2)> Vector<T>::

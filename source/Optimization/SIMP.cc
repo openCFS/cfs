@@ -6,7 +6,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -15,6 +14,8 @@
 #include "Driver/Assemble.hh"
 #include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -40,17 +41,13 @@
 #include "Utils/tools.hh"
 
 namespace CoupledField {
-class DenseMatrix;
+class DenseMatrix ;
 }  // namespace CoupledField
 
 using namespace CoupledField;
 
 using std::complex;
 
-
-DECLARE_LOG(conditions)
-
-DECLARE_LOG(simp)
 DEFINE_LOG(simp, "simp")
 
 
@@ -72,25 +69,28 @@ void SIMP::PostInit()
                       else mechRHS.Init<double>(design, App::PRESSURE);
 }
 
-void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK( Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
 {
-  if(ctxt->IsComplex())
+  if(f->ctxt->IsComplex())
   {
-    if(ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
-      SetElementK<Complex, Complex >(ctxt, de, tf, app, out, derivative, calcMode, ev);
+    if(f->ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
+      SetElementK<Complex, Complex >( f, de, tf, app, out, derivative, calcMode, ev);
     else
-      SetElementK<Complex, double >(ctxt, de, tf, app, out, derivative, calcMode, ev);
+      SetElementK<Complex, double >( f, de, tf, app, out, derivative, calcMode, ev);
   }
   else
-    SetElementK<double,double>(ctxt, de, tf, app, out, derivative, calcMode, ev);
+    SetElementK<double,double>( f, de, tf, app, out, derivative, calcMode, ev);
 }
 
 template <class T1, class T2>
-void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
-  assert(ctxt->mat != NULL);
-  OptimizationMaterial* mat = ctxt->mat;
+  assert(f->ctxt->mat != NULL);
+  OptimizationMaterial* mat = f->ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
+  //std::cout << "out= " << out.ToString() << std::endl;
+
+  //assert(app != App::MAG); // shall be in MagSIMP.cc
 
   switch(app)
   {
@@ -100,13 +100,14 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
+    // element matrix with org material, might be cached -> local_element_cache
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
 
     // copy from real mechStiffness to potential complex out and factor the derivative
-    Assign(out, stiffness, k_factor);
+    Assign(out, stiffness, k_factor); // out = k_factor * stiffness
     // This log is very expensive, it blows up inv_tensor in the debug mode
     // LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
@@ -121,17 +122,17 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
-    if(ctxt->IsComplex())
+    if(f->ctxt->IsComplex())
     {
       tf = design->GetTransferFunction(de->GetType(), App::MASS);
-      AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
+      AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
 
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-        AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
+        AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
 
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
@@ -147,7 +148,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from ElecStiffness to out and factor the derivative
-    if (ctxt->IsComplex())
+    if(f->ctxt->IsComplex())
       Assign(out, dynamic_cast<const Matrix<T1>& >(stiffness), k_factor);
     else
       Assign(out, stiffness.GetPart(Global::REAL), k_factor);
@@ -160,7 +161,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
       const Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(mat)->ElecStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, true);
-      if(ctxt->IsComplex())
+      if(f->ctxt->IsComplex())
         Add(out, k_factor, dynamic_cast<const Matrix<T1>& >(bimat));
       else
         Add(out, k_factor, bimat.GetPart(Global::REAL));
@@ -270,8 +271,8 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   }
   assert(appendix.GetSize() == alpha.GetSize());
 
-  DesignDependentRHS rhs;
-  rhs.Init<double>(App::STRESS, excite.label);
+  DesignDependentRHS rhs(App::STRESS);
+  rhs.Init<double>(excite.label);
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MECH], App::MECH, forward.Get(excite)->elem[App::MECH], &rhs, 1.0, STANDARD, f);
 
@@ -309,10 +310,11 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 	}
 }
 
-DesignDependentRHS::DesignDependentRHS()
+
+DesignDependentRHS::DesignDependentRHS(App::Type my_app)
 {
-  valid       = false;
-  app         = App::NO_APP;
+  app         = my_app;
+  valid       = app == App::MAG; // MAG needs no init
   vec         = NULL;
   elem        = NULL;
   test_strain = MechPDE::NOT_SET;
@@ -326,9 +328,13 @@ DesignDependentRHS::~DesignDependentRHS()
 }
 
 template <class T>
-bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
+bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
 {
-  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT);
+  assert(!(app != App::NO_APP && app != my_app && my_app != App::NO_APP));
+  if(my_app != App::NO_APP)
+    app = my_app;
+
+  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT || app == App::MAG);
 
   if (app == App::HEAT) {
     valid = true;
@@ -421,8 +427,12 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
 
 
 template <class T>
-bool DesignDependentRHS::Init(App::Type app, std::string excite_label)
+bool DesignDependentRHS::Init(std::string excite_label, App::Type my_app)
 {
+  assert(!(app != App::NO_APP && app != my_app && my_app != App::NO_APP));
+  if(my_app != App::NO_APP)
+    app = my_app;
+
   assert(app == App::STRESS);
   this->app = app;
   this->test_strain = MechPDE::testStrain.IsValid(excite_label) ? MechPDE::testStrain.Parse(excite_label) : MechPDE::NOT_SET;
@@ -452,7 +462,7 @@ std::string DesignDependentRHS::ToString(int level)
   return os.str();
 }
 
-  // Explicit template instantiation
+// Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template bool DesignDependentRHS::Init<double>(DesignSpace* design, App::Type app);
 template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, App::Type app);

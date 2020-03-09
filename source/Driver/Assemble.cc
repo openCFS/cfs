@@ -35,14 +35,13 @@
 namespace CoupledField
 {
   // declare logging stream
-  DECLARE_LOG(assemble)
   DEFINE_LOG(assemble, "assemble")
 
-  
+
   Assemble::Assemble( AlgebraicSys* algsys,
                       BasePDE::AnalysisType analysis,
                       MathParser* mp,
-                      PtrParamNode infoNode) 
+                      PtrParamNode infoNode)
   {
 
     // init general params
@@ -60,7 +59,7 @@ namespace CoupledField
     // Calculate matrix map from general matrix types to analysis
     // specific ones
     CreateMatrixMap();
-    
+
     // Set expression for omega
     mHandle_ = mp->GetNewHandle();
     mp->SetExpr(mHandle_, "2*pi*f");
@@ -81,7 +80,7 @@ namespace CoupledField
     if(!lin_forms_given_)
       for(unsigned int i = 0; i < linForms_.GetSize(); ++i)
         delete linForms_[i];
-    
+
     mp_->ReleaseHandle(mHandle_);
   }
 
@@ -111,21 +110,23 @@ namespace CoupledField
     isFirstTime_ = true;
     matrixUpdated_ = true;
   }
-  
+
   void Assemble::SetEqnCustomMap( const std::map<Integer, Integer>& eqnMap,
                                   const std::map<FeFctIdType, FeFctIdType>& fctIdMap ) {
     customEqnMap_ = eqnMap;
     customFctIdMap_ = fctIdMap;
   }
 
-  
+
   BiLinFormContext* Assemble::GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1, SinglePDE* pde2, bool silent)
   {
+    //std::cout << "pde1= " << pde1 << "pde2= " << pde2 << "silent= " << silent << std::endl;
     for(std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin(); it != allBiLinForms_.end(); ++it )
     {
       BiLinFormContext& context = **it;
 
-      if(context.GetIntegrator()->GetName() != integrator)
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
         continue;
 
       if(context.GetFirstEntities()->GetRegion() != regionId)
@@ -147,29 +148,27 @@ namespace CoupledField
     return NULL;
   }
 
-  LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearFormContext* Assemble::GetLinForm(const std::string& integrator, RegionIdType regionId, StdPDE* pde, bool silent)
   {
-     LinearForm* result = NULL;
+    for(std::set<LinearFormContext*>::iterator it = allLinForms_.begin(); it != allLinForms_.end(); ++it )
+    {
+      LinearFormContext& context = **it;
 
-     // iterate over all descriptors
-     for(unsigned int i = 0; i < linForms_.GetSize(); i++)
-     {
-       // we are wrong if the region does not match
-       LinearFormContext* lfc = linForms_[i];
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
+        continue;
 
+      if(pde != NULL && pde != context.GetPde())
+        continue;
 
-       // when pde1 is given we compare it by name and continue if the names are different
-       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+      return &context;
+    }
 
-       // we come here because we had no contradiction - check for uniqueness
-       if(result != NULL) throw Exception("parameters not unique!");
-       result = lfc->GetIntegrator();
-     }
+    if(!silent)
+      EXCEPTION("cannot find integrator " << integrator << " in region " << domain->GetGrid()->GetRegion().ToString(regionId)
+                << " for pde=" << (pde != NULL ? pde->GetName() : "null"));
 
-     if(result == NULL && !silent)
-       EXCEPTION("LinearFormContext '" << integrator << "' not found");
-     return result;
+    return NULL;
   }
 
   bool Assemble::UseRegion(RegionIdType reg)
@@ -216,15 +215,15 @@ namespace CoupledField
 
     // Check if integrator can be assembled in this type of simulation
     if( mappedFEType != NOTYPE ) {
-      
+
       // Store bilinear form
       allBiLinForms_.insert(biLinContext);
-      
-      // Note: As the shared_ptr to an Entitylist is not 
-      // unique within CFS, we have to ensure, that the names of 
+
+      // Note: As the shared_ptr to an Entitylist is not
+      // unique within CFS, we have to ensure, that the names of
       // the entity lists rather than the pointers match!
-      
-      // Loop over all existing bilinearforms and check, 
+
+      // Loop over all existing bilinearforms and check,
       // if pair (EntityList1, EntityList2) was already defined
       std::string ent1Name = biLinContext->GetFirstEntities()->GetName();
       std::string ent2Name = biLinContext->GetSecondEntities()->GetName();
@@ -232,7 +231,7 @@ namespace CoupledField
       BiLinContextListType::iterator it = biLinForms_.begin();
       bool found = false;
       for( ; it != biLinForms_.end(); ++it ) {
-        if( it->first.first->GetName() == ent1Name && 
+        if( it->first.first->GetName() == ent1Name &&
             it->first.second->GetName() == ent2Name ) {
           pair = it->first;
           found = true;
@@ -256,7 +255,7 @@ namespace CoupledField
       // determine symmetry type and complex status
       bool isSym = IsFEMatSymmetric(biLinContext);
       bool isComplex = IsFEMatComplex(biLinContext);
-      
+
       algsys_->SetFEMatrixType( mappedFEType, isSym, isComplex, id1, id2 );
 
       // Check for secondary matrix type
@@ -279,6 +278,9 @@ namespace CoupledField
     assert(linContext->GetEntities() != NULL);
     assert(linContext->GetPde()->GetAnalysisType() == analysisType_);
 
+    // Store linear form
+    allLinForms_.insert(linContext);
+
     linForms_.Push_back(linContext);
 
   }
@@ -292,7 +294,7 @@ namespace CoupledField
     ReMapFctId( fctId1 );
     ReMapFctId( fctId2 );
 
-    // iterate over all entitylist-pairs and 
+    // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
       StdVector<BiLinFormContext*> & forms = listIt->second;
@@ -303,7 +305,7 @@ namespace CoupledField
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
 
-      // take the maximum of both lists. 
+      // take the maximum of both lists.
       UInt size = std::max( firstEntities.GetSize(),
 		                        secondEntities.GetSize() );
 
@@ -358,7 +360,6 @@ namespace CoupledField
                 full = true;
             }
 
-
             if (ncContext && full) {
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
@@ -384,9 +385,13 @@ namespace CoupledField
               it2.Begin();
               //for( ; !(it1.IsEnd() || it2.IsEnd()); it1++, it2++ ) {
               for ( UInt i = 0; i < size; i++ ) {
+//                std::cout << "i: " << i << std::endl;
 
                 // Get equation numbers
                 actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
+
+//                std::cout << "eqnVec1: " << eqnVec1.ToString() << std::endl;
+//                std::cout << "eqnVec2: " << eqnVec2.ToString() << std::endl;
 
                 // Perform remapping
                 ReMapEquations(eqnVec1, id1);
@@ -394,11 +399,13 @@ namespace CoupledField
 
                 // Pass entity eqn-connectivity to algebraic system
                 if( !doTranspose ) {
+//                  std::cout << "No transpose" << std::endl;
                   algsys_-> SetElementPos( id1, eqnVec1,
                       id2, eqnVec2,
                       destMap,
                       setCounterPart );
                 } else {
+//                  std::cout << "Transpose" << std::endl;
                   algsys_-> SetElementPos( id2, eqnVec2,
                                            id1, eqnVec1,
                                            destMap,
@@ -411,7 +418,7 @@ namespace CoupledField
                 }
                 if(secondEntities.GetSize() != 1) {
                   it2++;
-                }				                  
+                }
               } // loop over entities
 
             }
@@ -428,18 +435,18 @@ namespace CoupledField
   }
 
   void Assemble::AssembleMatrices(bool isNewtonPart) {
-    
+
     // check for static condensation:
-    
-    // If static condensation is enabled, we must always pass the 
+
+    // If static condensation is enabled, we must always pass the
     // complete system matrix per element to the algebraic system
     // in order to be able to invert the complete inner block.
     // This influences of course also the secondary matrix factors
     // and the assembly of complex entries. This has to be refactored
-    // in this case. 
+    // in this case.
     // Until we have now common structure for both cases, we
     // excplicitly distinguish both cases in two different methods.
-    
+
     if (algsys_->UseStaticCondensation() ) {
       AssembleMatrices_Cond(isNewtonPart);
     } else {
@@ -447,7 +454,7 @@ namespace CoupledField
     }
 
   }
-  
+
   void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
 
     LOG_DBG(assemble) << "AM_Std: AssembleMatrices_Std() enter sequence=" << domain->GetDriver()->GetActSequenceStep();
@@ -473,7 +480,7 @@ namespace CoupledField
       }
     }
 
-    // iterate over all entitylist-pairs and 
+    // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
       StdVector<BiLinFormContext*> & forms = listIt->second;
@@ -485,18 +492,18 @@ namespace CoupledField
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
 
-      if( printProgressBar_)
+      if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
-
-      if ( !isNewtonPart) {
+      if(!isNewtonPart)
+      {
         // First loop over all integrators to check, if any of them
         // gets re-assembled
         // Loop over all bilinearforms
         bool anyReassemble = false;
 
-        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
-
+        for(UInt iForm = 0; iForm < forms.GetSize(); ++iForm)
+        {
           BiLinFormContext & actContext = *forms[iForm];
 
           // get matrix destinations
@@ -506,14 +513,12 @@ namespace CoupledField
           // If assemble was already called and the current destination
           // matrix must not be reassembled -> continue with next iterator
           if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
-            continue;
+            continue; // check next form
           anyReassemble = true;
-        }
-        if( !anyReassemble ) {
-          continue;
-        }
-      }
-
+        } // end form loop
+        if(!anyReassemble)
+          continue; // assemble next bilin form
+      } // end !isNewtonPart
 
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
@@ -544,13 +549,12 @@ namespace CoupledField
       it1.Begin();
       it2.Begin();
       //take account for const space
-      if( firstEntities.GetSize() != 1 ) {
+      if(firstEntities.GetSize() != 1 ) {
         it1+=start;
       }
       if( secondEntities.GetSize() != 1 ) {
         it2+=start;
       }
-
 
       Matrix<Double> elemMatrix;
       Matrix<Complex> elemMatrixC;
@@ -584,11 +588,11 @@ namespace CoupledField
             // If assemble was already called and the current destination
             // matrix must not be reassembled -> continue with next iterator
             if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
-              continue;
-            }
-
+              continue; // check next form
+          }
           // Update flag
           matrixUpdated_ = true;
+
           BiLinearForm * form =nullptr;
           UseOpenMP()? form = biLinForms[iForm]:form = actContext.GetIntegrator();
 
@@ -609,7 +613,9 @@ namespace CoupledField
               LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString(2);
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              LOG_DBG3(assemble) << "AM_Std: real CEM -> " << elemMatrix.ToString(2);
+              if(it1.IsElemType())
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+              LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString(2);
               if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
@@ -1322,7 +1328,7 @@ namespace CoupledField
     timer_->Stop();
 
   }
-  
+
     void Assemble::AssembleMatrices_Cond(bool isNewtonPart) {
 
     Matrix<Double> elemMatrix;
@@ -1348,11 +1354,11 @@ namespace CoupledField
       }
     }
 
-    // temporary matrices 
+    // temporary matrices
     Matrix<Double> rElemMat;
     Matrix<Complex> cElemMat;
-    
-    // iterate over all entitylist-pairs and 
+
+    // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
       StdVector<BiLinFormContext*> & forms = listIt->second;
@@ -1368,12 +1374,12 @@ namespace CoupledField
       // Total work: numElement x numForms
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
-      
+
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
       for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
-        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() 
+        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString()
                            << " and " << it2.GetIdString();
         try {
         // Loop over all bilinearforms
@@ -1388,7 +1394,7 @@ namespace CoupledField
           FEMatrixType destMat = actContext.GetDestMat();
 //          FEMatrixType secDestMat = actContext.GetSecDestMat();
 
-          // get secondary matrix factor string 
+          // get secondary matrix factor string
 //          Double secMatFac = actContext.EvalSecMatFac();
 
           // If assemble was already called and the current destination
@@ -1452,11 +1458,11 @@ namespace CoupledField
             ReMapEquations(eqnVec2, fctId2);
 
         } // loop over bilinearforms    // increment iterators
-//            assert((form->IsComplex() && 
-//                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
+//            assert((form->IsComplex() &&
+//                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() &&
 //                    eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
-//            assert((!form->IsComplex() && 
-//                    eqnVec1.GetSize() == elemMatrix.GetNumRows() && 
+//            assert((!form->IsComplex() &&
+//                    eqnVec1.GetSize() == elemMatrix.GetNumRows() &&
 //                    eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
 
             // Pass element matrix to algebraic system (primary matrix)
@@ -1475,11 +1481,11 @@ namespace CoupledField
 
             // if optimization provides Damping Parameters, we use them, and ignore everything else
             //double secMatFacOpt = 0.0;
-            //          if(domain->HasErsatzMaterialDamping() && 
+            //          if(domain->HasErsatzMaterialDamping() &&
             //              domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
             //            elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
             //            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
-            //          }else 
+            //          }else
 //            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
 //              EXCEPTION("We do not want a second matrix factor");
 //              Double dampFactor = 1.0;
@@ -1508,12 +1514,12 @@ namespace CoupledField
 //
 //            } // handle secDestMat != NOTYPE
 
-          
+
         } catch (Exception& e) {
           RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
                             << "BiLinearForm"  );
         }
-        
+
       } // loop over entities
     }// loop over entitylist pairs
     // Change flag
@@ -1526,14 +1532,14 @@ namespace CoupledField
     timer_->Stop();
   }
 
-  
+
   void Assemble::AssembleLinRHS()
   {
-    AssembleRHSLinForms(false );
+    AssembleRHSLinForms(false);
   }
 
   void Assemble::AssembleNonLinRHS() {
-    AssembleRHSLinForms(true );
+    AssembleRHSLinForms(true);
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
@@ -1574,7 +1580,7 @@ namespace CoupledField
 
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
-        
+
         if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
 
           Vector<Complex> elemVec;
@@ -1612,14 +1618,16 @@ namespace CoupledField
 
             // Calculate real valued element vector
             // check if only the real part of a complex value shall be considered
-            if( form->IsExtractReal()  ){
+            if( form->IsExtractReal() ){
             	Vector<Complex> tmp;
             	form->CalcElemVector(tmp, entIt);
             	elemVec = tmp.GetPart(Global::REAL);
             }else{
-            	form->CalcElemVector(elemVec, entIt);
+              form->CalcElemVector(elemVec, entIt);
             }
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
+            
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
 
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);
@@ -1659,6 +1667,7 @@ namespace CoupledField
       PtrParamNode inf = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
       inf->Get("integrator")->SetValue(form->GetName());
+      inf->Get("type")->SetValue(form->type.ToString(form->GetType()));
       inf->Get("complex")->SetValue(form->IsComplex());
 
       BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
@@ -1686,11 +1695,11 @@ namespace CoupledField
       // add information about row / column coordinate
       PtrParamNode row = inf->Get("row", ParamNode::APPEND);
       PtrParamNode col = inf->Get("column", ParamNode::APPEND);
-      
+
      // associated PDEs
       row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
       col->Get("pde")->SetValue(context.GetSecondPde()->GetName());
-      
+
       // associated FeFunctions
       assert(context.GetFirstFeFunction().lock());
       assert(context.GetSecondFeFunction().lock());
@@ -1700,40 +1709,40 @@ namespace CoupledField
       // associated result types
       std::string tmp;
       if (context.GetFirstResultInfo()!= NULL) {
-    	  tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
-    	  row->Get("result")->SetValue(tmp);
-    	  tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
-    	  col->Get("result")->SetValue(tmp);
+	  tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+	  row->Get("result")->SetValue(tmp);
+	  tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+	  col->Get("result")->SetValue(tmp);
       }
 
-      
+
       // matrix destination
       PtrParamNode dest = inf->Get("destination", ParamNode::APPEND);
-      
+
       // original destination matrix
       Enum2String(context.GetDestMat(), tmp );
       dest->Get("feMatrix")->SetValue(tmp);
-            
+
       // mapped destination matrix
       Enum2String(matrixMap_[context.GetDestMat()], tmp );
       dest->Get("feMatrixMapped")->SetValue(tmp);
-      
+
       // secondary destination matrix and factor
       Enum2String(context.GetSecDestMat(), tmp );
       dest->Get("feSecondMatrix")->SetValue(tmp);
       dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
-      
+
       // additional attributes
       PtrParamNode attr = inf->Get("attributes", ParamNode::APPEND);
-      
+
       // entry Type (real / imag)
       tmp = Global::complexPart.ToString(context.GetEntryType());
       attr->Get("entryType")->SetValue( tmp );
-      
+
       // flag setcounterpart
       tmp = context.IsSetCounterPart() ? "yes" : "no";
       attr->Get("counterPart")->SetValue( tmp );
-      
+
       // issymmetric
       tmp = context.GetIntegrator()->IsSymmetric() ? "yes" : "no";
       attr->Get("symmetric")->SetValue( tmp );
@@ -1768,19 +1777,16 @@ namespace CoupledField
 
       // region name of entity list
       std::string regionName;
-      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
-      {
+      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
         shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
-      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
-      {
+      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST ) {
         shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
 
       form->Get("region")->SetValue(regionName);
-      
 
       // add information about row / column coordinate
       PtrParamNode row = form->Get("row", ParamNode::APPEND);
@@ -1792,11 +1798,10 @@ namespace CoupledField
       std::string tmp;
       tmp = SolutionTypeEnum.ToString(context.GetResultInfo()->resultType);
       row->Get("result")->SetValue(tmp);
-      
+
       // isSolDependent
       tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
       row->Get("solutionDependent")->SetValue( tmp );
-
     }
   }
 
@@ -1805,16 +1810,14 @@ namespace CoupledField
     // iterate over all bilinearforms
     std::set<BiLinFormContext*>::iterator it;
 
-    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
-    {
+    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
       if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
-    		  || analysisType_ ==BasePDE::INVERSESOURCE
+		  || analysisType_ ==BasePDE::INVERSESOURCE
 			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
-        
         matReassemble_[actContext.GetDestMat()] = true;
         if ( actContext.GetSecDestMat() != NOTYPE )
           matReassemble_[actContext.GetSecDestMat()] = true;
@@ -1837,13 +1840,13 @@ namespace CoupledField
 
         // check primary or secondary matrix is nonlinear
         if( matReassemble_[actContext.GetDestMat()] == true ||
-            ( actContext.GetSecDestMat() != NOTYPE && 
+            ( actContext.GetSecDestMat() != NOTYPE &&
                 matReassemble_[actContext.GetSecDestMat()] == true) ) {
           oneIsNonLin = true;
         }
         if( oneIsNonLin ) {
           matReassemble_[actContext.GetDestMat()] = true;
-          if( actContext.GetSecDestMat() != NOTYPE ) 
+          if( actContext.GetSecDestMat() != NOTYPE )
             matReassemble_[actContext.GetSecDestMat()] = true;
         }
       } // loops over integrators
@@ -1856,7 +1859,6 @@ namespace CoupledField
         LOG_DBG(assemble) <<  "\t" << feMatrixType.ToString(it2->first)
                     << ": " << (it2->second ? "true" : "false");
       }
-
     }
   }
 
@@ -1901,7 +1903,7 @@ namespace CoupledField
         EXCEPTION("No default conversion from double entries to matrix type"
                   << matrixType << "known" );
     }
-    
+
     // determine if destination is real / imaginary part
     // if time derivative is 0 or 2, a real part stay a real part
     // and a imaginary one a imaginary one.
@@ -1911,8 +1913,8 @@ namespace CoupledField
       destType = (entryType == Global::REAL) ? Global::IMAG : Global::REAL;
     } else {
       destType = entryType;
-    } 
-    
+    }
+
     harmMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
     harmMat.SetPart( destType, origMat );
     harmMat *= factor;
@@ -1923,7 +1925,7 @@ namespace CoupledField
                                  FEMatrixType matrixType,
                                  Global::ComplexPart entryType,
                                  Double omega ) {
-                                 
+
     Complex factor(0.0, 0.0);
 
     // first determine factor of due to time derivative: d/dt = jOmega
@@ -2032,17 +2034,17 @@ namespace CoupledField
       matrixMap_[MASS_UPDATE]      = MASS;
       break;
 
-    default: 
-      EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_) 
+    default:
+      EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_)
                 << "' not known!");
     }
   }
 
   void Assemble::ReMapEquations( StdVector<Integer>&  eqns,
                                  FeFctIdType& fctId) {
-    if( customEqnMap_.size() == 0 ) 
+    if( customEqnMap_.size() == 0 )
       return;
-    
+
     UInt numEqns = eqns.GetSize();
     StdVector<Integer> tmp(numEqns);
     for( UInt i = 0; i < numEqns; ++i )  {
@@ -2100,11 +2102,11 @@ namespace CoupledField
     // return flag for matrix of interest
     return isSymmetric;
   }
-  
+
   bool Assemble::IsFEMatComplex( BiLinFormContext* actCt  ) {
-    
+
     bool isComplex = false;
-    if (actCt->GetIntegrator()->IsComplex() || 
+    if (actCt->GetIntegrator()->IsComplex() ||
         analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
       isComplex = true;
     }
@@ -2138,7 +2140,7 @@ namespace CoupledField
     // if destination matrix is NOTYPE -> leave
     if( mappedDest == NOTYPE )
       return;
-    
+
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
     if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY) {
@@ -2200,20 +2202,7 @@ namespace CoupledField
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    Double omega;
-    if(isMultHarmDiag){
-      omega = 2 * M_PI * f;
-    }else{
-      omega = mp_->Eval( mHandle_ );
-    }
-
-
-    // for bloch mode we need special handling. The mass matrix needs to be complex but
-    // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC ||
-        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC ||
-        domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-        omega == 0.0);
+    Double omega = isMultHarmDiag ? 2 * M_PI * f : mp_->Eval(mHandle_);
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)

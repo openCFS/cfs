@@ -18,7 +18,6 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
 
@@ -65,7 +64,6 @@ namespace CoupledField {
   class SingleVector;
 
   // declare logging stream
-  DECLARE_LOG(lbm_pde)
   DEFINE_LOG(lbm_pde, "lbmpde")
 
   void test_matrix()
@@ -413,8 +411,7 @@ namespace CoupledField {
       SingleEntryBiLinInt* stiffInt = NULL;
 
       shared_ptr<CoefFunction> coefFunc(new CoefFunctionLBM<Double>(this,feFunc,results_[0]));
-      stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc);
-
+      stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc, false); // we want non-symmetric system matrix
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
 
@@ -443,7 +440,6 @@ namespace CoupledField {
   {
   }
 
-  void LatticeBoltzmannPDE::DefineSurfaceIntegrators() {}
 
   std::map<SolutionType, shared_ptr<FeSpace> > LatticeBoltzmannPDE::CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode )
   {
@@ -457,8 +453,6 @@ namespace CoupledField {
     }
     return crSpaces;
   }
-
-  void LatticeBoltzmannPDE::DefineNcIntegrators() {}
 
   void LatticeBoltzmannPDE::DefineSolveStep()
   {

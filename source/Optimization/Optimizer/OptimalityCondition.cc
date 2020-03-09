@@ -9,7 +9,6 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -32,7 +31,6 @@
 using namespace CoupledField;
 using std::abs;
 
-DECLARE_LOG(oc)
 DEFINE_LOG(oc, "optimalityCondition")
 
 OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNode pn)
@@ -125,6 +123,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
+  std::cout << type_;
   
   PostInitScale(1.0, true);
 }

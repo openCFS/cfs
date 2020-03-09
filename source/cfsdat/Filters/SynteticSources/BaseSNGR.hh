@@ -8,7 +8,7 @@
  *       \brief    <Description>
  *
  *       \date     Jul 24, 2017
- *       \author   r.krusche
+ *       \author   r.krusche, stefan schoder
  */
 //================================================================================================
 
@@ -140,6 +140,7 @@ protected:
 
 //  UInt flg_=0; // counter for number of nodes the TKE-Criterion is met
   Vector<Double> idsNodesToProcess_;
+  Vector<Double> idsNodesToProcessOnlyMeanVelocity_; //TODO is this necessary
   Vector<Double> waveVec_; // wave vector
   Vector<Double> dirVec_;  // direction vector of n-th mode
   Vector<Double> dWN_; // TODO, wenn incrModes=="logarithmic" ändert sich die step size mit jedem Mode, array benötigt, sonst reicht deltaWN_
@@ -157,6 +158,10 @@ protected:
   Vector<Double> meanVelocity_;
   Vector<Double> localDensity_;
   Vector<Double> localTemp_;
+
+  Double globalDensity_; //TODO localDensity in Michaels
+  Double globalTemp_;    //TODO localDensity in Michaels
+
   Vector<Double> TEF_;
 
   // constants and parameters SNGR

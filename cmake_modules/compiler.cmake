@@ -8,37 +8,37 @@ include(CheckCXXSourceCompiles)
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-IF(UNIX OR MINGW)
+IF(UNIX)
   #-----------------------------------------------------------------------------
   # Let's first find out some infos about the system GNU compiler first.
   #-----------------------------------------------------------------------------
   SET(COMPILER "g++")
-  
+
   SET(ID_GXX "${CFS_BINARY_DIR}/share/scripts/identify_gxx.cmake")
   CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_GXX}" @ONLY)
-  
+
   EXECUTE_PROCESS(
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
     WORKING_DIRECTORY "${CFS_BINARY_DIR}"
     RESULT_VARIABLE RETVAL
     )
-  
+
   EXECUTE_PROCESS(
     COMMAND "${CMAKE_COMMAND}" -P "${ID_GXX}"
     WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
     RESULT_VARIABLE RETVAL
     )
-  
+
   INCLUDE("${COMPILER_ID_FILE}")
-  
+
   SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
-ENDIF(UNIX OR MINGW)
+ENDIF(UNIX)
 
 
 
 #-------------------------------------------------------------------------------
 # Collect output of compiler version command to determine compiler type and
-# version information. 
+# version information.
 #-------------------------------------------------------------------------------
 SET(COMPILER "")
 
@@ -93,7 +93,7 @@ IF(OPENMP_FOUND)
   # libraries and the compilation of CFS++ with OpenMP compiler switches.
   #-----------------------------------------------------------------------------
   SET(USE_OPENMP "${USE_OPENMP_DEFAULT}" CACHE BOOL "Enable support for OpenMP. Needs GCC >= 4.8, Intel C++ or Clang >= 3.8.")
-  
+
   #-----------------------------------------------------------------------------
   # Check if compiler has OpenMP support. GCC >= 4.2 has.
   #-----------------------------------------------------------------------------
@@ -135,7 +135,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
-    # 
+    #
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
     # -frounding-math: is needed for CGAL library
@@ -153,9 +153,9 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     IF(CFS_ARCH STREQUAL "X86_64" AND NOT MINGW)
       SET(CFS_OPT_FLAGS "-m64 -march=k8 -msse2")
     ENDIF()
-     
+
   ENDIF() # end debug/release
-  
+
   # Disable some annoying warnings.
   # note we have at least gcc 4.8
   # -Wno-overflow because of /boost/iostreams/filter/gzip.hpp:674:13: error: overflow in implicit constant conversion [-Werror=overflow]
@@ -164,20 +164,20 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   # stuff that was removed with boost 1.67: -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
-    # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined] 
+    # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined]
      #if ! DONT_USE_HAS_NEW_OPERATOR
 
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-expansion-to-defined ")
-  ENDIF()  
+  ENDIF()
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0")
     # -Wno-misleading-indentation -Wno-error=placement-new are for gcc 6.1.1 and boost 1.61 maybe remove when a newer boost ist available!
-    # however cfsbin has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58 
+    # however cfsbin has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58
     # we must not set this to CFS_SUPRESSIONS because these also become CMAKE_C_FLAGS and then the following happens:
     # CheckFortranRuntime.cmake (CFS) ->  FortranCInterface.cmake (system) -> Detect.cmake (system) -> try_compile(FortranCInterface_COMPILED
     # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option *** is valid for C++ but not for C"
     # for debug with -Werror this fails and as a result Fortran name mangling does not work (BUILD/include/def_cfs_fortran_interface.hh is empty)
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new") 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new")
   ENDIF()
 
   if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
@@ -190,13 +190,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-stringop-truncation ")
   endif()
 
+
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
-    # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
+    # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
-    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
+    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
   ENDIF()
 
@@ -228,15 +229,15 @@ main ()
     SET(CFS_CXX_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_CXX_FLAGS}")
     SET(CFS_LINKER_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_LINKER_FLAGS}")
   ENDIF(COVERAGE)
-  
+
   IF(NOT USE_OPENMP)
     IF(NOT USE_PHIST_EV OR USE_PHIST_CG)
       SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
       SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
-    ENDIF(NOT USE_PHIST_EV OR USE_PHIST_CG )  
+    ENDIF(NOT USE_PHIST_EV OR USE_PHIST_CG )
   ENDIF(NOT USE_OPENMP)
-  
-  
+
+
   IF(NOT USE_CGAL)
     SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
@@ -254,7 +255,7 @@ ELSEIF(MSVC)
   DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
   string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
   SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
-  
+
   if( CFS_MSVC_SERVICE_PACK )
     message(STATUS "Detected: ${CFS_MSVC_SERVICE_PACK}")
   endif()
@@ -274,7 +275,7 @@ ELSEIF(MSVC)
   # compiler did not override when parameters only differed by
   # const/volatile qualifiers
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4373")
- 
+
 
 
 #  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
@@ -319,8 +320,8 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
   # Additionally the following warnings / remarks are suppressed:
   #    191: type qualifier is meaningless on cast type
   #    279: controlling expression is constant
-  #    654: overloaded virtual function 
-  #   1125: entity-kind "entity" is hidden by "entity" -- virtual function 
+  #    654: overloaded virtual function
+  #   1125: entity-kind "entity" is hidden by "entity" -- virtual function
   #         override intended?
   #   1170: invalid redeclaration of nested class
   #   2259: non-pointer conversion from "type" to "type" may lose significant bits
@@ -341,7 +342,7 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
-  # Open64 compiler support removed. See svn version 15997  
+  # Open64 compiler support removed. See svn version 15997
 ENDIF() # close all CXX compiler specific blocks
 
 # common for all compilers
@@ -350,7 +351,7 @@ ENDIF() # close all CXX compiler specific blocks
 IF(PROFILING)
  SET(CFS_PROF_FLAGS "-g -fno-omit-frame-pointer")
 ENDIF()
-    
+
 
 
 #-------------------------------------------------------------------------------
@@ -371,10 +372,10 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   ENDIF()
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
-    
+
 #  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
 #  IF(NOT CFS_ARCH STREQUAL "IA64")
-#    SET(CFS_FORTRAN_DYNRT_LIBS 
+#    SET(CFS_FORTRAN_DYNRT_LIBS
 #      "svml"
 #      ${CFS_FORTRAN_DYNRT_LIBS})
 #  ENDIF(NOT CFS_ARCH STREQUAL "IA64")

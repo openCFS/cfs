@@ -59,12 +59,12 @@ public:
   //! Destructor
   virtual ~BaseBDBInt() {
   }
-  
+
   //! Obtain differential operator
   virtual BaseBOperator* GetBOp() = 0;
   
   //! Obtain coefficient function
-  virtual PtrCoefFct GetCoef() = 0; 
+  virtual PtrCoefFct GetCoef() = 0;
   
   //@{
   //! Apply / multiply element matrix to vector
@@ -273,7 +273,7 @@ public:
     protected:
 
       //! Differential operator
-      BaseBOperator * bOperator_;
+      BaseBOperator* bOperator_;
       
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;

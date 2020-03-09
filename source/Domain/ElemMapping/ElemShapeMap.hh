@@ -128,7 +128,7 @@ namespace CoupledField {
     //!            physical domain    
     //! \param weight Integration weight (should be set to 0.0 if not used 
     //!               within an integration loop)
-    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight);
+    void Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight = 0.0);
     
     //! Initialize shape map with with given local point and shape map
 

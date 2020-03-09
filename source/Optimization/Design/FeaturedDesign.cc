@@ -1,10 +1,8 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Optimization/Design/FeaturedDesign.hh"
 
 namespace CoupledField {
 
-DECLARE_LOG(FD)
 DEFINE_LOG(FD, "featuredDesign")
 
 Enum<FeaturedDesign::IntStrategy> FeaturedDesign::intStrategy_;

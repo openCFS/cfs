@@ -67,10 +67,6 @@ ENDIF(DEPS_SEQUENTIAL)
 
 SET(CFS_LINK_FLAGS "")
 
-# Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.
-IF(UNIX AND USE_ANSYSRST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
-ENDIF(UNIX AND USE_ANSYSRST)
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)

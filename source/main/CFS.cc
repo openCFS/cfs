@@ -18,6 +18,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -153,8 +154,7 @@ CFS::CFS(int argc, const char **argv) :
 
   // Initialize logging class (read parameters from file if desired)
   std::string confFile = progOpts->GetLogConfFileStr();
-  logConf_ = new LogConfigurator(confFile);
-  logConf_->ParseLogConfFile();
+  LogConfigurator::ParseLogConfFile(confFile);
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
@@ -223,9 +223,6 @@ CFS::~CFS()
   // does not really matter anyway...
   paramNode_.reset();
   infoNode.reset();
-
-  delete logConf_;
-  logConf_ = NULL;
 }
 
 int CFS::Run()
@@ -255,9 +252,8 @@ int CFS::Run()
 
     if(progOpts->GetPrintGrid())
       PrintGrid();
-    else{
-        SolveProblem();
-    }
+    else
+      SolveProblem();
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
@@ -322,8 +318,10 @@ void CFS::SetGlobalEnums()
 {
   SetEnvironmentEnums();
   BasePDE::SetEnums();
+  BiLinFormContext::SetEnums();
   EntityList::SetEnums();
   ElemShape::Initialize();
+
 }
 
 void CFS::PrintGrid()

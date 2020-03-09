@@ -117,6 +117,7 @@ SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_t
 SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX}")
 SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX}")
 SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX}")
+SET(BOOST_LOG_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_log${BOOST_LIB_SUFFIX}")
 
 # in case someone manages to break cross-compilation again, this is how it works:
 # echo "using gcc : mingw : x86_64-w64-mingw32-gcc ;" > user-config.jam

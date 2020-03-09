@@ -27,16 +27,17 @@ BUIntegrator(BaseBOperator * bOp,
              shared_ptr<CoefFunction > rhsCoef, 
              bool coordUpdate,
              bool fullEvaluation,
-			 bool extractReal)
+             bool extractReal,
+             const string& id)
              : LinearForm( coordUpdate ),
                fullEvaluation_(fullEvaluation) {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
 
-
   this->rhsCoefs_ = rhsCoef;
   extractReal_ = extractReal;
+  id_ = id;
 
 }
 
@@ -48,7 +49,8 @@ BUIntegrator(BaseBOperator * bOp,
              const std::set<RegionIdType>& volRegions,
              bool coordUpdate,
              bool fullEvaluation,
-			 bool extractReal)
+             bool extractReal,
+             const string& id)
              : LinearForm( coordUpdate ), 
                fullEvaluation_(fullEvaluation) 
                {
@@ -56,6 +58,8 @@ BUIntegrator(BaseBOperator * bOp,
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
   extractReal_ = extractReal;
+  id_ = id;
+
   assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
          rhsCoef->GetDimType() == CoefFunction::SCALAR);
 #ifndef NDEBUG
@@ -167,6 +171,5 @@ BUIntegrator(BaseBOperator * bOp,
        elemVec += bMat * cVec * fac;
 
      }
-
   }
 }

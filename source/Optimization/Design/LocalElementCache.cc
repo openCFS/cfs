@@ -7,9 +7,7 @@
 #include "Driver/FormsContexts.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
-DECLARE_LOG(lec)
 DEFINE_LOG(lec, "localElementCache")
 
 namespace CoupledField {
@@ -87,6 +85,14 @@ void LocalElementCache::InitShadow(DesignSpace::DesignRegion* dr)
     Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
     break;
   }
+  case OptimizationMaterial::MAG:
+  {
+    mc = ELECTROMAGNETIC;
+    mt = MAG_RELUCTIVITY;
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+    break;
+  }
+
   case OptimizationMaterial::PIEZOCOUPLING:
   case OptimizationMaterial::ACOUSTIC:
   case OptimizationMaterial::ELEC:
@@ -386,6 +392,7 @@ const Matrix<double>& LocalElementCache::CachedElement<double>(const string& int
   assert(data->type == type);
   assert(!data->isComplex);
 
+  // TODO: bug if we cache not optimization data for simulation!!
   if(regular_)
     return data->region_real[elem->regionId];
   else

@@ -124,9 +124,10 @@ void MeshFilter::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map
   }
 }
 
-void MeshFilter::Node2Cell(Vector<Double>& returnVec,
+template<typename T>
+void MeshFilter::Node2Cell(Vector<T>& returnVec,
                                       const boost::uuids::uuid& resId,
-                                      const Vector<Double>& inVec,
+                                      const Vector<T>& inVec,
                                       const std::vector<QuantityStruct>& interpolData){
 
   returnVec.Init();
@@ -142,7 +143,7 @@ void MeshFilter::Node2Cell(Vector<Double>& returnVec,
     curE = aStru.trgElemNum;
 
     //Sum up the contributions from all nodes of element curE
-    StdVector<Double> curval;
+    StdVector<T> curval;
     StdVector<UInt> sEqn;
     downMap->GetEquation(eqns,curE,ExtendedResultInfo::ELEMENT);
     curval.Resize(eqns.GetSize(), 0.0);
@@ -150,7 +151,8 @@ void MeshFilter::Node2Cell(Vector<Double>& returnVec,
     //UInt dim = eqns.GetSize(); //dimension of input data (scalar, 2vector, 3vector)
     for(UInt aNode =0;aNode < aStru.tNNum.GetSize(); ++aNode){
       for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
-        returnVec[eqns[aDof]] += inVec[aStru.srcEqn[eqns.GetSize()*aNode + aDof]] / aStru.tNNum.GetSize();
+    	  Double fac = 1.0/aStru.tNNum.GetSize();
+        returnVec[eqns[aDof]] += inVec[aStru.srcEqn[eqns.GetSize()*aNode + aDof]] * fac;
       }
     }
   }
@@ -909,6 +911,12 @@ void MeshFilter::CalcGradient(Vector<Double>& returnVec,
   }
 
 }
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void MeshFilter::Node2Cell(Vector<Double>& returnVec,const boost::uuids::uuid& resId,const Vector<Double>& inVec,const std::vector<QuantityStruct>& interpolData);
+  template void MeshFilter::Node2Cell(Vector<Complex>& returnVec,const boost::uuids::uuid& resId,const Vector<Complex>& inVec,const std::vector<QuantityStruct>& interpolData);
+#endif
+
 }
 
 

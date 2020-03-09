@@ -23,6 +23,7 @@
 #include "FeBasis/HCurl/HCurlElems.hh"
 
 namespace CoupledField{
+
   template<class FE, UInt D, class TYPE>
   class CurlOperator : public BaseBOperator{
     public:
@@ -58,6 +59,100 @@ namespace CoupledField{
     protected:
 
   };
+
+  template<class FE, UInt D, class TYPE>
+   class CurlOperatorMag : public CurlOperator<FE,D,TYPE> {
+
+   public:
+
+    CurlOperatorMag(){
+       this->name_ = "CurlOperatorMag";
+     }
+
+    CurlOperatorMag(const CurlOperatorMag & other)
+      : CurlOperator<FE,D,TYPE>(other){
+     }
+
+     virtual CurlOperatorMag * Clone(){
+       return new CurlOperatorMag(*this);
+     }
+
+     virtual ~CurlOperatorMag(){
+
+     }
+
+     virtual void CalcOpMat(Matrix<Double> & bMat,
+                            const LocPointMapped& lp, BaseFE* ptFe );
+
+     protected:
+
+   };
+
+  // Performing the calculation of (v x nabla x A)
+  template<class FE, UInt D, class TYPE>
+  void CurlOperatorMag<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                         const LocPointMapped& lp,
+                                         BaseFE* ptFe ){
+
+    // bMatInitial containing the formfunctions in 2D(2x4)
+    Matrix<Double> bMatInitial;
+    CurlOperator<FE,D,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
+
+    UInt numFncs = ptFe->GetNumFncs();
+
+    // Initialize correct bMat
+    if (bMatInitial.GetNumRows() == 2)
+    {
+      bMat.Resize(1, numFncs *1);
+    }
+    else
+    {
+      bMat.Resize(3, numFncs);
+    }
+
+    bMat.Init();
+
+    //obtain external field velocity
+    Vector<Double> myVec;
+    int dof3 = 3;
+
+    myVec.Resize(dof3);
+    myVec.Init();
+    this->coef_->GetVector(myVec,lp);
+    Vector<Double> filler;
+    filler.Resize(dof3);
+    Vector<Double> buffer;
+    buffer.Resize(dof3);
+
+    // Calculate the crossproduct (v x nabla x Na). Vector filler is necessary because Na is a matrix of
+    // all nodes (in 2D 2x4, in 3D 3x12), looping over the matrix brings the vector for the node or the edge,
+    // buffer is the result of the crossproduct.
+
+    for(unsigned int i=0; i< bMatInitial.GetNumCols(); ++i){
+      filler.Init();
+      buffer.Init();
+//      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      for(unsigned int j=0; j< bMatInitial.GetNumRows(); ++j){
+        filler[j] = bMatInitial[j][i];
+      }
+      myVec.CrossProduct(filler,buffer);
+//      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      if (bMatInitial.GetNumRows() == 2)
+      {
+        double vel = buffer[2]; // because the result from crossproduct in 2D will be always in the third line
+        bMat[0][i] = vel;
+      }
+      else
+      {
+        for(unsigned int u=0; u < buffer.GetSize(); ++u)
+        {
+          bMat[u][i] = buffer[u];
+        }
+      }
+      //std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+    }
+
+  }
 
   
   // ===================================
@@ -701,6 +796,8 @@ namespace CoupledField{
     }
     //@}
     
+
+
   protected:  
    };
 }

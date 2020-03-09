@@ -30,7 +30,7 @@ namespace CoupledField {
     this->CalcLocShFnc(locShape, lpm, elem, comp);
     shape =  Transpose(lpm.jacInv) * locShape;
   }
-  
+
   void FeHCurl::GetCurlShFnc( Matrix<Double>& curl, 
                               const LocPointMapped& lpm,
                               const Elem* elem, UInt comp ) {

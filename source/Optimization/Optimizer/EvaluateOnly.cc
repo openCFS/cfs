@@ -13,10 +13,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
-
-DECLARE_LOG(eval)
 DEFINE_LOG(eval, "eval")
 
 using namespace CoupledField;

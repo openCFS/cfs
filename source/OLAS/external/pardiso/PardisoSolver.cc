@@ -20,9 +20,6 @@ namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
-  // Declare logging stream and make sure that it is also available in
-  // release mode by using BOOST_DECLARE_LOG() instead of DECLARE_LOG()
-  BOOST_DECLARE_LOG(pardisoSolver)
   DEFINE_LOG(pardisoSolver, "olas.solvers.pardiso")
 
 #if PARDISO_API_VER == 3

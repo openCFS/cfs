@@ -9,6 +9,8 @@
 
 namespace CoupledField {
 
+Enum<BiLinearForm::Type> BiLinearForm::type;
+
 
   BiLinFormContext::BiLinFormContext( BiLinearForm* biLinForm,
                                       FEMatrixType destMat) {
@@ -48,6 +50,19 @@ namespace CoupledField {
     
   }
   
+  void BiLinFormContext::SetEnums()
+  {
+    BiLinearForm::type.SetName("BiLinearForm::Type");
+    BiLinearForm::type.Add(BiLinearForm::NO_BILIN_TYPE, "no bilinear form type");
+    BiLinearForm::type.Add(BiLinearForm::BILIN_WRAPPED_LIN, "BiLinWarappenLinForm");
+    BiLinearForm::type.Add(BiLinearForm::BDB_INT, "BDBInt");
+    BiLinearForm::type.Add(BiLinearForm::BB_INT, "BBInt");
+    BiLinearForm::type.Add(BiLinearForm::AB_INT, "ABInt");
+    BiLinearForm::type.Add(BiLinearForm::ADB_INT, "ABDInt");
+    BiLinearForm::type.Add(BiLinearForm::SINGLE_ENTRY_BILIN_INT, "SingleEntryBiLinInt");
+    BiLinearForm::type.Add(BiLinearForm::IC_MODES_INT, "ICModesInt");
+  }
+
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
                                   EntityIterator& it2,
                                   StdVector<Integer>& eqnVec1, 
@@ -413,29 +428,41 @@ namespace CoupledField {
      Elem* volEMaster = mSe1->ptMaster->ptVolElems[0];
      Elem* volESlave  = mSe1->ptSlave->ptVolElems[0];
 
+     // Hamideh: In the case of having two different PDEs id1 and id2 could be different and should be assign
+     // according to the coupling direction.
+     // id1 and eqnVec1 --> Test function
+     // id2 and eqnVec2 --> Unknown
+     // Note: In the case of LinFlowMechNitsche coupling feFct1_ is the unknown from Master(Displacement-Mechanics PDE)
+     // and feFct2_ is the unknown from slave(velocity-LinFlow PDE)
+
      switch(currentDirection_){
      case BiLinearForm::MASTER_MASTER:
        this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
        eqnVec2 = eqnVec1;
+       id1 = feFct1_.lock()->GetFctId();
+       id2 = feFct1_.lock()->GetFctId();
        break;
      case BiLinearForm::SLAVE_SLAVE:
-       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
        eqnVec2 = eqnVec1;
+       id1 = feFct2_.lock()->GetFctId();
+       id2 = feFct2_.lock()->GetFctId();
        break;
      case BiLinearForm::MASTER_SLAVE:
        this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
        this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volESlave);
+       id1 = feFct1_.lock()->GetFctId();
+       id2 = feFct2_.lock()->GetFctId();
        break;
      case BiLinearForm::SLAVE_MASTER:
-       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
-       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+       id1 = feFct2_.lock()->GetFctId();
+       id2 = feFct1_.lock()->GetFctId();
        break;
      default:
        EXCEPTION("Undefined coupling direction");
      }
-     // Get PDE IDs
-     id1 = feFct1_.lock()->GetFctId();
-     id2 = feFct2_.lock()->GetFctId();
    }
 
    void SurfaceBiLinFormContext::GetEqns( StdVector<Integer>& eqnVec1,

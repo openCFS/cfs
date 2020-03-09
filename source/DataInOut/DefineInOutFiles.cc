@@ -15,8 +15,6 @@
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
-#include <def_use_ansysrst.hh>
-#include <def_use_comsol.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ensight.hh>
 
@@ -55,14 +53,6 @@
 #ifdef USE_UNV
 #include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
 #include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
-#endif
-
-#ifdef USE_ANSYSRST
-#include "DataInOut/SimInOut/AnsysRST/SimOutputRST.hh"
-#endif
-
-#ifdef USE_COMSOL
-#include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
 #endif
 
 #ifdef USE_ENSIGHT
@@ -391,18 +381,6 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
 #else
     EXCEPTION( "No support for GMSH input file format." );
 #endif // USE_GMSH
-  }
-  else if (fFormat == "mphtxt")
-  {
-#ifdef USE_COMSOL
-    if(fName.empty()){
-      fName += simName + ".mphtxt";
-    }
-    aInput = shared_ptr<SimInput> (
-        new SimInputMPHTXT(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for Comsol .mphtxt input file format." );
-#endif // USE_COMSOL
   }
   else if (fFormat == "cgns")
   {

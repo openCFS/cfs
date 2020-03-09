@@ -26,6 +26,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MATthermoelastic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmagStrict.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATelecConduction.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MAThysteresis.xsd"/>
   
   <!-- ******************************************************************* -->
   <!--   Include further definitions -->

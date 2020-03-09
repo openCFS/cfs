@@ -158,10 +158,29 @@
                 <!-- Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output-->
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"/>
                 <xsd:element name="preStress" type="DT_MechPreStress"/>
+                <!-- Stiffness at surface -->
+                <xsd:element name="normalStiffness" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a stiffness in normal-direction of the boundary.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Damping at surface -->
+                <xsd:element name="normalDamping" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a normal traction on the surface proportional to k * normal velovity, i.e.
+                      the 'value' k defines a damping konstant per area in normal-direction of the boundary.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Damping at surface -->
+                <xsd:element name="normalMass" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a normal traction on the surface proportional to k * normal acceleration, 
+                      i.e. the scalar 'value' k specifies a mass per area acting in normal-direction.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
                 <!-- the test strain is for mathematical homogenization. -->
                 <xsd:element name="testStrain"    type="DT_MechTestStrain"/>
-
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <!-- Bloch periodic Boundary Conditions applied to full displacement vector -->

@@ -7,7 +7,6 @@
 
 namespace CoupledField
 {
-DECLARE_LOG(richardsonsolver)
 DEFINE_LOG(richardsonsolver, "richardsonsolver")
 
 

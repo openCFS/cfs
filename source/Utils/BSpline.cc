@@ -1,14 +1,11 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "MatVec/Matrix.hh"
 #include "Utils/BSpline.hh"
 
 namespace CoupledField {
 
-DECLARE_LOG(BSpl)
 DEFINE_LOG(BSpl, "BSpline")
 
-DECLARE_LOG(BSplC)
 DEFINE_LOG(BSplC, "BSplineCurve")
 
 BSpline::BSpline(const unsigned int degree, const unsigned int numKnots, double min_knot, double max_knot) {

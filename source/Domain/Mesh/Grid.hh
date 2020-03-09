@@ -291,6 +291,9 @@ namespace CoupledField
     
     virtual void AddElems(UInt nElems) = 0;
 
+    //! Reserve memory for a number of elements without adding them
+    virtual void ReserveElems(UInt nElems) = 0;
+    
     virtual void SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,
@@ -668,6 +671,9 @@ namespace CoupledField
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
+
+    //! Get all elem neighbors for given node id
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */

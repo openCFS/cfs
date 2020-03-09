@@ -252,6 +252,10 @@ namespace CoupledField {
         return "A/m^2";
         break;
 
+      case ELEC_GRAD_V_INT:
+        return "A";
+        break;
+
       case ELEC_NORMAL_CURRENT_DENSITY:
         return "A/m^2";
         break;
@@ -434,9 +438,18 @@ namespace CoupledField {
         return "V/m";
         break;
 
+      case ELEC_POTENTIAL_DERIV_1:
+        return "V/s";
+        break;
+
       case MAG_SCALAR_POTENTIAL:
+
       case COIL_CURRENT:
         return "A";
+        break;
+
+      case COIL_VOLTAGE:
+        return "V";
         break;
 
       case COIL_CURRENT_DERIV1:
@@ -511,6 +524,7 @@ namespace CoupledField {
         break;
 
       case MECH_STRESS:
+      case MECH_IRR_STRESS:
         return "N/m^2";
         break;
 
@@ -529,6 +543,7 @@ namespace CoupledField {
         break;
 
       case MECH_STRAIN:
+      case MECH_IRR_STRAIN:
         return "";
         break;
 
@@ -1163,6 +1178,22 @@ namespace CoupledField {
       case MASS_UPDATE:
         out = "MASS_update";
         break;
+      case SYSTEM_HYSTFREE:
+        out = "system_hystfree";
+        break;
+      case SYSTEM_FIXPOINT:
+        out = "system_fixpoint";
+        break;
+      case SYSTEM_FD_JACOBIAN:
+        out = "system_fd_Jacobian";
+        break;
+      case SYSTEM_DELTAMAT_JACOBIAN:
+        out = "system_deltaMat_Jacobian";
+        break;
+      case SYSTEM_BAK:
+        out = "system_bak";
+        break;
+
       default:
         EXCEPTION( "No string value found for the specified value of the "
             << "enumeration datatype FEMatrixTypeType.\n"
@@ -1273,6 +1304,16 @@ namespace CoupledField {
       out = STIFFNESS_UPDATE;
     else if ( in == "damping_update" )
       out = DAMPING_UPDATE;
+    else if ( in == "system_hystfree")
+      out = SYSTEM_HYSTFREE;
+    else if ( in == "system_fixpoint")
+      out = SYSTEM_FIXPOINT;
+    else if ( in == "system_fd_Jacobian")
+      out = SYSTEM_FD_JACOBIAN;
+    else if ( in == "system_deltaMat_Jacobian")
+      out = SYSTEM_DELTAMAT_JACOBIAN;
+    else if ( in == "system_bak")
+      out = SYSTEM_BAK;
     else {
       EXCEPTION( "String '" << in << "' cannot be converted to item of "
                  << "'FEMatrixType'!" );
@@ -1311,6 +1352,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
     SolutionTypeEnum.Add(MECH_THERMAL_STRESS, "mechThermalStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
+    SolutionTypeEnum.Add(MECH_IRR_STRAIN, "mechIrrStrain");
+    SolutionTypeEnum.Add(MECH_IRR_STRESS, "mechIrrStress");
     SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
@@ -1349,7 +1392,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS_AVERAGE, "mechStressAverage");
 
 
-    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity"); // shall be replaced by PSEUDO_DENSITY in the future
+    SolutionTypeEnum.Add(PSEUDO_DENSITY, "pseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
@@ -1364,6 +1408,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_GRAD_V_INT, "elecGradVInt");
     SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
     SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
@@ -1479,10 +1524,15 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY, "magElemReluctivity");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
     SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
+    // for magnetic coil optimization
+    SolutionTypeEnum.Add(RHS_PSEUDO_DENSITY, "rhsPseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_RHS_PSEUDO_DENSITY, "physicalRhsPseudoDensity");
+    SolutionTypeEnum.Add(ELEC_POTENTIAL_DERIV_1, "elecPotentialD1");
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
     SolutionTypeEnum.Add(COIL_CURRENT_DERIV1, "coilCurrentD1");
+    SolutionTypeEnum.Add(COIL_VOLTAGE, "coilVoltage");
     
     SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
     SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");
@@ -1641,11 +1691,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ETA, "eta");
     SolutionTypeEnum.Add(XI, "xi");
 
-
-
-
-
-
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
     MaterialTypeEnum.Add( MAGSTRICT_RELUCTIVITY,"Magstrict_reluctivity");
@@ -1735,18 +1780,62 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MEAN_TEMPERATURE, "meanTemperature" ); 
     MaterialTypeEnum.Add( X_SATURATION, "Xsaturation" ); 
     MaterialTypeEnum.Add( Y_SATURATION, "Ysaturation" ); 
+    MaterialTypeEnum.Add( S_SATURATION, "Ssaturation" );
     MaterialTypeEnum.Add( Y_REMANENCE, "Yremanence" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS, "preisachWeights" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS, "preisachWeights" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_DIM, "preisachWeights_dim" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_CONSTVALUE, "preisachWeights_constValue" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_TYPE, "preisachWeights_type" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_A, "preisachWeights_mudatA" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H, "preisachWeights_mudath" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H2, "preisachWeights_mudath2" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA, "preisachWeights_mudatsigma" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA2, "preisachWeights_mudatsigma2" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_ETA, "preisachWeights_mudateta" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT, "preisachWeights_anhystCountsToSat" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE, "preisachWeights_mudat_paramsforhalfrange" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR, "preisachWeights_forMayergoyzVector" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_ONLY, "preisachWeights_anhyst_ONLY" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A, "preisachWeights_anhystA" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B, "preisachWeights_anhystB" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C, "preisachWeights_anhystC" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_CINATAN, "preisachWeights_anhyst_cinatan" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE, "preisachWeights_anhyst_paramsforhalfrange" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_TENSOR, "preisachWeights_givenTensor" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR, "preisach_mayergoyz_num_dir" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_ISOTROPIC, "preisach_mayergoyz_isotropic" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_CLIPOUTPUT, "preisach_mayergoyz_clip_output" );
+    MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_X, "preisach_mayergoyz_start_x" );
+    MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Y, "preisach_mayergoyz_start_y" );
+    MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Z, "preisach_mayergoyz_start_z" );
+    MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH, "isPreisachType" );
+    MaterialTypeEnum.Add( PREISACH_PRESCRIBEOUTPUT, "preisach_prescribe_output" );
+    MaterialTypeEnum.Add( PREISACH_SCALEINITIALSTATE, "preisach_scale_initial_state" );
+    MaterialTypeEnum.Add( SCALETOSAT, "preisach_scaletosat" );
+    MaterialTypeEnum.Add( SCALETOSAT_STRAIN, "preisach_scaletosat_strain" );
     MaterialTypeEnum.Add( A_JILES, "aJiles" ); 
     MaterialTypeEnum.Add( ALPHA_JILES, "alphaJiles" ); 
     MaterialTypeEnum.Add( K_JILES, "kJiles" );
     MaterialTypeEnum.Add( C_JILES, "cJiles" ); 
+    MaterialTypeEnum.Add( JILES_TEST, "dummyParamForJiles" );
     MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
+    MaterialTypeEnum.Add( P_DIRECTION_X, "PdirectionX" );
+    MaterialTypeEnum.Add( P_DIRECTION_Y, "PdirectionY" );
+    MaterialTypeEnum.Add( P_DIRECTION_Z, "PdirectionZ" );
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
-    MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
+    MaterialTypeEnum.Add( HYSTERESIS_DIM, "PreisachDim" );
     MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
-    MaterialTypeEnum.Add( HYST_BETA_COEFS, "betaCoefs" );
-    MaterialTypeEnum.Add( DIM_BETA_COEFS, "dim_betaCoefs" );
+
+    MaterialTypeEnum.Add( HYST_IRRSTRAINS, "irrStrainForm" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_C1, "irrStrainMuDatC1" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_C2, "irrStrainMuDatC2" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_C3, "irrStrainMuDatC3" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_CI, "irrStrainMuDatCI" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_CI_SIZE, "irrStrainMuDatCI_size" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_D0, "irrStrainMuDatD0" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_D1, "irrStrainMuDatD1" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_SCALETOSAT, "irrStrainMuDat_scaleToSat" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_PARAMSFORHALFRANGE, "irrStrain_paramsforhalfrange" );
     MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
     MaterialTypeEnum.Add( PRINT_PREISACH, "printOut" );
     MaterialTypeEnum.Add( PRINT_PREISACH_RESOLUTION, "bmpResolution" );
@@ -1756,10 +1845,90 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ANG_CLIPPING, "angularClipping" );
     MaterialTypeEnum.Add( ANG_RESOLUTION, "angularResolution" );
     MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
+
+    MaterialTypeEnum.Add( MAX_NUM_IT_HYST_INV, "hystInvOuterNumIt" );
+    MaterialTypeEnum.Add( VEC_HYST_INV_METHOD, "hystInvMethod" );
+    MaterialTypeEnum.Add( RES_TOL_H_HYST_INV, "residualTolH" );
+    MaterialTypeEnum.Add( RES_TOL_B_HYST_INV, "residualTolB" );
+    MaterialTypeEnum.Add( ALPHA_REG_HYST_INV, "alphaRegStart" );
+    MaterialTypeEnum.Add( ALPHA_REG_MIN_HYST_INV, "alphaRegMin" );
+    MaterialTypeEnum.Add( ALPHA_REG_MAX_HYST_INV, "alphaRegMax" );
+    MaterialTypeEnum.Add( MAX_NUM_REG_IT_HYST_INV, "hystInvRegNumIt" );
+    MaterialTypeEnum.Add( ALPHA_LS_MIN_HYST_INV, "alphaLSMin" );
+    MaterialTypeEnum.Add( ALPHA_LS_MAX_HYST_INV, "alphaLSMax" );
+    MaterialTypeEnum.Add( MAX_NUM_LS_IT_HYST_INV, "hystInvLSNumIt" );
+    MaterialTypeEnum.Add( STOP_INV_LS_AT_LOCAL_MIN, "stopInvLineSearchAtLocalMin" );
+    MaterialTypeEnum.Add( JAC_RESOLUTION_HYST_INV, "jacobiResolution" );
+    MaterialTypeEnum.Add( JAC_IMPLEMENTATION_HYST_INV, "jacobiImplementation" );
+    MaterialTypeEnum.Add( TRUST_LOW_HYST_INV, "trustRegionLow" );
+    MaterialTypeEnum.Add( TRUST_MID_HYST_INV, "trustRegionMid" );
+    MaterialTypeEnum.Add( TRUST_HIGH_HYST_INV, "trustRegionHigh" );
+
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_MU, "hystInv_MU" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_RHO, "hystInv_RHO" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_BETA, "hystInv_BETA" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_SIGMA, "hystInv_SIGMA" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_GAMMA, "hystInv_GAMMA" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_TAU, "hystInv_TAU" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_C, "hystInv_C" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_P, "hystInv_P" );
+
+    MaterialTypeEnum.Add( HYST_INV_FP_SAFETYFACTOR, "hystInv_FP_safetyfactor" );
+    MaterialTypeEnum.Add( HYST_LOCAL_INVERSION_PRINT_WARNINGS, "hystInv_printWarnings" );
+
     MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
     MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
     MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );
     MaterialTypeEnum.Add( INITIAL_STATE_Z, "initialStatesZ" );
+
+    MaterialTypeEnum.Add( X_SATURATION_STRAIN, "XsaturationStrain" );
+    MaterialTypeEnum.Add( Y_SATURATION_STRAIN, "YsaturationStrain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_STRAIN, "preisachWeights_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_DIM_STRAIN, "preisachWeights_dim_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_CONSTVALUE_STRAIN, "preisachWeights_constValue_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_TYPE_STRAIN, "preisachWeights_type_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_A_STRAIN, "preisachWeights_mudatA_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H_STRAIN, "preisachWeights_mudath_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H2_STRAIN, "preisachWeights_mudath2_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA_STRAIN, "preisachWeights_mudatsigma_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA2_STRAIN, "preisachWeights_mudatsigma2_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_ETA_STRAIN, "preisachWeights_mudateta_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT_STRAIN, "preisachWeights_anhystCountsToSat_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE_STRAIN, "preisachWeights_mudat_paramsforhalfrange_STRAIN" );
+
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR_STRAIN, "preisachWeights_forMayergoyzVector_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_TENSOR_STRAIN, "preisachWeights_givenTensor_strain" );
+
+    MaterialTypeEnum.Add( S_DIRECTION, "Sdirection" );
+    MaterialTypeEnum.Add( S_DIRECTION_X, "SdirectionX" );
+    MaterialTypeEnum.Add( S_DIRECTION_Y, "SdirectionY" );
+    MaterialTypeEnum.Add( S_DIRECTION_Z, "SdirectionZ" );
+    MaterialTypeEnum.Add( HYST_MODEL_STRAIN, "hystModel_strain" );
+    MaterialTypeEnum.Add( HYSTERESIS_DIM_STRAIN, "PreisachDim_strain" );
+    MaterialTypeEnum.Add( ROT_RESISTANCE_STRAIN, "RotResistance_strain" );
+    MaterialTypeEnum.Add( EVAL_VERSION_STRAIN, "evalVersion_strain" );
+    MaterialTypeEnum.Add( ANG_DISTANCE_STRAIN, "angularDistance_strain" );
+    MaterialTypeEnum.Add( ANG_CLIPPING_STRAIN, "angularClipping_strain" );
+    MaterialTypeEnum.Add( ANG_RESOLUTION_STRAIN, "angularResolution_strain" );
+    MaterialTypeEnum.Add( AMP_RESOLUTION_STRAIN, "amplitudeResolution_strain" );
+    MaterialTypeEnum.Add( IRRSTRAIN_REUSE_P, "reusePolarizationForStrain" );
+
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_ONLY_STRAIN, "preisachWeights_anhyst_ONLY_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A_STRAIN, "preisachWeights_anhystA_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B_STRAIN, "preisachWeights_anhystB_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C_STRAIN, "preisachWeights_anhystC_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_CINATAN_STRAIN, "preisachWeights_anhyst_cinatan_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE_STRAIN, "preisachWeights_anhyst_paramsforhalfrange_strain" );
+
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN, "preisach_mayergoyz_num_dir_strain" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN, "preisach_mayergoyz_isotropic_strain" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN, "preisach_mayergoyz_clip_output_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_X_STRAIN, "preisach_mayergoyz_start_x_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Y_STRAIN, "preisach_mayergoyz_start_y_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Z_STRAIN, "preisach_mayergoyz_start_z_strain" );
+    MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH_STRAIN, "isPreisachType_strain" );
+
+    MaterialTypeEnum.Add( HYST_COUPLING_DEFINED, "hystCouplingDefined" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
@@ -1782,6 +1951,11 @@ namespace CoupledField {
     feMatrixType.Add( MASS_UPDATE, "mass_update" );
     feMatrixType.Add( STIFFNESS_UPDATE, "stiffness_update");
     feMatrixType.Add( DAMPING_UPDATE, "damping_update" );
+    feMatrixType.Add( SYSTEM_HYSTFREE, "system_hystfree" );
+    feMatrixType.Add( SYSTEM_FIXPOINT, "system_fixpoint" );
+    feMatrixType.Add( SYSTEM_FD_JACOBIAN, "system_fd_Jacobian" );
+    feMatrixType.Add( SYSTEM_DELTAMAT_JACOBIAN, "system_deltaMat_Jacobian" );
+    feMatrixType.Add( SYSTEM_BAK, "system_bak" );
 
     // ==== Initialization of ApproxCurveTypes ====
     ApproxCurveTypeEnum.Add( NO_APPROX_TYPE , "No approximation" );

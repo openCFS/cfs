@@ -27,7 +27,6 @@
 namespace CoupledField{
 
 // declare class specific logging stream
-DECLARE_LOG(coeffunctiongridnodal)
 DEFINE_LOG(coeffunctiongridnodal, "coefFunctionGridNodal")
 
 template<class DATA_TYPE>

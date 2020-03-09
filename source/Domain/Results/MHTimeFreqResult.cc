@@ -39,7 +39,6 @@
 
 namespace CoupledField {
   // declare logging stream
-  DECLARE_LOG(mhtimefreqresult)
   DEFINE_LOG(mhtimefreqresult, "mhtimefreqresult")
 
   MHTimeFreqResult::MHTimeFreqResult(const UInt& N,

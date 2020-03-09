@@ -88,8 +88,11 @@ namespace CoupledField {
 
     //! Compute Euclidean norm of this vector object
     Double NormL2() const {
-      EXCEPTION( " Method NormL2 not implemented " );
-      return 0;
+      EXCEPTION("Method NormL2 not implemented");
+    }
+
+    virtual Double SignedMax() const {
+      EXCEPTION("Method SignedMax() not implemented");
     }
 
     //! Overload assignment operator
@@ -117,7 +120,7 @@ namespace CoupledField {
       Add(a, dynamic_cast<const SingleVector&>(vec));
     }
 
-    virtual void Add(Double a,const SingleVector &vec)
+    virtual void Add(Double a, const SingleVector &vec)
     {
       EXCEPTION("SingleVector::Add(): Not implemented here");
     }
@@ -131,7 +134,7 @@ namespace CoupledField {
     }
 
     virtual void Add(Double a, const SingleVector& vec,
-        Double b, const SingleVector& vec2)
+                     Double b, const SingleVector& vec2)
     {
       EXCEPTION("SingleVector::Add(): Not implemented here");
     }
@@ -180,7 +183,7 @@ namespace CoupledField {
       EXCEPTION("SingleVector::Inner(): Not implemented here");
     }   
     
-    
+
   protected:
 
     //! Length of the vector object

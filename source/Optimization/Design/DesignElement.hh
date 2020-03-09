@@ -176,9 +176,10 @@ public:
                    MECH_66,
                    SLACK = 34, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD,
-                   MULTIMATERIAL, INTERPOLATION,
-                   NODE, PROFILE,
+                   ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, 
+                   MULTIMATERIAL,INTERPOLATION,
+                   NODE, PROFILE, // shape mapping 
+                   RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
                    SPLINE_BOX, CP,
                    ALL_DESIGNS } Type;
 
@@ -200,6 +201,12 @@ public:
   /** checks if the type is a shape mapping type. Then there is a counterpart with the same name in ShapeMapDesign::Type
    * @see ShapeMapDesign::Convert() */
   static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE || type == SHAPE_MAP; }
+
+  /** maps from SolutionType to DesignElement::Type. In the PHYSICAL_* case to the standard case */
+  static Type MapSolutionType(SolutionType soltype, bool throw_exception = true);
+
+  /** checks if this is a physical solution type where we filter and penalize */
+  static bool IsPhysical(SolutionType soltype);
 
   /** checks if the type is a splinebox feature mapping type.
    * @see ShapeMapDesign::Convert() */

@@ -28,9 +28,6 @@ namespace CoupledField {
     typedef enum { UNKNOWN = 0, SCALAR = 1, VECTOR = 2, TENSOR = 3, STRING = 4 } EntryType;
     static Enum<EntryType> EntryTypeEnum_;
 
-    //! Friend declaration for operator==
-    friend bool operator==(ResultInfo& a, ResultInfo& b );
-
     //! Constructor
     ResultInfo();
     

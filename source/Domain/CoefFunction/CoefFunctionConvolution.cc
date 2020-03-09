@@ -9,7 +9,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
-  DECLARE_LOG(visco)
   DEFINE_LOG(visco, "visco")
 
   void CoefFunctionConvolution::Init() {

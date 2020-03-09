@@ -69,7 +69,6 @@
 */
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(feSpaceH1Hi)
 DEFINE_LOG(feSpaceH1Hi, "feSpaceH1Hi")
 namespace CoupledField{
 
@@ -276,6 +275,7 @@ namespace CoupledField{
     //but it could be, that the PDE requires a minimum order of elements...
     ApproxOrder order(ptGrid_->GetDim());
     order.SetIsoOrder(1);
+
     if(orderOffset_>0){
       order.SetIsoOrder(orderOffset_);
     }

@@ -8,8 +8,6 @@
 
 namespace CoupledField
 { 
-
-DECLARE_LOG(trilinappx)  
 DEFINE_LOG(trilinappx, "trilinappx")
 
   TriLinInterpolate::TriLinInterpolate(std::string nlFileName, MaterialType matType )

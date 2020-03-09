@@ -290,6 +290,7 @@ namespace CoupledField {
         os <<   "sub-Vector #" << i
            << "\n--------------\n";
         os <<  subVec_[i]->ToString(level, separator );
+        os << "\n";
       }
     }
     return os.str();
@@ -487,8 +488,7 @@ namespace CoupledField {
   // ***************************************************************
   //   Replace this vector object by the sum of two scaled vectors
   // ***************************************************************
-  void SBM_Vector::Add( Double alpha, const BaseVector& y,
-			Double beta, const BaseVector& z ) {
+  void SBM_Vector::Add( Double alpha, const BaseVector& y, Double beta, const BaseVector& z ) {
 
     try {
 
@@ -556,7 +556,6 @@ namespace CoupledField {
     }
     return sqrt( norm );
   }
-
 
   // *****************
   //   Export vector

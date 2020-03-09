@@ -3,8 +3,8 @@
 #-----------------------------------------------------------------------------
 
 SET(REQ_MAJOR_VER 3)
-SET(REQ_MINOR_VER 7)
-SET(REQ_PATCH_VER 2)
+SET(REQ_MINOR_VER 5)
+SET(REQ_PATCH_VER 1)
 
 #-----------------------------------------------------------------------------
 # Include global definitions for CFS++ development server (host name, etc.)
@@ -174,7 +174,6 @@ OPTION(BUILD_ANACONDA3 "build anaconda3 from continuum analytics, not necessary 
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
 OPTION(USE_MESH "Use the mesh file reader for input from ANSYS/GiD."  ${USE_MESH_DEFAULT})
-OPTION(USE_COMSOL "Use Comsol .mphtxt meshes for simulation input." ${USE_COMSOL_DEFAULT})
 OPTION(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
 OPTION(USE_GMSH "Use Gmsh meshes for simulation input." ${USE_GMSH_DEFAULT})
 OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output."  ${USE_GMV_DEFAULT})
@@ -182,9 +181,6 @@ OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
-IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
-ENDIF()
 
 #-----------------------------------------------------------------------------
 # There are two options for an xml reader: xerces or libxml2. Depending on
@@ -315,28 +311,6 @@ IF(USE_CGNS)
 ENDIF()
 
 #-----------------------------------------------------------------------------
-# CCMIO - STAR-CCM+ I/O library
-#-----------------------------------------------------------------------------
-OPTION(USE_CCMIO "Enable support for the STAR-CCM+ I/O library."
-  ${USE_CCMIO_DEFAULT})
-
-# Since the CCMIO library depends on the ADF library from CGNS, we need to
-# force USE_CGNS to ON.
-IF(USE_CCMIO AND
-    NOT USE_CGNS)
-    SET(USE_CGNS ON CACHE BOOL
-      "Enable support for the CFD General Notation System." FORCE)
-ENDIF()
-
-#-----------------------------------------------------------------------------
-# CFXIO - Support for reading ANSYS CFX result files
-#-----------------------------------------------------------------------------
-IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  OPTION(USE_CFXIO "Enable support for reading ANSYS CFX result files."
-    ${USE_CFXIO_DEFAULT})
-ENDIF()
-
-#-----------------------------------------------------------------------------
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAULT})
@@ -409,7 +383,14 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
   "Use explicit template instantiation."
   ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 
-# ICC needs a gcc to get header from. Newest ICC might noe be fully compatible with gcc 8.* yet
+#-----------------------------------------------------------------------------
+# Do we want to use expression templates
+#-----------------------------------------------------------------------------
+OPTION(USE_EXPRESSION_TEMPLATES
+       "Use expression templates for matrix and vector operators."
+       OFF)
+
+# ICC needs a gcc to get header from. Newest ICC might not be fully compatible with gcc 8.* yet
 SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version where ICC takes the headers from")
 
 #-----------------------------------------------------------------------------
@@ -417,7 +398,6 @@ SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version
 #-----------------------------------------------------------------------------
 SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
   "Path where the XML schema for the input files is located.")
-
 # set the mode of cfstool
 SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
 IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
@@ -461,6 +441,7 @@ MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
 MARK_AS_ADVANCED(EXPLICIT_TEMPLATE_INSTANTIATION)
+MARK_AS_ADVANCED(USE_EXPRESSION_TEMPLATES)
 MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
@@ -490,11 +471,6 @@ IF(DEBUG)
 ELSE(DEBUG)
   SET(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING
     "Only DEBUG and RELEASE types are valid." FORCE)
-  
-  #---------------------------------------------------------------------------
-  # Activate expression templates (in RELEASE mode)
-  #---------------------------------------------------------------------------
-  SET(EXPR_TEMPLATES 1)
 ENDIF(DEBUG)
 
 #-----------------------------------------------------------------------------
@@ -628,29 +604,22 @@ INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-# Switch support for testing off by default. It will be switched on by the
-# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
-# cache. Cf. ctest_scripts/*.cmake
+# Switch support for testing ON if the default testsuite dir is used, i.e.
+# the git submodule 'Testing'
 #-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
+SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  SET(BUILD_TESTING ON CACHE BOOL "Build the testing tree.")
+ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  SET(BUILD_TESTING OFF CACHE BOOL "Build the testing tree.")
+ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
 CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
 IF(BUILD_TESTING)
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
-  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
-  #-----------------------------------------------------------------------------
-  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
-  # test cases will be generated in the current binary directory.
-  #-----------------------------------------------------------------------------
-  IF(NOT TESTSUITE_DIR_DEFAULT)
-    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
-  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
-
-  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-
-  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+  # check if TESTSUITE_DIR is correct (contains TESTSUIT)
     IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
     ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
@@ -662,8 +631,7 @@ IF(BUILD_TESTING)
       SET(MSG "${MSG}   'git pull --recurse-submodules'\n")
       MESSAGE(FATAL_ERROR "${MSG}")
     ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-  # check if we have options
+  # check if we have dependent options set correctly
   # In order to perform tests we need the CFSTOOL and HDF5!
   if(NOT BUILD_CFSTOOL)
     message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
@@ -680,7 +648,8 @@ IF(BUILD_TESTING)
   # configure the dashboard and include config
   # write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
   # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
-  set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
+  set(DROP_SITE "movm.mi.uni-erlangen.de" CACHE STRING "URL of the CDash dashboard to submit test results")
+  mark_as_advanced(DROP_SITE)
   set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
   SET(DROP_METHOD "http")
   set(NIGHTLY_START_TIME "00:00:00 CET")
@@ -810,10 +779,6 @@ IF(USE_MESH)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/internalMesh)
 ENDIF(USE_MESH)
 
-IF(USE_COMSOL)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/COMSOL)
-ENDIF(USE_COMSOL)
-
 IF(USE_GMV)
  SET(USE_GMV_INPUT ON 
     CACHE INTERNAL
@@ -848,10 +813,6 @@ IF(USE_ENSIGHT)
 ELSE()
   SET(USE_VTK OFF CACHE INTERNAL "Surplus comment for cached variable")      
 ENDIF()
-
-IF(USE_ANSYSRST)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
-ENDIF(USE_ANSYSRST)
 
 IF(USE_CGNS)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/CGNS)

@@ -157,26 +157,6 @@ IF(USE_CGNS)
 ENDIF(USE_CGNS)
 
 #-------------------------------------------------------------------------------
-# Search for STAR-CCM+ I/O library
-#-------------------------------------------------------------------------------
-IF(USE_CCMIO)
-  SET(CCMIO_URL "${CFS_DS_SOURCES_DIR}/ccmio")
-  SET(CCMIO_BASE "libccmio")
-  SET(CCMIO_VER "2.6.1")
-  SET(CCMIO_GZ "${CCMIO_BASE}-${CCMIO_VER}.tar.gz")
-  SET(CCMIO_MD5 "f81fbdfb960b1a4f3bcc7feee491efe4")
-
-  INCLUDE("${CFSDEPS_DIR}/ccmio/External_CCMIO.cmake")
-ENDIF(USE_CCMIO)
-
-#-------------------------------------------------------------------------------
-# Search for CFX I/O library
-#-------------------------------------------------------------------------------
-IF(USE_CFXIO)
-  INCLUDE("${CFSDEPS_DIR}/cfx_custom/External_CFX_Custom.cmake")
-ENDIF(USE_CFXIO)
-
-#-------------------------------------------------------------------------------
 # Search for METIS library
 #-------------------------------------------------------------------------------
 IF(USE_METIS)
@@ -562,27 +542,6 @@ IF(USE_SGPP)
   SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
 ENDIF(USE_SGPP)
-
-#-------------------------------------------------------------------------------
-# Build ZeroMQ distributed messaging library
-#-------------------------------------------------------------------------------
-IF(USE_ZEROMQ)
-  SET(ZEROMQ_URL "${CFS_DS_SOURCES_DIR}/zeromq")
-  SET(ZEROMQ_GZ "zeromq-4.1.3.tar.gz")
-  SET(ZEROMQ_MD5 "d0824317348cfb44b8692e19cc73dc3a")
-
-  INCLUDE("${CFSDEPS_DIR}/zeromq/External_zeromq.cmake")
-ENDIF(USE_ZEROMQ)
-
-
-#-----------------------------------------------------------------------------
-# Find ANSYS Customizations
-#-----------------------------------------------------------------------------
-IF(USE_ANSYSRST)
-  IF(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
-    INCLUDE("${CFSDEPS_DIR}/ansys_custom/External_ANSYS_custom.cmake")
-  ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
-ENDIF(USE_ANSYSRST)
 
 #-----------------------------------------------------------------------------
 # Find HDF file viewer

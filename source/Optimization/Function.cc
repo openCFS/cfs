@@ -3,7 +3,6 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
@@ -38,7 +37,6 @@
 #include "Utils/tools.hh"
 #include "MatVec/Matrix.hh"
 
-DECLARE_LOG(func)
 DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()
@@ -90,6 +88,10 @@ Function::Function(PtrParamNode pn) {
   this->type_ = type.Parse(pn->Get("type")->As<string>());
 
   slackFnct_ = slackFnct.Parse(pn->Get("function")->As<string>());
+
+  // default is set in Function, may this moves later to Function, too
+  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
+    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
 
   if(type_ == SLACK_FNCT && slackFnct_ == NO_FUNCTION)
     EXCEPTION("a function 'slackFunction' requires the attribute 'function' to be set");
@@ -172,6 +174,18 @@ Function::Function(PtrParamNode pn) {
       throw Exception("'overhang' function requires design to be set to shape variables ('shape_map')");
     break;
 
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+    if(domain->GetGrid()->IsAxi())
+      throw Exception("not for axis symmetric setting: " + type.ToString(type_));
+    break;
+
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  if(!domain->GetGrid()->IsAxi())
+      throw Exception("only for axis symmetric setting: " + type.ToString(type_));
+  break;
+
   case CONES:
     if(!BaseDesignElement::IsSplineBoxType(design_))
       throw Exception("'cones' function requires design to be set to spline box variables");
@@ -239,8 +253,7 @@ void Function::Init() {
   // function value to be evaluated
   this->value_ = -1.0;
 
-  // -2 is unset, -1 is all, >= 0 the excitation index
-  this->excite_ = -1;
+  this->excite_ = UNSET_EX;
   this->sample_excitation_ = NULL;
   this->excite_sensitive_ = false;
 
@@ -357,6 +370,9 @@ void Function::ToInfo(PtrParamNode info) {
 
   info->Get("filtered")->SetValue(ForDensityFiltering() || ForSensitivityFiltering());
 
+  if(region != ALL_REGIONS)
+    info->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
+
   if(local != NULL)
     local->ToInfo(info_);
 }
@@ -456,9 +472,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
-  case PRESSURE_DROP:
-  case HEAT_ENEGRY:
-  case TEMP_TRACKING_AT_INTERFACE:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
@@ -492,7 +505,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     }
     break;
 
-  // this stuff is to be avaluated always
+  // this stuff is to be evaluated always
   case COMPLIANCE:
   case OUTPUT:
   case SQUARED_OUTPUT:
@@ -504,13 +517,30 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case ELEC_ENERGY:
   case TEMPERATURE:
+  case PRESSURE_DROP:
+  case HEAT_ENEGRY:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case TEMP_TRACKING_AT_INTERFACE:
     assert(excite_index < 0);
-    if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
-      excite_ = -1; // all excitations within this sequence/ context
-    else {
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all") {
+      excite_ = ALL_EX; // all excitations within this sequence/ context
+      // why is there no excite_sensitive_ = true; ??
+    } else {
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       excite_sensitive_ = true;
     }
+    break;
+
+  case MAG_COUPLING:
+    // enforces the excitation to be manually set to "0_1" for the first two excitations
+    assert(excite_index < 0);
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() != "0_1")
+       throw Exception("function " + type.ToString(MAG_COUPLING) + " requires excitation='0_1'");
+    excite_ = COMBINED_0_1_EX;
+    excite_sensitive_ = true;
     break;
 
   case STRESS:
@@ -518,9 +548,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
-      excite_ = excite_index == -2 ? -1 : excite_index;
+      excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
     } else {
-      assert(excite_index == -2); // assert there is no conflict
+      assert(excite_index == UNSET_EX); // assert there is no conflict
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
     }
     excite_sensitive_ = true;
@@ -541,11 +571,14 @@ bool Function::DoEvaluate(const Excitation* excite) const {
   if(DoEvaluateAlways(excite->sequence))
     return true;
 
+  if(excite_ == COMBINED_0_1_EX)
+    return excite->index == 0 || excite->index == 1;
+
   return excite->index == excite_;
 }
 
 bool Function::DoEvaluateAlways(int context_sequence) const {
-  if(excite_ != -1)
+  if(excite_ != ALL_EX)
     return false;
 
   return ctxt->sequence == context_sequence; // excite_ == -1 is already assured
@@ -570,6 +603,11 @@ bool Function::IsAdjointBased() const {
   case STRESS:
   case STRESS_DENSITY:
   case TEMP_TRACKING_AT_INTERFACE:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case MAG_COUPLING:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -741,6 +779,11 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS_DENSITY:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case MAG_COUPLING:
   case EIGENFREQUENCY:
   case BANDGAP:
   case FILTERING_GAP:
@@ -850,18 +893,21 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
           DesignElement* de = &(space->data[i]);
           elements.Push_back(de);
         }
-      } else {
-        for (unsigned int i = 0; i < space->data.GetSize(); i++) {
+      } else
+      {
+        for(unsigned int i = 0; i < space->data.GetSize(); i++)
+        {
           DesignElement* de = &(space->data[i]);
-          if(DesignElement::IsCompatible(design_, de->GetType())
-             && (region == ALL_REGIONS || de->elem->regionId == region))
+          if(DesignElement::IsCompatible(design_, de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
             elements.Push_back(de);
         }
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      if(type_ != STRESS && type_ != STRESS_DENSITY)
+      //TODO help, this is ugly
+      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING && type_ != LOSS_MAG_FLUX_RZ)
       {
+        string a = grid->GetRegion().ToString(region);
         string msg = "region " + grid->GetRegion().ToString(region)
             + " of condition " + type.ToString(type_)
             + " not within design domain";
@@ -3873,7 +3919,9 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
       {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " mi=" << dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index << " -> " << ret;
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " -> ret";
+        // does not work in the mag opt case with density + rhsDensity
+        // << " mi=" << (dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index
       }
     }
     else

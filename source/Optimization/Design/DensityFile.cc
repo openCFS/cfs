@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -33,7 +32,6 @@
 using namespace CoupledField;
 using std::string;
 
-DECLARE_LOG(density)
 DEFINE_LOG(density, "density")
 
 DensityFile::DensityFile(DesignSpace* designSpace,
@@ -302,9 +300,19 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
 
-   if(this->space_->IsRegular())
+   /*if(this->space_->IsRegular())
    {
      StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
+     PtrParamNode mesh = in_->Get("mesh");
+     mesh->Get("x")->SetValue(grid[0]);
+     mesh->Get("y")->SetValue(grid[1]);
+     mesh->Get("z")->SetValue(grid[2]);
+   }*/
+
+   // design space can be regular, but grid is probably not
+   StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
+   if(!grid.IsEmpty())
+   {
      PtrParamNode mesh = in_->Get("mesh");
      mesh->Get("x")->SetValue(grid[0]);
      mesh->Get("y")->SetValue(grid[1]);

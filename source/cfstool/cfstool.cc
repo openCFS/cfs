@@ -5,6 +5,7 @@
 #include <def_cfs_stats.hh>
 
 #include <iostream>
+#include <math.h>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -1214,6 +1215,11 @@ namespace CFSTool {
                       diffAvg = diffVec.Avg();
                       refAvg = inVec_ref.Avg();
                       diffL2 = diffVec.NormL2();
+                      if ( !(std::isfinite(diffL2)) ) {
+                        std::cout << "WARNING: non-finite value encountered\n";
+                        // set the difference to the maximum possible such that the test will fail
+                        diffL2 = std::numeric_limits<Double>::max();
+                      }
                       // output
                       std::cout << "\t\tMinimum: " << diffMin << " (difference), "<< refMin <<" (reference)\n";
                       std::cout << "\t\tMaximum: " << diffMax << " (difference), "<< refMax <<" (reference)\n";
@@ -1413,14 +1419,14 @@ int main(int argc, char** argv)
         Double err = std::max(errMesh,errHist);
         std::cout << "\n";
         std::cout << "<DartMeasurement name=\"L2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
-        if ( err > tolerance ) {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
-            exit(EXIT_FAILURE);
-        } else {
+        if ( err < tolerance ) {
             std::cout << "========================================================\n";
             std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
             exit(EXIT_SUCCESS);
+        } else {
+            std::cout << "========================================================\n";
+            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
+            exit(EXIT_FAILURE);
         }
     } else if (param_mode == "relL2diff") {
         Double tolerance = param->Get("eps")->As<Double>();
@@ -1451,14 +1457,14 @@ int main(int argc, char** argv)
         std::cout << "\n";
         Double err = std::max(maxDiffMeshRel,maxDiffHistRel);
         std::cout << "<DartMeasurement name=\"relL2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
-        if ( err > tolerance ) {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
-            exit(EXIT_FAILURE);
-        } else {
+        if ( err < tolerance ) {
             std::cout << "========================================================\n";
             std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
             exit(EXIT_SUCCESS);
+        } else {
+            std::cout << "========================================================\n";
+            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
+            exit(EXIT_FAILURE);
         }
     } else if (param_mode == "meshdiff") {
       if (num_files != 3)

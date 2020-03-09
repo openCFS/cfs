@@ -90,8 +90,13 @@ class Function
       YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
       YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
-      TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
-      HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
+      TEMPERATURE,               /*!< for optimization of Poisson and heat conduction pde */
+      HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity */
+      SQR_MAG_FLUX_DENS_X,       /*!< for optimization in squared magnetics Bx component */
+      SQR_MAG_FLUX_DENS_Y,       /*!< for optimization in squared magnetics By component */
+      SQR_MAG_FLUX_DENS_RZ,      /*!< for optimization in squared magnetics Br and Bz component */
+      LOSS_MAG_FLUX_RZ,          /*!< for optimization in squared magnetics Br and Bz component, scaled by density*volume */
+      MAG_COUPLING,              /*!< for optimization of inductive components */
       TEMP_TRACKING_AT_INTERFACE,/*!< tracking temperature at interfaces between solid and void elements */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
@@ -215,6 +220,7 @@ class Function
     unsigned int GetEigenValueID() { return eigenvalue_id_; }
 
     /** Shall/must we evaluate this objective at this excitation?
+     * Sets the attribute excite_
      * Stress constraints in homogenization are triggered for a single constraint only.
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
@@ -721,7 +727,7 @@ class Function
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
-    /** If condition supports constriction to one region. Currently ALL_REGIONS for objectives */
+    /** If condition supports restriction to one region. Currently ALL_REGIONS for objectives */
     RegionIdType region;
 
     /** real or pseudo design elements defined by the region.
@@ -781,12 +787,6 @@ class Function
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
 
-    /** Excitation index for evaluation.
-     * Note that the index is unique over all sequences!
-     * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
-     * -2 is for unset! */
-    int excite_;
-
     /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
     Excitation* sample_excitation_;
 
@@ -825,6 +825,17 @@ class Function
     /** only for tensor trace and volume */
     DesignMaterial::Notation notation_;
 
+  private:
+    /** special value for excite_ value.
+    * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
+    * -2 is for unset!
+    * -3 for excitation "0_1" */
+    typedef enum { ALL_EX = -1, UNSET_EX = -2, COMBINED_0_1_EX = -3 } ExciteIndex;
+
+    /** Excitation index for evaluation.
+     * Note that the index is unique over all sequences!
+     * >= 0 for the actual excitation, ExciteIndex for other cases */
+    int excite_;
 };
 
 

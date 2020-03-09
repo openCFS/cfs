@@ -10,7 +10,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
@@ -30,7 +29,6 @@ namespace CoupledField
 using std::fstream;
 using std::ios;
 
-DECLARE_LOG(lbm)
 DEFINE_LOG(lbm, "lbm")
 
 // instantiation of the static elements

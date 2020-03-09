@@ -5,7 +5,6 @@
 #include <iomanip>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -35,6 +34,7 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
+#include "Optimization/MagSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -71,9 +71,6 @@ using namespace CoupledField;
 using namespace std;
 namespace fs = boost::filesystem;
 
-
-
-DECLARE_LOG(opt)
 DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements
@@ -397,6 +394,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
+  Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
+  Function::type.Add(Function::MAG_COUPLING,"magCoupling");
 
   Function::slackFnct.SetName("Function::SlackFnct");
   Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
@@ -487,6 +489,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MAG, "magnetic");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
   OptimizationMaterial::system.Add(OptimizationMaterial::LBM, "lbm");
 
@@ -494,6 +497,7 @@ void Optimization::SetEnums()
   application.Add(App::NO_APP, "no_app");
   application.Add(App::ACOUSTIC, "acoustic");
   application.Add(App::HEAT, "heat");
+  application.Add(App::MAG, "magnetic");
   application.Add(App::LAPLACE, "laplace");
   application.Add(App::MECH, "mech");
   application.Add(App::MASS, "mass");
@@ -651,6 +655,10 @@ Optimization* Optimization::CreateInstance()
       opt = new PiezoSIMP();
       break;
 
+    case OptimizationMaterial::MAG:
+      opt = new MagSIMP();
+      break;
+
     default:
       assert(false);
       break;
@@ -726,7 +734,12 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
+  // easy case
+  if(context->DoMultiSequence() || context->DoLBM())
+    return true;
+
+  // don't do it within forward when we can do it later
+  if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
     return true;
   else
     return false;

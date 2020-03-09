@@ -513,7 +513,7 @@ namespace CoupledField
     Double theta;
 
     if (t < xStart_ || t > xEnd_) {
-      std::cerr << "x-Value is too small -> no convergence!\n";
+      std::cerr << "x-Value is too small -> no convergence!\n" << t;
       //return -1;
       return 0;
     }

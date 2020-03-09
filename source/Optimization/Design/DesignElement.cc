@@ -3,7 +3,6 @@
 #include <utility>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -37,7 +36,6 @@ using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
 using boost::posix_time::microsec_clock;
 
-DECLARE_LOG(desel)
 DEFINE_LOG(desel, "designElement")
 
 // the static enum
@@ -186,6 +184,43 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
       return false;
   }
 
+}
+
+BaseDesignElement::Type BaseDesignElement::MapSolutionType(SolutionType soltype, bool throw_exception)
+{
+  switch(soltype)
+  {
+  case MECH_PSEUDO_DENSITY:
+  case PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+    return DENSITY;
+
+  case RHS_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+    return RHS_DENSITY;
+
+  default:
+    break;
+  }
+
+  if(throw_exception)
+    EXCEPTION("no DesignElement::Type for SolutionType " << soltype);
+
+  return NO_TYPE;
+}
+
+bool BaseDesignElement::IsPhysical(SolutionType soltype)
+{
+  switch(soltype)
+  {
+  case PHYSICAL_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+  case ELEC_PHYSICAL_PSEUDO_DENSITY:
+    return true;
+
+  default:
+    return false;
+  }
 }
 
 BaseDesignElement::BaseDesignElement(Type t) {
@@ -389,6 +424,7 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
   switch(ctxt->ToApp()) // will fail for piezo ?!
   {
   case App::MECH:
+  case App::MAG:
     return DENSITY;
   case App::ACOUSTIC:
     return ACOU_DENSITY;
@@ -586,7 +622,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     if(dofs == 1)
     {
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(NULL);
+        out[0] = GetPhysicalDesign(Optimization::context);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(Optimization::context);
       else
@@ -736,7 +772,7 @@ double DesignElement::GetPhysicalDesign(const Context* ctxt) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
+  return(type_ == DENSITY || type_ == RHS_DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
 }
 
 
@@ -854,6 +890,7 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
+  type.Add(RHS_DENSITY, "rhsDensity");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");

@@ -2,7 +2,6 @@
 
 #include "Optimization/StateSolution.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Driver/Assemble.hh"
@@ -13,9 +12,8 @@
 
 using namespace std;
 
-namespace CoupledField {
+using namespace CoupledField;
 
-DECLARE_LOG(statesol)
 DEFINE_LOG(statesol, "stateSolution")
 
 StateContainer::StateContainer()
@@ -136,7 +134,7 @@ StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, 
   assert(ex == NULL || (seq == -1 || ex->sequence == seq)); // require consistency
   assert(!(ex == NULL && seq == -1)); // one needs to be given
 
-  LOG_DBG2(statesol) << "SC:C search for ex=" << (ex == NULL ? -1 : ex->index) << " seq=" << seq << " f=" << (f == NULL ? "NULL" : f->ToString())
+  LOG_DBG2(statesol) << "SC:S search for ex=" << (ex == NULL ? -1 : ex->index) << " seq=" << seq << " f=" << (f == NULL ? "NULL" : f->ToString())
                      << " ts_m=" << timestep_mode << " der=" << derivative;
 
   for(unsigned int i = 0, n = data_.GetSize(); i < n; i++)
@@ -149,7 +147,7 @@ StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, 
     if(ex_ok && seq_ok && s.func == f && tsm_ok && s.derivative == derivative)
       found.Push_back(&s);
 
-    LOG_DBG2(statesol) << "SC:C cand i=" << i << " ex=" << (s.excitation == NULL ? -1 : s.excitation->index) << " seq="
+    LOG_DBG2(statesol) << "SC:S cand i=" << i << " ex=" << (s.excitation == NULL ? -1 : s.excitation->index) << " seq="
                        << (s.excitation == NULL ? -1 : s.excitation->sequence) << " f=" << (s.func == NULL ? "NULL" : s.func->ToString())
                        << " ts_m=" << s.timestep_mode << " der=" << s.derivative << " set=" << s.ContainsState() << " -> " << found.GetSize();
   }
@@ -242,6 +240,7 @@ StateSolution::~StateSolution()
 
 SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
 {
+  // what is the physical solution type we need to request from cfs to store as state solution?
   switch(app)
   {
   case App::NO_APP: // up to now
@@ -253,13 +252,13 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
     return ELEC_POTENTIAL;
   case App::HEAT:
     return HEAT_TEMPERATURE;
+  case App::MAG:
+	return MAG_POTENTIAL;
   case App::ACOUSTIC:
     return ACOU_POTENTIAL;
   case App::LAPLACE:
     assert(false);
     break;
-    // app = App::MECH;
-    //solt = MECH_DISPLACEMENT;
   case App::LBM:
     return LBM_PROBABILITY_DISTRIBUTION;
   default:
@@ -274,7 +273,9 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
 std::string StateSolution::ToString()
 {
   std::stringstream ss;
-  ss <<  " raw=" << (raw != NULL ) << " rhs=" << (rhs != NULL) << " select=" << (select != NULL);
+  ss << " excite=" << (excitation != NULL ? excitation->GetFullLabel() : "NULL");
+  ss << " func=" << (func != NULL ? func->ToString() : "NULL");
+  ss <<  " raw=" << (raw != NULL ? raw->GetSize() : -1 ) << " rhs=" << (rhs != NULL ? rhs->GetSize() : -1 ) << " select=" << (select != NULL ? select->GetSize() : -1);
   return ss.str();
 }
 
@@ -345,11 +346,16 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       if(save_sol)
       {
         // we need to copy the solution from the algebraic system to the feFunction
-        LOG_DBG3(statesol) << "SS:R: fe sol=" << fe->GetSingleVector()->ToString();
+        LOG_DBG3(statesol) << "SS:R1: fe sol=" << fe->GetSingleVector()->ToString();
         Vector<T> tmpSol;
-        fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
-        LOG_DBG3(statesol) << "SS:R: sys sol=" << tmpSol.ToString();
+        if(app == App::MAG)
+          fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), false);
+        else
+          fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
+
+        LOG_DBG3(statesol) << "SS:R2: sys sol=" << tmpSol.ToString();
         dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
+        LOG_DBG3(statesol) << "SS:R3: fe sol-nachher=" << fe->GetSingleVector()->ToString();
       }
 
       // we save the element vectors in elem_vec. Might be empty the first call
@@ -399,7 +405,12 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       {
         // we need to copy the solution from the algebraic system to the feFunction
         // LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString(); // data will be outdated
-        fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
+        if(app == App::MAG)
+          //fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), false); // set idbc
+          *vec = dynamic_cast<Vector<T>& >(*(fe->GetSingleVector()));
+        else
+          fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
+
         assert(derivative == NO_DERIVTYPE);
         // if not, the above might work ?!
         // FIXME **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
@@ -407,7 +418,8 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       else
         fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
 
-      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString();
+
+      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString() << "size= " << vec->GetSize();
 
       return vec;
     }
@@ -431,6 +443,8 @@ void StateSolution::Write(SinglePDE* pde)
 {
   assert(set_);
 
+  LOG_DBG2(statesol) << "SS:W pde=" << pde->GetName() << " ss=" << ToString();
+
   // TODO make robust for App::LBM
   if(raw != NULL)
   {
@@ -438,7 +452,10 @@ void StateSolution::Write(SinglePDE* pde)
 
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
+    LOG_DBG3(statesol) << "SS:W raw = " << raw->ToString(2);
+    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString(2);
     *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
+    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString(2);
   }
   else
     LOG_DBG2(statesol) << "SS:W raw not written as it was not set";
@@ -456,13 +473,15 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
   // let the assignment operator do the job
   *sys = *vec;
 
-  LOG_DBG3(statesol) << "S:W sys -> " << sys->ToString(0);
+  LOG_DBG3(statesol) << "SS:W sys -> " << sys->ToString(0);
 }
+
+
 
 template <class T>
 SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
-  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create;
+  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create  << " ss=" << ToString();
   switch(st)
   {
   case RAW_VECTOR:
@@ -490,11 +509,22 @@ SingleVector* StateSolution::GetVector(StorageType st, bool create)
   EXCEPTION("false");
 }
 
+template<class T>
+Vector<T>& StateSolution::GetVectorRef(StorageType st)
+{
+  SingleVector* sv = GetVector<T>(st, false);
+  assert(sv != NULL);
+  return dynamic_cast<Vector<T>& >(*sv);
+}
+
+
+
 SingleVector* StateSolution::GetVector(StorageType st)
 {
   // as create is false, it makes no difference of we use the double or complex variant
   return GetVector<double>(st, false);
 }
+
 
 Vector<double>& StateSolution::GetRealVector(StorageType st)
 {
@@ -507,4 +537,8 @@ Vector<complex<double> >& StateSolution::GetComplexVector(StorageType st)
   return dynamic_cast<Vector<complex<double> >& >(*GetVector<complex<double> >(st, true));
 }
 
-}
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template Vector<double>& StateSolution::GetVectorRef<double>(StorageType st);
+template Vector<complex<double> >& StateSolution::GetVectorRef<complex<double> >(StorageType st);
+#endif

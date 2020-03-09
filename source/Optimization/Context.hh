@@ -18,13 +18,14 @@ class MultipleExcitation;
 class Function;
 class OptimizationMaterial;
 class LatticeBoltzmannPDE;
+class BiLinFormContext;
 
 struct App
 {
   /** The App::Type type identifies the PDE to use.
    *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().
    * The heat and acoustic transfer functions are Laplace! */
-  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Type;
+  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, MAG, NO_APP} Type;
 };
 
 
@@ -121,11 +122,14 @@ class Context
    * @see SetPDEs() */
   static App::Type ToApp(const SinglePDE* pde);
 
-  App::Type ToApp() const { return ToApp(pde); }
+  App::Type ToApp() const { assert(pde != NULL); return ToApp(pde); }
 
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
   SinglePDE* ToPDE(App::Type app, bool throw_exception = true);
+
+  /** Service function. A linear form would have a similar implementation */
+  BiLinFormContext* GetBiLinFormContext(const RegionIdType reg, App::Type app1, App::Type app2, bool throw_exception);
 
   /** the corresponding 1-based multi sequence step or -1 of not set yes */
   int sequence;
@@ -178,8 +182,9 @@ class Context
 
 private:
 
-  /** make shortcuts for the currently available PDEs in pdes */
-  void SetPDEs();
+  /** make shortcuts for the currently available PDEs in pdes.
+   * @return fals if it was too early and the pdes are not set in the system yet */
+  bool SetPDEs();
 
   /** are we harmonic/EV or static/transient? */
   bool complex_;

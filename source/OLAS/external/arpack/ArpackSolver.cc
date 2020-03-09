@@ -7,7 +7,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <boost/type_traits/is_complex.hpp>
 
-DECLARE_LOG(as)
 DEFINE_LOG(as, "arpackSolver")
 
 

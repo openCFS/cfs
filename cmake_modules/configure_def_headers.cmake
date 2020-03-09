@@ -106,9 +106,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_feast.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_feast.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_comsol.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gidpost.hh")
 
@@ -129,15 +126,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_unv.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_comsol.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ansysrst.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_ansysrst.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ccmio.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_ccmio.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_openmp.hh")

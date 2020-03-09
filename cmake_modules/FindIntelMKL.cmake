@@ -1,12 +1,7 @@
 #-------------------------------------------------------------------------------
 # This script  is responsible for the  determination of the correct  include and
 # linker  parameters for  the Intel  Math Kernel  Library (MKL).  We distinguish
-# between Windows/MinGW builds and Unix (Linux  and MacOS X) builds. On Linux we
-# just support the  MinGW (cross-)compilers at the moment,  which are officially
-# incompatible  with  MKL.   This  is  due  to  the   different  OpenMP  runtime
-# environments for  GCC and  Intel/MS compilers.  Anyway, we  found a  number of
-# working combinations  of GCC and  MKL versions. These combinations  are pretty
-# much hardcoded at the moment.
+# between Windows/MinGW builds and Unix (Linux  and MacOS X) builds.
 #
 # On Unix  we determine the  required linker flags by  compiling one of  the MKL
 # examples and reading the flags from the Makefile output (cf. below).
@@ -57,23 +52,16 @@ function(MKL_VERSION_FROM_HEADER)
 endfunction(MKL_VERSION_FROM_HEADER)
 
 
-IF(MINGW OR MSVC)
+IF(MSVC)
 
   #-----------------------------------------------------------------------------
   # If not specified by the user, try to determine proper MKL root directory.
   #-----------------------------------------------------------------------------
   IF(NOT MKL_ROOT_DIR)
-    IF(NOT CFS_BUILD_OS STREQUAL CFS_TARGET_OS)
-      SET(MKL_POSSIBLE_ROOT_DIRS
-	"/opt/pckg/mkl_win/composer_xe_2013"
-	"/opt/pckg/mkl_win/10.0.5.025"
-	)
-    ELSE()
-      SET(MKL_POSSIBLE_ROOT_DIRS
+    SET(MKL_POSSIBLE_ROOT_DIRS
 	"e:/dev/intel/MKL/composer_xe_2013"
 	"e:/dev/intel/MKL/10.0.5.025"
 	)
-    ENDIF()
 
     find_file(MKL_H
       "include/mkl.h"
@@ -130,7 +118,7 @@ IF(MINGW OR MSVC)
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
 
-ELSEIF(UNIX AND NOT CMAKE_CROSSCOMPILING) # end MINGW OR MSVC 
+ELSEIF(UNIX) # end MSVC
   #-------------------------------------------------------------------------------
   # The idea behind the algorithm implemented for	 finding MKL, is to let the make
   # files in the MKL  example directories tell us which linker  flags we need.  We
@@ -315,6 +303,11 @@ ELSEIF(UNIX AND NOT CMAKE_CROSSCOMPILING) # end MINGW OR MSVC
       RESULT_VARIABLE RETVAL)
   
     IF(RETVAL EQUAL 0)
+      # replace the intel-version with the fortran version needed for ARPACK
+      # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
+      IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+        string(REPLACE "libmkl_intel_lp64" "libmkl_gf_lp64" MKL_INFO "${MKL_INFO}")
+      ENDIF()
       FILE(WRITE "${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake" ${MKL_INFO})
       FILE(REMOVE_RECURSE "${COMPILE_MKL_TEST_DIR}")
   
@@ -354,7 +347,7 @@ ELSEIF(UNIX AND NOT CMAKE_CROSSCOMPILING) # end MINGW OR MSVC
   # TODO: libguide und libiomp durch die von MKL ersetzen.
   # TODO: fuer libmkl_intel_lp64.a libmkl_gf_lp64.a fuer gnu einsetzen.
 
-ENDIF() # end of UNIX AND NOT CMAKE_CROSSCOMPILING
+ENDIF() # end of UNIX
 
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.

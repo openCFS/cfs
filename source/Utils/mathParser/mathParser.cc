@@ -12,7 +12,6 @@
 #include "Utils/mathfunctions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(math)
 DEFINE_LOG(math, "mathParser")
 
 namespace CoupledField {

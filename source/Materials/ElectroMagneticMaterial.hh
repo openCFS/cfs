@@ -29,6 +29,8 @@ namespace CoupledField {
     void SetScalar( Double param, MaterialType matType, 
 		    Global::ComplexPart dataType );
 
+    void GetScalar( Integer& param, MaterialType matType)  const;
+
     //! set a scalar complex material parameter
     void SetScalar( Complex param, MaterialType matType, 
 		    Global::ComplexPart dataType );
@@ -79,47 +81,45 @@ namespace CoupledField {
                                             Global::ComplexPart matDataType,
                                             PtrCoefFct mechStrain );                                       
 
-    //@}
-    //============================ HYSTERESIS ===================================
-
-    //Initialize hysteresis
-    //Already defined in base class; never called?
-    //virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
-    //                       bool isInverse = false, bool computeInverse = false );
-
-    //set values for differential material approach
-    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
-
-    //! compute scalar differential parameter
-    virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
-
-    //! compute scalar differential parameters
-    virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
-                                            Vector<Double>& scalarValues );
-
-
-    //! computes the scalar hystereis value
-    virtual Double ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xval ) {
-      EXCEPTION( "ComputeScalarHystVal not implemented" );
-      return 1.0; 
-   };
-
-    //! compute the vector hysteresis values
-    virtual void ComputeVectorHystVal( UInt nrElem, Vector<Double>& Xin, 
-                                       Vector<Double>& Yout );
-
-    //!
-    virtual void ComputeInverseScalar( UInt idxEl, UInt comp, Double Yin, 
-                               Double& Xout );
-
-    //! computes the scalar hystereis value
-    virtual Double GetScalarHystVal( UInt nrElem );
-
-    virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val );
-
-    Double ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx );
-
-
+//    //@}
+//    //============================ HYSTERESIS ===================================
+//
+//    //Initialize hysteresis
+//    //Already defined in base class; never called?
+//    //virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+//    //                       bool isInverse = false, bool computeInverse = false );
+//
+//    //set values for differential material approach
+//    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
+//
+//    //! compute scalar differential parameter
+//    virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
+//
+//    //! compute scalar differential parameters
+//    virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
+//                                            Vector<Double>& scalarValues );
+//
+//
+//    //! computes the scalar hystereis value
+//    virtual Double ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xval ) {
+//      EXCEPTION( "ComputeScalarHystVal not implemented" );
+//      return 1.0;
+//   };
+//
+//    //! compute the vector hysteresis values
+//    virtual void ComputeVectorHystVal( UInt nrElem, Vector<Double>& Xin,
+//                                       Vector<Double>& Yout );
+//
+//    //!
+//    virtual void ComputeInverseScalar( UInt idxEl, UInt comp, Double Yin,
+//                               Double& Xout );
+//
+//    //! computes the scalar hystereis value
+//    virtual Double GetScalarHystVal( UInt nrElem );
+//
+//    virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val );
+//
+//    Double ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx );
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)

@@ -7,7 +7,6 @@
 
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
@@ -20,8 +19,6 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 //#include "Utils/tools.hh"
-#include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "FeBasis/H1/H1Elems.hh"
@@ -32,7 +29,6 @@
 #include "sgpp_optimization.hpp"
 #endif
 
-DECLARE_LOG(dm)
 DEFINE_LOG(dm, "designMaterial")
 
 using namespace CoupledField;

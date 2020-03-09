@@ -11,6 +11,7 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_FePolynomial.xsd ${DST_DIR}/Schemas/CFS_FePolynomial.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_FileFormats.xsd ${DST_DIR}/Schemas/CFS_FileFormats.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_IntegrationScheme.xsd ${DST_DIR}/Schemas/CFS_IntegrationScheme.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_HystereticSystem.xsd ${DST_DIR}/Schemas/CFS_HystereticSystem.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_LinearSystem.xsd ${DST_DIR}/Schemas/CFS_LinearSystem.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Misc.xsd ${DST_DIR}/Schemas/CFS_Misc.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEacoustic.xsd ${DST_DIR}/Schemas/CFS_PDEacoustic.xsd
@@ -60,6 +61,7 @@ ADD_CUSTOM_TARGET(share_xml_cfsmat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmagnetic.xsd ${DST_DIR}/Schemas/CFS_MATmagnetic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmagStrict.xsd ${DST_DIR}/Schemas/CFS_MATmagStrict.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmechanical.xsd ${DST_DIR}/Schemas/CFS_MATmechanical.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MAThysteresis.xsd ${DST_DIR}/Schemas/CFS_MAThysteresis.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATpiezo.xsd ${DST_DIR}/Schemas/CFS_MATpiezo.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATpyroelectric.xsd ${DST_DIR}/Schemas/CFS_MATpyroelectric.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATthermoelastic.xsd ${DST_DIR}/Schemas/CFS_MATthermoelastic.xsd

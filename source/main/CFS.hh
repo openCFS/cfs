@@ -72,9 +72,6 @@ namespace CoupledField
 
     /** The object itself in kept in the fileHandler */
     MaterialHandler* materialHandler;
-
-    /** The log configurator object */
-    LogConfigurator* logConf_;
     
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
   };

@@ -1,6 +1,7 @@
 
 #include "Vector.hh"
 #include "opdefs.hh"
+#include "Matrix.hh"
 #include <boost/type_traits/is_complex.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 
@@ -157,6 +158,7 @@ namespace CoupledField {
   template <typename T>
   void Vector<T>::Add(T a, const SingleVector &vec)
   {
+    assert(vec.GetSize() == this->GetSize());
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
 //#pragma omp parallel for 
@@ -164,27 +166,32 @@ namespace CoupledField {
       data_[i] += a * idvec[i];
   }
   
-  /*
   template <typename T>
-  void Vector<T>::Add(Double a,const SingleVector &vec) {
-    if(typeid(Double) != typeid(T))
-      EXCEPTION("Wrong typeids in Vector<T>::Add ("
-                << typeid(Double).name() << " != "
-                << typeid(T).name() << ")");
+  void Vector<T>::Set(T a, const SingleVector &vec)
+  {
+    assert(vec.GetSize() == this->GetSize());
+    const Vector<T>* ptr = dynamic_cast<const Vector<T>*>(&vec);
+    assert(ptr != NULL);
+    const Vector<T>& idvec = *ptr;
+
+    for(unsigned int i = 0; i < size_; ++i)
+      data_[i] = a * idvec[i];
   }
-  
+
   template <typename T>
-  void Vector<T>::Add(Complex a,const SingleVector &vec) {
-    if(typeid(Complex) != typeid(T))
-      EXCEPTION("Wrong typeids in Vector<T>::Add ("
-                << typeid(Complex).name() << " != "
-                << typeid(T).name() << ")");
+  void Vector<T>::Hadamard(const Vector<T>& v1, const Vector<T>& v2)
+  {
+    assert((v1.GetSize() == v2.GetSize()) && (v1.GetSize() == GetSize()));
+
+    for(unsigned int i = 0; i < v1.GetSize(); i++)
+      data_[i] = v1[i] * v2[i];
   }
-*/
+
 
   // *********
   //   Inner
   // *********
+
   template <typename T>
   void Vector<T>::Inner(const SingleVector &vec, T &sum) const
   {
@@ -302,6 +309,23 @@ namespace CoupledField {
       sum += OpType<T>::zConjz(data_[i] - other[i]);
 
     return sqrt(sum);
+  }
+
+  /*
+   * sometimes NormL2^2 is needed (e.g. for trust region checking for
+   * hysteresis; in these cases it makes no sense to take the sqrt and
+   * then square it; just skip the sqrt
+   */
+  template <typename T>
+  inline Double Vector<T>::NormL2_squared() const
+  {
+    double sum = 0;
+
+    //#pragma omp parallel for reduction(+:sum)
+    for(unsigned int i = 0; i < size_; ++i)
+      sum += OpType<T>::zConjz(data_[i]);
+
+    return sum;
   }
 
   template <typename T>
@@ -813,10 +837,15 @@ namespace CoupledField {
       int nnz = 0;
       for(unsigned int i = 0; i < size_; ++i)
       {
-        if(level == 1 && Abs(data_[i]) == 0) continue;
-        if(level == 1) os << " " << i << ":";
+        if(level == 1 && Abs(data_[i]) == 0)
+          continue;
+        if(level == 1)
+          os << " " << i << ":";
+
         os << data_[i];
-        if(i < size_-1) os << separator;
+
+        if(i < size_-1)
+          os << separator;
         nnz++;
       }
 
@@ -1165,7 +1194,7 @@ namespace CoupledField {
   template <typename T> 
   void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v) const
   {
-    if( size_ != 3 || b.size_ != 3 )
+    if( size_ != 3 && b.size_ != 3 )
       EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
 
     v.Resize(3);
@@ -1186,7 +1215,7 @@ namespace CoupledField {
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  
    
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<typename T>
   Vector<T> &Vector<T>::operator=(const Vector<T> &x)

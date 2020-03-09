@@ -3,17 +3,16 @@
 #include "MatVec/Matrix.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include <math.h>
 #include "Optimization/TransferFunction.hh"
 #include "PDE/StdPDE.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Driver/Assemble.hh"
 #include "Optimization/Optimization.hh"
 #include <limits>
 
-DECLARE_LOG(sgp)
 DEFINE_LOG(sgp, "sgp")
 
 using namespace CoupledField;
@@ -91,12 +90,12 @@ void SGP::PostInit()
   obj->PostInit();
 
   /** Setup material tensor E_0 */
-  E_0.Resize(3,3);
-  SinglePDE * pde = Optimization::context->pde;
-  BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm("LinElastInt", optimization->GetDesign()->GetRegionId(), pde, pde, false);
-  shared_ptr<CoefFunctionOpt> coef = Optimization::context->mat->GetMatCoef("LinElastInt", c);
-  LocPointMapped lpm;
-  coef->orgMat->GetTensor(E_0,lpm);
+  assert(Optimization::manager.context.GetSize() == 1);
+  assert(optimization->GetDesign()->GetRegionIds().GetSize() == 1);
+  OptimizationMaterial* mat = Optimization::context->mat;
+  CoefFunctionConst<double>* om = dynamic_cast<CoefFunctionConst<double>*>(mat->GetMatCoef(mat->stiff, optimization->GetDesign()->GetRegionId())->orgMat.get());
+  E_0 = om->GetTensor();
+  assert(E_0.GetNumRows() == 3);
 
   /** Setup inner variable material Tensor E_inner */
   DesignSpace* space = optimization->GetDesign();

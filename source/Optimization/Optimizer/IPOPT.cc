@@ -15,7 +15,6 @@
 using namespace CoupledField;
 
 // declare class specific logging stream
-DECLARE_LOG(ipopt)
 DEFINE_LOG(ipopt, "ipopt")
 
 

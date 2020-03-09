@@ -1,3 +1,4 @@
+
 #include <assert.h>
 #include <stdlib.h>
 #include <algorithm>
@@ -7,7 +8,6 @@
 #include <sstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
@@ -33,7 +33,7 @@ using std::pair;
 using namespace CoupledField;
 class DesignStructure;
 
-DECLARE_LOG(conditions)
+DEFINE_LOG(conditions, "conditions")
 
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
@@ -79,10 +79,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
   // validated in StressConstraint::GetApplications()
   stressType_ = stressType.Parse(pn->Get("stress")->As<string>());
-
-  // default is set in Function, may this moves later to Function, too
-  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
-    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
 
   // set number of displacement constraints realized by multiple output constraints
   if (pn->Has("output") && pn->Get("output")->Has("displacement") && pn->Get("output")->Get("displacement")->Has("multiple_nodes"))
@@ -839,9 +835,6 @@ void Condition::ToInfo(PtrParamNode in)
   //  in->Get("delta_logging")->SetWarning("no value given");
   // else
   //  in->Get("delta_logging")->SetValue(delta_logging);
-
-  if(region != ALL_REGIONS)
-    in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
 
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());

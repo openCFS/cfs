@@ -4,101 +4,118 @@
 
 #include "DataInOut/ParamHandling/XmlReader.hh"
 
+#include <fstream>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+
+using namespace boost::log;
+namespace expr = boost::log::expressions;
+
 namespace CoupledField {
 
-  
-  LogConfigurator::LogConfigurator(const std::string& confFile) :
-    confFile_(confFile)
-  {    
-    // Set some default output modifiers for the log streams
-    add_modifier("*", prepend_prefix);
-    //add_modifier("*", prepend_time("$hh:$mm:$ss "), "", INT_MAX );
-    add_modifier("*", append_enter);
-    flush_log_cache();
+// an alias to simplify the template stuff
+typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
+
+// needed to extract the correct level from xml file
+const std::map<std::string, int> logLevelMap = {
+    {"disable_all", logging::level_disable_all},
+    {"default_"   , logging::level_default_},
+    {"enable_all"   , logging::level_enable_all},
+    {"all"   , logging::level_enable_all},
+    {"fatal"      , logging::level_fatal},
+    {"err"        , logging::level_err},
+    {"trace"      , logging::level_trace},
+    {"trace2"     , logging::level_trace2},
+    {"dbg"        , logging::level_dbg},
+    {"dbg2"       , logging::level_dbg2},
+    {"dbg3"       , logging::level_dbg3},
+    {"warn"       , logging::level_warn},
+    {"info"       , logging::level_info}
+};
+
+void LogConfigurator::ParseLogConfFile(const std::string& confFile) {
+
+  boost::log::add_common_attributes();
+
+  // Query filename from option parser
+  if( confFile == "") {
+    // Add default logger to prevent default logging from kicking in
+
+    boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
+    sink->set_filter(expressions::attr<int>("Severity") > 10000); // set to always fail
+
+    boost::shared_ptr<std::ostream> stream { &std::cout, boost::null_deleter { } };
+    sink->locked_backend()->add_stream(stream);
+
+    core::get()->add_sink(sink);
+
+    return;
   }
 
+  // If file is defined, create new xml instance and parse file
+  PtrParamNode root = XmlReader::ParseFile(confFile);
 
-  void LogConfigurator::AddAppender(const std::string& logStream,
-                                    const std::string& appender,
-                                    const std::string& detail ) {
-    if( appender == "cout" ) {
-      add_appender( logStream, write_to_cout);
-    } else if ( appender == "file" ) {
-      add_appender( logStream, write_to_file(detail));
-    } else {
-      EXCEPTION("LogConfigurator knows only appender of type 'cout' "
-                << "and 'file', but not '" << appender << "'");
-    }
-    flush_log_cache();
+  // Get list of classes
+
+  if( root->GetName() != "logging" ) {
+    EXCEPTION("Root-Node for logging definition must have name <logging>");
   }
 
-  void LogConfigurator::SetLogLevel( const std::string& logStream,
-                                     const std::string& level ) {
-    if( level == "off" ) {
-      manipulate_logs(logStream).disable();
-    } else if( level == "dbg3" ) {
-      manipulate_logs(logStream).enable(::boost::logging::level::dbg3);
-    } else if( level == "dbg2" ) {
-      manipulate_logs(logStream).enable(::boost::logging::level::dbg2);
-    } else if( level == "dbg" ) {
-      manipulate_logs(logStream).enable(::boost::logging::level::dbg);
-    } else if( level == "trace2" ) {
-      manipulate_logs(logStream).enable(::boost::logging::level::trace2);
-    } else if( level == "trace" ) {
-      manipulate_logs(logStream).enable(::boost::logging::level::trace);
-    } else if( level == "all" ) {
-      manipulate_logs(logStream).enable(::boost::logging::level::enable_all);
-    } else {
-      EXCEPTION("Log level '" << level << "' not defined!");
-    }
-    flush_log_cache();
-  }
+  ParamNodeList classes  = root->GetChildren();
 
-  void LogConfigurator::ParseLogConfFile() {
-   
-    // Query filename from option parser
-    if( confFile_ == "") return;
-    
-    // If file is defined, create new xml instance and parse file
-    PtrParamNode root = XmlReader::ParseFile(confFile_);
-    
-    // Get list of classes
-    
-    if( root->GetName() != "logging" ) {
-      EXCEPTION("Root-Node for logging definition must have name <logging>");
-    }
-    
-    ParamNodeList classes  = root->GetChildren();
-    
-    // Loop over all classes
-    for( UInt iClass = 0; iClass < classes.GetSize(); ++iClass ) {
+  // Loop over all classes
+  for( UInt iClass = 0; iClass < classes.GetSize(); ++iClass ) {
 
-      PtrParamNode classNode = classes[iClass];
-      std::string className = classNode->Get("name")->As<std::string>();
-      std::string level = classNode->Get("level")->As<std::string>();
-      
-      // Call for each class the SetLogLevel-method
-      this->SetLogLevel(className, level );
+    PtrParamNode classNode = classes[iClass];
+    std::string className = classNode->Get("name")->As<std::string>();
+    std::string level = classNode->Get("level")->As<std::string>();
 
-      // Loop over all children (= appender definitions)
-      ParamNodeList appenderNodes = classNode->GetChildren();
+    // Remember log level
+    int logLevel = logLevelMap.at(level);
 
-      // Call AddAppender for every childnode
-      for( UInt iApp = 0; iApp < appenderNodes.GetSize(); ++iApp ) {
-        PtrParamNode appNode = appenderNodes[iApp];
-        
-        // distinguish type of appender
-        if( appNode->GetName() == "cout") {
-          this->AddAppender(className, "cout", "");
-        }
-        if( appNode->GetName() == "file") {
-          std::string fileName = appNode->Get("name")->As<std::string>();
-          this->AddAppender(className, "file", fileName);
-        }
+    // Loop over all children (= appender definitions)
+    ParamNodeList appenderNodes = classNode->GetChildren();
+
+    boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
+    sink->set_filter(expr::attr<int>("Severity") >= logLevel && expressions::attr<std::string>("bAttrClassName") == className);
+
+    sink->set_formatter(expr::stream << expr::attr< boost::posix_time::ptime >("TimeStamp") <<
+        " [" << bAttrClassName << ":" << expr::attr< unsigned int >("LineID") << "] " << expr::smessage);
+
+    // add stream for every childnode
+    for (UInt iApp = 0; iApp < appenderNodes.GetSize(); ++iApp) {
+      PtrParamNode appNode = appenderNodes[iApp];
+
+      // distinguish type of appender
+      if (appNode->GetName() == "cout") {
+
+        boost::shared_ptr<std::ostream> stream { &std::cout, boost::null_deleter { } };
+        sink->locked_backend()->add_stream(stream);
+
+      } else if (appNode->GetName() == "file") {
+        std::string fileName = appNode->Get("name")->As<std::string>();
+
+        sink->locked_backend()->add_stream(boost::make_shared< std::ofstream >(fileName));
       }
     }
+
+    core::get()->add_sink(sink);
   }
+}
 
-
+boost::log::sources::severity_logger<int> LogConfigurator::getLogger(const std::string& loggerName) {
+    boost::log::sources::severity_logger<int> logger = sources::severity_logger<int>();
+    logger.add_attribute("bAttrClassName", boost::log::attributes::constant<std::string>(loggerName));
+    return logger;
+}
 
 }

@@ -13,6 +13,7 @@ ICModesInt(BaseBOperator * bOp,
            bool coordUpdate )
            : BDBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, dData, factor, coordUpdate ) {
   
+  this->type_ = BiLinearForm::IC_MODES_INT;
   this->name_ = "ICMOdesInt";
   this->gOperator_ = gOp;
   this->isSymmetric_ = true;

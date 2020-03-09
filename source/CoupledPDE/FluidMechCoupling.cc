@@ -42,6 +42,8 @@ namespace CoupledField {
     couplingName_ = "FluidMechDirect";
     materialClass_ = FLOW;
 
+    formulation_ = NO_SOLUTION_TYPE;
+
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 

@@ -15,13 +15,20 @@ This section shows which steps are necessary to define a postprocessing result. 
 ```
 SolutionTypeEnum.Add(MAG_FORCE_MAXWELL_DENSITY, "magForceMaxwellDensity");
 ```
-and add it also in the [Environment.hh](/source/General/Environment.hh) file as
+where the string (in our case magForceMaxwellDensity) has to be the same name as defined in the .xsd file.
+Furthermore add it in the [Environment.hh](/source/General/Environment.hh) file as
 ```
 // --- flux / derived quantities --
 MAG_FLUX_DENSITY, MAG_FLUX, MAG_NORMAL_FLUX_DENSITY, MAG_FLUX_DENSITY_SURF, MAG_FIELD_INTENSITY, MAG_EDDY_CURRENT_DENSITY,
 MAG_COIL_CURRENT_DENSITY, MAG_TOTAL_CURRENT_DENSITY, MAG_POTENTIAL_DIV, MAG_FORCE_LORENTZ_DENSITY,
 MAG_FORCE_MAXWELL_DENSITY, MAG_EDDY_POWER_DENSITY, MAG_ENERGY_DENSITY, MAG_CORE_LOSS_DENSITY,
 MAG_JOULE_LOSS_POWER_DENSITY, MAG_JOULE_POWER_LOSS,
+```
+Then also the unit has to be added in the [Environment.hh](/source/General/Environment.hh) file as
+```
+case MAG_FORCE_VWP:
+return "N";
+break;
 ```
 * The next step is go into the PDE, section DefinePostProcResults, e.g. in [MagEdgePde.cc](/source/PDE/MagEdgePDE.cc)
 * Define a new shared pointer as

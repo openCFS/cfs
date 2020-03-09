@@ -12,7 +12,6 @@
 namespace CoupledField
 {
 
-DECLARE_LOG(cfc)
 DEFINE_LOG(cfc, "coefFunctionCache")
 
 // ==========================================================================
