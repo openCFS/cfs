@@ -2,7 +2,8 @@ Build Dependencies for CFS
 ==========================
 
 The files in this directory are tested in the build [pipeline](/.gitlab-ci.yml) in docker containes.
-The filename convention follows form the naming of the official docker containers on [docker hub](https://hub.docker.com), i.e. `<IMAGE>:<tag>`, where the default tag `latest` can be omitted.
+The filename convention must be adapted from the naming of the official docker containers on [docker hub](https://hub.docker.com), i.e. `<IMAGE>:<tag>`.
+We use `<IMAGE>_<tag>.md` since windows does not support `:` in file names.
 
 Typically older instruction will keep on working for newer OS versions, thus we use symlinks to point to them.
 Once an instruction breaks,
