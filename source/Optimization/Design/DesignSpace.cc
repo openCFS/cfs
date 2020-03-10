@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -53,11 +52,7 @@ using std::complex;
 using std::string;
 using boost::lexical_cast;
 
-// declare class specific logging stream
-DECLARE_LOG(designSpace)
 DEFINE_LOG(designSpace, "designSpace")
-// declare class specific logging stream
-DECLARE_LOG(ersatz)
 DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
 DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)

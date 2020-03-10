@@ -13,6 +13,7 @@ variables:
 
 # stages in the pipeline run in succession
 stages:
+  - check
   - build # config and build combined
   - test # we may have several test configs for one build
   - deploy
@@ -22,7 +23,8 @@ stages:
   only:
     refs:
       - master # for the master branch
-      - /^test-.*$/ # for branches/tags called "test-*"
+      - /^test.*$/ # for branches/tags called "test*"
+      - /^.*-test$/ # for branches/tags called "*-test"
       - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
       - schedules # For scheduled pipelines
 
@@ -44,11 +46,82 @@ cache:
     - build/lib*
 
 #################################################
+# Check STAGE
+#################################################
+# Check the revision of the testsuite submodule
+testsuite-revision:
+  stage: check
+  tags:
+    - git
+  variables:
+    # we clone to make sure we have everyting (including current names of the SHAs)
+    GIT_STRATEGY: clone
+  before_script:
+    - git --no-pager log -1 --pretty=tformat:'%h %D'
+    - echo "$CI_COMMIT_REF_NAME"
+  script:
+    # check in Testsuite submodule
+    - cd Testsuite
+    - git --no-pager log -1 --pretty=tformat:'%h %D'
+    # check if we are on a branch called like the branch from CFS (or still on master)
+    - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
+  after_script:
+    - pwd # debug
+  cache: {} # disable
+  allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
+  <<: *default_pipeline_rules
+
+# this job is intended as a warning if the piepline has changed
+# it is created only if there are changes, and will always fail (but is allowed to)
+pipeline-changes:
+  extends: .default_pipeline_rules
+  stage: check
+  tags:
+    - git
+  before_script:
+    - git diff HEAD~1 -- .gitlab-ci.yml
+  script:
+    - /the/pipeline/has/changed
+  after_script: []
+  allow_failure: true
+  cache: {} # disable
+  only:
+    changes:
+      - .gitlab-ci.yml
+
+# this job is intended as a warning if the piepline has been skipped by commit messages
+#  
+pipeline-skip:
+  extends: .default_pipeline_rules
+  stage: check
+  tags:
+    - linux
+  before_script:
+    - echo "$CI_COMMIT_MESSAGE" > message
+    - cat message
+    - sed -z 's/\n/ /g' message > message-oneline
+  script:
+    # print files without match (-L) and check for "message", i.e. "skip-XXX" is not in commit message 
+    - grep -v skip-platform-builds message-oneline
+    - grep -v skip-stable-tests message-oneline
+    - grep -v skip-testsuite-tests message-oneline
+    - grep -v skip-gcc-builds message-oneline
+    - grep -v skip-python-tests message-oneline
+  after_script: []
+  allow_failure: true
+  cache: {} # disable 
+
+#################################################
 # BUILD STAGE
 #################################################
 # Here we define the build jobs, if one fails we do not need to test
 
 .default_build_job: &default_build_job
+  extends: .default_pipeline_rules
+  # do not add this job if commit message contains 'skip-gcc-builds'
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
   script:
     - cat pre_cmd || touch pre_cmd # be sure pre_cmd exists (it may contain scl-enable)
     # we use the devtoolset for any second-level configure things to have the correct environment
@@ -67,7 +140,6 @@ cache:
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/config_cmd # needed in test to apply same configure command on different runner
     expire_in: 3 days
-  <<: *default_pipeline_rules
 
 .gcc_before: &gcc_before
   before_script:
@@ -155,6 +227,93 @@ build:gcc7max:
   <<: *gcc_before
   <<: *default_build_job
 
+# Template for the platform builds
+.platform:image:
+  stage: build
+  tags:
+    - docker
+  after_script: []
+  # include the default pipeline rules
+  extends: .default_pipeline_rules
+  # add an additional rule:
+  # we only run this 
+  #  1) if the variable $PLATFORM is present, and
+  #  2) the variable $IMAGE (defined in jobs) matches the pattern in $PLATFORM
+  # e.g. set PLATFORM=/(centos:7)|(ubuntu)/ to test centos:7 and ubuntu
+  # in fact this will also test centos (i.e. the latest image) due to a BUG?
+  # for further details see https://docs.gitlab.com/ee/ci/variables/README.html#environment-variables-expressions
+  only:
+    variables:
+      - $PLATFORM && $IMAGE =~ $PLATFORM
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-platform-builds/
+  # disable artifacts and cache
+  artifacts: {}
+  cache: {}
+  # switch off cloning the Testsuite submodule
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  # install dependecies in the docker image
+  before_script:
+    # debug output
+    - echo "IMAGE=$IMAGE"
+    - echo "PLATFORM=$PLATFORM"
+    - cat /etc/*release
+    # run the setup instructions for this IMAGE
+    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/$IMAGE.md" | bash -e
+  # run the README which contains build instructions
+  script:
+    - ./share/scripts/mdsh --eval 'README.md' | bash -e
+
+# add all platforms we can build on. In order to actually activate them set PLATFORM accordlingly (see above)
+# the IMAGE variable should be set according to the 'image' (docker runner option) and requires
+# a correctly named instruction in share/doc/developer/build-dependencies
+platform:fedora:
+  extends: .platform:image
+  image: fedora
+  variables:
+    IMAGE: "fedora"
+
+# the latest LTS release
+platform:ubuntu:
+  extends: .platform:image
+  image: ubuntu
+  variables:
+    IMAGE: "ubuntu"
+
+platform:ubuntu:16.04:
+  extends: .platform:image
+  image: ubuntu:16.04
+  variables:
+    IMAGE: "ubuntu:16.04"
+
+# the latest stable release, regardless of LTS status
+platform:ubuntu:rolling:
+  extends: .platform:image
+  image: ubuntu:rolling
+  variables:
+    IMAGE: "ubuntu:rolling"
+
+platform:debian:
+  extends: .platform:image
+  image: debian
+  variables:
+    IMAGE: "debian"
+
+platform:centos:
+  extends: .platform:image
+  image: centos
+  variables:
+    IMAGE: "centos"
+
+platform:centos:7:
+  extends: .platform:image
+  image: centos:7
+  variables:
+    IMAGE: "centos:7"
+
+
 # re-build everything
 complete-build:linux:
   stage: build
@@ -179,6 +338,11 @@ complete-build:linux:
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
+  extends: .default_pipeline_rules
+  # disable if a) we have no gcc builds
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
   before_script:
     - mkdir -p build
     - cd build # descend in build
@@ -192,22 +356,32 @@ complete-build:linux:
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
   # no chache for testing necessary - binary comes from artifacts
   cache: {}
-  <<: *default_pipeline_rules
 
 
 # this is the config that has to pass
 .test_stable: &test_stable
+  extends: .ctest_default
+  # disable also if 'skip-stable-tests' is contained in commit message
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   script:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso" --track $CDASH_TRACK # exclude the install step and the failing tests
-  <<: *ctest_default
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon" --track $CDASH_TRACK # exclude the install step and the failing tests
 
 # test everything
 .test_all_multicore: &test_all_multicore
+  extends: .ctest_default
+  # disable also if 'skip-testsuite-tests' is contained in commit message
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   script:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
@@ -215,7 +389,6 @@ complete-build:linux:
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
-  <<: *ctest_default
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependecies
@@ -331,6 +504,37 @@ testsuite:gcc7max:linux:
   dependencies:
     - build:gcc7max
 
+
+python:stable:
+  extends: .ctest_default
+  # disable if 'skip-python-tests' is found in commit message
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-python-tests/
+  tags:
+    - python
+  stage: test
+  variables:
+    TEST_NAME: "stable"
+    EXCLUDE: "nrfcommon"
+  before_script:
+    - mkdir -p build
+    - cd build
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME"  -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DPYTHON_TESTS=ON ..
+  script:
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - git checkout HEAD~1 # back one revision and then update
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
+
+python:all:
+  extends: python:stable
+  variables:
+    TEST_NAME: "all"
+    EXCLUDE: ""
+  allow_failure: true
+
 #################################################
 # DEPLOY STAGES
 #################################################
@@ -376,16 +580,34 @@ install_on_draco:
     name: share_programs
   <<: *deploy_rules
 
-# this creates the XML-schema (without optimization) and copies it to cfs-doc/xml
+# this creates the XML-schema (without optimization) and copies it to cfs-doc/xml/<branch>/
 xml_to_cfs-doc:
+  extends: .deploy_rules  
   dependencies: []
-  script:
+  before_script:
     - mkdir -p build
+    - mkdir -p public
     - cd build
     - cmake -DDISABLE_OPTIMIZATION=ON -DBUILD_TESTING=OFF ..
     - cd share/xml
     - make
-    - scp -r CFS-* cfs-doc:/var/www/xml/.
+  script:
+    - mkdir -p $CI_COMMIT_REF_NAME
+    - mv CFS-* $CI_COMMIT_REF_NAME
+    - scp -r $CI_COMMIT_REF_NAME cfs-doc:/var/www/xml/.
   environment:
-    name: cfs-dev_xml
-  <<: *deploy_rules
+    name: cfs-dev_xml/$CI_COMMIT_REF_NAME
+    url: https://cfs-doc.mdmt.tuwien.ac.at/xml/$CI_COMMIT_REF_NAME/CFS-Simulation/CFS.xsd
+
+xml_to_cfs-doc_tag:
+  extends: xml_to_cfs-doc
+  only:
+    refs:
+      - tags # only if pipeline is triggerd for a tag
+  script:
+    - mkdir -p $CI_COMMIT_TAG
+    - mv CFS-* $CI_COMMIT_TAG   
+    - scp -r $CI_COMMIT_TAG cfs-doc:/var/www/xml/.
+  environment:
+    name: cfs-dev_xml/$CI_COMMIT_TAG
+    url: https://cfs-doc.mdmt.tuwien.ac.at/xml/$CI_COMMIT_TAG/CFS-Simulation/CFS.xsd

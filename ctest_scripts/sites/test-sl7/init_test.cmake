@@ -1,1 +1,0 @@
-../test-ubuntu14/init_test.cmake

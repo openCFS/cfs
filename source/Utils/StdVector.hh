@@ -21,6 +21,13 @@ namespace CoupledField {
   class StdVector{
   public:
 
+    //! public typedef for STL compatibility
+    typedef TYPE value_type;
+    typedef TYPE& reference;
+    typedef const TYPE& const_reference;
+    typedef ptrdiff_t difference_type;
+    typedef unsigned int size_type;
+    
     // =======================================================================
     //  STL-COMPATIBLE ITERATOR DEFINITIONS
     // =======================================================================
@@ -197,13 +204,17 @@ namespace CoupledField {
 
     //! Constructor with inital size.
     //! All entries are filled with zeroes
-    explicit StdVector(unsigned int size);
+    explicit StdVector(size_type size);
 
     //! Copy constructor
     StdVector(const StdVector<TYPE> & vec);
 
     //! Copy constructor with std::vector
     StdVector(const std::vector<TYPE> & vec);
+
+    //! STL-compatible version
+    template <class InputIterator>
+    StdVector (InputIterator first, InputIterator last);
 
     //! Destructor
     ~StdVector();  
@@ -229,13 +240,16 @@ namespace CoupledField {
     //! True, if vector is empty
     inline bool IsEmpty() const {return (size_? false : true);}
   
+    //! True, if vector is empty
+    inline bool empty() const {return (size_? false : true);}
+  
     //! Returns capacity of the vector
-    inline unsigned int GetCapacity() const {return capacity_;}
+    inline size_type GetCapacity() const {return capacity_;}
 
     /** Increases the capacity.
      * If the new capacity is smaller than the current one nothing happens.
      * Otherwise the old data is copied up to size and the rest is uninitialized! */
-    void Reserve(unsigned int capacity);
+    void Reserve(size_type capacity);
 
     //! Delete non-used reserved memory
     
@@ -247,18 +261,24 @@ namespace CoupledField {
     void Trim();
     
     //! Get the length of the vector
-    inline unsigned int GetSize() const {return size_;}
+    inline size_type GetSize() const {return size_;}
+
+    //! Get the length of the vector
+    inline size_type size() const {return size_;}
+
+    //! Get maximal length of vector
+    inline size_type max_size() const {return std::numeric_limits<size_type>::max();}
 
     /** Set the length of the vector but might keep the capacity!
      * Will keep data.
      * @param size if smaller capacity only the internal size parameter is adjusted.
      *        If larger than the current capacity the old data is copied!
-     * @note Additional data is NOT initialized. only Resize with init parameter sets ALL data */
-    inline void Resize(const unsigned int size);
+     * @note Additional data is NOT initialized, and Resize with init parameter sets ALL data */
+    void Resize(size_type size);
 
     /** Set the length of the vector and initialize
      * @note Init() is called with this value */
-    inline void Resize(const unsigned int size, TYPE entry);
+    void Resize(size_type size, TYPE entry);
     
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
@@ -294,7 +314,7 @@ namespace CoupledField {
 
     /** Imports data from extern, adjusts internal size and capacity.
      * Any existing data is overwritten. */
-    void Import(const TYPE* source, unsigned int size);
+    void Import(const TYPE* source, size_type size);
     
     /** Add element of the same type at the end of the vector.
      * If there is not enough capacity (GetCapacity()) the data is copied to a new data of doubled size.
@@ -311,6 +331,11 @@ namespace CoupledField {
       }
     }
 
+    /** Lower-case version for STL compatibility */
+    inline void push_back(const TYPE &y = TYPE()) {
+      Push_back(y);
+    }
+
     /** convenience function adding two elements */
     inline void Push_back(const TYPE& a, const TYPE& b) {
       Push_back(a);
@@ -318,14 +343,17 @@ namespace CoupledField {
     }
 
     //! Delete element from vector on position pos
-    void Erase(const unsigned int pos);
+    void Erase(size_type pos);
 
     //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-    void Erase(const unsigned int pos1, const unsigned int pos2);
+    void Erase(size_type pos1, size_type pos2);
 
     /** Insert the element at the given position, anything form that position on is moved one back.
      * @param pos the last valid pos is size which corresponds to an append */
-    void Insert(const unsigned int pos, const TYPE& dat);
+    void Insert(size_type pos, const TYPE& dat);
+    
+    //! Append 2nd vector at the end
+    void Append(const StdVector<TYPE>& vec );
 
     //! Return the position number of element x in the vector
 
@@ -363,7 +391,7 @@ namespace CoupledField {
     // ******************************************************
 
     /** Swap to entries */
-    void Swap(unsigned int idx1, unsigned int idx2);
+    void Swap(size_type idx1, size_type idx2);
 
     //! Return vector as separated string
     std::string Serialize( char separator = ',') const;
@@ -435,10 +463,10 @@ namespace CoupledField {
     void _Push_back_expand(const TYPE & y);
 
     //! Length of the vector
-    unsigned int size_;
+    size_type size_;
     
     //! Capacity of the vector
-    unsigned int capacity_;
+    size_type capacity_;
 
 
     //! Data of the vector
@@ -477,7 +505,7 @@ namespace CoupledField {
   
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE & StdVector<TYPE>::operator[] (const unsigned int i)
+  TYPE & StdVector<TYPE>::operator[] (size_type i)
   {     
     #ifdef CHECK_INDEX
     if (i >= size_){
@@ -491,7 +519,7 @@ namespace CoupledField {
 
   //! Element can be referred to as v[i]
   template<class TYPE>
-  const TYPE & StdVector<TYPE>::operator[] (const unsigned int i) const
+  const TYPE & StdVector<TYPE>::operator[] (size_type i) const
   {     
 #ifdef CHECK_INDEX
      if (i >= size_){

@@ -30,7 +30,7 @@ class FeSpaceConst : public FeSpace {
 public:
   
   //! Constructor
-  FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid );
+  FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid, bool isAVExc );
 
   //! Destructor
   virtual ~FeSpaceConst();
@@ -96,6 +96,8 @@ public:
   virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
                                           shared_ptr<FeSpace> space );
 
+  virtual void InsertElemsToCoilList(shared_ptr<ElemList> eL, shared_ptr<CoilList> cL);
+
 protected:
 
   //! This FeSpace does not approximate space.
@@ -115,10 +117,17 @@ protected:
   //! does not do anything
   virtual void MapNodalBCs();
 
+
+
 private:
 
   //! can be removed if this space is generalized
   std::set<EntityList::ListType> allowedEntities_;
+
+  bool isAVExc_;
+
+  //! maps every inserted ElemList to a CoilList (only needed for MagEdgeSpecialAVPDE)
+  boost::unordered_map<UInt, EntityIterator> elemToCoilMap_;
 
   //! checks the passed entity iterator if it is allowed
   void CheckEntityType(const EntityIterator ent) const;

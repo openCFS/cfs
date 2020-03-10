@@ -10,6 +10,7 @@
 
 // include solveStep drivers
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/SolveStepHyst.hh"
 #include "Driver/Assemble.hh"
 
 // include PDE classes
@@ -302,7 +303,11 @@ namespace CoupledField {
   }
   
   void DirectCoupledPDE::DefineSolveStep() {
-    solveStep_ = new StdSolveStep(*this);
+    if(isHysteresis_){
+			solveStep_ = new SolveStepHyst(*this);
+		} else {
+			solveStep_ = new StdSolveStep(*this);
+		}
   }
 	
 	

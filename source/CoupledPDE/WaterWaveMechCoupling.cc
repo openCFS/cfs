@@ -103,7 +103,7 @@ namespace CoupledField {
       dispFct->AddEntityList(actSDList);
 
       // First ensure, that we have no coupled eigenfrequency simulation:
-      DefCouplInt( "WaterWaveMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct,
+     DefCouplInt( "WaterWaveMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct,
           waterFct, actSDList, oneCoefFuncs, waterRegions );
 
       DefCouplInt( "WaterWaveMechPresMassCouplingInt", false, 1.0, MASS, waterFct,

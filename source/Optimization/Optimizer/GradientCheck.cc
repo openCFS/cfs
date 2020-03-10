@@ -5,7 +5,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -25,7 +24,7 @@
 
 using namespace CoupledField;
 
-DECLARE_LOG(optimizer)
+EXTERN_LOG(optimizer)
 
 GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
   BaseOptimizer(optimization, pn, Optimization::GRADIENT_CHECK)

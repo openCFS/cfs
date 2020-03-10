@@ -11,8 +11,6 @@
 
 namespace CoupledField
 {
-
-DECLARE_LOG(cff)
 DEFINE_LOG(cff, "coefFunctionForm")
 
 // ==========================================================================

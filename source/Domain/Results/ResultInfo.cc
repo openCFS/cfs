@@ -155,21 +155,12 @@ namespace CoupledField {
   }
 
   bool operator==( const ResultInfo& a, const ResultInfo& b ) {
-    
-    if (a.dofNames != b.dofNames) {
-      std::cerr << "-> dofNames are different\n";
-    }
+    return a.resultType == b.resultType && a.dofNames == b.dofNames &&
+           a.definedOn == b.definedOn && a.entryType == b.entryType;
+  }
 
-    if ( a.resultType != b.resultType ||
-         a.dofNames != b.dofNames ||
-         a.definedOn != b.definedOn ||
-         a.entryType != b.entryType ) {
- 
-      return false; 
-    } else {
-      return true;
-    }
-         
+  bool operator!=( const ResultInfo& a, const ResultInfo& b ) {
+    return !(a == b);
   }
 
   bool operator<( const ResultInfo& a, const ResultInfo& b ) {

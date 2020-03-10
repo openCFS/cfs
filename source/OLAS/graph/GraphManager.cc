@@ -6,12 +6,9 @@
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/IDBC_Graph.hh"
 
-
-DECLARE_LOG(graphMan)
-DEFINE_LOG(graphMan, "graphManager")
-
 namespace CoupledField {
 
+auto graphMan = LogConfigurator::getLogger("graphManager");
 
   // ===============
   //   Constructor
@@ -330,12 +327,12 @@ namespace CoupledField {
     
     LOG_TRACE(graphMan) << "Registering block " << blockNum;
     
-    if (IS_LOG_ENABLED(graphMan, dbg2) ){
+    //if (IS_LOG_ENABLED(graphMan, dbg2) ){
     LOG_DBG(graphMan) << "Detailed block information:";
     LOG_DBG(graphMan) << "\ttotal size: " << blockInfo->size;
     LOG_DBG(graphMan) << "\tlastFreeIndex: " << blockInfo->numLastFreeIndex;
     LOG_DBG(graphMan) << "\thasSubBlocks: " << blockInfo->hasSubBlocks;
-    }
+    //}
 
     // Be cautious
     if ( registrationDone_ == true ) {
@@ -386,12 +383,12 @@ namespace CoupledField {
 
     LOG_TRACE(graphMan) << "Registering block for multiharmonic analysis";
 
-    if (IS_LOG_ENABLED(graphMan, dbg2) ){
+    //if (IS_LOG_ENABLED(graphMan, dbg2) ){
     LOG_DBG(graphMan) << "Detailed block information:";
     LOG_DBG(graphMan) << "\ttotal size: " << blockInfo->size;
     LOG_DBG(graphMan) << "\tlastFreeIndex: " << blockInfo->numLastFreeIndex;
     LOG_DBG(graphMan) << "\thasSubBlocks: " << blockInfo->hasSubBlocks;
-    }
+    //}
 
     // Be cautious
     if ( registrationDone_ == true ) {
@@ -456,7 +453,7 @@ namespace CoupledField {
 
     // Just some logging for debugging
     LOG_TRACE(graphMan) << "Setting element connectivity";
-    if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+    //if( IS_LOG_ENABLED(graphMan, dbg3) ) {
       LOG_DBG3(graphMan) << "setCounterPart: " << (setCounterPart ? "yes" : "no");
       LOG_DBG3(graphMan) << "\t(rowBlock, rowNum)";
       for( UInt i = 0; i < rowBlocks.GetSize(); ++i ) {
@@ -466,7 +463,7 @@ namespace CoupledField {
       for( UInt i = 0; i < colBlocks.GetSize(); ++i ) {
         LOG_DBG3(graphMan) << "\t(" << colBlocks[i] << ", " << colNums[i] << ")"; 
       }
-    }
+    //}
     
     // Clear the arrays
     UInt nB = ( isMultHarm_ )? numBlocks_ * numBlocks_ : numBlocks_;
@@ -581,7 +578,7 @@ namespace CoupledField {
             }
 
             // --- logging output ---
-            if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+            //if( IS_LOG_ENABLED(graphMan, dbg3) ) {
               LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
                   << sbmRow << ", " << sbmCol << ")";
 
@@ -600,7 +597,7 @@ namespace CoupledField {
               LOG_DBG3(graphMan) << "edgeList2: ";
               for(UInt i=0; i <edgeList2_[0].size(); ++i )
                 LOG_DBG3(graphMan) << "\t" << edgeList2_[0][i];
-            }
+            //}
 
             // Insert information into graph for real dofs
             graph_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList1_[0] );
@@ -650,7 +647,7 @@ namespace CoupledField {
           }
 
           // --- logging output ---
-          if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+          //if( IS_LOG_ENABLED(graphMan, dbg3) ) {
             LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
                 << row << ", " << col << ")";
 
@@ -669,7 +666,7 @@ namespace CoupledField {
             LOG_DBG3(graphMan) << "edgeList2: ";
             for(UInt i=0; i <edgeList2_[col].size(); ++i )
               LOG_DBG3(graphMan) << "\t" << edgeList2_[col][i];
-          }
+          //}
 
           // Insert information into graph for real dofs
           graph_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList1_[col] );

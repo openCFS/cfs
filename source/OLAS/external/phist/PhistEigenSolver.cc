@@ -3,8 +3,6 @@
 
 using std::complex;
 
-
-DECLARE_LOG(pes)
 DEFINE_LOG(pes, "phistEigenSolver")
 
 namespace CoupledField {

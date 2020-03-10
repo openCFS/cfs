@@ -1,7 +1,6 @@
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
 #ifdef _OPENMP
   #include <omp.h>
@@ -10,8 +9,6 @@
 
 namespace CoupledField
 {
-
-DECLARE_LOG(coef)
 DEFINE_LOG(coef, "coef")
 
 CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SinglePDE* pde) : CoefFunction()

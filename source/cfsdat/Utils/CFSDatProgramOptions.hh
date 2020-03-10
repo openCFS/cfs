@@ -31,7 +31,7 @@ public:
   //! Standard constructor
   CFSDatProgramOptions( CoupledField::Integer argc, const char **argv );
 
-  ~CFSDatProgramOptions();
+  virtual ~CFSDatProgramOptions();
 
   //! Gather information from commandline and environment
 

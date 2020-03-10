@@ -46,7 +46,7 @@ namespace CoupledField {
       // Allocate memory for internal arrays
       NEWARRAY( colInd_, UInt, numEntries_ );
       NEWARRAY( rowPtr_, UInt, this->nrows_ + 1 );
-      NEWARRAY( diagPtr_, UInt, this->nrows_ );
+      NEWARRAY( diagPtr_, UInt, sizeof(origMat.diagPtr_) );
       NEWARRAY( data_, T, numEntries_ );
 
       // Copy information
@@ -57,7 +57,12 @@ namespace CoupledField {
 
       for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
         rowPtr_[i] = origMat.rowPtr_[i];
-        diagPtr_[i] = origMat.diagPtr_[i];
+      }
+      // only try to allocate if there is diagPtr_ in original matrix
+      if (origMat.diagPtr_){
+        for ( UInt i = 0; i < sizeof(origMat.diagPtr_); i++ ) {
+          diagPtr_[i] = origMat.diagPtr_[i];
+        }
       }
     }
 

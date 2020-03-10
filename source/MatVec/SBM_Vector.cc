@@ -290,6 +290,7 @@ namespace CoupledField {
         os <<   "sub-Vector #" << i
            << "\n--------------\n";
         os <<  subVec_[i]->ToString(level, separator );
+        os << "\n";
       }
     }
     return os.str();
@@ -555,7 +556,6 @@ namespace CoupledField {
     }
     return sqrt( norm );
   }
-
 
   // *****************
   //   Export vector

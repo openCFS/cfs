@@ -57,7 +57,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(heatcondpde)
   DEFINE_LOG(heatcondpde, "pde.heatcond")
 
 // ======================================================

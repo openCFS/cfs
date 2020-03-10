@@ -17,7 +17,6 @@
 
 #include "ArpackEigenSolver.hh"
 
-DECLARE_LOG(aes)
 DEFINE_LOG(aes, "arpackEigenSolver")
 
 

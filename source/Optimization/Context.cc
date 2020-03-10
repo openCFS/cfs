@@ -10,12 +10,10 @@
 #include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "PDE/LatticeBoltzmannPDE.hh"
 
 using namespace CoupledField;
 
-DECLARE_LOG(context)
 DEFINE_LOG(context, "context")
 
 Context::Context()

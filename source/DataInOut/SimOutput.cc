@@ -6,7 +6,6 @@
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simOutput)
   DEFINE_LOG(simOutput, "simOutput")
     
   

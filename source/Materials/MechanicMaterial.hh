@@ -59,6 +59,8 @@ namespace CoupledField {
     void GetScalar( Complex& param, MaterialType matType, 
 		    Global::ComplexPart dataType ) const;
 
+    void GetScalar( Integer& param, MaterialType matType) const;
+
     //! get a real vector
     void GetVector( Vector<Double>& param, MaterialType matType,
 			    Global::ComplexPart dataType ) const;

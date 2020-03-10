@@ -20,7 +20,6 @@
 #include "Domain/Domain.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(bbint)
 DEFINE_LOG(bbint, "bbint")
 
 namespace CoupledField{

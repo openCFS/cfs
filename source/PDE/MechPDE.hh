@@ -51,7 +51,7 @@ namespace CoupledField
 
     static Enum<TestStrain> testStrain;
 
-  protected:
+protected:
 
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
     void ReadDampingInformation();
@@ -171,11 +171,6 @@ namespace CoupledField
     Matrix<double> vonMisesMatrix_2d_;
     Matrix<double> vonMisesMatrix_3d_;
 
-/*old
-    //! flag if effective Mass or Stiffness formulation shall be used 
-    //! effMass_ = true -> mass formulation; effMass_ = false -> stiffness formualation
-    bool effMass_;
-*/
     StdVector<std::string> dofNames_;
 
     // ========================================================================

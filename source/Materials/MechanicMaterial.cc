@@ -17,9 +17,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(mat)
 DEFINE_LOG(mat, "mat")
-
 
 namespace CoupledField
 {
@@ -317,6 +315,21 @@ namespace CoupledField
       }
     }    
   }
+
+  void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
+
+      integerMap::const_iterator pos;
+      pos = integerParams_.find( matType );
+      std::string value;
+
+      if ( pos == integerParams_.end() ) {
+        std::string dim = "scalar integer";
+        matTypeNotInDataBase( matType, dim );
+      }
+      else {
+        param=pos->second;
+      }
+    }
 
 
   void MechanicMaterial::GetVector( Vector<Double>& param, 

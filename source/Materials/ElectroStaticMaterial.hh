@@ -55,6 +55,7 @@ namespace CoupledField {
     void GetScalar( Complex& param, MaterialType matType, 
 		    Global::ComplexPart dataType ) const;
 
+    void GetScalar( Integer& param, MaterialType matType)  const;
 
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType,
@@ -68,17 +69,16 @@ namespace CoupledField {
 
     //! Finalize material
     void Finalize();
-    
-    //======================== for hysteresis =======================================
-    //! compute scalar differential parameter
-    Double ComputeScalarDiffVal( UInt nrElem, Double Xval );
-
-
-    //set values for differential material approach
-    void SetPreviousHystVal( UInt nrElem, Double Xval );
-
-    Double ComputeScalarHystVal( UInt nrElem, Double Xval );
-
+//
+//    //======================== for hysteresis =======================================
+//    //! compute scalar differential parameter
+//    Double ComputeScalarDiffVal( UInt nrElem, Double Xval );
+//
+//
+//    //set values for differential material approach
+//    void SetPreviousHystVal( UInt nrElem, Double Xval );
+//
+//    Double ComputeScalarHystVal( UInt nrElem, Double Xval );
 
   private:
 

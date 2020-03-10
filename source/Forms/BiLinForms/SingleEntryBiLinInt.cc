@@ -5,16 +5,16 @@
 namespace CoupledField {
 
 
-SingleEntryBiLinInt::SingleEntryBiLinInt(UInt numDofs, PtrCoefFct& val) : BiLinearForm()
-{
-  type_ = SINGLE_ENTRY_BILIN_INT;
-  name_ = type.ToString(type_);
-  numDofs_ = numDofs;
-  // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
-  // the check was removed. It came down to 2011 from andi hauk.
-  val_ = val;
-  isSymmetric_ = false; // from technical point of view: should be symmetric as a matrix with only one element can be considered symmteric
-}
+SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val, bool isSymmetric )
+    : BiLinearForm() {
+
+    name_ = "SingleEntryBiLinInt";
+    numDofs_ = numDofs;
+    // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
+    // the check was removed. It came down to 2011 from andi hauk.
+    val_ = val;
+    this->isSymmetric_ = isSymmetric;
+  }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val, 
                                            UInt dof, MathParser* mp ) 
@@ -33,7 +33,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val,
   if((val_->GetDependency() != CoefFunction::CONSTANT) && (val_->GetDependency() != CoefFunction::TIMEFREQ)) {
     EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
   }
-  isSymmetric_ = false;
+  this->isSymmetric_ = true;
 }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real, 
@@ -57,7 +57,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real,
   if((val_->GetDependency() != CoefFunction::CONSTANT) && (val_->GetDependency() != CoefFunction::TIMEFREQ)) {
     EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
   }
-   isSymmetric_ = false;
+   this->isSymmetric_ = true;
 }
 
 

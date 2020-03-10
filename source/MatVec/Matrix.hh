@@ -10,7 +10,7 @@
 #include "MatVec/opdefs.hh"
 #include "Utils/tools.hh"
 
-#ifdef EXPR_TEMPLATES
+#ifdef USE_EXPRESSION_TEMPLATES
 #include "MatVec/exprt/xpr2.hh"
 #endif
 
@@ -26,7 +26,7 @@ namespace CoupledField
 
   //! Concrete implementation of a dense matrix
   template<class TYPE>
-#ifdef EXPR_TEMPLATES
+#ifdef USE_EXPRESSION_TEMPLATES
   class Matrix: public DenseMatrix, public Dim2<TYPE, Matrix<TYPE> >
 #else
   class Matrix: public DenseMatrix 
@@ -261,6 +261,11 @@ namespace CoupledField
     /** See GetColMin() */
     void GetColMax(Vector<TYPE>& vec_out) const;
 
+    /* get maximal and minimal matrix entry */
+    TYPE GetMax() const;
+    TYPE GetMin() const;
+
+    void GetAbsValues(Matrix<TYPE>& AbsMatrix) const;
 
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
@@ -507,7 +512,7 @@ namespace CoupledField
     /** Check if the matrix contains +/- INF. To be used by asserts() */
     bool ContainsInf() const;
 
-#ifdef EXPR_TEMPLATES
+#ifdef USE_EXPRESSION_TEMPLATES
     // =======================================================================
     // INTERFACE TO EXPRESSION TEMPLATES
     // =======================================================================
@@ -596,7 +601,7 @@ namespace CoupledField
 
     //@}
 
-#endif // EXPR_TEMPLATES
+#endif // USE_EXPRESSION_TEMPLATES
     
     //! Multiply matrix by a scalar (this *= y)
     Matrix<TYPE> & operator*=( const TYPE y );
@@ -857,7 +862,7 @@ namespace CoupledField
   template<class TYPE>  std::ostream& operator << ( std::ostream & , 
                                                     const Matrix<TYPE> &);
   
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
   //! Explicit Transpose function
   template<class TYPE>
   Matrix<TYPE> Transpose( const Matrix<TYPE>& m ) {
@@ -1037,7 +1042,7 @@ namespace CoupledField
   //  rr being defined only in non-template-expression case
   // =======================================================================
 
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<class TYPE> template<class TYPE2>
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::operator+(const Matrix<TYPE2> &x) const
@@ -1159,7 +1164,7 @@ namespace CoupledField
     }
     return z;
   }
-#endif //EXPR_TEMPLATES
+#endif //USE_EXPRESSION_TEMPLATES
 
 } //end of namespace
 

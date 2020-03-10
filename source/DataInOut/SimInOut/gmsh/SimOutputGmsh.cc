@@ -20,7 +20,6 @@
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simOutputGmsh)
   DEFINE_LOG(simOutputGmsh, "SimOutputGmsh")
 
    //*****************

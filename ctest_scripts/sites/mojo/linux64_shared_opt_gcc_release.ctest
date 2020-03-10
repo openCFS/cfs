@@ -5,6 +5,7 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
+# note that setting this variable in site_specific_init.cmake does not give it to this script
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_release")
 
@@ -39,7 +40,6 @@ SET(CTEST_INITIAL_CACHE
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
-   PERF_TESTS:BOOL=ON
    PYTHON_TESTS:BOOL=ON
    UNIT_TESTS:BOOL=ON
    CFS_DEPS_PRECOMPILED:BOOL=ON
@@ -47,7 +47,7 @@ SET(CTEST_INITIAL_CACHE
    CFSDAT:BOOL=OFF
    USE_OPENMP:BOOL=ON
    # gcc 9 has a bug with CFS_NUM_THREADS > 1
-   CFS_TESTSUITE_THREADS:STRING="1"
+   CFS_TESTSUITE_THREADS:STRING=1
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=ON
    USE_CGNS:BOOL=OFF

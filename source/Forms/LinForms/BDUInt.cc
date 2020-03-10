@@ -72,6 +72,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
   void BDUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
   CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
                   EntityIterator& ent){
+
     // Declare necessary variables
      const Elem* ptElem = ent.GetElem();
      Matrix<VEC_DATA_TYPE> dMat, bdMat, bMat;
@@ -145,7 +146,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 
 
 
-       rhsCoefs_->GetVector(cVec,lp);  
+       rhsCoefs_->GetVector(cVec,lp);
        //elemVec += bMat * cVec * fac;
        
        //std::cout << "cVec" << std::endl;

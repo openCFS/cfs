@@ -12,6 +12,7 @@
     </xsd:documentation>
   </xsd:annotation>
 
+  <xsd:include schemaLocation="CFS_MAThysteresis.xsd"/>
 
   <!-- ******************************************************************* -->
   <!--   Definition of material for magnetic PDEs -->
@@ -22,7 +23,7 @@
       <xsd:element name="electricConductivity" type="DT_elecConductivity"/>
       <xsd:element name="magneticReluctivity_MagStrict" type="DT_MagstrictReluctivity" minOccurs="0"/>
       <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
-      <xsd:element name="hystModel" type="DT_MagHystModel" minOccurs="0"/>
+      <xsd:element name="hystModel" type="DT_HystModelMag" minOccurs="0"/>
       <xsd:element name="magnetoStrictionTensor_h_mag" type="DT_MagStrictTensor_mag" minOccurs="0"/>
       <xsd:element name="density" type="xsd:token" minOccurs="0"/>
       <xsd:element name="coreLoss" type="DT_CoreLoss" minOccurs="0"/>
@@ -309,151 +310,6 @@
       <xsd:element name="zScaling" type="DT_NonNegFloat"/>
     </xsd:sequence>
   </xsd:complexType>  
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of hysterese model                                     -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MagHystModel">
-    <xsd:choice>
-      <xsd:element name="preisach" type="DT_MagPreisachHystModel"/>
-      <xsd:element name="vectorPreisach" type="DT_MagVectorPreisachHystModel"/>
-    </xsd:choice>
-  </xsd:complexType>
-    
-  <xsd:complexType name="DT_MagPreisachHystModel">
- <!--  <xsd:documentation xml:lang="en">
-    Scalar Preisach model in magnetics is defined by
-     i) hSat / jSat = Saturation values for H-Field and Polarization Jp = mu_0*M (with M = magnetization)
-     ii) dirJ       = direction of Jp = direction of M
-     iii) a set of Preisach weights (the number of rows has to be specified by parameter dim_weights)
-    
-     For the magnetostrictive case
-     -) strainForm > if set to 1, the magnetostrictive g-form will be assumed as basis
-                    > if set to 0, the magnetostrictive h-form will be assumed as basis (DEFAULT)
-      Note that in both cases, [c^B], [h] and [nu^S] are provided as small signal parameter.
-      In case of g-form, those will be transformed to the [s^B], [g] and [nu^T] at the beginning of the simulation
-        and then during each iteration transformed back to [c^B], [h] and [nu^S].
-      Idea behind g-form: as [h]/[g] depends on Jp/M, [nu^S] = [nu^T] + [g][c^B][g]^t will do in case that
-                           [nu^T] is taken as basis
-    -) betaCoef > the irreversible strains are computed via a polynomial sum of the
-               the polarization, i.e.
-               S^i = beta_0 + beta_1*J + beta_2*J^2 + beta_3*J^3 ... beta_n*J^n
-            > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
-            > length of vector defined by dimCoefs 
-   </xsd:documentation>-->
-    <xsd:sequence>
-      <xsd:element name="hSat" type="xsd:double"/>
-      <xsd:element name="jSat" type="xsd:double"/>
-      <xsd:element name="dirJ" type="DT_Direction"/>
-      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
-      <xsd:element name="weights">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="100000000"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-      <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
-      <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
-      <xsd:element name="betaCoefs" minOccurs="0">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-          <xsd:minLength value="1"/> 
-            <xsd:maxLength value="11"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-    </xsd:sequence>
-  </xsd:complexType>
-  
-    <xsd:complexType name="DT_MagVectorPreisachHystModel">
-   <!-- <xsd:documentation xml:lang="en">
-     Vector Preisach model in magnetics is defined by
-     i) hSat / jSat = Saturation values for H-Field and Polarization Jp = mu_0*M (with M = magnetization)
-     ii) evalVersion    = type of model and implementation that shall be used
-                        1: classical model (Sutor2012), list based implementation
-                        2: revised model (Sutor2015), list based implementation (DEFAULT)
-                        10: classical model (Sutor2012), matrix based implementation
-                        20: revised model (Sutor2015), matrix based implementation
-     iii) rotResistance > parameter needed for classical and revised model
-                        > spcifies how strong the direction of the polarization changes in relation to the
-                          amplitude
-                        > classical model: xthres = |x_in|^k
-                        > revised model: xthres = k*|x_in|
-     iv)  angularDistance > parameter needed only for revised model
-                          > maximal angle that might remain inside the material between polarization and
-                              outer field; gets applied each time when rotation states change direction;
-                              angular distance decreases to 0 for amplitudes going towards saturation                        
-     v) a set of Preisach weights (the number of rows has to be specified by parameter dim_weights)
-    
-     Optional parameter:
-     a) angularClipping > if set to a value != 0, all stored direction vectors are clipped to multiples of this angular value (in rad)
-     b) angularResolution,amplitudeResolution > changes in rotation angle/input amplitude below these thresholds
-                                                are not resolved; old state remains unchanged
-     c) initialState > vector providing an initial input to the hyst operator that shall be applied before the
-                        actual simulation starts; can be used to simulate a material which starts in saturation
-                        (for that purpose, the initial input has to have an amplitude >= hSat of course)
-                       Attention: this has to be conform with boundary conditions, i.e. if you specify initial state
-                                  to be (hSat,0,0), the polarization must be allowed to point into x direction at the boundary
-                                  
-     Debug parameter:
-     x) printOut > if set to X!=0, the overlaid switching and rotation state (i.e. the Preisach plane) will be outputted
-                   to a bmp file (FOR EACH ELEMENT!) for each Xth time step
-     y) bmpResolution > resolution of the bmp images (only used if printOut != 0
-       
-     For the magnetostrictive case:
-     -) strainForm > if set to 1, the magnetostrictive g-form will be assumed as basis
-                    > if set to 0, the magnetostrictive h-form will be assumed as basis
-      Note that in both cases, [c^B], [h] and [nu^S] are provided as small signal parameter.
-      In case of g-form, those will be transformed to the [s^B], [g] and [nu^T] at the beginning of the simulation
-        and then during each iteration transformed back to [c^B], [h] and [nu^S].
-      Idea behind g-form: as [h]/[g] depends on Jp/M, [nu^S] = [nu^T] + [g][c^B][g]^t will do in case that
-                           [nu^T] is taken as basis
-      -) betaCoef > the irreversible strains are computed via a polynomial sum of the
-           the polarization, i.e.
-           S^i = beta_0 + beta_1*J + beta_2*J^2 + beta_3*J^3 ... beta_n*J^n
-        > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
-        > length of vector defined by dimCoefs
-   </xsd:documentation>-->
-    <xsd:sequence>
-      <xsd:element name="hSat" type="xsd:double"/>
-      <xsd:element name="jSat" type="xsd:double"/>
-      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0" default="2"/>
-      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
-      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
-      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
-     <xsd:element name="weights" minOccurs="1">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="100000000"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-      <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
-      <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="0"/>
-      <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="0"/>
-      <xsd:element name="initialState" minOccurs="0">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-              <xsd:minLength value="3"/> 
-            <xsd:maxLength value="3"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
-      <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
-      <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
-      <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
-      <xsd:element name="betaCoefs" minOccurs="0">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-          <xsd:minLength value="1"/> 
-            <xsd:maxLength value="11"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-    </xsd:sequence>
-  </xsd:complexType>
   
   <!-- ******************************************************************* -->
   <!--   Information on coil loss -->

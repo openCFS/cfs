@@ -240,7 +240,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     }
 
     this->srcRegions_.insert(ent->GetName());
-    //std::cout << "SRC Region: " << ent->GetName() << std::endl;
+    //std::cout << "Region: " << ent->GetName() << std::endl;
 
     //compute mean element volume
     if ( this->inverseType_ == CoefFunction::INVSOURCE ) {
@@ -260,7 +260,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     	    }
     	}
     	meanElemVol_ /= (Double)numEl;
-    	//std::cout << "Mean element volume: " <<  meanElemVol_  << std::endl;
+    	//std::cout << "Src-region, Mean element volume: " <<  meanElemVol_  << std::endl;
     }
 
     //====================================================
@@ -365,7 +365,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  //reset RHS
 		  this->solVec_.Init();
 
-		  //get actual solution of PDE at the nodes of source region
+  	  //get actual solution of PDE at the nodes of source region
 		  Vector<DATA_TYPE> actPDEsol(nodeListSource_->GetSize());
 		  actPDEsol.Init();
 		  EntityIterator entIt = nodeListSource_->GetIterator();
@@ -394,6 +394,10 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
   for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i){
     const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
     feFncVec[curP.first] += this->solVec_[curP.second];
+//    if (this->inverseType_ == CoefFunction::INVSOURCE && this->isActive_ ) {
+//      std::cout << "Pos:" << curP.first << "  ;  Val = " <<
+//        this->solVec_[curP.second] << std::endl;
+//    }
   }
 
   //reset that the rhsFnc is active
@@ -408,8 +412,12 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpac
 	//loop over the entitylist and obtain for each element the equation numbers
 	std::set<std::string>::iterator regIter = this->srcRegions_.begin();
 	for( ; regIter != this->srcRegions_.end(); ++regIter) {
+	  //std::cout << "Region: " << *regIter << std::endl;
+		//shared_ptr<NodeList> actSDList( new NodeList(this->srcGrid_ ) );
 		shared_ptr<NodeList> actSDList( new NodeList(this->srcGrid_ ) );
+		//RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
 		RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+		//actSDList->SetNodesOfRegion( curId );
 		actSDList->SetNodesOfRegion( curId );
 		EntityIterator ents = actSDList->GetIterator();
 		this->fctSolAssoc_.Reserve(this->fctSolAssoc_.GetSize()+actSDList->GetSize());

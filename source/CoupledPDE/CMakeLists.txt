@@ -11,6 +11,7 @@ SET(COUPLED_PDE_SRCS
   WaterWaveMechCoupling.cc
   LinFlowHeatCoupling.cc
   LinFlowAcouCoupling.cc
+  LinFlowMechCoupling.cc
   )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})

@@ -39,8 +39,6 @@ extern "C"
   #include <omp.h>
 #endif
 
-
-DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")
 
 namespace CoupledField

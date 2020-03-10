@@ -5,7 +5,6 @@
 #include <iostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "General/Enum.hh"
@@ -20,7 +19,6 @@
 
 
 // declare class specific logging stream
-DECLARE_LOG(snopt)
 DEFINE_LOG(snopt, "snopt")
 
 

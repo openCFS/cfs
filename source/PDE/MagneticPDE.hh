@@ -6,13 +6,12 @@
 #define FILE_CFS_MAGNETIC_PDE_HH
 
 #include <map>
-#include "SinglePDE.hh"
+#include <set>
+#include "MagBasePDE.hh"
 #include "Utils/Coil.hh"
 
 namespace CoupledField
 {
-  
-  
   //! Class for magnetic field calculation (eddy current case)
   
   //! This class is utilized to solve the magnetic problem (eddy current case)
@@ -21,7 +20,7 @@ namespace CoupledField
   //! In case of 3D time dependent / harmonic simulations an additional scalar
   //! potential \[\Phi\] is utilized to ensure that the solution is embedded
   //! in the space HCurl.
-  class MagneticPDE: public SinglePDE {
+  class MagneticPDE: public MagBasePDE {
     
   public:
     
@@ -36,27 +35,20 @@ namespace CoupledField
     //! pass pointer to mechanicalPDE for later use in nonlinear material evaluation
     void SetMagnetoStrictCoupling(SinglePDE *mechanicPDE);
     
-    //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
-    //! specifying coil results.
-    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
+//    //! Get method for specific coils. Needed e.g. by the SinglePDE for
+//    //! specifying coil results.
+//    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
     
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
 
-    bool coilOptimization_;
-
-    //! Is heat source (RHS) definition driven by interface between solid and void?
-    inline bool DoCoilOptimization() { return coilOptimization_; }
-
   protected:
     
-    //! Initialize NonLinearities
-    void InitNonLin();
+//    //! Initialize NonLinearities
+//    void InitNonLin();
     
-    void InitHystCoefs();
-    
-    //! read special boundary conditions (coils, magnets)
-    void ReadSpecialBCs();
+//    //! read special boundary conditions (coils, magnets)
+//    void ReadSpecialBCs();
     
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
@@ -70,8 +62,8 @@ namespace CoupledField
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
     
-    //! define the SoltionStep-Driver
-    void DefineSolveStep();
+//    //! define the SoltionStep-Driver
+//    void DefineSolveStep();
     
     //! Read special results definition
     void ReadSpecialResults();
@@ -82,47 +74,25 @@ namespace CoupledField
     PtrParamNode infoNode );
     //! Flag for mixed formulation
     
-    //! In case of a transient / harmonic 3D simulation, we need 
-    //! an additional scalar potential to ensure HCurl compatibility.
-    bool isMixed_;
+//    //! In case of a transient / harmonic 3D simulation, we need
+//    //! an additional scalar potential to ensure HCurl compatibility.
+//    bool isMixed_;
     
     // =======================================================================
     //   COILS
     // =======================================================================
+    LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "" );
     
-    //@{ \name Attributes related to coils
-    //! Map CoilID to coil definition
-    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
-    
-    //! Map regionIds to coil definitions 
-    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
-    CoilRegionMap coilRegions_;
-    
-    //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
-    
-    //! Tells if there are coils excited by voltage
-    bool hasVoltCoils_;
-    
-    //! Storage for CoefFunctions of external current density as source
-    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
-    //@}
-    
-    //! Coefficient function, containing the overall reluctivity
-    shared_ptr<CoefFunctionMulti> reluc_;
-    
-    //! Coefficient function, containing the overall conductivity
-    //shared_ptr<CoefFunctionMulti> conduc_;
+    // =======================================================================
+    //   HYSTERESIS
+    // =======================================================================
+    LinearForm* GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
+
+    BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity );
     
     //! Map containing the remanence (B excitation on RHS)
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
-    
-    /** Query parameter object for information on coils */
-    void ReadCoils();
-    
-    //! Initialize time stepping method
-    void InitTimeStepping();
     
     //! read in softening types
     void ReadSoftening();
@@ -139,16 +109,19 @@ namespace CoupledField
     //! flag for magn_strict coupling
     bool isMagnetoStrictCoupled_;
     
+    void CheckForConductivity();
+    bool anyRegionHasConductivity_;
+
     SinglePDE *mechanicPDE_;
     
     void FinalizeAfterTimeStep();
-    
-    bool regionApproxSet_;
-    std::map<RegionIdType,shared_ptr<ElemList> > SDLists_;
-    
-    //! This map stores the magnetization obtained by hysteresis coefFunctions
-    shared_ptr<CoefFunctionMulti> hysteresisPolarization_;
-    shared_ptr<CoefFunctionMulti> hysteresisMagnetization_;
+
+    // FROM NACS
+    //! In this set we store all coefficient functions which are related to
+    //! the penalty term in case of 3D mixed nodal magnetics, which computes
+    //! the grad-grad-term. We need it for the calculation of the eddy current
+    //! density.
+    std::set<shared_ptr<CoefFunctionFormBased> > mixedFormFunctor_;
     
   private:
     //! This coefficient function describes the velocity field.
@@ -156,7 +129,6 @@ namespace CoupledField
 
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
-
   };
   
 } // end of namespace

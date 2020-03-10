@@ -17,7 +17,6 @@ Enum<BaseMatrix::StructureType>("Matrix Structure Types",
     sizeof(structureTypeTuples) / sizeof(EnumTuple),
     structureTypeTuples); 
 
-
 std::string BaseMatrix::ToInfoString() const
 {
   return "st=" + structureType.ToString(GetStructureType()) + " et=" + entryType.ToString(GetEntryType()) + " mu=" + boost::lexical_cast<std::string>(GetMemoryUsage());

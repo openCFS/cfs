@@ -3,7 +3,6 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
@@ -38,7 +37,6 @@
 #include "Utils/tools.hh"
 #include "MatVec/Matrix.hh"
 
-DECLARE_LOG(func)
 DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()

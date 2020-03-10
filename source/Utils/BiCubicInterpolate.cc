@@ -1,12 +1,10 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Utils/BiCubicInterpolate.hh"
 #include "Utils/BiCubicInterpolateCoeff.hh"
 
 namespace CoupledField
 {
 
-DECLARE_LOG(bicubicappx)
 DEFINE_LOG(bicubicappx, "bicubicappx")
 
 BiCubicInterpolate::BiCubicInterpolate(StdVector<double> data, StdVector<double> a, StdVector<double> b, bool periodic) {

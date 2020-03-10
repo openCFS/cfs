@@ -79,10 +79,6 @@ message("HOME: ${HOME}")
 message("DAYOFWEEK: ${DAYOFWEEK}")
 message("")
 
-# we all use git
-find_program(CTEST_GIT_COMMAND NAMES git)
-set(CTEST_UPDATE_TYPE "git")
-
 # Perform site specific initialization tasks, e.g. update working copies,
 # start VBoxes, etc.
 SITE_SPECIFIC_INIT()

@@ -4,13 +4,8 @@
 #include "General/Exception.hh"
 #include "ScatteredDataReader.hh"
 
-#include "def_use_ccmio.hh"
-
 #include "ScatteredDataReaderCSV.hh"
 #include "ScatteredDataReaderCSVT.hh"
-#ifdef USE_CCMIO
-#include "ScatteredDataReaderCCM.hh"
-#endif
 
 using namespace std;
 
@@ -79,13 +74,6 @@ namespace CoupledField
         ScatteredDataReaderCSV* SCRCSV = new ScatteredDataReaderCSV(scatteredNodes[i]);
         SCRCSV->SetNumSkipLines(1);
         reader.reset(SCRCSV);
-      } else if (type == "ccm") {
-#ifdef USE_CCMIO
-        ScatteredDataReaderCCM* SCRCCM = new ScatteredDataReaderCCM(scatteredNodes[i]);
-        reader.reset(SCRCCM);
-#else
-        EXCEPTION("STAR-CCM+ files not supported! Compile with USE_CCMIO=ON.");
-#endif
       } else if (type == "csvt"){
         ScatteredDataReaderCSVT* SCRCSV = new ScatteredDataReaderCSVT(scatteredNodes[i]);
         SCRCSV->SetNumSkipLines(0);

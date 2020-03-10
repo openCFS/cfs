@@ -39,7 +39,6 @@
 
 namespace CoupledField{
 
-  DECLARE_LOG(acousticsplitpde)
    DEFINE_LOG(acousticsplitpde, "pde.acousticsplit")
 
 

@@ -117,6 +117,8 @@ namespace CoupledField
     void SetEntities( shared_ptr<EntityList> list1,
                       shared_ptr<EntityList> list2 );
 
+    //! Note: In the case of coupling two different PDEs via Nitsche formulation, fct1 should be the unknown
+    //! from Master side and fct2 should be the unknown from slave side
     void SetFeFunctions( shared_ptr<BaseFeFunction> fct1, 
                          shared_ptr<BaseFeFunction> fct2); 
 

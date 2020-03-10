@@ -10,8 +10,6 @@
 #include <def_use_gmsh.hh>
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
-#include <def_use_ansysrst.hh>
-#include <def_use_comsol.hh>
 #include <def_use_cgns.hh>
 
 #include <boost/tokenizer.hpp>
@@ -60,14 +58,6 @@ namespace fs = boost::filesystem;
 #ifdef USE_UNV
 #include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
 #include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
-#endif
-
-#ifdef USE_ANSYSRST
-#include "DataInOut/SimInOut/AnsysRST/SimOutputRST.hh"
-#endif
-
-#ifdef USE_COMSOL
-#include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
 #endif
 
 #ifdef USE_CGNS
@@ -194,22 +184,6 @@ namespace CFSTool {
       reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, readerNode, info) );
     #else
       EXCEPTION( "No support for Gmsh input file format." );
-    #endif
-    }
-    else if(fileName.find(".mphtxt") != string::npos)
-    {
-    #ifdef USE_COMSOL
-      if(inputNode->Has("mphtxt")) {
-        readerNode = inputNode->Get("mphtxt");
-      } else
-      {
-        readerNode = PtrParamNode(new ParamNode());
-        readerNode->SetName("mphtxt");
-      }
-
-      reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, readerNode, info) );
-    #else
-      EXCEPTION( "No support for Comsol .mphtxt input file format." );
     #endif
     }
     else if( fileName.find( ".cgns") != string::npos )
@@ -408,22 +382,6 @@ namespace CFSTool {
       writer = shared_ptr<SimOutput>(new SimOutputHDF5(baseName, writerNode, info, restart));
 #else
       EXCEPTION( "No support for HDF5 output file format." );
-#endif
-    } else if(fileName.find( ".rst") != string::npos) {
-#ifdef USE_ANSYSRST
-      baseName = std::string(fileName, 0, fileName.find(".rst"));
-
-      if(outputNode->Has("rst")) {
-        writerNode = outputNode->Get("rst");
-      } else {
-        writerNode = PtrParamNode(new ParamNode());
-        writerNode->SetName("rst");
-      }
-
-      writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, writerNode,
-                                                         info, restart ) );
-#else
-      EXCEPTION( "No support for ANSYS .rst output file format." );
 #endif
     } else if(fileName.find( ".unv") != string::npos) {
 #ifdef USE_UNV

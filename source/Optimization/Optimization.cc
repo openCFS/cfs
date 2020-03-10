@@ -5,7 +5,6 @@
 #include <iomanip>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -72,9 +71,6 @@ using namespace CoupledField;
 using namespace std;
 namespace fs = boost::filesystem;
 
-
-
-DECLARE_LOG(opt)
 DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements

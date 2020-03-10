@@ -4,7 +4,6 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -39,7 +38,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(ShOpt)
 DEFINE_LOG(ShOpt, "shapeOpt")
 
 ShapeOpt::ShapeOpt() : ParamMat()

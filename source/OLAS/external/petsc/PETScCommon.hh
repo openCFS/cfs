@@ -23,7 +23,6 @@
 #include "Domain/Domain.hh"
 #include "General/Enum.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
 // include the original PETSC header
 #include "petsc.h"

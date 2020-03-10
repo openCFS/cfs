@@ -10,7 +10,7 @@ ENDIF(MKL_INCLUDE_DIR)
 SET(UNIT_TESTS
   unittests.cc
 #  bsplinetests.cc
-  bicubicinttests.cc
+#  bicubicinttests.cc
 )
 
 # Main CFS++ Dat executable target.
@@ -20,6 +20,9 @@ SET(TARGET_LL
   matvec
   design
   cfsgeneral
+  utils
+  datainout
+  paramh
 )
 
 IF(MKL_BLAS_LIB)
