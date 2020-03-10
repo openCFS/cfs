@@ -409,10 +409,6 @@ MACRO(DO_TESTING)
   # see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
   CTEST_START(Nightly)
 
-  MESSAGE("  Update ${CTEST_SOURCE_DIRECTORY}")
-  CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-  MESSAGE("  res -> ${res}")
-
   MESSAGE("  Configure")
   FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
   # some configurations require to repeat the same ctest_configure() command
