@@ -173,7 +173,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   RegionIdType reg = f->region != ALL_REGIONS ? f->region : f->elements[0]->elem->regionId;
   ElementAccess ea(em->context->pde->GetAssemble()->GetBiLinForm(em->context->mat->stiff.integrator, reg));
 
-  out = em->GetForwardStates().Get(excite,NULL)->GetVectorRef<T>(StateSolution::RAW_VECTOR);
+  out = em->GetForwardStates().Get(excite,NULL)->template GetVectorRef<T>(StateSolution::RAW_VECTOR);
   assert(out.GetSize() > 0);
 
   StdVector<pair<App::Type, App::Type> > apps = GetApplications();
