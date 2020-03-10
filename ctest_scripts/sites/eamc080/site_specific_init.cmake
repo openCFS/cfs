@@ -34,4 +34,14 @@ ELSE()
   CTEST_START(Nightly)
   CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
   CTEST_SUBMIT()
+  
+  # now we commonly update CFS source
+  SET(CTEST_BUILD_NAME "Update shared_opt")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-shared_opt")
+  
+  message("Update ${CTEST_SOURCE_DIRECTORY}")
+  CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+  CTEST_SUBMIT()
+  
+  MESSAGE("Finished updating ${CTEST_SOURCE_DIRECTORY}")
 ENDIF()
