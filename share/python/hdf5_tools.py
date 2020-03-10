@@ -390,40 +390,40 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
         return Isr
 
 def get_coordinates(hdf5_file,region=None) :
-    """
-    return nodal coordinates, optional for nodes in a certain region
+  """
+  return nodal coordinates, optional for nodes in a certain region
 
-    Parameters
-    ----------
-    hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
-    region : string, optional
-        region name for a subset of coordinates
+  Parameters
+  ----------
+  hdf5_file : h5py.File or str
+      CFS++ hdf5 data file
+  region : string, optional
+      region name for a subset of coordinates
 
-    Returns
-    -------
-    out : ndarray
+  Returns
+  -------
+  out : ndarray
 
-    Examples
-    --------
-    >>> X = get_coordinates(Plate3D)
+  Examples
+  --------
+  >>> X = get_coordinates(Plate3D)
 
-    # Show coordinates of nodes 2, 4, 6 (index shift) -> X[[1,3,5],:]
-    >>> X[[1,3,5],:]
-    array([[12. ,   7.2,   0. ],
-           [11.5,   4.8,   0. ],
-           [ 0.5,   7.2,   0. ]])
-    """
+  # Show coordinates of nodes 2, 4, 6 (index shift) -> X[[1,3,5],:]
+  >>> X[[1,3,5],:]
+  array([[12. ,   7.2,   0. ],
+         [11.5,   4.8,   0. ],
+         [ 0.5,   7.2,   0. ]])
+  """
   if type(hdf5_file) == str :
-        from h5py import File
-        with File(hdf5_file,'r') as h5:
-            return get_coordinates(h5,region)
-    else:
-        if not region==None :
-            I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'][:] - 1
-            return hdf5_file['Mesh/Nodes/Coordinates'][:][I,:]
-        else :
-            return hdf5_file['Mesh/Nodes/Coordinates'][:]
+    from h5py import File
+    with File(hdf5_file,'r') as h5:
+      return get_coordinates(h5,region)
+  else:
+    if not region==None :
+      I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'][:] - 1
+      return hdf5_file['Mesh/Nodes/Coordinates'][:][I,:]
+    else :
+      return hdf5_file['Mesh/Nodes/Coordinates'][:]
 
 def get_centroids(hdf5_file,region=None) :
     """
