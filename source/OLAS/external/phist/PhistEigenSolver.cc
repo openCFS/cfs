@@ -44,17 +44,17 @@ namespace CoupledField {
 
     assert(A_ != NULL);
     if(complex_)
-      phist::kernels<Complex>::sparseMat_delete(A_, &iflag);
+      phist::kernels<Complex>::sparseMat_delete(static_cast<phist_ZsparseMat_ptr>(A_), &iflag);
     else
-      phist::kernels<double>::sparseMat_delete(A_, &iflag);
+      phist::kernels<double>::sparseMat_delete(static_cast<phist_DsparseMat_ptr>(A_), &iflag);
 
     A_ = NULL;
 
     assert(B_ != NULL);
     if(complex_)
-      phist::kernels<Complex>::sparseMat_delete(B_, &iflag);
+      phist::kernels<Complex>::sparseMat_delete(static_cast<phist_ZsparseMat_ptr>(B_), &iflag);
     else
-      phist::kernels<double>::sparseMat_delete(B_, &iflag);
+      phist::kernels<double>::sparseMat_delete(static_cast<phist_DsparseMat_ptr>(B_), &iflag);
     B_ = NULL;
 
     ghost_finalize();
@@ -78,7 +78,7 @@ namespace CoupledField {
     // skip calculation of eigenvector residuals
     // download X from GPU if applicable
     int iflag = 0;
-    phist::kernels<double>::mvec_from_device(X, &iflag);
+    phist::kernels<TYPE>::mvec_from_device(X, &iflag);
 
     // get pointer to row/col major block of vectors
     TYPE* xval = NULL; // will be set to memory owned by phist
@@ -403,7 +403,7 @@ namespace CoupledField {
   void PhistEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
     // remove this, this is the old interface!
-    if(hermitian_)
+    if(hermitian_ == true)
       CalcEigenValues<Complex>(sol, err, numFreq_, freqShift_);
     else
       CalcEigenValues<double>(sol, err, numFreq_, freqShift_);

@@ -626,7 +626,7 @@ if(BUILD_GHOST)
   # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
   # set(GHOST_REV "965be2d1aa20") # subversion revision numbers are are more easily handable :(
   # set(GHOST_MD5 "1f441c4b82aaf0e9ff507857ffbd8c0e")
-  set(GHOST_REV "0e54b108ada8")
+  set(GHOST_REV "0e54b108ada8") # does not work with cfs (06.03.20)
   set(GHOST_MD5 "b0eca2287f12c0dd2c5fda03a99c7de4")
   set(GHOST_ZIP "${GHOST_REV}.zip")
   # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
@@ -642,7 +642,7 @@ endif(BUILD_GHOST)
 if(USE_PHIST_EV OR USE_PHIST_CG)
   #set(PHIST_REV "8a22be1e42aa") 
   #set(PHIST_MD5 "076a7bc70040a375f285c3e9fee2112d")
-  set(PHIST_REV "1935ec0accc1")
+  set(PHIST_REV "1935ec0accc1")  # does not work with cfs (06.03.20)
   set(PHIST_MD5 "cfec4ad70a3838894742ac7732f56070")
   set(PHIST_ZIP "${PHIST_REV}.zip")
   set(PHIST_BB_USER "essex")

@@ -8,7 +8,6 @@
 namespace CoupledField {
   
   class StdMatrix;
-  class sparseMat_t; // phist matrix type
 
   class PhistEigenSolver : public BaseEigenSolver , PhistCore
   {
@@ -155,10 +154,11 @@ namespace CoupledField {
     //static int Diag(ghost_gidx row, ghost_lidx *rowlen, ghost_gidx *col, void *val, __attribute__((unused)) void *arg);
 
     /** phist copy of stiffmess matrix */
-    sparseMat_t* A_ = NULL;
+    VsparseMat_t* A_ = NULL;
+
 
     /** phist copy of mass matrix */
-    sparseMat_t* B_ = NULL;
+    VsparseMat_t* B_ = NULL;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
