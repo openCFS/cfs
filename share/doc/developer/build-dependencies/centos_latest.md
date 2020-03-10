@@ -27,6 +27,12 @@ dnf config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.re
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
 ```
 
+Run `yum search` once to trigger GPG import.
+Since this returns with a non-zero exit code we add and OR for the testing pipeline.
+```shell
+yum search -y intel || echo "GPG imported ..."
+```
+
 Then install the 64-bit version of the most recent MKL release (first `yum search` necessary to import GPG key)
 ```shell
 yum search -y intel-mkl-64bit
