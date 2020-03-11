@@ -14,10 +14,10 @@ SET(ENV{LANGUAGE} "C")
 
 IF(${SITE_DIR} MATCHES "master_stingl")
   SET(CTEST_BUILD_NAME "Update Testsuite stingl master")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/test-master_stingl")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/shared_opt-test")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/test-shared_opt")
 ENDIF()
 
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
