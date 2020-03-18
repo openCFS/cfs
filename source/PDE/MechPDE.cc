@@ -667,16 +667,16 @@ namespace CoupledField {
 
 
       // ====================================================================
-      //  Tangential Stiffness Matrix for Buckling Analysis
+      //  Geometric / Stress Stiffness Matrix for Buckling Analysis
       // ====================================================================
       if (analysistype_ == BUCKLING) {
         bool refLoadFound = false;
         PtrParamNode referenceLoadNode;
         PtrParamNode loadNode = this->myParam_->Get("bcsAndLoads");
 
-        // check if BC are set at all. If not set the eigenSolver may not be able to solve problem.
+        // check if BC are set at all. If not set, the eigenSolver may not be able to solve problem.
         if(!loadNode->Has("fix")){
-          std::cout << "\n" << "++ " << "WARNING no fixed BC found. This can lead to non positive defined stiffness matrix" << "\n";
+          std::cout << "\n" << "++ " << "WARNING no fixed BC found. This can lead to non positive definite stiffness matrix" << "\n";
         }
 
         // check if current region has referencLoad
@@ -686,21 +686,21 @@ namespace CoupledField {
         if (referenceLoadNode) {
           PtrParamNode variant_referenceLoadNode;
 
-          // Generate Stress Dependent Stiffness Matrix
+          // generate stress dependent stiffness matrix
           variant_referenceLoadNode = referenceLoadNode->Get("referenceStress", ParamNode::PASS);
           if (variant_referenceLoadNode) {
             BaseBDBInt *preStressInt = NULL;
 
             PtrCoefFct preStressFct = CreatePreStressFct(false, referenceLoadNode);
 
-            //  !! factor = -1 to account for different sign in the general Eigenvalue formulation
+            // factor = -1 to account for different sign in the general eigenvalue formulation [A+w(-B)]x = 0 => Ax = wBx
             preStressInt = GetPreStressIntegrator(preStressFct, actRegion, false, -1.0);
 
             preStressInt->SetName("preStressInt");
             preStressInt->SetFeSpace(mySpace);
 
-            // add stress dependent matrix to TANGENTIAL_STIFFNESS Matrix
-            BiLinFormContext *stressContext = new BiLinFormContext(preStressInt, TANGENTIAL_STIFFNESS);
+            // add stress dependent matrix to GEOMETRIC_STIFFNESS matrix
+            BiLinFormContext *stressContext = new BiLinFormContext(preStressInt, GEOMETRIC_STIFFNESS);
             stressContext->SetEntities(actSDList, actSDList);
             stressContext->SetFeFunctions(myFct, myFct);
 
@@ -708,13 +708,13 @@ namespace CoupledField {
             refLoadFound = true;
           }
 
-          // Generate Displacement Dependent Stiffness Matrix
+          // generate displacement dependent stiffness matrix
           variant_referenceLoadNode = referenceLoadNode->Get("referenceDisplacement", ParamNode::PASS);
           if (variant_referenceLoadNode) {
             // TODO currently only conventional buckling analysis is implemented
             // see nonLinearStressOperator for implementation
-            // add displacement dependent matrix to TANGENTIAL_STIFFNESS Matrix
-            // (!! set Bilinear factor to -1 !!)
+            // add displacement dependent matrix to GEOMETRIC_STIFFNESS Matrix
+            // (!! set bilinear factor to -1 !!)
 
             EXCEPTION("referenceLoad with displacement is not yet implemented.")
 
@@ -724,7 +724,7 @@ namespace CoupledField {
         if (refLoadFound == false) {
           EXCEPTION("No referenceLoad defined.")
         }
-      }// end Tangential Stiffness Matrix
+      }// end Geometric Stiffness Matrix
 
     }
     
@@ -2795,13 +2795,8 @@ namespace CoupledField {
       // I = -[stress] * conj(v)
       PtrCoefFct velFnc = this->GetCoefFct( MECH_VELOCITY );
       // define temporary function, without the -1 sign
-      PtrCoefFct intensTmp = 
-              CoefFunction::Generate(mp_, part,
-              CoefXprBinOp( mp_,  sigmaFunc, velFnc,
-              CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ ) );
-      intensFct = 
-              CoefFunction::Generate(mp_, part,
-              CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT ));
+      PtrCoefFct intensTmp = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, sigmaFunc, velFnc, CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ));
+      intensFct = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT));
       DefineFieldResult( intensFct, intens );
       
       
@@ -2995,7 +2990,7 @@ namespace CoupledField {
     totEnergyDens->entryType = ResultInfo::SCALAR;
     totEnergyDens->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunction> tedFunc;
-    // in static analysis, the total energy density equals the deformation one
+    // in static and buckling analysis, the total energy density equals the deformation one
     if (analysistype_ == STATIC  || analysistype_ == BUCKLING)
       tedFunc = dedFunc;
     else
@@ -3307,8 +3302,11 @@ namespace CoupledField {
     }
     else if(stressNode->Has("computeLHS") || stressNode->Has("referenceStress")){
 
-      if     (stressNode->Has("computeLHS")){     inputNode = stressNode->Get("computeLHS",ParamNode::PASS);}
-      else if(stressNode->Has("referenceStress")){inputNode = stressNode->Get("referenceStress",ParamNode::PASS);}
+      if (stressNode->Has("computeLHS")) {
+        inputNode = stressNode->Get("computeLHS",ParamNode::PASS);
+      } else if(stressNode->Has("referenceStress")) {
+        inputNode = stressNode->Get("referenceStress",ParamNode::PASS);
+      }
       
       UInt aSStep = 0;
       //redefine if user passes the argument

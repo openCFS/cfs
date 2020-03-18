@@ -853,8 +853,8 @@ namespace CoupledField {
       if(els->Get("stiffness")->As<bool>() && sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
         sysMat_[STIFFNESS]->Export(base + "_stiffness", mat_format);
 
-      if(els->Get("tangential_stiffness")->As<bool>() && sysMat_.find(TANGENTIAL_STIFFNESS) != sysMat_.end() && sysMat_[TANGENTIAL_STIFFNESS] != NULL)
-              sysMat_[TANGENTIAL_STIFFNESS]->Export(base + "_tangential_stiffness", mat_format);
+      if(els->Get("geometric_stiffness")->As<bool>() && sysMat_.find(GEOMETRIC_STIFFNESS) != sysMat_.end() && sysMat_[GEOMETRIC_STIFFNESS] != NULL)
+        sysMat_[GEOMETRIC_STIFFNESS]->Export(base + "_geometric_stiffness", mat_format);
 
       if(els->Get("stiffness_update")->As<bool>() && sysMat_.find(STIFFNESS_UPDATE) != sysMat_.end() && sysMat_[STIFFNESS_UPDATE] != NULL)
         sysMat_[STIFFNESS_UPDATE]->Export(base + "_stiffness_update", mat_format);

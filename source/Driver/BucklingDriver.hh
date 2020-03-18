@@ -45,12 +45,12 @@ class BucklingDriver: public virtual SingleDriver {
       return 1;
     }
 
-    // for eigenSolver always true, otherwise eigenModes return with bad cast.
+    // for eigenSolver always true, otherwise eigenmodes return with bad cast.
     virtual bool IsComplex() {
       return true;
     }
 
-    /** Return the number of eigenModes to be calculated.
+    /** Return the number of eigenmodes to be calculated.
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() {
       return 1;
@@ -63,15 +63,15 @@ class BucklingDriver: public virtual SingleDriver {
       return;
     }
 
-    // return proportionality factor ( currently unused)
+    // return proportionality factor (currently unused)
     double GetPropFactor(unsigned int idx) const;
 
     void SetToStepValue(UInt stepNum, Double stepVal) {
       // ensure that this method is only called if simState has input
-      if (false) { // ! simState_->HasInput()
+      if (! simState_->HasInput()) {
         EXCEPTION("Can only set external time step, if simulation state " << "is read from external file");
       }
-      // Set current eigenValue in the mathParser
+      // Set current eigenvalue in the mathParser
       domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", stepVal);
       domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", stepNum);
 
@@ -83,66 +83,38 @@ class BucklingDriver: public virtual SingleDriver {
     Vector<Complex> errBoundsComplex_;
 
     StdVector<int> modeOrder_; // for sorting the obtained modes
-    void SortModes(bool inAbs) {
-
-      Vector<Double> RealeigenValues;
-      if (isSymmetrical_) {
-        RealeigenValues = eigenValues_;
-      }
-      else {
-        RealeigenValues.Resize(eigenValuesComplex_.GetSize());
-        for (int i = 0; i < (int) eigenValuesComplex_.GetSize(); i++) {
-          RealeigenValues[i] = eigenValuesComplex_[i].real();
-        }
-      }
-
-      if(inAbs){
-        for (unsigned int i = 0; i < RealeigenValues.GetSize(); i++) {
-          RealeigenValues[i] = std::abs(RealeigenValues[i]);
-        }
-      }
-
-
-      modeOrder_.Resize(RealeigenValues.GetSize());
-      std::size_t n(0);
-      // allocate modeOrder_
-      std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&] {return n++;});
-      // sort it by value
-      std::sort(std::begin(modeOrder_), std::end(modeOrder_), [&](int i1, int i2) {
-        return RealeigenValues[i1] < RealeigenValues[i2];
-      });
-    }
+    void SortModes(bool inAbs);
 
   private:
 
-    // Print eigenValues to the console
+    // print eigenValues to the console
     void PrintResult();
 
     // actually calculate eigenValues
     void CalcValues();
 
-    // calculate eigenModes for a given eigenValue
+    // calculate eigenmodes for a given eigenvalue
     void CalcMode();
 
-    //! input parameter for input method 2, Number of Modes to be calculated
+    //! input parameter for input method 2, number of modes to be calculated
     unsigned int numMode_;
 
-    //! input parameter for input method 2, Shift for eigenvalues
+    //! input parameter for input method 2, shift for eigenValues
     Double valueShift_;
 
-    //! input parameter for input method 1, minimum Eigenvalue
+    //! input parameter for input method 1, minimum eigenvalue
     Double minVal_;
 
-    //! input parameter for input method 1, maximum Eigenvalue
+    //! input parameter for input method 1, maximum eigenvalue
     Double maxVal_;
 
     //! set input methode
     UInt inputMethod_;
 
     //! Matrix storage type
-    bool isSymmetrical_;
+    bool isStoredSymmetric_;
 
-    //! input parameter, true if eigenModes shall be calculated
+    //! input parameter, true if eigenmodes shall be calculated
     bool calcModes_;
 
     //! needed parameter see calcMode()

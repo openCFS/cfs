@@ -99,7 +99,7 @@ namespace CoupledField
     // initialized. After the first "AssmebleMatrices" call the
     // correct values for reassembling are determined
     matReassemble_[STIFFNESS] = true;
-    matReassemble_[TANGENTIAL_STIFFNESS] = true;
+    matReassemble_[GEOMETRIC_STIFFNESS] = true;
     matReassemble_[DAMPING] = true;
     matReassemble_[MASS] = true;
     matReassemble_[STIFFNESS_UPDATE] = true;
@@ -2038,7 +2038,7 @@ namespace CoupledField
     case BasePDE::BUCKLING:
       matrixMap_[SYSTEM]    = NOTYPE;
       matrixMap_[STIFFNESS] = STIFFNESS;
-      matrixMap_[TANGENTIAL_STIFFNESS] = TANGENTIAL_STIFFNESS;
+      matrixMap_[GEOMETRIC_STIFFNESS] = GEOMETRIC_STIFFNESS;
       break;
 
     default:
@@ -2129,7 +2129,6 @@ namespace CoupledField
     return ret;
   }
 
-  //TODO add BUCKLING analysis typ ???
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                                Matrix<Double>& elemMat,
                                StdVector<Integer>& eqnVec1,

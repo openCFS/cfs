@@ -1193,8 +1193,8 @@ namespace CoupledField {
       case SYSTEM_BAK:
         out = "system_bak";
         break;
-      case TANGENTIAL_STIFFNESS:
-        out = "tangential_stiffness";
+      case GEOMETRIC_STIFFNESS:
+        out = "geometric_stiffness";
         break;
 
       default:
@@ -1272,8 +1272,7 @@ namespace CoupledField {
   // map specialisation for interpolation types
   template <>
   void String2Enum<AMGSmootherType>( const std::string &in,
-                                     AMGSmootherType   &out )
-                                     {
+                                     AMGSmootherType   &out ) {
     if ( in == "GaussSeidel" ) {
       out = AMG_SMOOTHER_GAUSSSEIDEL;
     } else if( in == "Jacobi" ) {
@@ -1282,7 +1281,7 @@ namespace CoupledField {
       EXCEPTION( "No enumeration value found in AMGSmoothertype "
           << "for '" << in << "'\n A missing case implementation?" );
     }
-                                     }
+  }
 
   // Specialisation for FEMatrixType
   template<>
@@ -1317,8 +1316,8 @@ namespace CoupledField {
       out = SYSTEM_DELTAMAT_JACOBIAN;
     else if ( in == "system_bak")
       out = SYSTEM_BAK;
-    else if ( in == "tangental_stiffness")
-          out = TANGENTIAL_STIFFNESS;
+    else if ( in == "geometric_stiffness")
+          out = GEOMETRIC_STIFFNESS;
     else {
       EXCEPTION( "String '" << in << "' cannot be converted to item of "
                  << "'FEMatrixType'!" );
@@ -1960,7 +1959,7 @@ namespace CoupledField {
     feMatrixType.Add( SYSTEM_FIXPOINT, "system_fixpoint" );
     feMatrixType.Add( SYSTEM_FD_JACOBIAN, "system_fd_Jacobian" );
     feMatrixType.Add( SYSTEM_DELTAMAT_JACOBIAN, "system_deltaMat_Jacobian" );
-    feMatrixType.Add( TANGENTIAL_STIFFNESS, "tangental_stiffness" );
+    feMatrixType.Add( GEOMETRIC_STIFFNESS, "geometric_stiffness" );
     feMatrixType.Add( SYSTEM_BAK, "system_bak" );
 
     // ==== Initialization of ApproxCurveTypes ====

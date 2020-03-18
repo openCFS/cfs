@@ -147,12 +147,12 @@
       </xsd:enumeration>
       <xsd:enumeration value="max">
         <xsd:annotation>
-          <xsd:documentation>Scale the eigenvector such that the maximum element has a aboslute value of 1</xsd:documentation>
+          <xsd:documentation>Scale the eigenvector such that the maximum element has a absolute value of 1</xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
       <xsd:enumeration value="norm">
         <xsd:annotation>
-          <xsd:documentation>Scale the eigenvector such that it's L2-norm equals one</xsd:documentation>
+          <xsd:documentation>Scale the eigenvector such that its L2-norm equals one</xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
     </xsd:restriction>

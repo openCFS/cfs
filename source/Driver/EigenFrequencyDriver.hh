@@ -117,7 +117,7 @@ class SingleVector;
         std::size_t n(0);
         // allocate modeOrder_
         std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&]{ return n++; });
-        // sort it by requency
+        // sort it by frequency
         std::sort(std::begin(modeOrder_),std::end(modeOrder_),[&](int i1, int i2) { return frequency_[i1] < frequency_[i2]; } );
     }
 

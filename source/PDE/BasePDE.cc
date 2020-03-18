@@ -74,7 +74,7 @@ namespace CoupledField {
     retMap[STIFFNESS_UPDATE] = 0;
     retMap[AUXILIARY] = 0;
     retMap[CONVECTION] = 0;
-    retMap[TANGENTIAL_STIFFNESS] = 0;
+    retMap[GEOMETRIC_STIFFNESS] = 0;
 
 
     return retMap;

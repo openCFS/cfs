@@ -1364,7 +1364,7 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
     //
     //This method allocates the objects handling the derivative of the reluctivity w.r.t.
     //the magnetic flux density ( nu'(B) ); therefore it is called to bulid up the nonlinear
-    //bilinear form for the tangential stiffness matrix
+    //bilinear form for the geometric stiffness matrix
     //
     //Please note: in the nonlinear bilinear form, we need the derivative of the
     //             reluctivity (=1/permeability); therefore, we switch between

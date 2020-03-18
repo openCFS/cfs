@@ -139,7 +139,7 @@ protected:
     //! Create CoefFunction for preStressing
     PtrCoefFct CreatePreStressFct( bool isComplex, PtrParamNode stressNode);
 
-    //! Returns a MechStress CoefFunction from a preceeding sequence step
+    //! Returns a MechStress CoefFunction from a preceding sequence step
     PtrCoefFct GetStressCoefFromSeqStep(UInt seqStep);
 
     //! Stores softening for each region

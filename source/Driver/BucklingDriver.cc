@@ -16,6 +16,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/solver/BaseEigenSolver.hh"
+#include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "MatVec/SBM_Matrix.hh"
 
@@ -46,13 +47,14 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
   // set analysistype
   analysis_ = BasePDE::BUCKLING;
   // input parameter
+  inputMethod_ = NONE;
   numMode_ = 0;
   valueShift_ = 0.0;
   calcModes_ = false;
   minVal_ = 0.0;
   maxVal_ = 0.0;
   modeNormalization_ = BaseEigenSolver::NONE;
-  isSymmetrical_ = false;
+  isStoredSymmetric_ = false;
 
   //specifying parameter node
   param_ = param_->Get("buckling");
@@ -76,7 +78,7 @@ void BucklingDriver::Init(bool restart) {
   param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS);
   calcModes_  = param_->Has("calcModes");
 
-  if(calcModes_){
+  if (calcModes_) {
     // determine type of mode normalization, and transform into ENUM
     std::string normString = "solver";
     param_->Get("calcModes")->GetValue("normalization", normString, ParamNode::PASS);
@@ -98,13 +100,12 @@ void BucklingDriver::Init(bool restart) {
 
 }
 
-double BucklingDriver::GetPropFactor(unsigned int idx) const {  // maybe this function could be removed
+double BucklingDriver::GetPropFactor(unsigned int idx) const {
   return eigenValues_[idx];;
 }
 
 void BucklingDriver::SolveProblem() {
-
-  // define Result Handler
+  // define result handler
   ResultHandler *resHandler = domain_->GetResultHandler();
 
   //TODO integrate optimization
@@ -116,14 +117,14 @@ void BucklingDriver::SolveProblem() {
   if (writeAllSteps_ || isPartOfSequence_)
     simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
 
-  // Trigger calculation
+  // trigger calculation
   ptPDE_->WriteGeneralPDEdefines();
   BaseSolveStep *step = ptPDE_->GetSolveStep();
 
   // set the mode normalization
   dynamic_cast<StdSolveStep*>(step)->GetAlgSys()->GetEigenSolver()->SetModeNormalization(modeNormalization_);
 
-  // initialize Algebraic System
+  // initialize algebraic system
   StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
   sstep->GetAlgSys()->InitSol();
   sstep->GetAlgSys()->InitMatrix();
@@ -131,6 +132,7 @@ void BucklingDriver::SolveProblem() {
   sstep->GetAlgSys()->ExportLinSys(true, false, false); // if asked, export matrices
 
   // define input method, which is needed in CalcValues()
+  // inputMethod_ is 1 for minVal & maxVal, 2 for numModes & shiftMode
   if (minVal_ < maxVal_) {
     inputMethod_ = 1;
   }
@@ -141,7 +143,8 @@ void BucklingDriver::SolveProblem() {
     inputMethod_ = 2;
   }
   else {
-    EXCEPTION("this case should not be possible in the XML schema")
+    // this case should not be possible in the XML schema
+    EXCEPTION("Input method cannot be determined.")
   }
 
   // actually solve problem
@@ -163,7 +166,6 @@ void BucklingDriver::SolveProblem() {
 }
 
 void BucklingDriver::CalcValues() {
-
   BaseSolveStep *step = ptPDE_->GetSolveStep();
   StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
   //StdSolveStep *sstep = ptPDE_->GetSolveStep();
@@ -176,34 +178,33 @@ void BucklingDriver::CalcValues() {
   solverType = solver->GetEigenSolverName();
 
   // get needed matrices
-  SBM_Matrix *tangStiffMat = sstep->GetAlgSys()->GetMatrix(TANGENTIAL_STIFFNESS);
   SBM_Matrix *stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+  SBM_Matrix *geoStiffMat = sstep->GetAlgSys()->GetMatrix(GEOMETRIC_STIFFNESS);
 
   // check matrices dimensions
-  UInt i = tangStiffMat->GetNumCols();
-  if (i > 1) {
+  if (geoStiffMat->GetNumCols() > 1) {
     EXCEPTION("only implemented for SBM matrices with a single block")
   }
-  assert(tangStiffMat->GetNumCols() == tangStiffMat->GetNumRows());
   assert(stiffMat->GetNumCols() == stiffMat->GetNumRows());
+  assert(geoStiffMat->GetNumCols() == geoStiffMat->GetNumRows());
 
   //check storage type
   bool isReal = false;
-  solver->CheckMatrix(isReal, isSymmetrical_, *(stiffMat->GetPointer(0, 0)));
+  solver->CheckMatrix(isReal, isStoredSymmetric_, *(stiffMat->GetPointer(0, 0)));
 
 
   // unfortunately the implemented eigenSolvers have serious usage restrictions.
   // currently only FEAST with non-symmetric matrices gives relabel solutions
-  if(solverType == BaseEigenSolver::FEAST && isSymmetrical_ == true){
-    EXCEPTION("Wrong Matrix storage type. Please define an Non-symmetrical storage type.");
+  if (solverType == BaseEigenSolver::FEAST && isStoredSymmetric_ == true) {
+    EXCEPTION("Wrong matrix storage type. Please define an non-symmetric storage type.");
   }
-  else if(solverType == BaseEigenSolver::FEAST && inputMethod_ != 1){
+  else if (solverType == BaseEigenSolver::FEAST && inputMethod_ != 1) {
     EXCEPTION("FEAST eigenSolver does currently not support input as numModes & shiftMode.");
   }
-  else if(solverType == BaseEigenSolver::ARPACK){
-    EXCEPTION("The needed dsdrv5 driver for ARPACK solver has not been implemented, yet.");
+  else if (solverType == BaseEigenSolver::ARPACK && inputMethod_ != 2) {
+    EXCEPTION("ARPACK eigenSolver does currently not support input as minValue & maxValue.");
   }
-  else if(solverType == BaseEigenSolver::PHIST){
+  else if (solverType == BaseEigenSolver::PHIST) {
     EXCEPTION("PHIST is currently not supported.");
   }
 
@@ -213,58 +214,50 @@ void BucklingDriver::CalcValues() {
 /* TODO ARPACK
  * - add inputMethod_ 1, as min/maxValue
  * - add CalcEigenValues()
- * - add dsdrv5 driver, and create a "setProblemType()"--like function to change iparam[6] = 4 and use sad driver
  */
 /* TODO PHIST
  * - add non-symmetric Mode (?)
  */
 
 
-
   // unfortunately the implemented eigenSolvers do not conform to a single scheme
   if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
-    solver->Setup(*(stiffMat->GetPointer(0, 0)), *(tangStiffMat->GetPointer(0, 0)), false);
-
-    if (isSymmetrical_) {
+    assert(solverType ==  BaseEigenSolver::FEAST);
+    solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), false);
+    if (isStoredSymmetric_) {
       solver->CalcEigenValues(eigenValues_, errBounds_, minVal_, maxVal_);
-    }
-    else {
+    } else {
       solver->CalcEigenValues(eigenValuesComplex_, errBoundsComplex_, minVal_, maxVal_);
     }
-
-  }
-  else if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
-    solver->Setup(*(stiffMat->GetPointer(0, 0)), *(tangStiffMat->GetPointer(0, 0)), numMode_, valueShift_, true, false);
-
-    if (isSymmetrical_) {
-      solver->CalcEigenValues(eigenValues_, errBounds_, numMode_, valueShift_);
+  } else if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
+    assert(solverType ==  BaseEigenSolver::ARPACK);
+    isStoredSymmetric_ = true;
+    dynamic_cast<ArpackEigenSolver*>(solver)->SetComputeMode(ArpackMatInterface::ComputeMode::BUCKLING);
+    if (valueShift_ == 0.0) {
+      valueShift_ = 0.1;
+      info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for buckling. Changed to 0.1.");
     }
-    else {
-      solver->CalcEigenValues(eigenValuesComplex_, errBoundsComplex_, numMode_, valueShift_);
-    }
-
-  }
-  else {
+    solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), numMode_, valueShift_, true, false);
+    solver->CalcEigenValues(eigenValues_, errBounds_, numMode_, valueShift_);
+  } else {
     EXCEPTION("input method not known")
   }
   std::cout << "\n" << "++ " << "Finished solving eigenvalue Problem." << "\n";
 }
 
 void BucklingDriver::PrintResult() {
-  // print results to console
-
   int n = 23; // field width
   cout << "\n";
   cout << " Mode | ";
   cout << setw(n) << "Proportionality Factor" << " | ";
   cout << setw(n) << "Error Bounds" << " | ";
-  if (isSymmetrical_ == false){
+  if (isStoredSymmetric_ == false) {
     cout << setw(n) << "Imaginary Part" << " | ";
   }
   cout << "\n";
   for (unsigned int i = 0; i < modeOrder_.GetSize(); i++) {
     cout << setw(5) << i + 1 << " | ";
-    if (isSymmetrical_) {
+    if (isStoredSymmetric_) {
       cout << setw(n) << eigenValues_[modeOrder_[i]] << " | ";
       cout << setw(n) << errBounds_[modeOrder_[i]] << " | " << "\n";
     }
@@ -277,15 +270,13 @@ void BucklingDriver::PrintResult() {
 }
 
 void BucklingDriver::CalcMode() {
-  // calculate buckling modes
-
   BaseSolveStep *step = ptPDE_->GetSolveStep();
   StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
 
   Vector<Double> eigenValuesForModes;
   unsigned int numEigenValues = 0;
 
-  if (isSymmetrical_) {
+  if (isStoredSymmetric_) {
     numEigenValues = eigenValues_.GetSize();
     eigenValuesForModes = eigenValues_;
   }
@@ -297,12 +288,12 @@ void BucklingDriver::CalcMode() {
     }
   }
 
-  //Sort Eigenvalues with absolute values. Paraview can not display negative Eigenvalues.
+  // sort eigenvalues with absolute values. Paraview can not display negative eigenvalues.
   SortModes(true);
 
-  //Check if negative Eigenvalues are present
+  // check if negative Eigenvalues are present
   for (unsigned int mI = 0; mI < numEigenValues; mI++) {
-    if(eigenValuesForModes[modeOrder_[mI]] < 0){
+    if (eigenValuesForModes[modeOrder_[mI]] < 0) {
       std::cout << "\n" << "++ " << "WARNING negative proportionality factor will be displayed as positiv in Paraview: " << eigenValuesForModes[mI] << "\n";
     }
   }
@@ -331,9 +322,37 @@ void BucklingDriver::CalcMode() {
     save_step_++;
 
   }
-  //Reverse order of modeOrder_
+  // reverse order of modeOrder_
   SortModes(false);
   std::cout << "\n" << "++ " << "Finished calculating and storing buckling modes." << "\n";
+}
+
+void BucklingDriver::SortModes(bool inAbs) {
+  Vector<Double> RealeigenValues;
+  if (isStoredSymmetric_) {
+    RealeigenValues = eigenValues_;
+  }
+  else {
+    RealeigenValues.Resize(eigenValuesComplex_.GetSize());
+    for (int i = 0; i < (int) eigenValuesComplex_.GetSize(); i++) {
+      RealeigenValues[i] = eigenValuesComplex_[i].real();
+    }
+  }
+
+  if (inAbs) {
+    for (unsigned int i = 0; i < RealeigenValues.GetSize(); i++) {
+      RealeigenValues[i] = std::abs(RealeigenValues[i]);
+    }
+  }
+
+  modeOrder_.Resize(RealeigenValues.GetSize());
+  std::size_t n(0);
+  // allocate modeOrder_
+  std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&] {return n++;});
+  // sort it by value
+  std::sort(std::begin(modeOrder_), std::end(modeOrder_), [&](int i1, int i2) {
+    return RealeigenValues[i1] < RealeigenValues[i2];
+  });
 }
 
 } // end of namespace

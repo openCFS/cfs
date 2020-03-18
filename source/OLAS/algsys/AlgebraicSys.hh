@@ -1072,7 +1072,7 @@ namespace CoupledField {
     void RemoveIDBCInfoFromMatrix() const {;};
     //@}
 
-    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
+    /** Handle export linear system at the different phases. Checks by itself what needs to be done if anything.
      * Shall be called for each phase, set each time exactly one parameter to true */
     void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 

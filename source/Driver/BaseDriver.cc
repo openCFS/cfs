@@ -94,8 +94,8 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         break;
 
       case BasePDE::BUCKLING:
-              ptdriver = new BucklingDriver( seqStep, false, state, myDom, seqNode, info );
-              break;
+        ptdriver = new BucklingDriver( seqStep, false, state, myDom, seqNode, info );
+        break;
 
       default:
         EXCEPTION( "Could not create driver" );

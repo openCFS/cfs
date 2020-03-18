@@ -212,7 +212,7 @@
             <xsd:sequence>
               <xsd:element name="numModes"   type="xsd:token"/>
               <xsd:element name="valueShift" type="xsd:float" default="0.0"/>
-              </xsd:sequence>
+            </xsd:sequence>
             <xsd:sequence>
               <xsd:element name="maxVal" type="xsd:token"/>
               <xsd:element name="minVal" type="xsd:token" default="0"/>
@@ -295,7 +295,7 @@
           </xsd:element>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
-        <!-- Arpack, our only EV solver, sometimes presents unsorted evs. 
+        <!-- Arpack sometimes presents unsorted evs. 
              By this option the evs are sorted by magnitude. For quadratic problems with real complex evs
             this makes not sense. For bloch it is ok as the imaginary part is only spurious (Hermitian system)  -->
         <xsd:attribute name="sort" use="optional" type="xsd:boolean" default="true"/>

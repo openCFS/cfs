@@ -89,7 +89,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
       #ifdef USE_ARPACK
         retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
-        EXCEPTION( "compiled without Arpack!" );
+        EXCEPTION( "compiled without ARPACK: set USE_ARPACK=ON to use the ARPACK solver" );
       #endif
       break;
 

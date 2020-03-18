@@ -239,7 +239,7 @@ DEFINE_LOG(msDriver, "msDriver")
         actDriver_ = new EigenFrequencyDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::BUCKLING ) {
-              actDriver_ = new BucklingDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+        actDriver_ = new BucklingDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::MULTIHARMONIC ) {
         actDriver_ = new MultiHarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
