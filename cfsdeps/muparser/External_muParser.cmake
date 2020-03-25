@@ -55,6 +55,9 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     INSTALL_COMMAND ""
   )
 ELSE()
+  # on mac with clang omp.h is not found. This is no issue for cfs itself
+  # a very dirty hack is to do ln -s /usr/local/include/omp.h in cfsdeps/muparser/src/muparser/include
+ 
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------

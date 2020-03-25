@@ -2047,8 +2047,8 @@ namespace CoupledField
 
         std::list<ListEntryv10> newList = std::list<ListEntryv10>();
         Double lastXpar = 0.0;
-        UInt startCnt;
-        bool wasWipedOut;
+        UInt startCnt = 0;
+        bool wasWipedOut = false;
         if(insertPos != listStart){
           /*
            * get previous entry

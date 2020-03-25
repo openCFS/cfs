@@ -135,18 +135,17 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
   #---------------------------------------------------------------------------
   # Prefer static runtime libs over shared ones.
   #---------------------------------------------------------------------------
-  IF(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND" AND NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
-    LIST(APPEND CFS_FORTRAN_LIBS
-      "${GFORTRAN_LIBRARY_STATIC}"
-      "${QUADMATH_LIBRARY_STATIC}"
-      "-static-libgfortran"
-    )
-  ELSE()
-    LIST(APPEND CFS_FORTRAN_LIBS
-      "${GFORTRAN_LIBRARY}"
-      "-lquadmath"
-    )
-  ENDIF()
+  if(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND" AND NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
+    
+    LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
+    
+    # clang on macOS complains about -static-libgfortran"
+    if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG")) 
+      LIST(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
+    endif()  
+  else()
+    LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}" "-lquadmath")
+  endif()
   #message("CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
 
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)

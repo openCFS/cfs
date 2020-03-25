@@ -133,16 +133,12 @@ namespace CoupledField {
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
     
-    UInt dim_;
-
     Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
     Matrix<Double> vecYprevious_; //! previous Yval in hysteresis
     Matrix<Double> vecXact_; //! actual Xval in hysteresis (for inverse hysteresis)
     Matrix<Double> vecYact_; //! actual Yval in hysteresis (for inverse hysteresis)
 
     Vector<Double> matDiffprevious_;
-
-    Double Xsat_, Ysat_;
 
     //! CoefFunction for anisotropic material which is passed to its derivative
     //! used to calculate an approximation of the derivative with respect to the angle

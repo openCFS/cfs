@@ -42,8 +42,26 @@ BOOST_AUTO_TEST_CASE(first_test)
 {
   int i = 1;
   BOOST_TEST(i); // passes
-  BOOST_TEST(i == 2); // fails
+  //BOOST_TEST(i == 2); // fails
 }
+
+
+
+// there is an (fixed) issue that clang on mac cannot catch exceptions
+BOOST_AUTO_TEST_CASE(exception)
+{
+  try
+  {
+    throw Exception("test");
+  }
+  catch(...)
+  {
+    BOOST_TEST(true);
+    return;
+  }
+  BOOST_TEST(false);
+}
+
 
 BOOST_AUTO_TEST_CASE(vector_compare)
 {

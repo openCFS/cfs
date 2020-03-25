@@ -182,9 +182,6 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   {
     pair<App::Type, App::Type>& app = apps[a];
 
-    // the second app determines u or phi.
-    unsigned int dof = app.second ==  App::MECH ? domain->GetGrid()->GetDim() : 1;
-
     all_u1_elem = &(forward->Get(*excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
@@ -214,9 +211,6 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 
         // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
         rhs_transp *= factor * alpha[e];
-
-        // sum it up to the global rhs vector
-        assert(de->elem->connect.GetSize() * dof == rhs_transp.GetNumCols());
 
         LOG_DBG3(sc) << "CAR " << ea.ToString(3);
 
