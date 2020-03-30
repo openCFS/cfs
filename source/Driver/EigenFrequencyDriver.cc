@@ -401,29 +401,27 @@ namespace CoupledField {
     // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
 
     // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
-	if(isQuadratic_)
-	{
-		maxVal_=-1;
-		minVal_=-1;
-	    // determine which EV problem to set up: we make a generalized one
-	    // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
-	    SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
-	    SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
-	    SBM_Matrix* dampMat = sstep->GetAlgSys()->GetMatrix(DAMPING);
-	    UInt i = massMat->GetNumCols();
-	    if (i>1) {
-	        EXCEPTION("only implemented for SBM matrices with a single block")
-	    }
-	    // check matrix dimensions
-	    assert( massMat->GetNumCols()==massMat->GetNumRows() );
-	    assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
-	    assert( dampMat->GetNumCols()==dampMat->GetNumRows() );
-	    // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
-	    // setup the eigen solver (problem type is determined in Setup based on matrix properties)
-	    sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),*(dampMat->GetPointer(0,0)),numFreq_,freqShift_,false);
-	}
-	else
-	{
+  if(isQuadratic_)
+  {
+    // determine which EV problem to set up: we make a generalized one
+    // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
+    SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
+    SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+    SBM_Matrix* dampMat = sstep->GetAlgSys()->GetMatrix(DAMPING);
+    UInt i = massMat->GetNumCols();
+    if (i>1) {
+        EXCEPTION("only implemented for SBM matrices with a single block")
+    }
+    // check matrix dimensions
+    assert( massMat->GetNumCols()==massMat->GetNumRows() );
+    assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
+    assert( dampMat->GetNumCols()==dampMat->GetNumRows() );
+    // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
+    // setup the eigen solver (problem type is determined in Setup based on matrix properties)
+    sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(dampMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)));
+  }
+  else
+  {
 
     SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
     SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
@@ -441,7 +439,7 @@ namespace CoupledField {
 
 	}
 	bool complexEV = eigenSolver->HasComplexEigenvalues();
-    if (minVal_>=0 || maxVal_>=0) { // we have an interval
+    if (minVal_!=0 || maxVal_!=0) { // we have an interval
         if (complexEV) {
             Vector<Complex> evals,errs;
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
@@ -517,13 +515,13 @@ namespace CoupledField {
         }
     }
 
-    else if ( numFreq_ > 0 || freqShift_ > 0  ){
-    		// we have num + shift
-    	    // check if the eigenvalues will be complex
-    	if(isQuadratic_)
-    	{
+    else if ( numFreq_ > 0 || freqShift_ != 0  ){
+      // we have num + shift
+      // check if the eigenvalues will be complex
+      if(isQuadratic_)
+      {
             Vector<Complex> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, freqShift_ );
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
             eigsRe_.Resize(evals.GetSize());
             eigsIm_.Resize(evals.GetSize());
             for (int i=0;i<(int)evals.GetSize();i++) {
@@ -551,7 +549,7 @@ namespace CoupledField {
             for(unsigned int i=0; i < modeOrder_.GetSize(); i++) {
               cout << setw(5) << i+1 << " | ";
               cout << setw(n) << frequency_[modeOrder_[i]]<< " | ";
-              cout << setw(n) << frequency_damped_[modeOrder_[i]]<< "|";
+              cout << setw(n) << frequency_damped_[modeOrder_[i]]<< " | ";
               cout << setw(n) << dampingRatio_[modeOrder_[i]]<< " | ";
               cout << setw(n) << eigsRe_[modeOrder_[i]]<< " | ";
               cout << setw(n) << eigsIm_[modeOrder_[i]] << "\n";
@@ -573,12 +571,6 @@ namespace CoupledField {
                   sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode);
                   mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
                   sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode,false);
-
-                  // sharedopt variant with non-normalized modes
-                  /*sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
-                  mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
-                  sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode,false);*/
-
                   mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1),vec_format);
                 }
               }

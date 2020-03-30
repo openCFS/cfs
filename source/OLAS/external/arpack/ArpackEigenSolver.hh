@@ -40,6 +40,10 @@ namespace CoupledField {
     virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false ){
         EXCEPTION("not yet implemented")
     };
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+        EXCEPTION("not yet implemented")
+    };
 
     //! Setup routine for standard eigenvalue problem
 

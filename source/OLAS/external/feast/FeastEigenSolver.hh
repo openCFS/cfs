@@ -25,7 +25,10 @@ namespace CoupledField {
     void Setup(const BaseMatrix & A, bool isHermitian=false);
     //! Setup for a generalised EVP
     void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
-
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+        EXCEPTION("not yet implemented")
+    };
     /* Setup routine for standard eigenvalue problem
      * @see BaseEigenSolver::Setup() */
     void Setup(const BaseMatrix& mat, unsigned int numFreq, double freqShift, bool sort);

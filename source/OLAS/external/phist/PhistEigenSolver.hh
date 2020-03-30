@@ -36,6 +36,10 @@ namespace CoupledField {
     {
       std::cout << "PistEigenSolver::Setup(A, B)\n";
     }
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+        EXCEPTION("not yet implemented")
+    };
 
     //! Setup routine for standard eigenvalue problem
 

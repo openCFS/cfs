@@ -59,45 +59,31 @@ public:
   //! Setup for a standard EVP
   void Setup(const BaseMatrix & A, bool isHermitian=false)
   {
-    //EXCEPTION("not implemented yet");
+    EXCEPTION("PALM is for quadratic EVPs only");
   }
   //! Setup for a generalised EVP
   void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false)
   {
-    //EXCEPTION("not implemented yet");
+    EXCEPTION("PALM is for quadratic EVPs only");
   }
-  //! Setup routine for various initialization tasks of a standard
-  //! eigenvalue problem.
-  //! \param mat Reference to matrix
-  //! \param numFreq Number of eigenvalues/frequencies to be calculated
-  //! \param freqShift Frequency shift applied to the system
-  //! \param shiftMode Flag indicating if shift-and-invert mode of solver is used
-  //! \param sort
+  //! setup the quadratic EVP
+  void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M);
+
   void Setup(const BaseMatrix & mat,  UInt numFreq, double freqShift, bool sort)
   {
-    //EXCEPTION("not implemented yet");
+    EXCEPTION("old interface - deprecated - do not use");
   }
 
-  //! Setup routine for a generalized eigenvalue problem
-
-  //! Setup routine for various initialization tasks of a generalized
-  //! eigenvalue problem.
-  //! \param stiffMat Reference to stiffness matrix
-  //! \param massMat Reference to mass matrix
-  //! \param numFreq Number of eigenvalues/frequencies to be calculated
-  //! \param freqShift Frequency shift applied to the system
-  //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-  //!        is used
   void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat,
       UInt numFreq, double freqShift, bool sort, bool bloch)
   {
-    //EXCEPTION("not implemented yet");
+    EXCEPTION("old interface - deprecated - do not use");
   }
 
   /** Solve the linear generalized eigenvalue problem
    * @see BaseEigenSolver::CalcEigenFrequencies() */
   void CalcEigenFrequencies(BaseVector& sol, BaseVector& err){
-    //EXCEPTION("obsolete - should be removed from interface");
+    EXCEPTION("obsolete - should be removed from interface");
   }
 
   void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal){
@@ -128,7 +114,9 @@ public:
   void Setup( const BaseMatrix& stiffMat,
       const BaseMatrix& massMat,
       const BaseMatrix& dampMat,
-      unsigned int numFreq, double freqShift, bool sort );
+      unsigned int numFreq, double freqShift, bool sort ){
+    EXCEPTION("old interface - do not use");
+  };
 
 private:
 
@@ -170,7 +158,6 @@ private:
   double  normm, normd, normk;   // matrix 1-norms.
   int    nzmax;  // Max number of nonzero elements of Q(sigma)=sigma^2*M+sigma*D+K.
   // (default by nnzm+nnzd+nnzk)
-  double  rtol;  // Backward error tolerance of PAL.
   // (default by eps.)
   bool   isscaling;  // true for applying scaling; false, otherwise.
   bool   isscaled;  // true for applying scaling; false, otherwise.
@@ -179,15 +166,12 @@ private:
   bool   resdone; // true if relative residual norms required; false, otherwise.
   int  nconv;  // number of converged eigenvalues
   // set to -1 at the beginning
-  int  *idxe;  // index of converged eigenvalues and eigenvectors
+  //int  *idxe;  // index of converged eigenvalues and eigenvectors
 
   /* b.3) Arpack variables */
 
   double artol;  // (default=eps) Stopping criteria of Arnoldi iteration.
-  int   ncv;  // (default=2*nev+1) Number of Arnoldi vectors at each iteration.
-  int   maxit;  // (default=300) Maximum number of iteration of IRAM allowed.
-  bool  eigdone; // Indicates whether LEP is solved.
-  int  isv0;
+
   /* b.4) Data variables */
 
   double  *res;  // Eigenpair relative residual norms
@@ -197,8 +181,6 @@ private:
   /* c. 1) Hilfsvariablen */
   UInt* ridx;
   UInt* cidx;
-  int nr;
-  int nc;
 
   const SCRS_Matrix<double>* k_CRS; //Stiffness Matrix CSR Format
   const SCRS_Matrix<double>* m_CRS; //Mass Matrix CSR Format
@@ -272,9 +254,9 @@ private:
   bool bloch_;
 
   /* Parameter handler. */
-  void SetTol(double x) { rtol = (x>0)? x: 1.0E-16;};  // backward error tolerance: CAN BE IMPROVED
-  void SetARTol(double x) { artol = (x>0)? x: 1.0E-16;}; // ARPACK stopping criteria
-  void SetARMaxit(int x) { maxit = (x>300||x<0)? 300: x;}; // ARPACK stopping criteria
+  //void SetTol(double x) { rtol = (x>0)? x: 1.0E-16;};  // backward error tolerance: CAN BE IMPROVED
+  //void SetARTol(double x) { artol = (x>0)? x: 1.0E-16;}; // ARPACK stopping criteria
+  //void SetARMaxit(int x) { maxit = (x>300||x<0)? 300: x;}; // ARPACK stopping criteria
   void SetLUThresh(double x) { threshold = (x>1||x<0)? 1 : x;};
   void NoScaling() { isscaling = false;}
   void NoEigVec() { iseigv = false;}

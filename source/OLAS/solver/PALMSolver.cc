@@ -18,8 +18,7 @@ DEFINE_LOG(palm, "palm")
 
 namespace CoupledField{
 
-  PALMEigenSolver::PALMEigenSolver(shared_ptr<SolStrategy> strat, PtrParamNode xml, PtrParamNode solverList, // @suppress("Class members should be properly initialized")
-      PtrParamNode precondList, PtrParamNode eigenInfo)
+  PALMEigenSolver::PALMEigenSolver(shared_ptr<SolStrategy> strat, PtrParamNode xml, PtrParamNode solverList,  PtrParamNode precondList, PtrParamNode eigenInfo)
   : BaseEigenSolver(strat, xml, solverList, precondList, eigenInfo)
   {
     this->generalized_ = false;
@@ -27,11 +26,57 @@ namespace CoupledField{
     this->numFreq_ = 0;
     this->freqShift_ = 0;
     xml_ = xml;
+
+    // Data from XML
+    xml_->GetValue("PadeOrder", p, ParamNode::INSERT);
+
+    isscaling = iseigv = isresid = true;
+    isfactor = resdone = isscaled = false;
+
+    normm = normd = normk = 0;
+
+    /* C) Parameter Initialization () */
+
+    threshold = 0.1;
+    artol = 1.0E-16;
+    nconv = -1;
+    delta = 1.0;
+    order = 1;
+
+    // set a lot of things to NULL to make Eclipse and compiler happy
+    EigVal = EigVec = NULL;
+    res = NULL;
+    rk = 0;
+
+    // set in lufactor
+    permr = permc = NULL;
+
+    // (re)set in CalcEigenValues
+    nzmax = n = nl = 0;
+    c_ = k_ = m_ = NULL;
+    c_CRS = k_CRS = m_CRS = NULL;
+
+    // (re)set in CalcEigenValues
+    a = b = NULL;
+    cidx = ridx = NULL;
+    nev = 0;
   }
 
   PALMEigenSolver::~PALMEigenSolver()
   {
-
+    LOG_DBG(palm) << "destructor";
+    delete[] EigVal;
+    delete[] EigVec;
+    delete[] res;
+    delete[] permr;
+    delete[] permc;
+    delete[] a;
+    delete[] b;
+    delete[] cidx;
+    delete[] ridx;
+    c_ = k_ = m_ = NULL;
+    c_CRS = k_CRS = m_CRS = NULL;
+    xml_ = NULL;
   }
 
   void PALMEigenSolver::ToInfo()
@@ -39,59 +84,29 @@ namespace CoupledField{
 
   }
 
-  void PALMEigenSolver::Setup (const BaseMatrix &stiffMat,
-      const BaseMatrix &massMat,
-      const BaseMatrix &dampMat,
-      unsigned int numFreq, double freqShift, bool sort )
+  void PALMEigenSolver::Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M)
   {
-    // m
     // Array containing the nonzero elements of either the full matrix A or the upper or lower
     // triangular part of the matrix A, as specified by uplo.
-    m_ = &dynamic_cast<const StdMatrix&>(massMat);
+    m_ = &dynamic_cast<const StdMatrix&>(M);
     const SCRS_Matrix<double>* m_const = dynamic_cast<const SCRS_Matrix<double>*>(m_);
     m_CRS = const_cast<SCRS_Matrix<double>*>(m_const);
 
-    /*c_ = &dynamic_cast<const CRS_Matrix<double>&>(dampMat);
-  assert(c_ != NULL);*/
-
-    c_ = &dynamic_cast<const StdMatrix&>(dampMat);
+    c_ = &dynamic_cast<const StdMatrix&>(C);
     const SCRS_Matrix<double>* c_const = dynamic_cast<const SCRS_Matrix<double>*>(c_);
     c_CRS = const_cast<SCRS_Matrix<double>*>(c_const);
 
 
-    k_ = &dynamic_cast<const StdMatrix&>(stiffMat);
+    k_ = &dynamic_cast<const StdMatrix&>(K);
     const SCRS_Matrix<double>* k_const = dynamic_cast<const SCRS_Matrix<double>*>(k_);
     k_CRS = const_cast<SCRS_Matrix<double>*>(k_const);
 
-    this->SetProblemType(massMat,false);
+    this->SetProblemType(M,false);
 
-
-    /* A) Data assignment */
-    p = 1;
-    xml_->GetValue("PadeOrder", p, ParamNode::INSERT);
-    sigma = Complex(0.0,freqShift*2*M_PI); //Frequency*2*Pi
-    nev = numFreq;
-    n = stiffMat.GetNumRows();
-
+    n = K.GetNumRows();
 
     /* C) Parameter Initialization */
-
-    threshold = 0.1;
-    rtol = 1.0E-16;
-    artol = 1.0E-16;
-    maxit = 300;
-    nconv = -1;
-    delta = 1.0;
     nzmax = m_->GetNnz()+k_->GetNnz()+c_->GetNnz();
-    order = 1;
-    ncv = 2*nev + 1;
-
-    isscaling = iseigv = isresid = true;
-    isfactor = eigdone = resdone = isscaled = false;
-
-    normm = normd = normk = 0;
-
-    isv0 = 0; // random starting vector
   }
 
   void PALMEigenSolver::LowRankDcomp()
@@ -110,7 +125,8 @@ namespace CoupledField{
     int t;    // Internal variables.
 
     double temp_new = 0;
-    nr = 0; nc = 0;
+    int nr = 0;
+    int nc = 0;
     UInt col_count = c_CRS->GetNumCols();
     //bool col_notzero[col_count] = {false};
     StdVector<bool> col_notzero; col_notzero.Resize(col_count,false);
@@ -221,7 +237,7 @@ namespace CoupledField{
       E.SetEntry(ridx[i],i , MU[i]);
       F.SetEntry(i, cidx[i], MVT[i]);
     }
-
+    LOG_DBG(palm) << "LowRankDcomp: END";
     return;
   }
 
@@ -515,8 +531,12 @@ namespace CoupledField{
   void PALMEigenSolver::
   CalcEigenValues( BaseVector &sol, BaseVector &err, UInt N, Double shiftPoint )// EigenValue Solver
   {
+    LOG_DBG(palm) << "CalcEigenValues: START";
     shared_ptr<Timer> timer = info_->Get("palm/timer")->AsTimer();
     timer->Start();
+
+    nev = N;
+    sigma = Complex(0.0,shiftPoint);
 
     LowRankDcomp();
 
@@ -534,11 +554,12 @@ namespace CoupledField{
       b[ i ] = b[ i ] * b[ i ];
     }
     /* PARAMETER AND WORKSPACE SETTING UP */
-
+    LOG_DBG(palm) << "CalcEigenValues: Mark 1";
     int ido = 0;  // First call to ARPACK
     const char bmat = 'I'; // Bmat
     std::string which("LM"); // Part of spectral
 
+    int ncv = 2*nev + 1; // (default=2*nev+1) Number of Arnoldi vectors at each iteration.
     int lworkl = ncv * ( 3 * ncv + 6 );
     // Dimension of internal vectors
     int lworkv = 2 * ncv; // Dimension of internal vectors
@@ -555,17 +576,17 @@ namespace CoupledField{
     // Working space
     double  *rwork = new double[ lrwork + 1];
     // Working space
-
-    int  iparam[ 12 ]; // Vector that handles ARPACK parameters.
+    LOG_DBG(palm) << "CalcEigenValues: Mark 2";
+    int  iparam[ 12 ] = {0}; // Vector that handles ARPACK parameters.
     int  ipntr[ 15 ]; // Vector than handles ARPACK pointers.
 
     nconv = 0;  // No eigenvalues found yet
     iparam[ 1 ] = 1;  // Using AutoShift: CAN USER-DEFINED
-    iparam[ 3 ] = maxit; // Maximum number of IRAM
+    iparam[ 3 ] = 300; // Maximum number of IRAM
     iparam[ 4 ] = 1;  // Block size must be 1.
     iparam[ 7 ] = 1;  // mode bmat=1.
 
-    int info = isv0; // Use random starting vectors if isv0 = 0,
+    int info = 0; // Use random starting vectors if = 0,
     // otherwise user-defined.
 
     scaling();   // Call scaling function,
@@ -596,34 +617,31 @@ namespace CoupledField{
       }
 
     }
-
+    LOG_DBG(palm) << "CalcEigenValues: Mark 3";
     /* Computing Ritz values */
 
     EigVal = new Complex[ nev + 1 ];  // Eigenvalues
-    EigVec = &V[ 1 ];            // Eigenvectors
+    EigVec = new Complex[ nl*nev + 1 ]; // Eigenvectors
 
-    bool rvec = (iseigv) ? 1 : 0; // 0 not to compute eigenvectors,
-    // 1 compute eigenvectors.
+    bool rvec = (iseigv) ? 1 : 0; // 0 not to compute eigenvectors, 1 compute eigenvectors.
 
-    char HowMny = 'A';   // 'A' for Ritz vectors,
-    // 'P' for Shur vectors.
+    char HowMny = 'A';   // 'A' for Ritz vectors, 'P' for Shur vectors.
 
     bool *iselect = new bool[ ncv ]; // Internal working space.
-
+    LOG_DBG(palm) << "CalcEigenValues: Mark 4";
     /* Call ARPACK routine for the Ritz values and/or Ritz vectors. */
-
     zneupd_( &rvec, &HowMny, iselect, EigVal, EigVec, &nl, &sigma, &workv[1],
         &bmat, &nl, which.c_str(), &nev, &artol, resid, &ncv,
         &V[1], &nl, &iparam[1], &ipntr[1], &workd[1], &workl[1],
         &lworkl, &rwork[1], &info);
 
-
+    LOG_DBG(palm) << "CalcEigenValues: Mark 5";
     /* Convert LEP eigenvalues back to QEP.  */
     for( int i = 0; i < nev; i++) {
+      LOG_DBG(palm) << i << ":" << EigVal[ i ];
       EigVal[ i ] = sigma * sqrt( 1.0 / EigVal[ i ] + 1.0 );
     }
-
-    eigdone = true;  // Eigenvalue computation complete.
+    //LOG_DBG(palm) << "CalcEigenValues: Mark 6";
     /* Release storage.    */
     delete[] resid;
     delete[] workd;
@@ -648,6 +666,7 @@ namespace CoupledField{
       err.SetEntry(i, (Complex)res[i]);
     }
     timer->Stop();
+    LOG_DBG(palm) << "CalcEigenValues: END";
   }
 
   void PALMEigenSolver::
