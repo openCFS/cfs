@@ -19,7 +19,7 @@ class DesignSpace;
 class Excitation;
 class Function;
 class SingleVector;
-class ElementAccess;
+struct ElementAccess;
 struct Elem;
 
 /** The calculation of the von Mises Stress function vms, the derivative dvms/drho and the adjoint RHS are
