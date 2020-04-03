@@ -49,6 +49,8 @@ SET(CTEST_INITIAL_CACHE
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
+   # gcc 9 has a bug with CFS_NUM_THREADS > 1
+   CFS_TESTSUITE_THREADS:STRING=1   
    #USE_ILUPACK:BOOL=ON
    USE_FEAST:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl

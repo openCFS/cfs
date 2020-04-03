@@ -43,9 +43,8 @@ SET(CTEST_INITIAL_CACHE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
    CFSDAT:BOOL=OFF
    USE_PARDISO:BOOL=ON
-   USE_OPENMP:BOOL=ON
-   # gcc 9 has a bug with CFS_NUM_THREADS > 1
-   CFS_TESTSUITE_THREADS:STRING=1  
+   # to also compile the variant w/o openmp
+   USE_OPENMP:BOOL=OFF
    USE_CGAL:BOOL=ON
    USE_CGNS:BOOL=OFF
    USE_CCMIO:BOOL=OFF
