@@ -41,8 +41,8 @@ MESSAGE("Finished updating testsuite")
 # now we commonly update CFS source
 IF(SITE_DIR MATCHES "master")
   # there group_stingl/master and cfs/master need to share the test suite
-  SET(CTEST_BUILD_NAME "Update master-stingl")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/master_stingl")
+  SET(CTEST_BUILD_NAME "Update master")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/master")
 ELSE()
   SET(CTEST_BUILD_NAME "Update shared_opt")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
