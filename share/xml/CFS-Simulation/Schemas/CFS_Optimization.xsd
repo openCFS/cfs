@@ -1146,6 +1146,24 @@
             <xsd:element name="shapeMap" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
+                  <xsd:element name="export" minOccurs="0" maxOccurs="1">
+                      <xsd:annotation>
+                        <xsd:documentation>writes a levelset.vtk file with the levelset (-1;1] at nodes (to be extended to gaussian points)
+                                           The filename is "project".levelset.vtk  </xsd:documentation>
+                      </xsd:annotation>
+                      <!--  <export type="levelset" enable="true" resolution="nodes" /> -->
+                      <xsd:complexType>
+                        <!-- enforce without choice - is to document what we do --> 
+                        <xsd:attribute name="type" default="levelset">
+                          <xsd:simpleType>
+                            <xsd:restriction base="xsd:token">
+                              <xsd:enumeration value="levelset"></xsd:enumeration>
+                            </xsd:restriction>
+                          </xsd:simpleType>
+                        </xsd:attribute>
+                        <xsd:attribute name="enable" type="xsd:boolean" default="false"/>
+                      </xsd:complexType>
+                    </xsd:element> 
                   <xsd:element name="center" minOccurs="0" maxOccurs="unbounded">
                     <xsd:annotation>
                       <xsd:documentation>3D only: defines a rod/tube center by two nodes with different dofs</xsd:documentation>
@@ -1156,7 +1174,6 @@
                         <xsd:element name="node" minOccurs="2" maxOccurs="2">
                           <xsd:complexType>
                             <xsd:attribute name="dof" use="required" type="DT_Axis" />
-
                             <!-- lower, upper and initial go together or fixed or slave! We apply the mathparser to all of them! -->
                             <xsd:attribute name="initial" type="xsd:token" use="optional" />
                             <xsd:attribute name="lower" type="xsd:token" use="optional" />

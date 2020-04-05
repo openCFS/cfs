@@ -9,6 +9,7 @@ from zipfile import ZIP_FILECOUNT_LIMIT
 ## the purpose of this file is to create a cfs binary arcive. 
 # Similar to create_binary_archive.cmake but including share/python and less noise
 parser = argparse.ArgumentParser(description = 'create a distributable cfs zip archive')
+parser.add_argument('--mingw', help="assume MINGW crosscompiled stuff", action='store_true')
 parser.add_argument('--archive', help="explicitly give archive name")
 parser.add_argument('--password', help="optional encryption of arcive by password",)
 
@@ -30,6 +31,8 @@ shutil.rmtree(tmp, ignore_errors=True)
 os.mkdir(tmp)
 # share
 
+arch = 'MINGW_X86_64' if args.mingw else 'LINUX_X86_64'
+
 print('pwd=', pwd)
 print('cfs=', cfs)
 print('tmp=', tmp)
@@ -37,8 +40,9 @@ print('tmp=', tmp)
 shutil.copytree(cfs + '/share', tmp + '/cfs/share')
 # one might consider to remove the cfs script in /share/scripts/cfs   
 os.remove(tmp + '/cfs/share/scripts/cfs')
-shutil.copytree('bin/LINUX_X86_64', tmp + '/cfs/bin/LINUX_X64_64')
-shutil.copytree('lib64/LINUX_X86_64', tmp + '/cfs/lib64/LINUX_X64_64')
+shutil.rmtree(tmp + '/cfs/share/doc')
+shutil.copytree('bin/' + arch, tmp + '/cfs/bin/' + arch)
+shutil.copytree('lib64/' + arch, tmp + '/cfs/lib64/' + arch)
 
 # construct zipfile name
 name = os.path.basename(pwd)
@@ -47,11 +51,11 @@ zip_file = 'cfs_' + name + '_' + str(datetime.now().year) + '_' + str(datetime.n
 call = ['zip', '-r']
 if args.password:
   call.append('--password')
-  call.appen(args.password)
+  call.append(args.password)
 call.append(pwd + '/' + zip_file)
 call.append('.')  
 
 subprocess.call(call, cwd=tmp)
 print('created cfs archive ', zip_file)
 if args.password:
-  print("password to decrypt '" + args.password + "'")
+  print("password to decrypt: '" + args.password + "'")

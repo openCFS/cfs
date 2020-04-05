@@ -65,7 +65,7 @@ void MagSIMP::PostInit()
 
   magRHS.Init<double>(design, App::MAG);
 
-  nonlin_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
+  nonlin_.Resize(domain->GetGrid()->GetNumRegions() + 1, false);
 
   PtrParamNode pn = optInfoNode->Get(ParamNode::HEADER)->Get("magOptRegions");
 
