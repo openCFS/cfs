@@ -1765,7 +1765,7 @@ int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double a
 void ShapeMapDesign::MapFeatureToDensity()
 {
   assert(data.GetSize() == map_.GetSize());
-  //mapping_timer_->Start();
+  mapping_timer_->Start();
 
   LOG_DBG(SMD) << "MSTD: di=" << design_id;
 
@@ -1897,7 +1897,7 @@ void ShapeMapDesign::MapFeatureToDensity()
   numInt_.int_cells_order_sum_ = cells_order_sum;
   numInt_.ToInfo(info_->Get("shapeMap/numInt"));
   mapped_design_ = design_id;
-  //mapping_timer_->Stop();
+  mapping_timer_->Stop();
 }
 
 void ShapeMapDesign::MapFeatureGradient(const Function* f)

@@ -707,12 +707,6 @@ private:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
-  /** Measure MapShapeToDensity() */
-  shared_ptr<Timer> mapping_timer_;
-
-  /** Measure MapShapeGradient() */
-  shared_ptr<Timer> gradient_timer_;
-
   /** do we export a levelset file? Shall become a struct with more options.
    * In the simplest case writes when we export the density. New files with -d else always overwrite. Make smarter! */
   bool export_leveset_;

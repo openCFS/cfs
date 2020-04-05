@@ -573,7 +573,7 @@ endif(USE_PETSC)
 if(BUILD_HWLOC)
   SET(HWLOC_VER "1.11.8") # note that 1.11 is hardcoded in External_HWLOC!
   SET(HWLOC_TGZ "hwloc-${HWLOC_VER}.tar.gz")
-  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") 
+  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") # 1.11.8 
   
   INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
 endif(BUILD_HWLOC)
