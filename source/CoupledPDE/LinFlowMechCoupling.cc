@@ -219,7 +219,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
         //scale the penalty value
         beta *= matVal;
         // Note:
-        // Define the bilinear forms for the Nitsche coupling consists of eight terms
+        // Define the bilinear forms for the Nitsche coupling consists of six terms
         // The terms are divided into four categories:
         // 1) The bilinear forms coupling mechanical displacement with LinFlow velocity
         // 2) The Penalty integrals coupling mechanical displacement with LinFlow velocity
@@ -231,17 +231,15 @@ void LinFlowMechCoupling::DefineIntegrators() {
         PtrCoefFct coefOne = CoefFunction::Generate( mp, Global::REAL, "1");
         PtrCoefFct coefMinusOne = CoefFunction::Generate( mp, Global::REAL, "-1.0");
 
-        BiLinearForm* int_PhiM_duM = NULL;// Term 1: u'M_duM : phi * sigma[u].n
-        BiLinearForm* penalty_PhiM_uM = NULL;// term 2  PhiM_uM : beta*phi*du/dt
-        BiLinearForm* penalty_PhiM_vS = NULL;// term 3 PhiM_vS :-beta*phi*v
-        BiLinearForm* int_PsiS_duM = NULL;// Term 4: PsiS_duM : Psi*sigma[u].n
-        BiLinearForm* penalty_PsiS_vS = NULL;// Term 5: PsiS_vS : beta*Psi.v
-        BiLinearForm* penalty_PsiS_uM = NULL;// Term 6: PsiS_uM : -beta*Psi.du/dt
+        BiLinearForm* int_PhiM_duM = NULL;   // Term 1: u'M_duM : phi * sigma[u].n
+        BiLinearForm* penalty_PhiM_uM = NULL;// term 2  u'M_uM : beta*phi*du/dt
+        BiLinearForm* penalty_PhiM_vS = NULL;// term 3 u'M_vS :-beta*phi*v
+        BiLinearForm* int_PsiS_duM = NULL;   // Term 4: v'S_duM : Psi*sigma[u].n
+        BiLinearForm* penalty_PsiS_vS = NULL;// Term 5: v'S_vS : beta*Psi.v
+        BiLinearForm* penalty_PsiS_uM = NULL;// Term 6: v'S_uM : -beta*Psi.du/dt
 
         BaseBOperator * sNSOp1 = NULL;
         BaseBOperator * sNSOp2 = NULL;
-        BaseBOperator * sNSOp3 = NULL;
-        BaseBOperator * sNSOp4 = NULL;
         // ====================================================================
         //  PART ONE
         // ====================================================================
@@ -332,26 +330,26 @@ void LinFlowMechCoupling::DefineIntegrators() {
         // --------------------------
         if (dim_ == 3)
         {
-          sNSOp4 = new SurfaceNormalStressOperator<FeH1, 3, 3,Complex>(subType_ ,false);
-          sNSOp4->SetCoefFunction(coefMech);
+          sNSOp2 = new SurfaceNormalStressOperator<FeH1, 3, 3,Complex>(subType_ ,false);
+          sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
-          (new SurfaceIdentityOperator<FeH1, 3, 3>(),sNSOp4,
+          (new SurfaceIdentityOperator<FeH1, 3, 3>(),sNSOp2,
               coefOne, 1.0, BiLinearForm::SLAVE_MASTER, false, true, false);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
-          sNSOp4 = new SurfaceNormalStressOperator<FeH1, 2, 3,Complex>(subType_ ,false);
-          sNSOp4->SetCoefFunction(coefMech);
+          sNSOp2 = new SurfaceNormalStressOperator<FeH1, 2, 3,Complex>(subType_ ,false);
+          sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
-          (new SurfaceIdentityOperator<FeH1, 2, 3>(),sNSOp4,
+          (new SurfaceIdentityOperator<FeH1, 2, 3>(),sNSOp2,
               coefOne, 1.0, BiLinearForm::SLAVE_MASTER, false, true, false);
         }
         else
         {
-          sNSOp4 = new SurfaceNormalStressOperator<FeH1, 2, 2,Complex>(subType_ ,false);
-          sNSOp4->SetCoefFunction(coefMech);
+          sNSOp2 = new SurfaceNormalStressOperator<FeH1, 2, 2,Complex>(subType_ ,false);
+          sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
-          (new SurfaceIdentityOperator<FeH1, 2, 2>(),sNSOp4,
+          (new SurfaceIdentityOperator<FeH1, 2, 2>(),sNSOp2,
               coefOne, 1.0, BiLinearForm::SLAVE_MASTER, false, false, false);
         }
         // ====================================================================
