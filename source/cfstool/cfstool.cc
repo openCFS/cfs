@@ -1186,14 +1186,14 @@ namespace CFSTool {
                       std::cout << "\t\tAverage: " << diffAvg << " (difference), "<< refAvg <<" (reference)\n";
                       //std::string    maxDiffResultName = inResults_fut[iRes]->GetResultInfo()->resultName;
 
-                  } else if( types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::HARMONIC || types[actMsStep] == BasePDE::MULTIHARMONIC ) {
+                  } else if( types[actMsStep] == BasePDE::BUCKLING ||  types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::HARMONIC || types[actMsStep] == BasePDE::MULTIHARMONIC ) {
                       Vector<Complex> & inVec_fut = dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
                       Vector<Complex> & inVec_ref = dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
                       Vector<Complex> diffVec;// dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
                       diffVec.Resize( inVec_fut.GetSize() );
 
                       // normalize modes
-                      if (types[actMsStep] == BasePDE::EIGENFREQUENCY) {
+                      if (types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::BUCKLING) {
                         // search for the position of the maximum absolute value in reference vector
                         int i_ref = 0;
                         Complex norm_ref = inVec_ref.MaxAbs(i_ref);
