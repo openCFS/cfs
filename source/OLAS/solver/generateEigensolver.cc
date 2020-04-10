@@ -89,7 +89,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
       #ifdef USE_ARPACK
         retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
-        EXCEPTION( "compiled without Arpack!" );
+        EXCEPTION( "compiled without ARPACK: set USE_ARPACK=ON to use the ARPACK solver" );
       #endif
       break;
 
@@ -120,7 +120,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
     }
-    // set the eigensolver type (should probably go into the constructor)
+
     retSolver->eigenSolverType_ = solver;
     return retSolver;
   }

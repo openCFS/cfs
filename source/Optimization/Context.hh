@@ -12,6 +12,7 @@ class Excitation;
 class SingleDriver;
 class SinglePDE;
 class EigenFrequencyDriver;
+class BucklingDriver;
 class HarmonicDriver;
 class Exctiation;
 class MultipleExcitation;
@@ -83,6 +84,8 @@ class Context
    * TODO make this stuff inline!
    * @return NULL if other driver. */
   EigenFrequencyDriver* GetEigenFrequencyDriver();
+
+  BucklingDriver* GetBucklingDriver();
 
   HarmonicDriver* GetHarmonicDriver();
 

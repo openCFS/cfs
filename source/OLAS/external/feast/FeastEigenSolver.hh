@@ -10,25 +10,31 @@ namespace CoupledField {
 
   /** This is the BaseEigenSolver implementation based on the FEAST Eigensolver.
    * We are here based on the MKL implementation, but it should be easy to use also the original FEAST academic code */
-  class FeastEigenSolver : public BaseEigenSolver
-  {
+  class FeastEigenSolver : public BaseEigenSolver {
+
   public:
+
+    //! Default Constructor
     FeastEigenSolver( shared_ptr<SolStrategy> strat,
                        PtrParamNode xml,
                        PtrParamNode solverList,
                        PtrParamNode precondList,
                        PtrParamNode eigenInfo );
 
+    //! Default Destructor
     virtual ~FeastEigenSolver();
 
     //! Setup for a standard EVP
     void Setup(const BaseMatrix & A, bool isHermitian=false);
+
     //! Setup for a generalised EVP
     void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
     //! Setup for a quadratic EVP
     virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
         EXCEPTION("not yet implemented")
     };
+
     /* Setup routine for standard eigenvalue problem
      * @see BaseEigenSolver::Setup() */
     void Setup(const BaseMatrix& mat, unsigned int numFreq, double freqShift, bool sort);
@@ -105,10 +111,10 @@ namespace CoupledField {
     /** subspace dimension n >= m0_ >= m_ */
     int m0_;
 
-    /** the last result value -> MKL manual pake 1635 */
+    /** the last result value -> MKL manual page 1635 */
     int info_;
 
-    /** the right and left eingenvectors */
+    /** the right and left eigenvectors */
     StdVector<Complex> vr_;
     StdVector<Complex> vl_;
 
