@@ -1762,6 +1762,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     case ResultInfo::REGION:
       definedOn = 7;
       break;
+    case ResultInfo::REGION_AVERAGE:
+      definedOn = 7;
+      break;
     case ResultInfo::SURF_REGION:
       definedOn = 8;
       break;
@@ -1803,6 +1806,9 @@ hsize_t H5IO::maxChunkSize_= 100;
 //       definedOn = "Nodes";
 //       break;
      case ResultInfo::REGION:
+       definedOn = "Regions";
+       break;
+     case ResultInfo::REGION_AVERAGE:
        definedOn = "Regions";
        break;
      case ResultInfo::SURF_REGION:

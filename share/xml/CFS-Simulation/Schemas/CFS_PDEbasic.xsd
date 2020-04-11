@@ -1091,7 +1091,19 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
+  
+  <xsd:complexType name="DT_RegionAverageResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_RegionResult">
+        <xsd:annotation>
+          <xsd:documentation>Computes volume averaged field results.
+Fields are integrated over the volume region using the defined integration scheme for the PDE's unknowns.
+The result is divided by the total volume of the region, yielding the volume average.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
   <!-- ******************************************************************** -->
   <!--   Definition of surface region result type -->
   <!-- ******************************************************************** -->

@@ -114,8 +114,6 @@ namespace CoupledField {
     // -- integrated quantities --
     MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
     MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, MECH_DYADIC_STRAIN_SUM, MECH_QUAD_DISP_SUM,
-    // -- volume/surface averaged quantities --
-    MECH_STRAIN_AVERAGE,MECH_STRESS_AVERAGE,
     // -- coupling quantities --
     MECH_FORCE,
 

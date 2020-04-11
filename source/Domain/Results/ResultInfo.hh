@@ -20,7 +20,7 @@ namespace CoupledField {
   public:
 
     //! Typedef for the unknown entities where the result is defined on
-    typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, REGION, 
+    typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, REGION, REGION_AVERAGE,
                   SURF_REGION, NODELIST, COIL, FREE } EntityUnknownType;
     static Enum<EntityUnknownType> EntityUnknownTypeEnum_;
     

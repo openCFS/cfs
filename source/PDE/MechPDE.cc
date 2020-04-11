@@ -2917,36 +2917,6 @@ namespace CoupledField {
     else
       dssFunc.reset(new ResultFunctorIntegrate<Double>(dyadic, feFct, dyadicStrainSum));
     resultFunctors_[MECH_DYADIC_STRAIN_SUM] = dssFunc;
-    
-    // === homogenised (=averaged) MECHANIC QUANTITIES ===
-    // take the original result info and coef function, and then apply the ResultFunctorIntegrate
-    // you need to add a new SolutionType in Environment (and xml).
-    std::map<SolutionType,std::pair<shared_ptr<ResultInfo>, PtrCoefFct> > averages;
-    averages[MECH_STRAIN_AVERAGE] = std::pair<shared_ptr<ResultInfo>, PtrCoefFct>(strain,strainFunc);
-    averages[MECH_STRESS_AVERAGE] = std::pair<shared_ptr<ResultInfo>, PtrCoefFct>(stress,sigmaFunc);
-    for (auto const& i : averages) {
-      shared_ptr<ResultInfo> origResInfo = i.second.first;
-      PtrCoefFct origCoef = i.second.second;
-      shared_ptr<ResultInfo> homResInfo(new ResultInfo);
-      homResInfo->resultType = i.first; // must be changed to correct SolutionType
-      homResInfo->definedOn = ResultInfo::REGION; // on the region, because we integrate it over the volume
-      // copy the rest
-      homResInfo->dofNames = origResInfo->dofNames;
-      homResInfo->unit = origResInfo->unit;
-      homResInfo->entryType = origResInfo->entryType;
-      availResults_.insert( homResInfo );
-      // set the result functor to integrate and average over the volume
-      shared_ptr<ResultFunctor> homResFunctor;
-      if(isComplex_) {
-        homResFunctor.reset(new ResultFunctorIntegrate<Complex>(origCoef, feFct, homResInfo));
-        dynamic_pointer_cast< ResultFunctorIntegrate<Complex> >(homResFunctor)->SetAveraged(true);
-      }
-      else {
-        homResFunctor.reset(new ResultFunctorIntegrate<Double>(origCoef, feFct, homResInfo));
-        dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(homResFunctor)->SetAveraged(true);
-      }
-      resultFunctors_[i.first] = homResFunctor;
-    }
 
     // === MECHANIC DEFORMATION ENERGY DENSITY ===
     shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);

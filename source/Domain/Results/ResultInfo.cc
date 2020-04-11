@@ -107,6 +107,9 @@ namespace CoupledField {
     case REGION:
       out = "region";
       break;
+    case REGION_AVERAGE:
+      out = "regionAverage";
+      break;
     case SURF_REGION:  
       out = "surfRegion";
       break;
@@ -141,6 +144,8 @@ namespace CoupledField {
         out = SURF_ELEM;
       else if( in == "region")
         out = REGION;
+      else if( in == "regionAverage")
+        out = REGION_AVERAGE;
       else if( in == "surfRegion")
         out = SURF_REGION;
       else if( in == "nodeList")
@@ -180,6 +185,7 @@ namespace CoupledField {
    EnumTuple(ResultInfo::ELEMENT,  "ELEMENT"),
    EnumTuple(ResultInfo::SURF_ELEM,  "SURF_ELEM"),
    EnumTuple(ResultInfo::REGION,  "REGION"),
+   EnumTuple(ResultInfo::REGION_AVERAGE,  "REGION_AVERAGE"),
    EnumTuple(ResultInfo::SURF_REGION,  "SURF_REGION"),
    EnumTuple(ResultInfo::NODELIST,  "NODELIST"),
    EnumTuple(ResultInfo::COIL,  "COIL"),

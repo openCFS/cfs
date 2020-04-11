@@ -804,6 +804,7 @@ namespace CoupledField {
 	  elemNames.insert(make_pair(ResultInfo::ELEMENT, "elemResult"));
 	  elemNames.insert(make_pair(ResultInfo::SURF_ELEM, "surfElemResult"));
 	  elemNames.insert(make_pair(ResultInfo::REGION, "regionResult"));
+	  elemNames.insert(make_pair(ResultInfo::REGION_AVERAGE, "regionAverageResult"));
 	  elemNames.insert(make_pair(ResultInfo::SURF_REGION, "surfRegionResult"));
 	  elemNames.insert(make_pair(ResultInfo::COIL, "coilResult"));
 
@@ -811,6 +812,7 @@ namespace CoupledField {
 	  isHistory.insert(make_pair(ResultInfo::ELEMENT, false));
 	  isHistory.insert(make_pair(ResultInfo::SURF_ELEM, false));
 	  isHistory.insert(make_pair(ResultInfo::REGION, true));
+	  isHistory.insert(make_pair(ResultInfo::REGION_AVERAGE, true));
 	  isHistory.insert(make_pair(ResultInfo::SURF_REGION, true));
 	  isHistory.insert(make_pair(ResultInfo::COIL, true));
 
@@ -823,7 +825,6 @@ namespace CoupledField {
 	  // Convert enum
 	  quantity = SolutionTypeEnum.ToString(candidate->resultType);
 	  LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '" << quantity << "'";
-
 	  // try to catch possible errors
 	  try {
 
@@ -832,17 +833,27 @@ namespace CoupledField {
 		  if( xmlElemName == "" ){
 			  return false;
 		  }
+      LOG_DBG(singlepde) << pdename_ << ":   xmlElemName = " << xmlElemName;
 
 		  // Remember current result node
 		  PtrParamNode actResultNode =
 				  resultNode->GetByVal(xmlElemName, "type", quantity, ParamNode::PASS );
+      LOG_DBG(singlepde) << pdename_ << ":   quantity = " << quantity;
 
 		  // Check on which entity type the result is defined on
 		  switch(candidate->definedOn) {
 		  case ResultInfo::NODE:
 			  entityType = EntityList::NODE_LIST;
+			  LOG_DBG(singlepde) << pdename_ << ":   -> defined on nodes";
 			  break;
+      case ResultInfo::REGION_AVERAGE:
+        LOG_DBG(singlepde) << pdename_ << ":   -> defined on REGION_AVERAGE";
+        entityType = EntityList::NAME_LIST;
+        break;
 		  case ResultInfo::REGION:
+		    LOG_DBG(singlepde) << pdename_ << ":   -> defined on REGION";
+		    entityType = EntityList::NAME_LIST;
+		    break;
 		  case ResultInfo::SURF_REGION:
 			  entityType = EntityList::NAME_LIST;
 			  break;
@@ -867,6 +878,7 @@ namespace CoupledField {
 		  // ========== Look for defineType 'REGION' ==========
 		  // if no node was found, continue with next result
 		  if( !actResultNode) {
+		    LOG_DBG(singlepde) << pdename_ << ":   out here";
 			  return false;
 		  }
 
@@ -910,6 +922,7 @@ namespace CoupledField {
 			  // 1b) Look for regions the result is defined on
 			  if(candidate->definedOn == ResultInfo::NODE ||
 					  candidate->definedOn == ResultInfo::ELEMENT ||
+					  candidate->definedOn == ResultInfo::REGION_AVERAGE ||
 					  candidate->definedOn == ResultInfo::REGION ) {
 				  listNode = actResultNode->Get("regionList", ParamNode::PASS);
 				  if( listNode )
@@ -981,11 +994,22 @@ namespace CoupledField {
 
 				  // try to get result functor
 				  shared_ptr<ResultFunctor> fnc;
-				  if(resultFunctors_.find(candidate->resultType) == resultFunctors_.end())
-					  return false;
-				  // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
-
-				  fnc = resultFunctors_[candidate->resultType];
+				  if( candidate->definedOn == ResultInfo::REGION_AVERAGE ) {
+				    LOG_DBG(singlepde) << pdename_ << "  -> regionAverage result we need to get functor from fieldAverageFunctors_";
+				    if(fieldAverageFunctors_.find(candidate->resultType) == fieldAverageFunctors_.end()){
+				      LOG_DBG(singlepde) << pdename_ << "    not found in fieldAverageFunctors_, trying resultFunctors_";
+				      EXCEPTION( "No result functor defined for results of type '" << quantity << "' (field average) - this should not happen - check DefineFieldResult");
+				    } else {
+              fnc = fieldAverageFunctors_[candidate->resultType];
+				    }
+				  } else {
+            if(resultFunctors_.find(candidate->resultType) == resultFunctors_.end()){
+              LOG_DBG(singlepde) << pdename_ << "  -> no functors found";
+              EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
+            } else {
+              fnc = resultFunctors_[candidate->resultType];
+            }
+				  }
 
 				  if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
 				       candidate->resultType == MAG_FORCE_MAXWELL ||
@@ -3489,6 +3513,35 @@ namespace CoupledField {
     resultFunctors_[res->resultType] = func;
     fieldCoefs_[res->resultType] = coef;
     availResults_.insert(res);
+
+    // define the averaged result of the field result
+    shared_ptr<ResultInfo> avgResInfo(new ResultInfo);
+    avgResInfo->definedOn = ResultInfo::REGION_AVERAGE; // on the region, because we integrate it over the volume
+    // copy the rest
+    avgResInfo->resultType = res->resultType ;
+    avgResInfo->dofNames = res->dofNames;
+    avgResInfo->unit = res->unit;
+    avgResInfo->entryType = res->entryType;
+    //avgResInfo->name = ;
+    availResults_.insert( avgResInfo );
+    if ( res->GetFeFunction().expired() && (feFunctions_.size() <= 1) ) { // feFunction was not set to result info in PDE, but there is only one anyway
+      res->SetFeFunction( feFunctions_.rbegin()->second );//we set it
+    }
+    if ( res->GetFeFunction().expired() ) {
+      WARN("use SetFeFct() to make averaged results work for '" << SolutionTypeEnum.ToString(res->resultType) <<"'")
+    } else {
+      shared_ptr<BaseFeFunction> feFct = shared_ptr<BaseFeFunction>(res->GetFeFunction());
+      shared_ptr<ResultFunctor> avgResFunctor;
+      if(isComplex_) {
+        avgResFunctor.reset(new ResultFunctorIntegrate<Complex>(coef, feFct, avgResInfo));
+        dynamic_pointer_cast< ResultFunctorIntegrate<Complex> >(avgResFunctor)->SetAveraged(true);
+      }
+      else {
+        avgResFunctor.reset(new ResultFunctorIntegrate<Double>(coef, feFct, avgResInfo));
+        dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(avgResFunctor)->SetAveraged(true);
+      }
+      fieldAverageFunctors_[avgResInfo->resultType] = avgResFunctor;
+    }
   }
   
   void SinglePDE::DefineFieldResult(SolutionType solType, ResultInfo::EntryType entryType, ResultInfo::EntityUnknownType definedOn, const std::string& dofNames, bool fromOptimization)
