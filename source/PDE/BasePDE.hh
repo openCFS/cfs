@@ -86,7 +86,7 @@ namespace CoupledField
 
     /** do string/enum conversion via BasePDE::analysisType */
     typedef enum {NO_ANALYSIS, STATIC, TRANSIENT, HARMONIC, MULTIHARMONIC,
-    			  EIGENFREQUENCY, INVERSESOURCE, MULTI_SEQUENCE } AnalysisType;
+    			  EIGENFREQUENCY, INVERSESOURCE, MULTI_SEQUENCE, BUCKLING } AnalysisType;
     
     /** Helper method which determines if an AnalyisType is complex. */
     bool IsComplex();

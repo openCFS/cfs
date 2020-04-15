@@ -226,6 +226,14 @@ ENDIF()
 IF(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
   MESSAGE(FATAL_ERROR "Either USE_ILUPACK=ON or USE_ILUPACK_PARALLEL=ON.  Both can not be swithed on together")
 ENDIF()
+OPTION(BUILD_PALM "Include Pade Approximation Linearization Method (PALM) solver for quadratic eigenvalue problems." ${BUILD_PALM_DEFAULT})
+if( BUILD_PALM AND NOT USE_SUPERLU )
+  MESSAGE(FATAL_ERROR "BUILD_PALM=ON requires Intel SUPERLU! Set USE_SUPERLU=ON")
+endif( BUILD_PALM AND NOT USE_SUPERLU )
+if( BUILD_PALM AND NOT USE_ARPACK )
+  MESSAGE(FATAL_ERROR "BUILD_PALM=ON requires Intel SUPERLU! Set USE_ARPACK=ON")
+endif( BUILD_PALM AND NOT USE_ARPACK )
+
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.

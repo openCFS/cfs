@@ -1233,7 +1233,7 @@ namespace CoupledField {
     }
     
     // 3) Pass regions of primary FeFunction to all time derivatives
-    if( analysistype_ != STATIC ) {
+    if( analysistype_ != STATIC && analysistype_ != BUCKLING ) {
       // Workaround for transient simulation:
       // We have to pass directly the time-derivative vector of the time integration
       // scheme to the feFunctions related to time derivative results
@@ -3507,7 +3507,7 @@ namespace CoupledField {
                                          SolutionType primSolType ) {
     
     // only define time derivatives in transient or harmonic case 
-    if ( analysistype_ == STATIC){
+    if ( analysistype_ == STATIC || analysistype_ == BUCKLING){
       return;
     }
       

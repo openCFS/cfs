@@ -216,7 +216,6 @@ namespace CoupledField {
 //      }
 //    }
 
-    Complex tmp;
 
 #ifdef USE_MKL
     /*========================================================
@@ -302,7 +301,7 @@ namespace CoupledField {
 
       // THIS PART IS UNAFFECTED BY THE PERFORMANCE OPTIMIZATION
       // Static entry for harmonic 0
-      tmp = deleteMeResult_[i][0];
+      Complex tmp = deleteMeResult_[i][0]; // compilers are quite smart in optimizing variables meanwhile
       // Fill the correct frequency result matrix and also scale the FFT correctly
       for(UInt k = 1; k < N_ + 1; ++k){
         freqResult_[i][N_ + k] = deleteMeResult_[i][k];

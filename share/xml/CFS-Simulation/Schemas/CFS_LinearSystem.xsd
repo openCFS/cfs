@@ -120,6 +120,7 @@
     <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="mass_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="stiffness" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="geometric_stiffness" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="stiffness_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="precond" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>

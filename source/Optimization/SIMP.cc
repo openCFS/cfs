@@ -331,13 +331,14 @@ template <class T>
 bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
 {
   assert(!(app != App::NO_APP && app != my_app && my_app != App::NO_APP));
+
   if(my_app != App::NO_APP)
-    app = my_app;
+    this->app = my_app;
 
   assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT || app == App::MAG);
 
   if (app == App::HEAT) {
-    valid = true;
+    this->valid = true;
     isInterfaceDriven_ = true;
     return true;
   }
@@ -350,7 +351,8 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
   LinearFormContext* actContext = NULL;
 
   SinglePDE* mech = Optimization::context->ToPDE(App::MECH, false);
-  if(mech == NULL) return false; // wrong pde -> extend if you need it!
+  if(mech == NULL)
+	return false; // wrong pde -> extend if you need it!
 
   StdVector<LinearFormContext*>& forms = mech->GetAssemble()->GetLinForms();
 
@@ -370,11 +372,12 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
                << (form != NULL ? form->GetName() : "NULL");
 
   // form is not necessary defined in the xml file!
-  if(form == NULL) return false; // no form, no RHS!
+  if(form == NULL)
+	return false; // no form, no RHS!
 
   // the context knows the surface elements!
-  this->valid = true;
-  this->app   = app;
+  this->valid = true; // doubled code?!
+
   EntityIterator eit = actContext->GetEntities()->GetIterator();
   elem = eit.GetSurfElem();
 
@@ -434,7 +437,6 @@ bool DesignDependentRHS::Init(std::string excite_label, App::Type my_app)
     app = my_app;
 
   assert(app == App::STRESS);
-  this->app = app;
   this->test_strain = MechPDE::testStrain.IsValid(excite_label) ? MechPDE::testStrain.Parse(excite_label) : MechPDE::NOT_SET;
   return true;
 }

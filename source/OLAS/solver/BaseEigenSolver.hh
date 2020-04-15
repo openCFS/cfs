@@ -31,7 +31,7 @@ namespace CoupledField {
   public:
     //! Type of EigenSolver
 
-    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST, FEAST} EigenSolverType;
+    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST, FEAST, PALM} EigenSolverType;
     //! This enumeration data type describes the type of eigensolver which is
     //! applied to solve a generalized eigenvalue problem. The enumeration
     //! contains the following:
@@ -39,7 +39,10 @@ namespace CoupledField {
     //! - ARPACK
     //! - PHIST
     //! - FEAST
+    //! - PALM
     static Enum<EigenSolverType> eigenSolverType;
+
+    EigenSolverType eigenSolverType_;
 
     typedef enum {NONE, MAX, NORM} ModeNormalization;
     //! Defines how to normalized the modes
@@ -55,7 +58,8 @@ namespace CoupledField {
                      PtrParamNode solverList,
                      PtrParamNode precondList,
                      PtrParamNode eigenInfo )
-      : solStrat_(strat),
+      : eigenSolverType_(NO_EIGENSOLVER),
+        solStrat_(strat),
         xml_(eSolverXML),
         solverList_(solverList),
         precondList_(precondList),
@@ -64,13 +68,15 @@ namespace CoupledField {
         freqShift_(0.0),
         isQuadratic_(false),
         isBloch_(false),
+//        isBuckling_(false),
         sort_(false),
-        isReal_(true),
-        isSymmetric_(true),
-        isHermitian_(false),
+//        isReal_(true),
+//        isSymmetric_(true),
+//        isHermitian_(false),
         a_(NULL),
         eigenProblemType_(NO_TYPE),
-        modeNormalization_(NONE)
+        modeNormalization_(NONE),
+        eigenSolverName_(NO_EIGENSOLVER)
     {
     }
     
@@ -84,16 +90,19 @@ namespace CoupledField {
     /** do we calculate in complex generalized EV mode */
     bool IsBloch() const { return isBloch_; }// ToDo: remove due to new structure
 
-    bool IsComplex() {return (!isSymmetric_ || !isReal_);} // ToDo: remove due to new structure
+    // bool IsComplex() {return (!isSymmetric_ || !isReal_);} // ToDo: remove due to new structure
 
     //! Setup routine for standard eigenvalue problem
 
     //! Setup for a standard EVP
     virtual void Setup(const BaseMatrix & A, bool isHermitian=false) =0;
+
     //! Setup for a generalised EVP
     virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false) =0;
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M) =0;
 
-    //! returns if eingevalues will be complex
+    //! returns if eigenvalues will be complex
     bool HasComplexEigenvalues(){
         switch (eigenProblemType_){
             case REAL_SYMMETRIC: return false;
@@ -121,7 +130,6 @@ namespace CoupledField {
     //! \param mat Reference to matrix
     //! \param numFreq Number of eigenvalues/frequencies to be calculated
     //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver is used
     //! \param sort
     virtual void Setup(const BaseMatrix & mat,  UInt numFreq, double freqShift, bool sort) = 0;// ToDo: remove due to new structure
     
@@ -133,8 +141,6 @@ namespace CoupledField {
     //! \param massMat Reference to mass matrix
     //! \param numFreq Number of eigenvalues/frequencies to be calculated
     //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
     virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat,
                         UInt numFreq, double freqShift, bool sort, bool bloch) = 0;// ToDo: remove due to new structure
     
@@ -147,8 +153,6 @@ namespace CoupledField {
     //! \param dampMat Reference to damping matrix
     //! \param numFreq Number of eigenvalues/frequencies to be calculated
     //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
     virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
                         UInt numFreq, double freqShift, bool sort) = 0;// ToDo: remove due to new structure
 
@@ -174,7 +178,7 @@ namespace CoupledField {
     //! \param mode Vector with the eignmode
     virtual void GetEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true ) = 0;
     virtual void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
-    
+
     
     //! Calculate condition number
 
@@ -185,11 +189,11 @@ namespace CoupledField {
                                       Vector<Double>& evs,
                                       Vector<Double>& err ) = 0;
     
-    void CheckMatrix(bool & isReal, bool & isSymmetric,const BaseMatrix & A ) {
+    void CheckMatrix(bool & isReal, bool & isStoredSymmetric,const BaseMatrix & A ) {
 
         switch (A.GetStorageType()) {
-        case BaseMatrix::SPARSE_SYM: isSymmetric=true; break;
-        case BaseMatrix::SPARSE_NONSYM: isSymmetric=false; break;
+        case BaseMatrix::SPARSE_SYM: isStoredSymmetric=true; break;
+        case BaseMatrix::SPARSE_NONSYM: isStoredSymmetric=false; break;
         default: EXCEPTION("storage type" << A.GetStorageType() << " not handeled");
         }
         switch(A.GetEntryType()){
@@ -203,11 +207,11 @@ namespace CoupledField {
     //! set the problem type depending on the matrix properties A (real|complex, symmetric|non-symmetric)
     //! optional: specify if the problem is Hermitian
     void SetProblemType(const BaseMatrix & A, bool isHermitian=false) {
-        bool isReal, isSymmetric;
-        CheckMatrix(isReal, isSymmetric, A);
+        bool isReal, isStoredSymmetric;
+        CheckMatrix(isReal, isStoredSymmetric, A);
         EigenValueProblemType newType;
         if (isReal) {
-            if (isSymmetric) {
+            if (isStoredSymmetric) {
                 newType = REAL_SYMMETRIC;
             }
             else {
@@ -220,12 +224,12 @@ namespace CoupledField {
         else {
             if (isHermitian) {
                 newType = COMPLEX_HERMITIAN;
-                if (!isSymmetric) {
+                if (!isStoredSymmetric) {
                     EXCEPTION("non-symmetric matrix storage used for hermitian EVP -> Use symmetric matrix storage")
                 }
             }
             else {
-                if (isSymmetric) {
+                if (isStoredSymmetric) {
                     newType = COMPLEX_SYMMETRIC;
                 }
                 else {
@@ -260,13 +264,17 @@ namespace CoupledField {
       }
       mode.ScalarDiv(factor);
     }
+
     void GetNormalizedEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true){
       GetEigenMode(modeNr,mode,right);
-      NormalizeMode( mode, modeNormalization_);
+      NormalizeMode(mode, modeNormalization_);
     }
+
     void SetModeNormalization(ModeNormalization normType){
       modeNormalization_ = normType;
     }
+
+    virtual EigenSolverType GetEigenSolverName(){ return eigenSolverName_;}
 
   protected: 
 
@@ -311,16 +319,19 @@ namespace CoupledField {
     //! Flag indication if a complex generalized bloch mode EV problem is solved
     bool isBloch_;// ToDo: remove due to new structure
 
+    //! Flag indication if a buckling EV problem is solved
+    // bool isBuckling_;// ToDo: remove due to new structure
+
     /** shall we sort the evs` */
     bool sort_;// ToDo: remove due to new structure
 
     //! flag to specify if the solution is real
-    bool isReal_;// ToDo: remove due to new structure
+    // bool isReal_;// ToDo: remove due to new structure
 
     //! flag to specify if all matrices are symmetric
-    bool isSymmetric_;// ToDo: remove due to new structure
+    // bool isSymmetric_;// ToDo: remove due to new structure
 
-    bool isHermitian_;// ToDo: remove due to new structure
+    // bool isHermitian_;// ToDo: remove due to new structure
 
     //! the matrix to solve
     const StdMatrix* a_;
@@ -329,6 +340,10 @@ namespace CoupledField {
 
     //! defines the mode normalization
     ModeNormalization modeNormalization_;
+
+  public:
+    //! Solver Type Name
+    EigenSolverType eigenSolverName_;
   };
   
 }

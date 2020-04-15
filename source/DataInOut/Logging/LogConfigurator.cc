@@ -89,7 +89,9 @@ void LogConfigurator::ParseLogConfFile(const std::string& confFile) {
     sink->set_filter(expr::attr<int>("Severity") >= logLevel && expressions::attr<std::string>("bAttrClassName") == className);
 
     sink->set_formatter(expr::stream << expr::attr< boost::posix_time::ptime >("TimeStamp") <<
-        " [" << bAttrClassName << ":" << expr::attr< unsigned int >("LineID") << "] " << expr::smessage);
+        " [" << bAttrClassName << ":"/* << expr::attr< unsigned int >("LineID") << "] "*/ << expr::smessage);
+    // this LineID is NOT the source code line number
+    // instead we are using __LINE__ in the .hh
 
     // add stream for every childnode
     for (UInt iApp = 0; iApp < appenderNodes.GetSize(); ++iApp) {

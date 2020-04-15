@@ -57,7 +57,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
-# the github stuff doesn't work as the archhives are called "3.2.0.tar.gz" instead of "arpack-ng-3.2.0.tar.gz" :(
+# the github stuff doesn't work as the archives are called "3.2.0.tar.gz" instead of "arpack-ng-3.2.0.tar.gz" :(
 # "https://github.com/opencollab/arpack-ng/archive/${ARPACK_VER}.tar.gz"
 SET(MIRRORS
   "http://ftp.uni-erlangen.de/macports/distfiles/arpack/${ARPACK_GZ}"

@@ -1795,7 +1795,6 @@ namespace CoupledField
     std::complex<double>* lp_rhsVecf77;
     std::complex<double>* lp_sysVecf77;
     std::complex<double>* lp_workf77;
-    std::complex<double> auxVal2;
     
     Vector<Complex> lp_sysVec, lp_work;
     lp_sysVec.Resize(size_row_*size_row_);
@@ -1931,7 +1930,6 @@ namespace CoupledField
     lp_rwork.Init();
       
     Integer lp_infof77;
-    std::complex<double> auxValC;
 
     std::complex<double>* lp_af77    = new std::complex<double>[size_row_*size_row_];
     std::complex<double>* lp_workf77 = new std::complex<double>[99];

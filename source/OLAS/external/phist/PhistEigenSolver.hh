@@ -25,16 +25,23 @@ namespace CoupledField {
 
 
     /** @see BaseEigenSolver */
-    virtual void Setup(const BaseMatrix & A, bool isHermitian=false)
-    {
-      std::cout << "PistEigenSolver::Setup(A)\n";
+    void Setup(const BaseMatrix & A, bool isHermitian=false) {
+      EXCEPTION("not implemented yet");
     }
 
     /** @see BaseEigenSolver */
-    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false)
-    {
-      std::cout << "PistEigenSolver::Setup(A, B)\n";
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false) {
+      EXCEPTION("not implemented yet");
     }
+
+    /** @see BaseEigenSolver */
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, const BaseMatrix & C, bool isHermitian=false) {
+      EXCEPTION("not implemented yet");
+    }
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+        EXCEPTION("not yet implemented")
+    };
 
     //! Setup routine for standard eigenvalue problem
 

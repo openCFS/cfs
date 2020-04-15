@@ -2,6 +2,7 @@
 #include <def_use_phist_ev.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_feast.hh>
+#include <def_use_palm.hh>
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -10,6 +11,9 @@
 #include "generateEigensolver.hh"
 
 #include "BaseEigenSolver.hh"
+
+
+
 #ifdef USE_ARPACK
   #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
@@ -20,6 +24,10 @@
 
 #ifdef USE_FEAST
 #include "OLAS/external/feast/FeastEigenSolver.hh"
+#endif
+
+#ifdef BUILD_PALM
+#include "PALMSolver.hh"
 #endif
 
 namespace CoupledField {
@@ -81,7 +89,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
       #ifdef USE_ARPACK
         retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
-        EXCEPTION( "compiled without Arpack!" );
+        EXCEPTION( "compiled without ARPACK: set USE_ARPACK=ON to use the ARPACK solver" );
       #endif
       break;
 
@@ -101,10 +109,19 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
       #endif
         break;
 
+    case BaseEigenSolver::PALM:
+      #ifdef BUILD_PALM
+        retSolver = new PALMEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
+      #else
+        EXCEPTION( "compiled without PALM: set BUILD_PALM=ON to use the PALM solver" );
+      #endif
+        break;
+
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
     }
 
+    retSolver->eigenSolverType_ = solver;
     return retSolver;
   }
 

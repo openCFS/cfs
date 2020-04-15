@@ -2658,7 +2658,7 @@ double Function::Local::Identifier::CalcCones(const Local* local) const {
     assert(sb_neighbor[i]->GetType() == DesignElement::CP);
 
   // this->x is implicit, then this->y, then this->z, then either prev->x ... or next->x ...
-  double x, y, z, xo, yo, zo;
+  double x, y, z = 0, xo, yo, zo = 0;
   x = sb_neighbor[0]->GetPlainDesignValue(); // this
   y = sb_neighbor[1]->GetPlainDesignValue();
   if(dim == 2) {

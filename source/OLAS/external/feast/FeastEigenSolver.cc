@@ -24,8 +24,11 @@ DEFINE_LOG(fes, "feast")
 namespace CoupledField {
 
 
-FeastEigenSolver::FeastEigenSolver(shared_ptr<SolStrategy> strat, PtrParamNode xml, PtrParamNode solverList,
-                                   PtrParamNode precondList, PtrParamNode eigenInfo)
+FeastEigenSolver::FeastEigenSolver(shared_ptr<SolStrategy> strat,
+                                   PtrParamNode xml,
+                                   PtrParamNode solverList,
+                                   PtrParamNode precondList,
+                                   PtrParamNode eigenInfo)
   : BaseEigenSolver(strat, xml, solverList, precondList, eigenInfo)
 {
   this->generalized_ = false;
@@ -50,7 +53,6 @@ FeastEigenSolver::~FeastEigenSolver()
 
 void FeastEigenSolver::Setup(const BaseMatrix & A, bool isHermitian){
     // check for symmetry
-    this->CheckMatrix(isReal_, isSymmetric_, A);
     this->SetProblemType(A,isHermitian);
     // initialize feastinit fpm according to "Extended Eigensolver Input Parameters" in the MKL manual
     // see: https://software.intel.com/en-us/mkl-developer-reference-c-extended-eigensolver-input-parameters
@@ -97,11 +99,9 @@ void FeastEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool is
     // first set A as for standard EVP
     Setup(A, isHermitian);
     // check the B matrix
-    bool isReal, isSymmetric;
-    this->CheckMatrix(isReal, isSymmetric, B);
+    //bool isReal, isStoredSymmetric;
+    //this->CheckMatrix(isReal, isStoredSymmetric, B);
     this->SetProblemType(B,isHermitian);
-    if (!isReal || !isReal_) isReal_ = false;
-    if (!isSymmetric || !isSymmetric_) isSymmetric = false;
     // store matrix
     b_ = &dynamic_cast<const StdMatrix&>(B);
     assert(b_ != NULL);

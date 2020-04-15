@@ -12,38 +12,34 @@
 namespace CoupledField {
 
 
-  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
-                                          bool shiftMode, Double shift) {
+  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, ComputeMode computeMode) {
 
     matrixA_ = matA;
     matrixB_ = NULL;
     matrixC_ = NULL;
     matrixD_ = NULL;
     
-    shift_ = pow(shift*8.0*atan(1.0),2);
+    shift_ = 0;
     size_ = matA->GetNumRows();
     isGeneralized_ = false;
-    shiftAndInvert_ = shiftMode;
+    computeMode_ = computeMode;
     precond_ = NULL;
     solver_ = NULL;
     diagScale_ = 1.0;
     useStiffInNMat_ = false;
   }
 
-  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
-                                          const BaseMatrix * matB, 
-                                          bool shiftMode, Double shift) {
+  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, const BaseMatrix * matB, ComputeMode computeMode) {
     
     matrixA_ = matA;
     matrixB_ = matB;
     matrixC_ = NULL;
     matrixD_ = NULL;
     
-    shift_ = pow(shift*8.0*atan(1.0),2); // 8*atan(1) = 2pi -> omega^2 -> f
-
+    shift_ = 0;
     size_ = matA->GetNumRows();
     isGeneralized_ = true;
-    shiftAndInvert_ = shiftMode;
+    computeMode_ = computeMode;
     precond_ = NULL;
     solver_ = NULL;
     diagScale_ = 1.0;
@@ -51,19 +47,16 @@ namespace CoupledField {
 
   }
 
-  ArpackMatInterface::ArpackMatInterface( BaseMatrix * matA, 
-                                          BaseMatrix * matB, 
-                                          BaseMatrix * matD, 
-                                          bool shiftMode, Double shift) {
+  ArpackMatInterface::ArpackMatInterface( BaseMatrix * matA, BaseMatrix * matB, BaseMatrix * matD, ComputeMode computeMode) {
     
     matrixA_ = matA;
     matrixB_ = matB;
     matrixC_ = NULL;
     matrixD_ = matD;
     
-    shift_   = shift*8.0*atan(1.0);
+    shift_ = 0;
     size_    = 2*matA->GetNumRows();
-    shiftAndInvert_ = shiftMode;
+    computeMode_ = computeMode;
     useStiffInNMat_ = false;
     isGeneralized_ = true;
     precond_ = NULL;
@@ -81,12 +74,14 @@ namespace CoupledField {
   }
   
   
-  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond ) {
+  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, Double shift ) {
 
     // Copy references
     solver_ = solver;
     precond_ = precond;
     solver_->SetPrecond(precond_);
+
+    shift_ = shift;
 
     // Setup() might be called multiple times for Bloch mode analysis
     if(matrixC_) {
@@ -94,16 +89,13 @@ namespace CoupledField {
       matrixC_ = NULL;
     }
 
-
     // Note: At this point I am not really sure, if we have to copy the
     // matrix into a new one
     // Copy matrix b to matrix c
-
     if( isGeneralized_ ) {
-
-      // Depending on calculation mode (regular / shift and invert)
+      // Depending on calculation mode (regular | shift and invert | buckling)
       // copy the correct matrix into matrixC_
-      if ( shiftAndInvert_ == false ) {
+      if ( computeMode_ == ComputeMode::REGULAR ) {
         const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
         matrixC_ = CopyStdMatrixObject( matB );
       } else {
@@ -113,16 +105,16 @@ namespace CoupledField {
 
         matrixC_->Scale( -shift_ );
         matrixC_->Add( 1.0, matA );
-      } 
+      }
     } else {
       // Standard EV problem
-      if ( shiftAndInvert_ == false ) {
-      EXCEPTION("Non-Shift-and-Invert mode not implemented for standard eigenvalue problem");
+      if ( computeMode_ == ComputeMode::REGULAR ) {
+        EXCEPTION("Non-Shift-and-Invert mode not implemented for standard eigenvalue problem");
       } else {
         const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
         matrixC_ = CopyStdMatrixObject( matA );
         StdMatrix & matC = dynamic_cast<StdMatrix &>(*matrixC_);
-        
+
         // calculate C = ( A - shift * I) with I being the unit matrix
         Double diag = 0.0;
         for( UInt i = 0; i < matC.GetNumRows(); i++) {
@@ -132,6 +124,7 @@ namespace CoupledField {
         }
       }
     }
+
     // Setup solver and precond-object
     precond_->GetSetupTimer()->SetSub(); // is in the service of arpack
     precond_->GetPrecondTimer()->SetSub();
@@ -146,36 +139,40 @@ namespace CoupledField {
     solver_->GetSetupTimer()->Stop();
   }
 
-  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond ) {
+  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond, Double shift ) {
 
     // Copy references
     solver_ = solver;
     precond_ = precond;
 
-    const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
-    const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
-    const StdMatrix & matD = dynamic_cast<const StdMatrix &>(*matrixD_);
+    if (matrixC_ == NULL || shift_ != shift) {
+      shift_ = shift;
 
-    // form (B*shift + D)*shift + A) = A + sigma*D + sigma**2*B
-    matrixC_ = CopyStdMatrixObject( matB );
-    matrixC_->Scale( shift_ );
-    matrixC_->Add( 1.0, matD );
-    matrixC_->Scale( shift_ );
-    matrixC_->Add( 1.0, matA );
+      const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
+      const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
+      const StdMatrix & matD = dynamic_cast<const StdMatrix &>(*matrixD_);
 
-    // set diagonal scaling entry (hard coded = 1)
-    diagScale_ = 1.0;
+      // form (B*shift + D)*shift + A) = A + sigma*D + sigma**2*B
+      matrixC_ = CopyStdMatrixObject( matB );
+      matrixC_->Scale( shift_ );
+      matrixC_->Add( 1.0, matD );
+      matrixC_->Scale( shift_ );
+      matrixC_->Add( 1.0, matA );
 
-    // Setup solver and precond-object
-    // we must do the whole timer management manually as we do not go via a non-overloaded BaseSolver function
-    // For the standard FEA this is done in AlgebraicSys::SetupPrecond()
-    precond_->GetSetupTimer()->Start();
-    precond_->Setup( *matrixC_ );
-    precond_->GetSetupTimer()->Stop();
+      // set diagonal scaling entry (hard coded = 1)
+      diagScale_ = 1.0;
 
-    solver_->GetSetupTimer()->Start();
-    solver_->Setup( *matrixC_ );
-    solver_->GetSetupTimer()->Stop();
+      // Setup solver and precond-object
+      // we must do the whole timer management manually as we do not go via a non-overloaded BaseSolver function
+      // For the standard FEA this is done in AlgebraicSys::SetupPrecond()
+      precond_->GetSetupTimer()->Start();
+      precond_->Setup( *matrixC_ );
+      precond_->GetSetupTimer()->Stop();
+
+      solver_->GetSetupTimer()->Start();
+      solver_->Setup( *matrixC_ );
+      solver_->GetSetupTimer()->Stop();
+    }
   }
 
   template <class TYPE>
@@ -208,7 +205,7 @@ namespace CoupledField {
     Vector<TYPE> ax(size_);
     matrixA_->Mult(vecX, ax);
 
-    // Solve system 
+    // Solve system
     solver_->GetSolveTimer()->Start();
     solver_->Solve(*matrixC_, ax, vecY);
     solver_->GetSolveTimer()->Stop();
@@ -455,14 +452,6 @@ namespace CoupledField {
       x[i] = x[i]/diagScale_;
     }
     
-  }
-
-  void ArpackMatInterface::SetDiagScaling ( Double scaleFac ) {
-    diagScale_ = scaleFac;
-  }
-
-  Double ArpackMatInterface::GetDiagScaling ( ) {
-    return diagScale_;
   }
 
   template void ArpackMatInterface::MultShiftOpV<double>(double*, double*);

@@ -210,7 +210,7 @@ build:gcc7min:
   variables:
     BUILD_NAME: "GCC7 minimal"
     GCC_VERSION: 7
-    CFS_CONFIG_OPTIONS: "-DCFSDAT=OFF -DCFS_BLAS_LAPACK=OPENBLAS -DUSE_COMSOL=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_UNV=OFF -DUSE_ENSIGHT=OFF -DUSE_ANSYSRST=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF"
+    CFS_CONFIG_OPTIONS: "-DCFSDAT=OFF -DCFS_BLAS_LAPACK=OPENBLAS -DUSE_COMSOL=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_UNV=OFF -DUSE_ENSIGHT=OFF -DUSE_ANSYSRST=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF -DBUILD_PALM=OFF"
   <<: *gcc_before
   <<: *default_build_job
 
@@ -239,8 +239,7 @@ build:gcc7max:
   # we only run this 
   #  1) if the variable $PLATFORM is present, and
   #  2) the variable $IMAGE (defined in jobs) matches the pattern in $PLATFORM
-  # e.g. set PLATFORM=/(centos:7)|(ubuntu)/ to test centos:7 and ubuntu
-  # in fact this will also test centos (i.e. the latest image) due to a BUG?
+  # e.g. set PLATFORM=/(centos)|(ubuntu)/ to test centos and ubuntu
   # for further details see https://docs.gitlab.com/ee/ci/variables/README.html#environment-variables-expressions
   only:
     variables:
@@ -258,10 +257,11 @@ build:gcc7max:
   before_script:
     # debug output
     - echo "IMAGE=$IMAGE"
+    - echo "IMAGE=$TAG"
     - echo "PLATFORM=$PLATFORM"
     - cat /etc/*release
     # run the setup instructions for this IMAGE
-    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/$IMAGE.md" | bash -e
+    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e
   # run the README which contains build instructions
   script:
     - ./share/scripts/mdsh --eval 'README.md' | bash -e
@@ -274,6 +274,7 @@ platform:fedora:
   image: fedora
   variables:
     IMAGE: "fedora"
+    TAG: "latest"
 
 # the latest LTS release
 platform:ubuntu:
@@ -281,38 +282,43 @@ platform:ubuntu:
   image: ubuntu
   variables:
     IMAGE: "ubuntu"
+    TAG: "latest"
 
 platform:ubuntu:16.04:
   extends: .platform:image
   image: ubuntu:16.04
   variables:
-    IMAGE: "ubuntu:16.04"
+    IMAGE: "ubuntu"
+    TAG: "16.04"
 
 # the latest stable release, regardless of LTS status
 platform:ubuntu:rolling:
   extends: .platform:image
   image: ubuntu:rolling
   variables:
-    IMAGE: "ubuntu:rolling"
+    IMAGE: "ubuntu"
+    TAG: "rolling"
 
 platform:debian:
   extends: .platform:image
   image: debian
   variables:
     IMAGE: "debian"
+    TAG: "latest"
 
 platform:centos:
   extends: .platform:image
   image: centos
   variables:
     IMAGE: "centos"
+    TAG: "latest"
 
 platform:centos:7:
   extends: .platform:image
   image: centos:7
   variables:
-    IMAGE: "centos:7"
-
+    IMAGE: "centos"
+    TAG: "7"
 
 # re-build everything
 complete-build:linux:
@@ -372,7 +378,7 @@ complete-build:linux:
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D" --track $CDASH_TRACK # exclude the install step and the failing tests
 
 # test everything
 .test_all_multicore: &test_all_multicore

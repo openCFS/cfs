@@ -97,12 +97,18 @@ IF(OPENMP_FOUND)
   #-----------------------------------------------------------------------------
   # Check if compiler has OpenMP support. GCC >= 4.2 has.
   #-----------------------------------------------------------------------------
-  IF(USE_OPENMP)
-    SET(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
+  if(USE_OPENMP)
+    set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
+    set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
     # MESSAGE("Use OpenMP-Flags ${OpenMP_C_FLAGS}")
     # sets to -qopenmp for icc and -fopenmp for gcc
-  ENDIF()
+    if(APPLE)
+      # let's hope this does not make the compiler use system gmp, hdf5, ...
+      include_directories(AFTER SYSTEM "/usr/local/include")
+      
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp")
+    endif()
+  endif()
 ENDIF()
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ or clang compiler
@@ -116,9 +122,9 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
   # we assue C++11 for CFS for any compiler
-  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
-  SET(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
-  SET(CFS_C_FLAGS "-std=c11")
+  set(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  set(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
+  set(CFS_C_FLAGS "-std=c11")
 
   IF(DEBUG_USE_FSANITIZE)
     SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
@@ -198,19 +204,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
     # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
+    # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-nested-anon-types")
+    # not all gcc options are compatible with clang (mac)
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-unknown-warning-option")
   ENDIF()
 
   IF(APPLE)
-    IF(NOT CMAKE_CROSSCOMPILING)
-      #-------------------------------------------------------------------------
-      # The C++ linker creates compact exception stack unwinding data since
-      # MacOS X 10.6. This can cause page long linker warnings, which cannot be
-      # deactivated. So we disable it here alltogether (cf. man unwinddump).
-      #-------------------------------------------------------------------------
-      SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
-    ENDIF()
-
     # Check wether the compiler has the -sysroot= flag.
     SET(CXX_HAS_SYSROOT_FLAG_SOURCE "
 int
@@ -232,8 +233,8 @@ main ()
 
   IF(NOT USE_OPENMP)
     IF(NOT USE_PHIST_EV OR USE_PHIST_CG)
-      SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
-      SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+      SET(CFS_C_FLAGS "-Werror ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS "-Werror ${CFS_CXX_FLAGS}")
     ENDIF(NOT USE_PHIST_EV OR USE_PHIST_CG )
   ENDIF(NOT USE_OPENMP)
 

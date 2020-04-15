@@ -244,7 +244,9 @@ namespace CoupledField
     /** Shortcut to update the SIMP-densities for all LevelSetElements; e. g. called by TopGrad */
     void UpdateDesignForAllLevelSetElements()
     {
-      std::for_each(space_.begin(), space_.end(), std::mem_fun_ref(&LevelSetElement::UpdateDesign));
+      assert(false);
+
+      // disable due to compile problem only: std::for_each(space_.begin(), space_.end(), std::mem_fun_ref(&LevelSetElement::UpdateDesign));
     }
     
     /** This defines an action, as the level set method is naturally a combination of multiple actions */

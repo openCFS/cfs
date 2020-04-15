@@ -32,11 +32,11 @@ namespace CoupledField { namespace logging {
 }
 
 #ifndef NDEBUG
-#define LOG_DBG3(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg3)
-#define LOG_DBG2(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg2)
-#define LOG_DBG(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg)
-#define LOG_TRACE2(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_trace2)
-#define LOG_TRACE(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_trace)
+#define LOG_DBG3(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg3) << __LINE__ << "] "
+#define LOG_DBG2(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg2) << __LINE__ << "] "
+#define LOG_DBG(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg) << __LINE__ << "] "
+#define LOG_TRACE2(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_trace2) << __LINE__ << "] "
+#define LOG_TRACE(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_trace) << __LINE__ << "] "
 #else
 #define LOG_DBG3(logger) if(true) {} else std::cout
 #define LOG_DBG2(logger) if(true) {} else std::cout

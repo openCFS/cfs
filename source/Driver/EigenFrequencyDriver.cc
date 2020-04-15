@@ -387,51 +387,77 @@ namespace CoupledField {
 
     // Start of FEAST section and layout for new, more flexible structure which does not rely on the intermediate
     // functions in algSys, StdSolveStep, ...
-    if (maxVal_>0) { // use only for feast -> TODO: remove this if
-    // here we should - do the necessary computation depending on the problem type
-    StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
-    BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
-    // initialize AlgSys
-    sstep->GetAlgSys()->InitSol();
-    sstep->GetAlgSys()->InitMatrix();
-    sstep->GetAssemble()->AssembleMatrices();
-    sstep->GetAlgSys()->ExportLinSys(true,false,false); // export the setup
-    // determine which EV problem to set up: we make a generalized one
-    // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
-    SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
-    SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
-    UInt i = massMat->GetNumCols();
-    if (i>1) {
-        EXCEPTION("only implemented for SBM matrices with a single block")
-    }
-    // check matrix dimensions
-    assert( massMat->GetNumCols()==massMat->GetNumRows() );
-    assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
-    // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
-    // setup the eigen solver (problem type is determined in Setup based on matrix properties)
-    sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),isBloch_);
-    // check if the eigenvalues will be complex
-    bool complexEV = eigenSolver->HasComplexEigenvalues();
+    BaseEigenSolver::EigenSolverType solverType = dynamic_cast<StdSolveStep*>(step)->GetAlgSys()->GetEigenSolver()->eigenSolverType_;
+    if (maxVal_>0 || solverType==BaseEigenSolver::PALM ) { // use only for feast and PALM -> TODO: remove this if
+      // here we should - do the necessary computation depending on the problem type
+      StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
+      BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
+      // initialize AlgSys
+      sstep->GetAlgSys()->InitSol();
+      sstep->GetAlgSys()->InitMatrix();
+      sstep->GetAssemble()->AssembleMatrices();
+      sstep->GetAlgSys()->ExportLinSys(true,false,false); // export the setup
+      // determine which EV problem to set up: we make a generalized one
+      // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
 
-    if (minVal_>=0 || maxVal_>=0) { // we have an interval
+      // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
+      if(isQuadratic_)
+      {
+        // determine which EV problem to set up: we make a generalized one
+        // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
+        SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
+        SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+        SBM_Matrix* dampMat = sstep->GetAlgSys()->GetMatrix(DAMPING);
+        UInt i = massMat->GetNumCols();
+        if (i>1) {
+            EXCEPTION("only implemented for SBM matrices with a single block")
+        }
+        // check matrix dimensions
+        assert( massMat->GetNumCols()==massMat->GetNumRows() );
+        assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
+        assert( dampMat->GetNumCols()==dampMat->GetNumRows() );
+        // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
+        // setup the eigen solver (problem type is determined in Setup based on matrix properties)
+        sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(dampMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)));
+      }
+      else
+      {
+
+        SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
+        SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+        UInt i = massMat->GetNumCols();
+        if (i>1) {
+            EXCEPTION("only implemented for SBM matrices with a single block")
+        }
+        // check matrix dimensions
+        assert( massMat->GetNumCols()==massMat->GetNumRows() );
+        assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
+        // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
+        // setup the eigen solver (problem type is determined in Setup based on matrix properties)
+        sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),isBloch_);
+        // check if the eigenvalues will be complex
+
+      }
+      bool complexEV = eigenSolver->HasComplexEigenvalues();
+      if (minVal_!=0 || maxVal_!=0) { // we have an interval
         if (complexEV) {
-            Vector<Complex> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
-            eigsRe_.Resize(evals.GetSize());
-            eigsIm_.Resize(evals.GetSize());
-            for (int i=0;i<(int)evals.GetSize();i++) {
-                eigsRe_[i] = evals[i].real();
-                eigsIm_[i] = evals[i].imag();
-            }
-            Eig2FreqDamp(evals,frequency_,dampingRatio_);
+          Vector<Complex> evals,errs;
+          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          eigsRe_.Resize(evals.GetSize());
+          eigsIm_.Resize(evals.GetSize());
+          for (int i=0;i<(int)evals.GetSize();i++) {
+              eigsRe_[i] = evals[i].real();
+              eigsIm_[i] = evals[i].imag();
+          }
+          Eig2FreqDamp(evals,frequency_,dampingRatio_);
         }
         else {
-            Vector<Double> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
-            eigsRe_.Resize(evals.GetSize());
-            eigsRe_ = evals;
-            eigsIm_.Resize(evals.GetSize(),0.0);
-            Eig2Freq(evals,frequency_);
+          Vector<Double> evals,errs;
+          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          eigsRe_.Resize(evals.GetSize());
+          eigsRe_ = evals;
+          eigsIm_.Resize(evals.GetSize(),0.0);
+          Eig2Freq(evals,frequency_);
         }
         Vector<Complex> ev(eigsRe_.GetSize());
         for (int i=0;i<(int)eigsRe_.GetSize();i++) {
@@ -472,12 +498,12 @@ namespace CoupledField {
             }
             for (UInt i=0; i< frequency_.GetSize();i++) {
               Vector<Complex> mode;
-                
+
               // TU Wien Variant with normalized eigenmodes
-              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode);
+              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode);
               mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
-              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode,false);
-              
+              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode,false);
+
               // sharedopt variant with non-normalized modes
               /*sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
               mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
@@ -487,51 +513,110 @@ namespace CoupledField {
             }
           }
         }
-    }
-    else if ( numFreq_ > 0 || freqShift_ > 0  ){ // we have num + shift
-        // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
-        EXCEPTION("not implemented yet")
-    } else {
-        EXCEPTION("this case should not be possible in the XML schema")
-    }
-    }
-    else{ // the old stuff to (re)move
-
-    if(isBloch_)
-    {
-      assert(!wave_vectors.IsEmpty());
-      LOG_DBG(efd) << "SP: #wv=" << wave_vectors.GetSize();
-      for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
-      {
-        ComputeBlochWaveVector(i);
       }
-    }
-    else
-    {
-      // the eigenfrequencies are complex in the quadratic case or in bloch mode
-      eigenFreqs->Init();
-      errBounds_.Resize(numFreq_);
 
-      if(isQuadratic_)
-      {
-        Vector<Complex> ef = Vector<Complex>();
-        ef.Resize(numFreq_);
-        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
-        frequency_.Resize(ef.GetSize());
-        dampingRatio_.Resize(ef.GetSize());
-        for (int i=0; i<(int)ef.GetSize();i++){
-            frequency_[i] = ef[i].imag()/(2*M_PI);
-            dampingRatio_[i] = ef[i].real();
+      else if ( numFreq_ > 0 || freqShift_ != 0  ) {
+        // we have num + shift
+        // check if the eigenvalues will be complex
+        if(isQuadratic_)
+        {
+          Vector<Complex> evals,errs;
+          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
+          eigsRe_.Resize(evals.GetSize());
+          eigsIm_.Resize(evals.GetSize());
+          for (int i=0;i<(int)evals.GetSize();i++) {
+            eigsRe_[i] = evals[i].real();
+            eigsIm_[i] = evals[i].imag();
+          }
+          Vector<Double> frequency_damped_;
+          QuadEig2FreqDamp(eigsRe_, eigsIm_ ,frequency_, frequency_damped_,dampingRatio_);
+
+          std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
+          std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
+          std::cout << "Undamped Frequency = " << frequency_.ToString() << "\n";
+          std::cout << "Damped Frequency = " << frequency_damped_.ToString() << "\n";
+          std::cout << "dampingRatio = " << dampingRatio_.ToString() << "\n";
+          SortModes();
+          int n = 35; // field width
+          cout << "\n";
+          cout << " Mode | ";
+          cout << setw(n) << "Frequency (undamped) in Hz" << " | ";
+          cout << setw(n) << "Frequency (damped) in Hz" << " | ";
+          cout << setw(n) << "Damping Ratio" << " | ";
+          cout << setw(n) << "Re(lamda)" << " | ";
+          cout << setw(n) << "Im(lambda)" << "\n";
+          // plot sorted by frequency
+          for(unsigned int i=0; i < modeOrder_.GetSize(); i++) {
+            cout << setw(5) << i+1 << " | ";
+            cout << setw(n) << frequency_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << frequency_damped_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << dampingRatio_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << eigsRe_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << eigsIm_[modeOrder_[i]] << "\n";
+          }
+
+          // export solution
+          PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
+          if (els) {
+            if(els->Get("solution")->As<bool>()) {
+              BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+              std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+              if(domain->GetDriver()->GetAnalysisId().ToString(true) != ""){
+                base += "_" + domain->GetDriver()->GetAnalysisId().ToString(true);
+              }
+              for (UInt i=0; i< frequency_.GetSize();i++) {
+                Vector<Complex> mode;
+
+                // TU Wien Variant with normalized eigenmodes
+                sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode);
+                mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
+                sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode,false);
+                mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1),vec_format);
+              }
+            }
+          }
         }
-        PrintResult();
       }
-      else // real generalized
-      {
-        Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_);
-        PrintResult();
+      else {
+        EXCEPTION("this case should not be possible in the XML schema")
       }
     }
+    else { // the old stuff to (re)move
+
+      if(isBloch_)
+      {
+        assert(!wave_vectors.IsEmpty());
+        LOG_DBG(efd) << "SP: #wv=" << wave_vectors.GetSize();
+        for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
+        {
+          ComputeBlochWaveVector(i);
+        }
+      }
+      else {
+        // the eigenfrequencies are complex in the quadratic case or in bloch mode
+        eigenFreqs->Init();
+        errBounds_.Resize(numFreq_);
+
+        if(isQuadratic_)
+        {
+          Vector<Complex> ef = Vector<Complex>();
+          ef.Resize(numFreq_);
+          step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
+          frequency_.Resize(ef.GetSize());
+          dampingRatio_.Resize(ef.GetSize());
+          for (int i=0; i<(int)ef.GetSize();i++){
+              frequency_[i] = ef[i].imag()/(2*M_PI);
+              dampingRatio_[i] = ef[i].real();
+          }
+          PrintResult();
+        }
+        else // real generalized
+        {
+          Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
+          step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_);
+          PrintResult();
+        }
+      }
     }// end old stuff
 
     // in optimization we write the results via StoreResults() because

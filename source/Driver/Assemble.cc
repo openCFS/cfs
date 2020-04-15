@@ -99,6 +99,7 @@ namespace CoupledField
     // initialized. After the first "AssmebleMatrices" call the
     // correct values for reassembling are determined
     matReassemble_[STIFFNESS] = true;
+    matReassemble_[GEOMETRIC_STIFFNESS] = true;
     matReassemble_[DAMPING] = true;
     matReassemble_[MASS] = true;
     matReassemble_[STIFFNESS_UPDATE] = true;
@@ -1605,7 +1606,7 @@ namespace CoupledField
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         } else {
-          // That should be STATIC, TRANSIENT or EIGENFREQUENCY
+          // That should be STATIC, TRANSIENT, EIGENFREQUENCY or BUCKLING
           Vector<Double> elemVec;
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -2034,6 +2035,12 @@ namespace CoupledField
       matrixMap_[MASS_UPDATE]      = MASS;
       break;
 
+    case BasePDE::BUCKLING:
+      matrixMap_[SYSTEM]    = NOTYPE;
+      matrixMap_[STIFFNESS] = STIFFNESS;
+      matrixMap_[GEOMETRIC_STIFFNESS] = GEOMETRIC_STIFFNESS;
+      break;
+
     default:
       EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_)
                 << "' not known!");
@@ -2122,7 +2129,6 @@ namespace CoupledField
     return ret;
   }
 
-
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                                Matrix<Double>& elemMat,
                                StdVector<Integer>& eqnVec1,
@@ -2143,7 +2149,7 @@ namespace CoupledField
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY) {
+    if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::BUCKLING) {
       if ( (analysisType_ == BasePDE::EIGENFREQUENCY) && (algsys_->IsMatrixComplex()) ) {
         // we have an eigenvalue problem with complex system matrices (e.g. mechanics with complex stiffness tensor)
         Matrix2Harmonic( harmMat, elemMat, STIFFNESS, context.GetEntryType(), 1.0 ); // elemMat -> harmMat with omega=1 and STIFFNESS will convert REAL->COMPLEX
