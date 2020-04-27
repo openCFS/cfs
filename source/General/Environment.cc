@@ -744,7 +744,7 @@ namespace CoupledField {
       case ELECTRICCONDUCTION:
         out = "elecConduction";
         break;
-      case FLUID:
+      case ACOUSTIC:
         out = "acoustic";
         break;
       case FLOW:
@@ -794,7 +794,7 @@ namespace CoupledField {
       out = ELECTROMAGNETIC;
     }
     else if ( in == "fluid" ) {
-      out = FLUID;
+      out = ACOUSTIC;
     }
     else if ( in == "flow" ) {
       out = FLOW;
@@ -1694,95 +1694,169 @@ namespace CoupledField {
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
-    MaterialTypeEnum.Add( MAGSTRICT_RELUCTIVITY,"Magstrict_reluctivity");
-    MaterialTypeEnum.Add( MAG_PERMEABILITY, "Magnetic_permeability" );
-    MaterialTypeEnum.Add( MAG_PERMEABILITY_1, "Magnetic_permeability_1" ); 
-    MaterialTypeEnum.Add( MAG_PERMEABILITY_2, "Magnetic_permeability_2" ); 
-    MaterialTypeEnum.Add( MAG_PERMEABILITY_3, "Magnetic_permeability_3" );
-    MaterialTypeEnum.Add( MAG_PERMEABILITYCURVES, "Magnetic_permeability_curves" );
-    MaterialTypeEnum.Add( MAG_RELUCTIVITY, "Magnetic_reluctivity" );
-    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_reluctivity_derivative" );
-    MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductivity" ); 
-    MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
-    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY, "Electric_Conductivity" );
-    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_TENSOR, "Electric_conductivity_tensor" );
-    MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
-    MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
-    MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Emodulus" );
-    MaterialTypeEnum.Add( MECH_EMODULUS_X, "Mechanic_Emodulus_X" ); 
-    MaterialTypeEnum.Add( MECH_EMODULUS_Y, "Mechanic_Emodulus_Y" );
-    MaterialTypeEnum.Add( MECH_EMODULUS_Z, "Mechanic_Emodulus_Z" ); 
-    MaterialTypeEnum.Add( MECH_POISSON, "Mechanic_PoissonRation" ); 
-    MaterialTypeEnum.Add( MECH_POISSON_XY, "Mechanic_PoissonRation_XY" ); 
-    MaterialTypeEnum.Add( MECH_POISSON_YZ, "Mechanic_PoissonRation_YZ" ); 
-    MaterialTypeEnum.Add( MECH_POISSON_XZ, "Mechanic_PoissonRation_XZ" ); 
-    MaterialTypeEnum.Add( MECH_KMODULUS, "Mechanic_Kmodulus" ); 
-    MaterialTypeEnum.Add( MECH_GMODULUS, "Mechanic_Gmodulus" ); 
-    MaterialTypeEnum.Add( MECH_GMODULUS_YZ, "Mechanic_Gmodulus_YZ" ); 
-    MaterialTypeEnum.Add( MECH_GMODULUS_ZX, "Mechanic_Gmodulus_ZX" ); 
-    MaterialTypeEnum.Add( MECH_GMODULUS_XY, "Mechanic_Gmodulus_XY" );
-    MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_LameMu" );
-    MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_LameLambda" ); 
-    MaterialTypeEnum.Add( MECH_TE_TENSOR, "Mechanic_ThermalExpansionTensor" );
-    MaterialTypeEnum.Add( MECH_VISCOALPHA_VECTOR, "Mechanic_ViscoAlpha_Vec" );
-    MaterialTypeEnum.Add( MECH_VISCOG_VECTOR, "Mechanic_ViscoG_Vec" );
-    MaterialTypeEnum.Add( MECH_VISCOK_VECTOR, "Mechanic_ViscoK_Vec" );
-    MaterialTypeEnum.Add( MECH_TE_REFTEMPERATURE, "refTemperature");
-    MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
-    MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
-    MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 
-    MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" ); 
-    MaterialTypeEnum.Add( DENSITY, "Density" );
-    MaterialTypeEnum.Add( ADIABATIC_EXPONENT, "AdiabaticExponent");
-    MaterialTypeEnum.Add( ACOU_DENSITY_COMPLEX, "AcousticDensityComplex" );
-    MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" );
-    MaterialTypeEnum.Add( ACOU_BULK_MODULUS_COMPLEX, "AcousticBulkModulusComplex" );
-    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" );
-    MaterialTypeEnum.Add( IMP_HOLE_DIAM, "holeDiam");
-    MaterialTypeEnum.Add( IMP_PLATE_THICKNESS, "plateThick");
-    MaterialTypeEnum.Add( IMP_END_CORRECTION, "impEndCorrection");
-    MaterialTypeEnum.Add( POROSITY, "sigma");
-    MaterialTypeEnum.Add( BETA, "beta");
-    MaterialTypeEnum.Add( MPP_VOLUME_DEPTH, "mppVolDepth");
-    MaterialTypeEnum.Add( FLOW_MACH_NUMBER, "flowMachNr");
+
+    // -- ACOUSTIC --
+    MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "Acoustic_Bulk_Modulus" );
+    MaterialTypeEnum.Add( ACOU_BULK_MODULUS_COMPLEX, "Acoustic_Bulk_Modulus_Complex" );
+    MaterialTypeEnum.Add( ACOU_DENSITY_COMPLEX, "Acoustic_Density_Complex" );
+    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_Sound_Speed" );
+    MaterialTypeEnum.Add( ACOU_BOVERA, "BoverA" );
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_REAL_VAL, "acouImpedanceRealValue");
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_IMAG_VAL, "acouImpedanceImagValue");
-    MaterialTypeEnum.Add( BOVERA, "BoverA" ); 
-    MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" ); 
-    MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" ); 
-    MaterialTypeEnum.Add( FRACTIONAL_MEMORY, "FractionalMemory" ); 
-    MaterialTypeEnum.Add( FRACTIONAL_INTERPOL, "FractionalInterpol" );
-    MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" ); 
-    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
-    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
-    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h, "Magnetostriction_Tensor_h" ); 
-    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h_mech, "Magnetostriction_Tensor_h_mech" );
-    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h_mag, "Magnetostriction_Tensor_h_mag" );
-    MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
-    MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
-    MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 
-    MaterialTypeEnum.Add( KINEMATIC_VISCOSITY, "kinematicViscosity" );
-    MaterialTypeEnum.Add( BULK_VISCOSITY, "bulkViscosity" );
-    MaterialTypeEnum.Add( REF_PRESSURE, "refPressure" );
-    MaterialTypeEnum.Add( REF_TEMPERATURE, "referenceTemperature" );
-    MaterialTypeEnum.Add( PIEZO_TENSOR, "PiezoTensor" ); 
+//    MaterialTypeEnum.Add( IMP_HOLE_DIAM, "holeDiam");
+//    MaterialTypeEnum.Add( IMP_PLATE_THICKNESS, "plateThick");
+//    MaterialTypeEnum.Add( IMP_END_CORRECTION, "impEndCorrection");
+//    MaterialTypeEnum.Add( POROSITY, "sigma");
+//    MaterialTypeEnum.Add( BETA, "beta");
+//    MaterialTypeEnum.Add( MPP_VOLUME_DEPTH, "mppVolDepth");
+//    MaterialTypeEnum.Add( FLOW_MACH_NUMBER, "flowMachNr");
+//    MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" );
+//    MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" );
+//    MaterialTypeEnum.Add( FRACTIONAL_MEMORY, "FractionalMemory" );
+//    MaterialTypeEnum.Add( FRACTIONAL_INTERPOL, "FractionalInterpol" );
+//    MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" );
+
+    // -- Electrostatic --
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY_TENSOR, "Electric_Permittivity_Tensdor" );
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY_SCALAR, "Electric_Permittivity_Scalar" );
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY_1, "Electric_Permittivity_1" );
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY_2, "Electric_Permittivity_2" );
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY_3, "Electric_Permittivity_3" );
+
+    // -- Electric Conduction --
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_TENSOR, "Electric_Conductivity_Tensor" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_SCALAR, "Electric_Conductivity_Scalar" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_1, "Electric_Conductivity_1" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_2, "Electric_Conductivity_2" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_3, "Electric_Conductivity_3" );
+
+    // -- Flow --
+    MaterialTypeEnum.Add( FLUID_ADIABATIC_EXPONENT, "Flow_Adiabatic_Exponent");
+    MaterialTypeEnum.Add( FLUID_DYNAMIC_VISCOSITY, "Flow_Dynamic_Viscosity" );
+    MaterialTypeEnum.Add( FLUID_KINEMATIC_VISCOSITY, "Flow_Kinematic_Viscosity" );
+    MaterialTypeEnum.Add( FLUID_BULK_VISCOSITY, "Flow_Bulk_Viscosity" );
+    MaterialTypeEnum.Add( FLUID_REF_PRESSURE, "Flow_Reference_Pressure" );
+
+    // -- Heat Conduction --
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "Heat_Conductivity_Tensor" );
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_SCALAR, "Heat_Conductivity_Scalar" );
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_1, "Heat_Conductivity_1" );
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_2, "Heat_Conductivity_2" );
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_3, "Heat_Conductivity_3" );
+    MaterialTypeEnum.Add( HEAT_CAPACITY, "Heat_Capacity" );
+    MaterialTypeEnum.Add( HEAT_REF_TEMPERATURE, "Heat_Reference_Temperature" );
+
+    // -- Magnetic --
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_TENSOR, "Magnetic_Permeability_Tensor" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_SCALAR, "Magnetic_Permeability_Scalar" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_1, "Magnetic_Permeability_1" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_2, "Magnetic_Permeability_2" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_3, "Magnetic_Permeability_3" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_TENSOR, "Magnetic_Reluctivity_Tensor" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_SCALAR, "Magnetic_Reluctivity_Scalar" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_Reluctivity_Derivative" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY_TENSOR, "Magnetic_Conductivity_Tensor" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY_SCALAR, "Magnetic_Conductivity_Scalar" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY_1, "Magnetic_Conductivity_1" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY_2, "Magnetic_Conductivity_2" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY_3, "Magnetic_Conductivity_3" );
+//    MaterialTypeEnum.Add( MAGNETIZATION, "Magnetization");
+    MaterialTypeEnum.Add( MAG_CORE_LOSS_PER_MASS, "Magnetic_Core_Loss_Per_Mass" );
+    MaterialTypeEnum.Add( MAG_BH_VALUES, "Magnetic_BH_Curve");
+    MaterialTypeEnum.Add( MAG_BH_VALUES_1, "Magnetic_BH_Curve_1");
+    MaterialTypeEnum.Add( MAG_BH_VALUES_2, "Magnetic_BH_Curve_2");
+    MaterialTypeEnum.Add( MAG_BH_VALUES_3, "Magnetic_BH_Curve_3");
+    MaterialTypeEnum.Add( MAG_BH_DATA_ACCURACY, "Magnetic_BH_Data_Accuracy");
+    MaterialTypeEnum.Add( MAG_BH_MAX_APPROX_VAL, "Magnetic_BH_Max_Approx_Value");
+
+    // -- Mechanical --
+    MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "Mechanic_Stiffness_Tensor" );
+    MaterialTypeEnum.Add( MECH_KMODULUS, "Mechanic_Bulk_Modulus" );
+    MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_Lame_Mu" );
+    MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_Lame_Lambda" );
+    MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Elasticity_Modulus" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_1, "Mechanic_Elasticity_Modulus_1" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_2, "Mechanic_Elasticity_Modulus_2" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_3, "Mechanic_Elasticity_Modulus_3" );
+    MaterialTypeEnum.Add( MECH_POISSON, "Mechanic_Poisson_Ratio" );
+    MaterialTypeEnum.Add( MECH_POISSON_3, "Mechanic_Poisson_Ratio_3" );
+    MaterialTypeEnum.Add( MECH_POISSON_12, "Mechanic_PoissonRation_12" );
+    MaterialTypeEnum.Add( MECH_POISSON_23, "Mechanic_PoissonRation_23" );
+    MaterialTypeEnum.Add( MECH_POISSON_13, "Mechanic_PoissonRation_13" );
+    MaterialTypeEnum.Add( MECH_GMODULUS, "Mechanic_Shear_Modulus" );
+    MaterialTypeEnum.Add( MECH_GMODULUS_3, "Mechanic_Shear_Modulus_3" );
+    MaterialTypeEnum.Add( MECH_GMODULUS_23, "Mechanic_Shear_Modulus_23" );
+    MaterialTypeEnum.Add( MECH_GMODULUS_13, "Mechanic_Shear_Modulus_13" );
+    MaterialTypeEnum.Add( MECH_GMODULUS_12, "Mechanic_Shear_Modulus_12" );
+    // Viscoelasticity
+    MaterialTypeEnum.Add( MECH_BULK_RELAX_TIMES, "Mechanic_Bulk_Relaxation_Times"),
+    MaterialTypeEnum.Add( MECH_BULK_RELAX_MODULI, "Mechanic_Bulk_Relaxation_Moduli"),
+    MaterialTypeEnum.Add( MECH_VISCO_BULK_INITIAL, "Mechanic_Visco_Initial_Bulk_Modulus"),
+    MaterialTypeEnum.Add( MECH_SHEAR_RELAX_TIMES, "Mechanic_Shear_Relaxation_Times"),
+    MaterialTypeEnum.Add( MECH_SHEAR_RELAX_MODULI, "Mechanic_Shear_Relaxation_Moduli"),
+    MaterialTypeEnum.Add( MECH_VISCO_SHEAR_INITIAL, "Mechanic_Visco_Initial_Shear_Modulus"),
+    MaterialTypeEnum.Add( MECH_VISCO_STIFFNESS_TENSOR, "Mechanic_Visco_Stiffness_Tensor"),
+    MaterialTypeEnum.Add( MECH_VISCO_LONGTERM_TENSOR, "Mechanic_Visco_Longterm_Tensor"),
+    // Themal Expansion
+    MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_TENSOR, "Mechanic_Thermal_Expansion_Tensor" );
+    MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_SCALAR, "Mechanic_Thermal_Expansion_Scalar" );
+    MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_1, "Mechanic_Thermal_Expansion_1" );
+    MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_2, "Mechanic_Thermal_Expansion_2" );
+    MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_3, "Mechanic_Thermal_Expansion_3" );
+    MaterialTypeEnum.Add( MECH_TE_REFTEMPERATURE, "Mechanic_Thermal_Expansion_Reference_Temperature");
+//    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" );
+
+    // -- Test PDE --
+    MaterialTypeEnum.Add( TEST_ALPHA, "Test_Alpha" );
+    MaterialTypeEnum.Add( TEST_BETA, "Test_BETA" );
+
+    // -- Piezo-electric --
+    MaterialTypeEnum.Add( PIEZO_TENSOR, "PiezoTensor" );
+    // Piezo Micro Model
+    MaterialTypeEnum.Add( MEAN_TEMPERATURE, "meanTemperature" );
     MaterialTypeEnum.Add( SPON_POLARIZATION, "sponPolarization" ); 
     MaterialTypeEnum.Add( SPON_STRAIN, "sponStrain" ); 
+    MaterialTypeEnum.Add( DRIVING_FORCE_90, "Driving_Force_90");
+    MaterialTypeEnum.Add( DRIVING_FORCE_180, "Driving_Force_180");
+    MaterialTypeEnum.Add( RATE_CONSTANT, "rateConstant" );
+    MaterialTypeEnum.Add( VISCO_PLASTIC_INDEX, "viscoPlasticIndex" );
+    MaterialTypeEnum.Add( SATURATION_INDEX, "saturationIndex" );
+    MaterialTypeEnum.Add( VOLUME_FRAC_INIT, "volumeFracInit" );
     MaterialTypeEnum.Add( EFIELD0, "Efield0" ); 
     MaterialTypeEnum.Add( STRESS0, "Stress0" ); 
     MaterialTypeEnum.Add( DCOUPLE0, "dCouple0" );
-    MaterialTypeEnum.Add( RATE_CONSTANT, "rateConstant" );
-    MaterialTypeEnum.Add( VISCO_PLASTIC_INDEX, "viscoPlasticIndex" ); 
-    MaterialTypeEnum.Add( SATURATION_INDEX, "saturationIndex" ); 
     MaterialTypeEnum.Add( SCALE_FORCE_ELEC, "scaleForceElec" ); 
     MaterialTypeEnum.Add( SCALE_FORCE_MECH, "scaleForceMech" );
-    MaterialTypeEnum.Add( SCALE_FORCE_COUPLE, "scaleForceCouple" ); 
-    MaterialTypeEnum.Add( VOLUME_FRAC_INIT,"volumeFracInit" ); 
-    MaterialTypeEnum.Add( MEAN_TEMPERATURE, "meanTemperature" ); 
+    MaterialTypeEnum.Add( SCALE_FORCE_COUPLE, "scaleForceCouple" );
+
+    // -- Magnetostriction --
+    MaterialTypeEnum.Add( MAGSTRICT_RELUCTIVITY,"Magstrict_reluctivity");
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h, "Magnetostriction_Tensor_h" );
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h_mech, "Magnetostriction_Tensor_h_mech" );
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h_mag, "Magnetostriction_Tensor_h_mag" );
+    MaterialTypeEnum.Add( A_JILES, "aJiles" );
+    MaterialTypeEnum.Add( ALPHA_JILES, "alphaJiles" );
+    MaterialTypeEnum.Add( K_JILES, "kJiles" );
+    MaterialTypeEnum.Add( C_JILES, "cJiles" );
+    MaterialTypeEnum.Add( JILES_TEST, "dummyParamForJiles" );
+    MaterialTypeEnum.Add( Y_REMANENCE, "Yremanence" );
+
+    // -- General --
+    MaterialTypeEnum.Add( DENSITY, "Density" );
+
+    // Rayleigh Damping
+    MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" );
+    MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" );
+    MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" );
+    MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" );
+
+    // General Material Nonlinearity
+    MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
+
+    // -- Hysteresis --
     MaterialTypeEnum.Add( X_SATURATION, "Xsaturation" ); 
     MaterialTypeEnum.Add( Y_SATURATION, "Ysaturation" ); 
     MaterialTypeEnum.Add( S_SATURATION, "Ssaturation" );
-    MaterialTypeEnum.Add( Y_REMANENCE, "Yremanence" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS, "preisachWeights" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_DIM, "preisachWeights_dim" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_CONSTVALUE, "preisachWeights_constValue" );
@@ -1814,11 +1888,6 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_SCALEINITIALSTATE, "preisach_scale_initial_state" );
     MaterialTypeEnum.Add( SCALETOSAT, "preisach_scaletosat" );
     MaterialTypeEnum.Add( SCALETOSAT_STRAIN, "preisach_scaletosat_strain" );
-    MaterialTypeEnum.Add( A_JILES, "aJiles" ); 
-    MaterialTypeEnum.Add( ALPHA_JILES, "alphaJiles" ); 
-    MaterialTypeEnum.Add( K_JILES, "kJiles" );
-    MaterialTypeEnum.Add( C_JILES, "cJiles" ); 
-    MaterialTypeEnum.Add( JILES_TEST, "dummyParamForJiles" );
     MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
     MaterialTypeEnum.Add( P_DIRECTION_X, "PdirectionX" );
     MaterialTypeEnum.Add( P_DIRECTION_Y, "PdirectionY" );
@@ -1930,16 +1999,21 @@ namespace CoupledField {
     MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH_STRAIN, "isPreisachType_strain" );
 
     MaterialTypeEnum.Add( HYST_COUPLING_DEFINED, "hystCouplingDefined" );
-    MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
-    MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
-    MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
-    MaterialTypeEnum.Add( NONLIN_DATA_NAME, "nonLinDataName" ); 
-    MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
-    MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
-    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
-    MaterialTypeEnum.Add( TEST_ALPHA, "Test_Alpha" );
-    MaterialTypeEnum.Add( TEST_BETA, "Test_BETA" );
-    MaterialTypeEnum.Add( CORE_LOSS, "coreLossPerMass" );
+
+    // ==== Initialization of Material Classes ====
+    MaterialClassEnum.Add(NO_CLASS, "no material class");
+    MaterialClassEnum.Add(TESTMAT, "test");
+    MaterialClassEnum.Add(ELECTROMAGNETIC, "electromagnetic");
+    MaterialClassEnum.Add(ELECTROSTATIC, "electrostatic");
+    MaterialClassEnum.Add(ACOUSTIC, "acoustic");
+    MaterialClassEnum.Add(FLOW, "fluid");
+    MaterialClassEnum.Add(MECHANIC, "mechanical");
+    MaterialClassEnum.Add(PIEZO, "piezo");
+    MaterialClassEnum.Add(THERMIC, "thermal");
+    MaterialClassEnum.Add(PYROELECTRIC, "pyroelectric");
+    MaterialClassEnum.Add(THERMOELASTIC, "thermoelastic");
+    MaterialClassEnum.Add(MAGNETOSTRICTIVE, "magnetostrictive");
+    MaterialClassEnum.Add(ELECTRICCONDUCTION, "conductive");
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "none" );
@@ -1988,6 +2062,7 @@ namespace CoupledField {
 
   Enum<SolutionType> SolutionTypeEnum;
   Enum<MaterialType> MaterialTypeEnum;
+  Enum<MaterialClass> MaterialClassEnum;
   Enum<ApproxCurveType> ApproxCurveTypeEnum;
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<FEMatrixType> feMatrixType;

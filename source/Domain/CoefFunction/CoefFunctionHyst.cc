@@ -1177,7 +1177,7 @@ namespace CoupledField {
     needsInversion_ = false;
     POL_setWithFlux_ = false;
 		// to calculate differential material properties, we need to know e0 / nu0
-		if (material_->GetMaterialDatabaseName() == "Electrostatic") {
+		if (material_->GetClass() == ELECTROSTATIC) {
 			rev_mat_fac_ = 8.854187817e-12; //eps0
 			PDEName_ = "Electrostatic";
 
@@ -1185,7 +1185,7 @@ namespace CoupledField {
       // values for this;
       // small signal tensor = permittivity
       // however, value is used for TestInversion function
-      PtrCoefFct permittivity = material_->GetTensorCoefFnc(ELEC_PERMITTIVITY,tensorType_,
+      PtrCoefFct permittivity = material_->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR,tensorType_,
               Global::REAL, false);
 
       eps_nu_base_ = Matrix<Double>(dim_, dim_);
@@ -1193,8 +1193,8 @@ namespace CoupledField {
 
       // in electrostatics we only need eps
       eps_mu_base_ = eps_nu_base_;
-
-		} else if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
+		}
+		else if (material_->GetClass() == ELECTROMAGNETIC) {
 			rev_mat_fac_ = 795774.7155; //nu0
 			PDEName_ = "Electromagnetics";
       needsInversion_ = true;
@@ -1203,13 +1203,13 @@ namespace CoupledField {
       // values for this;
       // however, value is used for TestInversion function
       // small signal tensor = permeability
-      PtrCoefFct permeability = material_->GetTensorCoefFnc(MAG_PERMEABILITY,tensorType_,
+      PtrCoefFct permeability = material_->GetTensorCoefFnc(MAG_PERMEABILITY_TENSOR,tensorType_,
               Global::REAL, false);
 
       eps_mu_base_ = Matrix<Double>(dim_, dim_);
       permeability->GetTensor(eps_mu_base_, lpm);
 
-      PtrCoefFct reluctivity = material_->GetTensorCoefFnc(MAG_RELUCTIVITY,tensorType_,
+      PtrCoefFct reluctivity = material_->GetTensorCoefFnc(MAG_RELUCTIVITY_TENSOR,tensorType_,
               Global::REAL, false);
 
       eps_nu_base_ = Matrix<Double>(dim_, dim_);
@@ -1358,7 +1358,7 @@ namespace CoupledField {
     }
 
     std::string usedHystModel;
-    material->GetScalar(usedHystModel, MaterialType(HYST_MODEL+enumOffset));
+    material->GetString(usedHystModel, MaterialType(HYST_MODEL+enumOffset));
 
     int isPreisachType_Int = 1;
     material->GetScalar(isPreisachType_Int, MaterialType(HYST_TYPE_IS_PREISACH+enumOffset));
@@ -1662,7 +1662,7 @@ namespace CoupledField {
     }
 
     std::string dimTypeStr;
-		material->GetScalar(dimTypeStr, MaterialType(HYSTERESIS_DIM+enumOffset));
+		material->GetString(dimTypeStr, MaterialType(HYSTERESIS_DIM+enumOffset));
 
     if (dimTypeStr == "SCALAR") {
 			paramSet.methodType_ = 0;
@@ -1673,7 +1673,7 @@ namespace CoupledField {
     // print warnings (e.g., due to unsymmetric weights; usually set to false)
     paramSet.printWarnings_ = false;
 
-    material->GetScalar(paramSet.methodName_, MaterialType(HYST_MODEL+enumOffset));
+    material->GetString(paramSet.methodName_, MaterialType(HYST_MODEL+enumOffset));
 //    std::cout << "paramSet.methodName_: " << paramSet.methodName_ << std::endl;
     /*
      * Get model specific paramter
@@ -1855,7 +1855,7 @@ namespace CoupledField {
 //      // inversion via LM > set parameter
     // NEW: read in hysteresis inversion also for scalar model to allow different tests
     //      default inversion for scalar model should still be EverettBasedInversion, though!
-      if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
+      if (material_->GetClass() == ELECTROMAGNETIC) {
         inversionSet_ = true;
         Integer invMat, invMethod, maxNumReg, maxNumLS;
 
@@ -1929,7 +1929,7 @@ namespace CoupledField {
         material->GetScalar(InversionParams_.alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
         material->GetScalar(InversionParams_.alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
 
-        material->GetScalar(InversionParams_.jacImplementation, JAC_IMPLEMENTATION_HYST_INV, Global::REAL);
+        material->GetScalar(InversionParams_.jacImplementation, JAC_IMPLEMENTATION_HYST_INV);
 
         std::string usedJacImplementation;
         switch (InversionParams_.jacImplementation) {
@@ -2528,7 +2528,7 @@ namespace CoupledField {
 
     if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") || (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ){
       // inversion via LM > set parameter
-      if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
+      if (material_->GetClass() == ELECTROMAGNETIC) {
         hyst_->SetParamsForInversion(InversionParams_);
       }
     }
@@ -6182,10 +6182,11 @@ namespace CoupledField {
 //      std::cout << "Create hystHelper" << std::endl;
 //      std::cout << "- where? EvaluateHystOperators" << std::endl;
       PtrCoefFct fieldTensor;
-      if (material_->GetMaterialDatabaseName() == "Electrostatic") {
-        fieldTensor = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
-      } else if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
-        fieldTensor = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+      if (material_->GetClass() == ELECTROSTATIC) {
+        fieldTensor = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType_,Global::REAL);
+      }
+      else if (material_->GetClass() == ELECTROMAGNETIC) {
+        fieldTensor = material_->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR,tensorType_,Global::REAL);
       }
 
       // stepwise change to merged class of coefFncHyst and HystHelper

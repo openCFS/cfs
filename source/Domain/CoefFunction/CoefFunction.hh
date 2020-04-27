@@ -197,13 +197,21 @@ public:
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
   
+  //! Generate tensor-valued coefficient function from scalar CoefFunctions,
+  //! separate for real and imaginary parts
+  static PtrCoefFct
+  Generate( MathParser * mp,
+            Global::ComplexPart type,
+            UInt numRows, UInt numCols,
+            const StdVector<PtrCoefFct>& realVal,
+            const StdVector<PtrCoefFct>& imagVal );
+
   //! Generate tensor-valued coefficient function from scalar CoefFunctions
   static PtrCoefFct 
   Generate( MathParser * mp,
             Global::ComplexPart type,
             UInt numRows, UInt numCols,
-            const StdVector<PtrCoefFct>& realVal,
-            const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
+            const StdVector<PtrCoefFct>& scalars );
 
 
   //! Generate coefficient function from coefficient expression
@@ -825,8 +833,34 @@ public:
   
   //! Returns true, if expression depends on space
   static bool ExprDependsOnSpace(MathParser* mp, const StdVector<std::string>& expr);
-  //@}
+
 protected:
+
+  //! Rotates a vector from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformVectorByCoordSys(Vector<TYPE> &outVec,
+                              const Vector<TYPE> &inVec,
+                              const Vector<Double> &point);
+
+  //! Rotates a Vector from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformVectorByCoordSys(Vector<TYPE> &outVec,
+                              const Vector<TYPE> &inVec,
+                              const LocPointMapped &lpm);
+
+  //! Rotates a tensor from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformTensorByCoordSys(Matrix<TYPE> &outMat,
+                              const Matrix<TYPE> &inMat,
+                              const Vector<Double> &point);
+
+  //! Rotates a tensor from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformTensorByCoordSys(Matrix<TYPE> &outMat,
+                              const Matrix<TYPE> &inMat,
+                              const LocPointMapped &lpm);
+
+  //@}
 
   //TODO: CHANGE THIS TO SHARED POINTER
   // i.e. change the domain to hold a shared_ptr to the coordinate systems!

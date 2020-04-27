@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 namespace CoupledField
 {
 
-  Xerces::Xerces(const std::string& schema)
+  Xerces::Xerces(const std::string& schema, const std::string &url)
   {
     parser_  = NULL;
     root_    = NULL;
@@ -31,19 +31,19 @@ namespace CoupledField
     // the schema path
     fs::path schemaPath = fs::system_complete( fs::path( schema ) );
 
-    if(!schema.empty() && !fs::exists(schemaPath))
+    if (!schema.empty() && !fs::exists(schemaPath)) {
         EXCEPTION("schema file " << schema << " doesn't exist");
+    }
 
-    this->schema_ = schema;
-    
+    schema_ = schema;
+    schemaUrl_ = url;
+
     // Initialise the XML4C2 system
-    try
-    {
+    try {
        XMLPlatformUtils::Initialize();
     }
-    catch(const XMLException &event )
-    {
-        EXCEPTION("Error initializing xerces-c" << Transcode(event.getMessage()));
+    catch(const XMLException &event ) {
+      EXCEPTION("Error initializing xerces-c" << Transcode(event.getMessage()));
     }
   }
 
@@ -53,8 +53,9 @@ namespace CoupledField
     // file path
     fs::path filePath = fs::system_complete( fs::path( file ) );
 
-    if(!fs::exists(filePath))
+    if (!fs::exists(filePath)) {
       EXCEPTION("xml file " << file << " doesn't exist");
+    }
 
     this->file_  = file;
     delete buf_;
@@ -85,8 +86,7 @@ namespace CoupledField
       parser_->setValidationScheme(XercesDOMParser::Val_Always);
       parser_->setDoSchema(true);
       parser_->setValidationSchemaFullChecking(true);
-      std::string completeSchema;
-      completeSchema = "http://www.cfs++.org ";
+      std::string completeSchema = schemaUrl_ + " ";
       std::string schemaString = schema_;
       boost::replace_all( schemaString, " ", "%20");
       completeSchema += schemaString;

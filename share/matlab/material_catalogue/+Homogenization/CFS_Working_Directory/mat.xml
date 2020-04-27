@@ -1,12 +1,16 @@
-<?xml version="1.0"?>
-
-<cfsMaterialDataBase xmlns="http://www.cfs++.org">
-   <material name="silizium">
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="silizium">
     <mechanical>
-      <density> 2.3e3 </density>
-      <elasticity> 
-        <tensor dim1="6">
-          <real>
+      <density>
+        <linear>
+          <real> 2.3e3 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
             1.65682E+11 1.84091E+10 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
             1.84091E+10 1.65682E+11 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
             1.84091E+10 1.84091E+10 1.65682E+11 0.00000E+00 0.00000E+00 0.00000E+00
@@ -14,7 +18,8 @@
             0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10 0.00000E+00
             0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10
           </real>
-        </tensor>
+          </tensor>
+        </linear>
       </elasticity>
     </mechanical>
   </material>
@@ -23,111 +28,165 @@
       <!-- Data obtained from : "http://www.matweb.com"
            Reference(s) : "www.matweb.com"
            Remarks : "AISI 1005" -->
-      <density> 7872 </density>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
       <elasticity>
-        <isotropic>
-          <real>
-            <elasticityModulus> 2.00E+11 </elasticityModulus>
-            <poissonNumber> 0.29 </poissonNumber>
-          </real>
-        </isotropic>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.00E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.29 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
       </elasticity>
-      <mechanicalDamping>
+      <damping>
         <rayleigh>
           <alpha>1E+04</alpha>
           <beta>1E-08</beta>
           <measuredFreq>1E6</measuredFreq>
         </rayleigh>
-      </mechanicalDamping>
+      </damping>
     </mechanical>
     <acoustic>
       <!-- Data obtained from : "http://www.ondacorp.com"
            Reference(s) :  -->
-      <density> 7800 </density>
-      <compressionModulus> 2.7152E+11 </compressionModulus>
+      <density>
+        <linear>
+          <real> 7800 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.7152E+11 </real>
+        </linear>
+      </compressionModulus>
     </acoustic>
   </material>
   <material name="99lines">
     <mechanical>
-      <density> 7872 </density>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
       <!-- Data as in the 99-lines code by Sigmund -->
       <elasticity>
-        <isotropic>
-          <real>
-            <elasticityModulus>1</elasticityModulus>
-            <poissonNumber> 0.3 </poissonNumber>
-          </real>
-        </isotropic>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
       </elasticity>
-      <mechanicalDamping>
+      <damping>
         <rayleigh>
           <alpha>0.05</alpha>
           <beta>0.002</beta>
           <measuredFreq>1e3</measuredFreq>
         </rayleigh>
-      </mechanicalDamping>
+      </damping>
     </mechanical>
   </material>
   <material name="99mod">
     <mechanical>
-      <density> 7872 </density>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
       <!-- Data as in the 99-lines code by Sigmund -->
       <elasticity>
-        <isotropic>
-          <real>
-            <elasticityModulus>1e12</elasticityModulus>
-            <poissonNumber> 0.3 </poissonNumber>
-          </real>
-        </isotropic>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1e12</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
       </elasticity>
-      <mechanicalDamping>
+      <damping>
         <rayleigh>
           <alpha>1e2</alpha>
           <beta>1e-4</beta>
           <measuredFreq>100</measuredFreq>
         </rayleigh>
-      </mechanicalDamping>
+      </damping>
     </mechanical>
   </material>
   <material name="sigmund">
     <mechanical>
-      <density> 1 </density>
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
       <elasticity>
-        <isotropic>
-          <real>
-            <elasticityModulus> 5 </elasticityModulus>
-            <poissonNumber> 0.35 </poissonNumber>
-          </real>
-        </isotropic>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 5 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.35 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
       </elasticity>
     </mechanical>
   </material>
   <material name="sigmund_void">
     <mechanical>
-      <density> 1 </density>
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
       <elasticity>
-        <isotropic>
-          <real>
-            <elasticityModulus> 0.00086 </elasticityModulus>
-            <poissonNumber> 0.23076 </poissonNumber>
-          </real>
-        </isotropic>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 0.00086 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.23076 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
       </elasticity>
     </mechanical>
   </material>
   <material name="void">
     <mechanical>
-      <density> 1 </density>
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
       <elasticity>
-        <isotropic>
-          <real>
-            <elasticityModulus> 1e-9 </elasticityModulus>
-            <poissonNumber> 0.3 </poissonNumber>
-          </real>
-        </isotropic>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1e-9 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
       </elasticity>
     </mechanical>
   </material>
-  
-  
 </cfsMaterialDataBase>

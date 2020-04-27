@@ -25,7 +25,7 @@ namespace CoupledField {
     public:
       /** This sets the internal variables but does not parse the file yet.
        * @param schema if given a validation is done. */
-      Xerces(const std::string& schema = "");
+      Xerces(const std::string& schema = "", const std::string &url = "");
 
       /** Shuts down all xerces stuff */ 
       ~Xerces();
@@ -65,6 +65,9 @@ namespace CoupledField {
       
       /** The schema filename is empty if not given */
       std::string schema_; 
+
+      /** The schema URL */
+      std::string schemaUrl_;
 
       /** This is an implementation of the xerces error handler, the methods are called if parsing
        * stumbles over the file/schema. The implementation is simply a logging */

@@ -520,7 +520,7 @@ HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, c
 
   stiff.integrator = "HeatConductivity";
   stiff.mc = THERMIC;
-  stiff.mt = HEAT_CONDUCTIVITY;
+  stiff.mt = HEAT_CONDUCTIVITY_TENSOR;
   // mass does not apply yet
 }
 
@@ -530,7 +530,7 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
 
   stiff.integrator = "CurlCurlIntegrator"; // or -NL!!
   stiff.mc = ELECTROMAGNETIC;
-  stiff.mt = MAG_RELUCTIVITY;
+  stiff.mt = MAG_RELUCTIVITY_TENSOR;
 
   // mass does not apply yet
 }

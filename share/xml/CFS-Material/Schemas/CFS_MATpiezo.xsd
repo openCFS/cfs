@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
   elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
       Coupled Field Solver project CFS++
-      Schema for material description of an piezo material
+      Schema for material description of a piezo material
     </xsd:documentation>
   </xsd:annotation>
 
@@ -19,10 +18,22 @@
 
   <xsd:complexType name="DT_MatPiezo">
     <xsd:sequence>
-      <xsd:element name="piezoCouplingTensor" type="DT_PiezoCouplTensor"/>
-      <xsd:element name="piezoCouplingCoefficient" type="DT_NonLinPiezoCoeff" minOccurs="0"/>
+      <xsd:element name="piezoCoupling" type="DT_PiezoCoupling"/>
       <xsd:element name="piezoMicroData" type="DT_PiezoMicroData" minOccurs="0"/>
     </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PiezoCoupling">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_PiezoCouplingDef" minOccurs="0"/>
+      <xsd:element name="nonlinear" type="DT_PiezoNonLin" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PiezoCouplingDef">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_PiezoCouplTensor"/>
+    </xsd:choice>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
@@ -50,16 +61,12 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
-  <!--   Definition of a nonlinear piezo couple coefficient                -->
+  <!-- Definition of piezo nonlinearity -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_NonLinPiezoCoeff">
-    <xsd:sequence>
-      <xsd:element name="entry" type="xsd:nonNegativeInteger"/>
-      <xsd:element name="dependency" type="xsd:string"/>
-      <xsd:element name="approxType" type="xsd:string"/>
-      <xsd:element name="dataName" type="xsd:string"/>
-    </xsd:sequence>
-    <xsd:attribute name="nonlinear" type="xsd:string" use="required"/>
+  <xsd:complexType name="DT_PiezoNonLin">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_MatNonLinearity"/>
+    </xsd:choice>
   </xsd:complexType>
   
   <!-- ******************************************************************* -->

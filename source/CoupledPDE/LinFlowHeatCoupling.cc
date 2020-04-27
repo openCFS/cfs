@@ -93,7 +93,7 @@ namespace CoupledField {
     	//bilinear form for coupling from heat to flow
     	//compute pre-factor
     	PtrCoefFct constMinusOne = CoefFunction::Generate( mp, Global::REAL, "-1.0");
-    	PtrCoefFct refTemp  = heatMaterial[actRegion]->GetScalCoefFnc(REF_TEMPERATURE, Global::REAL);
+    	PtrCoefFct refTemp  = heatMaterial[actRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
     	PtrCoefFct coefFct  = CoefFunction::Generate( mp, Global::REAL,
     					      CoefXprBinOp(mp, constMinusOne, refTemp, CoefXpr::OP_DIV ) );
 

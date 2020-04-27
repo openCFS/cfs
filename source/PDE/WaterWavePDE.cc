@@ -56,7 +56,7 @@ namespace CoupledField{
               : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
 
     pdename_           = "waterWave";
-    pdematerialclass_  = FLUID;
+    pdematerialclass_  = ACOUSTIC;
     nonLin_            = false;
     isMechCoupled_     = false;
     

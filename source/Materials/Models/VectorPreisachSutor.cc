@@ -911,8 +911,13 @@ namespace CoupledField
     // F: perform rotation
     e_phi = rotMat*e_u_new;
 
-    // G: safety check
-    assert(e_phi.NormL2() == 1);
+    // G: safety check and normalization (due to rounding errors)
+    assert(e_phi.NormL2() > 0);
+    if(e_phi.NormL2() != 1){
+      e_phi.ScalarMult(1.0/e_phi.NormL2());
+//      std::cout << "e_phi.NormL2() = "<<e_phi.NormL2()<<" != 1!" << std::endl;
+//      std::cout << "e_phi = "<<e_phi.ToString() << std::endl;
+    }
 
     return e_phi;
   } // end of new implementation

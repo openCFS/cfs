@@ -241,7 +241,7 @@ void HeatPDE::DefineIntegrators() {
       }
 
       PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
-      PtrCoefFct condNL = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, heatCoef);
+      PtrCoefFct condNL = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY_SCALAR, Global::REAL, heatCoef);
 
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;

@@ -208,7 +208,7 @@ namespace CoupledField {
         actSDList->SetRegion( actRegion );
         
         std::string hystType;
-        actSDMat->GetScalar(hystType, HYST_MODEL);
+        actSDMat->GetString(hystType, HYST_MODEL);
         
         if(hystType == "none"){
           std::string warnmsg = "Hysteresis set on region " + regionName + " but no hysteresis model was defined in mat file. Skip.";
@@ -218,7 +218,7 @@ namespace CoupledField {
           PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
           PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
           PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                  elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace));
+                  elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY_TENSOR,mySpace));
 
           hysteresisCoefs_->AddRegion( actRegion, hystPol);
 
@@ -1092,11 +1092,11 @@ namespace CoupledField {
     else {
       
       if ( isComplex ) {
-        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType,
                 Global::COMPLEX);
       }
       else {
-        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType,
                 Global::REAL);
       }
     }
@@ -1143,7 +1143,7 @@ namespace CoupledField {
     BaseBDBInt* integ = NULL;
     
     shared_ptr<CoefFunction > curCoef;
-    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::REAL);
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR, tensorType, Global::REAL);
 
     // store coefficient function for later use (e.g. in boundary integrators)
     regionPermittivity_[regionId] = curCoef;
@@ -1179,7 +1179,7 @@ namespace CoupledField {
     BaseBDBInt* integ = NULL;
 
     shared_ptr<CoefFunction > curCoef;
-    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::REAL);
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR, tensorType, Global::REAL);
 
 
     // store coefficient function for later use (e.g. in boundary integrators)

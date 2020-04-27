@@ -22,6 +22,7 @@ CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SingleP
   this->design  = design;
   this->orgMat  = orgMat;
   this->form    = NULL; // can only be set later
+  this->formL   = NULL;
   this->state = OPT;
   this->subTensor = pde->GetSubTensorType();
 }
@@ -60,10 +61,7 @@ template <class T>
 void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
 {
  assert(this->dimType_ == TENSOR);
- // if no coordinate system is set, just
-  // use internal vector
- if(coordSys_ != NULL)
-   EXCEPTION("the rotation is not fully finished ':-(\n");
+ Matrix<T> locMatrix;
 
  switch(state)
  {
@@ -71,19 +69,21 @@ void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
  case OPT:
    // the element does not necessarily lay in the design space!
    // if ApplyPhysicalDesign() returns true, coefMat is already set
-   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), coefMat, &lpm))
-     orgMat->GetTensor(coefMat, lpm);
+   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), locMatrix, &lpm))
+     orgMat->GetTensor(locMatrix, lpm);
    //if (coefMat.GetNumCols() > 0) {
      //assert(design->TestTensorPosDef<T>(coefMat, &lpm , shared_from_this()->GetMaterialDerivative()));
    //}
    break;
  case ORG:
-   orgMat->GetTensor(coefMat, lpm);
+   orgMat->GetTensor(locMatrix, lpm);
    break;
  case SHADOW:
-   shadowMat->GetTensor(coefMat, lpm);
+   shadowMat->GetTensor(locMatrix, lpm);
    break;
  }
+
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 
   LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << coefMat.ToString(0, false);
 }
@@ -92,10 +92,6 @@ template <class T>
 void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
 {
   assert(this->dimType_ == SCALAR);
-  // if no coordinate system is set, just
-   // use internal vector
-  if(coordSys_ != NULL)
-    EXCEPTION("the rotation is not fully finished ':-(\n");
 
   switch(state)
   {
@@ -122,10 +118,7 @@ template <class T>
 void CoefFunctionOpt::GetVector(Vector<T>& vec, const LocPointMapped& lpm)
 {
   assert(this->dimType_ == VECTOR);
-  // if no coordinate system is set, just
-   // use internal vector
-  if(coordSys_ != NULL)
-    EXCEPTION("the rotation is not fully finished ':-(\n");
+  Vector<T> locVec;
 
   switch(state)
   {
@@ -133,19 +126,29 @@ void CoefFunctionOpt::GetVector(Vector<T>& vec, const LocPointMapped& lpm)
   case OPT:
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
-    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), vec, &lpm))
-      orgMat->GetVector(vec, lpm);
+    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), locVec, &lpm))
+      orgMat->GetVector(locVec, lpm);
     break;
   case ORG:
-    orgMat->GetVector(vec, lpm);
+    orgMat->GetVector(locVec, lpm);
     break;
   case SHADOW:
-    shadowMat->GetVector(vec, lpm);
+    shadowMat->GetVector(locVec, lpm);
     break;
   }
+
+  TransformVectorByCoordSys(vec, locVec, lpm);
 
   LOG_DBG3(coef) << "CFO:GV node=" << lpm.lp.number  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << vec;
 
 }
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template void CoefFunctionOpt::GetTensor(Matrix<Double>&, const LocPointMapped&);
+template void CoefFunctionOpt::GetTensor(Matrix<Complex>&, const LocPointMapped&);
+template void CoefFunctionOpt::GetScalar(Double&, const LocPointMapped&);
+template void CoefFunctionOpt::GetScalar(Complex&, const LocPointMapped&);
+template void CoefFunctionOpt::GetVector(Vector<Double>&, const LocPointMapped&);
+#endif
 
 }

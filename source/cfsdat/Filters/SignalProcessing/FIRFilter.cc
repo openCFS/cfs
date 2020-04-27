@@ -15,7 +15,7 @@
 
 #include "FIRFilter.hh"
 
-#include <stdlib.h>  
+#include <cstdlib>
 
 namespace CFSDat{
 

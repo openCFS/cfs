@@ -2033,7 +2033,7 @@ namespace CoupledField {
         // Reason: in case of deltaMat formulation, the coupling matrices are not
         //         transposed of each other as the mech to elec term has deltaS/deltaE
         //         in addition to the rotated coupling operator
-        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
           SetParamsOfFormerHystHelper(eps,elastTensorFct_,couplTensorFct_);
@@ -2050,7 +2050,7 @@ namespace CoupledField {
         ret = c;
       } else if((tensorName == "Reluctivity")||(tensorName == "LinearReluctivity")||
           (tensorName == "CouplingMechToMag")||(tensorName == "CouplingMagToMech")){
-        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
 //          std::cout << "Create hystHelper" << std::endl;
@@ -2085,7 +2085,7 @@ namespace CoupledField {
       bool transposed = false;
 
       if(vectorName == "MagPolarization"){
-        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
           SetParamsOfFormerHystHelper(nu,elastTensorFct_,couplTensorFct_);
@@ -2103,7 +2103,7 @@ namespace CoupledField {
       //      std::cout << "Generate rhs coef function " << vectorName << std::endl;
       PtrCoefFct ret;
       if( (vectorName == "ElecPolarization") || (vectorName == "IrrStressForMechPDE") || (vectorName == "CoupledIrrStrainForElecPDE")){
-        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
           SetParamsOfFormerHystHelper(eps,elastTensorFct_,couplTensorFct_);
@@ -2121,7 +2121,7 @@ namespace CoupledField {
 
         ret = c;
       } else if( (vectorName == "MagMagnetization") || (vectorName == "MagStrictLoadForMechPDE") || (vectorName == "MagStrictLoadForMagPDE")){
-        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
 //          std::cout << "Create hystHelper" << std::endl;
@@ -2154,7 +2154,7 @@ namespace CoupledField {
       if( (ResultName == "ElecPolarization") || (ResultName == "IrrStressesPiezo_TensorForm")
         || (ResultName == "IrrStressesPiezo_VectorForm")
         || (ResultName == "IrrStrainsPiezo_TensorForm") || (ResultName == "CoupledIrrStrainsPiezo") ){
-        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
           SetParamsOfFormerHystHelper(eps,elastTensorFct_,couplTensorFct_);
@@ -2164,7 +2164,7 @@ namespace CoupledField {
         shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystItself_,ResultName));
         ret = c;
       } else if ( (ResultName == "MagPolarization") || (ResultName == "MagMagnetization") || (ResultName == "MagFieldIntensityHyst") ){
-        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR,tensorType_,Global::REAL);
 
         if(formerHystHelperParamsSet_ == false){
 //          std::cout << "Create hystHelper" << std::endl;

@@ -11,7 +11,7 @@
 
 namespace CoupledField
 {
-  /** This class provides an extension tt the ParamNode class. It is kept
+  /** This class provides an extension to the ParamNode class. It is kept
    * seperate from the ParamNode as the inline implementation is convenient
    * for the template function but the ParamNode is better lightwight. Actually
    * it is also a necessary to use the ParamNode both in OLAS and CFS++ */
@@ -142,6 +142,21 @@ namespace CoupledField
         else {
             EXCEPTION("Your specified '" << nelems << "' but symmetric tensors from Voigt notation only implemented for 3D (=6 components)!");
         }
+    }
+
+    template <class TYPE>
+    static void AsVector(PtrParamNode node, Vector<TYPE>& ret)
+    {
+      StdVector<std::string> strVec;
+      SplitStringList(node->As<std::string>(), strVec, ' ' );
+      UInt length = strVec.GetSize();
+      ret.Resize( length );
+      ret.Init();
+
+
+      for ( UInt i = 0; i < length; i++ ) {
+        ret[i]= boost::lexical_cast<TYPE>(strVec[i]);
+      }
     }
 
     static PtrCoefFct AsScalarCoefFct(MathParser* mp, PtrParamNode node) {

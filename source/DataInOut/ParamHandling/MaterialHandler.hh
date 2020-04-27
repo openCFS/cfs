@@ -8,7 +8,6 @@
 
 #include "General/Environment.hh"
 #include "Materials/BaseMaterial.hh"
-#include "Materials/MechanicMaterial.hh"
 #include "Domain/Domain.hh"
 #define bufLength 200
 
@@ -48,8 +47,8 @@ namespace CoupledField
     //! \param material Empty pointer to material object
     //! \param matName Name of the material to be read
     //! \param matClass Materialclass the material belongs to
-    virtual BaseMaterial *  LoadMaterial( const std::string matName, 
-                                          const MaterialClass matClass ) = 0;
+    virtual BaseMaterial *  LoadMaterial( const std::string &matName,
+                                          MaterialClass matClass ) = 0;
 
   protected:
     

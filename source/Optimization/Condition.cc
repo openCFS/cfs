@@ -1,6 +1,6 @@
 
 #include <assert.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <cmath>
 #include <list>

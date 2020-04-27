@@ -3918,13 +3918,13 @@ namespace CoupledField {
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE ) {
-      factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY, Global::REAL );
+      factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
     }
     else if ( solType == ELEC_POTENTIAL ) {
     	if(additionalCoef){
-    		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_CONDUCTIVITY, Global::REAL );
+    		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_CONDUCTIVITY_SCALAR, Global::REAL );
     	}else{
-    		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+    		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY_SCALAR, Global::REAL );
     	}
     }
     else if ( solType == MAG_POTENTIAL) {
@@ -3953,7 +3953,7 @@ namespace CoupledField {
       //factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, constOneC, permeability, CoefXpr::OP_DIV));
 
       }else{
-        permeability = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+        permeability = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::REAL );
         factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability, CoefXpr::OP_DIV));
       }
 

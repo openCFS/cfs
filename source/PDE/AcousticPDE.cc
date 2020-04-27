@@ -56,7 +56,7 @@ namespace CoupledField{
               : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
 
     pdename_           = "acoustic";
-    pdematerialclass_  = FLUID;
+    pdematerialclass_  = ACOUSTIC;
     nonLin_            = false;
     isMechCoupled_     = false;
     formulation_ = ACOU_PRESSURE;
@@ -1691,7 +1691,7 @@ namespace CoupledField{
       RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
 
       //get adiabatic exponent
-      PtrCoefFct aExp = materials_[aRegion]->GetScalCoefFnc( ADIABATIC_EXPONENT, Global::REAL );
+      PtrCoefFct aExp = materials_[aRegion]->GetScalCoefFnc( FLUID_ADIABATIC_EXPONENT, Global::REAL );
 
       //get speed of sound and square it
       std::map<RegionIdType,PtrCoefFct > c0Fcts = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->GetRegionCoefs();
@@ -1744,7 +1744,7 @@ namespace CoupledField{
       RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
 
       //get adiabatic exponent
-      PtrCoefFct aExp = materials_[aRegion]->GetScalCoefFnc( ADIABATIC_EXPONENT, Global::REAL );
+      PtrCoefFct aExp = materials_[aRegion]->GetScalCoefFnc( FLUID_ADIABATIC_EXPONENT, Global::REAL );
 
       //get speed of sound and square it
       std::map<RegionIdType,PtrCoefFct > c0Fcts = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->GetRegionCoefs();

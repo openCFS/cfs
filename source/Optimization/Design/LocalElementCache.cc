@@ -81,14 +81,14 @@ void LocalElementCache::InitShadow(DesignSpace::DesignRegion* dr)
   case OptimizationMaterial::HEAT:
   {
     mc = THERMIC;
-    mt = HEAT_CONDUCTIVITY;
+    mt = HEAT_CONDUCTIVITY_TENSOR;
     Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
     break;
   }
   case OptimizationMaterial::MAG:
   {
     mc = ELECTROMAGNETIC;
-    mt = MAG_RELUCTIVITY;
+    mt = MAG_RELUCTIVITY_TENSOR;
     Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
     break;
   }

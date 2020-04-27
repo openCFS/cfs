@@ -94,7 +94,7 @@ public:
   void GetScalar( Double& coefScalar, const LocPointMapped& lpm );
 
   //! Set Scalar valued expression
-  void SetScalar( std::string& expr, 
+  void SetScalar( const std::string& expr,
                   std::map<std::string, PtrCoefFct >& vars );
 
   //! Set Vector valued expression

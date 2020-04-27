@@ -1657,11 +1657,11 @@ namespace CoupledField {
       PtrCoefFct cCoef, aCoef;
       if( isComplex_ ) {
         cCoef = materials_[myRegionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, subType, Global::COMPLEX);
-        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_TE_TENSOR, subType);
+        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_THERMAL_EXPANSION_TENSOR, subType, Global::COMPLEX);
       }
       else {
         cCoef = materials_[myRegionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, subType, Global::REAL);
-        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_TE_TENSOR, subType, true);
+        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_THERMAL_EXPANSION_TENSOR, subType, Global::REAL);
       }
       
       // get reference temperature and compute dT = T - T_ref
@@ -1675,7 +1675,7 @@ namespace CoupledField {
       thermalStrain_->AddRegion( myRegionId, thermalStrainCoef);
       
       // Compute thermal stress (C*alpha)*dT
-      // Note: the order of combining coef functions is important: C*alpha can unsually be evaluated anaytically. 
+      // Note: the order of combining coef functions is important: C*alpha can usually be evaluated analytically.
       // Therefore, we combine it first. Then it is multiplied with dT, which might be a CoefFuctionGrid. 
       PtrCoefFct Calpha = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,cCoef,aCoef,CoefXpr::OP_MULT));
       PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_,Calpha,dT,CoefXpr::OP_MULT));

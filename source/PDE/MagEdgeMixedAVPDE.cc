@@ -170,7 +170,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
            ============================================== */
         // Magnetic Reluctivity
         PtrCoefFct nuNl = NULL;
-        nuNl = actMat->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL);
+        nuNl = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL);
         // Add material to global, distributed reluctivity coefficient function
         reluc_->AddRegion(actRegion, nuNl);
 
@@ -181,8 +181,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         // Electric Conductivity
         Double conductivity;
-        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
-        PtrCoefFct conducCoef = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+        PtrCoefFct conducCoef = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 
 
         /* ==============================================
@@ -263,7 +263,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
           Matrix<Double> reluc;
           // Get tensor of permeability and determine max. value
-          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
+          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY_TENSOR, Global::REAL );
           conductivity =  regularizationFactor * reluc[0][0];
           scaleByEdgeSize = true;
           // Add region to set of "regularized" regions
@@ -323,7 +323,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       {
         /*
          * that's kind of a dirty hack because for Nitsche NC, we need to access the
-         * electric conductivity as MAG_CONDUCTIVITY. But this should only be done in
+         * electric conductivity as MAG_CONDUCTIVITY_SCALAR. But this should only be done in
          * the MagEdgeMixedAVPDE
          */
         shared_ptr<CoefFunctionMulti> identifier = NULL;
@@ -748,8 +748,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     regIt = regions_.Begin();
     for( ; regIt != regions_.End(); ++regIt ){
       Double conductivity;
-      materials_[*regIt]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
-      PtrCoefFct conducCoef = materials_[*regIt]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+      materials_[*regIt]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+      PtrCoefFct conducCoef = materials_[*regIt]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
       PtrCoefFct jE = CoefFunction::Generate( mp_, part,
                   CoefXprVecScalOp(mp_, elecIntensCoef, conducCoef, CoefXpr::OP_MULT));
       eddyJCoef->AddRegion(*regIt, jE);

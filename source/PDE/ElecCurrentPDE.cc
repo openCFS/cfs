@@ -193,7 +193,7 @@ namespace CoupledField {
                                 ent, coef, updatedGeo_ );
         //coef-Fnc for electric conductivity
         PtrCoefFct condNL =
-                  actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY, Global::REAL, coef);
+                  actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY_SCALAR, Global::REAL, coef);
 
         // create stiffness integrator
         BaseBDBInt* stiffInt = NULL;
@@ -237,7 +237,7 @@ namespace CoupledField {
           GetPoleRegionIds(NLELEC_BIPOLE, depRegionIds);
           dep.Push_back(elPotCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_BIPOLE, Global::REAL, dep, depRegionIds);
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_BIPOLE, Global::REAL, dep, depRegionIds);
             /*  ELEC_CONDUCTIVITY means gamma(T) */ 
           intName = "ElecStiffnessIntegrator-Bipole-Voltage-Depend";
         }
@@ -252,7 +252,7 @@ namespace CoupledField {
           dep.Push_back(elPotCoef);
           dep.Push_back(heatCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_BIPOLE_TEMP_DEP, 
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_BIPOLE_TEMP_DEP,
                          Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-Bipole-Voltage-Temperature-Depend";
         }
@@ -260,7 +260,7 @@ namespace CoupledField {
           GetPoleRegionIds(NLELEC_TRIPOLE, depRegionIds);
           dep.Push_back(elPotCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE, Global::REAL, dep, depRegionIds);
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_TRIPOLE, Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-Tripole-Voltage-Depend";
         }
         else if ( nonLinTypes.Find(NLELEC_TRIPOLE_TEMP_DEP) != -1)  {
@@ -274,7 +274,7 @@ namespace CoupledField {
           dep.Push_back(elPotCoef);
           dep.Push_back(heatCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE_TEMP_DEP, 
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_TRIPOLE_TEMP_DEP,
                          Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-TRipole-Voltage-Temperature-Depend";
         }

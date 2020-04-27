@@ -104,9 +104,9 @@ class MaterialHandler;
 
     // Generate xml parameter reader
     LOG_TRACE(simState) << "Generating parameter node from xml file";
-    std::string schema = progOpts->GetSchemaPathStr();
-    schema += "/CFS-Simulation/CFS.xsd";
-    PtrParamNode rootNode = XmlReader::ParseString(paramContent, schema);
+    std::string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
+    PtrParamNode rootNode = XmlReader::ParseString(paramContent, schema,
+                                                   "http://www.cfs++.org/simulation");
 
 
     // Generate material reader

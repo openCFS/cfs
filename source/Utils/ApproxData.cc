@@ -314,7 +314,7 @@ void ApproxData::ReadNlinFuncTwoIndep(std::string fncName)  {
 
 void ApproxData::PerformChecksOnInputData( std::string nlFileName ) {
 
-  if  ( matType_ == MAG_PERMEABILITY ) {
+  if  ( matType_ == MAG_PERMEABILITY_SCALAR ) {
     //all x=H have to be greater than zero
     for ( UInt k=0; k<numMeas_; k++ ) {
       if ( x_[k] < 0.0 ) {

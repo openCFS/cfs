@@ -1,6 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org" xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+  targetNamespace="http://www.cfs++.org/simulation" xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
 
 
   <xsd:annotation>
@@ -12,9 +13,6 @@
   <!-- ******************************************************************* -->
   <!--   Includes from CFS -->
   <!-- ******************************************************************* -->
-<!--  <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
-  <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_PDEbasic.xsd" />-->
-  <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_FileFormats.xsd" />
   <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_Documentation.xsd"/>
   
   <!-- ******************************************************************* -->
@@ -91,7 +89,7 @@
     <xsd:complexType>
       <xsd:sequence>
 			  <!-- Tags for documenting simulations (required just for test suite)-->
-        <xsd:element name="documentation" type="DT_Documentation" minOccurs="0"/>
+        <xsd:element name="documentation" type="sim:DT_Documentation" minOccurs="0"/>
         <!-- File format list for io-specifications (required)-->
         <xsd:element name="pipeline" type="DT_FilterList" minOccurs="1" maxOccurs="1"/>
       </xsd:sequence>

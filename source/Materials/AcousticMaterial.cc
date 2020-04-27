@@ -2,16 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <map>
-#include <set>
-#include <string>
-#include <utility>
-
-#include "Materials/BaseMaterial.hh"
 #include "AcousticMaterial.hh"
-#include "limits.h"
-#include "math.h"
-#include "stdlib.h"
+
+#include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 namespace CoupledField
 {
@@ -21,136 +15,42 @@ namespace CoupledField
   // ***********************
   AcousticMaterial::AcousticMaterial(MathParser* mp,
                                      CoordSystem * defaultCoosy) 
-  : BaseMaterial(mp, defaultCoosy) {
-
-    materialDatabaseName_ = "Acoustic";
-
+  : BaseMaterial(ACOUSTIC, mp, defaultCoosy)
+  {
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( ACOU_DENSITY_COMPLEX );
-    isAllowed_.insert( ADIABATIC_EXPONENT );
     isAllowed_.insert( ACOU_BULK_MODULUS );
     isAllowed_.insert( ACOU_BULK_MODULUS_COMPLEX );
     isAllowed_.insert( ACOU_SOUND_SPEED );
-    isAllowed_.insert( KINEMATIC_VISCOSITY );
-    isAllowed_.insert( ACOU_ALPHA );
-    isAllowed_.insert( FRACTIONAL_EXPONENT );
+    isAllowed_.insert( FLUID_ADIABATIC_EXPONENT );
+    isAllowed_.insert( FLUID_KINEMATIC_VISCOSITY );
+//    isAllowed_.insert( ACOU_ALPHA );
+//    isAllowed_.insert( FRACTIONAL_EXPONENT );
     isAllowed_.insert( RAYLEIGH_ALPHA );
     isAllowed_.insert( RAYLEIGH_BETA );
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
-    isAllowed_.insert( BOVERA );
+    isAllowed_.insert( ACOU_BOVERA );
   }
 
   AcousticMaterial::~AcousticMaterial() {
   }
 
-  void AcousticMaterial::SetScalar( Double param, MaterialType matType, 
-      Global::ComplexPart dataType ) {
-
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-
-      Complex val;
-      if ( dataType == Global::REAL ) {
-        val = Complex ( param, 0.0 );
-      }
-      else if (dataType == Global::IMAG ) {
-        val = Complex ( 0.0, param );
-        isComplex_.insert( matType );
+  void AcousticMaterial::Finalize() {
+    if (scalarCoef_.find(ACOU_SOUND_SPEED) == scalarCoef_.end()) {
+      CoefMap::const_iterator densIt = scalarCoef_.find(DENSITY),
+                              bulkIt = scalarCoef_.find(ACOU_BULK_MODULUS);
+      if (densIt != scalarCoef_.end() && bulkIt != scalarCoef_.end()) {
+        SetCoefFct(ACOU_SOUND_SPEED, CoefFunction::Generate( mp_,  Global::REAL,
+            CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, bulkIt->second, densIt->second,
+                                             CoefXpr::OP_DIV),
+                           CoefXpr::OP_SQRT)));
       }
       else {
-        std::string msg = "SetScalar-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
+        EXCEPTION("Cannot not compute'" << MaterialTypeEnum.ToString(ACOU_SOUND_SPEED)
+                  << "' for material '" << name_ << "' due to missing data");
       }
-
-      scalarParams_[matType] = val;
-    }
-  }
-
-  void AcousticMaterial::SetScalar( const std::string& param, MaterialType matType,
-      Global::ComplexPart dataType ) {
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "string";
-      matTypeNotAllowed( matType, dim );
-    } else {
-      stringParams_[matType] = param;
-    }
-  }
-
-
-
-  void AcousticMaterial::GetScalar( Double& param, MaterialType matType, 
-				    Global::ComplexPart dataType ) const {
-
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Complex val = pos->second;
-      if ( dataType == Global::REAL ) {
-        param = val.real();
-      }
-      else if ( dataType == Global::IMAG ) {
-        param = val.imag();
-      }
-      else {
-        std::string msg = "GetScalar-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
-
-  void AcousticMaterial::GetScalar( Complex& param, MaterialType matType,
-		  Global::ComplexPart dataType )  const {
-
-	  scalarMap::const_iterator pos;
-	  pos = scalarParams_.find( matType );
-
-	  if ( pos == scalarParams_.end() ) {
-		  std::string dim = "tensor";
-		  matTypeNotInDataBase( matType, dim );
-	  }
-	  else {
-		  Complex val = pos->second;
-		  if ( dataType == Global::REAL ) {
-			  Complex valReal = Complex (val.real(), 0.0);
-			  param = valReal;
-		  }
-		  else if ( dataType == Global::IMAG ) {
-			  Complex valImag = Complex (0.0, val.imag());
-			  param = valImag;
-		  }
-		  else if ( dataType == Global::COMPLEX ) {
-			  param = val;
-		  }
-	  }
-  }
-
-  void AcousticMaterial::GetScalar( std::string& param, MaterialType matType,
-              Global::ComplexPart dataType ) const {
-
-    stringMap::const_iterator pos;
-    pos = stringParams_.find( matType );
-    std::string value;
-
-    if ( pos == stringParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      param=pos->second;
     }
   }
 

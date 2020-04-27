@@ -137,7 +137,7 @@ namespace CoupledField{
     Matrix<Double> eTensor;
     piezoMat_->GetTensor( eTensor, PIEZO_TENSOR, Global::REAL, tensorType_ );
     Matrix<Double> epsTensor_cStrain, eTensorTrans;
-    elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
+    elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY_TENSOR, Global::REAL, tensorType_ );
 
     cTensorOrig_ = cTensor;
     cTensor.Invert(sTensorOrig_);

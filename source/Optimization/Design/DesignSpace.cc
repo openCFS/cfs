@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
@@ -2201,7 +2201,7 @@ PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(const string& integrator)
   if(integrator == "MassInt")
     return GetBiMaterial(MECHANIC, DENSITY);
   if(integrator == "HeatConductivity")
-    return GetBiMaterial(THERMIC, HEAT_CONDUCTIVITY);
+    return GetBiMaterial(THERMIC, HEAT_CONDUCTIVITY_TENSOR);
   assert(false);
   return PtrCoefFct();
 }
@@ -2232,7 +2232,7 @@ const string DesignSpace::ToForm(MaterialClass mc, MaterialType mt)
   case THERMIC:
     switch(mt)
     {
-    case HEAT_CONDUCTIVITY:
+    case HEAT_CONDUCTIVITY_TENSOR:
       return "HeatConductivity";
     default:
       assert(false);

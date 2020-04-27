@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <map>
 #include <ostream>
 #include <string>

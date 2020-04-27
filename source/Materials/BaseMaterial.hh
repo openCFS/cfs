@@ -20,11 +20,8 @@ namespace CoupledField {
   class CoordSystem;
   class Hysteresis;
   class ElemList;
-  class PiezoMicroModelHF;
+  //class PiezoMicroModelHF;
   class PiezoMicroModelBK;
-  class CoefFunction;
-  class BaseBOperator;
-  class BaseFeFunction;
 
   //! Class for Material Data
   /*! 
@@ -78,19 +75,24 @@ namespace CoupledField {
     };
     
     //@{ \name public typedefs
-    typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
-    typedef std::map<MaterialType, Complex > scalarMap;
-    typedef std::map<MaterialType, Vector<Complex> > vectorMap;
-    typedef std::map<MaterialType, std::string > stringMap;
-    typedef std::map<MaterialType, Integer > integerMap;
-    typedef std::map<MaterialType, MathParser::HandleType > handleMap;
+    typedef std::map<MaterialType, std::string> StringMap;
+    typedef std::map<MaterialType, Integer> IntegerMap;
     typedef std::map<MaterialType, PtrCoefFct> CoefMap;
-    typedef std::map<MaterialType, MatDescriptorNl> nonLinIsoMap;
-    typedef std::map<MaterialType, StdVector<MatDescriptorNl> > nonLinAnisoMap;
+    typedef std::map<MaterialType, MatDescriptorNl> NonLinIsoMap;
+    typedef std::map<MaterialType, StdVector<MatDescriptorNl> > NonLinAnisoMap;
 
     //! Denote the symmetry type 
-    typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
-    
+    typedef enum {
+      NOSYMMETRY, GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_ISOTROPIC
+    } SymmetryType;
+    static Enum<SymmetryType> SymmetryTypeEnum;
+
+    //! Denote the material model
+    typedef enum {
+      MAT_MODEL_LINEAR, MAT_MODEL_LINEARVISCOELASTIC
+    } MaterialModel;
+    static Enum<MaterialModel> MaterialModelEnum;
+
     //@}
     
 
@@ -99,36 +101,27 @@ namespace CoupledField {
     //! Default constructor
     //! \param mp Pointer to MathParser
     //! \param defaultCoosy Pointer to default coordinate system
-    BaseMaterial( MathParser* mp,
-                  CoordSystem * defaultCoosy);
+    BaseMaterial( MaterialClass matClass, MathParser* mp, CoordSystem * defaultCoosy);
 
     //! Destructor
     virtual ~BaseMaterial();
 
 
-    //! Trigger finalization of material (calculation of rotated matrices)
+    //! Trigger finalization of material
     virtual void Finalize() {};
 
-    /** helper for ToInfo(). If the  imaginary part is zero, only the real part is printed  */
-    void StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat);
-
     /** Print the material data which is actually read and stored in isSet */
-    void ToInfo(PtrParamNode in, SubTensorType stt = NO_TENSOR,  const Vector<double>* rot = NULL);
+    void ToInfo(PtrParamNode in, SubTensorType stt = NO_TENSOR,
+                const Vector<double>* rot = NULL);
 
     //! set the name of the material set
-    void SetName(const char* name) {
-      matFileName_.assign( name ) ;
-    }
+    void SetName(const std::string &name);
 
-    // returns the name of the material file
-    std::string& GetName() {
-      return matFileName_;
-    }
+    //! returns the name of the material
+    std::string GetName() const;
 
-    //! returns the name of the material database
-    std::string& GetMaterialDatabaseName() {
-      return materialDatabaseName_;
-    }
+    //! returns the class of the material
+    MaterialClass GetClass() const;
 
     // ======================================================================
     //  Coefficient Function Related Methods
@@ -139,25 +132,27 @@ namespace CoupledField {
     virtual PtrCoefFct GetTensorCoefFnc(MaterialType matType,
                                         SubTensorType type,
                                         Global::ComplexPart matDataType,
-                                        bool transposed = false );
+                                        bool transposed = false ) const;
 
     //! Return vector-valued coefficient function (linear)
     virtual PtrCoefFct GetVectorCoefFnc(MaterialType matType,
-                                        Global::ComplexPart matDataType);
+                                        Global::ComplexPart matDataType) const;
 
     //! Return scalar-valued coefficient function (linear)
     virtual PtrCoefFct GetScalCoefFnc(MaterialType matType,
-                                      Global::ComplexPart matDataType);
+                                      Global::ComplexPart matDataType) const;
 
     //! Return a specific sub-tensor as coefficient function (linear)
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
-                                            bool transposed  );
+                                            Global::ComplexPart matDataType,
+                                            bool transposed = false) const;
 
     //! Return a sub-vector in Voigt notation
-    virtual PtrCoefFct GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real=false) {
-        EXCEPTION("Currently only implemented for Mechanic material");
-    }
+    virtual PtrCoefFct GetSubVectorCoefFnc( MaterialType matType,
+                                            SubTensorType tensorType,
+                                            Global::ComplexPart matDataType
+                                                = Global::COMPLEX) const;
 
     //! Return tensor-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetTensorCoefFncNonLin( MaterialType matType,
@@ -168,104 +163,72 @@ namespace CoupledField {
     //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency );                             
+                                            PtrCoefFct dependency );
                                             
     //! Return scalar-valued coefficient function for nonlinear function (only for magstrict nu)
     virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency );                                           
+                                            PtrCoefFct dependency );
 					    
     //! Return scalar-valued coefficient function for nonlinear function
-    //! where the value is calculated depending on the value of \param temperatureCoef and \param elecPotCoef on \param regs. 
-    virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(MaterialType matType,
-                                                   NonLinType nlType,
-                                                   Global::ComplexPart matDataType,
-                                                   StdVector<PtrCoefFct> dependencies,
- 					           StdVector<RegionIdType> & regs) 
-						   {EXCEPTION("not implemented in base class"); PtrCoefFct dummy; return dummy;}
+    //! where the value is calculated depending on the value of
+    //! \param temperatureCoef and \param elecPotCoef on \param regs.
+    virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(
+        MaterialType matType,
+        NonLinType nlType,
+        Global::ComplexPart matDataType,
+        StdVector<PtrCoefFct> dependencies,
+        StdVector<RegionIdType> & regs);
+
+    //! Set a coefficient function
+    virtual void SetCoefFct( MaterialType matType, PtrCoefFct coef );
 
     //@}
     
-    //! get info, which material parameter is set
-    std::set<MaterialType> GetIsSetInfo() const
-    { return isSet_;};
-
-    //! get info, which material parameter is complex
-    std::set<MaterialType> GetIsComplexInfo() const
-    { return isComplex_;};
-
-    //! get info if material paramter ist complex
-    bool IsComplex( MaterialType mtype) const {
-      return ( isComplex_.find(mtype) != isComplex_.end() );
-    }
-
     //! Query if a given parameter is set
     virtual bool IsSet( MaterialType matType ) const;
 
     //! set the symmetry type
-    void SetSymmetryType(MaterialType matType, SymmetryType symType) {
-      symmetryType_[matType]=symType;
-    };
+    void SetSymmetryType(MaterialType matType, SymmetryType symType);
 
     //! get the symmetry type
-    SymmetryType GetSymmetryType(MaterialType matType) const {
-      SymmetryType ret = GENERAL;
-      std::map<MaterialType, SymmetryType>::const_iterator it;
-      it = symmetryType_.find(matType);
-      if( it == symmetryType_.end() ) {
-        EXCEPTION("Could not find symmetry type for material '"
-            << MaterialTypeEnum.ToString(matType) << "'");
-      } else {
-        ret = it->second;
-      }
-         
-      return ret; 
-    };
+    SymmetryType GetSymmetryType(MaterialType matType) const;
 
-    //! set a scalar integer material parameter
-    void SetScalar(int param, MaterialType matType);
+    //! Returns the material model selected for this material
+    MaterialModel GetModel() const;
+
+    //! Set the material model
+    void SetModel(MaterialModel model);
 
     //! set a scalar string material parameter
-    virtual void SetScalar(const std::string& param, MaterialType matType);
+    virtual void SetString(const std::string& param, MaterialType matType);
 
-    //! set a scalar real material parameter
-    virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType = Global::REAL)
-    {
-     EXCEPTION("not implemented for " << materialDatabaseName_);
-    };
+    //! set a scalar integer material parameter
+    void SetScalar(Integer param, MaterialType matType);
 
+    //! Set a scalar real constant material parameter
+    virtual void SetScalar(Double param, MaterialType matType,
+                           Global::ComplexPart dataType );
 
-    //! set a scalar complex material parameter
-    virtual void SetScalar(Complex param, MaterialType matType, Global::ComplexPart dataType )
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
+    //! set a scalar complex constant material parameter
+    virtual void SetScalar(Complex param, MaterialType matType,
+                           Global::ComplexPart dataType );
     
-    //! set a scalar parameter in string representation (gets later parsed by MathParser
-    virtual void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType )
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
+    //! set a real constant material vector
+    virtual void SetVector(const Vector<Double>& param, MaterialType matType,
+                           Global::ComplexPart dataType);
 
+    //! set a complex constant material vector
+    virtual void SetVector(const Vector<Complex>& param, MaterialType matType,
+                           Global::ComplexPart dataType);
 
-    //! set a real vector
-    virtual void SetVector(const Vector<Double>& param, MaterialType matType, Global::ComplexPart dataType)
-    {
-      EXCEPTION("not implemented");
-    }
+    //! set a real constant material tensor
+    virtual void SetTensor(const Matrix<Double>& param, MaterialType matType,
+                           Global::ComplexPart dataType);
 
-    //! set a real material tensor
-    virtual void SetTensor(const Matrix<Double>& param, MaterialType matType, Global::ComplexPart dataType)
-    {
-      EXCEPTION("not implemented");
-    }
-    
-
-    //! set a complex material tensor
-    virtual void SetTensor(const Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType ) 
-    {
-      EXCEPTION("not implemented");
-    }
+    //! set a complex constant material tensor
+    virtual void SetTensor(const Matrix<Complex>& param, MaterialType matType,
+                           Global::ComplexPart dataType );
     
     //! Set a nonlinear isotropic approximation
     virtual void SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data );
@@ -273,56 +236,37 @@ namespace CoupledField {
     //! Set a nonlinear anisotropic approximation
     virtual void SetNonLinMatAniso( MaterialType matType, StdVector<MatDescriptorNl>& data );
 
-    //! Set a coefficient function
-    virtual void SetCoefFct( MaterialType matType, PtrCoefFct coef );
-
     //! get a string material parameter
-    virtual void GetScalar( std::string& param, MaterialType matType) const;
+    virtual void GetString( std::string& param, MaterialType matType) const;
     
+    //! Return a constant scalar-valued coefficient function.
+
+    //! This method returns a constant, scalar-valued material data. If
+    //! the data is not constant (e.g. time/freq/spatial dependency),
+    //! an exception is thrown.
+    virtual void GetScalar( Double& param, MaterialType matType,
+                            Global::ComplexPart matDataType = Global::REAL) const;
+    virtual void GetScalar( Complex& param, MaterialType matType,
+                            Global::ComplexPart matDataType = Global::COMPLEX) const;
+
     //! get a integer material parameter
-    virtual void GetScalar( Integer& param, MaterialType matType) const
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
+    virtual void GetScalar( Integer& param, MaterialType matType) const;
 
-    void GetScalar( Integer& param, MaterialType matType, Global::ComplexPart dataType) const;
-
-    //! get a scalar real material parameter
-    virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType = Global::REAL) const
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
-
-    //! get a scalar complex material parameter
-    virtual void GetScalar( Complex& param, MaterialType matType, Global::ComplexPart dataType ) const
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
-
-    //! get a real vector
-    virtual void GetVector( Vector<Double>& param, MaterialType matType, Global::ComplexPart dataType ) const
-    {
-      EXCEPTION("not implemented");      
-    }
-
-    //! get a complex vector
-     virtual void GetVector( Vector<Complex>& param, MaterialType matType, Global::ComplexPart dataType ) const
-     {
-       EXCEPTION("not implemented");
-     }
+    //! Get a constant vector
+    virtual void GetVector( Vector<Double>& param, MaterialType matType,
+                            Global::ComplexPart matDataType = Global::REAL ) const;
+    virtual void GetVector( Vector<Complex>& param, MaterialType matType,
+                            Global::ComplexPart matDataType = Global::COMPLEX ) const;
 
     //! get a real material tensor
     virtual void GetTensor( Matrix<Double>& param, MaterialType matType, 
-                            Global::ComplexPart dataType, SubTensorType = FULL ) const
-    {
-      EXCEPTION("not implemented");      
-    }
+                            Global::ComplexPart dataType = Global::REAL,
+                            SubTensorType subTensor = FULL ) const;
      
     //! get a complex material tensor
-    virtual void GetTensor( Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType, SubTensorType = FULL ) const
-    {
-      EXCEPTION("not implemented");      
-    }
+    virtual void GetTensor( Matrix<Complex>& param, MaterialType matType,
+                            Global::ComplexPart dataType = Global::COMPLEX,
+                            SubTensorType subTensor = FULL ) const;
     
     //! Rotate a material tensor by coordinates
     virtual void RotateTensorByRotationAngles( const Vector<Double> &coord, 
@@ -338,17 +282,28 @@ namespace CoupledField {
                                                MaterialType matType,
                                                bool persistent = false );
 
+    //! Rotate all tensor material parameters by rotation matrix
+    virtual void RotateAllTensorsByRotationMat(  const Matrix<Double>& rotMatrix,
+                                                 bool persistent = false );
+
+    //! Rotate all tensor material parameters by given coordinate system
+    //! and axis mapping.
+    virtual void RotateAllTensorsByCoordSys(CoordSystem *coordSys,
+                                            const StdVector<std::string> &axisMap,
+                                            const StdVector<Double> &axisFactors,
+                                            bool persistent = false);
+
     //! Rotates the tensor in a way that is represents the attached
-    //! coordinate system behaviour (cartesian, cylindri, spherical)
+    //! coordinate system behaviour (cartesian, cylindrical, spherical)
     //! in this point
     virtual void RotateTensorByPointCoord( const Vector<Double> &coord, 
                                            MaterialType matType );
 
     //! Pass coordinate system to material
-    void SetCoordSys( CoordSystem* system ) {coosy_ = system;}
+    void SetCoordSys( CoordSystem* system );
 
     //! Get coordinate system from material
-    CoordSystem* GetCoordSys() { return coosy_; }
+    CoordSystem* GetCoordSys();
 
     // ======================================================================
     //  Hysteresis Related Information
@@ -421,6 +376,7 @@ namespace CoupledField {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
     //@}
+
     // ======================================================================
     //  Micro-Piezoelectric Model
     // ======================================================================
@@ -472,9 +428,11 @@ namespace CoupledField {
     /** converts MaterialClass to the corresponding MaterialType tensor. Extend for your needs */
     static MaterialType ConvertMaterialClass(MaterialClass mc);
 
-    /** compute the correct subTensor (3D, AXI, ..)
-     * Not all materials implement this method! */
-    virtual void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const { assert(false); };
+    //! Rotate rotation of 2nd order tensor in Voigt notation
+    template<typename T>
+    static void PerformRotationVoigt( const Matrix<Double>& rotMatrix,
+                                      Vector<T>& rotMatTensor,
+                                      const Vector<T>& origMatTensor );
 
   protected:
 
@@ -490,21 +448,36 @@ namespace CoupledField {
     //! Error for material type not in file
     void matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const;
 
-    //! data type not allowed in set-function
+    //! Error for data type not allowed in set-function
     void setMakesNoSense(Global::ComplexPart datType, const std::string& msg ) const;
 
     //! Error for not available subtype of tensor
     static void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor);
 
+    //! Error for material data is not constant, but was queried via Get{Scalar,Vector,Tensor}
+    void matDataNotConstant(MaterialType matType) const;
+
     //! Rotate tensorial coefficient function
     virtual void PerformRotation( const Matrix<Double>& rotMatrix, PtrCoefFct& rotatedCoef,
                                   PtrCoefFct origCoef);
+    //! Rotate tensorial coefficient function (only for constant CoefFct)
+    virtual void PerformRotationConst( const Matrix<Double>& rotMatrix, PtrCoefFct& rotatedCoef,
+                                       PtrCoefFct origCoef);
 
-    //! name of material database
-    std::string materialDatabaseName_;
+    //! Compute a full 3x3 tensor from different representations
+    virtual void CalcFull3x3Tensor( MaterialType isoPProp,
+                                    MaterialType* orthoProp,
+                                    MaterialType tensorProp );
 
-    //! name of material file
-    std::string matFileName_;
+    /** helper for ToInfo(). If the  imaginary part is zero, only the real part is printed  */
+    void StoreTensor(PtrParamNode in, PtrCoefFct tensorFunc);
+
+
+    //! name of material
+    std::string name_;
+
+    //! class of material database
+    const MaterialClass class_;
 
     //! set, which knows about the allowed material parameters for a material class
     std::set<MaterialType> isAllowed_;
@@ -512,44 +485,17 @@ namespace CoupledField {
     //! set, which knows, which material parameters have been set
     std::set<MaterialType> isSet_;
 
-    //! set, which knows about if the material data is complex or just real
-    std::set<MaterialType> isComplex_;
+    //! map, which knows about the material data defined by strings
+    StringMap stringParams_;
 
     //! map, which knows about the material data defined by strings
-    stringMap stringParams_;
-
-    //! map, which knows about the material data defined by strings
-    integerMap integerParams_;
-
-    //! map, which knows about the scalar material parameters being set during read in 
-    scalarMap scalarParams_;
-    
-    //! map for real part of scalar material data (string representation)
-    stringMap scalarStringParamsReal_;
-    
-    //! map for mathParser Handles of real part of scalar material parameters
-    handleMap scalarStringHandlesReal_;
-    
-    //! map for imaginary part of scalar material data (string representation)
-    stringMap scalarStringParamsImag_;
-
-    //! map for mathParser Handles of real part of scalar material parameters
-    handleMap scalarStringHandlesImag_;
-        
-    //! map, which knows about the actual tensorial material parameters 
-    vectorMap vectorParams_;
-
-    //! map, which knows about the actual tensorial material parameters 
-    tensorMap tensorParams_;
-
-    //! map, which knows about the original tensorial material parameters before being rotated
-    tensorMap tensorParamsOrig_;
+    IntegerMap integerParams_;
 
     //! map storing the isotropic nonlinear material parameters
-    nonLinIsoMap nonlinIsoParams_;
+    NonLinIsoMap nonlinIsoParams_;
     
     //! map storing the anisotropic nonlinear material parameters
-    nonLinAnisoMap nonlinAnisoParams_;
+    NonLinAnisoMap nonlinAnisoParams_;
 
     // ========================================================
     //  New coefficient based material representation
@@ -574,6 +520,9 @@ namespace CoupledField {
 
     //! Store symmetryType per material data type
     std::map<MaterialType, SymmetryType> symmetryType_;
+
+    //! Material model used for this material
+    MaterialModel model_;
 
     //! hysteresis object
     Hysteresis* hyst_;
@@ -603,7 +552,7 @@ namespace CoupledField {
     Vector<Double> Yprevious_; //! previous Yval in hysteresis
 
     //! for vector version
-    //! note that we do not use the matrices below due to differen sorting at the moment
+    //! note that we do not use the matrices below due to different sorting at the moment
     Vector<Double>* XpreviousVEC_;
     Vector<Double>* YpreviousVEC_;
 

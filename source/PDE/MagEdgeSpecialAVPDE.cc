@@ -174,7 +174,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           }
 
           Double conductivity = 0.0;
-          materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+          materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
           PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
 
           // This switch is necessary because we need to select which harmonic component
@@ -243,7 +243,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
 
           Double conductivity = 0.0;
-          materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+          materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
           PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
           CoefXprVecScalOp uVec = CoefXprVecScalOp(mp_, eJscaled, conduccoef, CoefXpr::OP_MULT);
           PtrCoefFct sigma_gradV = CoefFunction::Generate(mp_, part, uVec);
@@ -746,7 +746,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     regIt = regions_.Begin();
     Double conductivity = 0.0;
     for( ; regIt != regions_.End(); ++regIt ){
-      materials_[*regIt]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+      materials_[*regIt]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
       PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
       PtrCoefFct eddyC = CoefFunction::Generate( mp_, part,
                          CoefXprVecScalOp(mp_, GetCoefFct( ELEC_FIELD_INTENSITY), conduccoef, CoefXpr::OP_MULT));

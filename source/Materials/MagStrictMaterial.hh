@@ -2,10 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef PIEZOMATERIAL_DATA
-#define PIEZOMATERIAL_DATA
-
-#include <string>
+#ifndef MAGNETOSTRIMATERIAL_DATA
+#define MAGNETOSTRIMATERIAL_DATA
 
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -13,25 +11,30 @@
 
 namespace CoupledField {
 
-  //! Class for Material Data
+  //! Class for Magnetostrictive Materials
   /*! 
-     Class for handling piezo material data
+     Class for handling magnetostrictive material data
   */
 
 template <class TYPE> class Matrix;
 
-  class PiezoMaterial : public BaseMaterial {
+  class MagStrictMaterial : public BaseMaterial {
 
   public:
 
     //! Default constructor
-    PiezoMaterial(MathParser* mp, CoordSystem * defaultCoosy);
+    MagStrictMaterial(MathParser* mp, CoordSystem * defaultCoosy);
 
     //! Destructor
-    ~PiezoMaterial();
+    ~MagStrictMaterial();
 
   };
 
 } // end of namespace
 
 #endif
+
+
+
+
+

@@ -45,41 +45,7 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
                          this->numRows_, this->numCols_ ); 
 
   // Rotate material, if coordinate system is not the global one
-  if( this->coordSys_ ) {
-    if( coordSys_->GetName() != "default" ) {
-      // Obtain rotation matrix
-      Matrix<Double> rotMatrix;
-      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-      EXCEPTION("The rotation is not fully finished ':-(\n" <<
-                "Here we have to add a call to the method BaseMaterial::PerformRotation "
-                "This method should be moved to the base class of the CoefFunction"
-                "In addition the initial rotation of the material must be incorporated"
-                "somewhere in string-notation, as we are generally dealing with string"
-                "parameters."
-                "Thus we should treat the case, where rotation angles are multiples of "
-                "90 degree separately, where the entries are just interchanged");
-    } else {
-      coefMat = locMatrix;
-    }
-  }else{
-    if( this->coordSys_ ) {
-      // Obtain rotation matrix
-      Matrix<Double> rotMatrix;
-      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-      EXCEPTION("The rotation is not fully finished ':-(\n" <<
-                "Here we have to add a call to the method BaseMaterial::PerformRotation "
-                "This method should be moved to the base class of the CoefFunction"
-                "In addition the initial rotation of the material must be incorporated"
-                "somewhere in string-notation, as we are generally dealing with string"
-                "parameters."
-                "Thus we should treat the case, where rotation angles are multiples of "
-                "90 degree separately, where the entries are just interchanged");
-    } else {
-      coefMat = locMatrix;
-    }
-  }
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 
 //#pragma omp critical
 //  {
@@ -145,7 +111,7 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
 }
 
 void CoefFunctionCompound<Double>::
-SetScalar( std::string& expr, 
+SetScalar( const std::string& expr,
            std::map<std::string, PtrCoefFct >& vars ) {
   dimType_ = SCALAR;
   
@@ -402,22 +368,7 @@ GetTensor( Matrix<Complex>& coefMat, const LocPointMapped& lpm ) {
   locMatrix.SetPart(Global::IMAG, temp);
 
   // Rotate material, if coordinate system is not the global one
-  if( coordSys_->GetName() != "default") {
-    // Obtain rotation matrix
-    Matrix<Double> rotMatrix;
-    coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-    EXCEPTION("The rotation is not fully finished ':-(\n" << 
-              "Here we have to add a call to the method BaseMaterial::PerformRotation "
-              "This method should be moved to the base class of the CoefFunction"
-              "In addition the initial rotation of the material must be incorporated"
-              "somewehre in string-notation, as we are generally dealing with string"
-              "parameters."
-              "Thus we should treat the case, where rotation angles are multiples of "
-              "90 degree separately, where the entries are just interchanged");
-  } else {
-    coefMat = locMatrix;
-  }
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 }
 
 void CoefFunctionCompound<Complex>::

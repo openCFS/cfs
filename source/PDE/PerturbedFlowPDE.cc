@@ -219,7 +219,7 @@ namespace CoupledField {
         Global::REAL
         );
       PtrCoefFct viscosity = materials_[actRegion]->GetScalCoefFnc(
-        DYNAMIC_VISCOSITY,
+        FLUID_DYNAMIC_VISCOSITY,
         Global::REAL
         );
 
@@ -1135,7 +1135,7 @@ namespace CoupledField {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
     }
 
-    curCoef = regionMat->GetTensorCoefFnc( DYNAMIC_VISCOSITY, subTensorType, complexPart );
+    curCoef = regionMat->GetTensorCoefFnc( FLUID_DYNAMIC_VISCOSITY, subTensorType, complexPart );
 
     // ----------------------------------------
     //  Determine correct stiffness integrator 

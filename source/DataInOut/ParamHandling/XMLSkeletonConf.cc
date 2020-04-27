@@ -70,7 +70,7 @@ namespace CoupledField {
     std::cout << "++ Writing skeleton file to disc" << std::endl;
 
     WL("<?xml version=\"1.0\"?>");
-    WL( "<cfsSimulation xmlns=\"http://www.cfs++.org\">");
+    WL( "<cfsSimulation xmlns=\"http://www.cfs++.org/simulation\">");
     WL( "" );
     WriteGeneral();
     WriteSubdomains(); 

@@ -1,22 +1,26 @@
-<?xml version="1.0"?>
-<cfsMaterialDataBase xmlns="http://www.cfs++.org">
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
   <material name="iron">
     <electric>
-      <permittivity> 
-        8.854000E-12
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real>8.854000E-12</real>
+          </isotropic>
+        </linear>
       </permittivity>
-      <hystModel>
+      <!-- <hystModel>
         <preisach>
           <eSat> 1E06 </eSat>
           <pSat> 0.04 </pSat>
           <dim> 3 </dim>
-	  <weights>
+          <weights>
             0.5 0.5 0.5
             0.5 0.5 0.5
             0.5 0.5 0.5
-	  </weights>
+	        </weights>
         </preisach>
-      </hystModel>	
+      </hystModel> -->
     </electric>
   </material>
 </cfsMaterialDataBase>
