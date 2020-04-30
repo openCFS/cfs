@@ -12,8 +12,8 @@ class DesignSpace;
 class BiLinearForm;
 class LinearForm;
 
-/** Replaces a material data CoefFunctionConst with an ersatz material optimization version.
- * In the SIMP case this the original const material is scaled, in the bi-material it is interpolated with an additional
+/** Replaces a material data CoefFunction with an ersatz material optimization version.
+ * In the SIMP case the original const material is scaled, in the bi-material it is interpolated with an additional
  * material, in multi-material it is the weighted sum of various materials and in parametric optimization the material (tensor)
  * is completely constructed out of optimization design variables.
  * See the state! */

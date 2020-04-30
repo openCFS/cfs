@@ -17,7 +17,7 @@ LocalElementCache::LocalElementCache(DesignSpace* space)
   /** reserve sufficient space to prevent expensive copying of full vectors on resize */
   this->space_ = space;
   this->regular_ = space->IsRegular();
-  data_.Reserve(100); // we might have quite some wave vektors for bloch
+  data_.Reserve(100); // we might have quite some wave vectors for bloch
 }
 
 
@@ -44,6 +44,11 @@ void LocalElementCache::InitOrg()
     LOG_DBG(lec) << "IO: ent1=" << context.GetFirstEntities()->GetName();
     LOG_DBG(lec) << "IO: reg1=" << context.GetFirstEntities()->GetRegion();
     RegionIdType reg = context.GetFirstEntities()->GetRegion();
+
+    // for buckling we must not use local element caching as the
+    // local element matrices depend on the current stresses
+    if (Optimization::context->DoBuckling() && form->GetName() == "PreStressInt")
+      continue;
 
     // the data is not created when it exists for previous regions
     FormData& data = GetFormData(form, ORG, DesignElement::NO_DERIVATIVE, true);
@@ -396,7 +401,7 @@ const Matrix<double>& LocalElementCache::CachedElement<double>(const string& int
   if(regular_)
     return data->region_real[elem->regionId];
   else
-   return data->elem_real[elem->elemNum];
+    return data->elem_real[elem->elemNum];
 }
 
 template <>

@@ -127,7 +127,8 @@ protected:
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD,
-    EIGENFREQ    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
+    EIGENFREQ,    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
+    BUCKLING      /*!< The derivative is <u, (K' - ev G') u> */
   };
 
   /*!< add <u, K' u> which is in the real case as STANDARD
@@ -284,6 +285,8 @@ protected:
    * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
+  void CalcEigenvalueDerivativeBuckling(Excitation& excite, Function* f, StateSolution* sol, Double ev);
+
   /** bandgap is the difference between two eigenfrequency problems in the bloch mode.
    * It would make sense to have a generic gap function between two independent functions */
   double CalcBandGap(Excitation& excite, Function* f, bool derivative);
@@ -373,6 +376,10 @@ protected:
   /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
   void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
+
+  /** This is a helper for SetElementK() which adds for App::MECH in the buckling case geometric stiffness
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddGeometricStiffnessToStiffness(Context* ctxt, const TransferFunction* tf, DesignElement* de, Matrix<Complex>& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
 
   /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructRealAdjointRHS()
    * @return true if function is handled */
@@ -500,6 +507,9 @@ private:
   void ConstructRealAdjointRHS(Excitation& excite, Function* f);
   void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
 
+  void ConstructAdjointRHSBucklingOld(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
+  void ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
+
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set. Optionally also grad_out
@@ -545,6 +555,8 @@ private:
   bool interfaceDrivenGradCalc_;
 
   Function* trackingFunc_;
+
+  bool printProgressBar_;
 
   boost::shared_ptr<Timer> calc_u1ku2_timer_;
 

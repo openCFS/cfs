@@ -235,7 +235,7 @@ namespace CoupledField
         
         /** Helper to convert from natural solution/design to application
          * @param DesignElement::DENSITY -> App::MECH, DesignElement::POLARIZATION -> App::ELEC */
-        static App::Type ToApp(DesignElement::Type dt);
+//        static App::Type ToApp(DesignElement::Type dt);
 
         /** Default standard design type (not mass) by PDE */
         DesignElement::Type ToDesign(const SinglePDE* pde) const;
@@ -339,7 +339,7 @@ namespace CoupledField
          * Usually they are separated as the adjoint is only necessary for the gradient and in the line search case we don't need it.
          * However it is necessary to solve the adjoint directly after the state in case of multiple harmonic excitations
          * (each frequency assembles a new system matrix) and in the case of multiple sequences as for each sequence step a
-         * new system matrix is assembled (here we do not check if there is actually and adjoint computed for the sequence).
+         * new system matrix is assembled (here we do not check if there is actually an adjoint computed for the sequence).
          * In the harmonic magnetic coupling we have multiple harmonic extiations of the same frequencies, however we need all forward states first, hence return false */
         bool DoSolveAdjointWithState() const;
 

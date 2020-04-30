@@ -122,7 +122,7 @@ namespace CoupledField {
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
 
-    //Sets a flag to skip eleme assembly for std matrix case
+    //Sets a flag to skip element assembly for std matrix case
     void SkipElemAssembly();
 
     //! Stops the timer in a multiharmonic analysis. It was started in InitMultHarm
@@ -161,6 +161,9 @@ namespace CoupledField {
     /** Do we use the region? */
     bool UseRegion(RegionIdType reg);
 
+    //! Perform re-mapping of equation numbers in case of eqn permutation
+    void ReMapEquations( StdVector<Integer>&  eqns, FeFctIdType& fctId );
+
   protected:
 
     //! Assemble matrices without static condensation
@@ -188,9 +191,6 @@ namespace CoupledField {
 
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
-    
-    //! Perform re-mapping of equation numbers in case of eqn permutation
-    void ReMapEquations( StdVector<Integer>&  eqns, FeFctIdType& fctId );
     
     //! Perform re-mapping of functionId
     void ReMapFctId( FeFctIdType& fctId );

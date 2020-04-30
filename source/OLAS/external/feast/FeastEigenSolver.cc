@@ -43,6 +43,9 @@ FeastEigenSolver::FeastEigenSolver(shared_ptr<SolStrategy> strat,
   this->m_ = 0;
   this->info_ = -10; // not im MKL code (page 1635)
   xml_ = xml;
+  eigenSolverName_ = EigenSolverType::FEAST;
+
+  BaseEigenSolver::PostInit();
 }
 
 FeastEigenSolver::~FeastEigenSolver()

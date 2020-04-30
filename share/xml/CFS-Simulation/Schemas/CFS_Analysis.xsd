@@ -227,6 +227,7 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
+        <xsd:attribute name="inverse" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

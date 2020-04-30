@@ -86,6 +86,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // We follow for the stress, strain calculation the transfer functions of mech
   applicationForm.Add(App::MECH, "MechStressStrain", false);
   applicationForm.Add(App::MECH, "PiezoStressStrain", false);
+  applicationForm.Add(App::BUCKLING, "PreStressInt", false);
   applicationForm.Add(App::HEAT, "HeatConductivity", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator-NL", false);
@@ -658,7 +659,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     ResultDescription& rd = resultDescriptions[i];
     // generate ResultInfo objects with the names, ... generated from the description
     shared_ptr<ResultInfo> opt_res = GenerateResultInfo(rd);
-    // this also addes the result as available result
+    // this also adds the result as available result
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
@@ -700,10 +701,10 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     {
       DesignElement& de = data[design_index];
 
-      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      tmp += (de.GetPhysicalDesign(Optimization::context) - lower) * den;
       found++;
 
-      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(Optimization::context) - lower) * den;
     }
   }
 
@@ -927,6 +928,10 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   if(elementCache == NULL)
     return false;
 
+  // for buckling we must not use local element caching as the local element matrices depend on the current stresses!
+  if(Optimization::context->DoBuckling())
+    return false;
+
   // load the element matrix to apply optimization to it. If true, retMat is set with org material local element matrix
   if(!elementCache->CachedOrgElement<T>(retMat, form, elem))
     return false;
@@ -1015,7 +1020,10 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
-  assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
+  if (coef->GetForm()->GetName() == "PreStressInt")
+    assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 4 : 9));
+  else
+    assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
   assert(coef->GetForm() != NULL); // needs to be set manually via CoefFunctionOpt::SetForm()
   double factor = -4711; // set below
   double bimat_factor = -1.0;
@@ -1041,6 +1049,12 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     for(unsigned int i = 0; i < retMat.GetNumRows(); i++)
       retMat[i][i] = (retMat[i][i] * factor) + (1-factor) * nu_0;
   }
+  else if(app == App::BUCKLING)
+  {
+    // we already applied the ErsatzMaterialFactor in the calculation of stresses
+    // @see CoefFunctionFlux::GetVector
+    factor = 1.0;
+  }
   else
   {
     factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
@@ -1049,7 +1063,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   assert(factor != -4711);
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
-  if(dr->HasBiMaterial())
+  if(dr->HasBiMaterial() && app != App::BUCKLING)
   {
     Matrix<T> tmp;
     dr->GetBiMaterial(MECHANIC, MECH_STIFFNESS_TENSOR)->GetTensor(tmp, *lpm);

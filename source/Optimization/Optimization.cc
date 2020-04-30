@@ -386,6 +386,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
+  Function::type.Add(Function::BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SLACK_FNCT, "slackFunction");
@@ -500,6 +501,7 @@ void Optimization::SetEnums()
   application.Add(App::MAG, "magnetic");
   application.Add(App::LAPLACE, "laplace");
   application.Add(App::MECH, "mech");
+  application.Add(App::BUCKLING, "buckling");
   application.Add(App::MASS, "mass");
   application.Add(App::ELEC, "elec");
   application.Add(App::PIEZO_COUPLING, "piezoCoupling");
@@ -734,6 +736,9 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
+  if(context->DoBuckling())
+    return false;
+
   // easy case
   if(context->DoMultiSequence() || context->DoLBM())
     return true;
@@ -1031,6 +1036,10 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     if(g->DoEvaluate(ex))
     {
       ex->Apply(true); // switch context if necessary
+
+      if(context->DoBuckling())
+        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(0) ); // 0 is first excitation = linear elasticity
+
       CalcFunction(*ex, g, true);
     }
   }
@@ -1326,20 +1335,20 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
   throw Exception("invalid");
 }
 
-App::Type Optimization::ToApp(DesignElement::Type dt)
-{
-  switch(dt)
-  {
-  case DesignElement::DENSITY:
-    return App::MECH;
-  case DesignElement::ACOU_DENSITY:
-    return App::ACOUSTIC;
-  case DesignElement::POLARIZATION:
-    return App::ELEC;
-  default:
-    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
-  }
-}
+//App::Type Optimization::ToApp(DesignElement::Type dt)
+//{
+//  switch(dt)
+//  {
+//  case DesignElement::DENSITY:
+//      return App::MECH; // wrong for buckling
+//  case DesignElement::ACOU_DENSITY:
+//    return App::ACOUSTIC;
+//  case DesignElement::POLARIZATION:
+//    return App::ELEC;
+//  default:
+//    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
+//  }
+//}
 
 
 Optimization::Log::Log()

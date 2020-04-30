@@ -137,8 +137,8 @@ namespace CoupledField
     
     //----------------------- helpfull methods--------------------------------------
 
-    /** The Assemle opject contains the bilinear forms */
-    Assemble* GetAssemble() { return assemble_; } 
+    /** The Assemle object contains the bilinear forms */
+    Assemble* GetAssemble() { return assemble_; }
 
     AlgebraicSys * GetAlgSys() { return algsys_; }
 

@@ -252,11 +252,10 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // In case where we read density file from external file the matrix based filtering is buggy.
     // Dirty fix of disabling it for now
     space->is_matrix_filt = false;
-    if (pn->Has("filters/use_mat_filt") && pn->Get("filters/use_mat_filt")->As<bool>())
+
+    if (domain->GetParamRoot()->Has("filters/use_mat_filt") && domain->GetParamRoot()->Get("filters/use_mat_filt")->As<bool>())
       EXCEPTION("Using Matrix based filtering is not tested when loading material from external file")
-
   }
-
 
   // check bound violations
   double lower_violation = 0.0;

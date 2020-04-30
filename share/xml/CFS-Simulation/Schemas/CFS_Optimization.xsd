@@ -414,8 +414,10 @@
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum" />
                 <xsd:enumeration value="shape_inf" />
-                <!-- eigenvalue problem scaled for resonance frequency, where number of of the mode is in attribute ev -->
+                <!-- eigenvalue problem scaled for resonance frequency, where number of the mode is in attribute ev -->
                 <xsd:enumeration value="eigenfrequency" />
+                <!-- buckling problem, where number of the mode is in attribute ev -->
+                <xsd:enumeration value="bucklingLoadFactor" />
                 <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
                 <!-- heat energy -->
                 <xsd:enumeration value="heatEnergy" />

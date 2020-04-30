@@ -68,7 +68,7 @@ namespace CoupledField {
     void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                      const LocPointMapped& lpm );
 
-    //! Set Coefficient Function of B operator
+    //! Set Coefficient Function of A operator
     virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
       this->aOperator_->SetCoefFunction(coef);
     }

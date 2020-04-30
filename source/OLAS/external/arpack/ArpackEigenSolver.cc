@@ -4,7 +4,6 @@
 
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/generatematvec.hh"
-#include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -14,6 +13,7 @@
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/solver/generatesolver.hh"
 #include "OLAS/solver/BaseSolver.hh"
+#include "Utils/Timer.hh"
 
 #include "ArpackEigenSolver.hh"
 
@@ -42,8 +42,12 @@ namespace CoupledField {
     which_        = NULL;
     xml_          = xml;
     
+    eigenSolverName_ = EigenSolverType::ARPACK;
+
     isGeneralized_ = false;
     computeMode_ = ArpackMatInterface::ComputeMode::REGULAR;
+
+    BaseEigenSolver::PostInit();
   }
 
   ArpackEigenSolver::~ArpackEigenSolver() {
@@ -71,6 +75,8 @@ namespace CoupledField {
     // Set flag for indicating a non-quadratic problem
     isGeneralized_ = false;
     sort_ = false;
+
+    setupTimer_->Start();
 
     this->SetProblemType(A,isHermitian);
 
@@ -112,12 +118,16 @@ namespace CoupledField {
     }
 
     ToInfo();
+
+    setupTimer_->Stop();
   }
 
   void ArpackEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian ) {
     isQuadratic_ = false;
     isGeneralized_ = true;
     sort_ = false;
+
+    setupTimer_->Start();
 
     this->SetProblemType(A,isHermitian);
 
@@ -177,6 +187,8 @@ namespace CoupledField {
     }
 
     ToInfo();
+
+    setupTimer_->Stop();
   }
 
   void ArpackEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
@@ -186,6 +198,9 @@ namespace CoupledField {
     isGeneralized_ = false;
     isBloch_ = false;
     sort_ = false;
+
+    setupTimer_->Start();
+
     this->SetProblemType(mat);
 
     // NOTE: Hard coded!!!
@@ -233,6 +248,8 @@ namespace CoupledField {
     interface_->Setup( solver_, precond_, pow(freqShift*2.0*M_PI,2) );
 
     ToInfo();
+
+    setupTimer_->Stop();
   }
   
   
@@ -243,6 +260,8 @@ namespace CoupledField {
     isGeneralized_ = true;
     isBloch_ = bloch;
     sort_ = sort;
+
+    setupTimer_->Start();
 
     this->SetProblemType(stiffMat);
 
@@ -310,6 +329,8 @@ namespace CoupledField {
     interface_->Setup( solver_, precond_, pow(freqShift*2.0*M_PI,2) );
 
     ToInfo();
+
+    setupTimer_->Stop();
   }
 
   void ArpackEigenSolver::ToInfo()
@@ -330,6 +351,8 @@ namespace CoupledField {
     isGeneralized_ = true;
     isBloch_ = false;
     sort_ = false;
+
+    setupTimer_->Start();
 
     // Copy matrix references and convert them to StdMatrices
     matrixA_ = & dynamic_cast<const StdMatrix&>(A);
@@ -415,6 +438,8 @@ namespace CoupledField {
     }
 
     ToInfo();
+
+    setupTimer_->Stop();
   }
 
   void ArpackEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
@@ -425,6 +450,8 @@ namespace CoupledField {
     isGeneralized_ = true;
     isBloch_ = false;
     sort_ = false;
+
+    setupTimer_->Start();
 
     this->SetProblemType(stiffMat);
 
@@ -521,6 +548,7 @@ namespace CoupledField {
 
     ToInfo();
 
+    setupTimer_->Stop();
   }
 
   void ArpackEigenSolver::SetupIndex(unsigned int numev)
@@ -553,6 +581,8 @@ namespace CoupledField {
 
   void ArpackEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
+    solveTimer_->Start();
+
     if (isQuadratic_)
       CalcEigenValues(sol,err,numFreq_,freqShift_*2.0*M_PI);
     else
@@ -585,12 +615,13 @@ namespace CoupledField {
         }
       }
     }
+
+    solveTimer_->Stop();
   }
 
   void ArpackEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint)
   {
-    shared_ptr<Timer> timer = info_->Get("arpack/timer")->AsTimer();
-    timer->Start();
+    solveTimer_->Start();
 
     assert(!(isBloch_ && isQuadratic_));
 
@@ -650,7 +681,7 @@ namespace CoupledField {
         errVec[i] = arpackSolver_->Tolerance(idx_[i]);
     }
 
-    timer->Stop();
+    solveTimer_->Stop();
   }
 
   void ArpackEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
@@ -682,6 +713,7 @@ namespace CoupledField {
     freqShift_ = 0.0;
 
     // Create the solver dependent on the problem type ( regular | shiftAndInvert | buckling)
+    setupTimer_->Start();
     arpackSolver_->Setup( interface_, size, which_ , (char*) "I", computeMode_, false);
 
     // Create standard solver
@@ -699,9 +731,12 @@ namespace CoupledField {
 
     // Setup matrixinterface
     interface_->Setup( solver_, precond_, freqShift_ );
+    setupTimer_->Stop();
 
     //Find the eigenvalues and calculate the eigenvectors
+    solveTimer_->Start();
     UInt numEVs = arpackSolver_->FindEigenvalues<Double>(numFreq_, freqShift_);
+    solveTimer_->Stop();
     SetupIndex(numEVs);
 
     if( numEVs == 0) {
@@ -743,4 +778,5 @@ namespace CoupledField {
     else
       mode.Fill(arpackSolver_->GetComplexEigenvector(idx_[modeNr]), size);
   }
+
 }

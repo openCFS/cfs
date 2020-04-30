@@ -96,6 +96,8 @@ App::Type TransferFunction::Default(const Context* ctxt)
   {
   case App::MECH:
     return App::MECH;
+  case App::BUCKLING:
+    return App::BUCKLING;
   case App::ELEC:
     return App::ELEC;
   case App::HEAT:

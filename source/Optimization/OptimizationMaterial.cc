@@ -20,6 +20,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/LocalElementCache.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "PDE/SinglePDE.hh"
@@ -110,7 +111,6 @@ inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* conte
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());
   assert(bdb != NULL);
   assert(bdb->GetCoef());
-  // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
   return dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
 }
 
@@ -207,7 +207,8 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
     {
     case MECH:
       mc = MECHANIC;
-      assert(integrator == "LinElastInt" || integrator == "MassInt");
+      // TODO: add buckling with integrator "PreStressInt"
+      assert(integrator == "LinElastInt" || integrator == "MassInt" || integrator == "PreStressInt");
       mt = integrator == "LinElastInt" ? MECH_STIFFNESS_TENSOR : DENSITY;
       break;
     case ELEC:
@@ -407,6 +408,10 @@ void MechMat::Init()
   mass.integrator = "MassInt";
   mass.mc = MECHANIC;
   mass.mt = DENSITY;
+
+  gstiff.integrator = "PreStressInt";
+  gstiff.mc = MECHANIC;
+  gstiff.mt = MECH_STIFFNESS_TENSOR;
 }
 
 const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)

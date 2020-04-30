@@ -42,7 +42,8 @@ Context::Context()
   harmonic_ = false;
   eigenvalue_ = false;
   bloch_ = false;
-  homogenization = false; // to be set by the functions and
+  buckling_ = false;
+  homogenization = false; // to be set by the functions
   pde = NULL;
   stt = NO_TENSOR;
 
@@ -80,6 +81,8 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
   case BasePDE::BUCKLING:
     complex_ = true;
     eigenvalue_ = true;
+    buckling_ = true;
+    num_eigenmodes = EigenFrequencyDriver::GetNumModes(node); // FIXME buckling get correct number of eigenmodes
     break;
 
   case BasePDE::STATIC:
@@ -223,7 +226,11 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 App::Type Context::ToApp(const SinglePDE* pde)
 {
   if(pde->GetName() == "electrostatic") return App::ELEC;
-  if(pde->GetName() == "mechanic") return App::MECH;
+  if(pde->GetName() == "mechanic")
+    if(pde->GetAnalysisType() == BasePDE::BUCKLING)
+      return App::BUCKLING;
+    else
+      return App::MECH;
   if(pde->GetName() == "heatConduction") return App::HEAT;
   if(pde->GetName() == "acoustic") return App::ACOUSTIC;
   if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
@@ -294,7 +301,10 @@ bool Context::SetPDEs()
     if(sp->GetName() == "mechanic") {
       assert(!(pde != NULL && domain->GetSinglePDE("mechanic", true) != pde));
       pde = domain->GetSinglePDE("mechanic", true);
-      pdes[App::MECH] = pde;
+      if (sp->GetAnalysisType() == BasePDE::BUCKLING)
+        pdes[App::BUCKLING] = pde;
+      else
+        pdes[App::MECH] = pde;
       stt = pde->GetSubTensorType();
     }
   }
@@ -313,6 +323,11 @@ BiLinFormContext* Context::GetBiLinFormContext(const RegionIdType reg, App::Type
   {
     a1 = a2 = App::MECH;
     integrator = "LinElastInt";
+  }
+  if(app1 == App::BUCKLING && (app2 == App::BUCKLING || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::BUCKLING;
+    integrator = "PreStressInt";
   }
   if(app1 == App::ELEC && (app2 == App::ELEC || app2 == App::NO_APP))
   {

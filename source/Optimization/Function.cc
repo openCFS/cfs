@@ -362,7 +362,7 @@ void Function::ToInfo(PtrParamNode info) {
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(type_ == EIGENFREQUENCY)
+  if(type_ == EIGENFREQUENCY || type_ == BUCKLING_LOAD_FACTOR)
     info->Get("ev")->SetValue(eigenvalue_id_);
 
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
@@ -546,6 +546,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case STRESS:
   case STRESS_DENSITY:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
+  case BUCKLING_LOAD_FACTOR:
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
@@ -608,6 +609,7 @@ bool Function::IsAdjointBased() const {
   case SQR_MAG_FLUX_DENS_RZ:
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
+  case BUCKLING_LOAD_FACTOR:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -785,6 +787,7 @@ bool Function::ForSensitivityFiltering() const {
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
   case EIGENFREQUENCY:
+  case BUCKLING_LOAD_FACTOR:
   case BANDGAP:
   case FILTERING_GAP:
     return true;

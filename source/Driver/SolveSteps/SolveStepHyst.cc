@@ -6428,7 +6428,7 @@ namespace CoupledField {
       case SYSTEM_FIXPOINT : os << "SYSTEM_FIXPOINT"; break;
       case SYSTEM_FD_JACOBIAN : os << "SYSTEM_FD_JACOBIAN"; break;
       case SYSTEM_DELTAMAT_JACOBIAN : os << "SYSTEM_DELTAMAT_JACOBIAN"; break;
-      case SYSTEM_BAK : os << "SYSTEM_BAK"; break;
+      case BACKUP : os << "SYSTEM_BAK"; break;
       default: os.setstate(std::ios_base::failbit);
     }
 

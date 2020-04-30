@@ -219,7 +219,7 @@ public:
   //! Constructor
   CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
                     shared_ptr<ResultInfo> info,
-					PtrCoefFct stressCoef,
+                    PtrCoefFct stressCoef,
                     Double factor = 1.0 );
   //! Destructor
   virtual ~CoefFunctionEigen();
@@ -231,8 +231,7 @@ public:
   //@{ \name Access Methods
 
   //! \copydoc CoefFunction::GetVector
-  virtual void GetVector(Vector<Double>& coefVec,
-                         const LocPointMapped& lpm );
+  virtual void GetVector(Vector<Double>& coefVec, const LocPointMapped& lpm);
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;

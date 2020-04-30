@@ -185,6 +185,7 @@ template<class TYPE>
 std::string CoefFunctionBOp<TYPE>::ToString() const {
   std::stringstream out;
   out << "CoefFunctionBOp\n";
+  out << "Complex: " << IsComplex() << "\n";
   out << "\tFeFunction: " << 
       SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType);
   return out.str();
@@ -306,6 +307,7 @@ GetVector(Vector<TYPE>& coefVec,
   if( TRANS ) {
     bdb->ApplydATransMat(coefVec, elemSol, lpm );
   } else {
+    // this applies physical design in dData_->GetTensor(dMat_,lpm) if we do optimization
     bdb->ApplydBMat(coefVec, elemSol, lpm );
   }
   coefVec *= factor_;
@@ -329,6 +331,7 @@ ToString() const {
   std::stringstream out;
   out << "CoefFunctionFlux\n";
   out << "ApplyTransposed: " << TRANS << std::endl;
+  out << "Complex: " << IsComplex() << "\n";
   out << "Result: " << 
       SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
@@ -346,7 +349,7 @@ template class CoefFunctionFlux<Complex,true>;
 // Principal Stresses and Strains
 CoefFunctionEigen::CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
                   shared_ptr<ResultInfo> info,
-				  PtrCoefFct stressCoef,
+                  PtrCoefFct stressCoef,
                   Double factor )
                   :CoefFunctionFormBased() {
   feFct_ = dynamic_pointer_cast<FeFunction<Double> >(feFct);
@@ -363,10 +366,7 @@ CoefFunctionEigen::~CoefFunctionEigen() {
 
 }
 
-void CoefFunctionEigen::GetVector(
-		  Vector<Double>& coefVec,
-          const LocPointMapped& lpm
-		  ) {
+void CoefFunctionEigen::GetVector(Vector<Double>& coefVec, const LocPointMapped& lpm) {
 
   //Gets the stress/strain values from the CoefFunction class which is passed through stressCoef
   stressCoef_->GetVector(coefVec, lpm);
@@ -458,7 +458,8 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
 std::string CoefFunctionEigen::ToString() const {
   std::stringstream out;
   out << "CoefFunctionEigen\n";
-  out << "ApplyTransposed: false. No such implementation in CoefFunctionEigen" << std::endl;
+  out << "Complex: " << IsComplex() << "\n";
+  out << "ApplyTransposed: false. No such implementation in CoefFunctionEigen\n";
   out << "Result: " <<
       SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
@@ -479,7 +480,7 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
   // set inherited attributes
   this->dimType_ = CoefFunction::SCALAR;
 
- // std::cout << "DimType: " << CoefFunction::SCALAR << " << std::endl;
+ // std::cout << "DimType: " << CoefFunction::SCALAR << \n";
 
 }
 
@@ -509,6 +510,7 @@ template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
 {
   std::stringstream out;
   out << "CoefFunctionBdBKernel\n";
+  out << "Complex: " << IsComplex() << "\n";
   out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
 }
@@ -574,6 +576,7 @@ template<class TYPE> std::string CoefFunctionDyadicStrain<TYPE>::ToString() cons
 {
   std::stringstream out;
   out << "CoefFunctionDyadicStrain\n";
+  out << "Complex: " << IsComplex() << "\n";
   out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
 }
@@ -607,6 +610,7 @@ template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
 {
   std::stringstream out;
   out << "CoefFunctionQuadSol\n";
+  out << "Complex: " << IsComplex() << "\n";
   out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
 }
@@ -678,7 +682,10 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, co
 
 template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
 {
-    return "We don't need this.";
+  std::stringstream out;
+  out << "CoefFunctionLBM\n";
+  out << "Complex: " << IsComplex() << "\n";
+  return out.str();
 }
 
 template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
@@ -740,7 +747,9 @@ template<class TYPE> void CoefFunctionStiffness<TYPE>::GetVector(Vector<TYPE>& v
 template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
 {
   std::stringstream out;
-  out << "CoefFunctionStiffness res " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  out << "CoefFunctionStiffness\n";
+  out << "Complex: " << IsComplex() << "\n";
+  out << "res " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
 }
 

@@ -57,7 +57,7 @@ void EvaluateOnly::SolveProblem()
   // end is > 1 for "multiple_excitations" set to false in order to evaluate the functions separately for each frequency
   int end = optimization->context->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
-  // space to store the gradient values, we need it to evaluate density filtering.
+  // space to store the gradient values, we need it to evaluate sensitivity filtering, special results and debugging.
   StdVector<double> grad(optimization->GetDesign()->GetNumberOfVariables());
   grad.Init(0.0);
   // scale the window to the whole data domain

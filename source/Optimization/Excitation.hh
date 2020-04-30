@@ -70,6 +70,15 @@ public:
   /** the 0-based wave number is for the first sequence the index */
   int GetWaveNumber() const;
 
+  /** In the case of buckling, we have two excitations, each with one pde,
+   * first linear elasticity (real), then buckling (complex eigenvalue problem).
+   * In optimization we take the solution of the first pde, convert it to
+   * complex and inject it in the second one to get the stresses which we need
+   * to assemble the buckling pde.
+   *  */
+  std::map<RegionIdType, PtrCoefFct> GetStressCoefFctFromExcitation(UInt index);
+  void SetStressCoefFct(std::map<RegionIdType, PtrCoefFct> stress_map);
+
   /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 

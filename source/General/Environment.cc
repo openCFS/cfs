@@ -1190,8 +1190,8 @@ namespace CoupledField {
       case SYSTEM_DELTAMAT_JACOBIAN:
         out = "system_deltaMat_Jacobian";
         break;
-      case SYSTEM_BAK:
-        out = "system_bak";
+      case BACKUP:
+        out = "backup";
         break;
       case GEOMETRIC_STIFFNESS:
         out = "geometric_stiffness";
@@ -1314,8 +1314,8 @@ namespace CoupledField {
       out = SYSTEM_FD_JACOBIAN;
     else if ( in == "system_deltaMat_Jacobian")
       out = SYSTEM_DELTAMAT_JACOBIAN;
-    else if ( in == "system_bak")
-      out = SYSTEM_BAK;
+    else if ( in == "backup")
+      out = BACKUP;
     else if ( in == "geometric_stiffness")
           out = GEOMETRIC_STIFFNESS;
     else {
@@ -2031,7 +2031,7 @@ namespace CoupledField {
     feMatrixType.Add( SYSTEM_FD_JACOBIAN, "system_fd_Jacobian" );
     feMatrixType.Add( SYSTEM_DELTAMAT_JACOBIAN, "system_deltaMat_Jacobian" );
     feMatrixType.Add( GEOMETRIC_STIFFNESS, "geometric_stiffness" );
-    feMatrixType.Add( SYSTEM_BAK, "system_bak" );
+    feMatrixType.Add( BACKUP, "backup" );
 
     // ==== Initialization of ApproxCurveTypes ====
     ApproxCurveTypeEnum.Add( NO_APPROX_TYPE , "No approximation" );

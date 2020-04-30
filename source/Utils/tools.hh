@@ -378,10 +378,10 @@ namespace CoupledField {
   Vector<double> LogspaceBase(double start_exponent, double end_exponent, int n);
 
   // omp_get_thread_num
- inline unsigned int GetThreadNum()
+  inline unsigned int GetThreadNum()
   {
-#ifdef USE_OPENMP
-   return omp_get_thread_num();
+  #ifdef USE_OPENMP
+     return omp_get_thread_num();
    #else
      return 0;
    #endif

@@ -144,7 +144,6 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
       LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << ea.esm->CalcVolume() << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
     }
   }
-
 }
 
 template<typename T>

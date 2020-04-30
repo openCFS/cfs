@@ -26,6 +26,7 @@ namespace CoupledField{
     this->numFreq_ = 0;
     this->freqShift_ = 0;
     xml_ = xml;
+    eigenSolverName_ = EigenSolverType::PALM;
 
     // Data from XML
     xml_->GetValue("PadeOrder", p, ParamNode::INSERT);
@@ -60,6 +61,8 @@ namespace CoupledField{
     a = b = NULL;
     cidx = ridx = NULL;
     nev = 0;
+
+    BaseEigenSolver::PostInit();
   }
 
   PALMEigenSolver::~PALMEigenSolver()

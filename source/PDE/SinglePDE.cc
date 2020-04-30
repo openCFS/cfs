@@ -1838,7 +1838,7 @@ namespace CoupledField {
     }
   }
 
-  
+
   void SinglePDE::ReadInitialConditions() {
     
     LOG_TRACE(singlepde) << pdename_ << ": Reading initial conditions";
@@ -1846,7 +1846,7 @@ namespace CoupledField {
     if( !icNode )
       return;
     
-    // create info node for iniital conditions
+    // create info node for initial conditions
     PtrParamNode icInfo = infoNode_->Get("initialConditions");
     
     // ===========================
@@ -1864,8 +1864,7 @@ namespace CoupledField {
       PtrParamNode isInfo = icInfo->Get("initialState");
       
       // Ensure, that we have a static or transient analysis
-      if( !( analysistype_ == STATIC ||
-          analysistype_ == TRANSIENT ) ) {
+      if( !( analysistype_ == STATIC || analysistype_ == TRANSIENT ) ) {
         WARN( "Initial conditions are only meaningful in a transient analysis and "
             << "will be omitted for this type of analysis" );
       }
@@ -1881,8 +1880,7 @@ namespace CoupledField {
         boost::shared_ptr<SimState> inState(new SimState(true, domain_));
         
         try {
-          LOG_DBG(singlepde) << pdename_ 
-              << ": Use initial condition from sequenceStep " << sequenceStep;
+          LOG_DBG(singlepde) << pdename_ << ": Use initial condition from sequenceStep " << sequenceStep;
         
           // create new simState from current hdf file
           std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
@@ -1920,8 +1918,7 @@ namespace CoupledField {
             inState->GetLastStepNum(sequenceStep, lastStepNum, stepVal);
             stepNum = lastStepNum;
           }
-          LOG_DBG(singlepde) << pdename_ 
-              << ": Step number to be read in: " << stepNum;
+          LOG_DBG(singlepde) << pdename_ << ": Step number to be read in: " << stepNum;
 
           // log to info node
           PtrParamNode seqInfo = isInfo->Get("sequenceStep");
@@ -2987,7 +2984,7 @@ namespace CoupledField {
                      << pdeName << "'.")
         }
         
-        // remeber input simState and domain
+        // remember input simState and domain
         inputs_[inState] = inDomain;
         
         // Check dimensionality of coefficient function

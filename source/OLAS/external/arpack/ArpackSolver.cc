@@ -80,14 +80,13 @@ namespace CoupledField {
     {
       // eigenvalues, tolerances and vectors
       if(complex) {
-        eigenValues_  = new Vector<Complex>(numArnoldiVec_);
-        eigenVectors_ = new Vector<Complex>(size_*size_);
+        eigenValues_  = new Vector<Complex>();
+        eigenVectors_ = new Vector<Complex>();
       } else {
-        eigenValues_  = new Vector<double>(numArnoldiVec_);
-        eigenVectors_ = new Vector<double>(size_*size_);
+        eigenValues_  = new Vector<double>();
+        eigenVectors_ = new Vector<double>();
       }
     }
-    eigenTolerances_.Resize(numArnoldiVec_);
   }
 
 
@@ -111,9 +110,8 @@ namespace CoupledField {
     numArnoldiVec_ = size_*2;
 
     // eigenvalues, tolerances and vectors
-    eigenValues_  = new Vector<Complex>(numArnoldiVec_);
-    eigenVectors_ = new Vector<Complex>(size_*size_);
-    eigenTolerances_.Resize(numArnoldiVec_);
+    eigenValues_  = new Vector<Complex>();
+    eigenVectors_ = new Vector<Complex>();
 
     DebugOff();
 
@@ -128,7 +126,7 @@ namespace CoupledField {
     if (computeMode_ == ArpackMatInterface::ComputeMode::SHIFT_INVERT) {
       info->Get("computeMode")->SetValue("shift_and_invert");
     }
-    else if (computeMode_ == ArpackMatInterface::ComputeMode::BUCKLING) {
+    else if (computeMode_ == ArpackMatInterface::BUCKLING) {
       info->Get("computeMode")->SetValue("buckling");
     }
     else {
@@ -164,6 +162,11 @@ namespace CoupledField {
 
     bool complex = boost::is_complex<TYPE>::value;
 
+    // eigenvalues, tolerances and vectors
+    eigenValues_->Resize(numArnoldiVec_);
+    eigenVectors_->Resize(numEV_*size_);
+    eigenTolerances_.Resize(numArnoldiVec_);
+
     bool converged = false;
     int ido = 0; // necessary initial value for first aupd() call
     int info = 0;
@@ -192,7 +195,7 @@ namespace CoupledField {
     iparams[2] = maxIterations_; // NXITER
     iparams[3] = 1; // NB blocksize to be used in the recurrence
     // https://www.caam.rice.edu/software/ARPACK/UG/node136.html
-    if (computeMode_ == ArpackMatInterface::ComputeMode::BUCKLING) {
+    if (computeMode_ == ArpackMatInterface::BUCKLING) {
       assert(!complex);
       iparams[6] = 4;
     } else {
@@ -226,7 +229,7 @@ namespace CoupledField {
         vecX = workD.GetPointer() + (ipntr[0] -1);
         vecY = workD.GetPointer() + (ipntr[1] -1);
 
-        if (computeMode_ == ArpackMatInterface::ComputeMode::BUCKLING) {
+        if (computeMode_ == ArpackMatInterface::BUCKLING) {
           // w = A*x
           interface_->MultAV(vecX, tempV.GetPointer());
         } else {
@@ -254,7 +257,7 @@ namespace CoupledField {
         // y is expected by dsaupd in workd(ipntr[2]:ipntr[2]+size-1)
         vecX = workD.GetPointer() + (ipntr[0]-1);
         vecY = workD.GetPointer() + (ipntr[1]-1);
-        if (computeMode_ == ArpackMatInterface::ComputeMode::BUCKLING) {
+        if (computeMode_ == ArpackMatInterface::BUCKLING) {
           // calculate y = A*x
           interface_->MultAV(vecX,vecY);
         } else {
@@ -314,11 +317,11 @@ namespace CoupledField {
     StdVector<TYPE> d(numArnoldiVec_*2);  // in dsdrv4.f (maxncv,2) and in zndrv4.f (maxncv)
     TYPE vShift = valueShift_;
 
-    eigenValues_->Resize(numArnoldiVec_);
-    eigenVectors_->Resize(numEV_*size_);
+//    eigenValues_->Resize(numArnoldiVec_);
+//    eigenVectors_->Resize(numEV_*size_);
+//    eigenTolerances_.Resize(numArnoldiVec_);
     Vector<TYPE>& eval = dynamic_cast<Vector<TYPE>&>(*eigenValues_);
     Vector<TYPE>& evec = dynamic_cast<Vector<TYPE>&>(*eigenVectors_);
-
 
     // only complex part
     StdVector<TYPE> workev(2 * numArnoldiVec_);
@@ -458,6 +461,7 @@ namespace CoupledField {
 
     eigenValues_->Resize(numArnoldiVec_);
     eigenVectors_->Resize(numEV_*size_);
+    eigenTolerances_.Resize(numArnoldiVec_);
     Vector<Complex>& eval = dynamic_cast<Vector<Complex>& >(*eigenValues_);
     Vector<Complex>& evec = dynamic_cast<Vector<Complex>& >(*eigenVectors_);
 

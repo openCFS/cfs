@@ -425,6 +425,7 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
   {
   case App::MECH:
   case App::MAG:
+  case App::BUCKLING:
     return DENSITY;
   case App::ACOUSTIC:
     return ACOU_DENSITY;

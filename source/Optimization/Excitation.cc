@@ -1,4 +1,4 @@
-#include <assert.h>
+/////#include <assert.h>
 #include <stddef.h>
 #include <algorithm>
 #include <cmath>
@@ -10,6 +10,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -17,6 +18,7 @@
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/EigenFrequencyDriver.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -944,10 +946,96 @@ bool Excitation::Apply(bool switch_context)
     LOG_DBG(exlog) << "A: set form " << forms[0]->ToString();
     assert(ctxt.pde->GetAnalysisType() == forms[0]->GetPde()->GetAnalysisType());
   }
+
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
   // the same holds for the bloch mode analysis
   return switched;
+}
+
+std::map<RegionIdType, PtrCoefFct> Excitation::GetStressCoefFctFromExcitation(UInt index)
+{
+  std::map<RegionIdType, PtrCoefFct> stress_map;
+
+  Context& ctxt = Optimization::manager.GetContext(this);
+  assert(ctxt.GetBucklingDriver());
+  assert(domain->GetSingleDriver()->GetAnalysisType() == BasePDE::BUCKLING);
+
+  RegionIdType actRegion;
+  SinglePDE* pde = ctxt.pde; // buckling PDE (complex!)
+
+  //  Loop over all regions
+  std::map<RegionIdType, BaseMaterial*>& materials = pde->GetMaterialData();
+  for(auto mat : materials)
+  {
+    // Set current region
+    actRegion = mat.first;
+
+    // buckling is implemented as multisequence
+    // we assume that the first excitation is linear elasticity
+    Optimization* opt = domain->GetOptimization();
+    assert(opt->GetMultipleExcitation()->excitations.GetSize());
+    Excitation& lin_elas_ex = opt->GetMultipleExcitation()->excitations[index];
+
+    // get the solution (displacement) of this first excitation
+    ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
+    StateSolution* ss = em->GetForwardStates().Get(lin_elas_ex, NULL, -1);
+    Vector<Double> mech_displ;
+    mech_displ = ss->GetRealVector(StateSolution::RAW_VECTOR);
+
+    // convert to complex, as buckling PDE is complex
+    Vector<Complex> complex_mech_displ;
+    complex_mech_displ.Resize(mech_displ.GetSize());
+    complex_mech_displ.Init();
+    complex_mech_displ.SetPart(Global::REAL, mech_displ);
+
+    // inject solution into buckling pde
+    ss->Write(pde, &complex_mech_displ);
+
+    // get coef function for stresses
+    PtrCoefFct stress = pde->GetCoefFct(MECH_STRESS);
+    assert(stress && stress.get());
+
+    stress_map[actRegion] = stress;
+  }
+  return stress_map;
+}
+
+// in buckling replace the old stresses, i.e. previous iteration
+// (or dummy for first iteration), by the new ones
+void Excitation::SetStressCoefFct(std::map<RegionIdType, PtrCoefFct> stress_map)
+{
+  Context& ctxt = Optimization::manager.GetContext(this);
+  assert(ctxt.GetBucklingDriver());
+  assert(domain->GetSingleDriver()->GetAnalysisType() == BasePDE::BUCKLING);
+
+  RegionIdType actRegion;
+  SinglePDE* pde = ctxt.pde; // buckling PDE (complex!)
+
+  //  Loop over all regions
+  std::map<RegionIdType, BaseMaterial*>& materials = pde->GetMaterialData();
+  assert(materials.size() == stress_map.size());
+  for(auto mat : materials)
+  {
+    // Set current region
+    actRegion = mat.first;
+    // we want to change the stress integrator of the geometric stiffness matrix
+    BiLinFormContext* blfc = pde->GetAssemble()->GetBiLinForm("PreStressInt", actRegion, pde, pde, false);
+
+    // the coef function of the integrator is a compound, i.e. a bundle of multiple coeffunctions
+    BDBInt<Double,Double>* bdb = dynamic_cast<BDBInt<Double,Double>*>(blfc->GetIntegrator());
+    CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(ctxt.mat->GetOrgMatCoef(bdb));
+    assert(stressTens != NULL);
+
+    // get map of coeffunctions
+    std::map<std::string, PtrCoefFct>& map = stressTens->GetCoefFcts();
+
+    // set the coeffunction for stresses. key "a" was chosen in MechPDE::CreatePreStressFct
+    assert(map.find("a") != map.end());
+    map["a"] = stress_map[actRegion];
+
+    this->reassemble = true;
+  }
 }
 
 double Excitation::GetOmega() const

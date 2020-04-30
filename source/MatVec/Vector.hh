@@ -56,7 +56,7 @@ template<typename T> class ElemStoreSol;
     //@{
 
     //! Default Constructor
-    // We set this to true be default, to be able to do a re-size
+    // We set this to true by default, to be able to do a re-size
     // afterwards. If a Replace() is done, it will adapt it accordingly.
     // size_ is set to 0 in ctor of SingleVector
     Vector() : SingleVector(), data_(NULL), capacity_(0), memBelongsToMe_(true)

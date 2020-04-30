@@ -75,7 +75,7 @@ namespace CoupledField {
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
     
     
-    virtual AnalysisType GetAnalysisType() {
+    virtual AnalysisType GetAnalysisType() const {
       return analysistype_;
     }
     
@@ -125,7 +125,7 @@ namespace CoupledField {
     //@{
     
     //! Return list with material definition for each region
-    std::map<RegionIdType, BaseMaterial*>  GetMaterialData() { return materials_; }
+    std::map<RegionIdType, BaseMaterial*>&  GetMaterialData() { return materials_; }
     
     //! Return assemble class, which holds all integrators
     Assemble* GetAssemble() { return assemble_; }
@@ -144,118 +144,116 @@ namespace CoupledField {
     DampingType GetDamping(RegionIdType reg_id) const;
     
     //! Set if PDE is nonlinear
-    virtual void SetNonLinearity(bool nonLin){
-      nonLin_=nonLin;};
-      
-      // St if PDE is nonlinear (material dependency)
-      virtual void SetMaterialNonLinearity(bool nonLin){
-        nonLinMaterial_=nonLin;};
-        //@}
-        
-        //@{
-        //!  Get functions concerning nonlinearity
-        bool IsNonLin() 
-        { return nonLin_;};
-        
-        bool IsNonLinMaterial() 
-        { return nonLinMaterial_;};
-        
-        bool IsTotalNonLinFormulation()
-        { return nonLinTotalFormulation_;};
-        
-        bool IsHysteresis() 
-        { return isHysteresis_;};
-        
-        bool IsNonLinAndNonHyst()
-        { return nonLinNonHyst_;};
+    virtual void SetNonLinearity(bool nonLin){ nonLin_=nonLin; };
 
-        bool IsIterCoupled() 
-        { return isIterCoupled_;};
-        
-        shared_ptr<CoefFunctionMulti> GetHystCoefs(){
-          return hysteresisCoefs_;
-        }
-          
-        void InitHystCoefs(){
-          EXCEPTION("Not implemented in base class");
-        }
-        
-        std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
-        { return regionNonLinTypes_;};
-        
-        //! Return material class
-        MaterialClass GetMaterialClass() const { return pdematerialclass_; }
-        //@}
-        
-        /** Shortcut for the DOF names */
-        StdVector<std::string>& GetDofNames(SolutionType st) {
-          return feFunctions_[st]->GetResultInfo()->dofNames;
-        }
-        
-        void TestInversionOfHystOperator(PtrParamNode testNode);
+    // St if PDE is nonlinear (material dependency)
+    virtual void SetMaterialNonLinearity(bool nonLin){ nonLinMaterial_=nonLin; };
+    //@}
 
-        void EstimateCurrentSlopeForHysteresis(Double steppingLength, Double scaling);
+    //@{
+    //!  Get functions concerning nonlinearity
+    bool IsNonLin()
+    { return nonLin_;};
 
-        void CheckSaturationOfHystOperators(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
-              Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg);
+    bool IsNonLinMaterial()
+    { return nonLinMaterial_;};
 
-        /*
-         *
-         */
-        void SetFlagInCoefFncHyst(std::string flagName, Integer newState);
-        void SetDoubleFlagInCoefFncHyst(std::string flagName, Double newState);
-        
-        /*
-         * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
-         * the underlying CoefFunctionHyst
-         * However, stdSolveStep cannot directtly access these CoefFunctions but has to go
-         * over the PDEs.
-         * As basically a PDEs that use Hysteresis will need the same set of functions, it
-         * makes sense to directly include them in the base class.
-         */
-        /*!
-         * SetPreviousHystVals -> store input and output values from last iteration
-         */
-        void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false);
-        
-        bool MaterialTensorsHystDependent();
+    bool IsTotalNonLinFormulation()
+    { return nonLinTotalFormulation_;};
 
-        virtual void FinalizeAfterTimeStep() {
-          EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");
-        }
-        
-        virtual void FinilizeBeforTimeStep() {
-          ;
-        }
-        
-        //! Enum for type of nonconforming coupling (Nitsche or Mortar)
-        typedef enum {
-          NC_NONE,
-            NC_MORTAR,
-            NC_NITSCHE
-        } NcCouplingType;
-        static Enum<NcCouplingType> ncCouplingType_;
-        static EnumTuple ncTypeTuples_[3];
-        
-        //! Enum for type of ansatz functions for Lagrange Multiplier (Mortar only) 
-        typedef enum {
-          LM_STANDARD,
-            LM_DUAL_DISCONTINUOUS,
-            LM_DUAL_CUBIC
-        } LagrangeMultType;
-        static Enum<LagrangeMultType> lmType_;
-        static EnumTuple lmTypeTuples_[3];
-        
-        //! Struct for collecting all formulation-specific options on an NcInterface
-        struct NcInterfaceInfo {
-          UInt              interfaceId;
-          NcCouplingType    type;
-          LagrangeMultType  lagrangeMultType;
-          Double            nitscheFactor;
-          Double            nitscheFactorDamp;
-          bool              crossPointHandling;
-          bool              movingMortarForm;
-        };
+    bool IsHysteresis()
+    { return isHysteresis_;};
+
+    bool IsNonLinAndNonHyst()
+    { return nonLinNonHyst_;};
+
+    bool IsIterCoupled()
+    { return isIterCoupled_;};
+
+    shared_ptr<CoefFunctionMulti> GetHystCoefs(){
+      return hysteresisCoefs_;
+    }
+
+    void InitHystCoefs(){
+      EXCEPTION("Not implemented in base class");
+    }
+
+    std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes()
+    { return regionNonLinTypes_;};
+
+    //! Return material class
+    MaterialClass GetMaterialClass() const { return pdematerialclass_; }
+    //@}
+
+    /** Shortcut for the DOF names */
+    StdVector<std::string>& GetDofNames(SolutionType st) {
+      return feFunctions_[st]->GetResultInfo()->dofNames;
+    }
+
+    void TestInversionOfHystOperator(PtrParamNode testNode);
+
+    void EstimateCurrentSlopeForHysteresis(Double steppingLength, Double scaling);
+
+    void CheckSaturationOfHystOperators(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
+          Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg);
+
+    /*
+     *
+     */
+    void SetFlagInCoefFncHyst(std::string flagName, Integer newState);
+    void SetDoubleFlagInCoefFncHyst(std::string flagName, Double newState);
+
+    /*
+     * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
+     * the underlying CoefFunctionHyst
+     * However, stdSolveStep cannot directtly access these CoefFunctions but has to go
+     * over the PDEs.
+     * As basically a PDEs that use Hysteresis will need the same set of functions, it
+     * makes sense to directly include them in the base class.
+     */
+    /*!
+     * SetPreviousHystVals -> store input and output values from last iteration
+     */
+    void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false);
+
+    bool MaterialTensorsHystDependent();
+
+    virtual void FinalizeAfterTimeStep() {
+      EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");
+    }
+
+    virtual void FinilizeBeforTimeStep() {
+      ;
+    }
+
+    //! Enum for type of nonconforming coupling (Nitsche or Mortar)
+    typedef enum {
+      NC_NONE,
+        NC_MORTAR,
+        NC_NITSCHE
+    } NcCouplingType;
+    static Enum<NcCouplingType> ncCouplingType_;
+    static EnumTuple ncTypeTuples_[3];
+
+    //! Enum for type of ansatz functions for Lagrange Multiplier (Mortar only)
+    typedef enum {
+      LM_STANDARD,
+        LM_DUAL_DISCONTINUOUS,
+        LM_DUAL_CUBIC
+    } LagrangeMultType;
+    static Enum<LagrangeMultType> lmType_;
+    static EnumTuple lmTypeTuples_[3];
+
+    //! Struct for collecting all formulation-specific options on an NcInterface
+    struct NcInterfaceInfo {
+      UInt              interfaceId;
+      NcCouplingType    type;
+      LagrangeMultType  lagrangeMultType;
+      Double            nitscheFactor;
+      Double            nitscheFactorDamp;
+      bool              crossPointHandling;
+      bool              movingMortarForm;
+    };
         
   protected:
     //! Constructor

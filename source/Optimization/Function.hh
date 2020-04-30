@@ -108,6 +108,7 @@ class Function
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
+      BUCKLING_LOAD_FACTOR,      /*!< with the attribute ev for the number of the load factor/ eigenvalue */
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
@@ -188,7 +189,7 @@ class Function
     /** Get the parameter, if it was set */
     double GetParameter() const { return parameter_;  }
 
-    /** The evaluates function values. -1.0 if not set. */
+    /** The evaluated function value. -1.0 if not set. */
     virtual double GetValue() const { return value_; }
 
     /** overloaded in SlopeCondition */

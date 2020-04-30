@@ -91,7 +91,7 @@ class MaterialHandler;
                  << "defined" );
     }
 
-    // Attention: currently we may not re-set the seuquence step, if the simState
+    // Attention: currently we may not re-set the sequence step, if the simState
     // is primary intended for output
     sequenceStep_ = sequenceStep;
 
@@ -201,7 +201,7 @@ class MaterialHandler;
     // In case there is a domain object, we also have to notify the 
     // Driver
     if( domain_ ) {
-      // notify also the driver about the current time / freqeuency step 
+      // notify also the driver about the current time / frequency step
       SingleDriver * ptDriver = domain_->GetSingleDriver();
       Integer index = stepNums_.Find(stepNum);
       if( index == -1 ) {

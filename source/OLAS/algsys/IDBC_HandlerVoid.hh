@@ -10,7 +10,7 @@ namespace CoupledField {
 
   //! Null version of the IDBC_Handler concept
 
-  //! This is class is a sort of null version of the %IDBC_Handler concept.
+  //! This class is a sort of null version of the %IDBC_Handler concept.
   //! It implements all methods required by the BaseIDBC_Handler interface
   //! in the form of stubs. It is intended for those cases in which no
   //! inhomogeneous Dirichlet boundary conditions are present in the linear

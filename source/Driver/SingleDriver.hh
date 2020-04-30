@@ -9,7 +9,7 @@ namespace CoupledField {
   class BasePDE;
   class MathParser;
   
-  //! Abstract base class for sinlge driver (static, transient, harmonic)
+  //! Abstract base class for single driver (static, transient, harmonic)
   class SingleDriver : public BaseDriver {
     
   public:

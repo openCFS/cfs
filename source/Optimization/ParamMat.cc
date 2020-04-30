@@ -51,20 +51,35 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
   switch(app)
   {
   case App::MECH:
+  case App::BUCKLING:
   {
     const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
+
+    if(context->DoBuckling())
+    {
+//      out *= -ev;
+
+      AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev);
+      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+
+      if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+      {
+        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+        AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
+        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+      }
+    }
+
     if(context->IsComplex())
     {
       AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
-
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
-
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
     }

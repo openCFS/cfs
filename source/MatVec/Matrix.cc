@@ -38,7 +38,8 @@ namespace CoupledField
     data_(new TYPE* [size_row_])
   {
 #ifdef CHECK_INDEX 
-    if (nRows <= 0 || nCols <= 0) EXCEPTION("invalid dimension");
+    if (nRows <= 0 || nCols <= 0)
+      EXCEPTION("invalid dimension");
 #endif
 
     data_[0]=new TYPE[size_col_*size_row_];

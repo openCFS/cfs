@@ -85,13 +85,16 @@ public:
     return GetElementMatrix(mass, elem, bimaterial, multimaterial, mat_deriv);
   }
 
+  const DenseMatrix& GeometricStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(gstiff, elem, bimaterial, multimaterial, mat_deriv);
+  }
+
   /** service function which indeed computes the matrix.
    * The underlaying CoefFunctionOpt needs to be org or opt before. State is resetted!
    * @param use stiff/mass from your OptimizationMaterial
    * @param this material is used for the BDBInt */
   template <class T>
   const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow);
-
 
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
   bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
@@ -114,6 +117,7 @@ public:
 
   FormID stiff;
   FormID mass;
+  FormID gstiff;
 
 protected:
 
@@ -126,7 +130,7 @@ protected:
   const DenseMatrix& GetElementMatrix(FormID& id, const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE);
 
   /** If we don't have cached element matrices we compute them here. This is necessary for many param mat derivatives and also fallback.
-   * @return this is out, just a convenience funciton. */
+   * @return this is out, just a convenience function. */
   template <class T>
   const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);

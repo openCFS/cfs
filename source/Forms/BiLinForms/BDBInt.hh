@@ -3,7 +3,7 @@
 //       Filename:  bdbInt.hh
 // 
 //    Description:  New implementation of the BDB integrator class
-//                  Takes as a template parameter the operator it should evaulate
+//                  Takes as a template parameter the operator it should evaluate
 //                  new implementation to avoid old structures
 // 
 //        Version:  1.0
@@ -174,121 +174,121 @@ public:
     //! Destructor
     virtual ~BDBInt();
 
-      //! \copydoc BaseBDBInt::GetBOp
-      virtual BaseBOperator* GetBOp() {
-        return bOperator_;
-      }
-      
-      //! \copydoc BaseBDBInt::GetCoef
-      virtual PtrCoefFct GetCoef() {
-        return dData_;
-      }
-      
-      //! Compute element matrix associated to BDB form
-      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                              EntityIterator& ent1,
-                              EntityIterator& ent2 );
+    //! \copydoc BaseBDBInt::GetBOp
+    virtual BaseBOperator* GetBOp() {
+      return bOperator_;
+    }
 
-      //@{
-      void ApplyElemMat( Vector<Double>&ret, 
+    //! \copydoc BaseBDBInt::GetCoef
+    virtual PtrCoefFct GetCoef() {
+      return dData_;
+    }
+
+    //! Compute element matrix associated to BDB form
+    void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2 );
+
+    //@{
+    void ApplyElemMat( Vector<Double>&ret,
+                       const Vector<Double>& sol,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 );
+
+    void ApplyElemMat( Vector<Complex>&ret,
+                       const Vector<Complex>& sol,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 );
+    //@}
+
+
+    void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel,
+                     const LocPointMapped& lpm );
+
+    //@{
+    void ApplyBMat( Vector<Double>&ret,
+                    const Vector<Double>& sol,
+                    const LocPointMapped& lpm );
+    void ApplyBMat( Vector<Complex>&ret,
+                    const Vector<Complex>& sol,
+                    const LocPointMapped& lpm );
+    //@}
+
+    //@{
+    virtual void ApplydBMat( Vector<Double>&ret, const Vector<Double>& sol,
+                             const LocPointMapped& lpm );
+    virtual void ApplydBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
+                             const LocPointMapped& lpm );
+    //@}
+
+
+    //@{
+    void ApplyATransMat( Vector<Double>&ret,
                          const Vector<Double>& sol,
-                         EntityIterator& ent1,
-                         EntityIterator& ent2 );
-      
-      void ApplyElemMat( Vector<Complex>&ret, 
+                         const LocPointMapped& lpm );
+    void ApplyATransMat( Vector<Complex>&ret,
                          const Vector<Complex>& sol,
-                         EntityIterator& ent1,
-                         EntityIterator& ent2 );
-      //@}
+                         const LocPointMapped& lpm );
+    //@}
+
+    //@{
+    void ApplydATransMat( Vector<Double>&ret,
+                          const Vector<Double>& sol,
+                          const LocPointMapped& lpm );
+    void ApplydATransMat( Vector<Complex>&ret,
+                          const Vector<Complex>& sol,
+                          const LocPointMapped& lpm );
+    //@}
 
 
-      void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
-                       const LocPointMapped& lpm );
+    bool IsComplex() const {
+      return std::is_same<MAT_DATA_TYPE,Complex>::value;
+    }
 
-      //@{
-      void ApplyBMat( Vector<Double>&ret, 
-                      const Vector<Double>& sol,
-                      const LocPointMapped& lpm );
-      void ApplyBMat( Vector<Complex>&ret, 
-                      const Vector<Complex>& sol,
-                      const LocPointMapped& lpm );
-      //@}
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual bool IsSolDependent() {
+      return isSolDependent_;
+    }
 
-      //@{
-      virtual void ApplydBMat( Vector<Double>&ret, const Vector<Double>& sol,
-                               const LocPointMapped& lpm );
-      virtual void ApplydBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                               const LocPointMapped& lpm );
-      //@}
+    void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
+      this->ptFeSpace1_ = feSpace;
+      this->ptFeSpace2_ = feSpace;
+      this->intScheme_ = ptFeSpace1_->GetIntScheme();
+    }
 
-
-      //@{
-      void ApplyATransMat( Vector<Double>&ret, 
-                           const Vector<Double>& sol,
-                           const LocPointMapped& lpm );
-      void ApplyATransMat( Vector<Complex>&ret, 
-                           const Vector<Complex>& sol,
-                           const LocPointMapped& lpm );
-      //@}
-
-      //@{
-      void ApplydATransMat( Vector<Double>&ret, 
-                            const Vector<Double>& sol,
-                            const LocPointMapped& lpm );
-      void ApplydATransMat( Vector<Complex>&ret, 
-                            const Vector<Complex>& sol,
-                            const LocPointMapped& lpm );
-      //@}
+    virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
+      this->ptFeSpace1_ = feSpace1;
+      this->ptFeSpace2_ = feSpace2;
+      this->intScheme_ = ptFeSpace1_->GetIntScheme();
+    }
 
 
-      bool IsComplex() const {
-        return std::is_same<MAT_DATA_TYPE,Complex>::value;
-      }
-      
-      //! \copydoc BiLinearForm::IsSolDependent
-      virtual bool IsSolDependent() {
-        return isSolDependent_;
-      }
+    //! Set Coefficient Function of B operator
+    virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
+      this->bOperator_->SetCoefFunction(coef);
+    }
+    void __Instantiate();
 
-      void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
-        this->ptFeSpace1_ = feSpace;
-        this->ptFeSpace2_ = feSpace;
-        this->intScheme_ = ptFeSpace1_->GetIntScheme();
-      }
 
-      virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
-        this->ptFeSpace1_ = feSpace1;
-        this->ptFeSpace2_ = feSpace2;
-        this->intScheme_ = ptFeSpace1_->GetIntScheme();
-      }
-      
-      
-      //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
-        this->bOperator_->SetCoefFunction(coef);
-      }
-      void __Instantiate();
-       
+  protected:
 
-    protected:
+    //! Differential operator
+    BaseBOperator* bOperator_;
 
-      //! Differential operator
-      BaseBOperator* bOperator_;
-      
-      //! set a constant factor for multiplication with the element matrix
-      MAT_DATA_TYPE factor_;
+    //! set a constant factor for multiplication with the element matrix
+    MAT_DATA_TYPE factor_;
 
-      //! Pointer to coefficient function computing the d-matrix of the BDB Integrator
-      shared_ptr<CoefFunction > dData_;
-      
-      //! Store intermediate operator matrix for B
-      Matrix<MAT_DATA_TYPE> bMat_;
-      
-      //! Store intermediate material matrix c
-      Matrix<MAT_DATA_TYPE> dMat_;
-      
-      //! Store intermediate matrix
-      Matrix<MAT_DATA_TYPE> dbMat_;
+    //! Pointer to coefficient function computing the d-matrix of the BDB Integrator
+    shared_ptr<CoefFunction> dData_;
+
+    //! Store intermediate operator matrix for B
+    Matrix<MAT_DATA_TYPE> bMat_;
+
+    //! Store intermediate material matrix c
+    Matrix<MAT_DATA_TYPE> dMat_;
+
+    //! Store intermediate matrix
+    Matrix<MAT_DATA_TYPE> dbMat_;
       
   };
 

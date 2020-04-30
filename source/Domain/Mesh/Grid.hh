@@ -769,6 +769,7 @@ namespace CoupledField
     //! Return vector of element-neighbors for the node with number noOfNode
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
+    //! @see GetElemsByNode()
     virtual void GetNeighboursOfNode(const UInt noOfNode,
                                      StdVector<Elem*> * neighbours)
     { EXCEPTION( "Not implemented" ); }

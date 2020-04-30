@@ -111,7 +111,6 @@ namespace CoupledField {
     void GetEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true );
     void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
 
-
     //! Calculate condition number
 
     //! This method calculates the condition number of the given matrix,
