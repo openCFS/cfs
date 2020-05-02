@@ -261,10 +261,10 @@ build:gcc7max:
     - echo "PLATFORM=$PLATFORM"
     - cat /etc/*release
     # run the setup instructions for this IMAGE
-    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e
+    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e -x
   # run the README which contains build instructions
   script:
-    - ./share/scripts/mdsh --eval 'README.md' | bash -e
+    - ./share/scripts/mdsh --eval 'README.md' | bash -e -x
 
 # add all platforms we can build on. In order to actually activate them set PLATFORM accordlingly (see above)
 # the IMAGE variable should be set according to the 'image' (docker runner option) and requires
@@ -284,13 +284,6 @@ platform:ubuntu:
     IMAGE: "ubuntu"
     TAG: "latest"
 
-platform:ubuntu:16.04:
-  extends: .platform:image
-  image: ubuntu:16.04
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "16.04"
-
 # the latest stable release, regardless of LTS status
 platform:ubuntu:rolling:
   extends: .platform:image
@@ -298,6 +291,21 @@ platform:ubuntu:rolling:
   variables:
     IMAGE: "ubuntu"
     TAG: "rolling"
+
+# older ubuntu versions
+platform:ubuntu:16.04:
+  extends: .platform:image
+  image: ubuntu:16.04
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "16.04"
+
+platform:ubuntu:18.04:
+  extends: .platform:image
+  image: ubuntu:18.04
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "18.04"
 
 platform:debian:
   extends: .platform:image

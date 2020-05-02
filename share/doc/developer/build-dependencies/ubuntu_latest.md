@@ -1,6 +1,12 @@
 CFS++ build dependencies for Ubunutu
 ====================================
 
+In order to make the package installation non-interactive we set
+```shell
+export DEBIAN_FRONTEND=noninteractive
+```
+which is probably only needed in automated installs (and for testing this instruction via docker).
+
 For the typical build config we need
 ```shell
 apt-get update
