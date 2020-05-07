@@ -172,6 +172,9 @@ build:gcc4: # eventually we should have one job for each required configuration
     GCC_VERSION: 4
   <<: *gcc_before
   <<: *default_build_job
+  # allow the release build again (since it is required for deploy)
+  except:
+    variables: []
 
 build:gcc5:
   stage: build
