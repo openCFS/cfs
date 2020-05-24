@@ -16,6 +16,7 @@ parser.add_argument("--threshold", help="threshold for void material with input 
 parser.add_argument("--vol", help="threshold to match volume", type=float)
 parser.add_argument("--lower", help="scale input range to new lower range", type=float)
 parser.add_argument('--show', help="show output as image", action='store_true')
+parser.add_argument('--hist', help="show density as histogram", action='store_true')
 parser.add_argument('--attribute', help="what to read from input ('design' or 'physical')", default="design")
 parser.add_argument('--set', help="specifiy set to read if you don't want the last one")
 parser.add_argument('--extrude', help="extrude 2d density to 3d. give number of slices", type=int)
@@ -74,6 +75,10 @@ for input in args.input:
   elif args.swap:
     print("swaping axes")
     out = des
+  elif args.hist:
+    import matplotlib.pyplot as plt
+    plt.hist(dens.ravel(), bins = 10)
+    plt.show()  
   else:
     print("no action selected")
     sys.exit(0)    
