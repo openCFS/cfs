@@ -1023,7 +1023,7 @@ def create_3d_cross_ip(coords, design, ip, grad, scale, valid_position, thres=0.
   vol = calc_cross_elem_vol_3D(s1,s2,s3)
   
   # calculate interpolated values of the design variables s1,s2,s3 for a uniform 3d grid 
-  ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angles)
+  ip_data, ip_near, out, ndim, scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angles)
 
   #scales the lattice cells to fit in the design domain exactly
   #scale = scale_max 

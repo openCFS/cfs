@@ -17,11 +17,13 @@ parser.add_argument("--vol", help="threshold to match volume", type=float)
 parser.add_argument("--lower", help="scale input range to new lower range", type=float)
 parser.add_argument('--show', help="show output as image", action='store_true')
 parser.add_argument('--hist', help="show density as histogram", action='store_true')
+parser.add_argument('--greyness', help="show greyness", action='store_true')
 parser.add_argument('--attribute', help="what to read from input ('design' or 'physical')", default="design")
 parser.add_argument('--set', help="specifiy set to read if you don't want the last one")
 parser.add_argument('--extrude', help="extrude 2d density to 3d. give number of slices", type=int)
 parser.add_argument('--swap', help="swap dimensions of density field. useful for trelis element numbering 'xzy'", choices=['yx', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'], type=str.lower)
 parser.add_argument('--coarser', help="coarsen the density X times. useful in combination with extrude", type=int, default=0)
+parser.add_argument('--nooutput', help="do not write output file", action='store_true')
 parser.add_argument('--output', help="optional output file name, for single input only")
 args = parser.parse_args()
 
@@ -78,27 +80,34 @@ for input in args.input:
   elif args.hist:
     import matplotlib.pyplot as plt
     plt.hist(dens.ravel(), bins = 10)
-    plt.show()  
+    plt.show()
+  elif args.greyness:
+    if args.attribute == 'design':
+      print("greyness: {:f}".format(numpy.sum(dens*(1-dens))/numpy.size(dens)))
+    else:
+      print("greyness (orig): {:f}".format(numpy.sum(des*(1-des))/numpy.size(des)))
+      print("greyness (phys): {:f}".format(numpy.sum(dens*(1-dens))/numpy.size(dens)))
   else:
     print("no action selected")
     sys.exit(0)    
   
-  output = args.output if args.output and len(args.input) == 1 else input[:input.find('.density.xml')] + '-out.density.xml'
-  
-  print("write '" + output + "' min=" + str(numpy.amin(out)) + " max=" + str(numpy.amax(out)) + " vol=" + str(numpy.sum(out) / out.size))
-  if dens.ndim == 1:
-    if args.swap:
-      out = swap(out, args.swap)
-    write_density_file(output, out, elemnr=nr)
-  else:
-    if args.swap:
-      out = swap(out, args.swap)
-    write_density_file(output, out)  
-    for _ in range(args.coarser):
-      coarsen_density(output, output)
-      mx, my, mz = read_mesh_info(output, silent=True)
-      print("new resolution: " + str(mx) + " x " + str(my) + " x " + str(mz))
+  if not args.nooutput:
+    output = args.output if args.output and len(args.input) == 1 else input[:input.find('.density.xml')] + '-out.density.xml'
     
+    print("write '" + output + "' min=" + str(numpy.amin(out)) + " max=" + str(numpy.amax(out)) + " vol=" + str(numpy.sum(out) / out.size))
+    if dens.ndim == 1:
+      if args.swap:
+        out = swap(out, args.swap)
+      write_density_file(output, out, elemnr=nr)
+    else:
+      if args.swap:
+        out = swap(out, args.swap)
+      write_density_file(output, out)
+      for _ in range(args.coarser):
+        coarsen_density(output, output)
+        mx, my, mz = read_mesh_info(output, silent=True)
+        print("new resolution: " + str(mx) + " x " + str(my) + " x " + str(mz))
+
   if args.show and dens.ndim == 2:
     x, y = dens.shape
     ret = numpy.zeros((y, x), dtype="uint8")
