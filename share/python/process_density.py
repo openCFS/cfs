@@ -84,6 +84,7 @@ for input in args.input:
   elif args.greyness:
     if args.attribute == 'design':
       print("greyness: {:f}".format(numpy.sum(dens*(1-dens))/numpy.size(dens)))
+      #print("{}\t{:f}".format(input[13:-12],(numpy.sum(dens>0.015)-numpy.sum(dens>0.985))/numpy.size(dens)))
     else:
       print("greyness (orig): {:f}".format(numpy.sum(des*(1-des))/numpy.size(des)))
       print("greyness (phys): {:f}".format(numpy.sum(dens*(1-dens))/numpy.size(dens)))
