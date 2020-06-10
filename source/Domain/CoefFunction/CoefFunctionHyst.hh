@@ -593,6 +593,10 @@ namespace CoupledField {
 
       if(weightType == "Constant"){
         return weightParams->constWeight_;
+      } else if((weightType == "muLorentz")||(weightType == "muLorentzExtended")){
+        return LorentzianWolf(weightParams->muLorentz_A_, weightParams->muLorentz_h1_,
+          weightParams->muLorentz_h2_, weightParams->muLorentz_sigma1_, 
+          weightParams->muLorentz_sigma2_, alpha, beta);   
       } else if(weightType == "muDat"){
         return MuDat(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, weightParams->muDat_eta_, alpha, beta);
       } else if(weightType == "muDatExtended"){
@@ -634,8 +638,13 @@ namespace CoupledField {
 
       if(weightType == "Constant"){
         return 0.0;
+      } else if((weightType == "muLorentz")||(weightType == "muLorentzExtended")){
+        return dLorentzianWolf_by_ds(weightParams->muLorentz_A_, weightParams->muLorentz_h1_,
+          weightParams->muLorentz_h2_, weightParams->muLorentz_sigma1_, 
+          weightParams->muLorentz_sigma2_, s, lambda,flipped); 
       } else if(weightType == "muDat"){
-        return dMuDat_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, weightParams->muDat_eta_,s,lambda,flipped);
+        return dMuDat_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, 
+          weightParams->muDat_eta_,s,lambda,flipped);
       } else if(weightType == "muDatExtended"){
         return dMuDatExtended_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_sigma2_,
           weightParams->muDat_h1_, weightParams->muDat_h2_, weightParams->muDat_eta_,s,lambda,flipped);
@@ -668,6 +677,9 @@ namespace CoupledField {
     ParameterPreisachWeights POL_weightParams_;
     ParameterPreisachWeights STRAIN_weightParams_;
 
+    ParameterPreisachWeights POL_weightParamsForTesting_;
+    ParameterPreisachWeights STRAIN_weightParamsForTesting_;
+    
     ParameterPreisachOperators POL_operatorParams_;
     ParameterPreisachOperators STRAIN_operatorParams_;
 
@@ -681,6 +693,85 @@ namespace CoupledField {
     int POL_weightsAlreadyAdapted_; // for Mayergoyz case
     int STRAIN_weightsAlreadyAdapted_; // for Mayergoyz case
 
+    Double LorentzianWolf(Double A, Double h1, Double h2, Double sigma1, Double sigma2, Double alpha, Double beta){
+      // Lorentzian weight function as used by F. Wolf in his PHD thesis
+      // F. Wolf: Generalisiertes Preisach-Modell fuer die Simulation und Kompensation der Hysterese piezokeramischer Aktoren
+      Double alphaFactor = A/(1 + ((alpha-h2)/(h2)*sigma2)*((alpha-h2)/(h2)*sigma2) );
+      Double betaFactor = A/(1 + ((beta+h1)/(h1)*sigma1)*((beta+h1)/(h1)*sigma1) );
+ 
+      return alphaFactor*betaFactor;
+    }
+    
+    // ALREADY DONE IN XMLMaterialHandler.cc direct after reading in!
+//    // move this directly to paramater reader; factors must be computed only once
+//    Double LorentzianBertotti(Double C1, Double C2, Double C3, Double alpha, Double beta){
+//      // Lorentzian weight function as used for Team32 and defined by Bertotti in
+//      // G. Bertotti, Hysteresis in Magnetism: For Physicists, Materials Scientists, and Engineers , Academic Press, 1998
+//      Double commonFactor =  C1/(C2*C3*std::sqrt(M_PI*(M_PI/2+std::atan(1/C2))));
+////      Double alphaFactor = 1/(1 + ((alpha-C3)/(C2*C3))*((alpha-C3)/(C2*C3)) );
+////      Double betaFactor = 1/(1 + ((-beta-C3)/(C2*C3))*((alpha-C3)/(C2*C3)) );
+//// 
+////      return commonFactor*commonFactor*alphaFactor*betaFactor;
+////      
+//      // Note: can be transferred to formulation used by Wolf in the following form:
+//      /*
+//       *  A = C1/(C2*C3*std::sqrt(M_PI*(M_PI/2+std::atan(1/C2))))
+//       *  ((alpha-h2)/h2*sigma2)^2 == ((alpha-C3)/(C2*C3))^2
+//       *  => sigma2 = 1/C2, h2 = C3
+//       *  ((-beta-h1)/h1*sigma1)^2 == ((beta+C3)/()C2*C3))^2
+//       *  => sigma1 = 1/C2, h1 = C3 
+//       */
+//      return LorentzianWolf(commonFactor,C3,C3,1/C2,1/C2,alpha,beta);
+//    }
+    
+    Double dLorentzianWolf_by_ds(Double A, Double h1, Double h2, Double sigma1, Double sigma2, Double s, Double lambda, bool flipped){
+      // Derivative of LorentzianWolf(s,lambda*s) by s
+      // Used to transfer Preisach weights from scalar to vector model (Mayergoyz model, isotropic)
+      // (LorentzianWolf function with alpha = s, beta = lambda*s used)
+      // if flipped: alpha = lambda*s, beta = s
+      if(flipped == false){
+        // Case 1: alpha = s, beta = lambda*s
+        // w(s,lambda*s) = A/(1 + ((s-h2)/h2*sigma2)^2) * A/(1 + ((lambda*s+h1)/h1*sigma1)^2)
+        // dw(s,lambda*s)/ds = -2A/(1 + ((s-h2)/h2*sigma2)^2)^2 * (s-h2)/h2*sigma2) * sigma2/h2  * A/(1 + ((lambda*s+h1)/h1*sigma1)^2)
+        //                     -2A/(1 + ((lambda*s+h1)/h1*sigma1)^2)^2 * (lambda*s+h1)/h1*sigma1) * lambda*sigma1/h1  * A/(1 + ((s-h2)/h2*sigma2)^2)
+        //  = -2A^2/[ (1 + ((lambda*s+h1)/h1*sigma1)^2) * (1 + ((s-h2)/h2*sigma2)^2) ] *
+        //    [ (s-h2)/h2*sigma2) * sigma2/h2 * 1/(1 + ((s-h2)/h2*sigma2)^2) + (lambda*s+h1)/h1*sigma1) * lambda*sigma1/h1 * 1/(1 + ((lambda*s+h1)/h1*sigma1)^2) ]
+        //  define: tmp_s = (s-h2)/h2*sigma2; tmp_lambdas = (lambda*s+h1)/h1*sigma1
+        //  = -2A^2/[ (1 + tmp_lambdas^2)*(1 + tmp_s^2) ] * 
+        //    [ tmp_s*sigma2/h2*1/(1 + tmp_s^2) +  tmp_lambdas*lambda*sigma1/h1*1/(1 + tmp_lambdas^2) ]
+        //  define: tmp_s_denom = 1+tmp_s^2; tmp_lambdas_denom = 1+tmp_lambdas^2
+        //  = -2A^2/(tmp_s_denom * tmp_lambdas_denom) * 
+        //    [ tmp_s*sigma2/h2*1/tmp_s_denom + tmp_lambdas*lambda*sigma1/h1*1/tmp_lambdas_denom ]
+        Double tmp_s = (s-h2)/h2*sigma2;
+        Double tmp_lambdas = (lambda*s+h1)/h1*sigma1;
+        Double tmp_s_denom = 1.0+tmp_s*tmp_s;
+        Double tmp_lambdas_denom = 1.0+tmp_lambdas*tmp_lambdas;
+        Double factor1 = -2*A*A/(tmp_s_denom * tmp_lambdas_denom);
+        Double factor2 = tmp_s*sigma2/h2*1/tmp_s_denom + tmp_lambdas*lambda*sigma1/h1*1/tmp_lambdas_denom;
+        return factor1*factor2;
+      } else {
+        // Case 2: alpha = lambda*s, beta = s
+        // w(lambda*s,s) = A/(1 + ((lambda*s-h2)/h2*sigma2)^2) * A/(1 + ((s+h1)/h1*sigma1)^2)
+        // dw(lambda*s,s)/ds = -2A/(1 + ((lambda*s-h2)/h2*sigma2)^2)^2 * (lambda*s-h2)/h2*sigma2) * lambda*sigma2/h2  * A/(1 + ((s+h1)/h1*sigma1)^2)
+        //                     -2A/(1 + ((s+h1)/h1*sigma1)^2)^2 * (s+h1)/h1*sigma1) * sigma1/h1  * A/(1 + ((lambda*s-h2)/h2*sigma2)^2)
+        //  = -2A^2/[ (1 + ((s+h1)/h1*sigma1)^2) * (1 + ((lambda*s-h2)/h2*sigma2)^2) ] *
+        //    [ (lambda*s-h2)/h2*sigma2) * lambda*sigma2/h2 * 1/(1 + ((lambda*s-h2)/h2*sigma2)^2) + (s+h1)/h1*sigma1) * sigma1/h1 * 1/(1 + ((s+h1)/h1*sigma1)^2) ]
+        //  define: tmp_s = (s+h1)/h1*sigma1; tmp_lambdas = (lambda*s-h2)/h2*sigma2
+        //  = -2A^2/[ (1 + tmp_lambdas^2)*(1 + tmp_s^2) ] * 
+        //    [ tmp_s*sigma1/h1*1/(1 + tmp_s^2) +  tmp_lambdas*lambda*sigma2/h2*1/(1 + tmp_lambdas^2) ]
+        //  define: tmp_s_denom = 1+tmp_s^2; tmp_lambdas_denom = 1+tmp_lambdas^2
+        //  = -2A^2/(tmp_s_denom * tmp_lambdas_denom) * 
+        //    [ tmp_s*sigma1/h1*1/tmp_s_denom + tmp_lambdas*lambda*sigma2/h2*1/tmp_lambdas_denom ]
+        Double tmp_s = (s+h1)/h1*sigma1;
+        Double tmp_lambdas = (lambda*s-h2)/h2*sigma2;
+        Double tmp_s_denom = 1.0+tmp_s*tmp_s;
+        Double tmp_lambdas_denom = 1.0+tmp_lambdas*tmp_lambdas;
+        Double factor1 = -2*A*A/(tmp_s_denom * tmp_lambdas_denom);
+        Double factor2 = tmp_s*sigma1/h1*1/tmp_s_denom + tmp_lambdas*lambda*sigma2/h2*1/tmp_lambdas_denom;
+        return factor1*factor2;
+      }
+    }
+    
 
     Double MuDat(Double A, Double sigma, Double h, Double eta, Double alpha, Double beta){
       // MuDat function for evaluating Preisach Weights
@@ -784,9 +875,11 @@ namespace CoupledField {
       Double dimHalf = weightParams->numRows_/2.0;
 
       if(weightParams->weightType_ == "givenTensor"){
+        std::cout << "++ Use given tensor of size " << weightParams->numRows_ << " x " << weightParams->numRows_ << " as Preisach weights" << std::endl;
         return weightParams->weightTensor_;
       }
 
+      std::cout << "++ Evaluate analytic Preisach weighting function " << weightParams->weightType_ << " for " << weightParams->numRows_ << " x " << weightParams->numRows_ << " cells" << std::endl;
       Matrix<Double> weights = Matrix<Double>(weightParams->numRows_,weightParams->numRows_);
 
       for(UInt i = 0; i < weightParams->numRows_; i++){
@@ -805,7 +898,6 @@ namespace CoupledField {
       return weights;
     }
 
-
     Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(ParameterPreisachWeights* paramSet){
       // Transform Preisach weights from scalar case to vector case (isotropic, Mayergoyz model)
 
@@ -814,6 +906,11 @@ namespace CoupledField {
 //        // 3d case starts from different formula > see "Mathematical Models of Hysteresis and their Application" - Mayergoyz 2003
 //      }
 
+      /*
+       * Note: this function is independent on the kind of weights!
+       * it uses the general getWeight and getWeightDerivative Functions which return the weights
+       * depending on the used weight type, e.g., muDat weightTensor or NEW Lorentzian weights
+       */
       UInt numRows = paramSet->numRows_;
 
       Matrix<Double> vectorWeights;
@@ -1110,7 +1207,7 @@ namespace CoupledField {
 
     void ReadAndSetParamsForHystOperator(BaseMaterial * const material, bool setForStrains);
 
-    void ReadAndSetWeights(BaseMaterial * const material, bool setForStrains);
+    void ReadAndSetWeights(BaseMaterial * const material, bool setForStrains, int forcedPreisachResolutionForTests = -1);
 
     //! Destructor
     virtual ~CoefFunctionHyst();
@@ -1132,7 +1229,7 @@ namespace CoupledField {
     void SetFlag(std::string flagName, Integer intState);
     void SetDoubleFlag(std::string flagName, Double doubleState);
 
-    Hysteresis* getTemporalHystOperator(bool forStrains, bool forceScalarDirection = false);
+    Hysteresis* getTemporalHystOperator(bool forStrains, bool forceScalarDirection = false, UInt dimOfHystOperator = 2, int forcedPreisachResolutionForTests = -1, bool enforceContinuousEvaluation=false);
 
     void TraceHystOperator(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
     void TraceHystOperatorVector(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
@@ -2016,7 +2113,7 @@ namespace CoupledField {
 
     Vector<Double> ComputeIrreversibleStrains(Vector<Double> P,Vector<Double> E_H,Vector<Double> Pold);
 
-    Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
+    Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary, bool overwriteMemory=false);
     Vector<Double> RetrieveInputToHysteresisOperatorOLD(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
 
     Vector<Double> RetrieveLPMSolution(LocPointMapped& actualLPM, UInt storageIdx, int timeLevel, bool onBoundary);
@@ -2253,15 +2350,16 @@ namespace CoupledField {
     void TestJacobianApproximations();
     void TestInversion(PtrParamNode testNode);
 
-    void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals);
+    void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals, Double initialAmplitude = std::numeric_limits<double>::infinity());
 
     void CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals);
 
     void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals,
+    Vector<Double> zVals, UInt dimHystOperator, int forcedPreisachResolution,
     bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance,
     std::string commonPerfFile, bool test1D, bool outputIrrStrains, std::string nameTagForPerfFile);
 
-    void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
+    void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals, Vector<Double> zVals);
 
     void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
       //std::cout << "Elast and Coupl tensor were passed by coupled pde!" << std::endl;
@@ -2617,9 +2715,8 @@ namespace CoupledField {
       // Implementation taken from BaseMaterial class
 
       // Calculate rotation matrix( based on Kardan-Angles)
-      // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
-      // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
-      // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+      // Ref.: C. Woernle, Mehrkörpersysteme "Eine Einführung in die Kinematik und Dynamik von Systemen starrer Körper" 
+      // Springer 2016; Kapitel 3.6
 
       Matrix<Double> R(3,3);
       R.Resize(3,3);
@@ -3304,6 +3401,7 @@ namespace CoupledField {
     Matrix<Double> rev_mat_fac_MATRIX_;
 
     bool useFPH_;
+    bool skipStorage_; // new parameter introduced 18.4.2020; see function PrecomputePolarization for more info
     fixpointFlag selectedFPApproach_;
 
     // convergence factors for global and local fixpoint methods
@@ -3338,6 +3436,11 @@ namespace CoupledField {
     Matrix<Double> eps_mu_base_ ;
     Matrix<Double> elastTensor_;
     Matrix<Double> couplTensor_;
+    
+    Matrix<Double> eps_nu_baseFULL_ ;
+    Matrix<Double> eps_mu_baseFULL_ ;
+    Matrix<Double> elastTensorFULL_;
+    Matrix<Double> couplTensorFULL_;
 
     bool tensorsInitialized_;
     bool materialTensorsSetOnce_;

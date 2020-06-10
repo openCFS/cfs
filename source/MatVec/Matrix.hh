@@ -725,6 +725,7 @@ namespace CoupledField
     //! Only for testing the switching state of Preisach planes
     void matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel = NULL);
     void matrix2Bmp_v2(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY);
+    void matrix2Bmp_v3(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY);
 
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */

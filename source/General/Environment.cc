@@ -878,6 +878,77 @@ namespace CoupledField {
     }
   }
 
+  // localInversionFlag
+  template<>
+  void String2Enum<localInversionFlag>( const std::string &in,
+                                      localInversionFlag &out ) {
+
+    if ( in == "LevenbergMarquardt" ) {
+      out = LOCAL_LEVENBERGMARQUARDT;
+    }
+    else if ( in == "Newton" ) {
+      out = LOCAL_NEWTON;
+    }
+    else if ( in == "JacobiFreeNewton" ) {
+      out = LOCAL_JACOBIFREENEWTON;
+    }
+    else if ( in == "ProjectedLevenbergMarquardt" ) {
+      out = LOCAL_PROJECTEDLM;
+    }
+    else if ( in == "EverettBased-scalarOnly" ) {
+      out = LOCAL_EVERETTBASED;
+    }
+    else if ( in == "Fixpoint" ) {
+      out = LOCAL_FIXPOINT;
+    }
+    else if ( in == "NoLocalInversion" ){
+      out = LOCAL_NOINVERSION;
+    }    
+    else {
+      EXCEPTION( "'" << in << "' cannot be converted into an '"
+                 << "localInversionFlag' item!" );
+    }
+  }
+
+  template<>
+  void Enum2String<localInversionFlag>( const localInversionFlag &in,
+                                      std::string &out ) {
+
+    switch( in ) {
+
+    case LOCAL_LEVENBERGMARQUARDT:
+      out = "LevenbergMarquardt";
+      break;
+
+    case LOCAL_NEWTON:
+      out = "Newton";
+      break;
+
+    case LOCAL_JACOBIFREENEWTON:
+      out = "JacobiFreeNewton";
+      break;
+
+    case LOCAL_PROJECTEDLM:
+      out = "ProjectedLevenbergMarquardt";
+      break;
+      
+    case LOCAL_EVERETTBASED:
+      out = "EverettBased-scalarOnly";
+      break;
+
+    case LOCAL_FIXPOINT:
+      out = "Fixpoint";
+      break;
+    
+    case LOCAL_NOINVERSION:
+      out = "NoLocalInversion";
+      break;
+      
+    default:
+      EXCEPTION( "Found no conversion for supplied localInversionFlag value!" );
+    }
+  }
+  
   template<>
   void String2Enum<NonLinType>( const std::string &in, NonLinType &out ) {
 
@@ -904,7 +975,7 @@ namespace CoupledField {
     } else if( in == "permeability") {
       out = PERMEABILITY;
     } else if( in == "reluctivity_magstrict"){
-	out = RELUCTIVITY_MAGSTRICT;
+      out = RELUCTIVITY_MAGSTRICT;
     } else if( in == "heatConductivity") {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
@@ -1874,7 +1945,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A, "preisachWeights_anhystA" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B, "preisachWeights_anhystB" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C, "preisachWeights_anhystC" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_CINATAN, "preisachWeights_anhyst_cinatan" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_D, "preisachWeights_anhystD" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE, "preisachWeights_anhyst_paramsforhalfrange" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_TENSOR, "preisachWeights_givenTensor" );
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR, "preisach_mayergoyz_num_dir" );
@@ -1883,6 +1954,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_X, "preisach_mayergoyz_start_x" );
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Y, "preisach_mayergoyz_start_y" );
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Z, "preisach_mayergoyz_start_z" );
+    MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_A, "preisach_mayergoyz_lossa" );
+    MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_B, "preisach_mayergoyz_lossb" );
     MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH, "isPreisachType" );
     MaterialTypeEnum.Add( PREISACH_PRESCRIBEOUTPUT, "preisach_prescribe_output" );
     MaterialTypeEnum.Add( PREISACH_SCALEINITIALSTATE, "preisach_scale_initial_state" );
@@ -1920,6 +1993,9 @@ namespace CoupledField {
     MaterialTypeEnum.Add( VEC_HYST_INV_METHOD, "hystInvMethod" );
     MaterialTypeEnum.Add( RES_TOL_H_HYST_INV, "residualTolH" );
     MaterialTypeEnum.Add( RES_TOL_B_HYST_INV, "residualTolB" );
+    MaterialTypeEnum.Add( RES_TOL_H_HYST_INV_ISREL, "residualTolH_isrel" );
+    MaterialTypeEnum.Add( RES_TOL_B_HYST_INV_ISREL, "residualTolB_isrel" );
+
     MaterialTypeEnum.Add( ALPHA_REG_HYST_INV, "alphaRegStart" );
     MaterialTypeEnum.Add( ALPHA_REG_MIN_HYST_INV, "alphaRegMin" );
     MaterialTypeEnum.Add( ALPHA_REG_MAX_HYST_INV, "alphaRegMax" );
@@ -1951,6 +2027,11 @@ namespace CoupledField {
     MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );
     MaterialTypeEnum.Add( INITIAL_STATE_Z, "initialStatesZ" );
 
+    MaterialTypeEnum.Add( PRESCRIBED_MAGNETIZATION, "prescribedMagnetization" );
+    MaterialTypeEnum.Add( PRESCRIBED_MAGNETIZATION_X, "prescribedMagnetization_x" );
+    MaterialTypeEnum.Add( PRESCRIBED_MAGNETIZATION_Y, "prescribedMagnetization_y" );
+    MaterialTypeEnum.Add( PRESCRIBED_MAGNETIZATION_Z, "prescribedMagnetization_z" );
+        
     MaterialTypeEnum.Add( X_SATURATION_STRAIN, "XsaturationStrain" );
     MaterialTypeEnum.Add( Y_SATURATION_STRAIN, "YsaturationStrain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_STRAIN, "preisachWeights_strain" );
@@ -1987,7 +2068,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A_STRAIN, "preisachWeights_anhystA_strain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B_STRAIN, "preisachWeights_anhystB_strain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C_STRAIN, "preisachWeights_anhystC_strain" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_CINATAN_STRAIN, "preisachWeights_anhyst_cinatan_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_D_STRAIN, "preisachWeights_anhystD_strain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE_STRAIN, "preisachWeights_anhyst_paramsforhalfrange_strain" );
 
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN, "preisach_mayergoyz_num_dir_strain" );
@@ -1996,6 +2077,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_X_STRAIN, "preisach_mayergoyz_start_x_strain" );
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Y_STRAIN, "preisach_mayergoyz_start_y_strain" );
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Z_STRAIN, "preisach_mayergoyz_start_z_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_A_STRAIN, "preisach_mayergoyz_lossa_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_B_STRAIN, "preisach_mayergoyz_lossb_strain" );
     MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH_STRAIN, "isPreisachType_strain" );
 
     MaterialTypeEnum.Add( HYST_COUPLING_DEFINED, "hystCouplingDefined" );

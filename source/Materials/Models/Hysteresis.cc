@@ -21,19 +21,20 @@ namespace CoupledField
   }
 
   Hysteresis::Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double hystSaturated,
-          Double anhystA, Double anhystB, Double anhystC, bool anhystOnly, bool anhyst_cInAtan){
+          Double anhystA, Double anhystB, Double anhystC, Double anhystD, bool anhystOnly){
 
     numElements_ = numElem;
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;
-    anhyst_cInAtan_ = anhyst_cInAtan;
+    anhyst_D_ = anhystD;
     anhystOnly_ = anhystOnly;
 
     XSaturated_ = XSaturated;
     PSaturated_ = YSaturated;
     hystSaturated_ = hystSaturated;
     dim_ = 0;
+    invParamsSet_ = false;
   }
 
   Hysteresis::Hysteresis(Integer numElem, ParameterPreisachOperators operatorParams,
@@ -43,7 +44,7 @@ namespace CoupledField
     anhyst_A_ = weightParams.anhysteretic_a_;
     anhyst_B_ = weightParams.anhysteretic_b_;
     anhyst_C_ = weightParams.anhysteretic_c_;
-    anhyst_cInAtan_ = weightParams.anhysteretic_cInAtan_;
+    anhyst_D_ = weightParams.anhysteretic_d_;
     anhystOnly_ = weightParams.anhystOnly_;
 
     XSaturated_ = operatorParams.inputSat_;
@@ -52,6 +53,7 @@ namespace CoupledField
     checkInversionResult_ = operatorParams.checkInversionResult_;
     printWarnings_ = operatorParams.printWarnings_;
     dim_ = 0;
+    invParamsSet_ = false;
   }
 
   Hysteresis::~Hysteresis()
@@ -59,7 +61,7 @@ namespace CoupledField
   }
 
 	Double Hysteresis::bisectForAnhyst(Double Ytarget,
-          Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx){
+          Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx, int& successFlag){
 
 //    std::cout << "Biscet before normalization" << std::endl;
 //      std::cout << " Ytarget: " << Ytarget << std::endl;
@@ -71,13 +73,13 @@ namespace CoupledField
 //      std::cout << " hystSaturated_: " << hystSaturated_ << std::endl;
 
 		return XSaturated_*bisectForAnhyst_normalized(Ytarget/PSaturated_,
-            Xdown/XSaturated_, Xup/XSaturated_, Poffset/PSaturated_, XSaturated_*eps_mu/PSaturated_, tol/XSaturated_, dir, idx);
+            Xdown/XSaturated_, Xup/XSaturated_, Poffset/PSaturated_, XSaturated_*eps_mu/PSaturated_, tol/XSaturated_, dir, idx, successFlag);
 
 	}
 
 	Double Hysteresis::bisectForAnhyst_normalized(Double Ytarget_normalized,
           Double Xdown_normalized, Double Xup_normalized, Double Poffset_normalized,
-          Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx){
+          Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx, int& successFlag){
 
 		/*
      *	Solve
@@ -101,6 +103,13 @@ namespace CoupledField
      *  -> this is required as the Mayergoyz vector model does not return YSst*dir
      *      in general
      */
+    /*
+     * 8.6.2020
+     *  Success flag added
+     *    N = success after itartion N
+     *    0 = success due to close enough initial guess
+     *   -1 = fail
+     */
 
 		Double Xout_normalized, Xmid_normalized;
 		Double resUp, resDown, resMid;
@@ -111,7 +120,6 @@ namespace CoupledField
     if(dir.NormL2() != 0){
       evalRequired = true;
     }
-    int successFlag = 0;
     bool debugOut = false;
     if(evalRequired){
       Pin.Init();
@@ -147,19 +155,27 @@ namespace CoupledField
 
     if(resUp*resDown > 0){
       std::stringstream errormsg;
+      UInt precisionDigits = 12;
       errormsg << "Bisection for anhystPart -> Starting values not appropriate! Both residuals have same sign!" << std::endl;
+      errormsg << " XSaturated_: " << XSaturated_ << std::endl;
+      errormsg << " PSaturated_: " << PSaturated_ << std::endl;
+      errormsg << " eps_mu_normalized: " << eps_mu_normalized << std::endl;
       errormsg << " Ytarget_normalized: " << Ytarget_normalized << std::endl;
-      errormsg << " Xdown_normalized: " << Xdown_normalized << std::endl;
-      errormsg << " Xup_normalized: " << Xup_normalized << std::endl;
+      errormsg << std::setprecision(precisionDigits) << " Xdown_normalized: " << Xdown_normalized << std::endl;
+      errormsg << std::setprecision(precisionDigits) << " Xup_normalized: " << Xup_normalized << std::endl;
+      errormsg << std::setprecision(precisionDigits) << " Xdown_normalized-Xup_normalized: " << Xdown_normalized-Xup_normalized << std::endl;
       errormsg << " Poffset_normalized: " << Poffset_normalized << std::endl;
       errormsg << " resUp: " << resUp << std::endl;
       errormsg << " resDown: " << resDown << std::endl;
+      errormsg << " evalRequired? " << evalRequired << std::endl;
       EXCEPTION(errormsg.str());
     }
     if(abs(resUp) < tol){
       Xout_normalized = Xup_normalized;
+      successFlag = 0;
     } else if(abs(resDown) < tol){
       Xout_normalized = Xdown_normalized;
+      successFlag = 0;
     } else {
       UInt maxIter = 50;
       Xmid_normalized = 0.0;
@@ -184,6 +200,7 @@ namespace CoupledField
         }
 
         if(abs(resMid) < tol){
+          successFlag = i+1;
           break;
         }
         if(resMid*resDown > 0){
@@ -195,6 +212,7 @@ namespace CoupledField
         }
       }
       Xout_normalized = Xmid_normalized;
+      successFlag = -1;
       //      LOG_DBG(scalpreisachInversion) << "bisection failed; reamining residual: " << resMid;
     }
     return Xout_normalized;
@@ -1824,6 +1842,10 @@ namespace CoupledField
     LOG_TRACE(hysteresis_inversion) << " yVal = " << yVal.ToString();
     bool debug = !true;
 
+    if(invParamsSet_ == false){
+      EXCEPTION("Hysteresis.cc: Parameter for inversion have not been set yet!")
+    }
+    
     /*
      * updateImplementation
      *
@@ -1834,7 +1856,9 @@ namespace CoupledField
      */
     UInt updateImplementation = INV_params_.inversionMethod;
     bool stopLineSearchAtLocalMin = INV_params_.stopLineSearchAtLocalMin;
-
+    bool tolHRel = INV_params_.tolH_useAsRelativeNorm;
+    bool tolBRel = INV_params_.tolB_useAsRelativeNorm;
+    
     std::stringstream traceMsg;
     if(debug){
       traceMsg << " --- TRACE MSG --- " << std::endl;
@@ -1849,8 +1873,14 @@ namespace CoupledField
       traceMsg << "hystSat: " << hystSaturated_ << std::endl;
       traceMsg << "xSat: " << XSaturated_ << std::endl;
       traceMsg << "INV_params_.maxNumIts: " << INV_params_.maxNumIts << std::endl;
-      traceMsg << "INV_params_.tolH: " << INV_params_.tolH << std::endl;
-      traceMsg << "INV_params_.tolB: " << INV_params_.tolB << std::endl;
+      traceMsg << "INV_params_.tolH (relative? = "<<tolHRel<< "): " << INV_params_.tolH << std::endl;
+      if(tolHRel){
+        traceMsg << "FIXED reference value for relative tolerance => norm of xVal_old = "<< prevXval.NormL2() << std::endl;
+      }
+      traceMsg << "INV_params_.tolB (relative? = "<<tolBRel<< "): " << INV_params_.tolB << std::endl;
+      if(tolBRel){
+        traceMsg << "FIXED reference value for relative tolerance => norm of yVal = "<< yVal.NormL2() << std::endl;
+      }
     }
 
     // for statistics
@@ -1860,11 +1890,13 @@ namespace CoupledField
     //  0 = reuse value
     //  1 = anhyst only
     //  2 = bisection
-    //  3-6 only for vector jacobianImplementation using Levenberg Marquardt
-    //  3 = reamnence
+    //  3-6 only for vector jacobianImplementation using Levenberg Marquardt, Newton or fixpoint iteration
+    //  3 = remanence
     //  4 = passed dut to error tolerance
     //  5 = passed due to tolerance wrt x
     //  6 = passed due to tolerance wrt y
+    //  7 = passed fixpoint due to tolerance wrt to x
+    //  8 = passed fixpoint due to tolerance wrt to y
 
     totalNumberOfLMIterations = 0;
 		totalNumberOfLinesearchIterations = 0;
@@ -1887,7 +1919,20 @@ namespace CoupledField
 		diff = yVal;
     diff -= prevYval;
 
-    if(diff.NormL2() < INV_params_.tolB){
+    Double tolB = INV_params_.tolB;
+    Double referenceForRelativeError = yVal.NormL2();
+    bool checkRelativeError = tolBRel;
+    if(checkRelativeError && (referenceForRelativeError != 0)){
+      tolB /= referenceForRelativeError;
+    }
+    Double tolH = INV_params_.tolH;
+    referenceForRelativeError = prevXval.NormL2();
+    checkRelativeError = tolHRel;
+    if(checkRelativeError && (referenceForRelativeError != 0)){
+      tolH /= referenceForRelativeError;
+    }
+
+    if(diff.NormL2() < tolB){
       traceMsg << "--A-- Inversion: Reuse old value" << std::endl;
       xVal = prevXval;
       LOG_TRACE(hysteresis_inversion) << "Reused value xVal: " << xVal.ToString();
@@ -1931,19 +1976,29 @@ namespace CoupledField
 
     if(anhystOnly_ == true){
       traceMsg << "--S-- Inversion: Special case, only anhysteretic part > solve by bisection" << std::endl;
-      successFlag = 1;
       xVal.Init();
       if(yNorm == 0){
         // anhyst part has no remanence
+        successFlag = 1;
         return xVal;
       }
       //
-      Double tol = INV_params_.tolB; //1e-12;
+//      Double tol = INV_params_.tolB; //1e-12;
+      
       Double Xup, Xdown, Poffset, xScal;
       Xup = yNorm/eps_mu;
       Xdown = 0;
       Poffset = 0;
-      xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tol);
+      
+      int successFlagBisect = -1;
+      xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tolB,successFlagBisect);
+      if(successFlagBisect >= 0){
+        traceMsg << "-- bisection (anhyst only) successful after " << successFlagBisect << " iterations " << std::endl;
+        successFlag = 1;
+      } else {
+        traceMsg << "-- bisection (anhyst only) exceeded maximal number of iterations! no success!" << std::endl;
+        successFlag = -1;
+      }
       xVal.Add(xScal,yDir);
 
       return xVal;
@@ -1975,6 +2030,12 @@ namespace CoupledField
      *  X = Xampl * inputDir; this still allows the reduction to a 1d linesearch
      *  along inputDir; the only difference is, that we have to evaluate the
      *  hyst operator instead of setting its amplitude to Ysat
+     * NOTE 6.6.2020:
+     *  The above is not true unfortunately! Even above saturation, Mayergoyz model (and also Sutor revised model
+     *  with rotResistance (= kappa) < 1) we do not have perfect alignment (this by the way leads to non-vanishing
+     *  rotational losses); Thus, the pure linesearch case would not be valid!
+     * TODO: check if this is handeled correctly by flag fieldsAlignedAboveSat
+     *  
      */
 
     // stayBelowSat
@@ -2008,8 +2069,9 @@ namespace CoupledField
     // note: for sutor model, hystPart and anhystPart are always aligned above saturation
     //        > only case 1 relevant for checking
     //       for mayergoyz model, we have to check case 2 and 3, too
+    // note 6.6.2020: revised sutor model with rotres (=kappa) < 1 is not necessarily aligned!
     //
-    // note 22.05.2018: in case of sutor model, PSaturated might be unreachable if rotRes < 0 (for revised model)
+    // note 22.05.2018: in case of sutor model, PSaturated might be unreachable if rotRes < 1 (for revised model)
     //                  > compute actual value at XSaturated instead of using PSaturated;
     //                  > by this, we also do not need to add anhystPartPosSat anymore, as this is done by evaluating the hyst operator
     // note 24.05.2018: the treatment as described in note from 22.05. helps a lot; nevertheless some inversion fails
@@ -2032,22 +2094,33 @@ namespace CoupledField
     int successCodeTmp = 0;
     Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, successCodeTmp);
     Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
-//          std::cout << "yNorm: " << yNorm << std::endl;
-//          std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
-//          std::cout << "XSaturated_: " << XSaturated_ << std::endl;
-//          std::cout << "PSaturated_: " << PSaturated_ << std::endl;
-//          std::cout << "eps_mu: " << eps_mu << std::endl;
+//         std::cerr << "yNorm: " << yNorm << std::endl;
+//          std::cerr << "hystValAtXSat: " << hystValAtXSat.ToString(12) << std::endl;
+//          std::cerr << "XSaturated_: " << XSaturated_ << std::endl;
+//          std::cerr << "PSaturated_: " << PSaturated_ << std::endl;
+//          std::cerr << "eps_mu: " << eps_mu << std::endl;
     //
     // check saturation in direction of yIn might solve system
     //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
     Double diffSat = yNorm - (hystValAtXSat.NormL2() + eps_mu*XSaturated_);
+    // note: both diffSat and diffSatAlt should be the same if fields are perfectly aligned, but this
+    // is never really the case due to roundings; diffSat is more precise; diffSatAlt is tested during
+    // bisection as it does not require a reevaluation of the hysteresis operator
+    // usually the bisection will work quite well but not if solution is very close to saturation;
+    // (found out via test of hyst operator)
+    // hotfix solution: allow for a slightly larger tolerance for diffSat; 1e-8 seems to work fine
+    // alternatively, one could try to set Poffset further below not to hystSaturated_ but to 
+    // hystValAtXSat.NormL2()-anhystPartPosSat > this works!
+    //Double diffSatAlt = yNorm - (hystSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
 
+    //std::cerr << "diffSat = " << diffSat << std::endl;
     LOG_TRACE(hysteresis_inversion) << "yNorm: " << yNorm;
     if(yNorm == 0){
       stayBelowSat = 1;
     } else {
-      if(abs(diffSat) < INV_params_.tolB){
-        traceMsg << "--B Special-- Inversion: Exact Saturation found" << std::endl;
+      if(abs(diffSat) < tolB){
+      //if(abs(diffSat) < 1e-8){//INV_params_.tolB){
+        traceMsg << "--B Special-- Inversion: (Nearly) exact Saturation found" << std::endl;
         successFlag = 2;
         return satInput;
       }
@@ -2099,22 +2172,37 @@ namespace CoupledField
           return xVal;
         } else {
           traceMsg << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl;
-          Double tol = INV_params_.tolB; //1e-12;
+//          Double tol = tolB; //1e-12;
           Double Xup, Xdown, Poffset;
           //Xup = (yNorm - PSaturated_)/eps_mu;
           //Poffset = PSaturated_;
-          Xup = (yNorm - hystValAtXSat.NormL2())/eps_mu;
+          Xup = (yNorm - hystSaturated_)/eps_mu;
+          //Xup = (yNorm - hystValAtXSat.NormL2())/eps_mu;
           Xdown = XSaturated_;
-          Poffset = hystSaturated_;//hystValAtXSat.NormL2();
-//          std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
-          xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tol);
+          //Poffset = hystSaturated_;//hystValAtXSat.NormL2();
+          // subtract anhyst part to get a better approximation 
+          // of the Poffset than just hystSaturated_
+          Poffset = hystValAtXSat.NormL2()-anhystPartPosSat; 
+//          std::cerr << "hystValAtXSat.NormL2(): " << hystValAtXSat.NormL2() << std::endl;
+//          std::cerr << "hystSaturated_: " << hystSaturated_ << std::endl;
+//          std::cerr << "hystSaturated_-hystValAtXSat.NormL2(): " << hystSaturated_-hystValAtXSat.NormL2() << std::endl;
+          int successFlagBisect = -1;
+          xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tolB,successFlagBisect);
+          if(successFlagBisect >= 0){
+            traceMsg << "-- bisection successful after " << successFlagBisect << " iterations " << std::endl;
+            successFlag = 2;
+          } else {
+            traceMsg << "-- bisection exceeded maximal number of iterations! no success!" << std::endl;
+            successFlag = -1;
+          }
+
           xVal.Init();
           xVal.Add(xScal,yDir);
           successFlag = 2;
           return xVal;
         }
       }
-    } // yNorm == 0?
+    } // yNorm != 0
 
     /*
      * Check for remanence
@@ -2134,7 +2222,7 @@ namespace CoupledField
     LOG_DBG(hysteresis_inversion) << "Diff Vector: " << diff.ToString();
     LOG_DBG(hysteresis_inversion) << "Norm of diff: " << diff.NormL2();
 
-    if(diff.NormL2() < INV_params_.tolB){
+    if(diff.NormL2() < tolB){
       traceMsg << "--C-- Inversion: Remanence detected" << std::endl;
       xVal = xTMP;
       LOG_DBG(hysteresis_inversion) << "Set xVal to 0: " << xVal.ToString();
@@ -2240,19 +2328,22 @@ namespace CoupledField
 
       Vector<Double> hystVal = Vector<Double>(dim_);
       for(UInt i = 0; i < maxIter; i++){
+        totalNumberOfLMIterations++; // for statistics
         hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
         mu.Mult(xVal,deltaY);
         deltaY.Add(1.0,hystVal);
         deltaY.Add(-1.0,yVal);
 
-        if(deltaY.NormL2()/abs(mu.GetMax()) < INV_params_.tolH){
+        if(deltaY.NormL2()/abs(mu.GetMax()) < tolH){
+          successFlag = 7;
           return xVal;
         }
         xVal.Add(-1.0/muFP,deltaY);
       }
 
-      if(deltaY.NormL2() < INV_params_.tolB){
+      if(deltaY.NormL2() < tolB){
         // Failback with tolB criterion
+        successFlag = 8;
         return xVal;
       }
 
@@ -2262,12 +2353,13 @@ namespace CoupledField
         warnmsg << "Final H: " << xVal << std::endl;
         warnmsg << "Final deltaB.NormL2()/abs(mu.GetMax()): " << deltaY.NormL2()/abs(mu.GetMax()) << std::endl;
         warnmsg << "Final deltaB.NormL2(): " << deltaY.NormL2() << std::endl;
+        warnmsg << "Try increasing the convergenceFactor to a value larger 1.0 (currently "<<INV_params_.safetyFactor_C << ")";
+        warnmsg << "and/or increase the number of iterations (currently " << INV_params_.maxNumIts << ")" << std::endl;
 //        WARN(warnmsg.str());
         std::cout << warnmsg.str() << std::endl;
       }
-
+      successFlag = -1;
       return xVal;
-
     }
 
     /*
@@ -2411,11 +2503,11 @@ namespace CoupledField
        * 3. residual wrt y, i.e. y - hyst - mu*x < tolerance
        *    > some sort of failback criterion
        */
-      successError = checkConvergence(jacTres,errorNorm,INV_params_.tolH);
+      successError = checkConvergence(jacTres,errorNorm,tolH);
       errorNormResX = res.NormL2();
-      successX = (errorNormResX <= INV_params_.tolH);
+      successX = (errorNormResX <= tolH);
       Vector<Double> yObtained = Vector<Double>(dim_);
-      successY = checkInversionOutput(xVal, yVal, yObtained, mu, INV_params_.tolB, errorNormResY,operatorIndex, overwriteMemory);
+      successY = checkInversionOutput(xVal, yVal, yObtained, mu, tolB, errorNormResY,operatorIndex, overwriteMemory);
 
       if(errorNormResX < bestErrorNormRes){
         bestErrorNormRes = errorNormResX;
@@ -2429,15 +2521,15 @@ namespace CoupledField
 
       if(successError){
         // main criterion > would be best if this one could be satisfied
-        traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_params_.tolH << std::endl;
+        traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << tolH << std::endl;
         successFlag = 4;
-        LOG_TRACE(hysteresis_inversion) << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_params_.tolH << std::endl;
+        LOG_TRACE(hysteresis_inversion) << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << tolH << std::endl;
         break;
       } else if(successX){
         // failback; still top if this works
-        traceMsg << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_params_.tolH << std::endl;
+        traceMsg << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << tolH << std::endl;
         successFlag = 5;
-        LOG_TRACE(hysteresis_inversion) << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_params_.tolH << std::endl;
+        LOG_TRACE(hysteresis_inversion) << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << tolH << std::endl;
         break;
       } else {
         scalingForJacDiagonal = 1.0;
@@ -2474,8 +2566,8 @@ namespace CoupledField
           if(successY){
             // failback; might still have large res error in x buz might be the best we can find
             // check only each 10th iteration
-            LOG_TRACE(hysteresis_inversion) << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_params_.tolB << std::endl;
-            traceMsg << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_params_.tolB << std::endl;
+            LOG_TRACE(hysteresis_inversion) << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << tolB << std::endl;
+            traceMsg << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << tolB << std::endl;
 
 //            int code = 0;
 //            Vector<Double> hSol = computeValue_vec(sol, operatorIndex, false, false, code);
@@ -2510,7 +2602,7 @@ namespace CoupledField
             break;
           } else if (itCnt >= maxIts) {
 
-            LOG_TRACE(hysteresis_inversion) << "NO Success! Remaining residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_params_.tolB << std::endl;
+            LOG_TRACE(hysteresis_inversion) << "NO Success! Remaining residual norm wrt Y = |ResY| = " << errorNormResY << " < " << tolB << std::endl;
             if(debug){
               traceMsg << "Max number of iterations reached." << std::endl;
               traceMsg << "Last found solution xFound = " << xVal.ToString() << std::endl;
@@ -2688,7 +2780,7 @@ namespace CoupledField
     if(checkInversionResult_){
       Double resYNorm = 0.0;
       Vector<Double> yObtained = Vector<Double>(dim_);
-      bool finalCheckPassed = checkInversionOutput(xVal, yVal, yObtained, mu, INV_params_.tolB, resYNorm, operatorIndex, false,true);
+      bool finalCheckPassed = checkInversionOutput(xVal, yVal, yObtained, mu, tolB, resYNorm, operatorIndex, false,true);
       if(!finalCheckPassed){
         std::stringstream exceptionmsg;
         exceptionmsg << inversionName << "-Inversion failed final test for requested input: " << yVal.ToString() <<  std::endl;

@@ -42,7 +42,7 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE );
-    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_CINATAN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_D );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_A );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C );
@@ -56,7 +56,11 @@ namespace CoupledField
     isAllowed_.insert( MAYERGOYZ_STARTAXIS_X_STRAIN );
     isAllowed_.insert( MAYERGOYZ_STARTAXIS_Y_STRAIN );
     isAllowed_.insert( MAYERGOYZ_STARTAXIS_Z_STRAIN );
-
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_A );
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_B );
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_A_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_B_STRAIN );
+    
     isAllowed_.insert( PREISACH_PRESCRIBEOUTPUT );
     isAllowed_.insert( PREISACH_SCALEINITIALSTATE );
     isAllowed_.insert( SCALETOSAT );
@@ -129,7 +133,7 @@ namespace CoupledField
     isAllowed_.insert( S_DIRECTION_X );
     isAllowed_.insert( S_DIRECTION );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE_STRAIN );
-    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_CINATAN_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_D_STRAIN );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY_STRAIN );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C_STRAIN );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B_STRAIN );

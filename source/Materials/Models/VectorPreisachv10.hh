@@ -710,7 +710,7 @@ namespace CoupledField {
     // return usable input xVal
     Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, 
     bool overwrite = true,bool overwriteDirection = true);
-    
+
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
       EXCEPTION("Not implemented in base class");
     }

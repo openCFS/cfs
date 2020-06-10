@@ -271,7 +271,7 @@ namespace CoupledField
     //! Read in a single grid
     void ReadGrid(const std::string & gridId,
                   const StdVector< shared_ptr<SimInput> > & inputs,
-                  bool isAxi);
+                  bool isAxi, Double depth2d);
     //@}
   
     // ======================================================

@@ -840,7 +840,7 @@ namespace CoupledField {
         testNode_ = NULL;
         if( testParamNode->Has("testHysteresisOperator") ) {
           testInversion_ = 1;
-          testNode_ = hystNode->Get("testHysteresisOperator");
+          testNode_ = testParamNode->Get("testHysteresisOperator");
         } else {
           testInversion_ = 0;
         }
@@ -971,6 +971,21 @@ namespace CoupledField {
     LOG_TRACE(solvestephyst_main) << "===================================";
     LOG_TRACE(solvestephyst_main) << "== Solve_Step1_PrepareSolveStep ===";
     LOG_TRACE(solvestephyst_main) << "===================================";
+    
+    /*
+     * Test hysteresis operator if specified in input xml
+     */
+    if(testInversion_ == 1){
+      std::cout << "++ Test hysteresis operator" << std::endl;
+			PDE_.TestInversionOfHystOperator(testNode_);
+			testInversion_ = 0;
+		}
+    if(DEBUG_testJacobianApproximations_){
+      std::cout << "++ Test different approximations for the Jacobian matrix" << std::endl;
+      PDE_.SetFlagInCoefFncHyst("TestJacobianApproximations",0);
+      DEBUG_testJacobianApproximations_ = false;
+    }
+    
     /*
      * we only support incremental stepping, i.e. we just compute
      * du = u_new - u_old in each time step
@@ -982,20 +997,6 @@ namespace CoupledField {
         //        WARN("SolveStepHyst: Incremental stepping will be enforced");
         fncIt->second->GetTimeScheme()->forceIncremental();
       }
-    }
-
-    /*
-     * Test hysteresis operator if specified in input xml
-     */
-    if(testInversion_ == 1){
-      std::cout << "++ Test Inversion of Hysteresis operator" << std::endl;
-			PDE_.TestInversionOfHystOperator(testNode_);
-			testInversion_ = 0;
-		}
-    if(DEBUG_testJacobianApproximations_){
-      std::cout << "++ Test Different Approximations for the Jacobian matrix" << std::endl;
-      PDE_.SetFlagInCoefFncHyst("TestJacobianApproximations",0);
-      DEBUG_testJacobianApproximations_ = false;
     }
 
     /*
@@ -1110,7 +1111,7 @@ namespace CoupledField {
      * printOut is set to 1 in material file)
      * > too expensive; could even be deprecated by now (needs checking)
      */
-    PDE_.SetFlagInCoefFncHyst("allowBMP",false);
+    PDE_.SetFlagInCoefFncHyst("allowBMP",true);
     PDE_.SetFlagInCoefFncHyst("resetEstimator",true);
     PDE_.SetFlagInCoefFncHyst("resetGlobalFPTensors",true);
 
@@ -1724,6 +1725,13 @@ namespace CoupledField {
 //      std::cout << "preLinesearch: currentSolutionApproach_ = " << solveFlagToString(currentSolutionApproach_) << std::endl;
       Helper_GetParamsFromSolveFlag(currentSolutionApproach_, flag_for_systemMatrix, flag_for_resEvalMatrix, flag_for_rhsVector, flag_for_resVector, estimatorUseful);
 
+      // skip setting of E_H_ and P_H_ in coefFunctionHyst during the linesearch process
+      // reason: for eastimating the input to the hysteresis operator (for evaluation purposes), the H-version
+      // of the FP method access these two arrays; in consequence, a repeated evaluation of the hyst operator will
+      // more and more alter the estimates which is NOT correct
+      // note that this flag only has a function if useFPH_ is set to true in CoefFunctionHyst
+      PDE_.SetFlagInCoefFncHyst("SkipStorage",1);
+      
       //LOG_DBG(solvestephyst_main) << "SetupRESVector/Perform LS";
 //      std::cout << "setIDBC? " << setIDBC << std::endl;
       if( setIDBC || ( lineSearch_ == "none" ) || specifiedLinesearches_.empty() ){
@@ -1740,6 +1748,10 @@ namespace CoupledField {
       } else {
         LOG_DBG(solvestephyst_main) << "--- Perform linesearch ---";
         etaLinesearch = LineSearchHyst(flag_for_resEvalMatrix, flag_for_resVector, solVec_, solIncrement_n_k_,iterationCounterLog);
+        // for testing: overwrite etaLinesearch by 1.0 i.e. full step; now the any LS version should
+        // result in the same steps as the version without LS; if this is not the case,
+        // linesearchHyst has some unwanted effects on the system! > seems to work
+//        etaLinesearch = 1.0;
       }
 //      std::cout << "postLinesearch: currentSolutionApproach_ = " << solveFlagToString(currentSolutionApproach_) << std::endl;
 
@@ -1766,7 +1778,9 @@ namespace CoupledField {
       // reset for next iteration
       linSysMatrix_n_0_TIMES_solVec_n_kPrev_precomputed_ = false;
       linSysMatrix_n_0_TIMES_solIncrement_n_k_precomputed_ = false;
-
+      // allow storage of E_H_ and P_H_ again
+      PDE_.SetFlagInCoefFncHyst("SkipStorage",0);
+      
       /*
        * For incremental error checking, compute the actual update between
        *  the current and the previous iteration
@@ -2944,7 +2958,7 @@ namespace CoupledField {
       // check if system might have to be loaded
       if(systemLoadRequired_){
         LOG_TRACE(solvestephyst_assemble_and_build) << "=== LOAD previously built system ===";
-
+//        std::cout << "=== LOAD previously built system ===" << std::endl;
         FEMatrixType systemStorage;
         if(requestedBuildFlag_ == REUSED){
           switch(currentBuildFlag_){
@@ -3009,6 +3023,7 @@ namespace CoupledField {
 
       } else {
         LOG_TRACE(solvestephyst_assemble_and_build) << "=== NO LOAD required ===";
+//        std::cout << "=== NO LOAD required ===" << std::endl;
       }
 
       return;
@@ -3046,6 +3061,7 @@ namespace CoupledField {
      * Build system based on latest assembly
      */
     LOG_TRACE(solvestephyst_assemble_and_build) << "=== BUILD system based on latest assembly ===";
+//    std::cout << "=== BUILD system based on latest assembly ===" << std::endl;
     matrix_factor_.clear();
     algsys_->InitMatrix(SYSTEM);
 
@@ -3141,7 +3157,7 @@ namespace CoupledField {
      * Source: Optimization Theory and Methods - Nonlinear Programming -- Sun, Yuan -- Springer 2006
      *
      * Parameter:
-     *  currentSol > solution from pervious iteration; starting point for line search
+     *  currentSol > solution from previous iteration; starting point for line search
      *  searchDirection > current search/update direction that shall be used to
      *                    reduce the objective function (e.g. the residual norm)
      *                    searchDirection = solution update
@@ -3154,7 +3170,7 @@ namespace CoupledField {
      *  kMax > maximal number of search steps
      *      value > 1
      *  a,b > lower and upper value of 1d search interval
-     *  m > point between a,b ([a,b] is always composed av 2 subintervals [a,m] and [m,b])
+     *  m > point between a,b ([a,b] is always composed of 2 subintervals [a,m] and [m,b])
      *
      *  iterationCounter > iteration number of nonlinear iteration; used for evaluating the residual
      */
@@ -3206,6 +3222,9 @@ namespace CoupledField {
     //    }
     resNorm_k = resVec_n_k_.NormL2();
 
+//    std::cout << "Initial alpha_k = " << alpha_k << std::endl;
+//    std::cout << "Residual for alpha_k = " << resNorm_k << std::endl;
+//    
     bool success = false;
 
     for(UInt k = 0; k < kMax; k++){
@@ -3230,6 +3249,9 @@ namespace CoupledField {
       //      SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
       resNorm_kPlus1 = resVec_n_k_.NormL2();
 
+//      std::cout << "Initial alpha_k+1 = " << alpha_kPlus1 << std::endl;
+//      std::cout << "Residual for alpha_k+1 = " << resNorm_kPlus1 << std::endl;
+//      
       if(resNorm_kPlus1 < resNorm_k){
         // Increase stepping distance
         h_k *= t;
@@ -3358,7 +3380,7 @@ namespace CoupledField {
 
     // SetupRes will write the residual directly to resVec_n_k_
     // It will also reassemble the system! > we have to call this function
-    // again after the linesearch to get the curret system set up!
+    // again after the linesearch to get the current system set up!
     resInitial = zeroVec_;
 //    Double normOfSystemFix =
     SetupRESorRHS(flag_for_matrix_assembly, flag_for_vector_assembly,
@@ -3367,7 +3389,9 @@ namespace CoupledField {
     Double referenceValue = resVec_n_0_.NormL2();
 
     LOG_DBG2(solvestephyst_linesearch) << "---- norm of initial residual = " << resVec_n_k_.NormL2() << " ----";
-
+//    std::cout << "Start of LS - Initial residual (everything reassembled): " << resVec_n_k_.NormL2() << std::endl;
+//    std::cout << "Start of LS - reference residual resVec_n_0_ (from start of timestep): " << resVec_n_0_.NormL2() << std::endl;
+//    
     if(checkDirection_ >= 1){
       /*
        * According to Kelly 1995 (p.138), check if search direction satisfies the
@@ -3488,6 +3512,11 @@ namespace CoupledField {
        */
       LinesearchParameter GoldenSectionParameter = specifiedLinesearchesMap_[LS_GOLDENSECTION];
 
+//      std::cout << "GoldenSectionLS - initial interval: " << std::endl;
+//      std::cout << "a = " << aBAK << std::endl;
+//      std::cout << "m = " << mBAK << std::endl;
+//      std::cout << "b = " << bBAK << std::endl;
+//      
       /*
        * Check initial interval
        */
@@ -3541,6 +3570,96 @@ namespace CoupledField {
       lambda = a + 0.382*(b-a);
       mu = a + 0.618*(b-a);
 
+      /*
+       * for debugging and comparison: compute residual for stepping 1.0 (full step)
+       * 
+       */
+      bool checkFullStep = !true;
+      // Test changes result! why?! > due to EXACT_GoldenSectionEvalCounter++! it was just one iteration short!
+      // Thats not all! After checking the trial and error values below resiudal increases and increases
+      // > are solution values not reset correctly?
+      if(checkFullStep){
+        std::cout << "Test full step first" << std::endl;
+//        std::cout << "Norms of tmpSol, currentSol, solVec_, solBak at start: " << std::endl;
+//        std::cout << "tmpSol: " << tmpSol.NormL2() << std::endl;
+//        std::cout << "currentSol: " << currentSol.NormL2() << std::endl;
+//        std::cout << "solVec_: " << solVec_.NormL2() << std::endl;
+//        std::cout << "solBak: " << solBak.NormL2() << std::endl;
+        
+        tmpSol = currentSol;
+        tmpSol.Add(1.0,solIncrement_n_k_local);
+        solVec_ = tmpSol;
+        // set solution vector to tmp solution, then evaluate hyst operators
+        // do not reevaluate matrices for inversion > flag = 0
+        PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
+//        EXACT_GoldenSectionEvalCounter++;
+        solVec_ = solBak;
+
+        // SetupRes will write the residual directly to resVec_n_k_
+        // It will also reassemble the system! > we have to call this function
+        // again after the linesearch to get the curret system set up!
+        SetupRESVector_Linesearch(flag_for_matrix_assembly, flag_for_vector_assembly,resVec_n_k_,tmpSol, tmpSol, currentSol, solIncrement_n_k_local, 1.0);
+        //      SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
+        Double resFullstep = resVec_n_k_.NormL2();
+        std::cout << "Residual for full-step: " << resFullstep << std::endl;
+//        std::cout << "Norms of tmpSol, currentSol, solVec_, solBak at end: " << std::endl;
+//        std::cout << "tmpSol: " << tmpSol.NormL2() << std::endl;
+//        std::cout << "currentSol: " << currentSol.NormL2() << std::endl;
+//        std::cout << "solVec_: " << solVec_.NormL2() << std::endl;
+//        std::cout << "solBak: " << solBak.NormL2() << std::endl;
+      }
+      bool checkSomeTrialSteps = !true;
+      // Test changes result! why?! > due to EXACT_GoldenSectionEvalCounter++! it was just one iteration short!
+      // issue detected for FP-H-Version: 
+      // although system, solution etc were reset correctly, the storages E_H_ and P_H_ in coefFunction hyst were
+      // overwritten each iteration; this is usually wanted to check if evaluation is needed at all but in case of
+      // FP-H-Version it is not! here E_H_ and P_H_ are used for computing the new state; if E_H_ and P_H_ are set
+      // to temporal values from within the Linesearch, we muddle with the next iterates; this can lead to searious
+      // increases in the computed residuals!
+      if(checkSomeTrialSteps){
+        Vector<Double> testAlphas = Vector<Double>(10);
+        testAlphas[0] = 1.0;
+        testAlphas[1] = 0.5;
+        testAlphas[2] = 0.1;
+        testAlphas[3] = 1.0;
+        testAlphas[4] = 0.5;
+        testAlphas[5] = 0.1;
+        testAlphas[6] = 1.0;
+        testAlphas[7] = 0.5;
+        testAlphas[8] = 0.1;
+        testAlphas[9] = 0.000;
+        for(UInt i = 0; i<10; i++){
+          Double testAlpha = testAlphas[i];
+          std::cout << "Current ALPHA = " << testAlpha << std::endl;
+//          std::cout << "Norms of tmpSol, currentSol, solVec_, solBak at start: " << std::endl;
+//          std::cout << "tmpSol: " << tmpSol.NormL2() << std::endl;
+//          std::cout << "currentSol: " << currentSol.NormL2() << std::endl;
+//          std::cout << "solVec_: " << solVec_.NormL2() << std::endl;
+//          std::cout << "solBak: " << solBak.NormL2() << std::endl;
+          tmpSol = currentSol;
+          tmpSol.Add(testAlpha,solIncrement_n_k_local);
+          solVec_ = tmpSol;
+          // set solution vector to tmp solution, then evaluate hyst operators
+          // do not reevaluate matrices for inversion > flag = 0
+          PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
+  //        EXACT_GoldenSectionEvalCounter++;
+          solVec_ = solBak;
+
+          // SetupRes will write the residual directly to resVec_n_k_
+          // It will also reassemble the system! > we have to call this function
+          // again after the linesearch to get the curret system set up!
+          SetupRESVector_Linesearch(flag_for_matrix_assembly, flag_for_vector_assembly,resVec_n_k_,tmpSol, tmpSol, currentSol, solIncrement_n_k_local, testAlpha);
+          //      SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
+          std::cout << "Residual: " << resVec_n_k_.NormL2() << std::endl;
+//          std::cout << "Norms of tmpSol, currentSol, solVec_, solBak at end: " << std::endl;
+//          std::cout << "tmpSol: " << tmpSol.NormL2() << std::endl;
+//          std::cout << "currentSol: " << currentSol.NormL2() << std::endl;
+//          std::cout << "solVec_: " << solVec_.NormL2() << std::endl;
+//          std::cout << "solBak: " << solBak.NormL2() << std::endl;
+        }
+        
+      }
+
       tmpSol = currentSol;
       tmpSol.Add(lambda,solIncrement_n_k_local);
       solVec_ = tmpSol;
@@ -3550,6 +3669,9 @@ namespace CoupledField {
       EXACT_GoldenSectionEvalCounter++;
       solVec_ = solBak;
 
+//      std::cout << "Initial lambda (lambda = a + 0.382*(b-a)): " << lambda << std::endl;
+//      resLambda = resVec_n_k_.NormL2();
+//      std::cout << "resVec_n_k_.NormL2() pre Call To SetupResVector_Linesearch: " << resLambda << std::endl;
       // SetupRes will write the residual directly to resVec_n_k_
       // It will also reassemble the system! > we have to call this function
       // again after the linesearch to get the curret system set up!
@@ -3557,6 +3679,8 @@ namespace CoupledField {
       //      SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
       resLambda = resVec_n_k_.NormL2();
 
+//      std::cout << "Residual for lambda: " << resLambda << std::endl;
+      
       tmpSol = currentSol;
       tmpSol.Add(mu,solIncrement_n_k_local);
       solVec_ = tmpSol;
@@ -3565,14 +3689,18 @@ namespace CoupledField {
       PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
       EXACT_GoldenSectionEvalCounter++;
       solVec_ = solBak;
-
+//      std::cout << "Initial mu (mu = a + 0.618*(b-a)): " << mu << std::endl;
+//      resMu = resVec_n_k_.NormL2();
+//      std::cout << "resVec_n_k_.NormL2() pre Call To SetupResVector_Linesearch: " << resMu << std::endl;
       // SetupRes will write the residual directly to resVec_n_k_
       // It will also reassemble the system! > we have to call this function
       // again after the linesearch to get the curret system set up!
       SetupRESVector_Linesearch(flag_for_matrix_assembly, flag_for_vector_assembly,resVec_n_k_,tmpSol, tmpSol, currentSol, solIncrement_n_k_local, mu);
       //      SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
       resMu = resVec_n_k_.NormL2();
-
+      
+//      std::cout << "Residual for mu: " << resMu << std::endl;
+      
       LOG_DBG2(solvestephyst_linesearch) << "Check optimality condition ( ((mu - a)<=tol)||((b - lambda)<=tol) ) for GoldenSection: ";
       for(k = 0; k < GoldenSectionParameter.maxIter_; k++){
         if(resLambda > resMu){
@@ -3601,9 +3729,14 @@ namespace CoupledField {
             // SetupRes will write the residual directly to resVec_n_k_
             // It will also reassemble the system! > we have to call this function
             // again after the linesearch to get the curret system set up!
+//            std::cout << "k = " << k << ": mu (mu = a + 0.618*(b-a)): " << mu << std::endl;
+//            resMu = resVec_n_k_.NormL2();
+//            std::cout << "resVec_n_k_.NormL2() pre Call To SetupResVector_Linesearch: " << resMu << std::endl;
             SetupRESVector_Linesearch(flag_for_matrix_assembly, flag_for_vector_assembly,resVec_n_k_,tmpSol, tmpSol, currentSol, solIncrement_n_k_local, mu);
             //            SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
             resMu = resVec_n_k_.NormL2();
+//            std::cout << "k = " << k << ": mu (mu = a + 0.618*(b-a)): " << mu << std::endl;
+//            std::cout << "Residual for mu: " << resMu << std::endl;
           }
         } else {
           LOG_DBG2(solvestephyst_linesearch) << "mu = " << mu << "; a = " << a << "; GoldenSectionParameter.stoppingTol_ = " << GoldenSectionParameter.stoppingTol_;
@@ -3627,13 +3760,17 @@ namespace CoupledField {
             PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
             EXACT_GoldenSectionEvalCounter++;
             solVec_ = solBak;
-
+//            std::cout << "k = " << k << ": lambda (lambda = a + 0.382*(b-a)): " << lambda << std::endl;
+//            resLambda = resVec_n_k_.NormL2();
+//            std::cout << "resVec_n_k_.NormL2() pre Call To SetupResVector_Linesearch: " << resLambda << std::endl;
             // SetupRes will write the residual directly to resVec_n_k_
             // It will also reassemble the system! > we have to call this function
             // again after the linesearch to get the curret system set up!
             SetupRESVector_Linesearch(flag_for_matrix_assembly, flag_for_vector_assembly,resVec_n_k_,tmpSol, tmpSol, currentSol, solIncrement_n_k_local, lambda);
             //            SetupRESVector(tmpSol,tmpSol,tmpSol,iterationCounter);
             resLambda = resVec_n_k_.NormL2();
+
+//            std::cout << "Residual for lambda: " << resLambda << std::endl;
           }
         }
       }
@@ -3676,7 +3813,12 @@ namespace CoupledField {
 //        std::cout << "Remaining intervals: " << std::endl;
 //        std::cout << "mu-a: " << mu-a << std::endl;
 //        std::cout << "b-lambda: " << b-lambda << std::endl;
-//        std::cout << "Remaining residual: " << resOptEXACT_GoldenSection << std::endl;
+//        std::cout << "mu: " << mu << std::endl;
+//        std::cout << "Remaining residual for mu: " << resMu << std::endl;
+//        std::cout << "lambda: " << lambda << std::endl;
+//        std::cout << "Remaining residual for lambda: " << resLambda << std::endl;
+//        std::cout << "--- stop ---" << std::endl;
+//        exit(0);
 //      }
 
       LSResults curMethod;
@@ -5287,9 +5429,14 @@ namespace CoupledField {
 
     bool comingFromLinesearch = true;
 
+//    std::cout << "SetupResVector_Linesearch" << std::endl;
+//    std::cout << "Norm of targetVector at start: " << targetVector.NormL2() << std::endl;
+    
     sysNorm = SetupRESorRHS(flag_for_matrix_assembly, flag_for_vector_assembly, newSol, solutionForMatrixAssembly, solutionForNonLinRHSAssembly,
       targetVector, comingFromLinesearch);
 
+//    std::cout << "Norm of targetVector after SetupRESorRHS: " << targetVector.NormL2() << std::endl;
+    
     /*
      * IMPORTANT: the following steps are ONLY allowed, if we compute the residual
      * with a linear system, i.e. all nonlinearities are contained in the rhs vectors!
@@ -5327,7 +5474,7 @@ namespace CoupledField {
 
       targetVector.Add(-1.0,systemUpdate);
     }
-
+//    std::cout << "Norm of targetVector at end: " << targetVector.NormL2() << std::endl;
 		return sysNorm;
 	}
 
@@ -5339,11 +5486,15 @@ namespace CoupledField {
     LOG_TRACE(solvestephyst_residual) << "== SolveStepHyst - SetupRESorRHS  ==";
     LOG_TRACE(solvestephyst_residual) << "====================================";
 
+//    std::cout << "norm of returnVector start, pre init: " << returnVector.NormL2() << std::endl;
+    
 		/*
      * 0. Init returnVector
      */
 		returnVector.Init();
 
+//    std::cout << "norm of returnVector after init: " << returnVector.NormL2() << std::endl;
+    
 		/*
      * 1. Setup Linear part and predictor corrector update
      */
@@ -5354,7 +5505,7 @@ namespace CoupledField {
     returnVector.Add(1.0,linRhsVec_n_0_);
 		returnVector.Add(1.0,predictorCorrectorUpdate_n_0_);
     LOG_DBG2(solvestephyst_residual) << "---- Norm of return vector after adding linRHS and predictor-corrector: "<<returnVector.NormL2()<<" ---";
-
+//    std::cout << "norm of returnVector after adding linRhsVec_n_0_ and predictorCorrectorUpdate_n_0_: " << returnVector.NormL2() << std::endl;
 		/*
      * 2. Setup nonlin RHS with hysteresis
      * > nonlin RHS is solution dependent
@@ -5382,12 +5533,18 @@ namespace CoupledField {
     LOG_TRACE(solvestephyst_residual) << "=== Add NL-RHS to return vector ===";
     if( NonLinRHSRequiresReassembly || forceHystReassembly || forceRHSevaluation_ ){
 //      std::cout << "Reassemble NL RHS" << std::endl;
+//      std::cout << "norm of returnVector at start of reassembly: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_ at start of reassembly: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
       LOG_DBG(solvestephyst_residual) << "--- Reassemble NL-RHS ---";
       LOG_DBG2(solvestephyst_residual) << "---- Norm of previous NL-RHSreturn vector : "<<nonLinRhsVec_n_k_.NormL2()<<" ---";
 
 			nonLinRhsVec_n_k_.Init();
-			algsys_->InitRHS(nonLinRhsVec_n_k_); //load storage into algsys
 
+//      std::cout << "norm of returnVector after init: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_ after init: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
+			algsys_->InitRHS(nonLinRhsVec_n_k_); //load storage into algsys
+//      std::cout << "norm of returnVector after init2: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_ after init2: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
       // evalPurpose 1 > assemble (refers not only for matrix but also for rhs)
       UInt evaluationPurpose = 1;
       PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose); // set variable directly
@@ -5422,7 +5579,13 @@ namespace CoupledField {
       SBM_Vector rhsBackup;
 			solBackup = solVec_;
       rhsBackup = rhsVec_;
-
+      
+//      std::cout << "norm of rhsBackup before assembleNonLinRHS: " << rhsBackup.NormL2() << std::endl;
+//      SBM_Vector zeroVec;
+//      zeroVec = rhsBackup;
+//      zeroVec.Init();
+//      std::cout << "norm of rhsBackup after defining zeroVec: " << rhsBackup.NormL2() << std::endl;
+//      std::cout << "norm of zeroVec afterinit: " << zeroVec.NormL2() << std::endl;
       // AssembleNonLinRHS accesses solVec_ for assembly > set solVec_ accordingly
 			solVec_ = solutionForRHSAssembly;
 
@@ -5431,11 +5594,17 @@ namespace CoupledField {
        * > if we are not setting the rhs to its correct value before solving, we get wrong results
        * > maybe edit this function, such that it takes a backup of the rhs and then restores it!s
        */
+//      algsys_->InitRHS(zeroVec); // test 18.4.2020: clear RHS before assemble nonlinrhs! somehow it seems that
+      // the nonlinrhs adds up > no effect
       assemble_->AssembleNonLinRHS();
+            
+//      std::cout << "norm of returnVector after assembly: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_ after assembly: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
 			algsys_->GetRHSVal( nonLinRhsVec_n_k_ );
-
+//            std::cout << "norm of returnVector after load from algsys: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_ after load from algsys: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
       LOG_DBG2(solvestephyst_residual) << "---- Norm of new NL-RHSreturn vector : "<<nonLinRhsVec_n_k_.NormL2()<<" ---";
-
+//      std::cout << "norm of rhsBackup after assembleNonLinRHS: " << rhsBackup.NormL2() << std::endl;
 			// reset solVec_ and rhs
 			solVec_ = solBackup;
       algsys_->InitRHS(rhsBackup);
@@ -5444,13 +5613,18 @@ namespace CoupledField {
       forceRHSevaluation_ = false;
       currentRESandRHSFlag_ = flag_for_vector_assembly;
 		} else {
+//      std::cout << "DO NOT Reassemble NL RHS" << std::endl;
       LOG_DBG(solvestephyst_residual) << "--- Reuse NL-RHS ---";
     }
 
     //    std::cout << "TimeLevels_IN_CoefFunctionHyst -- post" << std::endl;
     //    PDE_.SetFlagInCoefFncHyst("PrintTimeLevels",0);
-
+//            std::cout << "norm of returnVector before adding nonLinRhsVec_n_k_: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
 		returnVector.Add(1.0,nonLinRhsVec_n_k_);
+//                std::cout << "norm of returnVector after adding nonLinRhsVec_n_k_: " << returnVector.NormL2() << std::endl;
+//      std::cout << "norm of nonLinRhsVec_n_k_: " << nonLinRhsVec_n_k_.NormL2() << std::endl;
+//    
     LOG_DBG2(solvestephyst_residual) << "---- Norm of return vector after adding NL-RHS: "<<returnVector.NormL2()<<" ---";
 
     /*
@@ -5502,13 +5676,14 @@ namespace CoupledField {
     } else {
       if(reassemblyPerformed){
         LOG_TRACE(solvestephyst_residual) << "=== Subtract K_eff*solutionVector (linesearch case, full eval. due to reassembly of system) ===";
+//        std::cout << "=== Subtract K_eff*solutionVector (linesearch case, full eval. due to reassembly of system) ===" << std::endl;
         Helper_ComputeKeffTimesSolution(solutionForUpdate, systemUpdate,!reassemblyPerformed, flag_for_matrix_assembly);
         normOfSystemUpdate = systemUpdate.NormL2();
         returnVector.Add(-1.0,systemUpdate);
         LOG_DBG2(solvestephyst_residual) << "---- Norm of return vector after adding K_eff*solution: "<<returnVector.NormL2()<<" ---";
       } else {
         LOG_DBG(solvestephyst_residual) << "--- Return 0 to trigger construction of K_eff*solutionVector from oldSolution and solutionUpdate (linesearch) ---";
-
+//        std::cout << "=== DO NOT Subtract K_eff*solutionVector (linesearch case, full eval. due to reassembly of system) ===" << std::endl;
         normOfSystemUpdate = 0;
       }
     }

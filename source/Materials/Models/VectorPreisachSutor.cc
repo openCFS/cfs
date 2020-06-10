@@ -51,6 +51,7 @@ namespace CoupledField
     // default: no measurements; no output; new mapping
     mappingVersion_ = 1;
     performanceMeasurement_ = 0;
+    collectProjections_ = false;
     // TODO: change all occurances of debug output to logging system, then remove flag
     textOutputLevel_ = 0;
 
@@ -67,7 +68,7 @@ namespace CoupledField
     //in the order of 1e-10; therefore use a softer tolerance here
 
     // restriction to halfspace not working well; better without
-		restrictToHalfspace_ = !true;
+		restrictToHalfspace_ = false;
 
     // get size of preisachWeights_
     UInt M = preisachWeights_.GetNumRows();
@@ -197,7 +198,8 @@ namespace CoupledField
     anhyst_A_ = weightParams.anhysteretic_a_;
     anhyst_B_ = weightParams.anhysteretic_b_;
     anhyst_C_ = weightParams.anhysteretic_c_;
-
+    anhyst_D_ = weightParams.anhysteretic_d_;
+    
     scaleUpToSaturation_ = scaleUpToSaturation;
 
     deltaPhi_preComputed_ = Vector<Double> (numElem_);
@@ -732,6 +734,12 @@ namespace CoupledField
      */
     // A: do we have a new state at all? If not, return old state
     if(e_u_new.NormL2() == 0){
+//      std::cout << "e_u_new = " << e_u_new.ToString() << std::endl;
+//      e_u_new[1] = 10.0;
+//      std::cout << "set e_u_new to " << e_u_new.ToString() << std::endl;
+//      return e_u_new;
+//      std::cout << "0! > Reuse old direction instead!" << std::endl;
+//      std::cout << "e_u_old = " << e_u_old.ToString() << std::endl;
       return e_u_old;
     } else {
       e_u_new.ScalarDiv(e_u_new.NormL2());
@@ -911,6 +919,7 @@ namespace CoupledField
     // F: perform rotation
     e_phi = rotMat*e_u_new;
 
+    
     // G: safety check and normalization (due to rounding errors)
     assert(e_phi.NormL2() > 0);
     if(e_phi.NormL2() != 1){
@@ -918,6 +927,8 @@ namespace CoupledField
 //      std::cout << "e_phi.NormL2() = "<<e_phi.NormL2()<<" != 1!" << std::endl;
 //      std::cout << "e_phi = "<<e_phi.ToString() << std::endl;
     }
+
+//    assert(e_phi.NormL2() == 1);
 
     return e_phi;
   } // end of new implementation
@@ -946,8 +957,10 @@ namespace CoupledField
     switchingStates_ = new Matrix<Double>[numElem];
     rotationStateX_ = new Matrix<Double>[numElem];
     rotationStateY_ = new Matrix<Double>[numElem];
-    rotationStateZ_ = new Matrix<Double>[numElem];
 
+    if(dim_ == 3){
+      rotationStateZ_ = new Matrix<Double>[numElem];
+    }
     /*
      * Initialize arrays/vectors/matrices for each element
      */
@@ -963,7 +976,7 @@ namespace CoupledField
       if(dim_ == 3){
         rotationStateZ_[k] = Matrix<Double>(numRows_,numRows_);
         rotationStateZ_[k].Init();
-      }
+      } 
     }
 
     /*
@@ -994,6 +1007,7 @@ namespace CoupledField
     anhyst_A_ = 0.0;
     anhyst_B_ = 0.0;
     anhyst_C_ = 0.0;
+    anhyst_D_ = 0.0;
     bool overwrite = false;
     //    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
@@ -1013,15 +1027,22 @@ namespace CoupledField
     anhyst_A_ = weightParams.anhysteretic_a_;
     anhyst_B_ = weightParams.anhysteretic_b_;
     anhyst_C_ = weightParams.anhysteretic_c_;
-
+    anhyst_D_ = weightParams.anhysteretic_d_;
+    
+    updateMatricesTimer_ = new Timer();
+    evaluateMatricesTimer_ = new Timer();
+    copyToTemporalStorageTimer_ = new Timer();
+    copyFromTemporalStorageTimer_ = new Timer();
   }
 
   VectorPreisachSutor_MatrixApproach::~VectorPreisachSutor_MatrixApproach(){
     delete[] switchingStates_;
     delete[] rotationStateX_;
     delete[] rotationStateY_;
-    delete[] rotationStateZ_;
-
+    if(dim_ == 3){
+      delete[] rotationStateZ_;
+    } 
+    
     delete updateMatricesTimer_;
     delete evaluateMatricesTimer_;
     delete copyToTemporalStorageTimer_;
@@ -1132,11 +1153,54 @@ namespace CoupledField
      * Update rotation states from current input u_in = xVal * e_u_new; change of rotation state indicated by xThres
      * Update only for FE element with index idElem
      */
-
+    /*
+     * Note 10.4.2020
+     * Note (see also list based implementation):
+     * when input crosses 0 but does not hit 0 actually some of the switching
+     * states are not updated (at least it is not detected); this is a problem of
+     * the model itself as the lower triangle is never touched due to xThres >= 0 for all inputs;
+     * In the revised model, this problem does not occur, as the setting rules for the
+     * rotational operator trigger an update of the lower triangle, too.
+     *         In the list based implementation, the following workaround performs quite well (even
+     *         though it is still a workaround!):
+     * Check if new direction is antiparallel to previous direction; if this is the case,
+     *         evaluate the switching state with xParallelTMP first, where is the projection of the input
+     *         onto the OLD rotation state 
+     *         Unfortunately this can be come very costly in the matrix based version as we would have to check
+     *                 this condition for every cell!
+     *                         but one can try ...
+     *                         Remark: as the problem only occurs for the lower triangle, just check cells with alpha <= 0
+     *                                 furthermore, as all cells in the lower triangle have the same direction, we just have to check
+     *                                 a single cell!      
+     * 
+     */
     Vector<Double> curState = Vector<Double>(dim_);
     Vector<Double> newState;
     Double alpha,betaNext;
 
+    bool allowUpdateWithOldProjectionFirst = true;
+    bool performUpdateWithOldProjectionFirst = false;
+    Vector<Double> u_in = Vector<Double>(dim_);
+    u_in.Init();
+    
+    if((classical_)&&(allowUpdateWithOldProjectionFirst)){
+      Double dotProduct = rotationStateX_[idElem][0][0]*e_u_new[0] + rotationStateY_[idElem][0][0]*e_u_new[1];
+      if(dim_ == 3){
+        dotProduct += rotationStateZ_[idElem][0][0]*e_u_new[2];
+      }
+      if(dotProduct >= 1.0){
+        dotProduct = 1.0;
+      } else if(dotProduct <= -1.0){
+        dotProduct = -1.0;
+      }
+      Double angleBetweenStates = std::acos(dotProduct)*180/M_PI;
+      
+      if( angleBetweenStates >= 179.999 ){
+        performUpdateWithOldProjectionFirst = true;
+        u_in.Add(xVal,e_u_new);
+      }  
+    }
+    
     /*
      * iterate over rotation states
      */
@@ -1150,6 +1214,10 @@ namespace CoupledField
          * check if update is necessary
          */
         if(classical_){
+          
+          if((performUpdateWithOldProjectionFirst == true)){
+            UpdateSwitchingStates(u_in, idElem);
+          }          
           /*
            * rotation state changes, if xThres > alpha OR -xThres < beta+delta_, with alpha and beta being the
            * bottom left coordinates of each element
@@ -1303,8 +1371,9 @@ namespace CoupledField
         switchingStatesSingleElemBAK = switchingStates_[idElem];
         rotationStateXSingleElemBAK = rotationStateX_[idElem];
         rotationStateYSingleElemBAK = rotationStateY_[idElem];
-        rotationStateZSingleElemBAK = rotationStateZ_[idElem];
-
+        if(dim_ == 3){
+          rotationStateZSingleElemBAK = rotationStateZ_[idElem];
+        }
         if(performanceMeasurement_){
           copyToTemporalStorageTimer_->Stop();
         }
@@ -1394,8 +1463,9 @@ namespace CoupledField
         switchingStates_[idElem] = switchingStatesSingleElemBAK;
         rotationStateX_[idElem] = rotationStateXSingleElemBAK;
         rotationStateY_[idElem] = rotationStateYSingleElemBAK;
-        rotationStateZ_[idElem] = rotationStateZSingleElemBAK;
-
+        if(dim_ == 3){
+          rotationStateZ_[idElem] = rotationStateZSingleElemBAK;
+        }
         if(performanceMeasurement_){
           copyFromTemporalStorageTimer_->Stop();
         }
@@ -1515,7 +1585,7 @@ namespace CoupledField
         stream << "xy-" << filename;
         std::string filename_new = stream.str();
 
-        switchingStates_[idElem].matrix2Bmp_v2(upscaling,filename_new,&rotationStateX_[idElem],&rotationStateY_[idElem]);
+        switchingStates_[idElem].matrix2Bmp_v3(upscaling,filename_new,&rotationStateX_[idElem],&rotationStateY_[idElem]);
       }
     } else {
       switchingStates_[idElem].matrix2Bmp(upscaling,filename,NULL);
@@ -1605,6 +1675,7 @@ namespace CoupledField
     anhyst_A_ = 0.0;
     anhyst_B_ = 0.0;
     anhyst_C_ = 0.0;
+    anhyst_D_ = 0.0;
     bool overwrite = false;
     //    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
@@ -1646,7 +1717,7 @@ namespace CoupledField
     anhyst_A_ = weightParams.anhysteretic_a_;
     anhyst_B_ = weightParams.anhysteretic_b_;
     anhyst_C_ = weightParams.anhysteretic_c_;
-
+    anhyst_D_ = weightParams.anhysteretic_d_;
   }
 
   VectorPreisachSutor_ListApproach::~VectorPreisachSutor_ListApproach(){
@@ -1853,10 +1924,13 @@ namespace CoupledField
     // for classical_ we have to add entries for xThres = 0.0 as this entry would influence
     // the result of the upper triangle!
     // -> already done during Initialize_GlobalRotationList -> no further insert needed
+    // UPDATE 24.3.2020
+    // > a comparison to the Scalar Model showed, that at least for uniaxial excitation, it is better to NOT insert
+    // an entry in the classical case if xThres == 0!
     if(xThres <= 0.0){
       xThres = 0.0;
       if(classical_){
-        needsInsert = true;
+        needsInsert = false; // changed to false 24.3.2020
       } else {
         needsInsert = false;
       }
@@ -1887,6 +1961,8 @@ namespace CoupledField
      * but for the classical model, we would set the rotation state of both the upper
      * triangle and the lower triangle!
      * > check this!!!!
+     * UPDATE: 24.3.2020
+     * > at least in a simple 1d comparison to the scalar model, it was better to skip insertion for xthres = 0!
      */
     if(needsInsert == true){
       /*
@@ -2003,6 +2079,17 @@ namespace CoupledField
         }
       } // loop
 
+      // see notes below - in case of the classical model, we check if we have a pure change in sign, i.e., the new
+      // input direction is -1x the old direction; in that case we would have a zero crossing (if we would have a scalar
+      // model) that has to be considered; this crossing has to be considered for the classical variant as it has the
+      // unfortunate property that the switching states inside the lower triangle (i.e., for alpha <= 0) can never be
+      // changed
+      // for the revised variant this is not required as here the setting rules for the
+      // rotational operator are different;
+      bool updateInnerListWithOldProjectionFirst = false;
+      if(classical_){
+          updateInnerListWithOldProjectionFirst = true;
+      }
       if(posFound == false){
         /*
          * no suitable position was found (i.e. the current input is the smallest so far)
@@ -2031,6 +2118,43 @@ namespace CoupledField
 //            break;
 //          }
 //        }
+        
+        /*
+         * EDIT 25.3.2020 (Please see also comment further below under needsInsert == true)
+         * at this point, we are at the END of the list;
+         * there are two possibilities:
+         *  a) new rotation state coincides with the previous one
+         *  b) new rotation state does not coincide with previous one
+         * 
+         * in case a), the call to checkVectorEquality(e_u_check, prevState, critForVectorEquality_, tolForVectorEquality_);
+         * will return true, so that needsInsert = false, so we just extend/edit the currently last entry of the list
+         * in case b), needsInsert = true, so we create a new rotation entry at the end of the rotation list; that entry
+         * inherits the inner switching list and updates it later with the parallel projection of the input u_in onto the
+         * NEW direction; however, this projection can only be positive in the classical model, so that the inner list 
+         * may not be wiped out correctly (which would be the case for projections <= 0 in the upper triangle);
+         * thus, the idea is as follows: in case of the classical model and only for this last position in the list, the
+         * inherited inner list gets updated with the parallel projection onto the OLD state first; if this leads to a full
+         * wipe out (the projection onto the old state may be negative) the inherited list is cleared before it gets updated
+         * with the actual projection; to mark that this, use a new flag
+         * 
+         * > see note below: always check this projection, not only if the entry is appended to the list; 
+         *    it is also necessary to wipe out the inner list if the new outer list entry is at the pre-last position 
+         *    for example; just consider the following scenario:
+         *      - last rotation direction is +1,0; new entry has value close to 0 and direction -1,0; it gets appended to
+         *      the end of the list, the wiping out hotfix below is checked and applied
+         *      - now another entry is added with a value larger than the previous one and also with direction -1,0; it will be inserted before
+         *      the previously inserted entry as its value is larger; here the wiping out hotfix will not be checked; so
+         *      it will behave like a standard insertion and inheits the inner list from the entry with rotation direction +1,0
+         *      - at this point, we are back at the initial issue; the inherited inner list should be CHECKED for a wipe out as
+         *      the zero position has been crossed; 
+         * > suggestion > for the classical model, always check for a near 180 degree change in direction, not only if 
+         *      entry is appended at the very end of the list, but also for insertions at other positions
+         * > a comparison with the scalar model for an uniaxial excitation should lead to exactly the same curves if the
+         *      rotational resistance is equal to 1! with the mentioned extension, this is the case now
+         */
+//        if(classical_){
+//          updateInnerListWithOldProjectionFirst = true;
+//        }
       }
 
       /*
@@ -2045,9 +2169,39 @@ namespace CoupledField
          * Important notes:
          * 1. new entries inherit the switching list from the entry, which they (partially) overlay
          *    this is the entry prior to insertPos (if any!); otherwise the new list will be empty
+         * EDIT 25.3.2020:
+         *    there is an issue with the LAST entry of the rotation list; this entry covers not only
+         *    the upper square area SU but will furthermore extend into the upper triangle TU;
+         *    the upper triangle TU always changes direction due to the setting rules for the rotational operator;
+         *    therewith, the orthogonal projection of inputstate onto rotational operator cannot be smaller 0 in this
+         *    part; thus, the switching list cannot wipe out completely as it would be the case in the scalar everett
+         *    function, where a -1 input could wipe out a list starting with any value; in the upper triangle, a 0 would
+         *    already cause a complete wipe-out; this in fact functions well so far but the issue occurs if 0 is not hit
+         *    but overjumped; as an example consider the input going from +0.1,0 to -0.1,0 directly; in this example,
+         *    0 is passed, but not hit; after updating the inner list, the negative -0.1 would already cause a positve
+         *    value due to the projection onto the new rotation state -1,0 and thus there is no wipe out in between;
+         *   IDEA for workaround:
+         *    when a new state is appended to the end of the rotation list (only classical model!), the inherited list
+         *    get updated with the projection onto the OLD direction first, then it is checked whether a full wipe out
+         *    has to be applied (due to negative projection value); afterwards the standard procedure is continued, i.e.,
+         *    all inner lists (including the mentioned inherited list) get updated by the parallel projection onto the
+         *    current direction of the rotational operator
          * 2. the previous entry (if any) gets a new lower bound (the current xThres)
          * 3. for Sutor2015: rotation state of new entry has to be created from rotating the direction of the (partially)
          *    overlaid entry towards the current direction
+         * 
+         * EDIT 26.5.2020:
+         *    unfortunately, the above mentioned issue with the jumping results (just compare classical model for xthres=1
+         *    to scalar model for uniaxial excitation; should lead to same result but does not; it jumps when it crosses zero)
+         *    not only occurs if an entry is appended to the list and also occurs if 0 is hit exactly;
+         *    the problem could be identified as follows:
+         *      in case of 0 to be hit, the hotfix works as expected; the real issue lies in the insertion of the next
+         *      entry afterwards; that entry will not be appended to the end of the list but one position before that entry;
+         *      as the hotfix-check below only gets applied if the new entry is appended to the end of the list, it does not
+         *      trigger for the newly inserted state; in consequence, the new state inhertis the inner list as usual without
+         *      applying the wipe out if zero was crossed and xPar would allow for a wipe-out
+         *  > the actual hot-fix to this hot-fix is simply to extend the wipe-out check to all entries which shall be inserted
+         *      to the outer list; this seems like a lot cheating but it seems to work as expected
          */
 
         std::list<ListEntryv10> newList = std::list<ListEntryv10>();
@@ -2059,18 +2213,67 @@ namespace CoupledField
            * get previous entry
            */
           insertPos--;
-          newList = insertPos->getListCopy();
+          
           lastXpar = insertPos->getLastLocalXpar();
           /*
            * e_u_old is the rotation state which will rotate towards e_u_new
            */
           e_u_old = insertPos->getVecReference();
-
+          
           /*
-           * as we inherit the switching list, we also inherit the wiped out property and the value of startCnt
+           * Workaround for issue with last rotlistentry in case of the classical variant; see comments above;
+           * updateInnerListWithOldProjectionFirst can only be true in case of classical model
            */
-          wasWipedOut = insertPos->wasListWipedOut();
-          startCnt = insertPos->getStartCnt();
+          bool inheritList = true;
+          if(updateInnerListWithOldProjectionFirst == true){
+            // determine projection onto OLD state
+            Double xParTMP = e_u_old.Inner(e_u)*xVal/XSaturated_;
+            Double angle = std::acos(e_u_old.Inner(e_u))/M_PI*180;
+            
+            // inner list for new entry gets completely wiped out for projections <= 0 as the
+            // upper triangle is bounded on the left hand edge by the y-axis (in the standard scalar
+            // everett function, the complete wipe-out is achieved for -1 as the full preisach plane goes
+            // till -1 on the left)
+            /*
+             * Hotfix: apparently this new wiping is only working as intended if direction change is close to
+             * 180 degree; if not, the list will be wiped out too often (at least it seems so); this leads to
+             * non-convergence in the actual FE simulations!
+             * Furthermore, xParTMP should be smaller than -xThres and not 0 as we are not only concerned about
+             * the upper triangle but also about parts of the upper square area; 
+             */
+            if( (xParTMP <= -xThres) && (angle >= 179.999) ){
+              // instead of inserting a value and then wipe out list, just insert a wiped out list
+              newList.push_back(ListEntryv10(0,true,false));
+              wasWipedOut = true; 
+              startCnt = 0;
+              inheritList = false;
+//              std::cout << "WIPE OUT INNER LIST!" << std::endl;
+//              std::cout << "Reason: Projection onto OLD rotation state is " << xParTMP << " and -xThres is " << -xThres << std::endl;
+//              std::cout << "Olddir = " << e_u_old[0] << "," << e_u_old[1] << "; NewDir = " << e_u[0] << "," << e_u[1] << std::endl;
+//              std::cout << "angle between rotstates: " << angle << std::endl;
+            } 
+          }
+          /*
+           * End workaround
+           * Tested 25.3.2020 by comparing output to uniaxial signal with scalar everett function
+           * > outputs coincide now! (except of virgin curve but that is clear as initially, the rotation state
+           * has to be filled up first)
+           * > further tests might be required, though
+           */
+          
+          if(inheritList == true){
+            /*
+             * inherit full switching list from previous state
+             */
+            newList = insertPos->getListCopy();
+
+            /*
+             * as we inherit the switching list, we also inherit the wiped out property and the value of startCnt
+             */
+            wasWipedOut = insertPos->wasListWipedOut();
+            startCnt = insertPos->getStartCnt();
+          }
+          
           /*
            * due to the new entry, the previous one will be reduced in size
            * -> set lowerVal of that element (this will also set the flag isChanged_ of the element to true)
@@ -2078,6 +2281,9 @@ namespace CoupledField
           insertPos->setLowerVal(xThres);
           insertPos++;
         } else {
+          /*
+           * Insert at beginning of rotation list
+           */
           if(classical_){
             /*
              * add minimum of value 0 -> the same as in initialize_globalRotationList
@@ -2088,7 +2294,7 @@ namespace CoupledField
             startCnt = 0;
           }
           /*
-           * new previous rotation state available; e_u_old = 0-vector
+           * no previous rotation state available; e_u_old = 0-vector
            */
           e_u_old = Vector<Double>(dim_);
         }
@@ -2104,7 +2310,9 @@ namespace CoupledField
 					e_phi = restrictToHalfspace(e_phi);
 				}
 
+        // NOTE: entry is inserted before insertPos, i.e. in case of appending to the list, insertPos will be end of list
         usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
+
         listUpdated = true;
       }
     } // if needsInsert = true
@@ -2136,8 +2344,14 @@ namespace CoupledField
     listEnd = --(usedList.end());
 
     bool anySwitchingListUpdated = false;
+    UInt rotListIdx = 0;
+    if(collectProjections_){
+      listOfCollectedProjections_.clear();
+    }
+    
     for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
-
+      rotListIdx++;
+      
       rotState = listIt->getVecReference();
 
       xPar = rotState.Inner(e_u)*xVal;// = rotState.Inner(u_in);
@@ -2150,6 +2364,12 @@ namespace CoupledField
       //      if( abs(xPar) < 1e-15 ){
       //        xPar = 0.0;
       //      }
+
+      if(collectProjections_){
+        std::stringstream nameTag;
+        nameTag << rotListIdx << ": " << "rotState_" << rotListIdx << " = " << rotState.ToString() << " -> xPar_" << rotListIdx << tsCNTForProjections_ << " = " <<xPar<<"\n";
+        listOfCollectedProjections_.push_back(nameTag.str());
+      }
 
       /*
        * we need to pass lastXpar to list
@@ -2254,6 +2474,9 @@ namespace CoupledField
      * > possible quick and dirty workaround: simplify only if working on permanent storage! usually that storage is
      *    written with larger input differences and thus we might avoid wrong simplifications due to numerical precision
      *    issues
+     * 
+     * EDIT 25.03.2020: suitable workaround seems to be found (see above for under step 2)
+     * > update inner list with old projection first, but only in classical model and only for last rotlist entry
      */
 
     /*
@@ -2847,8 +3070,14 @@ namespace CoupledField
     Double uNormTmp = u_in.NormL2();
 
     if(classical_ || scaleUpToSaturation_){
+//      if(uNormTmp == 0){
+//        std::cout << "0-norm!" << std::endl;
+//        u_in[1] += -1e-6;
+//      }
+      
+      
       //      std::cout << "Old version" << std::endl;
-      // scaleUpToSaturation_:
+      // scaleUpToSaturation_ (for revised model):
       // restrict norm to 1 first, then compute xThres
       // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
       // > Preisach plane will not get fully filled even for u_in.NormL2 > Xsaturated if rotRes < 1
@@ -3482,12 +3711,26 @@ namespace CoupledField
        *     Ai2:
        *      L = -exi, R = -exi+1, B = exi, T = 1
        *
+       * -----------
+       * Test 24.3.2020
+       * 
+       *     AN1: 
+       *      change R to -exN and add the lower trapezoidal part to AN2
+       *     AN2:
+       *      change B to 0
+       *     !!!! Attention !!!! in this case upperBound >= 1 will make A12 = full and A11 = 0!
+       *      -> do not apply these new bounds in case of upperBound >= 1!
+       * 
+       *      -> did not improve results; keep it in for maybe further tests but set flag to false at the moment
+       * -----------
+       * 
        *     AN1:
        *      L = -1, R = exN, B = 0, T = exN
        *     AN2:
        *      L = -exN, R = 1, B = exN, T = 1
        *
        */
+      bool TestMarch = false;
       if(upperBound >= 1){
         /*
          * A0 = 0; A11 = square; A12 = 0
@@ -3502,7 +3745,11 @@ namespace CoupledField
          * AN1
          */
         l = -1.0;
-        r = upperBound;
+        if(TestMarch && twoAreas){
+          r = -upperBound;
+        } else {
+          r = upperBound;
+        }
         b = 0.0;
         t = upperBound;
 
@@ -3511,7 +3758,11 @@ namespace CoupledField
          */
         l2 = -upperBound;
         r2 = 1;
-        b2 = upperBound;
+        if(TestMarch && twoAreas){
+          b2 = 0;
+        } else {
+          b2 = upperBound;
+        }
         t2 = 1;
       } else {
         /*
@@ -3696,12 +3947,8 @@ namespace CoupledField
 
     }
 
+//    std::cout << "---Evaluate rotlist---" << std::endl;
     for(rotListIt = usedList.begin(); rotListIt != usedList.end(); rotListIt++){
-
-      if(debugOut){
-        outputCNT++;
-        std::cout << "Entry: " << outputCNT << std::endl;
-      }
 
       if(rotListIt == rotListEnd){
         lastRotListEntryv10 = true;
@@ -3710,6 +3957,11 @@ namespace CoupledField
       }
       rotState = rotListIt->getVecReference();
 
+      if(debugOut){
+        outputCNT++;
+        std::cout << "Entry # "<< outputCNT <<" of rotlist: " << rotListIt->ToString() << std::endl;
+      }
+      
       /*
        * check if reevaluation is needed at all
        */
@@ -3725,6 +3977,7 @@ namespace CoupledField
          * -> take stored value
          */
         retVec += rotState*rotListIt->getLastEvalState();
+ 
       } else {
         /*
          * get rotation area(s)
@@ -3992,6 +4245,7 @@ namespace CoupledField
 
       }
     } // rot list
+//    std::cout << std::setprecision(25) << "retVec (after final Update): " << retVec[0] << " / " << retVec[1] << std::endl;
   }
 
   void VectorPreisachSutor_ListApproach::Evaluate_LowerTriangle(){
@@ -5421,8 +5675,30 @@ namespace CoupledField
      * startCnt will be set to 1 (as the entry of the switching list which corresponds to the helper area
      * (id = 0) no longer is in the list).
      * Leave out all rotListEntries for which the flag isUpdated is false.
+     * 
+     * 12.3.2020 - additional simplification rules
+     * - classical model: 
+     * -- in upper square we find flipped L-shapes with lower bound B and right hand side bound R (each L-shape corresponds 
+     *    to a rotation state)
+     * -- switching entries that are maxima correspond to horizontal lines; if this value is below B it will not overlap
+     *    with the rotation state and can be removed 
+     * -- switching entries that are minima correspond to vertical lines; if this value is larger than R it will not overlap
+     *    with the rotation state and can be removed
+     * --> these two eliminations should already be considered due to checking for overlap, so at first, nothing new here
+     * 
+     * - revised model:
+     * -- whole Preisach plane is used; rotated L shapes with upper bound U and left hand side bound L
+     * -- switching entries that are maxima correspond to horizontal lines; if this value is above U it can be cut down 
+     *    to U as the overstanding part will get lost either way; however, the list will be wiped out and merged easier 
+     * -- switching entries that are minima correspond to vertical lines; if this value is below L it can be cut down to
+     *    L as the overstanding part will get lost either way (in the overlap switch and rot-state function);
+     * --> implement these additional rules but with a switch first
+     * 
      */
-
+    bool applyNewCuttingRules = true;
+    
+//    std::cout << "--- Simplify_LocalSwitchingLists called ---" << std::endl;
+    
     std::list<ListEntryv10>::iterator swListIt;
     std::list<ListEntryv10>::iterator firstToKeep;
     std::list<ListEntryv10>::iterator swListEnd; // = --(globSwitchList_[idElem].end());
@@ -5451,6 +5727,7 @@ namespace CoupledField
       } else {
         lastRotListEntry = false;
       }
+      
       /*
        * maybe the list was already simplified once or was inherited from a previous rotListState
        * in that case we have to make sure to not test for the wrong value
@@ -5580,11 +5857,44 @@ namespace CoupledField
             switchingListSimplified = true;
           }
 //          std::cout << "Length of switching list after simplify: " << rotListIt->getListReference().size() << std::endl;
-        } //else
+        } //else - firstToKeep
         /*
          * whole list has to be kept
          * -> continue with next rotListElement
          */
+        
+        if(applyNewCuttingRules && !classical_){
+            /*
+             * New 12.3.2020 -- see comment at beginning of function for details
+             * > cut down value of first to keep
+             */
+            Double xPar = firstToKeep->getVal();
+            bool isMin = firstToKeep->isMin();
+            Double xThres = rotListIt->getVal();
+            
+//            std::cout << "Simplify_LocalSwitchingList - Checking value of first kept entry: " << std::endl;
+//            std::cout << "Value: " << xPar;
+//            if(isMin){
+//              std::cout << " - min -> compare and cut to Left boundary of rotation state" << std::endl;
+//            } else {
+//              std::cout << " - max-> compare and cut to top boundary of rotation state" << std::endl;
+//            }
+//            
+//            std::cout << "Left and top boundary of rotation state = " << -xThres << " / " << xThres << std::endl;
+            if(isMin){
+              if(xPar < -xThres){
+                firstToKeep->setVal(-xThres);
+//                firstToKeep->setHasChanged(true); // done automatically in setVal
+                switchingListSimplified = true;
+              }
+            } else {
+              if(xPar > xThres){
+                firstToKeep->setVal(xThres);
+                switchingListSimplified = true;
+              }
+            }
+          }
+        
       } // rot list has changed
     } // rot list
 
@@ -5990,7 +6300,53 @@ namespace CoupledField
       }
     }
   }
-
+  
+  void VectorPreisachSutor_ListApproach::rotationListToTxt(std::string filename, UInt idElem, bool append, std::string optionalHeader)
+  {
+    std::list<RotListEntryv10>::iterator rotListIt;
+    std::fstream listOutput;
+    listOutput.exceptions (std::fstream::failbit | std::fstream::badbit);
+    
+    try{
+      if(append == false){
+        listOutput.open(filename,std::fstream::out);
+      } else {
+        listOutput.open(filename,std::fstream::app);
+      }
+  
+      listOutput << optionalHeader;
+      
+      if(collectProjections_){
+        listOutput << "+++ Collected projection values (unclipped but normalized): \n";
+        std::list< std::string >::iterator projectionIterator;
+        for(projectionIterator = listOfCollectedProjections_.begin(); projectionIterator != listOfCollectedProjections_.end(); projectionIterator++){
+          listOutput << *projectionIterator;
+        }
+      }
+      
+      UInt cnt = 1;
+      listOutput << "+++ Nested list: \n";   
+      for(rotListIt = globRotList_[idElem].begin(); rotListIt != globRotList_[idElem].end(); rotListIt++){
+        listOutput << rotListIt->ToString(cnt);
+        cnt++;
+      }
+      listOutput << "\n";
+      listOutput.close();
+      
+    } catch(const std::ofstream::failure &writeErr) {
+      std::cerr << "Could not open file " << filename << " for writing. " << std::endl;
+      std::cerr << "Printing rotation list to console instead." << std::endl;
+      
+      std::cout << optionalHeader;
+      
+      UInt cnt = 1;
+      for(rotListIt = globRotList_[idElem].begin(); rotListIt != globRotList_[idElem].end(); rotListIt++){
+        std::cout << rotListIt->ToString(cnt);
+        cnt++;
+      }
+    }
+  }
+  
 
   void VectorPreisachSutor_ListApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
   {
@@ -6257,8 +6613,12 @@ namespace CoupledField
 
           /*
            * only difference to evaluation algorithm: do this also, if list was already wiped
+           * EDIT 13.5.2020
+           * > as we want to output the switching state and not evaluate its result we should
+           * go over the upper unset square even for unsymmetric weights; otherwise the block will be completely unset
            */
-          if(isSymmetric_ == false){
+          if(true){
+//          if(isSymmetric_ == false){
             /*
              * set flag upperSplitSquare to true -> get area 0 instead of area 1
              */
@@ -6382,7 +6742,7 @@ namespace CoupledField
         stream << "xy-" << filename;
         std::string filename_new = stream.str();
 
-        helperMatrix.matrix2Bmp_v2(upscaling,filename_new,&rotX,&rotY);
+        helperMatrix.matrix2Bmp_v3(upscaling,filename_new,&rotX,&rotY);
         //
         //        std::cout << "switching: \n" << helperMatrix.ToString() << std::endl;
         //        std::cout << "rotx: \n " << rotX.ToString() << std::endl;

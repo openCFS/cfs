@@ -289,6 +289,70 @@
     </xsd:all>
   </xsd:complexType>
 
+  <!-- ******************************************************************* -->
+  <!--   remove DT_MuLorentzianBertottiParams > it is not clear how these 
+        parameters were determined nor how they must be scaled as the TEAM32.pdf
+        does not provide suitable values for Hsat and Msat  -->
+  <!-- ******************************************************************* -->
+  <!-- <xsd:complexType name="DT_MuLorentzianBertottiParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for Lorentzian weight function as used for TEAM32 test and defined by
+        Bertotti in \n
+        "G. Bertotti, Hysteresis in Magnetism: For Physicists, Materials Scientists, and Engineers , Academic Press, 1998"
+        Mu_Lorentzian(alpha,beta) = phi(alpha)phi(-beta); \n
+        phi(x) = C1/(C2*C3*std::sqrt(M_PI*(M_PI/2+std::atan(1/C2)))) * \n
+          \t 1/(1 + ((x-C3)/(C2*C3))*((x-C3)/(C2*C3)) ); \n
+        Important note: per default C1,C2 and C3 are for phi(x) and (x) NOT normalized to outputSat, inputSat;
+        thus, flag requiresNormalization is true per default;
+        CFS will thus scale C1,C2,C3 internally such that x is in range [-1,1] and phi(x) leq 1; 
+        if this is not wanted by the user, set requiresNormalization to false;
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="C1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="C2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="C3" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="requiresNormalization" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>-->
+
+  <xsd:complexType name="DT_MuLorentzianParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for Lorentzian weight function as used and defined by
+        Wolf in \n
+        "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+        Mu_Lorentzian(alpha,beta) = A/(1 + ((alpha-h2)/(h2)*sigma2)^2 ) * A/(1 + ((beta+h2)/(h2)*sigma2)^2 );
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MuLorentzianExtendedParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for Lorentzian weight function as used and defined by
+        Wolf in \n
+        "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+        Mu_LorentzianExtended(alpha,beta) = A/(1 + ((alpha-h2)/(h2)*sigma2)^2 ) * A/(1 + ((beta+h1)/(h1)*sigma1)^2 );
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
   <xsd:complexType name="DT_MuDATParams">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
@@ -297,12 +361,13 @@
         Preisach plane; therefore, the muDat parameter have to be adapted; if forHalfRange
         is true, this adaption is made by CFS; if it is set to false (default) it is assumed
         that parameter have already been adapted.
+        muDat(alpha,beta) = A/(1 + {[(alpha+beta)*sigma2]^2 + [(alpha-beta-h2)*sigma2]^2}^eta)
       </xsd:documentation>
     </xsd:annotation>
     <xsd:all>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="h" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="sigma" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
       <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
       <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
     </xsd:all>
@@ -316,6 +381,7 @@
         Preisach plane; therefore, the muDat parameter have to be adapted; if forHalfRange
         is true, this adaption is made by CFS; if it is set to false (default) it is assumed
         that parameter have already been adapted.
+        muDatExtended(alpha,beta) = A/(1 + {[(alpha+beta+h1)*sigma1]^2 + [(alpha-beta-h2)*sigma2]^2}^eta)
       </xsd:documentation>
     </xsd:annotation>
     <xsd:all>
@@ -429,24 +495,59 @@
     </xsd:all>
   </xsd:complexType>
 
+  <!-- ******************************************************************* -->
+  <!--   remove DT_AnhystereticParamsTeam32 > it is not clear how these 
+        parameters where determined nor how they must be scaled as the TEAM32.pdf
+        does not provide suitable values for Hsat and Msat  -->
+  <!-- ******************************************************************* -->
+  <!--<xsd:complexType name="DT_AnhystereticParamsTeam32">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Add anhysteretic part to output of hyst operator to obtain overall FLUX DENSITY not polarization!
+        Version used for TEAM32 test as defined by Bertotti: \n
+          B_total(H) = p(H) + D1*D2*atan(H/D2) + D3*H \n
+        note1: D1,D2 and D3 are per default meant for NOT-NORMALIZED B,P and H \n
+        \t this can be changed by setting flag requiresNormalization to false
+        note2: D3 already includes the reversible part mu_0*H \n
+        note3: can likewise be used for piezos and electrostatics
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="D1" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="D2" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="D3" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="requiresNormalization" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
+      <xsd:element name="anhystPartCountsTowardsOutputSat" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            anhystPartCountsTowardsOutputSat:
+              true (default): outputSat = output value of preisach operator + anhyst part at inputSat
+              false: outputSat = output value of preisach operator at inputSat; anhyst part comes on top
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>-->
+
   <xsd:complexType name="DT_AnhystereticParams">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        Add anhysteretic part to output of hyst operator to obtain overall polarization;
-        Sutor version (cInAtan=false): p_total(e) = p(e) + a*atan(b*e)*c
-        Loeffler version (default,cInAtan=true): p_total(e) = p(e) + a*atan(b*(e+c))
-        note: in their works, Sutor and Loeffler model p,e to be normalized to range [-0.5,0.5]
-        in CFS p,e are normalized to [-1,1] such that a,b,c have to be adapted which is done by CFS if
-        flag forHalfRange = true
+        Add anhysteretic part to output of hyst operator to obtain overall POLARIZATION
+          y_anhyst(x) = a*atan(b*x + d) + c*x
+        note1: a,b,c and d are meant for NORMALIZED y and x \n
+        note2: in their works, Sutor and Loeffler model y,x to be normalized to range [-0.5,0.5]
+        in CFS p,e are normalized to [-1,1] such that a,b,c,d have to be adapted which is done by CFS if
+        flag forHalfRange = true        
       </xsd:documentation>
     </xsd:annotation>
     <xsd:all>
       <xsd:element name="a" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="b" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="c" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="d" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
       <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
-      <xsd:element name="cInAtan" type="xsd:boolean" minOccurs="1" default="true"/>
       <xsd:element name="anhystPartCountsTowardsOutputSat" type="xsd:boolean" minOccurs="1" default="true">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -469,6 +570,8 @@
             <xsd:element name="const" type="xsd:double" default="0.5"/>
             <xsd:element name="muDat" type="DT_MuDATParams" />
             <xsd:element name="muDatExtended" type="DT_MuDATExtendedParams"/>
+            <xsd:element name="muLorentz" type="DT_MuLorentzianParams" />
+            <xsd:element name="muLorentzExtended" type="DT_MuLorentzianExtendedParams" />
             <xsd:element name="weightTensor">
               <xsd:simpleType>
                 <xsd:restriction base="DT_DoubleList">
@@ -489,6 +592,16 @@
         <xsd:complexType>
           <xsd:choice>
             <xsd:element name="Fixpoint">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  Inversion via Fixpoint method. Usually very reliable in convergence but requires a lot more (but fortunately cheap)
+                  iterations. Make sure to set the general parameter maxNumberOuterIterations (parameter of element InversionMethod )
+                  to at least 100 (500 better!).
+                  Setting the inversion factor (only parameter of element Fixpoint) to a value larger 1.0 slows down convergence
+                  but makes convergence more reliable. Smaller values on the other hand might lead to faster convergence but at
+                  the risk of non-convergence.
+                </xsd:documentation>
+              </xsd:annotation>
               <xsd:complexType>
                 <xsd:all>
                   <xsd:element name="convergenceFactor" type="xsd:double" minOccurs="0" default="1.0"/>
@@ -505,7 +618,7 @@
                   <xsd:element name="trustRegionLow" type="xsd:double" minOccurs="0" default="0.15"/>
                   <xsd:element name="trustRegionMid" type="xsd:double" minOccurs="0" default="0.35"/>
                   <xsd:element name="trustRegionHigh" type="xsd:double" minOccurs="0" default="0.85"/>
-                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-7"/>
                   <xsd:element name="jacobiImplementation">
                     <xsd:complexType>
                       <xsd:choice>
@@ -525,7 +638,7 @@
                   <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
                   <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
                   <xsd:element name="stopLinesearchAtLocalMin" type="xsd:boolean" default="false"/>
-                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-7"/>
                   <xsd:element name="jacobiImplementation">
                     <xsd:complexType>
                       <xsd:choice>
@@ -589,7 +702,9 @@
                 <xsd:documentation xml:lang="en">
                   Efficient inversion for SCALAR preisach model only.
                   Taken from "Generalisiertes Preisach-Modell für die Simulation und Kompensation
-                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf.
+                  No additional parameter for this element, but make sure to set the tolerances under
+                  the InversionMethod node finer (1e-10 and 1e-12 instead of the default 1e-7 and 1e-10).
                 </xsd:documentation>
               </xsd:annotation>
             </xsd:element>
@@ -597,8 +712,42 @@
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="maxNumberOuterIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
-      <xsd:element name="residualTolH" type="xsd:double" minOccurs="1" default="1e-12"/>
-      <xsd:element name="residualTolB" type="xsd:double" minOccurs="1" default="1e-12"/>
+        <xsd:element name="residualTolH">
+          <xsd:complexType>
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Default value is for absolute tolerance.
+                </xsd:documentation>
+               </xsd:annotation>
+               <xsd:attribute name="value" type="DT_PosFloat" default="1e-7"/>
+               <xsd:attribute name="isRelative" type="DT_CFSBool" default="no"/>
+          </xsd:complexType>
+        </xsd:element>
+          <xsd:element name="residualTolB">
+          <xsd:complexType>
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Default value is for absolute tolerance.
+                </xsd:documentation>
+               </xsd:annotation>
+               <xsd:attribute name="value" type="DT_PosFloat" default="1e-9"/>
+               <xsd:attribute name="isRelative" type="DT_CFSBool" default="no"/>
+          </xsd:complexType>
+        </xsd:element>
+     <!-- <xsd:element name="residualTolH" type="xsd:double" minOccurs="1" default="1e-7">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+              Absolute tolerance
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="residualTolB" type="xsd:double" minOccurs="1" default="1e-10">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+              Absolute tolerance
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>-->
       <xsd:element name="printWarnings" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false"/>
     </xsd:all>
   </xsd:complexType>
@@ -619,13 +768,13 @@
   <xsd:complexType name="DT_initialInOutState">
     <xsd:annotation>
       <xsd:documentation>
-        initialState > vector providing an initial input to the hyst operator that shall be applied before the
-                        actual simulation starts; can be used to simulate a material which starts in saturation
-                        (for that purpose, the initial input has to have an amplitude >= eSat of course)
-                       Attention: this has to be conform with boundary conditions, i.e. if you specify initial state
-                                  to be (eSat,0,0), the polarization must be allowed to point into x direction at the boundary
-                                  > see e.g. the newly added fieldParallel bcs (i.e. E is parallel to BC but P does not have to be)
-
+        initialState: 
+          vector providing an initial input to the hyst operator that shall be applied before the
+          actual simulation starts; can be used to simulate a material which starts in saturation
+          (for that purpose, the initial input has to have an amplitude >= eSat of course)
+        Attention: this has to be conform with boundary conditions, i.e. if you specify initial state
+          to be (eSat,0,0), the polarization must be allowed to point into x direction at the boundary
+          > see e.g. the newly added fieldParallel bcs (i.e. E is parallel to BC but P does not have to be)
       </xsd:documentation>
     </xsd:annotation>
     <xsd:all>
@@ -786,6 +935,27 @@
             <xsd:maxLength value="3"/>
           </xsd:restriction>
         </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="rotLossCorrectionFactors" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Additional material dependent parameter that can be used to 
+            correct the non-functional rotational losses of the Mayedrgoyz model 
+            in saturation regime.
+            Source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
+            Correction in form of a correction angle:
+              psi(t) = g(x)|x||dPhi|
+            with
+              g(x) = e^(-a|x| + b))
+            setting a and b to 0 will deactivate this function
+          </xsd:documentation>
+        </xsd:annotation>
+         <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="lossParam_a" type="xsd:double" minOccurs="0" default="0.0"/>
+            <xsd:element name="lossParam_b" type="xsd:double" minOccurs="0" default="0.0"/>
+          </xsd:all>
+        </xsd:complexType>
       </xsd:element>
     </xsd:all>
   </xsd:complexType>
@@ -963,16 +1133,16 @@
       <xsd:element name="Classical_Version_2012__list_implementation">
       <xsd:annotation>
           <xsd:documentation xml:lang="en">
-     * The classical Sutor model cannot utilize unsymmetric weights correctly.
-     * The reason is as follows: Due to the setting rules for the rotation states, the lower
-     * trianglular part will always rotate into the direction of the current input (even for 0-vectors).
-     * Therewith, the values for xPar = x_in \cdot rotationState  will always be larger or equal to 0 for
-     * all switching operators in the lower triangle. Thus, the lower triangle will always filled completely with
-     * +1. If we make small steps around the zero input now, we will always step into the upper half of the Preisach
-     * plane and only use the weights which are stored there. In case of (nearly) symmetric weights, this is no issue as
-     * the weights in both parts are matching. If we have unsymmetric weights, however, the contributions around zero
-     * will not cancel out as expected and we will get issues, especially during the evaluation of the Jacobian.
-     * Consequence: In case of the classical model, we enforce symmetry of the weights!
+          * The classical Sutor model cannot utilize unsymmetric weights correctly.
+          * The reason is as follows: Due to the setting rules for the rotation states, the lower
+          * trianglular part will always rotate into the direction of the current input (even for 0-vectors).
+          * Therewith, the values for xPar = x_in \cdot rotationState  will always be larger or equal to 0 for
+          * all switching operators in the lower triangle. Thus, the lower triangle will always filled completely with
+          * +1. If we make small steps around the zero input now, we will always step into the upper half of the Preisach
+          * plane and only use the weights which are stored there. In case of (nearly) symmetric weights, this is no issue as
+          * the weights in both parts are matching. If we have unsymmetric weights, however, the contributions around zero
+          * will not cancel out as expected and we will get issues, especially during the evaluation of the Jacobian.
+          * Consequence: In case of the classical model, we enforce symmetry of the weights!
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>

@@ -37,6 +37,7 @@ namespace CoupledField
   {
     isInitialized_ = false; // set by FinishInit()
     isAxi_ = false;
+    depth2dPlane_ = 1.0;
     param_ = param;
     info_ = infoNode;
     

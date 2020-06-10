@@ -832,8 +832,9 @@ namespace CoupledField {
   {
     std::ostringstream os;
 
-    if(level == 0 || level == 1)
+    if(level == 0 || level == 1 || level > 2)
     {
+      os << std::scientific << std::setprecision(level);
       int nnz = 0;
       for(unsigned int i = 0; i < size_; ++i)
       {
@@ -873,7 +874,6 @@ namespace CoupledField {
     return os.str();
   }
   
-
 
   // *****************
   //   Export vector

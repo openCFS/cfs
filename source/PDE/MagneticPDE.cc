@@ -26,6 +26,7 @@
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
@@ -63,6 +64,7 @@ namespace CoupledField {
     // for magnetostrictive coupling
     isMagnetoStrictCoupled_ = false;
     mechanicPDE_ = NULL;
+
     anyRegionHasConductivity_ = false;
 
 //    isMixed_ = false;
@@ -325,16 +327,16 @@ namespace CoupledField {
 //          curCoef = hystPol->GenerateMatCoefFnc("Reluctivity");
 //
 //          PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
-//          hysteresisPolarization_->AddRegion( actRegion, hystOutput);
+//          polarization_->AddRegion( actRegion, hystOutput);
 //
 //          PtrCoefFct hystOutput2 = hystPol->GenerateOutputCoefFnc("MagMagnetization");
-//          hysteresisMagnetization_->AddRegion( actRegion, hystOutput2);
+//          magnetization_->AddRegion( actRegion, hystOutput2);
 //
 //          PtrCoefFct hystOutput3 = hystPol->GenerateOutputCoefFnc("MagFieldIntensityHyst");
-//          hysteresisFieldIntensity_->AddRegion( actRegion, hystOutput3);
+//          fieldIntensity_->AddRegion( actRegion, hystOutput3);
 
           stiffInt = GeHystStiffInt( factor, curCoef );
-			  } else{
+			  } else {
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
@@ -364,6 +366,39 @@ namespace CoupledField {
             // 3D case
             stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
           }
+          
+          // shifted to DefineRHSLoadIntegrator!
+//          // check for fixed magnetization > defined in mat.xml
+//          int hasFixedMagnetization = 0;
+//          materials_[actRegion]->GetScalar(hasFixedMagnetization,PRESCRIBED_MAGNETIZATION);
+//
+//          // mRHSRegions_ gets filled in MagBasePDE.cc > InitMagnetization
+//          PtrCoefFct magFncSharedPtr = mRHSRegions_[actRegion];
+//            
+//          if(hasFixedMagnetization == 1){
+//            // add RHS integrator (compare rhsIntegrator flux)
+//            LinearForm * lin = NULL;
+//            bool coefUpdateGeo = true;
+//            
+//            if( dim_ == 2) {
+//              if( isaxi_ ) {
+//                // axisymmetric case
+//                lin = new BUIntegrator<Double>(new CurlOperatorAxi<Double>(), factor,  magFncSharedPtr,coefUpdateGeo);
+//              } else {
+//                lin = new BUIntegrator<Double>(new CurlOperator<FeH1,2,Double>(),factor, magFncSharedPtr,coefUpdateGeo);
+//              }
+//            } else {
+//              // 3D case
+//              lin = new BUIntegrator<Double>(new CurlOperator<FeH1,3,Double>(),factor, magFncSharedPtr,coefUpdateGeo);
+//            }
+//      
+//            lin->SetName("FixedMagnetizationIntegrator");
+//            LinearFormContext *ctx = new LinearFormContext( lin );
+//            ctx->SetEntities( actSDList );
+//            ctx->SetFeFunction(myFct);
+//            assemble_->AddLinearForm(ctx);
+//            //feFct->AddEntityList(ent[i]);
+//          }        
 			  }
 
 			  stiffInt->SetName("CurlCurlIntegrator");
@@ -626,7 +661,7 @@ namespace CoupledField {
     return ret;
   }
 
-  LinearForm* MagneticPDE::GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){
+  LinearForm* MagneticPDE::GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){
     LinearForm * lin = NULL;
     bool coefUpdateGeo = true;
 
@@ -803,52 +838,121 @@ namespace CoupledField {
     bool coefUpdateGeo = true;
 
     // =================================
-    //  Magnetization -> from hysteresis (VOLUME)
+    //  Magnetization
     // =================================
-    //check for hysteresis
-    if ( isHysteresis_ ){
-      LOG_DBG(magpde) << "Putting magnetization to rhs";
+    // magnetization should contain ALL regions; hysteresisCoefs only those where hysteresis is defined
+    // and mRHSRegions_ only those where constant magnetization is prescribed
+    std::map<RegionIdType,PtrCoefFct > regionCoefs = magnetization_->GetRegionCoefs();
+    std::map<RegionIdType,PtrCoefFct > regionHystCoefs = hysteresisCoefs_->GetRegionCoefs();
+    std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+    for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
 
-      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+      // get regionIdType
+      RegionIdType curReg = it->first;
+      PtrCoefFct curHystCoef = regionHystCoefs[curReg];
+      PtrCoefFct curFixedMagCoef = mRHSRegions_[curReg];
 
-        // get regionIdType
-        RegionIdType curReg = it->first;
+      // get SDList
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( curReg );
 
-        if(it->second == NULL){
-          continue;
-        }
-        // get SDList
-        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-        actSDList->SetRegion( curReg );
+      shared_ptr<CoefFunction> rhsMag;
 
-        // set fullevaluation to trigger evaluation at each integration point
-        // the nonlinear parameter "evaluation depth" determines if each
-        // integration point gets mapped to midpoint (> fullevaluation = false)
-        // or if hyst operator really is evaluated at the actual int. point
-        bool fullevaluation = true;
-
+      // set fullevaluation to trigger evaluation at each integration point
+      // the nonlinear parameter "evaluation depth" determines if each
+      // integration point gets mapped to midpoint (> fullevaluation = false)
+      // or if hyst operator really is evaluated at the actual int. point
+      bool fullevaluation = true;
+      bool forceSolDependent = false;
+      
+      if(curHystCoef != NULL){
+//        std::cout << "Hysteresis region found" << std::endl;
         // NEW: we do not pass the hysteresis coefficient function
         // directly but instead a special class that returns the
         // correctly weighted term
         // even though, we have a similar function for output,
         // we need a separate coefFunction here as rhsMag might
         // be evaluated at another timestep/interation step as outputMag
-        shared_ptr<CoefFunction> rhsMag = it->second->GenerateRHSCoefFnc("MagMagnetization");
-
-        lin = GetRHSHystInt( factor, rhsMag, fullevaluation );
-
-        lin->SetName("rhs_magnetization");
-        lin->SetSolDependent();
-        LinearFormContext *ctx = new LinearFormContext( lin );
-        ctx->SetEntities( actSDList );
-        ctx->SetFeFunction(feFct);
-        assemble_->AddLinearForm(ctx);
-        // Add entity list will add nothing, if entities were already assigned
-        feFct->AddEntityList(actSDList);
+        //shared_ptr<CoefFunction> rhsMag = it->second->GenerateRHSCoefFnc("MagMagnetization");
+        rhsMag = curHystCoef->GenerateRHSCoefFnc("MagMagnetization");
+        mRHSRegions_[curReg] = rhsMag;
+        forceSolDependent = true;
+      } else if(curFixedMagCoef != NULL) {
+        if(magnetizationSet_ == false){
+          EXCEPTION("Magnetization has not been initialized yet!");
+        }
+//        std::cout << "Use constant magnetization " << std::endl;
+        rhsMag = mRHSRegions_[curReg];
+      } else {
+//        std::cout << "Neither hysteresis nor constant magnetization prescribed " << std::endl;
+        continue;
       }
+
+      lin = GetRHSMagnetizationInt( factor, rhsMag, fullevaluation );
+
+      lin->SetName("rhs_magnetization");
+      if(forceSolDependent){
+        lin->SetSolDependent();
+      }
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( actSDList );
+      ctx->SetFeFunction(feFct);
+      assemble_->AddLinearForm(ctx);
+      // Add entity list will add nothing, if entities were already assigned
+      feFct->AddEntityList(actSDList);
+
     }
+ 
+    
+//    OLD
+//    //check for hysteresis
+//    if ( isHysteresis_ ){
+//      LOG_DBG(magpde) << "Putting magnetization to rhs";
+//
+//      std::map<RegionIdType,PtrCoefFct > regionCoefs = magnetization_->GetRegionCoefs();
+//      std::map<RegionIdType,PtrCoefFct > regionHystCoefs = hysteresisCoefs_->GetRegionCoefs();
+//      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+//      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+//
+//        // get regionIdType
+//        RegionIdType curReg = it->first;
+//        PtrCoefFct curHystCoef = regionHystCoefs[curReg];
+//        
+//        if(curHystCoef == NULL){
+//        //if(it->second == NULL){
+//          continue;
+//        }
+//        // get SDList
+//        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+//        actSDList->SetRegion( curReg );
+//
+//        // set fullevaluation to trigger evaluation at each integration point
+//        // the nonlinear parameter "evaluation depth" determines if each
+//        // integration point gets mapped to midpoint (> fullevaluation = false)
+//        // or if hyst operator really is evaluated at the actual int. point
+//        bool fullevaluation = true;
+//
+//        // NEW: we do not pass the hysteresis coefficient function
+//        // directly but instead a special class that returns the
+//        // correctly weighted term
+//        // even though, we have a similar function for output,
+//        // we need a separate coefFunction here as rhsMag might
+//        // be evaluated at another timestep/interation step as outputMag
+//        //shared_ptr<CoefFunction> rhsMag = it->second->GenerateRHSCoefFnc("MagMagnetization");
+//        shared_ptr<CoefFunction> rhsMag = curHystCoef->GenerateRHSCoefFnc("MagMagnetization");
+//
+//        lin = GetRHSMagnetizationInt( factor, rhsMag, fullevaluation );
+//
+//        lin->SetName("rhs_magnetization");
+//        lin->SetSolDependent();
+//        LinearFormContext *ctx = new LinearFormContext( lin );
+//        ctx->SetEntities( actSDList );
+//        ctx->SetFeFunction(feFct);
+//        assemble_->AddLinearForm(ctx);
+//        // Add entity list will add nothing, if entities were already assigned
+//        feFct->AddEntityList(actSDList);
+//      }
+//    }
 
     // ==================
     //  FLUX DENSITY
@@ -1292,19 +1396,45 @@ namespace CoupledField {
     magIntens->definedOn = ResultInfo::ELEMENT;
     magIntens->entryType = ResultInfo::VECTOR;
 
-    if ( !isHysteresis_){
-      shared_ptr<CoefFunctionFormBased> magIntensFunc;
-      if( isComplex_ ) {
-        magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
-      } else {
-        magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
-      }
-      DefineFieldResult( magIntensFunc, magIntens );
-      stiffFormCoefs_.insert(magIntensFunc);
-    }
+    /*
+     * TODO: check what happens if we have hysteretic and non-hysteretic regions
+     * > in this case isHysteresis_ should be true, so that in the non-hysteretic regions
+     *   no H-Field will be output?! > actually yes
+     * > solution idea: add belows definition for magIntensFunc in MagBasePDE where fieldIntensity_ is filled
+     *   there we check each region for hysteresis and currently add a coefFunction only on hysteretic regions
+     *   
+     */
+//    if ( !isHysteresis_){
+////      shared_ptr<CoefFunctionFormBased> magIntensFunc;
+////        if( isComplex_ ) {
+////          magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
+////        } else {
+////          magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+////        }
+////        
+////        // subtract fixed magnetization!
+////      // cannot be done here as we do not have access to different regions
+////        CoefXprBinOp sub(mp_, magIntensFunc, mRHSRegions_[actRegion], CoefXpr::OP_SUB);
+////        PtrCoefFct magIntensFuncCorrected(CoefFunction::Generate(mp_, part, sub));
+////
+////        fieldIntensity_->AddRegion( actRegion, magIntensFuncCorrected);
+////        std::string warnmsg = "NON-Hysteretic H set on region " + regionName;
+////        std::cout << warnmsg << std::endl;
+////        //DefineFieldResult( magIntensFunc, magIntens );
+////        stiffFormCoefs_.insert(magIntensFunc);
+//
+//      shared_ptr<CoefFunctionFormBased> magIntensFunc;
+//      if( isComplex_ ) {
+//        magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
+//      } else {
+//        magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+//      }
+//      DefineFieldResult( magIntensFunc, magIntens );
+//      stiffFormCoefs_.insert(magIntensFunc);
+//    }
 
     // Magnetization, Polarization and Field Intensity
-    if ( isHysteresis_){
+//    if ( isHysteresis_){
       shared_ptr<ResultInfo> magJ ( new ResultInfo );
       magJ->resultType = MAG_POLARIZATION;
       magJ->SetVectorDOFs(dim_, isaxi_);
@@ -1312,7 +1442,7 @@ namespace CoupledField {
       magJ->definedOn = ResultInfo::ELEMENT;
       magJ->entryType = ResultInfo::VECTOR;
 
-      DefineFieldResult( hysteresisPolarization_, magJ );
+      DefineFieldResult( polarization_, magJ );
       availResults_.insert( magJ );
 
       shared_ptr<ResultInfo> magM ( new ResultInfo );
@@ -1322,12 +1452,12 @@ namespace CoupledField {
       magM->definedOn = ResultInfo::ELEMENT;
       magM->entryType = ResultInfo::VECTOR;
 
-      DefineFieldResult( hysteresisMagnetization_, magM );
+      DefineFieldResult( magnetization_, magM );
       availResults_.insert( magM );
 
-      DefineFieldResult( hysteresisFieldIntensity_, magIntens );
+      DefineFieldResult( fieldIntensity_, magIntens );
       availResults_.insert( magIntens );
-    }
+//    }
 
     // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
     // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)
