@@ -289,34 +289,6 @@
     </xsd:all>
   </xsd:complexType>
 
-  <!-- ******************************************************************* -->
-  <!--   remove DT_MuLorentzianBertottiParams > it is not clear how these 
-        parameters were determined nor how they must be scaled as the TEAM32.pdf
-        does not provide suitable values for Hsat and Msat  -->
-  <!-- ******************************************************************* -->
-  <!-- <xsd:complexType name="DT_MuLorentzianBertottiParams">
-    <xsd:annotation>
-      <xsd:documentation xml:lang="en">
-        Parameter for Lorentzian weight function as used for TEAM32 test and defined by
-        Bertotti in \n
-        "G. Bertotti, Hysteresis in Magnetism: For Physicists, Materials Scientists, and Engineers , Academic Press, 1998"
-        Mu_Lorentzian(alpha,beta) = phi(alpha)phi(-beta); \n
-        phi(x) = C1/(C2*C3*std::sqrt(M_PI*(M_PI/2+std::atan(1/C2)))) * \n
-          \t 1/(1 + ((x-C3)/(C2*C3))*((x-C3)/(C2*C3)) ); \n
-        Important note: per default C1,C2 and C3 are for phi(x) and (x) NOT normalized to outputSat, inputSat;
-        thus, flag requiresNormalization is true per default;
-        CFS will thus scale C1,C2,C3 internally such that x is in range [-1,1] and phi(x) leq 1; 
-        if this is not wanted by the user, set requiresNormalization to false;
-      </xsd:documentation>
-    </xsd:annotation>
-    <xsd:all>
-      <xsd:element name="C1" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="C2" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="C3" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="requiresNormalization" type="xsd:boolean" minOccurs="1" default="true"/>
-    </xsd:all>
-  </xsd:complexType>-->
-
   <xsd:complexType name="DT_MuLorentzianParams">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
@@ -494,41 +466,6 @@
       <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="false"/>
     </xsd:all>
   </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   remove DT_AnhystereticParamsTeam32 > it is not clear how these 
-        parameters where determined nor how they must be scaled as the TEAM32.pdf
-        does not provide suitable values for Hsat and Msat  -->
-  <!-- ******************************************************************* -->
-  <!--<xsd:complexType name="DT_AnhystereticParamsTeam32">
-    <xsd:annotation>
-      <xsd:documentation xml:lang="en">
-        Add anhysteretic part to output of hyst operator to obtain overall FLUX DENSITY not polarization!
-        Version used for TEAM32 test as defined by Bertotti: \n
-          B_total(H) = p(H) + D1*D2*atan(H/D2) + D3*H \n
-        note1: D1,D2 and D3 are per default meant for NOT-NORMALIZED B,P and H \n
-        \t this can be changed by setting flag requiresNormalization to false
-        note2: D3 already includes the reversible part mu_0*H \n
-        note3: can likewise be used for piezos and electrostatics
-      </xsd:documentation>
-    </xsd:annotation>
-    <xsd:all>
-      <xsd:element name="D1" type="xsd:double" minOccurs="1" default="0"/>
-      <xsd:element name="D2" type="xsd:double" minOccurs="1" default="0"/>
-      <xsd:element name="D3" type="xsd:double" minOccurs="1" default="0"/>
-      <xsd:element name="requiresNormalization" type="xsd:boolean" minOccurs="1" default="true"/>
-      <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
-      <xsd:element name="anhystPartCountsTowardsOutputSat" type="xsd:boolean" minOccurs="1" default="true">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            anhystPartCountsTowardsOutputSat:
-              true (default): outputSat = output value of preisach operator + anhyst part at inputSat
-              false: outputSat = output value of preisach operator at inputSat; anhyst part comes on top
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-    </xsd:all>
-  </xsd:complexType>-->
 
   <xsd:complexType name="DT_AnhystereticParams">
     <xsd:annotation>
@@ -734,20 +671,6 @@
                <xsd:attribute name="isRelative" type="DT_CFSBool" default="no"/>
           </xsd:complexType>
         </xsd:element>
-     <!-- <xsd:element name="residualTolH" type="xsd:double" minOccurs="1" default="1e-7">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-              Absolute tolerance
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="residualTolB" type="xsd:double" minOccurs="1" default="1e-10">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-              Absolute tolerance
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>-->
       <xsd:element name="printWarnings" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false"/>
     </xsd:all>
   </xsd:complexType>

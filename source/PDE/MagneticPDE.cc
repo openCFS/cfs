@@ -759,79 +759,9 @@ namespace CoupledField {
     // ==================
     //  COIL INTEGRATORS
     // ==================
-    // Loop over all coils
-    //    for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
-    //
-    //      // Set current region and material
-    //      RegionIdType actRegion = coilRegionId_[coil];
-    //
-    //      // Get current region name
-    //      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-    //
-    //      // create new entity list
-    //      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-    //      actSDList->SetRegion( actRegion );
-    //
-    //      LinearForm * curInt = NULL;
-    //      std::string factor = coilDef_[coil]->value_ + "/" +
-    //          lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
-    //      PtrCoefFct coef;
-    //      // ===========
-    //      //  3D CASE
-    //      // ===========
-    //      if( dim_ == 3 ) {
-    //        StdVector<std::string> currDensity(3);
-    //        currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
-    //        currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
-    //        currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
-    //
-    //        if( isComplex_ ) {
-    //          StdVector<std::string> phaseVec(3);
-    //          phaseVec.Init(coilDef_[coil]->phase_);
-    //          coef = CoefFunction::Generate(mp_, Global::COMPLEX, currDensity, phaseVec );
-    //          coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-    //          curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3>(),
-    //                                              1.0, coef, updatedGeo_);
-    //        } else {
-    //          coef = CoefFunction::Generate(mp_, Global::REAL, currDensity);
-    //          coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-    //          curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3>(),
-    //                                             1.0, coef, updatedGeo_);
-    //        } // complex
-    //      } else {
-    //        // ===============
-    //        //  2D / AXI CASE
-    //        // ===============
-    //        StdVector<std::string> currDensity(1);
-    //        currDensity[0] = factor;
-    //
-    //        if( isComplex_ ) {
-    //          StdVector<std::string> phaseVec(1);
-    //          phaseVec.Init(coilDef_[coil]->phase_);
-    //          coef = CoefFunction::Generate(mp_, Global::COMPLEX, currDensity, phaseVec );
-    //          //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_;
-    //          curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
-    //                                              1.0, coef, updatedGeo_);
-    //        } else {
-    //          coef = CoefFunction::Generate(mp_, Global::REAL, currDensity);
-    //          //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-    //          curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
-    //                                             1.0, coef, updatedGeo_);
-    //
-    //        } // complex
-    //      } // dimension
-    //
-    //      // remember coefficient for later use
-    //      coilCoefs_[actRegion] = coef;
-    //
-    //      LinearFormContext * coilContext =
-    //          new LinearFormContext( curInt );
-    //      coilContext->SetEntities( actSDList );
-    //      coilContext->SetFeFunction( feFct );
-    //      assemble_->AddLinearForm( coilContext );
-    //
-    //    }
-
+	// > see MagBasePDE.cc
+    
+	
     LinearForm * lin = NULL;
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
@@ -902,58 +832,7 @@ namespace CoupledField {
       feFct->AddEntityList(actSDList);
 
     }
- 
-    
-//    OLD
-//    //check for hysteresis
-//    if ( isHysteresis_ ){
-//      LOG_DBG(magpde) << "Putting magnetization to rhs";
-//
-//      std::map<RegionIdType,PtrCoefFct > regionCoefs = magnetization_->GetRegionCoefs();
-//      std::map<RegionIdType,PtrCoefFct > regionHystCoefs = hysteresisCoefs_->GetRegionCoefs();
-//      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-//      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-//
-//        // get regionIdType
-//        RegionIdType curReg = it->first;
-//        PtrCoefFct curHystCoef = regionHystCoefs[curReg];
-//        
-//        if(curHystCoef == NULL){
-//        //if(it->second == NULL){
-//          continue;
-//        }
-//        // get SDList
-//        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-//        actSDList->SetRegion( curReg );
-//
-//        // set fullevaluation to trigger evaluation at each integration point
-//        // the nonlinear parameter "evaluation depth" determines if each
-//        // integration point gets mapped to midpoint (> fullevaluation = false)
-//        // or if hyst operator really is evaluated at the actual int. point
-//        bool fullevaluation = true;
-//
-//        // NEW: we do not pass the hysteresis coefficient function
-//        // directly but instead a special class that returns the
-//        // correctly weighted term
-//        // even though, we have a similar function for output,
-//        // we need a separate coefFunction here as rhsMag might
-//        // be evaluated at another timestep/interation step as outputMag
-//        //shared_ptr<CoefFunction> rhsMag = it->second->GenerateRHSCoefFnc("MagMagnetization");
-//        shared_ptr<CoefFunction> rhsMag = curHystCoef->GenerateRHSCoefFnc("MagMagnetization");
-//
-//        lin = GetRHSMagnetizationInt( factor, rhsMag, fullevaluation );
-//
-//        lin->SetName("rhs_magnetization");
-//        lin->SetSolDependent();
-//        LinearFormContext *ctx = new LinearFormContext( lin );
-//        ctx->SetEntities( actSDList );
-//        ctx->SetFeFunction(feFct);
-//        assemble_->AddLinearForm(ctx);
-//        // Add entity list will add nothing, if entities were already assigned
-//        feFct->AddEntityList(actSDList);
-//      }
-//    }
-
+   
     // ==================
     //  FLUX DENSITY
     // ==================

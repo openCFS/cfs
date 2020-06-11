@@ -1674,19 +1674,7 @@ namespace CoupledField {
       if (pWeight->Has("anhystereticParameter")){
         pAnhyst = pWeight->Get("anhystereticParameter");
       }
-      
-//      if(pWeight->Has("anhystereticParameterTeam32")){
-//          /*
-//           * CAN BE REMOVED 
-//           * the problem is that Bertotti uses a different Preisach formulation with the integrals going
-//           * from -Hsat to Hsat; this would be no issue as we could recast this to -1 and +1 but the value
-//           * for Hsat is not given for the TEAM32 problem
-//           * > determine fitting paramter from own matching and use muLorentzWolf directly!
-//           */
-//        pAnhyst = pWeight->Get("anhystereticParameterTeam32");
-//        anhystTEAM32 = true;
-//      }
-      
+            
     } else {
       std::cout << "Non-Preisach Hysteresis Model found!" << std::endl;
     }
@@ -1697,7 +1685,6 @@ namespace CoupledField {
 //    bool cInAtan; // no longer used; own paramater d instroduced instead
     bool anhystOutputSat;
     if(pAnhyst != NULL){
-//      if(anhystTEAM32 == false){
 //        Add anhysteretic part to output of hyst operator to obtain overall POLARIZATION
 //            p_total(e) = p(e) + a*atan(b*e + d) + c*e
 //        Sutor version (cInAtan=false): p_total(e) = p(e) + a*atan(b*e) + c*e > d = 0
@@ -1738,11 +1725,6 @@ namespace CoupledField {
         } else {
           anhystForHalfRange = false;
         }
-//        if(pAnhyst->Has("cInAtan")){
-//          cInAtan = pAnhyst->Get("cInAtan")->As<bool>();
-//        } else {
-//          cInAtan = false;
-//        }
         if(pAnhyst->Has("anhystPartCountsTowardsOutputSat")){
           anhystOutputSat = pAnhyst->Get("anhystPartCountsTowardsOutputSat")->As<bool>();
         } else {
@@ -1755,7 +1737,6 @@ namespace CoupledField {
       c = 0;
       d = 0;
       onlyanhyst = false;
-//      cInAtan = false;
       anhystForHalfRange = false;
       anhystOutputSat = true;
     }
@@ -1774,11 +1755,6 @@ namespace CoupledField {
     } else {
       material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE+enumOffset));
     }
-//    if(cInAtan){
-//      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
-//    } else {
-//      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
-//    }
     if(anhystOutputSat){
       material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
     } else {
@@ -2106,10 +2082,6 @@ namespace CoupledField {
             tolBrel = 0;
           }
         }
-//        if(pInversion->Has("residualTolB"))
-//        {
-//          tolB = pInversion->Get("residualTolB")->As<double>();
-//        }
 
         if (pInversion->Has("printWarnings"))
         {

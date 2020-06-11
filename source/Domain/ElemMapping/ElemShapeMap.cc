@@ -93,66 +93,6 @@ void LocPointMapped::Set(const LocPoint& lp,
   }
 }
 
-/*
- * old CFS version
- */
-//void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight)
-//{
-//  this->shapeMap = esm;
-//  this->lp = lp;
-//  this->weight = weight;
-//  this->ptEl = shapeMap->GetElem();
-//  this->isSurface = false;
-//
-//  // Calculate Jacobian, its inverse as well as determinant for local point
-//  esm->CalcJ(this->jac, lp);
-//  
-//  // The inversion can only be performed in case we have a quadratic Jacobian
-//  // otherwise pseudoinverse
-//  // i.e. the dimension of the element is the dimension of the grid
-//  jac.Invert(jacInv);
-//  if (jac.GetNumCols() == jac.GetNumRows()) {
-//    // == normal volume element case (2D elemens in 2D, 3D elems in 3D) ===
-//    jac.Determinant(jacDet);
-//  }
-//  else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
-//    // === 2D elements in 3D ===
-//    Vector<Double> normal;
-//    normal.Resize(3);
-//    normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
-//    normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
-//    normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
-//    jacDet = sqrt(
-//        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-//  }
-//  else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
-//    // === 1D elements in 3D ===
-//    jacDet = sqrt( jac[0][0] * jac[0][0]
-//                 + jac[1][0] * jac[1][0]
-//                 + jac[2][0] * jac[2][0]);
-//  }
-//  else if (jac.GetNumRows() == 2) {
-//    // === 1D elements in 2D ===
-//    //see kaltenbacher, p.23, eq.(2.122)
-//    jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
-//  };
-//
-//  // safety check for negative Jacobian determinant
-//  if (jacDet <= 0.0) {
-//	  std::cout << jacDet << std::endl;
-//    EXCEPTION(
-//        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
-//  }
-//
-//  // Check, if geometry is axi-symmetric. In this case scale the
-//  // Jacobian determinant with 2*pi*r
-//  Vector<Double> globPoint;
-//  if (esm->IsAxi()) {
-//    esm->Local2Global(globPoint, lp);
-//    jacDet *= 2 * M_PI * globPoint[0];
-//  }
-//}
-
 // same for NACS and CFS (but why does NACS not use CalcJDet here
 // and why do we not scale with depth_ here?
 // > it just has nevern been tested according to Jens)
@@ -2169,45 +2109,6 @@ Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac,
   
   return jacDet;
 }
-
-/*
-// * previous CFS version
-// */
-//Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac, const LocPoint& lp) {
-//
-//  deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
-//  jac = coords_ * deriv_;
-//  jac *= depth_; // explicitly include depth_ of setup
-//
-//  Double jacDet = 0.0;
-//  // redundant code, but necessary at some points
-//  if (jac.GetNumCols() == jac.GetNumRows()) {
-//    jac.Determinant(jacDet);
-//  } else if (jac.GetNumRows() == 3) {
-//    // 2D elements in 3D
-//    Vector<Double> normal;
-//    normal.Resize(3);
-//    normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
-//    normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
-//    normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
-//    jacDet = sqrt(
-//        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-//
-//  } else if (jac.GetNumRows() == 2) {
-//    // 1D elements in 2D
-//    //see kaltenbacher, p.23, eq.(2.122)
-//    jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
-//  }
-//
-//  // Adjust "volume" of Jacobian in case of axi-symmetry
-//  Vector<Double> globPoint;
-//  if (IsAxi()) {
-//    Local2Global(globPoint, lp);
-//    jacDet *= 2 * M_PI * globPoint[0];
-//  }
-//
-//  return jacDet;
-//}
 
 BaseFE* LagrangeElemShapeMap::GetBaseFE() {
   return ptFe_;
