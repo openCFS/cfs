@@ -23,7 +23,7 @@ DEFINE_LOG(ppm, "piezo_para_mat")
 
 PiezoParamMat::PiezoParamMat() : PiezoSIMP()
 {
-  design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
+  design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()));
 }
 
 PiezoParamMat::~PiezoParamMat()

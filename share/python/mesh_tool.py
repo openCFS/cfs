@@ -2475,7 +2475,7 @@ def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,
         e.type = HEXA8
         if (array[x,y,z] >= 0.0 and multRegion):
           e.region = "mech" + str(int(array[x][y][z]))
-        elif (array[x,y,z] > 0 and not multRegion):
+        elif (array[x,y,z] > 1e-6 and not multRegion):
           e.region = "mech"
         else:
           e.region = "void"

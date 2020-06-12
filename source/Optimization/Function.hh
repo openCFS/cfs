@@ -91,7 +91,7 @@ class Function
       YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of Poisson and heat conduction pde */
-      HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity */
+      HEAT_ENERGY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity */
       SQR_MAG_FLUX_DENS_X,       /*!< for optimization in squared magnetics Bx component */
       SQR_MAG_FLUX_DENS_Y,       /*!< for optimization in squared magnetics By component */
       SQR_MAG_FLUX_DENS_RZ,      /*!< for optimization in squared magnetics Br and Bz component */
@@ -336,7 +336,7 @@ class Function
 
     BandGap bandgap;
 
-    /** A function can be be a local function when it is calculated by the local neighborhood state.
+    /** A function can be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
      * of the local information is used!
      * Due to the (current) separation of Objective and Condition the local function property is not

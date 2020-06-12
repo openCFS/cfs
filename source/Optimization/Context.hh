@@ -4,6 +4,7 @@
 //include <cstddef>
 #include "Utils/StdVector.hh"
 #include "PDE/BasePDE.hh"
+#include "Design/DesignMaterial.hh"
 
 namespace CoupledField
 {
@@ -151,6 +152,9 @@ class Context
   /** the pde dependend optimization material. Due to multiple sequence needs to wait for Up */
   OptimizationMaterial* mat;
 
+  /** pde dependend material for parametric optimization, owned by DesignSpace **/
+  DesignMaterial* dm = NULL;
+
   /** our analysis type */
   BasePDE::AnalysisType analysis;
 
@@ -220,6 +224,7 @@ private:
 
   /** Link to MultipleExcitations. Actually we could own our own instance ... */
   MultipleExcitation* me_;
+
 };
 
 /** we have only one static instance of the context manager in Optimization::contextManager.

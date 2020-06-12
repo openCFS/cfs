@@ -57,6 +57,15 @@ def get_rot_3x3(angle, R):
   
   return Q
 
+## This rotates a 3x3 3D tensor around Euler angles(alpha,beta,gamma), see Wikipedia!
+def get_rot_3x3_3d(alpha, beta, gamma):
+  from numpy import sin, cos
+  Rx = numpy.array([ [1,0,0], [0,cos(alpha),-sin(alpha)], [0,sin(alpha),cos(alpha)] ])
+  Ry = numpy.array([ [cos(beta),0,sin(beta)], [0,1,0], [-sin(beta),0,cos(beta)] ])
+  Rz = numpy.array([ [cos(gamma),-sin(gamma),0], [sin(gamma),cos(gamma),0], [0,0,1] ])
+  
+  return (Rz.dot(Ry)).dot(Rx)
+
 ## This rotates a 6x6 3D tensor from CFS BaseMaterial
 def get_rot_6x6(alpha, beta, gamma):
 

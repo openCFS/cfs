@@ -111,7 +111,7 @@ namespace CoupledField{
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
-      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
+      LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
@@ -130,8 +130,9 @@ namespace CoupledField{
 #else
       dbMat_ = (dMat_ * bMat_) * fac;
       elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
-      // LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " int=" << GetName() << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << "\ndMat=" << dMat_.ToString(2) << "\nbmat=" << bMat_.ToString(2);
-      // LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << "\ndBMat=" << dbMat_.ToString(2) << "-> \nK_" << i << "=" << elemMat.ToString(2);
+      // LOG_DBG3(bdbint) << "bMat: " << bMat_.ToString(2) << " transpose:"  << TransposeConjugate(bMat_).ToString(2);
+      // LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << " dMat= " << dMat_.ToString(2) << " bmat=" << bMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " dBMat=" << dbMat_.ToString(2) << " -> K_" << i << "=" << elemMat.ToString(2);
 #endif
 
       //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2) << "\n";

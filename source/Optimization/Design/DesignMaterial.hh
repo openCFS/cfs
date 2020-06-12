@@ -39,7 +39,7 @@ public:
     DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
     DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
     D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES,
-    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, SGP_MATLAB} Type;
+    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, SGP_MATLAB, HEAT} Type;
 
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -48,7 +48,7 @@ public:
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
 
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
-    typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+    typedef enum {  NO_TYPE=-1, VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
     /** Rotation  direction. Clockwise (CW) or Counter-clockwise (CCW) */
     typedef enum { CW, CCW } Clock;
@@ -130,11 +130,11 @@ public:
     /** Calculate the Isotropic tensor */
     inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void ApplyHomC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
     void ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
@@ -205,7 +205,6 @@ protected:
 private:
     /* note that most of these functions are called really often, so inlining is used */
 
-
     /** Calculate the Lame Tensor */
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
@@ -224,12 +223,12 @@ private:
     /** Calculate the tensor for Laminates */
     inline void GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
     void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
+    inline void GetInterpolatedHomTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetInterpolatedTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
@@ -321,11 +320,11 @@ private:
     bool ReadDetailedStats(const char * filename, Matrix<double>& ret);
 
 #ifdef USE_SGPP
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
     void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 

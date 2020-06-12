@@ -176,6 +176,7 @@ protected:
   virtual void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
 
   /** Helper that asks MechanicMaterial. Works only for a single region.
+   * works also with multiple regions if grid is regular
    * @param excitation we need to make sure the excitation is the active one for robust
    * @return empty if multiple regions */
   StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex);
@@ -311,9 +312,10 @@ protected:
   void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
 
   /** converts the teststrain vector in voigt notation to the corresponding matrix
+   * @param app application type (PDE)
    * @param matrix output
    * @param vec input */
-  void SetTestStrainMatrix(Matrix<double>& matrix, const Vector<double>& vec);
+  void SetTestStrainMatrix(App::Type app, Matrix<double>& matrix, const Vector<double>& vec);
 
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
@@ -423,8 +425,7 @@ private:
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff  */
-  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, Function* f, DesignElement* de, bool derivative, Vector<double>& u1,
-      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1, Vector<double>& u2, UInt ij, UInt kl);
 
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
 

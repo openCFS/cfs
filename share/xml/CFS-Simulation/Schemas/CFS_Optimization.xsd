@@ -969,7 +969,7 @@
                 <xsd:attribute name="move_limit" use="optional" default="0.2" type="xsd:float" />
                 <xsd:attribute name="lambda_min" use="optional" default="1e-20" type="xsd:float" />
                 <!-- exceeding this value for fumble actually means that upper or lower are reached -->
-                <xsd:attribute name="max_lambda_iters" use="optional" default="100" type="xsd:positiveInteger" />
+                <xsd:attribute name="max_lambda_iters" use="optional" default="100" type="xsd:integer" />
               </xsd:complexType>
             </xsd:element>
 
@@ -1114,7 +1114,13 @@
             <xsd:element name="paramMat" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="designMaterial" type="DT_DesignMat" minOccurs="0" maxOccurs="1" />
+                  <xsd:element name="designMaterials" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="designMaterial" type="DT_DesignMat" minOccurs="0" maxOccurs="unbounded"/>
+                      </xsd:sequence>
+                    </xsd:complexType>
+                  </xsd:element>  
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
@@ -2635,7 +2641,7 @@
       <xsd:element name="homRectC1" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
-          <xsd:attribute name="file" default="coeff.xml" type="xsd:token" use="optional" />
+          <xsd:attribute name="file" type="xsd:token" use="required" />
           <!-- sparse grid interpolation method -->
           <xsd:attribute name="interpolation" use="optional" default="c1">
             <xsd:simpleType>
@@ -2680,6 +2686,15 @@
           </xsd:attribute>
         </xsd:complexType>
       </xsd:element>
+      
+      <xsd:element name="heat" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
+          <xsd:attribute name="file" type="xsd:token" use="required" />
+          <!-- sparse grid interpolation method -->
+          <xsd:attribute name="interpolation" use="optional" default="c1"/>
+        </xsd:complexType>
+      </xsd:element>
 
       <xsd:element name="MSFEMC1" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -2718,6 +2733,7 @@
           <xsd:enumeration value="density-times-interpolated-tensor" />
           <xsd:enumeration value="density-times-rotated-interpolated-tensor" />
           <xsd:enumeration value="laminates" />
+          <xsd:enumeration value="heat"/>
           <xsd:enumeration value="density-times-laminates" />
           <!-- samples for homogenizes a-b rectangulars for interpolation. Requires homRect element -->
           <xsd:enumeration value="hom-rect" />
@@ -2731,6 +2747,9 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    
+    <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
+    
     <xsd:attribute name="isoplane" use="optional" default="xy">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">

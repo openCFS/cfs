@@ -375,7 +375,7 @@ void ErsatzMaterial::PostInit()
   if(ctxt) {
     homogenizedTensor.Resize(me->GetNumberMeta(ctxt, true));
     for(unsigned int i = 0; i < homogenizedTensor.GetSize(); i++)
-      homogenizedTensor[i].Resize(dim == 2 ? 3 : 6, dim == 2 ? 3 : 6);
+      homogenizedTensor[i].Resize(me->GetNumberHomogenization(ctxt->ToApp()));
   }
 
   if(manager.any().eigenvalue && optParamNode->Has("eigenvalue/sort"))
@@ -514,22 +514,25 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         in->Get("norm_L2")->SetValue(ht.NormL2());
         in->Get("trace")->SetValue(ht.Trace());
 
-        PtrParamNode iso = in->Get("isotropy");
-        StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, ctxt->stt);
-        for(unsigned int p = 0; p < isop.GetSize(); p++)
-          iso->Get(isop[p].first)->SetValue(isop[p].second);
+        //FIXME Only for linear elasticity
+        if (ctxt->ToApp() == App::MECH)
+        {
+          PtrParamNode iso = in->Get("isotropy");
+          StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, ctxt->stt);
+          for(unsigned int p = 0; p < isop.GetSize(); p++)
+            iso->Get(isop[p].first)->SetValue(isop[p].second);
 
-        PtrParamNode orth = in->Get("orthotropy");
-        // for the orthotropic case we need the design. This might be excitation dependent on the robust case
-        assert(me->DoMetaExcitation(ctxt) || (ctxt->excitations.GetSize() == 3 || ctxt->excitations.GetSize() == 6)); // no robust!
-        Excitation* ex = ctxt->GetExcitation(0, t);
-        LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
-        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
-        for(unsigned int p = 0; p < ortho.GetSize(); p++)
-          orth->Get(ortho[p].first)->SetValue(ortho[p].second);
+          PtrParamNode orth = in->Get("orthotropy");
+          // for the orthotropic case we need the design. This might be excitation dependent on the robust case
+          assert(me->DoMetaExcitation(ctxt) || (ctxt->excitations.GetSize() == 3 || ctxt->excitations.GetSize() == 6)); // no robust!
+          Excitation* ex = ctxt->GetExcitation(0, t);
+          LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
+          StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
+          for(unsigned int p = 0; p < ortho.GetSize(); p++)
+            orth->Get(ortho[p].first)->SetValue(ortho[p].second);
 
-        LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
-
+          LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
+        }
         in->Get("tensor")->SetValue(ht);
       }
     }
@@ -607,8 +610,39 @@ StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(con
 {
   if(design->regions.GetSize() != 1)
   {
-    StdVector<std::pair<string, double> > result;
-    return result; // empty result
+    if(design->regions.GetSize() != 1)
+    {
+      StdVector<std::pair<string, double> > result;
+      return result; // empty result
+    }
+    else
+    {
+      LOG_DBG2(em) << "GOP tensor=" << tensor.ToString();
+      assert(ex != NULL);
+      Context& ctxt = manager.GetContext(ex);
+      assert(ex->sequence == ctxt.sequence);
+      ex->Apply(false); // we read the design. When we do robust, this must match the filter associated to the tensor
+
+      BaseMaterial* bm = NULL;
+      // this happens when doing shape optimization with homTracking!
+      // we then have no design region and need to skip GetForm
+      if(design->GetRegionId() != -1)
+        bm = ctxt.pde->GetMaterialData()[design->GetRegionId()];
+
+      Objective vf(Function::VOLUME, 0.0, Function::PHYSICAL); // physical!
+      if (design->GetRegionIds().GetSize() > 1)
+        // works also with multiple regions if grid is regular
+        assert(domain->GetGrid()->IsGridRegular());
+      else
+        assert(design->GetRegionIds().GetSize() ==1);
+
+
+      vf.SetElements(design, design->GetRegionId());
+      double vol = CalcVolume(&vf, NULL, false, true);
+      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(tensor, bm, ctxt.stt, vol);
+      return ortho;
+    }
+
   }
   else
   {
@@ -729,7 +763,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, StateContainer& f
       // if we get Damping Information from the DesignSpace, we use that, else we use the "traditional" one
       double dampingAlpha = 0.0;
       double dampingBeta = 0.0;
-      //if(!design->designMaterial->GetMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType()))
+      //if(!context->dm->GetMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType()))
       assert(false); // FIXME
       if(false) // FIMXE
       {
@@ -826,7 +860,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
   // for the multi-design case, e.g. for coil opt in magnetics, we have the designs, we have the transfer function for.
   int elements = design->GetNumberOfElements();
-  bool design_dependend = design->designMaterial == NULL && !design->HasMultiMaterial();
+  bool design_dependend = context->dm == NULL && !design->HasMultiMaterial();
   assert(!(design_dependend && tf->GetDesign() == DesignElement::DEFAULT));
   int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
   int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
@@ -855,19 +889,19 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       //   - do NOT use the element state for the transformed element -> this has already been done for the forward problem!
       DesignElement* de = design->ApplyTransformations(org, org, trans); // fallback to design if there is no transformation
 
-//      LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e=" << de->elem->elemNum;
-//      LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
-//      LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
+      LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e=" << de->elem->elemNum;
+      LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
+      LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
       // u1^T (K' u2 - f') -> find "K'"
       SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
-//      LOG_DBG3(em) << "CalcU1KU2: mat=" << mat.ToString(2) << "; u2_vec=" << u2_vec.ToString(2) << "; u1_vec= " << u1_vec.ToString(2);
+      LOG_DBG3(em) << "CalcU1KU2: mat=" << mat.ToString(2) << "; u2_vec=" << u2_vec.ToString(2) << "; u1_vec= " << u1_vec.ToString(2);
 
       // We generally solve u1^T (K' u2 - f')
       // u1^T (K' u2 - f') -> calc "K' u2"
       mat_vec = mat * u2_vec;
-//      LOG_DBG3(em) << "CalcU1KU2: mat * u2: " << mat_vec.ToString();
+      LOG_DBG3(em) << "CalcU1KU2: mat * u2: " << mat_vec.ToString();
 
       // u1^T (K' u2 - f') -> calc "- f'"
       assert(!(calcMode == CONJ_QUAD && rhs != NULL));// no sensitive rhs here!
@@ -875,7 +909,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       if(rhs) {
         SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<SingleVector*>(&mat_vec));
-//        LOG_DBG3(em) << "-f': " << mat_vec.ToString();
+        LOG_DBG3(em) << "-f': " << mat_vec.ToString();
       }
 
       // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *>
@@ -1206,27 +1240,28 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
   {
     Matrix<double> hom_tensor = CalcHomogenizedTensor(f);
     if(c->HasHomogenizationEntry())
-    {
       return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
-    }
     else
     {
       std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
 
-      std::cout << "Isotrope properties: ";
-      SubTensorType stt = f->ctxt->stt;
-      std::cout << " E=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
-      std::cout << " v=" << MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
-      std::cout << " err=" << MechanicMaterial::CalcIsotropyError(hom_tensor, stt) << "\n";
+      if (f->ctxt->ToApp() == App::MECH)
+      {
+        std::cout << "Isotrope properties: ";
+        SubTensorType stt = f->ctxt->stt;
+        std::cout << " E=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+        std::cout << " v=" << MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
+        std::cout << " err=" << MechanicMaterial::CalcIsotropyError(hom_tensor, stt) << "\n";
 
-      StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor, f->GetExcitation());
-      std::cout << "Orthotrope properties: ";
-      if(ortho.GetSize() == 0)
-      std::cout << " in 2D only for single region\n";
+        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor, f->GetExcitation());
+        std::cout << "Orthotrope properties: ";
+        if(ortho.GetSize() == 0)
+        std::cout << " in 2D only for single region\n";
 
-      for(unsigned int i = 0; i < ortho.GetSize(); i++)
-      std::cout << " " << ortho[i].first << "=" << ortho[i].second;
-      std::cout << "\n";
+        for(unsigned int i = 0; i < ortho.GetSize(); i++)
+        std::cout << " " << ortho[i].first << "=" << ortho[i].second;
+        std::cout << "\n";
+      }
 
       return hom_tensor.NormL2();
     }
@@ -1421,7 +1456,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::TEMPERATURE:
       break;// FIXMEHEAT
 
-    case Function::HEAT_ENEGRY:
+    case Function::HEAT_ENERGY:
       result = CalcHeatEnergy(excite, c, g, derivative);
       break;
 
@@ -1495,11 +1530,10 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
   double fraction = c != NULL ? volumeFraction_ : g->volume_fraction;
   bool allDesignsRelevant = dtype == DesignElement::MECH_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
   // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
-  bool calculateTensorTrace = design->designMaterial != NULL && (dtype == DesignElement::MECH_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
+  bool calculateTensorTrace = context->dm != NULL && (dtype == DesignElement::MECH_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
   if (calculateTensorTrace && scale)
-  {
     throw Exception("Cannot calculate Tensor Trace Volume on scaled design variables!");
-  }
+
   // check whether we have to calculate the full volume
   if(normalized)
   {
@@ -1590,12 +1624,12 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               if(calculateTensorTrace)
               {
                 Matrix<double> material;
-                design->designMaterial->GetTensor(material, dtype, stt, de->elem, de->GetType(), f->GetNotation());
+                context->dm->GetTensor(material, dtype, stt, de->elem, de->GetType(), f->GetNotation());
                 val = material.Trace();
                 if(exponent != 1.0)
                 {
                   // chain rule, original, non derived tensor
-                  design->designMaterial->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                  context->dm->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                   double des = material.Trace();
                   val *= exponent * std::pow(des, exponent - 1.0);
                   LOG_DBG(em) << " material = "<< material.ToString();
@@ -1629,7 +1663,7 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               if(calculateTensorTrace)
               { // use the trace of the stiffness Tensor as "volume"
                 Matrix<double> material;
-                design->designMaterial->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                context->dm->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                 des = material.Trace();
               }
               else
@@ -1880,18 +1914,16 @@ double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* c, Conditio
   if(derivative)
   {
     TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::HEAT, true);
-
-    if (!interfaceDrivenGradCalc_) {
-      CalcAndStoreInterfaceDrivenGrad<double>(f,tf);
-      interfaceDrivenGradCalc_ = true;
-    }
-
     double factor = excite.GetWeightedFactor(f);
     HeatPDE* heat = dynamic_cast<HeatPDE*>(f->ctxt->pde);
     assert(heat != NULL);
     DesignDependentRHS* rhs = NULL;
     if (heat->HasInterfaceDrivenRHS())
     {
+      if (!interfaceDrivenGradCalc_) {
+        CalcAndStoreInterfaceDrivenGrad<double>(f,tf);
+        interfaceDrivenGradCalc_ = true;
+      }
       rhs = new DesignDependentRHS(App::HEAT);
       rhs->Init<double>(design);
       // f'^Tu de->AddGradient(f, this_value);
@@ -2862,39 +2894,57 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
     }
     LOG_DBG(em) << "CPRAYM f=" << f->ToString() << " r=" << result << " ht=" << hom_tensor.ToString();
   }
-  return result;
+    return result;
 }
 
-void ErsatzMaterial::SetTestStrainMatrix(Matrix<double>& matrix, const Vector<double>& vec)
+void ErsatzMaterial::SetTestStrainMatrix(App::Type app, Matrix<double>& matrix, const Vector<double>& vec)
 {
   assert(matrix.GetNumCols() == dim);
   assert(matrix.GetNumRows() == dim);
+  assert(App::MECH == app || App::HEAT == app);
+  // In 2D, test strain vector contains:
+  // 3 test strains and 2 dof per strain -> 6 entries
+  // vec = (\eps_xx, \eps_yy, 0, 0, 0,\eps_xy)
+  // Strain tensor (symmteric) has entries:
+  // [\eps_xx  0.5*\gamma_xy]
+  // [0.5*\gamma_xy  \eps_yy]
   matrix[0][0] = vec[0];
   matrix[1][1] = vec[1];
-  matrix[0][1] = vec[5]; // Voigt notation!
-  matrix[1][0] = 0.0;// because of symmetry we need factor 0.5 : FIXME why not vec[5]!!
+
+  if (App::MECH == app) {
+    matrix[0][1] = 0.5*vec[5]; // Voigt notation!
+    matrix[1][0] = 0.5*vec[5]; // because of symmetry we need factor 0.5
+  }
+
   if (dim == 3)
   {
+    // In 3D, strain tensor (symmteric) has entries:
+    // [\eps_xx  0.5*\gamma_xy 0.5*\gamma_xz]
+    // [0.5*\gamma_xy  \eps_yy 0.5*\gamma_yz]
+    // [0.5*\gamma_xz  0.5*\gamma_yz \eps_zz]
+    // vec = (\eps_xx,\eps_yy,\eps_zz,\eps_yz,\eps_xz,\eps_xy)
     matrix[2][2] = vec[2];
-    matrix[1][2] = vec[3];
-    matrix[2][1] = 0.0; // symmetry again FIXME why not vec[3]!!
-    matrix[0][2] = vec[4];
-    matrix[2][0] = 0.0;// symmetry again FIXME why not vec[4]!!
+
+    if (App::MECH == app) {
+      matrix[1][2] = 0.5*vec[3];
+      matrix[2][1] = 0.5*vec[3]; // symmetry again
+      matrix[0][2] = 0.5*vec[4];
+      matrix[2][0] = 0.5*vec[4];// symmetry again
+    }
   }
+
+  LOG_DBG3(em) << "EM STSM: test strain matrix " << matrix.ToString(0);
 }
 
 Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
 {
   const double cube_vol = grid->CalcHullVolume();
-  unsigned int ex_size = me->GetNumberHomogenization(); // also ok when we do transform or robust
-
-  assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
+  App::Type app = f->ctxt->ToApp();
+  unsigned int ex_size = me->GetNumberHomogenization(app); // also ok when we do transform or robust
 
   LOG_DBG(em) << "CHT f=" << f->ToString() << " ctxt=" << f->ctxt->GetExcitation()->robust_filter_idx << " f=" << f->GetExcitation()->robust_filter_idx;
   assert(f->ctxt->GetExcitation()->robust_filter_idx == f->GetExcitation()->robust_filter_idx);
 
-  Matrix<double> test_strain_matrix_ij(dim, dim);
-  Matrix<double> test_strain_matrix_kl(dim, dim);
   Matrix<double> result(ex_size, ex_size);
   result.Init();
 
@@ -2905,8 +2955,9 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
   {
     // we need the transformation here to have the proper forward solution when we have multiple meta excitations
     // -> more than one rotation or robust
-    SetTestStrainMatrix(test_strain_matrix_ij, f->ctxt->GetExcitation(ij, meta)->test_strain);
-    StdVector<SingleVector*>& u1 = forward.Get(f->ctxt->GetExcitation(ij, f))->elem[App::MECH]; // equal to \chi^{ij}
+    StdVector<SingleVector*>& u1 = forward.Get(f->ctxt->GetExcitation(ij, f))->elem[app]; // equal to \chi^{ij}
+    for (unsigned int i = 0; i < u1.size(); i++)
+      LOG_DBG3(em) << "CHT: u1(" << i << ")= " << (*u1[i]).ToString();
     for (unsigned int kl = 0;kl < ex_size;++kl)
     {
       if (ij > kl) // already computed this entry!
@@ -2916,10 +2967,14 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
         result[ij][kl] = result[kl][ij];
         continue;
       }
-      SetTestStrainMatrix(test_strain_matrix_kl, f->ctxt->GetExcitation(kl, meta)->test_strain);
-      StdVector<SingleVector*>& u2 = forward.Get(f->ctxt->GetExcitation(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
-      // loop over elements. In the gradient case not summed up
 
+      LOG_DBG3(em) << "ij = " << ij << " kl = " << kl << " test strain: " << f->ctxt->GetExcitation(kl, meta)->test_strain.ToString(2);
+
+      StdVector<SingleVector*>& u2 = forward.Get(f->ctxt->GetExcitation(kl, f))->elem[app]; // equal to \chi^{kl}
+      for (unsigned int i = 0; i < u2.size(); i++)
+        LOG_DBG3(em) << "CHT: u2(" << i << ")= " << (*u2[i]).ToString();
+
+      // loop over elements. In the gradient case not summed up
       for (int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
       {
         // When we rotate, the state u is based on a transformation of e, hence we need here to transform the element
@@ -2934,7 +2989,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
         LOG_DBG3(em) << "CHT f=" << f->ToString() << " ij=" << ij << " kl=" << kl << " e=" << e << " u2=" << u2_vec.ToString();
 
         // transformed de
-        double p = CalcHomogenizedElementProduct(this, f, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+        double p = CalcHomogenizedElementProduct(this, f, de, false, u1_vec, u2_vec, ij, kl);
 
         assert(p < 1e100);
 
@@ -2961,8 +3016,6 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
   diff_tensor = target - hom;
   const unsigned int ex_size(me->excitations.GetSize());
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
-  Matrix<double> test_strain_matrix_ij(dim, dim);
-  Matrix<double> test_strain_matrix_kl(dim, dim);
 
   // our derivative tensor
   Matrix<double> hom_tensor_deriv(ex_size, ex_size);
@@ -2971,14 +3024,12 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
   // we might have transformations
   assert(f->GetExcitation() != NULL);
 
-  unsigned int meta = f->GetExcitation()->meta_index;
   // loop over elements.
   for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
   {
     DesignElement* de = &design->data[e];
     for (unsigned int ij = 0;ij < ex_size;++ij)
     {
-      SetTestStrainMatrix(test_strain_matrix_ij, ctxt->GetExcitation(ij, meta)->test_strain);
       StdVector<SingleVector*>& u1 = forward.Get(ctxt->GetExcitation(ij, f))->elem[App::MECH]; // equal to \chi^{ij}
       Vector<double>& u1_vec = dynamic_cast<Vector<double>&>(*u1[e]);
       for (unsigned int kl = 0;kl < ex_size;++kl)
@@ -2990,11 +3041,10 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
           hom_tensor_deriv[ij][kl] = hom_tensor_deriv[kl][ij];
           continue;
         }
-        SetTestStrainMatrix(test_strain_matrix_kl, ctxt->GetExcitation(kl, meta)->test_strain);
         StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
         Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
         // prepare for calculation
-        double p = CalcHomogenizedElementProduct(this, f, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+        double p = CalcHomogenizedElementProduct(this, f, de, true, u1_vec, u2_vec, ij, kl);
         hom_tensor_deriv[ij][kl] = p / cube_vol;// normalize for volume
       } // end of kl loop
 
@@ -3082,19 +3132,14 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tupl
   Context* ctxt = f->ctxt;
 
   assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
-  Matrix<double> test_strain_matrix_ij(dim, dim);
-  Matrix<double> test_strain_matrix_kl(dim, dim);
   const unsigned int ij = boost::get<0>(entry) - 1;
   const unsigned int kl = boost::get<1>(entry) - 1;
 
   // the test strain itself shall be independent of the meta excitation
   assert(ctxt->excitations[ij]->test_strain == ctxt->GetExcitation(ij, meta)->test_strain);
-  SetTestStrainMatrix(test_strain_matrix_ij, ctxt->excitations[ij]->test_strain);
 
   // for multiple meta excitations (rotations, robustness) take the corresponding state
   StdVector<SingleVector*>& u1 = forward.Get(ctxt->GetExcitation(ij, meta))->elem[App::MECH]; // equal to \chi^{ij}
-
-  SetTestStrainMatrix(test_strain_matrix_kl, ctxt->excitations[kl]->test_strain);
   StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, meta))->elem[App::MECH];// equal to \chi^{kl}
 
   double result = 0.0;
@@ -3115,10 +3160,10 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tupl
     DesignElement* de = design->ApplyTransformations(&design->data[e], &design->data[e], trans);
 
     // prepare for calculation
-    double p = CalcHomogenizedElementProduct(this, f, de, derivative, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+    double p = CalcHomogenizedElementProduct(this, f, de, derivative, u1_vec, u2_vec, ij, kl);
     result += p / cube_vol;// normalize for volume
 
-    LOG_DBG2(em) << "CHTE ij=" << ij << " kl=" << kl << " der=" << derivative << " meta=" << meta << " e=" << e << "de=" << de->ToString() << " p=" << p << " re=" << result;
+    LOG_DBG2(em) << "CHTE ij=" << ij << " kl=" << kl << " der=" << derivative << " meta=" << meta << " e=" << e << "de=" << de->ToString() << " p=" << p << "re=" << result;
     if (derivative)
     {
       grad_out[de->GetIndex()] = result;
@@ -3130,56 +3175,93 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tupl
   return result; // in the non-derivative case this is the sum.
 }
 
-double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
+double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, UInt ij, UInt kl)
 {
-  assert(u1_vec.NormL2() > 0);
-  assert(u2_vec.NormL2() > 0);
-  assert(test_strain_matrix_ij.NormL2() > 0);
-  assert(test_strain_matrix_kl.NormL2() > 0);
-  assert(u1_vec.GetSize() == u2_vec.GetSize());
+  App::Type app = f->ctxt->ToApp();
+  const unsigned int dim = obj->dim;
+  unsigned int meta = f->GetExcitation()->meta_index; // for transformations but also for robust
 
-  const unsigned int dim_ = obj->dim;
+  Matrix<double> tmp_mat;
+  Vector<double> u1_0; // equal to \chi^{0(ij)}
+  Vector<double> u2_0; // equal to \chi^{0(kl)}
 
   LOG_DBG3(em) << "CHEP: de=" << de->ToString() << " der=" << derivative; // << " u1_vec=" << u1_vec.ToString() << " u2_vec=" << u2_vec.ToString();
-  // TODO too much temporary matrices and vectors!
-  // from the coordinates of this element we build a "test displacement" vector
-  // u1(,2)_0. it contains linear strains which are assembled in the following lines
-  // these strains are not unique! an arbitrary constant can be added without change
-  // coordinates of "this" element
-  Matrix<double> tmp_mat;
-  // coordinates of current element
-  domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
-  Matrix<double> u1_tmp;
-  u1_tmp = test_strain_matrix_ij * tmp_mat;
-  Matrix<double> u2_tmp;
-  u2_tmp = test_strain_matrix_kl * tmp_mat;
-  assert(u1_tmp.GetNumCols() == u2_tmp.GetNumCols());
-  assert(u1_tmp.GetNumRows() == u2_tmp.GetNumRows());
-  assert(u1_tmp.GetNumRows() == dim_);
-  assert(u1_tmp.GetNumCols() * dim_ == u2_vec.GetSize());
-  assert(u1_tmp.GetNumRows() * u1_tmp.GetNumCols() == u1_vec.GetSize());
-  // u1_tmp, u2_tmp have to be transformed into vectors
-  // 2D: from 2x4 to 8x1 on quad elems, 2x3 to 6x1 on triangles
-  Vector<double> u1_0(u1_vec.GetSize());
-  Vector<double> u2_0(u2_vec.GetSize());// u1 and u2 have the same size
 
-  for (unsigned int out = 0, cols = u1_tmp.GetNumCols();out < cols;++out)
-  {
-    for (unsigned int in = 0;in < dim_;++in)
+  if (app == App::MECH) {
+    Matrix<double> test_strain_matrix_ij(dim, dim);
+    Matrix<double> test_strain_matrix_kl(dim, dim);
+    // we need the transformation here to have the proper forward solution when we have multiple meta excitations
+    // -> more than one rotation or robust
+    obj->SetTestStrainMatrix(app, test_strain_matrix_ij, f->ctxt->GetExcitation(ij, meta)->test_strain);
+    obj->SetTestStrainMatrix(app, test_strain_matrix_kl, f->ctxt->GetExcitation(kl, meta)->test_strain);
+    assert(u1_vec.NormL2() > 0);
+    assert(u2_vec.NormL2() > 0);
+    assert(test_strain_matrix_ij.NormL2() > 0);
+    assert(test_strain_matrix_kl.NormL2() > 0);
+    assert(u1_vec.GetSize() == u2_vec.GetSize());
+
+    // TODO too much temporary matrices and vectors!
+    // from the coordinates of this element we build a "test displacement" vector
+    // u1(,2)_0. it contains linear strains which are assembled in the following lines
+    // these strains are not unique! an arbitrary constant can be added without change
+    // coordinates of "this" element
+    // coordinates of current element
+    domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
+    LOG_DBG3(em) << "CHEP: coords elem " << tmp_mat.ToString(0);
+    Matrix<double> u1_tmp;
+    u1_tmp = test_strain_matrix_ij * tmp_mat;
+    Matrix<double> u2_tmp;
+    u2_tmp = test_strain_matrix_kl * tmp_mat;
+
+    LOG_DBG3(em) << "CHEP: u1_tmp " << u1_tmp.ToString(2);
+    LOG_DBG3(em) << "CHEP: u2_tmp " << u2_tmp.ToString(2);
+    assert(u1_tmp.GetNumCols() == u2_tmp.GetNumCols());
+    assert(u1_tmp.GetNumRows() == u2_tmp.GetNumRows());
+    assert(u1_tmp.GetNumRows() == dim);
+
+    // this assert is only true because displacement is a vector-valued function
+    // in heat case, the temperature is a scalar-valued function
+    if(app == App::MECH)
+      assert(u1_tmp.GetNumCols() * dim == u2_vec.GetSize());
+
+    assert(u1_tmp.GetNumRows() * u1_tmp.GetNumCols() == u1_vec.GetSize());
+    // u1_tmp, u2_tmp have to be transformed into vectors
+    // 2D: from 2x4 to 8x1 on quad elems, 2x3 to 6x1 on triangles
+    u1_0.Resize(u1_vec.GetSize());
+    u2_0.Resize(u2_vec.GetSize());// u1 and u2 have the same size
+
+    for (unsigned int out = 0, cols = u1_tmp.GetNumCols();out < cols;++out)
     {
-      u1_0[out * dim_ + in] = u1_tmp[in][out]; // equal to \chi^{0(ij)}
-      u2_0[out * dim_ + in] = u2_tmp[in][out]; // equal to \chi^{0(kl)}
+      for (unsigned int in = 0;in < dim;++in)
+      {
+        u1_0[out * dim + in] = u1_tmp[in][out]; // equal to \chi^{0(ij)}
+        u2_0[out * dim + in] = u2_tmp[in][out]; // equal to \chi^{0(kl)}
+      }
     }
+  } else{
+    assert(app == App::HEAT);
+    // get chi_0 by solving element-wise linear system of equations, solution is cached per region and excitation
+    HeatMat* mat = dynamic_cast<HeatMat*>(Optimization::context->mat);
+    assert(mat != NULL);
+
+    assert(0 <= ij <= 3 && 0 <= kl <= 3);
+
+    u1_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) ij);
+    u2_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) kl);
   }
+
+  LOG_DBG3(em) << "testStrain: " << ij << "  chi_0^i:" << u1_0.ToString(2);
+  LOG_DBG3(em) << "testStrain: " << kl << "  chi_0^j:" << u2_0.ToString(2);
+
   u1_0 -= u1_vec;
   u2_0 -= u2_vec;
 
-  // any transformation is done outside by getting the tranformed e. The state is transformed from the state problem
-
   // reuse tmp_mat as elementK-Matrix
   // Matrix<double> k_mat;
-  TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, App::MECH);
-  obj->SetElementK(f, de, tf, App::MECH, &tmp_mat, derivative);
+  TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, app);
+  obj->SetElementK(f, de, tf, app, &tmp_mat, derivative);
+
+  LOG_DBG3(em) << "CHEP: SetElementK: " << tmp_mat.ToString(0);
 
   assert(tmp_mat.GetNumRows() == tmp_mat.GetNumCols() && tmp_mat.GetNumCols() == u1_0.GetSize());
 
@@ -3187,12 +3269,11 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
   Vector<double> mat_vec(u1_0.GetSize());
   tmp_mat.Mult(u1_0, mat_vec);
 
-  // LOG_DBG3(em) << "CHEP de=" << de->ToString() << " tmp_mat=" << tmp_mat.ToString();
-  // LOG_DBG3(em) << "CHEP de=" << de->ToString() << " mat_vec=" << mat_vec.ToString();
-  // LOG_DBG3(em) << "CHEP de=" << de->ToString() << " u2_0=" << u2_0.ToString();
+  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " tmp_mat=" << tmp_mat.ToString(0);
+  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " mat_vec=" << mat_vec.ToString(2);
+  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " u2_0=" << u2_0.ToString(2);
 
   assert(mat_vec.GetSize() == u2_0.GetSize());
-  // double result = mat_vec * u2_0;
 
   double result = mat_vec.Inner(u2_0);
   LOG_DBG3(em) << "CHEP de=" << de->ToString() << " result=" << result;

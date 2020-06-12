@@ -449,7 +449,7 @@ namespace CoupledField
     bool IsGridRegular() const;
 
     //! Get name of region using a region id
-    std::string GetRegionName( RegionIdType& id );
+    std::string GetRegionName( RegionIdType id );
     
     //! Get vector containing all region names
     //! Get a vector which contains all region nodes. The order is in that way,

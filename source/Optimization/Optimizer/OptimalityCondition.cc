@@ -196,7 +196,11 @@ void OptimalityCondition::SolveProblem()
     optimizer_timer_->Stop();
     
     // solve the state problem for the new design vector
-    Optimization::context->pde->GetAssemble()->SetAllReassemble();
+    // we have to set reassemblence for all pdes
+    for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++) {
+      Optimization::manager.SwitchContext(i);
+      Optimization::context->pde->GetAssemble()->SetAllReassemble();
+    }
     optimization->SolveStateProblem();
 
     // calc the objective for the logging in CommitIteration(),

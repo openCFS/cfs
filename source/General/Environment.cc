@@ -1548,6 +1548,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HEAT_FLUX, "heatFlux");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
+    SolutionTypeEnum.Add(HEAT_CONDUCTIVITY_TENSOR_HOM,"heatConductivityTensorHomogenized");
+
     //fluidMech
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");

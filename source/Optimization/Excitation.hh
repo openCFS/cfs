@@ -167,7 +167,7 @@ public:
   /** To be called prior to PrepareMultipleExcitations() */
   void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);
 
-  /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
+  /** Handle multiple excitations (loads/frequencies). By definition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC.
    * @param ctxt an own version of Context to setup a multi sequence system */
   void PrepareMultipleExcitations(Optimization* opt, Context* ctxt);
@@ -181,7 +181,7 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   /** The number of homogenization test strains. Important when we do also transform */
-  unsigned int GetNumberHomogenization() const;
+  unsigned int GetNumberHomogenization(App::Type app) const;
 
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }

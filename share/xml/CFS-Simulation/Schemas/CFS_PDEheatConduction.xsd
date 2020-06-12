@@ -167,6 +167,14 @@
                     <xsd:documentation>Defines the electric power density as a volume source from a coupled computation</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                
+                <!-- the test strain is for asymptotic homogenization. -->
+                <xsd:element name="testStrain" type="DT_HeatTestStrain"/>
+                <xsd:element name="periodic" type="DT_BcPeriodic">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines coupling of nodes for periodic boundary conditions</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
               </xsd:choice>
             </xsd:complexType>
@@ -339,6 +347,17 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
+        
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_MechRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
 
         <!-- SurfElement result definition -->
         <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
@@ -387,6 +406,33 @@
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Definition of surface region result types of mechanic PDE -->
+  <xsd:simpleType name="DT_HeatRegionResult">
+    <xsd:restriction base="xsd:token">
+      <!-- equivalent to thermal compliance -->
+      <xsd:enumeration value="heatEnergy"/>
+      <xsd:enumeration value="homogenizedTensor"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- With 2/3, test strains the homogenizied thermal conductivity tensor can be computed.
+     This is implemented within optimization but can be also done manually, where
+     the homogenized tensor needs to be calculated offline. -->
+  <xsd:complexType name="DT_HeatTestStrain">
+    <xsd:attribute name="strain" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="x"/>
+          <xsd:enumeration value="y"/>
+          <xsd:enumeration value="z"/>
+          <xsd:enumeration value="yz"/>
+          <xsd:enumeration value="xz"/>
+          <xsd:enumeration value="xy"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
 </xsd:schema>

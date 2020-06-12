@@ -394,7 +394,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
-  Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+  Function::type.Add(Function::HEAT_ENERGY, "heatEnergy");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
@@ -991,6 +991,8 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
   if(pause_timer)
     baseOptimizer_->GetOptimizerTimer()->Stop();
 
+  LOG_DBG2(opt) << " CC g=" << ( g != NULL ? g->ToString() : "null") <<"  eoe=" << ( ev_only_excite != NULL ? ev_only_excite->label : "null");
+
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
 
@@ -1025,7 +1027,8 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
+  // TODO: disable this assert as multi sequence cannot ruled out for every case
+//  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
 
   if(g == NULL)
     g = constraints.active[0];

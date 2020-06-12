@@ -344,7 +344,7 @@ namespace CoupledField
     return true;
   }
 
-  std::string Grid::GetRegionName( RegionIdType& id )
+  std::string Grid::GetRegionName(RegionIdType id )
   {
     for(UInt i = 0; i < regionData.GetSize(); i++) {
       if(regionData[i].id == id) {

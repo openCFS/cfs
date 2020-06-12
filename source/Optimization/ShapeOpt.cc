@@ -759,7 +759,7 @@ void ShapeOpt::StorePDESolution(StateContainer& solutions, Excitation &excite, F
 }
 
 void ShapeOpt::SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement){
-  SetTestStrainMatrix(tmp_strain, me->excitations[idx].test_strain);
+  SetTestStrainMatrix(App::MECH,tmp_strain, me->excitations[idx].test_strain);
   unsigned int cols = CornerCoords.GetNumCols();
   tmp_displacement.Resize(dim, cols);
   tmp_strain.Mult(CornerCoords, tmp_displacement);

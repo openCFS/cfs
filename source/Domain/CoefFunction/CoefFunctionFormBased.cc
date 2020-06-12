@@ -7,7 +7,7 @@
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "MatVec/BLASLAPACKInterface.hh"
-
+#include "Optimization/Excitation.hh"
 
 namespace CoupledField
 {
@@ -688,15 +688,20 @@ template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
   return out.str();
 }
 
-template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
+//----------- HOMOGENIZED TENSOR -----------
+
+template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
 {
   std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
 
-  LOG_DBG2(cff) << "CFS:CFS #forms=" << forms.size();
+  LOG_DBG2(cff) << "CFH:CFH #forms=" << forms.size();
 
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
   isComplex_ =  std::is_same<TYPE,Complex>::value;
+
+  if (APP == App::MECH)
+    assert( notation != DesignMaterial::NO_TYPE);
 
   notation_ = notation;
 
@@ -704,19 +709,18 @@ template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_p
   this->dimType_ = CoefFunction::TENSOR;
 }
 
-template<class TYPE> CoefFunctionStiffness<TYPE>::~CoefFunctionStiffness() { }
+template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::~CoefFunctionHomogenization() { }
 
-template<class TYPE> unsigned int CoefFunctionStiffness<TYPE>::GetVecSize() const
+template<class TYPE, App::Type APP> unsigned int CoefFunctionHomogenization<TYPE,APP>::GetVecSize() const
 {
   const std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.ConstMine();
-  LOG_DBG2(cff) << "CFS:GVS #forms=" << forms.size();
+  LOG_DBG2(cff) << "CFH:GVS #forms=" << forms.size();
 
   unsigned int numRows = 0;
   unsigned int numCols = 0;
 
   forms.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
-
-  assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
+  assert(numRows == domain->GetOptimization()->GetMultipleExcitation()->GetNumberHomogenization(APP));
   assert(numCols == numRows);
 
   if(numRows == 3)
@@ -725,12 +729,12 @@ template<class TYPE> unsigned int CoefFunctionStiffness<TYPE>::GetVecSize() cons
     return 21;
 }
 
-template<class TYPE> void CoefFunctionStiffness<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
+template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
 {
   std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
   BaseBDBInt* form = forms[lpm.ptEl->regionId];
 
-  LOG_DBG(cff) << "CFS:GTV #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+  LOG_DBG(cff) << "CFH:GTV #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
 
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   Matrix<TYPE> tensor;
@@ -739,12 +743,12 @@ template<class TYPE> void CoefFunctionStiffness<TYPE>::GetVector(Vector<TYPE>& v
     tensor.VoigtToHillMandel();
 
   tensor.ConvertToVec_UpperTriangular(vec);
-  LOG_DBG3(cff) << "CFS:GV tensor=" << tensor.ToString(2);
-  LOG_DBG2(cff) << "CFS:GV -> " << vec.ToString(2);
+  LOG_DBG3(cff) << "CFH:GV tensor=" << tensor.ToString(2);
+  LOG_DBG2(cff) << "CFH:GV -> " << vec.ToString(2);
 
 }
 
-template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
+template<class TYPE, App::Type APP> std::string CoefFunctionHomogenization<TYPE,APP>::ToString() const
 {
   std::stringstream out;
   out << "CoefFunctionStiffness\n";
@@ -753,29 +757,29 @@ template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
   return out.str();
 }
 
-template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
+template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
 {
   const std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.ConstMine();
-  LOG_DBG2(cff) << "CFS:GTS #forms=" << forms.size();
+  LOG_DBG2(cff) << "CFH:GTS #forms=" << forms.size();
 
   forms.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
 
-  assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
+  assert(numRows == domain->GetOptimization()->GetMultipleExcitation()->GetNumberHomogenization(APP));
   assert(numCols == numRows);
 }
 
-template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
+template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
 {
   std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
   BaseBDBInt* form = forms[lpm.ptEl->regionId];
 
-  LOG_DBG(cff) << "CFS:GT #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+  LOG_DBG(cff) << "CFH:GT #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
 
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   form->GetCoef()->GetTensor(tensor, lpm);
-  if(notation_ == DesignMaterial::HILL_MANDEL)
+  if(notation_ == DesignMaterial::HILL_MANDEL && APP == App::MECH)
     tensor.VoigtToHillMandel();
-  LOG_DBG2(cff) << "CFS:GT -> " << tensor.ToString(2);
+  LOG_DBG2(cff) << "CFH:GT -> " << tensor.ToString(2);
 }
 
 
@@ -789,8 +793,9 @@ template class CoefFunctionDyadicStrain<Complex>;
 template class CoefFunctionQuadSol<double>;
 template class CoefFunctionQuadSol<Complex>;
 
-template class CoefFunctionStiffness<double>;
-template class CoefFunctionStiffness<Complex>;
+template class CoefFunctionHomogenization<double, App::MECH>;
+template class CoefFunctionHomogenization<Complex, App::MECH>;
+template class CoefFunctionHomogenization<double, App::HEAT>;
 
 template class CoefFunctionLBM<double>;
 

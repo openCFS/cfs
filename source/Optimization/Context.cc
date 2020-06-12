@@ -3,6 +3,7 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/Excitation.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "Driver/BucklingDriver.hh"
 #include "Driver/HarmonicDriver.hh"
@@ -139,6 +140,17 @@ void Context::Update()
     infoNode->Get("eigenvalue")->SetValue(eigenvalue_);
     infoNode->Get("bloch")->SetValue(bloch_);
     infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
+
+    if (dm == NULL && em->GetMethod() == ErsatzMaterial::PARAM_MAT) {
+      assert(em->pn->Has("paramMat/designMaterials"));
+      assert(sequence != -1);
+      ParamNodeList list = em->pn->Get("paramMat/designMaterials")->GetListByVal("designMaterial", "sequence", sequence);
+      assert(list.GetSize() == 1);
+      assert(mat != NULL);
+      domain->GetDesign()->SetDesignMaterial(list[0], mat->GetSystem());
+      assert(dm != NULL);
+      LOG_DBG3(context) << "CTXT: set design material '" << OptimizationMaterial::system.ToString(mat->GetSystem()) << "' for sequence=" << sequence;
+    }
   }
 }
 
@@ -217,8 +229,10 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 {
   assert(f->ctxt == this);
   assert(base < excitations.GetSize());
-  if(!me_->DoMetaExcitation(f->ctxt))
+  if(!me_->DoMetaExcitation(f->ctxt)){
+    LOG_DBG3(context) << "C::GE  base=" << base << " excitation=" << excitations[base]->test_strain.ToString(2);
     return excitations[base];
+  }
   else
     return excitations[basic_excitations_ * f->GetExcitation()->meta_index + base]; // * and + swapped??
 }
