@@ -178,7 +178,7 @@ public:
   struct SingleEqnMap{
 
     //! Map for every node (key to map) its equations (values)
-    boost::unordered_map<Integer, StdVector<Integer> > eqns;
+    boost::unordered_map< Integer, StdVector<Integer> > eqns;
     
     //! Map for every node (key to map) its boundary conditions types
     boost::unordered_map< Integer,StdVector<BcType> > BcKeys;

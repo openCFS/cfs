@@ -754,7 +754,7 @@ namespace CoupledField {
 
       idOp_->ApplyOp(temp, lpm, ptFe, elemSolution );
     } else {
-
+      LOG_DBG3(fefunc) << "vals=" << vals.ToString() << "  eqns=" << eqns.ToString();
       for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
         if( eqns[iDof] != 0 ) {
           temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
