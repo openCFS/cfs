@@ -3,7 +3,6 @@ SET(MATVEC_SRCS
   generatematvec.cc
   SBM_Vector.cc
   SBM_Matrix.cc
-  SingleVector.cc
   StdMatrix.cc
   matrixSerialization.cc
   vectorSerialization.cc

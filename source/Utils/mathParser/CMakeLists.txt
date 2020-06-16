@@ -10,7 +10,7 @@ set_source_files_properties(mathParser.cc
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
 
-SET(MATHPARSER_SRCS mathParser.cc)
+SET(MATHPARSER_SRCS mathParser.cc registerfunc.cc)
 
 IF(USE_OPENMP)
   SET(MATHPARSER_SRCS ${MATHPARSER_SRCS} mathParserOMP.cc)
@@ -27,3 +27,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(mathparser ${TARGET_LL})
 
+ADD_SUBDIRECTORY(pymuparser)

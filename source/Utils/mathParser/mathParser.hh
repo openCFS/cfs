@@ -271,17 +271,6 @@ namespace CoupledField {
     static Double * AddVariable( const char *varName );
 
     // =======================================================================
-    //  HELPER METHODS
-    // =======================================================================   
-    //@{
-    //! \name Static Aliases For Operators <,<=, >, >=
-    static Double Op_gt( Double a, Double b ) { return a > b; }
-    static Double Op_ge( Double a, Double b ) { return a >= b; }
-    static Double Op_le( Double a, Double b ) { return a <= b; }
-    static Double Op_lt( Double a, Double b ) { return a < b; }
-    //@}
-
-    // =======================================================================
     //  CFS SPECIFIC ADDITIONAL FUNCTIONS
     // =======================================================================
     
