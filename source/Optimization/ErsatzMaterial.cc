@@ -610,39 +610,8 @@ StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(con
 {
   if(design->regions.GetSize() != 1)
   {
-    if(design->regions.GetSize() != 1)
-    {
-      StdVector<std::pair<string, double> > result;
-      return result; // empty result
-    }
-    else
-    {
-      LOG_DBG2(em) << "GOP tensor=" << tensor.ToString();
-      assert(ex != NULL);
-      Context& ctxt = manager.GetContext(ex);
-      assert(ex->sequence == ctxt.sequence);
-      ex->Apply(false); // we read the design. When we do robust, this must match the filter associated to the tensor
-
-      BaseMaterial* bm = NULL;
-      // this happens when doing shape optimization with homTracking!
-      // we then have no design region and need to skip GetForm
-      if(design->GetRegionId() != -1)
-        bm = ctxt.pde->GetMaterialData()[design->GetRegionId()];
-
-      Objective vf(Function::VOLUME, 0.0, Function::PHYSICAL); // physical!
-      if (design->GetRegionIds().GetSize() > 1)
-        // works also with multiple regions if grid is regular
-        assert(domain->GetGrid()->IsGridRegular());
-      else
-        assert(design->GetRegionIds().GetSize() ==1);
-
-
-      vf.SetElements(design, design->GetRegionId());
-      double vol = CalcVolume(&vf, NULL, false, true);
-      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(tensor, bm, ctxt.stt, vol);
-      return ortho;
-    }
-
+    StdVector<std::pair<string, double> > result;
+    return result; // empty result
   }
   else
   {
@@ -657,8 +626,15 @@ StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(con
     // we then have no design region and need to skip GetForm
     if(design->GetRegionId() != -1)
       bm = ctxt.pde->GetMaterialData()[design->GetRegionId()];
+
     Objective vf(Function::VOLUME, 0.0, Function::PHYSICAL); // physical!
-    assert(design->GetRegionIds().GetSize() ==1);
+    if (design->GetRegionIds().GetSize() > 1)
+      // works also with multiple regions if grid is regular
+      assert(domain->GetGrid()->IsGridRegular());
+    else
+      assert(design->GetRegionIds().GetSize() ==1);
+
+
     vf.SetElements(design, design->GetRegionId());
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(tensor, bm, ctxt.stt, vol);
