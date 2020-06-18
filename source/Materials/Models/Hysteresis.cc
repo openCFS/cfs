@@ -399,6 +399,14 @@ namespace CoupledField
     } else {
       //	compCase = 4;
       Double factor;
+	  /*
+	  * DEBUGGING 17.6.2020: the first case cannot occur as startXVector is a fresh vector at this point
+	  * it is up to the numerical precision if we end up here!
+	  *
+	  * startXVector = previousXVector; should appear BEFORE the if
+	  * inside if we should not check for != 0 but for < tolerance!
+	  *
+	  */
       if(startXVector.NormL2() != 0){
         startXVector = previousXVector;
 
@@ -408,13 +416,17 @@ namespace CoupledField
           if(currentYVector.NormL2() > previousYVector.NormL2()){
             factor = 1.25;
           } else {
+			  // this point can only be reached if previousYVector.NormL2() AND currentYVector.NormL2() = 0!
             factor = 1.0/1.25;
           }
         }
         startXVector.ScalarMult(factor);
       } else {
+		  // currently we always end up here if the constructor Vector<Double>(size) initializes the vector really with 0! 
         //            traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
         startXVector = currentYVector;
+		// this can be problematic as currentYVector contains the anhysteretic part whereas PSaturated does not!
+		// shouldn't we scale by XSaturated_/YSaturated_ instead?
         startXVector.ScalarMult(startXVector.NormL2()*XSaturated_/PSaturated_);
       }
     }

@@ -1007,6 +1007,9 @@
             <xsd:all>
               <xsd:element name="activate" type="DT_CFSBool" default="no"/>
               <xsd:element name="commonResultFile" type="xsd:token" default="---"/>
+              <xsd:element name="additionalTag1" type="xsd:token" minOccurs="0" default="---"/>
+              <xsd:element name="additionalTag2" type="xsd:token" minOccurs="0" default="---"/>
+              <xsd:element name="additionalTag3" type="xsd:token" minOccurs="0" default="---"/>
             </xsd:all>
           </xsd:complexType>
         </xsd:element>

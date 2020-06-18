@@ -8284,7 +8284,7 @@ namespace CoupledField {
           Vector<Double> zVals, UInt dimHystOperator, int forcedPreisachResolution,
           bool testInversion, bool printStatistics, bool writeResultsToFile,
           bool measurePerformance, std::string commonPerformanceFile, bool test1D, bool outputIrrStrains,
-          std::string nameTagForPerfFile){
+          std::string nameTagForPerfFile,std::string additionalTag1,std::string additionalTag2,std::string additionalTag3){
 
 		/*
      * 0. Declare variables (there are alot)
@@ -8369,10 +8369,24 @@ namespace CoupledField {
     std::stringstream orientation_name;
 		orientation_name << basedir << material_->GetName() << forcedResolutionString << name << "_projectedCoords_p";
 
+    bool useOldNameTag=false;
     std::stringstream nameTagForPerfFile_name;
-    nameTagForPerfFile_name << nameTagForPerfFile << "-" << material_->GetName() << forcedResolutionString;
+    nameTagForPerfFile_name << nameTagForPerfFile;
+    if(useOldNameTag){
+      std::stringstream nameTagForPerfFile_name;
+      nameTagForPerfFile_name << nameTagForPerfFile << "-" << material_->GetName() << forcedResolutionString;
+    }else{
+      if(additionalTag1 != "---"){
+        nameTagForPerfFile_name << "\t" << additionalTag1;
+      }
+      if(additionalTag2 != "---"){
+        nameTagForPerfFile_name << "\t" << additionalTag2;
+      }
+      if(additionalTag3 != "---"){
+        nameTagForPerfFile_name << "\t" << additionalTag3;
+      }
+    }
     nameTagForPerfFile = nameTagForPerfFile_name.str();
-    
 		        
 		if(writeResultsToFile){
 			results_x.open(results_name_x.str());
@@ -10999,6 +11013,9 @@ namespace CoupledField {
     }
     bool measurePerformance = false;
     std::string commonPerfFile;
+    std::string additionalTag1 = "---";
+    std::string additionalTag2 = "---";
+    std::string additionalTag3 = "---";
     if(testNode->Has("MeasurePerformance")){
       PtrParamNode PerformanceNode = testNode->Get("MeasurePerformance");
       if(PerformanceNode->Has("activate")){
@@ -11007,6 +11024,18 @@ namespace CoupledField {
       if(PerformanceNode->Has("commonResultFile")){
         PerformanceNode->GetValue("commonResultFile",commonPerfFile,ParamNode::PASS);
         commonPerfFile.erase(std::remove( commonPerfFile.begin(), commonPerfFile.end(), '\"' ),commonPerfFile.end());
+      }
+      if(PerformanceNode->Has("additionalTag1")){
+        PerformanceNode->GetValue("additionalTag1",additionalTag1,ParamNode::PASS);
+        additionalTag1.erase(std::remove( additionalTag1.begin(), additionalTag1.end(), '\"' ),additionalTag1.end());
+      }
+      if(PerformanceNode->Has("additionalTag2")){
+        PerformanceNode->GetValue("additionalTag2",additionalTag2,ParamNode::PASS);
+        additionalTag2.erase(std::remove( additionalTag2.begin(), additionalTag2.end(), '\"' ),additionalTag2.end());
+      }
+      if(PerformanceNode->Has("additionalTag3")){
+        PerformanceNode->GetValue("additionalTag3",additionalTag3,ParamNode::PASS);
+        additionalTag3.erase(std::remove( additionalTag3.begin(), additionalTag3.end(), '\"' ),additionalTag3.end());
       }
     } else {
       commonPerfFile = "---";
@@ -11073,7 +11102,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("Sine_input",xVals,yVals,zVals);
@@ -11126,7 +11155,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
 
       if(writeInputToFile){
         WriteSignalToFile("Rotation_input",xVals,yVals,zVals);
@@ -11170,7 +11199,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("DecreasingRotation_input",xVals,yVals,zVals);
@@ -11214,7 +11243,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("IncreasingRotation_input",xVals,yVals,zVals);
@@ -11259,7 +11288,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("DecreasingSine_input",xVals,yVals,zVals);
@@ -11303,7 +11332,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("DecreasingSawtooth_input",xVals,yVals,zVals);
@@ -11347,7 +11376,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("Forc_input",xVals,yVals,zVals);
@@ -11388,7 +11417,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("SelfDesigned_input",xVals,yVals,zVals);
@@ -11429,7 +11458,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("SatX-RemX-SatY_input",xVals,yVals,zVals);
@@ -11471,7 +11500,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       if(writeInputToFile){
         WriteSignalToFile("RemDrop_input",xVals,yVals,zVals);
@@ -11569,7 +11598,7 @@ namespace CoupledField {
        * START ACTUAL TESTING ROUTINE
        */
       TestHystOperatorWithSignal(outputName,xVals,yVals,zVals,dimHystOperatorForTesting,forcedPreisachResolution,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile,additionalTag1,additionalTag2,additionalTag3);
       
       combinedname << "_input";
       if(writeInputToFile){
