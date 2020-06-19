@@ -33,7 +33,7 @@ def namespace(query):
   if query.find('cfs:') == -1:
     return None
   else:
-    return {'cfs':'http://www.cfs++.org'}
+    return {'cfs':'http://www.cfs++.org/simulation'}
 
 # replace a single xpath value -> must exist once!
 # the xpath shall contain a single result. e.g. '//cfs:materialData/@file
