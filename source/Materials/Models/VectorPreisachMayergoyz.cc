@@ -430,8 +430,10 @@ namespace CoupledField
     // Note that this angle does not depend on the direction of the scalar model, so we just have to evaluate it once
     Double angleCorrection = 0.0;
     if(improveRotLoss_ == true){
+      // edit 19.06.2020: angleCorrection restricted to angle between prevXVal_ and xVal! see comments in eval function
       angleCorrection = evaluateLagCorrectionAngle(xVal, prevXVal_[idx]);
     }
+    
 //    Vector<Double> testOutput = Vector<Double>(dim_);
     for(UInt i = 0; i < numDirections_; i++){
       scalContribution.Init();
@@ -571,13 +573,29 @@ namespace CoupledField
      *  own modification: work with normalized xVal; if x = H, H might be in the order 1e5 or higher resulting
      *  in extremely large values; in the original paper, the authors only show the results for x = B where a
      *  typical B does not exceed 1-2T
+     * 
+     * Note 2 (19.06.2020):
+     *  after matching 'a' and 'b' to rotloss curves, 'a' became negative; thus, the exponential function does not tend
+     *  to 0 for large inputs but instead goes to infinity; as long as we stay in the range around saturation
+     *  the normalized values as used above work but once we hit a critical input level, the exponential function will
+     *  result in nan and from then on, computations are only non-sense;
+     *  in general it seems to be non-sense if the computed correction is larger than the actual angle between the
+     *  old and the new direction; the maximum lag should be this angle between old state and new state;
+     *  another remarkable point when 'a' is negative is the following: as the angular lag can exceed pi (by far), the
+     *  'corrected' evaluated projections of the input onto the directions of the single scalar models can be in the
+     *  wrong directions; thus, one could obtain an output that points into the completely wrong directions; this might
+     *  still be appropriate in some cases, e.g., if old and new state are perfectly anti-parallel and this extrem phase
+     *  lag shall remain, but the issue is as follows: when computing the Jacobian in the Newton inversion scheme, the
+     *  even small steppings in the input might cause a flip of sign of the output; therewith the entries of the Jacobian
+     *  are just non-sense; this leads of course to a non-convergence of the Newton scheme
+     * > add limitation to output > may no longer exceed the angle difference between old state and new state
      */
     Double absX = xVal.NormL2();
     Double absPrevX = prevXVal.NormL2();
     if(absPrevX <= 1e-16){
       return 0;
     }
-
+   
     // dPhi is the angle between xVal and prevXVal (not clearly stated in article but phi is the polar angle of xVal
     // so that dPhi seems to be the difference between the polar angles of xVal and prevXval)
     Double dotProd = 0;
@@ -600,7 +618,12 @@ namespace CoupledField
 
     Double absXNormalized = absX/XSaturated_;
     Double gX = std::exp(-lossParam_a_*absXNormalized + lossParam_b_);
-    Double psi = gX*absXNormalized*absDPhi;
+    // regarding note from 19.06.2020 above: limit angular correction (=maximal angular lag) to absDPhi
+    Double scaling = gX*absXNormalized;
+    if(scaling > 1.0){
+      scaling = 1.0;
+    } 
+    Double psi = scaling*absDPhi;
     return psi;
   }
 }

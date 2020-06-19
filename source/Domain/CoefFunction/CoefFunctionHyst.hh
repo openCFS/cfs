@@ -923,7 +923,7 @@ namespace CoupledField {
       Double delta = 2.0/numRows;
       bool checkWeights2D = !true;
       bool checkWeights3D = !true;
-      bool stopAfterTest = true;
+      bool stopAfterTest = !true;
 
       if((dim_ == 2)||checkWeights2D) {
         // 2D Isotropic
@@ -1049,8 +1049,10 @@ namespace CoupledField {
             for(UInt i = 0; i < numAngles; i++){
               phi = -M_PI/2+i*deltaPhi;
               c = std::cos(phi);
-              UInt idxAlpha = UInt(std::round((alpha*c+1.0)/delta));
-              UInt idxBeta = UInt(std::round((beta*c+1.0)/delta));
+              int idxAlphaTMP = std::floor((alpha*c+1.0)/delta);
+              int idxBetaTMP = std::floor((beta*c+1.0)/delta);
+              UInt idxAlpha = UInt(std::max(0,idxAlphaTMP));
+              UInt idxBeta = UInt(std::max(0,idxBetaTMP));
               integral += c*c*c*vectorWeights2D[idxAlpha][idxBeta];
             }
             //Double deltaAngle = M_PI/numDirections_;

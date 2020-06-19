@@ -371,7 +371,7 @@ namespace CoupledField
 
     UInt size = previousXVector.GetSize();
     Vector<Double> startXVector = Vector<Double>(size);
-
+    
     if (YdiffToRemancence < INV_params_.tolB){
       // we are quite close to remanence, but have not yet reached it
       // start from 0
@@ -407,7 +407,9 @@ namespace CoupledField
 	  * inside if we should not check for != 0 but for < tolerance!
 	  *
 	  */
+      
       if(startXVector.NormL2() != 0){
+//        std::cout << "startXVector.NormL2() "<<startXVector.NormL2()<<" != 0" << std::endl;
         startXVector = previousXVector;
 
         if(previousYVector.NormL2() != 0){
@@ -422,6 +424,7 @@ namespace CoupledField
         }
         startXVector.ScalarMult(factor);
       } else {
+//        std::cout << "startXVector.NormL2() "<<startXVector.NormL2()<<" == 0" << std::endl;
 		  // currently we always end up here if the constructor Vector<Double>(size) initializes the vector really with 0! 
         //            traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
         startXVector = currentYVector;
@@ -441,20 +444,18 @@ namespace CoupledField
       dir.Add(1.0/currentYVector.NormL2(),currentYVector);
     }
 
-    //    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
+//    std::cout << "startXVector: " << startXVector.ToString() << std::endl;
     //    std::cout << "currentYVector.NormL2(): " << currentYVector.NormL2() << std::endl;
     //    std::cout << "dir: " << dir.ToString() << std::endl;
     //    std::cout << "XSaturated_: " << XSaturated_ << std::endl;
     if((startXVector.NormL2() >= XSaturated_)&&(stayBelowSat==1)){
       //        traceMsg << "Reset xVal as its value is above Xsaturation but yVal is not" << std::endl;
-      //      std::cout << "scale down" << std::endl;
       startXVector = dir;
       startXVector.ScalarMult(1.0/1.5*XSaturated_);
     }
 
     if((startXVector.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
       //        traceMsg << "Reset xVal as its value is below Xsaturation but yVal is above" << std::endl;
-      //      std::cout << "scale up" << std::endl;
       startXVector = dir;
       startXVector.ScalarMult(1.5*XSaturated_);
     }
@@ -495,7 +496,13 @@ namespace CoupledField
      * > solve directly
      */
     Matrix<Double> jac = computeJacobian(x, hyst_x,
-            mu_inv, operatorIdx, 1.0, 0, false, scalingForJacDiagonal);
+            mu_inv, operatorIdx, 1.0, false, 0, scalingForJacDiagonal);
+//    computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal,
+//          Matrix<Double> mu_inv, Integer operatorIdx, Double sign,
+//					bool overwriteMemory, int stayBelowSat, Double scalingForJacDiagonal) 
+//    std::cout << "scalingForJacDiagonal: " << scalingForJacDiagonal << std::endl;
+//    std::cout << "Computed Jacobian for Newton = " << jac.ToString() << std::endl;
+    
     UInt vecSize = x.GetSize();
     Matrix<Double> jacInv = Matrix<Double>(vecSize,vecSize);
     jac.Invert(jacInv);
@@ -877,7 +884,27 @@ namespace CoupledField
 
     Double deltaX = 0.0;
 		Double scal = INV_params_.jacRes;
-    Double deltaXmin = scal*XSaturated_;
+    Double deltaXmin = scal; // XSaturated_; 
+    //  19.06.2020 - Ongoing issue: Inversion via Newton fails bad at some points as Jacobian does not fit at all
+    // Question:
+    // > is the used implementation, especially the resolution, suitable at all?
+    // in coef function hyst (where Jacobian of material relation is computed, i.e., of B = muH + Jm)
+    // the stepping length is set to 
+    //     steppingDistance = steppingSign*std::max(scaling,scaling*E_H.NormL2());
+    // where scaling = 1e-7 (=default value of INV_params_.jacRes!);
+    // here, we set 
+    //        if( xVal[i] < 0 ){
+    //          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+    //        } else {
+    //          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+    //        }
+    // i.e. scal*xVal[i] is comparable to scaling*E_H.NormL2()
+    // but deltaXmin = scal*XSaturated_ is way larger than scal!
+    // > idea:
+    //  set deltaX = sign(std::max( scal*xVal.NormL2(), scal)) 
+    //  and check if this works better!
+    // > note: error was found elsewhere! mayergoyz model had issues that had nothing to do with 
+    //  this routine; nevertheless, set deltaXmin to INV_params_.jacRes;
 
     //		Double deltaXmin = 1e-8*XSaturated_;
     //    Double scal = 1e-8;//1e-5;
@@ -937,7 +964,7 @@ namespace CoupledField
       //      LOG_DBG(vecpreisach) << "Use forward/backward differences for approximation of Jacobian";
       /*
        * Full Jacobian using forward/backward differences
-       */
+       */      
       for(UInt i = 0; i < dim_; i++){
         xShifted = xVal;
 
@@ -946,7 +973,7 @@ namespace CoupledField
         } else {
           deltaX = sign*std::max( scal*xVal[i], deltaXmin );
         }
-
+        
         xShifted[i] += deltaX;
         //        if((xShifted[i] > XSaturated_)&&(stayBelowSat==1)){
         //          xShifted[i] -= 2*abs(deltaX);
@@ -990,7 +1017,7 @@ namespace CoupledField
         for(UInt j = 0; j < dim_; j++){
           jac[j][i] += curCol[j];
         }
-      }
+      }      
     } else if(INV_params_.jacImplementation == 1){
       //      LOG_DBG(vecpreisach) << "Use central differences for approximation of Jacobian";
       /*
@@ -1189,6 +1216,8 @@ namespace CoupledField
 
     if(INV_params_.inversionMethod == 1){
       xUpdateStart = computeUpdate_Newton(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx, scalingForJacDiagonal);
+//      std::cout << "xCurrent = " << xCurrent.ToString() << std::endl;
+//      std::cout << "xUpdateStart = " << xUpdateStart.ToString() << std::endl;
     } else if(INV_params_.inversionMethod == 2){
       xUpdateStart = computeUpdate_Krylov(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
     } else {
@@ -1210,9 +1239,11 @@ namespace CoupledField
        * Check if update fits bounds
        */
       if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+//        std::cout << "Continue as xNew < XSaturated but stayBelowSat==-1!" << std::endl;
         continue;
       }
       if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
+//        std::cout << "Continue as xNew > XSaturated but stayBelowSat==+1!" << std::endl;
         continue;
       }
       allAlphasOutOfBound = false;
@@ -1242,12 +1273,10 @@ namespace CoupledField
           /*
            * much faster but does not work perfectly all the time
            */
-//          std::cout << "Stop Linesearch at local min" << std::endl;
           break;
         }
       }
     }
-
     xUpdate.Init();
     if(allAlphasOutOfBound){
       // update failed > discard
@@ -1870,7 +1899,7 @@ namespace CoupledField
     bool stopLineSearchAtLocalMin = INV_params_.stopLineSearchAtLocalMin;
     bool tolHRel = INV_params_.tolH_useAsRelativeNorm;
     bool tolBRel = INV_params_.tolB_useAsRelativeNorm;
-    
+
     std::stringstream traceMsg;
     if(debug){
       traceMsg << " --- TRACE MSG --- " << std::endl;
@@ -2317,7 +2346,6 @@ namespace CoupledField
       *   mu_FP = 0.5*(min_x dy/dx + max_x dy/dx)
       *
       */
-
     bool warnAtNonConvergence_ = INV_params_.printWarnings;
     if(INV_params_.inversionMethod == 5){
       // TEST inversion via GLOBAL FP approach
@@ -2764,9 +2792,6 @@ namespace CoupledField
         maxAlphaStatistics = alpha;
       }
       avgAlphaStatistics += alpha;
-
-      traceMsg << "Computed update: " << xUpdate.ToString() << std::endl;
-      traceMsg << "Discard update? " << discardUpdate << std::endl;
 
       totalNumberOfLinesearchIterations += numberOfIterations;
 

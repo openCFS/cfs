@@ -1651,7 +1651,7 @@ namespace CoupledField {
 
         if((isIsotropic == 0)){
 //        if( (dim_ != 2) || (isIsotropic == 0)){
-          EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
+          EXCEPTION("Mayergoyz vector model currently only implemented for isotropic materials");
         } else {
           POL_weightsAlreadyAdapted_ = 0;
           material->GetScalar(POL_weightsAlreadyAdapted_, MaterialType(PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR+enumOffset));
@@ -1664,9 +1664,9 @@ namespace CoupledField {
             // compute transformation of weights
 //            std::cout << "transformPreisachWeightsForIsotropicVectorCase" << std::endl;
             paramSet.weightTensor_ = transformPreisachWeightsForIsotropicVectorCase(&paramSet);
-
+            
             // transformPreisachWeightsForIsotropicVectorCase does only compute
-            // the upper triangle > mirror
+            // the upper triangle > mirror along alpha = beta to obtain the full numRows_ x numRows_ tensor
             for(UInt i = 0; i < paramSet.numRows_; i++){
               // note: diagonal element does not need mirroring
               // >  k < i instead of k <= i
@@ -1674,6 +1674,7 @@ namespace CoupledField {
                 paramSet.weightTensor_[k][i] = paramSet.weightTensor_[i][k];
               }
             }
+
             scalingRequired = true;
           }
           // check if weights are symmetric w.r.t. alpha = -beta
@@ -1698,11 +1699,13 @@ namespace CoupledField {
       // case, the saturation value outputSat refers to the sum of preisach in sat and anhyst part in sat;
       // to obtain the same curves we have two options:
       // a) allow int over weights to be different from 1, too
-      // b) define saturation value of preisach alone to be outputSat - anhystPart in sat
+      // b) define saturation value of preisach alone to be outputSat - anhystPart[inputsat]
       // > currently using option b
       // > this option can be turned of in mat.xml by setting anhystIncludedInSatValue to false
       //    by doing so, outputSat will be the saturation value of the preisach operator AND the scaling factor
-      //    for the anhyst part
+      //    for the anhyst part > where is the switch for that?
+      // Note: in case of the Mayergoyz vector model, intOverWeights refers to the original scalar weights not to
+      //    the transformed ones! the weights for the single scalar models inside the Mayergoyz model do not sum up to 1!
       paramSet.intOverWeights_ = intOverWeights;
 //      std::cout << "intOverWeights_: " << intOverWeights << std::endl;
       if(scalingRequired){
@@ -4009,7 +4012,7 @@ namespace CoupledField {
       }
     }
     else {
-      EXCEPTION("Approximate Jacobian with flag version = "<<version<<"not allowed");
+      EXCEPTION("Approximate Jacobian with flag version = "<<version<<" not allowed");
     }
 
 //    std::cout << "> Jacobian approximation of material law: " << std::endl;
@@ -8928,8 +8931,9 @@ namespace CoupledField {
 //    std::cout << "eps_mu_scal: " << eps_mu_scal << std::endl;
 //    std::cout << "eps_nu_base_[0][0]: " << eps_nu_base_[0][0] << std::endl;
 //
+    UInt outputEveryNthStep = 1; // 10
 		for(UInt i = 0; i < totalSteps; i++){
-			if( (i%10 == 0)&&(printStatistics) ){
+			if( (i%outputEveryNthStep == 0)&&(printStatistics) ){
 				std::cout << "STEP NR " << i+1 << "/" << totalSteps << " #####" << std::endl;
 			}
       performance << "Test " << i+1 << std::endl;
@@ -9519,7 +9523,7 @@ namespace CoupledField {
 				bool failX, failY;
 				for(mapItX = failedTests_wrtX.begin(); mapItX != failedTests_wrtX.end(); mapItX++,mapItY++){
 //          std::cout << "1" << std::endl;
-					statistics << " Test Nr " << mapItX->first << std::endl;
+					statistics << " Test Nr " << mapItX->first + 1 << std::endl;
 					failX = mapItX->second.first;
 					failY = mapItY->second.first;
 //          std::cout << "2" << std::endl;
