@@ -27,30 +27,8 @@ namespace CoupledField {
     //! Destructor
     ~AcousticMaterial();
 
-    //! set a scalar real material parameter
-    void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-    //! set a string material parameter
-    void SetScalar( const std::string& param, MaterialType matType,
-        Global::ComplexPart dataType );
-
-
-    //! get a scalar real material parameter
-    void GetScalar( Double& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a scalar complex material parameter
-    void GetScalar( Complex& param, MaterialType matType,
-    		  Global::ComplexPart dataType )  const;
-
-    //! get a scalar real material parameter
-    void GetScalar( std::string& param, MaterialType matType,
-        Global::ComplexPart dataType ) const;
-
-
-  private:
-
-
+    //! Trigger finalization of material
+    virtual void Finalize();
   };
 
 } // end of namespace

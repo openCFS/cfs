@@ -364,7 +364,7 @@ namespace CoupledField {
     // But we call PrintResults() to do the output to the info.xml even in optimization
 
     // we have to estimate the number of steps as we might loop over bloch modes
-    unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1) + 1; // one for savety
+    unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1) + 1; // one for safety
 
     // notify resultHandler about beginning of new sequence step
     // see comments in StaticDriver::SolveProblem() for the interplay with optimization

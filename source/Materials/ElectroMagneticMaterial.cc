@@ -1,11 +1,3 @@
-#include <stdlib.h>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <cmath>
-#include <limits.h>
-#include <string>
-
 #include "ElectroMagneticMaterial.hh"
 
 #include "Domain/ElemMapping/Elem.hh"
@@ -25,18 +17,32 @@ namespace CoupledField
   // ***********************
   ElectroMagneticMaterial::ElectroMagneticMaterial(MathParser* mp,
                                                    CoordSystem * defaultCoosy)
-  : BaseMaterial(mp, defaultCoosy) {
-
-    materialDatabaseName_ = "Electromagnetics";
-
+  : BaseMaterial(ELECTROMAGNETIC, mp, defaultCoosy)
+  {
     //set the allowed material parameters
-    isAllowed_.insert( MAG_PERMEABILITY );
+    isAllowed_.insert( MAG_PERMEABILITY_TENSOR );
+    isAllowed_.insert( MAG_PERMEABILITY_SCALAR );
     isAllowed_.insert( MAG_PERMEABILITY_1 );
     isAllowed_.insert( MAG_PERMEABILITY_2 );
     isAllowed_.insert( MAG_PERMEABILITY_3 );
-    isAllowed_.insert( MAG_RELUCTIVITY );
-    isAllowed_.insert( MAG_CONDUCTIVITY );
-    isAllowed_.insert( ELEC_PERMITTIVITY );
+    isAllowed_.insert( MAG_RELUCTIVITY_TENSOR );
+    isAllowed_.insert( MAG_RELUCTIVITY_SCALAR );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV );
+    isAllowed_.insert( MAG_CONDUCTIVITY_TENSOR );
+    isAllowed_.insert( MAG_CONDUCTIVITY_SCALAR );
+    isAllowed_.insert( MAG_CONDUCTIVITY_1 );
+    isAllowed_.insert( MAG_CONDUCTIVITY_2 );
+    isAllowed_.insert( MAG_CONDUCTIVITY_3 );
+    isAllowed_.insert( ELEC_PERMITTIVITY_TENSOR );
+    isAllowed_.insert( MAG_CORE_LOSS_PER_MASS );
+    isAllowed_.insert( MAG_BH_VALUES );
+    isAllowed_.insert( MAG_BH_VALUES_1 );
+    isAllowed_.insert( MAG_BH_VALUES_2 );
+    isAllowed_.insert( MAG_BH_VALUES_3 );
+    isAllowed_.insert( MAG_BH_DATA_ACCURACY );
+    isAllowed_.insert( MAG_BH_MAX_APPROX_VAL );
+    isAllowed_.insert( DENSITY );
+    isAllowed_.insert( NONLIN_DEPENDENCY );
 
     isAllowed_.insert( PREISACH_WEIGHTS );
     isAllowed_.insert( PREISACH_WEIGHTS_DIM );
@@ -189,12 +195,7 @@ namespace CoupledField
 
     isAllowed_.insert( IRRSTRAIN_REUSE_P );
 
-    isAllowed_.insert( DATA_ACCURACY );
-    isAllowed_.insert( MAX_APPROX_VAL );
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mag );
-    isAllowed_.insert( DENSITY );
-    isAllowed_.insert( CORE_LOSS );
-    isAllowed_.insert( NONLIN_DEPENDENCY );
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
@@ -202,382 +203,126 @@ namespace CoupledField
   
   void ElectroMagneticMaterial::Finalize() {
     ComputeFullMuTensor();
+
+    MaterialType orthoProps[3] = {
+        MAG_CONDUCTIVITY_1,
+        MAG_CONDUCTIVITY_2,
+        MAG_CONDUCTIVITY_3
+    };
+    CalcFull3x3Tensor(MAG_CONDUCTIVITY_SCALAR, orthoProps, MAG_CONDUCTIVITY_TENSOR);
   }
 
-  void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
+  // Calculate full permeability and reluctivity tensors from scalar values
+  void ElectroMagneticMaterial::ComputeFullMuTensor() {
 
-    if ( matType == HYST_MODEL || matType == P_DIRECTION ) {
-      stringParams_[matType] = param;
-      isSet_.insert( matType );
+    PtrCoefFct muTensor, relucTensor;
+    StdVector<PtrCoefFct> tensorComp(9), relucComp(9);
+
+    // depending on symmetry, calculate full 3x3 permeability tensor
+    SymmetryType symType = GetSymmetryType(MAG_PERMEABILITY_TENSOR);
+
+    if (symType == GENERAL) {
+
+      // in this case we have already the full permeability tensor
+      muTensor = GetTensorCoefFnc( MAG_PERMEABILITY_TENSOR, FULL, Global::COMPLEX);
+
+      // Now we have the full mu-tensor, so we can invert the matrix
+      // and store the reluctivity tensor.
+      // Attention: This currently only works with constant expressions!
+      if( muTensor->GetDependency() != CoefFunction::CONSTANT ) {
+        EXCEPTION( "The magnetic permeability must be constant!");
+      } else {
+        shared_ptr< CoefFunctionConst<Complex> > reluc(new CoefFunctionConst<Complex>());
+        Matrix<Complex> permMat, invMat;
+        shared_ptr< CoefFunctionConst<Complex> > permConst =
+            dynamic_pointer_cast< CoefFunctionConst<Complex> >(muTensor);
+        LocPointMapped lpm;
+        permConst->GetTensor( permMat, lpm);
+        permMat.Invert( invMat );
+        reluc->SetTensor( invMat );
+        SetCoefFct( MAG_RELUCTIVITY_TENSOR, reluc );
+      }
+    }
+    else if (symType == ISOTROPIC) {
+
+      PtrCoefFct isoMu = GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::COMPLEX );
+      // set diagonal entries
+      tensorComp[0] = isoMu;
+      tensorComp[4] = isoMu;
+      tensorComp[8] = isoMu;
+      muTensor = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3, tensorComp );
+      SetCoefFct( MAG_PERMEABILITY_TENSOR, muTensor );
+
+      // Compute reluctivity (scalar variable)
+      PtrCoefFct isoRel =
+          CoefFunction::Generate(mp_, Global::COMPLEX,
+                                 CoefXprUnaryOp(mp_, isoMu, CoefXpr::OP_INV) );
+
+      // Compute reluctivity
+      SetCoefFct( MAG_RELUCTIVITY_SCALAR, isoRel );
+
+      // Compute reluctivity (full tensor)
+      relucComp[0] = isoRel;
+      relucComp[4] = isoRel;
+      relucComp[8] = isoRel;
+      relucTensor = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3, relucComp );
+      SetCoefFct( MAG_RELUCTIVITY_TENSOR, relucTensor );
+    }
+    else if (symType == TRANS_ISOTROPIC) {
+
+      PtrCoefFct mu = GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::COMPLEX );
+      PtrCoefFct mu3 = GetScalCoefFnc( MAG_PERMEABILITY_3, Global::COMPLEX );
+      tensorComp[0] = mu;
+      tensorComp[4] = mu;
+      tensorComp[8] = mu3;
+      muTensor = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3, tensorComp );
+      SetCoefFct( MAG_PERMEABILITY_TENSOR, muTensor );
+
+      // Compute reluctivity
+      PtrCoefFct rel, rel3;
+      rel = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                   CoefXprUnaryOp(mp_, mu, CoefXpr::OP_INV) );
+      rel3 = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                         CoefXprUnaryOp(mp_, mu3, CoefXpr::OP_INV) );
+      relucComp[0] = rel;
+      relucComp[4] = rel;
+      relucComp[8] = rel3;
+      relucTensor = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3, relucComp );
+      SetCoefFct( MAG_RELUCTIVITY_TENSOR, relucTensor );
+    }
+    else if (symType == ORTHOTROPIC) {
+
+      PtrCoefFct mu1 = GetScalCoefFnc( MAG_PERMEABILITY_1, Global::COMPLEX );
+      PtrCoefFct mu2 = GetScalCoefFnc( MAG_PERMEABILITY_2, Global::COMPLEX );
+      PtrCoefFct mu3 = GetScalCoefFnc( MAG_PERMEABILITY_3, Global::COMPLEX );
+      tensorComp[0] = mu1;
+      tensorComp[4] = mu2;
+      tensorComp[8] = mu3;
+      muTensor = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3, tensorComp );
+      SetCoefFct( MAG_PERMEABILITY_TENSOR, muTensor );
+
+      // Compute reluctivity
+      PtrCoefFct rel1, rel2, rel3;
+      rel1 = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                   CoefXprUnaryOp(mp_, mu1, CoefXpr::OP_INV) );
+      rel2 = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                         CoefXprUnaryOp(mp_, mu2, CoefXpr::OP_INV) );
+      rel3 = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                         CoefXprUnaryOp(mp_, mu3, CoefXpr::OP_INV) );
+      relucComp[0] = rel1;
+      relucComp[4] = rel2;
+      relucComp[8] = rel3;
+      relucTensor = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3, relucComp );
+      SetCoefFct( MAG_RELUCTIVITY_TENSOR, relucTensor );
     }
     else {
-
-      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-        std::string dim = "scalar";
-        matTypeNotAllowed( matType, dim );
-      }
-      else {
-        isSet_.insert( matType );
-      }
-      stringParams_[matType] = param;
+      EXCEPTION( "Calculation of full permeability matrix for symmetryType '"
+          << SymmetryTypeEnum.ToString(symType) << "' not implemented!" );
     }
+
+    // Set symmetry type also for reluctivity
+    SetSymmetryType( MAG_RELUCTIVITY_TENSOR, symType );
   }
-
-
-  void ElectroMagneticMaterial::SetScalar( Double param, MaterialType matType, 
-                                           Global::ComplexPart dataType ) {
-
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-
-      Complex val;
-      if ( dataType == Global::REAL ) {
-        val = Complex ( param, 0.0 );
-      }
-      else if (dataType == Global::IMAG ) {
-        val = Complex ( 0.0, param );
-        isComplex_.insert( matType );
-      }
-      else {
-        std::string msg = "SetScalar-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
-      }
-
-      scalarParams_[matType] = val;
-    }
-
-    //check for permeability
-    if ( matType == MAG_PERMEABILITY ) {
-      if ( param < 1.255e-6 ) {
-        EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
-      }
-      else {
-        scalarParams_[MAG_RELUCTIVITY] = Complex( 1.0/param, 0.0 );
-      }
-    }
-
-  }
-
-
-  void ElectroMagneticMaterial::SetScalar( Complex param, MaterialType matType, 
-                                           Global::ComplexPart dataType ) {
-
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-
-      Complex val;
-      if ( dataType == Global::REAL ) {
-        val = param.real();
-      }
-      else if (dataType == Global::IMAG ) {
-        val = param.imag();
-        isComplex_.insert( matType );
-      }
-      else if ( dataType == Global::COMPLEX ) {
-        val = param;
-        isComplex_.insert( matType );
-      }
-
-      scalarParams_[matType] = val;
-    }
-
-    //check for permeability
-    if ( matType == MAG_PERMEABILITY ) {
-      if ( param.real() < 1.255e-6 ) {
-        EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
-      }
-      else {
-        scalarParams_[MAG_RELUCTIVITY] = 1.0/param;
-      }
-    }
-
-  }
-
-
-  void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-                                          Global::ComplexPart dataType ) {
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-        if ( tensorParams_[matType].GetNumRows() == 0 ) {
-          tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
-          tensorParams_[matType].Init();
-        }
-        if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
-          tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
-          tensorParamsOrig_[matType].Init();
-        }
-
-        tensorParams_[matType].SetPart( dataType, param );
-        tensorParamsOrig_[matType].SetPart( dataType, param );
-
-        // added this check to avoid seg-faults for tensors of size Nx1
-        // ( normal material parameter (like permittivity) do not need this check
-        //   but for some hysteresis parameter, Nx1 arrays are needed)
-        if(param.GetNumRows() >= 2 && param.GetNumCols() >= 2){
-          // to be consistent to old structure
-          if ( dataType == Global::REAL ) {
-            scalarParams_[matType] = Complex( param[2][2], 0.0);
-          }
-          else {
-            scalarParams_[matType] = Complex( 0.0, param[2][2]);
-            isComplex_.insert( matType );
-          }
-        }
-      }
-      else {
-        std::string msg = "SetTensor-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
-      }
-    }
-  }
-
-  void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-                                          Global::ComplexPart dataType ) {
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-
-      if ( dataType != Global::COMPLEX ) {
-        std::string msg = "SetTensor with Matrix<Complex>";
-        setMakesNoSense( dataType, msg );
-      }
-      else {
-        tensorParams_[matType]     = param;
-        tensorParamsOrig_[matType] = param;
-        isComplex_.insert( matType );
-      }
-    }
-
-    if ( matType == ELEC_PERMITTIVITY ) {
-      // to be consistent to old structure
-      scalarParams_[matType] = param[2][2];
-    }
-  }
-
-
-  void ElectroMagneticMaterial::GetScalar( Double& param, MaterialType matType, 
-                                           Global::ComplexPart dataType ) const {
-
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Complex val = pos->second;
-      if ( dataType == Global::REAL ) {
-        param = val.real();
-      }
-      else if ( dataType == Global::IMAG ) {
-        param = val.imag();
-      }
-      else {
-        std::string msg = "GetScalar-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
-
-  void ElectroMagneticMaterial::GetScalar( Complex& param, MaterialType matType, 
-                                           Global::ComplexPart dataType ) const {
-
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Complex val = pos->second;
-      if ( dataType == Global::REAL ) {
-        Complex valReal = Complex (val.real(), 0.0);
-        param = valReal;
-      }
-      else if ( dataType == Global::IMAG ) {
-        Complex valImag = Complex (0.0, val.imag());
-        param = valImag;
-      }
-      else if ( dataType == Global::COMPLEX ) {
-        param = val;
-      }
-    }
-  }
-
-  void ElectroMagneticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-
-      integerMap::const_iterator pos;
-      pos = integerParams_.find( matType );
-      std::string value;
-
-      if ( pos == integerParams_.end() ) {
-        std::string dim = "scalar";
-        matTypeNotInDataBase( matType, dim );
-      }
-      else {
-        param=pos->second;
-      }
-    }
-
-  void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
-                                           MaterialType matType, 
-                                           Global::ComplexPart dataType,
-                                           SubTensorType subTensor) const {
-
-
-
-    tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
-
-    if ( pos == tensorParams_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Matrix<Complex> matTensor;
-      if ( subTensor == FULL ) {
-        matTensor = pos->second;
-      }
-      else {
-        ComputeSubTensor(matTensor, matType, subTensor);
-      }
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        param = matTensor.GetPart( dataType );
-      }
-      else {
-        std::string msg = "GetTensor-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
-
-  void ElectroMagneticMaterial::GetTensor( Matrix<Complex>& param, 
-                                           MaterialType matType, 
-                                           Global::ComplexPart dataType,
-                                           SubTensorType subTensor) const {
-
-
-    tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
-
-    if ( pos == tensorParams_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Matrix<Complex> matTensor;
-      if ( subTensor == FULL ) {
-        matTensor = pos->second;
-      }
-      else {
-        ComputeSubTensor(matTensor, matType, subTensor);
-      }
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        Matrix<Double> help; 
-        help = matTensor.GetPart( dataType );
-        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
-        param.SetPart( dataType, help );
-      }
-      else if ( dataType == Global::COMPLEX ) {
-        param = matTensor;
-      }
-    }
-    if(matType==MAG_RELUCTIVITY){
-       for(UInt i = 0; i<param.GetNumRows();i++){
-         for(UInt j = 0; j<param.GetNumCols();j++){
-           Complex tmp = param[i][j];
-           param[i][j] = Complex(1.0,0.0) / tmp;
-         }
-       }
-     }
-  }
-
-
-  void ElectroMagneticMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-                                                 MaterialType matType, 
-                                                 SubTensorType subTensor) const {
-
-
-    tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
-
-	if(matType == MAGNETOSTRICTION_TENSOR_h_mag){
-		ComputeSubTensor_magstrict(matMatrix, matType, subTensor);
-	} else {
-	    //2D tensor axi or plane is the same
-	    matMatrix.Resize(2,2);
-	    matMatrix.Init();
-	    pos->second.GetSubMatrix(matMatrix, 1, 1);
-	}
-  }
-
-void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
-                                         MaterialType matType, SubTensorType subTensor) const {
-
-  //std::cout << "MagMaterial ComputeSubTensor-> MagStrictVersion" << std::endl;
-
-  tensorMap::const_iterator pos;
-  pos = tensorParams_.find( matType );
-
-  Matrix<Complex> const &mat = pos->second;
-
-  if ( subTensor == AXI ) {
-    matMatrix.Resize(2,4);
-
-    matMatrix[0][0] = mat[0][0];
-    matMatrix[0][1] = mat[0][1];
-    matMatrix[0][2] = mat[0][5];
-    matMatrix[0][3] = mat[0][2];
-    matMatrix[1][0] = mat[1][0];
-    matMatrix[1][1] = mat[1][1];
-    matMatrix[1][2] = mat[1][5];
-    matMatrix[1][3] = mat[1][2];
-  }
-  else if ( subTensor == PLANE_STRAIN ||
-      subTensor == PLANE_STRESS ) {
-    matMatrix.Resize(2,3);
-
-    matMatrix[0][0] = mat[0][0];
-    matMatrix[0][1] = mat[0][1];
-    matMatrix[0][2] = mat[0][5];
-    matMatrix[1][0] = mat[1][0];
-    matMatrix[1][1] = mat[1][1];
-    matMatrix[1][2] = mat[1][5];
-
-  } else {
-    subTensorNotAvailable( matType, subTensor );
-  }
-}
 
 //  void ElectroMagneticMaterial::InitApproxCurves() {
 //
@@ -976,53 +721,6 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
 //
 //  }
 //
-  void ElectroMagneticMaterial::ComputeFullMuTensor() {
-
-    Matrix<Complex> muTensor(3,3);
-    Complex mu1, mu2, mu3, isoMu;
-    
-    // depending on symmetry, calculate full 3x3 permeability tensor
-    switch(GetSymmetryType(MAG_PERMEABILITY)) {
-      
-      case GENERAL:
-        // in this case we have already the full permeability tensor
-        
-        GetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
-        break;
-        
-      case ISOTROPIC:
-        GetScalar( isoMu, MAG_PERMEABILITY, Global::COMPLEX );
-        muTensor[0][0] = isoMu;
-        muTensor[1][1] = isoMu;
-        muTensor[2][2] = isoMu;
-        SetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
-        break;
-        
-      case ORTHOTROPIC:
-        
-        GetScalar( mu1, MAG_PERMEABILITY_1, Global::COMPLEX );
-        GetScalar( mu2, MAG_PERMEABILITY_1, Global::COMPLEX );
-        GetScalar( mu3, MAG_PERMEABILITY_1, Global::COMPLEX );
-        muTensor[0][0] = mu1;
-        muTensor[1][1] = mu2;
-        muTensor[2][2] = mu3;
-        SetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
-        break;
-      default:
-        EXCEPTION( "Calculation of full permeability matrix for symmetryType '"
-            << GetSymmetryType(MAG_PERMEABILITY) << "' not implemented!" );
-    }
-    
-    // Now we have the full mu-tensor, so we can invert the matrix
-    // and store the reluctivity tensor
-    Matrix<Double> nuTensor(3,3), temp;
-    temp = muTensor.GetPart(Global::REAL);
-    temp.Invert(nuTensor);
-        
-    SetTensor( nuTensor, MAG_RELUCTIVITY, Global::REAL );
-    
-    GetTensor( temp, MAG_RELUCTIVITY, Global::REAL );
-  }
 
 
   PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin(MaterialType matType,
@@ -1040,7 +738,9 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
 	//Also the temperature-dependent conductivity is processed here via a call to the BaseMaterial
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
-    if( matType != MAG_RELUCTIVITY && matType != CORE_LOSS && matType != MAG_CONDUCTIVITY) {
+    if( matType != MAG_RELUCTIVITY_SCALAR &&
+        matType != MAG_CORE_LOSS_PER_MASS &&
+        matType != MAG_CONDUCTIVITY_SCALAR) {
       EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY and CORE_LOSS!"
           << "MAG_RELUCTIVITY_DERIV must be queried using GetTensorCoefFncNonLin.");
     }
@@ -1052,24 +752,24 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
 
     PtrCoefFct ret;
 
-    if( matType == MAG_RELUCTIVITY ){
+    if( matType == MAG_RELUCTIVITY_SCALAR ){
       // -----------
       // RELUCTIVITY
       // -----------
       // check if material is isotropic or anisotropic
-      if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+      if( nonlinIsoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinIsoParams_.end() ) {
         // ---------------------------
         // ISOTROPIC VERSION
         // ---------------------------
         // check, if nonlinear curve was already calculated
-        MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
+        MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
 
         //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
         if( matNl.approxType == SMOOTH_SPLINES ) {
           // Check, if smooth spline approximation was already created
           // and initialized
           if( !matNl.approxData ) {
-            SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY );
+            SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY_SCALAR );
             sp->SetAccuracy( matNl.measAccuracy );
             sp->SetMaxY( matNl.maxVal );
             sp->CalcBestParameter();
@@ -1110,11 +810,11 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
           ret = nuFnc;
         }
       }
-      else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+      else if( nonlinAnisoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinAnisoParams_.end() ) {
         // ---------------------------
         // ANISOTROPIC VERSION: here we allow for different BH-curves as a function of the angle!
         // ---------------------------
-        StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
+        StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY_SCALAR];
         UInt numCurves = matNl.GetSize();
         StdVector<Double> angles(numCurves);
         StdVector<Double> zScalings(numCurves);
@@ -1138,7 +838,7 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
             // Check, if smooth spline approximation was already created
             // and initialized
             if( !actNl.approxData ) {
-              SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY );
+              SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY_SCALAR );
               sp->SetAccuracy( actNl.measAccuracy );
               sp->SetMaxY( actNl.maxVal );
               sp->CalcBestParameter();
@@ -1230,17 +930,17 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
            << MaterialTypeEnum.ToString(matType) << "'");
       }
 
-    } else if( matType == CORE_LOSS ){
+    } else if( matType == MAG_CORE_LOSS_PER_MASS ){
       //-----------
       // CORE_LOSS
       //-----------
-      if ( nonlinIsoParams_.find(CORE_LOSS) != nonlinIsoParams_.end() ) {
-        MatDescriptorNl & matNl = nonlinIsoParams_[CORE_LOSS];
+      if ( nonlinIsoParams_.find(MAG_CORE_LOSS_PER_MASS) != nonlinIsoParams_.end() ) {
+        MatDescriptorNl & matNl = nonlinIsoParams_[MAG_CORE_LOSS_PER_MASS];
         if( matNl.approxType == SMOOTH_SPLINES ) {
           // Check, if smooth spline approximation was already created
           // and initialized
           if( !matNl.approxData ) {
-            SmoothSpline * sp = new SmoothSpline( matNl.fileName, CORE_LOSS );
+            SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_CORE_LOSS_PER_MASS );
             sp->SetAccuracy( matNl.measAccuracy );
             sp->SetMaxY( matNl.maxVal );
             sp->CalcBestParameter();
@@ -1257,7 +957,7 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
           ret = coef;
         } else if( matNl.approxType == LIN_INTERPOLATE ) {
           if ( !matNl.approxData ) {
-            LinInterpolate * li = new LinInterpolate( matNl.fileName, CORE_LOSS );
+            LinInterpolate * li = new LinInterpolate( matNl.fileName, MAG_CORE_LOSS_PER_MASS );
             matNl.approxData = li;
           }
           ApproxData * li = matNl.approxData;
@@ -1270,19 +970,21 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
         // since the core loss is an optional parameter (as well as density)
         // we have to guarantee here to return something, otherwise
         // the ResultFunctorIntegrate throws
-        // checking for isSet_ in the PDE is not enough, which seems odd
+        // checking for IsSet in the PDE is not enough, which seems odd
         ret = CoefFunction::Generate( mp_, Global::REAL, "0.0" );
       }
-    } else if( matType == MAG_CONDUCTIVITY){
+    } else if( matType == MAG_CONDUCTIVITY_SCALAR){
     	ret = BaseMaterial::GetScalCoefFncNonLin(matType, matDataType, fluxCoef);
     }
 
     return ret;
   }
 
-PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType matType,
-                                                           Global::ComplexPart matDataType,
-                                                           PtrCoefFct mechStrain ) {
+PtrCoefFct ElectroMagneticMaterial::
+GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                               Global::ComplexPart matDataType,
+                               PtrCoefFct mechStrain )
+{
      //This method allocates the objects handling a nonlinear nu(S) curve; thereby, we allow
      //approximation with smooth splines
      //
@@ -1294,7 +996,7 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
 
      // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
     // std::cout << "ElectroMagneticMaterial: GetNonLinFnc" << std::endl;
-     if( matType != MAG_RELUCTIVITY  ) {
+     if( matType != MAG_RELUCTIVITY_SCALAR  ) {
        EXCEPTION("Scalar Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY!");
      }
      
@@ -1305,13 +1007,13 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
      PtrCoefFct ret;
      
      // check if material is isotropic or anisotropic
-     if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+     if( nonlinIsoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinIsoParams_.end() ) {
        
        // ---------------------------
        // ISOTROPIC VERSION
        // ---------------------------
        // check, if nonlinear curve was already calculated
-       MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
+       MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
 
        //Here we approximate nu(S) from data points
        if( matNl.approxType == SMOOTH_SPLINES ) {	 
@@ -1343,7 +1045,7 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
          return(nuFnc);
        }
 
-     } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+     } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinAnisoParams_.end() ) {
        
        EXCEPTION("Currently nu(S) is only implemented for the isotropic case");  
      }
@@ -1357,10 +1059,12 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
    }
   
 
-  PtrCoefFct ElectroMagneticMaterial::GetTensorCoefFncNonLin( MaterialType matType,
-                                                              SubTensorType type,
-                                                              Global::ComplexPart matDataType,
-                                                              PtrCoefFct dependency ) {
+  PtrCoefFct ElectroMagneticMaterial::
+  GetTensorCoefFncNonLin( MaterialType matType,
+                          SubTensorType type,
+                          Global::ComplexPart matDataType,
+                          PtrCoefFct dependency )
+  {
     //
     //This method allocates the objects handling the derivative of the reluctivity w.r.t.
     //the magnetic flux density ( nu'(B) ); therefore it is called to bulid up the nonlinear
@@ -1374,9 +1078,9 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
     //
 
        // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
-       if( matType != MAG_RELUCTIVITY && matType != MAG_RELUCTIVITY_DERIV ) {
-         EXCEPTION("Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY "
-             << "or MAG_RELUCTIVITY_DERIV" );
+       if( matType != MAG_RELUCTIVITY_TENSOR && matType != MAG_RELUCTIVITY_DERIV ) {
+         EXCEPTION("Nonlinearity for magnetic materials only allowed for "
+             << "MAG_RELUCTIVITY_SCALAR or MAG_RELUCTIVITY_DERIV" );
        }
        
        // Ensure that only real-valued parameters are used
@@ -1388,11 +1092,11 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
        UInt dimDMat = (type == FULL) ? 3 : 2;
        
        // check if material is isotropic or anisotropic
-       if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+       if( nonlinIsoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinIsoParams_.end() ) {
          
          // Check, if MAG_RELUCTIVITY is queried
-         if( matType == MAG_RELUCTIVITY ) {
-           EXCEPTION("An isotropic nonlinear MAG_RELUCTIVITY must be queried using "\
+         if( matType == MAG_RELUCTIVITY_SCALAR ) {
+           EXCEPTION("An isotropic nonlinear MAG_RELUCTIVITY_SCALAR must be queried using "\
                      "GetScalCoefFncNonLin");
          }
          
@@ -1400,13 +1104,13 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
          // ISOTROPIC VERSION
          // ---------------------------
          // check, if nonlinear curve was already calculated
-         MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
+         MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
 
          if( matNl.approxType == SMOOTH_SPLINES ) {
 
            //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
            if( !matNl.approxData ) {
-             SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY );
+             SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY_SCALAR );
              sp->SetAccuracy( matNl.measAccuracy );
              sp->SetMaxY( matNl.maxVal );
              sp->CalcBestParameter();
@@ -1464,11 +1168,11 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
            return(dnudBFnc);
          }
 
-       } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+       } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinAnisoParams_.end() ) {
          // ---------------------------
          // ANISOTROPIC VERSION
          // ---------------------------
-         StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
+         StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY_SCALAR];
 
          UInt numCurves = matNl.GetSize();
          StdVector<Double> angles(numCurves);
@@ -1491,7 +1195,7 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
              // Check, if smooth spline approximation was already created
              // and initialized
              if( actNl.approxData == NULL) {
-               SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY );
+               SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY_SCALAR );
                sp->SetAccuracy( actNl.measAccuracy );
                sp->SetMaxY( actNl.maxVal );
                sp->CalcBestParameter();
@@ -1555,7 +1259,7 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
            approx[j] = compApprox;
          }
          
-         if( matType == MAG_RELUCTIVITY ) {
+         if( matType == MAG_RELUCTIVITY_TENSOR ) {
            // get linear starting value
            Double startVal = 0.0;
            this->GetScalar( startVal, matType, Global::REAL );

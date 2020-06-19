@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
   elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -20,8 +19,7 @@
 
   <xsd:complexType name="DT_MatElectric">
     <xsd:sequence>
-      <xsd:element name="permittivity" type="DT_ElecPermittivity"/>
-      <xsd:element name="permittivityCoefficient" type="DT_ElecNonLinPerm" minOccurs="0"/>
+      <xsd:element name="permittivity" type="DT_ElecPermittivityLinNonlin"/>
       <xsd:element name="hystModel" type="DT_HystModelElec" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
@@ -29,58 +27,16 @@
   <!-- ******************************************************************* -->
   <!--   Definition of electric permittivity -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_ElecPermittivity">
-    <xsd:choice>
-      <xsd:element name="tensor" type="DT_ElecPermTensor"/>
-      <xsd:element name="isotropic" type="DT_ElecPermIsotropic"/>
-    </xsd:choice>
-  </xsd:complexType>
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of electric permittivity in tensor form                -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_ElecPermTensor">
+  <xsd:complexType name="DT_ElecPermittivityLinNonlin">
     <xsd:sequence>
-      <xsd:element name="real">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_TokenList">
-            <xsd:maxLength value="9"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-      <xsd:element name="imag" minOccurs="0">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_TokenList">
-            <xsd:maxLength value="9"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-    </xsd:sequence>
-    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
-  </xsd:complexType>
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of isotropic electric permittivity                     -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_ElecPermIsotropic">
-    <xsd:sequence>
-      <xsd:element name="real" type="DT_NonNegFloat"/>
+       <xsd:element name="linear" type="DT_Square3TensorType" minOccurs="0"/>
+       <xsd:element name="nonlinear" type="DT_ElecPermittivityNonLin" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   
-  <!-- ******************************************************************* -->
-  <!--   Definition of nonlinearity of electric permittivity                     -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_ElecNonLinPerm">
+  <xsd:complexType name="DT_ElecPermittivityNonLin">
     <xsd:choice>
-      <xsd:sequence>
-        <xsd:element name="entry" type="xsd:nonNegativeInteger"/>
-        <xsd:element name="dependency" type="xsd:string"/>
-        <xsd:element name="approxType" type="xsd:string"/>
-        <xsd:element name="dataName" type="xsd:string"/>
-      </xsd:sequence>
+      <xsd:element name="isotropic" type="DT_MatNonLinearity"/>
     </xsd:choice>
-    <xsd:attribute name="nonlinear" type="xsd:string" use="required"/>
   </xsd:complexType>
-
 </xsd:schema>

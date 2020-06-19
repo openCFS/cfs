@@ -1,12 +1,16 @@
-<?xml version="1.0"?>
-
-<cfsMaterialDataBase xmlns="http://www.cfs++.org">
-   <material name="PZT-5H">
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="PZT-5H">
     <mechanical>
-      <density> 7730 </density>
-      <elasticity> 
-        <tensor dim1="6">
-          <real>
+      <density>
+        <linear>
+          <real> 7730 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
             128e9   66e9   66e9   0    0     0   
              66e9  128e9   66e9   0    0     0   
              66e9   66e9  110e9   0    0     0   
@@ -14,43 +18,56 @@
               0      0      0     0   21e9   0  
               0      0      0     0    0    21e9
           </real>
-        </tensor>
+          </tensor>
+        </linear>
       </elasticity>
     </mechanical>
     <electric>
-      <permittivity> 
-        <tensor dim1="3">
-          <real>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
             1.503e-8  0         0   
             0         1.503e-8  0
             0         0         1.3e-8
           </real>
-        </tensor>
+          </tensor>
+        </linear>
       </permittivity>
     </electric>
     <piezo>
-      <piezoCouplingTensor dim1="3" dim2="6">
-      	<real>
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real>
             0     0    0    0 17 0
             0     0    0   17  0 0
            -6.5  -6.5 23.3 0  0  0
         </real>
-      </piezoCouplingTensor>
+          </tensor>
+        </linear>
+      </piezoCoupling>
     </piezo>
-   </material>
-
-   <material name="Steel">
-     <mechanical>
-        <density> 7.8E03 </density>
-        <elasticity>
-          <isotropic>
-            <real>
-              <elasticityModulus> 210E09 </elasticityModulus>
-              <poissonNumber> 0.3 </poissonNumber>
-            </real>
-          </isotropic>
-        </elasticity>
-      </mechanical>
   </material>
-
+  <material name="Steel">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7.8E03 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 210E09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
 </cfsMaterialDataBase>

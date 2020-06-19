@@ -446,7 +446,7 @@ void Domain::SolveProblem()
 
   // PostInit needs to be called in advance!
   if(optimization_ != NULL)
-    optimization_->SolveProblem(); // will call multiple driver-SolveProblem
+    optimization_->SolveProblem(); // will call multiple driver->SolveProblem
   else
     driver->SolveProblem();
 }
@@ -663,7 +663,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   }
 
   
-    // Initialize those PDEs which are not directly coupled
+  // Initialize those PDEs which are not directly coupled
   for( UInt iStage = 1; iStage < 3; ++iStage ) {
     for (UInt i = 0; i < numSinglePde_; i++) {
       it = isDirectCoupled_.find(ptSinglePde_[i]);

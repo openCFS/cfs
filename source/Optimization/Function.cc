@@ -362,7 +362,7 @@ void Function::ToInfo(PtrParamNode info) {
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(type_ == EIGENFREQUENCY)
+  if(type_ == EIGENFREQUENCY || type_ == BUCKLING_LOAD_FACTOR)
     info->Get("ev")->SetValue(eigenvalue_id_);
 
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
@@ -501,7 +501,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       if(!pn->Has("excitation"))
         throw Exception("doing homogenization with meta excitations the excitation parameters is mandatory for " + ToString());
       // assert(!ctxt->DoMultiSequence());
-      excite_ = ctxt->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
+      excite_ = ctxt->GetExcitation(me->GetNumberHomogenization(ctxt->ToApp())-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
     }
     break;
 
@@ -518,7 +518,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ELEC_ENERGY:
   case TEMPERATURE:
   case PRESSURE_DROP:
-  case HEAT_ENEGRY:
+  case HEAT_ENERGY:
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
@@ -546,6 +546,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case STRESS:
   case STRESS_DENSITY:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
+  case BUCKLING_LOAD_FACTOR:
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
@@ -608,6 +609,7 @@ bool Function::IsAdjointBased() const {
   case SQR_MAG_FLUX_DENS_RZ:
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
+  case BUCKLING_LOAD_FACTOR:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -778,13 +780,14 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS:
   case STRESS_DENSITY:
   case PRESSURE_DROP:
-  case HEAT_ENEGRY:
+  case HEAT_ENERGY:
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
   case EIGENFREQUENCY:
+  case BUCKLING_LOAD_FACTOR:
   case BANDGAP:
   case FILTERING_GAP:
     return true;
@@ -1060,17 +1063,20 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is default
   this->periodic = enable & domain->HasPerdiodicBC();
   int dim = domain->GetGrid()->GetDim();
-  if (dim == 3 && (domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterial/homRectC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1"))) {
+  if (dim == 3 && (domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterials/designMaterial/homRectC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterials/designMaterial/homIsoC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterials/designMaterial/heat"))) {
     //read interpolation data for volume calculation in 3D
-    //std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
-    string p_node = "";
-    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1 || space->getDesignMaterialType() == DesignMaterial::SGP_MATLAB) {
-      p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homRectC1";
-    } else {
-      p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1";
-    }
-    PtrParamNode hr = domain->GetParamRoot()->Get(p_node);
-    string file = hr->Get("file")->As<string>();
+    PtrParamNode dm_node = domain->GetParamRoot()->Get("optimization/ersatzMaterial/paramMat/designMaterials")->GetByVal("designMaterial", "sequence", Optimization::context->sequence);
+    assert(dm_node != NULL);
+    std::string material_type = "";
+    DesignMaterial::Type dtype = space->GetDesignMaterialType();
+    if (dtype == DesignMaterial::HOM_RECT_C1 || dtype == DesignMaterial::SGP_MATLAB)
+      material_type = "homRectC1";
+    if (dtype == DesignMaterial::HOM_ISO_C1)
+      material_type = "homIsoC1";
+    if (dtype == DesignMaterial::HEAT)
+      material_type = "heat";
+
+    std::string file = dm_node->Get(material_type)->Get("file")->As<std::string>();
     PtrParamNode root = XmlReader::ParseFile(file);
     int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
     int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
@@ -1082,6 +1088,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
     ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
   }
+
   //total volume in the non-regular case is needed for the volume calculations
   this->total_vol_ = 0.0;
 
@@ -2136,8 +2143,8 @@ double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, cons
   if(de != NULL)
     return de->GetDesign(access);
   if(get_parameter)
-    return local->space->designMaterial->GetParameter(type);
-  throw Exception("Designtype not found! If it is a ParamMat parameter make sure to query for parameters.");
+    return Optimization::context->dm->GetParameter(type);
+  throw Exception("Design type not found! If it is a ParamMat parameter make sure to query for parameters.");
 }
 
 
@@ -3486,7 +3493,7 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   // temporary data structure
   Vector<double> p(3);
-  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1) {
+  if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1) {
     p[0] = GetDesign(DesignElement::STIFF1, local, access, true);
     p[1] = p[0];
     p[2] = p[0];
@@ -3522,7 +3529,7 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
 double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   DesignElement* de = dynamic_cast<DesignElement*>(element);
   int dim = domain->GetGrid()->GetDim();
-  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {
+  if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {
     throw Exception("CalcTwoScaleVolume is not implemented for dim = 2 and HOM_ISO_C1.");
   }
   double vol;
@@ -3534,19 +3541,19 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   /**svol is a scaling factor for unstructured, nonregular grids. */
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
-  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 3) {
+  if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 3) {
     return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
   }
 
   double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
   double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
 
-  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {
+  if (Optimization::context->dm->GetInterpolationMethod() == DesignMaterial::SG) {
     Vector<double> p(3);
     p[0] = stiff1;
     p[1] = stiff2;
     p[2] = GetDesign(DesignElement::SHEAR1, local, access, true);
-    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType(), derivative);
+    return svol * Optimization::context->dm->CalcHomVolume(p, GetElement(neigh_idx)->GetType(), derivative);
   }
 
   if (!derivative) {
@@ -3622,7 +3629,7 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const L
   double eps = 1.0 * g->GetBoundValue();
 
   Matrix<double> E;
-  bool ok = local->space->designMaterial->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  bool ok = Optimization::context->dm->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
   assert(ok);
@@ -3942,7 +3949,7 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* 
   const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
   DesignElement::Type der = derivative ? de->GetType() : DesignElement::NO_DERIVATIVE;
 
-  bool ok = local->space->designMaterial->GetTensor(E, f->GetDesignType(), stt, elem, der, notation); // the sub-tensor-type DOES matter)
+  bool ok = Optimization::context->dm->GetTensor(E, f->GetDesignType(), stt, elem, der, notation); // the sub-tensor-type DOES matter)
   assert(ok);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
   LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
@@ -3962,7 +3969,7 @@ double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* l
   const BaseDesignElement* de = GetElement(neigh_idx);
   assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
   // as we square we do not need the linear derivative
-  local->space->designMaterial->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
+  Optimization::context->dm->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
 
   LOG_DBG3(func) << "L::I::CTN e_num=" << element->GetIndex() << " E=" << E.ToString(0, false);
 

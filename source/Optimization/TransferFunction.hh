@@ -103,7 +103,7 @@ namespace CoupledField
       /** our real type of transfer function, only set if disabled, else NO_TYPE. */
       Type orgType_; 
        
-      /** on of the ELAST, App::MECH, App::PIEZO_COUPLING */ 
+      /** type of application */
       App::Type application_;
        
       /** the exponent for SIMP, not used in IDENTIY */

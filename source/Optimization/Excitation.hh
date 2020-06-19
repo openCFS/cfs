@@ -70,6 +70,15 @@ public:
   /** the 0-based wave number is for the first sequence the index */
   int GetWaveNumber() const;
 
+  /** In the case of buckling, we have two excitations, each with one pde,
+   * first linear elasticity (real), then buckling (complex eigenvalue problem).
+   * In optimization we take the solution of the first pde, convert it to
+   * complex and inject it in the second one to get the stresses which we need
+   * to assemble the buckling pde.
+   *  */
+  std::map<RegionIdType, PtrCoefFct> GetStressCoefFctFromExcitation(UInt index);
+  void SetStressCoefFct(std::map<RegionIdType, PtrCoefFct> stress_map);
+
   /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 
@@ -158,7 +167,7 @@ public:
   /** To be called prior to PrepareMultipleExcitations() */
   void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);
 
-  /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
+  /** Handle multiple excitations (loads/frequencies). By definition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC.
    * @param ctxt an own version of Context to setup a multi sequence system */
   void PrepareMultipleExcitations(Optimization* opt, Context* ctxt);
@@ -172,7 +181,7 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   /** The number of homogenization test strains. Important when we do also transform */
-  unsigned int GetNumberHomogenization() const;
+  unsigned int GetNumberHomogenization(App::Type app) const;
 
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }

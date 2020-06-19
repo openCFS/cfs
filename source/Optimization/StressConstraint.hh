@@ -68,7 +68,7 @@ private:
    * @return mech/mech or mech/mech, piezo/mech, piezo/piezo, mech/piezo */
   StdVector<std::pair<App::Type, App::Type> > GetApplications();
 
-  /** This is the general formula E1*B1*u1)^T*M*(E2*B2*u2).
+  /** This is the general formula (E1*B1*u1)^T*M*(E2*B2*u2).
    * In the adjoint case u1 = u1^* and u2 is omitted, in the grad case E2 = grad_E2 */
   Matrix<double> M;
   Matrix<double> E1;

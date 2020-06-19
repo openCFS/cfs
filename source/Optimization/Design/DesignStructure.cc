@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <iostream>
 #include <limits>

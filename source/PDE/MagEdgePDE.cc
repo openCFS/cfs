@@ -166,7 +166,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           // ========================================
           //  Classic Nonlinear Stiffness Integrator
           // ========================================
-          nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
+          nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
         }
 
         // replace in optimization case
@@ -256,13 +256,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           // ===============================
           //  Standard Stiffness Integrator
           // ===============================
-          curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+          curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL);
           //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
 
           // ===============================
           //  Standard Stiffness Integrator
           // ===============================
-          PtrCoefFct curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
+          PtrCoefFct curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
 
           CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
 
@@ -319,7 +319,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         ReadMaterialDependency( "electricConductivity", dispDofNames, ResultInfo::SCALAR, false,
             ent, coef, updatedGeo_ );
         //coef-Fnc for electric conductivity
-        PtrCoefFct condNL = actMat->GetScalCoefFncNonLin( MAG_CONDUCTIVITY, Global::REAL, coef);
+        PtrCoefFct condNL = actMat->GetScalCoefFncNonLin( MAG_CONDUCTIVITY_SCALAR, Global::REAL, coef);
         if ( analysistype_ == STATIC ) {
           EXCEPTION("No temperature-dependent conductivity implemented for static magnetic analysis");
         }
@@ -344,13 +344,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // =================================================
         PtrCoefFct conductivityCoeff;
         Double conductivity = 0.0;
-        if ( materials_[actRegion]->GetSymmetryType(MAG_CONDUCTIVITY) == BaseMaterial::GENERAL ){
-          conductivityCoeff = materials_[actRegion]->GetTensorCoefFnc(MAG_CONDUCTIVITY, FULL, Global::REAL);
+        if ( materials_[actRegion]->GetSymmetryType(MAG_CONDUCTIVITY_TENSOR) == BaseMaterial::GENERAL ){
+          conductivityCoeff = materials_[actRegion]->GetTensorCoefFnc(MAG_CONDUCTIVITY_TENSOR, FULL, Global::REAL);
           Matrix<Double> conduc;
-          materials_[actRegion]->GetTensor( conduc, MAG_CONDUCTIVITY, Global::REAL );
+          materials_[actRegion]->GetTensor( conduc, MAG_CONDUCTIVITY_TENSOR, Global::REAL );
           conductivity = ( conduc[0][0]+conduc[1][1]+conduc[2][2] )/3;
         }else{
-          materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+          materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
           conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(conductivity));
         }
         // regularize
@@ -358,7 +358,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
           Matrix<Double> reluc;
           // get tensor of permeability and determine max. value
-          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
+          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY_TENSOR, Global::REAL );
           conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
           scaleByEdgeSize = true;
           regularizedRegions_.insert(actRegion);
@@ -426,10 +426,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         Double conductivity = 0.0;
 
         // get conductivity
-        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
         assert(conductivity != 0.0);
         //PtrCoefFct coeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
-        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 
         // Create the integrators
         BaseBDBInt   *velocityStiff = NULL;
@@ -1458,7 +1458,7 @@ regIt = regions_.Begin();
 for( ; regIt != regions_.End(); ++regIt ) {
   RegionIdType actRegion = *regIt;
   actMat = materials_[actRegion];
-  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
   cldCoef->AddRegion(actRegion, coreLossFct);
 }
 
@@ -1473,7 +1473,7 @@ for( ; regIt != regions_.End(); ++regIt ) {
   RegionIdType actRegion = *regIt;
   actMat = materials_[actRegion];
   // core loss density in W/kg
-  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
   // core loss density in W/m^3, which deserves to be called density
   PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
   PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));

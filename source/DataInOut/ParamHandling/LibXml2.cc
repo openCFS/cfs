@@ -69,10 +69,11 @@ void HandleValidationError(void *ctx, const char *format, ...)
     string msg(errMsg);
     free(errMsg);
 
-    // remove any '{http://www.cfs++.org}' it doesn't improve readability
+    // remove any '{http://www.cfs++.org/simulation}' it doesn't improve readability
     // C++ has such a poor lib :(
-    for (string::size_type i = msg.find("{http://www.cfs++.org}"); i != string::npos; i = msg.find("{http://www.cfs++.org}"))
-       msg.erase(i, strlen("{http://www.cfs++.org}"));
+    static const std::string schemaUrl = "{http://www.cfs++.org/simulation}";
+    for (string::size_type i = msg.find(schemaUrl); i != string::npos; i = msg.find(schemaUrl))
+       msg.erase(i, schemaUrl.length());
     throw Exception("validation error " + msg);
 }
 

@@ -20,7 +20,9 @@ namespace CoupledField {
   // forward class declaration
   class SolStrategy;
   class StdMatrix;
-  
+
+  class Timer;
+
   // =========================================================================
   // BASE EIGENVALUE SOLVER
   // =========================================================================
@@ -46,12 +48,10 @@ namespace CoupledField {
 
     typedef enum {NONE, MAX, NORM} ModeNormalization;
     //! Defines how to normalized the modes
-    //! - NONE : don not change what is returned by the solver
+    //! - NONE : do not change what is returned by the solver
     //! - MAX : normalize such that the maximum absolute entry has a value of 1
     //! - NORM : normalize such that the L2 norm of each mode is 1
 
-  public:
-    
     //! Default Constructor
     BaseEigenSolver( shared_ptr<SolStrategy> strat, 
                      PtrParamNode eSolverXML,
@@ -83,6 +83,9 @@ namespace CoupledField {
     //! Default Destructor
     virtual ~BaseEigenSolver() {
     }
+
+    /** Does constructor stuff only possible after child constructors are called */
+    void PostInit();
 
     //! Get type of eigenvalue problem to be solved
     bool IsQuadratic() const {return isQuadratic_;}// ToDo: remove due to new structure
@@ -248,11 +251,12 @@ namespace CoupledField {
     }
 
     //! normalize a mode
-    void NormalizeMode(Vector<Complex> & mode, ModeNormalization type ) {
+    virtual void NormalizeMode(Vector<Complex> & mode, ModeNormalization type ) {
       double factor;
       switch (type) {
         case ModeNormalization::NONE :
-          factor = 1.0; break;
+          factor = 1.0;
+          break;
         case ModeNormalization::MAX :
           int loc;
           factor = std::abs(mode.MaxAbs(loc));
@@ -266,15 +270,21 @@ namespace CoupledField {
     }
 
     void GetNormalizedEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true){
-      GetEigenMode(modeNr,mode,right);
-      NormalizeMode(mode, modeNormalization_);
+      GetEigenMode(modeNr, mode, right);
+      this->NormalizeMode(mode, modeNormalization_);
     }
 
-    void SetModeNormalization(ModeNormalization normType){
+    void SetModeNormalization(ModeNormalization normType) {
       modeNormalization_ = normType;
     }
 
-    virtual EigenSolverType GetEigenSolverName(){ return eigenSolverName_;}
+    ModeNormalization GetModeNormalization() { return modeNormalization_; }
+
+    virtual EigenSolverType GetEigenSolverName(){ return eigenSolverName_; }
+
+    /** Gives the timer located within PtrParamNode */
+    boost::shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+    boost::shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
 
   protected: 
 
@@ -341,9 +351,13 @@ namespace CoupledField {
     //! defines the mode normalization
     ModeNormalization modeNormalization_;
 
-  public:
     //! Solver Type Name
     EigenSolverType eigenSolverName_;
+
+    /** This is a pointer to the setup timer. Located within PtrParamNode*/
+    boost::shared_ptr<Timer> setupTimer_;
+    boost::shared_ptr<Timer> solveTimer_;
+
   };
   
 }

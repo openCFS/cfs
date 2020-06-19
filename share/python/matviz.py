@@ -27,7 +27,8 @@ TWO_SCALE = (
   "hom_frame",
   "hom_framed_cross",
   "hom_rect",
-  "hom_ortho_3d"
+  "hom_ortho_3d",
+  "hom_triangle"
   )
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
@@ -55,6 +56,17 @@ def read_design(hdf_file, dim_2D, args):
         res['s2'] = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show != "rot" else numpy.ones((len(centers),1)) * .1
         res['s3'] = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
         res['sh1'] = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
+    else:
+      if args.h5_region == 'all':
+        s1 = [[None]]
+        for region in f['/Mesh/Regions']:
+          s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+          s1 = numpy.concatenate((s1,s))
+        res['s1'] = s1[1:]
+      else:
+        res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+      res['s2'] = res['s1']
+      res['s3'] = res['s1']
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -203,13 +215,13 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
+    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp", "hom_ortho_3d", "hom_triangle"):
       if args.show == "simp":
         args.parametrization = "simp"
       if h5_read:
         design = read_design(f, dim_2D, args)
       else:
-       design, coords = read_stiff_angle_matlab(args.input)
+        design, coords = read_stiff_angle_matlab(args.input)
         
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
@@ -251,6 +263,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         elif args.show == "hom_cross_bar":
           design['angle'] = numpy.zeros((len(s1),1))
           viz = show_cross_bar(coords, design, args.hom_dir, args.res, args.scale, args.color, args.save)
+        elif args.show == "hom_triangle":
+          assert(args.hom_grad != 'none')
+          #coords = centers, min, max, elem
+          viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, args.parameter)
         elif args.show == "stream":
             samples = args.hom_samples.split(',')
             design['angle'] = design['angle'][:,0]
@@ -313,7 +329,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 exit()  
               else:
                 if args.show == "hom_rot_cross":
-                  viz = create_3d_cross_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres,csize)   
+                  viz = create_3d_cross_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres, csize)   
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
@@ -472,12 +488,12 @@ parser.add_argument('--hist', help='plot histograms of the results in the h5 fil
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
-parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
-parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d'])
+parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
+parser.add_argument("--sampling", help="sampling rate for tensor rotation (default 180)", default=180, type=float)
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d', 'hom_triangle'])
 parser.add_argument("--axes", help="show axes", action='store_true', default=False)
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
-parser.add_argument("--symmetries", help="same options as for shows", default="default")
+parser.add_argument("--symmetries", help="same options as for show", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
 parser.add_argument("--symmetries_threshold", help="threshold value for symmetries (default 9999)", default=9999)
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
@@ -504,7 +520,7 @@ parser.add_argument("--color", help="only for hom_rot_cross: 'black' or colormap
 parser.add_argument("--info", help="creates a xml file of given name with additional information")
 parser.add_argument("--unstructured", help="number of structured elements per coordinate as list nx,ny,nz", default="")
 parser.add_argument("--nodefile", help="name of the design to node file", default="")
-parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
+parser.add_argument("--thres", help="threshold value for plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
 parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot','ppbox','box_varel'])
@@ -516,6 +532,7 @@ parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)"
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=0)
 parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
+parser.add_argument("--parameter", help="parameter for different usage", type=float, default=None)
 # print sys.argv
 
 args = parser.parse_args()

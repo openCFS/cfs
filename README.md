@@ -12,10 +12,10 @@ For building you need
 * some additional dependecies depending on the build configuration
 
 There are installation instructions for required dependencies for
-[Ubuntu](share/doc/developer/build-dependencies/ubuntu.md), 
-[Debian](share/doc/developer/build-dependencies/debian.md),  
-[Centos](share/doc/developer/build-dependencies/centos.md) and
-[Fedora](share/doc/developer/build-dependencies/fedora.md).
+[Ubuntu](share/doc/developer/build-dependencies/ubuntu_latest.md), 
+[Debian](share/doc/developer/build-dependencies/debian_latest.md),  
+[Centos](share/doc/developer/build-dependencies/centos_latest.md) and
+[Fedora](share/doc/developer/build-dependencies/fedora_latest.md).
 They are regularly tested on the newest releases using [docker containers](share/docker/README.md), via our CI/CD [pipeline](.gitlab-ci.yml). 
 
 We use CMake so it might be as simple as

@@ -17,6 +17,7 @@ namespace CoupledField {
     A_   = NULL;
     B_   = NULL;
     xml_ = xml;
+    eigenSolverName_ = EigenSolverType::PHIST;
 
     comm_ = NULL;
 
@@ -34,6 +35,8 @@ namespace CoupledField {
     linSolv.Add(phist_QMR, "qmr");
     linSolv.Add(phist_BICGSTAB, "bicgstab");
     linSolv.Add(phist_CARP_CG, "carp_cg");
+
+    BaseEigenSolver::PostInit();
   }
 
   PhistEigenSolver::~PhistEigenSolver()

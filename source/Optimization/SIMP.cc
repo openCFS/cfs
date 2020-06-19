@@ -12,6 +12,7 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Driver/Assemble.hh"
+#include "Driver/BucklingDriver.hh"
 #include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
@@ -73,7 +74,7 @@ void SIMP::SetElementK( Function* f, DesignElement* de, const TransferFunction* 
 {
   if(f->ctxt->IsComplex())
   {
-    if(f->ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
+    if(f->ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch with real material but complex BOp
       SetElementK<Complex, Complex >( f, de, tf, app, out, derivative, calcMode, ev);
     else
       SetElementK<Complex, double >( f, de, tf, app, out, derivative, calcMode, ev);
@@ -97,11 +98,13 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
   case App::MECH:
   case App::ACOUSTIC:
   case App::HEAT:
+  case App::BUCKLING:
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
     // element matrix with org material, might be cached -> local_element_cache
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
+    LOG_DBG3(simp) << "stiffness=" << stiffness.ToString();
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
@@ -122,18 +125,35 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
-    if(f->ctxt->IsComplex())
+    if(app == App::BUCKLING)
+    {
+      assert(f->ctxt->DoBuckling());
+
+      if (f->ctxt->GetBucklingDriver()->IsInverseProblem())
+        out *= -ev;
+
+      tf = design->GetTransferFunction(de->GetType(), App::BUCKLING);
+      AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, calcMode, ev); // no bimaterial
+      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+
+      if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+      {
+        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+        AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, calcMode, ev); // bimaterial
+        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+      }
+    }
+
+    if(f->ctxt->IsComplex() && !f->ctxt->DoBuckling())
     {
       tf = design->GetTransferFunction(de->GetType(), App::MASS);
       AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
-
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
-
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
     }

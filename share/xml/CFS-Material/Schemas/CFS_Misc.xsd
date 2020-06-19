@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
   elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -76,6 +75,93 @@
     <xsd:list itemType="xsd:token"/>
   </xsd:simpleType> 
 
+  <!-- ************************************************************* -->
+  <!--   Definition for a scalar type, with real and imaginary parts -->
+  <!-- ************************************************************* -->
+  <xsd:complexType name="DT_ScalarType">
+    <xsd:sequence>
+      <xsd:element name="real" type="xsd:token"/>
+      <xsd:element name="imag" type="xsd:token" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ************************************************************* -->
+  <!--  Definition of a general tensor without size restriction      -->
+  <!-- ************************************************************* -->
+  <xsd:complexType name="DT_TensorGeneralType">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_TokenList"/>
+      <xsd:element name="imag" type="DT_TokenList" minOccurs="0"/>
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="optional"/>
+  </xsd:complexType>
+
+  <!-- ************************************************************* -->
+  <!--   Definition for a  tensorial data type (3x3 tensor),         -->
+  <!--   which can be defined by isotropic, transversal-isotropic,   -->
+  <!--   orthotropic or general tensor notation                      -->
+  <!-- ************************************************************* -->
+  <xsd:complexType name="DT_Square3TensorType">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_ScalarType"/>
+      <xsd:element name="transversalIsotropic" type="DT_Square3TensorTypeTransIso"/>
+      <xsd:element name="orthotropic" type="DT_Square3TensorTypeOrtho"/>
+      <xsd:element name="tensor" type="DT_Square3TensorTypeGeneral"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- General tensor representation of 3x3 tensor -->
+  <xsd:complexType name="DT_Square3TensorTypeGeneral">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+  <!-- Transveral-isotropic tensor representation -->
+  <xsd:complexType name="DT_Square3TensorTypeTransIso">
+    <xsd:sequence>
+      <xsd:element name="value" type="DT_ScalarType"/>
+      <xsd:element name="value_3" type="DT_ScalarType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- Orthotropic tensor representation -->
+  <xsd:complexType name="DT_Square3TensorTypeOrtho">
+    <xsd:sequence>
+      <xsd:element name="value_1" type="DT_ScalarType"/>
+      <xsd:element name="value_2" type="DT_ScalarType"/>
+      <xsd:element name="value_3" type="DT_ScalarType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ************************************************************* -->
+  <!--   Definition for a vectorial type, where both real and imaginary -->
+  <!--   parts can be positive and negative                          -->
+  <!-- ************************************************************* -->
+  <xsd:complexType name="DT_VectorType">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="imag" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of rayleigh damping for mechanics and acoustics        -->
   <!-- ******************************************************************* -->
@@ -92,7 +178,9 @@
     </xsd:sequence>
   </xsd:complexType>
   
-  <!-- Data type for specifying flow direction (directly) -->
+  <!-- ******************************************************************* -->
+  <!--  Data type for specifying flow direction (directly)                 -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_Direction">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="1"/>
@@ -101,5 +189,68 @@
     </xsd:restriction>
   </xsd:simpleType>
   
+  <!-- ************************************************************ -->
+  <!--  Definition of a general nonlinearity                         -->
+  <!--  Can be extended with PDE-specific properties                 -->
+  <!-- ************************************************************* -->
+  <xsd:complexType name="DT_MatNonLinearity">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            A string that define which variable the nonlinearity is dependent upon.
+            (e.g. temperature, voltage, etc.)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="approxType" type="DT_NonLinApproxType">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            The type of approximation used for interpolation or extrapolation of
+            the nonlinear curve from discrete data.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. It represents the weighting between smoothing and accuracy.
+            In the standard optimization problem for smoothing splines, it corresponds to the standard deviation of the input.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. If the field is higher than the specified value, an
+            exponential function is used for extrapolation, such that the reluctivity approaches the vacuum reluctivity.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="dataName" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. File name of the data to be approximated.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="entry" type="xsd:nonNegativeInteger" minOccurs="0"/>
+    </xsd:sequence>
+    <xsd:attribute name="nonlinear" type="xsd:string" use="optional"/>
+  </xsd:complexType>
+
+  <!-- restriction to the available approximation types -->
+  <xsd:simpleType name="DT_NonLinApproxType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="No approximation"/>
+      <xsd:enumeration value="LinInterpolate"/>
+      <xsd:enumeration value="BiLinInterpolate"/>
+      <xsd:enumeration value="TriLinInterpolate"/>
+      <xsd:enumeration value="CubicSplines"/>
+      <xsd:enumeration value="smoothSplines"/>
+      <xsd:enumeration value="analytic"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 </xsd:schema>
 

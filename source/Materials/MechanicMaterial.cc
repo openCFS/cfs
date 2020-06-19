@@ -2,20 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
- #include <stdlib.h>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <cmath>
-#include <limits.h>
-
-#include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
-#include <boost/lexical_cast.hpp>
-
 #include "MechanicMaterial.hh"
 #include "Domain/Domain.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Utils/tools.hh"
 
 DEFINE_LOG(mat, "mat")
 
@@ -27,462 +20,269 @@ namespace CoupledField
   // ***********************
   MechanicMaterial::MechanicMaterial(MathParser* mp,
                                      CoordSystem * defaultCoosy) 
-: BaseMaterial(mp, defaultCoosy) {
-
-    materialDatabaseName_ = "Mechanics";
-
+  : BaseMaterial(MECHANIC, mp, defaultCoosy)
+  {
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( MECH_STIFFNESS_TENSOR );
-    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
-    isAllowed_.insert( MECH_EMODULUS );
     isAllowed_.insert( MECH_KMODULUS );
-    isAllowed_.insert( MECH_EMODULUS_X );
-    isAllowed_.insert( MECH_EMODULUS_Y );
-    isAllowed_.insert( MECH_EMODULUS_Z );
-    isAllowed_.insert( MECH_POISSON );
-    isAllowed_.insert( MECH_POISSON_XY );
-    isAllowed_.insert( MECH_POISSON_YZ );
-    isAllowed_.insert( MECH_POISSON_XZ );
-    isAllowed_.insert( MECH_GMODULUS_YZ );
-    isAllowed_.insert( MECH_GMODULUS_ZX );
-    isAllowed_.insert( MECH_GMODULUS_XY );
-    isAllowed_.insert( MECH_LAME_LAMBDA );
     isAllowed_.insert( MECH_LAME_MU );
-    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
-    isAllowed_.insert( MECH_VISCOK_VECTOR );
-    isAllowed_.insert( MECH_VISCOG_VECTOR );
-    isAllowed_.insert( MECH_TE_TENSOR );
+    isAllowed_.insert( MECH_LAME_LAMBDA );
+    isAllowed_.insert( MECH_EMODULUS );
+    isAllowed_.insert( MECH_EMODULUS_1 );
+    isAllowed_.insert( MECH_EMODULUS_2 );
+    isAllowed_.insert( MECH_EMODULUS_3 );
+    isAllowed_.insert( MECH_POISSON );
+    isAllowed_.insert( MECH_POISSON_3 );
+    isAllowed_.insert( MECH_POISSON_12 );
+    isAllowed_.insert( MECH_POISSON_23 );
+    isAllowed_.insert( MECH_POISSON_13 );
+    isAllowed_.insert( MECH_GMODULUS );
+    isAllowed_.insert( MECH_GMODULUS_3 );
+    isAllowed_.insert( MECH_GMODULUS_23 );
+    isAllowed_.insert( MECH_GMODULUS_13 );
+    isAllowed_.insert( MECH_GMODULUS_12 );
+    isAllowed_.insert( MECH_THERMAL_EXPANSION_TENSOR );
+    isAllowed_.insert( MECH_THERMAL_EXPANSION_SCALAR );
+    isAllowed_.insert( MECH_THERMAL_EXPANSION_1 );
+    isAllowed_.insert( MECH_THERMAL_EXPANSION_2 );
+    isAllowed_.insert( MECH_THERMAL_EXPANSION_3 );
     isAllowed_.insert( MECH_TE_REFTEMPERATURE );
     isAllowed_.insert( RAYLEIGH_ALPHA );
     isAllowed_.insert( RAYLEIGH_BETA );
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
-    isAllowed_.insert( ACOU_ALPHA );
-    isAllowed_.insert( FRACTIONAL_EXPONENT );
-    isAllowed_.insert( NONLIN_COEFFICIENT );
     isAllowed_.insert( NONLIN_DEPENDENCY );
-    isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
-    isAllowed_.insert( NONLIN_DATA_NAME );
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mech );
+//    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
+//    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
+//    isAllowed_.insert( MECH_VISCOK_VECTOR );
+//    isAllowed_.insert( MECH_VISCOG_VECTOR );
+//    isAllowed_.insert( ACOU_ALPHA );
+//    isAllowed_.insert( FRACTIONAL_EXPONENT );
 
   }
 
   void MechanicMaterial::Finalize() {
 
-    // Trigger calculation of stiffness tensor
-    //ComputeFullStiffTensor();
+    // Calculation of stiffness tensor
+    ComputeFullStiffTensor();
 
+    // Calculation of viscoelastic stiffness tensor
+    ComputeViscoStiffTensors();
+
+    // Calculation of thermal expansion tensor
+    ComputeThermExpTensor();
   }
 
-  
+  PtrCoefFct MechanicMaterial::GetScalCoefFnc(MaterialType matType,
+                                              Global::ComplexPart matDataType) const
+  {
+    PtrCoefFct mFunct;
+    CoefMap::const_iterator it = scalarCoef_.find(matType);
+    if( it !=  scalarCoef_.end() ) {
+      // --------------------------------------
+      //  Coefficient Function already defined
+      // --------------------------------------
+      mFunct = it->second->GetComplexPart( matDataType );
 
-  void MechanicMaterial::SetScalar(const std::string& param, MaterialType matType, 
-                                   Global::ComplexPart dataType ) {
-
-    MathParser::HandleType actHandle;
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
     }
     else {
-      isSet_.insert( matType );
+      // Conversion is available for isotropic materials only
+      std::map<MaterialType, SymmetryType>::const_iterator symType =
+          symmetryType_.find(MECH_STIFFNESS_TENSOR);
+      assert(symType != symmetryType_.end());
+      if (symType->second == ISOTROPIC) {
+        // First try to find all available parameters
+        CoefMap::const_iterator eModIt = scalarCoef_.find(MECH_EMODULUS),
+                                bulkIt = scalarCoef_.find(MECH_KMODULUS),
+                                poissonIt = scalarCoef_.find(MECH_POISSON),
+                                shearIt = scalarCoef_.find(MECH_GMODULUS);
+        std::map<std::string, PtrCoefFct> vars;
 
-      if ( dataType == Global::REAL ) {
-        actHandle = mp_->GetNewHandle(true);
-        scalarStringParamsReal_[matType] = param;
-        scalarStringHandlesReal_[matType] = actHandle; 
-        mp_->SetExpr(actHandle, param );        
-        // Register call-back function:
-        // Every time some variable within the expression of the elasticity modulus
-        // changes, we have to recalculate the tensor
-        mp_->AddExpChangeCallBack(boost::bind(&MechanicMaterial::ComputeFullStiffTensor,
-                                              this), actHandle );
-      }
-      else if (dataType == Global::IMAG ) {
-        actHandle = mp_->GetNewHandle(true);
-        scalarStringParamsImag_[matType] = param;
-        scalarStringHandlesImag_[matType] = actHandle;
-        mp_->SetExpr(actHandle, param );
-        // Register call-back function:
-        // Every time some variable within the expression of the elasticity modulus
-        // changes, we have to recalculate the tensor
-        mp_->AddExpChangeCallBack(boost::bind(&MechanicMaterial::ComputeFullStiffTensor,
-                                              this), actHandle );
-      }
-      else {
-        std::string msg = "SetScalar-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
-      }
-    }
-  }
-  
-  void MechanicMaterial::SetScalar(Double param, MaterialType matType, 
-				    Global::ComplexPart dataType ) {
+        switch (matType) {
 
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
+          case MECH_KMODULUS:
+            if (eModIt != scalarCoef_.end() && shearIt != scalarCoef_.end()) {
+              vars["E"] = eModIt->second;
+              vars["G"] = shearIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("E_R*G_R/(3*(3*G_R-E_R))", vars);
+              mFunct = kFunc;
+            }
+            else if (eModIt != scalarCoef_.end() && poissonIt != scalarCoef_.end()) {
+              vars["E"] = eModIt->second;
+              vars["nu"] = poissonIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("E_R/(3*(1-2*nu_R))", vars);
+              mFunct = kFunc;
+            }
+            else if (shearIt != scalarCoef_.end() && poissonIt != scalarCoef_.end()) {
+              vars["G"] = shearIt->second;
+              vars["nu"] = poissonIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("2*G_R*(1+nu_R)/(3*(1-2*nu_R))", vars);
+              mFunct = kFunc;
+            }
+            break;
 
-      Complex val, oldVal;
-      oldVal = scalarParams_[matType];
-      if ( dataType == Global::REAL ) {
-        val = Complex ( param, oldVal.imag() );
-      }
-      else if (dataType == Global::IMAG ) {
-        val = Complex ( oldVal.real(), param );
-        isComplex_.insert( matType );
-      }
-      else {
-        std::string msg = "SetScalar-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
-      }
+          case MECH_EMODULUS:
+            if (bulkIt != scalarCoef_.end() && shearIt != scalarCoef_.end()) {
+              vars["K"] = bulkIt->second;
+              vars["G"] = shearIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("9*K_R*G_R/(3*K_R+G_R)", vars);
+              mFunct = kFunc;
+            }
+            else if (bulkIt != scalarCoef_.end() && poissonIt != scalarCoef_.end()) {
+              vars["K"] = bulkIt->second;
+              vars["nu"] = poissonIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("3*K_R*(1-2*nu_R)", vars);
+              mFunct = kFunc;
+            }
+            else if (shearIt != scalarCoef_.end() && poissonIt != scalarCoef_.end()) {
+              vars["G"] = shearIt->second;
+              vars["nu"] = poissonIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("2*G_R*(1+nu_R)", vars);
+              mFunct = kFunc;
+            }
+            break;
 
-      scalarParams_[matType] = val;
-    }
-  }
+          case MECH_GMODULUS:
+            if (bulkIt != scalarCoef_.end() && eModIt != scalarCoef_.end()) {
+              vars["K"] = bulkIt->second;
+              vars["E"] = eModIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("3*K_R*E_R/(9*K_R-E_R)", vars);
+              mFunct = kFunc;
+            }
+            else if (bulkIt != scalarCoef_.end() && poissonIt != scalarCoef_.end()) {
+              vars["K"] = bulkIt->second;
+              vars["nu"] = poissonIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("3*K_R*(1-2*nu_R)/(2*(1+nu_R))", vars);
+              mFunct = kFunc;
+            }
+            else if (eModIt != scalarCoef_.end() && poissonIt != scalarCoef_.end()) {
+              vars["E"] = eModIt->second;
+              vars["nu"] = poissonIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("E_R/(2*(1+nu_R))", vars);
+              mFunct = kFunc;
+            }
+            break;
 
+          case MECH_POISSON:
+            if (bulkIt != scalarCoef_.end() && eModIt != scalarCoef_.end()) {
+              vars["K"] = bulkIt->second;
+              vars["E"] = eModIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("(3*K_R-E_R)/(6*K_R)", vars);
+              mFunct = kFunc;
+            }
+            else if (bulkIt != scalarCoef_.end() && shearIt != scalarCoef_.end()) {
+              vars["K"] = bulkIt->second;
+              vars["G"] = shearIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("(3*K_R-2*G_R)/(2*(3*K_R+G_R))", vars);
+              mFunct = kFunc;
+            }
+            else if (eModIt != scalarCoef_.end() && shearIt != scalarCoef_.end()) {
+              vars["E"] = eModIt->second;
+              vars["G"] = shearIt->second;
+              shared_ptr< CoefFunctionCompound<Double> >
+                  kFunc(new CoefFunctionCompound<Double>(mp_));
+              kFunc->SetScalar("E_R/(2*G_R)-1", vars);
+              mFunct = kFunc;
+            }
+            break;
 
-  void MechanicMaterial::SetScalar( Complex param, MaterialType matType, 
-				    Global::ComplexPart dataType ) {
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-
-      Complex val;
-      if ( dataType == Global::REAL ) {
-        val = param.real();
-      }
-      else if (dataType == Global::IMAG ) {
-        val = param.imag();
-        isComplex_.insert( matType );
-      }
-      else if ( dataType == Global::COMPLEX ) {
-        val = param;
-        isComplex_.insert( matType );
-      }
-
-      scalarParams_[matType] = val;
-    }
-  }
-
-
-  void MechanicMaterial::SetVector(const Vector<Double>& param, MaterialType matType, 
-				    Global::ComplexPart dataType ) {
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "vector";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-      if (dataType == Global::REAL || dataType == Global::IMAG ) {
-        if (vectorParams_[matType].GetSize() == 0 ) {
-          vectorParams_[matType].Resize( param.GetSize() );
-          vectorParams_[matType].Init();
-        }
-
-        vectorParams_[matType].SetPart( dataType, param );
-
-        if ( dataType == Global::IMAG ) {
-          isComplex_.insert( matType );
-        }
-      }
-      else {
-        std::string msg = "SeVector-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
-      }
-    }
-  }
-
-
-  void MechanicMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-                                   Global::ComplexPart dataType ) {
-
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-        if ( tensorParams_[matType].GetNumRows() == 0 ) {
-          tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
-          tensorParams_[matType].Init();
-        }
-        if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
-          tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
-          tensorParamsOrig_[matType].Init();
-        }
-
-        tensorParams_[matType].SetPart( dataType, param );
-        tensorParamsOrig_[matType].SetPart( dataType, param );
-
-        if ( dataType == Global::IMAG ) {
-          isComplex_.insert( matType );
+          default:
+            break;
         }
       }
-      else {
-        std::string msg = "SetTensor-Double";
-        dataTypeNotAllowed4SetGet ( dataType, msg );
+
+      if (!mFunct) {
+        EXCEPTION("Material Data Type '" <<
+                  MaterialTypeEnum.ToString(matType) << "' not available for "
+                  << "material '" << name_ << "'");
       }
     }
+    mFunct->SetCoordinateSystem(this->coosy_);
+    return mFunct;
   }
-
-  void MechanicMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-				    Global::ComplexPart dataType ) {
-    
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-      if ( dataType != Global::COMPLEX ) {
-        std::string msg = "SetTensor with Matrix<Complex>";
-        setMakesNoSense( dataType, msg );
-      }
-      else {
-        tensorParams_[matType]     = param;
-        tensorParamsOrig_[matType] = param;
-        isComplex_.insert( matType );
-      }
-    }
-  }
-  
-  void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
-				    Global::ComplexPart dataType )  const {
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar Double";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Complex val = pos->second;
-      if ( dataType == Global::REAL ) {
-        param = val.real();
-      }
-      else if ( dataType == Global::IMAG ) {
-        param = val.imag();
-      }
-      else {
-        std::string msg = "GetScalar-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }    
-  }
-
-  void MechanicMaterial::GetScalar( Complex& param, MaterialType matType, 
-				    Global::ComplexPart dataType )  const {
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Complex val = pos->second;
-      if ( dataType == Global::REAL ) {
-        Complex valReal = Complex (val.real(), 0.0);
-        param = valReal;
-      }
-      else if ( dataType == Global::IMAG ) {
-        Complex valImag = Complex (0.0, val.imag());
-        param = valImag;
-      }
-      else if ( dataType == Global::COMPLEX ) {
-        param = val;
-      }
-    }    
-  }
-
-  void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-
-      integerMap::const_iterator pos;
-      pos = integerParams_.find( matType );
-      std::string value;
-
-      if ( pos == integerParams_.end() ) {
-        std::string dim = "scalar integer";
-        matTypeNotInDataBase( matType, dim );
-      }
-      else {
-        param=pos->second;
-      }
-    }
-
-
-  void MechanicMaterial::GetVector( Vector<Double>& param, 
-				    MaterialType matType, 
-				    Global::ComplexPart dataType ) const {
-
-    std::map<MaterialType, Vector<Complex> >::const_iterator pos;
-    pos = vectorParams_.find( matType );
-
-    if ( pos == vectorParams_.end() ) {
-      std::string dim = "vector";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Vector<Complex> matVector;
-      matVector = pos->second;
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        param = matVector.GetPart( dataType );
-      }
-      else {
-        std::string msg = "GetVector-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
-
-
-  void MechanicMaterial::GetTensor( Matrix<Double>& param, 
-				    MaterialType matType, 
-				    Global::ComplexPart dataType,
-				    SubTensorType subTensor ) const {
-					    
-    tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
-	
-    if ( pos == tensorParams_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else { 
-	
-      Matrix<Complex> matTensor;
-      if ( subTensor == FULL ) {
-        matTensor = pos->second;
-      }
-      else {
-
-        ComputeSubTensor(matTensor, matType, subTensor);
-      }
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        param = matTensor.GetPart( dataType );
-      }
-      else {
-        std::string msg = "GetTensor-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
-
 
   PtrCoefFct MechanicMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                     SubTensorType tensorType,
-                                                    bool transposed ) {
+                                                    Global::ComplexPart matDataType,
+                                                    bool transposed ) const
+  {
     PtrCoefFct mFunct;
-    if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
-      
-      if(matType == MAGNETOSTRICTION_TENSOR_h_mech){
+
+    CoefMap::const_iterator it = tensorCoef_.find(matType);
+    if ( it != tensorCoef_.end() ) {
+
+      if (matType == MAGNETOSTRICTION_TENSOR_h_mech || matType == MECH_THERMAL_EXPANSION_TENSOR) {
         /*
          * special case: iterative magnetostrictive coupling
          * here we need to have the 3x6 material tensor on the rhs
          * this has to be read in as a CoefXprSubTensor instead of MechSubTensor
          * as the later one only excepts and accepts 6x6 elasticity tensors
          */
-        CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
+        CoefXprSubTensor subTensorXpr(mp_, it->second );
         subTensorXpr.SetSubTensorType( tensorType, transposed );
-        if ( subTensorXpr.IsComplex() ) {
-
-            mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
-        }
-        else {
-            mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
-        }
-      } else {
-        CoefXprMechSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
-
-        subTensorXpr.SetSubTensorType( tensorType, transposed );
-        if ( subTensorXpr.IsComplex() ) {
-            mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
-        }
-        else {
-            mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
-        }
+        mFunct = CoefFunction::Generate( mp_, matDataType, subTensorXpr );
       }
-    } else {
-      EXCEPTION( "Material tensor not found" );
+      else {
+        CoefXprMechSubTensor subTensorXpr(mp_,  it->second );
+        subTensorXpr.SetSubTensorType( tensorType, transposed );
+        mFunct = CoefFunction::Generate( mp_, matDataType, subTensorXpr );
+      }
     }
+    else {
+      matTypeNotInDataBase(matType, "tensor");
+    }
+
     return mFunct;
   }
 
-  PtrCoefFct MechanicMaterial::GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real ) {
-      PtrCoefFct mFunct;
-      if( vectorCoef_.find(matType) !=  vectorCoef_.end() ) {
-          CoefXprMechSubVector subTensorXpr(mp_,  vectorCoef_[matType] );
-          subTensorXpr.SetSubTensorType( tensorType );
-          if ( subTensorXpr.IsComplex() & !real) {
-              mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
-          }
-          else {
-              mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
-          }
-      } else {
-          EXCEPTION( "Material tensor not found" );
-      }
-      return mFunct;
-  }
+  PtrCoefFct MechanicMaterial::GetSubVectorCoefFnc( MaterialType matType,
+                                                    SubTensorType tensorType,
+                                                    Global::ComplexPart matDataType ) const
+  {
+    PtrCoefFct mFunct;
 
-  void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
-				    MaterialType matType, 
-				    Global::ComplexPart dataType,
-				    SubTensorType subTensor ) const {	
-    
-
-    tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
-
-    if ( pos == tensorParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Matrix<Complex> matTensor;
-      if ( subTensor == FULL ) {
-	matTensor = pos->second;
+    CoefMap::const_iterator it = vectorCoef_.find(matType);
+    if ( it !=  vectorCoef_.end() ) {
+      CoefXprMechSubVector subTensorXpr(mp_,  it->second );
+      subTensorXpr.SetSubTensorType( tensorType );
+      if ( subTensorXpr.IsComplex() ) {
+        mFunct = CoefFunction::Generate( mp_, matDataType, subTensorXpr );
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
-      }
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	Matrix<Double> help; 
-	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
-        param.Init();
-	param.SetPart( dataType, help );
-      }
-      else if ( dataType == Global::COMPLEX ) {
-	param = matTensor;
+        mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
       }
     }
+    else {
+      matTypeNotInDataBase(matType, "vector");
+    }
+
+    return mFunct;
   }
-  
+
   void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi)
   {
     Complex EModul(emod);
@@ -573,84 +373,28 @@ namespace CoupledField
 
   
 
-  void MechanicMaterial::CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex LameLambda, Complex LameMu)
+  void MechanicMaterial::CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out,
+                                                             Complex LameLambda,
+                                                             Complex LameMu)
   {
     out.Resize(6);
     out.Init();
         
     out[0][0] = LameLambda + Complex(2.0,0) * LameMu;
     out[1][1] = LameLambda + Complex(2.0,0) * LameMu;
+    out[2][2] = LameLambda + Complex(2.0,0) * LameMu;
     
     out[0][1] = LameLambda;
     out[1][0] = LameLambda;
-    
-    out[2][2] = LameMu;
-
     out[0][2] = LameLambda;
     out[1][2] = LameLambda;
     out[2][0] = LameLambda;
     out[2][1] = LameLambda;
 
-    out[2][2] = LameLambda + Complex(2.0,0) * LameMu;
     out[3][3] = LameMu;
     out[4][4] = LameMu;
     out[5][5] = LameMu;
   }
-  
-
-  void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const
-  {
-
-    tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
-
-    Matrix<Complex> const &mat = pos->second;
-
-	if(matType == MAGNETOSTRICTION_TENSOR_h_mech){
-		ComputeSubTensor_magstrict(matMatrix, matType, subTensor);
-	} else {
-		ComputeSubTensor<Complex>(matMatrix, subTensor, mat);
-  }
-}
-
-void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
-                                         MaterialType matType, SubTensorType subTensor) const {
-  // std::cout << "MechMaterial ComputeSubTensor-> MagStrictVersion" << std::endl;
-
-  tensorMap::const_iterator pos;
-  pos = tensorParams_.find( matType );
-
-  Matrix<Complex> const &mat = pos->second;
-
-  if ( subTensor == AXI ) {
-    matMatrix.Resize(2,4);
-
-    matMatrix[0][0] = mat[0][0];
-    matMatrix[0][1] = mat[0][1];
-    matMatrix[0][2] = mat[0][5];
-    matMatrix[0][3] = mat[0][2];
-    matMatrix[1][0] = mat[1][0];
-    matMatrix[1][1] = mat[1][1];
-    matMatrix[1][2] = mat[1][5];
-    matMatrix[1][3] = mat[1][2];
-  }
-  else if ( subTensor == PLANE_STRAIN ||
-      subTensor == PLANE_STRESS ) {
-    matMatrix.Resize(2,3);
-
-    matMatrix[0][0] = mat[0][0];
-    matMatrix[0][1] = mat[0][1];
-    matMatrix[0][2] = mat[0][5];
-    matMatrix[1][0] = mat[1][0];
-    matMatrix[1][1] = mat[1][1];
-    matMatrix[1][2] = mat[1][5];
-
-  } else {
-    subTensorNotAvailable( matType, subTensor );
-  }
-}
-
-
 
   template<class T>
   void MechanicMaterial::ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& mat)
@@ -717,110 +461,693 @@ void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
  
 
   void MechanicMaterial::ComputeFullStiffTensor() {
+    if (tensorCoef_.find(MECH_STIFFNESS_TENSOR) != tensorCoef_.end()) {
+      return;
+    }
 
-      Matrix<Complex> elasticityTensor;
-      SymmetryType symType = GetSymmetryType(MECH_STIFFNESS_TENSOR);
-    switch(symType)
-    {
-    case GENERAL:
-      // check that general stiffness tensor is present
-      break;
-    case ISOTROPIC:
-    {
+    SymmetryType symType = GetSymmetryType(MECH_STIFFNESS_TENSOR);
 
-      // ====================================================================
-      // Hard coded section for isotropic material data with variable 
-      // coefficients
-      // ====================================================================
-      
-      // Loop over real / imag stiffnes parameters, evaluate string
-      // representation and store it in double map
-      handleMap::iterator it = scalarStringHandlesReal_.begin();
-      for ( ; it != scalarStringHandlesReal_.end(); ++it ) {
-        SetScalar( mp_->Eval(it->second),it->first, Global::REAL );
+    StdVector<std::string> tensorReal(36), tensorImag(36);
+    tensorReal.Init("0");
+    tensorImag.Init("0");
+
+    switch (symType) {
+      case ISOTROPIC: {
+          std::string lambdaR, lambdaI, muR, muI;
+
+          if (scalarCoef_.find(MECH_EMODULUS) != scalarCoef_.end() &&
+              scalarCoef_.find(MECH_POISSON) != scalarCoef_.end())
+          {
+            if (!scalarCoef_[MECH_EMODULUS]->IsAnalytic() ||
+                !scalarCoef_[MECH_POISSON]->IsAnalytic()) {
+              EXCEPTION("Cannot calculate stiffness tensor from non-analytical data");
+            }
+
+            shared_ptr<CoefFunctionAnalytic> eModul =
+                dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS]);
+            shared_ptr<CoefFunctionAnalytic> poisson =
+                dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_POISSON]);
+            assert(eModul && poisson);
+
+            std::string eR, eI, nuR, nuI;
+            eModul->GetStrScalar(eR, eI);
+            poisson->GetStrScalar(nuR, nuI);
+
+            lambdaR = Bracket(nuR) + "*" + Bracket(eR) + "/((1+" +
+                      Bracket(nuR) + ")*(1-2*" + Bracket(nuR) + "))";
+            lambdaI = Bracket(nuI) + "*" + Bracket(eI) + "/((1+" +
+                      Bracket(nuI) + ")*(1-2*" + Bracket(nuI) + "))";
+            muR = Bracket(eR) + "/(2*(1+" + Bracket(nuR) + "))";
+            muI = Bracket(eI) + "/(2*(1+" + Bracket(nuI) + "))";
+          }
+          else if (scalarCoef_.find(MECH_KMODULUS) != scalarCoef_.end() &&
+                   scalarCoef_.find(MECH_GMODULUS) != scalarCoef_.end())
+          {
+            if (!scalarCoef_[MECH_KMODULUS]->IsAnalytic() ||
+                !scalarCoef_[MECH_GMODULUS]->IsAnalytic()) {
+              EXCEPTION("Cannot calculate stiffness tensor from non-analytical data");
+            }
+
+            shared_ptr<CoefFunctionAnalytic> bulkMod =
+                dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_KMODULUS]);
+            shared_ptr<CoefFunctionAnalytic> shearMod =
+                dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_GMODULUS]);
+            assert(bulkMod && shearMod);
+
+            std::string kR, kI;
+            bulkMod->GetStrScalar(kR, kI);
+            shearMod->GetStrScalar(muR, muI);
+
+            lambdaR = Bracket(kR) + "-2/3*" + Bracket(muR);
+            lambdaI = Bracket(kI) + "-2/3*" + Bracket(muI);
+          }
+          else if (scalarCoef_.find(MECH_LAME_LAMBDA) != scalarCoef_.end() &&
+                   scalarCoef_.find(MECH_LAME_MU) != scalarCoef_.end())
+          {
+            if (!scalarCoef_[MECH_LAME_LAMBDA]->IsAnalytic() ||
+                !scalarCoef_[MECH_LAME_MU]->IsAnalytic()) {
+              EXCEPTION("Cannot calculate stiffness tensor from non-analytical data");
+            }
+
+            shared_ptr<CoefFunctionAnalytic> l =
+                dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_LAME_LAMBDA]);
+            shared_ptr<CoefFunctionAnalytic> m =
+                dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_LAME_MU]);
+            assert(l && m);
+
+            l->GetStrScalar(lambdaR, lambdaI);
+            m->GetStrScalar(muR, muI);
+          }
+          else {
+            EXCEPTION("Unsupported definition of property '"
+                << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR) << "'.");
+          }
+
+          std::string diagR = Bracket(lambdaR) + "+2*" + Bracket(muR);
+          std::string diagI = Bracket(lambdaI) + "+2*" + Bracket(muI);
+
+          tensorReal[0] = diagR;
+          tensorImag[0] = diagI;
+          tensorReal[7] = diagR;
+          tensorImag[7] = diagI;
+          tensorReal[14] = diagR;
+          tensorImag[14] = diagI;
+
+          tensorReal[1] = lambdaR;
+          tensorImag[1] = lambdaI;
+          tensorReal[2] = lambdaR;
+          tensorImag[2] = lambdaI;
+          tensorReal[6] = lambdaR;
+          tensorImag[6] = lambdaI;
+          tensorReal[8] = lambdaR;
+          tensorImag[8] = lambdaI;
+          tensorReal[12] = lambdaR;
+          tensorImag[12] = lambdaI;
+          tensorReal[13] = lambdaR;
+          tensorImag[13] = lambdaI;
+
+          tensorReal[21] = muR;
+          tensorImag[21] = muI;
+          tensorReal[28] = muR;
+          tensorImag[28] = muI;
+          tensorReal[35] = muR;
+          tensorImag[35] = muI;
+        }
+        break;
+
+      case TRANS_ISOTROPIC: {
+          if (scalarCoef_.find(MECH_EMODULUS) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_EMODULUS_3) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_GMODULUS) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_GMODULUS_3) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_POISSON) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_POISSON_3) == scalarCoef_.end()) {
+            EXCEPTION("Transversly isotropic definition of stiffness tensor is incomplete");
+          }
+          if (!scalarCoef_[MECH_EMODULUS]->IsAnalytic() ||
+              !scalarCoef_[MECH_EMODULUS_3]->IsAnalytic() ||
+              !scalarCoef_[MECH_GMODULUS]->IsAnalytic() ||
+              !scalarCoef_[MECH_GMODULUS_3]->IsAnalytic() ||
+              !scalarCoef_[MECH_POISSON]->IsAnalytic() ||
+              !scalarCoef_[MECH_POISSON_3]->IsAnalytic()) {
+            EXCEPTION("Cannot calculate stiffness tensor from non-analytical data");
+          }
+
+          shared_ptr<CoefFunctionAnalytic> E =
+              dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS]);
+          shared_ptr<CoefFunctionAnalytic> E3 =
+              dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS_3]);
+          shared_ptr<CoefFunctionAnalytic> G =
+              dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_GMODULUS]);
+          shared_ptr<CoefFunctionAnalytic> G3 =
+              dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS_3]);
+          shared_ptr<CoefFunctionAnalytic> nu =
+              dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_POISSON]);
+          shared_ptr<CoefFunctionAnalytic> nu13 =
+              dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_POISSON_3]);
+          assert(E && E3 && G && G3 && nu && nu13);
+
+          std::string eR, eI, e3R, e3I, gR, gI, g3R, g3I, nuR, nuI, nu13R, nu13I;
+          E->GetStrScalar(eR, eI);
+          E3->GetStrScalar(e3R, e3I);
+          G->GetStrScalar(gR, gI);
+          G3->GetStrScalar(g3R, g3I);
+          nu->GetStrScalar(nuR, nuI);
+          nu13->GetStrScalar(nu13R, nu13I);
+
+          std::string nu31R = Bracket(Bracket(e3R) + "/" + Bracket(eR)) + "*" + Bracket(nu13R);
+          std::string nu31I = Bracket(Bracket(e3I) + "/" + Bracket(eI)) + "*" + Bracket(nu13I);
+
+          std::string auxR = "(1+" + Bracket(nuR) + ")*(1-" + Bracket(nuR) +
+                             "-2*" + Bracket(nu13R) + "*" + Bracket(nu31R) + ")";
+          std::string auxI = "(1+" + Bracket(nuI) + ")*(1-" + Bracket(nuI) +
+                             "-2*" + Bracket(nu13I) + "*" + Bracket(nu31I) + ")";
+
+          tensorReal[0] = Bracket(eR) + "*(1-" + Bracket(nu13R) + "*" +
+                          Bracket(nu31R) + ")/" + Bracket(auxR);
+          tensorImag[0] = Bracket(eI) + "*(1-" + Bracket(nu13I) + "*" +
+                          Bracket(nu31I) + ")/" + Bracket(auxI);
+          tensorReal[7] = tensorReal[0];
+          tensorImag[7] = tensorImag[0];
+          tensorReal[14] = Bracket(e3R) + "*(1-" + Bracket(nuR) + "*" + Bracket(nuR) +
+                           "/" + Bracket(auxR);
+          tensorImag[14] = Bracket(e3I) + "*(1-" + Bracket(nuI) + "*" + Bracket(nuI) +
+                           "/" + Bracket(auxI);
+
+          tensorReal[1] = Bracket(eR) + "*(" + Bracket(nuR) + "+" + Bracket(nu13R) +
+                          "*" + Bracket(nu31R) + "/" + Bracket(auxR);
+          tensorImag[1] = Bracket(eI) + "*(" + Bracket(nuI) + "+" + Bracket(nu13I) +
+                          "*" + Bracket(nu31I) + "/" + Bracket(auxI);
+          tensorReal[2] = Bracket(eR) + "*((1+" + Bracket(nuR) + ")*" +
+                          Bracket(nu31R) + ")/" + Bracket(auxR);
+          tensorImag[2] = Bracket(eI) + "*((1+" + Bracket(nuI) + ")*" +
+                          Bracket(nu31I) + ")/" + Bracket(auxI);
+          tensorReal[6] = tensorReal[1];
+          tensorImag[6] = tensorImag[1];
+          tensorReal[8] = tensorReal[2];
+          tensorImag[8] = tensorImag[2];
+          tensorReal[12] = tensorReal[2];
+          tensorImag[12] = tensorImag[2];
+          tensorReal[13] = tensorReal[2];
+          tensorImag[13] = tensorImag[2];
+
+          tensorReal[21] = g3R;
+          tensorImag[21] = g3I;
+          tensorReal[28] = g3R;
+          tensorImag[28] = g3I;
+          tensorReal[35] = gR;
+          tensorImag[35] = gI;
+        }
+        break;
+
+      case ORTHOTROPIC: {
+          if (scalarCoef_.find(MECH_EMODULUS_1) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_EMODULUS_2) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_EMODULUS_3) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_GMODULUS_23) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_GMODULUS_13) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_GMODULUS_12) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_POISSON_12) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_POISSON_23) == scalarCoef_.end() ||
+              scalarCoef_.find(MECH_POISSON_13) == scalarCoef_.end()) {
+            EXCEPTION("Orthotropic definition of stiffness tensor is incomplete");
+          }
+          if (!scalarCoef_[MECH_EMODULUS_1]->IsAnalytic() ||
+              !scalarCoef_[MECH_EMODULUS_2]->IsAnalytic() ||
+              !scalarCoef_[MECH_EMODULUS_3]->IsAnalytic() ||
+              !scalarCoef_[MECH_GMODULUS_23]->IsAnalytic() ||
+              !scalarCoef_[MECH_GMODULUS_13]->IsAnalytic() ||
+              !scalarCoef_[MECH_GMODULUS_12]->IsAnalytic() ||
+              !scalarCoef_[MECH_POISSON_12]->IsAnalytic() ||
+              !scalarCoef_[MECH_POISSON_23]->IsAnalytic() ||
+              !scalarCoef_[MECH_POISSON_13]->IsAnalytic()) {
+            EXCEPTION("Cannot calculate stiffness tensor from non-analytical data");
+          }
+
+          shared_ptr<CoefFunctionAnalytic> E1 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS_1]);
+          shared_ptr<CoefFunctionAnalytic> E2 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS_2]);
+          shared_ptr<CoefFunctionAnalytic> E3 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_EMODULUS_3]);
+          shared_ptr<CoefFunctionAnalytic> nu12 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_POISSON_12]);
+          shared_ptr<CoefFunctionAnalytic> nu23 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_POISSON_23]);
+          shared_ptr<CoefFunctionAnalytic> nu13 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_POISSON_13]);
+          shared_ptr<CoefFunctionAnalytic> G12 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_GMODULUS_12]);
+          shared_ptr<CoefFunctionAnalytic> G23 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_GMODULUS_23]);
+          shared_ptr<CoefFunctionAnalytic> G13 =
+                        dynamic_pointer_cast<CoefFunctionAnalytic>(scalarCoef_[MECH_GMODULUS_13]);
+          assert(E1 && E2 && E3 && nu12 && nu23 && nu13 && G12 && G23 && G13);
+
+          std::string e1R, e1I, e2R, e2I, e3R, e3I, nu12R, nu12I, nu23R, nu23I,
+                      nu13R, nu13I, g12R, g12I, g23R, g23I, g13R, g13I;
+          E1->GetStrScalar(e1R, e1I);
+          E2->GetStrScalar(e2R, e2I);
+          E3->GetStrScalar(e3R, e3I);
+          nu12->GetStrScalar(nu12R, nu12I);
+          nu23->GetStrScalar(nu23R, nu23I);
+          nu13->GetStrScalar(nu13R, nu13I);
+          G12->GetStrScalar(g12R, g12I);
+          G23->GetStrScalar(g23R, g23I);
+          G13->GetStrScalar(g13R, g13I);
+
+          // http://www.efunda.com/formulae/solid_mechanics/mat_mechanics/hooke_orthotropic.cfm
+          std::string nu21R = Bracket( Bracket(e2R) + "/" + Bracket(e1R)) + "*" +
+                              Bracket(nu12R);
+          std::string nu21I = Bracket( Bracket(e2I) + "/" + Bracket(e1I)) + "*" +
+                              Bracket(nu12I);
+          std::string nu32R = Bracket( Bracket(e3R) + "/" + Bracket(e2R)) + "*" +
+                              Bracket(nu23R);
+          std::string nu32I = Bracket( Bracket(e3I) + "/" + Bracket(e2I)) + "*" +
+                              Bracket(nu23I);
+          std::string nu31R = Bracket( Bracket(e3R) + "/" + Bracket(e1R)) + "*" +
+                              Bracket(nu13R);
+          std::string nu31I = Bracket( Bracket(e3I) + "/" + Bracket(e1I)) + "*" +
+                              Bracket(nu13I);
+          std::string auxR = "(1-" + Bracket(nu12R) + "*" + Bracket(nu21R) + "-" +
+                             Bracket(nu23R) + "*" + Bracket(nu32R) + "-" +
+                             Bracket(nu13R) + "*" + Bracket(nu31R) + "-2*" +
+                             Bracket(nu12R) + "*" + Bracket(nu23R) + "*" +
+                             Bracket(nu31R) + ")/(" + Bracket(e1R) + "*" +
+                             Bracket(e2R) + "*" + Bracket(e3R) + ")";
+          std::string auxI = "(1-" + Bracket(nu12I) + "*" + Bracket(nu21I) + "-" +
+                             Bracket(nu23I) + "*" + Bracket(nu32I) + "-" +
+                             Bracket(nu13I) + "*" + Bracket(nu31I) + "-2*" +
+                             Bracket(nu12I) + "*" + Bracket(nu23I) + "*" +
+                             Bracket(nu31I) + ")/(" + Bracket(e1I) + "*" +
+                             Bracket(e2I) + "*" + Bracket(e3I) + ")";
+
+          tensorReal[0] = "(1-" + Bracket(nu23R) + "*" + Bracket(nu32R) + ")/(" +
+                          Bracket(e2R) + "*" + Bracket(e3R) + "*" + Bracket(auxR) + ")";
+          tensorImag[0] = "(1-" + Bracket(nu23I) + "*" + Bracket(nu32I) + ")/(" +
+                          Bracket(e2I) + "*" + Bracket(e3I) + "*" + Bracket(auxI) + ")";
+          tensorReal[7] = "(1-" + Bracket(nu13R) + "*" + Bracket(nu31R) + ")/(" +
+                          Bracket(e1R) + "*" + Bracket(e3R) + "*" + Bracket(auxR) + ")";
+          tensorImag[7] = "(1-" + Bracket(nu13I) + "*" + Bracket(nu31I) + ")/(" +
+                          Bracket(e1I) + "*" + Bracket(e3I) + "*" + Bracket(auxI) + ")";
+          tensorReal[14] = "(1-" + Bracket(nu12R) + "*" + Bracket(nu21R) + ")/(" +
+                          Bracket(e1R) + "*" + Bracket(e2R) + "*" + Bracket(auxR) + ")";
+          tensorImag[14] = "(1-" + Bracket(nu12I) + "*" + Bracket(nu21I) + ")/(" +
+                          Bracket(e1I) + "*" + Bracket(e2I) + "*" + Bracket(auxI) + ")";
+
+          tensorReal[1] = "(" + Bracket(nu21R) + "+" + Bracket(nu31R) + "*" +
+                          Bracket(nu23R) + ")/(" + Bracket(e2R) + "*" +
+                          Bracket(e3R) + "*" + Bracket(auxR) + ")";
+          tensorImag[1] = "(" + Bracket(nu21I) + "+" + Bracket(nu31I) + "*" +
+                          Bracket(nu23I) + ")/(" + Bracket(e2I) + "*" +
+                          Bracket(e3I) + "*" + Bracket(auxI) + ")";
+          tensorReal[2] = "(" + Bracket(nu31R) + "+" + Bracket(nu21R) + "*" +
+                          Bracket(nu32R) + ")/(" + Bracket(e2R) + "*" +
+                          Bracket(e3R) + "*" + Bracket(auxR) + ")";
+          tensorImag[2] = "(" + Bracket(nu31I) + "+" + Bracket(nu21I) + "*" +
+                          Bracket(nu32I) + ")/(" + Bracket(e2I) + "*" +
+                          Bracket(e3I) + "*" + Bracket(auxI) + ")";
+          tensorReal[6] = "(" + Bracket(nu12R) + "+" + Bracket(nu13R) + "*" +
+                          Bracket(nu32R) + ")/(" + Bracket(e1R) + "*" +
+                          Bracket(e3R) + "*" + Bracket(auxR) + ")";
+          tensorImag[6] = "(" + Bracket(nu12I) + "+" + Bracket(nu13I) + "*" +
+                          Bracket(nu32I) + ")/(" + Bracket(e1I) + "*" +
+                          Bracket(e3I) + "*" + Bracket(auxI) + ")";
+          tensorReal[8] = "(" + Bracket(nu32R) + "+" + Bracket(nu31R) + "*" +
+                          Bracket(nu12R) + ")/(" + Bracket(e1R) + "*" +
+                          Bracket(e3R) + "*" + Bracket(auxR) + ")";
+          tensorImag[8] = "(" + Bracket(nu32I) + "+" + Bracket(nu31I) + "*" +
+                          Bracket(nu12I) + ")/(" + Bracket(e1I) + "*" +
+                          Bracket(e3I) + "*" + Bracket(auxI) + ")";
+          tensorReal[12] = "(" + Bracket(nu13R) + "+" + Bracket(nu12R) + "*" +
+                           Bracket(nu13R) + ")/(" + Bracket(e1R) + "*" +
+                           Bracket(e2R) + "*" + Bracket(auxR) + ")";
+          tensorImag[12] = "(" + Bracket(nu13I) + "+" + Bracket(nu12I) + "*" +
+                           Bracket(nu13I) + ")/(" + Bracket(e1I) + "*" +
+                           Bracket(e2I) + "*" + Bracket(auxI) + ")";
+          tensorReal[13] = "(" + Bracket(nu23R) + "+" + Bracket(nu13R) + "*" +
+                           Bracket(nu21R) + ")/(" + Bracket(e1R) + "*" +
+                           Bracket(e2R) + "*" + Bracket(auxR) + ")";
+          tensorImag[13] = "(" + Bracket(nu23I) + "+" + Bracket(nu13I) + "*" +
+                           Bracket(nu21I) + ")/(" + Bracket(e1I) + "*" +
+                           Bracket(e2I) + "*" + Bracket(auxI) + ")";
+
+          tensorReal[21] = g23R;
+          tensorImag[21] = g23I;
+          tensorReal[28] = g13R;
+          tensorImag[28] = g13I;
+          tensorReal[35] = g12R;
+          tensorImag[35] = g12I;
+        }
+        break;
+
+      case GENERAL:
+        EXCEPTION("Property '" << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR)
+            << "' is undefined.");
+        break;
+
+      default:
+        EXCEPTION("Unknown symmetry type '"
+            << SymmetryTypeEnum.ToString(symType) << "' for property '"
+            << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR) << "'.");
+    }
+
+    PtrCoefFct c = CoefFunction::Generate(mp_, Global::COMPLEX, 6, 6,
+                                           tensorReal, tensorImag);
+    SetCoefFct(MECH_STIFFNESS_TENSOR, c);
+  }
+
+  // Compute the constant full stiffness tensor from isotropic,
+  // transversely isotropic or orthotropic data
+  Matrix<Complex> MechanicMaterial::GetFullStiffTensor(
+      BaseMaterial::SymmetryType symType, BaseMaterial::CoefMap &coefMap)
+  {
+    Matrix<Complex> tensor(6, 6);
+    LocPointMapped lpm;
+
+    switch (symType) {
+      case ISOTROPIC: {
+          Complex LameLambda, LameMu;
+
+          if (coefMap.find(MECH_EMODULUS) != coefMap.end() &&
+              coefMap.find(MECH_POISSON) != coefMap.end())
+          {
+            Complex eModul, poisson;
+            coefMap[MECH_EMODULUS]->GetScalar(eModul, lpm);
+            coefMap[MECH_POISSON]->GetScalar(poisson, lpm);
+
+            LameLambda = (poisson*eModul) / ((1.0+poisson) * (1.0-2.0*poisson));
+            LameMu = eModul / (2.0 * (1.0 + poisson));
+          }
+          else if (coefMap.find(MECH_KMODULUS) != coefMap.end() &&
+                   coefMap.find(MECH_GMODULUS) != coefMap.end())
+          {
+            Complex k, g;
+            coefMap[MECH_KMODULUS]->GetScalar(k, lpm);
+            coefMap[MECH_GMODULUS]->GetScalar(g, lpm);
+
+            LameLambda = k - 2.0/3.0 * g;
+            LameMu = g;
+          }
+          else {
+            EXCEPTION("Unsupported definition of property '"
+                << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR) << "'.");
+          }
+
+          tensor[0][0] = LameLambda + 2.0 * LameMu;
+          tensor[1][1] = LameLambda + 2.0 * LameMu;
+          tensor[2][2] = LameLambda + 2.0 * LameMu;
+
+          tensor[0][1] = LameLambda;
+          tensor[0][2] = LameLambda;
+          tensor[1][0] = LameLambda;
+          tensor[1][2] = LameLambda;
+          tensor[2][0] = LameLambda;
+          tensor[2][1] = LameLambda;
+
+          tensor[3][3] = LameMu;
+          tensor[4][4] = LameMu;
+          tensor[5][5] = LameMu;
+        }
+        break;
+
+      case TRANS_ISOTROPIC: {
+          Complex E, E3, G, G3, nu, nu13;
+          coefMap[MECH_EMODULUS]->GetScalar(E, lpm);
+          coefMap[MECH_EMODULUS_3]->GetScalar(E3, lpm);
+          coefMap[MECH_GMODULUS]->GetScalar(G, lpm);
+          coefMap[MECH_GMODULUS_3]->GetScalar(G3, lpm);
+          coefMap[MECH_POISSON]->GetScalar(nu, lpm);
+          coefMap[MECH_POISSON_3]->GetScalar(nu13, lpm);
+
+          Complex nu31 = (E3/E)*nu13;
+
+          Complex aux = (1.0 + nu) * (1.0 - nu - 2.0*nu13*nu31);
+
+          tensor[0][0] = E * (1.0-nu13*nu31) / aux;
+          tensor[1][1] = E * (1.0-nu13*nu31) / aux;
+          tensor[2][2] = E3 * (1.0-nu*nu) / aux;
+
+          tensor[0][1] = E * (nu+nu13*nu31) / aux;
+          tensor[0][2] = E * ((1.0+nu)*nu31) / aux;
+          tensor[1][0] = tensor[0][1];
+          tensor[1][2] = tensor[0][2];
+          tensor[2][0] = tensor[0][2];
+          tensor[2][1] = tensor[0][2];
+
+          tensor[3][3] = G3;
+          tensor[4][4] = G3;
+          tensor[5][5] = G;
+        }
+        break;
+
+      case ORTHOTROPIC: {
+          // http://www.efunda.com/formulae/solid_mechanics/mat_mechanics/hooke_orthotropic.cfm
+          Complex E1, E2, E3, nu12, nu23, nu13, G23, G31, G12;
+          coefMap[MECH_EMODULUS_1]->GetScalar(E1, lpm);
+          coefMap[MECH_EMODULUS_2]->GetScalar(E2, lpm);
+          coefMap[MECH_EMODULUS_3]->GetScalar(E3, lpm);
+          coefMap[MECH_POISSON_12]->GetScalar(nu12, lpm);
+          coefMap[MECH_POISSON_23]->GetScalar(nu23, lpm);
+          coefMap[MECH_POISSON_13]->GetScalar(nu13, lpm);
+          coefMap[MECH_GMODULUS_23]->GetScalar(G23, lpm);
+          coefMap[MECH_GMODULUS_13]->GetScalar(G31, lpm);
+          coefMap[MECH_GMODULUS_12]->GetScalar(G12, lpm);
+
+          Complex nu21 = (E2/E1)*nu12;
+          Complex nu32 = (E3/E2)*nu23;
+          Complex nu31 = (E3/E1)*nu13;
+
+          Complex aux = (1.0 - nu12*nu21 - nu23*nu32 - nu13*nu31 -
+                         2.0*nu12*nu23*nu31) / (E1*E2*E3);
+
+          tensor[0][0] = (1.0-nu23*nu32)/(E2*E3*aux);
+          tensor[1][1] = (1.0-nu13*nu31)/(E1*E3*aux);
+          tensor[2][2] = (1.0-nu12*nu21)/(E1*E2*aux);
+
+          tensor[0][1] = (nu21+nu31*nu23)/(E2*E3*aux);
+          tensor[0][2] = (nu31+nu21*nu32)/(E2*E3*aux);
+          tensor[1][0] = (nu12+nu13*nu32)/(E1*E3*aux);
+          tensor[1][2] = (nu32+nu31*nu12)/(E1*E3*aux);
+          tensor[2][0] = (nu13+nu12*nu23)/(E1*E2*aux);
+          tensor[2][1] = (nu23+nu13*nu21)/(E1*E2*aux);
+
+          tensor[3][3] = G23;
+          tensor[4][4] = G31;
+          tensor[5][5] = G12;
+        }
+        break;
+
+      case GENERAL:
+        if (coefMap.find(MECH_STIFFNESS_TENSOR) == coefMap.end()) {
+          EXCEPTION("Property '" << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR)
+              << "' is undefined.");
+        }
+
+        coefMap[MECH_STIFFNESS_TENSOR]->GetTensor(tensor, lpm);
+        break;
+
+      default:
+        EXCEPTION("Unknown symmetry type '"
+            << SymmetryTypeEnum.ToString(symType) << "' for property '"
+            << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR) << "'.");
+    }
+
+    return tensor;
+  }
+
+  // Compute the viscoelastic stiffness tensor from the Prony series
+  void MechanicMaterial::ComputeViscoStiffTensors() {
+    // viscoelasticity is implemented only for isotropic materials
+    if (GetSymmetryType(MECH_STIFFNESS_TENSOR) != ISOTROPIC) {
+      return;
+    }
+
+    if ((vectorCoef_.find(MECH_BULK_RELAX_TIMES) == vectorCoef_.end() ||
+         vectorCoef_.find(MECH_BULK_RELAX_MODULI) == vectorCoef_.end()) &&
+        (vectorCoef_.find(MECH_SHEAR_RELAX_TIMES) == vectorCoef_.end() ||
+         vectorCoef_.find(MECH_SHEAR_RELAX_MODULI) == vectorCoef_.end()))
+    {
+      return;
+    }
+
+    // Get the initial bulk and shear moduli of the Prony series
+    PtrCoefFct initBulk, initShear;
+    if (scalarCoef_.find(MECH_VISCO_BULK_INITIAL) != scalarCoef_.end()) {
+      initBulk = scalarCoef_[MECH_VISCO_BULK_INITIAL];
+    }
+    else {
+      initBulk = GetScalCoefFnc(MECH_KMODULUS, Global::REAL);
+    }
+    if (scalarCoef_.find(MECH_VISCO_SHEAR_INITIAL) != scalarCoef_.end()) {
+      initShear = scalarCoef_[MECH_VISCO_SHEAR_INITIAL];
+    }
+    else {
+      initShear = GetScalCoefFnc(MECH_GMODULUS, Global::REAL);
+    }
+
+    CoefMap coefMap;
+    coefMap[MECH_KMODULUS] = initBulk;
+    coefMap[MECH_GMODULUS] = initShear;
+
+    // initialize with linear elastic stiffness tensor
+    Matrix<Complex> initStiff = GetFullStiffTensor(ISOTROPIC, coefMap);
+    shared_ptr< CoefFunctionConst<Double> >
+        initStiffFct(new CoefFunctionConst<Double>());
+    initStiffFct->SetTensor(initStiff.GetPart(Global::REAL));
+    PtrCoefFct viscoStiff = initStiffFct;
+
+    const std::string omegaSqr = "4*pi*pi*f*f";
+    UInt pronySize;
+    Double tSqr, bulkInf = 1.0, shearInf = 1.0;
+    std::ostringstream oss;
+    std::string realPart, imagPart;
+    PtrCoefFct zeroFct = CoefFunction::Generate(mp_, Global::REAL, "0");
+
+    // Add all bulk Prony terms
+    if (vectorCoef_.find(MECH_BULK_RELAX_TIMES) != vectorCoef_.end() &&
+        vectorCoef_.find(MECH_BULK_RELAX_MODULI) != vectorCoef_.end())
+    {
+      Vector<Double> bulkTimes, bulkModuli;
+      GetVector(bulkTimes, MECH_BULK_RELAX_TIMES, Global::REAL);
+      GetVector(bulkModuli, MECH_BULK_RELAX_MODULI, Global::REAL);
+      assert(bulkTimes.GetSize() == bulkModuli.GetSize());
+
+      PtrCoefFct bulkSeries;
+
+      pronySize = bulkTimes.GetSize();
+      for (UInt i = 0; i < pronySize; ++i) {
+        tSqr = bulkTimes[i] * bulkTimes[i];
+        bulkInf -= bulkModuli[i];
+
+        // formula for real part
+        oss.str("");
+        oss.clear();
+        oss << "-1*" << bulkModuli[i] << "/(" << tSqr << "*" << omegaSqr << "+1)";
+        realPart = oss.str();
+
+        // formula for imaginary part
+        oss.str("");
+        oss.clear();
+        oss << bulkModuli[i] << "*(" << bulkTimes[i] << "*2*pi*f)/(" << tSqr
+            << "*" << omegaSqr << "+1)";
+        imagPart = oss.str();
+
+        // Create CoefFunction of complex factor
+        PtrCoefFct factor = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                                   realPart, imagPart);
+        if (!bulkSeries) {
+          bulkSeries = factor;
+        }
+        else {
+          bulkSeries = CoefFunction::Generate(mp_, Global::COMPLEX,
+              CoefXprBinOp(mp_, bulkSeries, factor, CoefXpr::OP_ADD));
+        }
       }
-      it = scalarStringHandlesImag_.begin();
-      for ( ; it != scalarStringHandlesImag_.end(); ++it ) {
-        SetScalar( mp_->Eval(it->second),it->first, Global::IMAG );
-      }
-      // ====================================================================
-      
-      // get complex valued values
-      Complex EModul, poisson;
 
-      GetScalar( EModul, MECH_EMODULUS, Global::COMPLEX ); 
-      GetScalar( poisson, MECH_POISSON, Global::COMPLEX );
-      Complex LameLambda = (poisson*EModul)/
-          ((Complex(1.0,0) + poisson)*
-              (Complex(1.0,0)  - Complex(2.0,0)*poisson));
-      Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
-      Complex KModul = EModul/
-              ( Complex(3.0,0) * ( Complex(1.0,0) - Complex(2.0,0)*poisson));
+      // Create a tensor from bulk modulus and zero shear modulus
+      coefMap[MECH_KMODULUS] = initBulk;
+      coefMap[MECH_GMODULUS] = zeroFct;
+      // We actually want to create a constant tensor function,
+      // not recompute it every time.
+      Matrix<Complex> bulkTensor = GetFullStiffTensor(ISOTROPIC, coefMap);
+      shared_ptr< CoefFunctionConst<Complex> > bulkTensorFct(
+          new CoefFunctionConst<Complex>());
+      bulkTensorFct->SetTensor(bulkTensor);
+      // Create CoefFunction of scaled tensor
+      PtrCoefFct zTensor = CoefFunction::Generate(mp_, Global::COMPLEX,
+          CoefXprTensScalOp(mp_, bulkTensorFct, bulkSeries, CoefXpr::OP_MULT));
 
-      CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
-      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
-      SetScalar(KModul, MECH_KMODULUS, Global::COMPLEX);
-      SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
-      SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
-
-//      Vector<Double> viscoCoeffs;
-//      GetVector(viscoCoeffs, MECH_VISCOALPHA_VECTOR, Global::REAL );
-//      std::cout << "ViscoAlpha: \n " << viscoCoeffs << std::endl;
-//      GetVector(viscoCoeffs, MECH_VISCOK_VECTOR, Global::REAL );
-//      std::cout << "ViscoK: \n " << viscoCoeffs << std::endl;
-//      GetVector(viscoCoeffs, MECH_VISCOG_VECTOR, Global::REAL );
-//      std::cout << "ViscoG: \n " << viscoCoeffs << std::endl;
-
-      break;
+      // add scaled tensor to stiffness tensor
+      viscoStiff = CoefFunction::Generate(mp_, Global::COMPLEX,
+          CoefXprBinOp(mp_, viscoStiff, zTensor, CoefXpr::OP_ADD));
     }
-    case ORTHOTROPIC:
+
+    // Add all shear Prony terms
+    if (vectorCoef_.find(MECH_SHEAR_RELAX_TIMES) != vectorCoef_.end() &&
+        vectorCoef_.find(MECH_SHEAR_RELAX_MODULI) != vectorCoef_.end())
     {
-      Complex EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
-      GetScalar( EX, MECH_EMODULUS_X, Global::COMPLEX ); 
-      GetScalar( EY, MECH_EMODULUS_Y, Global::COMPLEX ); 
-      GetScalar( EZ, MECH_EMODULUS_Z, Global::COMPLEX ); 
-      GetScalar( nuXY, MECH_POISSON_XY, Global::COMPLEX ); 
-      GetScalar( nuYZ, MECH_POISSON_YZ, Global::COMPLEX ); 
-      GetScalar( nuXZ, MECH_POISSON_XZ, Global::COMPLEX ); 
-      GetScalar( GYZ, MECH_GMODULUS_YZ, Global::COMPLEX ); 
-      GetScalar( GZX, MECH_GMODULUS_ZX, Global::COMPLEX ); 
-      GetScalar( GXY, MECH_GMODULUS_XY, Global::COMPLEX ); 
-        
-      Complex nuYX, nuZY, nuZX, aux;
-      nuYX=(EY/EX)*nuXY;
-      nuZY=(EZ/EY)*nuYZ;
-      nuZX=(EZ/EX)*nuXZ;
-        
-      aux= (Complex(1,0)-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-
-            Complex(2.0,0)*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
-        
-      elasticityTensor.Resize(6,6);
-      elasticityTensor.Init();
-        
-      elasticityTensor[0][0]=(Complex(1,0)-nuYZ*nuZY)/(EY*EZ*aux);
-      elasticityTensor[1][1]=(Complex(1,0)-nuXZ*nuZX)/(EX*EZ*aux);
-      elasticityTensor[2][2]=(Complex(1,0)-nuXY*nuYX)/(EX*EY*aux);
-        
-      elasticityTensor[0][1]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
-      elasticityTensor[0][2]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
-      elasticityTensor[1][0]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
-      elasticityTensor[1][2]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
-      elasticityTensor[2][0]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
-      elasticityTensor[2][1]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
-        
-      elasticityTensor[3][3]=GYZ;
-      elasticityTensor[4][4]=GZX;
-      elasticityTensor[5][5]=GXY;
-      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
+      Vector<Double> shearTimes, shearModuli;
+      GetVector(shearTimes, MECH_SHEAR_RELAX_TIMES, Global::REAL);
+      GetVector(shearModuli, MECH_SHEAR_RELAX_MODULI, Global::REAL);
+      assert(shearTimes.GetSize() == shearModuli.GetSize());
 
-      break;
+      PtrCoefFct shearSeries;
+
+      pronySize = shearTimes.GetSize();
+      for (UInt i = 0; i < pronySize; ++i) {
+        tSqr = shearTimes[i] * shearTimes[i];
+        shearInf -= shearModuli[i];
+
+        // formula for real part
+        oss.str("");
+        oss.clear();
+        oss << "-1*" << shearModuli[i] << "/(" << tSqr << "*" << omegaSqr << "+1)";
+        realPart = oss.str();
+
+        // formula for imaginary part
+        oss.str("");
+        oss.clear();
+        oss << shearModuli[i] << "*(" << shearTimes[i] << "*2*pi*f)/(" << tSqr
+            << "*" << omegaSqr << "+1)";
+        imagPart = oss.str();
+
+        // Create CoefFunction of complex factor
+        PtrCoefFct factor = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                                   realPart, imagPart);
+
+        if (!shearSeries) {
+          shearSeries = factor;
+        }
+        else {
+          shearSeries = CoefFunction::Generate(mp_, Global::COMPLEX,
+              CoefXprBinOp(mp_, shearSeries, factor, CoefXpr::OP_ADD));
+        }
+      }
+
+      // Create a tensor from shear modulus and zero bulk modulus
+      coefMap[MECH_GMODULUS] = initShear;
+      coefMap[MECH_KMODULUS] = zeroFct;
+      Matrix<Complex> shearTensor = GetFullStiffTensor(ISOTROPIC, coefMap);
+      shared_ptr< CoefFunctionConst<Complex> > shearTensorFct(
+          new CoefFunctionConst<Complex>());
+      shearTensorFct->SetTensor(shearTensor);
+
+      // Create CoefFunction of scaled tensor
+      PtrCoefFct zTensor = CoefFunction::Generate(mp_, Global::COMPLEX,
+          CoefXprTensScalOp(mp_, shearTensorFct, shearSeries, CoefXpr::OP_MULT));
+
+      // add current scaled tensor to sum
+      viscoStiff = CoefFunction::Generate(mp_, Global::COMPLEX,
+          CoefXprBinOp(mp_, viscoStiff, zTensor, CoefXpr::OP_ADD));
     }
-    default:
-      EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
-                       << symType << "' not implemented!" );
-      break;
+
+    SetCoefFct(MECH_VISCO_STIFFNESS_TENSOR, viscoStiff);
+
+    // Compute the long-term stiffness tensor
+    coefMap[MECH_KMODULUS] = CoefFunction::Generate(mp_, Global::REAL,
+        CoefXprBinOp(mp_, initBulk, lexical_cast<std::string>(bulkInf),
+                     CoefXpr::OP_MULT));
+    coefMap[MECH_GMODULUS] = CoefFunction::Generate(mp_, Global::REAL,
+        CoefXprBinOp(mp_, initShear, lexical_cast<std::string>(shearInf),
+                     CoefXpr::OP_MULT));
+    Matrix<Complex> longTermTensor = GetFullStiffTensor(ISOTROPIC, coefMap);
+    shared_ptr< CoefFunctionConst<Double> > longTermFct(
+        new CoefFunctionConst<Double>());
+    longTermFct->SetTensor(longTermTensor.GetPart(Global::REAL));
+    SetCoefFct(MECH_VISCO_LONGTERM_TENSOR, longTermFct);
+  }
+
+  void MechanicMaterial::ComputeThermExpTensor() {
+    if (symmetryType_.find(MECH_THERMAL_EXPANSION_TENSOR) != symmetryType_.end()) {
+      MaterialType orthoProps[3] = {
+          MECH_THERMAL_EXPANSION_1,
+          MECH_THERMAL_EXPANSION_2,
+          MECH_THERMAL_EXPANSION_3
+      };
+      CalcFull3x3Tensor(MECH_THERMAL_EXPANSION_SCALAR, orthoProps,
+                        MECH_THERMAL_EXPANSION_TENSOR);
     }
-    
   }
 
   StdVector<double> MechanicMaterial::CalcOrthotropeYoungsModulus(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
@@ -1033,6 +1360,6 @@ void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
   // required in ErsatzMaterial. The complex version is explictely called here
   template void MechanicMaterial::ComputeSubTensor<Double>(Matrix<Double>& matMatrix, SubTensorType subTensor, const Matrix<Double>& mat);
 
-  
+
 
 } // end of namespace

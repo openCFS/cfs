@@ -38,15 +38,6 @@ public:
   Matrix<T>& GetTensor()
   {
      assert(this->dimType_ == TENSOR);
-     if(coordSys_)
-       EXCEPTION("The rotation is not fully finished ':-(\n" <<
-           "Here we have to add a call to the method BaseMaterial::PerformRotation "
-           "This method should be moved to the base class of the CoefFunction"
-           "In addition the initial rotation of the material must be incorporated"
-           "somewhere in string-notation, as we are generally dealing with string"
-           "parameters."
-           "Thus we should treat the case, where rotation angles are multiples of "
-           "90 degree separately, where the entries are just interchanged");
      return constCoefMat_;
    }
 
@@ -58,7 +49,9 @@ public:
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm) {
     // we are the const version
-    GetTensor(coefMat);
+    Matrix<T> locMatrix;
+    GetTensor(locMatrix);
+    TransformTensorByCoordSys(coefMat, locMatrix, lpm);
   }
 
   const Matrix<T>& GetTensor() const

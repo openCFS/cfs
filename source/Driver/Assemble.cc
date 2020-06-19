@@ -6,8 +6,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/progress.hpp>
 
-#include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Domain.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -211,8 +211,7 @@ namespace CoupledField
     }
 
     FEMatrixType mappedFEType = matrixMap_[biLinContext->GetDestMat()];
-    FEMatrixType mappedSecFEType =
-      matrixMap_[biLinContext->GetSecDestMat()];
+    FEMatrixType mappedSecFEType = matrixMap_[biLinContext->GetSecDestMat()];
 
     // Check if integrator can be assembled in this type of simulation
     if( mappedFEType != NOTYPE ) {
@@ -522,7 +521,7 @@ namespace CoupledField
       } // end !isNewtonPart
 
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
-    {
+      {
       UInt numT = CFS_NUM_THREADS;
       UInt aThread = GetThreadNum();
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
@@ -536,6 +535,7 @@ namespace CoupledField
         //copy bilinear forms
         biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
       }
+
 //     #pragma omp critical
 //         {
 //             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
@@ -563,7 +563,7 @@ namespace CoupledField
       FeFctIdType fctId1, fctId2;
       for( UInt i = start;i < end; ++i  ) {
 
-        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() << " and " << it2.GetIdString();
+        LOG_DBG2(assemble) << "AM_Std: elems are " << it1.GetIdString() << " and " << it2.GetIdString();
 
         // Loop over all bilinear forms
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
@@ -595,111 +595,113 @@ namespace CoupledField
           matrixUpdated_ = true;
 
           BiLinearForm * form =nullptr;
-          UseOpenMP()? form = biLinForms[iForm]:form = actContext.GetIntegrator();
+          form = UseOpenMP() ? biLinForms[iForm] : actContext.GetIntegrator();
 
           LOG_DBG2(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
-         if(!skipElemAssembly_){
-          try {
+          if(!skipElemAssembly_){
+            try {
 
-            // make only output if desired
-            if( printProgressBar_) {
-              ++progress;
-              std::cout << progStream.str();
-              progStream.str("");
-            }
-
-            // Calc element matrix
-            if ( form->IsComplex() ){
-              form->CalcElementMatrix( elemMatrixC, it1, it2 );
-              LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString(2);
-            } else {
-              form->CalcElementMatrix( elemMatrix, it1, it2 );
-              if(it1.IsElemType())
-                LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
-              LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString(2);
-              if(actContext.IsSetNegate()){
-                assert(!form->IsComplex());
-                elemMatrix*= (-1.0);
+              // make only output if desired
+              if( printProgressBar_) {
+                ++progress;
+                std::cout << progStream.str();
+                progStream.str("");
               }
-            }
 
-            // info.xml logging in detailed logging case for the first element only
-            if(i == 0 && progOpts->DoDetailedInfo())
-            {
-              PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
+              LOG_DBG3(assemble) << feMatrixType.ToString(destMat) << "\n";
+              // Calc element matrix
+              if ( form->IsComplex() ){
+                form->CalcElementMatrix( elemMatrixC, it1, it2 );
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString(2);
+              } else {
+                form->CalcElementMatrix( elemMatrix, it1, it2 );
+                if(it1.IsElemType())
+                  LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString(2);
+                if(actContext.IsSetNegate()){
+                  assert(!form->IsComplex());
+                  elemMatrix*= (-1.0);
+                }
+              }
 
-              // works only for element integrators
-              if(it1.GetType() != EntityList::ELEM_LIST && it1.GetType() != EntityList::SURF_ELEM_LIST && it1.GetType() != EntityList::NC_ELEM_LIST)
-                continue; // no element, no region id
-
-              // make sure to have only one output for non-static case (e.g. optimization)
-              std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
-              bool found = false;
-              ParamNodeList list = in->GetListByVal("tensor", "form", form->GetName());
-              for(unsigned int li = 0; li < list.GetSize(); li++)
-                if(list[li]->HasByVal("region", reg_name) && list[li]->HasByVal("element", it1.GetElem()->elemNum))
-                  found = true;
-
-              if(!found)
+              // info.xml logging in detailed logging case for the first element only
+              if(i == 0 && progOpts->DoDetailedInfo())
               {
-                in = in->Get("tensor", ParamNode::APPEND);
-                in->Get("form")->SetValue(form->GetName());
-                in->Get("region")->SetValue(reg_name);
-                in->Get("element")->SetValue(it1.GetElem()->elemNum);
-                // it makes sense to add the analysis id here
-                if(form->IsComplex())
-                  in->Get("matrix")->SetValue(elemMatrixC);
-                else
-                  in->Get("matrix")->SetValue(elemMatrix);
+                PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
+
+                // works only for element integrators
+                if(it1.GetType() != EntityList::ELEM_LIST && it1.GetType() != EntityList::SURF_ELEM_LIST && it1.GetType() != EntityList::NC_ELEM_LIST)
+                  continue; // no element, no region id
+
+                // make sure to have only one output for non-static case (e.g. optimization)
+                std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
+                bool found = false;
+                ParamNodeList list = in->GetListByVal("tensor", "form", form->GetName());
+                for(unsigned int li = 0; li < list.GetSize(); li++)
+                  if(list[li]->HasByVal("region", reg_name) && list[li]->HasByVal("element", it1.GetElem()->elemNum))
+                    found = true;
+
+                if(!found)
+                {
+                  in = in->Get("tensor", ParamNode::APPEND);
+                  in->Get("form")->SetValue(form->GetName());
+                  in->Get("region")->SetValue(reg_name);
+                  in->Get("element")->SetValue(it1.GetElem()->elemNum);
+                  // it makes sense to add the analysis id here
+                  if(form->IsComplex())
+                    in->Get("matrix")->SetValue(elemMatrixC);
+                  else
+                    in->Get("matrix")->SetValue(elemMatrix);
+                }
               }
+
+              // Map equation numbers
+              actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+              // Perform remapping
+              ReMapEquations(eqnVec1, fctId1);
+              ReMapEquations(eqnVec2, fctId2);
+
+              LOG_DBG3(assemble) << "eqnVec1: " << eqnVec1.ToString() << "\n\n";
+              // Pass element matrix to algebraic system (primary matrix)
+              if ( form->IsComplex() )
+                InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+              else
+                InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+
+              if (secDestMat != NOTYPE ) { // Check for secondary matrix type
+                Double dampFactor = 1.0;
+                // get secondary matrix factor string
+                Double secMatFac = actContext.EvalSecMatFac();
+
+                // damping with "exotic" complex material
+                if ( form->IsComplex() ) {
+                  // complex damping
+                  elemMatrixC *= secMatFac * dampFactor;
+
+                  // Pass secondary matrix part to algebraic system
+                  InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+                }
+                // "standard" Rayleigh damping. Includes the standard SIMP optimization!
+                else {
+                  // Rayleigh damping
+                  elemMatrix *= secMatFac * dampFactor;
+                  LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
+                  // Pass secondary matrix part to algebraic system
+                  InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+                }
+                // optionally with do SIMP pamping (intermediate material has complex mass damping)
+                //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
+                //              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
+                //              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+                //            }
+
+              } // handle secDestMat != NOTYPE
+
+              // increment iterators
+            } catch (Exception& e) {
+              RETHROW_EXCEPTION(e, "Could not calculate element matrix of BiLinearForm '" << form->GetName() << "' on '" << actContext.GetFirstEntities()->GetName()<< "'");
             }
-
-            // Map equation numbers
-            actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
-            // Perform remapping
-            ReMapEquations(eqnVec1, fctId1);
-            ReMapEquations(eqnVec2, fctId2);
-
-            // Pass element matrix to algebraic system (primary matrix)
-            if ( form->IsComplex() )
-              InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
-            else
-              InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
-
-            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
-              Double dampFactor = 1.0;
-              // get secondary matrix factor string
-              Double secMatFac = actContext.EvalSecMatFac();
-
-              // damping with "exotic" complex material
-              if ( form->IsComplex() ) {
-                // complex damping
-                elemMatrixC *= secMatFac * dampFactor;
-
-                // Pass secondary matrix part to algebraic system
-                InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
-              }
-              // "standard" Rayleigh damping. Includes the standard SIMP optimization!
-              else {
-                // Rayleigh damping
-                elemMatrix *= secMatFac * dampFactor;
-                LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
-                // Pass secondary matrix part to algebraic system
-                InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
-              }
-              // optionally with do SIMP pamping (intermediate material has complex mass damping)
-              //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
-              //              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
-              //              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
-              //            }
-
-            } // handle secDestMat != NOTYPE
-
-            // increment iterators
-          } catch (Exception& e) {
-            RETHROW_EXCEPTION(e, "Could not calculate element matrix of BiLinearForm '" << form->GetName() << "' on '" << actContext.GetFirstEntities()->GetName()<< "'");
-          }
-         } //if block to skip assembly
+          } //if block to skip assembly
         }// loop over bilinearforms
         // The size of the entity lists is checked because FeSpaceConst can add single rows/columns.
         if( firstEntities.GetSize() != 1 )
@@ -1710,10 +1712,10 @@ namespace CoupledField
       // associated result types
       std::string tmp;
       if (context.GetFirstResultInfo()!= NULL) {
-	  tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
-	  row->Get("result")->SetValue(tmp);
-	  tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
-	  col->Get("result")->SetValue(tmp);
+        tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+        row->Get("result")->SetValue(tmp);
+        tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+        col->Get("result")->SetValue(tmp);
       }
 
 
@@ -1816,8 +1818,7 @@ namespace CoupledField
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
       if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
-		  || analysisType_ ==BasePDE::INVERSESOURCE
-			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
+		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
         if ( actContext.GetSecDestMat() != NOTYPE )
@@ -2222,7 +2223,7 @@ namespace CoupledField
                                           fctId2, eqnVec2,
                                           context.IsSetCounterPart(),
                                           sbmIndices );
-    }else{
+    } else {
       algsys_->SetElementMatrix( mappedDest, harmMat,
                                  fctId1, eqnVec1,
                                  fctId2, eqnVec2,
@@ -2231,6 +2232,4 @@ namespace CoupledField
                                  context.isDiagonal() );
     }
   }
-
-
 }

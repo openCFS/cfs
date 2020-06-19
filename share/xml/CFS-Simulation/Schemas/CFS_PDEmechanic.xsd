@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -662,7 +665,7 @@
   </xsd:simpleType>
 
   <!-- Definition of field variables (union of nodal and element results) -->
-  <xsd:simpleType name="DT_MechSensorArrayResult">
+  <xsd:simpleType name="DT_MechFieldResult">
     <xsd:union memberTypes="DT_MechNodeResult DT_MechElemResult"/>
   </xsd:simpleType>
 
@@ -675,8 +678,6 @@
       <xsd:enumeration value="mechDyadicStrainSum"/>
       <xsd:enumeration value="mechQuadDisplacementSum"/>
       <xsd:enumeration value="homogenizedTensor"/>
-      <xsd:enumeration value="mechStrainAverage"/>
-      <xsd:enumeration value="mechStressAverage"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -686,8 +687,6 @@
       <xsd:enumeration value="mechDisplacedSurfVolume"/>
       <xsd:enumeration value="mechPower"/>
       <xsd:enumeration value="mechForce"/>
-      <xsd:enumeration value="mechStrainAverage"/>
-      <xsd:enumeration value="mechStressAverage"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -743,6 +742,17 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
+        
+        <!-- averaged Region result definition -->
+        <xsd:element name="regionAverageResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionAverageResult">
+                <xsd:attribute name="type" type="DT_MechFieldResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
 
         <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
@@ -761,7 +771,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
-                <xsd:attribute name="type" type="DT_MechSensorArrayResult"/>
+                <xsd:attribute name="type" type="DT_MechFieldResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

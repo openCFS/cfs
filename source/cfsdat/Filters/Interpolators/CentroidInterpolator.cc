@@ -187,7 +187,7 @@ void CentroidInterpolator::PrepareCalculation(){
         }
       }
 
-      coverage[trgElements[aInfo]->elemNum -1] = 1;
+      coverage[aInfo] = 1;
       ++foundCounter;
     }
   }

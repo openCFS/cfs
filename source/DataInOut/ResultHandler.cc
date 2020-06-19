@@ -112,7 +112,8 @@ namespace CoupledField {
         if( simOutputHandlers_.find( newDest[i] ) == simOutputHandlers_.end() )
           EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
 
-        LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
+        LOG_DBG(resHandler) << "Registering output '" << newDest[i]
+                            << "' with result '" << actDof.resultName << "'";
 
         actContext->outputIds.Push_back( newDest[i] );
 
@@ -140,7 +141,7 @@ namespace CoupledField {
   
   void ResultHandler::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps )
   {
-    LOG_DBG(resHandler) << "BMS step=" << step << " n=" << numSteps;
+    LOG_DBG(resHandler) << "BMS: step=" << step << " n=" << numSteps;
 
     //assert(numSteps >= numSteps_);
 
@@ -179,7 +180,7 @@ namespace CoupledField {
       BaseResult& actResult  = *((*contextIt)->result);
       LOG_DBG(resHandler) << "IsNeeded for '" << actResult.GetResultInfo()->resultName
                           << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
-                          << (IsOutput( **contextIt ) == true ? "true" : "false");
+                          << (IsOutput( **contextIt ) == true ? "true" : "false") << "'";
       if(IsOutput( **contextIt))
         isNeeded_.insert((*contextIt)->result);
     }
@@ -300,10 +301,10 @@ namespace CoupledField {
             // Standard case, no interpolation necessary
             
             // Add current result to given output file
-            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
                 << "' on '" << actResult.GetEntityList()->GetName() << "' to '"
                 << simOutputHandlers_[actContext.outputIds[iOut]]->GetName() << "'";
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
           }
         }
       }
@@ -795,7 +796,7 @@ namespace CoupledField {
   void ResultHandler::AddInputReader( shared_ptr<SimInput> inClass, 
                                       const std::string& readerId ) {
 
-    LOG_DBG(resHandler) << "Adding input reader with id ";
+    LOG_DBG(resHandler) << "Adding input reader with id '" << readerId << "'";
     inFiles_[readerId] = inClass;
 
   }

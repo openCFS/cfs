@@ -523,6 +523,9 @@ class BaseFieldFunctor;
     //! e.g. energy, total force etc.
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
+    //! stores the functors to field average results
+    std::map<SolutionType, shared_ptr<ResultFunctor> > fieldAverageFunctors_;
+
     //! Store bilinarform-based coefficient function for stiffness integrator
     
     //! In this set we store all coefficient functions, which compute by the

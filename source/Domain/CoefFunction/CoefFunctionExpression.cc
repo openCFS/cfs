@@ -23,6 +23,8 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
   isAnalytic_ = true;
   
   isComplex_ = false;
+  numRows_ = 0;
+  numCols_ = 0;
   
   // obtain global coordinate system for registering coordinates (x,y,z)
 //  if(domain) 
@@ -65,27 +67,16 @@ void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat,
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
-  this->mp_->EvalMatrix(mHandle_, locMatrix, 
-                        this->numRows_, this->numCols_ ); 
-
-  // Rotate material, if coordinate system is not the global one
   if( this->coordSys_ ) {
-    // Obtain rotation matrix
-    Matrix<Double> rotMatrix;
-    coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-    EXCEPTION("The rotation is not fully finished ':-(\n" << 
-              "Here we have to add a call to the method BaseMaterial::PerformRotation "
-              "This method should be moved to the base class of the CoefFunction"
-              "In addition the initial rotation of the material must be incorporated"
-              "somewehre in string-notation, as we are generally dealing with string"
-              "parameters."
-              "Thus we should treat the case, where rotation angles are multiples of "
-              "90 degree separately, where the entries are just interchanged");
-  } else {
-    coefMat = locMatrix;
+    this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
   }
+  else {
+    this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
+  }
+  this->mp_->EvalMatrix(mHandle_, locMatrix, this->numRows_, this->numCols_ );
+
+  // Rotate material, if necessary
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 }
 
 void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec, 
@@ -313,22 +304,7 @@ void CoefFunctionExpression<Complex>::GetTensor( Matrix<Complex>& coefMat,
   locMatrix.SetPart(Global::IMAG, temp);
   
   // Rotate material, if coordinate system is not the global one
-  if( this->coordSys_) {
-    // Obtain rotation matrix
-    Matrix<Double> rotMatrix;
-    coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-    EXCEPTION("The rotation is not fully finished ':-(\n" << 
-              "Here we have to add a call to the method BaseMaterial::PerformRotation "
-              "This method should be moved to the base class of the CoefFunction"
-              "In addition the initial rotation of the material must be incorporated"
-              "somewehre in string-notation, as we are generally dealing with string"
-              "parameters."
-              "Thus we should treat the case, where rotation angles are multiples of "
-              "90 degree separately, where the entries are just interchanged");
-  } else {
-    coefMat = locMatrix;
-  }
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 }
 
 void CoefFunctionExpression<Complex>::GetVector( Vector<Complex>& coefVec, 
@@ -552,23 +528,7 @@ void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Ve
     this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), points[curPoint]);
     this->mp_->EvalMatrix(mHandle_, locMatrix,
                           this->numRows_, this->numCols_ );
-
-    if( coordSys_) {
-      // Obtain rotation matrix
-      Matrix<Double> rotMatrix;
-      coordSys_->GetFullGlobRotationMatrix( rotMatrix, points[curPoint] );
-
-      EXCEPTION("The rotation is not fully finished ':-(\n" <<
-                "Here we have to add a call to the method BaseMaterial::PerformRotation "
-                "This method should be moved to the base class of the CoefFunction"
-                "In addition the initial rotation of the material must be incorporated"
-                "somewehre in string-notation, as we are generally dealing with string"
-                "parameters."
-                "Thus we should treat the case, where rotation angles are multiples of "
-                "90 degree separately, where the entries are just interchanged");
-    } else {
-      vals[curPoint] = locMatrix;
-    }
+    TransformTensorByCoordSys(vals[curPoint], locMatrix, points[curPoint]);
   }
 }
 
@@ -653,22 +613,7 @@ void CoefFunctionExpression<Complex>::GetTensorValuesAtCoords( const StdVector<V
 
 
     // Rotate material, if coordinate system is not the global one
-    if( coordSys_->GetName() != "default") {
-      // Obtain rotation matrix
-      Matrix<Double> rotMatrix;
-      coordSys_->GetFullGlobRotationMatrix( rotMatrix, points[curPoint] );
-
-      EXCEPTION("The rotation is not fully finished ':-(\n" <<
-                "Here we have to add a call to the method BaseMaterial::PerformRotation "
-                "This method should be moved to the base class of the CoefFunction"
-                "In addition the initial rotation of the material must be incorporated"
-                "somewehre in string-notation, as we are generally dealing with string"
-                "parameters."
-                "Thus we should treat the case, where rotation angles are multiples of "
-                "90 degree separately, where the entries are just interchanged");
-    } else {
-      vals[curPoint] = locMatrix;
-    }
+    TransformTensorByCoordSys(vals[curPoint], locMatrix, points[curPoint]);
   }
 }
 

@@ -12,7 +12,6 @@ namespace CoupledField {
 
 template <class TYPE> class Vector;
 class SingleVector;
-//class SimState;
   
   //! Driver class for calculating a general eigenvalue problem
   class EigenFrequencyDriver : public virtual SingleDriver {
@@ -134,7 +133,6 @@ class SingleVector;
      * stepNum and step_val are ignored!! */
     void StoreResults(UInt stepNum, double step_val);
 
-
     /** eigenFreqs might be complex in the quadaratic, then we need to extract the real frequency by from the imaginary part
      * @param mode index within eigenFreq (0-based)
      * @return might be negative! */
@@ -168,14 +166,6 @@ class SingleVector;
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs; //ToDo: remove due to new structure -> frequency_
-
-    //! the recent calculated eigen values, might be complex
-    SingleVector* eigenVals_;
-
-    Vector<Double> frequency_; // frequency
-    Vector<Double> dampingRatio_; // damping ratio
-    Vector<Double> eigsRe_; // real part
-    Vector<Double> eigsIm_; // imag part
 
     /** this is the list of wave vectors we have to process.
      * Obtained arbitrary */
@@ -211,6 +201,11 @@ class SingleVector;
     bool isBloch_;
     
     bool sort_;
+
+    Vector<Double> frequency_; // frequency
+    Vector<Double> dampingRatio_; // damping ratio
+    Vector<Double> eigsRe_; // real part
+    Vector<Double> eigsIm_; // imag part
 
     //! Number of eigenfrequencies to be calculated
     unsigned int numFreq_;

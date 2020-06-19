@@ -386,6 +386,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
+  Function::type.Add(Function::BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SLACK_FNCT, "slackFunction");
@@ -393,7 +394,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
-  Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+  Function::type.Add(Function::HEAT_ENERGY, "heatEnergy");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
@@ -500,6 +501,7 @@ void Optimization::SetEnums()
   application.Add(App::MAG, "magnetic");
   application.Add(App::LAPLACE, "laplace");
   application.Add(App::MECH, "mech");
+  application.Add(App::BUCKLING, "buckling");
   application.Add(App::MASS, "mass");
   application.Add(App::ELEC, "elec");
   application.Add(App::PIEZO_COUPLING, "piezoCoupling");
@@ -734,6 +736,9 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
+  if(context->DoBuckling())
+    return false;
+
   // easy case
   if(context->DoMultiSequence() || context->DoLBM())
     return true;
@@ -986,6 +991,8 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
   if(pause_timer)
     baseOptimizer_->GetOptimizerTimer()->Stop();
 
+  LOG_DBG2(opt) << " CC g=" << ( g != NULL ? g->ToString() : "null") <<"  eoe=" << ( ev_only_excite != NULL ? ev_only_excite->label : "null");
+
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
 
@@ -1020,7 +1027,8 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
+  // TODO: disable this assert as multi sequence cannot ruled out for every case
+//  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
 
   if(g == NULL)
     g = constraints.active[0];
@@ -1031,6 +1039,10 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     if(g->DoEvaluate(ex))
     {
       ex->Apply(true); // switch context if necessary
+
+      if(context->DoBuckling())
+        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(0) ); // 0 is first excitation = linear elasticity
+
       CalcFunction(*ex, g, true);
     }
   }
@@ -1326,20 +1338,20 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
   throw Exception("invalid");
 }
 
-App::Type Optimization::ToApp(DesignElement::Type dt)
-{
-  switch(dt)
-  {
-  case DesignElement::DENSITY:
-    return App::MECH;
-  case DesignElement::ACOU_DENSITY:
-    return App::ACOUSTIC;
-  case DesignElement::POLARIZATION:
-    return App::ELEC;
-  default:
-    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
-  }
-}
+//App::Type Optimization::ToApp(DesignElement::Type dt)
+//{
+//  switch(dt)
+//  {
+//  case DesignElement::DENSITY:
+//      return App::MECH; // wrong for buckling
+//  case DesignElement::ACOU_DENSITY:
+//    return App::ACOUSTIC;
+//  case DesignElement::POLARIZATION:
+//    return App::ELEC;
+//  default:
+//    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
+//  }
+//}
 
 
 Optimization::Log::Log()

@@ -1,7 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -12,9 +12,9 @@
   </xsd:annotation>
   
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
-  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_PDEbasic.xsd" />
-  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
   
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_PDEbasic.xsd"/>
+
   
   <!-- ******************************************************************** -->
   <!-- Data type for defining the results -->
@@ -27,9 +27,9 @@
           <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:complexContent>
-                <xsd:extension base="DT_ResultSavingType">
+                <xsd:extension base="sim:DT_ResultSavingType">
                   <xsd:sequence>
-                    <xsd:element name="region" type="DT_SingleRegionResultDescr" minOccurs="1"
+                    <xsd:element name="region" type="sim:DT_SingleRegionResultDescr" minOccurs="1"
                       maxOccurs="unbounded"/>
                   </xsd:sequence>
                 </xsd:extension>
@@ -39,8 +39,8 @@
           <xsd:element name="allRegions" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
               <xsd:complexContent>
-                <xsd:extension base="DT_AllRegionResultDescr">
-                  <xsd:attribute name="onlyVolumes" type="DT_CFSBool" default="no"/>
+                <xsd:extension base="sim:DT_AllRegionResultDescr">
+                  <xsd:attribute name="onlyVolumes" type="sim:DT_CFSBool" default="no"/>
                 </xsd:extension>
               </xsd:complexContent>
             </xsd:complexType>

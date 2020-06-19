@@ -88,7 +88,7 @@ protected:
      * @param isComplex either from complex material or bloch mode
      * @param scalingFactor is a factor the material tensor to be multiplied by */
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
-    
+
     /** Returns an integrator for prestressing
      * @param preStressFct is a tensor coefficient function for prestressing
      * @param isComplex either from complex material or bloch mode */

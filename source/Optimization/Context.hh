@@ -4,6 +4,7 @@
 //include <cstddef>
 #include "Utils/StdVector.hh"
 #include "PDE/BasePDE.hh"
+#include "Design/DesignMaterial.hh"
 
 namespace CoupledField
 {
@@ -11,8 +12,8 @@ class ContextManager;
 class Excitation;
 class SingleDriver;
 class SinglePDE;
-class EigenFrequencyDriver;
 class BucklingDriver;
+class EigenFrequencyDriver;
 class HarmonicDriver;
 class Exctiation;
 class MultipleExcitation;
@@ -25,8 +26,8 @@ struct App
 {
   /** The App::Type type identifies the PDE to use.
    *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().
-   * The heat and acoustic transfer functions are Laplace! */
-  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, MAG, NO_APP} Type;
+   *  The heat and acoustic transfer functions are Laplace! */
+  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, MAG, BUCKLING, NO_APP} Type;
 };
 
 
@@ -105,6 +106,8 @@ class Context
 
   bool DoLBM() const {return (ToApp() == App::LBM);}
 
+  bool DoBuckling() const { return buckling_; }
+
   /** the driver steps: 1 for static, numFreq for harmonic and wave numbers for bloch */
   unsigned int GetDriverSteps() const { assert(driver_steps_ > 0); return driver_steps_; }
 
@@ -148,6 +151,9 @@ class Context
 
   /** the pde dependend optimization material. Due to multiple sequence needs to wait for Up */
   OptimizationMaterial* mat;
+
+  /** pde dependend material for parametric optimization, owned by DesignSpace **/
+  DesignMaterial* dm = NULL;
 
   /** our analysis type */
   BasePDE::AnalysisType analysis;
@@ -195,11 +201,14 @@ private:
   /** only for the driver, not for complex_! */
   bool harmonic_;
 
-  /** do we solve an eigenvalue problem. Includes block mode problems */
+  /** do we solve an eigenvalue problem. Includes bloch mode problems */
   bool eigenvalue_;
 
   /** bloch mode analysis is also eigenvalue but special due to the wave vectors encapsulated in excitations */
   bool bloch_;
+
+  /** buckling analysis is also eigenvalue but special due to the system matrix of the second excitation depending on the first*/
+  bool buckling_;
 
   /** we read the driver steps even without driver object to allow PrepareMultipleExcitation() */
   unsigned int driver_steps_;
@@ -215,6 +224,7 @@ private:
 
   /** Link to MultipleExcitations. Actually we could own our own instance ... */
   MultipleExcitation* me_;
+
 };
 
 /** we have only one static instance of the context manager in Optimization::contextManager.

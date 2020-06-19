@@ -44,11 +44,11 @@ public:
    * For manual adjoint stuff you might have to do SaveSolution() first!
    * In ELEMENT_VECTORS also the registered pseudo elements are considered.
    * @param st if we copy the vector as RAW_VECTOR or element wise
-   * @param pde will me mech in SIMP and also elec in PiezoSIMP
+   * @param pde will be mech in SIMP and also elec in PiezoSIMP
    * @param app redundant to pde. App::NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
    * @param save_sol when an adjoint system was solved, one has to call
    *        "SaveSolution()" in the pde such that we can extract it element wise.
-   *        Only relevant for st = ELEMENT_VECTORS ---------- FIXE! still required!
+   *        Only relevant for st = ELEMENT_VECTORS ---------- FIXME! still required!
    * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
   SingleVector* Read(StorageType st, SinglePDE* pde, App::Type app = App::NO_APP, bool save_sol = false, TimeDeriv derivative = NO_DERIVTYPE);
 
@@ -106,7 +106,7 @@ public:
   /** For identification: This is the active excitation when storing the state. Contains also the sequence */
   const Excitation* excitation;
 
-  /** for eigenvalue problems, this is the frequency (not the eigenvalue)
+  /** for eigenvalue problems, this is the eigenvalue
    * @see StateSolutions::CollectEigenfrequencies() */
   double eigenfreq;
 
@@ -143,7 +143,7 @@ private:
 /** As the solutions come for multiple excitations in sets we store the list and the
  * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1.
  *
- * For eigenvalue problems the modes are seen as timestep_mode in StateSolutions. The excitations are here only is we
+ * For eigenvalue problems the modes are seen as timestep_mode in StateSolutions. The excitations are here only if we
  * do Bloch mode optimization where an excitation is a wave_vector.  */
 class StateContainer
 {
@@ -186,7 +186,7 @@ private:
 
 
   /** the data is actually conditionally multidimensional; by adjoint function, by excitation, by
-   * eigenmode, by timestep in transient optimization, by time drivative in transient optimization.
+   * eigenmode, by timestep in transient optimization, by time derivative in transient optimization.
    * It proved too complex to map this for direct access, therefore we simply make an array and perform
    * sequential search. This shall be fast enough as searching the state is negligible compared to
    * calculating the state :). As we return pointers to the states they must not be re-mapped! Therefore

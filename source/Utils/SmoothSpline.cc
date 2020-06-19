@@ -30,7 +30,7 @@ namespace CoupledField
     mat_.Init(0);
 
     nuMax_     = 1.0;
-    if ( matType_ == MAG_PERMEABILITY ) {
+    if ( matType_ == MAG_PERMEABILITY_SCALAR ) {
       //define maximal reluctivity
       nuMax_ = 7.9577e5;
     }
@@ -68,7 +68,7 @@ namespace CoupledField
     CalcCoef();
 
     // calculation of start values
-    if ( start  && matType_ == MAG_PERMEABILITY ) {
+    if ( start  && matType_ == MAG_PERMEABILITY_SCALAR ) {
       CalcStart();
     }
 

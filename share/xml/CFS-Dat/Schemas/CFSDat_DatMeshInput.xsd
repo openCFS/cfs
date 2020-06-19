@@ -1,7 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -11,10 +11,12 @@
     </xsd:documentation>
   </xsd:annotation>
   
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_FileFormats.xsd"/>
+  
+  
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="CFSDat_GridType.xsd"/>
   <xsd:include schemaLocation="CFSDat_TimeType.xsd"/>
-  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>
   
   <!-- ******************************************************************** -->
@@ -28,13 +30,13 @@
           <xsd:element name="inputFile">
             <xsd:complexType>
               <xsd:choice>
-                <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="1"/>
+                <xsd:group ref="sim:InputGroup" minOccurs="1" maxOccurs="1"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="gridType" type="DT_GridType" default="fullGrid"/>
-        <xsd:attribute name="printResultInfo" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="printResultInfo" type="sim:DT_CFSBool" default="no"/>
         <xsd:attribute name="inputFilterIds" use="optional" type="xsd:token" default="none">
           <xsd:annotation>
             <xsd:documentation> Space separated Ids for the input filter. Creates a connection between

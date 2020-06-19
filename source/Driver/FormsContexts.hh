@@ -71,9 +71,7 @@ namespace CoupledField
     FEMatrixType GetDestMat() const { return destMat_; }
 
     //! Set destination matrix
-    void SetDestMat(FEMatrixType destMat) {
-    	destMat_ = destMat;
-      }
+    void SetDestMat(FEMatrixType destMat) { destMat_ = destMat; }
 
     //! Defines a secondary destination for the element matrix
     void SetSecDestMat( FEMatrixType aSecMat,

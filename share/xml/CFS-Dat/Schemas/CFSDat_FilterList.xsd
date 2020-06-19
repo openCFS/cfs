@@ -1,7 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -11,6 +11,7 @@
     </xsd:documentation>
   </xsd:annotation>
 
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
 
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>
 
@@ -55,7 +56,7 @@
                   </xsd:element>
                   <xsd:element name="deleteOffset">
                     <xsd:complexType>
-                      <xsd:attribute name="value" type="DT_CFSBool" default="no"/>
+                      <xsd:attribute name="value" type="sim:DT_CFSBool" default="no"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>

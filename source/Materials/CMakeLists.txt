@@ -7,7 +7,7 @@ SET(MATERIALS_SRCS
   MechanicMaterial.cc
   FlowMaterial.cc 
   PiezoMaterial.cc
-  magStrictMaterial.cc
+  MagStrictMaterial.cc
   ElectricConductionMaterial.cc
   TestMaterial.cc
   Models/Hysteresis.cc

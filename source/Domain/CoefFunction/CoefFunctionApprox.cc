@@ -55,18 +55,17 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar, const LocPointMapped& lpm
 
   LOG_DBG(coeffctapprox) << "elemSol = " << sol->ToString(2);
 
-  if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
+  if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY_SCALAR ) {
     // in case of permeability (reluctivity) the function depends on the norm of the field
     // it is specialized in terms of evaluation
-    Double fieldAbs = 0;
-    fieldAbs = (sol->NormL2());
+    Double fieldAbs = sol->NormL2();
     coefScalar = fieldAbs == 0 ? coefScalar_ : nLinFnc_->EvaluateFuncNu(fieldAbs);
   }
   else if ( nLinFnc_->GetMatType() == MAGSTRICT_RELUCTIVITY ) {
     Double SignedMaxStrain = sol->SignedMax();
     coefScalar = nLinFnc_->EvaluateFunc(SignedMaxStrain);
   }
-  else if( nLinFnc_->GetMatType() == CORE_LOSS ){
+  else if( nLinFnc_->GetMatType() == MAG_CORE_LOSS_PER_MASS ){
     // this is the case for general functions depending on the norm of a field
     Double fieldAbs = sol->NormL2();
     coefScalar = fieldAbs == 0 ? coefScalar_ : nLinFnc_->EvaluateFunc(fieldAbs);

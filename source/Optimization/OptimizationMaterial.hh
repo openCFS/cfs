@@ -13,6 +13,7 @@
 #include "MatVec/Vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/HeatPDE.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -85,13 +86,16 @@ public:
     return GetElementMatrix(mass, elem, bimaterial, multimaterial, mat_deriv);
   }
 
+  const DenseMatrix& GeometricStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(gstiff, elem, bimaterial, multimaterial, mat_deriv);
+  }
+
   /** service function which indeed computes the matrix.
    * The underlaying CoefFunctionOpt needs to be org or opt before. State is resetted!
    * @param use stiff/mass from your OptimizationMaterial
    * @param this material is used for the BDBInt */
   template <class T>
   const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow);
-
 
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
   bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
@@ -114,6 +118,7 @@ public:
 
   FormID stiff;
   FormID mass;
+  FormID gstiff;
 
 protected:
 
@@ -126,7 +131,7 @@ protected:
   const DenseMatrix& GetElementMatrix(FormID& id, const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE);
 
   /** If we don't have cached element matrices we compute them here. This is necessary for many param mat derivatives and also fallback.
-   * @return this is out, just a convenience funciton. */
+   * @return this is out, just a convenience function. */
   template <class T>
   const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
@@ -135,6 +140,8 @@ protected:
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                           BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
+
+  void GetOrgElementVector(LinearFormContext* lc, const Elem* elem, Vector<double>& elemVec);
 
   StdVector<RegionIdType> regionIds;
 
@@ -261,6 +268,19 @@ class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em, Context* ctxt);
+
+  // for numerical homogenization:
+  // we compute chi_e^0 by solving element-wise system K_e chi_e^0 = f_e
+  // with respect to scalar temperature the dimensions are: K-e (4 x 4), chi_e^0 (4 x 1), f_e (4 x 1)
+  // if mesh is regular, we only need to do this once
+  // Ke is the element stiffness matrix
+  Vector<double> CalcElementTemperature(Context* ctxt, const Elem* elem, HeatPDE::TestStrain testStrain);
+
+private:
+  // temperature on each node of finite element
+  // assume a regular FE mesh
+  // for each region and for each excitation, store chi_e^0
+  std::map<RegionIdType, StdVector<Vector<double> > > elem_temp;
 };
 
 

@@ -3,6 +3,7 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/Excitation.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "Driver/BucklingDriver.hh"
 #include "Driver/HarmonicDriver.hh"
@@ -42,7 +43,8 @@ Context::Context()
   harmonic_ = false;
   eigenvalue_ = false;
   bloch_ = false;
-  homogenization = false; // to be set by the functions and
+  buckling_ = false;
+  homogenization = false; // to be set by the functions
   pde = NULL;
   stt = NO_TENSOR;
 
@@ -80,6 +82,8 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
   case BasePDE::BUCKLING:
     complex_ = true;
     eigenvalue_ = true;
+    buckling_ = true;
+    num_eigenmodes = EigenFrequencyDriver::GetNumModes(node); // FIXME buckling get correct number of eigenmodes
     break;
 
   case BasePDE::STATIC:
@@ -136,6 +140,17 @@ void Context::Update()
     infoNode->Get("eigenvalue")->SetValue(eigenvalue_);
     infoNode->Get("bloch")->SetValue(bloch_);
     infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
+
+    if (dm == NULL && em->GetMethod() == ErsatzMaterial::PARAM_MAT) {
+      assert(em->pn->Has("paramMat/designMaterials"));
+      assert(sequence != -1);
+      ParamNodeList list = em->pn->Get("paramMat/designMaterials")->GetListByVal("designMaterial", "sequence", sequence);
+      assert(list.GetSize() == 1);
+      assert(mat != NULL);
+      domain->GetDesign()->SetDesignMaterial(list[0], mat->GetSystem());
+      assert(dm != NULL);
+      LOG_DBG3(context) << "CTXT: set design material '" << OptimizationMaterial::system.ToString(mat->GetSystem()) << "' for sequence=" << sequence;
+    }
   }
 }
 
@@ -214,8 +229,10 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 {
   assert(f->ctxt == this);
   assert(base < excitations.GetSize());
-  if(!me_->DoMetaExcitation(f->ctxt))
+  if(!me_->DoMetaExcitation(f->ctxt)){
+    LOG_DBG3(context) << "C::GE  base=" << base << " excitation=" << excitations[base]->test_strain.ToString(2);
     return excitations[base];
+  }
   else
     return excitations[basic_excitations_ * f->GetExcitation()->meta_index + base]; // * and + swapped??
 }
@@ -223,7 +240,11 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 App::Type Context::ToApp(const SinglePDE* pde)
 {
   if(pde->GetName() == "electrostatic") return App::ELEC;
-  if(pde->GetName() == "mechanic") return App::MECH;
+  if(pde->GetName() == "mechanic")
+    if(pde->GetAnalysisType() == BasePDE::BUCKLING)
+      return App::BUCKLING;
+    else
+      return App::MECH;
   if(pde->GetName() == "heatConduction") return App::HEAT;
   if(pde->GetName() == "acoustic") return App::ACOUSTIC;
   if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
@@ -294,7 +315,10 @@ bool Context::SetPDEs()
     if(sp->GetName() == "mechanic") {
       assert(!(pde != NULL && domain->GetSinglePDE("mechanic", true) != pde));
       pde = domain->GetSinglePDE("mechanic", true);
-      pdes[App::MECH] = pde;
+      if (sp->GetAnalysisType() == BasePDE::BUCKLING)
+        pdes[App::BUCKLING] = pde;
+      else
+        pdes[App::MECH] = pde;
       stt = pde->GetSubTensorType();
     }
   }
@@ -313,6 +337,11 @@ BiLinFormContext* Context::GetBiLinFormContext(const RegionIdType reg, App::Type
   {
     a1 = a2 = App::MECH;
     integrator = "LinElastInt";
+  }
+  if(app1 == App::BUCKLING && (app2 == App::BUCKLING || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::BUCKLING;
+    integrator = "PreStressInt";
   }
   if(app1 == App::ELEC && (app2 == App::ELEC || app2 == App::NO_APP))
   {

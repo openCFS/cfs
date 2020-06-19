@@ -1,7 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -11,6 +11,8 @@
     </xsd:documentation>
   </xsd:annotation>
   
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
+
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>
   
@@ -47,8 +49,8 @@
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="type" type="DT_GaussDerivativeType"/>
-        <xsd:attribute name="zeroBC" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="useFvVolume" type="DT_CFSBool" default="yes"/>
+        <xsd:attribute name="zeroBC" type="sim:DT_CFSBool" default="no"/>
+        <xsd:attribute name="useFvVolume" type="sim:DT_CFSBool" default="yes"/>
         <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
           <xsd:annotation>
             <xsd:documentation> Space separated Ids for the input filter. Creates a connection between

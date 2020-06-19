@@ -93,7 +93,9 @@ void ShapeOptimizer::SolveProblem()
     assert(ptrLS_ != NULL);
   }
 
-  Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble, design has changed
+  // tell assemble, the design has changed
+  for(unsigned int c = 0; c < optimization->manager.context.GetSize(); c++)
+    optimization->manager.context[c].pde->GetAssemble()->SetAllReassemble();
   optimization->SolveStateProblem();
 
   while(curr_iter <= max_iter && !optimization->DoStopOptimization())

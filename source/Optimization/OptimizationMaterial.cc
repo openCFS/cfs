@@ -15,14 +15,19 @@
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/Operators/GradientOperator.hh"
 #include "General/defs.hh"
+#include "Optimization/Context.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/LocalElementCache.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "PDE/SinglePDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -110,17 +115,37 @@ inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* conte
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());
   assert(bdb != NULL);
   assert(bdb->GetCoef());
-  // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
   return dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
 }
 
 inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(LinearFormContext* context)
 {
   assert(context != NULL);
-  BUIntegrator<>* bu = dynamic_cast<BUIntegrator<>*>(context->GetIntegrator());
-  assert(bu != NULL);
-  assert(bu->GetCoef());
-  return dynamic_cast<CoefFunctionOpt*>(bu->GetCoef().get());
+  App::Type app =  ctxt_->ToApp();
+  PtrCoefFct coef;
+  if (app == App::MAG) {
+    BUIntegrator<>* bu = dynamic_cast<BUIntegrator<>*>(context->GetIntegrator());
+    assert(bu != NULL);
+    assert(bu->GetCoef());
+    coef = bu->GetCoef();
+  } else if (app == App::HEAT) {
+    // FIXME Nasty stuff
+    if (domain->GetGrid()->GetDim() == 2) {
+      BDUIntegrator<GradientOperator<FeH1,2> >* bdu = dynamic_cast<BDUIntegrator<GradientOperator<FeH1,2> >*>(context->GetIntegrator());
+      assert(bdu != NULL);
+      assert(bdu->GetDCoef());
+      coef = bdu->GetDCoef();
+    } else {
+      assert(domain->GetGrid()->GetDim() == 3);
+      BDUIntegrator<GradientOperator<FeH1,3> >* bdu = dynamic_cast<BDUIntegrator<GradientOperator<FeH1,3> >*>(context->GetIntegrator());
+      assert(bdu != NULL);
+      assert(bdu->GetDCoef());
+      coef = bdu->GetDCoef();
+    }
+  } else
+    EXCEPTION("OM: GetMatCoef only implemented for application MAG or HEAT.");
+
+  return dynamic_cast<CoefFunctionOpt*>(coef.get());
 }
 
 CoefFunctionOpt* OptimizationMaterial::GetMatCoef(const string& integrator, RegionIdType reg_id)
@@ -207,7 +232,8 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
     {
     case MECH:
       mc = MECHANIC;
-      assert(integrator == "LinElastInt" || integrator == "MassInt");
+      // TODO: add buckling with integrator "PreStressInt"
+      assert(integrator == "LinElastInt" || integrator == "MassInt" || integrator == "PreStressInt");
       mt = integrator == "LinElastInt" ? MECH_STIFFNESS_TENSOR : DENSITY;
       break;
     case ELEC:
@@ -317,6 +343,28 @@ void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& ou
   LOG_DBG3(om) << "CalcElemVector for " << form->GetName() << " -> " << out.ToString();
 }
 
+void OptimizationMaterial::GetOrgElementVector(LinearFormContext* lc, const Elem* elem, Vector<double>& elemVec){
+  // create an element list to gain the iterator in the loop
+  ElemList elemList(domain->GetGrid());
+  elemList.SetElement(elem);
+  EntityIterator it = elemList.GetIterator();
+
+  CoefFunctionOpt* coef = GetMatCoef(lc);
+  assert(!(coef == NULL));
+
+  CoefFunctionOpt::State old_state = coef->GetState();
+  assert(old_state == CoefFunctionOpt::ORG || old_state == CoefFunctionOpt::OPT); // otherwise we would need to store also shadow/direction
+
+  coef->SetToOrgMaterial();
+
+  lc->GetIntegrator()->CalcElemVector(elemVec, it);
+
+  if(old_state == CoefFunctionOpt::ORG)
+    coef->SetToOrgMaterial();
+  else
+    coef->SetToOptimization();
+}
+
 
 /*
 const Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map, const DesignElement* de, MaterialClass mc,
@@ -407,6 +455,10 @@ void MechMat::Init()
   mass.integrator = "MassInt";
   mass.mc = MECHANIC;
   mass.mt = DENSITY;
+
+  gstiff.integrator = "PreStressInt";
+  gstiff.mc = MECHANIC;
+  gstiff.mt = MECH_STIFFNESS_TENSOR;
 }
 
 const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
@@ -517,11 +569,85 @@ const Matrix<double>& PiezoElecMat::CoupledStiffnessTransposed(const DesignEleme
 HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = HEAT;
-
   stiff.integrator = "HeatConductivity";
   stiff.mc = THERMIC;
-  stiff.mt = HEAT_CONDUCTIVITY;
+  stiff.mt = HEAT_CONDUCTIVITY_TENSOR;
   // mass does not apply yet
+}
+
+Vector<double> HeatMat::CalcElementTemperature(Context* ctxt, const Elem* elem, HeatPDE::TestStrain testStrain)
+{
+  if (!domain->GetGrid()->IsGridRegular())
+    EXCEPTION("CalcElementTemperature is only implemented for regular meshes!");
+
+  RegionIdType regionId = elem->regionId;
+  // each region has a different stiffness matrix and material
+  const Matrix<double>& Ke = dynamic_cast<const Matrix<double>&>(Stiffness(elem));
+
+  LOG_DBG3(om) << "\nCET: Get elem temp for region : " << domain->GetGrid()->GetRegionName(regionId) << " testStrain:" << testStrain;
+  LOG_DBG3(om) << "region= " << domain->GetGrid()->GetRegionName(regionId) << "  ORG Element stiffness matrix: \n" << Ke.ToString(2);
+
+  // don't compute multiple times
+  if (elem_temp.size() > 0 && elem_temp[regionId].GetSize() > 0){
+    assert(elem_temp[regionId].GetSize() >= testStrain);
+    return elem_temp[regionId][testStrain];
+  }
+
+  assert(elem_temp[regionId].GetSize() == 0);
+
+  UInt num_ex = opt->me->GetNumberHomogenization(App::HEAT);
+  UInt meta = ctxt->GetExcitation()->meta_index;
+  // each column j stores respective solution for test temperature gradient \eps^j
+  StdVector<Vector<double> >& temp_on_reg = elem_temp[regionId];
+  temp_on_reg.Resize(num_ex);
+
+  for (UInt ex = 0; ex < num_ex; ex++)
+  {
+    LinearFormContext* lc = NULL;
+
+    // find correct linear form depending on region
+    for (LinearFormContext* it_lfc: ctxt->GetExcitation(ex,meta)->forms) {
+      if (it_lfc->GetEntities()->GetRegion() == regionId)
+        lc = it_lfc;
+    }
+
+    assert(lc != NULL);
+    assert(lc->GetIntegrator()->GetName() == "TestTempGradInt");
+
+    LOG_DBG3(om) << "for excitation=" << testStrain << " on region " << domain->GetGrid()->GetRegionName(lc->GetEntities()->GetRegion()) << " found form: " << lc->ToString();
+
+    Vector<double> rhs;
+    GetOrgElementVector(lc,elem,rhs);
+    assert(rhs.GetSize() > 0);
+
+
+    LOG_DBG3(om) << "elem " << elem->elemNum << " test strain:" << testStrain << " rhs: " << rhs.ToString(2);
+    UInt dim_sol = rhs.GetSize();
+
+    // as Ke is singular, we fix last row and column and solve only for reduced system
+    Matrix<double> K_tmp(Ke.GetNumRows()-1,Ke.GetNumCols()-1);
+    Ke.GetSubMatrix(K_tmp,1,1);
+    //    LOG_DBG3(om) << "submatrix of K_e:\n" << K_tmp.ToString(0);
+
+    Vector<double> f_tmp;
+    for (UInt i = 1; i < dim_sol; i++)
+      f_tmp.Push_back(rhs[i]);
+
+    //    LOG_DBG3(om) << "sub rhs:\n" << f_tmp.ToString(2);
+
+    Vector<double> sol_tmp(dim_sol-1);
+    K_tmp.DirectSolve(sol_tmp,f_tmp);
+    //    LOG_DBG3(om) << "sub of chi_0:\n" << sol_tmp.ToString(2);
+
+    temp_on_reg[ex].Resize(dim_sol);
+    temp_on_reg[ex].Init();
+    for (UInt i = 1; i < dim_sol; i++)
+      temp_on_reg[ex][i] = sol_tmp[i-1];
+
+    LOG_DBG3(om) << "Test strain:" << testStrain << " chi_0:" << temp_on_reg[ex].ToString(2);
+  }
+
+  return elem_temp[elem->regionId][testStrain];
 }
 
 MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
@@ -530,7 +656,7 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
 
   stiff.integrator = "CurlCurlIntegrator"; // or -NL!!
   stiff.mc = ELECTROMAGNETIC;
-  stiff.mt = MAG_RELUCTIVITY;
+  stiff.mt = MAG_RELUCTIVITY_TENSOR;
 
   // mass does not apply yet
 }
@@ -545,25 +671,7 @@ const Vector<double>& MagMat::MagExcitationRHS(const std::string& integrator, co
   assert(pde != NULL);
   LinearFormContext* lc = pde->GetAssemble()->GetLinForm(integrator, elem->regionId, pde, false);
 
-  // create an element list to gain the iterator in the loop
-  ElemList elemList(domain->GetGrid());
-  elemList.SetElement(elem);
-  EntityIterator it = elemList.GetIterator();
-
-  CoefFunctionOpt* coef = GetMatCoef(lc);
-  assert(!(coef == NULL));
-
-  CoefFunctionOpt::State old_state = coef->GetState();
-  assert(old_state == CoefFunctionOpt::ORG || old_state == CoefFunctionOpt::OPT); // otherwise we would need to store also shadow/direction
-
-  coef->SetToOrgMaterial();
-
-  lc->GetIntegrator()->CalcElemVector(mag_excitation, it);
-
-  if(old_state == CoefFunctionOpt::ORG)
-      coef->SetToOrgMaterial();
-    else
-      coef->SetToOptimization();
+  GetOrgElementVector(lc,elem,mag_excitation);
 
   return mag_excitation;
 }

@@ -17,7 +17,7 @@ namespace CoupledField{
   CoefFunctionImpedanceModel<Complex>::CoefFunctionImpedanceModel(MathParser* mp, \
       BaseMaterial* const material, bool isNormalised)
   : CoefFunctionTimeFreq<Complex>(mp),
-    material_(*material),
+    material_(material),
     isNormalised_(isNormalised),
     normalisedFactor_(1.0)
   {
@@ -210,10 +210,10 @@ namespace CoupledField{
     }
     LocPointMapped lp_dummy;
     // density_, DENSITY
-    PtrCoefFct tmpPtFc = material_.GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct tmpPtFc = material_->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
     // tmpBlkMod, ACOU_BULK_MODULUS
-    tmpPtFc = material_.GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
 
     // calc speed of sound
@@ -239,10 +239,10 @@ namespace CoupledField{
     }
 
     // density_, DENSITY
-    PtrCoefFct tmpPtFc = material_.GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct tmpPtFc = material_->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
     // tmpBlkMod, ACOU_BULK_MODULUS
-    tmpPtFc = material_.GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
 
     // calc speed of sound
@@ -281,13 +281,13 @@ namespace CoupledField{
     LocPointMapped lp_dummy;
     Double tmpBlkMod;
     // density_, DENSITY
-    PtrCoefFct tmpPtFc = material_.GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct tmpPtFc = material_->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
     // nu_, KINEMATIC_VISCOSITY
-    tmpPtFc = material_.GetScalCoefFnc( KINEMATIC_VISCOSITY, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( FLUID_KINEMATIC_VISCOSITY, Global::REAL );
     tmpPtFc->GetScalar(nu_, lp_dummy);
     // tmpBlkMod, ACOU_BULK_MODULUS
-    tmpPtFc = material_.GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);

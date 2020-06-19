@@ -15,7 +15,7 @@ template<class TYPE> class Vector;
 class SingleVector;
 //class SimState;
 
-//! Driver class for calculating a general eigenvalue problem
+//! Driver class for calculating a buckling problem
 class BucklingDriver: public virtual SingleDriver {
 
   public:
@@ -41,30 +41,20 @@ class BucklingDriver: public virtual SingleDriver {
     void SolveProblem();
 
     //! Return current time / frequency step of simulation
-    UInt GetActStep(const std::string &pdename) {
-      return 1;
-    }
+    UInt GetActStep(const std::string &pdename) { return 1; }
 
     // for eigenSolver always true, otherwise eigenmodes return with bad cast.
-    virtual bool IsComplex() {
-      return true;
-    }
+    virtual bool IsComplex() { return true; }
 
     /** Return the number of eigenmodes to be calculated.
      * @see BaseDriver::GetNumSteps() */
-    unsigned int GetNumSteps() {
-      return 1;
-    }
+    unsigned int GetNumSteps() { return numEigenValues_; }
 
-    // TODO implement optimization (StoreResults() is currently functionless)
+    bool IsInverseProblem() { return isInverseProblem_; }
+
     /** @see BaseDriver::StoreResults()
-     * stepNum and step_val are ignored!! */
-    void StoreResults(UInt stepNum, double step_val) {
-      return;
-    }
-
-    // return proportionality factor (currently unused)
-    double GetPropFactor(unsigned int idx) const;
+     *  step_val has no effect! */
+    void StoreResults(UInt stepNum, double step_val);
 
     void SetToStepValue(UInt stepNum, Double stepVal) {
       // ensure that this method is only called if simState has input
@@ -77,24 +67,28 @@ class BucklingDriver: public virtual SingleDriver {
 
     }
 
-    Vector<Double> eigenValues_;
-    Vector<Double> errBounds_;
-    Vector<Complex> eigenValuesComplex_;
-    Vector<Complex> errBoundsComplex_;
-
-    StdVector<int> modeOrder_; // for sorting the obtained modes
-    void SortModes(bool inAbs);
+    SingleVector* eigenValues;
+    SingleVector* errBounds;
 
   private:
 
     // print eigenValues to the console
     void PrintResult();
 
-    // actually calculate eigenValues
+    // calculate eigen values and (implicitly) eigen modes
     void CalcValues();
 
-    // calculate eigenmodes for a given eigenvalue
-    void CalcMode();
+    // export eigenmodes
+    void ExportModes();
+
+    // sort modes with ascending eigenvalues
+    void SortModes(bool inAbs);
+
+    Vector<Double> GetRealPartOfLoadFactors();
+
+    BaseEigenSolver::EigenSolverType solverType_;
+
+    bool isInverseProblem_;
 
     //! input parameter for input method 2, number of modes to be calculated
     unsigned int numMode_;
@@ -116,6 +110,14 @@ class BucklingDriver: public virtual SingleDriver {
 
     //! input parameter, true if eigenmodes shall be calculated
     bool calcModes_;
+
+    //! = eigenvalues for original problem, 1/eigenvalues for reformulated one
+    SingleVector* loadFactors_;
+
+    UInt numEigenValues_;
+
+    // order of the sorted modes
+    StdVector<int> modeOrder_;
 
     //! needed parameter see calcMode()
     unsigned int save_step_;

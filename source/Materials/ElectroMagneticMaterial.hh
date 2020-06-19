@@ -13,8 +13,7 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    ElectroMagneticMaterial(MathParser* mp,
-                            CoordSystem * defaultCoosy);
+    ElectroMagneticMaterial(MathParser* mp, CoordSystem * defaultCoosy);
 
     //! Destructor
     ~ElectroMagneticMaterial();
@@ -22,45 +21,6 @@ namespace CoupledField {
     //! Trigger finalization of material
     void Finalize();
 
-    //! set a scalar string material parameter
-    void SetScalar(const std::string& param, MaterialType matType);
-
-    //! set a scalar real material parameter
-    void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-    void GetScalar( Integer& param, MaterialType matType)  const;
-
-    //! set a scalar complex material parameter
-    void SetScalar( Complex param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-    //! set a real material tensor
-    void SetTensor(const Matrix<Double>& param, MaterialType matType,
-		    Global::ComplexPart dataType );
-
-    //! set a complex material tensor
-    void SetTensor(const Matrix<Complex>& param, MaterialType matType,
-		    Global::ComplexPart dataType );
-
-    //! get a scalar real material parameter
-    void GetScalar( Double& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a scalar complex real material parameter
-    void GetScalar( Complex& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;	
-
-    //! get a complex material tensor
-    void GetTensor( Matrix<Complex>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;	
-    
     // ======================================================================
     //  Coefficient Function Related Methods
     // ======================================================================
@@ -79,9 +39,9 @@ namespace CoupledField {
     //! only valid for magnetostrictive coupling; nu = nu(S)
     virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct mechStrain );                                       
+                                            PtrCoefFct mechStrain );
+    //@}
 
-//    //@}
 //    //============================ HYSTERESIS ===================================
 //
 //    //Initialize hysteresis
@@ -122,23 +82,17 @@ namespace CoupledField {
 //    Double ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx );
   private:
 
-    //! compute the correct subTensor (3D, AXI, ..)
-    void ComputeSubTensor(Matrix<Complex>& matMatrix,
-			  MaterialType matType, 
-			  SubTensorType subTensor) const;
-
-   void ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix, MaterialType matType, 
-                          SubTensorType subTensor) const;
-
-    //! Calculate full tensor from scalar values
+    //! Calculate full permeability and reluctivity tensors from scalar values
     void ComputeFullMuTensor();
     
-    Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
-    Matrix<Double> vecYprevious_; //! previous Yval in hysteresis
-    Matrix<Double> vecXact_; //! actual Xval in hysteresis (for inverse hysteresis)
-    Matrix<Double> vecYact_; //! actual Yval in hysteresis (for inverse hysteresis)
+    //UInt dim_;
 
-    Vector<Double> matDiffprevious_;
+    //Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
+    //Matrix<Double> vecYprevious_; //! previous Yval in hysteresis
+    //Matrix<Double> vecXact_; //! actual Xval in hysteresis (for inverse hysteresis)
+    //Matrix<Double> vecYact_; //! actual Yval in hysteresis (for inverse hysteresis)
+
+    //Vector<Double> matDiffprevious_;
 
     //! CoefFunction for anisotropic material which is passed to its derivative
     //! used to calculate an approximation of the derivative with respect to the angle

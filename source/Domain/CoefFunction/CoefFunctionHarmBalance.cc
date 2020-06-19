@@ -176,17 +176,17 @@ template<class T>
         shared_ptr<CoefFunction> BField = NULL;
         BField.reset(new CoefFunctionHarmBalanceEval<Double>(magFluxCoef_, ptGrid_));
 
-        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, BField);
+        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, BField);
         // for the initial solution we also need the linear nu
-        regStruc.linNuCoefMap = actMat->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL);
+        regStruc.linNuCoefMap = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL);
 
         dimType_ = SCALAR;
         ret = (PtrCoefFct)this;
       }else{
         regStruc.isNonLin = false;
-        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR,Global::REAL );
         //TODO Clean this up, it's the same as nonLinNuCoefMap for the linear material
-        regStruc.linNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+        regStruc.linNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR,Global::REAL );
         ret = (PtrCoefFct)this;
       }
     return ret;

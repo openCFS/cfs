@@ -230,7 +230,7 @@ namespace CoupledField {
     	  // thermodynamic relation
         // ====================================================================
     	  PtrCoefFct refPres = materials_[actRegion]->GetScalCoefFnc(
-    	      			  REF_PRESSURE, Global::REAL);
+    	      			  FLUID_REF_PRESSURE, Global::REAL);
     	  PtrCoefFct fnc;
     	  if ( isHeatCoupled_ ) {
     		  fnc = CoefFunction::Generate( mp_, Global::REAL,
@@ -238,7 +238,7 @@ namespace CoupledField {
     	  }
     	  else {
     		  PtrCoefFct adiabaticExp = materials_[actRegion]->GetScalCoefFnc(
-    			  ADIABATIC_EXPONENT, Global::REAL);
+    			  FLUID_ADIABATIC_EXPONENT, Global::REAL);
     		  PtrCoefFct help1 = CoefFunction::Generate( mp_,  Global::REAL,
     			  CoefXprBinOp(mp_, adiabaticExp, refPres, CoefXpr::OP_MULT ) );
     		  fnc = CoefFunction::Generate( mp_, Global::REAL,
@@ -312,7 +312,7 @@ namespace CoupledField {
       //  diagonal integrator - partially integrated
       //  2*mu*B(v'):B(v) ... the total strain-rate term
       // ====================================================================
-      PtrCoefFct shearViscosity = materials_[actRegion]->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL); // mu
+      PtrCoefFct shearViscosity = materials_[actRegion]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
       PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
           CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
       PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
@@ -344,7 +344,7 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContLaplace );
 
       if ( isCompressible_ ) { // we need to subtract 2*mu/3 Div(v)I and add the bulk part lambda*Div(v)I
-        PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(BULK_VISCOSITY, Global::REAL);
+        PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
         PtrCoefFct coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
             CoefXprBinOp(mp_,
                 bulkViscosity,
@@ -955,7 +955,7 @@ namespace CoupledField {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
     }
 
-    curCoef = regionMat->GetTensorCoefFnc( DYNAMIC_VISCOSITY, subTensorType, complexPart );
+    curCoef = regionMat->GetTensorCoefFnc( FLUID_DYNAMIC_VISCOSITY, subTensorType, complexPart );
     //curCoef = regionMat->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL);;
     // ----------------------------------------
     //  Determine correct stiffness integrator 

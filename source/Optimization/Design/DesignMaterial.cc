@@ -120,17 +120,23 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 
   std::string interpolation_str;
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == SGP_MATLAB) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == SGP_MATLAB || type_ == HEAT) {
+    if (type_ == HEAT && dim !=3)
+      EXCEPTION("DesignMaterial Heat only implemented and tested for 3d!");
     string p_node = "";
-    if (type_ == HOM_RECT_C1 || type_ == SGP_MATLAB) {
+    if (type_ == HOM_RECT_C1 || type_ == SGP_MATLAB)
       p_node = "homRectC1";
-    } else {
+    if (type_ == HOM_ISO_C1)
       p_node = "homIsoC1";
-    }
+    if (type_ == HEAT)
+      p_node = "heat";
+
     PtrParamNode hr = pn->Get(p_node);
     std::string file = hr->Get("file")->As<std::string>();
     // read interpolation method
     interpolation_str = hr->Get("interpolation")->As<std::string>();
+
+    LOG_DBG3(dm) << "DM: sequence=" << Optimization::context->sequence << " reading coeff file " << file;
 
     // full C1 interpolation with text coefficients for 2D (without shearing angle)
     if (interpolation_str == "c1_text_2d") {
@@ -230,110 +236,88 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       interpolation_ = C1;
       PtrParamNode root = XmlReader::ParseFile(file);
       Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+
+      // number of sample intervals
+      int num_intervals = root->Get("coeff11/matrix/dim1")->As<int>();
+      // number of interpolation coefficients per interval (2d:16, 3d: 64)
+      int num_interp_coeffs = root->Get("coeff11/matrix/dim2")->As<int>();
+      // number of parameter samples in x direction
+      int num_samples_1 = root->Get("a/matrix/dim1")->As<int>();
+      // number of parameter samples in y direction
+      int num_samples_2 = root->Get("b/matrix/dim1")->As<int>();
+      // 2d stuff
+      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff11_);
+      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff12_);
+      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff22_);
+      // heat tensor has only size of 2 x 2 (2d) and is symmetric
+      if (type_ != HEAT){
+        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff33_);
+        hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+      }
+
+      // samples for first and second parameter
+      ParamTools::AsTensor<double>(root->Get("a/matrix/real"), num_samples_1, 1, hom_rect_a_);
+      ParamTools::AsTensor<double>(root->Get("b/matrix/real"), num_samples_2, 1, hom_rect_b_);
+
       if (dim == 2) {
-        //Check for old format of coefficient file. Delete at some point in the future.
-        if (!root->Has("a/matrix/real")) {
-          ParamTools::AsMatrix<double>(root->Get("a/matrix"),hom_rect_a_);
-          ParamTools::AsMatrix<double>(root->Get("b/matrix"),hom_rect_b_);
-          ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), hom_rect_coeff11_);
-          ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), hom_rect_coeff12_);
-          ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), hom_rect_coeff22_);
-          ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), hom_rect_coeff33_);
-          hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
-          if (root->Has("c") || type_ == HOM_ISO_C1) {
-            ParamTools::AsMatrix<double>(root->Get("c/matrix"), hom_rect_c_);
-            ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), hom_rect_coeff13_);
-            ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), hom_rect_coeff23_);
-            hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-            hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-          } else {
-            unsigned int dim1 = hom_rect_coeff11_.GetNumRows();
-            unsigned int dim2 = hom_rect_coeff11_.GetNumCols();
-            hom_rect_c_.Resize(0,0);
-            hom_rect_c_.Init();
-            hom_rect_coeff13_.Resize(dim1,dim2);
-            hom_rect_coeff13_.Init();
-            hom_rect_coeff23_.Resize(dim1,dim2);
-            hom_rect_coeff23_.Init();
-          }
+        if (root->Has("c") || type_ == HOM_ISO_C1) {
+          int dim5 = root->Get("c/matrix/dim1")->As<int>();
+          ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
+          ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff13_);
+          ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff23_);
+          hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
+          hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
         } else {
-          int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
-          int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-          int dim3 = root->Get("a/matrix/dim1")->As<int>();
-          int dim4 = root->Get("b/matrix/dim1")->As<int>();
-          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
-          hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
-          if (root->Has("c") || type_ == HOM_ISO_C1) {
-            int dim5 = root->Get("c/matrix/dim1")->As<int>();
-            ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
-            ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
-            ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
-            hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-            hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-          } else {
-            hom_rect_c_.Resize(0,0);
-            hom_rect_c_.Init();
-            hom_rect_coeff13_.Resize(dim1,dim2);
-            hom_rect_coeff13_.Init();
-            hom_rect_coeff23_.Resize(dim1,dim2);
-            hom_rect_coeff23_.Init();
-          }
+          hom_rect_c_.Resize(0,0);
+          hom_rect_c_.Init();
+          hom_rect_coeff13_.Resize(num_intervals,num_interp_coeffs);
+          hom_rect_coeff13_.Init();
+          hom_rect_coeff23_.Resize(num_intervals,num_interp_coeffs);
+          hom_rect_coeff23_.Init();
         }
-      } else if (dim == 3) {
-        int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
-        int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-        int dim3 = root->Get("a/matrix/dim1")->As<int>();
-        int dim4 = root->Get("b/matrix/dim1")->As<int>();
-        int dim5 = root->Get("c/matrix/dim1")->As<int>();
+      } else {
+        assert(dim == 3);
+        int num_samples_3 = root->Get("c/matrix/dim1")->As<int>();
+        ParamTools::AsTensor<double>(root->Get("c/matrix/real"), num_samples_3, 1, hom_rect_c_);
 
-        ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-        ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-        ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-        ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
-        ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
-        ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), dim1, dim2, hom_rect_coeff44_);
-        ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), dim1, dim2, hom_rect_coeff55_);
-        ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), dim1, dim2, hom_rect_coeff66_);
-
-        ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-        ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
-        ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
-        // the internal tensor representation in 3D hom_rect_samples_ is Hill-Mandel
-        hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.);
-        hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.);
-        hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 2.0 : 1.);
-
+        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff33_);
+        ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff13_);
+        ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff23_);
+        // heat tensor has only size of 3 x 3 (3d) and is symmetric
+        if (type_ != HEAT){
+          ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff44_);
+          ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff55_);
+          ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff66_);
+          // the internal tensor representation in 3D hom_rect_samples_ is Hill-Mandel
+          hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.);
+          hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.);
+          hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 2.0 : 1.);
+        }
         if (type_ == HOM_ISO_C1) {
           // only necessary for the non-ortho case
-          ParamTools::AsTensor<double>(root->Get("coeff14/matrix/real"), dim1, dim2, hom_rect_coeff14_);
+          ParamTools::AsTensor<double>(root->Get("coeff14/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff14_);
           hom_rect_coeff14_ = hom_rect_coeff14_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff15/matrix/real"), dim1, dim2, hom_rect_coeff15_);
+          ParamTools::AsTensor<double>(root->Get("coeff15/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff15_);
           hom_rect_coeff15_ = hom_rect_coeff15_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff16/matrix/real"), dim1, dim2, hom_rect_coeff16_);
+          ParamTools::AsTensor<double>(root->Get("coeff16/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff16_);
           hom_rect_coeff16_ = hom_rect_coeff16_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff24/matrix/real"), dim1, dim2, hom_rect_coeff24_);
+          ParamTools::AsTensor<double>(root->Get("coeff24/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff24_);
           hom_rect_coeff24_ = hom_rect_coeff24_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff25/matrix/real"), dim1, dim2, hom_rect_coeff25_);
+          ParamTools::AsTensor<double>(root->Get("coeff25/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff25_);
           hom_rect_coeff25_ = hom_rect_coeff25_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff26/matrix/real"), dim1, dim2, hom_rect_coeff26_);
+          ParamTools::AsTensor<double>(root->Get("coeff26/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff26_);
           hom_rect_coeff26_ = hom_rect_coeff26_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff34/matrix/real"), dim1, dim2, hom_rect_coeff34_);
+          ParamTools::AsTensor<double>(root->Get("coeff34/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff34_);
           hom_rect_coeff34_ = hom_rect_coeff34_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff35/matrix/real"), dim1, dim2, hom_rect_coeff35_);
+          ParamTools::AsTensor<double>(root->Get("coeff35/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff35_);
           hom_rect_coeff35_ = hom_rect_coeff35_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff36/matrix/real"), dim1, dim2, hom_rect_coeff36_);
+          ParamTools::AsTensor<double>(root->Get("coeff36/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff36_);
           hom_rect_coeff36_ = hom_rect_coeff36_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff45/matrix/real"), dim1, dim2, hom_rect_coeff45_);
+          ParamTools::AsTensor<double>(root->Get("coeff45/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff45_);
           hom_rect_coeff45_ = hom_rect_coeff45_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff46/matrix/real"), dim1, dim2, hom_rect_coeff46_);
+          ParamTools::AsTensor<double>(root->Get("coeff46/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff46_);
           hom_rect_coeff46_ = hom_rect_coeff46_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff56/matrix/real"), dim1, dim2, hom_rect_coeff56_);
+          ParamTools::AsTensor<double>(root->Get("coeff56/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff56_);
           hom_rect_coeff56_ = hom_rect_coeff56_ * (notation == VOIGT ? sqrt(2.0) : 1.);
         }
       }
@@ -639,10 +623,9 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
     else
       return r + 6;
   case HOM_ISO_C1:
-    if (dim == 2)
-      return r + 2;
-    else
-      return r + 3;
+  case HEAT:
+    assert(dim == 2 || dim == 3);
+    return r + dim;
   case MSFEM_C1:
     if (dim == 2)
       return r + 3;
@@ -866,6 +849,16 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
+    }
+  case HEAT:
+    if (dim == 3) {
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0
+          && design.Find(DesignElement::STIFF3) >= 0);
+    } else {
+      assert(dim == 2);
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0);
     }
   }
   assert(false);
@@ -1640,7 +1633,7 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
 
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetInterpolatedHomTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   // only relevant for hom_rect and hom_rect_c1
   FeH1LagrangeQuad9 fe;
@@ -1667,7 +1660,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
     p.coord[0] = -1.0 + 4 * a; // assume max 0.5
     p.coord[1] = -1.0 + 4 * b; // assume max 0.5
   }
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == HEAT) {
     p.coord[0] = a;
     p.coord[1] = b;
     p.coord[2] = c;
@@ -1695,9 +1688,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       ApplyHomRectTensor(E, shape);
       LOG_DBG2(dm)<< "GHRT: shape=" << shape.ToString();
     }
-    if (type_ == HOM_RECT_C1) {
+    if (type_ == HOM_RECT_C1 || type_ == HEAT) {
       if (interpolation_ == C1) {
-        ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
+        ApplyHomC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
         else if (interpolation_ == SG) {
@@ -1718,7 +1711,6 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::STIFF3:
   case DesignElement::SHEAR1:
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
-      Matrix<double> dummy; // not used -> strange function ?! :(
       Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
       Vector<double> d_shape;
@@ -1727,9 +1719,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       // correct scaling to local FE coordinates
       E *= 4;
       LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
-    } else if(type_ == HOM_RECT_C1) {
+    } else if(type_ == HOM_RECT_C1 || type_ == HEAT) {
       if (interpolation_ == C1) {
-        ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
+        ApplyHomC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
         else if (interpolation_ == SG) {
@@ -1748,16 +1740,17 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   default:
     ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
   }
-  LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
-  if (subTensor == FULL) {
-    // Hill-Mandel notation temporarily necessary for RotateTensor
-    //E.VoigtToHillMandel();
-    RotateTensor(E, direction, VOIGT, CCW);
-  } else {
-    RotateTensor(E, direction, notation, CW, true, rotAngle);
+  if (type_ != HEAT) {
+    LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
+    if (subTensor == FULL) {
+      // Hill-Mandel notation temporarily necessary for RotateTensor
+      //E.VoigtToHillMandel();
+      RotateTensor(E, direction, VOIGT, CCW);
+    } else {
+      RotateTensor(E, direction, notation, CW, true, rotAngle);
+    }
+    LOG_DBG2(dm)<< "GHRT: E after rotation =  " << E.ToString(2);
   }
-  LOG_DBG2(dm)<< "GHRT: E after rotation =  " << E.ToString(2);
-
   if (type_ == D_HOM_RECT)
   {
     double dens = GetParameter(map, DesignElement::DENSITY);
@@ -1778,6 +1771,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
    }
    }*/
 }
+
 
 
 void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
@@ -1801,8 +1795,8 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
   LOG_DBG(dm)<< "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 }
 
-void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
-    DesignElement::Type direction, SubTensorType subTensor) const {
+void DesignMaterial::ApplyHomC1Tensor(Matrix<double>& E, Vector<double>& p,
+    DesignElement::Type direction, SubTensorType subTensor) {
   // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
@@ -1821,93 +1815,101 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     l = GetInterpolationIndex(hom_rect_c_,p[2]);
   }
 
+  // assume mech material
+  int nrows = dim == 2? 3: 6;
+  if (type_ == HEAT)
+    nrows = dim;
+
+  E.Resize(nrows, nrows);
+  E.Init(); // for off-diagonal
   if (subTensor == FULL) {
-    E.Resize(6, 6);
-    E.Init(); // for off-diagonal
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
         || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
-      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
-      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
-      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
-      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da, db, dc, j, k, l, m, n, o);
-      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da, db, dc, j, k, l, m, n, o);
-      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da, db, dc, j, k, l, m, n, o);
-      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da, db, dc, j, k, l, m, n, o);
-      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da, db, dc, j, k, l, m, n, o);
-      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da, db, dc, j, k, l, m, n, o);
-      E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
-      E[3 - 1][1 - 1] = E[1 - 1][3 - 1];
-      E[3 - 1][2 - 1] = E[2 - 1][3 - 1];
-      LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      E[0][0] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
+      E[0][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
+      E[0][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
+      E[1][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da, db, dc, j, k, l, m, n, o);
+      E[1][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da, db, dc, j, k, l, m, n, o);
+      E[2][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da, db, dc, j, k, l, m, n, o);
+      LOG_DBG(dm) << "E11= " << E[0][0] << " E12= " << E[0][1] << "E13= " << E[0][2] << " E22= " << E[1][1] << " E23= " << E[1][2]<< " E33= " << E[2][2];
+      // symmetry
+      E[1][0] = E[0][1];
+      E[2][0] = E[0][2];
+      E[2][1] = E[1][2];
+      if (type_ != HEAT) {
+        E[3][3] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da, db, dc, j, k, l, m, n, o);
+        E[4][4] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da, db, dc, j, k, l, m, n, o);
+        E[5][5] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da, db, dc, j, k, l, m, n, o);
+        LOG_DBG(dm) << " E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      }
     } else {
       // Calculation of the interpolated tensor derivatives
-      E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
-      E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
-      E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
-      E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
-      E[4-1][4-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
-      E[5-1][5-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
-      E[6-1][6-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][1-1] = E[1-1][2-1];
-      E[3-1][1-1] = E[1-1][3-1];
-      E[3-1][2-1] = E[2-1][3-1];
-      LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      E[0][0] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
+      E[0][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
+      E[0][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
+      E[2][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
+      // symmetry
+      E[1][0] = E[0][1];
+      E[2][0] = E[0][2];
+      E[2][1] = E[1][2];
+      LOG_DBG(dm) << "Derivative " << ((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3")) << " E11= " << E[0][0] << " E12= " << E[0][1] << " E13= " << E[0][2] << " E22= " << E[1][1] << " E33= " << E[2][2] << " E23= " << E[1][2];
+      if (type_ != HEAT) {
+        E[3][3] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
+        E[4][4] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
+        E[5][5] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
+        LOG_DBG(dm)<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      }
     }
   } else {
-    E.Resize(3,3);
-    E.Init(); // for off-diagonal
     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (o == 0) { // no shearing
-        E[1-1][1-1] = EvaluateC1Interpolation(p, hom_rect_coeff11_,da,db,j,k,m,n);
-        E[1-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff12_,da,db ,j,k,m,n);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
-        E[3-1][3-1] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
-        E[3-1][1-1] = 0.;
-        E[1-1][3-1] = 0.;
-        E[2-1][3-1] = 0.;
-        E[3-1][2-1] = 0.;
+        E[0][0] = EvaluateC1Interpolation(p, hom_rect_coeff11_,da,db,j,k,m,n);
+        E[0][1] = EvaluateC1Interpolation(p, hom_rect_coeff12_,da,db ,j,k,m,n);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
+        E[2][2] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
       } else { // shearing
-        E[1-1][1-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_,da,db,dc,j,k,l,m,n,o);
-        E[1-1][2-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_,da,db,dc,j,k,l,m,n,o);
-        E[1-1][3-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_,da,db,dc,j,k,l,m,n,o);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o);
-        E[2-1][3-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o);
-        E[3-1][1-1] = E[1-1][3-1];
-        E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o);
+        assert(type_ != HEAT);
+        E[0][0] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_,da,db,dc,j,k,l,m,n,o);
+        E[0][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_,da,db,dc,j,k,l,m,n,o);
+        E[0][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_,da,db,dc,j,k,l,m,n,o);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o);
+        E[1][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o);
+        E[2][0] = E[0][2];
+        E[2][1] = E[1][2];
+        E[2][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o);
       }
       LOG_DBG(dm)<<p;
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     } else {
+      assert(dim == 2);
       if (o == 0) { // no shearing
-        E[1-1][1-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
-        E[1-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
-        E[3-1][3-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
-        E[3-1][1-1] = 0.;
-        E[1-1][3-1] = 0.;
-        E[2-1][3-1] = 0.;
-        E[3-1][2-1] = 0.;
+        E[0][0] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
+        E[0][1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
+        if (type_ != HEAT)
+          E[2][2] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
       } else { // shearing
-        E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
-        E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
-        E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
-        E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
-        E[3-1][1-1] = E[1-1][3-1];
-        E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
+        assert(type_ != HEAT);
+        E[0][0] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
+        E[0][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
+        E[0][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
+        E[1][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
+        E[2][0] = E[0][2];
+        E[2][1] = E[1][2];
+        E[2][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
       }
       LOG_DBG(dm)<<p;
+      double E_33 = type_ == HEAT? 0 : E[2][2];
       LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
-          <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
+          <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E_33;
     }
   }
 
@@ -2039,7 +2041,7 @@ void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
     }
   }
 
-}
+}// end function ApplyHomIsoC1Tensor
 
 #ifdef USE_SGPP
 
@@ -4058,7 +4060,8 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   case D_HOM_RECT:
   case HOM_RECT_C1:
   case HOM_ISO_C1:
-    GetHomRectTensor(t, subTensor, elem, direction, notation);
+  case HEAT:
+    GetInterpolatedHomTensor(t, subTensor, elem, direction, notation);
     break;
   case D_INTERP_TENSOR:
   case D_INTERP_TENSOR_ROT:
@@ -4277,6 +4280,7 @@ void DesignMaterial::SetEnums() {
   type.Add(SGP_MATLAB, "sgp-matlab");
   type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
   type.Add(D_INTERP_TENSOR_ROT, "density-times-rotated-interpolated-tensor");
+  type.Add(HEAT, "heat");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");

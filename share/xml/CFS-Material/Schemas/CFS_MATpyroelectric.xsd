@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-			targetNamespace="http://www.cfs++.org"
-			xmlns="http://www.cfs++.org"
-			xmlns:cfs="http://www.cfs++.org"
+			targetNamespace="http://www.cfs++.org/material"
+			xmlns="http://www.cfs++.org/material"
 			elementFormDefault="qualified">
 	
 	<xsd:annotation>
@@ -20,7 +19,7 @@
   
   <xsd:complexType name="DT_MatPyroelectric">
 	  <xsd:sequence>
-		  <xsd:element name="pyrocoefficient" type="DT_PyroCoefficient"/>
+		  <xsd:element name="pyroCoefficient" type="DT_PyroCoefficient"/>
 	  </xsd:sequence>
   </xsd:complexType>
   
@@ -30,42 +29,15 @@
   <!--   Definition of the Pyrocoefficient -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_PyroCoefficient">
-	  <xsd:choice>
-		  <xsd:element name="tensor" type="DT_PyroelectricTensor"/>
-		 <!-- <xsd:element name="isotropic" type="DT_PyroelectricIsotropic"/>-->
-	  </xsd:choice>
+    <xsd:sequence>
+      <xsd:element name="linear">
+        <xsd:complexType>
+          <xsd:choice>
+      	    <xsd:element name="tensor" type="DT_Square3TensorTypeGeneral"/>
+      	  </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
   </xsd:complexType>
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of the Pyrocoefficient in tensor form                -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_PyroelectricTensor">
-	  <xsd:sequence>
-		  <xsd:element name="real">
-			  <xsd:simpleType>
-				  <xsd:restriction base="DT_DoubleList">
-					  <xsd:maxLength value="9"/>
-				  </xsd:restriction>
-			  </xsd:simpleType>
-		  </xsd:element> 
-		  <xsd:element name="imag" minOccurs="0">
-			  <xsd:simpleType>
-				  <xsd:restriction base="DT_DoubleList">
-					  <xsd:maxLength value="9"/>
-				  </xsd:restriction>
-			  </xsd:simpleType>
-		  </xsd:element> 
-	  </xsd:sequence>
-	  <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
-  </xsd:complexType>
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of isotropic Pyrocoefficient                        -->
-  <!-- ******************************************************************* -->
-<!--  <xsd:complexType name="DT_PyroelectricIsotropic">
-	  <xsd:sequence>
-		  <xsd:element name="real" type="DT_NonNegFloat"/>
-	  </xsd:sequence>
-  </xsd:complexType>-->
   
 </xsd:schema>

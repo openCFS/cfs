@@ -216,13 +216,11 @@ namespace CoupledField {
         statCond_ = solStrat_->UseStaticCondensation();
 
         if (statCond_) {
-          effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
-                                    numBlocks_-1 );
+          effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1, numBlocks_-1 );
           effRhs_ = new SBM_Vector( *rhs_, numBlocks_-1 );
           effSol_ = new SBM_Vector( *sol_, numBlocks_-1 );
         } else {
-          effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_,
-                                    numBlocks_ );
+          effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_, numBlocks_ );
           effRhs_ = new SBM_Vector( *rhs_, numBlocks_ );
           effSol_ = new SBM_Vector( *sol_, numBlocks_ );
         }
@@ -556,6 +554,9 @@ namespace CoupledField {
           "AlgebraicSys::CreateLinSys() first!" );
     }
 
+    // start setup timer of solver
+    eigenSolver_->GetSetupTimer()->Start();
+
     // Currently we just can solve problems with one SBM block
     if( !onlyOneMatrixBlock_ ) {
       EXCEPTION("Eigenvalue solver can currently only handle SBM "
@@ -616,6 +617,8 @@ namespace CoupledField {
     }
     ExportLinSys(true, false, false); // setup
 
+    // stop setup timer of solver
+    eigenSolver_->GetSetupTimer()->Stop();
   }
 
   void AlgebraicSys::SetOldDirichletValues() {
@@ -921,6 +924,9 @@ namespace CoupledField {
   {
     LOG_DBG(algSys) << "Calculating real-valued eigenfrequencies";
 
+    // start timer of solver
+    eigenSolver_->GetSolveTimer()->Start();
+
     // Trigger calculation of eigenvalues
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
 
@@ -932,11 +938,17 @@ namespace CoupledField {
     err = errVec;
 
     ExportLinSys(false, false, true); // the modes are actually not the solution
+
+    // stop timer associated with solver
+    eigenSolver_->GetSolveTimer()->Stop();
   }
 
   void AlgebraicSys::CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err)
   {
     LOG_DBG(algSys) << "Calculating complex-valued eigenfrequencies: bloch=" << eigenSolver_->IsBloch() << " quadratic=" << eigenSolver_->IsQuadratic();
+
+    // start timer of solver
+    eigenSolver_->GetSolveTimer()->Start();
 
     // Check, if eigenvalue solver is quadratic, as only in this case
     // this method is well-defined
@@ -957,27 +969,35 @@ namespace CoupledField {
     err = errVec;
 
     ExportLinSys(false, false, true);
+
+    // stop timer associated with solver
+    eigenSolver_->GetSolveTimer()->Stop();
   }
 
   void AlgebraicSys::CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal){
-      eigenSolver_->CalcEigenValues(sol,err,minVal,maxVal);
-      //SingleVector ev = dynamic_cast< SingleVector & > sol;
-      //SingleVector * sv = dynamic_cast<BaseVector &>(sol);
-      //eigenValues_ = dynamic_cast<SingleVector &>(sol);
-      //eigenValues_ = dynamic_cast<SingleVector>(*sol);
-      //eigenValues_ = dynamic_cast<SingleVector>(&sol);// target is not pinter or ref
-      eigenValues_ = dynamic_cast<SingleVector *>(&sol);
-      ExportLinSys(false, false, true);
+    // start timer of solver
+    eigenSolver_->GetSolveTimer()->Start();
+
+    eigenSolver_->CalcEigenValues(sol,err,minVal,maxVal);
+    //SingleVector ev = dynamic_cast< SingleVector & > sol;
+    //SingleVector * sv = dynamic_cast<BaseVector &>(sol);
+    //eigenValues_ = dynamic_cast<SingleVector &>(sol);
+    //eigenValues_ = dynamic_cast<SingleVector>(*sol);
+    //eigenValues_ = dynamic_cast<SingleVector>(&sol);// target is not pinter or ref
+    eigenValues_ = dynamic_cast<SingleVector *>(&sol);
+    ExportLinSys(false, false, true);
+
+    // stop timer associated with solver
+    eigenSolver_->GetSolveTimer()->Stop();
   }
 
   void AlgebraicSys::GetEigenMode( UInt numMode )  {
 
     LOG_DBG(algSys) << "GEM #" << numMode;
+    Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
     if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
-       Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
-       eigenSolver_->GetComplexEigenMode(numMode, solHelp);
+      eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
-      Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
       eigenSolver_->GetNormalizedEigenMode(numMode, solHelp);
     }
     LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
@@ -2173,7 +2193,7 @@ namespace CoupledField {
     {
       //TODO: ok, that the matrix is zero is not uncommon in case
       //      of transient analysis. Two ways to avoid this:
-      //      first: asselmble calls this function only with
+      //      first: assemble calls this function only with
       //             needed matrix types.
       //      second: we check here if matrix type is contained
       //              in matrixTypes_ map
@@ -3104,37 +3124,34 @@ namespace CoupledField {
      } // loop over blocks
   }
 
-  void AlgebraicSys::BackupCurrentSystemMatrix(FEMatrixType storageLocation){
-//    std::cout << "Create deep copy of current system (" << storageLocation << ")" << std::endl;
-    if(matrixTypes_.find(storageLocation) == matrixTypes_.end()){
-      matrixTypes_.insert(storageLocation);
-      SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-      sysMat_[storageLocation] = copy;
-
-    } else {
-      // clear storage and add system matrix
-      sysMat_[storageLocation]->Init();
-      sysMat_[storageLocation]->Add(1.0,*(sysMat_[SYSTEM]));
-    }
-
-//    // create deep copy
-//    SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-//    sysMat_[storageLocation] = copy;
+  void AlgebraicSys::BackupCurrentSystemMatrix(FEMatrixType storageLocation) {
+    CopyMatrixToOther(FEMatrixType::SYSTEM, storageLocation);
   }
 
   void AlgebraicSys::LoadBackupToCurrentSystemMatrix(FEMatrixType storageLocation){
 
-    if(matrixTypes_.find(storageLocation) == matrixTypes_.end()){
+    if(matrixTypes_.find(storageLocation) == matrixTypes_.end()) {
       WARN("AlgebraicSystem::LoadBackupToCurrentSystemMatrix --- Cannot find backup at storageLocation "<<FEMatrixType(storageLocation));
       return;
     }
+    assert(matrixTypes_.find(FEMatrixType::SYSTEM) != matrixTypes_.end());
 //    std::cout << "Restore deep copy of current system (" << storageLocation << ")" << std::endl;
-    sysMat_[SYSTEM]->Init();
-    sysMat_[SYSTEM]->Add(1.0,*(sysMat_[storageLocation]));
+    CopyMatrixToOther(storageLocation, FEMatrixType::SYSTEM);
+  }
 
-    // create deep copy > not a good idea as sysmat will point to a new object afterwards!
-//    SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[storageLocation]));
-//    sysMat_[SYSTEM] = copy;
+  void AlgebraicSys::CopyMatrixToOther(FEMatrixType matrix, FEMatrixType other, bool add) {
+    if(matrixTypes_.find(other) == matrixTypes_.end()){
+      matrixTypes_.insert(other);
+      // create deep copy of matrix
+      SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[matrix]));
+      sysMat_[other] = copy;
+    } else {
+      if (!add)
+        // clear storage
+        sysMat_[other]->Init();
+      // create deep copy is not a good idea as sysmat will point to a new object afterwards!
+      sysMat_[other]->Add(1.0,*(sysMat_[matrix]));
+    }
   }
 
   void AlgebraicSys::ComputeSysMatTimesVector(FEMatrixType matrixType, SBM_Vector& inputVec, SBM_Vector& outputVec, bool transpose){
@@ -3649,7 +3666,8 @@ namespace CoupledField {
   void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     solVec.Resize( numFcts_);
     // loop over all feFctIDs
-    for(UInt i = 0; i < numFcts_; ++i ) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
+    for(UInt i = 0; i < numFcts_; ++i )
+      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
   }
 
 

@@ -247,6 +247,7 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
     assert(pde != NULL);
     return pde->GetNativeSolutionType();
   case App::MECH:
+  case App::BUCKLING:
     return MECH_DISPLACEMENT;
   case App::ELEC:
     return ELEC_POTENTIAL;
@@ -275,16 +276,20 @@ std::string StateSolution::ToString()
   std::stringstream ss;
   ss << " excite=" << (excitation != NULL ? excitation->GetFullLabel() : "NULL");
   ss << " func=" << (func != NULL ? func->ToString() : "NULL");
-  ss <<  " raw=" << (raw != NULL ? raw->GetSize() : -1 ) << " rhs=" << (rhs != NULL ? rhs->GetSize() : -1 ) << " select=" << (select != NULL ? select->GetSize() : -1);
+  ss << " raw=" << (raw != NULL ? raw->GetSize() : -1 ) << (raw != NULL ? BaseMatrix::entryType.ToString(raw->GetEntryType()) : "");
+  ss << " rhs=" << (rhs != NULL ? rhs->GetSize() : -1 ) << (rhs != NULL ? BaseMatrix::entryType.ToString(rhs->GetEntryType()) : "");
+  ss << " select=" << (select != NULL ? select->GetSize() : -1) << (select != NULL ? BaseMatrix::entryType.ToString(select->GetEntryType()) : "");
   return ss.str();
 }
 
 SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app, bool save_sol, TimeDeriv derivative)
 {
-  if (Optimization::context->IsComplex())
+  bool buckling_adjoint = Optimization::context->DoBuckling() && app == App::MECH && pde->GetAnalysisType() == BasePDE::STATIC;
+
+  if (Optimization::context->IsComplex() && !buckling_adjoint)
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
   else
-    return Read<double> (st, pde, app, save_sol, derivative);
+    return Read<double>(st, pde, app, save_sol, derivative);
 }
 
 template <class T>
@@ -419,7 +424,7 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
         fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
 
 
-      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString() << "size= " << vec->GetSize();
+      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString() << " size= " << vec->GetSize();
 
       return vec;
     }
@@ -481,7 +486,7 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 template <class T>
 SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
-  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create  << " ss=" << ToString();
+  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create;
   switch(st)
   {
   case RAW_VECTOR:

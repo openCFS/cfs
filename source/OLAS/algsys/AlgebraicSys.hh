@@ -1080,10 +1080,12 @@ namespace CoupledField {
 
     //! In multiharmonic analysis, set the nonzero sbm-blocks
     inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
+
     BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
 
     //! Return if it is a multiharmonic analysis
     bool IsMultHarm(){return isMultHarm_; };
+
     PtrParamNode GetExportLinSysParam();
 
     bool IsMatrixComplex(){return isMatrixComplex_;};
@@ -1101,6 +1103,9 @@ namespace CoupledField {
      */
     void BackupCurrentSystemMatrix(FEMatrixType storageLocation);
     void LoadBackupToCurrentSystemMatrix(FEMatrixType storageLocation);
+
+    // copys one matrix in the algsys to another storage location. useful for backups
+    void CopyMatrixToOther(FEMatrixType matrix, FEMatrixType other, bool add = false);
 
   protected:
 
@@ -1310,131 +1315,131 @@ namespace CoupledField {
   // MATRICES / VECTORS
   // =======================================================================
 
-  //@{ \name Matrices and Vector
-  //! Pointers to Finite-Element matrices
+    //@{ \name Matrices and Vector
+    //! Pointers to Finite-Element matrices
 
-  //! This attribute points to an array containing pointers to the different
-  //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
-  //! algebraic system. In the case of the %SBM_System class these are of
-  //! course SBM_Matrix objects.
-  std::map<FEMatrixType, SBM_Matrix*> sysMat_;
+    //! This attribute points to an array containing pointers to the different
+    //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
+    //! algebraic system. In the case of the %SBM_System class these are of
+    //! course SBM_Matrix objects.
+    std::map<FEMatrixType, SBM_Matrix*> sysMat_;
 
-  //! Effective system matrix (without condensation block)
+    //! Effective system matrix (without condensation block)
 
-  //! This is the "effective" matrix to be solved, i.e. the one passed to 
-  //! the solver. This a shallow copy of the #sysMat and thus contains only
-  //! pointers into the global system matrix.
-  //! In case we use static condensation, the effective matrix does not 
-  //! contain the interior block and the related coupling matrices.
-  SBM_Matrix *effMat_;
+    //! This is the "effective" matrix to be solved, i.e. the one passed to
+    //! the solver. This a shallow copy of the #sysMat and thus contains only
+    //! pointers into the global system matrix.
+    //! In case we use static condensation, the effective matrix does not
+    //! contain the interior block and the related coupling matrices.
+    SBM_Matrix *effMat_;
 
-  //! Vector containing right-hand side of the linear system (see #effMat_)
-  SBM_Vector *rhs_;
+    //! Vector containing right-hand side of the linear system (see #effMat_)
+    SBM_Vector *rhs_;
 
-  //! Effective rhs vector
-  SBM_Vector *effRhs_;
+    //! Effective rhs vector
+    SBM_Vector *effRhs_;
 
-  //! temporary rhs
-  SBM_Vector* tmpRHS_;
+    //! temporary rhs
+    SBM_Vector* tmpRHS_;
 
-  //! Vector containing (approximate) solution of the linear system
-  SBM_Vector *sol_;
+    //! Vector containing (approximate) solution of the linear system
+    SBM_Vector *sol_;
 
-  //! Effective solution vector
-  SBM_Vector *effSol_;
+    //! Effective solution vector
+    SBM_Vector *effSol_;
 
-  //! Buffer for storing the eigenvalues of the system
-  SingleVector *eigenValues_;
+    //! Buffer for storing the eigenvalues of the system
+    SingleVector *eigenValues_;
 
-  //! Buffer for storing the error bounds of the eigenvalues
-  SingleVector *eigenValError_;
+    //! Buffer for storing the error bounds of the eigenvalues
+    SingleVector *eigenValError_;
 
-  //! Store for each diagonal SBM-Block if it is symmetric.
-  StdVector<bool> isDiagBlockSymm_;
+    //! Store for each diagonal SBM-Block if it is symmetric.
+    StdVector<bool> isDiagBlockSymm_;
 
-  //! Pointer to a pool for sharing sparsity patterns between matrices
-  PatternPool *patternPool_;
+    //! Pointer to a pool for sharing sparsity patterns between matrices
+    PatternPool *patternPool_;
 
-  //! Store for each SBM block the pattern Id (if applicable)
-  std::map<SubMatrixID, PatternIdType, SortSubMatrixID> sbmPatternIds_;
+    //! Store for each SBM block the pattern Id (if applicable)
+    std::map<SubMatrixID, PatternIdType, SortSubMatrixID> sbmPatternIds_;
 
-  //! Flag, if matrix pattern can be shared
-  bool sharedPatternPossible_;
+    //! Flag, if matrix pattern can be shared
+    bool sharedPatternPossible_;
 
-  //! Flag signaling symmetry of system matrix
-  bool sbmSymm_;
+    //! Flag signaling symmetry of system matrix
+    bool sbmSymm_;
 
-  //! Flag signaling use of only one matrix block
+    //! Flag signaling use of only one matrix block
 
-  //! This flag denotes, if the complete system matrix just consists of one 
-  //! single matrix block. In this case we can simply access the (1,1) entry
-  //! as StdMatrix and have the complete system. 
-  bool onlyOneMatrixBlock_;
+    //! This flag denotes, if the complete system matrix just consists of one
+    //! single matrix block. In this case we can simply access the (1,1) entry
+    //! as StdMatrix and have the complete system.
+    bool onlyOneMatrixBlock_;
 
-  //! Flag if we have distinct matrix graphs for different matric types
-  bool distinctMatGraphs_;
-  //@}
+    //! Flag if we have distinct matrix graphs for different matric types
+    bool distinctMatGraphs_;
+    //@}
 
-  // =======================================================================
-  // AMG SECTION
-  // =======================================================================
+    // =======================================================================
+    // AMG SECTION
+    // =======================================================================
 
-  //@{ \name Algebraic Multigrid variables
+    //@{ \name Algebraic Multigrid variables
 
-  //! Flag indicating use of multigrid methods
-  bool useAMG_;
+    //! Flag indicating use of multigrid methods
+    bool useAMG_;
 
-  //! Auxiliary matrix, needed for special (geometric-)algebraic multigrid methods
-  StdMatrix *auxMatAMG_;
+    //! Auxiliary matrix, needed for special (geometric-)algebraic multigrid methods
+    StdMatrix *auxMatAMG_;
 
-  //! Store coordinate of each index geomInd_[i] = coordinate of index i
-  StdVector< Vector<Double> > geomInd_;
+    //! Store coordinate of each index geomInd_[i] = coordinate of index i
+    StdVector< Vector<Double> > geomInd_;
 
-  //! Special structure for edge-AMG geomIndEdge_[i] contains
-  //! the coordinates of the two nodes of edge i (already in correct
-  //! orientation)
-  boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
+    //! Special structure for edge-AMG geomIndEdge_[i] contains
+    //! the coordinates of the two nodes of edge i (already in correct
+    //! orientation)
+    boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
 
-  //! Special structure for edge-AMG geomIndEdge_[i] contains
-  //! the indices in the auxiliary-matrix of the two nodes
-  // of edge i (already in correct orientation)
-  StdVector< StdVector< Integer> > edgeIndNode_;
+    //! Special structure for edge-AMG geomIndEdge_[i] contains
+    //! the indices in the auxiliary-matrix of the two nodes
+    // of edge i (already in correct orientation)
+    StdVector< StdVector< Integer> > edgeIndNode_;
 
-  //! Map for nodeNum <-> index in auxiliary matrix
-  boost::unordered_map< Integer, UInt> indexNodeNum_;
+    //! Map for nodeNum <-> index in auxiliary matrix
+    boost::unordered_map< Integer, UInt> indexNodeNum_;
 
-  //! vector for index <-> nodeNum in auxiliary matrix
-  StdVector<Integer> nodeNumIndex_;
+    //! vector for index <-> nodeNum in auxiliary matrix
+    StdVector<Integer> nodeNumIndex_;
 
-  //! only valid for AMG: dimension of singlefield-problem
-  UInt dim_;
+    //! only valid for AMG: dimension of singlefield-problem
+    UInt dim_;
 
-  //! Flag, needed for the specialized AMG-methods
-  AMGType  amgType_;
+    //! Flag, needed for the specialized AMG-methods
+    AMGType  amgType_;
 
-  //! Switch if edge element discretization is used
-  bool edge_;
-  //@}
+    //! Switch if edge element discretization is used
+    bool edge_;
+    //@}
 
 
-  // =======================================================================
-  // CACHE SECTION
-  // =======================================================================
+    // =======================================================================
+    // CACHE SECTION
+    // =======================================================================
 
-  //@{ \name Cached vectors / matrices for fast access
-  //! Index vectors for element matrix assembly
-  CfsTLS<StdVector< StdVector<UInt> > > rowIndList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > rowList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > rowIndList2_;
-  CfsTLS<StdVector< StdVector<UInt> > > rowList2_;
-  CfsTLS<StdVector< StdVector<UInt> > > colIndList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > colList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > colIndList2_;
-  CfsTLS<StdVector< StdVector<UInt> > > colList2_;
+    //@{ \name Cached vectors / matrices for fast access
+    //! Index vectors for element matrix assembly
+    CfsTLS<StdVector< StdVector<UInt> > > rowIndList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > rowList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > rowIndList2_;
+    CfsTLS<StdVector< StdVector<UInt> > > rowList2_;
+    CfsTLS<StdVector< StdVector<UInt> > > colIndList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > colList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > colIndList2_;
+    CfsTLS<StdVector< StdVector<UInt> > > colList2_;
 
-  //! Index vector for element position
-  CfsTLS<StdVector<UInt> > rowBlocks_, colBlocks_, rowNums_, colNums_;
-  //@}
+    //! Index vector for element position
+    CfsTLS<StdVector<UInt> > rowBlocks_, colBlocks_, rowNums_, colNums_;
+    //@}
   
   };
 

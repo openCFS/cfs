@@ -53,8 +53,7 @@ namespace CoupledField
     //! Return current analysistype
 
     //! Returns the current analysistype. 
-    virtual BasePDE::AnalysisType GetAnalysisType( ) { 
-      return analysis_; }
+    virtual BasePDE::AnalysisType GetAnalysisType( ) const { return analysis_; }
     
     //! Return current (multi)sequenceStep
     virtual UInt GetActSequenceStep();

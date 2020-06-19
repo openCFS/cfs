@@ -38,7 +38,8 @@ namespace CoupledField
     data_(new TYPE* [size_row_])
   {
 #ifdef CHECK_INDEX 
-    if (nRows <= 0 || nCols <= 0) EXCEPTION("invalid dimension");
+    if (nRows <= 0 || nCols <= 0)
+      EXCEPTION("invalid dimension");
 #endif
 
     data_[0]=new TYPE[size_col_*size_row_];
@@ -1020,15 +1021,13 @@ namespace CoupledField
         helpMat   = (*this) * QT;
         retMat = Q * helpMat;
       }
-      //  else {
-      //    EXCEPTION("Cannot rotate tensor due to dimensions!");
-      //  }
-    } else {
-      std::ostringstream oss;
-      oss << "Rotation of "<<rowSize << " x " << colSize << " matrix not implemented yet.";
-      EXCEPTION(oss.str());
     }
-    
+    else if (rowSize == 1 && colSize == 1) {
+      retMat = *this; // No rotation needed
+    }
+    else {
+      EXCEPTION("Rotation of " << rowSize << " x " << colSize << " matrix not implemented yet.");
+    }
 
   }
   
@@ -2039,7 +2038,7 @@ namespace CoupledField
         {
         case 1:
           inv.Resize(1);
-          inv[0][0] = 1/data_[0][0];
+          inv[0][0] = 1.0 / data_[0][0];
           break;
         case 2:
           inv.Resize(2,2);
@@ -2048,7 +2047,7 @@ namespace CoupledField
           inv[1][0] = - data_[1][0];
           inv[1][1] = data_[0][0];
           this->Determinant(det);
-          inv *= 1/det;
+          inv *= 1.0 / det;
           break;
 
         case 3:
@@ -2089,9 +2088,9 @@ namespace CoupledField
           //compute the inverse
           for ( UInt k=0; k<size_row_; k++) {
             pivot = inv[k][k];
-            pinv  = 1/pivot;
+            pinv  = 1.0 / pivot;
             // std::abs not possible for uint
-            if ( ( pivot >  0 ? pivot : -pivot) > eps ) {
+            if ( std::abs(pivot) > eps ) {
               for (UInt j=0; j<size_row_; j++) {
                 if ( j != k ) {
                   inv[k][j] = -inv[k][j] * pinv;
@@ -2120,11 +2119,14 @@ namespace CoupledField
 
   }
 
-  template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
-  {
-    EXCEPTION("Matrix<Complex>::Invert: Not implemented!" );
+  template<> void Matrix<Integer>::Invert(Matrix<Integer> & inv) const {
+    EXCEPTION("Integer matrix cannot be inverted");
   }
-  
+
+  template<> void Matrix<UInt>::Invert(Matrix<UInt> & inv) const {
+    EXCEPTION("Integer matrix cannot be inverted");
+  }
+
   template<class TYPE>
     void Matrix<TYPE>::Invert_Lapack() {
     EXCEPTION("General case not implemented");

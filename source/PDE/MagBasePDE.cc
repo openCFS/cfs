@@ -334,7 +334,7 @@ namespace CoupledField
 
         // check if hysteresis is defined in material file, too!
         std::string hystType;
-        actSDMat->GetScalar(hystType, HYST_MODEL);
+        actSDMat->GetString(hystType, HYST_MODEL);
 
         if(hystType == "none"){
           std::string warnmsg = "Hysteresis set on region " + regionName + " but no hysteresis model was defined in mat file. Skip.";
@@ -347,7 +347,7 @@ namespace CoupledField
           //  magnetic polarizaiton J_P = mu*M
           //  (in older versions, the magnetization M was returned!)
           PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                  magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace));
+                  magFieldCoef, tensorType, MAG_RELUCTIVITY_TENSOR, mySpace ));
 //          std::cout << "hysteresisCoefs_->AddRegion( actRegion, hystPol);" << std::endl;
           hysteresisCoefs_->AddRegion( actRegion, hystPol);
 

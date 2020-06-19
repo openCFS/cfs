@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
   elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -19,42 +18,42 @@
 
   <xsd:complexType name="DT_MatFlow">
     <xsd:sequence>
-      <xsd:element name="density" type="xsd:token">
+      <xsd:element name="density" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Mean density of the fluid in kg/m^3.
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="dynamicViscosity" minOccurs="0" type="xsd:token">
+      <xsd:element name="dynamicViscosity" minOccurs="0" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Dynamic viscosity of the fluid in Pas.
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>
-      <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
+      <xsd:element name="kinematicViscosity" minOccurs="0" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Kinematic viscosity (dynamic viscosity / density) of the fluid in m^2/s = 10,000 Stokes = 1,000,000 Centistokes.
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="bulkViscosity" minOccurs="0" type="xsd:token">
+      <xsd:element name="bulkViscosity" minOccurs="0" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             bulk viscosity of the fluid in m^2/s.
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="adiabaticExponent" minOccurs="0" type="xsd:token">
+      <xsd:element name="adiabaticExponent" minOccurs="0" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             adiabatic exponent of the fluid; e.g., in air = 1.402.
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>
-      <xsd:element name="refPressure" minOccurs="0" type="xsd:token">
+      <xsd:element name="refPressure" minOccurs="0" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             reference pressure;  101,325 kPa auf Meereshoehe
@@ -64,4 +63,13 @@
     </xsd:sequence>
   </xsd:complexType>
   
+  <!-- ********************************************************** -->
+  <!--   Definition of linear scalars                             -->
+  <!--***********************************************************-->
+  <xsd:complexType name="DT_FlowScalarLinear">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
 </xsd:schema>

@@ -26,10 +26,13 @@ EXTERN_LOG(em)
 ParamMat::ParamMat() : ErsatzMaterial()
 {
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
-  
-  if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){ 
-    design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
-  }
+  // design->SetDesignMaterial was moved to Update() Context.cc to allow designMaterials for multisequence
+//  if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){
+//    assert(pn->Has("paramMat/designMaterials"));
+//    ParamNodeList list = pn->Get("paramMat/designMaterials")->GetListByVal("designMaterial", "sequence", Optimization::context->sequence);
+//    assert(list.GetSize() == 1);
+//    design->SetDesignMaterial(list[0], OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
+//  }
 }
 
 void ParamMat::PostInit()
@@ -51,20 +54,36 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
   switch(app)
   {
   case App::MECH:
+  case App::BUCKLING:
+  case App::HEAT:
   {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
+
+    if(context->DoBuckling())
+    {
+//      out *= -ev;
+
+      AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev);
+      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+
+      if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+      {
+        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+        AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
+        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+      }
+    }
+
     if(context->IsComplex())
     {
       AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
-
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
-
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
     }
@@ -77,7 +96,7 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
     break;
   }
   default:
-    Exception("Only mech and mass matrix are available for paramMat");
+    Exception("Only mech, heat and mass matrix are available for paramMat");
     break;
   }
   LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " out=" << mat_out->ToString(0, false);

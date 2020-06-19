@@ -338,8 +338,8 @@ public:
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
 
   //! Return equation numbers for a specific dof
-  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof );
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                        UInt dof );
   
   //! Return equation numbers for a specific dof and entitytype
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
@@ -350,10 +350,10 @@ public:
                         BaseFE::EntityType ); 
 
   //! Get Equation numbers for a specific element
-  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem);
+  virtual void GetElemEqns(StdVector<Integer>& eqns, const Elem* elem);
 
   //! Get Equation numbers for a specific element
-  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof);
+  virtual void GetElemEqns(StdVector<Integer>& eqns, const Elem* elem, UInt dof);
 
   //! Get equations for a given entityList
   virtual void GetEntityListEqns(StdVector<Integer>& eqns, 

@@ -514,22 +514,9 @@ void CoefFunctionTimeFreq<Double>::GetTensorValuesAtCoords( const StdVector<Vect
   // use internal vector
   vals.Resize(points.GetSize(),Matrix<Double>(constCoefMat_.GetNumRows(),constCoefMat_.GetNumCols()));
   vals.Init();
-  if( !coordSys_ ) {
-    for(UInt i=0; i< vals.GetSize() ; ++i){
-      vals[i] =  constCoefMat_;
-    }
-  } else {
-    EXCEPTION(
-        "The rotation is not fully finished ':-(\n" <<
-        "Here we have to add a call to the method BaseMaterial::PerformRotation "
-        "This method should be moved to the base class of the CoefFunction"
-        "In addition the initial rotation of the material must be incorporated"
-        "somewhere in string-notation, as we are generally dealing with string"
-        "parameters."
-        "Thus we should treat the case, where rotation angles are multiples of "
-        "90 degree separately, where the entries are just interchanged");
+  for (UInt i = 0; i < vals.GetSize() ; ++i) {
+    TransformTensorByCoordSys(vals[i], constCoefMat_, points[i]);
   }
-
 }
 
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
@@ -584,26 +571,12 @@ void CoefFunctionTimeFreq<Complex>::GetTensorValuesAtCoords( const StdVector<Vec
                                                              const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
   assert(this->dimType_ == TENSOR);
-  // if no coordinate system is set, just
-  // use internal vector
+
   vals.Resize(points.GetSize(),Matrix<Complex>(constCoefMat_.GetNumRows(),constCoefMat_.GetNumCols()));
   vals.Init();
-  if( !coordSys_ ) {
-    for(UInt i=0; i< vals.GetSize() ; ++i){
-      vals[i] =  constCoefMat_;
-    }
-  } else {
-    EXCEPTION(
-        "The rotation is not fully finished ':-(\n" <<
-        "Here we have to add a call to the method BaseMaterial::PerformRotation "
-        "This method should be moved to the base class of the CoefFunction"
-        "In addition the initial rotation of the material must be incorporated"
-        "somewhere in string-notation, as we are generally dealing with string"
-        "parameters."
-        "Thus we should treat the case, where rotation angles are multiples of "
-        "90 degree separately, where the entries are just interchanged");
+
+  for (UInt i = 0; i < vals.GetSize() ; ++i) {
+    TransformTensorByCoordSys(vals[i], constCoefMat_, points[i]);
   }
-
-
 }
 } // namespace

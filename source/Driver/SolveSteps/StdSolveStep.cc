@@ -1788,8 +1788,6 @@ namespace CoupledField {
   }
 
   void StdSolveStep::GetEigenMode( UInt numMode ) {
-    
-    
     algsys_->GetEigenMode( numMode );
     
     // Get the solution and store it

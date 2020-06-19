@@ -488,7 +488,7 @@ public:
 
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
-    Elem*  elem;
+    Elem* elem;
 
     /** In case we are a pseudo design element which is not within the design domain but from the
      *  non-design region of a function (e.g. stress) this index stores the index within the element storage.

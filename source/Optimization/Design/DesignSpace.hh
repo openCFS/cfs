@@ -83,20 +83,20 @@ namespace CoupledField
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML
-      * @param em only to be stored and used for pure ROTATION */
-     void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em);
+      * @param material optimization material object */
+     void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material);
 
      /** returns the type of the DesignMaterial of the Ersatzmaterial **/
-     DesignMaterial::Type getDesignMaterialType()
+     DesignMaterial::Type GetDesignMaterialType()
      {
-       assert(designMaterial != NULL);
-       return designMaterial->GetType();
+       assert(Optimization::context->dm != NULL);
+       return Optimization::context->dm->GetType();
      }
 
      ErsatzMaterial::Method GetMethod() const { return this->method_; };
 
      /** Do we do multiscale FEM, where we model not the tensor as in FEM but the local element matrix */
-     bool DoMSFEM() const { return designMaterial != NULL && designMaterial->GetType() == DesignMaterial::MSFEM_C1; }
+     bool DoMSFEM() const { return Optimization::context->dm != NULL && Optimization::context->dm->GetType() == DesignMaterial::MSFEM_C1; }
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -397,8 +397,8 @@ namespace CoupledField
       * Note, that multimaterial_density is not unique here! */
      StdVector<DesignID> design;
 
-     /** Reference to DesignMaterial */
-     DesignMaterial* designMaterial;
+     /** Reference to DesignMaterial, allow for multiple design materials e.g. multisequence optimization */
+     StdVector<DesignMaterial*> designMaterials;
 
      /** Here we store result descriptions as defined in DesignElement.hh */
      StdVector<ResultDescription> resultDescriptions;

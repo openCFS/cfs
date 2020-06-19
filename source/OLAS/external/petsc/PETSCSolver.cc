@@ -335,12 +335,9 @@ PETSCWorker::PETSCWorker(int argc,const char **argv){
   progOpts->ParseData();
 
   string xmlFile = progOpts->GetParamFileStr();
-  string schema = progOpts->GetSchemaPathStr();
+  string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
 
-  schema += "/CFS-Simulation/CFS.xsd";
-  PtrParamNode root_node = XmlReader::ParseFile(xmlFile, schema);
-
-  //  xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList");
+  PtrParamNode root_node = XmlReader::ParseFile(xmlFile, schema, "http://www.cfs++.org/simulation");
 
   root_node = root_node->Has("sequenceStep") ? root_node->Get("sequenceStep"): nullptr;
 

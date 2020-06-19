@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
@@ -76,16 +76,22 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     Optimization::manager.Init();
 
   // for convenience
+  assert(Optimization::manager.context.GetSize() > 0);
+  if (method == ErsatzMaterial::PARAM_MAT) {
+    designMaterials.Resize(Optimization::manager.context.GetSize());
+    //initialize with null to avoid undefined behaviour when decosntructor tries to delete uninitialized data
+    designMaterials.Init(NULL);
+  }
   regionIds_ = reg_data;
   design_id = 0;
   optimizer_ = NULL;
-  designMaterial = NULL;
   applicationForm.SetName("DesignSpace::ApplicationForm");
   applicationForm.Add(App::ELEC, "linGradBDBInt");
   applicationForm.Add(App::MECH, "LinElastInt");
   // We follow for the stress, strain calculation the transfer functions of mech
   applicationForm.Add(App::MECH, "MechStressStrain", false);
   applicationForm.Add(App::MECH, "PiezoStressStrain", false);
+  applicationForm.Add(App::BUCKLING, "PreStressInt", false);
   applicationForm.Add(App::HEAT, "HeatConductivity", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator-NL", false);
@@ -401,9 +407,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 }
 
 DesignSpace::~DesignSpace(){
-  if(designMaterial != NULL){
-    delete designMaterial;
-    designMaterial = NULL;
+  for (UInt i = 0; i < designMaterials.GetSize();i++) {
+    delete designMaterials[i];
+    designMaterials[i] = NULL;
   }
   delete elementCache;
   elementCache = NULL;
@@ -543,7 +549,7 @@ void DesignSpace::SetupLocalElementCache()
         ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(w);
 
       // we can cache material derivatives only for FMO which is also used by SGP
-      if(designMaterial)
+      if(Optimization::context->dm != NULL)
         elementCache->InitMechMatDeriv(regionIds_); // no init org! and no piezo stuff
       else
       {
@@ -644,9 +650,10 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
   return sum;
 }
 
-void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em)
+void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material)
 {
-  designMaterial = new DesignMaterial(dm, material, design, this);
+  designMaterials[Optimization::context->context_idx] = new DesignMaterial(dm, material, design, this);
+  Optimization::context->dm = designMaterials[Optimization::context->context_idx];
 }
 
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
@@ -658,7 +665,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     ResultDescription& rd = resultDescriptions[i];
     // generate ResultInfo objects with the names, ... generated from the description
     shared_ptr<ResultInfo> opt_res = GenerateResultInfo(rd);
-    // this also addes the result as available result
+    // this also adds the result as available result
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
@@ -700,10 +707,10 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     {
       DesignElement& de = data[design_index];
 
-      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      tmp += (de.GetPhysicalDesign(Optimization::context) - lower) * den;
       found++;
 
-      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(Optimization::context) - lower) * den;
     }
   }
 
@@ -818,77 +825,10 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
     if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation)
       continue;
 
-    // we are right.
-    switch(rd.solutionType)
-    {
-      case OPT_RESULT_1: return 0;
-      case OPT_RESULT_2: return 1;
-      case OPT_RESULT_3: return 2;
-      case OPT_RESULT_4: return 3;
-      case OPT_RESULT_5: return 4;
-      case OPT_RESULT_6: return 5;
-      case OPT_RESULT_7: return 6;
-      case OPT_RESULT_8: return 7;
-      case OPT_RESULT_9: return 8;
-      case OPT_RESULT_10: return 9;
-      case OPT_RESULT_11: return 10;
-      case OPT_RESULT_12: return 11;
-      case OPT_RESULT_13: return 12;
-      case OPT_RESULT_14: return 13;
-      case OPT_RESULT_15: return 14;
-      case OPT_RESULT_16: return 15;
-      case OPT_RESULT_17: return 16;
-      case OPT_RESULT_18: return 17;
-      case OPT_RESULT_19: return 18;
-      case OPT_RESULT_20: return 19;
-      case OPT_RESULT_21: return 20;
-      case OPT_RESULT_22: return 21;
-      case OPT_RESULT_23: return 22;
-      case OPT_RESULT_24: return 23;
-      case OPT_RESULT_25: return 24;
-      case OPT_RESULT_26: return 25;
-      case OPT_RESULT_27: return 26;
-      case OPT_RESULT_28: return 27;
-      case OPT_RESULT_29: return 28;
-      case OPT_RESULT_30: return 29;
-      case OPT_RESULT_31: return 30;
-      case OPT_RESULT_32: return 31;
-      case OPT_RESULT_33: return 32;
-      case OPT_RESULT_34: return 33;
-      case OPT_RESULT_35: return 34;
-      case OPT_RESULT_36: return 35;
-      case OPT_RESULT_37: return 36;
-      case OPT_RESULT_38: return 37;
-      case OPT_RESULT_39: return 38;
-      case OPT_RESULT_40: return 39;
-      case OPT_RESULT_41: return 40;
-      case OPT_RESULT_42: return 41;
-      case OPT_RESULT_43: return 42;
-      case OPT_RESULT_44: return 43;
-      case OPT_RESULT_45: return 44;
-      case OPT_RESULT_46: return 45;
-      case OPT_RESULT_47: return 46;
-      case OPT_RESULT_48: return 47;
-      case OPT_RESULT_49: return 48;
-      case OPT_RESULT_50: return 49;
-      case OPT_RESULT_51: return 50;
-      case OPT_RESULT_52: return 51;
-      case OPT_RESULT_53: return 52;
-      case OPT_RESULT_54: return 53;
-      case OPT_RESULT_55: return 54;
-      case OPT_RESULT_56: return 55;
-      case OPT_RESULT_57: return 56;
-      case OPT_RESULT_58: return 57;
-      case OPT_RESULT_59: return 58;
-      case OPT_RESULT_60: return 59;
-      case OPT_RESULT_61: return 60;
-      case OPT_RESULT_62: return 61;
-      case OPT_RESULT_63: return 62;
-      case OPT_RESULT_64: return 63;
-      case OPT_RESULT_65: return 64;
-      case OPT_RESULT_66: return 65;
-      default: throw Exception("invalid solution type");
-    }
+    if (rd.solutionType < OPT_RESULT_1 || rd.solutionType > OPT_RESULT_66)
+      throw Exception("invalid solution type");
+
+    return rd.solutionType - OPT_RESULT_1;
   }
   return -1; // the specified triple was not specified such in xml
 }
@@ -904,7 +844,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT || dt == DesignElement::ALL_DESIGNS))
     return 0;
   // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
-  if(dt == DesignElement::MECH_TRACE && designMaterial != NULL)
+  if(dt == DesignElement::MECH_TRACE && Optimization::context->dm != NULL)
     return 0;
   // search where in data we are
   int base = -1;
@@ -921,10 +861,14 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   // We can do this only for SIMP type optimization.
   // ParamMat modifies the tensor which needs to be applied to the BDB form and MS-FEM has also nothing to do
   // with local element caching. For these call ApplyPhysicalDesign()
-  if(designMaterial != NULL)
+  if(Optimization::context->dm != NULL)
     return false;
 
   if(elementCache == NULL)
+    return false;
+
+  // for buckling we must not use local element caching as the local element matrices depend on the current stresses!
+  if(Optimization::context->DoBuckling())
     return false;
 
   // load the element matrix to apply optimization to it. If true, retMat is set with org material local element matrix
@@ -1002,20 +946,23 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     return false;
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+  if(Optimization::context->dm != NULL) // easy to extend to piezo and other stuff!
   {
     if(DoMSFEM())
     {
       assert(IsRegular());
-      return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
+      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
-    return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+    return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
-  assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
+  if (coef->GetForm()->GetName() == "PreStressInt")
+    assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 4 : 9));
+  else
+    assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
   assert(coef->GetForm() != NULL); // needs to be set manually via CoefFunctionOpt::SetForm()
   double factor = -4711; // set below
   double bimat_factor = -1.0;
@@ -1041,6 +988,12 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     for(unsigned int i = 0; i < retMat.GetNumRows(); i++)
       retMat[i][i] = (retMat[i][i] * factor) + (1-factor) * nu_0;
   }
+  else if(app == App::BUCKLING)
+  {
+    // we already applied the ErsatzMaterialFactor in the calculation of stresses
+    // @see CoefFunctionFlux::GetVector
+    factor = 1.0;
+  }
   else
   {
     factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
@@ -1049,7 +1002,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   assert(factor != -4711);
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
-  if(dr->HasBiMaterial())
+  if(dr->HasBiMaterial() && app != App::BUCKLING)
   {
     Matrix<T> tmp;
     dr->GetBiMaterial(MECHANIC, MECH_STIFFNESS_TENSOR)->GetTensor(tmp, *lpm);
@@ -1075,10 +1028,10 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
     return false;
 
   // check for param mat -> e.g. scalar mass
-  if(designMaterial != NULL)
+  if(Optimization::context->dm != NULL)
   {
     assert(!DoMSFEM());
-    retScal = designMaterial->GetMechMass(lpm->ptEl, coef->GetMaterialDerivative());
+    retScal = Optimization::context->dm->GetMechMass(lpm->ptEl, coef->GetMaterialDerivative());
     LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " d=" << DesignElement::type.ToString(coef->GetMaterialDerivative()) << " -> " << retScal;
     return true; // note that we have no plausibility check in GetMechMass()
   }
@@ -1270,8 +1223,8 @@ bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const El
 
 */
 bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
-  if(designMaterial != NULL){
-    designMaterial->GetErsatzElementMatrixMSFEM(t, elem, direction);
+  if(Optimization::context->dm != NULL){
+    Optimization::context->dm->GetErsatzElementMatrixMSFEM(t, elem, direction);
     return(true);
   }
   return(false);
@@ -1388,7 +1341,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, A
     if(this->design.GetSize() == 1 && design == DesignElement::DEFAULT)
       return tf;
   }
-  if(designMaterial != NULL)
+  if(Optimization::context->dm != NULL)
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization with no / not all TransferFunctions given
 
   if(throw_exception)
@@ -2201,7 +2154,7 @@ PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(const string& integrator)
   if(integrator == "MassInt")
     return GetBiMaterial(MECHANIC, DENSITY);
   if(integrator == "HeatConductivity")
-    return GetBiMaterial(THERMIC, HEAT_CONDUCTIVITY);
+    return GetBiMaterial(THERMIC, HEAT_CONDUCTIVITY_TENSOR);
   assert(false);
   return PtrCoefFct();
 }
@@ -2232,7 +2185,7 @@ const string DesignSpace::ToForm(MaterialClass mc, MaterialType mt)
   case THERMIC:
     switch(mt)
     {
-    case HEAT_CONDUCTIVITY:
+    case HEAT_CONDUCTIVITY_TENSOR:
       return "HeatConductivity";
     default:
       assert(false);

@@ -1,4 +1,4 @@
-#include <assert.h>
+/////#include <assert.h>
 #include <stddef.h>
 #include <algorithm>
 #include <cmath>
@@ -10,6 +10,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -17,6 +18,7 @@
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/EigenFrequencyDriver.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -30,6 +32,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/BasePDE.hh"
 #include "PDE/ElecPDE.hh"
+#include "PDE/HeatPDE.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Utils/mathParser/mathParser.hh"
@@ -100,15 +103,23 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
     throw Exception("None of the " + lexical_cast<string>(excitations.GetSize()) + " excitations has a label '" + label + "'");
 }
 
-
-
-unsigned int MultipleExcitation::GetNumberHomogenization() const
+unsigned int MultipleExcitation::GetNumberHomogenization(App::Type app) const
 {
   // when we have only one sequence total_base_ must be the number of strains
   if(!DoHomogenization())
     return 0;
-  else
-    return domain->GetGrid()->GetDim() == 2 ? 3 : 6;
+  else{
+    UInt dim = domain->GetGrid()->GetDim();
+    switch(app)
+    {
+      case App::MECH:
+        return dim == 2 ? 3 : 6;
+      case App::HEAT:
+        return dim;
+      default:
+        throw Exception("Homogenization only implemented for heat and mech PDE! Requested: " + Optimization::context->ToPDE(app)->GetName());
+    }
+  }
 }
 
 bool MultipleExcitation::IsEnabled(int sequence) const
@@ -467,28 +478,46 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
 int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context* ctxt)
 {
   unsigned int dim = domain->GetGrid()->GetDim();
+  int cases = GetNumberHomogenization(ctxt->ToApp());
 
-  int cases = dim == 2 ? 3 : 6;
   assert(excitations.GetCapacity() >= base + cases * GetNumberMeta(ctxt, true)); // so we need no copy constructor in ApplyTransformation()
   excitations.Resize(base + cases);
-
   assert((int) MechPDE::X == 0);
+  assert((int) MechPDE::Y == 1);
+  assert((int) MechPDE::Z == 2);
   assert((int) MechPDE::XY == 5);
+  assert((int) MechPDE::X == (int) HeatPDE::X);
+  assert((int) MechPDE::Y == (int) HeatPDE::Y);
+  assert((int) MechPDE::Z == (int) HeatPDE::Z);
 
-  for(int i = 0, cnt = 0; i < 6; i++)
+  StdVector<int> testStrains(cases);
+  // assumes order of TestStrain Enum to be X=0, Y=1, Z=2, ....
+  for (int i = 0; i < cases; i++)
+    testStrains[i] = i;
+
+  App::Type app = ctxt->ToApp();
+  assert(app == App::MECH || app == App::HEAT);
+
+  if (app == App::MECH && dim == 2){
+    testStrains.Clear(cases);
+    testStrains.Push_back(MechPDE::X);
+    testStrains.Push_back(MechPDE::Y);
+    testStrains.Push_back(MechPDE::XY);
+  }
+
+  for(int i = 0; i < cases; i++)
   {
-    MechPDE::TestStrain ts = (MechPDE::TestStrain) i;
-    Excitation& ex = excitations[base + cnt];
+    MechPDE::TestStrain ts = (MechPDE::TestStrain) testStrains[i];
+    Excitation& ex = excitations[base + i];
 
-    // in 2D only 0, 1 and 5
-    if(dim == 2 && (i == 2 || i == 3 || i == 4)) continue;
-
+    //MechPDE has more test strains than HeatPDE, naming is the same
     ex.label = MechPDE::testStrain.ToString(ts);
 
     ex.ReadTestStrain(ctxt, ts);
     // The homogenized tensor can only be evaluated for the last excitation!
     ex.weight = i < cases-1 ? 0.0 : 1.0;
-    ++cnt;
+
+    LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString(2);
 
     LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
   }
@@ -944,10 +973,96 @@ bool Excitation::Apply(bool switch_context)
     LOG_DBG(exlog) << "A: set form " << forms[0]->ToString();
     assert(ctxt.pde->GetAnalysisType() == forms[0]->GetPde()->GetAnalysisType());
   }
+
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
   // the same holds for the bloch mode analysis
   return switched;
+}
+
+std::map<RegionIdType, PtrCoefFct> Excitation::GetStressCoefFctFromExcitation(UInt index)
+{
+  std::map<RegionIdType, PtrCoefFct> stress_map;
+
+  Context& ctxt = Optimization::manager.GetContext(this);
+  assert(ctxt.GetBucklingDriver());
+  assert(domain->GetSingleDriver()->GetAnalysisType() == BasePDE::BUCKLING);
+
+  RegionIdType actRegion;
+  SinglePDE* pde = ctxt.pde; // buckling PDE (complex!)
+
+  //  Loop over all regions
+  std::map<RegionIdType, BaseMaterial*>& materials = pde->GetMaterialData();
+  for(auto mat : materials)
+  {
+    // Set current region
+    actRegion = mat.first;
+
+    // buckling is implemented as multisequence
+    // we assume that the first excitation is linear elasticity
+    Optimization* opt = domain->GetOptimization();
+    assert(opt->GetMultipleExcitation()->excitations.GetSize());
+    Excitation& lin_elas_ex = opt->GetMultipleExcitation()->excitations[index];
+
+    // get the solution (displacement) of this first excitation
+    ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
+    StateSolution* ss = em->GetForwardStates().Get(lin_elas_ex, NULL, -1);
+    Vector<Double> mech_displ;
+    mech_displ = ss->GetRealVector(StateSolution::RAW_VECTOR);
+
+    // convert to complex, as buckling PDE is complex
+    Vector<Complex> complex_mech_displ;
+    complex_mech_displ.Resize(mech_displ.GetSize());
+    complex_mech_displ.Init();
+    complex_mech_displ.SetPart(Global::REAL, mech_displ);
+
+    // inject solution into buckling pde
+    ss->Write(pde, &complex_mech_displ);
+
+    // get coef function for stresses
+    PtrCoefFct stress = pde->GetCoefFct(MECH_STRESS);
+    assert(stress && stress.get());
+
+    stress_map[actRegion] = stress;
+  }
+  return stress_map;
+}
+
+// in buckling replace the old stresses, i.e. previous iteration
+// (or dummy for first iteration), by the new ones
+void Excitation::SetStressCoefFct(std::map<RegionIdType, PtrCoefFct> stress_map)
+{
+  Context& ctxt = Optimization::manager.GetContext(this);
+  assert(ctxt.GetBucklingDriver());
+  assert(domain->GetSingleDriver()->GetAnalysisType() == BasePDE::BUCKLING);
+
+  RegionIdType actRegion;
+  SinglePDE* pde = ctxt.pde; // buckling PDE (complex!)
+
+  //  Loop over all regions
+  std::map<RegionIdType, BaseMaterial*>& materials = pde->GetMaterialData();
+  assert(materials.size() == stress_map.size());
+  for(auto mat : materials)
+  {
+    // Set current region
+    actRegion = mat.first;
+    // we want to change the stress integrator of the geometric stiffness matrix
+    BiLinFormContext* blfc = pde->GetAssemble()->GetBiLinForm("PreStressInt", actRegion, pde, pde, false);
+
+    // the coef function of the integrator is a compound, i.e. a bundle of multiple coeffunctions
+    BDBInt<Double,Double>* bdb = dynamic_cast<BDBInt<Double,Double>*>(blfc->GetIntegrator());
+    CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(ctxt.mat->GetOrgMatCoef(bdb));
+    assert(stressTens != NULL);
+
+    // get map of coeffunctions
+    std::map<std::string, PtrCoefFct>& map = stressTens->GetCoefFcts();
+
+    // set the coeffunction for stresses. key "a" was chosen in MechPDE::CreatePreStressFct
+    assert(map.find("a") != map.end());
+    map["a"] = stress_map[actRegion];
+
+    this->reassemble = true;
+  }
 }
 
 double Excitation::GetOmega() const
@@ -1029,14 +1144,32 @@ void Excitation::ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts)
   Assemble* ass = ctxt->pde->GetAssemble();
   forms = ass->GetLinForms(true); // take ownership for our destructor which is common for ReadLoads(). copy constructor!
   assert(ass->GetLinForms().GetSize() == 0);
-
-  MechPDE* mech = dynamic_cast<MechPDE*>(ctxt->ToPDE(App::MECH));
-  assert(mech->GetAnalysisType() == BasePDE::STATIC);
-
-  mech->DefineTestStrainIntegrator(ts, &forms);
+  assert(ctxt->ToApp() == App::MECH || ctxt->ToApp() == App::HEAT);
+  switch(ctxt->ToApp())
+  {
+    case App::MECH:
+    {
+      MechPDE* mech = dynamic_cast<MechPDE*>(ctxt->pde);
+      assert(mech->GetAnalysisType() == BasePDE::STATIC);
+      mech->DefineTestStrainIntegrator(ts, &forms);
+      break;
+    }
+    case App::HEAT:
+    {
+      HeatPDE* heat = dynamic_cast<HeatPDE*>(ctxt->pde);
+      assert(heat->GetAnalysisType() == BasePDE::STATIC);
+      heat->DefineTestStrainIntegrator((HeatPDE::TestStrain) ts, &forms);
+      break;
+    }
+    default:
+      throw Exception("ReadTestStrain() only implemented for MECH and HEAT!");
+      break;
+  }
 
   test_strain.Resize(6, 0.0); // always full dimensions
   test_strain[ts] = 1.0;
+
+  LOG_DBG3(exlog) << test_strain.ToString(2);
 }
 
 std::string Excitation::GetMetaLabel() const

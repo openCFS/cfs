@@ -27,7 +27,9 @@
 namespace CoupledField
 {
 
-PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string& schema)
+PtrParamNode XmlReader::ParseFile(const std::string& filename,
+                                  const std::string& schema,
+                                  const std::string &schemaUrl)
 {
   bool compress = boost::algorithm::ends_with(filename, ".gz"); // see ParamNode::ToFile()
 
@@ -45,7 +47,7 @@ PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string
 
 
 #ifdef USE_XERCES
-  Xerces xerces(schema);
+  Xerces xerces(schema, schemaUrl);
   xerces.SetFile(filename);
   return xerces.CreateParamNodeInstance();
 #endif
@@ -58,10 +60,12 @@ PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string
 }
 
 /** same as parse file but from memory */
-PtrParamNode XmlReader::ParseString(const std::string& str, const std::string& schema)
+PtrParamNode XmlReader::ParseString(const std::string& str,
+                                    const std::string& schema,
+                                    const std::string &schemaUrl)
 {
 #ifdef USE_XERCES
-  Xerces xerces(schema);
+  Xerces xerces(schema, schemaUrl);
   xerces.SetString(str);
   return xerces.CreateParamNodeInstance();
 #endif

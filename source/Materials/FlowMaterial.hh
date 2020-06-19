@@ -34,6 +34,7 @@ namespace CoupledField {
     void GenerateTensor( MaterialType matType, PtrCoefFct scalar );
     
   private:
+
     void ComputeAllViscosities();
   };
 

@@ -126,7 +126,8 @@ int main(int argc, const char** argv)
 
   // Write information to command line
   std::cout << "--- Reading parameter file " << std::endl;
-  PtrParamNode configNode = XmlReader::ParseFile(options->GetParamFileStr(), schema);
+  PtrParamNode configNode = XmlReader::ParseFile(options->GetParamFileStr(), schema,
+                                                 "http://www.cfs++.org/simulation");
 
   CFSDat::PtrResultManager resMan(new CFSDat::ResultManager());
 

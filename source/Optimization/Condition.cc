@@ -1,6 +1,6 @@
 
 #include <assert.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <cmath>
 #include <list>
@@ -118,7 +118,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   }
 
 
-  // value is not mandatory for all almost all constraints. Check for homogenization later
+  // value is not mandatory for almost all constraints. Check for homogenization later
   if(!observation_)
   {
     switch(type_)
@@ -757,6 +757,10 @@ string Condition::ToString() const
     else
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
+
+  if(type_ == BUCKLING_LOAD_FACTOR)
+    os << "_" << eigenvalue_id_;
+
   // add bound type if multiple unique conditions exist
   if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
     os << "_" << bound.ToString(bound_);
@@ -1287,7 +1291,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
         unsigned int id = all[i]->GetEigenValueID();
         assert(id > 0); // ensured by xml schema
         if(id > max)
-          EXCEPTION("eigenvalue id 'ev'" << id << " larger the the " << max << " calculated eigenfrequencies");
+          EXCEPTION("eigenvalue id 'ev'" << id << " larger than the " << max << " calculated eigenfrequencies");
 
         if(ids.Contains(id))
           EXCEPTION("eigenvalue id 'ev'" << id << " is not unique");

@@ -132,7 +132,7 @@ namespace CoupledField {
 		  actRegion = it->first;
 		  actMat = it->second;
 
-		  conducCoef = actMat->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+		  conducCoef = actMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 
       // use this change to directly store the conductivity
       conduc_->AddRegion(actRegion, conducCoef);
@@ -226,7 +226,7 @@ namespace CoupledField {
 		  if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
 		    CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
 			  PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
+			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
 
         if(domain->HasDesign())
         {
@@ -338,16 +338,19 @@ namespace CoupledField {
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
-				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType, Global::REAL );
+				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
 
 				  // for postprocessing
-				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
+          if (materials_[actRegion]->GetSymmetryType(MAG_PERMEABILITY_TENSOR) == BaseMaterial::ISOTROPIC) {
+            PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::REAL);
+            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+          }
+
 			    if(domain->HasDesign())
 			    {
 			      cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
 			      curCoef.reset(cfo);
 			    }
-				  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 
           if( dim_ == 2) {
             if( isaxi_ ) {
@@ -438,9 +441,9 @@ namespace CoupledField {
 		  // non-zero. However, how do we do this in case of non-constant parameters?
 		  Double conductivity;
 
-		  materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+		  materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 		  PtrCoefFct conducCoef =
-              materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+              materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 		  //                                         lexical_cast<std::string>(conductivity));
 		  // FROM NACS
 //      conduc_->AddRegion(actRegion, conducCoef);
@@ -543,10 +546,10 @@ namespace CoupledField {
         Double conductivity = 0.0;
 
         // get conductivity
-        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
         assert(conductivity != 0.0);
         //PtrCoefFct coeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
-        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 
         // Create the integrators
         BaseBDBInt   *velocityStiff = NULL;
@@ -1793,7 +1796,7 @@ namespace CoupledField {
     for( ; regIt != regions_.End(); ++regIt ) {
       RegionIdType actRegion = *regIt;
       actMat = materials_[actRegion];
-      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
       cldCoef->AddRegion(actRegion, coreLossFct);
     }
 
@@ -1808,7 +1811,7 @@ namespace CoupledField {
       RegionIdType actRegion = *regIt;
       actMat = materials_[actRegion];
       // core loss density in W/kg
-      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
+      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL,
               GetCoefFct(MAG_FLUX_DENSITY) );
       // core loss density in W/m^3, which deserves to be called density
       PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
@@ -1927,7 +1930,7 @@ namespace CoupledField {
         PtrCoefFct tmp = CoefFunction::Generate( mp_, part,
                 CoefXprBinOp( mp_, squareNormA, "0.5*2*pi*f*2*pi*f", CoefXpr::OP_MULT ) );
         PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
-                CoefXprBinOp( mp_, materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL),
+                CoefXprBinOp( mp_, materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL),
                 tmp, CoefXpr::OP_MULT ) );
 
         PtrCoefFct  part2 = NULL;

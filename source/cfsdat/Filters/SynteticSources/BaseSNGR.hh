@@ -18,8 +18,8 @@
 #include "cfsdat/Filters/BaseFilter.hh"
 #include <boost/bimap.hpp>
 #include <algorithm>
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdlib>
 
 namespace CFSDat{
 

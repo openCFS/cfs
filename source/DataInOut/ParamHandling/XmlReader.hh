@@ -22,10 +22,14 @@ namespace CoupledField {
      * is used.
      * @param name if wnds with .gz is automatically decompressed
      * @param schema xsd schema if present */
-    static PtrParamNode ParseFile(const std::string& file, const std::string& schema = "");
+    static PtrParamNode ParseFile(const std::string &file,
+                                  const std::string &schema = "",
+                                  const std::string &schemaUrl = "");
 
     /** same as parse file but from memory */
-    static PtrParamNode ParseString(const std::string& str, const std::string& schema = "");
+    static PtrParamNode ParseString(const std::string& str,
+                                    const std::string& schema = "",
+                                    const std::string &schemaUrl = "");
 
   private:
 

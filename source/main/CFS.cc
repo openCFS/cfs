@@ -377,12 +377,11 @@ void CFS::ReadXMLFile()
     cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
   // this is the new param stuff which replaces the old params - delete this comment finally
-  string schema = progOpts->GetSchemaPathStr();
-  schema += "/CFS-Simulation/CFS.xsd";
+  string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
 
   // parse the problem xml file, validate and fill with defaults from schema
   // continue to work only with the ParamNode tree
-  paramNode_ = XmlReader::ParseFile(xmlFile, schema);
+  paramNode_ = XmlReader::ParseFile(xmlFile, schema, "http://www.cfs++.org/simulation");
 
   // paramNode_->Dump();
 }

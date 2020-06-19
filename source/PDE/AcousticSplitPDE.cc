@@ -48,7 +48,7 @@ namespace CoupledField{
               : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
 
     pdename_           = "acousticSplit";
-    pdematerialclass_  = FLUID;
+    pdematerialclass_  = ACOUSTIC;
     nonLin_            = false;
     updatedGeo_        = false;
     formulation_ = SPLIT_SCALAR;

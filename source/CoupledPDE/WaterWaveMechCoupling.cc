@@ -39,7 +39,7 @@ namespace CoupledField {
     : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "waterWaveMechDirect";
-    materialClass_ = FLUID;
+    materialClass_ = ACOUSTIC;
 
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );

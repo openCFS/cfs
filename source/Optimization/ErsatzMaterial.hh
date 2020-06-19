@@ -127,7 +127,8 @@ protected:
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD,
-    EIGENFREQ    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
+    EIGENFREQ,    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
+    BUCKLING      /*!< The derivative is <u, (K' - ev G') u> */
   };
 
   /*!< add <u, K' u> which is in the real case as STANDARD
@@ -175,6 +176,7 @@ protected:
   virtual void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
 
   /** Helper that asks MechanicMaterial. Works only for a single region.
+   * works also with multiple regions if grid is regular
    * @param excitation we need to make sure the excitation is the active one for robust
    * @return empty if multiple regions */
   StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex);
@@ -284,6 +286,8 @@ protected:
    * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
+  void CalcEigenvalueDerivativeBuckling(Excitation& excite, Function* f, StateSolution* sol, Double ev);
+
   /** bandgap is the difference between two eigenfrequency problems in the bloch mode.
    * It would make sense to have a generic gap function between two independent functions */
   double CalcBandGap(Excitation& excite, Function* f, bool derivative);
@@ -308,9 +312,10 @@ protected:
   void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
 
   /** converts the teststrain vector in voigt notation to the corresponding matrix
+   * @param app application type (PDE)
    * @param matrix output
    * @param vec input */
-  void SetTestStrainMatrix(Matrix<double>& matrix, const Vector<double>& vec);
+  void SetTestStrainMatrix(App::Type app, Matrix<double>& matrix, const Vector<double>& vec);
 
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
@@ -374,6 +379,10 @@ protected:
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
   void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
 
+  /** This is a helper for SetElementK() which adds for App::MECH in the buckling case geometric stiffness
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddGeometricStiffnessToStiffness(Context* ctxt, const TransferFunction* tf, DesignElement* de, Matrix<Complex>& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
+
   /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructRealAdjointRHS()
    * @return true if function is handled */
   virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs) { return false; }
@@ -416,8 +425,7 @@ private:
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff  */
-  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, Function* f, DesignElement* de, bool derivative, Vector<double>& u1,
-      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1, Vector<double>& u2, UInt ij, UInt kl);
 
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
 
@@ -500,6 +508,9 @@ private:
   void ConstructRealAdjointRHS(Excitation& excite, Function* f);
   void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
 
+  void ConstructAdjointRHSBucklingOld(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
+  void ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
+
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set. Optionally also grad_out
@@ -545,6 +556,8 @@ private:
   bool interfaceDrivenGradCalc_;
 
   Function* trackingFunc_;
+
+  bool printProgressBar_;
 
   boost::shared_ptr<Timer> calc_u1ku2_timer_;
 

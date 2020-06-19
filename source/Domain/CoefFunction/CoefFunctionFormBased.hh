@@ -11,6 +11,7 @@
 #include "FeBasis/FeFunctions.hh"
 #include "Forms/Operators/BaseBOperator.hh"
 #include "Optimization/Design/DesignMaterial.hh"
+#include "Optimization/Context.hh"
 
 namespace CoupledField  {
 
@@ -219,7 +220,7 @@ public:
   //! Constructor
   CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
                     shared_ptr<ResultInfo> info,
-					PtrCoefFct stressCoef,
+                    PtrCoefFct stressCoef,
                     Double factor = 1.0 );
   //! Destructor
   virtual ~CoefFunctionEigen();
@@ -231,8 +232,7 @@ public:
   //@{ \name Access Methods
 
   //! \copydoc CoefFunction::GetVector
-  virtual void GetVector(Vector<Double>& coefVec,
-                         const LocPointMapped& lpm );
+  virtual void GetVector(Vector<Double>& coefVec, const LocPointMapped& lpm);
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
@@ -413,14 +413,14 @@ protected:
   LatticeBoltzmannPDE* lbm_;
 };
 
-/** Simply returns the stiffness tensor. Does not work by using the existining CoefFunction :( */
-template<class TYPE>
-class CoefFunctionStiffness : public CoefFunctionFormBased
+/** Simply returns the homogenized tensor. Does not work by using the existing CoefFunction :( */
+template<class TYPE, App::Type APP>
+class CoefFunctionHomogenization : public CoefFunctionFormBased
 {
 public:
-  CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation);
+  CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation = DesignMaterial::NO_TYPE);
 
-  virtual ~CoefFunctionStiffness();
+  virtual ~CoefFunctionHomogenization();
 
   //! \copydoc CoefFunction::GetTensorSize
   unsigned int GetVecSize() const;
@@ -442,7 +442,6 @@ private:
   DesignMaterial::Notation notation_;
 
 };
-
 
 } // end of namespace
 #endif

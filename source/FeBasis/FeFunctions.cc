@@ -14,29 +14,29 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
- DEFINE_LOG(fefunc, "feFunction")
+  DEFINE_LOG(fefunc, "feFunction")
 
  
 // Helper macro to generate prefix for logging output
 #define PREFIX  SolutionTypeEnum.ToString(result_->resultType) << ": "
  
- BaseFeFunction::BaseFeFunction(MathParser* mp){
+    BaseFeFunction::BaseFeFunction(MathParser* mp) {
 
-  fctId_ = NO_FCT_ID;
-  pde_ = NULL;
-  grid_ = NULL;
-  if(mp) {
-    mp_ = mp;
-    mHandle_ = mp_->GetNewHandle();
-  } else  {
-    mp_ = NULL;
-  }
-  algsys_ = NULL;
+    fctId_ = NO_FCT_ID;
+    pde_ = NULL;
+    grid_ = NULL;
+    if(mp) {
+      mp_ = mp;
+      mHandle_ = mp_->GetNewHandle();
+    } else  {
+      mp_ = NULL;
+    }
+    algsys_ = NULL;
 
-  // initialize members of coefficient function
-  dependType_ = CoefFunction::GENERAL;
-  isAnalytic_ = false;
-  dimType_ = NO_DIM;
+    // initialize members of coefficient function
+    dependType_ = CoefFunction::GENERAL;
+    isAnalytic_ = false;
+    dimType_ = NO_DIM;
 
   }
 
@@ -757,7 +757,7 @@ namespace CoupledField {
 
       for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
         if( eqns[iDof] != 0 ) {
-	    temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
+          temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
         } else {
           temp[iDof] = 0.0;
         }
@@ -775,16 +775,16 @@ namespace CoupledField {
      StdVector<Integer> eqns;
      Vector<T> & vals = *coeffs_;
      temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
-     for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
+     for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++) {
        feSpace_->GetEqns(eqns, it,iDof);
-       for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
+       for(UInt iEqn = 0; iEqn < eqns.GetSize() ; iEqn++) {
          if( eqns[iEqn] > 0 ) {
-         temp[iDof][iEqn] = factor_ * vals[std::abs(eqns[iEqn])-1];
-       } else {
-         temp[iDof][iEqn] = 0.0;
+           temp[iDof][iEqn] = factor_ * vals[std::abs(eqns[iEqn])-1];
+         } else {
+           temp[iDof][iEqn] = 0.0;
+         }
        }
      }
-   }
    }
    
   template<typename T>

@@ -449,7 +449,7 @@ namespace CoupledField
     bool IsGridRegular() const;
 
     //! Get name of region using a region id
-    std::string GetRegionName( RegionIdType& id );
+    std::string GetRegionName( RegionIdType id );
     
     //! Get vector containing all region names
     //! Get a vector which contains all region nodes. The order is in that way,
@@ -769,6 +769,7 @@ namespace CoupledField
     //! Return vector of element-neighbors for the node with number noOfNode
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
+    //! @see GetElemsByNode()
     virtual void GetNeighboursOfNode(const UInt noOfNode,
                                      StdVector<Elem*> * neighbours)
     { EXCEPTION( "Not implemented" ); }
