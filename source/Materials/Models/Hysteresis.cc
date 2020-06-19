@@ -407,10 +407,11 @@ namespace CoupledField
 	  * inside if we should not check for != 0 but for < tolerance!
 	  *
 	  */
-      
+      // 19.6.2020 move line out of if clause
+      startXVector = previousXVector;
       if(startXVector.NormL2() != 0){
 //        std::cout << "startXVector.NormL2() "<<startXVector.NormL2()<<" != 0" << std::endl;
-        startXVector = previousXVector;
+//        startXVector = previousXVector;
 
         if(previousYVector.NormL2() != 0){
           factor = currentYVector.NormL2()/previousYVector.NormL2();
@@ -444,7 +445,7 @@ namespace CoupledField
       dir.Add(1.0/currentYVector.NormL2(),currentYVector);
     }
 
-//    std::cout << "startXVector: " << startXVector.ToString() << std::endl;
+//    std::cout << "startXVector: " << startXVector.ToString(6) << std::endl;
     //    std::cout << "currentYVector.NormL2(): " << currentYVector.NormL2() << std::endl;
     //    std::cout << "dir: " << dir.ToString() << std::endl;
     //    std::cout << "XSaturated_: " << XSaturated_ << std::endl;
@@ -2832,7 +2833,7 @@ namespace CoupledField
     }
 
     LOG_TRACE(hysteresis_inversion) << " --------- END IVERSION --------- ";
-
+//    std::cout << "Finished local inversion after " << itCnt << " terations" << std::endl;
     return xVal;
   }
 

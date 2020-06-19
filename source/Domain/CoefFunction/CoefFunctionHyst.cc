@@ -8931,7 +8931,7 @@ namespace CoupledField {
 //    std::cout << "eps_mu_scal: " << eps_mu_scal << std::endl;
 //    std::cout << "eps_nu_base_[0][0]: " << eps_nu_base_[0][0] << std::endl;
 //
-    UInt outputEveryNthStep = 1; // 10
+    UInt outputEveryNthStep = 10; // 10
 		for(UInt i = 0; i < totalSteps; i++){
 			if( (i%outputEveryNthStep == 0)&&(printStatistics) ){
 				std::cout << "STEP NR " << i+1 << "/" << totalSteps << " #####" << std::endl;
