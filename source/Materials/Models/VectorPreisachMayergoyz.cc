@@ -619,11 +619,50 @@ namespace CoupledField
     Double absXNormalized = absX/XSaturated_;
     Double gX = std::exp(-lossParam_a_*absXNormalized + lossParam_b_);
     // regarding note from 19.06.2020 above: limit angular correction (=maximal angular lag) to absDPhi
+    Double psi = 0;
+    
+    // note: 20.6.2020 - be restricting the angluar lag to absDPhi we are again able to invert the mayergoyz
+    // model appropriately as the jacobian no longer jumps; however, this restriction also leads to a non-sufficient
+    // reduction of rotational losses
+    int mode = 3;
+//    std::cout << "Mode = "<<mode<<"; rotA = "<<lossParam_a_<<"; rotB = "<<lossParam_b_<<std::endl;
+    // 0: unrestricted; matching works but inversion fails
+    // 1: restricted to absDPhi; inversion works but matching fails; rotloss is not reduced to 0
+    // 2: restricted to absDPhi; negative value returned; same issue as 1
+    // 3: restricted to 0,2pi; maybe this works > yes it does! it leads to the same rotational losses as mode 0 but
+    //    keeps the model invertible with newton, as the jacobian no longer jumps
+    // CONCLUSION: 
+    //  - angular lag must be allowed to become larger than absXNormalized
+    //  - angular lag must be allowed to become larger than 180 degree, i.e., it some of the scalar models
+    //      must be allowed to flip their direction!
+    //  - ONLY MODE 3 WORKING PROPERLY AT THE MOMEMENT!
+    // Further note: if the starting value for Newton inversion is good enough, the problem with the exploding
+    //  Jacobian does not appear for mode 0 either! Nevertheless, it is a risk to use mode 0.
+    if(mode != 3){
+      WARN("Lag correction for extended Mayergoyz model with mode "<<mode<<" requested. However, only mode 3 is working properly (at the moment).")
+    }
+    
     Double scaling = gX*absXNormalized;
-    if(scaling > 1.0){
-      scaling = 1.0;
-    } 
-    Double psi = scaling*absDPhi;
+    if(mode == 0){
+      psi = scaling*absDPhi;
+    } else if(mode == 1){
+      if(scaling > 1.0){
+        scaling = 1.0;
+      }
+      psi = scaling*absDPhi;
+    } else if(mode == 2){
+      if(scaling > 1.0){
+        scaling = 1.0;
+      }
+      psi = -scaling*absDPhi;
+    } else if(mode == 3){
+      psi = scaling*absDPhi;
+      if(psi > 2*M_PI){
+        psi = 2*M_PI;
+//        std::cout << "Psi restricted to 2pi"<<std::endl;
+      }
+    }
+//    std::cout << "Psi = "<<psi<<std::endl;
     return psi;
   }
 }

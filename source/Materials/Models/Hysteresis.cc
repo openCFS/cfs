@@ -408,6 +408,7 @@ namespace CoupledField
 	  *
 	  */
       // 19.6.2020 move line out of if clause
+      // > works apparently better than starting from zero-vector!
       startXVector = previousXVector;
       if(startXVector.NormL2() != 0){
 //        std::cout << "startXVector.NormL2() "<<startXVector.NormL2()<<" != 0" << std::endl;
