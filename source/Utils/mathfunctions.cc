@@ -2,10 +2,8 @@
 #include <iostream>
 
 #include "mathfunctions.hh"
-#include "MatVec/Vector.hh"
-#include "Utils/tools.hh"
-#include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
+#include "MatVec/Vector.hh"
 
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/math/special_functions/hankel.hpp>
@@ -286,6 +284,9 @@ namespace CoupledField {
     return -tmp+log(2.5066282746310005*ser/x);
   }
  
+// Exclude these functions to eliminate dependence on Matrix.cc
+#ifndef CFS_NO_MATRIX_FUNCTIONS
+
   /* this method determines an approximation of the eigenvalues lambda of a 
      symmetric positive definite matrix. (lambda * A = lambda x)
      Input: 
@@ -462,78 +463,6 @@ namespace CoupledField {
       }
   }
 
-  /* Commented out due to refactoring.
-   * Can be removed, if implementation in Vector class works.
-  Double Normalize(Vector<Double>& vec)
-  {
-    Double norm = vec.NormL2();
-    if(norm < 1e-20)
-        vec *= 0.0;
-    else
-        vec *= 1.0 / norm;
-
-    return norm;
-  }
-    
-  void CrossProd(const Vector<Double>& a,
-                 const Vector<Double>& b,
-                 Vector<Double> &result)
-  {
-#ifdef CHECK_INDEX
-    if (a.GetSize() != 3)
-      EXCEPTION("Incompatible vector dimensions for CrossProd()");
-    if (b.GetSize() != 3)
-      EXCEPTION("Incompatible vector dimensions for CrossProd()");
 #endif
-
-    result.Resize(3);
-
-    result[0] =  a[1] * b[2] - a[2] * b[1];
-    result[1] = -a[0] * b[2] + a[2] * b[0];
-    result[2] =  a[0] * b[1] - a[1] * b[0];
-  }
-    
-  bool CoLinear(const Vector<Double> &a, const Vector<Double> &b)
-  {
-      Vector<Double> c;
-      CrossProd(a, b, c);
-      return (fabs(c.NormL2()) < 1e-12);
-  }
-
-  void GetBarycentricCoords(const Vector<Double>& p1,
-                            const Vector<Double>& p2,
-                            const Vector<Double>& p3,
-                            const Vector<Double>& p,
-                            Vector<Double>& b)
-  {
-    Vector<Double> u, w, v, diff, normal, n;
-    Double area_factor;
-
-    w = p2 - p1;
-    //    v = p1 - p3;
-    u = p3 - p2;
-
-    CrossProd(w, u, normal);
-    area_factor = 1.0 / Normalize(normal);
-
-    diff = p - p1;
-    CrossProd(w, diff, n);
-
-    normal.Inner(n, b[2]);
-    b[2] *= area_factor;
-
-    diff = p - p2;
-    CrossProd(u, diff, n);
-    normal.Inner(n, b[0]);
-    b[0] *= area_factor;
-
-    //diff = p - p3;
-    //v.Cross(diff, n);
-    //normal.Inner(n, b[1]);
-    //b[1] *= area_factor;
-
-    b[1] = 1 - b[0] - b[2];
-  }
-*/
 
 } // end of namespace

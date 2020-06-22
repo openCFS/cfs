@@ -2383,9 +2383,10 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
   // TODO: also true for other eigenvalue solver?
   if (!f->ctxt->GetBucklingDriver()->IsInverseProblem())
   {
+#ifdef DEBUG
     StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(f->ctxt->pde->GetSolveStep());
-    BaseEigenSolver::EigenSolverType solver = sstep->GetAlgSys()->GetEigenSolver()->GetEigenSolverName();
-    assert(solver == BaseEigenSolver::ARPACK);
+    assert(sstep->GetAlgSys()->GetEigenSolver()->GetEigenSolverName() == BaseEigenSolver::ARPACK);
+#endif
 
     // Calculate mode^T * G * mode.
 //    Vector<Complex>& mode = forward.Get(excite, NULL, mode_idx)->GetComplexVector(StateSolution::RAW_VECTOR);

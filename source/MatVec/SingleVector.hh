@@ -12,10 +12,10 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    SingleVector();
+    SingleVector() : size_(0) {};
 
     //! Default destructor
-    virtual ~SingleVector();
+    virtual ~SingleVector() {};
 
     //! Return the length of the vector
     UInt GetSize() const {

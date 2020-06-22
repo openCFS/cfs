@@ -87,7 +87,7 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     break;
 
   case BasePDE::STATIC:
-    // FIXME num_static_loads not that easy to determine w/o pde. allows 0 (explixit excitions or homogenization) or more
+    // FIXME num_static_loads not that easy to determine w/o pde. allows 0 (explixit excitations or homogenization) or more
     break;
 
   case BasePDE::TRANSIENT:

@@ -1,0 +1,536 @@
+/*
+ * muparsermodule.cpp
+ *
+ *  Created on: 24.10.2019
+ *      Author: Jens Grabinger <jensemann126@gmail.com>
+ */
+
+#include <sstream>
+#include <Python.h>
+#include "muParser.h"
+#include "Utils/mathParser/registerfunc.hh"
+
+// MuParser Python Object
+typedef struct {
+    PyObject_HEAD
+    mu::Parser *parser;
+    std::map<std::string, double> *vars;
+} MuParserObject;
+
+// Convert muParser exception into Python exception
+static void FormatMuPError(mu::Parser::exception_type &ex) {
+    int pos = ex.GetPos();
+
+    if (pos >= 0 && ex.GetExpr().length() > 0) {
+        std::ostringstream oss;
+        oss << ex.GetMsg() << std::endl << "\t" << ex.GetExpr() << std::endl << "\t";
+        for (int i = 0; i < pos; ++i) {
+            oss << ".";
+        }
+        oss << "^";
+        PyErr_SetString(PyExc_SyntaxError, oss.str().c_str());
+        return;
+    }
+
+    PyErr_SetString(PyExc_RuntimeError, ex.GetMsg().c_str());
+}
+
+// Object Allocation
+static PyObject* MuParser_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    MuParserObject *self = (MuParserObject*) type->tp_alloc(type, 0);
+
+    if (self != NULL) {
+        self->parser = new mu::Parser();
+        self->vars = new std::map<std::string, double>();
+    }
+
+    return (PyObject*) self;
+}
+
+// Object Deallocation
+static void MuParser_dealloc(MuParserObject *self) {
+    if (self->parser != NULL) {
+        delete self->parser;
+        self->parser = NULL;
+    }
+    if (self->vars != NULL) {
+        delete self->vars;
+        self->vars = NULL;
+    }
+
+    Py_TYPE(self)->tp_free((PyObject*) self);
+}
+
+// Object Initialization
+static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
+    static char *kwlist[] = {"expr", "vars", "consts", NULL};
+    char *expr = NULL;
+    PyObject *vars = NULL, *consts = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|zOO", kwlist, &expr, &vars, &consts)) {
+        return -1;
+    }
+
+    self->parser->ClearConst();
+    self->parser->ClearVar();
+    self->vars->clear();
+    
+    CoupledField::RegisterFunctions(*self->parser);
+
+    if (expr != NULL) {
+        std::string exprStr(expr);
+        try {
+            self->parser->SetExpr(exprStr);
+        }
+        catch (mu::Parser::exception_type &ex) {
+            FormatMuPError(ex);
+            return -1;
+        }
+    }
+    else {
+        self->parser->SetExpr("");
+    }
+
+    if (vars != NULL && vars != Py_None) {
+        if (PyMapping_Check(vars) == 0) {
+            PyErr_SetString(PyExc_TypeError, "argument 'vars' must be dict");
+            return -1;
+        }
+
+        PyObject *items = PyMapping_Items(vars);
+        Py_ssize_t numVars = PySequence_Length(items);
+
+        for (Py_ssize_t i = 0; i < numVars; ++i) {
+            PyObject *item = PySequence_GetItem(items, i);
+            PyObject *varName = PySequence_GetItem(item, 0);
+            PyObject *number = PySequence_GetItem(item, 1);
+            PyObject *value = NULL;
+
+            if (varName == NULL || !PyUnicode_Check(varName)) {
+                Py_DECREF(item);
+                Py_XDECREF(varName);
+                Py_XDECREF(number);
+                PyErr_Format(PyExc_TypeError, "Name of variable %d must be str", i+1);
+                return -1;
+            }
+
+            if (number != NULL) {
+                value = PyNumber_Float(number);
+            }
+            if (value == NULL) {
+                Py_DECREF(item);
+                Py_DECREF(varName);
+                Py_XDECREF(number);
+                PyErr_Format(PyExc_TypeError, "Value of variable %d is not a number", i+1);
+                return -1;
+            }
+
+            PyObject *asciiVar = PyUnicode_AsASCIIString(varName);
+            if (asciiVar == NULL) {
+                Py_DECREF(item);
+                Py_DECREF(varName);
+                Py_DECREF(number);
+                Py_DECREF(value);
+                PyErr_Format(PyExc_ValueError, "Name of variable %d is not a valid ASCII string", i+1);
+                return -1;
+            }
+
+            std::string varNameStr(PyBytes_AsString(asciiVar));
+            (*(self->vars))[varNameStr] = PyFloat_AsDouble(value);
+
+            try {
+                self->parser->DefineVar(varNameStr, &((*(self->vars))[varNameStr]));
+            }
+            catch (mu::Parser::exception_type &ex) {
+                Py_DECREF(item);
+                Py_DECREF(varName);
+                Py_DECREF(number);
+                Py_DECREF(value);
+                Py_DECREF(asciiVar);
+                FormatMuPError(ex);
+                return -1;
+            }
+
+            Py_DECREF(item);
+            Py_DECREF(varName);
+            Py_DECREF(number);
+            Py_DECREF(value);
+            Py_DECREF(asciiVar);
+        }
+
+        Py_DECREF(items);
+    }
+
+    if (consts != NULL && consts != Py_None) {
+        if (PyMapping_Check(consts) == 0) {
+            PyErr_SetString(PyExc_TypeError, "argument 'consts' must be dict");
+            return -1;
+        }
+
+        PyObject *items = PyMapping_Items(consts);
+        Py_ssize_t numConsts = PySequence_Length(items);
+
+        for (Py_ssize_t i = 0; i < numConsts; ++i) {
+            PyObject *item = PySequence_GetItem(items, i);
+            PyObject *constName = PySequence_GetItem(item, 0);
+            PyObject *number = PySequence_GetItem(item, 1);
+            PyObject *value = NULL;
+
+            if (constName == NULL || !PyUnicode_Check(constName)) {
+                Py_DECREF(item);
+                Py_XDECREF(constName);
+                Py_XDECREF(number);
+                PyErr_Format(PyExc_TypeError, "Name of constant %d must be str", i+1);
+                return -1;
+            }
+
+            if (number != NULL) {
+                value = PyNumber_Float(number);
+            }
+            if (value == NULL) {
+                Py_DECREF(item);
+                Py_DECREF(constName);
+                Py_XDECREF(number);
+                PyErr_Format(PyExc_TypeError, "Value of constant %d is not a number", i+1);
+                return -1;
+            }
+
+            PyObject *asciiConst = PyUnicode_AsASCIIString(constName);
+            if (asciiConst == NULL) {
+                Py_DECREF(item);
+                Py_DECREF(constName);
+                Py_DECREF(number);
+                Py_DECREF(value);
+                PyErr_Format(PyExc_ValueError, "Name of constant %d is not a valid ASCII string", i+1);
+                return -1;
+            }
+
+            std::string constNameStr(PyBytes_AsString(asciiConst));
+
+            try {
+                self->parser->DefineConst(constNameStr, PyFloat_AsDouble(value));
+            }
+            catch (mu::Parser::exception_type &ex) {
+                Py_DECREF(item);
+                Py_DECREF(constName);
+                Py_DECREF(number);
+                Py_DECREF(value);
+                Py_DECREF(asciiConst);
+                FormatMuPError(ex);
+                return -1;
+            }
+
+            Py_DECREF(item);
+            Py_DECREF(constName);
+            Py_DECREF(number);
+            Py_DECREF(value);
+            Py_DECREF(asciiConst);
+        }
+
+        Py_DECREF(items);
+    }
+
+    return 0;
+}
+
+// Obtain the math expression
+static PyObject* MuParser_getexpr(MuParserObject *self, void *closure) {
+    PyObject *expr = NULL;
+
+    try {
+        expr = PyUnicode_FromString(self->parser->GetExpr().c_str());
+    }
+    catch (mu::Parser::exception_type &ex) {
+        FormatMuPError(ex);
+    }
+
+    return expr;
+}
+
+// Set the math expression
+static int MuParser_setexpr(MuParserObject *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the expr attribute");
+        return -1;
+    }
+    if (!PyUnicode_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The expr attribute value must be a string");
+        return -1;
+    }
+
+    PyObject *asciiBytes = PyUnicode_AsASCIIString(value);
+    if (asciiBytes == NULL) return -1;
+
+    std::string expr(PyBytes_AsString(asciiBytes));
+
+    try {
+        self->parser->SetExpr(expr);
+    }
+    catch (mu::Parser::exception_type &ex) {
+        Py_DECREF(asciiBytes);
+        FormatMuPError(ex);
+        return -1;
+    }
+
+    Py_DECREF(asciiBytes);
+
+    return 0;
+}
+
+// Evaluate the math expression
+static PyObject* MuParser_eval(MuParserObject *self) {
+    int resultSize = 0;
+    mu::value_type *values = NULL;
+
+    try {
+        values = self->parser->Eval(resultSize);
+    }
+    catch (mu::Parser::exception_type &ex) {
+        FormatMuPError(ex);
+        return NULL;
+    }
+
+    PyObject *result = NULL;
+
+    if (resultSize == 1) {
+        result = PyFloat_FromDouble(values[0]);
+    }
+    else {
+        result = PyTuple_New((Py_ssize_t) resultSize);
+
+        if (result != NULL) {
+            for (int i = 0; i < resultSize; ++i) {
+                PyTuple_SetItem(result, i, PyFloat_FromDouble(values[i]));
+            }
+        }
+    }
+
+    return result;
+}
+
+// Obtain the value of a variable
+static PyObject* MuParser_getvar(MuParserObject *self, PyObject *args) {
+    char *name = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &name)) return NULL;
+
+    std::string nameStr(name);
+    std::map<std::string, double>::iterator var = self->vars->find(nameStr);
+
+    if (var == self->vars->end()) {
+        Py_RETURN_NONE;
+    }
+
+    return PyFloat_FromDouble(var->second);
+}
+
+// Define a variable
+static PyObject* MuParser_setvar(MuParserObject *self, PyObject *args, PyObject *kwds) {
+    static char *kwlist[] = {"name", "value", NULL};
+    char *name = NULL;
+    double value = 0.0;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "sd", kwlist, &name, &value)) {
+        return NULL;
+    }
+
+    std::string nameStr(name);
+    std::map<std::string, double>::iterator var = self->vars->find(nameStr);
+
+    (*(self->vars))[nameStr] = value;
+
+    if (var == self->vars->end()) {
+        try {
+            self->parser->DefineVar(nameStr, &((*(self->vars))[nameStr]));
+        }
+        catch (mu::Parser::exception_type &ex) {
+            self->vars->erase(nameStr);
+            FormatMuPError(ex);
+            return NULL;
+        }
+    }
+
+    Py_RETURN_NONE;
+}
+
+
+// Remove a variable
+static PyObject* MuParser_removevar(MuParserObject *self, PyObject *args) {
+    char *name = NULL;
+    if (!PyArg_ParseTuple(args, "s", &name)) return NULL;
+
+    std::string nameStr(name);
+    if (self->vars->find(nameStr) == self->vars->end()) {
+        PyErr_SetString(PyExc_ValueError, "Variable does not exist");
+        return NULL;
+    }
+
+    try {
+        self->parser->RemoveVar(nameStr);
+    }
+    catch (mu::Parser::exception_type &ex) {
+        FormatMuPError(ex);
+        return NULL;
+    }
+
+    self->vars->erase(nameStr);
+
+    Py_RETURN_NONE;
+}
+
+// Obtain the value of a constant
+static PyObject* MuParser_getconst(MuParserObject *self, PyObject *args) {
+    char *name = NULL;
+    if (!PyArg_ParseTuple(args, "s", &name)) return NULL;
+
+    std::string nameStr(name);
+    mu::valmap_type constMap;
+
+    try {
+        constMap = self->parser->GetConst();
+    }
+    catch (mu::Parser::exception_type &ex) {
+        FormatMuPError(ex);
+        return NULL;
+    }
+
+    mu::valmap_type::const_iterator constIt = constMap.begin(),
+                                            constEnd = constMap.end();
+    for ( ; constIt != constEnd; ++constIt) {
+        if (constIt->first == nameStr) {
+            return PyFloat_FromDouble(constIt->second);
+        }
+    }
+
+    Py_RETURN_NONE;
+}
+
+// Define a constant
+static PyObject* MuParser_setconst(MuParserObject *self, PyObject *args, PyObject *kwds) {
+    static char *kwlist[] = {"name", "value", NULL};
+    char *name = NULL;
+    double value = 0.0;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "sd", kwlist, &name, &value)) {
+        return NULL;
+    }
+
+    std::string nameStr(name);
+
+    try {
+        self->parser->DefineConst(nameStr, value);
+    }
+    catch (mu::Parser::exception_type &ex) {
+        FormatMuPError(ex);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+// Method Table of MuParser Class
+static PyMethodDef muparserMethods[] = {
+    {"eval", (PyCFunction) MuParser_eval, METH_NOARGS,
+        PyDoc_STR("Evaluate the expression and return the result value")},
+    {"get_var", (PyCFunction) MuParser_getvar, METH_VARARGS,
+        PyDoc_STR("Retrieve the value of a variable, or None if the variable doesn't exist")},
+    {"set_var", (PyCFunction) MuParser_setvar, METH_VARARGS | METH_KEYWORDS,
+        PyDoc_STR("Define a named variable and set its value")},
+    {"remove_var", (PyCFunction) MuParser_removevar, METH_VARARGS,
+        PyDoc_STR("Remove a named variable")},
+    {"get_const", (PyCFunction) MuParser_getconst, METH_VARARGS,
+        PyDoc_STR("Retrieve the value of a constant, or None if the constant doesn't exist")},
+    {"set_const", (PyCFunction) MuParser_setconst, METH_VARARGS | METH_KEYWORDS,
+        PyDoc_STR("Define a named constant and set its value")},
+    {NULL, NULL, 0, NULL}
+};
+
+// Getters and Setters of MuParser Class
+static PyGetSetDef muparserGetSet[] = {
+    {"expr", (getter) MuParser_getexpr, (setter) MuParser_setexpr,
+            PyDoc_STR("Mathematical expression to be evaluated"), NULL},
+    {NULL}
+};
+
+// MuParser Python Type
+static PyTypeObject muparser_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "muparser.muparser",                      // tp_name
+    sizeof(MuParserObject),                   // tp_basicsize
+    0,                                        // tp_itemsize
+    (destructor) MuParser_dealloc,            // tp_dealloc
+    NULL,                                     // tp_print
+    NULL,                                     // tp_getattr
+    NULL,                                     // tp_setattr
+    NULL,                                     // tp_as_async
+    NULL,                                     // tp_repr
+    NULL,                                     // tp_as_number
+    NULL,                                     // tp_as_sequence
+    NULL,                                     // tp_as_mapping
+    NULL,                                     // tp_hash
+    NULL,                                     // tp_call
+    NULL,                                     // tp_str
+    NULL,                                     // tp_getattro
+    NULL,                                     // tp_setattro
+    NULL,                                     // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, // tp_flags
+    "muparser",                               // tp_doc
+    NULL,                                     // tp_traverse
+    NULL,                                     // tp_clear
+    NULL,                                     // tp_richcompare
+    0,                                        // tp_weaklistoffset
+    NULL,                                     // tp_iter
+    NULL,                                     // tp_iternext
+    muparserMethods,                          // tp_methods
+    NULL,                                     // tp_members
+    muparserGetSet,                           // tp_getset
+    NULL,                                     // tp_base
+    NULL,                                     // tp_dict
+    NULL,                                     // tp_descr_get
+    NULL,                                     // tp_descr_set
+    0,                                        // tp_dictoffset
+    (initproc) MuParser_init,                 // tp_init
+    NULL,                                     //tp_alloc
+    MuParser_new,                             // tp_new
+    NULL,                                     // tp_free
+    NULL,                                     // tp_is_gc
+    NULL,                                     // tp_bases
+    NULL,                                     // tp_mro
+    NULL,                                     // tp_cache
+    NULL,                                     // tp_subclasses
+    NULL,                                     // tp_weaklist
+    NULL,                                     // tp_del
+    0,                                        // tp_version_tag
+    NULL                                      // tp_finalize
+};
+
+// Module Definition
+static struct PyModuleDef muparsermodule = {
+    PyModuleDef_HEAD_INIT,
+    "muparser",
+    "Top-level package for PyMuParser.",
+    -1,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+// Module Initialization
+PyMODINIT_FUNC PyInit_muparser() {
+    PyObject * module = NULL;
+
+    if (PyType_Ready(&muparser_type) < 0) return NULL;
+
+    module = PyModule_Create(&muparsermodule);
+    if (module == NULL) return NULL;
+
+    PyModule_AddStringConstant(module, "__version__", "@PYMUPARSER_VERSION@");
+
+    Py_INCREF(&muparser_type);
+    PyModule_AddObject(module, "muparser", (PyObject*) &muparser_type);
+
+    return module;
+}
+

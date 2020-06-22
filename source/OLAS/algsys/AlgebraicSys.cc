@@ -282,12 +282,12 @@ namespace CoupledField {
             if( iCol <  Nmax){
               id.rowInd = iRow;
               id.colInd = iCol;
-              LOG_TRACE(algSys) << "(row,col)=("<<iRow<<","<<iCol<<")";
+              LOG_DBG2(algSys) << "(row,col)=("<<iRow<<","<<iCol<<")";
               sbmPatternIds_[id] = NO_PATTERN_ID;
               // transposed
               id.rowInd = iCol;
               id.colInd = iRow;
-              LOG_TRACE(algSys) << "(row,col)=("<<iCol<<","<<iRow<<")";
+              LOG_DBG2(algSys) << "(row,col)=("<<iCol<<","<<iRow<<")";
               sbmPatternIds_[id] = NO_PATTERN_ID;
             }
           }
@@ -3600,7 +3600,7 @@ namespace CoupledField {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
-        LOG_DBG2(algSys) << "i= " << i << "retVec[i]= " << entry;
+        LOG_DBG2(algSys) << "retVec[" << i << "]= " << entry;
       }
 
     }
@@ -3622,6 +3622,7 @@ namespace CoupledField {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
+        LOG_DBG2(algSys) << "retVec[" << i << "]= " << entry;
       }
     }
   }
