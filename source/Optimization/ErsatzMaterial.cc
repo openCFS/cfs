@@ -1032,8 +1032,15 @@ void ErsatzMaterial::AddGeometricStiffnessToStiffness(Context* ctxt, const Trans
 
   Double factor = 1.0;
   Double tv =  tf->Transform(de, DesignElement::SMART, bimaterial);
-  Double dv =  tf->Derivative(de, DesignElement::SMART, bimaterial);
-  // we already applied the transfer function in calculation of the stresses = dMat
+  Double dv;
+
+  if(Optimization::context->dm != NULL)
+    // ParamMat (i.e. design material) modifies the tensor directly and the derivative is 1.0
+    dv = 1.0;
+  else
+    dv = tf->Derivative(de, DesignElement::SMART, bimaterial);
+
+  // we already applied the transfer function in calculation of the stresses = dMat for the non-derivative case
   factor *= derivative ? dv/tv : 1.0;
 
   if (!context->GetBucklingDriver()->IsInverseProblem())
@@ -1721,6 +1728,9 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   // TODO: App::MECH is stupid when we do App::LBM
   TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), App::MECH) : NULL;
   bool regular = design->IsRegular();
+  // FIXME: Careful: This is not always the number of elements in the grid!
+  // e.g. for FMO it is number of design tensor entries times the number of elements in the grid
+  // i.e. in 2D numEls = 6 * nelemGrid
   unsigned int numEls = f->elements.GetSize();
   unsigned int base;
   if(design->HasMultiMaterial())
@@ -1742,7 +1752,7 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
         total_vol += f->elements[i]->CalcVolume();
     }
     else
-    total_vol = numEls;
+      total_vol = numEls;
   }
   // in the multimaterial case we have to consider, the multiple design element case
   if(design->HasMultiMaterial())
@@ -1858,7 +1868,6 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
   else // now comes not derivative
   {
     UInt timesteps = func->ctxt->GetDriver()->GetNumSteps();
-    result = 0.0;
     for(unsigned int ts = 0; ts < timesteps; ++ts)
     {
       // this formulation works for transient as well as static cases, integral over time
@@ -4230,7 +4239,8 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
 
     const EntityList* entities = linEla_blfc->GetFirstEntities().get();
 
-    UInt en = f->elements.GetSize();
+    // UInt en = domain->GetGrid()->GetNumElems();
+    UInt en = design->GetNumberOfElements();
 
 #pragma omp parallel firstprivate(buckl_ea, linEla_ea) num_threads(CFS_NUM_THREADS)
     {

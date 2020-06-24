@@ -946,7 +946,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     return false;
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(Optimization::context->dm != NULL) // easy to extend to piezo and other stuff!
+  // if we do prestressing (e.g. in buckling analysis), the tensor is never constructed but instead generated from stresses
+  if(Optimization::context->dm != NULL && coef->GetForm()->GetName() != "PreStressInt") // easy to extend to piezo and other stuff!
   {
     if(DoMSFEM())
     {
@@ -955,8 +956,6 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     }
     return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
-
-  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
   if (coef->GetForm()->GetName() == "PreStressInt")
@@ -969,6 +968,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   // we store the original material tensor in retMat
   coef->orgMat->GetTensor(retMat, *lpm);
+
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   if(app == App::MAG)
   {
@@ -1180,12 +1181,12 @@ double DesignSpace::GetErsatzMaterialFactor(DesignElement* de, App::Type applic,
   double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
   LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum
       << " trans to " << DesignElement::ToString(trans,true)
-  << "/" << Optimization::application.ToString(applic) << " for "
-  << DesignElement::type.ToString(dt) << ": "
-  << TransferFunction::type.ToString(tf->GetType()) << "("
-  << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-  << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
-  << " -> " << transformed;
+      << "/" << Optimization::application.ToString(applic) << " for "
+      << DesignElement::type.ToString(dt) << ": "
+      << TransferFunction::type.ToString(tf->GetType()) << "("
+      << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
+      << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
+      << " -> " << transformed;
   return transformed;
 }
 

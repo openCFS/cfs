@@ -19,10 +19,23 @@ args = parser.parse_args()
 pwd = os.getcwd()
 
 # the cfs main directory
-cfs = os.path.abspath(os.path.join(pwd, os.pardir))
+cfs = ''
+with open("CMakeCache.txt") as config_file:
+  for line in config_file:
+    if 'CFS_SOURCE_DIR' in line:
+      cfs = line.split('=')[1].rstrip()
+      break
+if not cfs:
+  cfs = input('Could not find cfs source directory. Please enter:')
 
-if not os.path.exists(cfs + '/share') and not os.path.exists(cfs + '/bin'):
-  print('The current directory is no build directory within a CFS++ directory.')
+#cfs = os.path.abspath(os.path.join(pwd, os.pardir))
+
+if not os.path.exists(cfs + '/share'): 
+  print('The cfs directory seems to be wrong.')
+  os.sys.exit()
+
+if not os.path.exists(pwd + '/bin'):
+  print('The current directory is no build directory.')
   os.sys.exit()
 
 # here we copy the stuff, delete afterwards

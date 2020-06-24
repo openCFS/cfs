@@ -60,7 +60,7 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
     const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
 
-    if(context->DoBuckling())
+    if(app == App::BUCKLING)
     {
 //      out *= -ev;
 
@@ -75,7 +75,7 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
       }
     }
 
-    if(context->IsComplex())
+    if(context->IsComplex() && !context->DoBuckling())
     {
       AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();

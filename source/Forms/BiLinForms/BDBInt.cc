@@ -77,8 +77,6 @@ namespace CoupledField{
 
     const UInt nrFncs = ptFe->GetNumFncs();
 
-
-
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
     // Get integration points
@@ -98,7 +96,7 @@ namespace CoupledField{
       // it would be nicer to have a separate MS-FEM call
       if(domain->GetDesign()->ApplyPhysicalDesign<MAT_DATA_TYPE>(dynamic_pointer_cast<CoefFunctionOpt>(dData_), elemMat, &lp))
       {
-        LOG_DBG3(bdbint) << "BDBInt: MS-FEM elem=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum << " elemMat=" << elemMat.ToString();
+        //LOG_DBG3(bdbint) << "BDBInt: MS-FEM elem=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum << " elemMat=" << elemMat.ToString();
         return;
       }
     }
@@ -111,7 +109,7 @@ namespace CoupledField{
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
-      LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
@@ -130,8 +128,8 @@ namespace CoupledField{
 #else
       dbMat_ = (dMat_ * bMat_) * fac;
       elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
-      // LOG_DBG3(bdbint) << "bMat: " << bMat_.ToString(2) << " transpose:"  << TransposeConjugate(bMat_).ToString(2);
-      // LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << " dMat= " << dMat_.ToString(2) << " bmat=" << bMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "bMat: " << bMat_.ToString(2) << " transpose:"  << TransposeConjugate(bMat_).ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << " dMat= " << dMat_.ToString(2) << " bmat=" << bMat_.ToString(2);
       //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " dBMat=" << dbMat_.ToString(2) << " -> K_" << i << "=" << elemMat.ToString(2);
 #endif
 

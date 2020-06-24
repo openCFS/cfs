@@ -4023,8 +4023,6 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 
   switch (type_) {
   case FMO:
-      GetElasticFMOTensor(t, subTensor, direction, notation);
-    break;
   case SGP_MATLAB:
       GetElasticFMOTensor(t, subTensor, direction, notation);
       break;
