@@ -1317,7 +1317,7 @@ namespace CoupledField {
       }
 
       bool testoutput = false;
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
       bool onBoundary;
 
@@ -1326,7 +1326,7 @@ namespace CoupledField {
          * check for boundary elements; on these surface elements we cannot eval the material relation and this
          * should not be required either
          */
-        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx);
+        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
         if(onBoundary){
           continue;
         }
@@ -1638,17 +1638,20 @@ namespace CoupledField {
         invertSlope = false; // take dD/dE
       }
 
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
       bool onBoundary;
-
+      
+      std::map<UInt, Matrix<Double> > jacobianEvaluatedAtElement;
+      std::map<UInt, Matrix<Double> >::iterator jacobianEvaluatedAtElement_it;
+      
       // trace all LPM
       for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
         /*
          * check for boundary elements; on these surface elements we cannot eval the material relation and this
          * should not be required either
          */
-        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx);
+        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
         if(onBoundary){
           continue;
         }
@@ -1671,9 +1674,33 @@ namespace CoupledField {
         }
 
         if(evalJacobian){
-          // new; set parameter timelevel_old to 3 forces jacobian; do not use storage values here but force new evaluation
-          // (Note: the value would not be saved either, but this is not imporatant as the deltaMat storage is not required here)
-          Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
+          if(evalJacAtMidpointOnly_){
+//            std::cout << "evalJacAtMidpointOnly" << std::endl;
+            // check if Jacobian was already evaluated for the current element; if so > reload Jacobian
+            jacobianEvaluatedAtElement_it = jacobianEvaluatedAtElement.find(idxElem);
+            if(jacobianEvaluatedAtElement_it != jacobianEvaluatedAtElement.end()){
+              Jacobian = jacobianEvaluatedAtElement_it->second;
+//              std::cout << "Jacobian found for element "<<idxElem<<": "<<Jacobian.ToString() << std::endl;
+            } else {
+              // enforce midpoint, update LPM
+              int RUN_evaluationPurpose_BAK = RUN_evaluationPurpose_;
+              RUN_evaluationPurpose_ = 4; // output; only at midpoint
+              PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
+              
+              // evaluate and store Jacobian at midpoint
+              Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
+              jacobianEvaluatedAtElement[idxElem] = Jacobian;
+//              std::cout << "Computed and stored Jacobian for element "<<idxElem<<": "<<Jacobian.ToString() << std::endl;
+              
+              // revert LPM
+              RUN_evaluationPurpose_ = RUN_evaluationPurpose_BAK;
+              PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
+            }
+          } else {
+            // new; set parameter timelevel_old to 3 forces jacobian; do not use storage values here but force new evaluation
+            // (Note: the value would not be saved either, but this is not imporatant as the deltaMat storage is not required here)
+            Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
+          }
           if(testoutput){
             std::cout << "Resulting Jacobian: " << Jacobian.ToString() << std::endl;
           }
@@ -1771,9 +1798,8 @@ namespace CoupledField {
           }
 
           if(testoutput){
+            std::cout << "idx="<<LPMit->first<<"-slope1=" << slope1 <<"-slope2="<<slope2<< std::endl;
             std::cout << "Jacobian = " << Jacobian.ToString() << std::endl;
-            std::cout << "slope1 = " << slope1 << std::endl;
-            std::cout << "slope2 = " << slope2 << std::endl;
           }
 
           // not required as Jacobian is already the correct tensor (nu or mu)
@@ -1939,9 +1965,9 @@ namespace CoupledField {
     }
 
     Matrix<Double> GetFPMaterialTensor(const LocPointMapped& OriginalLPM){
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
-      PreprocessLPM(OriginalLPM, actualLPM, operatorIdx, storageIdx);
+      PreprocessLPM(OriginalLPM, actualLPM, operatorIdx, storageIdx, idxElem);
       return FPMaterialTensor_[storageIdx];
     }
 
@@ -2431,10 +2457,10 @@ namespace CoupledField {
     }
 
     void getMatrixForLocalInversion(const LocPointMapped& Originallpm, Matrix<Double>& matrixForInversion, Matrix<Double>& matrixForInversionInverted){
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
 
-      PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+      PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx, idxElem);
       matrixForInversion = eps_mu_local_[storageIdx];
       matrixForInversionInverted = epsInv_nu_local_[storageIdx];
     }
@@ -2470,10 +2496,10 @@ namespace CoupledField {
       // for vector model, an additional rotation towards P could be reasonable
 
       // get actual indices for storage array to find out if we need to reevaluate or not
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
 
-      PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
+      PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx, idxElem);
 
       rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
       //
@@ -2757,7 +2783,7 @@ namespace CoupledField {
     void PrecomputeIrrStrains();
 
     bool PreprocessLPM(const LocPointMapped& lpmInput, LocPointMapped& lpmOutput,
-    UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint = false);
+    UInt& operatorIdx, UInt& storageIdx, UInt& idxElem, bool forceMidpoint = false);
 
     Vector<Double> CalcOutputOfHysteresisOperator(Vector<Double> inpute, UInt operatorIdx, UInt storageIdx,
     bool forceMemoryLock = false, bool forceMemoryWrite = false, bool useOperatorForStrain = false);
@@ -3423,6 +3449,11 @@ namespace CoupledField {
     //  and use it in RetrieveInputToHystOperator
     // (for B-version include nuFP_ directly in FPMaterialTensor_)
     Vector<Double> muFPH_;
+    // 24.6.2020: introduced new flag
+    // if set to true, the slope for the localized fixpoint methods will only be computed from the Jacobian at the
+    // elements center; if false, the Jacobian will be evaluated at each integration point and each integration point
+    // will gets its own FP-tensor
+    bool evalJacAtMidpointOnly_;
 
     /*
      * inherited from HystHelper

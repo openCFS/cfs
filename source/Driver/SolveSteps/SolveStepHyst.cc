@@ -235,7 +235,7 @@ namespace CoupledField {
     numIterationsTillUpdateOfJacobian_ = 1;
 
     PtrParamNode currentMethod = NULL;
-
+    bool evalJacAtMidpointOnly;
     /*
      * Read in fix-point
      */
@@ -260,6 +260,11 @@ namespace CoupledField {
       } else {
         initialNumberFPSteps_ = 0;
       }
+      if(currentMethod->Has("estimateFPSlopeAtMidpointOnly")){
+        currentMethod->GetValue( "estimateFPSlopeAtMidpointOnly", evalJacAtMidpointOnly, ParamNode::PASS );
+      } else {
+        evalJacAtMidpointOnly = false;
+      }
     }
 
     if( methodNode->Has("Fixpoint_Global_H")){
@@ -283,8 +288,17 @@ namespace CoupledField {
       } else {
         initialNumberFPSteps_ = 0;
       }
+      if(currentMethod->Has("estimateFPSlopeAtMidpointOnly")){
+        currentMethod->GetValue( "estimateFPSlopeAtMidpointOnly", evalJacAtMidpointOnly, ParamNode::PASS );
+      } else {
+        evalJacAtMidpointOnly = false;
+      }
     }
-
+    if(evalJacAtMidpointOnly){
+      PDE_.SetFlagInCoefFncHyst("evalJacAtMidpointOnly",1);
+    } else {
+      PDE_.SetFlagInCoefFncHyst("evalJacAtMidpointOnly",0);
+    }
     /*
      * Read in quasi-Newton
      */
@@ -1084,6 +1098,17 @@ namespace CoupledField {
     LinRHSRequiresAssembly_ = true;
     PredictorCorrectorRequiresAssembly_ = true;
 
+    /*
+     * 24.6.2020 - reset evaluation purpose to 1 (assemble);
+     * at the end of a timestep this flag is set to 4 (output); thus the hysteresis operator
+     * would only be evaluated at the center of each element but in fact the flag is already set to 1
+     * in the precomputePolarization method; however it is reset afterwards to the previous state, i.e., to 4
+     * in this case; for estimating the local fp slope flag 4 will be active again which is not wanted
+     * > set flag here to 1 so that it will be 1 during the fp slope estimatation further below
+     */
+    int evaluationPurpose = 1;
+    PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose);
+    
     // before we evaluate the hyst operators, we have to check if we solve the (magnetic) system
     // by fixpoint scheme in its H-Version
     // in this case the forward hysteresis operator can be applied directly without performing an inversion step

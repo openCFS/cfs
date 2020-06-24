@@ -710,11 +710,11 @@ namespace CoupledField {
         // for testing > compute both but return only the new one
         bool testing = !true;
         bool miniOutput = false;
-        UInt operatorIdx, storageIdx;
+        UInt operatorIdx, storageIdx,idxElem;
         Matrix<Double> tmp_BAK;
         if(testing){
           LocPointMapped actualLPM;
-          PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
+          PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx,idxElem);
           if(operatorIdx == 1){
             oldVersion = true;
             newVersion = true;
@@ -1072,6 +1072,9 @@ namespace CoupledField {
 		// before anything can be computed, a system has to be assembled first -> 1
 		RUN_evaluationPurpose_ = 1;
 
+    // new flag for localized fixed-point methods > see header for comments
+    evalJacAtMidpointOnly_ = false;
+    
 		// do not output switching state; that is very costly and should only be done
 		// for debugging or special figure computation
 		RUN_allowBMP_ = false;
@@ -3128,7 +3131,7 @@ namespace CoupledField {
     if(XML_EvaluationDepth_ > 1){
       storeOnlyMidpoints = false;
     }
-    UInt storageIdx,operatorIdx;
+    UInt storageIdx,operatorIdx,idxElem;
 
 		/*
      * 1. iterate over all elements
@@ -3175,7 +3178,7 @@ namespace CoupledField {
 
 
             //   preprocess LPM to get correct operator and storage indices
-            PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
+            PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx,idxElem);
 						//std::cout << "Integration point NR: " << i << std::endl;
 						//std::cout << "On boundary? " << onBoundary << std::endl;
 
@@ -3200,7 +3203,7 @@ namespace CoupledField {
 				//std::cout << "On boundary? " << onBoundary << std::endl;
         //      // preprocess LPM to get correct operator and storage indices
         bool forceMidpoint = true;
-        PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx,forceMidpoint);
+        PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
         LOG_TRACE(coeffunctionhyst_main) << "Insert pair "<<storageIdx << " / " << lpm.lp.coord.ToString() << " into allLPMmap_";
         allLPMmap_[storageIdx]=lpm;
         LOG_TRACE(coeffunctionhyst_main) << "Insert pair "<<storageIdx << " / " << lpm.lp.coord.ToString() << " into midpointLPMmap_";
@@ -3230,8 +3233,14 @@ namespace CoupledField {
 
   }
 
+  /*
+   * Extension 24.6.2020 - return index of element, too
+   * - can be used e.g., in the estimation of min/max slopes for local fixpoint method; here a new flag is
+   * introduced that triggers slope estimate only at the midpoint (and midpointidx = idxelem!); 
+   * 
+   */
 	bool CoefFunctionHyst::PreprocessLPM(const LocPointMapped& lpmInput,
-          LocPointMapped& lpmOutput, UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint) {
+          LocPointMapped& lpmOutput, UInt& operatorIdx, UInt& storageIdx, UInt& idxElem, bool forceMidpoint) {
 		/*
      *	Input:
      *		LocPointMapped lpmInput coming from numerical integration
@@ -3268,7 +3277,7 @@ namespace CoupledField {
     }
 
 		if (forceMidpoint) {
-      //std::cout << "Evaluate only at midpoint" << std::endl;
+//      std::cout << "Evaluate only at midpoint" << std::endl;
 			/*
        * get solution at midpoint of element (elemSolution)
        */
@@ -3278,14 +3287,14 @@ namespace CoupledField {
 			lpmOutput.Set(lp, esm, 0.0);
 
 		} else {
-      //std::cout << "Evaluate at integration point" << std::endl;
+//      std::cout << "Evaluate at integration point" << std::endl;
 			/*
        * get solution at actual integration point
        */
 			lpmOutput = lpmInput;
 		}
 
-		UInt idxElem = globalElem2Local_[el->elemNum];
+		idxElem = globalElem2Local_[el->elemNum];
 
 		bool onBoundary = globalElemOnSurf_[el->elemNum];
 
@@ -3344,10 +3353,10 @@ namespace CoupledField {
     UInt numRows = dim_;
     estimatedSlope = Matrix<Double>(numRows,numCols);
 
-    UInt operatorIdx, storageIdx;
+    UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 	  // deltaMat can only be computed on volume elements, not on boundaries
 		//bool onBoundary = false;
 		if(onBoundary == true){
@@ -3608,10 +3617,10 @@ namespace CoupledField {
     UInt numRows = dim_;
     estimatedSlope = Matrix<Double>(numRows,numCols);
 
-    UInt operatorIdx, storageIdx;
+    UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 	  // deltaMat can only be computed on volume elements, not on boundaries
 		//bool onBoundary = false;
 		if(onBoundary == true){
@@ -4031,10 +4040,10 @@ namespace CoupledField {
 
     // define return matrix and get info about current evaluation point (originallpm)
     Matrix<Double> deltaMat;
-    UInt operatorIdx, storageIdx;
+    UInt operatorIdx, storageIdx,idxElem;
     LocPointMapped actualLPM;
 
-    bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+    bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
     // deltaMat can only be computed on volume elements, not on boundaries
     if(onBoundary == true){
       EXCEPTION("GetMaterialRelation not defined on boundary");
@@ -4063,7 +4072,6 @@ namespace CoupledField {
     // the deltaMat approximation would already set deltaMat_requiresReeval_ to false and thus we would
     // just load that state without performing the actual new computation
     if( !prohibitUseOfStorage && ((deltaMat_requiresReeval_[storageIdx] == false)||(reuseOldState))){
-//      std::cout << "Reuse old state" << std::endl;
       deltaMat = deltaMat_[storageIdx];
     } else {
       /*
@@ -4076,8 +4084,7 @@ namespace CoupledField {
           version = 3; // works best so far
         } else if(tensorName == "Permeability"){
           version = 4;
-        }
-
+        } 
         deltaMat = JacobianApproximationOfMaterialRelation(E_H_new, eps_mu, operatorIdx, version);
       } else {
         bool needsInversion = false;
@@ -4574,9 +4581,9 @@ namespace CoupledField {
 //       * Initial step:
 //       *  determine correct
 //       */
-//      UInt operatorIdx, storageIdx;
+//      UInt operatorIdx, storageIdx,idxElem;
 //      LocPointMapped actualLPM;
-//      bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+//      bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 //
 //
 //      Vector<Double> solution = Vector<Double>(dim_);
@@ -4707,10 +4714,10 @@ namespace CoupledField {
 
     // define return matrix and get info about current evaluation point (originallpm)
     Matrix<Double> deltaMat;
-    UInt operatorIdx, storageIdx;
+    UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 	  // deltaMat can only be computed on volume elements, not on boundaries
 		if(onBoundary == true){
 			EXCEPTION("DeltaMat not defined on boundary");
@@ -5273,10 +5280,10 @@ namespace CoupledField {
     // check timeLevel
     // only if timeLevel == 0 (current value) and reevaluation is required
     // we evaluate Si; otherwise reuse value
-    UInt operatorIdx, storageIdx;
+    UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+		PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 
 		if (timeLevel == -1) {
       if(lastTSStorageInitialized_ == false){
@@ -5550,12 +5557,12 @@ namespace CoupledField {
      * 1. preprocess lpm to get information about the actual lpm where we have to
      *  evaluate the hyst operator, the index of the operator and the index of the storage array
      */
-		UInt operatorIdx, storageIdx;
+		UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
     //		bool onBoundary =     PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
 
-    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 
 		/*std::cout << "timeLevel " << timeLevel << std::endl;
      std::cout << "storageIdx: " << storageIdx << std::endl;
@@ -6301,10 +6308,10 @@ namespace CoupledField {
 
   Vector<Double> CoefFunctionHyst::GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel){
 
-		UInt operatorIdx, storageIdx;
+		UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
 
     if(timeLevel == -1){
       if(lastTSStorageInitialized_ == false){
@@ -7226,16 +7233,14 @@ namespace CoupledField {
         if(miniOutput){
           std::cout << "Overwrite memory? " << overwriteMemory << std::endl;
           std::cout << "Store input/output combination for later usage" << std::endl;
-          std::cout << "E_H_[storageIdx] before setting: " << E_H_[storageIdx].ToString() << std::endl;
+          std::cout << "E_H_["<<storageIdx<<"] before setting: " << E_H_[storageIdx].ToString() << std::endl;
           std::cout << "P_J_[storageIdx] before setting: " << P_J_[storageIdx].ToString() << std::endl;
-        }
+        }    
         E_H_[storageIdx] = inputToHystOperator;
-        
-        
-        
+
         P_J_[storageIdx] = outputOfHystOperator;
         if(miniOutput){
-          std::cout << "E_H_[storageIdx] after setting: " << E_H_[storageIdx].ToString() << std::endl;
+          std::cout << "E_H_["<<storageIdx<<"] after setting: " << E_H_[storageIdx].ToString() << std::endl;
           std::cout << "P_J_[storageIdx] after setting: " << P_J_[storageIdx].ToString() << std::endl;
         }
       }
@@ -7261,7 +7266,7 @@ namespace CoupledField {
     zeroVec.Init();
 
     bool forceMemoryLock = true;
-    UInt operatorIdx, storageIdx;
+    UInt operatorIdx, storageIdx,idxElem;
 
     LocPointMapped actualLPM;
     std::map<UInt, LocPointMapped>::iterator listIt;
@@ -7278,7 +7283,7 @@ namespace CoupledField {
         forceMidpoint = false;
       }
 
-      PreprocessLPM(listIt->second, actualLPM, operatorIdx, storageIdx, forceMidpoint);
+      PreprocessLPM(listIt->second, actualLPM, operatorIdx, storageIdx, idxElem,forceMidpoint);
       if(listIt->first != storageIdx){
         EXCEPTION("StorageIdx in map != storageIdx as obtained by PreprocessLPM!");
       }
@@ -7433,8 +7438,8 @@ namespace CoupledField {
           LocPointMapped curLPM = allLPMmap_[storageIdx];
           LocPointMapped actualLPM;
 
-          UInt operatorIdxTMP, storageIdxTMP;
-          onBoundary = PreprocessLPM(curLPM, actualLPM, operatorIdxTMP, storageIdxTMP, isMidpoint);
+          UInt operatorIdxTMP, storageIdxTMP,idxElemTMP;
+          onBoundary = PreprocessLPM(curLPM, actualLPM, operatorIdxTMP, storageIdxTMP, idxElemTMP,isMidpoint);
 
           if( (operatorIdxTMP != operatorIdx) || (storageIdxTMP != storageIdx)){
             EXCEPTION("Storage or operator index does not fit");
@@ -7531,8 +7536,8 @@ namespace CoupledField {
         LocPointMapped curLPM = allLPMmap_[storageIdx];
         LocPointMapped actualLPM;
 
-        UInt operatorIdxTMP, storageIdxTMP;
-        onBoundary = PreprocessLPM(curLPM, actualLPM, operatorIdxTMP, storageIdxTMP, isMidpoint);
+        UInt operatorIdxTMP, storageIdxTMP,idxElemTMP;
+        onBoundary = PreprocessLPM(curLPM, actualLPM, operatorIdxTMP, storageIdxTMP, idxElemTMP, isMidpoint);
 
         if( (operatorIdxTMP != operatorIdx) || (storageIdxTMP != storageIdx)){
           EXCEPTION("Storage or operator index does not fit");
@@ -7743,6 +7748,9 @@ namespace CoupledField {
      */
     if(flagName == "evaluationPurpose"){
       RUN_evaluationPurpose_ = intState;
+    }
+    else if(flagName == "evalJacAtMidpointOnly"){
+      evalJacAtMidpointOnly_ = bool(intState);
     }
     else if(flagName == "allowBMP"){
       RUN_allowBMP_ = bool(intState);

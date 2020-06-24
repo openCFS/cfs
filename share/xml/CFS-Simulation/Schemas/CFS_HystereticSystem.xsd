@@ -87,6 +87,7 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="estimateFPSlopeAtMidpointOnly" type="DT_CFSBool" default="no"/>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="Fixpoint_Global_H">
@@ -140,6 +141,7 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="estimateFPSlopeAtMidpointOnly" type="DT_CFSBool" default="no"/>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="QuasiNewton_ChordMethod">
