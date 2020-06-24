@@ -294,11 +294,7 @@ namespace CoupledField {
         evalJacAtMidpointOnly = false;
       }
     }
-    if(evalJacAtMidpointOnly){
-      PDE_.SetFlagInCoefFncHyst("evalJacAtMidpointOnly",1);
-    } else {
-      PDE_.SetFlagInCoefFncHyst("evalJacAtMidpointOnly",0);
-    }
+
     /*
      * Read in quasi-Newton
      */
@@ -350,6 +346,12 @@ namespace CoupledField {
         deltaMatCoupling_ = false;
       }
 
+      if(currentMethod->Has("calculateDeltaMatAtMidpointOnly")){
+        currentMethod->GetValue( "calculateDeltaMatAtMidpointOnly", evalJacAtMidpointOnly, ParamNode::PASS );
+      } else {
+        evalJacAtMidpointOnly = false;
+      }
+      
       if(towardsPreviousTimestep_){
         nonLinMethod_ = "HYST_DeltaMat_TS_MOD";
         solutionApproach_ = SOLVE_DELTAMAT_TS_TOWARDS_IT;
@@ -380,6 +382,12 @@ namespace CoupledField {
 
     }
 
+    if(evalJacAtMidpointOnly){
+      PDE_.SetFlagInCoefFncHyst("evalJacAtMidpointOnly",1);
+    } else {
+      PDE_.SetFlagInCoefFncHyst("evalJacAtMidpointOnly",0);
+    }
+    
     std::cout << "++ Selected solution method for non-linear system: "  << solveFlagToString(solutionApproach_) << std::endl;
 
     if(initialNumberFPSteps_ != 0){
@@ -1106,6 +1114,11 @@ namespace CoupledField {
      * in this case; for estimating the local fp slope flag 4 will be active again which is not wanted
      * > set flag here to 1 so that it will be 1 during the fp slope estimatation further below
      */
+    // note: this change actually breaks the testcase to piezo-voltage-excitation; it seems like
+    // the deltaMat formulation works more reliable if the deltaMat is evaluated only at the midpoint
+    // (which was the case before setting the evaluationPurpose to 1)
+    // > use same flag as for localized fp method to force midpoint evaluation
+    // > seems to work but is slower ...
     int evaluationPurpose = 1;
     PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose);
     

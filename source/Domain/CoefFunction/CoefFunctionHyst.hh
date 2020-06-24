@@ -1237,6 +1237,7 @@ namespace CoupledField {
     void TraceHystOperatorVector(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
 
     void SetFPMaterialTensorsNEW(Integer intState){
+      EXCEPTION("SetFPMaterialTensorsNEW is Deprecated and should not be used");
       /*
        * NEW version after reading
        * "Analysis of the Convergence of the Fixed-Point Method Used for Solving Nonlinear Rotational Magnetic Field Problems"

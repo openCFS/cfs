@@ -4711,13 +4711,15 @@ namespace CoupledField {
     if(tensorType_ == AXI){
       EXCEPTION("GetDeltaMat only implemented for 2d plane and full 3d setups");
     }
-
+    //evalJacAtMidpointOnly_ = !true;
+    bool forceMidpoint = evalJacAtMidpointOnly_;
+//    if(forceMidpoint) std::cout << "Force midpoint evaluation!" << std::endl;
     // define return matrix and get info about current evaluation point (originallpm)
     Matrix<Double> deltaMat;
     UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
 	  // deltaMat can only be computed on volume elements, not on boundaries
 		if(onBoundary == true){
 			EXCEPTION("DeltaMat not defined on boundary");

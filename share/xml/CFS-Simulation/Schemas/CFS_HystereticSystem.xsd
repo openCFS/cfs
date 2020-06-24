@@ -282,6 +282,16 @@
                     </xsd:documentation>
                   </xsd:annotation>
                 </xsd:attribute>
+                <xsd:attribute name="calculateDeltaMatAtMidpointOnly" type="DT_CFSBool" default="yes">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        If set to yes (DEFAULT), the deltaMatrix/secantMatrix is only evaluated at the elements center.
+                        More reliable but slower convergence.
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:choice>
