@@ -12712,6 +12712,12 @@ namespace CoupledField {
           tracedData << i << "\t" << std::setprecision(precisionDigits) << scalarInputs[i] << "\t" << vectorOutputs[i][0] << "\t" << vectorOutputs[i][1] << "\t" << Jacobians[i][0][0] << "\t" << Jacobians[i][0][1] << "\t" << Jacobians[i][1][0] << "\t" << Jacobians[i][1][1] << std::endl;
         }
         tracedData.close();
+        
+        std::cout << "###MaxSlope### " << maxSlope << std::endl;
+        std::cout << "###MinSlope### " << minSlope << std::endl;
+        std::cout << "###NegCoercivity### " << negCoercivity << std::endl;
+        std::cout << "###MaxPolarization### " << maxPolarization << std::endl;
+        
       }
 
       /*
