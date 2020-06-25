@@ -222,27 +222,24 @@ namespace CoupledField {
       stiffContPV->SetEntities( actSDList, actSDList );
       stiffContPV->SetFeFunctions( presFct, velFct);
       assemble_->AddBiLinearForm( stiffContPV );
-
+      PtrCoefFct adiabaticExp = materials_[actRegion]->GetScalCoefFnc(
+          FLUID_ADIABATIC_EXPONENT, Global::REAL);
+      PtrCoefFct compressionModulus = materials_[actRegion]->GetScalCoefFnc( FLUID_BULK_MODULUS, Global::REAL );
       if ( isCompressible_ ) {
         // ====================================================================
         // K_PP: stiffness integrator, conservation of mass
         // add time derivative of density expressed by pressure according to
     	  // thermodynamic relation
+        // In general form : adiabaticExp \(\rho * c^2)
         // ====================================================================
-    	  PtrCoefFct refPres = materials_[actRegion]->GetScalCoefFnc(
-    	      			  FLUID_REF_PRESSURE, Global::REAL);
     	  PtrCoefFct fnc;
     	  if ( isHeatCoupled_ ) {
     		  fnc = CoefFunction::Generate( mp_, Global::REAL,
-    		  				  CoefXprBinOp(mp_, constOne, refPres, CoefXpr::OP_DIV ) );
+    		  				  CoefXprBinOp(mp_, adiabaticExp, compressionModulus, CoefXpr::OP_DIV ) );
     	  }
     	  else {
-    		  PtrCoefFct adiabaticExp = materials_[actRegion]->GetScalCoefFnc(
-    			  FLUID_ADIABATIC_EXPONENT, Global::REAL);
-    		  PtrCoefFct help1 = CoefFunction::Generate( mp_,  Global::REAL,
-    			  CoefXprBinOp(mp_, adiabaticExp, refPres, CoefXpr::OP_MULT ) );
     		  fnc = CoefFunction::Generate( mp_, Global::REAL,
-				  CoefXprBinOp(mp_, constOne, help1, CoefXpr::OP_DIV ) );
+				  CoefXprBinOp(mp_, constOne, compressionModulus, CoefXpr::OP_DIV ) );
     	  }
 
     	  BiLinearForm *dampIntpp = NULL;

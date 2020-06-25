@@ -1737,7 +1737,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( FLUID_DYNAMIC_VISCOSITY, "Flow_Dynamic_Viscosity" );
     MaterialTypeEnum.Add( FLUID_KINEMATIC_VISCOSITY, "Flow_Kinematic_Viscosity" );
     MaterialTypeEnum.Add( FLUID_BULK_VISCOSITY, "Flow_Bulk_Viscosity" );
-    MaterialTypeEnum.Add( FLUID_REF_PRESSURE, "Flow_Reference_Pressure" );
+    MaterialTypeEnum.Add( FLUID_BULK_MODULUS, "Flow_Bulk_Modulus" );
 
     // -- Heat Conduction --
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "Heat_Conductivity_Tensor" );

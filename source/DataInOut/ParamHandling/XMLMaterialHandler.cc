@@ -531,7 +531,7 @@ namespace CoupledField {
     	PtrCoefFct blkFct = ReadScalarLin(acou, "compressionModulus", Global::REAL);
     	material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
     }
-    
+
     // check for complex valued density
     if ( acou->Has("compressionModulusComplex") ) {
     	PtrCoefFct compFct = ReadScalarLin(acou, "compressionModulusComplex",
@@ -867,10 +867,10 @@ namespace CoupledField {
     	material->SetCoefFct( FLUID_ADIABATIC_EXPONENT, exp );
     }
 
-    // read reference pressure
-    if (flow->Has("refPressure")) {
-      PtrCoefFct refPres = ReadScalarLin(flow, "refPressure", Global::REAL);
-      material->SetCoefFct( FLUID_REF_PRESSURE, refPres );
+    // read compression modulus
+    if (flow->Has("compressionModulus")) {
+        PtrCoefFct blkFct = ReadScalarLin(flow, "compressionModulus", Global::REAL);
+        material->SetCoefFct( FLUID_BULK_MODULUS, blkFct );
     }
   }
   
