@@ -176,6 +176,16 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="calculateFDJacobianAtMidpointOnly" type="DT_CFSBool" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        If set to yes, the jacobiMatrix/secantMatrix is only evaluated at the elements center.
+                        More reliable but slower convergence. (DEFAULT is no).
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="QuasiNewton_FiniteDifferenceJacobian">
@@ -215,6 +225,16 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="calculateFDJacobianAtMidpointOnly" type="DT_CFSBool" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        If set to yes, the deltaMatrix/secantMatrix is only evaluated at the elements center.
+                        More reliable but slower convergence. (DEFAULT is no).
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="QuasiNewton_SecantMethod">

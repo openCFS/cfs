@@ -309,6 +309,12 @@ namespace CoupledField {
       } else {
         initialNumberFPSteps_ = 1;
       }
+      
+      if(currentMethod->Has("calculateFDJacobianAtMidpointOnly")){
+        currentMethod->GetValue( "calculateFDJacobianAtMidpointOnly", evalJacAtMidpointOnly, ParamNode::PASS );
+      } else {
+        evalJacAtMidpointOnly = false;
+      }
     }
     if( methodNode->Has("QuasiNewton_FiniteDifferenceJacobian")){
       currentMethod = methodNode->Get("QuasiNewton_FiniteDifferenceJacobian");
@@ -321,6 +327,12 @@ namespace CoupledField {
         currentMethod->GetValue( "initialNumberFPSteps", initialNumberFPSteps_, ParamNode::PASS );
       } else {
         initialNumberFPSteps_ = 1;
+      }
+      
+      if(currentMethod->Has("calculateFDJacobianAtMidpointOnly")){
+        currentMethod->GetValue( "calculateFDJacobianAtMidpointOnly", evalJacAtMidpointOnly, ParamNode::PASS );
+      } else {
+        evalJacAtMidpointOnly = false;
       }
 
     }

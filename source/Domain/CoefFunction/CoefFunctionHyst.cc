@@ -4035,15 +4035,16 @@ namespace CoupledField {
 
     // TODO: Implement axi case!
     if(tensorType_ == AXI){
-      EXCEPTION("GetDeltaMat only implemented for 2d plane and full 3d setups");
+      EXCEPTION("GetMaterialRelation only implemented for 2d plane and full 3d setups");
     }
 
     // define return matrix and get info about current evaluation point (originallpm)
     Matrix<Double> deltaMat;
     UInt operatorIdx, storageIdx,idxElem;
     LocPointMapped actualLPM;
-
-    bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+    bool forceMidpoint = evalJacAtMidpointOnly_;
+//    if(forceMidpoint) std::cout << "GetMaterialRelation - forceMidpoint" << std::endl;
+    bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
     // deltaMat can only be computed on volume elements, not on boundaries
     if(onBoundary == true){
       EXCEPTION("GetMaterialRelation not defined on boundary");
@@ -4713,7 +4714,7 @@ namespace CoupledField {
     }
     //evalJacAtMidpointOnly_ = !true;
     bool forceMidpoint = evalJacAtMidpointOnly_;
-//    if(forceMidpoint) std::cout << "Force midpoint evaluation!" << std::endl;
+//    if(forceMidpoint) std::cout << "GetDeltaMat - Force midpoint evaluation!" << std::endl;
     // define return matrix and get info about current evaluation point (originallpm)
     Matrix<Double> deltaMat;
     UInt operatorIdx, storageIdx,idxElem;
