@@ -2268,9 +2268,6 @@ namespace CoupledField {
         if(criterionIterator->isRelative_){
           if(solVec_.NormL2() > precision){
             valueToCheck /= solVec_.NormL2();
-            if(minLoggingToTerminal_ > 1){
-              logger << "Info: Norm of current solution vector = " << solVec_.NormL2() << std::endl;
-            }
           } else {
             logger << "Info: Norm of current solution vector (" << solVec_.NormL2() << ") < " << precision << "; taking absolute value of increment" << std::endl;
           }
@@ -2298,7 +2295,11 @@ namespace CoupledField {
       // store for later
       criterionIterator->lastCheckedValue_ = valueToCheck;
     }
-
+    if(minLoggingToTerminal_ > 1){
+      logger << "- Reference values in case of relative norms " << std::endl;
+      logger << "-> Norm of current solution vector = " << solVec_.NormL2() << std::endl;
+      logger << "-> Norm of initial residual vector = " << resVec_n_0_.NormL2() << std::endl;
+    }
     if(allPassed){
       logger << " -> ALL convergence criteria satisfied -> STOP " << std::endl;
       return 0;

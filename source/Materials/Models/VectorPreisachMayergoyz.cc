@@ -48,7 +48,7 @@ namespace CoupledField
 //      // one has to specify many more directions as we have to integrate over a whole
 //      // hemisphere instead of a hemicircle
 //    }
-    std::cout << "Dimension of hyst-operator: " << dim_ << std::endl;
+    std::cout << "###Dimension of hyst-operator### " << dim_ << std::endl;
     numDirections_ = numDirections;
     if(numDirections_ < 2){
       EXCEPTION("To obtain vector functionality, at least 2 directions are required!");
@@ -76,13 +76,15 @@ namespace CoupledField
                   "The number of directions into the third dimensions is computed via ceil(sqrt(totalNumberDirections/4)) so that resolution in both angular directions is equal.");
         }
         numDirectionsPhi_ = std::ceil(Double(numDirections)/Double(numDirectionsTheta_));
-        std::cout << "NumTheta x NumPhi = " << numDirectionsTheta_ << " x " << numDirectionsPhi_ << std::endl;
+        std::cout << "###NumTheta x NumPhi### " << numDirectionsTheta_ << " x " << numDirectionsPhi_ << std::endl;
       }
       if(numDirectionsPhi_ < 2){
         EXCEPTION("To obtain vector functionality in 3d, at least 2 directions are required into the each dimension! Increase number of directions in mat.xml.");
       }
       numDirections_ = numDirectionsTheta_*numDirectionsPhi_;
       numDirections = numDirections_; // just for the case that I missed it somewhere below to replace numDirections with numDirections_
+    } else {
+      std::cout << "###NumPhi### " << numDirections_ << std::endl;
     }
     operatorParams.numDirections_ = numDirections_;
     singleDirections_ = new Vector<Double>[numDirections_];
