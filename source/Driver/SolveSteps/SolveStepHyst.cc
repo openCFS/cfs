@@ -1131,8 +1131,11 @@ namespace CoupledField {
     // (which was the case before setting the evaluationPurpose to 1)
     // > use same flag as for localized fp method to force midpoint evaluation
     // > seems to work but is slower ...
-    int evaluationPurpose = 1;
-    PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose);
+    // > actually lead to more trouble than it helped; even though 1 should be the default evalPurpose, it seems
+    // thet forcing it here is no good idea; it might have had a different value (in that aspect it was also no
+    // good idea to set the evaluation purpose to 4 at the end of each timestep...; commented out, too)
+//    int evaluationPurpose = 1;
+//    PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose);
     
     // before we evaluate the hyst operators, we have to check if we solve the (magnetic) system
     // by fixpoint scheme in its H-Version
@@ -1176,11 +1179,11 @@ namespace CoupledField {
     forceReassembly_ = true;
     currentRESandRHSFlag_ = NOTSET_VEC;
 
-    matrixFlag flag_for_systemMatrix;
-    matrixFlag flag_for_resEvalMatrix;
-    vectorFlag flag_for_rhsVector;
-    vectorFlag flag_for_resVector;
-    bool estimatorUseful;
+    matrixFlag flag_for_systemMatrix = NOTSET;
+    matrixFlag flag_for_resEvalMatrix = NOTSET;
+    vectorFlag flag_for_rhsVector = NOTSET_VEC;
+    vectorFlag flag_for_resVector = NOTSET_VEC;
+    bool estimatorUseful = false;
 
     // TODO: add check for failback case
     // > use solutionApproachFAILBACK_ in that case
@@ -1194,13 +1197,13 @@ namespace CoupledField {
     // for Fixpoint-B we have two options:
     //  a) global approach, i.e. nu_FP = (nu_min + nu_max)/2 \approx nu_0/2
     //  b) local approach, i.e. nu_FP = nu(B_current) \approx FD_Jacobian
-    int timeLevelMaterial;
-    int FPMaterialTensor;
-    int FPRHSCorrectionTensor;
-    int timeLevelDeltaMatPol;
-    int timeLevelDeltaMatStrain;
-    int timeLevelDeltaMatCoupling;
-    int inversionApproach;
+    int timeLevelMaterial = -1;
+    int FPMaterialTensor = -1;
+    int FPRHSCorrectionTensor = -1;
+    int timeLevelDeltaMatPol = -1;
+    int timeLevelDeltaMatStrain = -1; 
+    int timeLevelDeltaMatCoupling = -1;
+    int inversionApproach = -1;
     Helper_GetHystOperatorParamsFromMatrixFlag(flag_for_systemMatrix, timeLevelMaterial, FPMaterialTensor, FPRHSCorrectionTensor,
             timeLevelDeltaMatPol, timeLevelDeltaMatStrain, timeLevelDeltaMatCoupling, inversionApproach);
 //
@@ -2481,8 +2484,15 @@ namespace CoupledField {
      * the hystOperator at the midpoint of each element regardless of the
      * evaluation depth
      * > for more infos see coefFncHyst
+     * NOTE 26.6.2020: at this point this call actually does nothing but setting the varaible;
+     * no evaluation is performed afterwards; and even if CoefFncHyst::EvaluateHystOperators
+     * would be called again, it would not change a thing as EvaluateHystOperators sets evaluationPurpose to 1 temporarily
+     * the only affect that this command here has/had is that at the beginning of each further timestep, the evalulationPurpose
+     * will be 4; thus any method that calls CoefFncHyst::EvaluateAtMidpointOnly will get true instead of false;
+     * this actually lead to different behavior when dealing with deltaMatrices or localized fixed-point methods
+     * resetting the flag to 1 at the beginning of a timestep, severiously changed the behavior (but not to the better)
      */
-    PDE_.SetFlagInCoefFncHyst("evaluationPurpose",4);
+//    PDE_.SetFlagInCoefFncHyst("evaluationPurpose",4);
   }
 
   /*
