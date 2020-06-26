@@ -367,6 +367,15 @@ namespace CoupledField {
     shared_ptr<FeSpace> ptFeSpace);
 
     /*
+     * small helper to ensure same precision for directly traced hysteresis data and loaded data
+     */
+    inline Double restrictPrecision(Double in, UInt precision){
+      std::stringstream tmp;
+      tmp <<std::scientific<<std::setprecision(precision)<<in;
+      return std::stod(tmp.str());
+    }
+    
+    /*
      * taken from former hystHelper
      */
     void SetParamsOfFormerHystHelper(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
@@ -1235,7 +1244,7 @@ namespace CoupledField {
 
     void TraceHystOperator(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
     void TraceHystOperatorVector(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
-
+ 
     void SetFPMaterialTensorsNEW(Integer intState){
       EXCEPTION("SetFPMaterialTensorsNEW is Deprecated and should not be used");
       /*
@@ -1581,7 +1590,6 @@ namespace CoupledField {
           // get some additinal info if we are already traverse loop
           Double negCoercivity = 0.0;
           Double maxPolarization = 0.0;
-
           TraceHystOperator(baseSteps, maxSlopeGlobal_, minSlopeGlobal_, negCoercivity, maxPolarization);
           hystModelTraced_ = true;
         }
@@ -1685,10 +1693,15 @@ namespace CoupledField {
             } else {
               // enforce midpoint, update LPM
               int RUN_evaluationPurpose_BAK = RUN_evaluationPurpose_;
+              // by setting the evaluationPurpose globally, we ensure that all functions that preprocess
+              // the LPM and which are not manually forced to the midpoint will nevertheless only return the midpoint
+              // due to manual enforcing, however, this step may be superfluous
               RUN_evaluationPurpose_ = 4; // output; only at midpoint
               PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
               
               // evaluate and store Jacobian at midpoint
+              // note: here we are not required to pass a flag forceMidpoint=true as GetMaterialRelation checks the
+              // flag evalJacAtMidpointOnly_ by itself
               Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
               jacobianEvaluatedAtElement[idxElem] = Jacobian;
 //              std::cout << "Computed and stored Jacobian for element "<<idxElem<<": "<<Jacobian.ToString() << std::endl;
@@ -1721,7 +1734,7 @@ namespace CoupledField {
            * H-Version: set FP Tensor to baseTensor (nu), set muFPH_ to mu_FP
            */
           if(testoutput){
-            std::cout << "Using globalFPFactor_C = " << globalFPFactor_C << std::endl;
+            std::cout << std::setprecision(16) << "Using globalFPFactor_C = " << globalFPFactor_C << std::endl;
           }
 
           Double slope1,slope2,FPSlope;
@@ -1750,6 +1763,9 @@ namespace CoupledField {
 
           // should also work for H-version with globalFPFactor_C = 1 but apparently it does not > maybe slope estimate is wrong?!
           FPSlope = globalFPFactor_C*0.5*(slope1 + slope2);
+          
+//          std::cout << std::setprecision(16) << "##### Global FP Slope for current material --- " << FPSlope << std::endl;
+          
           FP_Tensor.Init();
 
           // nu_max/2 < nu_FP <= nu_max
@@ -2115,28 +2131,28 @@ namespace CoupledField {
     }
 
     Matrix<Double> EstimateSlope(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string estimationType, std::string implementationVersion,
-    Double steppingLength=1e-10, Double scaling=1.0);
+    Double steppingLength=1e-10, Double scaling=1.0, bool forceMidpoint=false);
 
-    Matrix<Double> EstimateSlope_DeltaMat(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion);
+    Matrix<Double> EstimateSlope_DeltaMat(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion, bool forceMidpoint);
 
-    Matrix<Double> EstimateSlope_Jacobian(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion);
+    Matrix<Double> EstimateSlope_Jacobian(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion, bool forceMidpoint);
 
     Matrix<Double> CalcDeltaMat(Vector<Double> E_B_diff, Vector<Double> P_J_diff, bool useAbs,std::string implementationVersion, Double cuttingTol = -1.0);
     Matrix<Double> CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs,std::string implementationVersion, Double cuttingTol = -1.0);
 
-    Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion );
+    Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion);
 
-    bool PrecomputeSlopes(const LocPointMapped& Originallpm, std::string implementationVersion,
-          bool strainVersion, bool forceReevaluation);
+//    bool PrecomputeSlopes(const LocPointMapped& Originallpm, std::string implementationVersion,
+//          bool strainVersion, bool forceReevaluation);
 
-    Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint=false);
     Matrix<Double> ConvertFromVoigtToTensor(Vector<Double> Si_voigt);
-    Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel);
+    Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint=false);
     Vector<Double> GetIrreversibleStrains(UInt storageIdx, int timeLevel);
 
-    Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint=false);
 
-    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forStrain);
+    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forStrain, bool forceMidpoint=false);
 
     void PrecomputeScaledAndRotatedCouplingTensor(Matrix<Double> baseTensor, bool rotate);
 
@@ -2806,8 +2822,8 @@ namespace CoupledField {
     void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& outputTensor, std::string evalMethod,
     UInt storageIdx, bool intoSat, bool outofSat, bool satToSat, Vector<Double>& X_current);
 
-    void ExtractSolutionAndInputForHystOperator(Vector<Double>& extractedSolution, Vector<Double>& extractedInput, UInt& operatorIndex,
-    UInt& storageIndex, const LocPointMapped& lpm, bool midpointOnly);
+//    void ExtractSolutionAndInputForHystOperator(Vector<Double>& extractedSolution, Vector<Double>& extractedInput, UInt& operatorIndex,
+//    UInt& storageIndex, const LocPointMapped& lpm, bool midpointOnly);
 
     bool EvaluateAtMidpointOnly();
     bool OverwriteHystMemory();

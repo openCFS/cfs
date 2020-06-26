@@ -736,6 +736,7 @@ namespace CoupledField {
         if(oldVersion){
           // deltaMat will be computed using the current value (timelevel_cur = 0)
           // and the value at timelevel (-1 > last ts; +1 > last iteration)
+          // note: here we do not have to pass a flag forceMidpoint as GetDeltaMat checks internally
           Matrix<Double> deltaMat = GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Pol, useStrains, useAbs,implementationVersion);
 
           // note: deltaMat will compute dP/dB, but we want to have -dM/dB
@@ -760,6 +761,7 @@ namespace CoupledField {
         if(newVersion){
           Matrix<Double> tmpInverted = Matrix<Double>(dim_,dim_);
           tmp.Invert(tmpInverted);
+          // note: here we do not have to pass a flag forceMidpoint as GetMaterialRelation checks internally
           tmp = GetMaterialRelation(lpm, timelevel_cur, timeLevelDeltaMat_Pol, tmpInverted, "Reluctivity", false);
 
           if(miniOutput){
@@ -776,6 +778,7 @@ namespace CoupledField {
           // coupled case
           // here we have to add +g[c] dS/dB in addition
           useStrains = true;
+          // note: here we do not have to pass a flag forceMidpoint as GetDeltaMat checks internally
           Matrix<Double> deltaMat_strains = GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Strain, useStrains, useAbs,implementationVersion);
           h_scaled.Mult(deltaMat_strains,tmp2);
 
@@ -3345,7 +3348,7 @@ namespace CoupledField {
 		return onBoundary;
 	}
 
-  Matrix<Double> CoefFunctionHyst::EstimateSlope_Jacobian(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion){
+  Matrix<Double> CoefFunctionHyst::EstimateSlope_Jacobian(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion, bool forceMidpoint){
 
     Matrix<Double> estimatedSlope;
 
@@ -3356,7 +3359,7 @@ namespace CoupledField {
     UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
 	  // deltaMat can only be computed on volume elements, not on boundaries
 		//bool onBoundary = false;
 		if(onBoundary == true){
@@ -3364,9 +3367,9 @@ namespace CoupledField {
 		}
 
     UInt currentTimelevel = 0;
-    Vector<Double> E_H_current = GetPrecomputedInputToHysteresisOperator(Originallpm, currentTimelevel);
+    Vector<Double> E_H_current = GetPrecomputedInputToHysteresisOperator(Originallpm, currentTimelevel,forceMidpoint);
     Vector<Double> E_B_fromSystem = RetrieveLPMSolution(actualLPM, storageIdx, currentTimelevel, onBoundary);
-    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel,false);
+    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel,false,forceMidpoint);
 
     // NOTE: if inversion fails, P_J_ + E_H_ will not return E_B_ and thus Jacobian will have
     // negative entries on diagonal (which should not be the case)
@@ -3597,19 +3600,19 @@ namespace CoupledField {
   }
 
   Matrix<Double> CoefFunctionHyst::EstimateSlope(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string estimationType,
-          std::string implementationVersion, Double steppingLength, Double scaling){
+          std::string implementationVersion, Double steppingLength, Double scaling, bool forceMidpoint){
 
     if(estimationType == "Jacobian"){
-      return EstimateSlope_Jacobian(Originallpm, includeStrains, useAbs, implementationVersion);//, steppingLength, scaling);
+      return EstimateSlope_Jacobian(Originallpm, includeStrains, useAbs, implementationVersion, forceMidpoint);//, steppingLength, scaling);
     } else if(estimationType == "DeltaMat"){
-      return EstimateSlope_DeltaMat(Originallpm, includeStrains, useAbs, implementationVersion);//, steppingLength, scaling);
+      return EstimateSlope_DeltaMat(Originallpm, includeStrains, useAbs, implementationVersion, forceMidpoint);//, steppingLength, scaling);
     } else {
       EXCEPTION("Slope estimation not known");
     }
   }
 
 
-  Matrix<Double> CoefFunctionHyst::EstimateSlope_DeltaMat(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion){
+  Matrix<Double> CoefFunctionHyst::EstimateSlope_DeltaMat(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion, bool forceMidpoint){
 
     Matrix<Double> estimatedSlope;
 
@@ -3620,7 +3623,7 @@ namespace CoupledField {
     UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
 	  // deltaMat can only be computed on volume elements, not on boundaries
 		//bool onBoundary = false;
 		if(onBoundary == true){
@@ -3628,9 +3631,9 @@ namespace CoupledField {
 		}
 
     UInt currentTimelevel = 0;
-    Vector<Double> E_H_current = GetPrecomputedInputToHysteresisOperator(Originallpm, currentTimelevel);
+    Vector<Double> E_H_current = GetPrecomputedInputToHysteresisOperator(Originallpm, currentTimelevel,forceMidpoint);
     Vector<Double> E_B_current = RetrieveLPMSolution(actualLPM, storageIdx, currentTimelevel, onBoundary);
-    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel,false);
+    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel,false,forceMidpoint);
 
     /*
      * Approximate Jacobian J = [J_ik] of F using DeltaMat like approach, i.e.
@@ -4080,7 +4083,7 @@ namespace CoupledField {
        */
       if(useJacobian){
         UInt version = 0; // for Permittivity
-        Vector<Double> E_H_new = GetPrecomputedInputToHysteresisOperator(Originallpm, timelevel_new);
+        Vector<Double> E_H_new = GetPrecomputedInputToHysteresisOperator(Originallpm, timelevel_new,forceMidpoint);
         if(tensorName == "Reluctivity"){
           version = 3; // works best so far
         } else if(tensorName == "Permeability"){
@@ -4093,11 +4096,11 @@ namespace CoupledField {
           needsInversion = true;
         }
 
-        Vector<Double> E_H_new = GetPrecomputedInputToHysteresisOperator(Originallpm, timelevel_new);
-        Vector<Double> E_H_old = GetPrecomputedInputToHysteresisOperator(Originallpm, timelevel_old);
+        Vector<Double> E_H_new = GetPrecomputedInputToHysteresisOperator(Originallpm, timelevel_new,forceMidpoint);
+        Vector<Double> E_H_old = GetPrecomputedInputToHysteresisOperator(Originallpm, timelevel_old,forceMidpoint);
 
-        Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false);
-        Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old,false);
+        Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false,forceMidpoint);
+        Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old,false,forceMidpoint);
 
         Vector<Double> E_H_diff = Vector<Double>(dim_);
         E_H_diff.Add(1.0,E_H_new,-1.0,E_H_old);
@@ -4802,8 +4805,8 @@ namespace CoupledField {
         Vector<Double> E_B_diff = E_B_new;
         E_B_diff -= E_B_old;
 
-        Vector<Double> S_new = GetIrreversibleStrains(Originallpm,timelevel_new);
-        Vector<Double> S_old = GetIrreversibleStrains(Originallpm,timelevel_old);
+        Vector<Double> S_new = GetIrreversibleStrains(Originallpm,timelevel_new,forceMidpoint);
+        Vector<Double> S_old = GetIrreversibleStrains(Originallpm,timelevel_old,forceMidpoint);
         Vector<Double> S_diff = S_new;
         S_diff -= S_old;
 
@@ -4832,13 +4835,13 @@ namespace CoupledField {
           if(miniOutput){
             std::cout << "Estimate slope using a FD-Jacobian approximation around the current state" << std::endl;
           }
-          deltaMat = EstimateSlope(Originallpm, ES_includeStrains_, ES_useAbs_, "Jacobian", ES_implementationVersion_, ES_steppingLength_, ES_scaling_);
+          deltaMat = EstimateSlope(Originallpm, ES_includeStrains_, ES_useAbs_, "Jacobian", ES_implementationVersion_, ES_steppingLength_, ES_scaling_,forceMidpoint);
         } else if(takeEstimatedSlope_[storageIdx]){
           takeEstimatedSlope_[storageIdx] = false;
           if(miniOutput){
             std::cout << "Estimate slope using a deltaMat approximation around the current state" << std::endl;
           }
-          deltaMat = EstimateSlope(Originallpm, ES_includeStrains_, ES_useAbs_, "DeltaMat", ES_implementationVersion_, ES_steppingLength_, ES_scaling_);
+          deltaMat = EstimateSlope(Originallpm, ES_includeStrains_, ES_useAbs_, "DeltaMat", ES_implementationVersion_, ES_steppingLength_, ES_scaling_,forceMidpoint);
         } else {
 
           if(compareDeltaMatrices && (storageIdx == 1)){
@@ -4861,9 +4864,9 @@ namespace CoupledField {
             Vector<Double> E_B_diff_ts = E_B_cur;
             E_B_diff_ts -= E_B_ts;
 
-            Vector<Double> P_J_cur = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false);
-            Vector<Double> P_J_ts = GetPrecomputedOutputOfHysteresisOperator(Originallpm,-1,false);
-            Vector<Double> P_J_it = GetPrecomputedOutputOfHysteresisOperator(Originallpm,1,false);
+            Vector<Double> P_J_cur = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false,forceMidpoint);
+            Vector<Double> P_J_ts = GetPrecomputedOutputOfHysteresisOperator(Originallpm,-1,false,forceMidpoint);
+            Vector<Double> P_J_it = GetPrecomputedOutputOfHysteresisOperator(Originallpm,1,false,forceMidpoint);
 
             //        std::cout << "P_J__ at " << std::endl;
             //        std::cout << "Current IT: " << P_J_cur.ToString() << std::endl;
@@ -4915,8 +4918,8 @@ namespace CoupledField {
           Vector<Double> E_B_diff = E_B_new;
           E_B_diff -= E_B_old;
 
-          Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false);
-          Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old,false);
+          Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false,forceMidpoint);
+          Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old,false,forceMidpoint);
 
           LOG_DBG(coeffunctionhyst_deltamat) << "Old output of hyst operator: " << P_J_old.ToString();
           LOG_DBG(coeffunctionhyst_deltamat) << "Current output of hyst operator: " << P_J_new.ToString();
@@ -5230,9 +5233,9 @@ namespace CoupledField {
 //  }
 
 
-  Matrix<Double> CoefFunctionHyst::GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel) {
+  Matrix<Double> CoefFunctionHyst::GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint) {
 
-    Vector<Double> Si_voigt = GetIrreversibleStrains(Originallpm, timeLevel);
+    Vector<Double> Si_voigt = GetIrreversibleStrains(Originallpm, timeLevel, forceMidpoint);
     return ConvertFromVoigtToTensor(Si_voigt);
   }
   Matrix<Double> CoefFunctionHyst::ConvertFromVoigtToTensor(Vector<Double> Si_voigt){
@@ -5266,7 +5269,7 @@ namespace CoupledField {
 
   // compute irreversible strains Si
   // Note: Return Vector in VoigtNotation!
-  Vector<Double> CoefFunctionHyst::GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel) {
+  Vector<Double> CoefFunctionHyst::GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint) {
 
     if(tensorType_ == AXI){
       EXCEPTION("ComputeIrreversibleStrains only implemented for 2d plane and full 3d setups");
@@ -5286,7 +5289,7 @@ namespace CoupledField {
     UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-		PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+		PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
 
 		if (timeLevel == -1) {
       if(lastTSStorageInitialized_ == false){
@@ -5531,7 +5534,7 @@ namespace CoupledField {
   }
 
 	Vector<Double> CoefFunctionHyst::GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm,
-          int timeLevel, bool forStrain) {
+          int timeLevel, bool forStrain, bool forceMidpoint) {
     LOG_TRACE(coeffunctionhyst_main) << "GetPrecomputedOutputOfHysteresisOperator for timelevel " << timeLevel;
     //std::cout << "Timelevel: " << timeLevel << " (0 = current, -1 = lastTS, +1 = lastIt)" << std::endl;
 		/*
@@ -5565,7 +5568,7 @@ namespace CoupledField {
 
     //		bool onBoundary =     PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
 
-    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
 
 		/*std::cout << "timeLevel " << timeLevel << std::endl;
      std::cout << "storageIdx: " << storageIdx << std::endl;
@@ -6309,12 +6312,12 @@ namespace CoupledField {
     }
   }
 
-  Vector<Double> CoefFunctionHyst::GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel){
+  Vector<Double> CoefFunctionHyst::GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint){
 
 		UInt operatorIdx, storageIdx,idxElem;
 		LocPointMapped actualLPM;
 
-    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem);
+    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx,idxElem,forceMidpoint);
 
     if(timeLevel == -1){
       if(lastTSStorageInitialized_ == false){
@@ -12225,7 +12228,13 @@ namespace CoupledField {
        * > has to have same parameter as the actually used operators but must be temporal to not mess up with storage
        */
       bool startAtRemanence = true;
-      UInt precisionDigits = 9;//9 for output
+      UInt precisionDigits = 12;//+1 for output
+      
+      /*
+       * Note 26.6.2020 - there are some testcases that fail if traced data is loaded from file instead
+       * of being traced on the fly. to ensure that this is not due different precisions, the directly traced and 
+       * the loaded data have to be rounded/restricted to the same precision! 
+       */
       
       bool forceScalarDirection = false;
       if(dedicatedOperatorForStrains){
@@ -12340,11 +12349,26 @@ namespace CoupledField {
         tracedData.close();
         
         if(numParamsRead == numParamsToBeRead){
+          /*
+           * round data to ensure consistent results whether file was read or tracing was done on the fly
+           */
+//          std::cout << "++ Material " << material_->GetName() << " has already been traced. All required parameter read from file." << std::endl;
+//          std::cout << "PRE-cutting" << std::endl;
+//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
+//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
+//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
+//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
+//          
+          maxSlope = restrictPrecision(maxSlope,precisionDigits);
+          minSlope = restrictPrecision(minSlope,precisionDigits);
+          negCoercivity = restrictPrecision(negCoercivity,precisionDigits);
+          maxPolarization = restrictPrecision(maxPolarization,precisionDigits);
+
           std::cout << "++ Material " << material_->GetName() << " has already been traced. All required parameter read from file." << std::endl;
-          std::cout << "###MaxSlope### " << maxSlope << std::endl;
-          std::cout << "###MinSlope### " << minSlope << std::endl;
-          std::cout << "###NegCoercivity### " << negCoercivity << std::endl;
-          std::cout << "###MaxPolarization### " << maxPolarization << std::endl;
+          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
+          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
+          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
+          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
           
           // store for later usage
           currentMaterial.maxSlope_ = maxSlope;
@@ -12542,8 +12566,8 @@ namespace CoupledField {
         vecOut = hystOperatorForTrace->computeValue_vec(vecIn, 0, true, debug_output, successFlagForward);
 
         if(output){
-          std::cout << "In: = " << std::setprecision(precisionDigits) << vecIn[0] << ", " << vecIn[1] << std::endl;
-          std::cout << "Out: = " << std::setprecision(precisionDigits) << vecOut[0] << ", " << vecOut[1] << std::endl;
+          std::cout << "In: = " << std::scientific<< std::setprecision(precisionDigits+1) << vecIn[0] << ", " << vecIn[1] << std::endl;
+          std::cout << "Out: = " << std::scientific<< std::setprecision(precisionDigits+1) << vecOut[0] << ", " << vecOut[1] << std::endl;
           std::cout << "++  " << i << std::endl;
           std::cout << "++++ TEMPORAL STORAGE / JACOBI STEPS  " << i << std::endl;
         }
@@ -12591,11 +12615,11 @@ namespace CoupledField {
 
 
           if(output){
-            std::cout << "In: = " << std::setprecision(precisionDigits) << stepping[0] << ", " << stepping[1] << std::endl;
-            std::cout << "Out: = " << std::setprecision(precisionDigits) << Pshifted[0] << ", " << Pshifted[1] << std::endl;
+            std::cout << "In: = " << std::scientific<< std::setprecision(precisionDigits+1) << stepping[0] << ", " << stepping[1] << std::endl;
+            std::cout << "Out: = " << std::scientific<< std::setprecision(precisionDigits+1) << Pshifted[0] << ", " << Pshifted[1] << std::endl;
             if(useCentral){
-              std::cout << "In2: = " << std::setprecision(precisionDigits) << stepping_neg[0] << ", " << stepping_neg[1] << std::endl;
-              std::cout << "Out2: = " << std::setprecision(precisionDigits) << Pshifted_neg[0] << ", " << Pshifted_neg[1] << std::endl;
+              std::cout << "In2: = " << std::scientific<< std::setprecision(precisionDigits+1) << stepping_neg[0] << ", " << stepping_neg[1] << std::endl;
+              std::cout << "Out2: = " << std::scientific<< std::setprecision(precisionDigits+1) << Pshifted_neg[0] << ", " << Pshifted_neg[1] << std::endl;
             }
           }
 
@@ -12674,6 +12698,28 @@ namespace CoupledField {
       traceTimer->Stop();
       Double endTime = traceTimer->GetCPUTime();
 
+//      Double in = M_PI;
+//      UInt precision = 9;
+//      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "Pi up to " << precisionDigits+1 << " digits (due to output): " << in << std::endl;
+//      
+//      Double restrictedDouble = restrictPrecision(in, precision);
+//      
+//      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "Pi up to " << precision << " digits (due to function): " << restrictedDouble << std::endl;
+//      
+//      std::cout << "PRE-cutting" << std::endl;
+//      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
+//      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
+//      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
+//      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
+//      
+      /*
+       * Restrict prescision via stringstreams
+       */
+      maxSlope = restrictPrecision(maxSlope,precisionDigits);
+      minSlope = restrictPrecision(minSlope,precisionDigits);
+      negCoercivity = restrictPrecision(negCoercivity,precisionDigits);
+      maxPolarization = restrictPrecision(maxPolarization,precisionDigits);
+
       // store for later usage
       currentMaterial.maxSlope_ = maxSlope;
       currentMaterial.minSlope_ = minSlope;
@@ -12692,31 +12738,30 @@ namespace CoupledField {
         } else {
           tracedData << "# > hysteresis operator will be used for evaluation of polarization and irreversible strains " << std::endl;
         }
-        tracedData << "# > maximal absolute entry of Jacobian (used as maxSlope)  " << maxSlope << "\t (found at (idx,Field) = (" << idxMaxSlope << "," << fieldMaxSlope << ") )" << std::endl;
-        tracedData << "# > minimal absolute entry of Jacobian (used as minSlope)  " << minSlope << "\t (found at (idx,Field) = (" << idxMinSlope << "," << fieldMinSlope << ") )" << std::endl;
-        tracedData << "# > maximal polarization  " << maxPolarization << "\t (found for Field " << fieldMaxPolarization << ")" << std::endl;
-        tracedData << "# > specified saturation values for field and polarization  " << inputSat << ", " << outputSat << std::endl;
-        tracedData << "# > negative coercivity found for Field " << negCoercivity << std::endl;
+        tracedData << "# > maximal absolute entry of Jacobian (used as maxSlope)  " << std::scientific<< std::setprecision(precisionDigits+1)<< maxSlope << "\t (found at (idx,Field) = (" << idxMaxSlope << "," << fieldMaxSlope << ") )" << std::endl;
+        tracedData << "# > minimal absolute entry of Jacobian (used as minSlope)  " << std::scientific<< std::setprecision(precisionDigits+1)<< minSlope << "\t (found at (idx,Field) = (" << idxMinSlope << "," << fieldMinSlope << ") )" << std::endl;
+        tracedData << "# > maximal polarization  " << std::scientific<< std::setprecision(precisionDigits+1)<< maxPolarization << "\t (found for Field " << fieldMaxPolarization << ")" << std::endl;
+        tracedData << "# > specified saturation values for field and polarization  " << std::scientific<< std::setprecision(precisionDigits+1)<< inputSat << ", " << outputSat << std::endl;
+        tracedData << "# > negative coercivity found for Field " << std::scientific<< std::setprecision(precisionDigits+1)<< negCoercivity << std::endl;
         tracedData << "# > number of traced positions " << totalSteps << std::endl;
-        tracedData << "# > required runtime " << endTime-startTime << std::endl;
+        tracedData << "# > required runtime " << std::scientific<< std::setprecision(precisionDigits+1)<< endTime-startTime << std::endl;
         tracedData << "#" << std::endl;
         tracedData << "# Parameter to be read-in/reused by CFS" << std::endl;
-        tracedData << "###MaxSlope### " << maxSlope << std::endl;
-        tracedData << "###MinSlope### " << minSlope << std::endl;
-        tracedData << "###NegCoercivity### " << negCoercivity << std::endl;
-        tracedData << "###MaxPolarization### " << maxPolarization << std::endl;
+        tracedData << "###MaxSlope### " << std::scientific<< std::setprecision(precisionDigits+1)<< maxSlope << std::endl;
+        tracedData << "###MinSlope### " << std::scientific<< std::setprecision(precisionDigits+1)<< minSlope << std::endl;
+        tracedData << "###NegCoercivity### " << std::scientific<< std::setprecision(precisionDigits+1)<< negCoercivity << std::endl;
+        tracedData << "###MaxPolarization### " << std::scientific<< std::setprecision(precisionDigits+1)<< maxPolarization << std::endl;
         tracedData << "#" << std::endl;
         tracedData << "# Traced data: " << std::endl;
         tracedData << "#IDX \t Field_x \t Pol_x \t Pol_y \t Jac_xx \t Jac_xy \t Jac_yx \t Jac_yy" << std::endl;
         for(UInt i = 0; i < totalSteps; i++){
-          tracedData << i << "\t" << std::setprecision(precisionDigits) << scalarInputs[i] << "\t" << vectorOutputs[i][0] << "\t" << vectorOutputs[i][1] << "\t" << Jacobians[i][0][0] << "\t" << Jacobians[i][0][1] << "\t" << Jacobians[i][1][0] << "\t" << Jacobians[i][1][1] << std::endl;
+          tracedData << i << "\t" << std::scientific<< std::setprecision(precisionDigits+1) << scalarInputs[i] << "\t" << vectorOutputs[i][0] << "\t" << vectorOutputs[i][1] << "\t" << Jacobians[i][0][0] << "\t" << Jacobians[i][0][1] << "\t" << Jacobians[i][1][0] << "\t" << Jacobians[i][1][1] << std::endl;
         }
         tracedData.close();
-        
-        std::cout << "###MaxSlope### " << maxSlope << std::endl;
-        std::cout << "###MinSlope### " << minSlope << std::endl;
-        std::cout << "###NegCoercivity### " << negCoercivity << std::endl;
-        std::cout << "###MaxPolarization### " << maxPolarization << std::endl;
+        std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
+        std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
+        std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
+        std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
         
       }
 
@@ -12736,4 +12781,5 @@ namespace CoupledField {
     }
 
 
+  
 }// namespace

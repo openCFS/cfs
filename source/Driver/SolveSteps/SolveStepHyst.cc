@@ -2441,7 +2441,7 @@ namespace CoupledField {
 
     /*
      * solution has been found > set values AND overwrite memory
-     * (-1 > same as +1 but additionally overwrite hyst memory
+     * (-1 > same as +1 but additionally overwrite hyst memory)
      */
 //    std::cout << "Finish Solve Step -- allowSettingOfMatForLocalInversion" << std::endl;
     PDE_.SetFlagInCoefFncHyst("allowSettingOfMatForLocalInversion",true);
