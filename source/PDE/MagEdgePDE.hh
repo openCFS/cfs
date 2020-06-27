@@ -141,6 +141,9 @@ namespace CoupledField
     //! This coefficient function describes the velocity field.
     shared_ptr<CoefFunctionMulti> VelocityCoef_;
 
+    //! Use gradient fields in shape functions (Edge elements of second kind)
+    bool useGradFields_;
+
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
   };

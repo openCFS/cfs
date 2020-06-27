@@ -259,6 +259,10 @@ public:
   //! Sets a default approximation for all regions
   void SetDefaultRegionApproximation();
 
+  virtual void SetUseGradients(RegionIdType region){
+    EXCEPTION("Not implemented here in baseclass!");
+  }
+
   //@}
   // ========================================================================
   //  ELEMENT HANDLING

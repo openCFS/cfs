@@ -69,6 +69,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     //! Always use updated Lagrangian formulation
     updatedGeo_        = true; //true;
 
+    // default is false
+    useGradFields_ = paramNode->Get("useGradientFields")->As<bool>();
+
     // check if we have a 3d setup
 //    bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d_ )
@@ -132,6 +135,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       feSpace->SetRegionApproximation(actRegion,polyId,integId);
+
+      if(useGradFields_){
+        feSpace->SetUseGradients(actRegion);
+      }
 
       //get possible nonlinearities defined in this region
       StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
