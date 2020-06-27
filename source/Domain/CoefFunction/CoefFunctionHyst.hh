@@ -1604,6 +1604,9 @@ namespace CoupledField {
       if((intState == 3)||(intState == 4)||(intState == 41)){
         Hversion = true;
       }
+      
+      bool outputOnce = true;
+      
       // eps or mu might depend on solution, i.e. we have to trace each local point separately (unfortunately!)
       std::map<UInt, LocPointMapped >::iterator LPMit;
       std::map<UInt, LocPointMapped >::iterator LPMitStart = allLPMmap_.begin();
@@ -1737,7 +1740,7 @@ namespace CoupledField {
             std::cout << std::setprecision(16) << "Using globalFPFactor_C = " << globalFPFactor_C << std::endl;
           }
 
-          Double slope1,slope2,FPSlope;
+          Double slope1,slope2,FPSlope,FPSlopeComp;
           slope1 = minSlopeGlobal_;
           slope2 = maxSlopeGlobal_;
           if(invertTrace){
@@ -1762,10 +1765,16 @@ namespace CoupledField {
           }
 
           // should also work for H-version with globalFPFactor_C = 1 but apparently it does not > maybe slope estimate is wrong?!
-          FPSlope = globalFPFactor_C*0.5*(slope1 + slope2);
+          UInt restrictedPrecision = 9;
+          Double safetyFactor = 1.00001;
+          FPSlopeComp = safetyFactor*globalFPFactor_C*0.5*(slope1 + slope2);
+          FPSlope = restrictPrecision(FPSlopeComp, restrictedPrecision); // restrict precision to hopefully increase stability
           
-//          std::cout << std::setprecision(16) << "##### Global FP Slope for current material --- " << FPSlope << std::endl;
-          
+          if(outputOnce){
+            std::cout << std::scientific << std::setprecision(12) << "###Global globalFPFactor_C and additionally used safetyFactor### " << globalFPFactor_C << " / " << safetyFactor << std::endl;
+            std::cout << std::scientific << std::setprecision(12) << "###Global FP Slope (computed/truncated)### " << FPSlopeComp << " / " << FPSlope << std::endl;
+            outputOnce = false;
+          }
           FP_Tensor.Init();
 
           // nu_max/2 < nu_FP <= nu_max

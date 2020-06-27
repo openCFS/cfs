@@ -7361,7 +7361,7 @@ namespace CoupledField {
     UInt chunksize;
     UInt numT;
     DetermineChunkSizeAndThreads(size, chunksize, numT);
-    std::cout << "Set evalPurpose to 1; " << std::endl;
+
 #ifdef USE_OPENMP
 #pragma omp parallel num_threads(numT)
     {
@@ -7568,7 +7568,6 @@ namespace CoupledField {
 #endif
 
     RUN_evaluationPurpose_ = RUN_evaluationPurpose_bak;
-    std::cout << "Re-Set evalPurpose to " << RUN_evaluationPurpose_ << std::endl;
   }
 
   void CoefFunctionHyst::RestorePrevHystVals(UInt storageLocation) {
@@ -7804,8 +7803,6 @@ namespace CoupledField {
       selectedFPApproach_ = fixpointFlag(intState);
 //      std::cout << "Selected FPApproach: " << selectedFPApproach_ << std::endl;
     } else if( flagName == "EvalFPMaterialTensors"){
-      std::cout << "Set FP Matrix to " << intState << std::endl;
-      std::cout << "Current eval approach: " << RUN_evaluationPurpose_ << std::endl;
 //      SetFPMaterialTensorsNEW(intState);
       SetFPMaterialTensorsTMP(intState);
     }
