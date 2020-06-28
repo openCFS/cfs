@@ -648,10 +648,10 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Doubl
 	for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
 		valAmp += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ );
 		phi     =  beta_*std::pow(std::abs(sourcePhi_[i]), 2);
-		arg     =  ( M_PI/2.0 -phi )*(M_PI/2.0 + phi);
+		arg     = (M_PI/2.0 - sourcePhi_[i]) * (M_PI/2.0 + sourcePhi_[i]);
 		if ( arg < 1e-3 )
-			arg = 1e-3;
-		valPhi += phi - rho_*std::log2l( arg );
+		   arg = 1e-3;
+		valPhi += phi - rho_*std::log( arg );
 	}
 
 //	if ( adjustAlpha ) {
