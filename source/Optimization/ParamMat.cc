@@ -3,6 +3,7 @@
 #include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Driver/BucklingDriver.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/DenseMatrix.hh"
@@ -57,34 +58,38 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
   case App::BUCKLING:
   case App::HEAT:
   {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
-    Assign(out, tmp, 1.0);
+    const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    // factor for transfer function is 1.0 as we modify the material tensor directly
+    Assign(out, stiffness, 1.0);
+    // LOG_DBG3(em) << "stiffness = " << stiffness.ToString();
 
     if(app == App::BUCKLING)
     {
-//      out *= -ev;
+      assert(f->ctxt->DoBuckling());
 
-      AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev);
-      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+      if (f->ctxt->GetBucklingDriver()->IsInverseProblem())
+        out *= -ev;
+
+      AddGeometricStiffnessToStiffness(f->ctxt, NULL, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
+      // LOG_DBG3(em) << "SetElementK: GeoStiff out = " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
-        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-        AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
-        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+        AddGeometricStiffnessToStiffness(f->ctxt, NULL, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
+        // LOG_DBG3(em) << "SetElementK: GeoStiff bimat out = " << out.ToString();
       }
     }
 
     if(context->IsComplex() && !context->DoBuckling())
     {
       AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
-      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+      // LOG_DBG3(em) << "SetElementK: Mass out " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
-        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+        // LOG_DBG3(em) << "SetElementK: Mass bimat out -> " << out.ToString();
       }
     }
     break;
@@ -96,7 +101,7 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
     break;
   }
   default:
-    Exception("Only mech, heat and mass matrix are available for paramMat");
+    Exception("Only mech, buckling, heat and mass matrix are available for paramMat");
     break;
   }
   LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " out=" << mat_out->ToString(0, false);

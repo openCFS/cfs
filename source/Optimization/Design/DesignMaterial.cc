@@ -1479,9 +1479,6 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
   double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
   double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
 
-
-
-
   double e14 = 0, e15 = 0, e16 = 0, e24 = 0, e25 = 0, e26 = 0, e34 = 0, e35 = 0, e36 = 0, e44 = 0, e45 = 0, e46 = 0, e55 = 0, e56 = 0, e66 = 0;
   if (subTensor == FULL) {
     // 3D tensor
@@ -1630,7 +1627,6 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
     E.HillMandelToVoigt();
   //RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
   LOG_DBG2(dm) << "GEFMOT: E  =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
-
 }
 
 void DesignMaterial::GetInterpolatedHomTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)

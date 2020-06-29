@@ -859,7 +859,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       // de is the potentially transformed stuff. Note, that we also store the stuff for the transformed element!
       // the general idea about gradients of transformation is the following
       // - in the forward problem the state is calculated for the transformed (rotated) element
-      // - for the gradient the state is already transformed, we no need ONLY to transform the element index for
+      // - for the gradient the state is already transformed, we do need ONLY to transform the element index for
       //   - dK/drho
       //   - storing the gradient
       //   - do NOT use the element state for the transformed element -> this has already been done for the forward problem!
@@ -1031,17 +1031,16 @@ void ErsatzMaterial::AddGeometricStiffnessToStiffness(Context* ctxt, const Trans
   assert(derivative == true);
 
   Double factor = 1.0;
-  Double tv =  tf->Transform(de, DesignElement::SMART, bimaterial);
-  Double dv;
 
-  if(Optimization::context->dm != NULL)
-    // ParamMat (i.e. design material) modifies the tensor directly and the derivative is 1.0
-    dv = 1.0;
-  else
-    dv = tf->Derivative(de, DesignElement::SMART, bimaterial);
-
-  // we already applied the transfer function in calculation of the stresses = dMat for the non-derivative case
-  factor *= derivative ? dv/tv : 1.0;
+  // ParamMat (i.e. design material) modifies the tensor directly and the derivative is 1.0
+  if(Optimization::context->dm == NULL)
+  {
+    Double tv = tf->Transform(de, DesignElement::SMART, bimaterial);
+    Double dv = tf->Derivative(de, DesignElement::SMART, bimaterial);
+    // we applied the transfer function (tv*D) in calculation of the stresses = dMat
+    // -> derivative = dv*D' -> factor = dv/tv
+    factor *= derivative ? dv/tv : 1.0;
+  }
 
   if (!context->GetBucklingDriver()->IsInverseProblem())
     factor *= -ev;
@@ -2352,7 +2351,6 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
   } // end derivative
 
   // for the reformulated buckling problem the load factor is 1/eigenvalue
-  // and its derivative is -1/eigenvalue^2 * deigenvalue
   if(f->ctxt->DoBuckling() && f->ctxt->GetBucklingDriver()->IsInverseProblem())
     freq = 1.0/freq;
 
@@ -4286,10 +4284,8 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
       // set an arbitrary integration point for GetTensor()
       linEla_ea.SetIP(0);
 
-      // get the material tensor
-      linEla_ctxt->mat->GetOrgMatCoef(linEla_bdb)->GetTensor(D, linEla_ea.lpm);
-      TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, App::MECH, true);
-      D *= tf->Transform(de, DesignElement::SMART);
+      // get the current material tensor (design is already applied)
+      dynamic_cast<CoefFunctionOpt*>(linEla_bdb->GetCoef().get())->GetTensor(D, linEla_ea.lpm);
 
       // get integration parameters
       IntegOrder order;

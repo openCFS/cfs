@@ -4,6 +4,9 @@
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
@@ -11,7 +14,6 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
-#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -926,7 +928,6 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
     retMat.Add(bimat_factor, other); // rho^p * E_l + (1-rho)^p * E_u
   }
 
-
   LOG_DBG2(designSpace) << "APDEM el="  << elem->elemNum << " f=" << factor << " bf=" << bimat_factor;
   LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString(2);
   return true;
@@ -945,16 +946,39 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   if(idx == -1)
     return false;
 
+  //LOG_DBG3(designSpace) << "APD: form name=" << coef->GetForm()->GetName() << ", dir=" << DesignElement::type.ToString(coef->GetMaterialDerivative());
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  // if we do prestressing (e.g. in buckling analysis), the tensor is never constructed but instead generated from stresses
-  if(Optimization::context->dm != NULL && coef->GetForm()->GetName() != "PreStressInt") // easy to extend to piezo and other stuff!
+  if(Optimization::context->dm != NULL) // easy to extend to piezo and other stuff!
   {
     if(DoMSFEM())
     {
       assert(IsRegular());
       return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
-    return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+
+    // if we do prestressing (e.g. in buckling analysis), the tensor is never constructed but instead generated from stresses
+    if(coef->GetForm()->GetName() != "PreStressInt")
+      return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+
+    if(coef->GetMaterialDerivative() != DesignElement::NO_DERIVATIVE)
+    {
+      // we have "PreStressInt" and param-mat -> we have to set the direction for the stress computation
+      // stress = D' * B * u, i.e. stress is a nested coeffunction
+      // in OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
+      // and we do it here for the inner one (resulting in D')
+      // Only then, `coef->orgMat->GetTensor(retMat, *lpm)` will use the correct tensor D' for retMat = stress
+      CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(coef->orgMat.get());
+      assert(stressTens != NULL);
+      std::map<std::string, PtrCoefFct>& map = stressTens->GetCoefFcts();
+      assert(map.find("a") != map.end());
+      CoefFunctionFlux<Complex>* stressVec = dynamic_cast<CoefFunctionFlux<Complex>*>(map["a"].get());
+      assert(stressVec != NULL);
+      std::map<RegionIdType, BaseBDBInt* > forms = stressVec->GetForms();
+      BaseBDBInt* bdb = forms[lpm->ptEl->regionId];
+      assert(bdb != NULL);
+      assert(bdb->GetCoef());
+      dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get())->SetToMaterialDerivative(coef->GetMaterialDerivative());
+    }
   }
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
