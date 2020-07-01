@@ -1605,7 +1605,7 @@ namespace CoupledField {
         Hversion = true;
       }
       
-      bool outputOnce = true;
+      bool outputOnce = false;
       
       // eps or mu might depend on solution, i.e. we have to trace each local point separately (unfortunately!)
       std::map<UInt, LocPointMapped >::iterator LPMit;
@@ -1723,6 +1723,8 @@ namespace CoupledField {
           }
         }
 
+//        std::cout << "SET FP TENSOR WITH FLAG " << intState << std::endl;
+        
         if(intState == 0){
           WARN("SetFPTensor with flag 0 should not be used");
           // baseTensor is the normal tensor for the system (eps for electrostatics/piezo; nu for magnetics/magnetostriction)

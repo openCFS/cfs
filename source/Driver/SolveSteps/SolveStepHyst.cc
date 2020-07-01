@@ -402,6 +402,8 @@ namespace CoupledField {
     
     std::cout << "++ Selected solution method for non-linear system: "  << solveFlagToString(solutionApproach_) << std::endl;
 
+    // NOTE: the initial FP steps have to be done each timestep!
+    // > copy the following steps to Solve_Step1_PrepareSolveStep!
     if(initialNumberFPSteps_ != 0){
       std::cout << "++ " << initialNumberFPSteps_ << " initial fixpoint iterations (Global B, safety-factor 2.0) will be applied " << std::endl;
       FPGlobalC_ = 2.0;
@@ -1146,6 +1148,34 @@ namespace CoupledField {
       PDE_.SetFlagInCoefFncHyst("SetFPH",0);
     }
 
+    // 30.6.2020
+    // the initial global FP steps shall be performed in each timestep
+    // currently, only during the first initialNumberFPSteps_ the system was setup correctly at this stage
+    // (it was setup correctly later on during nonlin iteration but the system should have been setup with
+    // global fp method before entering the nonlin iteration)
+    if(initialNumberFPSteps_ != 0){
+      if((solutionApproach_ == SOLVE_GLOBAL_FIXPOINT_H) || (solutionApproach_ == SOLVE_LOCAL_FIXPOINT_H)){
+        //          std::cout << "++ Perform initial global FP step number " << iterationCounterLog << " of " << initialNumberFPSteps_ << " (Global H, safety-factor 2.0)" << std::endl;
+        //          std::cout << "Perform initial fixpoint steps (global H) number << " << iterationCntCurrentTS_ << std::endl;
+        currentNonLinMethod_ = "HYST_FP_GLOBAL_H";
+        currentSolutionApproach_ = SOLVE_GLOBAL_FIXPOINT_H;
+        currentFPApproach_ = FP_GLOBAL_H;
+        PDE_.SetFlagInCoefFncHyst("FPApproach",currentFPApproach_);
+      } else {
+        //          std::cout << "++ Perform initial global FP step number " << iterationCounterLog << " of " << initialNumberFPSteps_ << " (Global B, safety-factor 2.0)" << std::endl;
+        //          std::cout << "Perform initial fixpoint steps (global B) number << " << iterationCntCurrentTS_ << std::endl;
+        currentNonLinMethod_ = "HYST_FP_GLOBAL";
+        currentSolutionApproach_ = SOLVE_GLOBAL_FIXPOINT_B;
+        currentFPApproach_ = FP_GLOBAL_B;
+        PDE_.SetFlagInCoefFncHyst("FPApproach",currentFPApproach_);
+      }
+    } else {
+      currentNonLinMethod_ = nonLinMethod_;
+      currentSolutionApproach_ = solutionApproach_;
+      currentFPApproach_ = FPApproach_;
+      PDE_.SetFlagInCoefFncHyst("FPApproach",currentFPApproach_);
+    }
+
     /*
      * Prepare Hyst operators
      */
@@ -1583,12 +1613,14 @@ namespace CoupledField {
 //      std::cout << "iterationCounterLog = " << iterationCounterLog << std::endl;
       if((iterationCounterLog <= initialNumberFPSteps_)){
         if((solutionApproach_ == SOLVE_GLOBAL_FIXPOINT_H) || (solutionApproach_ == SOLVE_LOCAL_FIXPOINT_H)){
+//          std::cout << "++ Perform initial global FP step number " << iterationCounterLog << " of " << initialNumberFPSteps_ << " (Global H, safety-factor 2.0)" << std::endl;
 //          std::cout << "Perform initial fixpoint steps (global H) number << " << iterationCntCurrentTS_ << std::endl;
           currentNonLinMethod_ = "HYST_FP_GLOBAL_H";
           currentSolutionApproach_ = SOLVE_GLOBAL_FIXPOINT_H;
           currentFPApproach_ = FP_GLOBAL_H;
           PDE_.SetFlagInCoefFncHyst("FPApproach",currentFPApproach_);
         } else {
+//          std::cout << "++ Perform initial global FP step number " << iterationCounterLog << " of " << initialNumberFPSteps_ << " (Global B, safety-factor 2.0)" << std::endl;
 //          std::cout << "Perform initial fixpoint steps (global B) number << " << iterationCntCurrentTS_ << std::endl;
           currentNonLinMethod_ = "HYST_FP_GLOBAL";
           currentSolutionApproach_ = SOLVE_GLOBAL_FIXPOINT_B;
