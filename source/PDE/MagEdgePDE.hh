@@ -88,7 +88,7 @@ namespace CoupledField
     // =======================================================================
     //   HYSTERESIS
     // =======================================================================
-    LinearForm* GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
+    LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
 
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity );
 //

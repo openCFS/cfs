@@ -89,15 +89,20 @@ namespace CoupledField
     virtual LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "") = 0;
 
     // =======================================================================
-    //   HYSTERESIS
+    //   HYSTERESIS and Fixed Magnetization
     // =======================================================================
     /*
      * Objects and variables related to or required for hysteresis
      */
     //! CoefFunctions for postprocessing results
-    shared_ptr<CoefFunctionMulti> hysteresisPolarization_;
-    shared_ptr<CoefFunctionMulti> hysteresisMagnetization_;
-    shared_ptr<CoefFunctionMulti> hysteresisFieldIntensity_;
+    shared_ptr<CoefFunctionMulti> polarization_;
+    shared_ptr<CoefFunctionMulti> magnetization_;
+    shared_ptr<CoefFunctionMulti> fieldIntensity_;
+    
+    //! same as bRHSRegions_ but for prescribed magnetization (via mat file)
+    //! required to subtract fixed magnetization for computation of H in non-hysteretic regions
+    std::map<RegionIdType,PtrCoefFct> mRHSRegions_;
+    bool magnetizationSet_;
 
     //! In case of hysteresis, we set the region approximation in InitHystCoefs which has to be called
     //! prior to DefineIntegrators (where the regionApproximation usually is set)
@@ -105,12 +110,12 @@ namespace CoupledField
     std::map<RegionIdType,shared_ptr<ElemList> > SDLists_;
 
     /*
-     * Functions related to hysteresis
+     * Functions related to hysteresis and fixed magnetization
      */
     //! Check all regions for hysteretic material behavior;
     //!for each found hysteretic region create a CoefFunctionHyst
     //!and add it to the map hysteresisCoefs_
-    void InitHystCoefs();
+    void InitMagnetization();
 
     PtrCoefFct GenerateHystereticCoefFunctions(RegionIdType actRegion){
 
@@ -119,18 +124,18 @@ namespace CoupledField
       PtrCoefFct curCoef = hystPol->GenerateMatCoefFnc("Reluctivity");
 
 //      PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
-//      hysteresisPolarization_->AddRegion( actRegion, hystOutput);
+//      polarization_->AddRegion( actRegion, hystOutput);
 //
 //      PtrCoefFct hystOutput2 = hystPol->GenerateOutputCoefFnc("MagMagnetization");
-//      hysteresisMagnetization_->AddRegion( actRegion, hystOutput2);
+//      magnetization_->AddRegion( actRegion, hystOutput2);
 //
 //      PtrCoefFct hystOutput3 = hystPol->GenerateOutputCoefFnc("MagFieldIntensityHyst");
-//      hysteresisFieldIntensity_->AddRegion( actRegion, hystOutput3);
+//      fieldIntensity_->AddRegion( actRegion, hystOutput3);
 
       return curCoef;
     }
 
-    virtual LinearForm* GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ) = 0;
+    virtual LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ) = 0;
 
     virtual BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ) = 0;
 

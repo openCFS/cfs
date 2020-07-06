@@ -308,15 +308,15 @@ namespace CoupledField
     bool forceReevaluation_;
 
     // new failback tolerance that might also be ok if real criterion fails
-    Double failBackCrit_;
+//    Double failBackCrit_;
 
-    UInt minNumberItTillReset_;
-    Double minResDecreaseTillReset_;
-    std::string nonLinMethodAfterReset_;
-    std::string lineSearchAfterReset_;
-    bool towardsLastIterationReset_;
-    bool deltaMatCouplingReset_;
-    bool deltaMatStrainReset_;
+//    UInt minNumberItTillReset_;
+//    Double minResDecreaseTillReset_;
+//    std::string nonLinMethodAfterReset_;
+//    std::string lineSearchAfterReset_;
+//    bool towardsLastIterationReset_;
+//    bool deltaMatCouplingReset_;
+//    bool deltaMatStrainReset_;
 
 //    bool towardsLastIteration_;
     bool deltaMatCoupling_;

@@ -23,7 +23,7 @@ namespace CoupledField {
     Hysteresis(Integer numElem, ParameterPreisachOperators operatorParams, ParameterPreisachWeights weightParams);
 
     Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double hystSaturated,
-    Double anhystA, Double anhystB, Double anhystC, bool anhystOnly, bool anhyst_cInAtan);
+    Double anhystA, Double anhystB, Double anhystC, Double anhystD, bool anhystOnly);
 
     virtual ~Hysteresis();
 
@@ -85,11 +85,14 @@ namespace CoupledField {
     // Vector Model
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex,
       Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
-      int& successFlag){
+      int& successFlag, bool useEverett=false, bool overwrite=false){
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
 
-
+    virtual Vector<Double> computeInput_vec_Everett(Vector<Double> yVal, Integer operatorIndex,
+          Matrix<Double> mu, bool overwrite, int& successFlag){
+      EXCEPTION("computeInput_vec_Everett only implemented for Mayergoyz vector model");
+    }
 
     // for extension of scalar model
     virtual void UpdateRotationState(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
@@ -160,6 +163,14 @@ namespace CoupledField {
       EXCEPTION( " switchingStateToBmp not implemented in base-Class" );
     };
 
+    virtual void collectParallelProjections(bool switchOnOff, UInt cnt){   
+      EXCEPTION( " collectParallelProjections not implemented in base-Class" );
+    };
+    
+    virtual void rotationListToTxt(std::string filename, UInt idElem, bool append, std::string optionalHeader){
+      EXCEPTION( " rotationListToTxt not implemented in base-Class" );
+    };
+
     virtual void rotationStateToBmp(UInt numPixel, std::string filename, UInt idElem){
       EXCEPTION( " switchingStateToBmp not implemented in base-Class" );
     };
@@ -183,69 +194,41 @@ namespace CoupledField {
       //       the script for determining these parameters assuems p,e in range [-0.5,0.5]
       //      > parameters have to be transfereed to correct range
       //         prior to calling this function; this can either be done by user or by CFS if flag in mat.xml is set
-      if(anhyst_cInAtan_ == true){
-        return anhyst_A_*std::atan(anhyst_B_*(xNormalizedUnclipped + anhyst_C_));
-      } else {
-        return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
-      }
+//      if(anhyst_cInAtan_ == true){
+//        return anhyst_A_*std::atan(anhyst_B_*(xNormalizedUnclipped + anhyst_C_));
+//      } else {
+        return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped + anhyst_D_) + anhyst_C_*xNormalizedUnclipped;
+//      }
     }
 
-    static Double evalAnhystPart_normalized_atSaturation(Double anhystA, Double anhystB, Double anhystC, bool cInAtan){
+    static Double evalAnhystPart_normalized_atSaturation(Double anhystA, Double anhystB, Double anhystC, Double anhystD){
       // anhyst parameter are assumed to be defined for full range i.e. from -1 to +1
 //      std::cout << "anhystA: " << anhystA << std::endl;
 //      std::cout << "anhystB: " << anhystB << std::endl;
 //      std::cout << "anhystC: " << anhystC << std::endl;
 
-      if(cInAtan){
-        return anhystA*std::atan(anhystB + anhystC);
-      } else {
-        return anhystA*std::atan(anhystB) + anhystC;
-      }
+//      if(cInAtan){
+//        return anhystA*std::atan(anhystB + anhystC);
+//      } else {
+        return anhystA*std::atan(anhystB + anhystD) + anhystC;
+//      }
     }
-
 
     Double bisectForAnhyst_normalized(Double Ytarget_normalized, Double Xdown_normalized, Double Xup_normalized,
-      Double Poffset_normalized, Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx);
+      Double Poffset_normalized, Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx, int& successFlag);
 
-    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol){
+    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, int& successFlag){
       Vector<Double> zeroVec = Vector<Double>(dim_);
       zeroVec.Init();
-      return bisectForAnhyst(Ytarget, Xdown, Xup, Poffset, eps_mu, tol, zeroVec, 0);
+      return bisectForAnhyst(Ytarget, Xdown, Xup, Poffset, eps_mu, tol, zeroVec, 0, successFlag);
     }
 
-    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx);
+    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx, int& successFlag);
 
     // from VecPreisachv10 > put into baseclass to make it available for Mayergoyz model, too
     void SetParamsForInversion(ParameterInversion inversionParams){
-
       INV_params_ = inversionParams;
-//      std::cout << "INV_params_.inversionMethod " << INV_params_.inversionMethod << std::endl;
-//      std::cout << "INV_params_.maxNumIts " << INV_params_.maxNumIts << std::endl;
-//      std::cout << "INV_params_.tolH " << INV_params_.tolH << std::endl;
-//      std::cout << "INV_params_.tolB " << INV_params_.tolB << std::endl;
-//      std::cout << "INV_params_.maxNumRegIts " << INV_params_.maxNumRegIts << std::endl;
-//      std::cout << "INV_params_.alphaRegStart " << INV_params_.alphaRegStart << std::endl;
-//      std::cout << "INV_params_.alphaRegMin " << INV_params_.alphaRegMin << std::endl;
-//      std::cout << "INV_params_.alphaRegMax " << INV_params_.alphaRegMax << std::endl;
-//      std::cout << "INV_params_.trustLow " << INV_params_.trustLow << std::endl;
-//      std::cout << "INV_params_.trustMid " << INV_params_.trustMid << std::endl;
-//      std::cout << "INV_params_.trustHigh " << INV_params_.trustHigh << std::endl;
-//      std::cout << "INV_params_.maxNumLSIts " << INV_params_.maxNumLSIts << std::endl;
-//      std::cout << "INV_params_.alphaLSMin " << INV_params_.alphaLSMin << std::endl;
-//      std::cout << "INV_params_.alphaLSMax " << INV_params_.alphaLSMax << std::endl;
-//      std::cout << "INV_params_.jacRes " << INV_params_.jacRes << std::endl;
-//      std::cout << "INV_params_.jacImplementation " << INV_params_.jacImplementation << std::endl;
-//      std::cout << "INV_params_.stopLineSearchAtLocalMin " << INV_params_.stopLineSearchAtLocalMin << std::endl;
-//
-//      std::cout << "INV_params_.projLM_mu " << INV_params_.projLM_mu << std::endl;
-//      std::cout << "INV_params_.projLM_rho " << INV_params_.projLM_rho << std::endl;
-//      std::cout << "INV_params_.projLM_beta " << INV_params_.projLM_beta << std::endl;
-//      std::cout << "INV_params_.projLM_sigma " << INV_params_.projLM_sigma << std::endl;
-//      std::cout << "INV_params_.projLM_gamma " << INV_params_.projLM_gamma << std::endl;
-//      std::cout << "INV_params_.projLM_tau " << INV_params_.projLM_tau << std::endl;
-//      std::cout << "INV_params_.projLM_c " << INV_params_.projLM_c << std::endl;
-//      std::cout << "INV_params_.projLM_p " << INV_params_.projLM_p << std::endl;
-
+      invParamsSet_ = true; 
     }
 
     bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, Vector<Double>& yObtained,
@@ -332,6 +315,10 @@ namespace CoupledField {
       EXCEPTION("Only for scalar model");
     }
 
+    virtual Vector<Double> getFixDirection(){
+      EXCEPTION("Only for scalar model");
+    }
+    
     // Helper functions
     static bool checkVectorEquality(Vector<Double>& e1, Vector<Double>& e2, UInt criterion, Double tol){
 
@@ -372,7 +359,8 @@ namespace CoupledField {
     Double anhyst_A_;
     Double anhyst_B_;
     Double anhyst_C_;
-    bool anhyst_cInAtan_;
+    Double anhyst_D_;
+//    bool anhyst_cInAtan_;
     bool anhystOnly_;
     Double XSaturated_;
     Double PSaturated_;
@@ -387,6 +375,7 @@ namespace CoupledField {
     Vector<Double>* prevXVal_;
     Vector<Double>* prevHVal_;
     ParameterInversion INV_params_;
+    bool invParamsSet_;
 
     bool checkInversionResult_;
     bool printWarnings_;

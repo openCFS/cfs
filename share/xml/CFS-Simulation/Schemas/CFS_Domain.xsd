@@ -573,6 +573,7 @@
     <!-- Flag for printing grid information -->
     <xsd:attribute name="printGridInfo" type="DT_CFSBool" use="optional" 
       default="no"/>
+    <xsd:attribute name="depth2dPlane" type="DT_NonNegFloat" use="optional" default="1.0"/>   
   </xsd:complexType>
 
  

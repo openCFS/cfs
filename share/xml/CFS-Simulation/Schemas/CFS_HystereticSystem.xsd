@@ -87,6 +87,7 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="estimateFPSlopeAtMidpointOnly" type="DT_CFSBool" default="no"/>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="Fixpoint_Global_H">
@@ -140,6 +141,7 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="estimateFPSlopeAtMidpointOnly" type="DT_CFSBool" default="no"/>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="QuasiNewton_ChordMethod">
@@ -174,6 +176,16 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="calculateFDJacobianAtMidpointOnly" type="DT_CFSBool" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        If set to yes, the jacobiMatrix/secantMatrix is only evaluated at the elements center.
+                        More reliable but slower convergence. (DEFAULT is no).
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="QuasiNewton_FiniteDifferenceJacobian">
@@ -213,6 +225,16 @@
                 </xsd:documentation>
               </xsd:annotation>
               </xsd:attribute>
+              <xsd:attribute name="calculateFDJacobianAtMidpointOnly" type="DT_CFSBool" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        If set to yes, the deltaMatrix/secantMatrix is only evaluated at the elements center.
+                        More reliable but slower convergence. (DEFAULT is no).
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="QuasiNewton_SecantMethod">
@@ -280,6 +302,16 @@
                     </xsd:documentation>
                   </xsd:annotation>
                 </xsd:attribute>
+                <xsd:attribute name="calculateDeltaMatAtMidpointOnly" type="DT_CFSBool" default="yes">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        If set to yes (DEFAULT), the deltaMatrix/secantMatrix is only evaluated at the elements center.
+                        More reliable but slower convergence.
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:choice>
@@ -922,7 +954,21 @@
   </xsd:complexType>
 
 
-  <xsd:complexType name="DT_testInputPeriodic">
+  <xsd:complexType name="DT_testInputPeriodicExt">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
+        <xsd:attribute name="NumPeriods" type="xsd:float" use="optional" default="5"/>
+        <xsd:attribute name="StepsPerPeriod" type="xsd:nonNegativeInteger" use="optional" default="20"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="InitialAmplitudeScaling" type="xsd:float" use="optional" default="0"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+    <xsd:complexType name="DT_testInputPeriodic">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
@@ -940,7 +986,8 @@
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
         <xsd:attribute name="FileContaining_x_over_steps" type="xsd:token" use="required"/>
-        <xsd:attribute name="FileContaining_y_over_steps" type="xsd:token" use="optional"/>
+        <xsd:attribute name="FileContaining_y_over_steps" type="xsd:token" use="optional" default="None"/>
+        <xsd:attribute name="FileContaining_z_over_steps" type="xsd:token" use="optional" default="None"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
         <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
         <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
@@ -966,7 +1013,7 @@
           <xsd:complexType>
             <xsd:choice maxOccurs="unbounded">
               <xsd:element name="Sine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
-              <xsd:element name="Rotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="Rotation" type="DT_testInputPeriodicExt" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="IncreasingRotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="DecreasingRotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="DecreasingSine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
@@ -979,8 +1026,10 @@
             </xsd:choice>
           </xsd:complexType>
         </xsd:element>
-        <xsd:element name="TestInversion" type="DT_CFSBool" default="yes"/>
-        <xsd:element name="StopAfterTests" type="DT_CFSBool" default="no"/>
+        <xsd:element name="Use3dOperator" type="DT_CFSBool" minOccurs="0" default="no"/>
+        <xsd:element name="PreisachPlaneResolution" type="xsd:integer" minOccurs="0" default="-1"/>
+        <xsd:element name="TestInversion" type="DT_CFSBool" default="no"/>
+        <xsd:element name="StopAfterTests" type="DT_CFSBool" default="yes"/>
         <xsd:element name="PrintStatistics" type="DT_CFSBool" default="yes"/>
         <xsd:element name="WriteInputToFile" type="DT_CFSBool" default="no"/>
         <xsd:element name="WriteResultsToFile" type="DT_CFSBool" default="no"/>
@@ -990,6 +1039,9 @@
             <xsd:all>
               <xsd:element name="activate" type="DT_CFSBool" default="no"/>
               <xsd:element name="commonResultFile" type="xsd:token" default="---"/>
+              <xsd:element name="additionalTag1" type="xsd:token" minOccurs="0" default="---"/>
+              <xsd:element name="additionalTag2" type="xsd:token" minOccurs="0" default="---"/>
+              <xsd:element name="additionalTag3" type="xsd:token" minOccurs="0" default="---"/>
             </xsd:all>
           </xsd:complexType>
         </xsd:element>

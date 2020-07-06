@@ -74,6 +74,10 @@ namespace CoupledField {
       fixDirection_ = newDirection;
     }
 
+    Vector<Double> getFixDirection(){
+      return fixDirection_;
+    }
+    
   protected:
 
     //! computes  the everett function (area-integration for x1, x2)
@@ -81,7 +85,7 @@ namespace CoupledField {
 
     //    inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
     //      // returns normalized anhysteretic part
-    //      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
+    //      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped + anhyst_D_) + anhyst_C_*xNormalizedUnclipped;
     //    }
 
     //Double bisectForSaturation(Double Yin, Double eps_mu, Double tol, bool negSaturation);

@@ -44,6 +44,11 @@ namespace CoupledField
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( NONLIN_DEPENDENCY );
 
+    isAllowed_.insert( PRESCRIBED_MAGNETIZATION );
+    isAllowed_.insert( PRESCRIBED_MAGNETIZATION_X );
+    isAllowed_.insert( PRESCRIBED_MAGNETIZATION_Y );
+    isAllowed_.insert( PRESCRIBED_MAGNETIZATION_Z );
+    
     isAllowed_.insert( PREISACH_WEIGHTS );
     isAllowed_.insert( PREISACH_WEIGHTS_DIM );
     isAllowed_.insert( PREISACH_WEIGHTS_CONSTVALUE );
@@ -61,7 +66,7 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE );
-    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_CINATAN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_D );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_A );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C );
@@ -72,7 +77,10 @@ namespace CoupledField
     isAllowed_.insert( MAYERGOYZ_STARTAXIS_X );
     isAllowed_.insert( MAYERGOYZ_STARTAXIS_Y );
     isAllowed_.insert( MAYERGOYZ_STARTAXIS_Z );
-
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_A );
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_B );
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_A_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_LOSSPARAM_B_STRAIN );
     isAllowed_.insert( PREISACH_PRESCRIBEOUTPUT );
     isAllowed_.insert( PREISACH_SCALEINITIALSTATE );
     isAllowed_.insert( SCALETOSAT );
@@ -103,6 +111,8 @@ namespace CoupledField
     isAllowed_.insert( VEC_HYST_INV_METHOD );
     isAllowed_.insert( RES_TOL_H_HYST_INV );
     isAllowed_.insert( RES_TOL_B_HYST_INV );
+    isAllowed_.insert( RES_TOL_H_HYST_INV_ISREL );
+    isAllowed_.insert( RES_TOL_B_HYST_INV_ISREL );
     isAllowed_.insert( ALPHA_REG_HYST_INV );
     isAllowed_.insert( ALPHA_REG_MIN_HYST_INV );
     isAllowed_.insert( ALPHA_REG_MAX_HYST_INV );
@@ -177,7 +187,7 @@ namespace CoupledField
     isAllowed_.insert( S_DIRECTION_X );
     isAllowed_.insert( S_DIRECTION );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE_STRAIN );
-    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_CINATAN_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_D_STRAIN );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY_STRAIN );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C_STRAIN );
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B_STRAIN );

@@ -611,7 +611,9 @@ namespace CoupledField {
     // read hysteresis model
     if (elec->Has("hystModel")) {
       PtrParamNode hystNode = elec->Get("hystModel");
-      ReadHysteresis(material, hystNode);
+      bool isMagnetic = false;
+      ReadHysteresis(material, hystNode, isMagnetic);
+//      ReadHysteresis(material, hystNode);
     }
   }
   
@@ -620,6 +622,8 @@ namespace CoupledField {
   //**********************************************************************
   void XMLMaterialHandler::ReadMagnetic(BaseMaterial *material, PtrParamNode mag)
   {
+    bool hasFixedMagnetization = false;
+
     // read electric conductivity
     if (mag->Has("electricConductivity")) {
       PtrParamNode cond = mag->Get("electricConductivity");
@@ -644,7 +648,7 @@ namespace CoupledField {
         }
       }
     }
-    
+
     // read magnetic permeability
     if (mag->Has("permeability")) {
       PtrParamNode perm = mag->Get("permeability");
@@ -728,7 +732,30 @@ namespace CoupledField {
         } // end of anisotropic nonlinear material
       } // end of nonlinear section
     } // end of permeability
+	
+	// read in prescribed magnetization
+    if(mag->Has("prescribedMagnetization"))
+    {
+      hasFixedMagnetization = true;
+      
+      Matrix<Double> prescribedMagnetization = Matrix<Double>(1,3);
+      prescribedMagnetization.Init();
+      
+      if(mag->Get("prescribedMagnetization")->Has("MagnetizationVector")){
+        ParamTools::AsTensor<double>(mag->Get("prescribedMagnetization")->Get("MagnetizationVector"),1, 3, prescribedMagnetization);
+      }
+      
+      material->SetScalar( prescribedMagnetization[0][0], PRESCRIBED_MAGNETIZATION_X, Global::REAL);
+      material->SetScalar( prescribedMagnetization[0][1], PRESCRIBED_MAGNETIZATION_Y, Global::REAL);
+      material->SetScalar( prescribedMagnetization[0][2], PRESCRIBED_MAGNETIZATION_Z, Global::REAL);
+    }
     
+    if(hasFixedMagnetization){
+      material->SetScalar( 1, PRESCRIBED_MAGNETIZATION);
+    } else {
+      material->SetScalar( 0, PRESCRIBED_MAGNETIZATION);
+    }
+
     // read nonlinear reluctivity for magnetostrictive strains
     if (mag->Has("reluctivity_MagStrict")) {
       // we know only nonlinear isotropic material
@@ -751,7 +778,13 @@ namespace CoupledField {
     // read hysteresis model
     if (mag->Has("hystModel")) {
       PtrParamNode hystNode = mag->Get("hystModel");
-      ReadHysteresis(material, hystNode);
+
+      if(hasFixedMagnetization == false){
+        bool isMagnetic = true;
+        ReadHysteresis(material, hystNode, isMagnetic);
+      } else {
+        WARN("Hysteresis model cannot be used as magnetization is prescribed explicitely. No hysteresis model will be added.");
+      }      
     }
 
     // read core loss
@@ -979,15 +1012,15 @@ namespace CoupledField {
   //**********************************************************************
   //*************  READ HYSTERESIS****************************************
   //**********************************************************************
-  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode){
+  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode, bool isMagnetic){
     PtrParamNode operatorNode = NULL;
 
     if (hystNode->Has("elecPolarization")){
       operatorNode = hystNode->Get("elecPolarization");
-      ReadHystOperator(material, operatorNode, false);
-    } else if (hystNode->Has("magPolarization")){
+      ReadHystOperator(material, operatorNode, false, isMagnetic);
+    } else if(hystNode->Has("magPolarization")){
       operatorNode = hystNode->Get("magPolarization");
-      ReadHystOperator(material, operatorNode, false);
+      ReadHystOperator(material, operatorNode, false, isMagnetic);
     } else {
       EXCEPTION("Either elecPolarization or magPolarization has to be defined for hysteresis node.")
     }
@@ -1073,7 +1106,7 @@ namespace CoupledField {
         usePolarization = 1;
       } else if (strainOperatorNode->Has("separateHystOperator")){
         operatorNode = strainOperatorNode->Get("separateHystOperator");
-        ReadHystOperator(material, operatorNode, true);
+        ReadHystOperator(material, operatorNode, true, isMagnetic);
       }
       material->SetScalar(usePolarization, IRRSTRAIN_REUSE_P);
 
@@ -1113,17 +1146,20 @@ namespace CoupledField {
 
   }
 
-  void XMLMaterialHandler::ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains){
+  void XMLMaterialHandler::ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains, bool isMagnetic){
 //    std::cout << "ReadHystOperator" << std::endl;
     PtrParamNode model;
     PtrParamNode pWeight = NULL;
     PtrParamNode pAnhyst = NULL;
+//    bool anhystTEAM32 = false;
     PtrParamNode pInversion = NULL;
     PtrParamNode pStrainForm = NULL;
     PtrParamNode initialState = NULL;
     PtrParamNode irrStrainNode = NULL;
     bool isVector = true;
     bool isPreisachType = true;
+    Double pSat = 1.0;
+    Double hSat = 1.0;         
 
     /*
      * Instead of setting each parameter twice in the form
@@ -1154,8 +1190,19 @@ namespace CoupledField {
       }
 
       // read input/output saturation of Preisach hysterese model
-      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
-      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+      if(model->Has("inputSat")){
+        hSat = model->Get("inputSat")->As<Double>();
+      } else {
+        EXCEPTION("Hysteresis model must have parameter inputSat; something went wrong here!");
+      }
+      
+      if(model->Has("outputSat")){
+        pSat = model->Get("outputSat")->As<Double>();
+      } else {
+        EXCEPTION("Hysteresis model must have parameter outputSat; something went wrong here!");
+      }
+      material->SetScalar(hSat, MaterialType(X_SATURATION+enumOffset), Global::REAL );
+      material->SetScalar(pSat, MaterialType(Y_SATURATION+enumOffset), Global::REAL );
 
       Matrix<Double> directionVector;
       if (model->Has("dirPolarization"))
@@ -1215,9 +1262,20 @@ namespace CoupledField {
       material->SetString("vectorPreisach_Sutor", MaterialType(HYST_MODEL+enumOffset));
       material->SetString("VECTOR", MaterialType(HYSTERESIS_DIM+enumOffset));
 
-      // read input/output saturation of Preisach hysterese model
-      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
-      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+      // read input/output saturation of Preisach hysterese model      
+      if(model->Has("inputSat")){
+        hSat = model->Get("inputSat")->As<Double>();
+      } else {
+        EXCEPTION("Hysteresis model must have parameter inputSat; something went wrong here!");
+      }
+      
+      if(model->Has("outputSat")){
+        pSat = model->Get("outputSat")->As<Double>();
+      } else {
+        EXCEPTION("Hysteresis model must have parameter outputSat; something went wrong here!");
+      }
+      material->SetScalar(hSat, MaterialType(X_SATURATION+enumOffset), Global::REAL );
+      material->SetScalar(pSat, MaterialType(Y_SATURATION+enumOffset), Global::REAL );
 
       /*
        * new numbering: 1 -> classical vector model (sutor2012)
@@ -1310,12 +1368,12 @@ namespace CoupledField {
          * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
          * written to a bmp file of resolution bmpResolution
          */
-        if (debugNode->Has("printOut")){
-          debugNode->Get("printOut")->As<Integer>();
+        if(debugNode->Has("printOut")){
+          printOut = debugNode->Get("printOut")->As<Integer>();
         }
 
-        if (debugNode->Has("bmpResolution")){
-          debugNode->Get("bmpResolution")->As<Integer>();
+        if(debugNode->Has("bmpResolution")){
+          bmpRes = debugNode->Get("bmpResolution")->As<Integer>();
         }
       }
 
@@ -1343,6 +1401,20 @@ namespace CoupledField {
 
         material->SetScalar(1, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset) );
 
+        Double lossParam_a = 0;
+        Double lossParam_b = 0;
+        
+        if(innerModel->Has("rotLossCorrectionFactors")){
+          if(innerModel->Get("rotLossCorrectionFactors")->Has("lossParam_a")){
+            lossParam_a = innerModel->Get("rotLossCorrectionFactors")->Get("lossParam_a")->As<Double>();
+          }
+          if(innerModel->Get("rotLossCorrectionFactors")->Has("lossParam_b")){
+            lossParam_b = innerModel->Get("rotLossCorrectionFactors")->Get("lossParam_b")->As<Double>();
+          }
+        }
+        
+        material->SetScalar( lossParam_a, MaterialType(MAYERGOYZ_LOSSPARAM_A+enumOffset), Global::REAL);
+        material->SetScalar( lossParam_b, MaterialType(MAYERGOYZ_LOSSPARAM_B+enumOffset), Global::REAL);
 
         int numDir = 11;
         if (innerModel->Has("numDirections")){
@@ -1379,8 +1451,20 @@ namespace CoupledField {
         material->SetScalar( startAxis[0][2], MaterialType(MAYERGOYZ_STARTAXIS_Z+enumOffset), Global::REAL);
 
         // read input/output saturation of Preisach hysterese model
-        material->SetScalar(singleModel->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
-        material->SetScalar(singleModel->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+        if(singleModel->Has("inputSat")){
+          hSat = singleModel->Get("inputSat")->As<Double>();
+        } else {
+          EXCEPTION("Hysteresis model must have parameter inputSat; something went wrong here!");
+        }
+        
+        if(singleModel->Has("outputSat")){
+          pSat = singleModel->Get("outputSat")->As<Double>();
+        } else {
+          EXCEPTION("Hysteresis model must have parameter outputSat; something went wrong here!");
+        }
+        
+        material->SetScalar(hSat, MaterialType(X_SATURATION+enumOffset), Global::REAL );
+        material->SetScalar(pSat, MaterialType(Y_SATURATION+enumOffset), Global::REAL );
 
         if (singleModel->Has("weights")){
           pWeight = singleModel->Get("weights");
@@ -1457,12 +1541,81 @@ namespace CoupledField {
           material->SetScalar(constValue, MaterialType(PREISACH_WEIGHTS_CONSTVALUE+enumOffset), Global::REAL );
           material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
 
-        } else if (pWeightInner->Has("muDat")){
+        } else if(pWeightInner->Has("muLorentz")){
+//          Parameter for Lorentzian weight function as used and defined by
+//          Wolf in \n
+//          "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+//          Mu_Lorentzian(alpha,beta) = \n
+//           \t     A/(1 + ((alpha-h)/(h)*sigma)*((alpha-h)/(h)*sigma) ) * \n
+//           \t     A/(1 + ((beta+h)/(h)*sigma)*((beta+h)/(h)*sigma) );
+//          <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+          
+          /*
+           * Note: to save enums, store A,h1,h2,sigma1 and sigma2 under the same ENUMs as MUDAT-parameter
+           * to distinguish betwee MUDAT and Lorentzian weights, we have the weightType
+           */
+          weightType = 4;
+          PtrParamNode lorentzWolf = pWeightInner->Get("muLorentzExtended");
+          Double A = lorentzWolf->Get("A")->As<Double>();
+          Double h = lorentzWolf->Get("h2")->As<Double>();
+          Double sigma = lorentzWolf->Get("sigma2")->As<Double>();
+          bool paramsDefinedForHalfRangeBool = lorentzWolf->Get("forHalfRange")->As<bool>();
+          int paramsDefinedForHalfRange = 0;
+          if(paramsDefinedForHalfRangeBool){
+            paramsDefinedForHalfRange = 1;
+          }
+          material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDAT_A+enumOffset), Global::REAL );
+          material->SetScalar(h, MaterialType(PREISACH_WEIGHTS_MUDAT_H+enumOffset), Global::REAL );
+          material->SetScalar(sigma, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA+enumOffset), Global::REAL );
+          material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
+          material->SetScalar(paramsDefinedForHalfRange, MaterialType(PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE+enumOffset));
+
+        } else if(pWeightInner->Has("muLorentzExtended")){
+//          Parameter for Lorentzian weight function as used and defined by
+//          Wolf in \n
+//          "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+//          Mu_Lorentzian(alpha,beta) = \n
+//           \t     A/(1 + ((alpha-h2)/(h2)*sigma2)*((alpha-h2)/(h2)*sigma2) ) * \n
+//           \t     A/(1 + ((beta+h1)/(h1)*sigma1)*((beta+h1)/(h1)*sigma1) );
+//          <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
+//          <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>        
+          /*
+           * Note: to save enums, store A,h1,h2,sigma1 and sigma2 under the same ENUMs as MUDAT-parameter
+           * to distinguish betwee MUDAT and Lorentzian weights, we have the weightType
+           */
+          weightType = 5;
+          PtrParamNode lorentzWolf = pWeightInner->Get("muLorentzExtended");
+          Double A = lorentzWolf->Get("A")->As<Double>();
+          Double h1 = lorentzWolf->Get("h1")->As<Double>();
+          Double h2 = lorentzWolf->Get("h2")->As<Double>();
+          Double sigma1 = lorentzWolf->Get("sigma1")->As<Double>();
+          Double sigma2 = lorentzWolf->Get("sigma2")->As<Double>();
+          bool paramsDefinedForHalfRangeBool = lorentzWolf->Get("forHalfRange")->As<bool>();
+          int paramsDefinedForHalfRange = 0;
+          if(paramsDefinedForHalfRangeBool){
+            paramsDefinedForHalfRange = 1;
+          }
+          material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDAT_A+enumOffset), Global::REAL );
+          material->SetScalar(h1, MaterialType(PREISACH_WEIGHTS_MUDAT_H+enumOffset), Global::REAL );
+          material->SetScalar(h2, MaterialType(PREISACH_WEIGHTS_MUDAT_H2+enumOffset), Global::REAL );
+          material->SetScalar(sigma1, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA+enumOffset), Global::REAL );
+          material->SetScalar(sigma2, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA2+enumOffset), Global::REAL );
+          material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
+          material->SetScalar(paramsDefinedForHalfRange, MaterialType(PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE+enumOffset));
+          
+        } else if(pWeightInner->Has("muDat")){
           weightType = 1;
           PtrParamNode muDat = pWeightInner->Get("muDat");
           Double A = muDat->Get("A")->As<Double>();
-          Double h = muDat->Get("h")->As<Double>();
-          Double sigma = muDat->Get("sigma")->As<Double>();
+          Double h = muDat->Get("h2")->As<Double>();
+          Double sigma = muDat->Get("sigma2")->As<Double>();
           Double eta = muDat->Get("eta")->As<Double>();
 
           int paramsDefinedForHalfRange = 0;
@@ -1521,58 +1674,69 @@ namespace CoupledField {
       if (pWeight->Has("anhystereticParameter")){
         pAnhyst = pWeight->Get("anhystereticParameter");
       }
+            
     } else {
       std::cout << "Non-Preisach Hysteresis Model found!" << std::endl;
     }
 
-    Double a,b,c;
+    Double a,b,c,d;
     bool onlyanhyst;
     bool anhystForHalfRange;
-    bool cInAtan;
+//    bool cInAtan; // no longer used; own paramater d instroduced instead
     bool anhystOutputSat;
-    if (pAnhyst != NULL){
-      if (pAnhyst->Has("a")){
-        a = pAnhyst->Get("a")->As<Double>();
-      } else {
-        a = 0.0;
-      }
-      if (pAnhyst->Has("b")){
-        b = pAnhyst->Get("b")->As<Double>();
-      } else {
-        b = 0.0;
-      }
-      if (pAnhyst->Has("c")){
-        c = pAnhyst->Get("c")->As<Double>();
-      } else {
-        c = 0.0;
-      }
-      if (pAnhyst->Has("onlyAnhyst")){
-        onlyanhyst = pAnhyst->Get("onlyAnhyst")->As<bool>();
-      } else {
-        onlyanhyst = false;
-      }
+    if(pAnhyst != NULL){
+//        Add anhysteretic part to output of hyst operator to obtain overall POLARIZATION
+//            p_total(e) = p(e) + a*atan(b*e + d) + c*e
+//        Sutor version (cInAtan=false): p_total(e) = p(e) + a*atan(b*e) + c*e > d = 0
+//        Loeffler version (DEFAULT,cInAtan=true): p_total(e) = p(e) + a*atan(b*(e+d_star)) > c = 0; d = b*d_star
+//        note1: a,b,c and d are meant for NORMALIZED p and e \n
+//        note2: in their works, Sutor and Loeffler model p,e to be normalized to range [-0.5,0.5]
+//        in CFS p,e are normalized to [-1,1] such that a,b,c have to be adapted which is done by CFS if
+//        flag forHalfRange = true
+//        
+        if(pAnhyst->Has("a")){
+          a = pAnhyst->Get("a")->As<Double>();
+        } else {
+          a = 0.0;
+        }
+        if(pAnhyst->Has("b")){
+          b = pAnhyst->Get("b")->As<Double>();
+        } else {
+          b = 0.0;
+        }
+        if(pAnhyst->Has("c")){
+          c = pAnhyst->Get("c")->As<Double>();
+        } else {
+          c = 0.0;
+        }
+        if(pAnhyst->Has("d")){
+          d = pAnhyst->Get("d")->As<Double>();
+        } else {
+          d = 0.0;
+        }
+        if(pAnhyst->Has("onlyAnhyst")){
+          onlyanhyst = pAnhyst->Get("onlyAnhyst")->As<bool>();
+        } else {
+          onlyanhyst = false;
+        }
 
-      if (pAnhyst->Has("forHalfRange")){
-        anhystForHalfRange = pAnhyst->Get("forHalfRange")->As<bool>();
-      } else {
-        anhystForHalfRange = false;
-      }
-      if (pAnhyst->Has("cInAtan")){
-        cInAtan = pAnhyst->Get("cInAtan")->As<bool>();
-      } else {
-        cInAtan = false;
-      }
-      if (pAnhyst->Has("anhystPartCountsTowardsOutputSat")){
-        anhystOutputSat = pAnhyst->Get("anhystPartCountsTowardsOutputSat")->As<bool>();
-      } else {
-        anhystOutputSat = true;
-      }
+        if(pAnhyst->Has("forHalfRange")){
+          anhystForHalfRange = pAnhyst->Get("forHalfRange")->As<bool>();
+        } else {
+          anhystForHalfRange = false;
+        }
+        if(pAnhyst->Has("anhystPartCountsTowardsOutputSat")){
+          anhystOutputSat = pAnhyst->Get("anhystPartCountsTowardsOutputSat")->As<bool>();
+        } else {
+          anhystOutputSat = true;
+        }
+
     } else {
       a = 0;
       b = 0;
       c = 0;
+      d = 0;
       onlyanhyst = false;
-      cInAtan = false;
       anhystForHalfRange = false;
       anhystOutputSat = true;
     }
@@ -1580,7 +1744,8 @@ namespace CoupledField {
     material->SetScalar(a, MaterialType(PREISACH_WEIGHTS_ANHYST_A+enumOffset), Global::REAL);
     material->SetScalar(b, MaterialType(PREISACH_WEIGHTS_ANHYST_B+enumOffset), Global::REAL);
     material->SetScalar(c, MaterialType(PREISACH_WEIGHTS_ANHYST_C+enumOffset), Global::REAL);
-    if (onlyanhyst){
+    material->SetScalar(d, MaterialType(PREISACH_WEIGHTS_ANHYST_D+enumOffset), Global::REAL);
+    if(onlyanhyst){
       material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_ONLY+enumOffset));
     } else {
       material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_ONLY+enumOffset));
@@ -1590,12 +1755,7 @@ namespace CoupledField {
     } else {
       material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE+enumOffset));
     }
-    if (cInAtan){
-      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
-    } else {
-      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
-    }
-    if (anhystOutputSat){
+    if(anhystOutputSat){
       material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
     } else {
       material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
@@ -1652,13 +1812,16 @@ namespace CoupledField {
     int maxNumOuterIts = 50;
     double tolH = 1e-12;
     double tolB = 1e-12;
-
+    int tolHrel = 0;
+    int tolBrel = 0;
+//     typedef enum {LEVENBERGMARQUARDT=0, NEWTON=1, JACOBIFREENEWTON=2, PROJECTEDLM=3, EVERETTBASED=4, FIXPOINT=5, NONE=6} localInversionFlag; 
     // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov, 3 = projected LM, 4 = Everett based, 5 = FP
-    int inversionMethod;
-    if (isVector){
-      inversionMethod = 1;
+
+    localInversionFlag inversionMethod;
+    if(isVector){
+      inversionMethod = LOCAL_NEWTON;
     } else {
-      inversionMethod = 4;
+      inversionMethod = LOCAL_EVERETTBASED;
     }
 
     // LM parameter
@@ -1669,7 +1832,7 @@ namespace CoupledField {
     double trustRegionLow = 0.15;
     double trustRegionMid = 0.35;
     double trustRegionHigh = 0.85;
-    double jacRes = 1e-12;
+    double jacRes = 1e-7;
     // -1 = no jacobian > for JacobiFreeNewtonKrylov
     //  0 = forward/backward differences
     //  1 = central differences
@@ -1721,15 +1884,15 @@ namespace CoupledField {
       setInversion = true;
       if (pInversion->Has("InversionMethod"))
       {
-        if (pInversion->Get("InversionMethod")->Has("Fixpoint")){
-          inversionMethod = 5;
+        if(pInversion->Get("InversionMethod")->Has("Fixpoint")){
+          inversionMethod = LOCAL_FIXPOINT;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("Fixpoint");
           if (invMethod->Has("convergenceFactor")){
             convergenceFactor = invMethod->Get("convergenceFactor")->As<double>();
           }
         } else if (pInversion->Get("InversionMethod")->Has("LevenbergMarquardtWithTrustregion")){
 //          std::cout << "LevenbergMarquardtWithTrustregion" << std::endl;
-          inversionMethod = 0;
+          inversionMethod = LOCAL_LEVENBERGMARQUARDT;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("LevenbergMarquardtWithTrustregion");
 
           if (invMethod->Has("maxNumberRegularizationIterations")){
@@ -1772,7 +1935,7 @@ namespace CoupledField {
 
         } else if (pInversion->Get("InversionMethod")->Has("NewtonWithLinesearch")){
 //          std::cout << "NewtonWithLinesearch" << std::endl;
-          inversionMethod = 1;
+          inversionMethod = LOCAL_NEWTON;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("NewtonWithLinesearch");
 
           if (invMethod->Has("numberOfLinesearchSteps")){
@@ -1807,7 +1970,7 @@ namespace CoupledField {
 
         } else if (pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylovWithLinesearch")){
 //          std::cout << "JacobianFreeNewtonKrylovWithLinesearch" << std::endl;
-          inversionMethod = 2;
+          inversionMethod = LOCAL_JACOBIFREENEWTON;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("JacobianFreeNewtonKrylovWithLinesearch");
 
           if (invMethod->Has("numberOfLinesearchSteps")){
@@ -1829,7 +1992,7 @@ namespace CoupledField {
 
         } else if (pInversion->Get("InversionMethod")->Has("ProjectedLMWithLinesearch")){
 //          std::cout << "ProjectedLMWithLinesearch" << std::endl;
-          inversionMethod = 3;
+          inversionMethod = LOCAL_PROJECTEDLM;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("ProjectedLMWithLinesearch");
 
           if (invMethod->Has("numberOfLinesearchSteps")){
@@ -1882,12 +2045,13 @@ namespace CoupledField {
           if (invMethod->Has("c")){
             projLM_c = invMethod->Get("c")->As<double>();
           }
-        } else if (pInversion->Get("InversionMethod")->Has("EverettBasedInversion")){
-          inversionMethod = 4;
-          if (isVector){
+        } else if(pInversion->Get("InversionMethod")->Has("EverettBasedInversion")){          
+          inversionMethod = LOCAL_EVERETTBASED;
+          if(isVector){
             EXCEPTION("EverettBasedInversion only supported for scalar model");
           }
         } else {
+          inversionMethod = LOCAL_NOINVERSION;
           EXCEPTION("No valid method selected");
         }
 
@@ -1898,12 +2062,25 @@ namespace CoupledField {
 
         if (pInversion->Has("residualTolH"))
         {
-          tolH = pInversion->Get("residualTolH")->As<double>();
+          PtrParamNode tolHNode = pInversion->Get("residualTolH");
+          tolH = tolHNode->Get("value")->As<double>();
+          bool isRel = tolHNode->Get("isRelative")->As<bool>();
+          if(isRel){
+            tolHrel = 1;
+          } else {
+            tolHrel = 0;
+          }
         }
-
-        if (pInversion->Has("residualTolB"))
+        if(pInversion->Has("residualTolB"))
         {
-          tolB = pInversion->Get("residualTolB")->As<double>();
+          PtrParamNode tolBNode = pInversion->Get("residualTolB");
+          tolB = tolBNode->Get("value")->As<double>();
+          bool isRel = tolBNode->Get("isRelative")->As<bool>();
+          if(isRel){
+            tolBrel = 1;
+          } else {
+            tolBrel = 0;
+          }
         }
 
         if (pInversion->Has("printWarnings"))
@@ -1918,6 +2095,8 @@ namespace CoupledField {
       material->SetScalar(maxNumOuterIts, MAX_NUM_IT_HYST_INV);
       material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
       material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
+      material->SetScalar(tolHrel, RES_TOL_H_HYST_INV_ISREL);
+      material->SetScalar(tolBrel, RES_TOL_B_HYST_INV_ISREL);
 
       material->SetScalar(inversionMethod, VEC_HYST_INV_METHOD);
 

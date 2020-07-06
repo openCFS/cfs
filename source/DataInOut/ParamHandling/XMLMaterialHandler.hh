@@ -164,8 +164,8 @@ namespace CoupledField {
                                                        BaseMaterial *material);
 
     //! Read hysteresis; central function to avoid endless duplicates
-    void ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode);
-    void ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains);
+    void ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode, bool isMagnetic);
+    void ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains, bool isMagnetic);
   };
   
 }

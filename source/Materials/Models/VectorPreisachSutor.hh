@@ -412,7 +412,7 @@ namespace CoupledField {
         switchingList_ = switchingList;
       }
 
-      std::string ToString() const {
+      std::string ToStringOLD() const {
 
         std::ostringstream os;
 
@@ -438,6 +438,43 @@ namespace CoupledField {
         return os.str();
       }
 
+      std::string ToString(UInt cnt = 0) const {
+
+        std::ostringstream os;
+
+        /*
+         * New format - 12.3.2020
+         * 
+         * cnt: x_thres (double), rotationState (vector), { [x_parallel (double), isMin (bool)]_1 [x_parallel (double), isMin (bool)]_2 ... [x_parallel (double), isMin (bool)]_n }
+         * 
+         */
+        
+        os << cnt << ": " << val_ << "; ("; 
+        os << vec_[0] << ", " << vec_[1];
+        if(vec_.GetSize() == 3){
+          os << ", " << vec_[2];
+        } 
+        os  << "); {";
+        
+        std::list<ListEntryv10>::const_iterator listIt;
+        
+        for(listIt = switchingList_.begin(); listIt != switchingList_.end(); listIt++){
+          os << "[" << listIt->getValConst() << "; ";
+          if(listIt->isMinConst()){
+            os << "min";
+          } else {
+            os << "max";
+          }
+          os << "]";
+          if(listIt != switchingList_.end()){
+            os << ";";
+          }
+        }
+        os << "} \n";
+        
+        return os.str();
+      }
+      
       void setLowerVal(Double newValue){
         if(lowerVal_ != newValue){
           hasChanged_ = true;
@@ -732,7 +769,7 @@ namespace CoupledField {
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex,
       Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
-      int& successFlag){
+      int& successFlag,bool useEverett, bool overwrite){
 
       Vector<Double> prevYval = Vector<Double>(dim_);
       mu.Mult(prevXVal_[operatorIndex],prevYval);
@@ -745,6 +782,14 @@ namespace CoupledField {
 
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState){
       EXCEPTION("Not implemented in base class");
+    }
+    void rotationListToTxt(std::string filename, UInt idElem, bool append, std::string optionalHeader){
+      EXCEPTION("Not implemented in base class");
+    }
+    
+    void collectParallelProjections(bool switchOnOff, UInt cnt){    
+      collectProjections_ = switchOnOff;
+      tsCNTForProjections_ = cnt;
     }
 
     void setFlags(UInt performanceFlag){
@@ -784,6 +829,10 @@ namespace CoupledField {
     Matrix<Double> preisachWeights_; //! preisach weight function
     Double rotationalResistance_; //! parameter describing the resistance of the domains to rotation
 
+    bool collectProjections_;
+    std::list< std::string > listOfCollectedProjections_;
+    UInt tsCNTForProjections_;
+    
     bool testAngDistForClassical;
     bool isVirgin_; //! yes, if starting at zero; currently flag is unused
     bool isSymmetric_; //! states if Preisach weights are symmetric w.r.t alpha = -beta
@@ -878,7 +927,10 @@ namespace CoupledField {
       bool debugOut, int& successFlag, bool skipAnhystPart = false);
 
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
-
+    void rotationListToTxt(std::string filename, UInt idElem, bool append, std::string optionalHeader){
+      std::cout << "+++ INFO: Matrix based implementation has no rotation list to output." << std::endl;
+    }
+        
     std::string runtimeToString();
 
   private:
@@ -933,7 +985,8 @@ namespace CoupledField {
 //          bool debugOut, int& successCode, Double& time);
 
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
-
+    void rotationListToTxt(std::string filename, UInt idElem, bool append, std::string optionalHeader);
+    
     std::string runtimeToString();
 
   private:

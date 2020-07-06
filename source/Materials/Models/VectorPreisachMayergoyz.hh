@@ -20,7 +20,7 @@ namespace CoupledField {
     // the number of directions is specified by the length of xSat, ySat, etc
     VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat,
       Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,
-      Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C,
+      Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, Vector<Double> anhyst_D,
       bool anhystOnly, int clipOutput);
 
     // constructor for isotropic case, i.e. same xSat, ySat and weights in all directions
@@ -40,18 +40,25 @@ namespace CoupledField {
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex,
       Matrix<Double> mu, bool fieldsAlignedAboveSat,
-      bool hystOutputRestrictedToSat, int& successFlag){
+      bool hystOutputRestrictedToSat, int& successFlag, bool useEverett=false, bool overwrite=false){
 
-      Vector<Double> prevYval = Vector<Double>(dim_);
-      mu.Mult(prevXVal_[operatorIndex],prevYval);
-      prevYval.Add(1.0,prevHVal_[operatorIndex]);
+      if(useEverett == true){
+        return computeInput_vec_Everett(yVal, operatorIndex, mu, overwrite, successFlag);
+      } else {
+        Vector<Double> prevYval = Vector<Double>(dim_);
+        mu.Mult(prevXVal_[operatorIndex],prevYval);
+        prevYval.Add(1.0,prevHVal_[operatorIndex]);
 
-      return computeInput_vec_withPrevStates(yVal, prevYval,
-        prevXVal_[operatorIndex], prevHVal_[operatorIndex],
-        operatorIndex, mu, fieldsAlignedAboveSat,
-        hystOutputRestrictedToSat, successFlag);
+        return computeInput_vec_withPrevStates(yVal, prevYval,
+          prevXVal_[operatorIndex], prevHVal_[operatorIndex],
+          operatorIndex, mu, fieldsAlignedAboveSat,
+          hystOutputRestrictedToSat, successFlag);
+      }
     }
 
+    Vector<Double> computeInput_vec_Everett(Vector<Double> yVal, Integer operatorIndex,
+          Matrix<Double> mu, bool overwrite, int& successFlag);
+    
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,
       bool debugOutput, int& successFlag, bool skipAnhystPart = false);
 
@@ -61,6 +68,8 @@ namespace CoupledField {
     void setFlags(UInt performanceFlag){
       ;
     };
+    
+    Double evaluateLagCorrectionAngle(Vector<Double>& xVal, Vector<Double>& prevXVal);
 
   private:
     // for 2D > only semicircle required due to symmetry
@@ -89,7 +98,12 @@ namespace CoupledField {
     Vector<Double>* singleDirections_;
     Preisach** singlePreisachOperators_;
     Matrix<Double> matrixForCoefComputation_;
-
+    
+    // additional parameter for fitting rotational loss
+    // source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
+    Double lossParam_a_;
+    Double lossParam_b_;
+    bool improveRotLoss_;
   };
 
 } //end of namespace

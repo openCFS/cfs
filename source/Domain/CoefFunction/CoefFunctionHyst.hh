@@ -367,6 +367,15 @@ namespace CoupledField {
     shared_ptr<FeSpace> ptFeSpace);
 
     /*
+     * small helper to ensure same precision for directly traced hysteresis data and loaded data
+     */
+    inline Double restrictPrecision(Double in, UInt precision){
+      std::stringstream tmp;
+      tmp <<std::scientific<<std::setprecision(precision)<<in;
+      return std::stod(tmp.str());
+    }
+    
+    /*
      * taken from former hystHelper
      */
     void SetParamsOfFormerHystHelper(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
@@ -593,6 +602,10 @@ namespace CoupledField {
 
       if(weightType == "Constant"){
         return weightParams->constWeight_;
+      } else if((weightType == "muLorentz")||(weightType == "muLorentzExtended")){
+        return LorentzianWolf(weightParams->muLorentz_A_, weightParams->muLorentz_h1_,
+          weightParams->muLorentz_h2_, weightParams->muLorentz_sigma1_, 
+          weightParams->muLorentz_sigma2_, alpha, beta);   
       } else if(weightType == "muDat"){
         return MuDat(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, weightParams->muDat_eta_, alpha, beta);
       } else if(weightType == "muDatExtended"){
@@ -634,8 +647,13 @@ namespace CoupledField {
 
       if(weightType == "Constant"){
         return 0.0;
+      } else if((weightType == "muLorentz")||(weightType == "muLorentzExtended")){
+        return dLorentzianWolf_by_ds(weightParams->muLorentz_A_, weightParams->muLorentz_h1_,
+          weightParams->muLorentz_h2_, weightParams->muLorentz_sigma1_, 
+          weightParams->muLorentz_sigma2_, s, lambda,flipped); 
       } else if(weightType == "muDat"){
-        return dMuDat_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, weightParams->muDat_eta_,s,lambda,flipped);
+        return dMuDat_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, 
+          weightParams->muDat_eta_,s,lambda,flipped);
       } else if(weightType == "muDatExtended"){
         return dMuDatExtended_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_sigma2_,
           weightParams->muDat_h1_, weightParams->muDat_h2_, weightParams->muDat_eta_,s,lambda,flipped);
@@ -668,6 +686,9 @@ namespace CoupledField {
     ParameterPreisachWeights POL_weightParams_;
     ParameterPreisachWeights STRAIN_weightParams_;
 
+    ParameterPreisachWeights POL_weightParamsForTesting_;
+    ParameterPreisachWeights STRAIN_weightParamsForTesting_;
+    
     ParameterPreisachOperators POL_operatorParams_;
     ParameterPreisachOperators STRAIN_operatorParams_;
 
@@ -681,6 +702,85 @@ namespace CoupledField {
     int POL_weightsAlreadyAdapted_; // for Mayergoyz case
     int STRAIN_weightsAlreadyAdapted_; // for Mayergoyz case
 
+    Double LorentzianWolf(Double A, Double h1, Double h2, Double sigma1, Double sigma2, Double alpha, Double beta){
+      // Lorentzian weight function as used by F. Wolf in his PHD thesis
+      // F. Wolf: Generalisiertes Preisach-Modell fuer die Simulation und Kompensation der Hysterese piezokeramischer Aktoren
+      Double alphaFactor = A/(1 + ((alpha-h2)/(h2)*sigma2)*((alpha-h2)/(h2)*sigma2) );
+      Double betaFactor = A/(1 + ((beta+h1)/(h1)*sigma1)*((beta+h1)/(h1)*sigma1) );
+ 
+      return alphaFactor*betaFactor;
+    }
+    
+    // ALREADY DONE IN XMLMaterialHandler.cc direct after reading in!
+//    // move this directly to paramater reader; factors must be computed only once
+//    Double LorentzianBertotti(Double C1, Double C2, Double C3, Double alpha, Double beta){
+//      // Lorentzian weight function as used for Team32 and defined by Bertotti in
+//      // G. Bertotti, Hysteresis in Magnetism: For Physicists, Materials Scientists, and Engineers , Academic Press, 1998
+//      Double commonFactor =  C1/(C2*C3*std::sqrt(M_PI*(M_PI/2+std::atan(1/C2))));
+////      Double alphaFactor = 1/(1 + ((alpha-C3)/(C2*C3))*((alpha-C3)/(C2*C3)) );
+////      Double betaFactor = 1/(1 + ((-beta-C3)/(C2*C3))*((alpha-C3)/(C2*C3)) );
+//// 
+////      return commonFactor*commonFactor*alphaFactor*betaFactor;
+////      
+//      // Note: can be transferred to formulation used by Wolf in the following form:
+//      /*
+//       *  A = C1/(C2*C3*std::sqrt(M_PI*(M_PI/2+std::atan(1/C2))))
+//       *  ((alpha-h2)/h2*sigma2)^2 == ((alpha-C3)/(C2*C3))^2
+//       *  => sigma2 = 1/C2, h2 = C3
+//       *  ((-beta-h1)/h1*sigma1)^2 == ((beta+C3)/()C2*C3))^2
+//       *  => sigma1 = 1/C2, h1 = C3 
+//       */
+//      return LorentzianWolf(commonFactor,C3,C3,1/C2,1/C2,alpha,beta);
+//    }
+    
+    Double dLorentzianWolf_by_ds(Double A, Double h1, Double h2, Double sigma1, Double sigma2, Double s, Double lambda, bool flipped){
+      // Derivative of LorentzianWolf(s,lambda*s) by s
+      // Used to transfer Preisach weights from scalar to vector model (Mayergoyz model, isotropic)
+      // (LorentzianWolf function with alpha = s, beta = lambda*s used)
+      // if flipped: alpha = lambda*s, beta = s
+      if(flipped == false){
+        // Case 1: alpha = s, beta = lambda*s
+        // w(s,lambda*s) = A/(1 + ((s-h2)/h2*sigma2)^2) * A/(1 + ((lambda*s+h1)/h1*sigma1)^2)
+        // dw(s,lambda*s)/ds = -2A/(1 + ((s-h2)/h2*sigma2)^2)^2 * (s-h2)/h2*sigma2) * sigma2/h2  * A/(1 + ((lambda*s+h1)/h1*sigma1)^2)
+        //                     -2A/(1 + ((lambda*s+h1)/h1*sigma1)^2)^2 * (lambda*s+h1)/h1*sigma1) * lambda*sigma1/h1  * A/(1 + ((s-h2)/h2*sigma2)^2)
+        //  = -2A^2/[ (1 + ((lambda*s+h1)/h1*sigma1)^2) * (1 + ((s-h2)/h2*sigma2)^2) ] *
+        //    [ (s-h2)/h2*sigma2) * sigma2/h2 * 1/(1 + ((s-h2)/h2*sigma2)^2) + (lambda*s+h1)/h1*sigma1) * lambda*sigma1/h1 * 1/(1 + ((lambda*s+h1)/h1*sigma1)^2) ]
+        //  define: tmp_s = (s-h2)/h2*sigma2; tmp_lambdas = (lambda*s+h1)/h1*sigma1
+        //  = -2A^2/[ (1 + tmp_lambdas^2)*(1 + tmp_s^2) ] * 
+        //    [ tmp_s*sigma2/h2*1/(1 + tmp_s^2) +  tmp_lambdas*lambda*sigma1/h1*1/(1 + tmp_lambdas^2) ]
+        //  define: tmp_s_denom = 1+tmp_s^2; tmp_lambdas_denom = 1+tmp_lambdas^2
+        //  = -2A^2/(tmp_s_denom * tmp_lambdas_denom) * 
+        //    [ tmp_s*sigma2/h2*1/tmp_s_denom + tmp_lambdas*lambda*sigma1/h1*1/tmp_lambdas_denom ]
+        Double tmp_s = (s-h2)/h2*sigma2;
+        Double tmp_lambdas = (lambda*s+h1)/h1*sigma1;
+        Double tmp_s_denom = 1.0+tmp_s*tmp_s;
+        Double tmp_lambdas_denom = 1.0+tmp_lambdas*tmp_lambdas;
+        Double factor1 = -2*A*A/(tmp_s_denom * tmp_lambdas_denom);
+        Double factor2 = tmp_s*sigma2/h2*1/tmp_s_denom + tmp_lambdas*lambda*sigma1/h1*1/tmp_lambdas_denom;
+        return factor1*factor2;
+      } else {
+        // Case 2: alpha = lambda*s, beta = s
+        // w(lambda*s,s) = A/(1 + ((lambda*s-h2)/h2*sigma2)^2) * A/(1 + ((s+h1)/h1*sigma1)^2)
+        // dw(lambda*s,s)/ds = -2A/(1 + ((lambda*s-h2)/h2*sigma2)^2)^2 * (lambda*s-h2)/h2*sigma2) * lambda*sigma2/h2  * A/(1 + ((s+h1)/h1*sigma1)^2)
+        //                     -2A/(1 + ((s+h1)/h1*sigma1)^2)^2 * (s+h1)/h1*sigma1) * sigma1/h1  * A/(1 + ((lambda*s-h2)/h2*sigma2)^2)
+        //  = -2A^2/[ (1 + ((s+h1)/h1*sigma1)^2) * (1 + ((lambda*s-h2)/h2*sigma2)^2) ] *
+        //    [ (lambda*s-h2)/h2*sigma2) * lambda*sigma2/h2 * 1/(1 + ((lambda*s-h2)/h2*sigma2)^2) + (s+h1)/h1*sigma1) * sigma1/h1 * 1/(1 + ((s+h1)/h1*sigma1)^2) ]
+        //  define: tmp_s = (s+h1)/h1*sigma1; tmp_lambdas = (lambda*s-h2)/h2*sigma2
+        //  = -2A^2/[ (1 + tmp_lambdas^2)*(1 + tmp_s^2) ] * 
+        //    [ tmp_s*sigma1/h1*1/(1 + tmp_s^2) +  tmp_lambdas*lambda*sigma2/h2*1/(1 + tmp_lambdas^2) ]
+        //  define: tmp_s_denom = 1+tmp_s^2; tmp_lambdas_denom = 1+tmp_lambdas^2
+        //  = -2A^2/(tmp_s_denom * tmp_lambdas_denom) * 
+        //    [ tmp_s*sigma1/h1*1/tmp_s_denom + tmp_lambdas*lambda*sigma2/h2*1/tmp_lambdas_denom ]
+        Double tmp_s = (s+h1)/h1*sigma1;
+        Double tmp_lambdas = (lambda*s-h2)/h2*sigma2;
+        Double tmp_s_denom = 1.0+tmp_s*tmp_s;
+        Double tmp_lambdas_denom = 1.0+tmp_lambdas*tmp_lambdas;
+        Double factor1 = -2*A*A/(tmp_s_denom * tmp_lambdas_denom);
+        Double factor2 = tmp_s*sigma1/h1*1/tmp_s_denom + tmp_lambdas*lambda*sigma2/h2*1/tmp_lambdas_denom;
+        return factor1*factor2;
+      }
+    }
+    
 
     Double MuDat(Double A, Double sigma, Double h, Double eta, Double alpha, Double beta){
       // MuDat function for evaluating Preisach Weights
@@ -784,9 +884,11 @@ namespace CoupledField {
       Double dimHalf = weightParams->numRows_/2.0;
 
       if(weightParams->weightType_ == "givenTensor"){
+        std::cout << "++ Use given tensor of size " << weightParams->numRows_ << " x " << weightParams->numRows_ << " as Preisach weights" << std::endl;
         return weightParams->weightTensor_;
       }
 
+      std::cout << "++ Evaluate analytic Preisach weighting function " << weightParams->weightType_ << " for " << weightParams->numRows_ << " x " << weightParams->numRows_ << " cells" << std::endl;
       Matrix<Double> weights = Matrix<Double>(weightParams->numRows_,weightParams->numRows_);
 
       for(UInt i = 0; i < weightParams->numRows_; i++){
@@ -805,7 +907,6 @@ namespace CoupledField {
       return weights;
     }
 
-
     Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(ParameterPreisachWeights* paramSet){
       // Transform Preisach weights from scalar case to vector case (isotropic, Mayergoyz model)
 
@@ -814,6 +915,11 @@ namespace CoupledField {
 //        // 3d case starts from different formula > see "Mathematical Models of Hysteresis and their Application" - Mayergoyz 2003
 //      }
 
+      /*
+       * Note: this function is independent on the kind of weights!
+       * it uses the general getWeight and getWeightDerivative Functions which return the weights
+       * depending on the used weight type, e.g., muDat weightTensor or NEW Lorentzian weights
+       */
       UInt numRows = paramSet->numRows_;
 
       Matrix<Double> vectorWeights;
@@ -826,7 +932,7 @@ namespace CoupledField {
       Double delta = 2.0/numRows;
       bool checkWeights2D = !true;
       bool checkWeights3D = !true;
-      bool stopAfterTest = true;
+      bool stopAfterTest = !true;
 
       if((dim_ == 2)||checkWeights2D) {
         // 2D Isotropic
@@ -952,8 +1058,10 @@ namespace CoupledField {
             for(UInt i = 0; i < numAngles; i++){
               phi = -M_PI/2+i*deltaPhi;
               c = std::cos(phi);
-              UInt idxAlpha = UInt(std::round((alpha*c+1.0)/delta));
-              UInt idxBeta = UInt(std::round((beta*c+1.0)/delta));
+              int idxAlphaTMP = std::floor((alpha*c+1.0)/delta);
+              int idxBetaTMP = std::floor((beta*c+1.0)/delta);
+              UInt idxAlpha = UInt(std::max(0,idxAlphaTMP));
+              UInt idxBeta = UInt(std::max(0,idxBetaTMP));
               integral += c*c*c*vectorWeights2D[idxAlpha][idxBeta];
             }
             //Double deltaAngle = M_PI/numDirections_;
@@ -1110,7 +1218,7 @@ namespace CoupledField {
 
     void ReadAndSetParamsForHystOperator(BaseMaterial * const material, bool setForStrains);
 
-    void ReadAndSetWeights(BaseMaterial * const material, bool setForStrains);
+    void ReadAndSetWeights(BaseMaterial * const material, bool setForStrains, int forcedPreisachResolutionForTests = -1);
 
     //! Destructor
     virtual ~CoefFunctionHyst();
@@ -1132,12 +1240,13 @@ namespace CoupledField {
     void SetFlag(std::string flagName, Integer intState);
     void SetDoubleFlag(std::string flagName, Double doubleState);
 
-    Hysteresis* getTemporalHystOperator(bool forStrains, bool forceScalarDirection = false);
+    Hysteresis* getTemporalHystOperator(bool forStrains, bool forceScalarDirection = false, UInt dimOfHystOperator = 2, int forcedPreisachResolutionForTests = -1, bool enforceContinuousEvaluation=false);
 
     void TraceHystOperator(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
     void TraceHystOperatorVector(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains = false);
-
+ 
     void SetFPMaterialTensorsNEW(Integer intState){
+      EXCEPTION("SetFPMaterialTensorsNEW is Deprecated and should not be used");
       /*
        * NEW version after reading
        * "Analysis of the Convergence of the Fixed-Point Method Used for Solving Nonlinear Rotational Magnetic Field Problems"
@@ -1218,7 +1327,7 @@ namespace CoupledField {
       }
 
       bool testoutput = false;
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
       bool onBoundary;
 
@@ -1227,7 +1336,7 @@ namespace CoupledField {
          * check for boundary elements; on these surface elements we cannot eval the material relation and this
          * should not be required either
          */
-        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx);
+        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
         if(onBoundary){
           continue;
         }
@@ -1481,7 +1590,6 @@ namespace CoupledField {
           // get some additinal info if we are already traverse loop
           Double negCoercivity = 0.0;
           Double maxPolarization = 0.0;
-
           TraceHystOperator(baseSteps, maxSlopeGlobal_, minSlopeGlobal_, negCoercivity, maxPolarization);
           hystModelTraced_ = true;
         }
@@ -1496,6 +1604,9 @@ namespace CoupledField {
       if((intState == 3)||(intState == 4)||(intState == 41)){
         Hversion = true;
       }
+      
+      bool outputOnce = false;
+      
       // eps or mu might depend on solution, i.e. we have to trace each local point separately (unfortunately!)
       std::map<UInt, LocPointMapped >::iterator LPMit;
       std::map<UInt, LocPointMapped >::iterator LPMitStart = allLPMmap_.begin();
@@ -1539,17 +1650,20 @@ namespace CoupledField {
         invertSlope = false; // take dD/dE
       }
 
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
       bool onBoundary;
-
+      
+      std::map<UInt, Matrix<Double> > jacobianEvaluatedAtElement;
+      std::map<UInt, Matrix<Double> >::iterator jacobianEvaluatedAtElement_it;
+      
       // trace all LPM
       for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
         /*
          * check for boundary elements; on these surface elements we cannot eval the material relation and this
          * should not be required either
          */
-        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx);
+        onBoundary = PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
         if(onBoundary){
           continue;
         }
@@ -1572,14 +1686,45 @@ namespace CoupledField {
         }
 
         if(evalJacobian){
-          // new; set parameter timelevel_old to 3 forces jacobian; do not use storage values here but force new evaluation
-          // (Note: the value would not be saved either, but this is not imporatant as the deltaMat storage is not required here)
-          Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
+          if(evalJacAtMidpointOnly_){
+//            std::cout << "evalJacAtMidpointOnly" << std::endl;
+            // check if Jacobian was already evaluated for the current element; if so > reload Jacobian
+            jacobianEvaluatedAtElement_it = jacobianEvaluatedAtElement.find(idxElem);
+            if(jacobianEvaluatedAtElement_it != jacobianEvaluatedAtElement.end()){
+              Jacobian = jacobianEvaluatedAtElement_it->second;
+//              std::cout << "Jacobian found for element "<<idxElem<<": "<<Jacobian.ToString() << std::endl;
+            } else {
+              // enforce midpoint, update LPM
+              int RUN_evaluationPurpose_BAK = RUN_evaluationPurpose_;
+              // by setting the evaluationPurpose globally, we ensure that all functions that preprocess
+              // the LPM and which are not manually forced to the midpoint will nevertheless only return the midpoint
+              // due to manual enforcing, however, this step may be superfluous
+              RUN_evaluationPurpose_ = 4; // output; only at midpoint
+              PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
+              
+              // evaluate and store Jacobian at midpoint
+              // note: here we are not required to pass a flag forceMidpoint=true as GetMaterialRelation checks the
+              // flag evalJacAtMidpointOnly_ by itself
+              Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
+              jacobianEvaluatedAtElement[idxElem] = Jacobian;
+//              std::cout << "Computed and stored Jacobian for element "<<idxElem<<": "<<Jacobian.ToString() << std::endl;
+              
+              // revert LPM
+              RUN_evaluationPurpose_ = RUN_evaluationPurpose_BAK;
+              PreprocessLPM(LPMit->second, actualLPM, operatorIdx, storageIdx, idxElem);
+            }
+          } else {
+            // new; set parameter timelevel_old to 3 forces jacobian; do not use storage values here but force new evaluation
+            // (Note: the value would not be saved either, but this is not imporatant as the deltaMat storage is not required here)
+            Jacobian = GetMaterialRelation(LPMit->second, 0, 3, baseTensorUsed, requiredTensorNameJacobian,true);
+          }
           if(testoutput){
             std::cout << "Resulting Jacobian: " << Jacobian.ToString() << std::endl;
           }
         }
 
+//        std::cout << "SET FP TENSOR WITH FLAG " << intState << std::endl;
+        
         if(intState == 0){
           WARN("SetFPTensor with flag 0 should not be used");
           // baseTensor is the normal tensor for the system (eps for electrostatics/piezo; nu for magnetics/magnetostriction)
@@ -1594,10 +1739,10 @@ namespace CoupledField {
            * H-Version: set FP Tensor to baseTensor (nu), set muFPH_ to mu_FP
            */
           if(testoutput){
-            std::cout << "Using globalFPFactor_C = " << globalFPFactor_C << std::endl;
+            std::cout << std::setprecision(16) << "Using globalFPFactor_C = " << globalFPFactor_C << std::endl;
           }
 
-          Double slope1,slope2,FPSlope;
+          Double slope1,slope2,FPSlope,FPSlopeComp;
           slope1 = minSlopeGlobal_;
           slope2 = maxSlopeGlobal_;
           if(invertTrace){
@@ -1622,7 +1767,16 @@ namespace CoupledField {
           }
 
           // should also work for H-version with globalFPFactor_C = 1 but apparently it does not > maybe slope estimate is wrong?!
-          FPSlope = globalFPFactor_C*0.5*(slope1 + slope2);
+          UInt restrictedPrecision = 9;
+          Double safetyFactor = 1.00001;
+          FPSlopeComp = safetyFactor*globalFPFactor_C*0.5*(slope1 + slope2);
+          FPSlope = restrictPrecision(FPSlopeComp, restrictedPrecision); // restrict precision to hopefully increase stability
+          
+          if(outputOnce){
+            std::cout << std::scientific << std::setprecision(12) << "###Global globalFPFactor_C and additionally used safetyFactor### " << globalFPFactor_C << " / " << safetyFactor << std::endl;
+            std::cout << std::scientific << std::setprecision(12) << "###Global FP Slope (computed/truncated)### " << FPSlopeComp << " / " << FPSlope << std::endl;
+            outputOnce = false;
+          }
           FP_Tensor.Init();
 
           // nu_max/2 < nu_FP <= nu_max
@@ -1672,9 +1826,8 @@ namespace CoupledField {
           }
 
           if(testoutput){
+            std::cout << "idx="<<LPMit->first<<"-slope1=" << slope1 <<"-slope2="<<slope2<< std::endl;
             std::cout << "Jacobian = " << Jacobian.ToString() << std::endl;
-            std::cout << "slope1 = " << slope1 << std::endl;
-            std::cout << "slope2 = " << slope2 << std::endl;
           }
 
           // not required as Jacobian is already the correct tensor (nu or mu)
@@ -1840,9 +1993,9 @@ namespace CoupledField {
     }
 
     Matrix<Double> GetFPMaterialTensor(const LocPointMapped& OriginalLPM){
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
-      PreprocessLPM(OriginalLPM, actualLPM, operatorIdx, storageIdx);
+      PreprocessLPM(OriginalLPM, actualLPM, operatorIdx, storageIdx, idxElem);
       return FPMaterialTensor_[storageIdx];
     }
 
@@ -1989,34 +2142,34 @@ namespace CoupledField {
     }
 
     Matrix<Double> EstimateSlope(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string estimationType, std::string implementationVersion,
-    Double steppingLength=1e-10, Double scaling=1.0);
+    Double steppingLength=1e-10, Double scaling=1.0, bool forceMidpoint=false);
 
-    Matrix<Double> EstimateSlope_DeltaMat(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion);
+    Matrix<Double> EstimateSlope_DeltaMat(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion, bool forceMidpoint);
 
-    Matrix<Double> EstimateSlope_Jacobian(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion);
+    Matrix<Double> EstimateSlope_Jacobian(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion, bool forceMidpoint);
 
     Matrix<Double> CalcDeltaMat(Vector<Double> E_B_diff, Vector<Double> P_J_diff, bool useAbs,std::string implementationVersion, Double cuttingTol = -1.0);
     Matrix<Double> CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs,std::string implementationVersion, Double cuttingTol = -1.0);
 
-    Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion );
+    Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion);
 
-    bool PrecomputeSlopes(const LocPointMapped& Originallpm, std::string implementationVersion,
-          bool strainVersion, bool forceReevaluation);
+//    bool PrecomputeSlopes(const LocPointMapped& Originallpm, std::string implementationVersion,
+//          bool strainVersion, bool forceReevaluation);
 
-    Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint=false);
     Matrix<Double> ConvertFromVoigtToTensor(Vector<Double> Si_voigt);
-    Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel);
+    Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint=false);
     Vector<Double> GetIrreversibleStrains(UInt storageIdx, int timeLevel);
 
-    Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forceMidpoint=false);
 
-    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forStrain);
+    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forStrain, bool forceMidpoint=false);
 
     void PrecomputeScaledAndRotatedCouplingTensor(Matrix<Double> baseTensor, bool rotate);
 
     Vector<Double> ComputeIrreversibleStrains(Vector<Double> P,Vector<Double> E_H,Vector<Double> Pold);
 
-    Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
+    Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary, bool overwriteMemory=false);
     Vector<Double> RetrieveInputToHysteresisOperatorOLD(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
 
     Vector<Double> RetrieveLPMSolution(LocPointMapped& actualLPM, UInt storageIdx, int timeLevel, bool onBoundary);
@@ -2253,15 +2406,17 @@ namespace CoupledField {
     void TestJacobianApproximations();
     void TestInversion(PtrParamNode testNode);
 
-    void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals);
+    void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals, Double initialAmplitude = std::numeric_limits<double>::infinity());
 
     void CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals);
 
     void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals,
+    Vector<Double> zVals, UInt dimHystOperator, int forcedPreisachResolution,
     bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance,
-    std::string commonPerfFile, bool test1D, bool outputIrrStrains, std::string nameTagForPerfFile);
+    std::string commonPerfFile, bool test1D, bool outputIrrStrains, std::string nameTagForPerfFile,
+    std::string additionalTag1,std::string additionalTag2,std::string additionalTag3);
 
-    void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
+    void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals, Vector<Double> zVals);
 
     void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
       //std::cout << "Elast and Coupl tensor were passed by coupled pde!" << std::endl;
@@ -2330,10 +2485,10 @@ namespace CoupledField {
     }
 
     void getMatrixForLocalInversion(const LocPointMapped& Originallpm, Matrix<Double>& matrixForInversion, Matrix<Double>& matrixForInversionInverted){
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
 
-      PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+      PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx, idxElem);
       matrixForInversion = eps_mu_local_[storageIdx];
       matrixForInversionInverted = epsInv_nu_local_[storageIdx];
     }
@@ -2369,10 +2524,10 @@ namespace CoupledField {
       // for vector model, an additional rotation towards P could be reasonable
 
       // get actual indices for storage array to find out if we need to reevaluate or not
-      UInt operatorIdx, storageIdx;
+      UInt operatorIdx, storageIdx, idxElem;
       LocPointMapped actualLPM;
 
-      PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
+      PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx, idxElem);
 
       rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
       //
@@ -2617,9 +2772,8 @@ namespace CoupledField {
       // Implementation taken from BaseMaterial class
 
       // Calculate rotation matrix( based on Kardan-Angles)
-      // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
-      // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
-      // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+      // Ref.: C. Woernle, Mehrkörpersysteme "Eine Einführung in die Kinematik und Dynamik von Systemen starrer Körper" 
+      // Springer 2016; Kapitel 3.6
 
       Matrix<Double> R(3,3);
       R.Resize(3,3);
@@ -2657,7 +2811,7 @@ namespace CoupledField {
     void PrecomputeIrrStrains();
 
     bool PreprocessLPM(const LocPointMapped& lpmInput, LocPointMapped& lpmOutput,
-    UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint = false);
+    UInt& operatorIdx, UInt& storageIdx, UInt& idxElem, bool forceMidpoint = false);
 
     Vector<Double> CalcOutputOfHysteresisOperator(Vector<Double> inpute, UInt operatorIdx, UInt storageIdx,
     bool forceMemoryLock = false, bool forceMemoryWrite = false, bool useOperatorForStrain = false);
@@ -2679,8 +2833,8 @@ namespace CoupledField {
     void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& outputTensor, std::string evalMethod,
     UInt storageIdx, bool intoSat, bool outofSat, bool satToSat, Vector<Double>& X_current);
 
-    void ExtractSolutionAndInputForHystOperator(Vector<Double>& extractedSolution, Vector<Double>& extractedInput, UInt& operatorIndex,
-    UInt& storageIndex, const LocPointMapped& lpm, bool midpointOnly);
+//    void ExtractSolutionAndInputForHystOperator(Vector<Double>& extractedSolution, Vector<Double>& extractedInput, UInt& operatorIndex,
+//    UInt& storageIndex, const LocPointMapped& lpm, bool midpointOnly);
 
     bool EvaluateAtMidpointOnly();
     bool OverwriteHystMemory();
@@ -3304,6 +3458,7 @@ namespace CoupledField {
     Matrix<Double> rev_mat_fac_MATRIX_;
 
     bool useFPH_;
+    bool skipStorage_; // new parameter introduced 18.4.2020; see function PrecomputePolarization for more info
     fixpointFlag selectedFPApproach_;
 
     // convergence factors for global and local fixpoint methods
@@ -3322,6 +3477,11 @@ namespace CoupledField {
     //  and use it in RetrieveInputToHystOperator
     // (for B-version include nuFP_ directly in FPMaterialTensor_)
     Vector<Double> muFPH_;
+    // 24.6.2020: introduced new flag
+    // if set to true, the slope for the localized fixpoint methods will only be computed from the Jacobian at the
+    // elements center; if false, the Jacobian will be evaluated at each integration point and each integration point
+    // will gets its own FP-tensor
+    bool evalJacAtMidpointOnly_;
 
     /*
      * inherited from HystHelper
@@ -3338,6 +3498,11 @@ namespace CoupledField {
     Matrix<Double> eps_mu_base_ ;
     Matrix<Double> elastTensor_;
     Matrix<Double> couplTensor_;
+    
+    Matrix<Double> eps_nu_baseFULL_ ;
+    Matrix<Double> eps_mu_baseFULL_ ;
+    Matrix<Double> elastTensorFULL_;
+    Matrix<Double> couplTensorFULL_;
 
     bool tensorsInitialized_;
     bool materialTensorsSetOnce_;

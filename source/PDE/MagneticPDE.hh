@@ -86,13 +86,19 @@ namespace CoupledField
     // =======================================================================
     //   HYSTERESIS
     // =======================================================================
-    LinearForm* GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
+    LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
 
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity );
     
     //! Map containing the remanence (B excitation on RHS)
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
+
+//    //! Query parameter object for information on coils
+//    void ReadCoils();
+    
+//    //! Initialize time stepping method
+//    void InitTimeStepping();
     
     //! read in softening types
     void ReadSoftening();
@@ -108,7 +114,7 @@ namespace CoupledField
     
     //! flag for magn_strict coupling
     bool isMagnetoStrictCoupled_;
-    
+        
     void CheckForConductivity();
     bool anyRegionHasConductivity_;
 
@@ -129,6 +135,7 @@ namespace CoupledField
 
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
+    
   };
   
 } // end of namespace
