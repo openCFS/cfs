@@ -124,6 +124,7 @@
           <xsd:complexContent>
             <xsd:extension base="DT_NciMotion">
               <xsd:attribute name="rpm" type="xsd:double" use="required"/>
+              <xsd:attribute name="connectedRegions" type="xsd:token" use="optional"/>
             </xsd:extension>
           </xsd:complexContent>
         </xsd:complexType>
