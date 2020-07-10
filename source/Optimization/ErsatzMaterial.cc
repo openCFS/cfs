@@ -406,7 +406,7 @@ void ErsatzMaterial::PostInit()
 }
 
 
-void ErsatzMaterial::StoreResults(double step_val)
+void ErsatzMaterial::StoreResults(double step_val, Context* ctxt)
 {
   CommitMode cm = commitMode_;
 
@@ -422,8 +422,8 @@ void ErsatzMaterial::StoreResults(double step_val)
       // in that case we need mode number 0 instead of the default -1
       int mode = ctxt.IsEigenvalue() ? 0 : -1;
       forward.Get(ex, NULL, mode)->Write(ctxt.pde); // forward is function NULL
-      // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
-      Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e);
+      // call real implementation in Optimization. stepvals are fractions of 0.5 and range from 0 to 0.5
+      Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e, &ctxt);
     }
   }
 
@@ -442,11 +442,12 @@ void ErsatzMaterial::StoreResults(double step_val)
     {
       for(unsigned int e = 0; me->excitations.GetSize(); e++)
       {
-        assert(me->excitations[e].sequence == context->sequence); // will fail for multiple sequence!
-        adjoint.Get(me->excitations[e], funcs[fi])->Write(context->pde);
-        // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
+        Excitation& ex = me->excitations[e];
+        Context& ctxt = manager.GetContext(&ex);
+        adjoint.Get(me->excitations[e], funcs[fi])->Write(ctxt.pde);
+        // call real implementation in Optimization. stepvals are fractions of 0.5 and range from 0.5 to 1
         double index = (me->excitations.GetSize() * funcs.GetSize()) * (fi * funcs.GetSize()) * e;
-        Optimization::StoreResults(real_step + 0.5 + (0.5 / index));
+        Optimization::StoreResults(real_step + 0.5 + (0.5 / index), &ctxt);
       }
     }
 

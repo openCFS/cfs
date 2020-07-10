@@ -117,7 +117,7 @@ protected:
   virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
-  virtual void StoreResults(double step_val);
+  virtual void StoreResults(double step_val, Context* ctxt = NULL);
 
   /** @see Optimization::GetIterationFrequency() */
   std::string GetIterationFrequency();

@@ -299,7 +299,7 @@ namespace CoupledField
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
          * is overwritten and might do nothing.
          * @param step_val the "label" of the "transient" step. -1 is the integer counter */
-        virtual void StoreResults(double step_val = -1.0);
+        virtual void StoreResults(double step_val = -1.0, Context* ctxt = NULL);
 
 
         /** Our MultipleExcitation object - by default disabled. Even if we have potentially more than one

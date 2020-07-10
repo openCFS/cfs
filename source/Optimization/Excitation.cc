@@ -458,7 +458,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
           ex->normalized_weight = ex->weight / weight_sum;
         }
 
-        LOG_DBG2(exlog) << "PME: i=" << i << " l=" << ex->label << " w=" << ex->weight << " nw=" << ex->normalized_weight << " ws=" << weight_sum << " idx=" << ex->index;
+        LOG_DBG2(exlog) << "FME: i=" << i << " l=" << ex->label << " w=" << ex->weight << " nw=" << ex->normalized_weight << " ws=" << weight_sum << " idx=" << ex->index;
       }
     }
 
@@ -491,7 +491,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
   assert((int) MechPDE::Z == (int) HeatPDE::Z);
 
   StdVector<int> testStrains(cases);
-  // assumes order of TestStrain Enum to be X=0, Y=1, Z=2, ....
+  // assumes order of TestStrain Enum to be X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5
   for (int i = 0; i < cases; i++)
     testStrains[i] = i;
 

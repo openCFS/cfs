@@ -1080,20 +1080,23 @@ void Optimization::EvaluateSpecialResults()
 }
 
 
-void Optimization::StoreResults(double step_val)
+void Optimization::StoreResults(double step_val, Context* ctxt)
 {
   // For PiezoSIMP we can do storing there and this method is overwritten
   // and might do nothing
+
+  if (!ctxt)
+    ctxt = context;
 
   // this will write the CFS result and history file
   if(!IsTransient())
   { // transient optimization saves results in a different way
     if(step_val == -1)
-      context->GetDriver()->StoreResults(writeCounter_, currentIteration);
+      ctxt->GetDriver()->StoreResults(writeCounter_, currentIteration);
     else
-      context->GetDriver()->StoreResults(writeCounter_, step_val);
+      ctxt->GetDriver()->StoreResults(writeCounter_, step_val);
 
-    if (!context->GetDriver()->GetResultHandler()->streamOnly)
+    if (!ctxt->GetDriver()->GetResultHandler()->streamOnly)
       writeCounter_++;
   }
 }
