@@ -54,7 +54,7 @@ class BucklingDriver: public virtual SingleDriver {
 
     /** @see BaseDriver::StoreResults()
      *  step_val has no effect! */
-    void StoreResults(UInt stepNum, double step_val);
+    unsigned int StoreResults(UInt stepNum, double step_val);
 
     void SetToStepValue(UInt stepNum, Double stepVal) {
       // ensure that this method is only called if simState has input
@@ -118,9 +118,6 @@ class BucklingDriver: public virtual SingleDriver {
 
     // order of the sorted modes
     StdVector<int> modeOrder_;
-
-    //! needed parameter see calcMode()
-    unsigned int save_step_;
 
     //! input parameter, set method of Mode sizing
     BaseEigenSolver::ModeNormalization modeNormalization_;

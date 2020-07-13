@@ -85,7 +85,6 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
   info_ = info_->Get("buckling");
 
   // some variables needed later
-  save_step_ = 1; //see calcModes()
   writeAllSteps_ = false;
 }
 
@@ -397,9 +396,8 @@ void BucklingDriver::PrintResult() {
   }
 }
 
-void BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
+unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
 {
-  // step_val is ignored
   LOG_DBG2(buckD) << "SR: step=" << stepNum << " val=" << step_val;
 
   if(calcModes_)
@@ -415,7 +413,8 @@ void BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
 
     StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep());
 
-    int digs =  boost::lexical_cast<string>((int)numEigenValues_).size();
+    string s = boost::lexical_cast<string>(step_val);
+    int digs =  boost::lexical_cast<string>((int)numEigenValues_).size() + s.substr(s.find('.')+1).size();
     double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
 
     for(unsigned int ev = 0; ev < numEigenValues_; ev++)
@@ -441,8 +440,8 @@ void BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
       double save_value = -1.0;
       if(domain->GetOptimization() && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN)
       {
-        // time is step.nr
-        save_value = stepNum + (ev + 1) * sig; // +1 for one based
+        // time is step.step_val nr
+        save_value = step_val + (ev + 1) * sig; // +1 for one based
         LOG_DBG3(buckD) << "SR: total=" << numEigenValues_ << " digs=" << digs << " sig=" << sig << " count=" << (ev + 1);
       }
       else {
@@ -450,21 +449,27 @@ void BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
         save_value = std::abs(loadFactorsRealPart[modeOrder_[ev]]);
       }
 
-      LOG_DBG2(buckD) << "SR: ev=" << ev << " save_step_=" << save_step_ << " save_value=" << save_value;
+      LOG_DBG2(buckD) << "SR: ev=" << ev << " stepNum=" << stepNum << " save_value=" << save_value;
 
       // write modes to file
-      handler_->BeginStep(save_step_, save_value);
-      ptPDE_->WriteResultsInFile(save_step_, save_value);
+      handler_->BeginStep(stepNum, save_value);
+      ptPDE_->WriteResultsInFile(stepNum, save_value);
       handler_->FinishStep();
 
       if(writeAllSteps_ || isPartOfSequence_)
-        simState_->WriteStep(save_step_, save_value);
+        simState_->WriteStep(stepNum, save_value);
 
-      save_step_++;
+      if (!GetResultHandler()->streamOnly)
+        stepNum++;
     }
     if(!domain->GetOptimization())
       cout << "\n++ Finished calculating and storing buckling modes." << std::endl;
   }
+
+  if (!GetResultHandler()->streamOnly)
+    return stepNum-1;
+  else
+    return stepNum;
 }
 
 void BucklingDriver::ExportModes() {

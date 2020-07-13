@@ -525,7 +525,7 @@ namespace CoupledField
   }
 
 
-  void InverseSourceDriver::StoreResults(UInt stepNum, double step_val)
+  unsigned int InverseSourceDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::INVERSESOURCE);
 
@@ -534,6 +534,7 @@ namespace CoupledField
     ptPDE_->WriteResultsInFile(stepNum, step_val);
     handler_->FinishStep( );
 
+    return stepNum;
   }
 
 

@@ -51,7 +51,6 @@ namespace CoupledField {
     blochSteps_ = 0;
     ibz_     = false;
     eigenFreqs = NULL;
-    save_step_ = 1;
     minVal_ = 0.0;
     maxVal_ = 0.0;
     eigenValuesAreReal_=true;
@@ -674,9 +673,8 @@ namespace CoupledField {
   }
 
 
-  void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
+  unsigned int EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
   {
-    // stepNum and step_val are ignored
     LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
 
     unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
@@ -684,6 +682,11 @@ namespace CoupledField {
 
     // generates a index-array modeOrder_ containing the mode indices sorted by ascending Frequency value
     SortModes();
+
+    int total = eigenFreqs->GetSize() * wvs;
+    string s = boost::lexical_cast<string>(step_val);
+    int digs =  boost::lexical_cast<string>(total).size() + s.substr(s.find('.')+1).size();
+    double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
 
     for(unsigned int fi=0; fi < frequency_.GetSize(); fi++)
     {
@@ -701,29 +704,32 @@ namespace CoupledField {
 
         if(domain->GetOptimization() && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN)
         {
-          // time is step.nr
-          int total = eigenFreqs->GetSize() * wvs;
-          int digs =  boost::lexical_cast<string>(total).size();
-          double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
-          save_value = stepNum + (w * wvs + fi + 1) * sig; // +1 for one based
+          // time is step.step_val nr
+          save_value = step_val + (w * wvs + fi + 1) * sig; // +1 for one based
 
           LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
         }
         else // for bloch case we label <step>.<nr> from the info.xml
           save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(modeOrder_[fi]));
 
-        LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
+        LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " stepNum=" << stepNum << " save_value=" << save_value;
 
-        handler_->BeginStep(save_step_, save_value);
-        ptPDE_->WriteResultsInFile(save_step_, save_value);
+        handler_->BeginStep(stepNum, save_value);
+        ptPDE_->WriteResultsInFile(stepNum, save_value);
         handler_->FinishStep();
 
         if(writeAllSteps_ || isPartOfSequence_)
-          simState_->WriteStep(save_step_, save_value);
+          simState_->WriteStep(stepNum, save_value);
 
-        save_step_++;
+        if (!GetResultHandler()->streamOnly)
+          stepNum++;
       }
     }
+
+    if (!GetResultHandler()->streamOnly)
+      return stepNum-1;
+    else
+      return stepNum;
   }
 
   void EigenFrequencyDriver::PrintResult(int wave_vector_step)

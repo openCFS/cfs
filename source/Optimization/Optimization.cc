@@ -1088,16 +1088,18 @@ void Optimization::StoreResults(double step_val, Context* ctxt)
   if (!ctxt)
     ctxt = context;
 
+  unsigned int internalWriteCounter;
+
   // this will write the CFS result and history file
   if(!IsTransient())
   { // transient optimization saves results in a different way
     if(step_val == -1)
-      ctxt->GetDriver()->StoreResults(writeCounter_, currentIteration);
+      internalWriteCounter = ctxt->GetDriver()->StoreResults(writeCounter_, currentIteration);
     else
-      ctxt->GetDriver()->StoreResults(writeCounter_, step_val);
+      internalWriteCounter = ctxt->GetDriver()->StoreResults(writeCounter_, step_val);
 
     if (!ctxt->GetDriver()->GetResultHandler()->streamOnly)
-      writeCounter_++;
+      writeCounter_ = internalWriteCounter + 1;
   }
 }
 
@@ -1149,9 +1151,21 @@ PtrParamNode Optimization::CommitIteration()
     // see FinalizeStoreResults() !
   }
   else {
-    context->GetDriver()->GetResultHandler()->streamOnly = true;
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
+      ctxt.GetDriver()->GetResultHandler()->streamOnly = true;
+    }
+
     StoreResults();
-    context->GetDriver()->GetResultHandler()->streamOnly = false;
+
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
+      ctxt.GetDriver()->GetResultHandler()->streamOnly = false;
+    }
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
@@ -1254,7 +1268,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     // Calculate the max value of multiple displacement constraints
     if((g->GetType() == Function::OUTPUT || g->GetType() == Function::SQUARED_OUTPUT) && g->output_multiple_nodes > 0) {
       max = std::max(max,std::abs(g->GetValue()));
-      std::cout<<"max "<<max<<std::endl;
     }
     if(g->IsLocalCondition())
     {

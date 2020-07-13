@@ -48,7 +48,7 @@ namespace CoupledField
      * will have been called with write_results = true.<p>
      * <p>Note that you have to wrap within a multisequencestep and finalize the result handler explicitly,
      * as this can be done only once for HDF5 -> this is done in Optimization::SolveProblem()</p> */
-    virtual void StoreResults(UInt stepNum = 1, double step_val = -1.0) { assert(false); }
+    virtual unsigned int StoreResults(UInt stepNum = 0, double step_val = -1.0) { assert(false); return stepNum; }
 
     //! Return current analysistype
 

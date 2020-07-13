@@ -130,8 +130,8 @@ class SingleVector;
     static unsigned int GetNumBlochWave(PtrParamNode node);
 
     /** @see BaseDriver::StoreResults()
-     * stepNum and step_val are ignored!! */
-    void StoreResults(UInt stepNum, double step_val);
+     * step_val is ignored!! */
+    unsigned int StoreResults(UInt stepNum, double step_val);
 
     /** eigenFreqs might be complex in the quadaratic, then we need to extract the real frequency by from the imaginary part
      * @param mode index within eigenFreq (0-based)
@@ -240,9 +240,6 @@ class SingleVector;
 
     /** store the first plot.dat line to be repeated in the ibz_ case as last step */
     std::string first_plot_line_;
-
-    /** the step number is complicated with bloch and or optimization. Count by ourselves here! */
-    unsigned int save_step_;
 
     bool eigenValuesAreReal_;
 
