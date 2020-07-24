@@ -323,6 +323,7 @@ platform:centos:
   variables:
     IMAGE: "centos"
     TAG: "latest"
+    CMAKE_CXX_FLAGS: "-lrt"
 
 platform:centos:7:
   extends: .platform:image

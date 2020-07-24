@@ -67,10 +67,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://zlib.net/${ZLIB_GZ}"
+  "https://www.zlib.net/fossils/${ZLIB_GZ}"
   "https://sourceforge.net/projects/libpng/files/zlib/${ZLIB_VER}/${ZLIB_GZ}/download?use_mirror=vorboss&download="
-  "http://fossies.org/linux/misc/${ZLIB_GZ}"
-  "${ZLIB_URL}/${ZLIB_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
 SET(MD5_SUM ${ZLIB_MD5})
