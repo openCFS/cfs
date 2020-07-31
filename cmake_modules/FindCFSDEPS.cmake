@@ -39,6 +39,11 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   SET(CFSDEPS_C_FLAGS "-w")
   SET(CFSDEPS_CXX_FLAGS "-w")
   SET(CFSDEPS_Fortran_FLAGS "-w")
+  if( NOT ${CXX_VERSION} VERSION_LESS 10  )
+    #message("Our Fortran dependencies (Lapack, Aprack, FEAST need '--std=legacy' when compiled with GCC >= 10") # see https://github.com/Reference-LAPACK/lapack/issues/353
+    # if( ...  VERSION_GREATER_EQUAL ...) is not supported by cmake 3.5.x
+    set(CFSDEPS_Fortran_FLAGS "--std=legacy ${CFSDEPS_Fortran_FLAGS}")
+  endif()
 ELSEIF(MSVC)
   STRING(REPLACE "/W3" "/w" CFSDEPS_C_FLAGS "${CMAKE_C_FLAGS_INIT}")
   STRING(REPLACE "/W3" "/w" CFSDEPS_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT}")
