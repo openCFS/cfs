@@ -4,10 +4,6 @@ SET(SCATTEREDDATAINOUT_SRCS
   ScatteredDataReaderCSVT.cc
 )
 
-SET(TARGET_LL
-  ${BOOST_SYSTEM_LIB}
-  )
-
 ADD_LIBRARY(scattereddatainout STATIC ${SCATTEREDDATAINOUT_SRCS})
 
 ADD_DEPENDENCIES(scattereddatainout boost)

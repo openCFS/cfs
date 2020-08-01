@@ -5,7 +5,7 @@
 #include "SimState.hh"
 
 #include <map>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 // include hdf5 cpp file
 #include "H5Cpp.h"
@@ -42,6 +42,7 @@ class MaterialHandler;
     domain_ = NULL;
     parentDomain_ = parentDomain;
     parentParser_ = NULL;
+    parentHandle_= 0;
     interpol_ = NO_INTERPOLATION;
     
   }

@@ -2879,7 +2879,7 @@ namespace CoupledField {
           }
 
         } else {
-          if(InversionParams_.inversionMethod != 10){
+          if(InversionParams_.inversionMethod != LOCAL_NOTIMPLEMENTED){
             initial_P_J = hyst_->computeValue_vec(initial_E_H, k, overwrite, debugOut, successCode);
           } else {
             // in case of the everett based inversion, we are no longer allowed to call computeValue_vec as
@@ -2892,7 +2892,7 @@ namespace CoupledField {
             initial_P_J.ScalarMult(-1.0);
           }
           if(CouplingParams_.ownHystOperator_){
-            if(InversionParams_.inversionMethod != 10){
+            if(InversionParams_.inversionMethod != LOCAL_NOTIMPLEMENTED){
               P_J_forStrains = hystStrain_->computeValue_vec(initial_E_H, k, overwrite, debugOut, successCode);
             } else {
               // here we need an initial input for hystStrain but this would require an initial strain to be given!
@@ -3820,7 +3820,7 @@ namespace CoupledField {
      *                        not fail); Option 1 has slightly different values on off-diagonal
      *                    > Option 3 seems to be the best working version!
      */
-      if(InversionParams_.inversionMethod == 10){
+      if(InversionParams_.inversionMethod == LOCAL_NOTIMPLEMENTED){
         // in case of the everett based inversion, we are no longer allowed to call computeValue_vec as
         // the retrieved input from computeValue_vec will not return the original input (the inverse of a sum is
         // not the sum of the inverted terms!); instead we compute the output by subtracting mu*E_H from 
@@ -5837,7 +5837,7 @@ namespace CoupledField {
            * model must overwrite its state directly which can be triggered by overwriteMemory = true
            */
 //          bool overwriteMemory = false;
-          if((InversionParams_.inversionMethod != 10)&&(overwriteMemory)){
+          if((InversionParams_.inversionMethod != LOCAL_NOTIMPLEMENTED)&&(overwriteMemory)){
             //              inversionMethod == 10 > everett for mayergoyz; only in this case overwriteMemroy might be true; 
             //              otherwise enforce overwriteMemory = false
             WARN("RetrieveInputToHysteresisOperator with flag overwriteMemory=true is only allowed for Mayergoyz vector model"
@@ -9036,12 +9036,12 @@ namespace CoupledField {
 					startTime = backwardTimer->GetCPUTime();
         }
 
-        if((InversionParams_.inversionMethod != LOCAL_EVERETTBASED)&&(InversionParams_.inversionMethod != 10)){
+        if((InversionParams_.inversionMethod != LOCAL_EVERETTBASED)&&(InversionParams_.inversionMethod != LOCAL_NOTIMPLEMENTED)){
           xOut = hystTMP->computeInput_vec_withStatistics(yIn, yPrev, xPrev, hPrev,
                   0, eps_mu_used, POL_operatorParams_.fieldsAlignedAboveSat_, POL_operatorParams_.hystOutputRestrictedToSat_,
                   numberOfLMIterations, numberOfLinesearchIterations, maxNumberOfLinesearchIterations,
                   successFlagBackward, minAlpha, maxAlpha, avgAlpha, xIn);
-        } else if(InversionParams_.inversionMethod == 10) {
+        } else if(InversionParams_.inversionMethod == LOCAL_NOTIMPLEMENTED) {
           EXCEPTION("Everett based inversion of the Mayergoyz model not supported yet as its output cannot be used in the forward model");
           // Problem: Throughout coefFunctionHyst, we need both, the forward and the backward/inverse Hysteresis model
           // the backward model is required, if B is known, but sometimes H is known or set, e.g., in testing of the hyst

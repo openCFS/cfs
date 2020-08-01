@@ -9,6 +9,7 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "SimOutputStreaming.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "boost/bind/bind.hpp"
 
 using boost::asio::ip::tcp;
 

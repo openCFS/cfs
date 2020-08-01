@@ -75,7 +75,7 @@ ELSE()
       -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
       -DBUILD_SHARED_LIBS:BOOL=OFF
       -DBUILD_TESTING:BOOL=OFF
-      -DENABLE_OPENMP:BOOL=${USE_OPENMP}
+      -DENABLE_OPENMP:BOOL=OFF # makes problems when precompiled is parallel and cfs is serial
       -DENABLE_SAMPLES:BOOL=OFF
       -E
   )

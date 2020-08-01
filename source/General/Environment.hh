@@ -699,7 +699,7 @@ namespace CoupledField {
   typedef enum { NOFP = 0, FP_GLOBAL_B = 1, FP_LOCAL_B_DIAG = 2, FP_LOCAL_B_FULLJAC = 21, FP_GLOBAL_H = 3, FP_LOCAL_H_DIAG = 4, FP_LOCAL_H_FULLJAC = 41 } fixpointFlag;
 
     //! local inversion methods for hysteresis operator
-  typedef enum {LOCAL_LEVENBERGMARQUARDT=0, LOCAL_NEWTON=1, LOCAL_JACOBIFREENEWTON=2, LOCAL_PROJECTEDLM=3, LOCAL_EVERETTBASED=4, LOCAL_FIXPOINT=5, LOCAL_NOINVERSION=6} localInversionFlag;
+  typedef enum {LOCAL_LEVENBERGMARQUARDT=0, LOCAL_NEWTON=1, LOCAL_JACOBIFREENEWTON=2, LOCAL_PROJECTEDLM=3, LOCAL_EVERETTBASED=4, LOCAL_FIXPOINT=5, LOCAL_NOINVERSION=6, LOCAL_NOTIMPLEMENTED=10} localInversionFlag;
   
   // Instantiation for all known enum types;
 #define DEFINE_ENUM_CONVERSION(TYPE)                                  \

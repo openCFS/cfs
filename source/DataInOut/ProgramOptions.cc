@@ -37,7 +37,7 @@
 #include <sstream>
 #include <cstdlib>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -52,7 +52,7 @@
 #endif
 
 #ifdef USE_OPENBLAS
-#include <openblas_config.h>
+#include <openblas/openblas_config.h>
 #endif
 #include <bzlib.h>
 #include <zlib.h>
@@ -72,10 +72,6 @@
 
 #ifdef USE_LIS
 #include <lis.h> 
-#endif
-
-#ifdef USE_ARPACK
-#include <arpack_version.h>
 #endif
 
 #ifdef USE_CGAL
@@ -128,7 +124,7 @@
 using std::string;
 using std::endl;
 using std::cout;
-
+using namespace boost::placeholders;
 
 
 // Lapack version function interface
@@ -658,7 +654,7 @@ namespace CoupledField {
 
 #ifdef USE_ARPACK    
     out << "USE_ARPACK:            " << fg_blue  << "YES" << fg_reset << endl;
-    out << "ARPACK_VERSION:        " << fg_blue  << ARPACK_VERSION_NUMBER << fg_reset << endl;
+    out << "ARPACK_VERSION:        " << fg_blue  << ARPACK_VER << fg_reset << endl;
 #else
     out << "USE_ARPACK:            " << fg_blue  << "NO" << fg_reset << endl;
 #endif

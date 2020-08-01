@@ -155,7 +155,7 @@ protected:
   shared_ptr<FeSpace> fluxFESpace_;
 
   //! Safety flag to check if the elements of all regions were registered
-  bool regionRegistration_;
+  bool regionRegistration_ = false;
 
   //! Total number of elements
   UInt numElems_;

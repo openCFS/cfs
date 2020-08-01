@@ -20,6 +20,7 @@ namespace fs = boost::filesystem;
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
 
 #include "General/Environment.hh"

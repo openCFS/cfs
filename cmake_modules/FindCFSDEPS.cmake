@@ -1,4 +1,4 @@
-#=============================================================================
+#============================================================================
 #
 # Find locations of external binary libs (e.g. MKL) and build additional
 # external libs from source.
@@ -195,9 +195,9 @@ IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
     
   SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
   SET(LAPACK_BASE "lapack")
-  SET(LAPACK_VER "3.4.2")
-  SET(LAPACK_GZ "${LAPACK_BASE}-${LAPACK_VER}.tgz")
-  SET(LAPACK_MD5 "61bf1a8a4469d4bdb7604f5897179478")
+  SET(LAPACK_VER "3.9.0")
+  SET(LAPACK_GZ "v${LAPACK_VER}.tar.gz")
+  SET(LAPACK_MD5 "0b251e2a8d5f949f99b50dd5e2200ee2")
     
   INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
@@ -211,13 +211,9 @@ if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     
   set(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
   set(OPENBLAS_BASE "OpenBLAS")
-  # the latest revision 0.2.20 does not compile with -DDYNAMIC_ARCH=1 but the current development version does
-  # set(OPENBLAS_VER "0.2.20")
-  # set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-  set(OPENBLAS_REV "874df65") # 1.2.2018
-  set(OPENBLAS_ZIP "${OPENBLAS_REV}.zip")
-  # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
-  set(OPENBLAS_MD5 "0594f38346c725b5c88fcb648c4af1e8")
+  set(OPENBLAS_VER "0.3.10")
+  set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
+  set(OPENBLAS_MD5 "4727a1333a380b67c8d7c7787a3d9c9a")
   INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
 endif(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
 
@@ -252,9 +248,10 @@ ENDIF(USE_PARDISO)
 IF(USE_ARPACK)
   SET(ARPACK_URL "${CFS_DS_SOURCES_DIR}/arpack")
   SET(ARPACK_BASE "arpack")
-  SET(ARPACK_VER "ng-3.2.0")
-  SET(ARPACK_GZ "${ARPACK_BASE}-${ARPACK_VER}.tar.gz")
-  SET(ARPACK_MD5 "0ae8a0bb796370b06647d9e005c0f3ea")
+  # remove --std=legacy in External_ARPACK when > 3.7.0
+  SET(ARPACK_VER "3.7.0")
+  SET(ARPACK_GZ "${ARPACK_VER}.tar.gz")
+  SET(ARPACK_MD5 "6fc6c6bf78dbd4f144595ef0675c8430")
   
   INCLUDE("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
 ENDIF(USE_ARPACK)
@@ -350,12 +347,13 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 SET(BOOST_BASE "boost")
 SET(BOOST_MAJOR_VER 1)
-SET(BOOST_MINOR_VER 66)
+SET(BOOST_MINOR_VER 73)
 SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
 SET(BOOST_MD5 "b2dfbd6c717be4a7bb2d88018eaccf75") #1.66
 #SET(BOOST_MD5 "7fbd1890f571051f2a209681d57d486a") # 1.68
+SET(BOOST_MD5 "9273c8c4576423562bbe84574b07b2bd") # 1.73
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------

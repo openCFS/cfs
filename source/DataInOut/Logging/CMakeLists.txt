@@ -7,7 +7,6 @@ endif()
 SET(TARGET_LL
   paramh
   utils
-  ${BOOST_SYSTEM_LIB}
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_THREAD_LIB}
   )

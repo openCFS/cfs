@@ -1,0 +1,16 @@
+# move the lib stuff from lib (mac) or lib64 (linux)
+if(EXISTS "@lapack_install@/lib/libblas.a")
+  file(COPY "@lapack_install@/lib/libblas.a" DESTINATION "@lapack_install@/lib64/@CFS_ARCH_STR@/")
+  file(COPY "@lapack_install@/lib/liblapack.a" DESTINATION "@lapack_install@/lib64/@CFS_ARCH_STR@/")
+else()
+  file(COPY "@lapack_install@/lib64/libblas.a" DESTINATION "@lapack_install@/lib64/@CFS_ARCH_STR@/")
+  file(COPY "@lapack_install@/lib64/liblapack.a" DESTINATION "@lapack_install@/lib64/@CFS_ARCH_STR@/")
+endif()  
+message("copied libblas.a and liblapack.a to @lapack_install@/lib64/@CFS_ARCH_STR@/")
+
+# remove also the cmake and pkgconfig subfolders
+file(REMOVE_RECURSE "@lapack_install@/lib/")
+
+# remove manifest as we pack the stuff by ourselves
+file(REMOVE "@lapack_prefix@/src/lapack-build/install_manifest.txt")
+message("remove @lapack_prefix@/src/lapack-build/install_manifest.txt")

@@ -1,4 +1,3 @@
-# move the include directory include/libxml2/libxml to include/libxml
 FILE(GLOB ALL_BOOST_LIBRARIES
   "@BOOST_install@/lib/*"
 )

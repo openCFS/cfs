@@ -6,7 +6,6 @@
 #include <limits>
 
 #include "CoefFunctionComplexToReal.hh"
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"

@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------------
 # ARnoldi PACKage -  ARPACK is a collection of  Fortran77 subroutines designed
-# to solve large scale eigenvalue problems.
+# to solve large scale eigenvalue problems. 
+# We use the maintained arpack-ng variant
 #
 # Project Homepage
-# http://www.caam.rice.edu/software/ARPACK/
+# https://github.com/opencollab/arpack-ng
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -13,13 +14,9 @@ set(ARPACK_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/arpack")
 set(ARPACK_source  "${ARPACK_prefix}/src/arpack")
 set(ARPACK_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-#MESSAGE("CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS_RELEASE}")
-#MESSAGE("CMAKE_Fortran_FLAGS_RELEASE=${CMAKE_Fortran_FLAGS_RELEASE}")
-#MESSAGE("CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
-#MESSAGE("CMAKE_CXX_FLAGS_INITIAL=${CMAKE_CXX_FLAGS__INITIAL}")
-
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
+  -DCMAKE_INSTALL_LIBDIR:PATH=${ARPACK_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
   -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
@@ -29,13 +26,6 @@ SET(CMAKE_ARGS
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
 )
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 IF(CMAKE_TOOLCHAIN_FILE)
   LIST(APPEND CMAKE_ARGS
@@ -44,26 +34,18 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/arpack/arpack-patch.cmake.in")
-SET(PFN "${ARPACK_prefix}/arpack-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
 # number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
-# the github stuff doesn't work as the archives are called "3.2.0.tar.gz" instead of "arpack-ng-3.2.0.tar.gz" :(
-# "https://github.com/opencollab/arpack-ng/archive/${ARPACK_VER}.tar.gz"
 SET(MIRRORS
-  "http://ftp.uni-erlangen.de/macports/distfiles/arpack/${ARPACK_GZ}"
+  "https://github.com/opencollab/arpack-ng/archive/${ARPACK_GZ}"
   "${CFS_FAU_MIRROR}/sources/arpack/${ARPACK_GZ}"
   "${ARPACK_URL}/${ARPACK_GZ}"
 )
+
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}")
 SET(MD5_SUM ${ARPACK_MD5})
 
@@ -114,7 +96,6 @@ ELSE()
     PREFIX "${ARPACK_prefix}"
     URL ${LOCAL_FILE}
     URL_MD5 ${ARPACK_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS ${CMAKE_ARGS}
     BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
   )

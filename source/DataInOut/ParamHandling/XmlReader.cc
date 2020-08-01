@@ -11,10 +11,19 @@
 #include <iostream>
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include <boost/algorithm/string.hpp>
+// save compiler switches
+// prevent include/boost/iostreams/detail/functional.hpp:176:93: error: extra ';' [-Werror=pedantic]
+//     BOOST_DELETED_FUNCTION(flush_buffer_operation& operator=(const flush_buffer_operation&));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include <boost/iostreams/filtering_stream.hpp>
+//restore compiler switches
+//restore compiler switches
+#pragma GCC diagnostic pop
+
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
-
 
 #ifdef USE_XERCES
 #include "DataInOut/ParamHandling/Xerces.hh"

@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iomanip>
 #include <boost/lexical_cast.hpp>
-#include <boost/progress.hpp>
+#include <boost/timer/progress_display.hpp>
 
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -490,7 +490,7 @@ namespace CoupledField
 
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::progress_display progress( size*forms.GetSize(), progStream );
+      boost::timer::progress_display progress( size*forms.GetSize(), progStream );
 
       if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
@@ -1133,8 +1133,7 @@ namespace CoupledField
       }
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::progress_display progress( size*forms.GetSize(),
-                                        progStream );
+      boost::timer::progress_display progress(size*forms.GetSize(), progStream);
 
       // Loop over all elements/entities
       EntityIterator it1 = firstEntities.GetIterator();
@@ -1376,7 +1375,7 @@ namespace CoupledField
       }
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::progress_display progress( size*forms.GetSize(), progStream );
+      boost::timer::progress_display progress( size*forms.GetSize(), progStream );
 
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
@@ -1582,7 +1581,7 @@ namespace CoupledField
         assert(analysisType_ == actContext.GetPde()->GetAnalysisType());
 
         std::stringstream progStream;
-        boost::progress_display progress( size, progStream );
+        boost::timer::progress_display progress( size, progStream );
 
         if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
 

@@ -19,12 +19,13 @@
 #include <def_cfs_stats.hh>
 #include <exception>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 namespace CFSDat{
 
 namespace po  = boost::program_options;
 namespace fs  = boost::filesystem;
+using namespace boost::placeholders;
 
 CFSDatProgramOptions::CFSDatProgramOptions( CF::Integer argc, const char **argv )
                      : CF::ProgramOptions(argc,argv){
