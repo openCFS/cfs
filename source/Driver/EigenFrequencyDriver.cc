@@ -5,18 +5,20 @@
 #include <cmath>
 #include <boost/filesystem.hpp>
 
-#include "Driver/SolveSteps/StdSolveStep.hh"
-#include "Domain/Domain.hh"
-#include "Optimization/Optimization.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Domain/Domain.hh"
+#include "MatVec/SBM_Matrix.hh"
 #include "OLAS/solver/BaseEigenSolver.hh"
 //#include "OLAS/algsys/AlgebraicSys.hh"
-#include "MatVec/SBM_Matrix.hh"
+//#include "Optimization/ErsatzMaterial.hh"
+//#include "Optimization/Excitation.hh"
+#include "Optimization/Optimization.hh"
 
 #include "PDE/StdPDE.hh"
 
@@ -622,7 +624,8 @@ namespace CoupledField {
     // we don't necessarily write every forward step.
     if(!domain->GetOptimization()) // in other words: if not optimization
     {
-      StoreResults(1, -1.0);
+      if(!isBloch_)
+        StoreResults(1, -1.0);
       handler_->FinishMultiSequenceStep();
 
       if(!isPartOfSequence_)
@@ -669,7 +672,7 @@ namespace CoupledField {
     // only if not optimization or if optimization when it is evaluatate_initial_design
     // not for the last step as we have a separate store result!
     if((domain->GetOptimization() == NULL || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN) && (wave_vector_step <  (int) wave_vectors.GetSize() - 1))
-      StoreResults(wave_vector_step, -1.0);
+      StoreResults(wave_vector_step*ef.GetSize(), -1.0);
   }
 
 
@@ -855,6 +858,9 @@ namespace CoupledField {
       mode->Get("errorbound")->SetValue(errBounds_[i]);
 
     }
+
+    if(!domain->GetOptimization())
+      cout << "\n";
 
     if(isBloch_ && this->ibz_)
     {

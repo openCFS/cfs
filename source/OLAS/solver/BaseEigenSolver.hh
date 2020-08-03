@@ -317,6 +317,12 @@ namespace CoupledField {
     //! general information about the solution of a linear system.
     PtrParamNode info_;
     
+    /** shall we scale the B matrix (mass) as suggested by Jonas? */
+    bool scale_B_ = false;
+
+    /** in case we have scale_B_, this is the value */
+    double scale_B_val_ = 1.0;
+
     //! Number of frequencies to be calculated
     UInt numFreq_;// ToDo: remove due to new structure
     

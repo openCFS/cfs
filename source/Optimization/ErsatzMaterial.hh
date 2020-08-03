@@ -117,7 +117,7 @@ protected:
   virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
-  virtual void StoreResults(double step_val, Context* ctxt = NULL);
+  virtual void StoreResults(double step_val);
 
   /** @see Optimization::GetIterationFrequency() */
   std::string GetIterationFrequency();
@@ -360,6 +360,7 @@ protected:
    * @param grad_out only used in derivative case
    * @return zero for derivative */
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
   /** Store the results from the forward/adjoint problem. Handles multiple excitations
    * @param read_sol store solution (maybe one would only like to save rhs)
    * @param read_rhs is only interesting for the forward problem

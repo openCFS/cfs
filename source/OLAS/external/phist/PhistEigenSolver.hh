@@ -126,7 +126,7 @@ namespace CoupledField {
     typedef struct {
       /** either stiff, mass, or damping */
       const StdMatrix* mat = NULL;
-      /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_mass*/
+      /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_B_*/
       double scale = 1.0;
     } SparseMatRowFuncService;
 
@@ -178,12 +178,6 @@ namespace CoupledField {
 
     /** for some strange reason CFS only expects as complex ?! */
     Matrix<std::complex<double> > mode_;
-
-    /** shall we scale the mass matrix as suggested by Jonas? */
-    bool scale_mass_;
-
-    /** in case we have scale_mass_, this is the value */
-    double scale_mass_val_ = 1.0;
 
     /** is this a Hermitian system */
     bool hermitian_ = false;

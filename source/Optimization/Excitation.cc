@@ -92,8 +92,9 @@ void MultipleExcitation::ToInfo(PtrParamNode in) const
 
 Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool quiet)
 {
+  LOG_DBG(exlog) << "ME:GE: label: " << label;
   for(unsigned int i = 0; i < excitations.GetSize(); i++) {
-    LOG_DBG(exlog) << "ME:GE: label: " << excitations[i].label;
+    LOG_DBG(exlog) << "ME:GE: candidate: " << excitations[i].label;
     if(excitations[i].label == label)
       return &(excitations[i]);
   }
@@ -290,7 +291,7 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
 
     // no C++11 yet :(
     unsigned int tmp = std::max(ctxt.num_harm_freq, ctxt.num_bloch_wave_vectors);
-    // we don't know determine the real number of loads, hence make an estimate. It's just to reserve!
+    // we don't know the real number of loads, hence make an estimate. It's just to reserve!
     if(ctxt.analysis == BasePDE::STATIC)
       tmp = std::max(tmp, (unsigned int) 10); // FIXME we don't have Context::num_static_loads yet
     upper_bound += tmp;
@@ -308,7 +309,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   Assemble* ass = ctxt->pde->GetAssemble();
 
-  // the already existing excitations from prior a context
+  // the already existing excitations from a prior context
   unsigned int context_base = excitations.GetSize();
   assert((ctxt->context_idx == 0 &&  context_base == 0) || (ctxt->context_idx > 0 && context_base > 0)); // at least one per context
 
@@ -320,8 +321,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   PtrParamNode pn = opt->optParamNode->Get("costFunction");
 
-  // the actual multipleExcitation description is read in Optimization as part of
-  // objective function block
+  // the actual multipleExcitation description is read in optimization as part
+  // of objective function block
   int num_freq = ctxt->num_harm_freq; // might be 1 for multiple complex loads, eg. magnetic coupling
 
   // bloch mode analysis wave vectors
@@ -338,7 +339,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   LOG_DBG(exlog) << "PME: cs=" << ctxt->sequence << " en=" << IsEnabled() << " seq=" << sequence_ << " cb=" << context_base << " cap=" << excitations.GetCapacity();
 
   // initialize data and do simple plausibility check. Note that also 1 is "multiple"
-  // only for our sequence. We assume only one multipleExcitations element in xml even for multiple sequence optimzation
+  // only for our sequence. We assume only one multipleExcitations element in xml even for multiple sequence optimization
   if(IsEnabled(ctxt->sequence) && sequence_ == ctxt->sequence)
   {
     // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
@@ -353,7 +354,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     // we cannot do both!
 
     if(num_freq > 1 && num_loads > 1)
-      throw Exception("Cannot to concurrent multiple excitations for multiple loads and multiple frequencies");
+      throw Exception("Cannot do concurrent multiple excitations for multiple loads and multiple frequencies");
 
     assert(!(num_wave > 0 && (num_freq > 0 || num_loads > 0  || num_trans_ > 0)));
 
@@ -387,7 +388,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     SetHarmonic(ctxt, context_base, num_freq);
 
   // SetLoadCases() recognizes a harmonic load
-  if((!ctxt->IsComplex() || num_freq == 1) && IsEnabled(ctxt->sequence) && !ctxt->DoBloch()) // multiple loads case
+  if( IsEnabled(ctxt->sequence) &&
+      ( (!ctxt->IsComplex() || num_freq == 1) && !ctxt->DoBloch() ) ) // multiple loads case
     SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
@@ -516,10 +518,8 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
     ex.ReadTestStrain(ctxt, ts);
     // The homogenized tensor can only be evaluated for the last excitation!
     ex.weight = i < cases-1 ? 0.0 : 1.0;
-
-    LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString(2);
-
     LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
+    LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString(2);
   }
 
   return cases;
@@ -1060,9 +1060,9 @@ void Excitation::SetStressCoefFct(std::map<RegionIdType, PtrCoefFct> stress_map)
     // set the coeffunction for stresses. key "a" was chosen in MechPDE::CreatePreStressFct
     assert(map.find("a") != map.end());
     map["a"] = stress_map[actRegion];
-
-    this->reassemble = true;
   }
+
+  this->reassemble = true;
 }
 
 double Excitation::GetOmega() const

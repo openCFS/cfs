@@ -294,10 +294,12 @@ void Optimization::PostInitSecond()
   {
     for(unsigned int i = 0; i < n; ++i)
       log.AddToHeader("design");
-
-    if(log.designGradient)
-    for(unsigned int i = 0; i < n; ++i)
-      log.AddToHeader("designGradient");
+  }
+  if(log.designGradient)
+  {
+    for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+      for(unsigned int j = 0; j < n; ++j)
+        log.AddToHeader("designGradient_" + objectives.data[i]->GetName());
   }
   if (this->log.designConstraintGradients)
   {
@@ -305,8 +307,8 @@ void Optimization::PostInitSecond()
     {
       Condition* g = constraints.all[i];
       if(!g->IsLocalCondition())
-        for (unsigned int i = 0; i < n; ++i)
-          log.AddToHeader("constraintGradient");
+        for (unsigned int j = 0; j < n; ++j)
+          log.AddToHeader("constraintGradient" + g->ToString());
     }
   }
   design->SetOptimizer(baseOptimizer_);
@@ -1017,7 +1019,6 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
 
   g->SetValue(result);
   return result;
-
 }
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out, Excitation* ev_only_excite)
@@ -1080,13 +1081,10 @@ void Optimization::EvaluateSpecialResults()
 }
 
 
-void Optimization::StoreResults(double step_val, Context* ctxt)
+void Optimization::StoreResults(double step_val)
 {
   // For PiezoSIMP we can do storing there and this method is overwritten
   // and might do nothing
-
-  if (!ctxt)
-    ctxt = context;
 
   unsigned int internalWriteCounter;
 
@@ -1094,11 +1092,11 @@ void Optimization::StoreResults(double step_val, Context* ctxt)
   if(!IsTransient())
   { // transient optimization saves results in a different way
     if(step_val == -1)
-      internalWriteCounter = ctxt->GetDriver()->StoreResults(writeCounter_, currentIteration);
+      internalWriteCounter = context->GetDriver()->StoreResults(writeCounter_, currentIteration);
     else
-      internalWriteCounter = ctxt->GetDriver()->StoreResults(writeCounter_, step_val);
+      internalWriteCounter = context->GetDriver()->StoreResults(writeCounter_, step_val);
 
-    if (!ctxt->GetDriver()->GetResultHandler()->streamOnly)
+    if (!context->GetDriver()->GetResultHandler()->streamOnly)
       writeCounter_ = internalWriteCounter + 1;
   }
 }
@@ -1304,24 +1302,27 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
-    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+    for(unsigned int i = 0; i < design->GetNumberOfVariables(); ++i){
       *out << " \t" << d[i];
     }
   }
   
   if(out && log.designGradient){
-    StdVector<double> d;
-    d.Resize(design->GetNumberOfVariables());
-    d.window.Set(d);
-    design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
-    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-      *out << " \t" << d[i];
+    for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+    {
+      Objective* f = objectives.data[i];
+      StdVector<double> d;
+      d.Resize(design->GetNumberOfVariables());
+      d.window.Set(d);
+      design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, f, false);
+      for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
+        *out << " \t" << d[j];
     }
   }
   
   if(out && log.designConstraintGradients)
   {
-    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    for(unsigned int i = 0; i < constraints.all.GetSize(); ++i)
     {
       Condition* g = constraints.all[i]; // Now traverse in global mode
       if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
@@ -1333,9 +1334,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         d.Resize(design->GetNumberOfVariables());
         d.window.Set(d);
         design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
-        for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-          *out << " \t" << d[i];
-        }
+        for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
+          *out << " \t" << d[j];
       }
     }
   }

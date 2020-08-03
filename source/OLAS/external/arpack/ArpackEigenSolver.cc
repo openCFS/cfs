@@ -8,6 +8,7 @@
 #include "Driver/BaseDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "MatVec/SparseOLASMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "OLAS/precond/generateprecond.hh"
 #include "OLAS/precond/BasePrecond.hh"
@@ -46,6 +47,8 @@ namespace CoupledField {
 
     isGeneralized_ = false;
     computeMode_ = ArpackMatInterface::ComputeMode::REGULAR;
+
+    scale_B_ = xml_->Has("scale_B") ? xml_->Get("scale_B")->As<bool>() : false;
 
     BaseEigenSolver::PostInit();
   }
@@ -134,10 +137,42 @@ namespace CoupledField {
     // NOTE: Hard coded!!!
     computeMode_ = ArpackMatInterface::ComputeMode::SHIFT_INVERT;
 
+    if(scale_B_)
+    {
+      // we scale the B-Matrix as suggested by Jonas:
+      // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
+      if(B.GetEntryType() == BaseMatrix::COMPLEX)
+      {
+        const SparseOLASMatrix<Complex>* olas = dynamic_cast<const SparseOLASMatrix<Complex>* >(&B);
+        assert(olas != NULL);
+        Complex b11 = olas->GetAvgDiag();
+        assert(b11.real() > 1e-15);
+        scale_B_val_ = scale_B_ ? (1./b11).real() : 1.0;
+      }
+      else
+      {
+        const SparseOLASMatrix<Double>* olas = dynamic_cast<const SparseOLASMatrix<Double>* >(&B);
+        assert(olas != NULL);
+        Double b11 = olas->GetAvgDiag();
+        assert(b11 > 1e-15);
+        scale_B_val_ = scale_B_ ? 1./b11 : 1.0;
+      }
+    }
+
+    LOG_DBG(aes) << "AES:S B-scale=" << scale_B_val_;
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(A);
-    matrixB_ = & dynamic_cast<const StdMatrix&>(B);
+    if(scale_B_)
+    {
+      StdMatrix* Temp = CopyStdMatrixObject(dynamic_cast<const StdMatrix&>(B));
+      Temp->Scale(scale_B_val_);
+      matrixB_ = Temp;
+      Temp = NULL;
+    }
+    else
+      matrixB_ = & dynamic_cast<const StdMatrix&>(B);
+
 
     UInt size = matrixA_->GetNumRows();
 
@@ -265,13 +300,43 @@ namespace CoupledField {
 
     this->SetProblemType(stiffMat);
 
-    // Copy matrix references and determine size of system
-    matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
+    if(scale_B_)
+    {
+      // we scale the B-Matrix as suggested by Jonas:
+      // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
+      if(massMat.GetEntryType() == BaseMatrix::COMPLEX)
+      {
+        const SparseOLASMatrix<Complex>* olas = dynamic_cast<const SparseOLASMatrix<Complex>* >(&massMat);
+        assert(olas != NULL);
+        Complex b11 = olas->GetAvgDiag();
+        assert(b11.real() > 1e-15);
+        scale_B_val_ = scale_B_ ? (1./b11).real() : 1.0;
+      }
+      else
+      {
+        const SparseOLASMatrix<Double>* olas = dynamic_cast<const SparseOLASMatrix<Double>* >(&massMat);
+        assert(olas != NULL);
+        Double b11 = olas->GetAvgDiag();
+        assert(b11 > 1e-15);
+        scale_B_val_ = scale_B_ ? 1./b11 : 1.0;
+      }
+    }
+
+    LOG_DBG(aes) << "AES:S B-scale=" << scale_B_val_;
 
     // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
     // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>
 
-    matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
+    // Copy matrix references and determine size of system
+    matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
+    if(scale_B_)
+    {
+      StdMatrix* Temp = CopyStdMatrixObject(dynamic_cast<const StdMatrix&>(massMat));
+      Temp->Scale(scale_B_val_);
+      matrixB_ = Temp;
+    }
+    else
+      matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
 
     UInt size = matrixA_->GetNumRows();
 
@@ -759,8 +824,11 @@ namespace CoupledField {
     mode.Resize( size );
     mode.Init();
 
+    // we rescale x by sqrt(scaling) as we have x^T (scale*B) x = 1
+    double rescale = std::sqrt(scale_B_val_);
+
     for(UInt i = 0; i < size; i++)
-      mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i],0);
+      mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i]*rescale,0);
 
     // BLOCH better? mode.Fill(arpackSolver_->GetEigenvector(modeNr), matrixA_->GetNumRows());
 

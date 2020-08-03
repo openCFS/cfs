@@ -183,7 +183,7 @@ class Function
      * little helper. asserts that only of function is set. */
     static Function* GetFunction(Objective* f, Condition* g);
 
-    /** are we objective of condition/constraint */
+    /** are we objective or condition/constraint */
     virtual bool IsObjective() const = 0;
 
     /** Get the parameter, if it was set */

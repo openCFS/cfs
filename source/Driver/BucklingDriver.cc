@@ -15,6 +15,8 @@
 #include "MatVec/SBM_Matrix.hh"
 #include "OLAS/solver/BaseEigenSolver.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "PDE/StdPDE.hh"
 
@@ -171,13 +173,16 @@ void BucklingDriver::SolveProblem() {
   // actually solve problem
   CalcValues();
   SortModes(false);
+  if(calcModes_)
+    StoreModes();
+
   PrintResult();
 
   // in optimization we write the results via StoreResults() because
   // we don't necessarily write every forward step.
   if(!domain->GetOptimization())
   {
-    StoreResults(1, -1); // both arguments are ignored
+    StoreResults(1, -1.0);
     handler_->FinishMultiSequenceStep();
 
     if (!isPartOfSequence_)
@@ -281,6 +286,11 @@ void BucklingDriver::CalcValues() {
 
   numEigenValues_ = eigenValues->GetSize();
 
+  // If no eigenvalue at all converged, just leave
+  if(numEigenValues_ == 0) {
+    EXCEPTION( "Did not find any eigenvalue!" );
+  }
+
   LOG_DBG(buckD) << "CV: eigenvalues = " << eigenValues->ToString();
 
   loadFactors_->Resize(numEigenValues_);
@@ -307,14 +317,36 @@ void BucklingDriver::CalcValues() {
     cout << "\n++ Finished solving eigenvalue Problem." << std::endl;
 }
 
+void BucklingDriver::StoreModes() {
+  Vector<Double> loadFactorsRealPart = GetRealPartOfLoadFactors();
+
+  StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep());
+
+  for(unsigned int ev = 0; ev < numEigenValues_; ev++)
+  {
+    Double currentLoadFactor = loadFactorsRealPart[modeOrder_[ev]];
+
+    // store the eigen mode in algsys sol_
+    sstep->SetActStep(ev);
+    sstep->SetActFreq(currentLoadFactor);
+    if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK)
+    {
+      sstep->SetActFreq(loadFactors_->GetDoubleEntry(modeOrder_[ev]));
+      ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetDoubleEntry(modeOrder_[ev]));
+    }
+    else
+    {
+      sstep->SetActFreq(loadFactors_->GetComplexEntry(modeOrder_[ev]).real());
+      ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetComplexEntry(modeOrder_[ev]).real());
+    }
+    sstep->GetEigenMode(modeOrder_[ev]); // this stores the eigen mode result in algsys sol_
+
+    LOG_DBG(buckD) << "stored mode " << ev;
+  }
+}
+
 void BucklingDriver::PrintResult() {
   unsigned int numConverged = eigenValues->GetSize();
-
-  // If no frequency at all converged, just leave
-  if( numConverged == 0) {
-    WARN( "No eigenvalue converged, so no output will be written to the result files." );
-    return;
-  }
 
   // Issue warning, if number of converged eigenvalues differs from
   // number of requested ones
@@ -327,7 +359,7 @@ void BucklingDriver::PrintResult() {
   int fieldwidth = 23; // field width
 
   // console output (reduced form bloch)
-  if(!domain->GetOptimization())
+  if(!domain->GetOptimization() || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN)
   {
     cout << "\n";
     cout << " Mode | ";
@@ -366,7 +398,7 @@ void BucklingDriver::PrintResult() {
   for(unsigned int i=0; i < numConverged; i++)
   {
     // command line output only when not optimizing
-    if(!domain->GetOptimization())
+    if(!domain->GetOptimization() || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN)
     {
       cout << setw(5) << i + 1 << " | ";
       if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
@@ -411,34 +443,15 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
       }
     }
 
-    StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep());
-
-    string s = boost::lexical_cast<string>(step_val);
-    int digs =  boost::lexical_cast<string>((int)numEigenValues_).size() + s.substr(s.find('.')+1).size();
+    int digs =  boost::lexical_cast<string>((int)numEigenValues_).size() + 2;
     double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
 
     for(unsigned int ev = 0; ev < numEigenValues_; ev++)
     {
-      Double currentLoadFactor = loadFactorsRealPart[modeOrder_[ev]];
-
-      // store the eigen mode in algsys sol_
-      sstep->SetActStep(ev);
-      sstep->SetActFreq(currentLoadFactor);
-      if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK)
-      {
-        sstep->SetActFreq(loadFactors_->GetDoubleEntry(modeOrder_[ev]));
-        ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetDoubleEntry(modeOrder_[ev]));
-      }
-      else
-      {
-        sstep->SetActFreq(loadFactors_->GetComplexEntry(modeOrder_[ev]).real());
-        ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetComplexEntry(modeOrder_[ev]).real());
-      }
-      sstep->GetEigenMode(modeOrder_[ev]); // this stores the eigen mode result in algsys sol_
-
       // save_value is the "time" value displayed in paraview
       double save_value = -1.0;
-      if(domain->GetOptimization() && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN)
+      if(domain->GetOptimization() && (domain->GetOptimization()->me->DoHomogenization()
+          || domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN) )
       {
         // time is step.step_val nr
         save_value = step_val + (ev + 1) * sig; // +1 for one based
@@ -450,6 +463,16 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
       }
 
       LOG_DBG2(buckD) << "SR: ev=" << ev << " stepNum=" << stepNum << " save_value=" << save_value;
+
+      // store mode in pde
+      if(domain->GetOptimization())
+      {
+        ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
+        Context* context = domain->GetOptimization()->context;
+        Excitation* excite = context->GetExcitation();
+        StateSolution* ss = em->GetForwardStates().Get(excite, NULL, ev);
+        ss->Write(context->pde); // forward is function NULL
+      }
 
       // write modes to file
       handler_->BeginStep(stepNum, save_value);

@@ -428,6 +428,7 @@ public:
       SM_NODE_B, /*!< for 3D shape map */
       SM_PROFILE,  /*!< for shape map */
       SP_CP, /*!< for spline box mapping */
+      BUCKLINGLOADFACTOR
     } Detail;
 
     /** Gets the design element

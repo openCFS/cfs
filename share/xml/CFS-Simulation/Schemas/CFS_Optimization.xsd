@@ -2168,7 +2168,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="none" />
       <xsd:enumeration value="symmetry" />
-      <!-- details for costGradient in optimier=gradientCheck case -->
+      <!-- details for costGradient in optimizer=gradientCheck case -->
       <xsd:enumeration value="finiteDiffCostGrad" />
       <xsd:enumeration value="finiteDiffCostGradRelError" />
       <!-- details for costGradient in PiezoSIMP, elec_elec_quad for elecEnergy only -->

@@ -5,6 +5,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/Domain.hh"
@@ -962,9 +963,9 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
     if(coef->GetMaterialDerivative() != DesignElement::NO_DERIVATIVE)
     {
-      // we have "PreStressInt" and param-mat -> we have to set the direction for the stress computation
+      // We have "PreStressInt" and param-mat -> we have to set the direction for the stress computation
       // stress = D' * B * u, i.e. stress is a nested coeffunction
-      // in OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
+      // In OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
       // and we do it here for the inner one (resulting in D')
       // Only then, `coef->orgMat->GetTensor(retMat, *lpm)` will use the correct tensor D' for retMat = stress
       CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(coef->orgMat.get());
@@ -1018,6 +1019,23 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     // we already applied the ErsatzMaterialFactor in the calculation of stresses
     // @see CoefFunctionFlux::GetVector
     factor = 1.0;
+
+    // stress filtering
+    // for each element, where density < 0.1, we set the stress to 10^-15
+    DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, false);
+    if(de)
+    {
+      assert(de->GetType() == BaseDesignElement::DENSITY);
+      double density = de->GetDesign(BaseDesignElement::PLAIN);
+      if(density < 0.1)
+      {
+        unsigned int ncols = domain->GetGrid()->GetDim() == 2 ? 4 : 9;
+        Matrix<Double> zero(ncols, ncols);
+        zero.InitValue(pow(10,-15));
+        retMat.Resize(ncols, ncols);
+        retMat.SetPart(Global::REAL, zero);
+      }
+    }
   }
   else
   {
@@ -1594,7 +1612,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   // This should work now as long there is only one region. Jannis
   // had to weaken this condition for DESIGN_TRACKING in debug mode
   assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
-  assert(f != NULL); // only constraints can have sparse Jacobians
+  assert(!f->IsObjective()); // only constraints can have sparse Jacobians
   
   unsigned int data_size = DesignSpace::GetNumberOfVariables(); // do not take aux variables
 

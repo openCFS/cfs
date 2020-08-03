@@ -21,7 +21,7 @@ namespace CoupledField {
 
     comm_ = NULL;
 
-    scale_mass_ = xml_->Get("scale_mass")->As<bool>();
+    scale_B_ = xml_->Get("scale_B")->As<bool>();
 
     which.SetName("phist_EeigSort:which");
     which.Add(phist_LM, "lm");
@@ -97,7 +97,7 @@ namespace CoupledField {
     // this is how one can extract the eigenvectors.
     mode_.Resize(nEig, nloc);
     // we rescale x by sqrt(scaling) as we have x^T (scale*B) x = 1
-    double rescale = std::sqrt(scale_mass_val_);
+    double rescale = std::sqrt(scale_B_val_);
     LOG_DBG(pes) << "SM: mode_.rows=" << mode_.GetNumRows() << " .cols=" << mode_.GetNumCols();
     assert((int) sort_idx_.GetSize() == nEig);
     for (int j = 0; j < nEig; j++)
@@ -125,13 +125,13 @@ namespace CoupledField {
     TYPE b11 = olas->GetAvgDiag();
 
     assert(((Complex) b11).real() > 1e-15);
-    scale_mass_val_ = scale_mass_ ? ((Complex) (1./b11)).real() : 1.0;
-    LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale_mass_val_;
+    scale_B_val_ = scale_B_ ? ((Complex) (1./b11)).real() : 1.0;
+    LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale_B_val_;
 
     // for include stuff issues, A_ and B_ attributes are not of full type
     A_ = InitMatrix<TYPE>(A, &A_, 1.0);
     // TODO: in the Bloch-case the B-Matrix does not change and can be reused!
-    B_ = InitMatrix<TYPE>(B, &B_, scale_mass_val_);
+    B_ = InitMatrix<TYPE>(B, &B_, scale_B_val_);
 
     timer->Stop();
   }
@@ -227,7 +227,7 @@ namespace CoupledField {
     assert(iflag >= 0);
 
     // rescale ev_
-    complex<double> rescale(scale_mass_val_, 1.0);
+    complex<double> rescale(scale_B_val_, 1.0);
     LOG_DBG(pes) << "S: rescale ev_ by " << rescale << " org_ev=" << ev_.ToString();
     ev_.ScalarMult(rescale);
     LOG_DBG(pes) << "S: scaled ev_=" << ev_.ToString();
@@ -367,7 +367,7 @@ namespace CoupledField {
     curr->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
     curr->Get("iter")->SetValue(last_iter_);
     curr->Get("avg_iter")->SetValue(sum_iter_ / (double) count_iter_);
-    curr->Get("mass_scaling")->SetValue(scale_mass_val_);
+    curr->Get("B_scaling")->SetValue(scale_B_val_);
     curr->Get("sorting")->SetValue(sort_idx_.ToString());
 
   }

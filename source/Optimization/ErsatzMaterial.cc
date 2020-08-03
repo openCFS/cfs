@@ -406,7 +406,7 @@ void ErsatzMaterial::PostInit()
 }
 
 
-void ErsatzMaterial::StoreResults(double step_val, Context* ctxt)
+void ErsatzMaterial::StoreResults(double step_val)
 {
   CommitMode cm = commitMode_;
 
@@ -417,13 +417,19 @@ void ErsatzMaterial::StoreResults(double step_val, Context* ctxt)
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& ex = me->excitations[e];
-      Context& ctxt = manager.GetContext(&ex);
-      // in case of eigenvalues we have for each excitation many modes but write only the first one here
-      // in that case we need mode number 0 instead of the default -1
-      int mode = ctxt.IsEigenvalue() ? 0 : -1;
-      forward.Get(ex, NULL, mode)->Write(ctxt.pde); // forward is function NULL
+
+      // switch context and excitation
+      // context switch is necessary for Optimization::StoreResults to use the correct Driver->StoreResults
+      // excitation switch is necessary for eigenvalues, where we write the mode of the current excitation to the pde
+      ex.Apply(true);
+
+      // In case of eigenvalues we have for each excitation many modes and the correct one will be
+      // written to the pde in EigenFrequencyDriver::StoreResults or BucklingDriver::StoreResults.
+      // Else we use the default -1.
+      int mode = context->IsEigenvalue() ? 0 : -1;
+      forward.Get(ex, NULL, mode)->Write(context->pde); // forward is function NULL
       // call real implementation in Optimization. stepvals are fractions of 0.5 and range from 0 to 0.5
-      Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e, &ctxt);
+      Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e);
     }
   }
 
@@ -447,7 +453,7 @@ void ErsatzMaterial::StoreResults(double step_val, Context* ctxt)
         adjoint.Get(me->excitations[e], funcs[fi])->Write(ctxt.pde);
         // call real implementation in Optimization. stepvals are fractions of 0.5 and range from 0.5 to 1
         double index = (me->excitations.GetSize() * funcs.GetSize()) * (fi * funcs.GetSize()) * e;
-        Optimization::StoreResults(real_step + 0.5 + (0.5 / index), &ctxt);
+        Optimization::StoreResults(real_step + 0.5 + (0.5 / index));
       }
     }
 
@@ -915,7 +921,8 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       sum += this_value;
 
-      if(res_idx != -1) de->specialResult[res_idx] = this_value;
+      if(res_idx != -1)
+        de->specialResult[res_idx] = this_value;
     }
   }
   if(calc_u1ku2_timer_)
@@ -1799,7 +1806,7 @@ double ErsatzMaterial::CalcDesignTracking(Condition* g, bool derivative)
       double val = (rho - target) * (rho - target);
       result += val;
       if (res_idx > 0)
-      de->specialResult[res_idx] = val;
+        de->specialResult[res_idx] = val;
     }
   }
 
@@ -2439,7 +2446,7 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
     dynamic_cast<Vector<Complex>*>(complex_elem_mech_displs[i])->SetPart(Global::REAL, *elem_mech_displ);
   }
 
-  // add  fac * (v^T dK/drho u)  or  fac * (-ev * v^T dK/drho u)
+  // add  fac * (v^T dK/drho u)  or  fac * -ev * (v^T dK/drho u)
   if (!f->ctxt->GetBucklingDriver()->IsInverseProblem())
     factor *= -ev;
   Double sumSecTerm = CalcU1KU2(tf, complex_elem_adjoints, App::MECH, complex_elem_mech_displs, NULL, factor, STANDARD, f, -1, ev);
@@ -3125,7 +3132,7 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tupl
 
   // for multiple meta excitations (rotations, robustness) take the corresponding state
   StdVector<SingleVector*>& u1 = forward.Get(ctxt->GetExcitation(ij, meta))->elem[App::MECH]; // equal to \chi^{ij}
-  StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, meta))->elem[App::MECH];// equal to \chi^{kl}
+  StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, meta))->elem[App::MECH]; // equal to \chi^{kl}
 
   double result = 0.0;
 
@@ -3206,9 +3213,7 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
 
     // this assert is only true because displacement is a vector-valued function
     // in heat case, the temperature is a scalar-valued function
-    if(app == App::MECH)
-      assert(u1_tmp.GetNumCols() * dim == u2_vec.GetSize());
-
+    assert(u1_tmp.GetNumCols() * dim == u2_vec.GetSize());
     assert(u1_tmp.GetNumRows() * u1_tmp.GetNumCols() == u1_vec.GetSize());
     // u1_tmp, u2_tmp have to be transformed into vectors
     // 2D: from 2x4 to 8x1 on quad elems, 2x3 to 6x1 on triangles
@@ -3223,7 +3228,7 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
         u2_0[out * dim + in] = u2_tmp[in][out]; // equal to \chi^{0(kl)}
       }
     }
-  } else{
+  } else {
     assert(app == App::HEAT);
     // get chi_0 by solving element-wise linear system of equations, solution is cached per region and excitation
     HeatMat* mat = dynamic_cast<HeatMat*>(Optimization::context->mat);
@@ -3523,7 +3528,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
       {
         assert(context->driver == context->GetEigenFrequencyDriver()
                || context->driver == context->GetBucklingDriver());
-        for(int m = 0; m < (int) context->driver->GetNumSteps() ; m++)
+        for(int m = 0; m < (int) context->driver->GetNumSteps(); m++)
           StorePDESolution(forward, excite, NULL, m, true, true, true, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
       }
       else
@@ -3818,7 +3823,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 
       // We have to solve Kv = phi^T dG(u)/du phi, which is the system
       // from the first excitation with another right hand side.
-      // Thus, we hijack the algebraic system from the first excitation.
+      // Thus, we hijack the algebraic system from the previous excitation.
       Excitation* ex = &(me->excitations[0]);
       Context& ctxt = manager.GetContext(ex);
       assert(ctxt.analysis == BasePDE::STATIC);
@@ -4020,12 +4025,20 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   assert(context->sequence == excite.sequence);
   assert(f->ctxt == context);
 
-  int ts = context->DoBuckling() ? f->GetEigenValueID()-1 : -1;
+  int ts = -1;
+  if(context->IsEigenvalue())
+  {
+    ts = f->GetEigenValueID()-1;
+    if (ts > (int) context->driver->GetNumSteps())
+      EXCEPTION("Requested eigenvalue index in objective/constraint is larger than total number of eigenvalues");
+  }
+
   LOG_DBG2(em) << "ts: " << ts << " f: " << f->ToString();
   Vector<Complex>& u = forward.Get(excite, NULL, ts)->GetComplexVector(StateSolution::RAW_VECTOR);
   Vector<Complex>& l = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::SEL_VECTOR);
   LOG_DBG2(em) << "ConstructComplexAdjointRHS: u = " << u.ToString();
   LOG_DBG2(em) << "ConstructComplexAdjointRHS: l = " << l.ToString();
+
 
   // create a OLAS vector
   Vector<Complex>& rhs = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::RHS_VECTOR);

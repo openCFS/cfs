@@ -417,7 +417,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   assert(me != NULL && me->excitations.GetSize() > 0);
 
   // some functions need to be evaluated only once (first) for multiple excitations
-  // however for meta excitations (rotations) whey need to be be evaluates at the last base
+  // however for meta excitations (rotations) they need to be be evaluates at the last base
   //
   // multiple excitations are:
   // * static load cases
@@ -529,7 +529,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_ = ALL_EX; // all excitations within this sequence/ context
       // why is there no excite_sensitive_ = true; ??
     } else {
-      excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+      const std::string& ex_label = pn->Get("excitation")->As<string>();
+      const std::string& label = ctxt->DoMultiSequence() ? "s_" + lexical_cast<string>(ctxt->sequence) + "-" + ex_label : ex_label;
+      excite_ = me->GetExcitation(label)->index;
       excite_sensitive_ = true;
     }
     break;
@@ -552,7 +554,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
     } else {
       assert(excite_index == UNSET_EX); // assert there is no conflict
-      excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+      const std::string& ex_label = pn->Get("excitation")->As<string>();
+      const std::string& label = ctxt->DoMultiSequence() ? "s_" + lexical_cast<string>(ctxt->sequence) + "-" + ex_label : ex_label;
+      excite_ = me->GetExcitation(label)->index;
     }
     excite_sensitive_ = true;
     break;

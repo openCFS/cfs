@@ -78,7 +78,7 @@ protected:
   {
     /** either stiff, mass, or damping */
     const StdMatrix* mat = NULL;
-    /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_mass*/
+    /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_B*/
     double scale = 1.0;
   } SparseMatRowFuncService;
 

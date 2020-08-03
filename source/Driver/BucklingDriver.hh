@@ -1,13 +1,13 @@
 #ifndef FILE_BUCKLING_DRIVER_HH
 #define FILE_BUCKLING_DRIVER_HH
 
-#include "SingleDriver.hh"
 #include <fstream>
 #include <iterator>
 
+#include "SingleDriver.hh"
 #include "Domain/Domain.hh"
-#include "OLAS/solver/BaseEigenSolver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
 
@@ -77,6 +77,9 @@ class BucklingDriver: public virtual SingleDriver {
 
     // calculate eigen values and (implicitly) eigen modes
     void CalcValues();
+
+    // store modes in algebraic system solution
+    void StoreModes();
 
     // export eigenmodes
     void ExportModes();

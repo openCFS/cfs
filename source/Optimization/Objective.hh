@@ -31,7 +31,7 @@ class Objective : public Function
      * @param pn the costFunction pointer
      * @param pn_type either the costFunction pointer (for type attribute)
      *                or a multiObjective/objective element
-     * @param index our position withn the objectives for the design element costGradient */
+     * @param index our position within the objectives for the design element costGradient */
     Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int index);
     
     /** Construct dummy function such that we can calculate the volume */

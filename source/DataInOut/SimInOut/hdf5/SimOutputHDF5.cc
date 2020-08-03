@@ -165,7 +165,7 @@ namespace CoupledField {
     // If it does not exist, create Group for Grid / Volume data
     try {
       resultsGroup_ = mainGroup_.openGroup("Results");
-    } H5_CATCH( "Could open group for results" );
+    } H5_CATCH( "Could not open group for results" );
 
     // Map analysistype
     std::string analysisType = BasePDE::analysisType.ToString(type);
@@ -271,7 +271,7 @@ namespace CoupledField {
                                       bool isHistory ) {
     std::string resultName = sol->GetResultInfo()->resultName;
 
-    LOG_DBG(h5Out) << "RS sol=" << resultName << " sb=" << saveBegin << " se=" << saveEnd << " inc=" << saveInc << " h=" << isHistory;
+    LOG_DBG(h5Out) << "RS sol=" << resultName << " sb=" << saveBegin << " se=" << saveEnd << " inc=" << saveInc << " hist=" << isHistory;
 
     if( !isHistory ) {
       registeredMeshResults_[resultName].push_back(sol);
@@ -292,7 +292,6 @@ namespace CoupledField {
     LOG_DBG(h5Out) << "BS num=" << stepNum << " v=" << stepVal;
     currStep_ = stepNum;
     currStepValue_ = stepVal;
-
   }
 
 
@@ -442,6 +441,9 @@ namespace CoupledField {
 
     // try to create subgroup for entity
     try {
+      LOG_DBG2(h5Out) << "Create subgroup " << entityString
+          << " for result " << resultName << " on region " << regionName
+          << " in step " << currStep_;
       subGroup = regionGroup.createGroup( entityString );
     } H5_CATCH( "Could not create subgroup " << entityString
                 << " for result " << resultName << " on region "
@@ -458,7 +460,6 @@ namespace CoupledField {
     } else {
       Vector<Complex> & resultVec = dynamic_cast<Result<Complex>&>
       (*sol).GetVector();
-
 
       realVec.Resize( resultVec.GetSize() );
       imagVec.Resize( resultVec.GetSize() );
@@ -712,7 +713,7 @@ namespace CoupledField {
   }
   
   void SimOutputHDF5::OpenFile(bool truncate){
-    LOG_DBG(h5Out) << "OF tr=" << truncate;
+    LOG_DBG(h5Out) << "OF truncate=" << truncate;
     // create main file and obtain main group
     try {
       mainFile_ = H5::H5File (currFileName_, truncate ? H5F_ACC_TRUNC : H5F_ACC_RDWR );
@@ -1007,6 +1008,7 @@ namespace CoupledField {
         actRegionGroup = regionListGroup.createGroup(regionNames[i] );
       } H5_CATCH( "Could not create region group for region '"
                   << regionNames[i] << "'" );
+      LOG_DBG2(h5Out) << "WR: write region " << regionNames[i];
       H5IO::WriteAttribute( actRegionGroup, "Dimension",
                             regionDims[i] );
 
