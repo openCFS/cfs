@@ -24,6 +24,10 @@ SET(CMAKE_ARGS
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  # for our 3.7.0 patch only
+  -DSYSTEM_BLAS:BOOL=OFF
+  -DSYSTEM_LAPACK:BOOL=OFF
+  -DTESTS:BOOL=OFF     
 )
 
 
@@ -32,6 +36,14 @@ IF(CMAKE_TOOLCHAIN_FILE)
     -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
   )
 ENDIF()
+
+#-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/arpack/arpack-patch.cmake.in")
+SET(PFN "${ARPACK_prefix}/arpack-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
@@ -96,6 +108,7 @@ ELSE()
     PREFIX "${ARPACK_prefix}"
     URL ${LOCAL_FILE}
     URL_MD5 ${ARPACK_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS ${CMAKE_ARGS}
     BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
   )
