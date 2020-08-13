@@ -1,3 +1,5 @@
 // Define used to check if SuperLU, ILU and SuperLU_MT solvers are to be used.
 
 #cmakedefine USE_SUPERLU
+
+#define SUPERLU_VER "@SUPERLU_VER@"

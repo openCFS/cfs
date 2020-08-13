@@ -1,3 +1,5 @@
 // Define used to check if IPOPT library is used
 
 #cmakedefine USE_IPOPT
+
+#define IPOPT_VER "@IPOPT_VER@"

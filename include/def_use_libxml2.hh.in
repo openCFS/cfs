@@ -1,4 +1,5 @@
-// Define used to check if libxml2 library is used, set by XML_READER, alternative to xerces
+// Define used to check if libxml2 library is used
 
 #cmakedefine USE_LIBXML2
 
+#define LIBXML2_VER "@LIBXML2_VER@"

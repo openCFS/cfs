@@ -1,3 +1,5 @@
 // Define used to check if SnOpt optimization library is used
 
 #cmakedefine USE_SNOPT
+
+#define SNOPT_VER "@SNOPT_VER@"

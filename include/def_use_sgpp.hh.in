@@ -1,3 +1,5 @@
 // Define used to check if Sparse Grid toolbox is used
 
 #cmakedefine USE_SGPP
+
+#define SGPP_VER @SGPP_VER@

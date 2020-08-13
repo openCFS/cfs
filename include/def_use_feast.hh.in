@@ -1,3 +1,5 @@
 // Define used to check if FEAST library is used
 #cmakedefine USE_FEAST
 #cmakedefine USE_FEAST_COMMUNITY
+
+#define FEAST_VER @FEAST_VER@
