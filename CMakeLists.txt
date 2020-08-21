@@ -570,6 +570,9 @@ add_subdirectory(share/xml)
 add_subdirectory(share/xsl)
 add_subdirectory(share/python)
 
+# generate compile_commands.json in the build dir which is used e.g. by vscode
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # snice project() sets a cache entry for it
+
 # set cpack config options
 # see https://cmake.org/Wiki/CMake:CPackConfiguration
 string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
