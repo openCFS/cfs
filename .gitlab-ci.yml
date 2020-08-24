@@ -384,7 +384,7 @@ complete-build:linux:
       - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DTESTSUITE_THREADS=1 -DTESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
@@ -400,7 +400,7 @@ complete-build:linux:
       - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DTESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash

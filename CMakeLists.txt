@@ -406,34 +406,6 @@ SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version
 #-----------------------------------------------------------------------------
 SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
   "Path where the XML schema for the input files is located.")
-# set the mode of cfstool
-SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
-IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
-  MESSAGE(FATAL_ERROR "select a correct value for CFS_TESTSUITE_CFSTOOL_MODE: 'scalardiff', 'L2diff', or 'relL2diff'")
-ENDIF()
-
-# set the number of thread to use for the testing runs
-include(ProcessorCount)
-ProcessorCount(NCPU)
-SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
-# check if integer is set
-IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
-  MESSAGE(FATAL_ERROR "CFS_TESTSUITE_THREADS must be integer valued.")
-ENDIF()
-
-# set the mode of cfstool
-SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
-IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
-  MESSAGE("select a correct value for CFS_TESTSUITE_CFSTOOL_MODE.")
-ENDIF()
-
-# set the number of thread to use for the testing runs
-include(ProcessorCount)
-ProcessorCount(NCPU)
-SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
-IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
-  MESSAGE("CFS_TESTSUITE_THREADS must be integer valued.")
-ENDIF()
 
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
@@ -508,33 +480,9 @@ INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 INCLUDE("cmake_modules/ConfigureChecks.cmake")
 
 #-----------------------------------------------------------------------------
-# Enables python testsuite (contains matviz.py tests) used be the optimization group
-#-----------------------------------------------------------------------------
-OPTION(PYTHON_TESTS "Add testing of python modules (currently stuff from the optimization group)")
-  
-#-----------------------------------------------------------------------------
 # Switch on/off usage of intel optimization report
 #-----------------------------------------------------------------------------
 OPTION(INTEL_OPT_REPORT "Tells Intel compiler to print out additional information on code optimization during compiler time" ${INTEL_OPT_REPORT_DEFAULT})
-
-# The performance tests are meant for the nightly builds. For some strange reasons
-# PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 
-OPTION(PERF_TESTS "Add performance tests to the test-cases")
-
-
-#-----------------------------------------------------------------------------
-# Enables tests of Python scripts via doctest
-#-----------------------------------------------------------------------------
-CMAKE_DEPENDENT_OPTION(PYTHON_TESTS "Add python tests" OFF
-                       "BUILD_TESTING" OFF) # set to off all the time
-
-#-----------------------------------------------------------------------------
-# Set proper paths to development servers in testing readme.
-#-----------------------------------------------------------------------------
-CONFIGURE_FILE(
-  ${CMAKE_CURRENT_SOURCE_DIR}/ctest_scripts/README.md
-  ${CMAKE_CURRENT_BINARY_DIR}/ctest_scripts/README.md
-  @ONLY)
 
 #-----------------------------------------------------------------------------
 # Set path where shared/static libraries should go
@@ -621,12 +569,7 @@ IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
 ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
   SET(BUILD_TESTING OFF CACHE BOOL "Build the testing tree.")
 ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
 IF(BUILD_TESTING)
-  #---------------------------------------------------------------------------
-  # Include CMake module for testing support
-  #---------------------------------------------------------------------------
-  INCLUDE(CTest)
   # check if TESTSUITE_DIR is correct (contains TESTSUIT)
     IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
@@ -639,35 +582,10 @@ IF(BUILD_TESTING)
       SET(MSG "${MSG}   'git pull --recurse-submodules'\n")
       MESSAGE(FATAL_ERROR "${MSG}")
     ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-  # check if we have dependent options set correctly
-  # In order to perform tests we need the CFSTOOL and HDF5!
-  if(NOT BUILD_CFSTOOL)
-    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
-  endif()
-  if(NOT USE_HDF5)
-    message(FATAL_ERROR "BUILD_TESTING=ON requires USE_HDF5=ON.")
-  endif()
   # set a build name
-  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-  SET(CFS_TESTSUITE_MODEL "Experimental" CACHE PATH "Model for the test submission to CDash.")
-  if( NOT (CFS_TESTSUITE_MODEL STREQUAL "Nightly" OR CFS_TESTSUITE_MODEL STREQUAL "Continuous" OR CFS_TESTSUITE_MODEL STREQUAL "Experimental") )
-    MESSAGE(FATAL_ERROR "CFS_TESTSUITE_MODEL='${CFS_TESTSUITE_MODEL}' but must be equal to 'Nightly|Continuous|Experimental'")
-  endif()
-  # configure the dashboard and include config
-  # write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
-  # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
-  set(DROP_SITE "movm.mi.uni-erlangen.de" CACHE STRING "URL of the CDash dashboard to submit test results")
-  mark_as_advanced(DROP_SITE)
-  set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
-  SET(DROP_METHOD "http")
-  set(NIGHTLY_START_TIME "00:00:00 CET")
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
-  # set the test timeout
-  set(TESTSUITE_TEST_TIMEOUT 300 CACHE STRING "timeout in s for each test in the testsuite (sets DART_TESTING_TIMEOUT)")
-  set(DART_TESTING_TIMEOUT "${TESTSUITE_TEST_TIMEOUT}" CACHE INTERNAL "=TESTSUITE_TEST_TIMEOUT") # see https://cmake.org/cmake/help/v3.3/manual/ctest.1.html#ctest-test-step
-  mark_as_advanced(TESTSUITE_TEST_TIMEOUT)
-  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
+    if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host
     execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
                     COMMAND grep CFS_BUILD_HOST
@@ -683,9 +601,9 @@ IF(BUILD_TESTING)
       message("build host where the binary is from ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
     endif()
   endif(GITLAB_TEST_TAG)
-  INCLUDE(CTest) # to actually write DartConfiguration.tcl
   # add a packing test
   add_test(Install_Pack_Linux_TGZ cpack -G TGZ --verbose)
+  enable_testing()
 ENDIF(BUILD_TESTING)
 MARK_AS_ADVANCED(TESTSUITE_DIR)
 
@@ -904,6 +822,11 @@ ADD_SUBDIRECTORY(share/xml)
 ADD_SUBDIRECTORY(share/xsl)
 
 #-----------------------------------------------------------------------------
+# Add targets for python scripts
+#-----------------------------------------------------------------------------
+ADD_SUBDIRECTORY(share/python)
+
+#-----------------------------------------------------------------------------
 # Add an install Target using CPack
 #-----------------------------------------------------------------------------
 # can be used via: cpack -G TZG
@@ -930,10 +853,5 @@ else(UNIX)
   message("install only implemented for UNIX")
 endif(UNIX)
 INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share/" DESTINATION "share" USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE)
-# this is only usful on a portable testsuite and at them moment disabled by default
-if(BUILD_TESTING AND PACK_TESTSUITE)
-  INSTALL(FILES "${CFS_BINARY_DIR}/CTestTestfile.cmake" DESTINATION ".")
-  INSTALL(DIRECTORY "${CFS_BINARY_DIR}/testsuite" DESTINATION "." USE_SOURCE_PERMISSIONS)
-endif(BUILD_TESTING AND PACK_TESTSUITE)
 
 INCLUDE(CPack)

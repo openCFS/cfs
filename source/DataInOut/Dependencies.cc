@@ -159,7 +159,7 @@ bool Dependencies::WriteCMakeUSE(const string& filename)
   out << "# same information as with --version option.\n";
   for(auto& dep : data)
     if(dep.IsSwitchable())
-      out << "set(" << dep.cmake << " " << (dep.active ? "ON" : "OFF") << " BOOL)\n";
+      out << "set(" << dep.cmake << " " << (dep.active ? "ON" : "OFF") << ")\n";
 
   std::cout << "wrote CMake file '" << filename << "' with dependencies\n";
 
@@ -250,7 +250,7 @@ void Dependencies::ReadSetting()
 #ifdef USE_PARDISO
   pardiso.active = true;
   pardiso.comment = CFS_PARDISO;
-  assert(!(CFS_PARDISO == "MKL" && mkl.active));
+  //assert(!(CFS_PARDISO == "MKL" && mkl.active));
   if(!mkl.active)
     pardiso.lic = CLOSED;
 #endif
