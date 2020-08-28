@@ -105,6 +105,7 @@ IF(OPENMP_FOUND)
     if(APPLE)
       # let's hope this does not make the compiler use system gmp, hdf5, ...
       include_directories(AFTER SYSTEM "/usr/local/include")
+      # in the mkl case -lomp is not necessary but it seems no to harm
       set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L/usr/local/lib")
     endif()
   endif()
