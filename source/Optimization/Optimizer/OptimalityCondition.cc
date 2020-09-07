@@ -419,7 +419,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   // elements but the first have old and new elements in their filter
   // stencil. Hence we store in evaluate_tmp_
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-  for(unsigned int i = 0; i < data.GetSize(); i++)    
+  for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
   {
     DesignElement* de = &data[i];
     // rho_e is the old rho
@@ -472,7 +472,7 @@ double OptimalityCondition::Evaluate(double lambda)
    // stencil. Hence we store in evaluate_tmp_
    
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-   for(unsigned int i = 0; i < data.GetSize(); i++)    
+   for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
    {
      DesignElement* de = &data[i];
      // rho_e is the old rho

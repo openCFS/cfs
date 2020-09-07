@@ -34,6 +34,17 @@ IF(UNIX)
   SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
 ENDIF(UNIX)
 
+IF(WIN32)
+  #-----------------------------------------------------------------------------
+    # we currently support 
+    #    Visual Studio 2017 or 2019 plus Intel Fortran (2019/2020)
+    # or
+    #    Intel 2020 C++ and Fortran
+    # the later requires either VC2017 or VC2019 environment
+    # in order to build boost correctly, we need to know which env is used
+    SET(CFS_MSVC_VERSION $ENV{VisualStudioVersion})
+ENDIF(WIN32)
+
 
 
 #-------------------------------------------------------------------------------
@@ -100,12 +111,9 @@ IF(OPENMP_FOUND)
   if(USE_OPENMP)
     set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
     set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
-    # MESSAGE("Use OpenMP-Flags ${OpenMP_C_FLAGS}")
-    # sets to -qopenmp for icc and -fopenmp for gcc
     if(APPLE)
       # let's hope this does not make the compiler use system gmp, hdf5, ...
       include_directories(AFTER SYSTEM "/usr/local/include")
-      # in the mkl case -lomp is not necessary but it seems no to harm
       set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L/usr/local/lib")
     endif()
   endif()
@@ -246,25 +254,20 @@ main ()
     SET(CFS_CXX_FLAGS "-frounding-math ${CFS_CXX_FLAGS}")
   ENDIF()
 # end gcc/clang section
-ELSEIF(MSVC)
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "MSVC")
   #-------------------------------------------------------------------------------
   # Check for Visual Studio C++ compiler
   #-------------------------------------------------------------------------------
-
-  include(CMakeDetermineVSServicePack)
-  DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
-  string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
-  SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
-
-  if( CFS_MSVC_SERVICE_PACK )
-    message(STATUS "Detected: ${CFS_MSVC_SERVICE_PACK}")
-  endif()
+#  include(CMakeDetermineVSServicePack)
+#  DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
+#  string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
+#  SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
 
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
   # For details google for 'MSDN Checked Iterators', '_SCL_SECURE_NO_WARNINGS'
   # and 'MSDN Security Enhancements in the CRT', _CRT_SECURE_NO_WARNINGS
-  SET(CFS_CXX_FLAGS "/wd4996")
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4996")
 
   # 'identifier' : macro redefinition
   # The macro identifier is defined twice. The compiler uses the second
@@ -276,7 +279,11 @@ ELSEIF(MSVC)
   # const/volatile qualifiers
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4373")
 
+  # this is for WINDOWS 10
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
 
+  # support for alternative tokens requires the following
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /permissive- /Zc:twoPhase-")
 
 #  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
 
@@ -284,35 +291,71 @@ ELSEIF(MSVC)
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc and the c++-compiler is icpcp?!
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
-  IF(DEBUG)
-    SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
-    # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
-    # however it works without a flag, mabye the intel compiler checks the stdlib.
-    # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
-    # It's anoying that intel depends on the system stdlib :(
-    SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
-    SET(CHECK_MEM_ALLOC 1)
+  IF(UNIX)
+    IF(DEBUG)
+      SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
+      # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
+      # however it works without a flag, mabye the intel compiler checks the stdlib.
+      # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
+      # It's anoying that intel depends on the system stdlib :(
+      SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
+      SET(CHECK_MEM_ALLOC 1)
+    ELSE()
+      # release case
+      SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
+      # see above with -std=c++11
+      SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
+    ENDIF()
   ELSE()
-    # release case
-    SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
-    # see above with -std=c++11
-    SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
-    SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
+    # this is for WINDOWS 10
+    SET(CFS_C_FLAGS "${CFS_C_FLAGS} /D_WIN32_WINNT=0x0A00")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
+    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
+    IF(DEBUG)
+      SET(CFS_C_FLAGS "/Z7 -c99 /w1 /Wcheck /Werror ${CFS_C_FLAGS}")
+      # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
+      # however it works without a flag, mabye the intel compiler checks the stdlib.
+      # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
+      # It's anoying that intel depends on the system stdlib :(
+      SET(CFS_CXX_FLAGS "/Qstd=c++11 /Z7 /W1 /Wcheck /Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "/Qstd=c++11 /Z7 ${CFSDEPS_CXX_FLAGS}")
+      SET(CHECK_MEM_ALLOC 1)
+    ELSE()
+      # release case
+      SET(CFS_C_FLAGS "/Qstd=c99 /W0 ${CFS_C_FLAGS}")
+      # see above with -std=c++11
+      SET(CFS_CXX_FLAGS "/Qstd=c++11 /W0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "/Qstd=c++11 /W0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_SUPPRESSIONS "/Qdiag-disable1125,654,980")
+    ENDIF()
   ENDIF()
 
-  # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
-  # If we have newest intel compiler we assume that we have newest gcc as well
-  #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
-    SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
-  #ENDIF()
+  # on windows deactivate all MS special features
+  # should be an easy way to activate use of alternative tokens for intel
+  # unfortunaley, this leads to many, many, many, issues using boost
+  # --> deactivated......
+  #  IF(WIN32)
+	  #    SET(CFS_C_FLAGS "${CFS_C_FLAGS} /Za -wd2358")
+	  #  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /Za -wd2358")
+	  #    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /Za -wd2358")
+  #  ENDIF()
+
+  IF(UNIX)
+    # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
+    # If we have newest intel compiler we assume that we have newest gcc as well
+    #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
+      SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
+    #ENDIF()
+  ENDIF()
   
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
@@ -326,9 +369,11 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
   #   1170: invalid redeclaration of nested class
   #   2259: non-pointer conversion from "type" to "type" may lose significant bits
   #---------------------------------------------------------------------------
-  SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
+  IF(UNIX)
+    SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
+  ENDIF()
 
   #---------------------------------------------------------------------------
   # The  following flags and  defines are  necessary due  to incompatibilities
@@ -383,6 +428,37 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 #    "ifcoremt_pic"
 #    "irc"
 #    )
+
+  IF(WIN32)
+    #-----------------------------------------------------------------------------
+    # Copy compiler runtime .dlls to bin directory
+    #-----------------------------------------------------------------------------
+    SET(INTEL_DLLS
+        libifcoremd.dll
+        libifportmd.dll
+        libiomp5md.dll
+        libmmd.dll
+        svml_dispmd.dll
+    )
+    IF(DEBUG)
+      SET(INTEL_DLLS 
+        ${INTEL_DLLS}
+        libifcoremdd.dll
+        libmmdd.dll
+      )
+    ENDIF()
+    
+    SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
+    GET_FILENAME_COMPONENT(INTEL_COMPILER_DIR ${CMAKE_Fortran_COMPILER} PATH)    
+
+    SET(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64/compiler/")
+    
+    MESSAGE(STATUS "Copying INTEL redistributable files from ${ICC_REDIST_DIR} to ${LIB_DEST_DIR}")
+    FOREACH(lib IN LISTS INTEL_DLLS)
+      FILE(COPY ${ICC_REDIST_DIR}/${lib} DESTINATION ${LIB_DEST_DIR})
+    ENDFOREACH()
+  ENDIF(WIN32)
+
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
 

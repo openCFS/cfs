@@ -19,9 +19,17 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 #=============================================================================
 # Apply some patches.
 #=============================================================================
-SET(patches
-  "flann-for-cfs.patch"
+IF(WIN32)
+  SET(patches
+    "flann-for-cfs_win.patch"
+  )
+ELSE(WIN32)
+  SET(patches
+    "flann-for-cfs.patch"
+  )
+ENDIF(WIN32)
 
+list(APPEND patches 
   # Extra commas at the end of enum lists may irritate some compilers.
   "flann-extra-commas-at-end-of-enum-lists.patch"
 

@@ -5,7 +5,11 @@
  * October 15, 2003
  *
  */
-#include <unistd.h>
+#ifndef _WIN32
+  #include <unistd.h>
+#else
+  #include <io.h>
+#endif
 
 #include "slu_ddefs.h"
 

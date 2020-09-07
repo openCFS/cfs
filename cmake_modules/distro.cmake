@@ -196,6 +196,12 @@ STRING(REPLACE ";" "\n" CFS_DISTRO_TEST "${CFS_DISTRO_TEST}")
 FILE(WRITE "${CFS_BINARY_DIR}/tmp/distro_test.cmake" "${CFS_DISTRO_TEST}")
 
 INCLUDE("${CFS_BINARY_DIR}/tmp/distro_test.cmake")
+#MESSAGE("OS: ${OS}")
+#MESSAGE("DIST: ${DIST}")
+#MESSAGE("DIST_FAMILY: ${DIST_FAMILY}")
+#MESSAGE("REV: ${REV}")
+#MESSAGE("ARCH: ${ARCH}")
+#MESSAGE("SUBARCH: ${SUBARCH}")
 
 #-------------------------------------------------------------------------------
 # Now set some global variables containing informations about build/target plat.
@@ -258,23 +264,36 @@ IF(NOT MINGW)
     # We are on Windows. Since Windows is very compatible across versions we
     # use the C++ compiler toolchain version as CFS_DISTRO.
     #---------------------------------------------------------------------------
-    SET(CFS_DISTRO "${CFS_MSVC_SERVICE_PACK}")
-    IF(TARGET_ARCH STREQUAL "x86")
-      SET(CFS_ARCH "I386")
-    ELSEIF(TARGET_ARCH STREQUAL "x64")
+    # MSVC_SERVICE_PACK is no longer supported
+    #    SET(CFS_DISTRO "${CFS_MSVC_SERVICE_PACK}")
+    SET(CFS_FULL_DISTRO "${DIST}")
+    SET(CFS_FULL_DISTRO_VER "${REV}")
+
+    #    IF(DIST_FAMILY)
+    #  SET(CFS_DISTRO "${DIST_FAMILY}")
+    #  SET(CFS_DISTRO_VER "${MAJOR_REV}")
+    #ELSE()
+      SET(CFS_DISTRO "${DIST}")
+      SET(CFS_DISTRO_VER "${REV}")
+    #ENDIF()
+    SET(CFS_OS "${OS}")
+    #SET(CFS_DISTRO "${DIST}")
+    IF(TARGET_ARCH STREQUAL "x64")
       SET(CFS_ARCH "X86_64")
     ELSE()
       MESSAGE(FATAL_ERROR "Unsupported machine architecture '${TARGET_ARCH}' on Windows!")
     ENDIF()
       
     SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_ARCH}")
+    #    message("CFS_ARCH_STR: ${CFS_ARCH_STR}")
 
     SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
     SET(CFS_FULL_DISTRO_VER "${CMAKE_C_COMPILER_VERSION}")
 
     SET(CFS_BUILD_OS "${OS}")
-    SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
+    SET(CFS_BUILD_DISTRO "${DIST}_${CFS_CXX_COMPILER_NAME}_MSVC${CFS_MSVC_VERSION}_${ARCH}")
     SET(CFS_TARGET_OS "${OS}")
+
   ENDIF()
 ELSE()
   #---------------------------------------------------------------------------
@@ -334,6 +353,9 @@ ELSEIF(MINGW)
 
 ELSEIF(CFS_DISTRO MATCHES "MSVC")
   # Just to support Microsoft toolchain.
+ELSEIF(CFS_DISTRO MATCHES "WINDOWS")
+ELSEIF(CFS_DISTRO MATCHES "WIN10")
+
 ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
 
   IF(CMAKE_OSX_ARCHITECTURES)

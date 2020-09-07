@@ -520,7 +520,7 @@ namespace CoupledField {
       fs::path fn = fs::system_complete(progOpts->exe_);
       fn.normalize();
       WriteColoredString(out, trim_size, "CFS_EXECUTABLE", fn.string());
-      WriteColoredString(out, trim_size, "XMLSCHEMA", (progOpts->GetSchemaPath()).c_str());
+      WriteColoredString(out, trim_size, "XMLSCHEMA", progOpts->GetSchemaPathStr());
     }
     else
       WriteColoredString(out, trim_size, "XMLSCHEMA", XMLSCHEMA);

@@ -31,8 +31,15 @@ EXECUTE_PROCESS(
 #=============================================================================
 # Apply some patches.
 #=============================================================================
-SET(patches
-  "zlib-cmakelists.patch"
-)
+IF(MSVC)
+  SET(patches
+    "zlib-cmakelists.patch"
+    "zlib-msvc.patch"
+  )
+ELSE(MSVC)
+  SET(patches
+    "zlib-cmakelists.patch"
+  )
+ENDIF(MSVC)
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/zlib")

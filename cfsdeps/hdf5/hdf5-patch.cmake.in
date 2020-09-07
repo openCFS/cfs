@@ -86,7 +86,7 @@ ELSE()
     SET(patches
       # Fix detection of gettimeofday or clock resp. on Windows. The patch
       # has been generated against HDF5 1.8.9.
-      "hdf5-msvc-gettimeofday.patch"
+      "hdf5-win-configurechecks.patch"
       )
   ENDIF()
 ENDIF(MINGW OR APPLE)

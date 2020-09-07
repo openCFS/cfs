@@ -25,7 +25,9 @@
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
-#include <unistd.h>
+#if not defined(WIN32) 
+#  include <unistd.h>
+#endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <def_use_mesh.hh>

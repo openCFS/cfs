@@ -290,7 +290,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         ENDIF()
 
       ELSE()
-        MESSAGE(WARNING "Download failed for ${URL}: ${DL_MSG}")
+        MESSAGE("Download failed: ${DL_MSG}")
         FILE(REMOVE ${LOCAL_FILE})
       ENDIF()
 
@@ -478,3 +478,37 @@ macro(headline text)
   message("")
 endmacro()
 
+
+#-------------------------------------------------------------------------------
+# Run a program with optional logging and throw error if return code is non-zero
+#-------------------------------------------------------------------------------
+function(run_program workdir logfile cmd)
+  if(NOT IS_DIRECTORY "${workdir}")
+    MESSAGE(FATAL_ERROR "Working directory '${workdir}' does not exist or is not a directory.")
+  endif(NOT IS_DIRECTORY "${workdir}")
+
+  if("${logfile}" STREQUAL "")
+  
+    execute_process(COMMAND ${cmd} ${ARGN}
+                    WORKING_DIRECTORY ${workdir}
+                    RESULT_VARIABLE rv)
+    if(NOT ${rv} EQUAL 0)
+      message(FATAL_ERROR "Command '${cmd} ${ARGN}' failed with return code ${rv}.")
+    endif(NOT ${rv} EQUAL 0)
+                    
+  else("${logfile}" STREQUAL "")
+  
+    execute_process(COMMAND ${cmd} ${ARGN}
+                    WORKING_DIRECTORY ${workdir}
+                    RESULT_VARIABLE rv
+                    OUTPUT_VARIABLE outerr
+                    ERROR_VARIABLE outerr)
+    file(WRITE "${logfile}" "${outerr}")
+    if(NOT ${rv} EQUAL 0)
+      message(FATAL_ERROR "Command ${cmd} ${ARGN} failed with return code ${rv}.
+        See ${logfile} for details.")
+    endif(NOT ${rv} EQUAL 0)
+    
+  endif("${logfile}" STREQUAL "")
+
+endfunction(run_program)

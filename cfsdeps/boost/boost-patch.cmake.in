@@ -7,12 +7,9 @@
 #=============================================================================
 # Set global variables, configured from the external build.
 #=============================================================================
-set(metis_source  "@metis_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
-SET(MINGW "@MINGW@")
 SET(WIN32 "@WIN32@")
-SET(CYGWIN "@CYGWIN@")
+SET(MSVC "@MSVC@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -20,32 +17,12 @@ SET(CYGWIN "@CYGWIN@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 #=============================================================================
-# Copy some sources over to source directory.
-#=============================================================================
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/metis/CMakeLists.txt"
-  "${metis_source}/CMakeLists.txt"
-)
-
-#=============================================================================
 # Apply some patches.
 #=============================================================================
-SET(patches
-  "metis-gcc44.patch"
-)
-
-IF(MINGW OR WIN32 OR CYGWIN)
-  LIST(APPEND patches
-    "metis-windows.patch"
-  )
-ENDIF()
 IF(WIN32)
   SET(patches
-    "metis-windows.patch"
+    "boost-win-icc-alternative-tokens.patch"
   )
 ENDIF()
 
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/metis")
-
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")

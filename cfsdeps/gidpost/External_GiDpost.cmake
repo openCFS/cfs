@@ -100,12 +100,21 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of GIDPOST libraries.
 #-------------------------------------------------------------------------------
-SET(GIDPOST_LIBRARY_DEBUG
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
-  CACHE FILEPATH "GiDpost library" FORCE)
-SET(GIDPOST_LIBRARY_RELEASE
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
-  CACHE FILEPATH "GiDpost library" FORCE)
+IF(WIN32)
+  SET(GIDPOST_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/gidpost.lib"
+    CACHE FILEPATH "GiDpost library" FORCE)
+  SET(GIDPOST_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/gidpost.lib"
+    CACHE FILEPATH "GiDpost library" FORCE)
+ELSE()
+  SET(GIDPOST_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
+    CACHE FILEPATH "GiDpost library" FORCE)
+  SET(GIDPOST_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
+    CACHE FILEPATH "GiDpost library" FORCE)
+ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------
 # Mark paths of GIDPOST libraries as advanced.

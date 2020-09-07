@@ -713,4 +713,15 @@ namespace CoupledField {
     return retVal;
   }
 
+  // explicit template instantiation
+/*
+  template void SBM_Matrix::Add(const Double fac, const BaseMatrix& mat,
+                                std::map<UInt, std::set<UInt> >& rowIndPerBlock,
+                                std::map<UInt, std::set<UInt> >& colIndPerBlock);
+  template void SBM_Matrix::Add(const Complex fac, const BaseMatrix& mat,
+                                std::map<UInt, std::set<UInt> >& rowIndPerBlock,
+                                std::map<UInt, std::set<UInt> >& colIndPerBlock);
+  template void SBM_Matrix::Add( const Double fac, const BaseMatrix &mat );
+  template void SBM_Matrix::Add( const Complex fac, const BaseMatrix &mat );
+*/
 }

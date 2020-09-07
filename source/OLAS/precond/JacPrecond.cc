@@ -63,7 +63,7 @@ namespace CoupledField {
 				       Vector<T> &z ) {
 
 #pragma omp parallel for 
-    for ( UInt i = 0; i < size_; i++ ) {
+    for ( Integer i = 0; i < (Integer) size_; i++ ) {
       z[i] = diagInv_[i] * r[i];
     }
   }
@@ -76,7 +76,7 @@ namespace CoupledField {
   void JacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
 
 #pragma omp parallel for 
-    for ( UInt i = 0; i < size_; i++ ) {
+    for ( Integer i = 0; i < (Integer) size_; i++ ) {
       diagInv_[i] = OpType<T>::invert( sysmat.GetDiagEntry(i) );
     }
 

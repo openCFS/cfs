@@ -82,7 +82,11 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 # Determine paths of XERCES libraries.
 #-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+IF(WIN32)
+  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
+ELSE(WIN32)
+  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+ENDIF(WIN32)
 
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
@@ -93,9 +97,13 @@ ELSEIF(MINGW)
   SET(XERCES_LIBRARY
     "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}"
     CACHE FILEPATH "XERCES library.")
-ELSE()
+ELSEIF(UNIX)
   SET(XERCES_LIBRARY
     "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX};-lpthread"
+    CACHE FILEPATH "XERCES library.")
+ELSE()
+  SET(XERCES_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}"
     CACHE FILEPATH "XERCES library.")
 ENDIF()
 

@@ -136,3 +136,5 @@ typedef XMLUInt64			        XMLFileLoc;
 #endif
 
 #endif
+
+//CFS xerces file

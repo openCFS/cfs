@@ -237,7 +237,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     StdVector<Filter::NeighbourElement> neighbors;
 
     #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours)
-    for(unsigned int e = start; e < end; e++)
+    for(Integer e = (Integer) start; e < (Integer) end; e++)
     {
       DesignElement* de = &data[e];
 

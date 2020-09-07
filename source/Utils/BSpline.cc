@@ -1,6 +1,10 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "MatVec/Matrix.hh"
 #include "Utils/BSpline.hh"
+#ifdef WIN32
+  #include <ciso646>
+#endif
+
 
 namespace CoupledField {
 

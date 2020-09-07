@@ -1,11 +1,15 @@
 #include <string.h>
 #include <def_use_feast.hh>
 #ifdef USE_FEAST_COMMUNITY
-  // include the needed community FEAST libraries (which are C)
-  extern "C"{
-    #include "feast.h"
-    #include "feast_sparse.h"
-  }
+// include the needed community FEAST libraries (which are C)
+#ifndef WIN32
+ extern "C"{
+   #include "feast.h"
+   #include "feast_sparse.h"
+ }
+#else
+  #include "feast_cpp.h"
+#endif
 #else
   #include <mkl_solvers_ee.h>
 #endif
@@ -63,15 +67,15 @@ void FeastEigenSolver::Setup(const BaseMatrix & A, bool isHermitian){
     feastinit(fpm_.GetPointer());
     // now get values from the <feast> section of the XML
     bool logging = false; xml_->GetValue("logging", logging, ParamNode::INSERT); if (logging == true) fpm_[0] = 1; // runtime messages to the screen
-    uint Ne = 8; xml_->GetValue("Ne", Ne, ParamNode::INSERT); fpm_[1] = Ne; // Number of contour points
-    uint stopCrit = 12; xml_->GetValue("stopCrit", stopCrit, ParamNode::INSERT); fpm_[2] = stopCrit; // error trace double precision stopping criteria eps=10^-fpm[2]
-    uint maxRefinementLoops = 20; xml_->GetValue("maxRefinementLoops", maxRefinementLoops, ParamNode::INSERT); fpm_[3] = maxRefinementLoops; // max refinement loops
+    UInt Ne = 8; xml_->GetValue("Ne", Ne, ParamNode::INSERT); fpm_[1] = Ne; // Number of contour points
+    UInt stopCrit = 12; xml_->GetValue("stopCrit", stopCrit, ParamNode::INSERT); fpm_[2] = stopCrit; // error trace double precision stopping criteria eps=10^-fpm[2]
+    UInt maxRefinementLoops = 20; xml_->GetValue("maxRefinementLoops", maxRefinementLoops, ParamNode::INSERT); fpm_[3] = maxRefinementLoops; // max refinement loops
     fpm_[4] = 0;  // no initial subspace
     fpm_[26] = 1; // Extended Eigensolver routines check input matrices
     fpm_[27] = 1; // check b for positive definiteness
 
     n_ = A.GetNumRows(); // size of the problem
-    uint m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
+    UInt m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
     assert(m0_ <= n_);
     vr_.Resize(m0_ * n_, 0.0);
 
@@ -481,15 +485,15 @@ void FeastEigenSolver::Setup(const BaseMatrix& stiffMat, unsigned int numFreq, d
   feastinit(fpm_.GetPointer());
   // now get values from the <feast> section of the XML
   bool logging = false; xml_->GetValue("logging", logging, ParamNode::INSERT); if (logging == true) fpm_[0] = 1; // runtime messages to the screen
-  uint Ne = 8; xml_->GetValue("Ne", Ne, ParamNode::INSERT); fpm_[1] = Ne; // Number of contour points
-  uint stopCrit = 12; xml_->GetValue("stopCrit", stopCrit, ParamNode::INSERT); fpm_[2] = stopCrit; // error trace double precision stopping criteria eps=10^-fpm[2]
-  uint maxRefinementLoops = 20; xml_->GetValue("maxRefinementLoops", maxRefinementLoops, ParamNode::INSERT); fpm_[3] = maxRefinementLoops; // max refinement loops
+  UInt Ne = 8; xml_->GetValue("Ne", Ne, ParamNode::INSERT); fpm_[1] = Ne; // Number of contour points
+  UInt stopCrit = 12; xml_->GetValue("stopCrit", stopCrit, ParamNode::INSERT); fpm_[2] = stopCrit; // error trace double precision stopping criteria eps=10^-fpm[2]
+  UInt maxRefinementLoops = 20; xml_->GetValue("maxRefinementLoops", maxRefinementLoops, ParamNode::INSERT); fpm_[3] = maxRefinementLoops; // max refinement loops
   fpm_[4] = 0;  // no initial subspace
   fpm_[26] = 1; // Extended Eigensolver routines check input matrices
   fpm_[27] = 1; // check b for positive definiteness
 
   n_ = stiffMat.GetNumRows(); // size of the problem
-  uint m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
+  UInt m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
   assert(m0_ <= n_);
   vr_.Resize(m0_ * n_, 0.0);
 

@@ -4,6 +4,12 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
 * text=crlf
 
+# patch files need to have linux line endings for patching
+*.patch text eol=lf
+
+# text files which need to have linux line endings as they are eventually patched
+cfsdeps/muparser/*.txt text eol=lf
+
 # Denote all files that are truly binary and should not be modified.
 *.png binary
 *.pdf binary

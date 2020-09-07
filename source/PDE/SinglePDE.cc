@@ -5,6 +5,9 @@
 #ifdef __MINGW64__
 #include <intrin.h>
 #endif
+#ifdef WIN32
+#include <direct.h>
+#endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 
 #include "PDE/SinglePDE.hh"
@@ -1516,12 +1519,14 @@ namespace CoupledField {
   
   
   void SinglePDE::ReadSensorArrayResults() {
-    // check, if calculation of field variables is requested at all
 
     ParamNodeList sensorNodes;
     sensorNodes = myParam_->Get("storeResults")->GetList("sensorArray");
     std::string solTypeString;
     static std::map< SolutionType, bool> warningPrinted;
+
+    if (sensorNodes.GetSize()==0)
+      return;
 
     sensors_.Resize(sensorNodes.GetSize());
     // loop over all parts
@@ -1546,7 +1551,11 @@ namespace CoupledField {
         #ifdef __MINGW32__
           mkdir_call = mkdir( directoryName.c_str());
         #else
-          mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
+          #ifndef WIN32
+            mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
+          #else
+            mkdir_call = _mkdir( directoryName.c_str() );
+          #endif
         #endif
 
         if ( mkdir_call == -1 && errno == EEXIST ){

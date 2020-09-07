@@ -58,9 +58,11 @@ IF(MSVC)
   #-----------------------------------------------------------------------------
   IF(NOT MKL_ROOT_DIR)
     SET(MKL_POSSIBLE_ROOT_DIRS
-	"e:/dev/intel/MKL/composer_xe_2013"
-	"e:/dev/intel/MKL/10.0.5.025"
-	)
+      "e:/dev/intel/MKL/composer_xe_2013"
+      "e:/dev/intel/MKL/10.0.5.025"
+      "$ENV{MKLROOT}"
+      "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.228/windows/mkl"
+    )
 
     find_file(MKL_H
       "include/mkl.h"
@@ -75,7 +77,7 @@ IF(MSVC)
       )
 
     STRING(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
-    MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
+#    MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
   ENDIF()
 
 
@@ -90,35 +92,53 @@ IF(MSVC)
   # mkl_solver* libs are deprecated as of v10
   # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
 
-  SET(MKL_BLAS_LIB
-    # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
-    -Wl,--start-group
-    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-    ${MKL_LIB_DIR}/mkl_intel_thread.lib
-    ${MKL_LIB_DIR}/mkl_core.lib
-    ${MKL_LIB_DIR}/mkl_blas95_lp64.lib
-    -Wl,--end-group
-    #    wrap-chkstk
-# ${MKL_LIB_DIR}/libguide.lib
+  IF(MINGW)
+    SET(MKL_BLAS_LIB
+      # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
+      -Wl,--start-group
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_intel_thread.lib
+      ${MKL_LIB_DIR}/mkl_core.lib
+      ${MKL_LIB_DIR}/mkl_blas95_lp64.lib
+      -Wl,--end-group
+      #    wrap-chkstk
+      # ${MKL_LIB_DIR}/libguide.lib
     )
+  ELSE(MINGW)
+    SET(MKL_BLAS_LIB
+      ${MKL_LIB_DIR}/mkl_intel_lp64_dll.lib
+      ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
+      ${MKL_LIB_DIR}/mkl_core_dll.lib
+      ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
+    )
+  ENDIF(MINGW)
 
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
-  # from Fabian: This is almost MKL_BLAS_LIB and unconditional! DEPS_SEQUENTIAL is only set here for MSVC, 
-  # I suggest to do it as in APPLE below and remove DEPS_SEQUENTIAL from whole cfs.
   SET(DEPS_SEQUENTIAL
-  ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-  ${MKL_LIB_DIR}/mkl_intel_thread.lib
-  ${MKL_LIB_DIR}/mkl_core.lib
-  ${MKL_LIB_DIR}/mkl_sequential.lib
-  ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib # md or mt? I have no idea
-  -openmp
-  #${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib
-  #    ${MKL_LIB_DIR}/libguide40.lib
+    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    ${MKL_LIB_DIR}/mkl_intel_thread.lib
+    ${MKL_LIB_DIR}/mkl_core.lib
+    ${MKL_LIB_DIR}/mkl_sequential.lib
+    ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
   )
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+
+  #-------------------------------------------------------------------------------
+  # Copy MKL redistributable dlls to bin/ directory
+  #-------------------------------------------------------------------------------
+  SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
   
+  # redistributable directory
+  SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+  
+  # copy all dlls to binary dir
+  MESSAGE(STATUS "Copying MKL redistributable files from ${MKL_REDIST_DIR} to ${LIB_DEST_DIR}")
+  FILE(COPY ${MKL_REDIST_DIR} DESTINATION ${LIB_DEST_DIR}
+       FILES_MATCHING PATTERN "*.dll")
+
+
 elseif(APPLE) # END MSVC
   # for APPLE we do it as with MSVC, we forget about the complex LINUX compile_mkl_test.sh.in stuff
   # this is possibly also an option for Linux to get rid of the ugly stuff. 
@@ -193,8 +213,7 @@ elseif(APPLE) # END MSVC
 
   set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
 
-else() # neither MSVC nor APPLE
-  #-------------------------------------------------------------------------------
+else() # neither MSVC nor APPLE  #-------------------------------------------------------------------------------
   # The idea behind the algorithm implemented for	 finding MKL, is to let the make
   # files in the MKL  example directories tell us which linker  flags we need.  We
   # therefore tell  the MKLROOT  (which contains a  include/mkl.h) to  an external
@@ -391,13 +410,13 @@ else() # neither MSVC nor APPLE
       #---------------------------------------------------------------------------
       INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
       #---------------------------------------------------------------------------
-      # Create a custom target to copy over libiomp5.so or libiomp5.dylib for macOS
+      # Create a custom target to copy over libiomp5.so
       # here one could include the option USE_OMP=OFF which does not need to not copy libomp5
       #---------------------------------------------------------------------------
       ADD_CUSTOM_TARGET(mkl_libomp5 ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} ${LIBRARY_OUTPUT_PATH}/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX}
-        BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.${CMAKE_SHARED_LIBRARY_SUFFIX}
-        COMMENT "Copying libiomp5.${CMAKE_SHARED_LIBRARY_SUFFIX} to ${LIBRARY_OUTPUT_PATH} folder..."
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5.so ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+        BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+        COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
         USES_TERMINAL)
   
     ELSE()

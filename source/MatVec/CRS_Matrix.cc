@@ -707,11 +707,12 @@ namespace CoupledField {
   template<typename T>
   inline void CRS_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
-    UInt i = 0, j, rs, k;
+    UInt rs, j, k;
+    Integer i;
     T sum;
 
 #pragma omp parallel for private(sum,k,rs,j)
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       sum = 0;
       k  = rowPtr_[i];
       rs = rowPtr_[i+1] - k;
@@ -755,11 +756,12 @@ namespace CoupledField {
                                       Vector<T> & rvec ) const {
 
 
-    UInt i = 0, j, rs, k;
+    UInt rs, j, k;
+    Integer i;
     T sum;
 
 #pragma omp parallel for private(sum,k,rs,j)
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       sum = 0;
       k  = rowPtr_[i];
       rs = rowPtr_[i+1]-k;
@@ -811,14 +813,16 @@ namespace CoupledField {
   inline void CRS_Matrix<T>::MultSub( const Vector<T> &mvec,
                                       Vector<T> &rvec ) const {
 
-    UInt i=0, j, rs, k;
+
+    UInt rs, j, k;
+    Integer i;
     T sum;
 
     // since this function is mainly used for the off-diagonal entries
     // in the parallel case we disable profiling to avoid inconsistent data
 
 #pragma omp parallel for private(sum,k,rs,j)
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       sum = 0;
       k  = rowPtr_[i];
       rs = rowPtr_[i+1]-k;
@@ -838,11 +842,12 @@ namespace CoupledField {
   inline void CRS_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
 
-    UInt i = 0, j, rs, k;
+    UInt rs, j, k;
+    Integer i;
     T sum;
 
 #pragma omp parallel for private(sum,k,rs,j)
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       sum = 0;
       k  = rowPtr_[i];
       rs = rowPtr_[i+1]-k;
@@ -1608,14 +1613,14 @@ namespace CoupledField {
         if( (max - min) == (size-1)){
           //data is continuous
 #pragma omp parallel for
-          for ( UInt i = 0; i < this->nnz_; i++ ) {
+          for ( Integer i = 0; i < (Integer) this->nnz_; i++ ) {
             if (colInd_[i] >= min && colInd_[i] <= max)
               data_[i] += alpha * data[i];
           }
         }else{
           // we have to searach the set for every entry (nnz_ * O(log sizeof(colIndices)))
 #pragma omp parallel for
-          for ( UInt i = 0; i < this->nnz_; i++ ) {
+          for ( Integer i = 0; i < (Integer) this->nnz_; i++ ) {
             if (colIndices.find(colInd_[i]) != ending)
               data_[i] += alpha * data[i];
           }
@@ -2140,6 +2145,26 @@ namespace CoupledField {
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CRS_Matrix<Double>;
   template class CRS_Matrix<Complex>;
+#ifdef MSVC
+  template void CRS_Matrix<Double>::Mult(const Vector<Double>&, Vector<Double>&) const;
+//  template void CRS_Matrix<Double>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Complex>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Double>::MultT(const Vector<Double>&, Vector<Double>&) const;
+//  template void CRS_Matrix<Double>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Complex>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Double>::MultAdd(const Vector<Double>&, Vector<Double>&) const;
+//  template void CRS_Matrix<Double>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Complex>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Double>::MultTAdd(const Vector<Double>&, Vector<Double>&) const;
+//  template void CRS_Matrix<Double>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Complex>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Double>::MultSub(const Vector<Double>&, Vector<Double>&) const;
+//  template void CRS_Matrix<Double>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Complex>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Double>::MultTSub(const Vector<Double>&, Vector<Double>&) const;
+//  template void CRS_Matrix<Double>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
+  template void CRS_Matrix<Complex>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
+#endif
 #endif
 
 }

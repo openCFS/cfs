@@ -17,7 +17,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
-#include "Driver/EigenFrequencyDriver.hh"
+//#include "Driver/EigenFrequencyDriver.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -46,7 +46,9 @@
 
 using namespace CoupledField;
 
+namespace CoupledField {
 template <class TYPE> class Vector;
+}
 
 using std::complex;
 using std::string;

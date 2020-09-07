@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <boost/lexical_cast.hpp>
+#include <limits>
 
 namespace CoupledField {
 
@@ -466,8 +467,13 @@ namespace CoupledField {
   StdVector<TYPE>::Window::Window()
   {
     this->active_ = false;
+#ifdef _WIN32
+    this->start_  = UINT_MAX;
+    this->size_   = UINT_MAX;
+#else
     this->start_  = std::numeric_limits<unsigned int>::max();
     this->size_   = std::numeric_limits<unsigned int>::max();
+#endif
   }
 
   template<class TYPE>

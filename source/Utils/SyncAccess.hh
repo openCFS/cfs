@@ -53,7 +53,7 @@ namespace CoupledField {
       }
     }
     static inline void Set(Double & target   , const Double  & src){
-      #pragma omp atomic write
+//      #pragma omp atomic write
         target = src;
     }
     static inline void Set(Complex & target  , const Complex & src){

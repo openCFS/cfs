@@ -1966,6 +1966,12 @@ namespace CoupledField
       EXCEPTION("Material tensor should be Hill-Mandel!")
     }
   }
+
+  template<>
+  void Matrix<bool>::PerformRotation( const Matrix<Double>& R,  Matrix<bool>& retMat ) const {
+    EXCEPTION("Rotation only defined for double- and complex valued matrixes");
+  }
+
   
   template<class TYPE>
   void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
@@ -1980,7 +1986,7 @@ namespace CoupledField
 
     Matrix<TYPE> helpMat;
 
-    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 and R.GetNumRows() == 3) {
+    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 && R.GetNumRows() == 3) {
       // get memory for transposed rotation matrix
       Matrix<Double> RT;
       RT.Resize(3,3);
@@ -1988,7 +1994,7 @@ namespace CoupledField
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
-    } else if ( rowSize == 2 && colSize == 2 && R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+    } else if ( rowSize == 2 && colSize == 2 && R.GetNumCols() == 2 && R.GetNumRows() == 2) {
       // get memory for transposed rotation matrix
       Matrix<Double> RT;
       RT.Resize(2,2);
@@ -2000,7 +2006,7 @@ namespace CoupledField
     } else if( ( (rowSize == 2 && colSize == 3) ||
                (rowSize == 3 && rowSize == 2 ) ||
                 (rowSize == 3 && colSize == 3)) &&
-             (R.GetNumCols() == 2 and R.GetNumRows() == 2) ) {
+             (R.GetNumCols() == 2 && R.GetNumRows() == 2) ) {
       // case of 2x3 coupling tensors as well as 3x3 tensors with a 2x2 rotation matrix
       // 2D tensor rotation
       Matrix<Double> Q;
@@ -2925,7 +2931,7 @@ namespace CoupledField
     
     switch (LAPACK_MATRIX_TYPE){
       
-    case ZGESV:
+    case ZGESVMTX:
       // solves systems with general system matrix
       zgesv(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
             lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
@@ -2934,7 +2940,7 @@ namespace CoupledField
         EXCEPTION( "ZGESV reports invalid input parameter" );
       }    
       break;
-    case ZSYSV:
+    case ZSYSVMTX:
       
       lp_lwork=192;
       // solves systems with symmetric system matrix
@@ -2946,7 +2952,7 @@ namespace CoupledField
         EXCEPTION( "ZSYSV reports invalid input parameter" );
       }
       break;
-    case ZHESV:
+    case ZHESVMTX:
       lp_lwork=192;
       // solves systems with hermitian system matrix
       zhesv(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
@@ -4056,6 +4062,25 @@ namespace CoupledField
   template class Matrix<Integer>;
   template class Matrix<UInt>;
   template class Matrix<Complex>;
+#endif
+
+#if defined (_MSC_VER) 
+  template class Matrix<Double>;
+  template class Matrix<Integer>;
+  template class Matrix<UInt>;
+  template class Matrix<Complex>;
+  template void Matrix<Double>::Add(Double, const Matrix<Double>&);
+  template void Matrix<Integer>::Add(Integer, const Matrix<Integer>&);
+  template void Matrix<UInt>::Add(UInt, const Matrix<UInt>&);
+  template void Matrix<Complex>::Add(Complex, const Matrix<Complex>&);
+//  template void Matrix<Complex>::Add(Complex, const Matrix<Double>&);
+  template void Matrix<Double>::AddT(Double, const Matrix<Double>&);
+  template void Matrix<Integer>::AddT(Integer, const Matrix<Integer>&);
+  template void Matrix<UInt>::AddT(UInt, const Matrix<UInt>&);
+  template void Matrix<Complex>::AddT(Complex, const Matrix<Complex>&);
+//  template void Matrix<Complex>::AddT(Complex, const Matrix<Double>&);
+  /*
+*/
 #endif
 
 
