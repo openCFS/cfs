@@ -19,6 +19,8 @@
 #include <set>
 #include <cfsdat/Utils/DataStructs.hh>
 #include <boost/shared_ptr.hpp>
+// https://github.com/boostorg/uuid/issues/91 applies for the gitlabrunners with cfsdat
+#define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 

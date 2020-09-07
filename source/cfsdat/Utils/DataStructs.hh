@@ -28,16 +28,18 @@
 
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/bind/bind.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
+#define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/for_each.hpp>
-#include <boost/bind.hpp>
 #include <typeinfo>
 #include <cxxabi.h>
+
+using namespace boost::placeholders;
 
 namespace CFSDat{
 

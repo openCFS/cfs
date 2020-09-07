@@ -720,7 +720,7 @@ namespace CoupledField {
     
     // set of elements, which get surface-mapped
     StdVector<Elem*> surfElems;
-    
+
     // loop over all elements
     for(e=0; e<numElems; e++)
     {
@@ -784,13 +784,13 @@ namespace CoupledField {
       } // if surfElem
     } // loop ordered elems
 
-
+    
     std::map<RegionIdType, StdVector<Elem*> >::iterator regionElemIt, regionElemEnd;
     std::map<RegionIdType, StdVector<UInt> >::iterator regionNodeIt;
     std::set<UInt>::iterator setIt, setEnd;
     UInt region = 0;
 
-
+    
     regionElemIt = volRegionElems.begin();
     regionElemEnd = volRegionElems.end();
     regionNodeIt = volRegionNodes.begin();
@@ -816,7 +816,7 @@ namespace CoupledField {
       numVolElemNodes_.Push_back(numRegionNodes);
     }
     volRegionNodes.clear();
-  
+
     // Call creation of surface elements
     StdVector<SurfElem*> mappedSurfElems;
     CreateSurfaceElements( surfElems, mappedSurfElems );
@@ -886,9 +886,8 @@ namespace CoupledField {
 
     // Try to fix problems due to negative Jacobian determinants
     LOG_DBG(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
-
     CorrectElementConnectivities();
-    
+
     // make named nodes from lines
     makeNameNodesFromLines();
     
@@ -3401,6 +3400,8 @@ namespace CoupledField {
 
     double volume = 0.0;
 
+    // according to Jens, NACS does not use the scaling with depth_ in this function
+    // only CalcVolumeOfEntityList uses CalcVolume(true) in GridNACS
     for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ )
       volume += GetElemShapeMap(elems[i], updated)->CalcVolume();
 
@@ -3423,7 +3424,8 @@ namespace CoupledField {
         
         shared_ptr<ElemShapeMap> esm = GetElemShapeMap( ptEl, updated );
         // sum up element contribution
-        volume += esm->CalcVolume();
+        // enable scaling with depth_ for 2d plane case as it is done in NACS
+        volume += esm->CalcVolume(true);
       }
     } else {
       EXCEPTION( "CalcVolumeOfEntityList only possible for element "
@@ -3731,7 +3733,7 @@ namespace CoupledField {
     {
       Elem* el = orderedElems_[i];
       shared_ptr<ElemShapeMap> esm = GetElemShapeMap( el, false );
-      
+
       jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
       if( jacDet < 0 ) {
         try {

@@ -23,6 +23,7 @@ namespace CoupledField
 //  {
     LOG_TRACE(scalpreisach) << "ScalarPreisach: Using Everett function";
     //tol_ = 1e-5;
+    // tolerance for comparing entries of min/max-list
     tol_ = 1e-15;
 
     // set in base class
@@ -52,6 +53,7 @@ namespace CoupledField
       anhyst_A_ = 0;
       anhyst_B_ = 0;
       anhyst_C_ = 0;
+      anhyst_D_ = 0;
     }
     
     strings_     = new Vector<Double>[numElem];
@@ -118,8 +120,9 @@ namespace CoupledField
      * 
      * > use bisection to find xOpt between xMin and xMax
      */ 
-    UInt maxIter = 50;
-    Double xMiddle;
+    UInt maxIter = INV_params_.maxNumIts;// 50;
+//    std::cout << "Fine search via bisection with at max " << maxIter << " iterations" << std::endl;
+    Double xMiddle = 0.5*(xMax+xMin);
     Double diffMin, diffMiddle;
     Double everettMin, everettMiddle;
     Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
@@ -243,7 +246,6 @@ namespace CoupledField
      * Source: "Generalisiertes Preisach-Modell für die Simulation uund Kompensation
      *         piezokeramischer Aktoren" - Dissertation, Felix Wolf, p. 127ff
      */
-    
 		LOG_TRACE(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin = " << Yin;
     LOG_TRACE(scalpreisachInversion) << "Index = " << idx;
 		LOG_DBG(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin_normalized = " << Yin/PSaturated_;
@@ -256,11 +258,27 @@ namespace CoupledField
      *      when recomputing Yin via YSaturated + eps_mu*XSaturated
      *      we can get a significant difference to the actual Yin
      */
+    if(invParamsSet_ == false){
+      EXCEPTION("Hysteresis.cc: Parameter for inversion have not been set yet!")
+    }
+    
     Double Xout;
 		Double x1,x2; // search interval for later bisection
 		x1 = 0.0;
 		x2 = 0.0;
-    Double tol = 1e-8/XSaturated_;
+
+    // 8.6.2020: get tolerance from mat.xml
+    Double tolY = INV_params_.tolB;
+    if(INV_params_.tolB_useAsRelativeNorm && (abs(Yin) != 0)){
+      tolY /= abs(Yin);
+    }
+    Double tolX = INV_params_.tolH;
+    if(INV_params_.tolH_useAsRelativeNorm && (abs(previousXval_[idx]) != 0)){
+      tolX /= abs(previousXval_[idx]);
+    }
+//    std::cout << "Tolerance from mat.xml: tolX = " << tolX << ", tolY = " << tolY << std::endl;
+//    Double tol = 1e-8/XSaturated_;
+    
     // dX_to_dY is the factor which is needed to transfer a normalized dX to
     // a normalized dY
     // dY_norm = dY/YSaturated = eps_mu*dX/YSaturated = eps_mu*dX*XSaturated/XSaturated/YSaturated
@@ -287,10 +305,15 @@ namespace CoupledField
       Xup = Yin/eps_mu;
       Xdown = 0.0;
       Poffset = 0.0;
-      Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
+      int successFlagBisect = -1;
+      Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tolY,successFlagBisect);
       //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
       invcase = 9;
-      successFlag = 1;
+      if(successFlagBisect >= 0){
+        successFlag = 1;
+      } else {
+        successFlag = -1;
+      }
     } else {
       // we just invert the actual hysteresis operator, i.e we have to subtract all anhyst and reversible parts
       //  before starting the inversion
@@ -311,16 +334,22 @@ namespace CoupledField
         if(anhystPartPosSat == 0){
           Xout = (Yin - hystSaturated_)/eps_mu;
           invcase = 1;
+          successFlag = 2;
         } else {
           Double Xup, Xdown, Poffset;
           Xup = (Yin - hystSaturated_)/eps_mu;
           Xdown = XSaturated_;
           Poffset = hystSaturated_;
-          Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
+          int successFlagBisect = -1;
+          Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tolY,successFlagBisect);
           //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
           invcase = 11;
+          if(successFlagBisect >= 0){
+            successFlag = 2;
+          } else {
+            successFlag = -1;
+          }
         }
-        successFlag = 2;
       } else if (Yin <= (-hystSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
         LOG_DBG(scalpreisachInversion) << "Neg saturation";
         //std::cout << "neg saturation" << std::endl;
@@ -334,16 +363,23 @@ namespace CoupledField
         if(anhystPartPosSat == 0){
           Xout = (Yin + hystSaturated_)/eps_mu;
           invcase = 2;
+          successFlag = 2;
         } else {
           Double Xup, Xdown, Poffset;
           Xup = (Yin + hystSaturated_)/eps_mu;
           Xdown = -XSaturated_;
           Poffset = -hystSaturated_;
-          Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
+          int successFlagBisect = -1;
+          Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tolY,successFlagBisect);
           //Xout = bisectForSaturation(Yin, eps_mu, tol, true);
           invcase = 21;
+          if(successFlagBisect >= 0){
+            successFlag = 2;
+          } else {
+            successFlag = -1;
+          }
         }
-        successFlag = 2;
+
       } else {
         invcase = 3;
         /*
@@ -415,7 +451,7 @@ namespace CoupledField
         /*
          * 2. Check if difference to previous value is relevant or not
          */
-        if(abs(dY) < 1e-16){
+        if(abs(dY) < tolY){ //1e-16){
           // difference is negligible
           LOG_TRACE(scalpreisachInversion) << "take previous xvalue" << std::endl;
           invcase = 31;
@@ -451,6 +487,16 @@ namespace CoupledField
             //              Y = everettPixel(X) + eps_mu*X
             // Conclusion: we have to subtract the influence of eps_mu*X from the
             //             searched area update
+            
+            /*
+             * Important note (27.3.2020): from theory, we have to add the Everett function twice
+             * as the output computes as
+             *   y = sign(e1)*Everett(-e_1,e_1) + sum_p 2 sign(e_(p+1)-e_p) Everett(e_p,e_(p+1))
+             * However, here and in the following, we access everettEl which is referencing to
+             * evaluatedEverettPixel_ which in turn stores 
+             *  Everett(-e_1,e_1), 2 Everett(e_1,e_2), 2 Everett(e_2,e_3), ...
+             * I.e.: The factor 2 is already included!
+             */
             Double dP = everettEl[actLength-1];
             //std::cout << "dP (=everett[actLength-1]): " << dP << std::endl;
 
@@ -533,10 +579,13 @@ namespace CoupledField
               //    > solution idea: take the first everett entry twice in terms of space computation
               //              this seems legit as the full preisach plane can swtich from +1 to -1 and thus
               //              has an effetive space of 2
-              //
+              // NOTE 27.3.2020: This is no issue of the reversible part but is just resulting from the fact
+              //  that the preevaluated everettElements all include the factor 2 except the first one. In all
+              //  cases, dP would correspond to twice the Everett function as dP marks a change from +/-1 to -/+1
+              //  but the Everett function only from +/-1 to 0
 
               // the availableSpace consists of the space for dP, i.e. the size of the
-              // everett pixel
+              // everett pixel (which is twice the Everett integral in this implementation!)
               Double availSpace = dHyst_to_dY*everettEl[actLength-1];
 
               Double dX = stringEl[actLength-1];
@@ -550,6 +599,9 @@ namespace CoupledField
                 subcase = 2;
               } else {
                 // last entry; everettEl counts twice
+                // NOTE 27.3.2020: It only counts twice compared the other cases, as this entry is the only
+                //  one that is stored without the factor 2 > see computation of the everett pixel below
+                //  (around line 1024)
                 availSpace += dHyst_to_dY*everettEl[actLength-1];
                 // we also have to take the difference towards the other edge of the triangle, so add last entry another time
                 // dX += stringEl[actLength-1];
@@ -626,7 +678,7 @@ namespace CoupledField
           /*
            * thrid step: fine search via bisection (xOut in range -1,1)
            */
-          Xout = bisect(dY,x1,x2,xfix,eps_mu,tol);
+          Xout = bisect(dY,x1,x2,xfix,eps_mu,tolY);
         } // reuse old value
 
         Xout *= XSaturated_;
@@ -657,7 +709,7 @@ namespace CoupledField
       LOG_TRACE(scalpreisachInversion) << "Found Yout: " << yRetrieved;
       LOG_TRACE(scalpreisachInversion) << "InversionCase: " << invcase;
       LOG_TRACE(scalpreisachInversion) << "SubCase: " << subcase;
-      if(abs(yRetrieved-Yin) > tol){
+      if(abs(yRetrieved-Yin) > tolY){
         successFlag = -1;
       }
 //        LOG_TRACE(scalpreisachInversion) << "Difference: " << yRetrieved-Yin;
@@ -675,7 +727,7 @@ namespace CoupledField
       bool abortOnFail = false;
       Double yRetrieved = computeValueAndUpdate( Xout, idx, false, successFlagForward );
       yRetrieved+=Xout*eps_mu;
-      if(abs(yRetrieved-Yin) > tol){
+      if(abs(yRetrieved-Yin) > tolY){
         std::stringstream exceptionmsg;
         exceptionmsg << "Everett-based-Inversion failed final test; remaining residual norm wrt y: " << abs(yRetrieved-Yin);
         if(abortOnFail){
@@ -742,7 +794,7 @@ namespace CoupledField
   //
   //    return ( Yval*PSaturated_ );
   //  }
-  
+
   Vector<Double> Preisach::computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite,
       bool debugOut, int& successFlag, bool skipAnhystPart) {
     
@@ -1007,6 +1059,16 @@ namespace CoupledField
       
       //compute preisach-sum
       Double pixelToAdd = everettPixel(-stringEl[0],stringEl[0]);
+      /*
+       * Important note (27.3.2020): from theory, we have to add the Everett function twice
+       * as the output computes as
+       *   y = sign(e1)*Everett(-e_1,e_1) + sum_p 2 sign(e_(p+1)-e_p) Everett(e_p,e_(p+1))
+       * In this implementation evaluatedEverettPixel_ does NOT store Everett(e_p,e_(p+1)) directly,
+       * but already the correctly scaled versions, i.e.  
+       *  Everett(-e_1,e_1), 2 Everett(e_1,e_2), 2 Everett(e_2,e_3), ...
+       * I.e.: The factor 2 is already included!
+       * This is a crucial point that has to be kept in mind during the inversion process!
+       */
 			evaluatedEverettPixel_[idx][0] = pixelToAdd;
       preisachSum_[idx] = pixelToAdd;
       
@@ -1037,7 +1099,7 @@ namespace CoupledField
       preisachSum_[idx] /= PSaturated_;
 //      std::cout << "preisachSum_[idx]/= PSaturated_: " << preisachSum_[idx] << std::endl;
 
-      //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
+      //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped + anhyst_D_) + anhyst_C_*X_norm_unclipped;
       newY = preisachSum_[idx];
 
 			// store values for next evaluation
@@ -1084,7 +1146,7 @@ namespace CoupledField
       newY /= PSaturated_;
 
 //      newY += evalAnhystPart_normalized(X_norm_unclipped);
-      //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
+      //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped + anhyst_D_) + anhyst_C_*X_norm_unclipped;
     }
     LOG_TRACE(scalpreisachInversion) << "Computed new value: " << newY;
     //std::cout << "UpdateMinMaxList - Output: " << newY << std::endl;

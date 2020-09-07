@@ -146,6 +146,13 @@ namespace CoupledField
     //! Set if grid is axisymmetric
     void SetAxi(bool isAxi ) { isAxi_ = isAxi;}
 
+    //! Depth for 2d plane
+    Double GetDepth2dPlane() {return depth2dPlane_; }
+    
+    //! Set if grid is axisymmetric
+    void SetDepth2dPlane(Double depth) { depth2dPlane_ = depth;}
+    
+    
     //! Get coordinates of node (dimension: grid dependent)
     
     //! This method returns the nodal coordinate of the point, where the dimension
@@ -990,7 +997,8 @@ namespace CoupledField
 
   protected:
     
-   
+    //! Flag for 2d-plane (default = 1m)
+    Double depth2dPlane_;
     
     //! Flag for axi-symmetry
     bool isAxi_;

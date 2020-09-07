@@ -12,7 +12,7 @@ IF(USE_CGNS)
 ENDIF(USE_CGNS)
 
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
-  SET_SOURCE_FILES_PROPERTIES(ProgramOptions.cc
+  SET_SOURCE_FILES_PROPERTIES(Dependencies.cc
     PROPERTIES COMPILE_FLAGS "-I${MKL_INCLUDE_DIR} -fno-strict-aliasing")
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
@@ -24,6 +24,7 @@ SET(DATAINOUT_SRCS
   ColoredConsole.cc
   PostProc.cc
   ProgramOptions.cc
+  Dependencies.cc
   ResultHandler.cc
   SimState.cc
   SimInput.cc
@@ -42,7 +43,6 @@ SET(TARGET_LL
 LIST(APPEND TARGET_LL
   ${BOOST_PROGRAM_OPTIONS_LIB}
   ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
   ${BZIP2_LIBRARY}
   )
 

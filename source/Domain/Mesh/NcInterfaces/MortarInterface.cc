@@ -20,7 +20,6 @@
 
 #include "Utils/Timer.hh"
 
-
 #include <sstream>
 #include <boost/shared_ptr.hpp>
 
@@ -210,8 +209,14 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 
   PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
   if (motionNode) {
-    SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
-                 motionNode->Get("rpm")->As<Double>());
+    if(motionNode->Has("connectedRegions")){
+      SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
+                   motionNode->Get("rpm")->As<Double>(),
+                   motionNode->Get("connectedRegions")->As<std::string>());
+    }else{
+      SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
+                   motionNode->Get("rpm")->As<Double>());
+    }
     moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
                     ->As<std::string>() == "master");
     motionNode->GetValue("eulerianSystem", isEulerian_, ParamNode::PASS);
@@ -281,7 +286,8 @@ MortarInterface::~MortarInterface() {
 }
 
 
-void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
+void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm,
+                                  const std::string &connectedRegions) {
   if ( rpm == 0.0 ) return;
   
   coordSys_ = domain->GetCoordSystem(coordSysId);
@@ -290,6 +296,31 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
         << "either polar (in 2D) of cylindrical (3D).");
   }
   
+      /*
+       * For rotating interfaces, it might happen that there is another volume
+       * region inside or outside of a nonconforming rotating region (region
+       * conform connected to a rotating region). In this case, the connected
+       * region would not be rotated, which leads to negative Jacobians because
+       * it's conform connected to a rotating region.
+       * Therefore the "connectedRegions" tag is introduced in the xml file
+       * to also rotate those connected regions.
+       * For example: There is a rotating coil inside a rotating air volume,
+       * followed by a stationary copper shield with the NC interface between the
+       * stationary copper shield and the rotating air domain. In this case, the
+       * conform connected coil region would not be rotated, the air domain with the
+       * NC interface, on the other hand, would rotate, leading to heavily distorted
+       * and self-intersecting elements.
+       */
+
+      // Read "connectedRegions" tag from xml file
+      std::stringstream regionstream(connectedRegions);
+      std::string region;
+      // Tokenizing w.r.t. space ' '
+      while(getline(regionstream, region, ' ')){
+        std::cout<<ptGrid_->GetRegionName(ptGrid_->GetRegionId(region))<<std::endl;
+        additionalVolRegions_.Push_back( ptGrid_->GetRegionId(region) );
+      }
+
   std::ostringstream sstr("");
   sstr << std::setprecision(std::numeric_limits<Double>::digits10)
       // 1 rpm = 360 / 60 s = 6 /s
@@ -362,9 +393,23 @@ void MortarInterface::MoveInterface() {
   if (!hasNodeNums_) {
     if (moveMaster_) {
       ptGrid_->GetNodesByRegion(nodeNums_, masterVolRegion_);
+      if(additionalVolRegions_.GetSize() != 0){
+        for( auto r : additionalVolRegions_ ){
+          StdVector<UInt> nums;
+          ptGrid_->GetNodesByRegion(nums, r);
+          nodeNums_.Append(nums);
+        }
+      }
     }
     else {
       ptGrid_->GetNodesByRegion(nodeNums_, slaveVolRegion_);
+      if(additionalVolRegions_.GetSize() != 0){
+        for( auto r : additionalVolRegions_ ){
+          StdVector<UInt> nums;
+          ptGrid_->GetNodesByRegion(nums, r);
+          nodeNums_.Append(nums);
+        }
+      }
     }
     hasNodeNums_ = true;
   }
@@ -2326,3 +2371,4 @@ UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
 }
 
 } /* namespace CoupledField */
+

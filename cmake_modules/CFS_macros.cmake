@@ -337,6 +337,8 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   # Fabian: was src/*-build/install_manifest.tx before but that fails for openblas
   FILE(GLOB MANIFESTS "${TMP_DIR}/src/*/install_manifest.txt")
 
+  message("ZIP_TO_CACHE ZF=${ZIP_FILE} TD=${TMP_DIR} M=${MANIFESTS}")
+
   IF("${MANIFESTS}" STREQUAL "")
     message("ZIP_TO_CACHE: zip ${TMP_DIR} as manifest ${TMP_DIR}/src/*-build/install_manifest.txt was not found")
     # No manifests exists -> zip TMP_DIR

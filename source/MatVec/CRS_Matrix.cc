@@ -707,7 +707,7 @@ namespace CoupledField {
   template<typename T>
   inline void CRS_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
-    UInt i, j, rs, k;
+    UInt i = 0, j, rs, k;
     T sum;
 
 #pragma omp parallel for private(sum,k,rs,j)
@@ -755,7 +755,7 @@ namespace CoupledField {
                                       Vector<T> & rvec ) const {
 
 
-    UInt i, j, rs, k;
+    UInt i = 0, j, rs, k;
     T sum;
 
 #pragma omp parallel for private(sum,k,rs,j)
@@ -811,8 +811,7 @@ namespace CoupledField {
   inline void CRS_Matrix<T>::MultSub( const Vector<T> &mvec,
                                       Vector<T> &rvec ) const {
 
-
-    UInt i, j, rs, k;
+    UInt i=0, j, rs, k;
     T sum;
 
     // since this function is mainly used for the off-diagonal entries
@@ -839,7 +838,7 @@ namespace CoupledField {
   inline void CRS_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
 
-    UInt i, j, rs, k;
+    UInt i = 0, j, rs, k;
     T sum;
 
 #pragma omp parallel for private(sum,k,rs,j)

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <set>
 #include <string>
-#include <boost/progress.hpp>
+#include <boost/timer/progress_display.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -3234,7 +3234,8 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
     HeatMat* mat = dynamic_cast<HeatMat*>(Optimization::context->mat);
     assert(mat != NULL);
 
-    assert(0 <= ij <= 3 && 0 <= kl <= 3);
+    assert(ij >= ij && kl >= 0);
+    assert(ij <= 3  && kl <= 3);
 
     u1_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) ij);
     u2_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) kl);
@@ -4167,7 +4168,7 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
   assert(f->ctxt->DoBuckling());
 
   std::stringstream progStream;
-  boost::progress_display progress(rhs.GetSize(), progStream);
+  boost::timer::progress_display progress(rhs.GetSize(), progStream);
   if (printProgressBar_)
     cout << "\n- Establishing adjoint right hand side";
 

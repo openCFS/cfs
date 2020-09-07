@@ -35,14 +35,16 @@ namespace CoupledField {
     bool scaleBySaturation;
     Vector<Double> inputVector;
   };
-
+  
   //! Parameter for local inversion of hysteresis operator (i.e. inversion on element level)
   struct ParameterInversion {
     // common parameter for inversion methods
-    UInt inversionMethod;
+    localInversionFlag inversionMethod;
     UInt maxNumIts;
     Double tolH;
     Double tolB;
+    bool tolH_useAsRelativeNorm;
+    bool tolB_useAsRelativeNorm;
     // trust region regularization > for LM only
     UInt maxNumRegIts;
     Double alphaRegStart;
@@ -228,17 +230,24 @@ namespace CoupledField {
     Double muDat_eta_;
     // weightType = 2 > extended muDat (use muDat parameter in addition)
     Double muDat_h2_;
-    Double muDat_sigma2_;
-
+    Double muDat_sigma2_;    
     // weightType = 3 > tensor given
     Matrix<Double> weightTensor_;
+    
+    // weightType = 4 and 5 > Lorentzian function
+    Double muLorentz_A_;
+    Double muLorentz_h1_;
+    Double muLorentz_sigma1_;
+    Double muLorentz_h2_;
+    Double muLorentz_sigma2_;
 
     // anhysteretic parameter
     Double anhysteretic_a_;
     Double anhysteretic_b_;
     Double anhysteretic_c_;
+    Double anhysteretic_d_;
     Double anhystAtSat_normalized_;
-    int anhysteretic_cInAtan_;
+//    int anhysteretic_cInAtan_;
     bool anhystOnly_;
     bool anhystCountingToOutputSat_;
     // 0 (default): integrate over all weights, scale down to 1, use outputSat for scaling of Preisach operator
@@ -323,6 +332,10 @@ namespace CoupledField {
     int numDirections_;
     int outputClipping_;
     Vector<Double> startingAxisMG_;
+    // additional parameter for fitting rotational loss
+    // source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
+    Double lossParam_a;
+    Double lossParam_b;
 
     // debugging option
     bool checkInversionResult_;

@@ -1,6 +1,6 @@
 #include "FeFunctions.hh"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <def_expl_templ_inst.hh>
 
 #include "PDE/SinglePDE.hh"

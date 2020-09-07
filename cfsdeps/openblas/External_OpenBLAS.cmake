@@ -17,17 +17,17 @@ set(openblas_source  "${openblas_prefix}/src/openblas")
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_ZIP}"
-  "${OPENBLAS_URL}/${OPENBLAS_ZIP}"
+  "https://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_GZ}"
+  "${OPENBLAS_URL}/${OPENBLAS_GZ}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_ZIP}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")
 SET(MD5_SUM ${OPENBLAS_MD5})
 
 SET(DLFN "${openblas_prefix}/openblas-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 # do make a difference between debug and release build since we are using cmake now 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}")
 
 # we need to set TMP_DIR for ZIP_TO_CACHE, read in cfsdeps_zipToCache.cmake.in such that ZIP_TO_CACHE finds  cfsdeps/openblas/src/openblas/install_manifest.txt
 SET(TMP_DIR "${openblas_prefix}")
@@ -100,12 +100,12 @@ ELSE()
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS ${CFSDEPS} openblas)
+set(CFSDEPS ${CFSDEPS} openblas)
 
 #-------------------------------------------------------------------------------
 # Determine paths of OpenBLAS libraries.
@@ -116,32 +116,11 @@ SET(CFSDEPS ${CFSDEPS} openblas)
 SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libopenblas.a;-lpthread;-lm")
 SET(LAPACK_LIB "${BLAS_LIB}")
 
-
-SET(OPENBLAS_LIBRARY_DEBUG ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
-SET(OPENBLAS_LIBRARY_RELEASE  ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
-
-# include direcory
-SET(OPENBLAS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/openblas" CACHE PATH "OpenBLAS include directory.")
-MARK_AS_ADVANCED(OPENBLAS_INCLUDE_DIR)
-
-#-------------------------------------------------------------------------------
-# Mark paths of OPENBLAS libraries as advanced.
-#-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(OPENBLAS_LIBRARY_DEBUG)
-MARK_AS_ADVANCED(OPENBLAS_LIBRARY_RELEASE)
-
-#-------------------------------------------------------------------------------
-# Set BLAS/LAPACK_LIBRARY according to configuration
-#-------------------------------------------------------------------------------
+set(OPENBLAS_LIBRARY ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
+MARK_AS_ADVANCED(OPENBLAS_LIBRARY)
 
 # for OPENBLAS LAPACK_LIBRARY is the same as BLAS_LIBRARY. See also External_LAPACK for netlib and FindIntelMKL
 # e.g. lib64/OPENSUSE_TUMBLEWEED_X86_64/libopenblas.a;-lpthread
-IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
-  IF(DEBUG)
-    SET(BLAS_LIBRARY "${OPENBLAS_LIBRARY_DEBUG}")
-    SET(LAPACK_LIBRARY "${OPENBLAS_LIBRARY_DEBUG}")
-  ELSE(DEBUG)
-    SET(BLAS_LIBRARY "${OPENBLAS_LIBRARY_RELEASE}")
-    SET(LAPACK_LIBRARY "${OPENBLAS_LIBRARY_RELEASE}")
-  ENDIF(DEBUG)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+  set(BLAS_LIBRARY "${OPENBLAS_LIBRARY}")
+endif()

@@ -105,8 +105,8 @@ IF(OPENMP_FOUND)
     if(APPLE)
       # let's hope this does not make the compiler use system gmp, hdf5, ...
       include_directories(AFTER SYSTEM "/usr/local/include")
-      
-      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp")
+      # in the mkl case -lomp is not necessary but it seems no to harm
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L/usr/local/lib")
     endif()
   endif()
 ENDIF()
@@ -116,7 +116,6 @@ ENDIF()
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
-  SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1 ${CFS_CXX_FLAGS}")
   # Obtain major version number of GCC or Clang
   STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)

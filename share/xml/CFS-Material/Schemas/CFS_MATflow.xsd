@@ -53,13 +53,15 @@
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>
-      <xsd:element name="refPressure" minOccurs="0" type="DT_FlowScalarLinear">
+      <xsd:element name="compressionModulus" minOccurs="0" type="DT_FlowScalarLinear">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
-            reference pressure;  101,325 kPa auf Meereshoehe
+            compression Modulus of the fluid; e.g., in air = 1.42709e5 Pa.
+            In an ideal gas: compressionModulus = adiabaticExponent * pressure
           </xsd:documentation>
-        </xsd:annotation>        
-      </xsd:element>      
+        </xsd:annotation>       
+      </xsd:element> 
+
     </xsd:sequence>
   </xsd:complexType>
   

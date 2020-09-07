@@ -126,6 +126,8 @@ Domain::Domain(
 void Domain::CreateGrid()
 {
   std::string probGeo;
+  Double depth2d = 1.0;
+  
   param_->Get("domain")->GetValue("geometryType", probGeo);
   if (probGeo == "3d")
   {
@@ -134,6 +136,10 @@ void Domain::CreateGrid()
   else if (probGeo == "axi" || probGeo == "plane")
   {
     dim_ = 2;
+    
+    if( (probGeo == "plane") && (param_->Get("domain")->Has("depth2dPlane")) ){      
+      depth2d = param_->Get("domain")->Get("depth2dPlane")->As<double>();
+    }
   }
   else
   {
@@ -163,14 +169,14 @@ void Domain::CreateGrid()
             << "' was renamed to 'default', as it is the only one.");
       }
       
-      ReadGrid("default", gridInputs_.begin()->second, probGeo == "axi");
+      ReadGrid("default", gridInputs_.begin()->second, probGeo == "axi", depth2d);
       gridInputs_.clear();
     } else {
       if (gridInputs_.find("default") == gridInputs_.end()) {
         EXCEPTION("There is no grid with ID 'default'.");
       }
       
-      ReadGrid("default", gridInputs_["default"], probGeo == "axi");
+      ReadGrid("default", gridInputs_["default"], probGeo == "axi", depth2d);
     }
 
     // Create grids using input readers.
@@ -182,7 +188,7 @@ void Domain::CreateGrid()
     for ( ; gridIt != endIt; ++gridIt )
     {
       if ( gridIt->first != "default") {
-        ReadGrid( gridIt->first, gridIt->second, probGeo == "axi" );
+        ReadGrid( gridIt->first, gridIt->second, probGeo == "axi", depth2d );
       }
     } // loop: input readers
   } // if: use of external grids
@@ -214,7 +220,7 @@ void Domain::CreateGrid()
 
 void Domain::ReadGrid(const std::string & gridId,
                       const StdVector< shared_ptr<SimInput> > & inputs,
-                      bool isAxi)
+                      bool isAxi, Double depth2d)
 {
   // Type of mesh library. May either be cfsGrid or adaptGrid
   // (if AdaptGrid should be ever revived.)
@@ -252,6 +258,11 @@ void Domain::ReadGrid(const std::string & gridId,
 
   // set flag about axisymmetry
   actGrid->SetAxi( isAxi );
+  
+  // set flag about depth in 2dplane
+  if( (!isAxi) && (dim_ == 2) ){
+    actGrid->SetDepth2dPlane(depth2d);
+  }
 
   // add grid to internal map
   gridMap_[gridId] = actGrid;
@@ -282,7 +293,7 @@ void Domain::ReadGrid(const std::string & gridId,
   }
 
   actGrid->FinishInit();
-  
+
   // Initialize non-conforming interfaces
   if (gridId == "default")
     actGrid->InitNcInterfacesFromXML();
@@ -297,6 +308,7 @@ void Domain::ReadGrid(const std::string & gridId,
     else
       non_regular = true;
   }
+
   // finish output for grid reading
   if( isParentDomain_) {
     std::cout << "-> ";
@@ -306,6 +318,7 @@ void Domain::ReadGrid(const std::string & gridId,
       std::cout << "not ";
     std::cout << "regular" << std::endl; // also regular && !non_regular
   }
+  
 }
 
 void Domain::PostInit(UInt sequenceStep)

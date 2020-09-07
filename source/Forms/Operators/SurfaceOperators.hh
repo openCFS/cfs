@@ -530,8 +530,11 @@ void SurfaceIdentityOperatorScaledBySurface<FE,D,D_DOF,TYPE>::
   shared_ptr<ElemShapeMap> esm1 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[0].get(),true);
   shared_ptr<ElemShapeMap> esm2 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[1].get(),true);
 
-  Double v1 = esm1->CalcVolume();
-  Double v2 = esm1->CalcVolume();
+  /*
+   * Enable depth scaling for 2d plane case here, as it is done in NACS
+   */
+  Double v1 = esm1->CalcVolume(true);
+  Double v2 = esm1->CalcVolume(true);
 
   Double factor2 = 2/(v1+v2);
 
@@ -560,7 +563,10 @@ void SurfaceIdentityOperatorScaledBySurface<FE,D,D_DOF,TYPE>::
   assert(lp.isSurface);
   assert(D == ptFe->shape_.dim);
 
-  Double factor2 = lp.shapeMap->CalcVolume();
+  /*
+   * Enable depth scaling for 2d plane case here, as it is done in NACS
+   */
+  Double factor2 = lp.shapeMap->CalcVolume(true);
 
   UInt numFncs = ptFe->GetNumFncs();
   // Set correct size of matrix B and initialize with zeros

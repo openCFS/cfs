@@ -825,7 +825,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
 {
 
-  int x, y, z;
+  int x, y, z = 0;
   double tmp, tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
 
   int index;

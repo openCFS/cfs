@@ -144,11 +144,11 @@ void CoefFunctionOpt::GetVector(Vector<T>& vec, const LocPointMapped& lpm)
 }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template void CoefFunctionOpt::GetTensor(Matrix<Double>&, const LocPointMapped&);
-template void CoefFunctionOpt::GetTensor(Matrix<Complex>&, const LocPointMapped&);
-template void CoefFunctionOpt::GetScalar(Double&, const LocPointMapped&);
-template void CoefFunctionOpt::GetScalar(Complex&, const LocPointMapped&);
-template void CoefFunctionOpt::GetVector(Vector<Double>&, const LocPointMapped&);
+ template void CoefFunctionOpt::GetTensor<double>(Matrix<double>&, const LocPointMapped&);
+ template void CoefFunctionOpt::GetTensor<Complex>(Matrix<Complex>&, const LocPointMapped&);
+ template void CoefFunctionOpt::GetScalar<double>(Double&, const LocPointMapped&);
+ template void CoefFunctionOpt::GetScalar<Complex>(Complex&, const LocPointMapped&);
+ template void CoefFunctionOpt::GetVector<double>(Vector<Double>&, const LocPointMapped&);
 #endif
 
 }

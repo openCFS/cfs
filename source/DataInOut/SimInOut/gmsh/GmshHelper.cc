@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "GmshHelper.hh"
+#include <boost/endian/conversion.hpp>
 
 namespace CoupledField {
 
@@ -11,7 +12,10 @@ namespace CoupledField {
   //*****************
   //   Constructor
   //*****************
-  GmshHelper::GmshHelper() {}
+  GmshHelper::GmshHelper() {
+    if(boost::endian::order::native != boost::endian::order::little)
+      throw Exception("we are not on little endian system, fix EEndian");
+  }
 
 
   // **********************

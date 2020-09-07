@@ -16,6 +16,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/LinForms/BDUInt.hh"
@@ -37,8 +38,10 @@ namespace CoupledField
     anyRegionHasConductivity_ = false;
     formulation_ = MagBasePDE::BASE;
     fluxDensityDefined_ = false;
-    coilOptimization_ = false;
 
+    magnetizationSet_ = false;
+    coilOptimization_ = false;
+	
     is3d_ = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
 
     // initialize material coef functions covering all regions
@@ -65,9 +68,11 @@ namespace CoupledField
     hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
     // Magnetization, Polarization and Field Intensity
     // this is the point where the actual storage is created
-    hysteresisPolarization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-    hysteresisMagnetization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-    hysteresisFieldIntensity_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    // > moved to InitMagnetization
+    // > Reason: during constructor, isComplex_ is not set yet
+//    polarization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+//    magnetization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+//    fieldIntensity_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
   }
 
@@ -89,7 +94,7 @@ namespace CoupledField
   void MagBasePDE::InitNonLin() {
     SinglePDE::InitNonLin();
 
-    InitHystCoefs();
+    InitMagnetization();
   }
 
   void MagBasePDE::InitTimeStepping() {
@@ -237,6 +242,14 @@ namespace CoupledField
    * > setup as stand-alone so that it can be called in InitHystCoefs which requires the FluxDensity to be defined
    */
   void MagBasePDE::DefineMagFluxDensity(){
+    /*
+     * Moved reset of CoefFunctionMulti here as isComplex_ is not known in constructor; thus
+     * the inserted CoefFunctions do not fit; this will throw EXCEPTION( "All coefficient functions must have the same complexType");
+     */
+    polarization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    magnetization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    fieldIntensity_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    
     StdVector<std::string> vecComponents, aVecComponents;
     if( dim_ == 3 ) {
       vecComponents = "x", "y", "z";
@@ -275,9 +288,11 @@ namespace CoupledField
 
 
   /*
-   * Hysteresis specific functions
+   * Inits coefficient functions for H (B/mu_0 - M), M and P (mu_0*M)
+   * > M can be hysteretic (using e.g. Preisach), constant (defined in mat.xml) or 0 (default)
+   * > H and P will be defined based on M
    */
-  void MagBasePDE::InitHystCoefs() {
+  void MagBasePDE::InitMagnetization() {
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
@@ -352,17 +367,159 @@ namespace CoupledField
           hysteresisCoefs_->AddRegion( actRegion, hystPol);
 
           PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
-          hysteresisPolarization_->AddRegion( actRegion, hystOutput);
+          polarization_->AddRegion( actRegion, hystOutput);
 
           PtrCoefFct hystOutput2 = hystPol->GenerateOutputCoefFnc("MagMagnetization");
-          hysteresisMagnetization_->AddRegion( actRegion, hystOutput2);
+          magnetization_->AddRegion( actRegion, hystOutput2);
 
           PtrCoefFct hystOutput3 = hystPol->GenerateOutputCoefFnc("MagFieldIntensityHyst");
-          hysteresisFieldIntensity_->AddRegion( actRegion, hystOutput3);
-
+          fieldIntensity_->AddRegion( actRegion, hystOutput3);
+//          std::string warnmsg = "Hysteretic M set on region " + regionName;
+//          std::cout << warnmsg << std::endl;
         }
+      } 
+      else {
+        // check material for fixed magnetization
+        int hasFixedMagnetization = 0;
+        materials_[actRegion]->GetScalar(hasFixedMagnetization,PRESCRIBED_MAGNETIZATION);
+        CoefFunctionConst<Double>* magFnc = new CoefFunctionConst<Double>();
+        CoefFunctionConst<Double>* polFnc = new CoefFunctionConst<Double>();
+        
+        CoefFunctionConst<Complex>* magFncC = new CoefFunctionConst<Complex>();
+        CoefFunctionConst<Complex>* polFncC = new CoefFunctionConst<Complex>();
+        
+        Vector<Double> magVec = Vector<Double>(dim_);
+        magVec.Init();
+        Vector<Double> polVec = Vector<Double>(dim_);
+        polVec.Init();
+        
+        Vector<Complex> magVecC = Vector<Complex>(dim_);
+        magVecC.Init();
+        Vector<Complex> polVecC = Vector<Complex>(dim_);
+        polVecC.Init();
+        
+        if(hasFixedMagnetization == 1){
+//          std::string warnmsg = "Fixed M set on region " + regionName;
+//          std::cout << warnmsg << std::endl;
+          Double magX,magY,magZ;
+          
+          materials_[actRegion]->GetScalar(magX,PRESCRIBED_MAGNETIZATION_X,Global::REAL);
+          materials_[actRegion]->GetScalar(magY,PRESCRIBED_MAGNETIZATION_Y,Global::REAL);
+          materials_[actRegion]->GetScalar(magZ,PRESCRIBED_MAGNETIZATION_Z,Global::REAL);
+          
+          magVec[0] = magX;
+          magVec[1] = magY;
+          if(dim_ == 3){
+            magVec[2] = magZ;
+          }
+          
+          magVecC[0] = Complex(magX);
+          magVecC[1] = Complex(magY);
+          if(dim_ == 3){
+            magVecC[2] = Complex(magZ);
+          }
+
+          /*
+           * according to definition P = mu_0 * M
+           * however, one could also think about using mu as given in material file
+           * TODO: decide and implement!
+           */
+          Double mu_0 = 4*M_PI*1e-7;
+          polVec.Add(mu_0,magVec);
+          polVecC.Add(Complex(mu_0),magVecC);
+        } 
+//        else {
+////          std::string warnmsg = "No M set on region " + regionName;
+////          std::cout << warnmsg << std::endl;
+//          // just set 0-vector
+//        }
+        magFnc->SetVector(magVec);
+        polFnc->SetVector(polVec);
+        
+        magFncC->SetVector(magVecC);
+        polFncC->SetVector(polVecC);
+        
+        shared_ptr<CoefFunctionConst<Double> > magFncSharedPtr(magFnc);
+        shared_ptr<CoefFunctionConst<Double> > polFncSharedPtr(polFnc);
+        
+        shared_ptr<CoefFunctionConst<Complex> > magFncSharedPtrC(magFncC);
+        shared_ptr<CoefFunctionConst<Complex> > polFncSharedPtrC(polFncC);
+         
+        if(hasFixedMagnetization == 1){
+          // mRHSRegions_ is for excitation on rhs
+          if(isComplex_){
+            mRHSRegions_[actRegion] = magFncSharedPtrC;
+          } else {
+            mRHSRegions_[actRegion] = magFncSharedPtr;
+                      
+//            std::cout << "Prescribed magnetization vector: " << magFncSharedPtr->ToString() << std::endl;
+//          
+          }
+        }
+        
+//        std::cout << "Part 0: setup of rhs magnetization" << std::endl;
+//        
+        // magnetization_ and polarization are for output
+        if(isComplex_){
+          magnetization_->AddRegion( actRegion, magFncSharedPtrC);
+          polarization_->AddRegion( actRegion, polFncSharedPtrC);
+        } else {
+          magnetization_->AddRegion( actRegion, magFncSharedPtr);
+          polarization_->AddRegion( actRegion, polFncSharedPtr);
+        }
+
+//        std::cout << "Part 1: setup of magnetization and polarization done" << std::endl;
+//        
+        /*
+         * FIELD INTENSITY
+         */
+        // define field intensity on non-hysteretic region, too!
+        shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+        
+        StdVector<std::string> vecComponents;
+        if( dim_ == 3 ) {
+          vecComponents = "x", "y", "z";
+        }
+        else if( isaxi_ ) {
+          vecComponents = "r", "z";
+        }
+        else {
+          vecComponents = "x", "y";
+        }
+        
+        shared_ptr<ResultInfo> magIntens ( new ResultInfo );
+        magIntens->resultType = MAG_FIELD_INTENSITY;
+        magIntens->dofNames = vecComponents;
+        //magIntens->SetVectorDOFs(dim_, isaxi_);
+        magIntens->unit = "A/m";
+        magIntens->definedOn = ResultInfo::ELEMENT;
+        magIntens->entryType = ResultInfo::VECTOR;
+        
+        shared_ptr<CoefFunctionFormBased> magIntensFunc;
+        if( isComplex_ ) {
+          magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
+        } else {
+          magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+        }
+//        DefineFieldResult( magIntensFunc, magIntens );
+        
+        // subtract fixed magnetization for output!
+        if(hasFixedMagnetization == 1){
+          Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+          CoefXprBinOp sub(mp_, magIntensFunc, mRHSRegions_[actRegion], CoefXpr::OP_SUB);
+          PtrCoefFct magIntensFuncCorrected(CoefFunction::Generate(mp_, part, sub));
+          fieldIntensity_->AddRegion( actRegion, magIntensFuncCorrected);
+//          stiffFormCoefs_.insert(magIntensFuncCorrected);
+        } else {
+          fieldIntensity_->AddRegion( actRegion, magIntensFunc);
+//          stiffFormCoefs_.insert(magIntensFunc);
+        }
+        stiffFormCoefs_.insert(magIntensFunc);
+//        std::cout << "Part 2: setup of field intensity done" << std::endl;
       }
     }
+//    std::cout << "Magnetization Initiatlized!" << std::endl;
+    magnetizationSet_ = true;
     regionApproxSet_ = true;
   }
 
@@ -561,7 +718,6 @@ namespace CoupledField
 //                -1.0, eJscaled, updatedGeo_);
 //          }
           psiDotInt->SetName("CoilVoltCouplInt");
-
           bool assembleTransposed = false;
           BiLinearForm* pseudoBiLin = new BiLinWrappedLinForm( psiDotInt, assembleTransposed );
           BiLinFormContext* voltCoilContext = new BiLinFormContext( pseudoBiLin, STIFFNESS );

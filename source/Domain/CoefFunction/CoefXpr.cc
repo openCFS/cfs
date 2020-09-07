@@ -2262,6 +2262,7 @@ void CoefXprSubTensor::Init( PtrCoefFct a ) {
   // ensure that tensor is either a 3x3 or a 6x3 tensor
   UInt numRowsA, numColsA;
   a->GetTensorSize(numRowsA, numColsA);
+  
   if( !((numRowsA == 3 && numColsA == 6) || 
         (numRowsA == 3 && numColsA == 3 ) ||
         (numRowsA == 6 && numColsA == 6 ) ) ) {

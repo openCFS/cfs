@@ -124,6 +124,7 @@
           <xsd:complexContent>
             <xsd:extension base="DT_NciMotion">
               <xsd:attribute name="rpm" type="xsd:double" use="required"/>
+              <xsd:attribute name="connectedRegions" type="xsd:token" use="optional"/>
             </xsd:extension>
           </xsd:complexContent>
         </xsd:complexType>
@@ -573,6 +574,7 @@
     <!-- Flag for printing grid information -->
     <xsd:attribute name="printGridInfo" type="DT_CFSBool" use="optional" 
       default="no"/>
+    <xsd:attribute name="depth2dPlane" type="DT_NonNegFloat" use="optional" default="1.0"/>   
   </xsd:complexType>
 
  

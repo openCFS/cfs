@@ -26,8 +26,8 @@ namespace CoupledField
     isAllowed_.insert( FLUID_DYNAMIC_VISCOSITY );
     isAllowed_.insert( FLUID_KINEMATIC_VISCOSITY );
     isAllowed_.insert( FLUID_BULK_VISCOSITY );
-    isAllowed_.insert( FLUID_REF_PRESSURE );
     isAllowed_.insert( FLUID_ADIABATIC_EXPONENT );
+    isAllowed_.insert( FLUID_BULK_MODULUS );
   }
 
   FlowMaterial::~FlowMaterial() {

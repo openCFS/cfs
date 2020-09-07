@@ -115,6 +115,7 @@ echo "  CACHE FILEPATH \"MKL BLAS.\")"
 echo
 
 # get the dir of the libiomp5.so, and properly resolve symlinks
+# fails for macOS as the file is here libiomp5.dylib but who wants to fix the regex below!?
 OMP_DIR=$(echo $cmdline | sed 's|\(.\+\)-L\([^ ]*\)[ ]\+-liomp5.\+|\2|' | sed 's|"||g')
 MKL_OMP_DIR=$(readlink -f $OMP_DIR)
 echo "set(MKL_OMP_DIR "

@@ -18,6 +18,7 @@
 #include "General/Exception.hh"
 #include "Utils/StdVector.hh"
 #include "General/Environment.hh"
+#define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
 #include <boost/shared_ptr.hpp>
 #include <sstream>

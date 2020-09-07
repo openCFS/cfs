@@ -91,11 +91,29 @@ namespace CoupledField {
 																		regionName.c_str());
 
     	//bilinear form for coupling from heat to flow
+    	//Regarding the equation of state:
+    	//coefFct = -\frac{1}{c}\sqrt{\frac{c_{\rm p}(\gamma-1)}{T_0}}
     	//compute pre-factor
     	PtrCoefFct constMinusOne = CoefFunction::Generate( mp, Global::REAL, "-1.0");
     	PtrCoefFct refTemp  = heatMaterial[actRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
-    	PtrCoefFct coefFct  = CoefFunction::Generate( mp, Global::REAL,
-    					      CoefXprBinOp(mp, constMinusOne, refTemp, CoefXpr::OP_DIV ) );
+    	PtrCoefFct density  = flowMaterial[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
+    	PtrCoefFct heatCapacity = heatMaterial[actRegion]->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+    	PtrCoefFct adiabaticExp = flowMaterial[actRegion]->GetScalCoefFnc(FLUID_ADIABATIC_EXPONENT, Global::REAL);
+    	PtrCoefFct compressionModulus  = flowMaterial[actRegion]->GetScalCoefFnc(FLUID_BULK_MODULUS, Global::REAL);
+
+        PtrCoefFct hlp1  = CoefFunction::Generate( mp, Global::REAL,
+            CoefXprBinOp(mp,density,
+                CoefXprBinOp(mp,heatCapacity,
+                    CoefXprBinOp(mp,constMinusOne,adiabaticExp, CoefXpr::OP_ADD ),
+                    CoefXpr::OP_MULT),
+                    CoefXpr::OP_MULT ));
+
+        PtrCoefFct hlp2  = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,compressionModulus,refTemp,CoefXpr::OP_MULT));
+
+        PtrCoefFct coefFct  = CoefFunction::Generate( mp, Global::REAL,
+            CoefXprUnaryOp(mp,
+                CoefXprBinOp(mp,hlp1 , hlp2, CoefXpr::OP_DIV),
+                CoefXpr::OP_SQRT));
 
     	BiLinearForm *heatToFlow = NULL;
     	if( dim_ == 2 ) {

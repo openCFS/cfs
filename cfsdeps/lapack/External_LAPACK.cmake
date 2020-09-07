@@ -6,9 +6,10 @@
 
 set(lapack_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/lapack")
 set(lapack_source  "${lapack_prefix}/src/lapack")
-set(lapack_install  "${CFS_BINARY_DIR}")
+set(lapack_install  "${lapack_prefix}/install")
+file(MAKE_DIRECTORY ${lapack_install})
 
-SET(CMAKE_ARGS
+set(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${lapack_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -18,30 +19,13 @@ SET(CMAKE_ARGS
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
   -DBUILD_TESTING:BOOL=OFF
-#  -DBUILD_SINGLE:BOOL=OFF
-#  -DBUILD_COMPLEX:BOOL=OFF
 )
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+if(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE} )
+endif()
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/lapack/lapack-patch.cmake.in")
-SET(PFN "${lapack_prefix}/lapack-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
@@ -52,23 +36,24 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://www.netlib.org/lapack/${LAPACK_GZ}"
+  "https://github.com/Reference-LAPACK/lapack/archive/${LAPACK_GZ}"
   "${LAPACK_URL}/${LAPACK_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}")
 SET(MD5_SUM ${LAPACK_MD5})
 
 SET(DLFN "${lapack_prefix}/lapack-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+
+# see below for what we need the post_install (pre-zip)
+SET(PI "${lapack_prefix}/lapack-post_install.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/lapack/lapack-post_install.cmake.in" "${PI}" @ONLY) 
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "lapack" "${LAPACK_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${lapack_prefix}")
+SET(TMP_DIR "${lapack_install}")
 
 SET(ZIPFROMCACHE "${lapack_prefix}/lapack-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -92,7 +77,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
@@ -101,7 +86,6 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lapack
     URL ${LOCAL_FILE}
     URL_MD5 ${LAPACK_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
       ${CMAKE_ARGS}
   )
@@ -117,18 +101,24 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     WORKING_DIRECTORY ${lapack_prefix}
   )
   
+  # lapack puts is stuff to lib. copy what we need and remove the rest  
+  ExternalProject_Add_Step(lapack post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
+  )
+  
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(lapack cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
+      DEPENDEES post_install
       DEPENDS "${ZIPTOCACHE}"
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
@@ -142,16 +132,10 @@ SET(CFSDEPS
 # Determine paths of LAPACK libraries.
 #-------------------------------------------------------------------------------
 IF(WIN32)
-  SET(NETLIB_BLAS_LIBRARY_DEBUG
+  SET(NETLIB_BLAS_LIBRARY
     ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}blas${CMAKE_STATIC_LIBRARY_SUFFIX}
     CACHE FILEPATH "Netlib BLAS library.")
-  SET(NETLIB_BLAS_LIBRARY_RELEASE
-    ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}blas${CMAKE_STATIC_LIBRARY_SUFFIX}
-    CACHE FILEPATH "Netlib BLAS library.")
-  SET(NETLIB_LAPACK_LIBRARY_DEBUG
-    ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}lapack${CMAKE_STATIC_LIBRARY_SUFFIX}
-    CACHE FILEPATH "Netlib LAPACK library.")
-  SET(NETLIB_LAPACK_LIBRARY_RELEASE
+  SET(NETLIB_LAPACK_LIBRARY
     ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}lapack${CMAKE_STATIC_LIBRARY_SUFFIX}
     CACHE FILEPATH "Netlib LAPACK library.")
 ELSE()
@@ -162,19 +146,15 @@ ELSE()
     LIST(APPEND BLAS_LIB ${GFORTRAN_LIBRARY})
   ENDIF()
 
-  SET(NETLIB_BLAS_LIBRARY_DEBUG ${BLAS_LIB} CACHE FILEPATH "Netlib BLAS library.")
-  SET(NETLIB_BLAS_LIBRARY_RELEASE ${BLAS_LIB} CACHE FILEPATH "Netlib BLAS library.")
-  SET(NETLIB_LAPACK_LIBRARY_DEBUG ${LAPACK_LIB} CACHE FILEPATH "Netlib LAPACK library.")
-  SET(NETLIB_LAPACK_LIBRARY_RELEASE ${LAPACK_LIB} CACHE FILEPATH "Netlib LAPACK library.")
+  SET(NETLIB_BLAS_LIBRARY ${BLAS_LIB} CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_LAPACK_LIBRARY ${LAPACK_LIB} CACHE FILEPATH "Netlib LAPACK library.")
 ENDIF()
 
 #-------------------------------------------------------------------------------
 # Mark paths of LAPACK libraries as advanced.
 #-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(NETLIB_BLAS_LIBRARY_DEBUG)
-MARK_AS_ADVANCED(NETLIB_BLAS_LIBRARY_RELEASE)
-MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY_DEBUG)
-MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY_RELEASE)
+MARK_AS_ADVANCED(NETLIB_BLAS_LIBRARY)
+MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY)
 
 #-------------------------------------------------------------------------------
 # Set LAPACK_LIBRARY according to configuration
@@ -183,16 +163,7 @@ MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY_RELEASE)
 # see also External_OpenBLAS and FindIntelMKL
 # e.g. BLAS_LIBRARY=...lib64/OPENSUSE_TUMBLEWEED_X86_64/libblas.a;/usr/lib64/gcc/x86_64-suse-linux/7/libgfortran.so
 # e.g. LAPACK_LIBRARY=...lib64/OPENSUSE_TUMBLEWEED_X86_64/liblapack.a
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
-  IF(DEBUG)
-    SET(BLAS_LIBRARY "${NETLIB_BLAS_LIBRARY_DEBUG}")
-    SET(LAPACK_LIBRARY "${NETLIB_LAPACK_LIBRARY_DEBUG}")
-  ELSE(DEBUG)
-    SET(BLAS_LIBRARY "${NETLIB_BLAS_LIBRARY_RELEASE}")
-    SET(LAPACK_LIBRARY "${NETLIB_LAPACK_LIBRARY_RELEASE}")
-  ENDIF(DEBUG)
-
-  IF(MINGW)
-    LIST(APPEND BLAS_LIBRARY ${GFORTRAN_LIBRARY})
-  ENDIF(MINGW)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+if(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+  set(BLAS_LIBRARY "${NETLIB_BLAS_LIBRARY}")
+  set(LAPACK_LIBRARY "${NETLIB_LAPACK_LIBRARY}")
+endif()

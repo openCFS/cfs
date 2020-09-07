@@ -642,7 +642,7 @@ void SNGRFilter::UpdateResultLafitte(){
   timeScale_.Resize(numNodesToProcess);
 
   Vector<Double> kn;
-  Double deltaWN;
+  Double deltaWN = 0;
   // node loop TODO pragma omp parallel for
   for(UInt k=0; k<numNodesToProcess; ++k){
       i = idsNodesToProcess_[k];

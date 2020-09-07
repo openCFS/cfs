@@ -61,9 +61,9 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     if(analysistype_ == BasePDE::AnalysisType::STATIC){
       EXCEPTION("You are using the special A-V formulation for a static analysis...do you really know what you're doing?")
     }
-    if(analysistype_ == BasePDE::AnalysisType::TRANSIENT){
-      EXCEPTION("Special A-V formulation is currently not implemented...but it's no big deal ;)")
-    }
+//    if(analysistype_ == BasePDE::AnalysisType::TRANSIENT){
+//      EXCEPTION("Special A-V formulation is currently not implemented...but it's no big deal ;)")
+//    }
 
     useModifiedAVVoltageFormulation_ = false;
     useModifiedAVCurrentFormulation_ = false;
@@ -203,8 +203,13 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
             coilCurrentDens_[actRegion] = jFct[0];
 
             LinearForm* curInt;
-            curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                              -1.0, sigma_gradV, updatedGeo_);
+            if( isComplex_ ){
+               curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
+                   -1.0, sigma_gradV, updatedGeo_);
+            }else{
+              curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
+                  -1.0, sigma_gradV, updatedGeo_);
+            }
 
             curInt->SetName("CoilIntegrator");
             LinearFormContext * coilContext = new LinearFormContext( curInt );
@@ -616,7 +621,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
 
 
-      // === JOULE LOSS Power DENSITY INTEGRATED OVER PERIOD ===
+      // === JOULE LOSS Power DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
       shared_ptr<ResultInfo> jld(new ResultInfo);
       jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
       jld->dofNames = "";
@@ -627,7 +632,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       DefineFieldResult( jldCoef, jld );
 
 
-      // === JOULE LOSS POWER INTEGRATED OVER PERIOD ===
+      // === JOULE LOSS POWER INTEGRATED OVER PERIOD (in the harmonic case) ===
       shared_ptr<ResultInfo> jldRes(new ResultInfo());
       jldRes->resultType = MAG_JOULE_LOSS_POWER;
       jldRes->dofNames = "";
@@ -789,10 +794,22 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
         eddyLossCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part,  CoefXprBinOp(mp_, tmp, halfCoef, CoefXpr::OP_MULT) ));
       }
+    }else if( analysistype_ == TRANSIENT){
+      shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+
+      regIt = regions_.Begin();
+      // for the sake of simplicity we should real with the total current density
+      for( ; regIt != regions_.End(); ++regIt ) {
+        RegionIdType actRegion = *regIt;
+        // OP_MULT_CONJ computes A in B'
+        PtrCoefFct conjJinE = CoefFunction::Generate( mp_, part,
+                    CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY),
+                                       GetCoefFct(MAG_EDDY_CURRENT_DENSITY), CoefXpr::OP_MULT) );
+        PtrCoefFct tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, conjJinE, conjJinE, CoefXpr::OP_ADD) );
+
+        eddyLossCoef->AddRegion(actRegion, tmp);
+      }
     }
-
-
-
 
   }
 
@@ -822,4 +839,5 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
   }
 
 } // end of namespace
+
 

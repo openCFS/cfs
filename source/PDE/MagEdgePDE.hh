@@ -88,7 +88,7 @@ namespace CoupledField
     // =======================================================================
     //   HYSTERESIS
     // =======================================================================
-    LinearForm* GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
+    LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
 
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity );
 //
@@ -140,6 +140,9 @@ namespace CoupledField
   private:
     //! This coefficient function describes the velocity field.
     shared_ptr<CoefFunctionMulti> VelocityCoef_;
+
+    //! Use gradient fields in shape functions (Edge elements of second kind)
+    bool useGradFields_;
 
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;

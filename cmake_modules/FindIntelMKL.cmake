@@ -53,7 +53,6 @@ endfunction(MKL_VERSION_FROM_HEADER)
 
 
 IF(MSVC)
-
   #-----------------------------------------------------------------------------
   # If not specified by the user, try to determine proper MKL root directory.
   #-----------------------------------------------------------------------------
@@ -105,6 +104,8 @@ IF(MSVC)
 
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
+  # from Fabian: This is almost MKL_BLAS_LIB and unconditional! DEPS_SEQUENTIAL is only set here for MSVC, 
+  # I suggest to do it as in APPLE below and remove DEPS_SEQUENTIAL from whole cfs.
   SET(DEPS_SEQUENTIAL
   ${MKL_LIB_DIR}/mkl_intel_lp64.lib
   ${MKL_LIB_DIR}/mkl_intel_thread.lib
@@ -117,8 +118,82 @@ IF(MSVC)
   )
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+  
+elseif(APPLE) # END MSVC
+  # for APPLE we do it as with MSVC, we forget about the complex LINUX compile_mkl_test.sh.in stuff
+  # this is possibly also an option for Linux to get rid of the ugly stuff. 
+  # base is the interactive configurator: https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
+  
+  if(NOT MKL_ROOT_DIR)
+    set(MKL_POSSIBLE_ROOT_DIRS 
+       "/opt/intel/mkl"
+       $ENV{MKLROOT}) # set by compilervars.sh intel64 
 
-ELSEIF(UNIX) # end MSVC
+    find_file(MKL_H
+      "include/mkl.h"
+      PATHS ${MKL_POSSIBLE_ROOT_DIRS}
+      DOC "MKL root dir"
+      NO_DEFAULT_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_CMAKE_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH
+      NO_CMAKE_FIND_ROOT_PATH)
+
+    string(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
+    message(STATUS "MKL_ROOT_DIR set from include/mkl.h: ${MKL_ROOT_DIR}")
+  endif()
+
+
+  #---------------------------------------------------------------------------
+  # Read mkl version from header files
+  #---------------------------------------------------------------------------
+  MKL_VERSION_FROM_HEADER()
+  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+  
+  set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib")
+
+  # https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
+  if(USE_OPENMP)
+    set(MKL_THREAD_LIB ${MKL_LIB_DIR}/libmkl_intel_thread.a)
+  else()
+    set(MKL_THREAD_LIB ${MKL_LIB_DIR}/libmkl_sequential.a)
+  endif()
+  
+  # lp64 is 32bit integer, ilp64 is 64bit integer 
+
+  # -liomp5 is only required in the USE_OPENMP case but it should not harm
+  set(MKL_BLAS_LIB 
+    ${MKL_LIB_DIR}/libmkl_intel_lp64.a
+    ${MKL_THREAD_LIB}
+    ${MKL_LIB_DIR}/libmkl_core.a
+    -liomp5 
+    -lpthread 
+    -lm 
+    -ldl)
+
+  # for macOS and clang and MKL we need to link -lgcc_s.1.dylib from the libgfortran.a location
+  # to prevent undefined references ___divtf3, ___eqtf2, ___gttf2, ..., ___subtf3, ___unordtf2
+  # according to nm there is no static lib to provide this (used by libgfortran.a)
+  if(NOT GFORTRAN_LIBRARY)
+    message(FATAL_ERROR "neeed path to libgcc_s.1.dylib from GFORTRAN_LIBRARY")
+  endif()
+  
+  get_filename_component(GFORTRAN_LIB_DIR ${GFORTRAN_LIBRARY} DIRECTORY)
+  set(MKL_BLAS_LIB
+    ${MKL_BLAS_LIB}
+    -L${GFORTRAN_LIB_DIR}
+    -lgcc_s.1)
+
+  # the path for libimp5 is not set by defeault: LD_LIBRARY_PATH=$MKLROOT/../compiler/lib/ works, 
+  # but it is easier to copy the file to the lib-dir.
+  file(COPY ${MKL_ROOT_DIR}/../compiler/lib/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} DESTINATION "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+     
+  set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+
+  set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+
+else() # neither MSVC nor APPLE
   #-------------------------------------------------------------------------------
   # The idea behind the algorithm implemented for	 finding MKL, is to let the make
   # files in the MKL  example directories tell us which linker  flags we need.  We
@@ -316,13 +391,13 @@ ELSEIF(UNIX) # end MSVC
       #---------------------------------------------------------------------------
       INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
       #---------------------------------------------------------------------------
-      # Create a custom target to copy over libiomp5.so
+      # Create a custom target to copy over libiomp5.so or libiomp5.dylib for macOS
       # here one could include the option USE_OMP=OFF which does not need to not copy libomp5
       #---------------------------------------------------------------------------
       ADD_CUSTOM_TARGET(mkl_libomp5 ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5.so ${LIBRARY_OUTPUT_PATH}/libiomp5.so
-        BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.so
-        COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} ${LIBRARY_OUTPUT_PATH}/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX}
+        BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.${CMAKE_SHARED_LIBRARY_SUFFIX}
+        COMMENT "Copying libiomp5.${CMAKE_SHARED_LIBRARY_SUFFIX} to ${LIBRARY_OUTPUT_PATH} folder..."
         USES_TERMINAL)
   
     ELSE()

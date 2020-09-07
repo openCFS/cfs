@@ -367,5 +367,10 @@ void PiezoSIMP::SetElementK(Function* f, DesignElement* de, const TransferFuncti
 }
 
 
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void PiezoSIMP::ConstructAdjointRHS<double>(Excitation& excite, Function* cost);
+  template void PiezoSIMP::ConstructAdjointRHS<Complex>(Excitation& excite, Function* cost);
+#endif
+
 
 

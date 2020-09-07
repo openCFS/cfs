@@ -8,6 +8,9 @@
 #cmakedefine USE_MKL
 #cmakedefine USE_NETLIB
 
+#define OPENBLAS_VER "@OPENBLAS_VER@"
+#define LAPACK_VER "@LAPACK_VER@"
+
 #ifndef CFS_DEF_USE_BLAS_HH
 #define CFS_DEF_USE_BLAS_HH
 

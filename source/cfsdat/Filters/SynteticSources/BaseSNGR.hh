@@ -105,7 +105,7 @@ protected:
 
 
   Double TKEcrit_;
-  Double minTKE_;
+  Double minTKE_ = 0;
   Double sigLength_;
   Double fL_; // length scale factor
   Double ft_; // time scale factor

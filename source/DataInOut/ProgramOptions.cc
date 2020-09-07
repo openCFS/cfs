@@ -1,33 +1,6 @@
 // include general defines
 #include <def_cfs_stats.hh>
-#include <def_use_blas.hh>
-#include <def_use_hdf5.hh>
-#include <def_use_mesh.hh>
-#include <def_use_pardiso.hh>
-#include <def_use_unv.hh>
-#include <def_use_gidpost.hh>
-#include <def_use_ilupack.hh>
-#include <def_use_suitesparse.hh>
-#include <def_use_lis.hh>
-#include <def_use_metis.hh>
-#include <def_use_xerces.hh>
-#include <def_use_arpack.hh>
-#include <def_use_phist_cg.hh>
-#include <def_use_phist_ev.hh>
-#include <def_use_gmv.hh>
-#include <def_use_gmsh.hh>
-#include <def_use_cgns.hh>
-#include <def_use_cgal.hh>
-#include <def_use_libfbi.hh>
-#include <def_use_flann.hh>
-#include <def_xmlschema.hh>
-#include <def_use_openmp.hh>
-#include <def_use_mpi.hh>
-#include <def_use_petsc.hh>
-#include <def_use_hwloc.hh>
-#include <def_use_ghost.hh>
 #include <def_disable_optimization.hh>
-
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -37,103 +10,21 @@
 #include <sstream>
 #include <cstdlib>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/trim.hpp>
-
-#ifdef USE_MKL
-#include <mkl_service.h>
-#ifndef mkl_get_version
-#define MKL_Get_Version MKLGetVersion
-#define MKL_Free_Buffers MKL_FreeBuffers
-#endif
-#endif
-
-#ifdef USE_OPENBLAS
-#include <openblas_config.h>
-#endif
-#include <bzlib.h>
-#include <zlib.h>
-
-#include <H5public.h>
-#include <H5Ppublic.h>
-
-#ifdef USE_METIS
-#include <defs.h> 
-#endif
-
-#ifdef USE_SUITESPARSE
-#include <cholmod.h> 
-#include <umfpack.h> 
-#include <amd.h> 
-#endif
-
-#ifdef USE_LIS
-#include <lis.h> 
-#endif
-
-#ifdef USE_ARPACK
-#include <arpack_version.h>
-#endif
-
-#ifdef USE_CGAL
-#include <CGAL/version.h>
-#endif
-
-#ifdef USE_FLANN
-#include <flann/flann.hpp>
-#endif
-
-#ifdef USE_XERCES
-#include <xercesc/util/XercesVersion.hpp>
-#endif
-
-#ifdef USE_GIDPOST
-#include <gidpost.h>
-#endif
-
-#ifdef USE_CGNS
-#include <cgnslib.h>
-// The NO_ERROR and NO_DATA symbols are defined in some windows headers
-// and conflict with ADF headers...
-#define CFS_DUMMY_NO_ERROR NO_ERROR
-#define CFS_DUMMY_NO_DATA NO_DATA
-#undef NO_ERROR
-#undef NO_DATA
-#include <adf/ADF.h>
-#include <adfh/ADFH.h>
-#undef NO_ERROR
-#undef NO_DATA
-#define NO_ERROR CFS_DUMMY_NO_ERROR
-#define NO_DATA CFS_DUMMY_NO_DATA
-#undef CFS_DUMMY_NO_ERROR
-#undef CFS_DUMMY_NO_DATA
-#endif
-
-#include <boost/version.hpp>
-
-#include <muParserBase.h>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Utils/tools.hh"
 
-#define _QUOTEME(x) #x
-#define QUOTEME(x) _QUOTEME(x)
-
-
 using std::string;
 using std::endl;
 using std::cout;
-
-
-
-// Lapack version function interface
-extern "C" void ilaver(int*, int*, int*);
-
+using namespace boost::placeholders;
 
 namespace CoupledField {
 
@@ -212,6 +103,9 @@ namespace CoupledField {
 
       ( "writeSkeleton,w",
         "write skeleton of XML file for subsequent simulation" )
+
+      ( "dependencies,c", po::value<string>(),
+        "write CMake file with dependencies to given file")
 
       ( "logConfFile,l", po::value<string>(),
         "name of configuration file for logging streams, only works for DEBUG builds" )
@@ -305,11 +199,19 @@ namespace CoupledField {
     }
 
     // Check for history
-    if( varMap_.count("history") != 0  ) 
+    if(varMap_.count("history") != 0)
     {
       GetHeaderString(cout);      
       GetHistoryString(cout);
       exit( EXIT_SUCCESS );
+    }
+
+    // do we want to output dependency as cmake file? Exit afterwards
+    if(varMap_.count("dependencies"))
+    {
+      GetHeaderString(cout);
+      deps_.WriteCMakeUSE(varMap_["dependencies"].as<string>());
+      exit(EXIT_SUCCESS);
     }
 
     // Check for help
@@ -582,310 +484,120 @@ namespace CoupledField {
     #endif
   }
 
-  
-  void ProgramOptions::GetVersionString( std::ostream & out,
-                                         bool colorise)
+  void ProgramOptions::WriteColoredString(std::ostream& out, int trim_size, const string& head, const string& data, const string& opt1, const string& opt2, const string& opt3)
   {
+    out << std::left << std::setw(trim_size) << (head + ": ");
+    out << fg_blue << data;
+    if(opt1 != "")
+      out << ", " << opt1;
+    if(opt2 != "")
+      out << ", " << opt2;
+    if(opt3 != "")
+      out << ", " << opt3;
+    out << fg_reset << endl;
+  }
+
+  void ProgramOptions::WriteColoredString(std::ostream& out, int trim_size, const string& head, int data)
+  {
+    WriteColoredString(out, trim_size, head, std::to_string(data));
+  }
+  
+  void ProgramOptions::GetVersionString(std::ostream & out, bool colorise)
+  {
+    // local instance as GetVersionString() is static.
+    // If you want to know deps.IsDistributable() outside, simply create your own object
+    Dependencies deps;
+
     bool colTmp = ColoredConsole::colorise;
     ColoredConsole::colorise = colorise;
     
-    string build_type = CMAKE_BUILD_TYPE;
-    string cxxFlags = CMAKE_CXX_FLAGS;
-    // FIXME: neither CFS_LINK_FLAGS nor CMAKE_EXE_LINKER_FLAGS work :(
-    string ldFlags = CFS_LINK_FLAGS;
-
-    boost::trim(cxxFlags);
-    boost::trim(ldFlags);    
-    
-    out << "CFS_VERSION:           " << fg_blue << CFS_VERSION << fg_reset << endl;
-    out << "CFS_NAME:              " << fg_blue << CFS_NAME << fg_reset << endl;
+    const int trim_size = 26;
+    WriteColoredString(out, trim_size, "CFS_VERSION", CFS_VERSION);
+    WriteColoredString(out, trim_size, "CFS_NAME", CFS_NAME);
 
     if(progOpts) 
     {      
       fs::path fn = fs::system_complete(progOpts->exe_);
       fn.normalize();
-      out << "CFS_EXECUTABLE:        " << fg_blue << fn.string() << fg_reset << endl;
-      out << "XMLSCHEMA:             " << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
+      WriteColoredString(out, trim_size, "CFS_EXECUTABLE", fn.string());
+      WriteColoredString(out, trim_size, "XMLSCHEMA", (progOpts->GetSchemaPath()).c_str());
     }
     else
-      out << "XMLSCHEMA:             " << fg_blue << XMLSCHEMA << fg_reset << endl;
+      WriteColoredString(out, trim_size, "XMLSCHEMA", XMLSCHEMA);
     
-    out << "CFS_BUILD_HOST:        " << fg_blue << CFS_BUILD_HOST << fg_reset << endl
-        << "CFS_BUILD_USER:        " << fg_blue << CFS_BUILD_USER << fg_reset << endl
-        << "CFS_BUILD_DISTRO:      " << fg_blue << CFS_BUILD_DISTRO << fg_reset << endl
-        << "CFS_GIT_COMMIT:        " << fg_blue << CFS_GIT_COMMIT << fg_reset << endl
-        << "CFS_GIT_BRANCH:        " << fg_blue << CFS_GIT_BRANCH << fg_reset << endl
-        << "CFS_WC_REVISION:        " << fg_blue << CFS_WC_REVISION << fg_reset << endl;
-
+    WriteColoredString(out, trim_size, "CFS_BUILD_HOST", CFS_BUILD_HOST);
+    WriteColoredString(out, trim_size, "CFS_BUILD_USER", CFS_BUILD_USER);
+    WriteColoredString(out, trim_size, "CFS_BUILD_DISTRO", CFS_BUILD_DISTRO);
+    WriteColoredString(out, trim_size, "CFS_GIT_COMMIT", CFS_GIT_COMMIT);
+    WriteColoredString(out, trim_size, "CFS_GIT_BRANCH", CFS_GIT_BRANCH);
+    WriteColoredString(out, trim_size, "CFS_WC_REVISION", CFS_WC_REVISION);
     out << endl;
 
-    out << "CFS_CXX_COMPILER_NAME: " << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << endl
-        << "CFS_CXX_COMPILER_VER:  " << fg_blue << CFS_CXX_COMPILER_VER << fg_reset << endl << endl
+    WriteColoredString(out, trim_size, "CMAKE_BUILD_TYPE", CMAKE_BUILD_TYPE);
+    WriteColoredString(out, trim_size, "C++ compiler", CFS_CXX_COMPILER_NAME, CFS_CXX_COMPILER_VER);
+    WriteColoredString(out, trim_size, "Fortran compiler", CFS_FORTRAN_COMPILER_NAME, CFS_FORTRAN_COMPILER_VER);
+    WriteColoredString(out, trim_size, "CFS_DISTRO", CFS_DISTRO, CFS_DISTRO_VER);
+    WriteColoredString(out, trim_size, "CFS_ARCH", CFS_ARCH);
 
-        << "CFS_FORTRAN_COMPILER_NAME: " << fg_blue << CFS_FORTRAN_COMPILER_NAME << fg_reset<< endl
-        << "CFS_FORTRAN_COMPILER_VER:  " << fg_blue << CFS_FORTRAN_COMPILER_VER << fg_reset<< endl << endl
-
-        << "CFS_DISTRO:            " << fg_blue << CFS_DISTRO << fg_reset << endl
-#ifndef __MINGW32__
-        << "CFS_DISTRO_VER:        " << fg_blue << CFS_DISTRO_VER << fg_reset << endl
-#endif
-        << "CFS_ARCH:              " << fg_blue << CFS_ARCH << fg_reset << endl << endl
-
-        << "CMAKE_BUILD_TYPE:      " << fg_blue  << build_type << fg_reset << endl;
+    string cxxFlags = CMAKE_CXX_FLAGS;
+    string ldFlags  = CFS_LINKER_FLAGS;
 #ifndef NDEBUG
-    out << "COMPILE_FLAGS:         " << fg_blue << cxxFlags << " " << CMAKE_CXX_FLAGS_DEBUG << fg_reset << endl;
-    out << "LINK_FLAGS:            " << fg_blue  << ldFlags << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG << fg_reset << endl << endl;
+    cxxFlags += " " + string(CMAKE_CXX_FLAGS_DEBUG);
+    ldFlags  += " " + string(CMAKE_EXE_LINKER_FLAGS_DEBUG);
 #else
-    out << "COMPILE_FLAGS:         " << fg_blue << cxxFlags << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << endl;
-    out << "LINK_FLAGS:            " << fg_blue << ldFlags << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE << fg_reset << endl << endl;
+    cxxFlags += " " + string(CMAKE_CXX_FLAGS_RELEASE);
+    ldFlags  += " " + string(CMAKE_EXE_LINKER_FLAGS_RELEASE);
 #endif
-
-#ifdef USE_OPENMP
-    out << "USE_OPENMP:            " << fg_blue  << "YES" << fg_reset << endl;
-    out << "OMP_NUM_THREADS:       " << fg_blue << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-") << fg_reset << endl;
-    out << "MKL_NUM_THREADS:       " << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-") << fg_reset << endl;
-    out << "CFS_NUM_THREADS:       " << fg_blue << CFS_NUM_THREADS << fg_reset << endl;
-
-#else
-    out << "USE_OPENMP:            " << fg_blue  << "NO" << fg_reset << endl;
-#endif
-
-#ifdef DISABLE_OPTIMIZATION
-    out << "DISABLE_OPTIMIZATION:  " << fg_blue  << "YES" << fg_reset << endl;
-#else
-    out << "DISABLE_OPTIMIZATION:  " << fg_blue  << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_ARPACK    
-    out << "USE_ARPACK:            " << fg_blue  << "YES" << fg_reset << endl;
-    out << "ARPACK_VERSION:        " << fg_blue  << ARPACK_VERSION_NUMBER << fg_reset << endl;
-#else
-    out << "USE_ARPACK:            " << fg_blue  << "NO" << fg_reset << endl;
-#endif
-
-    out << "BLAS_IMPLEMENTATION:   " << fg_blue  << CFS_BLAS_LAPACK << fg_reset << endl;
- #ifdef USE_MKL
-    CFSMKLVersion ver;
-    MKL_Get_Version(reinterpret_cast<MKLVersion*>(&ver));
-    out << "MKL_VERSION:           " << fg_blue << ver.MajorVersion << "." << ver.MinorVersion << "." << ver.BuildNumber << fg_reset << endl;
-    out << "MKL_PRODSTAT:          " << fg_blue << ver.ProductStatus << fg_reset << endl;
-    out << "MKL_BUILD:             " << fg_blue << ver.Build << fg_reset << endl;
-    MKL_Free_Buffers();
- #endif
- #ifdef USE_OPENBLAS
-    out << "OPENBLAS:             " << fg_blue << OPENBLAS_VERSION << fg_reset << endl
-        << "OPENBLAS_CORE          " << fg_blue << OPENBLAS_CHAR_CORENAME << fg_reset << endl;
- #endif
-
-    Integer major, minor, rev;
-    ilaver(&major, &minor, &rev);
-    out << "LAPACK_VERSION:        " << fg_blue << major << "." << minor << "." << rev << fg_reset << endl;
-
- #ifdef USE_ILUPACK
-    out << "USE_ILUPACK:           " << fg_blue << "YES" << fg_reset << endl;
- #else
-    out << "USE_ILUPACK:           " << fg_blue  << "NO" << fg_reset << endl;
- #endif
-
-
-
-
-#ifdef USE_ILUPACK_PARALLEL
-   out << "USE_ILUPACK_PARALLEL:           " << fg_blue << "YES" << fg_reset << endl;
-#else
-   out << "USE_ILUPACK_PARALLEL:           " << fg_blue  << "NO" << fg_reset << endl;
-#endif
-
-
- #ifdef USE_SUITESPARSE
-    out << "USE_SUITESPARSE:       " << fg_blue << "YES" << fg_reset << endl;
-    out << "SUITESPARSE_VERSION:   " << fg_blue << SUITESPARSE_MAIN_VERSION << "."
-                                     << SUITESPARSE_SUB_VERSION << "."
-                                     << SUITESPARSE_SUBSUB_VERSION << " (" << SUITESPARSE_DATE << ") " << fg_reset << endl;
-    out << "AMD_VERSION:           " << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
-                                     << AMD_SUBSUB_VERSION << " (" << AMD_DATE << ") " << fg_reset << endl;
-    out << "CHOLMOD_VERSION:       " << fg_blue << CHOLMOD_MAIN_VERSION << "." << CHOLMOD_SUB_VERSION << "."
-                                     << CHOLMOD_SUBSUB_VERSION << " (" << CHOLMOD_DATE << ") "<< fg_reset << endl;
-    out << "UMFPACK_VERSION:       " << fg_blue << UMFPACK_MAIN_VERSION << "." << UMFPACK_SUB_VERSION << "."
-                                     << UMFPACK_SUBSUB_VERSION << " (" << UMFPACK_DATE << ") " << fg_reset << endl;
- #else
-    out << "USE_SUITESPARSE:       " << fg_blue  << "NO" << fg_reset << endl;
- #endif
- #ifdef USE_PARDISO
-    out << "USE_PARDISO:           " << fg_blue << "YES" << fg_reset << endl;
-    out << "PARDISO_IMPL:          " << fg_blue  << CFS_PARDISO << fg_reset << endl;
- #else
-    out << "USE_PARDISO:           " << fg_blue << "NO" << fg_reset << endl;
- #endif
-
- #ifdef USE_LIS
-    out << "USE_LIS:               " << fg_blue << "YES" << fg_reset << endl;
-    out << "LIS_VERSION:           " << fg_blue  << LIS_VERSION << fg_reset << endl;
- #else
-    out << "USE_LIS:               " << fg_blue  << "NO" << fg_reset << endl;
- #endif
-
- #ifdef USE_METIS
-    std::string metistitle(METISTITLE);
-    boost::trim(metistitle);
-    out << "USE_METIS:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_METIS_VERSION:     " << fg_blue << metistitle << fg_reset << endl;
-#else
-    out << "USE_METIS:             " << fg_blue << "NO" << fg_reset<< endl;
-#endif
-
-#ifdef USE_GIDPOST
-    out << "USE_GIDPOST:           " << fg_blue << "YES" << fg_reset << endl;
-    out << "GIDPOST_VERSION:       " << fg_blue << GIDPOST_VERSION << fg_reset << endl;
- #else
-    out << "USE_GIDPOST:           " << fg_blue << "NO" << fg_reset << endl;
- #endif
-
-#ifdef USE_GMSH
-    out << "USE_GMSH:              " << fg_blue << "YES" << fg_reset << endl;
-#else
-    out << "USE_GMSH:              " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_GMV
-    out << "USE_GMV:               " << fg_blue << "YES" << fg_reset << endl;
- #else
-    out << "USE_GMV:               " << fg_blue << "NO" << fg_reset << endl;
- #endif
-
- #ifdef USE_HDF5
-    out << "USE_HDF5:              " << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_HDF5_VERSION:      " << fg_blue << H5_VERS_MAJOR << "." << H5_VERS_MINOR << "."
-                                     << H5_VERS_RELEASE << fg_reset << endl;
- #else
-    out << "USE_HDF5:              " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
- #ifdef USE_MESH
-    out << "USE_MESH:              " << fg_blue << "YES" << fg_reset << endl;
- #else
-    out << "USE_MESH:              " << fg_blue << "NO" << fg_reset << endl;
- #endif
-
-#ifdef USE_UNV
-    out << "USE_UNV:               " << fg_blue << "YES" << fg_reset << endl;
-#else
-    out << "USE_UNV:               " << fg_blue << "NO" << fg_reset << endl;
-#endif
-#ifdef USE_CGNS
-    out << "USE_CGNS:              " << fg_blue << "YES" << fg_reset << endl;
-    out << "CGNS_VERSION:          " << fg_blue << (CGNS_VERSION/1000)
-                                     << "." << ((CGNS_VERSION%1000)/100)
-                                      << ((CGNS_VERSION%100)/10) << fg_reset << endl;
-#if defined(CGNS_COMPATVERSION)
-    out << "CGNS_COMPATVERSION:    " << fg_blue << (CGNS_COMPATVERSION/1000)
-                                     << "." << ((CGNS_COMPATVERSION%1000)/100)
-                                     << ((CGNS_COMPATVERSION%100)/10) << fg_reset << endl;
-#endif
-    char version[1024];
-    int error_return = 0;
-    ADF_Library_Version(version, &error_return ) ;
-    out << "ADF_VERSION:           " << fg_blue << version << fg_reset << endl;
-    ADFH_Library_Version(version, &error_return ) ;
-    out << "ADFH_VERSION:          " << fg_blue << version << fg_reset << endl;
-#else
-    out << "USE_CGNS:              " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_XERCES
-    out << "XML_READER:            " << fg_blue << "xerces-c" << fg_reset << endl;
-    out << "CFS_XERCES_VERSION:    " << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
-#else
-    out << "XML_READER:            " << fg_blue << "libxml2" << fg_reset << endl;
-    // TODO: add version
-#endif
-
-#ifdef USE_CGAL
-    out << "USE_CGAL:              " << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_CGAL_VERSION:      " << fg_blue << QUOTEME(CGAL_VERSION) << " (" << CGAL_VERSION_NR
-                                     << ", SVN rev. " << CGAL_SVN_REVISION << ")" << fg_reset << endl;
-#else
-    out << "USE_CGAL:              " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_LIBFBI
-    out << "USE_LIBFBI:            " << fg_blue << "YES" << fg_reset << endl;
-#else
-    out << "USE_LIBFBI:            " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_FLANN
-    out << "USE_FLANN:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "FLANN_VERSION:         " << fg_blue << FLANN_VERSION_ << fg_reset << endl;
-#else
-    out << "USE_FLANN:             " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_MPI
-    out << "USE_MPI:               " << fg_blue << "YES" << fg_reset << endl;
-    out << "MPI_BASE:              " << fg_blue << CFS_MPI_BASE << fg_reset << endl;
-    out << "MPI_CXX_Compiler:      " << fg_blue << CFS_MPI_CXX_COMPILER << fg_reset << endl;
-    out << "MPI_Fortran_Compiler:  " << fg_blue << CFS_MPI_Fortran_COMPILER << fg_reset << endl;
-    out << "mpiexec:               " << fg_blue << CFS_MPI_BIN << "/mpiexec" << fg_reset << endl;
-#else
-    out << "USE_MPI:               " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_PETSC
-    out << "USE_PETSC:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "PETSC_VERSION:         " << fg_blue << CFS_PETSC_VERSION << fg_reset << endl;
-#else
-    out << "USE_PETSC:             " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef BUILD_HWLOC
-    out << "BUILD_HWLOC:           " << fg_blue << "YES" << fg_reset << endl;
-    out << "HWLOC_VER:             " << fg_blue << HWLOC_VER << fg_reset << endl;
-#else
-    out << "BUILD_HWLOC:           " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef BUILD_GHOST
-    out << "BUILD_GHOST:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "GHOST_BITBUCKET:       " << fg_blue << GHOST_SOURCE << fg_reset << endl;
-    out << "GHOST_COMMIT:          " << fg_blue << GHOST_REV << fg_reset << endl;
-#else
-    out << "BUILD_GHOST:             " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-
-#ifdef USE_PHIST_CG
-    out << "USE_PHIST:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "PHIST_BITBUCKET:       " << fg_blue << PHIST_SOURCE << fg_reset << endl;
-    out << "PHIST_COMMIT:          " << fg_blue << PHIST_REV << fg_reset << endl;
-#else
-    out << "USE_PHIST_CG:             " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-#ifdef USE_PHIST_EV
-    out << "USE_PHIST:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "PHIST_BITBUCKET:       " << fg_blue << PHIST_SOURCE << fg_reset << endl;
-    out << "PHIST_COMMIT:          " << fg_blue << PHIST_REV << fg_reset << endl;
-#else
-    out << "USE_PHIST_EV:             " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-    out << "CFS_BOOST_VERSION:     " << fg_blue << (BOOST_VERSION / 100000) << "." << (BOOST_VERSION / 100 % 1000) << "." << (BOOST_VERSION % 100) << fg_reset << endl;
-    out << "CFS_ZLIB_VERSION:      " << fg_blue << zlibVersion() << fg_reset << endl;
-    out << "CFS_BZIP2_VERSION:     " << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
-    out << "CFS_MUPARSER_VERSION:  " << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
-
+    WriteColoredString(out, trim_size, "COMPILE_FLAGS", cxxFlags);
+    WriteColoredString(out, trim_size, "LINK_FLAGS", ldFlags);
     out << endl;
-    out << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;
-    out << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;
-    out << "sizeof(size_t)         "  << fg_blue << sizeof(size_t) << fg_reset << endl;
-    out << "sizeof(long)           "  << fg_blue << sizeof(long) << fg_reset << endl;    
-    out << "sizeof(long int)       "  << fg_blue << sizeof(long int) << fg_reset << endl;
-    out << "sizeof(double)         "  << fg_blue << sizeof(double) << fg_reset << endl;    
-    out << "sizeof(void*)          "  << fg_blue << sizeof(void*) << fg_reset << endl;
-    out << "CLOCKS_PER_SEC         "  << fg_blue << CLOCKS_PER_SEC << fg_reset << endl;
+
+// todo: remove
+#ifdef DISABLE_OPTIMIZATION
+    WriteColoredString(out, trim_size, "DISABLE_OPTIMIZATION", "YES");
+#else
+    WriteColoredString(out, trim_size, "DISABLE_OPTIMIZATION", "NO");
+#endif
+    out << endl;
+
+    // deps.Dump();
+
+    WriteColoredString(out, trim_size, "external licenses",
+        string("distributable=") + (deps.IsDistributable() ? "YES": "NO"),
+        string("commercial=") + (deps.HasLicense(Dependencies::COMMERCIAL) ? "YES": "NO"),
+        string("closed=") + (deps.HasLicense(Dependencies::CLOSED) ? "YES": "NO"),
+        string("gpl=") + (deps.HasLicense(Dependencies::GPL) ? "YES": "NO"));
+    out << endl;
+
+    // the actual licenses are not displayed as one needs to be accurate then and
+    // actually almost any lib has a own licencse. For the standard licenses one
+    // would have to give the flavours (number, new-bsd, ...)
+    for(auto& dep: deps.data)
+      if(dep.IsSwitchable())
+      {
+        if(dep.active)
+          WriteColoredString(out, trim_size, dep.cmake, dep.version != "" ? dep.version : "unknown version", dep.date, dep.comment);
+        else
+          WriteColoredString(out, trim_size, dep.cmake, "NO");
+      }
+    out << endl;
+
+    for(auto& dep: deps.data)
+      if(!dep.IsSwitchable())
+      {
+        if(!dep.active)
+          WriteColoredString(out, trim_size, dep.name, "NO", dep.cmake);
+        else
+          WriteColoredString(out, trim_size, dep.name, dep.version != "" ? dep.version : "YES", dep.date, dep.comment, dep.cmake);
+      }
+    out << endl;
+
+    WriteColoredString(out, trim_size, "sizeof(int)", sizeof(int));
+    WriteColoredString(out, trim_size, "sizeof(Integer)", sizeof(Integer));
+    WriteColoredString(out, trim_size, "sizeof(size_t)", sizeof(size_t));
+    WriteColoredString(out, trim_size, "sizeof(void*)", sizeof(void*));
     
-  ColoredConsole::colorise = colTmp;
+    ColoredConsole::colorise = colTmp;
   }
 
   void ProgramOptions::GetHistoryString( std::ostream & out)
@@ -956,14 +668,15 @@ namespace CoupledField {
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)
-  {  
+  {
     string omp = getenv("OMP_NUM_THREADS") != NULL ? string(getenv("OMP_NUM_THREADS")) : "-";
     string mkl = getenv("MKL_NUM_THREADS") != NULL ? string(getenv("MKL_NUM_THREADS")) : "-";
     if(IsQuiet())
     {
       out << ">> CFS++ '" << CFS_VERSION << " " << CFS_NAME << "'"
           << " Compiled: '" << __DATE__ << "'"
-          << " Build: '" << CMAKE_BUILD_TYPE << "'" << endl;
+          << " Build: '" << CMAKE_BUILD_TYPE << "'"
+          << " (" << (deps_.IsDistributable() ? "" : "NOT ") << "distributable)" << endl;
       #ifdef USE_OPENMP
         out << ">> OpenMP *_NUM_THREADS: CFS=" << CFS_NUM_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
       #endif
@@ -972,18 +685,14 @@ namespace CoupledField {
     {
       // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
       out << endl
-          << "============================================================"
-          << "===========" << endl;
+          << "=======================================================================" << endl;
       out << " CFS++ - Coupled Field Simulation" << endl << endl
-          << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-          << " " << CFS_WC_REVISION << endl
-          << " compiled " << __DATE__
-          << " as " << CMAKE_BUILD_TYPE << endl
+          << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'" << " " << CFS_WC_REVISION << endl
+          << " compiled " << __DATE__  << " as " << CMAKE_BUILD_TYPE
+          << " (" << (deps_.IsDistributable() ? "" : "NOT ") << "distributable)" << endl
           << " CFS++ routines use " << CFS_NUM_THREADS << " threads for this run."
           << " OMP/ MKL threads: " << omp << "/ " << mkl << endl;
-      out << "============================================================"
-          << "==========="
-          << endl << endl;
+      out << "=======================================================================" << endl << endl;
     }
   }
 }

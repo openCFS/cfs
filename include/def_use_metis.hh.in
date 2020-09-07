@@ -2,4 +2,6 @@
 
 #cmakedefine USE_METIS
 
+// no idea where is set?!
 #define CFS_METIS_VERSION "@CFS_METIS_VERSION@"
+#define METIS_VER "@METIS_VER@"

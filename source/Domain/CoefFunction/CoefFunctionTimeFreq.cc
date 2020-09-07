@@ -1,5 +1,5 @@
 #include "CoefFunctionTimeFreq.hh"
-#include "boost/bind.hpp" 
+#include "boost/bind/bind.hpp"
 #include "boost/lexical_cast.hpp"
 
 namespace CoupledField{
