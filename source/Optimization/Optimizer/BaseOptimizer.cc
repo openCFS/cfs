@@ -340,6 +340,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     design_.design_id = new_design;
     need_eval = true;
     
+    // TODO: handle case for non-design sensitive objective!
+
     // tell assemble, the design has changed
     for(unsigned int c = 0; c < optimization->manager.context.GetSize(); c++)
       optimization->manager.context[c].pde->GetAssemble()->SetAllReassemble();
@@ -457,24 +459,29 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
 {
   optimizer_timer_->Stop();
 
-  assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
+  ConditionContainer& cc = optimization->constraints;
+
+  assert(m == cc.view->GetNumberOfActiveConstraints());
 
   // Before the constraints can be calculated it might be the case, that the forward problem needs recalculation
   // if it does not, this does not cost more than reading the design
-  EvalObjective(n, x, cfs_scale);
+  if(cc.IsAllStateDependent())
+    EvalObjective(n, x, cfs_scale);
+  else
+    optimization->GetDesign()->ReadDesignFromExtern(x);
   
   eval_const_timer_->Start(); // After EvalObjective();
   
   // iterate over all constraints
   for(int i = 0; i < m; i++)
   {
-    Condition* g = optimization->constraints.view->Get(i);
+    Condition* g = cc.view->Get(i);
 
     double val = EvalConstraint(g, cfs_scale, normalize, false); // no direct call
 
     g_val[i] = val;
   }
-  optimization->constraints.view->Done(); // reset local constraint to global mode
+  cc.view->Done(); // reset local constraint to global mode
 
   eval_const_timer_->Stop();
   optimizer_timer_->Start();

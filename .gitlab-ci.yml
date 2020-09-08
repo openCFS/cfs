@@ -223,10 +223,11 @@ build:gcc7max:
   tags:
     - gcc7
     - license-keys
+    - python
   variables:
     BUILD_NAME: "GCC7 maximal"
     GCC_VERSION: 7
-    CFS_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON"
+    CFS_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON"
   <<: *gcc_before
   <<: *default_build_job
 

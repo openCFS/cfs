@@ -1,4 +1,4 @@
-SET(OPTIMIZER_SRCS
+set(OPTIMIZER_SRCS
   BaseOptimizer.cc
   ShapeOptimizer.cc
   OptimalityCondition.cc
@@ -6,10 +6,9 @@ SET(OPTIMIZER_SRCS
   GradientCheck.cc
   SGP.cc
   MMA.cc
-  BFGS.cc
-)
+  BFGS.cc)
 
-SET(TARGET_LL
+set(TARGET_LL
   optimization
   cfsgeneral
   datainout
@@ -20,50 +19,53 @@ SET(TARGET_LL
   matvec
   paramh
   pde
-  utils
-)
+  utils)
 
 # we need it almost always ?!
-SET(DEPENDS
+set(DEPENDS
   "${LAPACK_LIBRARY}"
   "${BLAS_LIBRARY}"
-  "${CFS_FORTRAN_LIBS}"
-)
+  "${CFS_FORTRAN_LIBS}")
 
-IF(USE_KNITRO)
+if(USE_KNITRO)
+   #set(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
+   set(TARGET_LL ${TARGET_LL} knitro700)
+   
+   include_directories(${KNITRO_INCLUDE_DIR})
+   
+   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} KNITRO.cc)
+endif()
 
-   #SET(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
-   SET(TARGET_LL ${TARGET_LL} knitro700)
-
-   INCLUDE_DIRECTORIES(${KNITRO_INCLUDE_DIR})
-
-   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} KNITRO.cc)
-ENDIF(USE_KNITRO)
-
-IF(USE_SCPIP)
-   SET(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${DEPENDS})
+if(USE_SCPIP)
+   set(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${DEPENDS})
    # message("${CFS_FORTRAN_LIBS}")
    # SCPIPBase is also the open source project C++SCPIP.
-   # With this definition the file lives in both worlds!
-   ADD_DEFINITIONS(-DUSE_4_CFS)
+   # With this definition the file lives in both worlds! 
+   add_definitions(-DUSE_4_CFS)
+   
+   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SCPIP.cc SCPIPBase.cc)
+endif()
 
-   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SCPIP.cc SCPIPBase.cc)
-ENDIF(USE_SCPIP)
+if(USE_SNOPT)
+   set(TARGET_LL ${TARGET_LL}  ${SNOPT_LIBRARY} ${DEPENDS})
+   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SnOptInterface.f SnOpt.cc)
+endif()
 
-ADD_DEFINITIONS(-DUSE_4_CFS)
+if(USE_IPOPT)
+   set(TARGET_LL ${TARGET_LL}  ${IPOPT_LIBRARY} ${METIS_LIBRARY} ${DEPENDS})
+   include_directories(${IPOPT_INCLUDE_DIR})
+   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} IPOPT.cc FeasPP.cc FeasSubProblem.cc)
+endif()
 
-IF(USE_SNOPT)
-   SET(TARGET_LL ${TARGET_LL}  ${SNOPT_LIBRARY} ${DEPENDS})
-   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SnOptInterface.f SnOpt.cc)
-ENDIF(USE_SNOPT)
-
-IF(USE_IPOPT)
-   SET(TARGET_LL ${TARGET_LL}  ${IPOPT_LIBRARY} ${METIS_LIBRARY} ${DEPENDS})
-   INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
-   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} IPOPT.cc FeasPP.cc FeasSubProblem.cc)
-ENDIF(USE_IPOPT)
+if(USE_EMBEDDED_PYTHON)
+  # see FindPrograms.cmake on how the PYTHON_ stuff is set
+  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
+  # already in FindCFSDEPS.cmake: include_directories(${PYTHON_INCLUDE_DIR})
+  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} PythonOptimizer.cc)
+endif()
 
 
-ADD_LIBRARY(optimizer STATIC ${OPTIMIZER_SRCS})
+add_library(optimizer STATIC ${OPTIMIZER_SRCS})
 
-TARGET_LINK_LIBRARIES(optimizer ${TARGET_LL})
+target_link_libraries(optimizer ${TARGET_LL})

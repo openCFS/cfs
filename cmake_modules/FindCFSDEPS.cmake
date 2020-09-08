@@ -104,6 +104,40 @@ else()
 endif()
 mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
 
+# The Python lib stuff is not built but found on the system when we embedd python
+if(USE_EMBEDDED_PYTHON)
+  # see find_package(PythonInterp) in FindPrograms.cmake
+  
+  # sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, which can be also set via -D
+  find_package(PythonLibs)
+  
+  # PYTHON_SITE_PACKAGES_DIR needs to be set to /usr/lib64/python3.8/site-packages
+  # PYTHON_LIBRARY is /usr/lib64/libpython3.8.so, so it does not help
+  # there is no uniform cmake python support. There are several FindPythonModule.cmake on the web but not in the standard distribution
+  # here we extract the core from https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/cmake/FindPythonModules.cmake
+  # you need to include like #include <numpy/core/include/numpy/arrayobject.h>
+  execute_process(
+      COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.__file__);"
+      RESULT_VARIABLE PY_NUMPY_STATUS # 0 is good, 1 is bad
+      OUTPUT_VARIABLE PY_NUMPY_PATH # shall be /usr/lib64/python3.8/site-packages/numpy/__init__.py
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  if(NOT PY_NUMPY_STATUS) # 0 is good
+    get_filename_component(PY_NUMPY_DIR ${PY_NUMPY_PATH} DIRECTORY) #  /usr/lib64/python3.8/site-packages/numpy  
+    get_filename_component(PY_SITE_DIR ${PY_NUMPY_DIR} DIRECTORY) # /usr/lib64/python3.8/site-packages
+  endif()
+
+  # ignored if already set manually  
+  set(PYTHON_SITE_PACKAGES_DIR ${PY_SITE_DIR} CACHE PATH "base for python site-packages")     
+  mark_as_advanced(PYTHON_SITE_PACKAGES_DIR)
+
+  include_directories(${PYTHON_INCLUDE_DIR})
+
+  if(NOT PYTHON_SITE_PACKAGES_DIR)
+    message(FATAL_ERROR "cannot determine numpy for ${PYTHON_EXECUTABLE} required for USE_EMBEDDED_PYTHON. Possibly set advanced PYTHON_SITE_PACKAGES_DIR")
+  endif()
+endif()
 
 #-------------------------------------------------------------------------------
 # Build zlib library
@@ -563,7 +597,7 @@ endif(BUILD_HWLOC)
 # ghost is required for phist or could be used standalone
 if(BUILD_GHOST)
   # we use the cfs-fork of ghost and download the stuff via bitbuket
-  # we could also use a subversion mirror on github but only for ghost, not for phist
+  # we could also use a subversion mirror on github but only for ghost, not for g
   # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
   # set(GHOST_REV "965be2d1aa20") # subversion revision numbers are are more easily handable :(
   # set(GHOST_MD5 "1f441c4b82aaf0e9ff507857ffbd8c0e")

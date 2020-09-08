@@ -133,6 +133,7 @@ option(USE_GMSH "Use Gmsh meshes for simulation input." ${USE_GMSH_DEFAULT})
 option(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output."  ${USE_GMV_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 option(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
+option(USE_EMBEDDED_PYTHON "External Python Optimizer" ${USE_EMBEDDED_PYTHON_DEFAULT})
 option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
 option(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_ARPACK_DEFAULT})

@@ -313,9 +313,18 @@ namespace CoupledField {
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
 
-    /** Imports data from extern, adjusts internal size and capacity.
-     * Any existing data is overwritten. */
+    /** Imports data from extern, adjusts internal size and capacity. The data is copied.
+     * Any existing data is overwritten.
+     * @see Assign() */
     void Import(const TYPE* source, size_type size);
+
+    /** Take over external data including memory ownership, data is not copied.
+     * Note that the destructor will delete current data. To prevent deletion of the assigned data,
+     * assign NULL with delete_old_data=true before this StdVector is destructed.
+     * @param delete_old_data if true this StdVector forgets about current data. Make sure there is no memory leak.
+     * @see Import() */
+    void Assign(TYPE* source, size_type size, bool delete_old_data);
+
     
     /** Add element of the same type at the end of the vector.
      * If there is not enough capacity (GetCapacity()) the data is copied to a new data of doubled size.

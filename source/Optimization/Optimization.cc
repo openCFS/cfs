@@ -50,6 +50,7 @@
 #include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
+#include "def_use_embedded_python.hh"
 #include "Optimization/Optimizer/SGP.hh"
 #include "Optimization/Optimizer/MMA.hh"
 // IPOPT, SCPIP and SnOpt are not necessarily linked
@@ -65,6 +66,9 @@
 #endif
 #ifdef USE_KNITRO
   #include "Optimization/Optimizer/KNITRO.hh"
+#endif
+#ifdef USE_EMBEDDED_PYTHON
+  #include "Optimization/Optimizer/PythonOptimizer.hh"
 #endif
 
 using namespace CoupledField;
@@ -267,6 +271,14 @@ void Optimization::PostInitSecond()
            throw Exception("CFS++ was compiled w/o KNITRO");
          #endif
       break;
+
+    case PYTHON_SOLVER:
+         #ifdef USE_EMBEDDED_PYTHON
+           baseOptimizer_ = new PythonOptimizer(this, opt);
+         #else
+           throw Exception("openCFS was compiled w/o USE_EMBEDDED_PYTHON");
+         #endif
+         break;
 
     case SGP_SOLVER:
          baseOptimizer_ = new SGP(this, opt);
@@ -473,6 +485,7 @@ void Optimization::SetEnums()
   optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
+  optimizer.Add(PYTHON_SOLVER, "python");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluate");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");

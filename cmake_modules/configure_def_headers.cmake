@@ -72,6 +72,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ipopt.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scpip.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_scpip.hh")
 
+configure_file("${CFS_SOURCE_DIR}/include/def_use_embedded_python.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_embedded_python.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_snopt.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_snopt.hh")
 

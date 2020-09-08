@@ -890,7 +890,7 @@
               </xsd:complexType>
             </xsd:element>
 
-            <!-- KNITRO has anexcellent documentation! -->
+            <!-- KNITRO has excellent documentation! -->
             <xsd:element name="knitro" minOccurs="0">
               <xsd:complexType>
                 <xsd:sequence>
@@ -922,9 +922,21 @@
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true" />
               </xsd:complexType>
             </xsd:element>
-
-            <!-- the parameters of the shape optimizer can be set
-                 <shapeOpt enableTopgrad="true" /> -->
+           <!-- perform optimization via an external python file -->
+            <xsd:element name="python" minOccurs="0">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element minOccurs="0" maxOccurs="unbounded" name="option">
+                    <xsd:complexType>
+                      <xsd:attribute name="key" type="xsd:string" use="required"/>
+                      <xsd:attribute name="value" type="xsd:string" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+                <xsd:attribute name="file" type="xsd:string" use="required" />
+              </xsd:complexType>
+            </xsd:element>
+            <!-- the parameters of the shape optimizer can be set <shapeOpt enableTopgrad="true" /> -->
             <xsd:element name="shapeOpt" minOccurs="0">
               <xsd:complexType>
                 <xsd:all>
@@ -1095,6 +1107,7 @@
                 <xsd:enumeration value="knitro"/>
                 <!-- this is for own implementation of BFGS optimization method presented by Tim Kelly https://ctk.math.ncsu.edu/matlab_darts.html -->
                 <!-- <xsd:enumeration value="bfgs"/> -->
+                <xsd:enumeration value="python" />
                 <!-- this evaluates only the initial design -->
                 <xsd:enumeration value="evaluate" />
                 <xsd:enumeration value="shapeOpt" />

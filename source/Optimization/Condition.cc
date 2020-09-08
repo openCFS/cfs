@@ -1405,6 +1405,16 @@ bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
 }
 
 
+bool ConditionContainer::IsAllStateDependent() const
+{
+  for(auto c : active)
+    if(c->IsStateDependent())
+      return true;
+
+  return false;
+}
+
+
 bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
 {
   // be save and check for uniqueness!

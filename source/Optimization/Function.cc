@@ -594,6 +594,42 @@ bool Function::IsExcitationSensitive() const {
   return excite_sensitive_;
 }
 
+
+bool Function::IsStateDependent() const
+{
+  if(IsAdjointBased())
+    return true;
+
+  // only a few state dependent functions are not adjoint based
+
+  // be careful: IsStateDependend() is not much used and might be incomplete!
+  switch(type_)
+  {
+  case BANDGAP:
+  case CONJUGATE_COMPLIANCE:
+  case GLOBAL_DYNAMIC_COMPLIANCE:
+  case ELEC_ENERGY:
+  case COMPLIANCE:
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
+  case POISSONS_RATIO:
+  case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
+  case TEMPERATURE:
+  case HEAT_ENERGY:
+  case EIGENFREQUENCY:
+  case PRESSURE_DROP:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+
+
 bool Function::IsAdjointBased() const {
   switch (type_) {
   case TRACKING:

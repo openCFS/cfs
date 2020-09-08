@@ -238,6 +238,12 @@ class Function
      * Never true for different sequence*/
     bool DoEvaluateAlways(int sequence) const;
 
+    /** Is this function state dependent? */
+    bool IsStateDependent() const;
+
+    /** Requires this function an adjoint solution for the gradient? */
+    bool IsAdjointBased() const;
+
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;
 
@@ -261,9 +267,6 @@ class Function
      * @param out needs to be the size of rows of GetHessianSparsityPattern()
      * @param factor -1 for normalizing lower bound constraints to c <= 0 */
     virtual void CalcHessian(StdVector<double>& out, double factor);
-
-    /** Requires this function an adjoint solution for the gradient? */
-    bool IsAdjointBased() const;
 
     /** Requires the function evaluation an selection vector associated to the adjoint RHS?.
      * Is an important for the solution of the state problem, if partial stuff from the adjoint setup is required. */

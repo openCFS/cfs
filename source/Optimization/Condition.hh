@@ -439,6 +439,8 @@ namespace CoupledField
      /** if so we need to add the bound to the name */
      bool RequiresBoundForUniqueness(const Condition* g);
 
+     /** is at least one constraint state sensitive? */
+     bool IsAllStateDependent() const;
 
      /** are the active constraints feasible */
      bool IsFeasible() const;

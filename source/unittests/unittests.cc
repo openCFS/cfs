@@ -86,6 +86,39 @@ BOOST_AUTO_TEST_CASE(vector_compare)
   BOOST_TEST(!(c != d));
 }
 
+
+struct Foo
+{
+  int noRef() { return v; }
+  int& withRef() { return v; }
+  int v = 0;
+};
+
+BOOST_AUTO_TEST_CASE(reference_test)
+{
+  Foo foo;
+
+  // working with a returned reference works only we have references on both sides.
+
+  int a = foo.withRef();
+  BOOST_TEST(a == 0);
+  foo.v = 1;
+  BOOST_TEST(a == 0);
+
+  int& b = foo.withRef();
+  b = 2;
+  BOOST_TEST(foo.v == 2);
+
+  // cannot compile: error: non-const lvalue reference to type 'int' cannot bind to a temporary of type 'int'
+  // int& c = foo.noRef();
+
+  // trivial
+  int d = foo.noRef();
+  if(d == 45) // we need to use the variable
+    std::cout << "Hans";
+}
+
+
 // example for performance test
 BOOST_AUTO_TEST_CASE(vector_compare_performance)
 {
@@ -120,14 +153,50 @@ BOOST_AUTO_TEST_CASE(vector_compare_performance)
 
     TimeDuration dt1 = t2 - t1;
     TimeDuration dt2 = t4 - t3;
-    std::cout << "vector compare: size=" << size << " n=" << (ops/size) << " opt='==' dt=" << dt1 << std::endl;
-    std::cout << "vector compare: size=" << size << " n=" << (ops/size) << " opt='!=' dt=" << dt2 << std::endl;
+    StdVector<TimeDuration> use;
+    use.Push_back(dt1);
+    use.Push_back(dt2);
+    // std::cout << "vector compare: size=" << size << " n=" << (ops/size) << " opt='==' dt=" << dt1 << std::endl;
+    // std::cout << "vector compare: size=" << size << " n=" << (ops/size) << " opt='!=' dt=" << dt2 << std::endl;
   }
 }
 
 // example for template test
-typedef boost::mpl::list<int,long,unsigned char> test_types;
+typedef boost::mpl::list<int,unsigned int, float> test_types; // fails for long and char
 BOOST_AUTO_TEST_CASE_TEMPLATE( my_test, T, test_types )
 {
   BOOST_TEST( sizeof(T) == (unsigned)4 );
 }
+
+BOOST_AUTO_TEST_CASE(desctructor_call)
+{
+  int cnt = 0;
+  struct Hans
+  {
+    Hans() {/*std::cout << "Hans()\n";*/};
+    Hans(int* cnt) {/*std::cout << "Hans(int*)\n";*/Init(cnt);}
+    ~Hans() {/*std::cout << "~Hans()\n";*/ if(cnt) (*cnt)--; }
+    void Init(int* p){this->cnt = p; (*cnt)++;}
+    int* cnt = NULL;
+  };
+
+  BOOST_TEST(cnt == 0);
+  //std::cout << "test StdVector<Hans*>\n";
+  // class 1 constrcutor but 0 destructors
+  {
+    StdVector<Hans*> test(1);
+    test[0] = new Hans(&cnt);
+  }
+  BOOST_TEST(cnt == 1); // destructor is not called
+
+  //std::cout << "test StdVector<Hans>\n";
+  // calls 2 constrcutors(!) and 2 destrcutors. No idea where the two constructors come from?!
+  {
+    StdVector<Hans> test(1);
+    test[0].Init(&cnt);
+
+    BOOST_TEST(cnt == 2);
+  }
+  BOOST_TEST(cnt == 1); // destructor is called
+}
+

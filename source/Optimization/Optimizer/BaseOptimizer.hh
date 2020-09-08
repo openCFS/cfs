@@ -1,4 +1,4 @@
-  #ifndef BASEOPTIMIZER_HH_
+#ifndef BASEOPTIMIZER_HH_
 #define BASEOPTIMIZER_HH_
 
 #include <iosfwd>
@@ -199,7 +199,7 @@ namespace CoupledField
     /** out type */
     Optimization::Optimizer type_;
 
-    /** Info Node base */
+    /** Info Node base  for Optimizer */
     PtrParamNode info_;
     
     Scale* objective;
@@ -218,7 +218,7 @@ namespace CoupledField
     /** this is the link to the general optimization where we can find autoscale. Is not NULL */
     PtrParamNode gen_opt_pn_;
 
-    /** this is the link to the general optimization where we can find autoscale. Is not NULL */
+    /** this is the link the specific optimizers param node */
     PtrParamNode this_opt_pn_;
 
   private:

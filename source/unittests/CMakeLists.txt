@@ -1,29 +1,39 @@
-INCLUDE_DIRECTORIES(
+include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR})
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CFS_BINARY_DIR}/include)
 
-IF(MKL_INCLUDE_DIR)
-  INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
-ENDIF(MKL_INCLUDE_DIR)
+
+if(MKL_INCLUDE_DIR)
+  include_directories(${MKL_INCLUDE_DIR})
+endif()
 
 # List of source codes for current target.
-SET(UNIT_TESTS_SRC
+set(UNIT_TESTS_SRC
   unittests.cc
 #  bsplinetests.cc
 #  bicubicinttests.cc
 )
 
-# Main CFS++ Dat executable target.
-ADD_EXECUTABLE(cfstestbin ${UNIT_TESTS_SRC})
-
-SET(TARGET_LL 
+set(TARGET_LL 
   matvec
   design
   cfsgeneral
   utils
   datainout
-  paramh
-)
+  paramh)
+
+if(USE_EMBEDDED_PYTHON)
+  # see FindPrograms.cmake on how the PYTHON_ stuff is set
+  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
+  include_directories(${PYTHON_INCLUDE_DIR})
+  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  set(UNIT_TESTS_SRC ${UNIT_TESTS_SRC} embeddedpython.cc)
+endif()
+
+# Main CFS++ Dat executable target.
+add_executable(cfstestbin ${UNIT_TESTS_SRC})
+
 
 IF(MKL_BLAS_LIB)
   LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
