@@ -60,7 +60,7 @@ namespace CoupledField {
   inline void Diag_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
 
-    Integer i;
+    Integer i = 0;
 
 #pragma omp parallel for 
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
@@ -77,7 +77,7 @@ namespace CoupledField {
                                       Vector<T> & rvec ) const {
 
 
-    Integer i;
+    Integer i = 0;
 
 #pragma omp parallel for
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
@@ -94,7 +94,7 @@ namespace CoupledField {
                                       Vector<T> &rvec ) const {
 
 
-    Integer i;
+    Integer i = 0;
 
 #pragma omp parallel for
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
@@ -110,7 +110,7 @@ namespace CoupledField {
   inline void Diag_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
 
-    Integer i;
+    Integer i = 0;
 
 #pragma omp parallel for
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
