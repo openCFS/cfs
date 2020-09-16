@@ -340,7 +340,7 @@ namespace CoupledField {
     // If the user specified a path on the command line use it instead.
     if( varMap_.count( "schemaRoot" ) ) {
       schema = varMap_[ "schemaRoot" ].as<string>();
-#if defined(WIN32) || defined(__MINGW32__)
+#if defined(WIN32)
       // watch out for leading and closing " in schema string
       boost::trim_if( schema, boost::is_any_of(" \t\"\'") );
 

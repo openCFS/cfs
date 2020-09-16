@@ -23,14 +23,6 @@ namespace CoupledField {
   DEFINE_LOG(pardisoSolver, "olas.solvers.pardiso")
 
 #if PARDISO_API_VER == 3
-#ifdef __MINGW32__
-  // When building on Windows using the GNU toolchain, a different Fortran
-  // name mangling, than the one from MKL is used.
-  #undef pardiso
-  #define pardiso PARDISO
-  #undef pardisoinit
-  #define pardisoinit PARDISOINIT
-#endif
 
 extern "C" {
     void pardisoinit (void *, int *, int *);

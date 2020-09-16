@@ -1,9 +1,9 @@
 #-------------------------------------------------------------------------------
 # This script  is responsible for the  determination of the correct  include and
 # linker  parameters for  the Intel  Math Kernel  Library (MKL).  We distinguish
-# between Windows/MinGW builds and Unix (Linux  and MacOS X) builds.
+# between Windows, MacOS and Linux.
 #
-# On Unix  we determine the  required linker flags by  compiling one of  the MKL
+# On Linux  we determine the  required linker flags by compiling one of the MKL
 # examples and reading the flags from the Makefile output (cf. below).
 # another option: https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
 #-------------------------------------------------------------------------------
@@ -12,7 +12,6 @@
 # Function to read MKL version from header file mkl.h or mkl_version.h
 #-----------------------------------------------------------------------------
 function(MKL_VERSION_FROM_HEADER)
-
   IF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
     FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl_version.h" MKL_HEADER)
   ELSEIF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
@@ -92,26 +91,12 @@ IF(MSVC)
   # mkl_solver* libs are deprecated as of v10
   # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
 
-  IF(MINGW)
-    SET(MKL_BLAS_LIB
-      # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
-      -Wl,--start-group
-      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-      ${MKL_LIB_DIR}/mkl_intel_thread.lib
-      ${MKL_LIB_DIR}/mkl_core.lib
-      ${MKL_LIB_DIR}/mkl_blas95_lp64.lib
-      -Wl,--end-group
-      #    wrap-chkstk
-      # ${MKL_LIB_DIR}/libguide.lib
-    )
-  ELSE(MINGW)
-    SET(MKL_BLAS_LIB
-      ${MKL_LIB_DIR}/mkl_intel_lp64_dll.lib
-      ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
-      ${MKL_LIB_DIR}/mkl_core_dll.lib
-      ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
-    )
-  ENDIF(MINGW)
+  SET(MKL_BLAS_LIB
+    ${MKL_LIB_DIR}/mkl_intel_lp64_dll.lib
+    ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
+    ${MKL_LIB_DIR}/mkl_core_dll.lib
+    ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
+  )
 
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
@@ -212,6 +197,10 @@ elseif(APPLE) # END MSVC
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
   set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+
+
+  mark_as_advanced(MKL_H)
+  mark_as_advanced(MKL_ROOT_DIR)
 
 else() # neither MSVC nor APPLE  #-------------------------------------------------------------------------------
   # The idea behind the algorithm implemented for	 finding MKL, is to let the make

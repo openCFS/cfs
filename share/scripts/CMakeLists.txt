@@ -18,13 +18,6 @@ ADD_CUSTOM_TARGET(common_script ALL
   COMMENT "Copying \"${COMMON_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder...")
 install(PROGRAMS ${COMMON_SCRIPT} DESTINATION bin)
 
-IF(MINGW)
-  ADD_CUSTOM_TARGET(common_script_sh ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/common.sh ${CFS_BINARY_DIR}/bin
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.sh
-    COMMENT "Copying \"common.sh\" script to ${CFS_BINARY_DIR}/bin folder...")
-ENDIF()
-
 #-------------------------------------------------------------------------------
 # Custom target for copying cfs to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
@@ -41,12 +34,6 @@ ADD_CUSTOM_TARGET(cfs_script ALL
   ${CFS_BINARY_DIR}/bin folder...")
 install(PROGRAMS ${CFS_SCRIPT} DESTINATION bin)
 
-IF(MINGW)
-  ADD_CUSTOM_TARGET(cfs_script_sh ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs ${CFS_BINARY_DIR}/bin
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs
-    COMMENT "Copying \"cfs\" script to ${CFS_BINARY_DIR}/bin folder...")
-ENDIF()
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfs-debug to ${CFS_BINARY_DIR}/bin (only LINUX)
@@ -79,13 +66,6 @@ IF(BUILD_CFSTOOL)
     ${CFS_BINARY_DIR}/bin folder...")
   install(PROGRAMS ${CFSTOOL_SCRIPT} DESTINATION bin)
 
-  IF(MINGW)
-    ADD_CUSTOM_TARGET(cfstool_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfstool ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfstool
-      COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
-
 ENDIF(BUILD_CFSTOOL)
 
 #-------------------------------------------------------------------------------
@@ -105,12 +85,6 @@ IF(CFSDAT)
     ${CFS_BINARY_DIR}/bin folder...")
   install(PROGRAMS ${CFSDAT_SCRIPT} DESTINATION bin)
 
-  IF(MINGW)
-    ADD_CUSTOM_TARGET(cfsdat_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfsdat ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfsdat
-      COMMENT "Copying \"cfsdat\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
 ENDIF(CFSDAT)
 
 # we skip to copy UNIT_TEST cfstests here, I usually directly link to the bin directory
@@ -148,13 +122,6 @@ ADD_CUSTOM_TARGET(distro_script ALL
   COMMENT "Copying \"${DISTRO_SCRIPT}\" script to ${CFS_BINARY_DIR}/share/scripts folder..."
   )
 install(PROGRAMS ${DISTRO_SCRIPT} DESTINATION bin)
-
-IF(MINGW)
-  ADD_CUSTOM_TARGET(distro_script_sh ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh ${CFS_BINARY_DIR}/share/scripts
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh
-    COMMENT "Copying \"distro.sh\" script to ${CFS_BINARY_DIR}/share/scripts folder...")
-ENDIF()
 
 # THIS IS A PROTOTYPE FOR NSIS INSTALLER --> not yet included/supported
 #----------------------------------------------------------------------------------

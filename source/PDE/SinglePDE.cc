@@ -1,10 +1,7 @@
-// We put include of CoefFunctionScatteredData.hh and intrin.hh for MinGW
+// We put include of CoefFunctionScatteredData.hh and intrin.hh
 // in first place to prevent the following error:
 // boost/thread/win32/interlocked_read.hpp:61:20: error:
 //   '_InterlockedCompareExchange' is not a member of 'boost::detail'
-#ifdef __MINGW64__
-#include <intrin.h>
-#endif
 #ifdef WIN32
 #include <direct.h>
 #endif
@@ -1548,14 +1545,10 @@ namespace CoupledField {
         // ensure errno is cleared and call mkdir with the directory name
         errno = 0;
         int mkdir_call;
-        #ifdef __MINGW32__
-          mkdir_call = mkdir( directoryName.c_str());
+        #ifndef WIN32
+          mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
         #else
-          #ifndef WIN32
-            mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
-          #else
-            mkdir_call = _mkdir( directoryName.c_str() );
-          #endif
+          mkdir_call = _mkdir( directoryName.c_str() );
         #endif
 
         if ( mkdir_call == -1 && errno == EEXIST ){

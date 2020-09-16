@@ -14,9 +14,7 @@ SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(OPENMP_FOUND "@OPENMP_FOUND@")
 SET(CMAKE_STATIC_LIBRARY_PREFIX "@CMAKE_STATIC_LIBRARY_PREFIX@")
 SET(CMAKE_STATIC_LIBRARY_SUFFIX "@CMAKE_STATIC_LIBRARY_SUFFIX@")
-SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
 SET(CMAKE_TOOLCHAIN_PREFIX "@CMAKE_TOOLCHAIN_PREFIX@")
-SET(MINGW "@MINGW@")
 
 #=============================================================================
 # Set environment variables for configure process.
@@ -26,11 +24,7 @@ SET(ENV{CFLAGS} "@CFSDEPS_C_FLAGS@")
 
 find_program(SH sh)
 
-SET(CONFIGURE_CMD
-  "${SH}")
-IF(MINGW AND NOT CMAKE_CROSSCOMPILING)
-  LIST(APPEND CONFIGURE_CMD --login -i)
-ENDIF()
+SET(CONFIGURE_CMD "${SH}")
 
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
@@ -40,29 +34,13 @@ LIST(APPEND CONFIGURE_CMD
   "--enable-sse2"
   "--enable-threads")
 
-IF(CMAKE_CROSSCOMPILING)
-  LIST(APPEND CONFIGURE_CMD
-    "--host=${CMAKE_TOOLCHAIN_PREFIX}"
-    "--with-our-malloc16"
-    "--with-windows-f77-mangling"
-    "--enable-shared"
-    "--disable-static"
-    "--with-combined-threads"
-    "--enable-portable-binary"
-    "--with-incoming-stack-boundary=2"
-    )
-ELSE()
-  LIST(APPEND CONFIGURE_CMD
-    "--disable-shared"
-    "--enable-static"
-    )
-ENDIF()
+LIST(APPEND CONFIGURE_CMD
+  "--disable-shared"
+  "--enable-static")
 
 
 IF(OPENMP_FOUND)
-  LIST(APPEND CONFIGURE_CMD
-    "--enable-openmp"
-    )
+  LIST(APPEND CONFIGURE_CMD "--enable-openmp")
 ENDIF()
 
 EXECUTE_PROCESS(

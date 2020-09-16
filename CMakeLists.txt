@@ -117,14 +117,13 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}" CACHE INTERNAL "CFS_BUILD_HOST")
 # Set user who builds CFS++, in order to be able to track back who built a
 # given binary.
 #-----------------------------------------------------------------------------
-IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
+IF(WIN32)
   SET(REG_KEY "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows")
   SET(REG_KEY "${REG_KEY}\\CurrentVersion\\Explorer")
   EXECUTE_PROCESS(
     COMMAND reg query "${REG_KEY}" /v "Logon User Name"
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE OUTPUT
-    )
+    OUTPUT_VARIABLE OUTPUT)
 
   STRING(REPLACE "\n" ";" OUTPUT "${OUTPUT}")
 
@@ -136,7 +135,7 @@ IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
     ENDIF()
   ENDFOREACH()
 
-ELSEIF(UNIX OR MINGW)
+ELSEIF(UNIX)
   EXECUTE_PROCESS(
     COMMAND id -unr # get user name (possibly DOMAIN\user)
     COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)

@@ -134,20 +134,13 @@ IF(USE_HDF5)
   SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_BASE "hdf5")
   IF(APPLE)
-    # macOS 10.12 requires gcc as clang does not catch exceptions. gcc comes with brew as 6.2.0 which
-    # is not able to compile hdf5-1.8.12 but works with 1.8.17. However 1.8.17 requires cmake >= 3.0
-    # which is unconvenient for many CFS developers and also requires the following changes for the mingw
-    # cross-compiler (Windows on Linux)  
-    # - hdf5-cross-compile.patch shall be replaced by hdf5-cross-compile.hdf5-1.8.17.patch (mosty case sensitive stuff)
-    # - hdf5-mingw.patch becomes obsolete as the patch now comes from upstream
-    # - TryRun* needs to be checked for the prefix (H5 -> HDF5) ...
     SET(HDF5_VER "1.8.17")
     SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203") # 1.8.17
   ELSE()
     SET(HDF5_VER "1.8.12")
     SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
   ENDIF()
-
+  
   SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
   INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 ENDIF(USE_HDF5)
@@ -421,12 +414,8 @@ IF(USE_CGAL)
   SET(MSG "${MSG} to use an MSYS environment or cross compile from Linux.")     
 
   IF(WIN32)
-    IF(MINGW AND NOT CMAKE_CROSSCOMPILING OR MSVC)
-      IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-        MESSAGE(FATAL_ERROR "${MSG}")
-      ENDIF()
-    ENDIF()
-  ENDIF()
+    MESSAGE(FATAL_ERROR "${MSG}")
+   ENDIF()
 
   SET(GMP_URL "${CFS_DS_SOURCES_DIR}/gmp")
   SET(GMP_BASE "gmp")
@@ -455,13 +444,11 @@ ENDIF(USE_CGAL)
 #-----------------------------------------------------------------------------
 IF(USE_LIBFBI)
   IF(WIN32)
-    IF(NOT MINGW)
-      SET(MSG "Only the latest versions of MSVC support the features needed")
-      SET(MSG "${MSG} needed to build libfbi. Maybe your version works or")
-      SET(MSG "${MSG} not. We just bail out here, to make sure nothing stupid")
-      SET(MSG "${MSG} happens.")
-      MESSAGE(FATAL_ERROR "${MSG}")
-    ENDIF()
+    SET(MSG "Only the latest versions of MSVC support the features needed")
+    SET(MSG "${MSG} needed to build libfbi. Maybe your version works or")
+    SET(MSG "${MSG} not. We just bail out here, to make sure nothing stupid")
+    SET(MSG "${MSG} happens.")
+    MESSAGE(FATAL_ERROR "${MSG}")
   ENDIF()
 
   SET(LIBFBI_URL "${CFS_DS_SOURCES_DIR}/spacepart")

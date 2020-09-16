@@ -5,39 +5,6 @@
 #-----------------------------------------------------------------------------
 # Find Python interpreter and libs
 #-----------------------------------------------------------------------------
-IF(MINGW)
-  IF(NOT CMAKE_CROSSCOMPILING)
-    FIND_PROGRAM(PYTHON_EXECUTABLE
-      NAMES python)
-
-    FIND_PROGRAM(PYTHON_CONFIG
-      NAMES python-config.cmd python-config)
-    MARK_AS_ADVANCED(PYTHON_CONFIG)
-
-    IF(NOT PYTHON_INCLUDE_DIR AND PYTHON_CONFIG)
-      EXECUTE_PROCESS(
-	COMMAND ${PYTHON_CONFIG} --includes
-	OUTPUT_VARIABLE PYINCDIRS
-      )
-      STRING(REPLACE "-I" "" PYINCDIRS "${PYINCDIRS}")
-      STRING(REPLACE "\\" "/" PYINCDIRS "${PYINCDIRS}")
-      STRING(REPLACE " " ";" PYINCDIRS "${PYINCDIRS}")
-      STRING(STRIP "${PYINCDIRS}" PYINCDIRS)
-      EXECUTE_PROCESS(
-	COMMAND ${PYTHON_CONFIG} --prefix
-	OUTPUT_VARIABLE PYPREFIX
-      )
-      STRING(REPLACE "\\" "/" PYPREFIX "${PYPREFIX}")
-      STRING(STRIP "${PYPREFIX}" PYPREFIX)
-      file(GLOB_RECURSE PYLIB "${PYPREFIX}/lib/*.dll.a")
-
-      set(PYTHON_INCLUDE_DIR "${PYINCDIRS}" CACHE PATH
-	"Path to where Python.h is found")
-      set(PYTHON_LIBRARY "${PYLIB}" CACHE PATH
-	"Path to Python library")
-    ENDIF()
-  ENDIF()
-ENDIF()
 
 if(BUILD_ANACONDA3)
   # manually set correct paths

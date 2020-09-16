@@ -13,20 +13,6 @@ SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 
-#=============================================================================
-# Include macros from CFS++.
-#=============================================================================
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
-
-#=============================================================================
-# Apply the patches.
-#=============================================================================
-SET(patches
-  "bzip2-mingw.patch"
-)
-
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/bzip2")
-
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   "${CFS_SOURCE_DIR}/cfsdeps/bzip2/CMakeLists.txt"

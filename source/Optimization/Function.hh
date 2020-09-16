@@ -393,7 +393,7 @@ class Function
        * feature sizes for material and void */
       typedef enum {
         BOTH = -1000,   // sync the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
-        VOID_MAT = -1,  // with VOID MINGW I386 GCC 4.7.1 DEBUG complains about "error: expected identifier before 'void'"
+        VOID_MAT = -1,
         MATERIAL = 1
       } Phase;
 

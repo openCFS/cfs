@@ -1,37 +1,17 @@
 IF(CFS_PARDISO STREQUAL MKL)
   SET(PARDISO_API_VER 3)
 
-  IF(MINGW)
-    IF(CMAKE_CROSSCOMPILING)
-      MESSAGE(STATUS
-	"Cross compiling on ${CFS_BUILD_OS} for ${CFS_TARGET_OS} using MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
+  IF(UNIX)
+    IF(DEFINED MKL_UPDATE)
+      MESSAGE(STATUS "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
     ELSE()
-      MESSAGE(STATUS
-	"Building on ${CFS_BUILD_OS} with MinGW using MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
+      MESSAGE(STATUS "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
     ENDIF()
   ELSE()
-    IF(UNIX)
-      IF(NOT CMAKE_CROSSCOMPILING)
-        IF(DEFINED MKL_UPDATE)
-          MESSAGE(STATUS
-	    "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
-        ELSE()
-          MESSAGE(STATUS
-            "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
-        ENDIF()
-      ELSE()
-        IF(APPLE)
-          MESSAGE(STATUS
-	    "Cross compiling on ${CFS_BUILD_OS} for ${CFS_TARGET_OS} using MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
-        ENDIF()
-      ENDIF()
-    ELSE()
-      MESSAGE(STATUS
-	"Using Intel MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
-    ENDIF()
-  ENDIF(MINGW)
-
+    MESSAGE(STATUS "Using Intel MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
+  ENDIF()
 ELSE(CFS_PARDISO STREQUAL MKL)
+
 
 #-----------------------------------------------------------------------------
 # Set source code for testing API version of PARDISO.

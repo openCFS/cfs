@@ -39,26 +39,6 @@ IF(CMAKE_TOOLCHAIN_FILE)
   )
 ENDIF()
 
-IF(MINGW)
-  IF(CFS_ARCH STREQUAL "X86_64")
-    LIST(APPEND CMAKE_ARGS
-      -C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/cgal/TryRunResults_GCC45_CENTOS6_WIN64.cmake
-      )
-  ENDIF()
-ENDIF(MINGW)
-
-IF(APPLE AND CMAKE_CROSSCOMPILING)
-  IF(CFS_ARCH STREQUAL "X86_64")
-    LIST(APPEND CMAKE_ARGS
-      -C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/cgal/TryRunResults_MACOSX_X86_64_CENTOS6.cmake
-      )
-  ELSEIF(CFS_ARCH STREQUAL "I386")
-    LIST(APPEND CMAKE_ARGS
-      -C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/cgal/TryRunResults_MACOSX_I386_CENTOS6.cmake
-      )
-  ENDIF()
-ENDIF()
-
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------

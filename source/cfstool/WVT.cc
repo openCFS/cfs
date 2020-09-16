@@ -4,10 +4,6 @@
 
 #include <def_use_hdf5.hh>
 
-#ifdef __MINGW64__
-#include <intrin.h>
-#endif
-
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 
 #include "DataInOut/SimOutput.hh"
