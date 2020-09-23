@@ -146,7 +146,7 @@ elseif(APPLE) # END MSVC
       NO_CMAKE_FIND_ROOT_PATH)
 
     string(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
-    message(STATUS "MKL_ROOT_DIR set from include/mkl.h: ${MKL_ROOT_DIR}")
+    #message(STATUS "MKL_ROOT_DIR set from include/mkl.h: ${MKL_ROOT_DIR}")
   endif()
 
 
@@ -284,7 +284,7 @@ else() # neither MSVC nor APPLE  #----------------------------------------------
       " 2. Set '-DMKL_ROOT_DIR:PATH=...' on the CMake command line "
       " 3. Or adapt the MKL_POSSIBLE_PATHS at the beginning of cmake_modules/FindIntelMKL.cmake. "
       "You may also just copy MKL from LSE /home/shareAll/linux_bin/intel/mkl. "
-      "Another option is to change CFS_BLAS_LAPACK and CFS_PARDISO to different "
+      "Another option is to change USE_BLAS_LAPACK and CFS_PARDISO to different "
       "implementations. OpenBLAS and should provide similar performance to MKL.")
   ELSE(NOT MKL_ROOT_DIR)
     SET(MKL_FOUND 1)
@@ -439,12 +439,12 @@ ENDIF() # end of UNIX
 # see also External_OpenBLAS and External_LAPACK, where the setting is quite different:
 # e.g. BLAS_LIBRARY=-Wl,--start-group;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_intel_lp64.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_gnu_thread.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_core.a;-Wl,--end-group;-L/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/../compiler/lib/intel64;-liomp5;-lpthread;-lm;-ldl
 # e.g. LAPACK_LIBRARY=
-IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+IF(USE_BLAS_LAPACK STREQUAL "MKL")
   SET(BLAS_LIBRARY "${MKL_BLAS_LIB}")
   IF(MKL_MAJOR_VERSION LESS 10)
     SET(LAPACK_LIBRARY "${MKL_LAPACK_LIB}")
   ENDIF(MKL_MAJOR_VERSION LESS 10)  
-ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+ENDIF(USE_BLAS_LAPACK STREQUAL "MKL")
 SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
 
 #-------------------------------------------------------------------------------

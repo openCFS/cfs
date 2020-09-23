@@ -2003,10 +2003,10 @@ namespace CoupledField
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
       
-    } else if( ( (rowSize == 2 && colSize == 3) ||
-               (rowSize == 3 && rowSize == 2 ) ||
-                (rowSize == 3 && colSize == 3)) &&
-             (R.GetNumCols() == 2 && R.GetNumRows() == 2) ) {
+    } else if(((rowSize == 2 && colSize == 3) ||
+               (rowSize == 3 && colSize == 2) ||
+               (rowSize == 3 && colSize == 3)) &&
+             (R.GetNumCols() == 2 && R.GetNumRows() == 2)) {
       // case of 2x3 coupling tensors as well as 3x3 tensors with a 2x2 rotation matrix
       // 2D tensor rotation
       Matrix<Double> Q;

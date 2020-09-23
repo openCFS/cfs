@@ -45,17 +45,17 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_superlu.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_superlu.hh")
 
-IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+IF(USE_BLAS_LAPACK STREQUAL "MKL")
   SET(USE_MKL 1)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+ENDIF(USE_BLAS_LAPACK STREQUAL "MKL")
 
-IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+IF(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   SET(USE_OPENBLAS 1)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+ENDIF(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
 
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+IF(USE_BLAS_LAPACK STREQUAL "NETLIB")
   SET(USE_NETLIB 1)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+ENDIF(USE_BLAS_LAPACK STREQUAL "NETLIB")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_blas.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_blas.hh")
@@ -100,9 +100,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libxml2.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_libxml2.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_mesh.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_feast.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_feast.hh")
 
@@ -112,17 +109,11 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ensight.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ensight.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgns.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_cgns.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmsh.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_palm.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_palm.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmv.hh")
@@ -147,6 +138,3 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
   "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"
   @ONLY )
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_disable_optimization.hh.in"
-  "${CFS_BINARY_DIR}/include/def_disable_optimization.hh")

@@ -4,9 +4,7 @@
 
 // Include headers which define what types
 // of in/output files CFS++ should support
-#include <def_use_mesh.hh>
 #include <def_use_gidpost.hh>
-#include <def_use_hdf5.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
@@ -30,10 +28,7 @@ namespace fs = boost::filesystem;
 #include "DataInOut/ParamHandling/XmlReader.hh"
 
 #include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
-
-#ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-#endif
 
 #ifdef USE_GMSH
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
@@ -45,21 +40,16 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
 #endif
 
-#ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-#endif
-
 #include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
 
 #ifdef USE_GIDPOST
 #include "DataInOut/SimInOut/GiD/SimOutGiD.hh"
 #endif
 
-#ifdef USE_UNV
 #include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
 #include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
-#endif
 
 #ifdef USE_CGNS
 #include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
@@ -124,7 +114,6 @@ namespace CFSTool {
 
     if( fileName.find( ".mesh") != string::npos )
     {
-    #ifdef USE_MESH
       if(inputNode->Has("mesh"))
         readerNode = inputNode->Get("mesh");
       else
@@ -134,9 +123,6 @@ namespace CFSTool {
       }
         
       reader = shared_ptr<SimInput>(new SimInputMESH( fileName, readerNode, info ) );
-    #else
-      EXCEPTION( "No support for MESH input file format." );
-    #endif
     }
     else if(fileName.find( ".cdb") != string::npos || fileName.find( ".inp") != string::npos )
     {
@@ -152,7 +138,6 @@ namespace CFSTool {
     }
     else if(fileName.find(".h5") != string::npos || fileName.find(".cfs") != string::npos)
     {
-    #ifdef USE_HDF5
       if(inputNode->Has("hdf5"))
         readerNode = inputNode->Get("hdf5");
       else
@@ -161,9 +146,6 @@ namespace CFSTool {
         readerNode->SetName("hdf5");
       }
       reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, readerNode, info));
-    #else
-      EXCEPTION( "No support for HDF5 input file format." );
-    #endif
     }
     else if( fileName.find(".refelem") != string::npos )
     {
@@ -363,7 +345,6 @@ namespace CFSTool {
       EXCEPTION( "No support for GMsh output file format." );
 #endif
     } else if(fileName.find(".h5") != string::npos || fileName.find(".cfs") != string::npos) {
-#ifdef USE_HDF5
       string ext = fileName.find(".h5") != string::npos ? ".h5" : ".cfs";
       baseName = std::string(fileName, 0, fileName.find(ext));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
@@ -381,11 +362,7 @@ namespace CFSTool {
         writerNode->AddChildNode( eFiles );
       }
       writer = shared_ptr<SimOutput>(new SimOutputHDF5(baseName, writerNode, info, restart));
-#else
-      EXCEPTION( "No support for HDF5 output file format." );
-#endif
     } else if(fileName.find( ".unv") != string::npos) {
-#ifdef USE_UNV
       baseName = std::string(fileName, 0, fileName.find(".unv"));
 
       if(outputNode->Has("unv")) {
@@ -408,12 +385,9 @@ namespace CFSTool {
         }
       }
 
-      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, writerNode, 
-                                                         info, restart ) );
-#else
-      EXCEPTION( "No support for IDEAS universal output file format." );
-#endif
-    } else if(fileName.find( ".cgns") != string::npos) {
+      writer = shared_ptr<SimOutput>(new SimOutputUnv(baseName, writerNode, info, restart));
+    }
+    else if(fileName.find( ".cgns") != string::npos) {
 #ifdef USE_CGNS
       baseName = std::string(fileName, 0, fileName.find(".cgns"));
 

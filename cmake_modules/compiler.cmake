@@ -95,29 +95,22 @@ SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 #-------------------------------------------------------------------------------
 # Check if compiler supports OpenMP
 #-------------------------------------------------------------------------------
-FIND_PACKAGE(OpenMP)
+find_package(OpenMP)
 
-IF(OPENMP_FOUND)
-
-  #-----------------------------------------------------------------------------
-  # The USE_OPENMP option triggers the usage of OpenMP versions of external
-  # libraries and the compilation of CFS++ with OpenMP compiler switches.
-  #-----------------------------------------------------------------------------
-  SET(USE_OPENMP "${USE_OPENMP_DEFAULT}" CACHE BOOL "Enable support for OpenMP. Needs GCC >= 4.8, Intel C++ or Clang >= 3.8.")
-
-  #-----------------------------------------------------------------------------
-  # Check if compiler has OpenMP support. GCC >= 4.2 has.
-  #-----------------------------------------------------------------------------
-  if(USE_OPENMP)
+if(USE_OPENMP)
+  if(OPENMP_FOUND)
     set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
     set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
     if(APPLE)
       # let's hope this does not make the compiler use system gmp, hdf5, ...
       include_directories(AFTER SYSTEM "/usr/local/include")
       set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L/usr/local/lib")
-    endif()
-  endif()
-ENDIF()
+    endif() # APPLE
+  else()
+    message(FATAL_ERROR "USE_OPENMP enabled but OpenMP not found on the system")
+  endif() # OPENMP_FOUND
+endif() # USE_OPENMP
+
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ or clang compiler
 #-------------------------------------------------------------------------------
@@ -133,9 +126,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   set(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
   set(CFS_C_FLAGS "-std=c11")
 
-  IF(DEBUG_USE_FSANITIZE)
+  IF(CFS_FSANITIZE)
     SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
-    #SET(CFSDEPS_CXX_FLAGS " -fsanitize=address ${CFSDEPS_CXX_FLAGS}")
     SET(CFS_C_FLAGS " -fsanitize=address ${CFS_C_FLAGS}")
   ENDIF()
   
@@ -209,7 +201,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
+    # include/boost/smart_ptr/detail/sp_counted_base_clang.hpp: warning: '_Atomic' is a C11 extension
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-c11-extensions")
     # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
     # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
@@ -232,18 +225,19 @@ main ()
     UNSET(CMAKE_REQUIRED_FLAGS)
   ENDIF()
 
-  IF(COVERAGE)
+  # see https://en.wikipedia.org/wiki/Gcov
+  IF(CFS_COVERAGE)
     SET(CFS_C_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_CXX_FLAGS}")
     SET(CFS_LINKER_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_LINKER_FLAGS}")
-  ENDIF(COVERAGE)
+  ENDIF()
 
   IF(NOT USE_OPENMP)
     IF(NOT USE_PHIST_EV OR USE_PHIST_CG)
       SET(CFS_C_FLAGS "-Werror ${CFS_C_FLAGS}")
       SET(CFS_CXX_FLAGS "-Werror ${CFS_CXX_FLAGS}")
-    ENDIF(NOT USE_PHIST_EV OR USE_PHIST_CG )
-  ENDIF(NOT USE_OPENMP)
+    ENDIF()
+  ENDIF()
 
 
   IF(NOT USE_CGAL)
@@ -393,7 +387,7 @@ ENDIF() # close all CXX compiler specific blocks
 # common for all compilers
 # adds debug information to the code such that vtune, valgrind, ... can show the lines of the hotspots
 # this is different from adding gprof support by -pg wich adds changes the code to generate an output file
-IF(PROFILING)
+IF(CFS_PROFILING)
  SET(CFS_PROF_FLAGS "-g -fno-omit-frame-pointer")
 ENDIF()
 

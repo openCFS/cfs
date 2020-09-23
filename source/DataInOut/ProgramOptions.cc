@@ -1,6 +1,5 @@
 // include general defines
 #include <def_cfs_stats.hh>
-#include <def_disable_optimization.hh>
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -552,14 +551,6 @@ namespace CoupledField {
     WriteColoredString(out, trim_size, "LINK_FLAGS", ldFlags);
     out << endl;
 
-// todo: remove
-#ifdef DISABLE_OPTIMIZATION
-    WriteColoredString(out, trim_size, "DISABLE_OPTIMIZATION", "YES");
-#else
-    WriteColoredString(out, trim_size, "DISABLE_OPTIMIZATION", "NO");
-#endif
-    out << endl;
-
     // deps.Dump();
 
     WriteColoredString(out, trim_size, "external licenses",
@@ -652,7 +643,7 @@ namespace CoupledField {
         << "  its stuff." << endl
         << endl
         << "15.07, Verlorene Soehne" << endl
-        << "  The optimization group is finaly back on the FE-space trunk. Not everyone yet, " << endl
+        << "  The optimization group is finally back on the FE-space trunk. Not everyone yet, " << endl
         << "  not all features yet, but the the boys are back in town! :)" << endl
         << endl
         << "15.11, Back To The Future" << endl
@@ -664,7 +655,11 @@ namespace CoupledField {
         << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl
         << endl
         << "18.8, AMGme" << endl
-        << "  Contains Klaus' algebraic multigrid." << endl;
+        << "  Contains Klaus' algebraic multigrid." << endl
+        << endl
+        << "20.9, Frohes Fensterln" << endl
+        << "  Brings native Windows support and several features from the fork (thanks to Hermann, Jens and Simon)." << endl
+        << "  We are on the track of going open source as openCFS! :)" << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

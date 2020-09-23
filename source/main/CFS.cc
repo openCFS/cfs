@@ -30,12 +30,9 @@
 #endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include <def_use_mesh.hh>
 #include <def_use_petsc.hh>
 
-#ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-#endif
 
 #ifdef USE_PETSC
 #include "petsc.h"

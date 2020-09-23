@@ -2,8 +2,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_hdf5.hh>
-
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 
 #include "DataInOut/SimOutput.hh"
@@ -16,12 +14,8 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/CurlOperator.hh"
 
-#ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-#else
-#error "WVT depends on HDF5 input and output classes!"
-#endif
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"

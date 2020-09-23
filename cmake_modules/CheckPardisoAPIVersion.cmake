@@ -371,17 +371,14 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
   # Only set last CFS++ PARDISO variable if test was successful
   #---------------------------------------------------------------------------
   IF(PARDISO_API_VER_3_EXITCODE EQUAL 0)
-    SET(PARDISO_API_VER_3_LAST_CFS_PARDISO ${CFS_PARDISO}
-        CACHE INTERNAL "${CFS_PARDISO}" FORCE)
-  ELSE(PARDISO_API_VER_3_EXITCODE EQUAL 0)
-    IF(CFS_BLAS_LAPACK STREQUAL "MKL" AND
-       CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    SET(PARDISO_API_VER_3_LAST_CFS_PARDISO ${CFS_PARDISO} CACHE INTERNAL "${CFS_PARDISO}" FORCE)
+  ELSE()
+    IF(USE_BLAS_LAPACK STREQUAL "MKL" AND CFS_CXX_COMPILER_NAME STREQUAL "ICC")
        MESSAGE("Please try using the library MKL provided by the Intel compiler!")
        MESSAGE("Mixing runtime libraries provided by standalone MKL and Intel")
        MESSAGE("compiler may cause problems.")
-    ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL" AND
-          CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  ENDIF(PARDISO_API_VER_3_EXITCODE EQUAL 0)
+    ENDIF()
+  ENDIF()
 
   #---------------------------------------------------------------------------
   # Warn user about missing or corrupt license files.

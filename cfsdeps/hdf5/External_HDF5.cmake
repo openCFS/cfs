@@ -8,10 +8,15 @@ set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 # intel compiler 2018 are not compatible with glibc 2.27, see
 # https://software.intel.com/en-us/forums/intel-c-compiler/topic/777003
 set(hdf5_c_flags "${CFSDEPS_C_FLAGS}")
+set(hdf5_cxx_flags ${CFS_SUPPRESSIONS})
 if(CFS_CXX_COMPILER_NAME STREQUAL "ICC") 
   set(hdf5_c_flags "-D_Float32=float -D_Float64='long double' -D_Float32x=double -D_Float64x='long double' ${hdf5_c_flags}")
 endif()
 
+if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+  set(hdf5_c_flags " -Wno-implicit-function-declaration ") # Apple clang version 12.0.0
+  set(hdf5_cxx_flags " -Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
+endif()
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
@@ -28,7 +33,7 @@ IF(WIN32)
     -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
     # We do not want to see warning messages from external projects
     -DCMAKE_C_FLAGS:STRING=${hdf5_c_flags}
-    -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
+    -DCMAKE_CXX_FLAGS:STRING=${hdf5_cxx_flags}
     -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   )
 ELSE(WIN32)
@@ -46,7 +51,7 @@ ELSE(WIN32)
     -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
     # We do not want to see warning messages from external projects
     -DCMAKE_C_FLAGS:STRING=${hdf5_c_flags}
-    -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
+    -DCMAKE_CXX_FLAGS:STRING=${hdf5_cxx_flags}
     -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   )
 ENDIF(WIN32)

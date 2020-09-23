@@ -130,7 +130,6 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
-IF(USE_HDF5)
   SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_BASE "hdf5")
   IF(APPLE)
@@ -143,7 +142,6 @@ IF(USE_HDF5)
   
   SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
   INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
-ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------
 # Search for CGNS library
@@ -188,7 +186,7 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
+IF(USE_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
     
   SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
   SET(LAPACK_BASE "lapack")
@@ -198,13 +196,13 @@ IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
     
   INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
+ENDIF(USE_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
 
 #-----------------------------------------------------------------------------
 # Find OpenBLAS/LAPACK library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
-if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
     
   set(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
   set(OPENBLAS_BASE "OpenBLAS")
@@ -212,15 +210,15 @@ if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
   set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
   set(OPENBLAS_MD5 "4727a1333a380b67c8d7c7787a3d9c9a")
   INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
-endif(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+endif(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
 
 #-----------------------------------------------------------------------------
 # Find Intel Math Kernel library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+IF(USE_BLAS_LAPACK STREQUAL "MKL")
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
-ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+ENDIF(USE_BLAS_LAPACK STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
@@ -233,7 +231,7 @@ ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 # PARDISO_API_VER_3 and PARDISO_API_VER_4 from the CMake cache.
 # 
 # The non-MKL Pardiso version hasn't been used for quite a while. 
-# Generally one needs to switch off USE_PARDISO with CFS_BLAS_LAPACK not MKL!
+# Generally one needs to switch off USE_PARDISO with USE_BLAS_LAPACK not MKL!
 #-----------------------------------------------------------------------------
 IF(USE_PARDISO)
   INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
@@ -372,7 +370,7 @@ SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
-# Xerces library or libxml2, triggered by XML_READER
+# Xerces library or libxml2, triggered by CFS_XML_READER
 #-------------------------------------------------------------------------------
 IF(USE_XERCES)
   SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
@@ -381,7 +379,7 @@ IF(USE_XERCES)
   SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
   SET(XERCES_MD5 "70320ab0e3269e47d978a6ca0c0e1e2d") 
   INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
-ENDIF(USE_XERCES)
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # libxml2 is an alternative for Xerces
@@ -391,7 +389,7 @@ IF(USE_LIBXML2)
   SET(LIBXML2_GZ "libxml2-${LIBXML2_VER}.tar.gz")
   SET(LIBXML2_MD5 "ae249165c173b1ff386ee8ad676815f5") 
   INCLUDE("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
-ENDIF(USE_LIBXML2)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Find VTK - used for Ensight only
@@ -543,16 +541,6 @@ ENDIF(USE_SGPP)
 IF(BUILD_HDFVIEW)
   MESSAGE(FATAL_ERROR "HDFView has not been ported to CMake externals yet.")
 ENDIF(BUILD_HDFVIEW)
-
-#-------------------------------------
-# External anaconda 3 as a service for test machines at TU-Wien
-#-------------------------------------
-if(BUILD_ANACONDA3)
-  SET(ANACONDA3_URL "${CFS_DS_SOURCES_DIR}/anaconda3")
-  SET(ANACONDA3_SH "Anaconda3-4.2.0-Linux-x86_64.sh")
-  SET(ANACONDA3_MD5 "4692f716c82deb9fa6b59d78f9f6e85c")
-  INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
-endif(BUILD_ANACONDA3)
 
 # PETSc requires mpi
 if(USE_PETSC)

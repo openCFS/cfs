@@ -155,7 +155,7 @@ pipeline-skip:
     # debug output
     - cat scl_version
     # write out the config_cmd
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${BUILD_NAME}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' ${CFS_CONFIG_OPTIONS} .." > config_cmd && cat config_cmd
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${BUILD_NAME}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' -DBUILD_TESTING=ON -DBUILD_CPACK_BINARY=ON ${CFS_CONFIG_OPTIONS} .." > config_cmd && cat config_cmd
     # write out the correct scl as pre_cmd
     - scl enable devtoolset-`cat scl_version` -- echo "scl enable devtoolset-$(cat scl_version) -- " > pre_cmd || echo "" > pre_cmd
     - sh -c "$(cat pre_cmd) $(cat config_cmd)"
@@ -213,7 +213,7 @@ build:gcc7min:
   variables:
     BUILD_NAME: "GCC7 minimal"
     GCC_VERSION: 7
-    CFS_CONFIG_OPTIONS: "-DCFSDAT=OFF -DCFS_BLAS_LAPACK=OPENBLAS -DUSE_COMSOL=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_UNV=OFF -DUSE_ENSIGHT=OFF -DUSE_ANSYSRST=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF -DBUILD_PALM=OFF"
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCFS_BLAS_LAPACK=OPENBLAS -DUSE_ARPACK=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_ENSIGHT=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF"
   <<: *gcc_before
   <<: *default_build_job
 
@@ -537,7 +537,7 @@ python:stable:
   before_script:
     - mkdir -p build
     - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME"  -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DPYTHON_TESTS=ON ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME"  -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DBUILD_TESTING=ON -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - git checkout HEAD~1 # back one revision and then update
@@ -597,7 +597,7 @@ install_on_draco:
     name: share_programs
   <<: *deploy_rules
 
-# this creates the XML-schema (without optimization) and copies it to cfs-doc/xml/<branch>/
+# this creates the XML-schema and copies it to cfs-doc/xml/<branch>/
 xml_to_cfs-doc:
   extends: .deploy_rules  
   dependencies: []
@@ -605,7 +605,7 @@ xml_to_cfs-doc:
     - mkdir -p build
     - mkdir -p public
     - cd build
-    - cmake -DDISABLE_OPTIMIZATION=ON -DBUILD_TESTING=OFF ..
+    - cmake -DBUILD_TESTING=OFF ..
     - cd share/xml
     - make
   script:

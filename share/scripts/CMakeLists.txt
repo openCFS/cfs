@@ -71,7 +71,7 @@ ENDIF(BUILD_CFSTOOL)
 #-------------------------------------------------------------------------------
 # Custom target for copying cfsdat to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
-IF(CFSDAT)
+IF(BUILD_CFSDAT)
   IF(WIN32)
     SET(CFSDAT_SCRIPT "cfsdat.bat")
   ELSE(WIN32)
@@ -84,10 +84,9 @@ IF(CFSDAT)
     COMMENT "Copying CFSDat start script \"${CFSDAT_SCRIPT}\" to
     ${CFS_BINARY_DIR}/bin folder...")
   install(PROGRAMS ${CFSDAT_SCRIPT} DESTINATION bin)
+ENDIF()
 
-ENDIF(CFSDAT)
-
-# we skip to copy UNIT_TEST cfstests here, I usually directly link to the bin directory
+# we skip to copy CFS_UNIT_TEST cfstests here, I usually directly link to the bin directory
 # whoever needs it might add it :)
 
 

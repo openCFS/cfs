@@ -2,7 +2,7 @@
 #include <def_use_phist_ev.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_feast.hh>
-#include <def_use_palm.hh>
+#include <def_use_superlu.hh>
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -23,11 +23,11 @@
 #endif
 
 #ifdef USE_FEAST
-#include "OLAS/external/feast/FeastEigenSolver.hh"
+  #include "OLAS/external/feast/FeastEigenSolver.hh"
 #endif
 
-#ifdef BUILD_PALM
-#include "PALMSolver.hh"
+#if defined(USE_ARPACK) && defined(USE_SUPERLU)
+  #include "PALMSolver.hh"
 #endif
 
 namespace CoupledField {
@@ -110,10 +110,10 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
         break;
 
     case BaseEigenSolver::PALM:
-      #ifdef BUILD_PALM
+      #if defined(USE_ARPACK) && defined(USE_SUPERLU)
         retSolver = new PALMEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
       #else
-        EXCEPTION( "compiled without PALM: set BUILD_PALM=ON to use the PALM solver" );
+        EXCEPTION( "compiled without PALM: set USE_ARPACK=ON and USE_SUPERLU=ON to use the PALM solver.");
       #endif
         break;
 

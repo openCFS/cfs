@@ -2,27 +2,11 @@
 # Find executables of a few required programs
 #=============================================================================
 
-#-----------------------------------------------------------------------------
-# Find Python interpreter and libs
-#-----------------------------------------------------------------------------
-
-if(BUILD_ANACONDA3)
-  # manually set correct paths
-  # must be done because anaconda gets installed during make, thus finding stuff does not work at configure
-  set(PYTHON_EXECUTABLE "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/bin/python" CACHE STRING "executable path" FORCE)
-  MARK_AS_ADVANCED(PYTHON_EXECUTABLE)
-  set(PYTHON_LIBRARY "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/lib/libpython3.so" CACHE STRING "library path" FORCE)
-  mark_as_advanced(PYTHON_LIBRARY)
-  set(PYTHON_INCLUDE_DIR "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/include/python3.5m" CACHE STRING "incude path" FORCE)
-  mark_as_advanced(PYTHON_INCLUDE_DIR)
-else(BUILD_ANACONDA3)
-  # look for anaconda in mdmt environment
-  find_program(PYTHON_EXECUTABLE NAMES python PATHS "/share/programs/anaconda/latest/bin" "/share/programs/anaconda/3/latest/bin" "/share/programs/anaconda/2/latest/bin" NO_DEFAULT_PATH)
-  # find system python
-  FIND_PACKAGE(PythonInterp)
-  FIND_PACKAGE(PythonLibs)
-endif(BUILD_ANACONDA3)
-
+# look for anaconda in mdmt environment
+find_program(PYTHON_EXECUTABLE NAMES python PATHS "/share/programs/anaconda/latest/bin" "/share/programs/anaconda/3/latest/bin" "/share/programs/anaconda/2/latest/bin" NO_DEFAULT_PATH)
+# find system python
+FIND_PACKAGE(PythonInterp)
+FIND_PACKAGE(PythonLibs)
 
 #-----------------------------------------------------------------------------
 # This  code  has  been  taken  from  CMake  2.8.8  FindPythonInterp.cmake  to

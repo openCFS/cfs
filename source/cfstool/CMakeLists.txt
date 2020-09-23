@@ -53,22 +53,14 @@ IF(USE_GIDPOST)
   LIST(APPEND TARGET_LL simoutgid)
 ENDIF(USE_GIDPOST)
 
-IF(USE_MESH)
-  LIST(APPEND TARGET_LL siminmesh)
-ENDIF(USE_MESH)
-
-IF(USE_UNV)
-  LIST(APPEND TARGET_LL simoutunv)
-ENDIF(USE_UNV)
-
-IF(USE_HDF5)
-  LIST(APPEND TARGET_LL ${HDF5_LT_LIBRARY})
-  LIST(APPEND TARGET_LL siminouthdf5)
-ENDIF(USE_HDF5)
+LIST(APPEND TARGET_LL simoutunv)
 
 # Target link libraries for cfstool target.
 # add optimization to avoid a strange linke problem introduced in @13977 
 LIST(APPEND TARGET_LL
+  ${HDF5_LT_LIBRARY}
+  siminouthdf5
+  siminmesh
   domain
   mesh
   febasis

@@ -17,9 +17,9 @@ SET(feast_include "${feast_source}/${FEAST_VER}/include")
 IF(UNIX)
   IF(USE_FEAST_COMMUNITY_PRECOMPILED)
     SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
-  ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ELSE()
     SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
-  ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ENDIF()
 ELSE()
   SET(FEAST_LIB_DIR "${feast_install}/lib64")
 ENDIF()
@@ -159,7 +159,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${FEAST_LIBRARY}
   )
-  ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ELSE() # not USE_FEAST_COMMUNITY_PRECOMPILED
     # compile feast
     IF(UNIX)
       ExternalProject_Add(feast
@@ -188,7 +188,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
         LOG_INSTALL 1
       )
     ENDIF()
-  ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ENDIF() # switch of USE_FEAST_COMMUNITY_PRECOMPILED
 
   #-------------------------------------------------------------------------------
   # Add custom patch step, needed for windows
