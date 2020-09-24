@@ -688,6 +688,42 @@ namespace CoupledField {
         feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( ent[i] );
         assemble_->AddBiLinearForm( surfMassContext );
       }
+      //========================================================================================
+      //
+      //========================================================================================
+      ReadRhsExcitation("normalImpedance", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("normalImpedance must be defined on (surface) elements")
+        }
+        // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
+        BiLinearForm * impedanceInt = NULL;
+        if(isComplex_) {
+          if (dim_ == 2){
+            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+          } else {
+            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+          }
+        } else {
+          if (dim_ == 2){
+            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          } else {
+            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          }
+        }
+        impedanceInt->SetName("ImpedanceIntegrator");
+        BiLinFormContext *impedanceContext = new BiLinFormContext(impedanceInt, STIFFNESS );
+        impedanceContext->SetEntities( ent[i], ent[i]);
+        impedanceContext->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY], feFunctions_[FLUIDMECH_VELOCITY]);
+        feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( ent[i] );
+        assemble_->AddBiLinearForm( impedanceContext );
+      }
     }
   }
 

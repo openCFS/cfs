@@ -132,6 +132,19 @@
                     </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="normalImpedance" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      specifies an impedance boundary condition by
+                      ⎛        ⎛                     T⎞   ⎛    2    ⎞            ⎞                       
+                      ⎜-pI + μ ⎝nabla(v) + (nabla(v)) ⎠ + ⎜λ - ─ ⋅ μ⎟ ⋅ I(div(v))⎟ ⋅ n = z  ⋅ (v ⋅ n) ⋅ n
+                      ⎝                                   ⎝    3    ⎠            ⎠        0              
+                      The boundary conditions can also be used to create sound-hard and sound-soft 
+                      boundary conditions depending on the specified impedance ⎛z ⎞value (high and low, respectively).
+                                                                               ⎝ 0⎠
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!-- RHS Load Values-->
                 <xsd:element name="traction" type="DT_BcInhomVector">
                   <xsd:annotation>
