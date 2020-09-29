@@ -148,16 +148,16 @@ void LinFlowMechCoupling::DefineIntegrators() {
     }
   }
   else{ //Non conforming integrations for Nitsche coupling
-    ParamNodeList ncList = myParam_->GetList("ncInterfaceList");
+    ParamNodeList ncList = myParam_->Get("ncInterfaceList", ParamNode::PASS)->GetList("ncInterface");
     for(UInt i = 0; i < ncList.GetSize(); i++){
       //      std::cout<< ncList[i]->Get("ncInterface/name")->As<std::string>() <<std::endl;
-      std::string ncName = ncList[i]->Get("ncInterface/name")->As<std::string>();
+      std::string ncName = ncList[i]->Get("name")->As<std::string>();
       shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ptGrid_->GetNcInterfaceId(ncName));
       if (!ncIf)
       {
         EXCEPTION("No interface with the name '" << ncName << "' found!");
       }
-      std::string formulation = ncList[i]->Get("ncInterface/formulation")->As<std::string>();
+      std::string formulation = ncList[i]->Get("formulation")->As<std::string>();
       if (formulation == "Nitsche"){
         MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
         assert(nitscheIf);
@@ -168,7 +168,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
         PtrCoefFct matData, tmpData;
 
         //we set here the penalty factor
-        Double beta = ncList[i]->Get("ncInterface/nitscheFactor")->As<std::double_t>();
+        Double beta = ncList[i]->Get("nitscheFactor")->As<std::double_t>();
         // create new entity list
         shared_ptr<ElemList> actNCSDList = ncIf->GetElemList();
         // in case of mechanical PDE, we need the material tensor
