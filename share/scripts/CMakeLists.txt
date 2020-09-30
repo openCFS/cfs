@@ -18,13 +18,6 @@ ADD_CUSTOM_TARGET(common_script ALL
   COMMENT "Copying \"${COMMON_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder...")
 install(PROGRAMS ${COMMON_SCRIPT} DESTINATION bin)
 
-IF(MINGW)
-  ADD_CUSTOM_TARGET(common_script_sh ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/common.sh ${CFS_BINARY_DIR}/bin
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.sh
-    COMMENT "Copying \"common.sh\" script to ${CFS_BINARY_DIR}/bin folder...")
-ENDIF()
-
 #-------------------------------------------------------------------------------
 # Custom target for copying cfs to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
@@ -41,12 +34,6 @@ ADD_CUSTOM_TARGET(cfs_script ALL
   ${CFS_BINARY_DIR}/bin folder...")
 install(PROGRAMS ${CFS_SCRIPT} DESTINATION bin)
 
-IF(MINGW)
-  ADD_CUSTOM_TARGET(cfs_script_sh ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs ${CFS_BINARY_DIR}/bin
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs
-    COMMENT "Copying \"cfs\" script to ${CFS_BINARY_DIR}/bin folder...")
-ENDIF()
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfs-debug to ${CFS_BINARY_DIR}/bin (only LINUX)
@@ -79,19 +66,12 @@ IF(BUILD_CFSTOOL)
     ${CFS_BINARY_DIR}/bin folder...")
   install(PROGRAMS ${CFSTOOL_SCRIPT} DESTINATION bin)
 
-  IF(MINGW)
-    ADD_CUSTOM_TARGET(cfstool_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfstool ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfstool
-      COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
-
 ENDIF(BUILD_CFSTOOL)
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfsdat to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
-IF(CFSDAT)
+IF(BUILD_CFSDAT)
   IF(WIN32)
     SET(CFSDAT_SCRIPT "cfsdat.bat")
   ELSE(WIN32)
@@ -104,16 +84,9 @@ IF(CFSDAT)
     COMMENT "Copying CFSDat start script \"${CFSDAT_SCRIPT}\" to
     ${CFS_BINARY_DIR}/bin folder...")
   install(PROGRAMS ${CFSDAT_SCRIPT} DESTINATION bin)
+ENDIF()
 
-  IF(MINGW)
-    ADD_CUSTOM_TARGET(cfsdat_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfsdat ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfsdat
-      COMMENT "Copying \"cfsdat\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
-ENDIF(CFSDAT)
-
-# we skip to copy UNIT_TEST cfstests here, I usually directly link to the bin directory
+# we skip to copy CFS_UNIT_TEST cfstests here, I usually directly link to the bin directory
 # whoever needs it might add it :)
 
 
@@ -149,9 +122,26 @@ ADD_CUSTOM_TARGET(distro_script ALL
   )
 install(PROGRAMS ${DISTRO_SCRIPT} DESTINATION bin)
 
-IF(MINGW)
-  ADD_CUSTOM_TARGET(distro_script_sh ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh ${CFS_BINARY_DIR}/share/scripts
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh
-    COMMENT "Copying \"distro.sh\" script to ${CFS_BINARY_DIR}/share/scripts folder...")
-ENDIF()
+# THIS IS A PROTOTYPE FOR NSIS INSTALLER --> not yet included/supported
+#----------------------------------------------------------------------------------
+# Custom target for configuring NSIS script and copying it to CMAKE_INSTALL_PREFIX
+#----------------------------------------------------------------------------------
+#IF(WIN32)
+#  IF(${CFS_VERSION_SUFFIX} MATCHES "SR[1-9]")
+#    STRING(REPLACE "SR" "" SR_NUM ${NACS_VERSION_SUFFIX})
+#  ELSE(${CFS_VERSION_SUFFIX} MATCHES "SR[1-9]")
+#    SET(SR_NUM 0)
+#  ENDIF(${CFS_VERSION_SUFFIX} MATCHES "SR[1-9]")
+#  SET(CFS_FULL_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}.0.0")
+#  CONFIGURE_FILE(
+#    ${CMAKE_CURRENT_SOURCE_DIR}/nsis/CFS-setup.nsi.in
+#    ${CFS_BINARY_DIR}/CFS-win${SYSTEM_BITS}-setup.nsi
+#    @ONLY)
+#  INSTALL(FILES ${CFS_BINARY_DIR}/CFS-win${SYSTEM_BITS}-setup.nsi
+#                ${CMAKE_CURRENT_SOURCE_DIR}/nsis/defines.nsh
+#                ${CMAKE_CURRENT_SOURCE_DIR}/nsis/EnvVarUpdate.nsh
+#		${CMAKE_CURRENT_SOURCE_DIR}/nsis/CFS.ico
+#		${CMAKE_CURRENT_SOURCE_DIR}/nsis/vcredist_2017_en_x64.exe
+#          DESTINATION .
+#         )
+#ENDIF(WIN32)

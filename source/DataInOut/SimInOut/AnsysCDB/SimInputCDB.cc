@@ -893,7 +893,7 @@ namespace CoupledField {
 
     // for large file sizes, report file size rounded to 100 MB
     Double tmpVal = 1.0 / (1024.0*1024.0*1024.0);
-#if(WIN32 || __MINGW32__)
+#if(WIN32)
     tmpVal *= inSize_;
 #else
     tmpVal *= fSize_;
@@ -1051,7 +1051,7 @@ namespace CoupledField {
 
     std::cout << "Finished scanning input file" << std::endl;
 
-#if not defined(WIN32) && not defined (__MINGW32__)
+#if not defined(WIN32)
     // Prevent problems stemming from missing newline characters at the end of
     // the file, by cleaning the input stream before resetting it to start.
     inFile_.clear();
@@ -2033,7 +2033,7 @@ namespace CoupledField {
     UInt lCount = 0;
     for (UInt ib=0; ib<linePtsMATCmnds_.size(); ib++) {
 
-#if(WIN32 || __MINGW32__)
+#if(WIN32)
       __int64 matLinePos = linePtsMATCmnds_[ib];
 #else
       unsigned long matLinePos = linePtsMATCmnds_[ib];
@@ -2049,7 +2049,7 @@ namespace CoupledField {
         }
       }
 
-#if(WIN32 || __MINGW32__)
+#if(WIN32)
       __int64 typeLinePos = linePtsTYPECmnds_[typeIdx];
 #else
       unsigned long typeLinePos = linePtsTYPECmnds_[typeIdx];
@@ -3073,7 +3073,7 @@ namespace CoupledField {
     return ret;
   }
 
-#if(WIN32 || __MINGW32__)
+#if(WIN32)
   void SimInputCDB::OpenCDBFile(std::string fn)
   {
     std::string filename=fn.c_str();

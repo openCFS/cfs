@@ -1792,12 +1792,12 @@ void ShapeMapDesign::MapFeatureToDensity()
     // this helps us evaluation
     EvalAtIp eval(this);
 
-    // the integration effort is not evenly distributed
-    #pragma omp for schedule(dynamic) reduction(+:cells_cnt,cells_order_sum)
-    for(unsigned int r = 0; r < map_.GetSize(); r++)
-    {
-      Item& item = map_[r];
-      DesignElement* de = item.rho;
+     // the integration effort is not evenly distributed
+     #pragma omp for schedule(dynamic) reduction(+:cells_cnt,cells_order_sum)
+     for(int r = 0; r < (int) map_.GetSize(); r++)
+     {
+       Item& item = map_[r];
+       DesignElement* de = item.rho;
 
       DensityIdx(r, idx);
 
@@ -1956,14 +1956,14 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
       eval[i].Init(this);
 
 
-#pragma omp for schedule(dynamic)
-    for(unsigned int r = 0; r < map_.GetSize(); r++) // traverse all rho design elements
-    {
-      Item& item = map_[r];
-      DesignElement* de = item.rho;
-      double log_da = 0.0;
-      double log_db = 0.0;
-      double log_dw = 0.0;
+     #pragma omp for schedule(dynamic)
+     for(Integer r = 0; r < (Integer) map_.GetSize(); r++) // traverse all rho design elements
+     {
+       Item& item = map_[r];
+       DesignElement* de = item.rho;
+       double log_da = 0.0;
+       double log_db = 0.0;
+       double log_dw = 0.0;
 
       int max_order = item.GetOrder(order, numInt_); // sets order. 0, 1 or >= 2
 

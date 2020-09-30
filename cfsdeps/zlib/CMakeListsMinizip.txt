@@ -59,22 +59,20 @@ IF(MINIZIP_BUILD_SHARED)
   add_library(minizip_shared SHARED ${SOURCE} ${HEADERS})
 
   # under windows we need to define ZLIB_DLL
-  if (WIN32 OR CYGWIN)
-    set_target_properties(minizip_shared
-                          PROPERTIES COMPILE_FLAGS "-DZLIB_DLL -D_WIN32_WINNT=0x0602")
-    set_target_properties(minizip_static
-                          PROPERTIES COMPILE_FLAGS -D_WIN32_WINNT=0x0602)
-  endif(WIN32 OR CYGWIN)
+  if(WIN32)
+    set_target_properties(minizip_shared PROPERTIES COMPILE_FLAGS "-DZLIB_DLL -D_WIN32_WINNT=0x0602")
+    set_target_properties(minizip_static PROPERTIES COMPILE_FLAGS -D_WIN32_WINNT=0x0602)
+  endif()
 
   target_link_libraries(minizip_shared ${ZLIB_LIBRARY})
 
   # for windows we need to change the name of the shared library
   # for both static and shared version to exist
-  if (WIN32 OR CYGWIN)
+  if(WIN32)
     set_target_properties(minizip_shared PROPERTIES OUTPUT_NAME minizipdll)
-  else (WIN32 OR CYGWIN)
+  else()
     set_target_properties(minizip_shared PROPERTIES OUTPUT_NAME minizip)
-  endif (WIN32 OR CYGWIN)
+  endif()
   set_target_properties(minizip_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 ENDIF()
 
@@ -91,12 +89,12 @@ install(TARGETS minizip_static ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR}
 # Set the install path of the shared library
 if(MINIZIP_BUILD_SHARED)
   # for windows, need to install both minizipdll.dll and minizipdll.lib
-  if (WIN32 OR CYGWIN)
+  if(WIN32)
     install(TARGETS minizip_shared ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
     install(TARGETS minizip_shared RUNTIME DESTINATION bin/${CFS_ARCH_STR})
-  else (WIN32 OR CYGWIN)
+  else()
     install(TARGETS minizip_shared LIBRARY DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
-  endif (WIN32 OR CYGWIN)
+  endif()
 endif(MINIZIP_BUILD_SHARED)
 
 # Set the install path of the header files

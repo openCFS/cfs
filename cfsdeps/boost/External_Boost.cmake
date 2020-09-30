@@ -13,6 +13,10 @@ set(BOOST_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/boost")
 set(BOOST_source  "${BOOST_prefix}/src/boost")
 set(BOOST_install "${BOOST_prefix}/install")
 
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-patch.cmake.in")
+SET(PFN "${BOOST_prefix}/boost-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
 # number of the FTP server on the CFS++ development server  may not be
@@ -61,52 +65,118 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 
-SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
-MARK_AS_ADVANCED(Boost_LIBRARY_DIR)
-
 IF(UNIX)
+  SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
-ENDIF(UNIX)
+ELSE()
+  SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/" CACHE PATH "Boost library dir.")
+
+  SET(BOOST_VER_WIN "${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}")
+  SET(BOOST_LIB_PREFIX "lib")
+  IF(BOOST_VER VERSION_LESS_EQUAL 1.72)
+    SET(BOOST_MSVC_VERSION 15.0)
+  ELSE()
+    SET(BOOST_MSVC_VERSION ${CFS_MSVC_VERSION})
+  ENDIF()
+
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    IF(DEBUG)
+      SET(BOOST_LIB_SUFFIX "-iw-mt-gd-x64-${BOOST_VER_WIN}.lib")
+    ELSE()
+      SET(BOOST_LIB_SUFFIX "-iw-mt-x64-${BOOST_VER_WIN}.lib")
+    ENDIF(DEBUG)
+  ELSE()
+    IF(BOOST_MSVC_VERSION VERSION_GREATER_EQUAL 16.0)
+      IF(DEBUG)
+        SET(BOOST_LIB_SUFFIX "-vc142-mt-gd-x64-${BOOST_VER_WIN}.lib")
+      ELSE()
+        SET(BOOST_LIB_SUFFIX "-vc142-mt-x64-${BOOST_VER_WIN}.lib")
+      ENDIF()
+    ELSE()
+      IF(DEBUG)
+        SET(BOOST_LIB_SUFFIX "-vc141-mt-gd-x64-${BOOST_VER_WIN}.lib")
+      ELSE()
+        SET(BOOST_LIB_SUFFIX "-vc141-mt-x64-${BOOST_VER_WIN}.lib")
+      ENDIF()
+    ENDIF()
+  ENDIF()
+ENDIF()
+MARK_AS_ADVANCED(Boost_LIBRARY_DIR)
 
 # boost configuration
 set(BOOST_BOOTSTRAP_PARAMS "") 
 set(BOOST_PATCH_COMMAND "") # to set user-config.jam for toolset
-# see closed issue Boost build error nach Systemupgrade auf Ubuntu 18.04 in Group Stingl
-set(BOOST_B2_PARAMS cxxflags=-fPIC)
 
-if(DEBUG)
-  set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} variant=debug)
-else()
-  set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} variant=release)
-endif()  
+#SET(BOOST_JAM_PATCH_COMMAND "")
+SET(BOOST_B2_PARAMS "")
 
-get_filename_component(BOOST_DEP_LIBPATH ${ZLIB_LIBRARY} DIRECTORY) # get the library path without filename from library location
-set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "-sZLIB_INCLUDE=${CFS_BINARY_DIR}/include" "-sZLIB_LIBPATH=${BOOST_DEP_LIBPATH}" "-sNO_ZLIB=0")
-# Simon made it without toolset and it shall work.
-if(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  set(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux )
-  set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\" )
-endif()
-
-# setting the mac system clang compiler as toolset does not work
-set(BOOST_SYSTEM_COMPILER OFF)
-if(CFS_DISTRO STREQUAL "MACOSX" AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-  set(BOOST_SYSTEM_COMPILER ON)
-endif()
-# set the gcc and clang compiler via toolset it might be specified via CXX=g++-8 or CXX=clang++
-if(NOT BOOST_SYSTEM_COMPILER)
-  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-    set(BOOST_TOOLSET_COMPILER "gcc")
-  endif()
-  if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-    set(BOOST_TOOLSET_COMPILER "clang")
-  endif()
-  if(BOOST_TOOLSET_COMPILER)
-    set(BOOST_PATCH_COMMAND echo "using ${BOOST_TOOLSET_COMPILER} : ${CFS_CXX_COMPILER_VER} : ${CMAKE_CXX_COMPILER} $<SEMICOLON>" > user-config.jam)
-    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--user-config=user-config.jam" "toolset=${BOOST_TOOLSET_COMPILER}-${CFS_CXX_COMPILER_VER}")
+IF(UNIX)
+  # see closed issue Boost build error nach Systemupgrade auf Ubuntu 18.04 in Group Stingl
+  set(BOOST_B2_PARAMS cxxflags=-fPIC)
+  if(DEBUG)
+    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} variant=debug)
+  else()
+    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} variant=release)
   endif()  
-endif()
+  get_filename_component(BOOST_DEP_LIBPATH ${ZLIB_LIBRARY} DIRECTORY) # get the library path without filename from library location
+  set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "-sZLIB_INCLUDE=${CFS_BINARY_DIR}/include" "-sZLIB_LIBPATH=${BOOST_DEP_LIBPATH}" "-sNO_ZLIB=0")
+
+  # setting the mac system clang compiler as toolset does not work
+  set(BOOST_SYSTEM_COMPILER OFF)
+  if(CFS_DISTRO STREQUAL "MACOSX" AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+    set(BOOST_SYSTEM_COMPILER ON)
+  endif()
+  # set the gcc and clang compiler via toolset it might be specified via CXX=g++-8 or CXX=clang++
+  if(NOT BOOST_SYSTEM_COMPILER)
+    if(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
+      set(BOOST_TOOLSET_COMPILER "gcc")
+    endif()
+    if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+      set(BOOST_TOOLSET_COMPILER "clang")
+    endif()
+    if(BOOST_TOOLSET_COMPILER)
+      set(BOOST_PATCH_COMMAND echo "using ${BOOST_TOOLSET_COMPILER} : ${CFS_CXX_COMPILER_VER} : ${CMAKE_CXX_COMPILER} $<SEMICOLON>" > user-config.jam)
+      set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--user-config=user-config.jam" "toolset=${BOOST_TOOLSET_COMPILER}-${CFS_CXX_COMPILER_VER}")
+    endif()  
+  endif()
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    # Simon made it without toolset and it shall work.
+    set(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux )
+    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\" )
+#  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux)
+#  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\")
+  ENDIF()
+ENDIF(UNIX)
+
+IF(WIN32)
+
+  SET(BOOST_BOOTSTRAP_PARAMS "--without-libraries=python" "--prefix=${BOOST_install}" "--target-os=windows" "--architecture=x86" "--address-model=64" "--with-filesystem")
+  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--target-os=windows" "--architecture=x86" "--address-model=64" "--build-type=complete" "--prefix=${BOOST_install}")
+  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "variant=debug,release" "threading=multi" "link=static,shared" "runtime-link=shared")
+
+  IF(BOOST_MSVC_VERSION VERSION_GREATER_EQUAL 16.0)
+    IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+      SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-19.1-vc14.2")
+      SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-19.1-vc14.2")
+    ELSE()
+      SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=msvc-14.2")
+      SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=msvc-14.2")
+    ENDIF()
+  ELSE()
+    IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+      SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-19.1-vc14.1")
+      SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-19.1-vc14.1")
+    ELSE()
+      SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=msvc-14.1")
+      SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=msvc-14.1")
+    ENDIF()
+  ENDIF()
+
+  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--with-filesystem" "--with-date_time" "--with-iostreams" "--with-log" "--with-program_options" "--with-regex" "--with-serialization" "--with-thread" "--with-chrono" "--with-test" "--with-random")
+
+  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "-sZLIB_SOURCE=${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/zlib/src/zlib" "-sBZIP2_SOURCE=${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/bzip2/src/bzip2" "install")
+ENDIF(WIN32)
 
 #message("CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME}")
 #message("BOOST_SYSTEM_COMPILER ${BOOST_SYSTEM_COMPILER}")
@@ -155,17 +225,44 @@ ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  ExternalProject_Add(boost
-    PREFIX "${BOOST_prefix}"
-    URL ${LOCAL_FILE}
-    PATCH_COMMAND ${BOOST_PATCH_COMMAND}
-    CONFIGURE_COMMAND ""
-    BINARY_DIR ${BOOST_source}
-    # newer boost has system and signals head only.
-    # full list via bootstrap.sh --show-libraries
-    # 1.73.0: atomic,chrono,container,context,contract,coroutine,date_time,exception,fiber,filesystem,graph,graph_parallel,headers,iostreams,locale,log,math,mpi,nowide,program_options,random,regex,serialization,stacktrace,system,test,thread,timer,type_erasure,wave  
-    BUILD_COMMAND ./bootstrap.sh --with-libraries=date_time,filesystem,iostreams,log,program_options,regex,serialization,thread,chrono,test --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} 
-    INSTALL_COMMAND ./b2  ${BOOST_B2_PARAMS} define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX link=static threading=multi runtime-link=static install --no-cmake-config
+  IF(UNIX)
+    ExternalProject_Add(boost
+      PREFIX "${BOOST_prefix}"
+      URL ${LOCAL_FILE}
+      PATCH_COMMAND ${BOOST_PATCH_COMMAND}
+      CONFIGURE_COMMAND ""
+      BINARY_DIR ${BOOST_source}
+      # newer boost has system and signals head only.
+      # full list via bootstrap.sh --show-libraries
+      # 1.73.0: atomic,chrono,container,context,contract,coroutine,date_time,exception,fiber,filesystem,graph,graph_parallel,headers,iostreams,locale,log,math,mpi,nowide,program_options,random,regex,serialization,stacktrace,system,test,thread,timer,type_erasure,wave  
+      BUILD_COMMAND ./bootstrap.sh --with-libraries=date_time,filesystem,iostreams,log,program_options,regex,serialization,thread,chrono,test --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} 
+      INSTALL_COMMAND ./b2  ${BOOST_B2_PARAMS} define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX link=static threading=multi runtime-link=static install --no-cmake-config
+    )
+  ELSE()
+    # message("BOOST_install: ${BOOST_install}")
+    # message("BOOST_BOOTSTRAP_PARAMS:  ${BOOST_BOOTSTRAP_PARAMS}")
+    # message("BOOST_B2_PARAMS: ${BOOST_B2_PARAMS}")
+    ExternalProject_Add(boost
+      PREFIX "${BOOST_prefix}"
+      URL ${LOCAL_FILE}
+      #      PATCH_COMMAND ${BOOST_JAM_PATCH_COMMAND}
+      PATCH_COMMAND ""
+      CONFIGURE_COMMAND ""
+      BINARY_DIR ${BOOST_source}
+      BUILD_COMMAND ./bootstrap.bat ${BOOST_BOOTSTRAP_PARAMS}
+      INSTALL_COMMAND ./b2 ${BOOST_B2_PARAMS}
+    )
+  ENDIF()
+
+  #-------------------------------------------------------------------------------
+  # Add custom patch step
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(boost winpatch
+    COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    DEPENDERS install
+    DEPENDEES build
+    DEPENDS "${PFN}"
+    WORKING_DIRECTORY ${BOOST_source}
   )
 
   #-------------------------------------------------------------------------------

@@ -9,7 +9,6 @@
 #include <boost/filesystem.hpp>
 
 #include "def_use_openmp.hh"
-#include "def_disable_optimization.hh"
 
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -341,9 +340,6 @@ void Domain::PostInit(UInt sequenceStep)
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if(GetParamRoot()->Has("optimization"))
   {
-    #ifdef DISABLE_OPTIMIZATION
-      throw Exception("CFS++ was compiled with disabled optimization.");
-    #endif
     Optimization::CreateInstance(); // has an SetOptimization() included
   }
   else

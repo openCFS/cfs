@@ -356,7 +356,7 @@ template<class DATA_TYPE>
       StdVector<Vector<Double> >& CoordVec = regionNodeCoordinates_[i];
       CoordVec.Resize(size);
 #pragma omp parallel for      
-      for( UInt aN=0;aN<size;aN++){
+      for( Integer aN=0;aN< (Integer) size;aN++){
         srcGrid_->GetNodeCoordinate(CoordVec[aN],nodeNums[aN],true);
       }
     }
@@ -463,7 +463,7 @@ template<class DATA_TYPE>
       UInt sourceIndex;
       UInt targetIndex;
 #pragma omp for
-      for (UInt i = 0; i < size; ++i) {
+      for (Integer i = 0; i < (Integer) size; ++i) {
         if (useSpaceFactorA) {
           if (useSpaceFactorB) {
             if (useConstFactor) {
@@ -669,7 +669,7 @@ template<class DATA_TYPE>
         this->constantInput_[i].Resize(resVec.GetSize());
         StdVector<UInt> dummyNodeNums(size);
 #pragma omp parallel for
-        for (UInt ii = 0; ii < size; ii++) {
+        for (Integer ii = 0; ii < (Integer) size; ii++) {
           dummyNodeNums[ii] = ii;
         }
         crf(this->constantInput_[i],resVec,dummyNodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
@@ -800,7 +800,7 @@ template<class DATA_TYPE>
         }
         
 #pragma omp parallel for
-        for(UInt i=0;i<numEqns_;i++){
+        for(Integer i=0;i< (Integer) numEqns_;i++){
           this->solVec_[i] = facA * this->solVecInterpolationA_[i] + facB *  this->solVecInterpolationB_[i];
         }
       }

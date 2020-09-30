@@ -5,6 +5,7 @@
 #include <vector>
 #include "General/Exception.hh"
 #include <def_build_type_options.hh>
+#include <limits>
 
 namespace CoupledField {
 

@@ -63,7 +63,7 @@ namespace CoupledField {
   //! SY - symmetric matrix
   //! GE - general matrix
   //! HE - hermitian matrix
-  typedef enum {ZSYSV, ZGESV, ZHESV} lapackSysMatType;
+  typedef enum {ZSYSVMTX, ZGESVMTX, ZHESVMTX} lapackSysMatType;
 
 
   //! logging configurator

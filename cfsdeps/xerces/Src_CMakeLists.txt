@@ -355,7 +355,7 @@ IF(UNIX)
   ENDIF()
 ENDIF()
 
-IF(WIN32 OR MINGW OR CYGWIN)
+IF(WIN32)
   LIST(APPEND XERCES-C_SRCS 
     xercesc/util/NetAccessors/WinSock/BinHTTPURLInputStream.cpp
     xercesc/util/NetAccessors/WinSock/WinSockNetAccessor.cpp

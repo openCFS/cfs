@@ -1,9 +1,9 @@
-// We put include of CoefFunctionScatteredData.hh and intrin.hh for MinGW
+// We put include of CoefFunctionScatteredData.hh and intrin.hh
 // in first place to prevent the following error:
 // boost/thread/win32/interlocked_read.hpp:61:20: error:
 //   '_InterlockedCompareExchange' is not a member of 'boost::detail'
-#ifdef __MINGW64__
-#include <intrin.h>
+#ifdef WIN32
+#include <direct.h>
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 
@@ -1455,7 +1455,7 @@ namespace CoupledField {
           
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPointcSys.ToString(0, delim) << delim;
+          out << globPointcSys.ToString(5, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j].real() << delim;
           }
@@ -1498,7 +1498,7 @@ namespace CoupledField {
           fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPointcSys.ToString(0, delim) << delim;
+          out << globPointcSys.ToString(5, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j] << delim;
           }
@@ -1516,12 +1516,14 @@ namespace CoupledField {
   
   
   void SinglePDE::ReadSensorArrayResults() {
-    // check, if calculation of field variables is requested at all
 
     ParamNodeList sensorNodes;
     sensorNodes = myParam_->Get("storeResults")->GetList("sensorArray");
     std::string solTypeString;
     static std::map< SolutionType, bool> warningPrinted;
+
+    if (sensorNodes.GetSize()==0)
+      return;
 
     sensors_.Resize(sensorNodes.GetSize());
     // loop over all parts
@@ -1543,10 +1545,10 @@ namespace CoupledField {
         // ensure errno is cleared and call mkdir with the directory name
         errno = 0;
         int mkdir_call;
-        #ifdef __MINGW32__
-          mkdir_call = mkdir( directoryName.c_str());
-        #else
+        #ifndef WIN32
           mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
+        #else
+          mkdir_call = _mkdir( directoryName.c_str() );
         #endif
 
         if ( mkdir_call == -1 && errno == EEXIST ){

@@ -25,15 +25,14 @@
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
-#include <unistd.h>
+#if not defined(WIN32) 
+#  include <unistd.h>
+#endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include <def_use_mesh.hh>
 #include <def_use_petsc.hh>
 
-#ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-#endif
 
 #ifdef USE_PETSC
 #include "petsc.h"
@@ -48,26 +47,6 @@ using namespace std;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-
-#ifdef __MINGW32__
-
-#if 0
-extern "C" {
-int __security_cookie;
-}
-
-extern "C" void _fastcall __security_check_cookie(int i) {
-//do nothing
-}
-#endif
-
-// extern "C" void _chkstk() {
-//do nothing
-// }
-extern "C" void _allmul() {
-//do nothing
-}
-#endif //__MINGW32__
 
 // Create global info node
 PtrParamNode infoNode;

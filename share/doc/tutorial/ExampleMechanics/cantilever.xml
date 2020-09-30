@@ -76,7 +76,7 @@
       <system>
          <solverList>
           <pardiso>
-            <IterRefineSteps> 5 </IterRefineSteps>
+            <IterRefineSteps>5</IterRefineSteps>
           </pardiso>
         </solverList>
       </system>

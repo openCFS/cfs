@@ -39,7 +39,7 @@ SET(ZIPTOCACHE "${muparser_prefix}/muparser-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
-# The OpenBLAS external project.
+# The muparser external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
@@ -61,6 +61,10 @@ ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
+  SET(MUPARSER_SHARED_LIBS OFF)
+  IF(WIN32)
+    SET(MUPARSER_SHARED_LIBS ON)
+  ENDIF()
   ExternalProject_Add(muparser
     PREFIX "${muparser_prefix}"
     DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/muparser
@@ -73,7 +77,7 @@ ELSE()
       # install to cfs, we collect our stuff for precompiled from the manifest
       -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
       -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-      -DBUILD_SHARED_LIBS:BOOL=OFF
+      -DBUILD_SHARED_LIBS:BOOL=${MUPARSER_SHARED_LIBS}
       -DBUILD_TESTING:BOOL=OFF
       -DENABLE_OPENMP:BOOL=OFF # makes problems when precompiled is parallel and cfs is serial
       -DENABLE_SAMPLES:BOOL=OFF
@@ -109,7 +113,11 @@ SET(CFSDEPS ${CFSDEPS} muparser)
 
 # Determine paths of MUPARSER libraries.
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(MUPARSER_LIBRARY "${LD}/libmuparser.a" CACHE FILEPATH "MUPARSER library.")
+IF(WIN32)
+  SET(MUPARSER_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/muparser.lib" CACHE FILEPATH "MUPARSER library.")
+ELSE(WIN32)
+  SET(MUPARSER_LIBRARY "${LD}/libmuparser.a" CACHE FILEPATH "MUPARSER library.")
+ENDIF(WIN32)
 
 SET(MUPARSER_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

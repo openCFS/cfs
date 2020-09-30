@@ -31,7 +31,7 @@ using std::string;
 using std::pair;
 
 using namespace CoupledField;
-class DesignStructure;
+namespace CoupledField {class DesignStructure;}
 
 DEFINE_LOG(conditions, "conditions")
 

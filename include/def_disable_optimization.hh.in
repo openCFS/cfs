@@ -1,2 +1,0 @@
-//  Disables Optimization in CFS++. Optimization is (and shall) still compiled but disabled and CFS_Optimization.xsd is replaced
-#cmakedefine DISABLE_OPTIMIZATION

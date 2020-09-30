@@ -11,7 +11,6 @@ set(superlu_source  "@superlu_source@")
 set(superlu_prefix  "@superlu_prefix@")
 set(SUPERLU_MD5 "@SUPERLU_MD5@")
 set(LOCAL_FILE "@LOCAL_FILE@")
-SET(MINGW @MINGW@)
 SET(WIN32 @WIN32@)
 
 #=============================================================================
@@ -29,22 +28,9 @@ FILE(COPY "${LOCAL_FILE}" DESTINATION "${superlu_prefix}")
 get_filename_component(SUPERLU_TAR "${LOCAL_FILE}" NAME)
 MESSAGE("SUPERLU_TAR ${SUPERLU_TAR}")
 
-IF(MINGW AND WIN32)
-  EXECUTE_PROCESS(
-    COMMAND gzip -d "${SUPERLU_TAR}"
-    WORKING_DIRECTORY "${superlu_prefix}"
-  )
-  STRING(REPLACE ".gz" "" SUPERLU_TAR "${SUPERLU_TAR}")
-  EXECUTE_PROCESS(
-    COMMAND tar xvf "${SUPERLU_TAR}"
-    WORKING_DIRECTORY "${superlu_prefix}"
-  )
-ELSE()
-  EXECUTE_PROCESS(
+EXECUTE_PROCESS(
     COMMAND ${CMAKE_COMMAND} -E tar xvf "${SUPERLU_TAR}"
-    WORKING_DIRECTORY "${superlu_prefix}"
-  )
-ENDIF()
+    WORKING_DIRECTORY "${superlu_prefix}" )
 
 FILE(REMOVE "${superlu_prefix}/${SUPERLU_TAR}")
 

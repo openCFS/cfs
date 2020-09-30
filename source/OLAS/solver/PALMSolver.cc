@@ -121,8 +121,8 @@ namespace CoupledField{
      */
 
     int nnz = c_CRS->GetNnz();
-    ridx = new uint[ nnz ]; // Row indices.
-    cidx = new uint[ nnz ]; // Column indices.
+    ridx = new UInt[ nnz ]; // Row indices.
+    cidx = new UInt[ nnz ]; // Column indices.
     //nr    // Number of nonzero rows.
     //nc    // Number of nonzero columns.
     int t;    // Internal variables.
@@ -133,8 +133,8 @@ namespace CoupledField{
     UInt col_count = c_CRS->GetNumCols();
     //bool col_notzero[col_count] = {false};
     StdVector<bool> col_notzero; col_notzero.Resize(col_count,false);
-    uint row_temp=0;
-    for(uint i = 0; i<(c_CRS->GetNnz()+c_CRS->GetNumCols())/2; i++) // loop thought all entries
+    UInt row_temp=0;
+    for(UInt i = 0; i<(c_CRS->GetNnz()+c_CRS->GetNumCols())/2; i++) // loop thought all entries
     {
       if(i == c_CRS->GetRowPointer()[row_temp+1])
         row_temp++;
@@ -168,7 +168,7 @@ namespace CoupledField{
       LOG_DBG3(palm) << " nr = " << nr ;
     }
 
-    for(uint i=0; i<col_notzero.GetSize(); i++)
+    for(UInt i=0; i<col_notzero.GetSize(); i++)
     {
       if(col_notzero[i] == true)
         nc++;
@@ -423,7 +423,7 @@ namespace CoupledField{
   void PALMEigenSolver ::
   Mult(const SCRS_Matrix<double>* M ,Complex *v, Complex *w, Complex alpha)
   {
-    uint row_temp=0;
+    UInt row_temp=0;
     for(UInt i = 0; i<(M->GetNnz()+M->GetNumCols())/2; i++)
     {
       if(i == M->GetRowPointer()[row_temp+1])
@@ -453,9 +453,9 @@ namespace CoupledField{
     }
     else
     {
-      for(uint col = 0; col < M->GetNumCols(); col++)
+      for(UInt col = 0; col < M->GetNumCols(); col++)
       {
-        for(uint row = 0; row < M->GetNumRows(); row++)
+        for(UInt row = 0; row < M->GetNumRows(); row++)
         {
           double temp = 0;
           M->GetEntry(row, col, temp);

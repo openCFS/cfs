@@ -42,9 +42,13 @@ rem windows 8/windows server 2012
 ver | find.exe "Version 6.2" > nul
 if %ERRORLEVEL% EQU 0 goto :ver_8
 
-rem windows 8/8.1
+rem windows 8.1
 ver | find.exe "Version 6.3" > nul
 if %ERRORLEVEL% EQU 0 goto :ver_8
+
+rem windows 10
+ver | find.exe "Version 10.0" > nul
+if %ERRORLEVEL% EQU 0 goto :ver_10
 
 rem Windows 2000 version 5.0
 ver | find.exe "2000" > nul
@@ -56,6 +60,11 @@ if %ERRORLEVEL% EQU 0 goto :ver_nt
 echo Machine undetermined.
 set EXITCODE=1
 goto :end
+
+:ver_10
+rem Run Windows 10-specific commands here.
+set WINDOWS_PLATFORM=WIN10
+goto :arch
 
 :ver_8
 rem Run Windows 8-specific commands here.

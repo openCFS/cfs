@@ -653,7 +653,11 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
 }
 
 
-__attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
+#ifdef _WIN32
+  inline double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
+#else
+  __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
+#endif
 {
   // validate first:
   switch(sp)

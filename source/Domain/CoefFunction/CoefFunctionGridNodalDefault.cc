@@ -258,7 +258,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::MapConservative( shared_ptr<FeSpac
   // map values
   this->BuildNodeIdxAssoc(targetSpace);
 #pragma omp parallel for
-  for(UInt i=0;i<this->numEqns_;++i){
+  for(Integer i=0;i< (Integer) this->numEqns_;++i){
     if (this->copyValueIndex_[i]) {
       feFncVec[this->valueTargetIndex_[i]] = this->solVec_[i];
     }

@@ -1142,14 +1142,14 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
         UInt size = colIndices.size();
         if( (max - min) == (size-1)){
 #pragma omp parallel for
-          for ( UInt i = 0; i < numEntries_; i++ ) {
+          for ( Integer i = 0; i < (Integer) numEntries_; i++ ) {
             if (colInd_[i] >= min && colInd_[i] <= max)
               data_[i] += alpha * data[i];
           }
         }else{
           // we have to searach the set for every entry (nnz_ * O(log sizeof(colIndices)))
 #pragma omp parallel for
-          for ( UInt i = 0; i < numEntries_; i++ ) {
+          for ( Integer i = 0; i < (Integer) numEntries_; i++ ) {
             if (colIndices.find(colInd_[i]) != ending)
               data_[i] += alpha * data[i];
           }
@@ -1204,5 +1204,28 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class SCRS_Matrix<Double>;
   template class SCRS_Matrix<Complex>;
+#ifdef MSVC
+  template void SCRS_Matrix<Double>::Mult(const Vector<Double>&, Vector<Double>&) const;
+//  template void SCRS_Matrix<Double>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Complex>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Double>::MultT(const Vector<Double>&, Vector<Double>&) const;
+//  template void SCRS_Matrix<Double>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Complex>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
+//  template void SCRS_Matrix<Complex>::MultT(const Vector<Double>&, Vector<Double>&) const;
+  template void SCRS_Matrix<Double>::MultAdd(const Vector<Double>&, Vector<Double>&) const;
+//  template void SCRS_Matrix<Double>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Complex>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Double>::MultTAdd(const Vector<Double>&, Vector<Double>&) const;
+//  template void SCRS_Matrix<Double>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Complex>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
+//  template void SCRS_Matrix<Complex>::MultTAdd(const Vector<Double>&, Vector<Double>&) const;
+  template void SCRS_Matrix<Double>::MultSub(const Vector<Double>&, Vector<Double>&) const;
+//  template void SCRS_Matrix<Double>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Complex>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Double>::MultTSub(const Vector<Double>&, Vector<Double>&) const;
+//  template void SCRS_Matrix<Double>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
+  template void SCRS_Matrix<Complex>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
+//  template void SCRS_Matrix<Complex>::MultTSub(const Vector<Double>&, Vector<Double>&) const;
+#endif
 #endif
 }

@@ -28,6 +28,7 @@
 #include "Optimization/OptimizationMaterial.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
+#include "FeBasis/H1/H1Elems.hh"
 
 namespace CoupledField {
 class BaseMaterial;

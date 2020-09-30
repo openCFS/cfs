@@ -60,10 +60,10 @@ namespace CoupledField {
   inline void Diag_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
 
-    UInt i = 0;
+    Integer i = 0;
 
 #pragma omp parallel for 
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       rvec[i] =  data_[i] * mvec[i];
     }
   }
@@ -77,10 +77,10 @@ namespace CoupledField {
                                       Vector<T> & rvec ) const {
 
 
-    UInt i = 0;
+    Integer i = 0;
 
 #pragma omp parallel for
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       rvec[i] += data_[i] * mvec[i];
     }
   }
@@ -94,10 +94,10 @@ namespace CoupledField {
                                       Vector<T> &rvec ) const {
 
 
-    UInt i = 0;
+    Integer i = 0;
 
 #pragma omp parallel for
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       rvec[i] -= data_[i] * mvec[i];
     }
   }
@@ -110,10 +110,10 @@ namespace CoupledField {
   inline void Diag_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
 
-    UInt i = 0;
+    Integer i = 0;
 
 #pragma omp parallel for
-    for ( i = 0; i < this->nrows_; i++ ) {
+    for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       r[i] = b[i] - data_[i] * x[i];
     }
   }

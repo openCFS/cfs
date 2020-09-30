@@ -70,7 +70,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
   )
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # special handling for mkl
-  IF(CFS_BLAS_LAPACK MATCHES "MKL")
+  IF(USE_BLAS_LAPACK MATCHES "MKL")
     SET(PETSC_BLAS " --with-blas-lapack-dir=${MKL_ROOT_DIR}")
   ELSE()
     # shall work at least for openblas

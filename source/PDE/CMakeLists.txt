@@ -47,14 +47,7 @@ SET(TARGET_LL
   coeffunction
   linforms
   bilinforms
-  
+  siminouthdf5
 )
-
-IF(USE_HDF5)
-  SET(TARGET_LL
-    ${TARGET_LL}
-    siminouthdf5
-    )
-ENDIF(USE_HDF5)
 
 TARGET_LINK_LIBRARIES(pde ${TARGET_LL})

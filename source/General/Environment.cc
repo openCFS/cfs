@@ -2142,7 +2142,22 @@ namespace CoupledField {
 
 
   void SetNumberOfThreads(UInt numThreads){
+#if defined(_MSC_VER) && (!defined(__INTEL_COMPILER))
+    std::cout << "==================================================================================" << std::endl;
+    std::cout << 
+      "  WARNING:This version of CFS has been compiled using Microsoft C++ compilers." << std::endl;
+    std::cout << "  Due to limited support for OpenMP (Version 2.0), the number of parallel CFS threads is limited to 1." << std::endl;
+    std::cout << 
+      "  The number of CFS threads for this run has been specified to " << numThreads << ", either\n\tby using commandline argument \"-t " << numThreads << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
+    std::cout << 
+      "  Due to these compiler limitations, this has been reset to a single thread." << std::endl;
+    std::cout << 
+      "  Note that the settings for OMP_NUM_THREADS and/or MKL_NUM_THREADS are not involved." << std::endl;
+    std::cout << "==================================================================================" << std::endl;
+    CFS_NUM_THREADS=1;
+#else
     CFS_NUM_THREADS = numThreads;
+#endif
   }
 
   Enum<SolutionType> SolutionTypeEnum;

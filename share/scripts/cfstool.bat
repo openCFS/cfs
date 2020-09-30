@@ -1,6 +1,6 @@
 @echo off
-rem This is the start script for CFS. It should be placed in
-rem CFS_DIST/bin under the name 'nacs.bat'
+rem This is the start script for CFSTOOL. It should be placed in
+rem CFS_DIST/bin under the name 'cfstool.bat'
 
 setlocal
 
@@ -22,7 +22,7 @@ set BASEDIR=%CD%
 
 rem Check if CFS_ROOT_DIR is defined
 if not defined CFS_ROOT_DIR (
-   goto :nacs_root_dir_undefined
+   goto :cfs_root_dir_undefined
 )
 
 rem Replace double quotes in CFS_ROOT_DIR with empty string
@@ -57,7 +57,7 @@ set CFS_BIN_DIR=%CD%
 goto :call_common_bat
 
 
-:nacs_root_dir_undefined
+:cfs_root_dir_undefined
 rem If CFS_ROOT_DIR is undefined we just take the base dir
 rem of the current script as CFS_BIN_DIR
 set CFS_BIN_DIR=%BASEDIR%

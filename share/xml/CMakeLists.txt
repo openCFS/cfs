@@ -37,15 +37,9 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMENT "Updating XML schemata for CFS++ simulation..."
 )
 
-if(DISABLE_OPTIMIZATION)
-  ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Disabled_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
-    COMMENT "Updating XML schemata for CFS++ with disabled optimization...")
-else()
-  ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
-    COMMENT "Updating XML schemata for CFS++ optimization...")
-endif()
+ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
+  COMMENT "Updating XML schemata for CFS++ optimization...")
   
 SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/CFS-Material)
 SET(DST_DIR ${CFS_BINARY_DIR}/share/xml/CFS-Material)

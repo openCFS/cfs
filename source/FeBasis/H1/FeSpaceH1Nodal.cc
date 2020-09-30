@@ -105,8 +105,13 @@ namespace CoupledField{
     Elem::FEType eType = ent.GetElem()->type;
 
     if(refElems_[eRegion].find(eType) == refElems_[eRegion].end()){
+#ifdef _WIN32
+      EXCEPTION(__FUNCTION__
+                << ": requested fetype which is not supported by space");
+#else
       EXCEPTION(__PRETTY_FUNCTION__
                 << ": requested fetype which is not supported by space");
+#endif
     }
 #ifdef USE_OPENMP
     BaseFE * myFe;
@@ -140,8 +145,13 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
+#ifdef _WIN32
+      EXCEPTION(__FUNCTION__
+                << ": requested FEType ("<<ptElem->type<<") is not supported by space");
+#else
       EXCEPTION(__PRETTY_FUNCTION__
                 << ": requested FEType ("<<ptElem->type<<") is not supported by space");
+#endif
     }
 #ifdef USE_OPENMP
     BaseFE * myFe;

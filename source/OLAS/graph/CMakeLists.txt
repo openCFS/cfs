@@ -1,5 +1,7 @@
 # Make sure the compiler can find include files
-INCLUDE_DIRECTORIES(${METIS_INCLUDE_DIR})
+if(USE_METIS)
+  INCLUDE_DIRECTORIES(${METIS_INCLUDE_DIR})
+endif()
 
 SET(GRAPH_SRCS
     BaseGraph.cc
@@ -13,6 +15,8 @@ ADD_DEFINITIONS()
 
 ADD_LIBRARY(graph-olas STATIC ${GRAPH_SRCS})
 
-TARGET_LINK_LIBRARIES(graph-olas ${METIS_LIBRARY})
+if(USE_METIS)
+  TARGET_LINK_LIBRARIES(graph-olas ${METIS_LIBRARY})
+endif()
 
 ADD_DEPENDENCIES(graph-olas boost)

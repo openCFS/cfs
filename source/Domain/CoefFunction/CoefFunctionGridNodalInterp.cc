@@ -584,7 +584,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         StdVector<DATA_TYPE> tSum(this->dimDof_);
         tSum.Init(0.0);
 #pragma omp for
-        for (UInt i = 0; i < size; ++i) {
+        for (Integer i = 0; i < (Integer) size; ++i) {
           if (this->countSolvecIndex_[i]) {
             tSum[this->solVecIndexDim_[i]] += feFncVec[i];
           }
@@ -611,7 +611,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       {
         DATA_TYPE tSum = 0.0;
 #pragma omp for
-        for (UInt i = 0; i < size; ++i) {
+        for (Integer i = 0; i < (Integer) size; ++i) {
           if (this->countSolvecIndex_[i]) {
             tSum += feFncVec[i];
           }

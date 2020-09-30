@@ -1,8 +1,0 @@
-// Define used to check if HDF5 in/output is used
-
-#cmakedefine USE_HDF5
-
-// This define is needed to compile the XMDF lib.
-#define NO_XMDF_API
-
-#define CFS_HDF5_VERSION "@CFS_HDF5_VERSION@"

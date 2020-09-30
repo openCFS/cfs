@@ -1,6 +1,5 @@
 // include general defines
 #include <def_cfs_stats.hh>
-#include <def_disable_optimization.hh>
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -340,7 +339,7 @@ namespace CoupledField {
     // If the user specified a path on the command line use it instead.
     if( varMap_.count( "schemaRoot" ) ) {
       schema = varMap_[ "schemaRoot" ].as<string>();
-#if defined(WIN32) || defined(__MINGW32__)
+#if defined(WIN32)
       // watch out for leading and closing " in schema string
       boost::trim_if( schema, boost::is_any_of(" \t\"\'") );
 
@@ -520,7 +519,7 @@ namespace CoupledField {
       fs::path fn = fs::system_complete(progOpts->exe_);
       fn.normalize();
       WriteColoredString(out, trim_size, "CFS_EXECUTABLE", fn.string());
-      WriteColoredString(out, trim_size, "XMLSCHEMA", (progOpts->GetSchemaPath()).c_str());
+      WriteColoredString(out, trim_size, "XMLSCHEMA", progOpts->GetSchemaPathStr());
     }
     else
       WriteColoredString(out, trim_size, "XMLSCHEMA", XMLSCHEMA);
@@ -550,14 +549,6 @@ namespace CoupledField {
 #endif
     WriteColoredString(out, trim_size, "COMPILE_FLAGS", cxxFlags);
     WriteColoredString(out, trim_size, "LINK_FLAGS", ldFlags);
-    out << endl;
-
-// todo: remove
-#ifdef DISABLE_OPTIMIZATION
-    WriteColoredString(out, trim_size, "DISABLE_OPTIMIZATION", "YES");
-#else
-    WriteColoredString(out, trim_size, "DISABLE_OPTIMIZATION", "NO");
-#endif
     out << endl;
 
     // deps.Dump();
@@ -652,7 +643,7 @@ namespace CoupledField {
         << "  its stuff." << endl
         << endl
         << "15.07, Verlorene Soehne" << endl
-        << "  The optimization group is finaly back on the FE-space trunk. Not everyone yet, " << endl
+        << "  The optimization group is finally back on the FE-space trunk. Not everyone yet, " << endl
         << "  not all features yet, but the the boys are back in town! :)" << endl
         << endl
         << "15.11, Back To The Future" << endl
@@ -664,7 +655,11 @@ namespace CoupledField {
         << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl
         << endl
         << "18.8, AMGme" << endl
-        << "  Contains Klaus' algebraic multigrid." << endl;
+        << "  Contains Klaus' algebraic multigrid." << endl
+        << endl
+        << "20.9, Frohes Fensterln" << endl
+        << "  Brings native Windows support and several features from the fork (thanks to Hermann, Jens and Simon)." << endl
+        << "  We are on the track of going open source as openCFS! :)" << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

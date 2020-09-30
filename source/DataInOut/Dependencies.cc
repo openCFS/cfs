@@ -10,14 +10,12 @@
 #include <def_use_gidpost.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
-#include <def_use_hdf5.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_ipopt.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_libxml2.hh>
 #include <def_use_lis.hh>
-#include <def_use_mesh.hh>
 #include <def_use_metis.hh>
 #include <def_use_mpi.hh>
 #include <def_use_openmp.hh>
@@ -211,14 +209,6 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(arpack);
 
-  // actually hard coded algorithm needing some USE_
-  // however the testsuite cecks it
-  Dependency palm("PALM", "BUILD_PALM", NOT_KNOWN);
-#ifdef BUILD_PALM
-  palm.active = true;
-#endif
-  data.Push_back(palm);
-
   Dependency mkl("MKL", "USE_MKL", ISSL);
 #ifdef USE_MKL
   CFSMKLVersion ver;
@@ -390,26 +380,6 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(gmv);
 
-  Dependency hdf5("HDF5", "USE_HDF5", BSD);
- #ifdef USE_HDF5
-  hdf5.SetVersion(H5_VERS_MAJOR,H5_VERS_MINOR,H5_VERS_RELEASE);
-#endif
-  data.Push_back(hdf5);
-
-  // todo: shall go away
-  Dependency mesh("mesh", "USE_MESH", EASY);
-#ifdef USE_MESH
-  mesh.active = true;
-#endif
-  data.Push_back(mesh);
-
-  // seems to be internal code?!
-  Dependency unv("UNV", "USE_UNV", EASY);
-#ifdef USE_UNV
-  unv.active = true;
-#endif
-  data.Push_back(unv);
-
   Dependency vtk("VTK", "USE_ENSIGHT", BSD);
 #ifdef USE_ENSIGHT
   vtk.SetVersion(VTK_VERSION);
@@ -490,6 +460,11 @@ void Dependencies::ReadSetting()
 
   // https://github.com/beltoforion/muparser
   data.Push_back(Dependency("muparser", "", MUP_VERSION, BSD, "", MUP_VERSION_DATE));
+
+  Dependency hdf5("hdf5", "", BSD);
+  hdf5.SetVersion(H5_VERS_MAJOR,H5_VERS_MINOR,H5_VERS_RELEASE);
+  data.Push_back(hdf5);
+
 }
 
 // Allows the binary a free distribution? Not for GPL, COMMERICAL and CLOSED
@@ -528,8 +503,7 @@ Dependencies::Dependency::Dependency(const string& name, const string& cmake, co
 
 bool Dependencies::Dependency::IsSwitchable() const
 {
-  // BUILD_PALM
-  return cmake.find("USE_") != string::npos || cmake.find("BUILD_") != string::npos;
+  return cmake.find("USE_") != string::npos;
 }
 
 void Dependencies::Dependency::SetVersion(const string& version, const string& sub, const string& minor)

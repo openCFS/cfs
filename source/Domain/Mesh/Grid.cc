@@ -1084,7 +1084,7 @@ namespace CoupledField
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-    for( UInt iM = 0; iM < numMatches; ++iM ) {
+    for( Integer iM = 0; iM < (Integer) numMatches; ++iM ) {
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;
       const std::set<const Elem*> & mElems = matches[iM].matches;

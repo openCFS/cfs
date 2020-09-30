@@ -2095,7 +2095,7 @@ namespace CoupledField {
     
     UInt count = 0;
 #pragma omp parallel for reduction(+:count)
-    for (UInt i = 1; i <= numNodes_;++i) {
+    for (Integer i = 1; i <= (Integer) numNodes_;++i) {
       if (usedNode[i]) {
         count++;
       }

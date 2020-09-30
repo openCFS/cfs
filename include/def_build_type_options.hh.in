@@ -3,9 +3,6 @@
 // Defines related to tracing of functions and memory usage
 #cmakedefine MEMTRACE
 
-// Use profiling or not
-#cmakedefine PROFILING
-
 // Check for certain error conditions (in DEBUG mode)
 #cmakedefine CHECK_INDEX
 #cmakedefine CHECK_INITIALIZED

@@ -46,12 +46,6 @@ IF(CMAKE_TOOLCHAIN_FILE)
   )
 ENDIF()
 
-IF(MINGW)
-  LIST(APPEND CMAKE_ARGS
-    -DCFS_ARCH:STRING=${CFS_ARCH}
-  )
-ENDIF()
-
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
@@ -80,6 +74,10 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+# After the installation we copy to zconf.h to zlib src
+set(PI "${zlib_prefix}/zlib-post_install.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-post_install.cmake.in" "${PI}" @ONLY) 
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "zlib" "${ZLIB_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
@@ -95,32 +93,28 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths to zlib libraries
 #-------------------------------------------------------------------------------
-IF(MINGW)
+IF(UNIX)
+  SET(ZLIB_LIB z)
+  SET(ZLIB_SHARED_LIB z)
+ELSE()
   SET(ZLIB_LIB zlibstatic)
   SET(ZLIB_SHARED_LIB zlib)
-ELSE(MINGW)
-  IF(UNIX)
-    SET(ZLIB_LIB z)
-    SET(ZLIB_SHARED_LIB z)
-  ELSE(UNIX)
-    SET(ZLIB_LIB zlibstatic)
-    SET(ZLIB_SHARED_LIB zlib)
-    IF(DEBUG)
-      SET(ZLIB_LIB "${ZLIB_LIB}d")
-      SET(ZLIB_SHARED_LIB "${ZLIB_SHARED_LIB}d")
-    ENDIF()
-  ENDIF(UNIX)
-ENDIF(MINGW)
+  IF(DEBUG)
+    SET(ZLIB_LIB "${ZLIB_LIB}d")
+    SET(ZLIB_SHARED_LIB "${ZLIB_SHARED_LIB}d")
+  ENDIF()
+ENDIF()
 
-SET(LD ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR})
+IF(WIN32)
+  SET(LD ${CFS_BINARY_DIR}/${LIB_SUFFIX})
+ELSE(WIN32)
+  SET(LD ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR})
+ENDIF(WIN32)
 SET(ZLIB_LIBRARY
-  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}
-  CACHE FILEPATH "zlib library")
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX})
 SET(ZLIB_SHARED_LIBRARY
   ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-IF(MINGW)
-  SET(ZLIB_SHARED_LIBRARY "${ZLIB_SHARED_LIBRARY}.a")
-ENDIF(MINGW)
+SET(ZLIB_LIBRARY ${ZLIB_LIBRARY} CACHE FILEPATH "zlib library")
 SET(ZLIB_SHARED_LIBRARY ${ZLIB_SHARED_LIBRARY} CACHE FILEPATH "zlib shared library")
 SET(ZLIB_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "zlib include directory")
 
@@ -170,9 +164,24 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   )
 
   #-------------------------------------------------------------------------------
+  # make boost_zlib been built
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(zlib post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install )
+
+  #-------------------------------------------------------------------------------
   # No zip to cache here but after minizip is built. See below.
   #-------------------------------------------------------------------------------
 ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+IF(WIN32)
+  ExternalProject_Add_Step(zlib RenameZlib
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${ZLIB_SHARED_LIB}.lib 
+                                           ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${ZLIB_SHARED_LIB}.dll
+  DEPENDEES install
+)
+ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
@@ -183,7 +192,7 @@ LIST(APPEND CFSDEPS zlib)
 # Determine Paths for minizip library
 #-------------------------------------------------------------------------------
 SET(MINIZIP_SHARED_LIB minizip)
-IF(MINGW OR WIN32)
+IF(WIN32)
   SET(MINIZIP_SHARED_LIB minizipdll)
 ENDIF()
 
@@ -192,9 +201,6 @@ SET(MINIZIP_LIBRARY
   CACHE FILEPATH "minizip library")
 SET(MINIZIP_SHARED_LIBRARY
   ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${MINIZIP_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-IF(MINGW)
-  SET(MINIZIP_SHARED_LIBRARY "${MINIZIP_SHARED_LIBRARY}.a")
-ENDIF(MINGW)
 SET(MINIZIP_SHARED_LIBRARY ${MINIZIP_SHARED_LIBRARY}
   CACHE FILEPATH "minizip shared library")
 SET(MINIZIP_INCLUDE_DIR ${CFS_BINARY_DIR}/include/minizip

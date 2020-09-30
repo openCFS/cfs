@@ -38,7 +38,7 @@ function (colormsg)
     SET(DISABLE_COLOR 1)
   endif()
 
-  IF(MINGW OR WIN32 OR CYGWIN)
+  IF(WIN32)
     SET(DISABLE_COLOR 1)
   endif()
 
@@ -135,13 +135,9 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
         "Return value: ${${VAR}}\n"
         "Source file was:\n${SOURCE}\n")
     ELSE("${${VAR}_EXITCODE}" EQUAL 0)
-      IF(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
-        SET(${VAR} "${${VAR}_EXITCODE}")
-      ELSE(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
-        SET(${VAR} "" CACHE INTERNAL "Test ${VAR}")
-      ENDIF(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
-
-      #MESSAGE(STATUS "Performing Test ${VAR} - Failed")
+      SET(${VAR} "" CACHE INTERNAL "Test ${VAR}")
+ 
+       #MESSAGE(STATUS "Performing Test ${VAR} - Failed")
       FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log 
         "Performing C++ SOURCE FILE Test ${VAR} failed with the following output:\n"
         "${OUTPUT}\n"  
@@ -154,31 +150,19 @@ ENDMACRO(CFS_CHECK_CXX_SOURCE_RUNS)
 #-------------------------------------------------------------------------------
 # Get the current date
 #-------------------------------------------------------------------------------
-MACRO (TODAY RESULT)
-    IF (WIN32)
-      IF(MINGW)
-        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
-#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
-#         ${RESULT} ${${RESULT}})
-        string(STRIP "${OUT}" OUT)
-        SET(${RESULT} ${OUT})
-      ELSE()
-        EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat" OUTPUT_VARIABLE OUT)
-#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
-#	  ${RESULT} ${${RESULT}})
-        string(STRIP "${OUT}" OUT)
-	SET(${RESULT} ${OUT})
-      ENDIF()
-    ELSEIF(UNIX)
-        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
-#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
-#	  ${RESULT} ${${RESULT}})
-        string(STRIP "${OUT}" OUT)
-        SET(${RESULT} ${OUT})
-    ELSE (WIN32)
-        MESSAGE(SEND_ERROR "date not implemented")
-        SET(${RESULT} 000000)
-    ENDIF (WIN32)
+MACRO(TODAY RESULT)
+  IF(WIN32)
+    EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat" OUTPUT_VARIABLE OUT)
+    string(STRIP "${OUT}" OUT)
+    SET(${RESULT} ${OUT})
+  ELSEIF(UNIX)
+    EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
+    string(STRIP "${OUT}" OUT)
+    SET(${RESULT} ${OUT})
+  ELSE()
+    MESSAGE(SEND_ERROR "date not implemented")
+    SET(${RESULT} 000000)
+  ENDIF()
 ENDMACRO (TODAY)
 
 #-------------------------------------------------------------------------------
@@ -290,7 +274,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         ENDIF()
 
       ELSE()
-        MESSAGE(WARNING "Download failed for ${URL}: ${DL_MSG}")
+        MESSAGE("Download failed: ${DL_MSG}")
         FILE(REMOVE ${LOCAL_FILE})
       ENDIF()
 
@@ -478,3 +462,37 @@ macro(headline text)
   message("")
 endmacro()
 
+
+#-------------------------------------------------------------------------------
+# Run a program with optional logging and throw error if return code is non-zero
+#-------------------------------------------------------------------------------
+function(run_program workdir logfile cmd)
+  if(NOT IS_DIRECTORY "${workdir}")
+    MESSAGE(FATAL_ERROR "Working directory '${workdir}' does not exist or is not a directory.")
+  endif(NOT IS_DIRECTORY "${workdir}")
+
+  if("${logfile}" STREQUAL "")
+  
+    execute_process(COMMAND ${cmd} ${ARGN}
+                    WORKING_DIRECTORY ${workdir}
+                    RESULT_VARIABLE rv)
+    if(NOT ${rv} EQUAL 0)
+      message(FATAL_ERROR "Command '${cmd} ${ARGN}' failed with return code ${rv}.")
+    endif(NOT ${rv} EQUAL 0)
+                    
+  else("${logfile}" STREQUAL "")
+  
+    execute_process(COMMAND ${cmd} ${ARGN}
+                    WORKING_DIRECTORY ${workdir}
+                    RESULT_VARIABLE rv
+                    OUTPUT_VARIABLE outerr
+                    ERROR_VARIABLE outerr)
+    file(WRITE "${logfile}" "${outerr}")
+    if(NOT ${rv} EQUAL 0)
+      message(FATAL_ERROR "Command ${cmd} ${ARGN} failed with return code ${rv}.
+        See ${logfile} for details.")
+    endif(NOT ${rv} EQUAL 0)
+    
+  endif("${logfile}" STREQUAL "")
+
+endfunction(run_program)

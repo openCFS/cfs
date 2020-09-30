@@ -2,7 +2,7 @@
 #cmakedefine USE_BLAS
 
 #define BLAS_LIBRARY "@BLAS_LIBRARY@"
-#define CFS_BLAS_LAPACK "@CFS_BLAS_LAPACK@"
+#define USE_BLAS_LAPACK "@USE_BLAS_LAPACK@"
 
 #cmakedefine USE_OPENBLAS
 #cmakedefine USE_MKL

@@ -4453,22 +4453,16 @@ namespace CoupledField {
   #ifdef USE_METIS
         ot = BaseOrdering::METIS;
   #endif
-        bool canChangeReordering = true;
-        if (matNode->Has("reordering") &&
-            matNode->Get("reordering")->As<std::string>() != "_default_" ) {
-          ot = BaseOrdering::reorderingType.Parse(
-              matNode->Get("reordering")->As<std::string>());
+        bool canChangeReordering = true; // is yes when the user keeps default
+        if(matNode->Has("reordering") && matNode->Get("reordering")->As<std::string>() != "_default_") {
+          ot = BaseOrdering::reorderingType.Parse(matNode->Get("reordering")->As<std::string>());
           canChangeReordering = false;
         }
 
-
         // a) for our own direct solvers we activate re-ordering
-        if( (st == BaseSolver::LU_SOLVER ||
-             st == BaseSolver::LDL_SOLVER ||
-             st == BaseSolver::LAPACK_LL ||
-             st == BaseSolver::LAPACK_LU ) &&
-             ot == BaseOrdering::NOREORDERING &&
-            canChangeReordering == true ) {
+        if(canChangeReordering == true && ot == BaseOrdering::NOREORDERING &&
+           (st == BaseSolver::LU_SOLVER || st == BaseSolver::LDL_SOLVER || st == BaseSolver::LAPACK_LL || st == BaseSolver::LAPACK_LU))
+        {
   #ifdef USE_METIS
           ot = BaseOrdering::METIS;
   #else
@@ -4477,25 +4471,18 @@ namespace CoupledField {
         }
 
         // b) pardiso and most external solvers need no reordering or have their own
-        if( st == BaseSolver::PARDISO_SOLVER &&
-            st == BaseSolver::UMFPACK &&
-            st == BaseSolver::ILUPACK &&
-  //          st == BaseSolver::LIS &&
-            st == BaseSolver::SUPERLU &&
-            st == BaseSolver::SPOOLES &&
-            ot != BaseOrdering::NOREORDERING &&
-            canChangeReordering == true ) {
+        if(canChangeReordering == true && ot != BaseOrdering::NOREORDERING &&
+           (st == BaseSolver::PARDISO_SOLVER || st == BaseSolver::UMFPACK || st == BaseSolver::ILUPACK ||
+            st == BaseSolver::SUPERLU || st == BaseSolver::SPOOLES /* || st == BaseSolver::LIS */))
+        {
           ot = BaseOrdering::NOREORDERING;
         }
 
         // c) ilu-based preconditioners prefer reordering
-        if( ( pt == BasePrecond::ILUK ||
-              pt == BasePrecond::ILUTP ||
-              pt == BasePrecond::ILDLK ||
-              pt == BasePrecond::ILDLTP ||
-              pt == BasePrecond::ILDLCN ) &&
-              ot == BaseOrdering::NOREORDERING &&
-              canChangeReordering == true ) {
+        if(canChangeReordering == true && ot == BaseOrdering::NOREORDERING &&
+           (pt == BasePrecond::ILUK || pt == BasePrecond::ILUTP || pt == BasePrecond::ILDLK ||
+            pt == BasePrecond::ILDLTP || pt == BasePrecond::ILDLCN))
+        {
   #ifdef USE_METIS
           ot = BaseOrdering::METIS;
   #else
@@ -4504,9 +4491,7 @@ namespace CoupledField {
         }
 
         // in the end store back the reordering type
-        matNode->Get("reordering",ParamNode::INSERT)->
-            SetValue(BaseOrdering::reorderingType.ToString(ot));
-
+        matNode->Get("reordering",ParamNode::INSERT)->SetValue(BaseOrdering::reorderingType.ToString(ot));
     }
 
   }

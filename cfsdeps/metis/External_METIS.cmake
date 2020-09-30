@@ -13,29 +13,30 @@ set(metis_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/metis")
 set(metis_source  "${metis_prefix}/src/metis")
 set(metis_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
+set(metis_c_flags ${CFS_SUPPRESSIONS})
+if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+  set(metis_c_flags "-Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
+endif()
+
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${metis_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+   -DCMAKE_C_FLAGS:STRING=${metis_c_flags}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  )
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX})
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(CMAKE_ARGS
     ${CMAKE_ARGS}
     -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT})
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
+  LIST(APPEND CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
 ENDIF()
 
 #-------------------------------------------------------------------------------
@@ -55,8 +56,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 SET(MIRRORS
   "ftp://ftp1.rrzn.uni-hannover.de/pub/mirror/bsd/FreeBSD/ports/distfiles/${METIS_GZ}"
   "http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/${METIS_GZ}"
-  "${METIS_URL}/${METIS_GZ}"
-)
+  "${METIS_URL}/${METIS_GZ}")
+  
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/metis/${METIS_GZ}")
 SET(MD5_SUM ${METIS_MD5})
 
@@ -64,8 +65,7 @@ SET(DLFN "${metis_prefix}/metis-download.cmake")
 CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
-  @ONLY
-)
+  @ONLY)
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "metis" "${METIS_VER}")
   
@@ -157,10 +157,7 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  metis
-)
+SET(CFSDEPS ${CFSDEPS} metis)
 
 SET(METIS_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 MARK_AS_ADVANCED(METIS_INCLUDE_DIR)

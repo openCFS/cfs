@@ -366,10 +366,14 @@ void PiezoSIMP::SetElementK(Function* f, DesignElement* de, const TransferFuncti
   LOG_DBG2(simp) << "PiezoSIMP::SetElementK elem: " << de->elem->elemNum << " app: " << application.ToString(app) << " factor: " << factor;
 }
 
-
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+#ifndef _MSC_VER
   template void PiezoSIMP::ConstructAdjointRHS<double>(Excitation& excite, Function* cost);
   template void PiezoSIMP::ConstructAdjointRHS<Complex>(Excitation& excite, Function* cost);
+#else
+  template void PiezoSIMP::ConstructAdjointRHS<std::complex<double>>(Excitation& excite, Function* f);
+  template void PiezoSIMP::ConstructAdjointRHS<double>(Excitation& excite, Function* f);
+#endif
 #endif
 
 

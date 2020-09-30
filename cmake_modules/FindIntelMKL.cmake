@@ -1,9 +1,9 @@
 #-------------------------------------------------------------------------------
 # This script  is responsible for the  determination of the correct  include and
 # linker  parameters for  the Intel  Math Kernel  Library (MKL).  We distinguish
-# between Windows/MinGW builds and Unix (Linux  and MacOS X) builds.
+# between Windows, MacOS and Linux.
 #
-# On Unix  we determine the  required linker flags by  compiling one of  the MKL
+# On Linux  we determine the  required linker flags by compiling one of the MKL
 # examples and reading the flags from the Makefile output (cf. below).
 # another option: https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
 #-------------------------------------------------------------------------------
@@ -12,7 +12,6 @@
 # Function to read MKL version from header file mkl.h or mkl_version.h
 #-----------------------------------------------------------------------------
 function(MKL_VERSION_FROM_HEADER)
-
   IF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
     FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl_version.h" MKL_HEADER)
   ELSEIF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
@@ -58,9 +57,11 @@ IF(MSVC)
   #-----------------------------------------------------------------------------
   IF(NOT MKL_ROOT_DIR)
     SET(MKL_POSSIBLE_ROOT_DIRS
-	"e:/dev/intel/MKL/composer_xe_2013"
-	"e:/dev/intel/MKL/10.0.5.025"
-	)
+      "e:/dev/intel/MKL/composer_xe_2013"
+      "e:/dev/intel/MKL/10.0.5.025"
+      "$ENV{MKLROOT}"
+      "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.228/windows/mkl"
+    )
 
     find_file(MKL_H
       "include/mkl.h"
@@ -75,7 +76,7 @@ IF(MSVC)
       )
 
     STRING(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
-    MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
+#    MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
   ENDIF()
 
 
@@ -91,34 +92,38 @@ IF(MSVC)
   # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
 
   SET(MKL_BLAS_LIB
-    # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
-    -Wl,--start-group
-    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-    ${MKL_LIB_DIR}/mkl_intel_thread.lib
-    ${MKL_LIB_DIR}/mkl_core.lib
-    ${MKL_LIB_DIR}/mkl_blas95_lp64.lib
-    -Wl,--end-group
-    #    wrap-chkstk
-# ${MKL_LIB_DIR}/libguide.lib
-    )
+    ${MKL_LIB_DIR}/mkl_intel_lp64_dll.lib
+    ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
+    ${MKL_LIB_DIR}/mkl_core_dll.lib
+    ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
+  )
 
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
-  # from Fabian: This is almost MKL_BLAS_LIB and unconditional! DEPS_SEQUENTIAL is only set here for MSVC, 
-  # I suggest to do it as in APPLE below and remove DEPS_SEQUENTIAL from whole cfs.
   SET(DEPS_SEQUENTIAL
-  ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-  ${MKL_LIB_DIR}/mkl_intel_thread.lib
-  ${MKL_LIB_DIR}/mkl_core.lib
-  ${MKL_LIB_DIR}/mkl_sequential.lib
-  ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib # md or mt? I have no idea
-  -openmp
-  #${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib
-  #    ${MKL_LIB_DIR}/libguide40.lib
+    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    ${MKL_LIB_DIR}/mkl_intel_thread.lib
+    ${MKL_LIB_DIR}/mkl_core.lib
+    ${MKL_LIB_DIR}/mkl_sequential.lib
+    ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
   )
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+
+  #-------------------------------------------------------------------------------
+  # Copy MKL redistributable dlls to bin/ directory
+  #-------------------------------------------------------------------------------
+  SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
   
+  # redistributable directory
+  SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+  
+  # copy all dlls to binary dir
+  MESSAGE(STATUS "Copying MKL redistributable files from ${MKL_REDIST_DIR} to ${LIB_DEST_DIR}")
+  FILE(COPY ${MKL_REDIST_DIR} DESTINATION ${LIB_DEST_DIR}
+       FILES_MATCHING PATTERN "*.dll")
+
+
 elseif(APPLE) # END MSVC
   # for APPLE we do it as with MSVC, we forget about the complex LINUX compile_mkl_test.sh.in stuff
   # this is possibly also an option for Linux to get rid of the ugly stuff. 
@@ -141,7 +146,7 @@ elseif(APPLE) # END MSVC
       NO_CMAKE_FIND_ROOT_PATH)
 
     string(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
-    message(STATUS "MKL_ROOT_DIR set from include/mkl.h: ${MKL_ROOT_DIR}")
+    #message(STATUS "MKL_ROOT_DIR set from include/mkl.h: ${MKL_ROOT_DIR}")
   endif()
 
 
@@ -193,8 +198,11 @@ elseif(APPLE) # END MSVC
 
   set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
 
-else() # neither MSVC nor APPLE
-  #-------------------------------------------------------------------------------
+
+  mark_as_advanced(MKL_H)
+  mark_as_advanced(MKL_ROOT_DIR)
+
+else() # neither MSVC nor APPLE  #-------------------------------------------------------------------------------
   # The idea behind the algorithm implemented for	 finding MKL, is to let the make
   # files in the MKL  example directories tell us which linker  flags we need.  We
   # therefore tell  the MKLROOT  (which contains a  include/mkl.h) to  an external
@@ -276,7 +284,7 @@ else() # neither MSVC nor APPLE
       " 2. Set '-DMKL_ROOT_DIR:PATH=...' on the CMake command line "
       " 3. Or adapt the MKL_POSSIBLE_PATHS at the beginning of cmake_modules/FindIntelMKL.cmake. "
       "You may also just copy MKL from LSE /home/shareAll/linux_bin/intel/mkl. "
-      "Another option is to change CFS_BLAS_LAPACK and CFS_PARDISO to different "
+      "Another option is to change USE_BLAS_LAPACK and CFS_PARDISO to different "
       "implementations. OpenBLAS and should provide similar performance to MKL.")
   ELSE(NOT MKL_ROOT_DIR)
     SET(MKL_FOUND 1)
@@ -391,13 +399,13 @@ else() # neither MSVC nor APPLE
       #---------------------------------------------------------------------------
       INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
       #---------------------------------------------------------------------------
-      # Create a custom target to copy over libiomp5.so or libiomp5.dylib for macOS
+      # Create a custom target to copy over libiomp5.so
       # here one could include the option USE_OMP=OFF which does not need to not copy libomp5
       #---------------------------------------------------------------------------
       ADD_CUSTOM_TARGET(mkl_libomp5 ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} ${LIBRARY_OUTPUT_PATH}/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX}
-        BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.${CMAKE_SHARED_LIBRARY_SUFFIX}
-        COMMENT "Copying libiomp5.${CMAKE_SHARED_LIBRARY_SUFFIX} to ${LIBRARY_OUTPUT_PATH} folder..."
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5.so ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+        BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+        COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
         USES_TERMINAL)
   
     ELSE()
@@ -431,12 +439,12 @@ ENDIF() # end of UNIX
 # see also External_OpenBLAS and External_LAPACK, where the setting is quite different:
 # e.g. BLAS_LIBRARY=-Wl,--start-group;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_intel_lp64.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_gnu_thread.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_core.a;-Wl,--end-group;-L/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/../compiler/lib/intel64;-liomp5;-lpthread;-lm;-ldl
 # e.g. LAPACK_LIBRARY=
-IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+IF(USE_BLAS_LAPACK STREQUAL "MKL")
   SET(BLAS_LIBRARY "${MKL_BLAS_LIB}")
   IF(MKL_MAJOR_VERSION LESS 10)
     SET(LAPACK_LIBRARY "${MKL_LAPACK_LIB}")
   ENDIF(MKL_MAJOR_VERSION LESS 10)  
-ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+ENDIF(USE_BLAS_LAPACK STREQUAL "MKL")
 SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
 
 #-------------------------------------------------------------------------------

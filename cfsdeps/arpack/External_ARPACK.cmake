@@ -80,7 +80,11 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 # Determine paths of ARPACK libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
+IF(WIN32)
+  SET(ARPACK_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/arpack.lib" CACHE FILEPATH "ARPACK library.")
+ELSE(WIN32)
+  SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
+ENDIF(WIN32)
 MARK_AS_ADVANCED(ARPACK_LIBRARY)
 
 #-------------------------------------------------------------------------------
