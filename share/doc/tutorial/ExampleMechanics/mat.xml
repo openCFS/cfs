@@ -1,17 +1,24 @@
-<?xml version="1.0"?>
-
-<cfsMaterialDataBase xmlns="http://www.cfs++.org">
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
   <material name="Steel">
-  <mechanical>
-        <density> 7.8E03 </density>
-        <elasticity>
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7.8E03 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
           <isotropic>
-            <real>
-              <elasticityModulus> 210E09 </elasticityModulus>
-              <poissonNumber> 0.3 </poissonNumber>
-            </real>
+            <elasticityModulus>
+              <real> 210E09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
           </isotropic>
-        </elasticity>
-      </mechanical>
+        </linear>
+      </elasticity>
+    </mechanical>
   </material>
 </cfsMaterialDataBase>

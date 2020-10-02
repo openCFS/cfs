@@ -1,15 +1,16 @@
 #include <iostream>
 
-#include <boost/program_options/cmdline.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
+//#include <boost/program_options/cmdline.hpp>
+//#include <boost/program_options/options_description.hpp>
+//#include <boost/program_options/parsers.hpp>
+//#include <boost/program_options/variables_map.hpp>
+#include "DataInOut/ProgramOptions.hh"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 
-#if defined(WIN32) || defined(__MINGW32__)
+#if defined(WIN32)
 #include <shlobj.h>
 #else
 #if defined(__APPLE__) // OSX
@@ -22,7 +23,6 @@
 namespace fs = boost::filesystem;
 
 #include "General/Exception.hh"
-#include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "HelperFuncs.hh"
@@ -69,7 +69,7 @@ namespace CFSTool
     // cf. http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
     StdVector<fs::path> configFiles;
     char buf[4096];
-#if defined(WIN32) || defined(__MINGW32__) // Windows
+#if defined(WIN32) // Windows
     GetModuleFileName(NULL, buf, sizeof(buf));
 #else
 #if defined(__APPLE__) // OSX
@@ -97,7 +97,7 @@ namespace CFSTool
     fs::path cfstoolconfig;
     fs::path home;
 
-#if defined(WIN32) || defined(__MINGW32__)
+#if defined(WIN32)
 
     // Try to obtain paths to application data folders on Windows.
     TCHAR szPath[MAX_PATH];
@@ -452,9 +452,7 @@ namespace CFSTool
     }
 
     // param->ToXML(std::cout);
-    
 
-    logConf.reset(new LogConfigurator(param_logConfFile));
-    logConf->ParseLogConfFile();
+    LogConfigurator::ParseLogConfFile(param_logConfFile);
   }
 }

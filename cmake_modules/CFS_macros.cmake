@@ -1,3 +1,5 @@
+# easy check if already loaded
+set(CFS_macros "1")
 #
 # A big shout out to the cmake gurus @ compiz
 #
@@ -36,7 +38,7 @@ function (colormsg)
     SET(DISABLE_COLOR 1)
   endif()
 
-  IF(MINGW OR WIN32 OR CYGWIN)
+  IF(WIN32)
     SET(DISABLE_COLOR 1)
   endif()
 
@@ -133,13 +135,9 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
         "Return value: ${${VAR}}\n"
         "Source file was:\n${SOURCE}\n")
     ELSE("${${VAR}_EXITCODE}" EQUAL 0)
-      IF(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
-        SET(${VAR} "${${VAR}_EXITCODE}")
-      ELSE(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
-        SET(${VAR} "" CACHE INTERNAL "Test ${VAR}")
-      ENDIF(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
-
-      #MESSAGE(STATUS "Performing Test ${VAR} - Failed")
+      SET(${VAR} "" CACHE INTERNAL "Test ${VAR}")
+ 
+       #MESSAGE(STATUS "Performing Test ${VAR} - Failed")
       FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log 
         "Performing C++ SOURCE FILE Test ${VAR} failed with the following output:\n"
         "${OUTPUT}\n"  
@@ -152,31 +150,19 @@ ENDMACRO(CFS_CHECK_CXX_SOURCE_RUNS)
 #-------------------------------------------------------------------------------
 # Get the current date
 #-------------------------------------------------------------------------------
-MACRO (TODAY RESULT)
-    IF (WIN32)
-      IF(MINGW)
-        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
-#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
-#         ${RESULT} ${${RESULT}})
-        string(STRIP "${OUT}" OUT)
-        SET(${RESULT} ${OUT})
-      ELSE()
-        EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat" OUTPUT_VARIABLE OUT)
-#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
-#	  ${RESULT} ${${RESULT}})
-        string(STRIP "${OUT}" OUT)
-	SET(${RESULT} ${OUT})
-      ENDIF()
-    ELSEIF(UNIX)
-        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
-#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
-#	  ${RESULT} ${${RESULT}})
-        string(STRIP "${OUT}" OUT)
-        SET(${RESULT} ${OUT})
-    ELSE (WIN32)
-        MESSAGE(SEND_ERROR "date not implemented")
-        SET(${RESULT} 000000)
-    ENDIF (WIN32)
+MACRO(TODAY RESULT)
+  IF(WIN32)
+    EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat" OUTPUT_VARIABLE OUT)
+    string(STRIP "${OUT}" OUT)
+    SET(${RESULT} ${OUT})
+  ELSEIF(UNIX)
+    EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
+    string(STRIP "${OUT}" OUT)
+    SET(${RESULT} ${OUT})
+  ELSE()
+    MESSAGE(SEND_ERROR "date not implemented")
+    SET(${RESULT} 000000)
+  ENDIF()
 ENDMACRO (TODAY)
 
 #-------------------------------------------------------------------------------
@@ -252,17 +238,23 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         dst='${LOCAL_FILE}'
         timeout=${TIMEOUT}")
 
-      FILE(DOWNLOAD
-        ${URL}
-        ${LOCAL_FILE}
-        INACTIVITY_TIMEOUT ${TIMEOUT}
-        STATUS DL_STATUS
-        LOG DL_LOG
-        SHOW_PROGRESS
-        TLS_VERIFY OFF)
+      IF(EXISTS ${URL})
+        GET_FILENAME_COMPONENT(FOLDER ${LOCAL_FILE} DIRECTORY)
+        MESSAGE("src is an existing local file: copy ${URL} -> ${LOCAL_FILE}")
+        CONFIGURE_FILE("${URL}" "${LOCAL_FILE}" COPYONLY)
+      ELSE()
+        FILE(DOWNLOAD
+          ${URL}
+          ${LOCAL_FILE}
+          INACTIVITY_TIMEOUT ${TIMEOUT}
+          STATUS DL_STATUS
+          LOG DL_LOG
+          SHOW_PROGRESS
+          TLS_VERIFY OFF)
 
-      LIST(GET DL_STATUS 0 DL_FAIL)
-      LIST(GET DL_STATUS 1 DL_MSG)
+        LIST(GET DL_STATUS 0 DL_FAIL)
+        LIST(GET DL_STATUS 1 DL_MSG)
+      ENDIF()
 
       IF(NOT DL_FAIL)
         FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
@@ -316,8 +308,8 @@ ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
-# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files listed in there.
-# Else we try to be smart on TMP_DIR, make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
+# If a TMP_DIR/src/*-build/install_manifest.txt exists (when built with cmake), we zip all files listed in there.
+# Else we try to be smart on TMP_DIR (move libs from lib64 to lib64/@CFS_ARCH), make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
@@ -326,8 +318,13 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
   
-  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
+  # Fabian: was src/*-build/install_manifest.tx before but that fails for openblas
+  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*/install_manifest.txt")
+
+  message("ZIP_TO_CACHE ZF=${ZIP_FILE} TD=${TMP_DIR} M=${MANIFESTS}")
+
   IF("${MANIFESTS}" STREQUAL "")
+    message("ZIP_TO_CACHE: zip ${TMP_DIR} as manifest ${TMP_DIR}/src/*-build/install_manifest.txt was not found")
     # No manifests exists -> zip TMP_DIR
 
     # standard make or configure does not known about lib64/CFS_ARCH_STR
@@ -356,14 +353,15 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
       EXECUTE_PROCESS(
         COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
         COMMAND zip -@ -g ${ZIP_FILE}
-        OUTPUT_QUIET
-        RESULT_VARIABLE rv
-      )
+        # OUTPUT_QUIET
+        RESULT_VARIABLE rv )
     ENDFOREACH()
+    
   ENDIF()
-  IF(NOT "${rv}" STREQUAL "0")
+  if(NOT "${rv}" STREQUAL "0")
     MESSAGE(WARNING "Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
-  ENDIF()
+  endif()
+ 
 ENDMACRO()
 
 # ------------------------------------------------------------------------------
@@ -397,6 +395,7 @@ MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   ELSE()
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")  
   ENDIF()    
+  
 ENDMACRO()
 
 # don't add Release or Debug when the package is built independently
@@ -413,6 +412,7 @@ MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   ELSE()
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${Fortran_COMPILER_VERSION}.zip")  
   ENDIF()    
+
 ENDMACRO()
 
 
@@ -434,3 +434,65 @@ macro(DUMP_DIR DIR)
     message("${_NAME}")
   endforeach()  
 endmacro()
+
+
+# This is a simple assert to check if a cmake variable is set.
+# use like assert_set(CTEST_SCRIPTS_DIR) or assert_set("CTEST_SCRIPTS_DIR")
+macro(assert_set test)
+  if(NOT ${test})
+     message(FATAL_ERROR "assertion failed, the variable ${test} is not set")
+  endif()
+endmacro()
+
+# This is a simple assert to check if a cmake variable is unset.
+# see assert_set() 
+macro(assert_unset test)
+  if(${test})
+     message(FATAL_ERROR  "assertion failed, the variable ${test} is already set to '${test}'")
+  endif()
+endmacro()
+
+# simple headline macro. Prints emptly line, ======, text, ===== empty line
+# use like headline("Starting nightly tests on ${DATE_OUT}...")
+macro(headline text)
+  message("")
+  message("=============================================================================")
+  message("${text}")
+  message("=============================================================================")
+  message("")
+endmacro()
+
+
+#-------------------------------------------------------------------------------
+# Run a program with optional logging and throw error if return code is non-zero
+#-------------------------------------------------------------------------------
+function(run_program workdir logfile cmd)
+  if(NOT IS_DIRECTORY "${workdir}")
+    MESSAGE(FATAL_ERROR "Working directory '${workdir}' does not exist or is not a directory.")
+  endif(NOT IS_DIRECTORY "${workdir}")
+
+  if("${logfile}" STREQUAL "")
+  
+    execute_process(COMMAND ${cmd} ${ARGN}
+                    WORKING_DIRECTORY ${workdir}
+                    RESULT_VARIABLE rv)
+    if(NOT ${rv} EQUAL 0)
+      message(FATAL_ERROR "Command '${cmd} ${ARGN}' failed with return code ${rv}.")
+    endif(NOT ${rv} EQUAL 0)
+                    
+  else("${logfile}" STREQUAL "")
+  
+    execute_process(COMMAND ${cmd} ${ARGN}
+                    WORKING_DIRECTORY ${workdir}
+                    RESULT_VARIABLE rv
+                    OUTPUT_VARIABLE outerr
+                    ERROR_VARIABLE outerr)
+    file(WRITE "${logfile}" "${outerr}")
+    if(NOT ${rv} EQUAL 0)
+      message(FATAL_ERROR "Command ${cmd} ${ARGN} failed with return code ${rv}.
+        See ${logfile} for details.")
+    endif(NOT ${rv} EQUAL 0)
+    
+  endif("${logfile}" STREQUAL "")
+
+endfunction(run_program)

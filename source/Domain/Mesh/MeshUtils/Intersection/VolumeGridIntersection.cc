@@ -88,7 +88,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   const Elem* elem1;
   const Elem* elem2;
 #pragma omp for reduction(+ : intersectsOutsideElem , numIntersects , intersectsSmall)  schedule(guided,10)
-  for(UInt aCand = 0; aCand < numCandidates; ++aCand){
+  for(Integer aCand = 0; aCand < (Integer) numCandidates; ++aCand){
     //obtain element pointers from grids
     tENum = elemCandidates_[aCand].first;
     sENum = elemCandidates_[aCand].second;

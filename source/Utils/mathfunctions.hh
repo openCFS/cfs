@@ -80,6 +80,8 @@ namespace CoupledField {
   */
   Double gammaln(Double xx);
 
+// Exclude these functions to eliminate dependence on Matrix.cc
+#ifndef CFS_NO_MATRIX_FUNCTIONS
 
   //! Determines approximative the eigenvalues of a symmetric positive matrix MAT
   /*!
@@ -99,30 +101,7 @@ namespace CoupledField {
   */
   void sortArray(Integer ndim, Integer l_sort, Vector<Double> & d);
 
-  /* Commented out due to refactoring.
-   * Can be removed, if implementation in Vector class works.
-  //! NC_SIMON: Normalizes a vector using the L2-norm
-  Double Normalize(Vector<Double>& vec);
-
-  //! NC_SIMON: Computes the cross product of two 3-dimensional vectors.
-  //! \param a (in) left operand of the cross product
-  //! \param b (in) right operand of the cross product
-  //! \param c (out) receives the result of the cross product
-  void CrossProd(const Vector<Double>& a,
-                 const Vector<Double>& b,
-                 Vector<Double> &result);
-
-  //! Returns if vectors a and b are collinear.
-  bool CoLinear(const Vector<Double> &a, const Vector<Double> &b);
-
-  //! NC_SIMON: get barycentric coordinates of a point with respect to p1,
-  //! p2 and p3
-  void GetBarycentricCoords(const Vector<Double>& p1,
-                            const Vector<Double>& p2,
-                            const Vector<Double>& p3,
-                            const Vector<Double>& p,
-                            Vector<Double>& b);
-*/
+#endif
 
 } // end of namespace CoupledField
 

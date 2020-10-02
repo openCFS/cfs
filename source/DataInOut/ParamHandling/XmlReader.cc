@@ -11,10 +11,19 @@
 #include <iostream>
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include <boost/algorithm/string.hpp>
+// save compiler switches
+// prevent include/boost/iostreams/detail/functional.hpp:176:93: error: extra ';' [-Werror=pedantic]
+//     BOOST_DELETED_FUNCTION(flush_buffer_operation& operator=(const flush_buffer_operation&));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include <boost/iostreams/filtering_stream.hpp>
+//restore compiler switches
+//restore compiler switches
+#pragma GCC diagnostic pop
+
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
-
 
 #ifdef USE_XERCES
 #include "DataInOut/ParamHandling/Xerces.hh"
@@ -27,7 +36,9 @@
 namespace CoupledField
 {
 
-PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string& schema)
+PtrParamNode XmlReader::ParseFile(const std::string& filename,
+                                  const std::string& schema,
+                                  const std::string &schemaUrl)
 {
   bool compress = boost::algorithm::ends_with(filename, ".gz"); // see ParamNode::ToFile()
 
@@ -45,7 +56,7 @@ PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string
 
 
 #ifdef USE_XERCES
-  Xerces xerces(schema);
+  Xerces xerces(schema, schemaUrl);
   xerces.SetFile(filename);
   return xerces.CreateParamNodeInstance();
 #endif
@@ -58,10 +69,12 @@ PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string
 }
 
 /** same as parse file but from memory */
-PtrParamNode XmlReader::ParseString(const std::string& str, const std::string& schema)
+PtrParamNode XmlReader::ParseString(const std::string& str,
+                                    const std::string& schema,
+                                    const std::string &schemaUrl)
 {
 #ifdef USE_XERCES
-  Xerces xerces(schema);
+  Xerces xerces(schema, schemaUrl);
   xerces.SetString(str);
   return xerces.CreateParamNodeInstance();
 #endif

@@ -19,10 +19,6 @@ struct GDataInfo;
 namespace CoupledField
 {
 
-
-  // declare logging stream
-  DECLARE_LOG(simInputUNV)
-
   /**
    **/
   class SimInputUnv : public SimInput
@@ -164,8 +160,8 @@ namespace CoupledField
     
     //@}
     
-    UInt numNodes_;
-    UInt numElems_;
+    UInt numNodes_ = 0;
+    UInt numElems_ = 0;
     StdVector<std::string> regionNames_;
     
     CapaInterfaceC capaIf_;
@@ -174,7 +170,7 @@ namespace CoupledField
     GDataInfo datainfo_;
 
     //! Analysis Type of current UNV file
-    int analysis_;
+    int analysis_ = -100;
 
     //! Map for assigning unv file coord axes to grid coord axes.
     StdVector< UInt > axisMap_;

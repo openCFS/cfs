@@ -96,7 +96,7 @@ namespace CoupledField {
     //@}
 
     //! Default Constructor
-    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex );
+    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultiHarm = false );
 
     //! Default Destructor
     virtual ~AlgebraicSys();
@@ -273,6 +273,15 @@ namespace CoupledField {
     //! connectivity information to the graph manager.
     void GraphSetupDone();
 
+    //! Finalises setup of the graph manager
+
+    //! Special graph setup for multiharmonic case!
+    //! This method must be called after the assembly of all sub-graphs was
+    //! done, i.e. once all functions or coupling objects have conveyed their
+    //! connectivity information to the graph manager.
+    void GraphSetupDoneMH();
+
+
     //! Obtain a unique FeFunction identifier
 
     //! Return a unique FeFunction identifier for each FeFunction, which will be used
@@ -373,7 +382,7 @@ namespace CoupledField {
                         const StdVector<Integer>& eqnNrs2,
                         FEMatrixType matrixType,
                         bool setCounterPart );
-    
+
     //! Helper method for mapping (fctId, eqnNr) to (blockNum,index)
     
     //! This method maps the CFS-oriented/physical oriented tuple (fctId,eqnNr)
@@ -391,6 +400,21 @@ namespace CoupledField {
                              const StdVector<Integer>& eqns,
                              StdVector<UInt>& blockNums,
                              StdVector<UInt>& indices );
+
+    //! @see MapFctIdEqnToIndex()
+    void MapFctIdEqnToIndex_MultHarm(const FeFctIdType fctId,
+                                     const StdVector<Integer>& eqns,
+                                     StdVector<UInt>& blockNums,
+                                     StdVector<UInt>& indices,
+                                     const StdVector<UInt>& sbmIndices );
+
+    //! Helper method for inserting an element method into the correct block
+    //! in a reordered multiharmonic analysis
+    void MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                      const StdVector<Integer>& eqns,
+                                      StdVector<UInt>& blockNums,
+                                      StdVector<UInt>& indices );
+
 
     //! @see MapFctIdEqnToIndex()
     void MapFctIdEqnToIndex( const StdVector<FeFctIdType>& fctId,
@@ -550,6 +574,49 @@ namespace CoupledField {
                            bool noStaticCond,
                            bool isDiagonal );
 
+
+    //! Assemble an element matrix into the global one for multiharmonic analysis
+
+    //! This methods assembles the given element matrix into a specified
+    //! global one (MASS, STIFFNESS, etc.), i.e. adds the entries to the.
+    //! global matrix. For element matrices which are associated
+    //! only with one Fct, only one identifier, the eqn numbers of the matrix
+    //! and the number of eqnNrs have to be specified.
+    //! For matrices which are associated with two different Fct identifiers,
+    //! the matrix will be assembled into the upper off-diagonal matrix-block
+    //! and the lower transposed one.
+    //! \param matrixType type of finite element destination matrix
+    //!                 (STIFFNESS, MASS, ...)
+    //! \param elemmat entries of the element matrix
+    //! \param fctId1 identifier for first Fct related to sub-graph
+    //! \param eqnNrs1 equation numbers (1-based) of the element matrix
+    //!                w.r.t. sub-graph associated with identifierFct1
+    //! \param numEqn1 number of equations related to sub-graph of
+    //!                identifierFct1
+    //! \param fctId2 identifier for first Fct related to sub-graph
+    //! \param eqnNrs2 equation numbers (1-based) of the element matrix
+    //!                w.r.t. sub-graph associated with identifierFct2
+    //! \param numEqn2 number of equations related to sub-graph of
+    //!                identifierFct2
+    //! \param setCounterPart if this flag is true, then the method will
+    //!                not only insert the element matrix    \f$  E  \f$ , but also
+    //!                its transpose    \f$  E^T  \f$ . In doing so also the
+    //!                row and column indices derived from the equation
+    //!                numbers are interchanged. Note that this is only
+    //!                supported for off-diagonal blocks, i.e. for cases
+    //!                with different Fct identifiers.
+    //! \param sbmIndices SBM-indices of the sbm-blocks,
+    //!                   which have to be assembled
+    template<typename T>
+    void SetElementMatrix_MultHarm( FEMatrixType matrixType,
+                                   Matrix<T>& elemmat,
+                                   FeFctIdType fctId1,
+                                   const StdVector<Integer>& eqnNrs1,
+                                   FeFctIdType fctId2,
+                                   const StdVector<Integer>& eqnNrs2,
+                                   bool setCounterPart,
+                                   const StdVector<UInt>& sbmIndices );
+
     //! Assemble the local rhs vector to the global one
 
     //! This method adds the entries of the element right hand side to the
@@ -560,11 +627,13 @@ namespace CoupledField {
     //! \param fctId   identifier of the Fct related to sub-graph
     //! \param eqnNrs  equation numbers (1-based) of the element rhs
     //!                w.r.t. sub-graph associated with idFct
-    //! \param numEqn  length of eqnNrs array
+    //! \param harm  for multiharmonic analysis, we need the info
+    //!                which harmonic we are currently considerng
     template<typename T>
     void SetElementRHS( const Vector<T>& elemRHS, 
                         const FeFctIdType fctId,
-                        StdVector<Integer>& eqnNrs );
+                        StdVector<Integer>& eqnNrs,
+                        UInt& harm);
 
 
     //! Adds a value to a given global rhs entry
@@ -594,8 +663,22 @@ namespace CoupledField {
     //!                 which gets multiplied
     //! \param fup array with vector entries, which get multiplied
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
-    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
+    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated, bool useTransposed=false);
 
+    void ComputeSysMatTimesVector(FEMatrixType matrixType, SBM_Vector& inputVec, SBM_Vector& outputVec, bool transpose);
+
+    //! Performs a matrix-vector multiplication and adds the vector to the rhs
+
+    //! This method multiplies a specified global matrix (STIFFNES, MASS,
+    //! etc.) with a given vector and adds the result vector to the global
+    //! rhs.
+    //! \f[ rhs = rhs + \mathbf A_{matrixType} \cdot fup \f]
+    //! This method is currently only used to adapt the rhs for nonlinear multiharmonic analysis.
+    //! \param matrixType type of finite element matrix (STIFFNESS, MASS, ...)
+    //!                 which gets multiplied
+    //! \param fup array with vector entries, which get multiplied
+    //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
+    void UpdateRHS_MultHarm(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
 
     //! Add a value to a diagonal matrix entry
 
@@ -678,9 +761,11 @@ namespace CoupledField {
     //! \param fctId identifier for function related to sub-graph
     //! \param matFactors a map which contains for each matrixtype (DAMPING,
     //!                   STIFFNESS,...) the according factor
+    //! \param isMultHarm flag if multiharmonic analysis
     void ConstructEffectiveMatrix( 
         const FeFctIdType fctId,
-        const std::map<FEMatrixType, Double>& matFactors );
+        const std::map<FEMatrixType, Double>& matFactors,
+        const bool isMultHarm = false);
 
     //! Pass a Dirichlet value to %OLAS
 
@@ -724,6 +809,10 @@ namespace CoupledField {
     //!                false: is needed in case of nonlinear PDE, incremental formulation!
     void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
     
+
+    void GetSolutionVal( const UInt& h, SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
+
+
     //! Return solution vector for one single FeFct
 
     //! This method returns the solution vector associated with one specific
@@ -734,6 +823,27 @@ namespace CoupledField {
     void GetSolutionVal( SingleVector& solVec,
                          const FeFctIdType fctId,
                          bool setIDBC, bool deltaIDBC=false  );
+
+    //! Return solution vector for a given block in multiharmonic analysis
+
+    //! This method returns the solution vector associated with one specific
+    //! SBM-block. The entries are numbered according to the equations numbers
+    //! \param solVec solution vector for specified FeFcunction
+    //! \param ident (has no function) only purpose is to call the correct method
+    void GetSolutionVal( SingleVector& ptSol,
+                        const UInt& block,
+                        bool setIDBC,
+                        bool deltaIDBC,
+                        const bool ident);
+
+    //! Return solution vector for a given block in multiharmonic analysis
+
+    //! This method returns the solution vector associated with one specific
+    //! SBM-block. The entries are numbered according to the equations numbers
+    //! \param solVec solution vector for specified FeFcunction
+    void GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC = false);
+
+
 
     //! Helper function introduced for non-linear-transient stepping
     //! Background:
@@ -764,6 +874,18 @@ namespace CoupledField {
     //!                  as SBM-index)
     void GetRHSVal( SBM_Vector& sbmRhsVec );
     
+    //! Return block right-hand-side (RHS) vector from multiharmonic anlysis
+
+    //! This method returns the specified right-hand-side block (h) as
+    //! SBM-vector
+    void GetRHSVal( const UInt& h, SBM_Vector& sbmRhsVec );
+
+
+    //! Return full right-hand-side (RHS) vector from multiharmonic anlysis
+
+    //! This method returns the full multiharmonic right-hand-side
+    void GetFullMultiHarmRHSVal(SBM_Vector& rhsVec );
+
     //! Return right-hand-side (RHS) vector for one single FeFct
 
     //! This method returns the RHS vector associated with one specific
@@ -773,6 +895,19 @@ namespace CoupledField {
     //! \param fctId identifier for function related to sub-graph
     void GetRHSVal( SingleVector &rhsVec,
                     const FeFctIdType fctId );
+
+    //! Return right-hand-side (RHS) vector for one SBM Block in multiharmonic analysis
+
+    //! This method returns the RHS vector associated with one specific
+    //! SBM Block. The entries are numbered according to the equations numbers
+    //! of the blockInfo_.
+    //! \param rhsVec RHS vector for specified FeFcunction
+    //! \param blockVec SBM block number
+    //! \param ident just an identifier, not to mix it up with a call to the above
+    //!              method, where the FeFctIdType is an argument (which is also an Integer)
+    void GetRHSVal( SingleVector &rhsVec,
+                    const UInt& blockVec,
+                    const bool ident);
 
 
     // ***********************************************************************
@@ -818,6 +953,11 @@ namespace CoupledField {
 //    SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_.find(type)->second; }
     SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_[type]; }
     
+    SBM_Matrix* GetKeff(){return effMat_;};
+
+    void PrintKeff();
+    void PrintMatrixPart(FEMatrixType matrixPart);
+
     //! Return, if a non-zero static condensation block is present
     bool UseStaticCondensation() {
       return statCond_;
@@ -932,16 +1072,40 @@ namespace CoupledField {
     void RemoveIDBCInfoFromMatrix() const {;};
     //@}
 
-    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
+    /** Handle export linear system at the different phases. Checks by itself what needs to be done if anything.
      * Shall be called for each phase, set each time exactly one parameter to true */
     void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 
+    void ExportMHSys(int step);
+
+    //! In multiharmonic analysis, set the nonzero sbm-blocks
+    inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
+
     BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
+
+    //! Return if it is a multiharmonic analysis
+    bool IsMultHarm(){return isMultHarm_; };
 
     PtrParamNode GetExportLinSysParam();
 
     bool IsMatrixComplex(){return isMatrixComplex_;};
 
+    /*
+     * function for StdSolveStepHyst
+     *
+     * background: when solving the nonlinear system of equations via newtons method,
+     *             we need an approximation of the Jacobian; this approximation is delivered
+     *             from CoefFunctionHyst and is assembled to the stiffness matrix;
+     *             for the computation of the residual, we need the linear stiffness matrix, i.e.
+     *             without considering hysteresis; as this matrix should be constant, we need not
+     *             to reassemble it each time; instead we could keep a deep copy of the system and
+     *             reuse it during residual computation
+     */
+    void BackupCurrentSystemMatrix(FEMatrixType storageLocation);
+    void LoadBackupToCurrentSystemMatrix(FEMatrixType storageLocation);
+
+    // copys one matrix in the algsys to another storage location. useful for backups
+    void CopyMatrixToOther(FEMatrixType matrix, FEMatrixType other, bool add = false);
 
   protected:
 
@@ -1136,6 +1300,11 @@ namespace CoupledField {
     //! Flag indicating use of static condensation
     bool statCond_;
     
+    //! Flag indicating use of multiharmonic analysis
+    bool isMultHarm_;
+
+    StdVector<UInt> nnzSBMInd_;
+
     //! Flag indicating, if system matrix is complex
     bool isMatrixComplex_;
 
@@ -1146,131 +1315,131 @@ namespace CoupledField {
   // MATRICES / VECTORS
   // =======================================================================
 
-  //@{ \name Matrices and Vector
-  //! Pointers to Finite-Element matrices
+    //@{ \name Matrices and Vector
+    //! Pointers to Finite-Element matrices
 
-  //! This attribute points to an array containing pointers to the different
-  //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
-  //! algebraic system. In the case of the %SBM_System class these are of
-  //! course SBM_Matrix objects.
-  std::map<FEMatrixType, SBM_Matrix*> sysMat_;
+    //! This attribute points to an array containing pointers to the different
+    //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
+    //! algebraic system. In the case of the %SBM_System class these are of
+    //! course SBM_Matrix objects.
+    std::map<FEMatrixType, SBM_Matrix*> sysMat_;
 
-  //! Effective system matrix (without condensation block)
+    //! Effective system matrix (without condensation block)
 
-  //! This is the "effective" matrix to be solved, i.e. the one passed to 
-  //! the solver. This a shallow copy of the #sysMat and thus contains only
-  //! pointers into the global system matrix.
-  //! In case we use static condensation, the effective matrix does not 
-  //! contain the interior block and the related coupling matrices.
-  SBM_Matrix *effMat_;
+    //! This is the "effective" matrix to be solved, i.e. the one passed to
+    //! the solver. This a shallow copy of the #sysMat and thus contains only
+    //! pointers into the global system matrix.
+    //! In case we use static condensation, the effective matrix does not
+    //! contain the interior block and the related coupling matrices.
+    SBM_Matrix *effMat_;
 
-  //! Vector containing right-hand side of the linear system (see #effMat_)
-  SBM_Vector *rhs_;
+    //! Vector containing right-hand side of the linear system (see #effMat_)
+    SBM_Vector *rhs_;
 
-  //! Effective rhs vector
-  SBM_Vector *effRhs_;
+    //! Effective rhs vector
+    SBM_Vector *effRhs_;
 
-  //! temporary rhs
-  SBM_Vector* tmpRHS_;
+    //! temporary rhs
+    SBM_Vector* tmpRHS_;
 
-  //! Vector containing (approximate) solution of the linear system
-  SBM_Vector *sol_;
+    //! Vector containing (approximate) solution of the linear system
+    SBM_Vector *sol_;
 
-  //! Effective solution vector
-  SBM_Vector *effSol_;
+    //! Effective solution vector
+    SBM_Vector *effSol_;
 
-  //! Buffer for storing the eigenvalues of the system
-  SingleVector *eigenValues_;
+    //! Buffer for storing the eigenvalues of the system
+    SingleVector *eigenValues_;
 
-  //! Buffer for storing the error bounds of the eigenvalues
-  SingleVector *eigenValError_;
+    //! Buffer for storing the error bounds of the eigenvalues
+    SingleVector *eigenValError_;
 
-  //! Store for each diagonal SBM-Block if it is symmetric.
-  StdVector<bool> isDiagBlockSymm_;
+    //! Store for each diagonal SBM-Block if it is symmetric.
+    StdVector<bool> isDiagBlockSymm_;
 
-  //! Pointer to a pool for sharing sparsity patterns between matrices
-  PatternPool *patternPool_;
+    //! Pointer to a pool for sharing sparsity patterns between matrices
+    PatternPool *patternPool_;
 
-  //! Store for each SBM block the pattern Id (if applicable)
-  std::map<SubMatrixID, PatternIdType, SortSubMatrixID> sbmPatternIds_;
+    //! Store for each SBM block the pattern Id (if applicable)
+    std::map<SubMatrixID, PatternIdType, SortSubMatrixID> sbmPatternIds_;
 
-  //! Flag, if matrix pattern can be shared
-  bool sharedPatternPossible_;
+    //! Flag, if matrix pattern can be shared
+    bool sharedPatternPossible_;
 
-  //! Flag signaling symmetry of system matrix
-  bool sbmSymm_;
+    //! Flag signaling symmetry of system matrix
+    bool sbmSymm_;
 
-  //! Flag signaling use of only one matrix block
+    //! Flag signaling use of only one matrix block
 
-  //! This flag denotes, if the complete system matrix just consists of one 
-  //! single matrix block. In this case we can simply access the (1,1) entry
-  //! as StdMatrix and have the complete system. 
-  bool onlyOneMatrixBlock_;
+    //! This flag denotes, if the complete system matrix just consists of one
+    //! single matrix block. In this case we can simply access the (1,1) entry
+    //! as StdMatrix and have the complete system.
+    bool onlyOneMatrixBlock_;
 
-  //! Flag if we have distinct matrix graphs for different matric types
-  bool distinctMatGraphs_;
-  //@}
+    //! Flag if we have distinct matrix graphs for different matric types
+    bool distinctMatGraphs_;
+    //@}
 
-  // =======================================================================
-  // AMG SECTION
-  // =======================================================================
+    // =======================================================================
+    // AMG SECTION
+    // =======================================================================
 
-  //@{ \name Algebraic Multigrid variables
+    //@{ \name Algebraic Multigrid variables
 
-  //! Flag indicating use of multigrid methods
-  bool useAMG_;
+    //! Flag indicating use of multigrid methods
+    bool useAMG_;
 
-  //! Auxiliary matrix, needed for special (geometric-)algebraic multigrid methods
-  StdMatrix *auxMatAMG_;
+    //! Auxiliary matrix, needed for special (geometric-)algebraic multigrid methods
+    StdMatrix *auxMatAMG_;
 
-  //! Store coordinate of each index geomInd_[i] = coordinate of index i
-  StdVector< Vector<Double> > geomInd_;
+    //! Store coordinate of each index geomInd_[i] = coordinate of index i
+    StdVector< Vector<Double> > geomInd_;
 
-  //! Special structure for edge-AMG geomIndEdge_[i] contains
-  //! the coordinates of the two nodes of edge i (already in correct
-  //! orientation)
-  boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
+    //! Special structure for edge-AMG geomIndEdge_[i] contains
+    //! the coordinates of the two nodes of edge i (already in correct
+    //! orientation)
+    boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
 
-  //! Special structure for edge-AMG geomIndEdge_[i] contains
-  //! the indices in the auxiliary-matrix of the two nodes
-  // of edge i (already in correct orientation)
-  StdVector< StdVector< Integer> > edgeIndNode_;
+    //! Special structure for edge-AMG geomIndEdge_[i] contains
+    //! the indices in the auxiliary-matrix of the two nodes
+    // of edge i (already in correct orientation)
+    StdVector< StdVector< Integer> > edgeIndNode_;
 
-  //! Map for nodeNum <-> index in auxiliary matrix
-  boost::unordered_map< Integer, UInt> indexNodeNum_;
+    //! Map for nodeNum <-> index in auxiliary matrix
+    boost::unordered_map< Integer, UInt> indexNodeNum_;
 
-  //! vector for index <-> nodeNum in auxiliary matrix
-  StdVector<Integer> nodeNumIndex_;
+    //! vector for index <-> nodeNum in auxiliary matrix
+    StdVector<Integer> nodeNumIndex_;
 
-  //! only valid for AMG: dimension of singlefield-problem
-  UInt dim_;
+    //! only valid for AMG: dimension of singlefield-problem
+    UInt dim_;
 
-  //! Flag, needed for the specialized AMG-methods
-  AMGType  amgType_;
+    //! Flag, needed for the specialized AMG-methods
+    AMGType  amgType_;
 
-  //! Switch if edge element discretization is used
-  bool edge_;
-  //@}
+    //! Switch if edge element discretization is used
+    bool edge_;
+    //@}
 
 
-  // =======================================================================
-  // CACHE SECTION
-  // =======================================================================
+    // =======================================================================
+    // CACHE SECTION
+    // =======================================================================
 
-  //@{ \name Cached vectors / matrices for fast access
-  //! Index vectors for element matrix assembly
-  CfsTLS<StdVector< StdVector<UInt> > > rowIndList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > rowList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > rowIndList2_;
-  CfsTLS<StdVector< StdVector<UInt> > > rowList2_;
-  CfsTLS<StdVector< StdVector<UInt> > > colIndList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > colList1_;
-  CfsTLS<StdVector< StdVector<UInt> > > colIndList2_;
-  CfsTLS<StdVector< StdVector<UInt> > > colList2_;
+    //@{ \name Cached vectors / matrices for fast access
+    //! Index vectors for element matrix assembly
+    CfsTLS<StdVector< StdVector<UInt> > > rowIndList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > rowList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > rowIndList2_;
+    CfsTLS<StdVector< StdVector<UInt> > > rowList2_;
+    CfsTLS<StdVector< StdVector<UInt> > > colIndList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > colList1_;
+    CfsTLS<StdVector< StdVector<UInt> > > colIndList2_;
+    CfsTLS<StdVector< StdVector<UInt> > > colList2_;
 
-  //! Index vector for element position
-  CfsTLS<StdVector<UInt> > rowBlocks_, colBlocks_, rowNums_, colNums_;
-  //@}
+    //! Index vector for element position
+    CfsTLS<StdVector<UInt> > rowBlocks_, colBlocks_, rowNums_, colNums_;
+    //@}
   
   };
 

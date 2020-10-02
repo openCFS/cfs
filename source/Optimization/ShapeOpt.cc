@@ -4,7 +4,6 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -39,7 +38,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(ShOpt)
 DEFINE_LOG(ShOpt, "shapeOpt")
 
 ShapeOpt::ShapeOpt() : ParamMat()
@@ -187,7 +185,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
       // this is similar to ErsatzMaterial::CalcVolume but calculates derivatives w.r.t. shape
       Grid* grd = domain->GetGrid();
       bool isObjective = g == NULL;
-      double fraction = isObjective ? volume_fraction_ : g->volume_fraction; // this already considers everything
+      double fraction = isObjective ? volumeFraction_ : g->volume_fraction; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
         volume = CalcVolume(c, g, false, normalized);
@@ -761,7 +759,7 @@ void ShapeOpt::StorePDESolution(StateContainer& solutions, Excitation &excite, F
 }
 
 void ShapeOpt::SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement){
-  SetTestStrainMatrix(tmp_strain, me->excitations[idx].test_strain);
+  SetTestStrainMatrix(App::MECH,tmp_strain, me->excitations[idx].test_strain);
   unsigned int cols = CornerCoords.GetNumCols();
   tmp_displacement.Resize(dim, cols);
   tmp_strain.Mult(CornerCoords, tmp_displacement);

@@ -18,6 +18,7 @@
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
+#include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/SolveSteps/SolveStepHyst.hh"
@@ -49,8 +50,7 @@
 
 
 namespace CoupledField {
-  
-  DECLARE_LOG(elecpde)
+
   DEFINE_LOG(elecpde, "pde.electrostatic")
   
   // ***************
@@ -207,13 +207,22 @@ namespace CoupledField {
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( actRegion );
         
-        PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
-        PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
-        PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace));
+        std::string hystType;
+        actSDMat->GetString(hystType, HYST_MODEL);
         
-        hysteresisCoefs_->AddRegion( actRegion, hystPol);
-        
+        if(hystType == "none"){
+          std::string warnmsg = "Hysteresis set on region " + regionName + " but no hysteresis model was defined in mat file. Skip.";
+          regionNonLinTypes_[actRegion] = NO_NONLINEARITY;
+          WARN(warnmsg);
+        } else {
+          PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
+          PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
+          PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
+                  elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY_TENSOR,mySpace));
+
+          hysteresisCoefs_->AddRegion( actRegion, hystPol);
+
+        }
       }
     }
     regionApproxSet_ = true;
@@ -299,7 +308,8 @@ namespace CoupledField {
       PtrCoefFct coefPMLVec, speedOfSnd;
       PtrParamNode pmlNode;
       std::string pmlFormul;
-      //
+      PtrCoefFct coefMAPScal, coefMAPVec;
+      bool isMapping = false;
       
       if (dampingList_[actRegion] == PML)
       {
@@ -337,7 +347,21 @@ namespace CoupledField {
       }
       else
       {
-        harmonicPML = false;
+        if( dampingList_[actRegion] == MAPPING ) {
+          // ====================================================================
+          // Take account for mapping of an infinite domain
+          // ====================================================================
+          // Generate scalar valued coefficient function
+          PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          std::string dampId;
+          curRegNode->GetValue("dampingId",dampId);
+          PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+          coefMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
+          coefMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+          isMapping = true;
+        }else{
+          harmonicPML = false;
+        }
       }
       
       // ----- standard real-valued stiffness integrator
@@ -348,7 +372,13 @@ namespace CoupledField {
         stiffInt->SetBCoefFunctionOpA(coefPMLVec);
       }
       else{
-        stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+        if(isMapping){
+          // Infinte mapping case
+          stiffInt = GetStiffIntegratorInfMap(actSDMat, tensorType, actRegion, coefMAPScal);
+          stiffInt->SetBCoefFunctionOpA(coefMAPVec);
+        }else{
+          stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+        }
       }
       stiffInt->SetName("LinElecIntegrator");
       BiLinFormContext * stiffIntDescr =
@@ -750,8 +780,10 @@ namespace CoupledField {
         
         // check if volReg has hyst material behaviour
         if(regionCoefs.find(volReg) == regionCoefs.end()){
-          std::cout << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
-          std::cout << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
+          std::stringstream warnmsg;
+          warnmsg << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
+          warnmsg << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
+//          WARN(warnmsg.str());
         } else {
           //std::cout << "Volume region " << volRegName << " has hysteretic material assigned. fieldParallel BC added" << std::endl;
           // create coef fnc delivering the boundary term (here just polarization)
@@ -791,7 +823,7 @@ namespace CoupledField {
           // IMPORTANT: add surface elements to hyst operator such that it gets
           // storage space assigned
 					bool onBoundary = true;
-          regionCoefs[volReg]->AddAdditionalSDList(actSDList,onBoundary);
+          regionCoefs[volReg]->AddAdditionalSDList(actSDList,volReg,onBoundary);
         }
       }
     }
@@ -934,7 +966,7 @@ namespace CoupledField {
         bool fullevaluation = true;
         
         shared_ptr<CoefFunction> rhsPol = it->second->GenerateRHSCoefFnc("ElecPolarization");
-        
+
         //factor = factor*(-1.0);
         if(isComplex_) {
           if( dim_ == 2 ) {
@@ -1033,7 +1065,6 @@ namespace CoupledField {
           SubTensorType tensorType,
           RegionIdType regionId ) {
     
-    //std::cout << "GetStiffIntegrator" << std::endl;
     BaseBDBInt * integ = NULL;
     bool isComplex = complexMatData_[regionId];
     
@@ -1061,11 +1092,11 @@ namespace CoupledField {
     else {
       
       if ( isComplex ) {
-        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType,
                 Global::COMPLEX);
       }
       else {
-        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY_TENSOR,tensorType,
                 Global::REAL);
       }
     }
@@ -1106,23 +1137,60 @@ namespace CoupledField {
     return integ;
   }
   
-  BaseBDBInt* ElecPDE::GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType,
+  BaseBDBInt* ElecPDE::GetStiffIntegratorInfMap(BaseMaterial* actSDMat, SubTensorType tensorType,
           RegionIdType regionId, PtrCoefFct scalingFactor)
   {
     BaseBDBInt* integ = NULL;
     
     shared_ptr<CoefFunction > curCoef;
-    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::COMPLEX);
-    
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR, tensorType, Global::REAL);
+
     // store coefficient function for later use (e.g. in boundary integrators)
     regionPermittivity_[regionId] = curCoef;
-    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
     
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if (isPiezoCoupled_)
       factor = -1.0;
     
+    BaseBOperator* bOp = NULL;
+    //Infinite mapping case
+    if (dim_ == 2)
+    {
+      if (subType_ == "2.5d"){
+        EXCEPTION("2.5d version with infinite mapping not tested and therefore caught!");
+      }else{
+        bOp = new ScaledGradientOperator<FeH1, 2, Double>();
+      }
+    }
+    else
+      bOp = new ScaledGradientOperator<FeH1, 3, Double>();
+
+    integ = new BDBInt<Double, Double>(bOp, curCoefScl, factor, updatedGeo_);
+
+    
+    return integ;
+  }
+  
+  BaseBDBInt* ElecPDE::GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType,
+          RegionIdType regionId, PtrCoefFct scalingFactor)
+  {
+    BaseBDBInt* integ = NULL;
+
+    shared_ptr<CoefFunction > curCoef;
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR, tensorType, Global::REAL);
+
+
+    // store coefficient function for later use (e.g. in boundary integrators)
+    regionPermittivity_[regionId] = curCoef;
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
+
+    // Note; in the piezoelectric case we have to multiply by -1
+    Double factor = 1.0;
+    if (isPiezoCoupled_)
+      factor = -1.0;
+
     BaseBOperator* bOp = NULL;
     if (dim_ == 2)
     {
@@ -1133,12 +1201,12 @@ namespace CoupledField {
     }
     else
       bOp = new ScaledGradientOperator<FeH1, 3, Complex>();
-    
+
     integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, factor, updatedGeo_);
-    
+
     return integ;
   }
-  
+
   template<typename DATA_TYPE>
   BiLinearForm* ElecPDE::GetFluxIntegrator(PtrCoefFct scalCoefFunc, PtrCoefFct coefFnc, Double factor,
           BiLinearForm::CouplingDirection cplDir, bool fluxOpA)
@@ -1260,9 +1328,7 @@ namespace CoupledField {
   
   void ElecPDE::SetPiezoCoupling()
   {
-    
     isPiezoCoupled_ = true;
-    
   }
   
   void ElecPDE::DefinePrimaryResults() {
@@ -1431,7 +1497,6 @@ namespace CoupledField {
       // therefore, this helper functions is used to create the hystCoefFunctions
       //	before the call to DefineIntegrators
       InitHystCoefs();
-      
     }
     
     // === ELECTRIC FLUX DENSITY ===

@@ -27,6 +27,7 @@
 #include <boost/filesystem/exception.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#define  BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -126,7 +127,8 @@ int main(int argc, const char** argv)
 
   // Write information to command line
   std::cout << "--- Reading parameter file " << std::endl;
-  PtrParamNode configNode = XmlReader::ParseFile(options->GetParamFileStr(), schema);
+  PtrParamNode configNode = XmlReader::ParseFile(options->GetParamFileStr(), schema,
+                                                 "http://www.cfs++.org/simulation");
 
   CFSDat::PtrResultManager resMan(new CFSDat::ResultManager());
 
@@ -141,7 +143,9 @@ int main(int argc, const char** argv)
   std::set<CFSDat::FilterPtr> outputs;
   for(UInt i=0;i<filters.GetSize();++i){
     CFSDat::FilterPtr newFilt = CFSDat::BaseFilter::Generate(filters[i],resMan);
+
     if(newFilt){
+
       std::cout << "\t---> Adding Filter type \"" << filters[i]->GetName() << "\" with ID \"" << newFilt->GetId() << "\"" << std::endl;
       allFilters[newFilt->GetId()] = newFilt;
       if(newFilt->IsOutput()){

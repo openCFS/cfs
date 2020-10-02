@@ -58,7 +58,8 @@ class MortarInterface : public BaseNcInterface {
   protected:
     
     void SetRotation(const std::string &coordSysId,
-                     Double rpm);
+                     Double rpm,
+                     const std::string &connectedRegions = "");
     
     void SetMotion( const StdVector<std::string> &offsetExpr,
                     const std::string &coordSysId = "default" );
@@ -189,6 +190,7 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType masterSurfRegion_;
     RegionIdType slaveSurfRegion_;
     RegionIdType masterVolRegion_;
+    StdVector<RegionIdType> additionalVolRegions_;
     RegionIdType slaveVolRegion_;
     bool isCoplanar_;
     bool isEulerian_;
@@ -285,3 +287,4 @@ class MortarInterface : public BaseNcInterface {
 } /* namespace CoupledField */
 
 #endif /* _MORTARINTERFACE_HH_ */
+

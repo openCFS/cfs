@@ -39,7 +39,7 @@ namespace CoupledField {
     : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "acouMechDirect";
-    materialClass_ = FLUID;
+    materialClass_ = ACOUSTIC;
 
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
@@ -220,8 +220,7 @@ namespace CoupledField {
           DefCouplIntNC( "AcouMechPresStiffCouplingIntNC", false, -1.0, STIFFNESS, dispFct,
                        acouFct, ncIf, oneCoefFuncs );
 
-          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, 1.0, MASS, acouFct, dispFct,
-                       ncIf, coefFuncs );
+          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, 1.0, MASS, acouFct, dispFct, ncIf, coefFuncs );
           break;
 
         default:
@@ -317,7 +316,7 @@ namespace CoupledField {
 				 coefFuncs, factor, mortarIf->IsPlanar(), geoUpdate_);
       } else {
         cplInt = new SurfaceMortarABIntMA<>( new IdentityOperatorNormal<FeH1,3>(),
-        		 new IdentityOperatorNormal<FeH1,3,3>(),
+        		 new IdentityOperator<FeH1,3,3>(),
 				 coefFuncs, factor, mortarIf->IsPlanar(), geoUpdate_);
       }
     } else {

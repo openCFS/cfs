@@ -1,14 +1,16 @@
 #include <assert.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <map>
 #include <ostream>
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
+#include "Domain/ElemMapping/ElementAccess.hh"
 #include "Domain/Mesh/Grid.hh"
+#include "Driver/Assemble.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "FeBasis/BaseFE.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -30,7 +32,6 @@ class BaseMaterial;
 
 using namespace std;
 
-DECLARE_LOG(sc)
 DEFINE_LOG(sc, "stressConstraint")
 
 
@@ -50,21 +51,17 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
 
   space = em->GetDesign();
 
-  this->form1 = NULL;
-  this->form2 = NULL;
+  this->form = NULL;
   this->u1_elem_ptr = NULL;
   this->u2_elem_ptr = NULL;
 
-
   // global initializations
-  assert(true);
-  // FIXME M = dynamic_cast<MechPDE*>(em->ToPDE(App::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
+  M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
     tf = TransferFunction(App::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
   else
     tf = *(space->GetTransferFunction(DesignElement::DENSITY, App::STRESS, true)); // for qp = rho^3/rho^2.8 use SIMP with 0.2
-
 
   LOG_DBG2(sc) << "SC: tf=" << tf.ToString() << " M=" << M.ToString();
 
@@ -106,24 +103,21 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
     all_u1_elem = &(forward->Get(excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
     all_u2_elem = &(forward->Get(excite)->elem[app.second == App::MECH ? App::MECH : App::ELEC]); // for the adjoint rhs we need no app2 solution
 
+
+    ElementAccess ea(em->context->GetBiLinFormContext(f->elements[0]->elem->regionId, app.first, app.second, true));
+
     // It might be that stress sensitive region is not within the design domain itself
     for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
     {
       DesignElement* de = f->elements[e];
+      ea.SetElem(de->elem);
+      SetupElement(&ea, de, app.first, mode);
 
-      // the element volume is actually only required if we no NOT want the stress density
-      double elem_vol = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
-
-      assert(false);
-      Vector<double> weights;
-      // FIXME const Vector<double>& weights = de->elem->ptElem->GetIntWeights();
-
-      SetupElement(de, app.first, app.second, mode);
 
       // we integrate over the element by averages summation and then multiplying with the volume
-      for(unsigned int ip = 1, ipn = 4/* FIXME de->elem->ptElem->GetNumIntPoints()*/; ip <= ipn; ip++) // 1-based!! :(
+      for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
       {
-        SetupIntPoint(de->elem, ip, mode);
+        EvalIP(mode, &ea, ip);
 
         // normal von Mises stress element results < stress, M*stress>
         M_stress2 = M * stress2;
@@ -131,13 +125,12 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
         T inner = stress1.Inner(M_stress2);
 
         // do the (de)normalization stuff outside of the inner product
-        assert(false);
-        double jac_det = 0.0; // FIXME de->elem->ptElem->CalcJacobianDetAtIp(ip, coords, de->elem);
-        double factor = fm * weights[ip-1] * jac_det / (f->GetType() == Function::STRESS ? elem_vol : 1.0); // fuck 1-based!
+        // the element volume is actually only required if we no NOT want the stress density
+        double factor = fm * ea.weights[ip] * ea.lpm.jacDet / (f->GetType() == Function::STRESS ? ea.esm->CalcVolume() : 1.0); // fuck 1-based!
 
         out[e] += factor * Real(inner);
 
-        LOG_DBG2(sc) << "CS de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << weights[ip-1] << " f=" << factor
+        LOG_DBG2(sc) << "CS de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << ea.weights[ip] << " f=" << factor
                      << " stress1=" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << (factor * Real(inner));
       }
 
@@ -148,18 +141,14 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
         // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
       }
 
-      LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << elem_vol << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
+      LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << ea.esm->CalcVolume() << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
     }
   }
-
 }
 
 template<typename T>
 void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 {
-  assert(false);
-  /* FIXME
-
   // elastic adjoint rhs w.r.p to one element static : - 2* (rho^p*E_0*B*u)^T * M * rho^p E_0 B
   // elastic adjoint rhs w.r.p to one element dynamic: - 1* (rho^p*E_0*B*u^*)^T * M * rho^p E_0 B
   // for the globalization it is multiplied by alpha
@@ -170,6 +159,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   // +1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=mech and app2=piezo
   // app2 determines the pde. The elastic case is simply App::MECH, App::MECH
 
+  bool harmonic = em->context->IsComplex();
 
   // evaluate in the piezo case 4 times. Better nice code!
   Vector<double> alpha;
@@ -177,21 +167,19 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 
   Matrix<T> stress_transp(1, domain->GetGrid()->GetDim() == 2 ? 3 : 6);
   Matrix<T> rhs_transp;
-  Matrix<double> coords; // for the Jacobi determinant we need the coordinates
 
-  bool harmonic = em->IsComplex();
+  // any bilinear shall do, hence take any region
+  RegionIdType reg = f->region != ALL_REGIONS ? f->region : f->elements[0]->elem->regionId;
+  ElementAccess ea(em->context->pde->GetAssemble()->GetBiLinForm(em->context->mat->stiff.integrator, reg));
 
-  out.Resize(forward->Get(*excite)->GetVector(Solution::RAW_VECTOR)->GetSize(), T());
+  out = em->GetForwardStates().Get(excite,NULL)->template GetVectorRef<T>(StateSolution::RAW_VECTOR);
+  assert(out.GetSize() > 0);
 
   StdVector<pair<App::Type, App::Type> > apps = GetApplications();
 
   for(unsigned int a = 0; a < apps.GetSize(); a++)
   {
     pair<App::Type, App::Type>& app = apps[a];
-
-    // the second app determines u or phi.
-    unsigned int dof = app.second ==  App::MECH ? domain->GetGrid()->GetDim() : 1;
-    shared_ptr<EqnMap> eqnMap = em->ToPDE(app.second == App::PIEZO_COUPLING ? App::ELEC : App::MECH)->GetEqnMap();
 
     all_u1_elem = &(forward->Get(*excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
@@ -200,61 +188,43 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
     for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
     {
       DesignElement* de = f->elements[e];
+      ea.SetElem(de->elem);
+      LOG_DBG3(sc) << "CAR " << ea.ToString(2);
+      SetupElement(&ea, de, app.first, ADJOINT_RHS);
 
-      // the element volume is actually only required if we no NOT want the stress density
-      domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false); // no updated coordinates
-      double elem_vol = de->elem->ptElem->CalcVolume(coords, false); // by default no axis symmetry!
-
-      const Vector<double>& weights = de->elem->ptElem->GetIntWeights();
-
-      SetupElement(de, app.first, app.second, ADJOINT_RHS);
-
-      for(unsigned int ip = 1, ipn = de->elem->ptElem->GetNumIntPoints(); ip <= ipn; ip++) // 1-based!! :(
+      for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
       {
-        SetupIntPoint(de->elem, ip, ADJOINT_RHS);
+        // Calculate for each integration point the LocPointMapped
+        EvalIP(ADJOINT_RHS, &ea, ip);
 
         assert(stress1.GetSize() == stress_transp.GetNumCols());
         // we have to transpose the stress (3*1 or 6*1) manually and do the conjugate stuff
         for(unsigned int si = 0; si < stress1.GetSize(); si++)
-          stress_transp[0][si] = Conj<T>(stress1[si]); // nothing changes in real case
+          stress_transp[0][si] = conj(stress1[si]); // nothing changes in real case
 
         // finally :)
         rhs_transp = stress_transp * M_E2_B2;
 
         // include all the factors
-        double jac_det = de->elem->ptElem->CalcJacobianDetAtIp(ip, coords, de->elem);
-        double factor = (harmonic ? -1.0 : -2.0) * weights[ip-1] * jac_det  / (f->GetType() == Function::STRESS ? elem_vol : 1.0);
+        double factor = (harmonic ? -1.0 : -2.0) * ea.weights[ip] * ea.lpm.jacDet  / (f->GetType() == Function::STRESS ? ea.esm->CalcVolume() : 1.0);
 
         // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
         rhs_transp *= factor * alpha[e];
 
-        // sum it up to the global rhs vector
-        assert(de->elem->connect.GetSize() * dof == rhs_transp.GetNumCols());
-        for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
+        LOG_DBG3(sc) << "CAR " << ea.ToString(3);
+
+        for(unsigned int n = 0; n < ea.elem_eqn_idx.GetSize(); n++)
         {
-          unsigned int node =  de->elem->connect[n];
-
-          for(unsigned int d = 1; d <= dof; d++)
+          // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
+          if(ea.elem_eqn_idx[n] >= 0)
           {
-            // fuck 1-based in GetNodeEqn() !!
-            int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,d)); // map periodic bc to the master equation
-            assert(eqn_nr >= 0);
-            int eqn_idx = eqn_nr -1; // fuck 1-based!!
-            // don't set the homogeneous dirichlet boundary conditions :)
-            if(eqn_idx >= 0)
-            {
-              out[eqn_idx] += rhs_transp[0][dof * n + (d-1)];
-
-              LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor
-                  << " n=" << n << " node=" << node
-                  << " d=" << d << " eqn_idx=" << eqn_idx << " idx=" << (dof * n + (d-1)) << " val="
-                  << rhs_transp[0][dof * n + (d-1)] << " -> " << out[eqn_idx];
-            }
-          } // dof
-        } // node
+            out[ea.elem_eqn_idx[n]] += rhs_transp[0][n];
+            LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor << " n=" << n << " val=" << rhs_transp[0][n] << " -> " << out[ea.elem_eqn_idx[n]];
+          }
+        }
       } // ip
     } // elements
-  } // apps */
+  } // apps
 }
 
 template<typename T>
@@ -287,19 +257,12 @@ void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
 }
 
 template<typename T>
-void StressConstraint<T>::SetupElement(DesignElement* de, App::Type app1, App::Type app2, Mode mode)
+void StressConstraint<T>::SetupElement(ElementAccess* ea, DesignElement* de, App::Type app, Mode mode)
 {
-  assert(false);
-  /* FIXME
-  form1 = em->GetForm(de->elem->regionId, app1, App::NO_APP, true);
-  form2 = em->GetForm(de->elem->regionId, app2, App::NO_APP, true);
-
-  BaseMaterial* bimat1 = space->GetBiMaterial(de->elem->regionId, app1, false);
-  BaseMaterial* bimat2 = space->GetBiMaterial(de->elem->regionId, app2, false);
-
-  static Vector<double> intPoint;
-  static Matrix<double> tmp;   // for transposing [e] to [e]^T
-
+  assert(app != App::PIEZO_COUPLING); // code deleted. See in pre-FE-Space
+  OptimizationMaterial* mat = em->context->mat;
+  BiLinFormContext* blfc = em->context->GetBiLinFormContext(de->elem->regionId, app, App::NO_APP, true);
+  form = dynamic_cast<BaseBDBInt*>(blfc->GetIntegrator());
 
   // we need to be careful to use the right index!!
   u1_elem_ptr = dynamic_cast<Vector<T>* >((*all_u1_elem)[de->GetElementSolutionIndex()]);
@@ -308,49 +271,40 @@ void StressConstraint<T>::SetupElement(DesignElement* de, App::Type app1, App::T
   Vector<T>& u1_elem = *u1_elem_ptr;
   Vector<T>& u2_elem = *u2_elem_ptr;
 
-  LOG_DBG3(sc) << "S: de=" << de->elem->elemNum << " a1=" << app1 << " a2=" << app2 << " m=" << mode << " u1=" << u1_elem.ToString() << " u2=" << u2_elem.ToString();
+  LOG_DBG3(sc) << "S: de=" << de->elem->elemNum << " a=" << app << " m=" << mode << " u1=" << u1_elem.ToString() << " u2=" << u2_elem.ToString();
 
-  // apply our own physical densities!
-  form1->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat1, E1);
-  if(app1 == App::PIEZO_COUPLING)
-  {
-    tmp = E1;
-    tmp.Transpose(E1);
-  }
-
+  // set the element matrices
+  ea->SetIP(0); // set an arbitrary integration point for ToTensor()
+  mat->GetOrgMatCoef(form)->GetTensor(E1, ea->lpm);
+  E2 = E1; // TODO on the coupling case this comes from form2
+  E1 *= tf.Transform(de, DesignElement::SMART);
 
   if(mode == GRAD_STRESS)
-    form2->GetScaledMaterial(tf.Derivative(de, DesignElement::SMART), false, bimat2, E2);
+    E2 *= tf.Derivative(de, DesignElement::SMART);
   else
-    form2->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat2, E2);
-
-  if(app2 == App::PIEZO_COUPLING)
-  {
-    tmp = E2;
-    tmp.Transpose(E2);
-  }
-  */
+    E2 *= tf.Transform(de, DesignElement::SMART);
 }
+
+
 template<typename T>
-void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
+void StressConstraint<T>::EvalIP(Mode mode, ElementAccess* ea, unsigned int ip)
 {
+  assert(ea != NULL);
+
+  // sets lpm
+  ea->SetIP(ip);
+
   Vector<T>& u1_elem = *u1_elem_ptr;
   Vector<T>& u2_elem = *u2_elem_ptr;
 
-  assert(false);
-  /* FIXME
-  // we need the integration points for B
-  Vector<Double>* intPoints = elem->ptElem->GetIntPoints();
-
   // B1 and B2
-  // elem->ptElem->GetCoordMidPoint(intPoint);
-  form1->CalcBMatOnly(B1, intPoints[ip-1], elem); // fucking 1-based
-  form2->CalcBMatOnly(B2, intPoints[ip-1], elem);
-*/
+  form->GetBOp()->CalcOpMat(B1, ea->lpm, ea->CurrBaseFE());
+  B2 = B1; // clearly this is from form2 in the coupling case
+
   // left side stress
   strain1 = B1 * u1_elem;
   stress1 = E1 * strain1;
-  LOG_DBG3(sc) << "SE de=" << elem->elemNum << " ip=" << ip << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
+  LOG_DBG3(sc) << "SE de=" << ea->CurrElem()->elemNum << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
 
   // right side stress - ignored for adjoint but clean that way
   if(mode == ADJOINT_RHS)
@@ -363,7 +317,7 @@ void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
   {
     strain2 = B2 * u2_elem;
     stress2 = E2 * strain2; // E2 might be dE2
-    LOG_DBG3(sc) << "SE de=" << elem->elemNum << " ip=" << ip << " strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
+    LOG_DBG3(sc) << "SE de=" << ea->CurrElem()->elemNum << "  strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
   }
 }
 

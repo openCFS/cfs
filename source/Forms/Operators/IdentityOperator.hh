@@ -140,7 +140,6 @@ namespace CoupledField{
          bMat[d][sh*DIM_DOF + d] = s[sh];
        }
      }
-
    }
 
   template<class FE,  UInt D, UInt D_DOF, class TYPE>

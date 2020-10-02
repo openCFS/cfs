@@ -34,12 +34,13 @@ namespace CoupledField {
                                Double xEntry, 
                                Double method );
 
-  private:
-    
+    // made public to be accessible from coefFunctionHyst
     //! Read in data from file
     static void ReadFile( const char* fileName,
                           Vector<Double>& xVals,
                           Vector<Double>& yVals );
+
+  private:
 
     //! Calculate second derivative for cubic spline interpolation
     static void Spline( const Vector<Double>& x, const Vector<Double>& y,

@@ -18,21 +18,21 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
-#include <unistd.h>
+#if not defined(WIN32) 
+#  include <unistd.h>
+#endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include <def_use_mesh.hh>
 #include <def_use_petsc.hh>
 
-#ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-#endif
 
 #ifdef USE_PETSC
 #include "petsc.h"
@@ -48,26 +48,6 @@ using namespace boost::posix_time;
 using namespace boost::gregorian;
 
 
-#ifdef __MINGW32__
-
-#if 0
-extern "C" {
-int __security_cookie;
-}
-
-extern "C" void _fastcall __security_check_cookie(int i) {
-//do nothing
-}
-#endif
-
-// extern "C" void _chkstk() {
-//do nothing
-// }
-extern "C" void _allmul() {
-//do nothing
-}
-#endif //__MINGW32__
-
 // Create global info node
 PtrParamNode infoNode;
 
@@ -82,7 +62,7 @@ int main(int argc, const char **argv)
   //find which is my rank
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD,&size);
-  if (rank==0)
+  if(rank==0)
   {
     CFS cfs(argc, argv);   
     ret = cfs.Run();
@@ -153,8 +133,7 @@ CFS::CFS(int argc, const char **argv) :
 
   // Initialize logging class (read parameters from file if desired)
   std::string confFile = progOpts->GetLogConfFileStr();
-  logConf_ = new LogConfigurator(confFile);
-  logConf_->ParseLogConfFile();
+  LogConfigurator::ParseLogConfFile(confFile);
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
@@ -223,9 +202,6 @@ CFS::~CFS()
   // does not really matter anyway...
   paramNode_.reset();
   infoNode.reset();
-
-  delete logConf_;
-  logConf_ = NULL;
 }
 
 int CFS::Run()
@@ -255,9 +231,8 @@ int CFS::Run()
 
     if(progOpts->GetPrintGrid())
       PrintGrid();
-    else{
-        SolveProblem();
-    }
+    else
+      SolveProblem();
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
@@ -299,6 +274,8 @@ int CFS::Run()
       cerr << endl << ">> Error: " << ex.what() << endl;
     }
 
+    cerr.flush();
+
     // Print error cause to info file
     if(infoNode != NULL)
     {
@@ -322,8 +299,10 @@ void CFS::SetGlobalEnums()
 {
   SetEnvironmentEnums();
   BasePDE::SetEnums();
+  BiLinFormContext::SetEnums();
   EntityList::SetEnums();
   ElemShape::Initialize();
+
 }
 
 void CFS::PrintGrid()
@@ -377,12 +356,11 @@ void CFS::ReadXMLFile()
     cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
   // this is the new param stuff which replaces the old params - delete this comment finally
-  string schema = progOpts->GetSchemaPathStr();
-  schema += "/CFS-Simulation/CFS.xsd";
+  string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
 
   // parse the problem xml file, validate and fill with defaults from schema
   // continue to work only with the ParamNode tree
-  paramNode_ = XmlReader::ParseFile(xmlFile, schema);
+  paramNode_ = XmlReader::ParseFile(xmlFile, schema, "http://www.cfs++.org/simulation");
 
   // paramNode_->Dump();
 }

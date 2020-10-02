@@ -71,7 +71,11 @@ namespace CoupledField
     maxNumLineSearch_  = param_->Get( "maxNumLineSearch")->MathParse<UInt>();
     minMicDistant_ = param_->Get( "minMicDistant")->MathParse<Double>();
     logLevel_ =  param_->Get("logLevel")->As<std::string>();
-
+    if ( param_->Has("scale2Val") ) {
+    	scale2Val_ = param_->Get( "scale2Val")->MathParse<Double>();
+    }
+    else
+    	scale2Val_ = 1.0;
 
     //check for correct logLevel
     if ( logLevel_ != "1" && logLevel_ != "2" &&logLevel_ != "3" ) {
@@ -85,8 +89,10 @@ namespace CoupledField
     numFreq_ = 1;
     actFreqStep_ = 0;
     actFreq_ = 1.0;
+    stopFreqStep_ = 1.0;
     restartStep_ = 0;
-    
+    timePerStep_ = 0;
+    measL2squared_ = 0;
     isRestarted_ = false;
     
     // Check for presence of restart flag.
@@ -258,8 +264,10 @@ namespace CoupledField
     }
 
     //set the regularization parameters
-    rhsMeas_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_, logLevel_);
-    rhsSource_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_, logLevel_);
+    rhsMeas_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_,
+    		                  logLevel_, scale2Val_);
+    rhsSource_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_,
+    		                    logLevel_, scale2Val_);
 
     // Set current frequency value in the mathParser
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
@@ -326,8 +334,8 @@ namespace CoupledField
     		if ( !approxSourceWithDeltaFnc_ )
     			ptPDE_->GetSolveStep()->SetAdjointSource();
 
-        	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-        	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    		ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    		ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
     		ptPDE_->GetSolveStep()->SolveStepHarmonic();
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -355,8 +363,8 @@ namespace CoupledField
     			//compute with RHS as the current identified sources
     			rhsMeas_->SetActive(false);
     			rhsSource_->SetActive(true);
-    	    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-    	    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    			ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    			ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
     			ptPDE_->GetSolveStep()->SolveStepHarmonic();
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -383,8 +391,8 @@ namespace CoupledField
     				//compute with RHS as the current identified sources
     				rhsMeas_->SetActive(false);
     				rhsSource_->SetActive(true);
-    		    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-    		    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    				ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    				ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     				ptPDE_->GetSolveStep()->PreStepHarmonic();
     				ptPDE_->GetSolveStep()->SolveStepHarmonic();
     				ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -416,11 +424,11 @@ namespace CoupledField
     			//solve adj
     			rhsSource_->SetActive(false);
     			rhsMeas_->SetActive(true);
-        		if ( !approxSourceWithDeltaFnc_ )
-        			ptPDE_->GetSolveStep()->SetAdjointSource();
+    			if ( !approxSourceWithDeltaFnc_ )
+    			  ptPDE_->GetSolveStep()->SetAdjointSource();
 
-            	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-            	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    			ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    			ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
     			ptPDE_->GetSolveStep()->SolveStepHarmonic();
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -446,6 +454,8 @@ namespace CoupledField
     	//final computation
     	rhsMeas_->SetActive(false);
     	rhsSource_->SetActive(true);
+    	//scale back to the correct values fitting to the measurements
+    	rhsSource_->UpdateSource( stepLength, false, true );
     	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
@@ -515,7 +525,7 @@ namespace CoupledField
   }
 
 
-  void InverseSourceDriver::StoreResults(UInt stepNum, double step_val)
+  unsigned int InverseSourceDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::INVERSESOURCE);
 
@@ -524,6 +534,7 @@ namespace CoupledField
     ptPDE_->WriteResultsInFile(stepNum, step_val);
     handler_->FinishStep( );
 
+    return stepNum;
   }
 
 

@@ -29,7 +29,6 @@
 namespace CoupledField {
 
 // declare logging stream
-  DECLARE_LOG(stdPde)
   DEFINE_LOG(stdPde, "stdPde")
 
   StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode, PtrParamNode infoNode,
@@ -41,7 +40,7 @@ namespace CoupledField {
     nonLinMaterial_(false),
     nonLinTotalFormulation_(false),
     isHysteresis_(false),
-    isHysteresisFixPoint_(false),
+    nonLinNonHyst_(false),
     matDepend_(false),
     nonLinMethod_(FIXEDPOINT),
     pdematerialclass_(NO_CLASS),
@@ -49,7 +48,6 @@ namespace CoupledField {
     diagMass_(false),
     needsAlgsys_(true),
     analysistype_(BasePDE::NO_ANALYSIS),
-    isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
     isComplex_(false),    
@@ -86,7 +84,7 @@ namespace CoupledField {
     algsys_->InitMatrix();
     
     // Check for analysistype
-    if ( analysistype_ != EIGENFREQUENCY ) {
+    if ( analysistype_ != EIGENFREQUENCY && analysistype_ != BUCKLING) {
       
       // create solver and preconditioner
       algsys_->CreateSolver();
@@ -143,6 +141,28 @@ namespace CoupledField {
     // Structure for mapping of minor blocks 
     std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
 
+
+    StdVector<UInt> sbmInd(0);
+    if(algsys_->GetSolStrategy()->IsMultHarm()){
+      UInt M = algsys_->GetSolStrategy()->GetNumHarmM();
+      UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+      // same as ComputeIndex method in GraphManager, here with a lambda function
+      auto ComputeIndex = [](UInt a, UInt b ) { return (domain->GetDriver()->GetNumFreq()) * a + b;};
+
+      // store the sbm-indices of the nnz sbm-blocks
+      for( UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow ) {
+        sbmInd.Push_back( ComputeIndex(iRow, iRow) );
+        for( UInt iCol = iRow + 1; iCol < iRow + a ; ++iCol ) {
+          if( iCol < domain->GetDriver()->GetNumFreq()){
+            sbmInd.Push_back( ComputeIndex(iRow, iCol) );
+          }
+        }
+      }
+
+      // register it at algsys
+      algsys_->SetNnzSBMInd(sbmInd);
+    }// endif is multiharmonic
+
     // -----------------------------------------------------------
     //  1) Register FeFunctions with Algebraic System
     // -----------------------------------------------------------
@@ -174,25 +194,36 @@ namespace CoupledField {
       }
     }
 
+
     // ---------------------------------------
     //  2) Define SBM-Blocks and minor blocks
     // ---------------------------------------
     LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
 
     UInt numBlocks = sbmBlocks.GetSize();
+
+    if( solStrat_->IsMultHarm() && sbmBlocks.GetSize() > 1 )EXCEPTION("No submatrices allowed for multiharmonic analysis");
+
     // security check: ensure that at least one block is defined
     if (numBlocks == 0 ) {
       EXCEPTION( "There are no SBM blocks defined!" );
     }
 
     // Loop over blocks and register them at OLAS
+    // This also holds for multiharmonic case, because there we only have
+    // one set of equations, which are spread over the different blocks later on
     Integer sbmIndex = -1;
     for( UInt i = 0; i < numBlocks; ++i ) {
 
       // register block. In addition we check, if this is the inner block
       // and static condensation is activated
       bool isInnerBlock = solStrat_->UseStaticCondensation() && (i == numBlocks-1);
+
+      if( solStrat_->IsMultHarm() && i != 0 ) EXCEPTION("Only one block allowed in multiharmonic algsys!");
+
       sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
+
+
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
 
@@ -229,12 +260,13 @@ namespace CoupledField {
       } // if block is defined at all
     } // loop over blocks
 
-    // Finalize registration of blocks
+    // Finalize registration of blocks, which includes the generation of the graph manager
     algsys_->FinishRegistration();
 
 
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
+
 
     // -----------------------------------
     //  3) Setup Sparsity Patterns
@@ -246,16 +278,18 @@ namespace CoupledField {
       for( it2 = feFunctions_.begin(); it2 != feFunctions_.end(); ++it2 ) {
         FeFctIdType fctId1 = it1->second->GetFctId();
         FeFctIdType fctId2 = it2->second->GetFctId();
-
         // assemble upper diagonal blocks including diagonal
-        LOG_DBG(stdPde) << pdename_ << ":\tset graph for fctIds #"
-            << fctId1 << " and # " << fctId2 << std::endl;
+        LOG_DBG(stdPde)<<pdename_<<":\tset graph for fctIds #"<< fctId1<<" and #"<<fctId2<<std::endl;
         assemble_->SetupMatrixGraph(fctId1, fctId2);
       } // it2
     } // it1
 
     // finish the assembly of the matrix graph
-    algsys_->GraphSetupDone();
+    if( solStrat_->IsMultHarm() ){
+      algsys_->GraphSetupDoneMH();
+    }else{
+      algsys_->GraphSetupDone();
+    }
 
     timer->Stop();
 
@@ -398,8 +432,8 @@ namespace CoupledField {
   // **********
   // Hysteresis
   // **********
-  void StdPDE::SetPreviousHystVals(bool setNextToLastTS, bool forceMemoryLock){
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+  void StdPDE::SetPreviousHystVals(bool lastTS, bool forceMemoryLock){
+    if ( isHysteresis_ ){
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -408,14 +442,131 @@ namespace CoupledField {
           /*
            * Note: If locked = true, overwrite = false
            */
-          it->second->SetPreviousHystVals(setNextToLastTS, forceMemoryLock);
+          it->second->SetPreviousHystVals(lastTS, forceMemoryLock);
         }
      }
   }
 
+  void StdPDE::CheckSaturationOfHystOperators(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
+      Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
+
+    Double lastTSSatAvgTMP,lastItSatAvgTMP,curItSatAvgTMP,oppositeDirAsTSAvgTMP,oppositeDirAsItAvgTMP;
+    lastTSSatAvgTMP = 0.0;
+    lastItSatAvgTMP = 0.0;
+    curItSatAvgTMP  = 0.0;
+    oppositeDirAsTSAvgTMP = 0.0;
+    oppositeDirAsItAvgTMP = 0.0;
+    UInt cnt = 0;
+    if ( isHysteresis_ ){
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        cnt++;
+        it->second->checkSaturationStateAllElements(lastTSSatAvgTMP,lastItSatAvgTMP,curItSatAvgTMP,
+          oppositeDirAsTSAvgTMP,oppositeDirAsItAvgTMP);
+
+        LOG_DBG(stdPde) << "Saturation information for region " << it->first;
+        LOG_DBG(stdPde) << lastTSSatAvgTMP*100.0 << " percent of elements were saturated during last timestep";
+        LOG_DBG(stdPde) << lastItSatAvgTMP*100.0 << " percent of elements were saturated during last iteration";
+        LOG_DBG(stdPde) << curItSatAvgTMP*100.0 << " percent of elements are currently saturated";
+        LOG_DBG(stdPde) << oppositeDirAsTSAvgTMP*100.0 << " percent of elements changed direction of saturation by more than 90 degree compared to last timestep";
+        LOG_DBG(stdPde) << oppositeDirAsItAvgTMP*100.0 << " percent of elements changed direction of saturation by more than 90 degree compared to last iteration";
+      }
+    } else {
+      cnt = 1;
+    }
+    lastTSSatAvg = lastTSSatAvgTMP/( (Double) cnt);
+    lastItSatAvg = lastItSatAvgTMP/( (Double) cnt);
+    curItSatAvg  = curItSatAvgTMP/( (Double) cnt);
+    oppositeDirAsTSAvg = oppositeDirAsTSAvgTMP/( (Double) cnt);
+    oppositeDirAsItAvg = oppositeDirAsItAvgTMP/( (Double) cnt);
+
+  }
+
+  void StdPDE::EstimateCurrentSlopeForHysteresis(Double steppingLength, Double scaling){
+
+    if ( isHysteresis_ ){
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        it->second->ActiveOneShotSlopeEstimation(steppingLength, scaling);
+      }
+    }
+  }
+
+  bool StdPDE::MaterialTensorsHystDependent(){
+    /*
+     * aim: find out if material tensors are dependent on hysteresis
+     * this is true, in case of piezos and magnetostriction as the coupling
+     * tensors depend on hysteresis;
+     * in electrostatics and magnetics, eps/nu do not depend on hysteresis, so
+     * this function returns false here
+     * NOTE: we just check the material tensors for dependency; the system matrix
+     * might still depend on hysteresis in the case of deltaMatrix formulations
+     */
+    if ( isHysteresis_ ){
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      /*
+       * Idea: iterate over all hysteresis regions (for each region we may have a
+       * different coefFctHyst) and check if the coupling tensors are set or not;
+       * if they are not set, the material tensors are indepenedent on hysteresis;
+       * if they are set, we have to assume a dependency
+       */
+      bool dependency = false;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        dependency = it->second->couplingTensorSet();
+        if(dependency == true){
+          break;
+        }
+      }
+      return dependency;
+    } else {
+      // no hysteresis > no dependency
+      return false;
+    }
+  }
+
+  void StdPDE::TestInversionOfHystOperator(PtrParamNode testNode){
+    if ( isHysteresis_ ){
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+          // set flag with with the corresponding flagname
+          for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+            /*
+             * Note: If locked = true, overwrite = false
+             */
+            it->second->TestInversion(testNode);
+          }
+     }
+  }
+
+  void StdPDE::SetDoubleFlagInCoefFncHyst(std::string flagName, Double newState){
+    if ( isHysteresis_ ){
+      //set current values to previous values for hysteresis operator
+      //needed for the next time step
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      // set flag with with the corresponding flagname
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        /*
+         * Note: If locked = true, overwrite = false
+         */
+        it->second->SetDoubleFlag(flagName,newState);
+      }
+    }
+  }
+
   void StdPDE::SetFlagInCoefFncHyst(std::string flagName, Integer newState){
 
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+    if ( isHysteresis_ ){
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();

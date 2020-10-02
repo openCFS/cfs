@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
@@ -18,14 +17,13 @@ namespace CoupledField {
 class Condition;
 class Objective;
 
-DECLARE_LOG(ShDes)
 DEFINE_LOG(ShDes, "ShapeDesign")
 
 ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method)
   : AuxDesign(regions, pn, method)
 {
   dim_ = domain->GetGrid()->GetDim();
-  exoprt_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
+  export_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 
 ShapeDesign::~ShapeDesign(){

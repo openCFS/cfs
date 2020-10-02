@@ -23,7 +23,6 @@ using boost::char_separator;
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simInputHdf5)
   DEFINE_LOG(simInputHdf5, "simInput.hdf5")
 
 #define H5_CATCH( STR )                                                 \
@@ -616,9 +615,9 @@ namespace CoupledField {
   void SimInputHDF5::GetResult( UInt sequenceStep,
                                 UInt stepNum,
                                 shared_ptr<BaseResult> result,
-                                bool isHistory ) {
+                                bool isHist) {
 
-    if( !isHistory ) {
+    if( !isHist ) {
       GetMeshResult( sequenceStep, stepNum, result);
     } else {
       GetHistResult( sequenceStep, stepNum, result );
@@ -735,7 +734,7 @@ namespace CoupledField {
   }
 
   void SimInputHDF5::GetHistResult( UInt sequenceStep, UInt stepNum,
-                                         shared_ptr<BaseResult> result ) {
+                                         shared_ptr<BaseResult> result) {
 
     // open multisequence group
     H5::Group actMsGroup = H5IO::GetMultiStepGroup( mainFile_, sequenceStep,
@@ -789,7 +788,12 @@ namespace CoupledField {
           actEntGroup = entityGroup.openGroup(sstr.str());
         } else {
           // open for each entity the specific subgroup
-          actEntGroup = entityGroup.openGroup(it.GetIdString() );
+          if(tempRegionName_ != ""){
+            actEntGroup = entityGroup.openGroup( tempRegionName_ );
+          }else{
+            actEntGroup = entityGroup.openGroup(it.GetIdString() );
+          }
+
         }
 
         // read single part of array and set it in the result vector

@@ -3,18 +3,19 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/Excitation.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Driver/EigenFrequencyDriver.hh"
+#include "Driver/BucklingDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/MultiSequenceDriver.hh"
 #include "Driver/Assemble.hh"
+#include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "PDE/LatticeBoltzmannPDE.hh"
 
 using namespace CoupledField;
 
-DECLARE_LOG(context)
 DEFINE_LOG(context, "context")
 
 Context::Context()
@@ -42,7 +43,8 @@ Context::Context()
   harmonic_ = false;
   eigenvalue_ = false;
   bloch_ = false;
-  homogenization = false; // to be set by the functions and
+  buckling_ = false;
+  homogenization = false; // to be set by the functions
   pde = NULL;
   stt = NO_TENSOR;
 
@@ -77,8 +79,15 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     num_eigenmodes         = EigenFrequencyDriver::GetNumModes(node); // also in the non-bloch case
     break;
 
+  case BasePDE::BUCKLING:
+    complex_ = true;
+    eigenvalue_ = true;
+    buckling_ = true;
+    num_eigenmodes = EigenFrequencyDriver::GetNumModes(node); // FIXME buckling get correct number of eigenmodes
+    break;
+
   case BasePDE::STATIC:
-    // FIXME num_static_loads not that easy to determine w/o pde. allows 0 (explixit excitions or homogenization) or more
+    // FIXME num_static_loads not that easy to determine w/o pde. allows 0 (explixit excitations or homogenization) or more
     break;
 
   case BasePDE::TRANSIENT:
@@ -90,6 +99,7 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     break;
 
   case BasePDE::MULTI_SEQUENCE:
+  case BasePDE::MULTIHARMONIC:
   case BasePDE::NO_ANALYSIS:
     assert(false);
     break;
@@ -130,12 +140,28 @@ void Context::Update()
     infoNode->Get("eigenvalue")->SetValue(eigenvalue_);
     infoNode->Get("bloch")->SetValue(bloch_);
     infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
+
+    if (dm == NULL && em->GetMethod() == ErsatzMaterial::PARAM_MAT) {
+      assert(em->pn->Has("paramMat/designMaterials"));
+      assert(sequence != -1);
+      ParamNodeList list = em->pn->Get("paramMat/designMaterials")->GetListByVal("designMaterial", "sequence", sequence);
+      assert(list.GetSize() == 1);
+      assert(mat != NULL);
+      domain->GetDesign()->SetDesignMaterial(list[0], mat->GetSystem());
+      assert(dm != NULL);
+      LOG_DBG3(context) << "CTXT: set design material '" << OptimizationMaterial::system.ToString(mat->GetSystem()) << "' for sequence=" << sequence;
+    }
   }
 }
 
 EigenFrequencyDriver* Context::GetEigenFrequencyDriver()
 {
   return dynamic_cast<EigenFrequencyDriver*>(driver);
+}
+
+BucklingDriver* Context::GetBucklingDriver()
+{
+  return dynamic_cast<BucklingDriver*>(driver);
 }
 
 HarmonicDriver* Context::GetHarmonicDriver()
@@ -203,8 +229,10 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 {
   assert(f->ctxt == this);
   assert(base < excitations.GetSize());
-  if(!me_->DoMetaExcitation(f->ctxt))
+  if(!me_->DoMetaExcitation(f->ctxt)){
+    LOG_DBG3(context) << "C::GE  base=" << base << " excitation=" << excitations[base]->test_strain.ToString(2);
     return excitations[base];
+  }
   else
     return excitations[basic_excitations_ * f->GetExcitation()->meta_index + base]; // * and + swapped??
 }
@@ -212,13 +240,21 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 App::Type Context::ToApp(const SinglePDE* pde)
 {
   if(pde->GetName() == "electrostatic") return App::ELEC;
-  if(pde->GetName() == "mechanic") return App::MECH;
+  if(pde->GetName() == "mechanic")
+    if(pde->GetAnalysisType() == BasePDE::BUCKLING)
+      return App::BUCKLING;
+    else
+      return App::MECH;
   if(pde->GetName() == "heatConduction") return App::HEAT;
   if(pde->GetName() == "acoustic") return App::ACOUSTIC;
   if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
+  if(pde->GetName() == "magnetic") return App::MAG;
+  if(pde->GetName() == "magneticEdge") return App::MAG;
 
   throw Exception("invalid");
 }
+
+
 
 SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
 {
@@ -233,8 +269,7 @@ SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
   return NULL;
 }
 
-
-void Context::SetPDEs()
+bool Context::SetPDEs()
 {
   const StdVector<SinglePDE*> avail = domain->GetSinglePDEs();
 
@@ -248,6 +283,16 @@ void Context::SetPDEs()
     if(sp->GetName() == "heatConduction") {
       pde = domain->GetSinglePDE("heatConduction", true);
       pdes[App::HEAT] = pde;
+    }
+
+    if(sp->GetName() == "magnetic") {
+      pde = domain->GetSinglePDE("magnetic", true);
+      pdes[App::MAG] = pde;
+    }
+
+    if(sp->GetName() == "magneticEdge") {
+      pde = domain->GetSinglePDE("magneticEdge", true);
+      pdes[App::MAG] = pde;
     }
 
     if(sp->GetName() == "acoustic") {
@@ -270,13 +315,69 @@ void Context::SetPDEs()
     if(sp->GetName() == "mechanic") {
       assert(!(pde != NULL && domain->GetSinglePDE("mechanic", true) != pde));
       pde = domain->GetSinglePDE("mechanic", true);
-      pdes[App::MECH] = pde;
+      if (sp->GetAnalysisType() == BasePDE::BUCKLING)
+        pdes[App::BUCKLING] = pde;
+      else
+        pdes[App::MECH] = pde;
       stt = pde->GetSubTensorType();
     }
   }
 
   assert(pdes.size() == avail.GetSize());
+
+  return !avail.IsEmpty();
 }
+
+BiLinFormContext* Context::GetBiLinFormContext(const RegionIdType reg, App::Type app1, App::Type app2, bool throw_exception)
+{
+  App::Type a1, a2;
+  string integrator = "";
+
+  if(app1 == App::MECH && (app2 == App::MECH || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::MECH;
+    integrator = "LinElastInt";
+  }
+  if(app1 == App::BUCKLING && (app2 == App::BUCKLING || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::BUCKLING;
+    integrator = "PreStressInt";
+  }
+  if(app1 == App::ELEC && (app2 == App::ELEC || app2 == App::NO_APP))
+  {
+    a1 = a2 = App::ELEC;
+    integrator = "LinGradBDBInt";
+  }
+  if((app1 == App::MECH && app2 == App::ELEC) || (app1 == App::ELEC && app2 == App::MECH) || (app1 == App::PIEZO_COUPLING && app2 == App::NO_APP))
+  {
+    a1 = App::MECH;
+    a2 = App::ELEC;
+    integrator = "LinPiezoCoupling";
+  }
+  if(app1 == App::MASS && (app2 == App::MASS || app2 == App::NO_APP))
+  {
+    a1 = a2 =App:: MASS;
+    integrator = "MassInt";
+  }
+
+  assert(integrator != "");
+
+  SinglePDE* pde1 = ToPDE(a1, throw_exception);
+  SinglePDE* pde2 = ToPDE(a2, throw_exception);
+
+  if(pde1 == NULL || pde2 == NULL)
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
+  }
+
+  // in pre-FE-Space there was also the entry type!
+  assert(pde2 != NULL); // otherwise it would be a LinearForm
+  return pde1->GetAssemble()->GetBiLinForm(integrator, reg, pde1, pde2, !throw_exception);
+}
+
 
 ContextManager::ContextManager()
 {

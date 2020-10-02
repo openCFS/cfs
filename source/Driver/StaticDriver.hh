@@ -30,7 +30,7 @@ namespace CoupledField {
     void SolveProblem();
         
     /** @see BaseDriver::StoreResults(double) */  
-    void StoreResults(UInt stepNum, double step_val);
+    unsigned int StoreResults(UInt stepNum, double step_val);
 
     /** Helper method which determines if an AnalyisType is complex. */
     virtual bool IsComplex() { return false; };

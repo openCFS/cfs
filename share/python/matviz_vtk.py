@@ -204,10 +204,10 @@ def show_vtk(polydata, res, save = None, planes=[], show_edges=False, show_axes=
         mapper.SetInputConnection(filter.GetOutputPort())
     else:
       mapper.SetInputData(polydata)
-  
+      
   actor = vtk.vtkActor()
   actor.SetMapper(mapper)
-  #actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
+  actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
   
   if show_edges: # show surface with edges
     actor.GetProperty().EdgeVisibilityOn()
@@ -1023,7 +1023,7 @@ def create_3d_cross_ip(coords, design, ip, grad, scale, valid_position, thres=0.
   vol = calc_cross_elem_vol_3D(s1,s2,s3)
   
   # calculate interpolated values of the design variables s1,s2,s3 for a uniform 3d grid 
-  ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angles)
+  ip_data, ip_near, out, ndim, scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angles)
 
   #scales the lattice cells to fit in the design domain exactly
   #scale = scale_max 
@@ -1171,42 +1171,207 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   
   return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
-# @param (xmin,ymin,zmin,xmax,ymax,zmax)
-def get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
+# this is copy & paste from matviz_2d but extended to 3D
+# @param nx_ip number of interpolations within x
+def get_interpolation_natural_neighbor(coords, s1, s2, s3, dx, dy, dz):
   # we make our own regular element grid
   centers, mi, ma = coords[0:3]  # skip elem
  
+  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+  # where we want nodes
+  nx = int(delta[0] / dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)
+  
+  scale_x = delta[0]/(nx*dx)
+  scale_y = delta[1]/(ny*dy)
+  scale_z = delta[2]/(nz*dz)
+  
   if ny == 0 or nz == 0 or nx == 0:
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
-    
-#   print("dx,dy,dz:",dx,dy,dz)    
-#   print("nx,ny,nz:",nx,ny,nz)  
-  out = numpy.zeros(((nx + 1), (ny + 1), (nz + 1), 3))
-  
-  for x in range(nx + 1):
-    for y in range(ny + 1):
-      for z in range(nz + 1):
-        out[x,y,z] = [bounds[0]+x*dx,bounds[1]+y*dy,bounds[2]+z*dz]
 
-  assert(s1 is not None and s2 is not None and s3 is not None)      
-  v = numpy.zeros((len(s1),3))
-  v[:, 0] = s1[:, 0]
-  v[:, 1] = s2[:, 0]
-  v[:, 2] = s3[:, 0]
+  out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
+  idx = 0
+  for z in range(nz + 1):
+    for y in range(ny + 1):
+      for x in range(nx + 1):
+        out[idx] = ((mi[0] + float(x) / nx * delta[0], mi[1] +  float(y) / ny * delta[1], mi[2] + float(z) / nz * delta[2]))
+        idx += 1
+  if s2 is None and s3 is None:
+      v = numpy.zeros((len(s1), 1))
+      v[:, 0] = s1[:, 0]
+  else:
+    v = numpy.zeros((len(s1), 3 ))
+    v[:, 0] = s1[:, 0]
+    v[:, 1] = s2[:, 0]
+    v[:, 2] = s3[:, 0]
   
-#   test = [(0.8,0.95,0.025),(0.8,0.05,0.025)]
-#   test_data = ip.griddata(centers, v, test, grad, -1.0)
-#   print(test_data)
-#   sys.exit()
+  import naturalneighbor
+  l1 = numpy.array([s[0] for s in s1])
+  l2 = numpy.array([s[0] for s in s2])
+  l3 = numpy.array([s[0] for s in s3])
+  
+  l = numpy.array([numpy.array((s1[i],s2[i],s3[i])) for i in range(len(s1))])
+  
+  # y-z face: x has offset 0
+  tmp_1 = naturalneighbor.griddata(numpy.array(centers), l1, [ [mi[0],mi[0]+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_2 = naturalneighbor.griddata(numpy.array(centers), l2, [ [mi[0],mi[0]+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_3 = naturalneighbor.griddata(numpy.array(centers), l3, [ [mi[0],mi[0]+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  yz = numpy.stack((tmp_1,tmp_2,tmp_3), axis=-1)
+  
+  # x-z face: y has offset 0
+  tmp_1 = naturalneighbor.griddata(numpy.array(centers), l1, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1],mi[1]+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_2 = naturalneighbor.griddata(numpy.array(centers), l2, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1],mi[1]+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_3 = naturalneighbor.griddata(numpy.array(centers), l3, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1],mi[1]+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  xz = numpy.stack((tmp_1,tmp_2,tmp_3), axis=-1)
+  
+  # x-y face: z has offset 0
+  tmp_1 = naturalneighbor.griddata(numpy.array(centers), l1, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2],mi[2]+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_2 = naturalneighbor.griddata(numpy.array(centers), l2, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2],mi[2]+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_3 = naturalneighbor.griddata(numpy.array(centers), l3, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2],mi[2]+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  xy = numpy.stack((tmp_1,tmp_2,tmp_3), axis=-1)
+  
+  return [yz, xz, xy], out 
+
+# this is copy & paste from matviz_2d but extended to 3D
+# @param nx_ip number of interpolations within x
+# assume we get element data at barycenters (coords)
+def get_3d_interpolation_at_faces(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
+  # we make our own regular element grid
+  centers, _, _ = coords[0:3]  # skip elem
+  
+  mi = bounds[0:3]
+  ma = bounds[3:6]
+ 
+
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # x is the fastet variable, z is the slowest variable
+  #
+  #        -----------          
+  #      /|          /|      # left face   (x=0):  id = 0
+  #     / |    3    / |      # right face  (x=1):  id = 1
+  #     -----------   |      # bottom face (y=0):  id = 2
+  #    |  |        |  |      # top face    (y=1):  id = 3
+  #    |0 |    4   | 1|      # back face   (z=0):  id = 4
+  #    |   --------|--       # front face  (z=1):  id = 5
+  #    | /         | /
+  #    |/     2    |/  
+  #     -----------  front face(z=1) has id 5
+  
+  # loop over elements, for each element we store 3 faces (left,bottom,back) and
+  # each face is described by its barycenter
+  out = []
+  for x in range(nx+1):
+    for y in range(ny+1):
+      for z in range(nz+1):
+        # center of left face
+        out.append((mi[0] + x*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz + 0.5*dz))
+        # center of bottom face
+        out.append((mi[0]+x*dx + 0.5*dx, mi[1] + y*dy, mi[2] + z * dz + 0.5*dz))
+        # center of back face
+        out.append((mi[0] + x*dx + 0.5*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz))
+  
+  if s2 is None and s3 is None:
+      v = numpy.zeros((len(s1), 1))
+      v[:, 0] = s1[:, 0]
+  else:
+    v = numpy.zeros((len(s1), 3))
+    v[:, 0] = s1#[:]#, 0]
+    v[:, 1] = s2#[:]#, 0]
+    v[:, 2] = s3#[:]#, 0]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
+
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
   ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
   
+  # for each element, store center coordinates of its three faces
+  ip_data = numpy.reshape(ip_data, ((nx+1),(ny+1),(nz+1),3,3))
+  ip_near = numpy.reshape(ip_near, ((nx+1),(ny+1),(nz+1),3,3))
+  out = numpy.reshape(out,((nx+1),(ny+1),(nz+1),3,3))
+  
+  
   return ip_data, ip_near, out  
 
+# interpolate given data at cell barycenters to cell vertices
+# elems: elements of desgin domain described by its vertices
+# reg_info: info on design region such as node coords, elements and connectivity
+def interp_cell_to_point_data(center_coords, reg_info, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
+  # we make our own regular element grid
+  # coordinates of barycenters at which the values for s1, s2, s3 are given
+  centers = center_coords
+  mi = bounds[0:3]
+  ma = bounds[3:6]
+  
+  # coords of vertices defining elements
+  elems = reg_info['elements']
+  nodes = list(reg_info['nodes'])
+  # stores vertex ids of each element
+  connectivity = reg_info['connectivity']
+  # region_map: maps local node id (list idx) in given design region (e.g. "mech") to global node id in all regions
+  local_to_global_id = reg_info['region_map']
+  if any(isinstance(el, numpy.ndarray) for el in local_to_global_id):
+    local_to_global_id = [el[0] for el in local_to_global_id]
+  global_to_local_id = dict()
+  for i,id in enumerate(local_to_global_id):
+    global_to_local_id[id-1] = i
+#   print("nodes:",nodes)
+  
+  assert(len(elems) == len(connectivity))
+  assert(len(elems) == len(s1))
+  assert(len(elems) == len(s2))
+  assert(len(elems) == len(s3))
+  
+  # for each global node: calc weighted sum of design variables of adjacent elements
+  s1_nodes = numpy.zeros(len(nodes))
+  s2_nodes = numpy.zeros(len(nodes))
+  s3_nodes = numpy.zeros(len(nodes))
+  neighbors = numpy.zeros(len(nodes))
+  
+  for ie,e in enumerate(connectivity): # each element
+    for v in e: # each element vertex
+      s1_nodes[global_to_local_id[v-1]] += s1[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1])) # cfs is 1-based
+      s2_nodes[global_to_local_id[v-1]] += s2[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      s3_nodes[global_to_local_id[v-1]] += s3[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      neighbors[global_to_local_id[v-1]] += 1
+  
+  # normalize    
+  for i,n in enumerate(neighbors):
+    assert(neighbors[i] > 0)
+    s1_nodes[i] /= neighbors[i]
+    s2_nodes[i] /= neighbors[i]
+    s3_nodes[i] /= neighbors[i]    
+  
+  return nodes, s1_nodes, s2_nodes, s3_nodes
+  
+  
+  # loop over elements, for each element we store 3 faces (left,bottom,back) and
+  # each face is described by its barycenter
+  out = []
+  for x in range(nx+1):
+    for y in range(ny+1):
+      for z in range(nz+1):
+        # center of left face
+        out.append((mi[0] + x*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz + 0.5*dz))
+        # center of bottom face
+        out.append((mi[0]+x*dx + 0.5*dx, mi[1] + y*dy, mi[2] + z * dz + 0.5*dz))
+        # center of back face
+        out.append((mi[0] + x*dx + 0.5*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz))
+  
+  ip_data= naturalneighbor.griddata(centers, v, out)
+
+# # for a rectangular grid calculate the left, bottom and back face center coords of one element
+# # barycenters: 
+# def face_center_coords_cube(barycenters,bounds, nx,ny,nz,dx,dy,dz):
+    
 # # litte helper
 # @param save filename or none
 # @param list which might be empty
@@ -1246,19 +1411,30 @@ def calc_cross_elem_vol_3D(s1, s2, s3):
 def write_stl(polydata, save=None):
   stlWriter =  vtk.vtkSTLWriter()
   fName = save if save else 'surface.stl'
+  if not fName.endswith(".stl"):
+    fName += ".stl"
   stlWriter.SetFileName(fName)
   stlWriter.SetInputData(polydata)
+  stlWriter.SetFileTypeToASCII()
   stlWriter.Write()
   
   print("saved polydata to file " + fName)  
 
-def fill_vtk_polydata(points,cells):
+# take points and cells list/arrays and create polydata
+# stores shortest edge length in 'short'
+# optional pointIds, in case point ids don't match with list index of 'points'
+def fill_vtk_polydata(points,cells,pointIds=None):
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
   
-  for p in points:
-    vtk_points.InsertNextPoint(p)
+  if not pointIds:
+    for p in points:
+      vtk_points.InsertNextPoint(p)
+  else:
+    vtk_points.SetNumberOfPoints(len(points))
+    for i,p in enumerate(points):
+      vtk_points.InsertPoint(pointIds[i], p)
   
   for ce in cells:
     if len(ce) == 3: # triangle
@@ -1281,8 +1457,9 @@ def fill_vtk_polydata(points,cells):
   
   return polydata
 
-def add_triangle(id1, id2, id3, cells):
-  assert(id1 != id2 and id2 != id3)
+def add_triangle(id1,id2,id3,cells):
+  if id1 == id2 or id1 == id3:
+    return
     
   i1 = id1
   i2 = id2
@@ -1298,10 +1475,11 @@ def vtk_polydata_to_numpy(polydata):
   from vtk.util.numpy_support import vtk_to_numpy
   # get point data
   points = vtk_to_numpy(polydata.GetPoints().GetData())
+#   print("number of points:",len(points))
   
   polys = polydata.GetPolys()
   ne = polys.GetNumberOfCells()
-  print("number of polys:",polydata.GetNumberOfPolys())
+#   print("number of polys:",polydata.GetNumberOfPolys())
   
   cells = numpy.zeros((ne,3),dtype=int)
   polys.InitTraversal()   

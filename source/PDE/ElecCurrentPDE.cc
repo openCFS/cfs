@@ -43,7 +43,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(eleccurrentpde)
   DEFINE_LOG(eleccurrentpde, "pde.electricCurrent")
 
   // ***************
@@ -194,7 +193,7 @@ namespace CoupledField {
                                 ent, coef, updatedGeo_ );
         //coef-Fnc for electric conductivity
         PtrCoefFct condNL =
-                  actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY, Global::REAL, coef);
+                  actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY_SCALAR, Global::REAL, coef);
 
         // create stiffness integrator
         BaseBDBInt* stiffInt = NULL;
@@ -238,7 +237,7 @@ namespace CoupledField {
           GetPoleRegionIds(NLELEC_BIPOLE, depRegionIds);
           dep.Push_back(elPotCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_BIPOLE, Global::REAL, dep, depRegionIds);
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_BIPOLE, Global::REAL, dep, depRegionIds);
             /*  ELEC_CONDUCTIVITY means gamma(T) */ 
           intName = "ElecStiffnessIntegrator-Bipole-Voltage-Depend";
         }
@@ -253,7 +252,7 @@ namespace CoupledField {
           dep.Push_back(elPotCoef);
           dep.Push_back(heatCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_BIPOLE_TEMP_DEP, 
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_BIPOLE_TEMP_DEP,
                          Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-Bipole-Voltage-Temperature-Depend";
         }
@@ -261,7 +260,7 @@ namespace CoupledField {
           GetPoleRegionIds(NLELEC_TRIPOLE, depRegionIds);
           dep.Push_back(elPotCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE, Global::REAL, dep, depRegionIds);
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_TRIPOLE, Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-Tripole-Voltage-Depend";
         }
         else if ( nonLinTypes.Find(NLELEC_TRIPOLE_TEMP_DEP) != -1)  {
@@ -275,7 +274,7 @@ namespace CoupledField {
           dep.Push_back(elPotCoef);
           dep.Push_back(heatCoef);
           condNLNew = 
-            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE_TEMP_DEP, 
+            actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY_SCALAR, NLELEC_TRIPOLE_TEMP_DEP,
                          Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-TRipole-Voltage-Temperature-Depend";
         }
@@ -534,6 +533,32 @@ namespace CoupledField {
     }
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
+
+
+    // \int_\Omega_C grad(V) \cdot grad(V)
+    shared_ptr<ResultInfo> elecGradVInt( new ResultInfo );
+    elecGradVInt->resultType = ELEC_GRAD_V_INT;
+    elecGradVInt->definedOn = ResultInfo::REGION;
+    elecGradVInt->entryType = ResultInfo::SCALAR;
+    elecGradVInt->dofNames = "";
+    elecGradVInt->unit = "A";
+    shared_ptr<CoefFunctionFormBased> sigmaElecGradVFunc;
+    if( isComplex_ ) {
+      sigmaElecGradVFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 1.0));
+    } else {
+      sigmaElecGradVFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 1.0));
+    }
+    stiffFormCoefs_.insert(sigmaElecGradVFunc);
+
+    shared_ptr<ResultFunctor> ElecGradVIntFunc;
+    if( isComplex_ ) {
+      ElecGradVIntFunc.reset(new ResultFunctorIntegrate<Complex>(sigmaElecGradVFunc, feFct, elecGradVInt));
+    } else {
+      ElecGradVIntFunc.reset(new ResultFunctorIntegrate<Double>(sigmaElecGradVFunc, feFct, elecGradVInt));
+    }
+    resultFunctors_[ELEC_GRAD_V_INT] = ElecGradVIntFunc;
+    availResults_.insert( elecGradVInt );
+
 
     // == ELECTRIC_NORMAL_CURRENT_DENSITY ==
     shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );

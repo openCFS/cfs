@@ -729,6 +729,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     UInt size = newSize - oldSize; 
 
     // check, that size is greater than zero
+    // > why do we check for == 0 than?
     if( newSize == 0 || buffer == NULL ) {
       EXCEPTION( "Attribute data buffer of 1D array '" << name
                  << "' is NULL or has zero size" );
@@ -749,9 +750,7 @@ hsize_t H5IO::maxChunkSize_= 100;
         EXCEPTION( "Could not convert data for 1D array '"
             << name << "' of type " << typeid(TYPE).name() );
       }
-
       
-
       // extend dataset to new size
       const hsize_t newDims[] = {newSize};
       dataset.extend( newDims );
@@ -773,8 +772,10 @@ hsize_t H5IO::maxChunkSize_= 100;
       dataset.close();
 
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not extend 1D-Array '"
-          << name << "':\n" << h5ex.getCDetailMsg());
+//      EXCEPTION("Could not extend 1D-Array '"
+//          << name << "':\n" << h5ex.getCDetailMsg());
+            EXCEPTION("Could not extend 1D-Array '"
+          << name << "' from " << oldSize << " to " << newSize << ":\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not extend 1D-Array '" << name << "'" );
     }
@@ -1761,6 +1762,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     case ResultInfo::REGION:
       definedOn = 7;
       break;
+    case ResultInfo::REGION_AVERAGE:
+      definedOn = 7;
+      break;
     case ResultInfo::SURF_REGION:
       definedOn = 8;
       break;
@@ -1802,6 +1806,9 @@ hsize_t H5IO::maxChunkSize_= 100;
 //       definedOn = "Nodes";
 //       break;
      case ResultInfo::REGION:
+       definedOn = "Regions";
+       break;
+     case ResultInfo::REGION_AVERAGE:
        definedOn = "Regions";
        break;
      case ResultInfo::SURF_REGION:

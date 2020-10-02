@@ -34,44 +34,46 @@ public:
   //! \copydoc CoefFunction::GetComplexPart
   virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
 
+   /** This is the const special case which needs no lpm as long as we have no coordSys */
+  Matrix<T>& GetTensor()
+  {
+     assert(this->dimType_ == TENSOR);
+     return constCoefMat_;
+   }
+
+  /** Again a CoefFunctionConst special case */
+  void GetTensor(Matrix<T>& coefMat) {
+    coefMat = GetTensor();
+  }
+
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<T>& coefMat, 
-                 const LocPointMapped& lpm ) {
-    assert(this->dimType_ == TENSOR);
-    // if no coordinate system is set, just
-    // use internal vector
-    if( !coordSys_ ) {
-      coefMat =  constCoefMat_;
-    } else {
-      EXCEPTION(
-          "The rotation is not fully finished ':-(\n" << 
-          "Here we have to add a call to the method BaseMaterial::PerformRotation "
-          "This method should be moved to the base class of the CoefFunction"
-          "In addition the initial rotation of the material must be incorporated"
-          "somewhere in string-notation, as we are generally dealing with string"
-          "parameters."
-          "Thus we should treat the case, where rotation angles are multiples of "
-          "90 degree separately, where the entries are just interchanged");
-    }
+  void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm) {
+    // we are the const version
+    Matrix<T> locMatrix;
+    GetTensor(locMatrix);
+    TransformTensorByCoordSys(coefMat, locMatrix, lpm);
+  }
+
+  const Matrix<T>& GetTensor() const
+  {
+    assert(dimType_ == TENSOR);
+    return constCoefMat_;
   }
 
   //! \copydoc CoefFunction::GetVector
-  void GetVector(Vector<T>& coefVec, 
-                 const LocPointMapped& lpm ) {
-    assert(this->dimType_ == VECTOR ||
-           this->dimType_ == SCALAR );
+  void GetVector(Vector<T>& coefVec, const LocPointMapped& lpm )
+  {
+    assert(this->dimType_ == VECTOR || this->dimType_ == SCALAR );
 
     // in case of scalars, just set one entry in the vector
     if( this->dimType_ == SCALAR ) {
       coefVec.Resize(1);
       coefVec[0] = coefScalar_;
     } else {
-
       // if no coordinate system is set, just
       // use internal vector
       if( !coordSys_ ) {
         coefVec = coefVec_;
-
       } else {
         // otherwise, perform local -> global mapping
         Vector<Double> pointCoord;
@@ -83,11 +85,45 @@ public:
     }
   }
 
-  //! \copydoc CoefFunction::GetScalar
-  void GetScalar(T& coefScalar, 
-                 const LocPointMapped& lpm ) {
+  /** special CoefFunctionConst variant without lpm which is not used anyway!
+   * Does not work with coordSys set!  */
+  void GetVector(Vector<T>& coefVec)
+  {
+    assert(this->dimType_ == VECTOR || this->dimType_ == SCALAR );
+
+    if(coordSys_)
+      EXCEPTION("Call simplief CoefFunctionConst::GetVector() only without coordSys!");
+
+    // in case of scalars, just set one entry in the vector. Therefore no Vector return!
+    if( this->dimType_ == SCALAR ) {
+      coefVec.Resize(1);
+      coefVec[0] = coefScalar_; // TODO: why not check coordSys for scalar?!
+    }
+    else
+      coefVec = coefVec_;
+  }
+
+  const Vector<T>& GetVector() const {
+      assert(this->dimType_ == VECTOR);
+      return coefVec_;
+    }
+
+
+  /** special CoefFunctionConst variant without lpm which is not used anyway! */
+  T GetScalar() const {
     assert(this->dimType_ == SCALAR);
-    coefScalar =  coefScalar_;
+    return coefScalar_;
+  }
+
+
+  /** special CoefFunctionConst variant without lpm which is not used anyway! */
+  void GetScalar(T& coefScalar) {
+    coefScalar = GetScalar();
+  }
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(T& coefScalar, const LocPointMapped& lpm ) {
+    GetScalar(coefScalar);
   }
 
   //! \copydoc CoefFunction::GetVecSize

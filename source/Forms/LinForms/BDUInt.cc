@@ -1,8 +1,8 @@
 // =====================================================================================
 // 
-//       Filename:  buInt.cc
+//       Filename:  bduInt.cc
 // 
-//    Description:  Implementation file for BUIntegrators
+//    Description:  Implementation file for BDUIntegrators
 //                  TAKE care:
 //                  This file is just for inclusion in the header file!
 // 
@@ -15,9 +15,6 @@
 //        Company:  Universitaet Klagenfurt
 // 
 // =====================================================================================
-
-
-
 namespace CoupledField{
 
 template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
@@ -30,6 +27,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
              :LinearForm( coordUpdate ){
   factor_ = factor;
   this->name_ = "RhsBDUIntegrator";
+  Bdim_ = B_OP::DIM_SPACE;
 
 //  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
 //#ifndef NDEBUG
@@ -54,6 +52,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
              :LinearForm( coordUpdate ){
   factor_ = factor;
   this->name_ = "RhsBDUIntegrator";
+  Bdim_ = B_OP::DIM_SPACE;
 
   assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
 #ifndef NDEBUG
@@ -72,6 +71,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
   void BDUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
   CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
                   EntityIterator& ent){
+
     // Declare necessary variables
      const Elem* ptElem = ent.GetElem();
      Matrix<VEC_DATA_TYPE> dMat, bdMat, bMat;
@@ -110,11 +110,13 @@ BDUIntegrator(VEC_DATA_TYPE factor,
          lp.Set( intPoints[i], esm, weights[i] );
        }
 
+//       std::cout << "integration point: " << lp.lp.coord.ToString(2) << std::endl;
+
        // obtain d matrix
        this->dCoef_->GetTensor( dMat, lp );
        
-       //std::cout << "dMat" << std::endl;
-       //std::cout << dMat << std::endl;
+//       std::cout << "\n elem: " << ptElem->elemNum << std::endl;
+//       std::cout << "dMat: \n" << dMat.ToString(0) << std::endl;
        
        //calc factor
        fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
@@ -123,16 +125,15 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
        
-       //std::cout << "bMat" << std::endl;
-       //std::cout << bMat << std::endl;
+       Matrix<VEC_DATA_TYPE> tmp;
+       bMat.Transpose(tmp);
+
+//       std::cout << "bMat:\n" << tmp.ToString(0) << std::endl;
        
        //bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
        bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumCols());
        
        // Calculate BdMat
-       
-       //std::cout << "bdMat" << std::endl;
-      // std::cout << bdMat << std::endl;
        
 #define USE_BLAS_VERSION
 
@@ -142,16 +143,14 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        bdMat = (bMat * dMat) * fac;
 #endif
 
+//       std::cout << "bdMat:\n" << bdMat.ToString(0) << std::endl;
 
-
-
-       rhsCoefs_->GetVector(cVec,lp);  
+       rhsCoefs_->GetVector(cVec,lp);
        //elemVec += bMat * cVec * fac;
-       
-       //std::cout << "cVec" << std::endl;
-       //std::cout << cVec << std::endl;       
-       
+//       std::cout << " cVec:" << cVec.ToString(2) << std::endl;
+
        elemVec += bdMat * cVec;
+//       std::cout << " elemVec:" << elemVec.ToString(2) << std::endl;
      }
 
   }

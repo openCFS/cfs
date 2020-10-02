@@ -20,7 +20,7 @@ public:
 private:
 
   /** @see PiezoSIMO::SetElementK() */
-  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
   /** @see PiezoSIMO::SetElementK() */
    virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative = true);

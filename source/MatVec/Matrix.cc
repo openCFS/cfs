@@ -38,7 +38,8 @@ namespace CoupledField
     data_(new TYPE* [size_row_])
   {
 #ifdef CHECK_INDEX 
-    if (nRows <= 0 || nCols <= 0) EXCEPTION("invalid dimension");
+    if (nRows <= 0 || nCols <= 0)
+      EXCEPTION("invalid dimension");
 #endif
 
     data_[0]=new TYPE[size_col_*size_row_];
@@ -516,9 +517,20 @@ namespace CoupledField
     *       120 - 240 -> red = 0, blue decreases linearly, green increases linearly
     *       240 - 360 -> red increases linearly, blue = 0, green decreases linearly
     *     - switching state gives a scaling to the values and a possible offset to the angle
-    *       -> switching state < 0 -> 190 offset
+    *       -> switching state < 0 -> 180 degree offset
     *       -> abs(switching state) < 0 -> scale all colors with that value
-    *
+    * 
+    * New concept 11.3.2020
+    * - colorrange mapped to 0-180 degree instead of 0-360 degree
+    * - for angle between 0-180 degree use:
+    *       0 - 60 -> red decreases linearly, blue increases linearly, green = 0
+    *       60 - 120 -> red = 0, blue decreases linearly, green increases linearly
+    *       120 - 180 -> red increases linearly, blue = 0, green decreases linearly
+    * - for angle between -180 and 0 degree set only every second pixel and use:
+    *       -180 - -120 -> red decreases linearly, blue increases linearly, green = 0
+    *       -120 - -60 -> red = 0, blue decreases linearly, green increases linearly
+    *       -60 - 0 -> red increases linearly, blue = 0, green decreases linearly
+    * - switching state
     *
    * NOTE: everything (more or less) taken from
    * http://stackoverflow.com/questions/2654480/writing-bmp-image-in-pure-c-c-without-other-libraries
@@ -640,7 +652,7 @@ namespace CoupledField
 
         long red, green, blue;
 
-        Double scaling = std::abs(data_[idy][idx]);
+        Double scaling = abs(data_[idy][idx]);
 
         /*
          * OLD
@@ -843,6 +855,1085 @@ namespace CoupledField
     }
 
     outfile.close();
+  } 
+   
+  void GetColor_from_ColorMap(UInt colormapId, Double value, Double brightness, long* red, long* green, long* blue){
+
+    if(colormapId == 1){
+      /*
+       * diverging colormap
+       */
+      *red = lround( brightness*(value/360.0));
+      *green = 0;
+      *blue = lround( brightness*((360-value)/360.0));
+      
+    } else {
+      /*
+       * 360 degree cyclic colormap
+       */
+      if(value >= 0 && value < 120){
+        *red = lround( brightness*(120-value)/120.0 ) ;
+        *blue = lround( brightness*(value/120.0 ) );
+        *green = 0;
+      } else if(value >= 120 && value < 240){
+        *red = 0;
+        *blue = lround( brightness*(240-value)/120.0 );
+        *green = lround( brightness*(value-120)/120.0 );
+      } else {
+        *red = lround( brightness*(value-240)/120.0 );
+        *blue = 0;
+        *green = lround( brightness*(360-value)/120.0 );
+      }
+    }
+  }
+  
+  template<class TYPE>
+   void Matrix<TYPE>::matrix2Bmp_v3(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY) {
+     EXCEPTION("Only implemented for matrices of type double");
+   }
+  
+  template<>
+  void Matrix<Double>::matrix2Bmp_v3(UInt upscale, std::string filename,Matrix<Double>* rotX, Matrix<Double>* rotY) {
+    
+    if(upscale == 0){
+      WARN("Upscaling has to be larger 0");
+      return;
+    }
+
+    /*
+     * Get width and height of matrix and upscale it to image size
+     */
+    //get dimension of matrix
+    UInt height = size_row_*upscale;
+    UInt width = size_col_*upscale;
+    
+    /*
+     * Extension 13.3.2020
+     * - Previously rotX and rotY had to be specified, i.e., this function crashed if no rotation state was delivered
+     *   In consequence, this function only was usable to output an overlay of a 2d rotation state with the data of 
+     *   this matrix. 
+     * - To make this function more useful, e.g., to print out only the data which could represent the switching state
+     *   of the Preisach plane or the weight distribution function, the following switch is introduced:
+     *     rotStateGiven
+     * - If rotStateGiven = false, the coloring of cell i,j will no longer be according to the angle atan2(rotY[i][j],rotX[i][j])
+     *   but according to the normalized value of data[i][j]; this leads also to different annotations and labels.
+     *   Note however, that still an upper triangular shape is assuemed!
+     * 
+     */
+    bool rotStateGiven = true;
+    UInt colormapId = 2; //2 = cyclic colormap
+    Double data_abs_max = 1.0;
+    
+    if(rotX == NULL || rotY == NULL){
+//      EXCEPTION("Rotation states are not initialized!");
+      rotX = this;
+      rotY = this;
+      rotStateGiven = false;
+      data_abs_max = std::max(this->GetMax(),-this->GetMin());
+      colormapId = 1; // 1 = diverging colormap
+    }
+
+    /*
+     * Image lines in BMP have to be multiples of 4
+     * (*3 because of r g b values)
+     */
+    UInt padsize = (4-(width*3)%4)%4;
+    UInt datasize = (width*3 + padsize) * height;
+
+    /*
+     * header and info to be included in BMP files
+     */
+    unsigned char file[14] = {
+        'B','M', // magic
+        0,0,0,0, // size in bytes
+        0,0, // app data
+        0,0, // app data
+        40+14,0,0,0 // start of data offset
+    };
+    unsigned char info[40] = {
+        40,0,0,0, // info hd size
+        0,0,0,0, // width
+        0,0,0,0, // heigth
+        1,0, // number color planes
+        24,0, // bits per pixel
+        0,0,0,0, // compression is none
+        0,0,0,0, // image bits size
+        0x13,0x0B,0,0, // horz resoluition in pixel / m
+        0x13,0x0B,0,0, // vert resolutions (0x03C3 = 96 dpi, 0x0B13 = 72 dpi)
+        0,0,0,0, // #colors in pallete
+        0,0,0,0, // #important colors
+        };
+
+    UInt totalsize = datasize + sizeof(file) + sizeof(info);
+
+    /*
+     * split all informations into chunks of 1 byte
+     */
+    file[ 2] = (unsigned char)( totalsize    );
+    file[ 3] = (unsigned char)( totalsize>> 8);
+    file[ 4] = (unsigned char)( totalsize>>16);
+    file[ 5] = (unsigned char)( totalsize>>24);
+
+    info[ 4] = (unsigned char)( width   );
+    info[ 5] = (unsigned char)( width>> 8);
+    info[ 6] = (unsigned char)( width>>16);
+    info[ 7] = (unsigned char)( width>>24);
+
+    info[ 8] = (unsigned char)( height    );
+    info[ 9] = (unsigned char)( height>> 8);
+    info[10] = (unsigned char)( height>>16);
+    info[11] = (unsigned char)( height>>24);
+
+    info[20] = (unsigned char)( datasize    );
+    info[21] = (unsigned char)( datasize>> 8);
+    info[22] = (unsigned char)( datasize>>16);
+    info[23] = (unsigned char)( datasize>>24);
+
+    /*
+     * get output stream
+     */
+    std::ofstream outfile;
+    outfile.open(filename.c_str(),std::ofstream::binary);
+
+    if(!outfile.is_open()){
+      WARN("Could not open output file!")
+      return;
+    }
+
+    outfile.write( (char*)file, sizeof(file));
+    outfile.write( (char*)info, sizeof(info));
+
+    unsigned char pad[3] = {0,0,0};
+
+    UInt idx, idy;
+    
+    /*
+     * Colorbar for rotation state
+     */
+    UInt colorBarWidth = ceil((0.05*width)/upscale);
+    UInt colorBarHeight = ceil((0.5*height)/upscale);
+    UInt colorBarXOffset = ceil((0.8*width)/upscale);
+    UInt colorBarYOffset = ceil((0.1*height)/upscale);
+    UInt numColors = 360;
+    UInt colorBarHeightUnsetState = ceil(1.5*colorBarWidth);
+//    std::cout << "Colorbar-Info:" << std::endl;
+//    std::cout << "colorBarWidth in px: " << colorBarWidth << std::endl;
+//    std::cout << "colorBarHeight in px: " << colorBarHeight << std::endl;
+//    std::cout << "colorBarXOffset in px: " << colorBarXOffset << std::endl;
+//    std::cout << "colorBarYOffset in px: " << colorBarYOffset << std::endl;
+//    std::cout << "numberOfColors: " << numColors << std::endl;
+//    
+    /*
+     * Define crude bitmaps for labels
+     */
+    bool triggerLabel = false;
+    UInt labelCnt = 0;
+    UInt labelXOffset = colorBarXOffset + colorBarWidth;
+    UInt labelYOffsetBase = colorBarYOffset;
+    UInt labelYOffset = labelYOffsetBase;
+    UInt deltaYOffset = round(colorBarHeight/4.0);
+    
+    static UInt labelBaseWidth = 24;
+    static UInt labelBaseHeight = 8;
+    
+    Double upscaleLabel = 3*upscale;
+    UInt labelWidth = labelBaseWidth*upscaleLabel;
+    UInt labelHeight = labelBaseHeight*upscaleLabel;
+    UInt titleAddYOffset = ceil(labelHeight/2.0);
+    UInt titleXOffset = colorBarXOffset;
+
+//    std::cout << "upscaleLabel = " << upscaleLabel << std::endl;
+//    std::cout << "labelWidth = " << labelWidth << std::endl;
+//    std::cout << "labelHeight = " << labelHeight << std::endl;
+
+    std::vector<int>* bmpNeg180 = new std::vector<int>[labelBaseHeight];
+    std::vector<int>* bmpNeg90 = new std::vector<int>[labelBaseHeight];
+    std::vector<int>* bmp0 = new std::vector<int>[labelBaseHeight];
+    std::vector<int>* bmpPos90 = new std::vector<int>[labelBaseHeight];
+    std::vector<int>* bmpPos180 = new std::vector<int>[labelBaseHeight];
+    std::vector<int>* colorbarTitle = new std::vector<int>[labelBaseHeight];
+    std::vector<int>* unsetRotState = new std::vector<int>[labelBaseHeight];
+    
+    if(rotStateGiven){
+      /*
+       * colorbar corresponds to angle; bmp maps / labels shall indicate angle
+       */
+      bmpNeg180[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpNeg180[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpNeg180[2] = {0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpNeg180[3] = {0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0};
+      bmpNeg180[4] = {0,0,0,0,0,1,1,1,0,0,0,1,0,1,1,1,0,1,0,1,0,0,0,0};
+      bmpNeg180[5] = {0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0};
+      bmpNeg180[6] = {0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpNeg180[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmpNeg90[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpNeg90[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpNeg90[2] = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpNeg90[3] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0};
+      bmpNeg90[4] = {0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,0,0};
+      bmpNeg90[5] = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0};
+      bmpNeg90[6] = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpNeg90[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmp0[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmp0[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmp0[2] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0};
+      bmp0[3] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0};
+      bmp0[4] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0};
+      bmp0[5] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0};
+      bmp0[6] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0};
+      bmp0[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmpPos90[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpPos90[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpPos90[2] = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpPos90[3] = {0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0};
+      bmpPos90[4] = {0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,0,0};
+      bmpPos90[5] = {0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0};
+      bmpPos90[6] = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpPos90[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmpPos180[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpPos180[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpPos180[2] = {0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpPos180[3] = {0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0};
+      bmpPos180[4] = {0,0,0,0,0,1,1,1,0,0,0,1,0,1,1,1,0,1,0,1,0,0,0,0};
+      bmpPos180[5] = {0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0};
+      bmpPos180[6] = {0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,0,1,1,1,0,0,0,0};
+      bmpPos180[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      colorbarTitle[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      colorbarTitle[1] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      colorbarTitle[2] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      colorbarTitle[3] = {0,1,0,1,0,1,1,1,0,1,0,0,0,1,0,1,0,1,0,1,0,0,0,0};
+      colorbarTitle[4] = {0,1,0,1,0,1,0,0,0,1,0,0,0,1,0,1,0,1,0,1,0,0,1,0};
+      colorbarTitle[5] = {0,1,1,1,0,1,0,0,0,1,1,1,0,1,1,1,0,1,1,1,0,0,0,0};
+      colorbarTitle[6] = {0,1,0,1,0,1,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1,0};
+      colorbarTitle[7] = {0,1,1,1,0,1,0,0,0,1,1,1,0,1,0,1,0,1,1,1,0,0,0,0};
+      
+      unsetRotState[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      unsetRotState[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      unsetRotState[2] = {0,0,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,0,1,0,0};
+      unsetRotState[3] = {0,0,0,1,0,1,0,1,0,0,1,0,0,0,1,0,1,0,0,0,0,1,0,0};
+      unsetRotState[4] = {0,0,0,1,0,1,0,1,0,1,1,0,1,1,1,0,1,1,1,0,0,1,0,0};
+      unsetRotState[5] = {0,0,0,1,0,1,0,1,1,0,1,0,1,0,0,0,1,0,0,0,0,1,0,0};
+      unsetRotState[6] = {0,0,0,1,0,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0};
+      unsetRotState[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+    } else {
+      /*
+       * No rotstate given; colorbar shall represent normalized amplitude of data field
+       * keep name of bmp to reuse algorithm but change pattern of 
+       */
+      /*
+       * -180 degree -> amplitdue -1,0
+       * -90 degree -> amplitude -0.5 
+       * ...
+       */
+      bmpNeg180[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpNeg180[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpNeg180[2] = {0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,0,1,1,1,0,0,0};
+      bmpNeg180[3] = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmpNeg180[4] = {0,0,0,0,0,1,1,1,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmpNeg180[5] = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmpNeg180[6] = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,0,1,1,1,0,0,0};
+      bmpNeg180[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmpNeg90[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpNeg90[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpNeg90[2] = {0,0,0,0,0,0,0,0,0,1,1,1,1,0,1,1,1,0,1,1,1,0,0,0};
+      bmpNeg90[3] = {0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0,0};
+      bmpNeg90[4] = {0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,0,0};
+      bmpNeg90[5] = {0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,1,0,1,0,0,0};
+      bmpNeg90[6] = {0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,0,1,1,1,0,0,0};
+      bmpNeg90[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmp0[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmp0[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmp0[2] = {0,0,0,0,0,0,0,0,0,1,1,1,1,0,1,1,1,0,1,1,1,0,0,0};
+      bmp0[3] = {0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmp0[4] = {0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmp0[5] = {0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmp0[6] = {0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,0,1,1,1,0,0,0};
+      bmp0[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmpPos90[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpPos90[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpPos90[2] = {0,0,0,0,0,0,0,0,0,1,1,1,1,0,1,1,1,0,1,1,1,0,0,0};
+      bmpPos90[3] = {0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0,0};
+      bmpPos90[4] = {0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,0,0};
+      bmpPos90[5] = {0,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,1,0,1,0,0,0};
+      bmpPos90[6] = {0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,0,1,1,1,0,0,0};
+      bmpPos90[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      bmpPos180[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      bmpPos180[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      bmpPos180[2] = {0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,0,1,1,1,0,0,0};
+      bmpPos180[3] = {0,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmpPos180[4] = {0,0,0,0,0,1,1,1,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmpPos180[5] = {0,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0};
+      bmpPos180[6] = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,0,1,1,1,0,0,0};
+      bmpPos180[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      
+      /*
+       * AMPL. instead of ALPHA
+       */
+      colorbarTitle[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      colorbarTitle[1] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      colorbarTitle[2] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      colorbarTitle[3] = {0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,1,1,1,0,1,0,0,0,0};
+      colorbarTitle[4] = {0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,0,0,0,1,0};
+      colorbarTitle[5] = {0,1,1,1,0,1,0,1,0,1,0,1,1,1,0,1,0,0,0,0,0,0,0,0};
+      colorbarTitle[6] = {0,1,0,1,0,1,1,0,1,1,0,1,0,1,0,1,0,0,0,0,0,0,1,0};
+      colorbarTitle[7] = {0,1,1,1,0,1,0,0,0,1,0,1,1,1,0,1,0,0,0,0,0,0,0,0};
+      
+      unsetRotState[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+      unsetRotState[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      unsetRotState[2] = {0,0,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,0,1,0,0};
+      unsetRotState[3] = {0,0,0,1,0,1,0,1,0,0,1,0,0,0,1,0,1,0,0,0,0,1,0,0};
+      unsetRotState[4] = {0,0,0,1,0,1,0,1,0,1,1,0,1,1,1,0,1,1,1,0,0,1,0,0};
+      unsetRotState[5] = {0,0,0,1,0,1,0,1,1,0,1,0,1,0,0,0,1,0,0,0,0,1,0,0};
+      unsetRotState[6] = {0,0,0,1,0,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0};
+      unsetRotState[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    }
+    std::vector<int>* currentLabel = bmpNeg180;
+    
+    /*
+     * Additional labels for switching states
+     * - bright color -> +1
+     * - shaded color -> -1
+     */
+    bool triggerLabel2 = false;
+    UInt labelCnt2 = 0;
+    UInt colorBarXOffset2 = ceil(0.7*colorBarXOffset);
+    UInt colorBarYOffset2 = colorBarYOffset;
+    UInt colorBarWidth2 = 3*colorBarWidth;
+    UInt labelXOffset2 = colorBarXOffset2 + colorBarWidth2;
+    UInt labelYOffset2 = colorBarYOffset2 + ceil(0.5*colorBarWidth);
+    
+    static UInt labelBaseWidth2 = 29;
+    static UInt labelBaseHeight2 = 8;
+    
+    UInt labelWidth2 = labelBaseWidth2*upscaleLabel;
+    UInt labelHeight2 = labelBaseHeight2*upscaleLabel;
+    UInt titleAddYOffset2 = ceil(labelHeight/2.0);
+
+    std::vector<int>* switchingTitle = new std::vector<int>[labelBaseHeight2];
+    switchingTitle[0] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    switchingTitle[1] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    switchingTitle[2] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    switchingTitle[3] = {0,1,1,1,0,0,0,1,1,1,0,0,0,1,0,0,1,0,0,1,1,1,0,1,0,1,0,0,0};
+    switchingTitle[4] = {0,0,0,1,0,0,1,1,1,1,1,0,0,1,0,0,1,0,0,1,0,0,0,1,0,1,0,1,0};
+    switchingTitle[5] = {0,1,1,1,0,1,1,0,1,0,1,1,0,1,0,0,1,0,0,1,0,0,0,1,1,1,0,0,0};
+    switchingTitle[6] = {0,1,0,0,0,1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,0,0,1,0,1,0,1,0};
+    switchingTitle[7] = {0,1,1,1,0,1,0,0,0,0,0,1,0,1,0,1,1,1,0,1,1,1,0,1,0,1,0,0,0};
+        
+    std::vector<int>* plus1 = new std::vector<int>[labelBaseHeight2];
+    plus1[0] = {1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[2] = {0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[3] = {0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[4] = {0,0,0,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[5] = {0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[6] = {0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    plus1[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    
+    std::vector<int>* minus1 = new std::vector<int>[labelBaseHeight2];
+    minus1[0] = {1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[1] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[2] = {0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[3] = {0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[4] = {0,0,0,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[5] = {0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[6] = {0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    minus1[7] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    
+    std::vector<int>* currentLabel2 = switchingTitle;
+    
+    /*
+     * for grid
+     * > plot lines at -1.0 / -0.8 / -0.6 / -0.4 / -0.2 / 0.0 / 0.2 / 0.4 / 0.6 / 0.8 / 1.0
+     */
+    bool printGrid = true;
+    bool triggerLabel3 = false;
+    UInt labelCnt3 = 0;
+    static UInt labelBaseWidth3 = 16;
+    static UInt labelBaseHeight3 = 16;
+    
+    UInt labelWidth3 = labelBaseWidth3*upscaleLabel;
+    UInt labelHeight3 = labelBaseHeight3*upscaleLabel;
+    UInt blockWidth = labelWidth3;
+    UInt blockHeight = blockWidth;        
+    UInt blockXOffset = ceil(0.4*colorBarXOffset);
+    UInt blockYOffset = colorBarYOffset;
+    UInt labelXOffset3 = blockXOffset + blockWidth;
+    UInt labelYOffset3 = blockYOffset + blockHeight;
+        
+    // for ten cells we have a cell size of 0.2 x 0.2 
+    // > if number of lines should be changed define a fitting bitmap
+    std::vector<int>* zeroDotTwoTop = new std::vector<int>[labelBaseHeight3];
+    zeroDotTwoTop[0] = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+    zeroDotTwoTop[1] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    zeroDotTwoTop[2] = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+    zeroDotTwoTop[3] = {0,0,0,0,1,1,1,1,0,1,1,1,0,0,0,0};
+    zeroDotTwoTop[4] = {0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0};
+    zeroDotTwoTop[5] = {0,0,0,0,1,0,1,0,0,1,1,1,0,0,0,0};
+    zeroDotTwoTop[6] = {0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0};
+    zeroDotTwoTop[7] = {0,0,0,0,1,1,1,0,0,1,1,1,0,0,0,0};
+    zeroDotTwoTop[8] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[9] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[10] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[11] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[12] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[13] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[14] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoTop[15] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    
+    std::vector<int>* zeroDotTwoSide = new std::vector<int>[labelBaseHeight3];
+    zeroDotTwoSide[0] = {1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[1] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[2] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[3] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[4] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[5] = {0,1,0,1,1,1,1,0,1,1,1,0,0,0,0,0};
+    zeroDotTwoSide[6] = {0,1,0,1,0,1,0,0,1,0,0,0,0,0,0,0};
+    zeroDotTwoSide[7] = {0,1,0,1,0,1,0,0,1,1,1,0,0,0,0,0};
+    zeroDotTwoSide[8] = {0,1,0,1,0,1,0,0,0,0,1,0,0,0,0,0};
+    zeroDotTwoSide[9] = {0,1,0,1,1,1,0,0,1,1,1,0,0,0,0,0};
+    zeroDotTwoSide[10] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[11] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[12] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[13] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[14] = {0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    zeroDotTwoSide[15] = {1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    
+    std::vector<int>* currentLabel3 = zeroDotTwoTop;
+    
+    /*
+     * BMP is stored upside down from right to left
+     */
+    //for ( UInt y=height-1; y>0; y-- )
+    long red, green, blue;
+    Double scaling;
+    
+    for ( UInt y=0; y<height; y++ ) {
+      
+      //idy = height/upscale-1 - ceil(y/upscale);
+      idy = ceil(y/upscale);
+      for ( UInt x=0; x<width; x++ ) {
+        
+        //idx = width/upscale-1 - ceil(x/upscale);
+        idx = ceil(x/upscale);
+
+        scaling = abs(data_[idy][idx]);
+
+        /*
+         *  On diagonal idx = idy, double value but color only the pixels y>=x
+         */
+
+        if(idx == idy){
+          if(y >= x){
+            scaling = 2.0*scaling;
+          }
+        }
+
+        /*
+         * calculate angle for determination of coloring
+         */       
+        Double rot_x = (*rotX)[idy][idx];
+        Double rot_y = (*rotY)[idy][idx];
+        
+        if(rot_x == 0 && rot_y == 0){
+          /*
+           * no rotation state 
+           * -> below main diagonal: make every pixel white (to get triangular Preisach-plane)
+           * -> at right hand side, add colorbar
+           * -> above main diagonal: grey if switching state is +1; grey/black if switching state is -1
+           */
+          if(y >= x){
+            /*
+             * -> above alpha = beta
+             */
+            // every pixel gray
+            red = 100;
+            blue = 100;
+            green = 100;
+
+            if(x+y+1 > height){
+              /*
+               * above diagonal alpha = -beta 
+               * > initial switching state = -1
+               */
+              // every second pixel black
+              if((x+y)%2 == 0){
+                red = 0;
+                blue = 0;
+                green = 0;
+              }
+            }
+          } else {
+            /*
+             * every pixel white
+             */
+            red = 255;
+            blue = 255;
+            green = 255;
+            
+            /*
+             * print colorbar
+             */
+            Double deltaAnglePerColor = 360.0/( (Double) numColors );
+            Double pixelPerColor = ((Double) colorBarHeight)/((Double) numColors);
+            Double currentAngle = 0.0;
+            UInt colorIndex = 0;
+            Double magnitude = 255.0;
+            
+            if((colorBarYOffset <= y) && (y < colorBarYOffset+colorBarHeight)){
+              if((colorBarXOffset <= x) && (x < colorBarXOffset+colorBarWidth)){
+
+                colorIndex = floor( (y-colorBarYOffset)/(pixelPerColor));
+                // revert colorbar such that 360 degree is on top and 0 degree on bottom
+                // remember: - angle is coloring of Preisach plane is shifted by 180 degree, i.e., 
+                //            alignment along pos. x-axis results in 180
+                //            alignment along pos. y-axis results in 270
+                //           - colorbar should indicate the correct angle though, i.e., when adding label
+                //            we have 0 degree in the middle and +/-180 degree on the ends
+                currentAngle = deltaAnglePerColor*colorIndex;
+                
+                GetColor_from_ColorMap(colormapId, currentAngle, magnitude, &red, &green, &blue); 
+                
+//                if(currentAngle >= 0 && currentAngle < 120){
+//                  red = lround( magnitude*(120-currentAngle)/120.0 ) ;
+//                  blue = lround( magnitude*(currentAngle/120.0 ) );
+//                  green = 0;
+//                } else if(currentAngle >= 120 && currentAngle < 240){
+//                  red = 0;
+//                  blue = lround( magnitude*(240-currentAngle)/120.0 );
+//                  green = lround( magnitude*(currentAngle-120)/120.0 );
+//                } else {
+//                  red = lround( magnitude*(currentAngle-240)/120.0 );
+//                  blue = 0;
+//                  green = lround( magnitude*(360-currentAngle)/120.0 );
+//                }
+
+                /*
+                 * trigger labels
+                 */
+                if(((currentAngle <= 0)&&(currentAngle > 0-deltaAnglePerColor))&&(triggerLabel==false)){
+//                  std::cout << "label 1 triggered" << std::endl;
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = bmpNeg180;
+                  labelYOffset = labelYOffsetBase;
+//                  std::cout << "labelYOffset = " << labelYOffset << std::endl;
+                }
+                if(((currentAngle <= 90)&&(currentAngle > 90-deltaAnglePerColor))&&(triggerLabel==false)){
+//                  std::cout << "label 2 triggered" << std::endl;
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = bmpNeg90;
+                  labelYOffset = floor(labelYOffset+deltaYOffset);
+//                  std::cout << "labelYOffset = " << labelYOffset << std::endl;
+                }
+                if(((currentAngle <= 180)&&(currentAngle > 180-deltaAnglePerColor))&&(triggerLabel==false)){
+//                  std::cout << "label 3 triggered" << std::endl;
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = bmp0;
+                  labelYOffset = floor(labelYOffset+deltaYOffset);
+//                  std::cout << "labelYOffset = " << labelYOffset << std::endl;
+                }
+                if(((currentAngle < 270)&&(currentAngle >= 270-deltaAnglePerColor))&&(triggerLabel==false)){
+//                  std::cout << "label 4 triggered" << std::endl;
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = bmpPos90;
+                  labelYOffset = floor(labelYOffset+deltaYOffset);
+//                  std::cout << "labelYOffset = " << labelYOffset << std::endl;
+                }
+                if(((currentAngle < 360)&&(currentAngle >= 360-deltaAnglePerColor))&&(triggerLabel==false)){
+//                  std::cout << "label 5 triggered" << std::endl;
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = bmpPos180;
+                  labelYOffset = floor(labelYOffset+deltaYOffset);
+//                  std::cout << "labelYOffset = " << labelYOffset << std::endl;
+                }
+              }
+            }
+            
+            if((ceil(colorBarYOffset+colorBarHeight+1.0/3.0*colorBarHeightUnsetState) <= y) && (y < colorBarYOffset+colorBarHeight+colorBarHeightUnsetState)){
+              if((colorBarXOffset <= x) && (x < colorBarXOffset+colorBarWidth)){
+                /*
+                 * grey block for unset state
+                 */
+                red = 100;
+                green = 100;
+                blue = 100;
+                
+                /*
+                 * trigger labels
+                 */
+                if(y <= (ceil(colorBarYOffset+colorBarHeight+1.0/3.0*colorBarHeightUnsetState) + 1) && (triggerLabel==false)){
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = unsetRotState;
+                  labelYOffset = ceil(colorBarYOffset+colorBarHeight+2.0/3.0*colorBarHeightUnsetState);
+                }
+                
+              }
+            }
+                        
+            if((colorBarYOffset+colorBarHeight+colorBarHeightUnsetState+titleAddYOffset <= y) && (y < colorBarYOffset+colorBarHeight+colorBarHeightUnsetState+2*titleAddYOffset)){
+              if((colorBarXOffset <= x) && (x < colorBarXOffset+colorBarWidth)){
+                if((y <= colorBarYOffset+colorBarHeight+colorBarHeightUnsetState+titleAddYOffset + 1) && (triggerLabel==false)){
+                  triggerLabel = true;
+                  labelCnt = 0;
+                  currentLabel = colorbarTitle;
+                  labelYOffset = colorBarYOffset+colorBarHeight+colorBarHeightUnsetState+titleAddYOffset;
+                  labelXOffset = titleXOffset;
+                } 
+              }
+            }
+            
+            /*
+             * for switching state > this label is only required in addition to the rotation state
+             * > if colorbar indicates the amplitude, simply skip this additional labels
+             */
+            if(rotStateGiven){
+              if((colorBarYOffset2 <= y) && (y < colorBarYOffset2+colorBarWidth)){
+                if((colorBarXOffset2 <= x) && (x < colorBarXOffset2+colorBarWidth2)){
+
+                  if((colorBarXOffset2 <= x) && (x < colorBarXOffset2+ceil(colorBarWidth2/5.0))){
+                    currentAngle = 0;                  
+                  }
+                  else if((colorBarXOffset2+ceil(colorBarWidth2/5.0) <= x) && (x < colorBarXOffset2+ceil(2*colorBarWidth2/5.0))){
+                    currentAngle = 90;                  
+                  }
+                  else if((colorBarXOffset2+ceil(2*colorBarWidth2/5.0) <= x) && (x < colorBarXOffset2+ceil(3*colorBarWidth2/5.0))){
+                    currentAngle = 180;                  
+                  }
+                  else if((colorBarXOffset2+ceil(3*colorBarWidth2/5.0) <= x) && (x < colorBarXOffset2+ceil(4*colorBarWidth2/5.0))){
+                    currentAngle = 270;                  
+                  }
+                  else {
+                    currentAngle = 360;                  
+                  }
+
+                  GetColor_from_ColorMap(colormapId, currentAngle, magnitude, &red, &green, &blue); 
+//                  
+//                  if(divergingColorMap){
+//                    /*
+//                     * diverging colormap
+//                     */
+//                    red = lround( magnitude*(currentAngle/360.0));
+//                    green = 0;
+//                    blue = lround( magnitude*((360-currentAngle)/360.0));
+//                    
+//                  } else {
+//                    /*
+//                     * 360 degree cyclic colormap
+//                     */
+//                    if(currentAngle >= 0 && currentAngle < 120){
+//                      red = lround( magnitude*(120-currentAngle)/120.0 ) ;
+//                      blue = lround( magnitude*(currentAngle/120.0 ) );
+//                      green = 0;
+//                    } else if(currentAngle >= 120 && currentAngle < 240){
+//                      red = 0;
+//                      blue = lround( magnitude*(240-currentAngle)/120.0 );
+//                      green = lround( magnitude*(currentAngle-120)/120.0 );
+//                    } else {
+//                      red = lround( magnitude*(currentAngle-240)/120.0 );
+//                      blue = 0;
+//                      green = lround( magnitude*(360-currentAngle)/120.0 );
+//                    }
+//                  }
+
+
+                  // every second pixel black
+                  if((x+y)%2 == 0){
+                    red = 0;
+                    blue = 0;
+                    green = 0;
+                  } 
+
+                  if((y <= colorBarYOffset2 + 1) && (triggerLabel2==false)){
+                    triggerLabel2 = true;
+                    labelCnt2 = 0;
+                    currentLabel2 = minus1;
+  //                  labelYOffset2 = labelYOffset2;
+  //                  labelXOffset2 = labelXOffset2;
+                  } 
+                }
+              }
+
+              if(((colorBarYOffset2+ceil(1.5*colorBarWidth) <= y)) && (y < colorBarYOffset2+ceil(2.5*colorBarWidth))){
+                if((colorBarXOffset2 <= x) && (x < colorBarXOffset2+colorBarWidth2)){
+
+                  if((colorBarXOffset2 <= x) && (x < colorBarXOffset2+ceil(colorBarWidth2/5.0))){
+                    currentAngle = 0;                  
+                  }
+                  else if((colorBarXOffset2+ceil(colorBarWidth2/5.0) <= x) && (x < colorBarXOffset2+ceil(2*colorBarWidth2/5.0))){
+                    currentAngle = 90;                  
+                  }
+                  else if((colorBarXOffset2+ceil(2*colorBarWidth2/5.0) <= x) && (x < colorBarXOffset2+ceil(3*colorBarWidth2/5.0))){
+                    currentAngle = 180;                  
+                  }
+                  else if((colorBarXOffset2+ceil(3*colorBarWidth2/5.0) <= x) && (x < colorBarXOffset2+ceil(4*colorBarWidth2/5.0))){
+                    currentAngle = 270;                  
+                  }
+                  else {
+                    currentAngle = 360;                  
+                  }
+
+                  GetColor_from_ColorMap(colormapId, currentAngle, magnitude, &red, &green, &blue); 
+//                  
+//                  if(currentAngle >= 0 && currentAngle < 120){
+//                    red = lround( magnitude*(120-currentAngle)/120.0 ) ;
+//                    blue = lround( magnitude*(currentAngle/120.0 ) );
+//                    green = 0;
+//                  } else if(currentAngle >= 120 && currentAngle < 240){
+//                    red = 0;
+//                    blue = lround( magnitude*(240-currentAngle)/120.0 );
+//                    green = lround( magnitude*(currentAngle-120)/120.0 );
+//                  } else {
+//                    red = lround( magnitude*(currentAngle-240)/120.0 );
+//                    blue = 0;
+//                    green = lround( magnitude*(360-currentAngle)/120.0 );
+//                  }
+
+                  if((y <= colorBarYOffset2+ceil(1.5*colorBarWidth) + 1) && (triggerLabel2==false)){
+                    triggerLabel2 = true;
+                    labelCnt2 = 0;
+                    currentLabel2 = plus1;
+                    labelYOffset2 = labelYOffset2+ceil(1.5*colorBarWidth);
+  //                  labelXOffset2 = labelXOffset2;
+                  } 
+                }
+              }
+
+              if((colorBarYOffset2+ceil(2.5*colorBarWidth)+titleAddYOffset2 <= y) 
+                      && (y < colorBarYOffset2+ceil(2.5*colorBarWidth)+2*titleAddYOffset2)){
+                if((colorBarXOffset2 <= x) && (x < colorBarXOffset2+colorBarWidth2)){
+
+                  if((y <= colorBarYOffset2+ceil(2.5*colorBarWidth)+titleAddYOffset2 + 1) && (triggerLabel2==false)){
+                    triggerLabel2 = true;
+                    labelCnt2 = 0;
+                    currentLabel2 = switchingTitle;
+                    labelYOffset2 = colorBarYOffset2+ceil(2.5*colorBarWidth)+titleAddYOffset2;
+                    labelXOffset2 = colorBarXOffset2;
+                  } 
+                }
+              }
+            }
+            
+            /*
+             * write out labels
+             */
+            if(triggerLabel == true){
+              
+              if((labelYOffset <= y) && (y < labelYOffset+labelHeight)){
+                UInt idRow = floor((y-labelYOffset)/upscaleLabel);
+              
+                if((labelXOffset <= x) && (x < labelXOffset+labelWidth)){
+                  UInt idCol = floor((x-labelXOffset)/upscaleLabel);
+//                  std::cout << "idCol, idRow: " << idCol << ", " << idRow << std::endl;
+                  
+                  // go over bitmap; 1 = black pixel
+                  if(currentLabel[idRow][idCol] == 1){
+                    red = 0;
+                    green = 0;
+                    blue = 0;
+                  }
+                  
+                  labelCnt++;
+                }
+              }
+
+              if(labelCnt >= labelWidth*labelHeight){
+                triggerLabel = false;
+              }
+            }
+            
+            if(triggerLabel2 == true){
+              
+              if((labelYOffset2 <= y) && (y < labelYOffset2+labelHeight2)){
+                UInt idRow = floor((y-labelYOffset2)/upscaleLabel);
+              
+                if((labelXOffset2 <= x) && (x < labelXOffset2+labelWidth2)){
+                  UInt idCol = floor((x-labelXOffset2)/upscaleLabel);
+//                  std::cout << "idCol, idRow: " << idCol << ", " << idRow << std::endl;
+                  
+                  // go over bitmap; 1 = black pixel
+                  if(currentLabel2[idRow][idCol] == 1){
+                    red = 0;
+                    green = 0;
+                    blue = 0;
+                  }
+                  
+                  labelCnt2++;
+                }
+              }
+
+              if(labelCnt2 >= labelWidth2*labelHeight2){
+                triggerLabel2 = false;
+              }
+            }
+            
+                            
+          }
+        } else {
+          /*
+           * rotation state set
+           * > coloring according to angle between rotation direction and x-axis (only x-y-plane considered!)
+           * > color map over angle:
+           *         0  - 120 -> red decreases linearly, blue increases linearly, green = 0
+           *        120 - 240 -> red = 0, blue decreases linearly, green increases linearly
+           *        240 - 360 -> red increases linearly, blue = 0, green decreases linearly
+           * > switching state is encoded in brightness information
+           * >      +1  -> full brightness, i.e., 255
+           * >      -1  -> full brightness but every second pixel set to black
+           */
+          
+          // angle between 0 and 360 degree needed > add 180
+          // Note: atan2 takes y and x as argument 1 and 2 and computes the angle towards the x-axis
+          //      > 
+          //      
+          Double angle = 0; 
+          Double magnitude = 0;
+          
+          if(rotStateGiven){
+            angle = std::atan2(rot_y,rot_x)/M_PI * 180 + 180;
+            // put info of data into magnitude
+            magnitude = scaling*255.0;
+          } else {
+            /*
+             * color by normalized data_[idy][idx]/max(max(abs(data_))); 
+             * to reuse algorithm, map -1.0 to 0 degree and 1.0 to 360 degree
+             */
+            angle = data_[idy][idx]/data_abs_max*180.0 + 180.0;
+            // here info of data is already in angle > keep magnitude fix
+            magnitude = 255.0;
+          }
+          
+          GetColor_from_ColorMap(colormapId, angle, magnitude, &red, &green, &blue);          
+//          
+//          if(angle >= 0 && angle < 120){
+//            red = lround( magnitude*(120-angle)/120.0 ) ;
+//            blue = lround( magnitude*(angle/120.0 ) );
+//            green = 0;
+//          } else if(angle >= 120 && angle < 240){
+//            red = 0;
+//            blue = lround( magnitude*(240-angle)/120.0 );
+//            green = lround( magnitude*(angle-120)/120.0 );
+//          } else {
+//            red = lround( magnitude*(angle-240)/120.0 );
+//            blue = 0;
+//            green = lround( magnitude*(360-angle)/120.0 );
+//          }
+//          
+          if(data_[idy][idx] < 0){
+            // every second pixel black
+            if((x+y)%2 == 0){
+              red = 0;
+              blue = 0;
+              green = 0;
+            } 
+          }
+        }
+        
+        /*
+         * print grid by drawing black lines of lineThickness pixel height
+         */
+        if(printGrid){
+          UInt lineThickness = 2; // should be a multiple of 2!
+          UInt extendOverTriangle = 15;
+          Double numLines = 10.0;
+          
+          /*
+           * horizontal lines
+           */
+          // at -1.0
+          // only half linethickness - this is why lineThickness should be a multiple of 2
+          if( (y >= 0) && (y <= ceil(lineThickness/2.0)) ){
+            if( x <= y+extendOverTriangle ){
+              red = 0;
+              green = 0;
+              blue = 0;
+            }
+          }
+          
+          for(UInt horizontalIdx = 1; horizontalIdx < numLines; horizontalIdx++){
+          
+            // at -0.8, -0.6, ... , 0.6, 0.8
+            if( (y >= ceil(horizontalIdx*height/numLines)-lineThickness/2.0) && (y <= ceil(horizontalIdx*height/numLines)+lineThickness/2.0) ){
+              if( x <= y+extendOverTriangle ){
+                red = 0;
+                green = 0;
+                blue = 0;
+              }
+            }
+          }
+          
+          // at 1.0
+          if( (y >= height-ceil(lineThickness/2.0)) && (y <= height) ){
+            if( x <= y+extendOverTriangle ){
+              red = 0;
+              green = 0;
+              blue = 0;
+            }
+          }
+        
+          /*
+           * vertical lines
+           */
+          // at -1.0
+          // only half linethickness - this is why lineThickness should be a multiple of 2
+          if( (x >= 0) && (x <= ceil(lineThickness/2.0)) ){
+            if( y >= x-extendOverTriangle ){
+              red = 0;
+              green = 0;
+              blue = 0;
+            }
+          }
+          
+          for(UInt verticalIdx = 1; verticalIdx < numLines; verticalIdx++){
+          
+            // at -0.8, -0.6, ... , 0.6, 0.8
+            if( (x >= ceil(verticalIdx*width/numLines)-lineThickness/2.0) && (x <= ceil(verticalIdx*width/numLines)+lineThickness/2.0) ){
+              if( y >= x-extendOverTriangle ){
+                red = 0;
+                green = 0;
+                blue = 0;
+              }
+            }
+          }
+          
+          // at 1.0
+          if( (x >= width-ceil(lineThickness/2.0)) && (x <= width) ){
+            if( y >= x-extendOverTriangle ){
+              red = 0;
+              green = 0;
+              blue = 0;
+            }
+          }
+          
+          /*
+           * add labeled square block indicating the blocksize/cellsize in the grid
+           * > only draw contour
+           */
+          if( (y >= blockYOffset)&&(y < blockYOffset + blockHeight) ){
+            if( ( (x >= blockXOffset-ceil(lineThickness/2.0))&&(x <= blockXOffset+ceil(lineThickness/2.0)) )  ||
+                  ( (x >= blockXOffset+blockWidth-1-ceil(lineThickness/2.0))&&(x <= blockXOffset+blockWidth-1+ceil(lineThickness/2.0)) ) ) { 
+              red = 0;
+              green = 0;
+              blue = 0;
+            }
+          }
+          if( ( (y >= blockYOffset-ceil(lineThickness/2.0))&&(y <= blockYOffset+ceil(lineThickness/2.0)) )  ||
+                ( (y >= blockYOffset+blockHeight-1-ceil(lineThickness/2.0))&&(y <= blockYOffset+blockHeight-1+ceil(lineThickness/2.0)) ) ) { 
+            if( (x >= blockXOffset)&&(x < blockXOffset + blockWidth) ){
+              red = 0;
+              green = 0;
+              blue = 0;
+            }
+          }
+          
+          // label on side
+          if( ((y >= blockYOffset)&&(y <= blockYOffset+1)) && (triggerLabel3 == false) ) {
+            triggerLabel3 = true;
+            labelCnt3 = 0;
+            currentLabel3 = zeroDotTwoSide;
+            labelYOffset3 = blockYOffset + ceil(lineThickness/2.0);
+            labelXOffset3 = blockXOffset + blockWidth + lineThickness;
+          }
+          
+          // label on top
+          if( ((y >= blockYOffset+blockHeight)&&(y <= blockYOffset+blockHeight+1)) && (triggerLabel3 == false) ) {
+            triggerLabel3 = true;
+            labelCnt3 = 0;
+            currentLabel3 = zeroDotTwoTop;
+            labelYOffset3 = blockYOffset + blockHeight + lineThickness;
+            labelXOffset3 = blockXOffset + ceil(lineThickness/2.0);
+          }
+//              bool triggerLabel3 = false;
+//    UInt labelCnt3 = 0;
+//    static UInt labelBaseWidth3 = 12;
+//    static UInt labelBaseHeight3 = 12;
+//    
+//    UInt labelWidth3 = labelBaseWidth3*upscaleLabel;
+//    UInt labelHeight3 = labelBaseHeight3*upscaleLabel;
+//    UInt blockWidth = ceil(width/20);
+//    UInt blockHeight = blockWidth;        
+//    UInt blockXOffset = ceil(0.4*colorBarXOffset);
+//    UInt blockYOffset = colorBarYOffset;
+//    UInt labelXOffset3 = blockXOffset + blockWidth;
+//    UInt labelYOffset3 = blockYOffset + blockHeight;
+          
+            if(triggerLabel3 == true){
+              
+              if((labelYOffset3 <= y) && (y < labelYOffset3+labelHeight3)){
+                UInt idRow = floor((y-labelYOffset3)/upscaleLabel);
+              
+                if((labelXOffset3 <= x) && (x < labelXOffset3+labelWidth3)){
+                  UInt idCol = floor((x-labelXOffset3)/upscaleLabel);
+//                  std::cout << "idCol, idRow: " << idCol << ", " << idRow << std::endl;
+                  
+                  // go over bitmap; 1 = black pixel
+                  if(currentLabel3[idRow][idCol] == 1){
+                    red = 0;
+                    green = 0;
+                    blue = 0;
+                  }
+                  
+                  labelCnt3++;
+                }
+              }
+
+              if(labelCnt3 >= labelWidth3*labelHeight3){
+                triggerLabel3 = false;
+              }
+            }      
+        }
+          
+//        if(idx == idy){
+//          if(y < x){
+//            /*
+//             * make pixel white in lower half of main diagonal to form triangles
+//             */
+//            red = 255;
+//            blue = 255;
+//            green = 255;
+//          }
+//        }
+
+        unsigned char pixel[3];
+        pixel[0] = blue;
+        pixel[1] = green;
+        pixel[2] = red;
+
+        outfile.write( (char*)pixel, 3 );
+      }
+      outfile.write( (char*)pad, padsize );
+    }
+
+    outfile.close();
+    
+    delete[] colorbarTitle;
+    delete[] unsetRotState;
+    delete[] bmpNeg180;
+    delete[] bmpNeg90;
+    delete[] bmp0;
+    delete[] bmpPos90;
+    delete[] bmpPos180;
+    
+    delete[] switchingTitle;
+    delete[] plus1;
+    delete[] minus1;
+    
+    delete[] zeroDotTwoTop;
+    delete[] zeroDotTwoSide;
   }
 
   template<>
@@ -875,6 +1966,12 @@ namespace CoupledField
       EXCEPTION("Material tensor should be Hill-Mandel!")
     }
   }
+
+  template<>
+  void Matrix<bool>::PerformRotation( const Matrix<Double>& R,  Matrix<bool>& retMat ) const {
+    EXCEPTION("Rotation only defined for double- and complex valued matrixes");
+  }
+
   
   template<class TYPE>
   void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
@@ -889,7 +1986,7 @@ namespace CoupledField
 
     Matrix<TYPE> helpMat;
 
-    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 and R.GetNumRows() == 3) {
+    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 && R.GetNumRows() == 3) {
       // get memory for transposed rotation matrix
       Matrix<Double> RT;
       RT.Resize(3,3);
@@ -897,7 +1994,7 @@ namespace CoupledField
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
-    } else if ( rowSize == 2 && colSize == 2 && R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+    } else if ( rowSize == 2 && colSize == 2 && R.GetNumCols() == 2 && R.GetNumRows() == 2) {
       // get memory for transposed rotation matrix
       Matrix<Double> RT;
       RT.Resize(2,2);
@@ -906,10 +2003,10 @@ namespace CoupledField
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
       
-    } else if( ( (rowSize == 2 && colSize == 3) ||
-               (rowSize == 3 && rowSize == 2 ) ||
-                (rowSize == 3 && colSize == 3)) &&
-             (R.GetNumCols() == 2 and R.GetNumRows() == 2) ) {
+    } else if(((rowSize == 2 && colSize == 3) ||
+               (rowSize == 3 && colSize == 2) ||
+               (rowSize == 3 && colSize == 3)) &&
+             (R.GetNumCols() == 2 && R.GetNumRows() == 2)) {
       // case of 2x3 coupling tensors as well as 3x3 tensors with a 2x2 rotation matrix
       // 2D tensor rotation
       Matrix<Double> Q;
@@ -947,7 +2044,7 @@ namespace CoupledField
 
       //helpMat   = (*this) * QT;
       //retMat = Q * helpMat;
-      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+//      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {
@@ -1020,15 +2117,13 @@ namespace CoupledField
         helpMat   = (*this) * QT;
         retMat = Q * helpMat;
       }
-      //  else {
-      //    EXCEPTION("Cannot rotate tensor due to dimensions!");
-      //  }
-    } else {
-      std::ostringstream oss;
-      oss << "Rotation of "<<rowSize << " x " << colSize << " matrix not implemented yet.";
-      EXCEPTION(oss.str());
     }
-    
+    else if (rowSize == 1 && colSize == 1) {
+      retMat = *this; // No rotation needed
+    }
+    else {
+      EXCEPTION("Rotation of " << rowSize << " x " << colSize << " matrix not implemented yet.");
+    }
 
   }
   
@@ -1131,29 +2226,23 @@ namespace CoupledField
     Resize(other.size_row_, other.size_col_);  
   }
 
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
   {
-    // allows to copy an empty matrix. !
-
-    // Note! it shall be possible to copy an empty matrix!
-//#ifdef CHECK_INITIALIZED
-//    if (x.size_row_ == 0 || x.size_col_ == 0) 
-//      EXCEPTION("undefined Matrix");
-//#endif  
-
     if (this == &x)
       return *this;
 
     // set the size in any case to the size of the assigned matrix
     Resize(x.size_row_, x.size_col_);
   
-    // copy the entries
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      data_[0][k] = x.data_[0][k];
-  
+    // allows to copy an empty matrix. !
+    if (size_row_ > 0 && size_col_ > 0) {
+      // copy the entries
+      std::memcpy(data_[0], x.data_[0], size_row_ * size_col_ * sizeof(TYPE));
+    }
+
     return *this;
   }
 
@@ -1245,7 +2334,7 @@ namespace CoupledField
   }
 
 
-#endif // EXPR_TEMPLATES
+#endif // USE_EXPRESSION_TEMPLATES
   
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE x)
@@ -1535,8 +2624,12 @@ namespace CoupledField
   template<class TYPE>
   TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("incompatible dimension");
+#endif
 
     TYPE result(0);
 
@@ -1549,8 +2642,12 @@ namespace CoupledField
   template<>
   Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("incompatible dimension");
+#endif
 
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
       data_[0][k] *= other_mat.data_[0][k];
@@ -1793,7 +2890,6 @@ namespace CoupledField
     std::complex<double>* lp_rhsVecf77;
     std::complex<double>* lp_sysVecf77;
     std::complex<double>* lp_workf77;
-    std::complex<double> auxVal2;
     
     Vector<Complex> lp_sysVec, lp_work;
     lp_sysVec.Resize(size_row_*size_row_);
@@ -1835,7 +2931,7 @@ namespace CoupledField
     
     switch (LAPACK_MATRIX_TYPE){
       
-    case ZGESV:
+    case ZGESVMTX:
       // solves systems with general system matrix
       zgesv(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
             lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
@@ -1844,7 +2940,7 @@ namespace CoupledField
         EXCEPTION( "ZGESV reports invalid input parameter" );
       }    
       break;
-    case ZSYSV:
+    case ZSYSVMTX:
       
       lp_lwork=192;
       // solves systems with symmetric system matrix
@@ -1856,7 +2952,7 @@ namespace CoupledField
         EXCEPTION( "ZSYSV reports invalid input parameter" );
       }
       break;
-    case ZHESV:
+    case ZHESVMTX:
       lp_lwork=192;
       // solves systems with hermitian system matrix
       zhesv(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
@@ -1929,7 +3025,6 @@ namespace CoupledField
     lp_rwork.Init();
       
     Integer lp_infof77;
-    std::complex<double> auxValC;
 
     std::complex<double>* lp_af77    = new std::complex<double>[size_row_*size_row_];
     std::complex<double>* lp_workf77 = new std::complex<double>[99];
@@ -2032,13 +3127,6 @@ namespace CoupledField
       EXCEPTION( "Undefined Matrix!" );
 #endif
 
-#ifdef CHECK_INDEX
-    if (size_row_ != size_col_ ) {
-      //EXCEPTION( "No quadratic matrix!" );
-      PseudoInvert(inv);
-    }
-#endif
-//TODO
     if(size_row_== size_col_) {
       TYPE det;
       TYPE invDet;
@@ -2046,7 +3134,7 @@ namespace CoupledField
         {
         case 1:
           inv.Resize(1);
-          inv[0][0] = 1/data_[0][0];
+          inv[0][0] = 1.0 / data_[0][0];
           break;
         case 2:
           inv.Resize(2,2);
@@ -2055,7 +3143,7 @@ namespace CoupledField
           inv[1][0] = - data_[1][0];
           inv[1][1] = data_[0][0];
           this->Determinant(det);
-          inv *= 1/det;
+          inv *= 1.0 / det;
           break;
 
         case 3:
@@ -2096,9 +3184,9 @@ namespace CoupledField
           //compute the inverse
           for ( UInt k=0; k<size_row_; k++) {
             pivot = inv[k][k];
-            pinv  = 1/pivot;
+            pinv  = 1.0 / pivot;
             // std::abs not possible for uint
-            if ( ( pivot >  0 ? pivot : -pivot) > eps ) {
+            if ( std::abs(pivot) > eps ) {
               for (UInt j=0; j<size_row_; j++) {
                 if ( j != k ) {
                   inv[k][j] = -inv[k][j] * pinv;
@@ -2121,13 +3209,20 @@ namespace CoupledField
           }
         }
       }
+    else {
+      PseudoInvert(inv);
+    }
+
   }
 
-  template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
-  {
-    EXCEPTION("Matrix<Complex>::Invert: Not implemented!" );
+  template<> void Matrix<Integer>::Invert(Matrix<Integer> & inv) const {
+    EXCEPTION("Integer matrix cannot be inverted");
   }
-  
+
+  template<> void Matrix<UInt>::Invert(Matrix<UInt> & inv) const {
+    EXCEPTION("Integer matrix cannot be inverted");
+  }
+
   template<class TYPE>
     void Matrix<TYPE>::Invert_Lapack() {
     EXCEPTION("General case not implemented");
@@ -2661,6 +3756,22 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  TYPE Matrix<TYPE>::GetMax() const
+  {
+    Vector<TYPE> maxCol;
+    GetColMax(maxCol);
+    return maxCol.Max();
+  }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::GetMin() const
+  {
+    Vector<TYPE> minCol;
+    GetColMin(minCol);
+    return minCol.Min();
+  }
+
+  template<class TYPE>
   void Matrix<TYPE>::GetColMax(Vector<TYPE>& vec) const
   {
     GetCol(vec, 0);
@@ -2682,14 +3793,27 @@ namespace CoupledField
       }
   }
 
+  template<class TYPE>
+  void Matrix<TYPE>::GetAbsValues(Matrix<TYPE>& AbsMatrix) const
+  {
+    assert(!(size_row_ == 0 || size_col_ == 0));
 
+    AbsMatrix.Resize(size_row_, size_col_);
+
+    for (UInt i = 0; i < size_row_; i++){
+      for (UInt j = 0; j < size_col_; j++){
+        AbsMatrix[i][j] = Abs(data_[i][j]);
+      }
+    }
+
+  }
 
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
   void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != size_col_ ); // check for square matrix
+    assert(!(size_row_ == 0 || size_col_ == 0));
+    assert(size_row_ == size_col_ ); // check for square matrix
 
     columnMat.Resize(size_row_, 1);
     columnMat.Init();
@@ -2938,6 +4062,25 @@ namespace CoupledField
   template class Matrix<Integer>;
   template class Matrix<UInt>;
   template class Matrix<Complex>;
+#endif
+
+#if defined (_MSC_VER) 
+  template class Matrix<Double>;
+  template class Matrix<Integer>;
+  template class Matrix<UInt>;
+  template class Matrix<Complex>;
+  template void Matrix<Double>::Add(Double, const Matrix<Double>&);
+  template void Matrix<Integer>::Add(Integer, const Matrix<Integer>&);
+  template void Matrix<UInt>::Add(UInt, const Matrix<UInt>&);
+  template void Matrix<Complex>::Add(Complex, const Matrix<Complex>&);
+//  template void Matrix<Complex>::Add(Complex, const Matrix<Double>&);
+  template void Matrix<Double>::AddT(Double, const Matrix<Double>&);
+  template void Matrix<Integer>::AddT(Integer, const Matrix<Integer>&);
+  template void Matrix<UInt>::AddT(UInt, const Matrix<UInt>&);
+  template void Matrix<Complex>::AddT(Complex, const Matrix<Complex>&);
+//  template void Matrix<Complex>::AddT(Complex, const Matrix<Double>&);
+  /*
+*/
 #endif
 
 

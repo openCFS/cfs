@@ -182,7 +182,7 @@ namespace CoupledField {
     return region_;
   }
 
-  const Elem * ElemList::GetElem( UInt nr ) const {
+  const Elem* ElemList::GetElem( UInt nr ) const {
     return grid_->GetElem( list_[nr] );
   }
 
@@ -637,6 +637,11 @@ namespace CoupledField {
     size_ = 0;
   }
   
+  std::string EntityIterator::ToString() const
+  {
+     return EntityList::listType.ToString(type_) + " -> " + std::to_string(pos_) + "/" + std::to_string(size_);
+  }
+
 
   void EntityIterator::Begin() {
     pos_ = 0;
@@ -676,6 +681,24 @@ namespace CoupledField {
     return NULL;
   }
   
+
+  bool EntityIterator::IsElemType() const
+  {
+    switch(type_)
+    {
+    case EntityList::ELEM_LIST:
+    case EntityList::SURF_ELEM_LIST:
+    case EntityList::NC_ELEM_LIST:
+      return true;
+
+    default:
+      return false;
+    }
+  }
+
+
+
+
   const SurfElem* EntityIterator::GetSurfElem() const {
     switch(type_)
     {

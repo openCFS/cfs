@@ -3,11 +3,9 @@
 #include "MatVec/Matrix.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
 #include <limits>
 
-DECLARE_LOG(feasPP)
 DEFINE_LOG(feasPP, "feas_pp")
 
 using namespace CoupledField;

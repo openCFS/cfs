@@ -82,6 +82,11 @@ public:
     Bdim_ = opDim;
   }
 
+  // need this to change state of CoefFunctionOpt during heat homogenization
+  PtrCoefFct GetDCoef() {
+      return dCoef_;
+  }
+
 protected:
   B_OP operator_;
 

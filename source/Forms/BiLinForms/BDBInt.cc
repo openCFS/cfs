@@ -21,8 +21,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 
-
-DECLARE_LOG(bdbint)
 DEFINE_LOG(bdbint, "bdbint")
 
 namespace CoupledField{
@@ -33,7 +31,8 @@ namespace CoupledField{
   BDBInt(BaseBOperator* bOp, PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
     {
-      name_ = "BDBInt";
+      this->type_ = BDB_INT;
+      this->name_ = type.ToString(type_);
       isSymmetric_ = true;
 
       //assert(dData->GetDimType() == CoefFunction::TENSOR);
@@ -74,13 +73,12 @@ namespace CoupledField{
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
     IntScheme::IntegMethod method;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
+    BaseFE* ptFe = ptFeSpace1_->GetFe(ent1, method, order );
 
     const UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
-
     // Get integration points
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
@@ -98,7 +96,7 @@ namespace CoupledField{
       // it would be nicer to have a separate MS-FEM call
       if(domain->GetDesign()->ApplyPhysicalDesign<MAT_DATA_TYPE>(dynamic_pointer_cast<CoefFunctionOpt>(dData_), elemMat, &lp))
       {
-        LOG_DBG3(bdbint) << "BDBInt: MS-FEM elem=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum << " elemMat=" << elemMat.ToString();
+        //LOG_DBG3(bdbint) << "BDBInt: MS-FEM elem=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum << " elemMat=" << elemMat.ToString();
         return;
       }
     }
@@ -111,17 +109,16 @@ namespace CoupledField{
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
-      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
-   //   std::cout << "Integration point " << i << " of " << numIntPts << std::endl;
       dData_->GetTensor(dMat_,lp);
       assert(dMat_.IsSymmetric(1e-8));
-      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
 
-      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << weights[i];
+      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << weights[i];
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
@@ -131,9 +128,12 @@ namespace CoupledField{
 #else
       dbMat_ = (dMat_ * bMat_) * fac;
       elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
+      //LOG_DBG3(bdbint) << "bMat: " << bMat_.ToString(2) << " transpose:"  << TransposeConjugate(bMat_).ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << " dMat= " << dMat_.ToString(2) << " bmat=" << bMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " dBMat=" << dbMat_.ToString(2) << " -> K_" << i << "=" << elemMat.ToString(2);
 #endif
 
-      LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
     }
 
     // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();

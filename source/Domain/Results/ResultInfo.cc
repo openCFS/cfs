@@ -15,6 +15,7 @@ namespace CoupledField {
     entryType = UNKNOWN;
     definedOn = FREE;
     fromOptimization = false;
+    isStatic = false;
   }
 
 
@@ -75,6 +76,7 @@ namespace CoupledField {
     resultName = data.resultName;
     dofNames = data.dofNames;
     unit = data.unit;
+    isStatic = data.isStatic;
     complexFormat = data.complexFormat;
     entryType = data.entryType;
     definedOn = data.definedOn;
@@ -104,6 +106,9 @@ namespace CoupledField {
       break;
     case REGION:
       out = "region";
+      break;
+    case REGION_AVERAGE:
+      out = "regionAverage";
       break;
     case SURF_REGION:  
       out = "surfRegion";
@@ -139,6 +144,8 @@ namespace CoupledField {
         out = SURF_ELEM;
       else if( in == "region")
         out = REGION;
+      else if( in == "regionAverage")
+        out = REGION_AVERAGE;
       else if( in == "surfRegion")
         out = SURF_REGION;
       else if( in == "nodeList")
@@ -153,21 +160,12 @@ namespace CoupledField {
   }
 
   bool operator==( const ResultInfo& a, const ResultInfo& b ) {
-    
-    if (a.dofNames != b.dofNames) {
-      std::cerr << "-> dofNames are different\n";
-    }
+    return a.resultType == b.resultType && a.dofNames == b.dofNames &&
+           a.definedOn == b.definedOn && a.entryType == b.entryType;
+  }
 
-    if ( a.resultType != b.resultType ||
-         a.dofNames != b.dofNames ||
-         a.definedOn != b.definedOn ||
-         a.entryType != b.entryType ) {
- 
-      return false; 
-    } else {
-      return true;
-    }
-         
+  bool operator!=( const ResultInfo& a, const ResultInfo& b ) {
+    return !(a == b);
   }
 
   bool operator<( const ResultInfo& a, const ResultInfo& b ) {
@@ -187,6 +185,7 @@ namespace CoupledField {
    EnumTuple(ResultInfo::ELEMENT,  "ELEMENT"),
    EnumTuple(ResultInfo::SURF_ELEM,  "SURF_ELEM"),
    EnumTuple(ResultInfo::REGION,  "REGION"),
+   EnumTuple(ResultInfo::REGION_AVERAGE,  "REGION_AVERAGE"),
    EnumTuple(ResultInfo::SURF_REGION,  "SURF_REGION"),
    EnumTuple(ResultInfo::NODELIST,  "NODELIST"),
    EnumTuple(ResultInfo::COIL,  "COIL"),

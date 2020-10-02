@@ -52,6 +52,9 @@ InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_
   }
 
   inFile_->ReadMesh(ptGrid);
+  
+  staticTimeType_ = params_->Get("timeType",ParamNode::EX)->As<std::string>() == "static";
+  
   //it would be nice not to finish the grid here
   //in order to let other filters add some entities
   //unfortunately this is not possible as we can not access anything
@@ -84,17 +87,59 @@ bool InputFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
 
     if(resultManager_->GetExtInfo(*aIter)->dType == ExtendedResultInfo::COMPLEX){
 
+        CF::StdVector<UInt> eqnVec;
+        Vector<Complex>& fullVec =  resultManager_->GetResultVector<Complex>(*aIter,eqnVec);
+
+        UInt stepNumber = 1;
+
+        if(!resultManager_->IsStatic(*aIter)){
+          Double reqValue = resultManager_->GetStepValue(*aIter);
+          CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-7) );
+          if(val == fileResult.timeLine->End()){
+            if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
+              std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
+            else
+              std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
+            fullVec.Init();
+            continue;
+          }
+          UInt idx = std::distance(fileResult.timeLine->Begin(), val);
+          stepNumber = (*fileResult.stepNumbers.get())[idx];
+        }
+
+        CF::SolutionType solType = fileResult.resultType;
+        std::set<std::string>::const_iterator regIter = aInfo->regNames->begin();
+
+        for(; regIter != aInfo->regNames->end(); ++regIter){
+          Vector<Complex> resVec;
+          shared_ptr<BaseResult> inResult = inFile_->GetResult(fileResult.sequenceStep,stepNumber,solType,*regIter);
+          try{
+            Result<Complex>* myResult = dynamic_cast<Result<Complex>* >(inResult.get());
+            resVec =   myResult->GetVector();
+          }catch(...){
+            EXCEPTION("Cannot cast to desired vector type. Are you trying to load real data into a harmonic computation?");
+          }
+          RegionIdType regId = aInfo->ptGrid->GetRegion().Parse(*regIter);
+          eqnVec.Clear(true);
+          resultManager_->GetEqnMap(*aIter)->GetRegionEquations(eqnVec,regId);
+          for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
+  //TODO REGION_PROBLEM: if more than one target-region is specified in the xml-scheme, e.g. fluid and one boundary, then
+            //the result vector contains exactly ONE more entry than without the boundary, independent of the number of
+            //additional boundary regions
+            fullVec[eqnVec[aEq]] = resVec[aEq];
+          }
+        }
+
     }else{
 
       CF::StdVector<UInt> eqnVec;
       Vector<Double>& fullVec =  resultManager_->GetResultVector<Double>(*aIter,eqnVec);
 
-      Double reqValue = resultManager_->GetStepValue(*aIter);
       UInt stepNumber = 1;
 
-      if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
-        CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
-
+      if(!resultManager_->IsStatic(*aIter)){
+        Double reqValue = resultManager_->GetStepValue(*aIter);
+        CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-7) );
         if(val == fileResult.timeLine->End()){
           if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
             std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
@@ -129,7 +174,6 @@ bool InputFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
           fullVec[eqnVec[aEq]] = resVec[aEq];
         }
       }
-      resultManager_->SetResultVecUpToDate(*aIter, true);
     }
   }
 
@@ -155,24 +199,23 @@ void InputFilter::AdaptFilterResults(){
     if(fileResult.resultName != curResInfo->resultName){
       EXCEPTION("Could not find requested result name in File");
     }
+    bool isStatic = staticTimeType_ || fileResult.isStatic;
     //fill the information
     //do not override the timeline if it is already filled...
     if(curResInfo->timeLine->GetSize() != 0){
-      //apparently somebody downstream has already something defined
-      //lets just check if we are compatible
-      CF::StdVector<Double>::iterator timeIter = curResInfo->timeLine->Begin();
-
-      bool allOK = true;
-      if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
+      if (!isStatic) {
+        //apparently somebody downstream has already something defined
+        //lets just check if we are compatible
+        CF::StdVector<Double>::iterator timeIter = curResInfo->timeLine->Begin();
+  
+        bool allOK = true;
         for(;timeIter != curResInfo->timeLine->End();++timeIter){
-          allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
-          //std::cout<<*timeIter<<std::endl;
-        }
-
-        if(!allOK)
-          EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
+          allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-8) ) != fileResult.timeLine->End();
+            //std::cout<<*timeIter<<std::endl;
+          if(!allOK)
+            EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
+         }
       }
-
     }else{
       StdVector<Double>& curT = (*fileResult.timeLine.get());
       //This was commented, since the dynamic tag should give a consistent timeline
@@ -182,6 +225,7 @@ void InputFilter::AdaptFilterResults(){
 //      }
       resultManager_->SetTimeLine(filterResIds[aRes],curT);
     }
+    resultManager_->SetStatic(filterResIds[aRes],isStatic);
 
     resultManager_->SetDType(filterResIds[aRes],fileResult.dType);
     resultManager_->SetRegionNames(filterResIds[aRes],(*fileResult.regNames.get()));
@@ -223,7 +267,7 @@ void InputFilter::CreateAvailableResultInfos(){
       ExtendedResultInfo newRes;
       newRes.ImportResultInfo(curRes);
       newRes.sequenceStep = anaIter->first;
-
+      
       if(anaIter->second == BasePDE::HARMONIC)
         newRes.dType = ExtendedResultInfo::COMPLEX;
       else

@@ -9,6 +9,7 @@ BiLinWrappedLinForm::BiLinWrappedLinForm(LinearForm* linForm,
 : BiLinearForm(linForm->IsCoordUpdate()) {
   linForm_ = linForm;
   assembleTransposed_ = assembleTranposed;
+  type_ = BILIN_WRAPPED_LIN;
   name_ = linForm->GetName();
 }
 

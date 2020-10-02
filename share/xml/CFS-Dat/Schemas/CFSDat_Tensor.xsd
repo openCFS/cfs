@@ -1,0 +1,84 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for binary operations -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_TensorFilter">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:all>
+          <xsd:element name="quantity1" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity2" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity3" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity4" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity5" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity6" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity7" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity8" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity9" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="output" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:all>
+        <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

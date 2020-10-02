@@ -29,7 +29,6 @@
 namespace CoupledField {
 
   // declare class specific logging stream
-  DECLARE_LOG(H1LagrangeVar)
   DEFINE_LOG(H1LagrangeVar,"H1LagrangeVar")
 
   //========================================================================

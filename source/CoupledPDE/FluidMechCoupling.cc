@@ -42,6 +42,8 @@ namespace CoupledField {
     couplingName_ = "FluidMechDirect";
     materialClass_ = FLOW;
 
+    formulation_ = NO_SOLUTION_TYPE;
+
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
@@ -110,7 +112,7 @@ namespace CoupledField {
 //      flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
       PtrCoefFct density = flowMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct viscosity = flowMat->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
+      PtrCoefFct viscosity = flowMat->GetScalCoefFnc( FLUID_DYNAMIC_VISCOSITY, Global::REAL );
       
       oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
                                                    lexical_cast<std::string>(1.0));

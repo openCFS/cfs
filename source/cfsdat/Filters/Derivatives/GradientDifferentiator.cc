@@ -28,6 +28,18 @@ GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode
   this->filtStreamType_ = FIFO_FILTER;
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  if( params_->Get("RBF_Settings")->Has("betaScaling") ){
+	  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
+  }else{
+	  betaScal_ = 0.0;
+  }
+
+  if( params_->Get("RBF_Settings")->Has("kScaling") ){
+	  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
+  }else{
+	  kScal_ = 0.0;
+  }
+
   logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
@@ -156,7 +168,7 @@ void GradientDifferentiator::PrepareCalculation(){
           UInt numSrcPoints = srcDist.GetSize();
           CF::Matrix<CF::Double> tsF;
           while( !CalcLocGradient(tsF, trgCoord, maxd, srcDist, neighbourCoords, numSrcPoints,
-                               numEquPerEnt_, inGrid_, epsScal_, logEps_)){
+                               numEquPerEnt_, inGrid_, epsScal_, betaScal_, kScal_, logEps_)){
             // find furthest point
             Double d = 0.0;
             UInt maxId = 0;
@@ -215,6 +227,7 @@ void GradientDifferentiator::AdaptFilterResults(){
                 "You better interpolate the element-values to nodes (e.g. Cell2Node) \n"
                 "and differentiate afterwards\n"
                 "============================================================")<<std::endl;
+    EXCEPTION("GradientDifferentiator requires input to be defined on nodes");
   }
 
   resultManager_->CopyResultData(upResIds[0],filterResIds[0]);

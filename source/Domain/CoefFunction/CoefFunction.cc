@@ -1,4 +1,3 @@
-
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
@@ -328,51 +327,118 @@ CoefFunction::Generate( MathParser * mp,
                         Global::ComplexPart format,
                         UInt numRows, UInt numCols,
                         const StdVector<PtrCoefFct>& realVal,
-                        const StdVector<PtrCoefFct>& imagVal ) {
+                        const StdVector<PtrCoefFct>& imagVal )
+{
   PtrCoefFct ret;
-   // Check, if all entries are analytical
-   bool isAnalytical = false;
-   for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-     isAnalytical |= realVal[i]->IsAnalytic();
-     // also ensure, that every CoefFunction is of scalar type
-     if( realVal[i]->GetDimType() != CoefFunction::SCALAR )  {
-       EXCEPTION( "Vector valued expression can be only composed of "
-           << "scalar entries!" );
-     }
-   }
-   for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-     isAnalytical |= imagVal[i]->IsAnalytic();
-     // also ensure, that every CoefFunction is of scalar type
-     if( imagVal[i]->GetDimType() != CoefFunction::SCALAR )  {
-       EXCEPTION( "Vector valued expression can be only composed of "
-           << "scalar entries!" );
-     }
-   }
-   
-   if( isAnalytical ) {
-     // use string generation method to generate the vector valued CoefFct
-     StdVector<std::string> rStrVals, iStrVals;
-     std::string empty;
-     rStrVals.Resize( realVal.GetSize() );
-     iStrVals.Resize( imagVal.GetSize() );
-     for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-       shared_ptr<CoefFunctionAnalytic> tmp;
-       tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
-       tmp->GetStrScalar(rStrVals[i], empty);
-     }
-     for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-       shared_ptr<CoefFunctionAnalytic> tmp;
-       tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
-       tmp->GetStrScalar(iStrVals[i], empty);
-     }
-     ret = Generate(mp, format, numRows, numCols, rStrVals, iStrVals);
-   } else {
-     EXCEPTION( "Vector-valued expression can only be composed of "
-         << "analytical expressions currently!" );
+  UInt realSize = realVal.GetSize();
+  UInt imagSize = imagVal.GetSize();
 
-   }
-   return ret;
-  
+  // Check, if all entries are analytical
+  bool isAnalytical = false;
+  for ( UInt i = 0; i < realSize; ++i ) {
+    if (!realVal[i]) continue;
+    isAnalytical |= realVal[i]->IsAnalytic();
+    // also ensure, that every CoefFunction is of scalar type
+    if( realVal[i]->GetDimType() != CoefFunction::SCALAR )  {
+      EXCEPTION( "Vector valued expression can be only composed of "
+          << "scalar entries!" );
+    }
+  }
+  for ( UInt i = 0; i < imagSize; ++i ) {
+    if (!imagVal[i]) continue;
+    isAnalytical |= imagVal[i]->IsAnalytic();
+    // also ensure, that every CoefFunction is of scalar type
+    if ( imagVal[i]->GetDimType() != CoefFunction::SCALAR )  {
+      EXCEPTION( "Vector valued expression can be only composed of "
+          << "scalar entries!" );
+    }
+  }
+
+  if ( isAnalytical ) {
+    // use string generation method to generate the vector valued CoefFct
+    StdVector<std::string> rStrVals(realSize), iStrVals(imagSize);
+    std::string empty;
+    shared_ptr<CoefFunctionAnalytic> tmp;
+
+    for ( UInt i = 0; i < realSize; ++i ) {
+      if (realVal[i]) {
+        tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
+        tmp->GetStrScalar(rStrVals[i], empty);
+      }
+      else {
+        rStrVals[i] = "0.0";
+      }
+    }
+    for ( UInt i = 0; i < imagSize; ++i ) {
+      if (imagVal[i]) {
+        tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(imagVal[i]);
+        tmp->GetStrScalar(iStrVals[i], empty);
+      }
+      else {
+        iStrVals[i] = "0.0";
+      }
+    }
+
+    if (imagSize == 0 && format == Global::COMPLEX) {
+      iStrVals.Resize(realSize, "0.0");
+    }
+
+    ret = Generate(mp, format, numRows, numCols, rStrVals, iStrVals);
+  }
+  else {
+    EXCEPTION( "Vector-valued expression can only be composed of "
+        << "analytical expressions currently!" );
+  }
+
+  return ret;
+}
+
+//! Generate tensor-valued coefficient function from CoefFunctions
+PtrCoefFct
+CoefFunction::Generate( MathParser * mp,
+                        Global::ComplexPart format,
+                        UInt numRows, UInt numCols,
+                        const StdVector<PtrCoefFct>& scalars)
+{
+  PtrCoefFct ret;
+  UInt vecSize = scalars.GetSize();
+
+  // Check, if all entries are analytical
+  bool isAnalytical = false;
+  for ( UInt i = 0; i < vecSize; ++i ) {
+    if (!scalars[i]) continue;
+    isAnalytical |= scalars[i]->IsAnalytic();
+    // also ensure, that every CoefFunction is of scalar type
+    if( scalars[i]->GetDimType() != CoefFunction::SCALAR )  {
+      EXCEPTION( "Vector valued expression can be only composed of "
+          << "scalar entries!" );
+    }
+  }
+
+  if ( isAnalytical ) {
+    // use string generation method to generate the vector valued CoefFct
+    StdVector<std::string> rStrVals(vecSize), iStrVals(vecSize);
+    shared_ptr<CoefFunctionAnalytic> tmp;
+
+    for ( UInt i = 0; i < vecSize; ++i ) {
+      if (scalars[i]) {
+        tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(scalars[i]);
+        tmp->GetStrScalar(rStrVals[i], iStrVals[i]);
+      }
+      else {
+        rStrVals[i] = "0.0";
+        iStrVals[i] = "0.0";
+      }
+    }
+
+    ret = Generate(mp, format, numRows, numCols, rStrVals, iStrVals);
+  }
+  else {
+    EXCEPTION( "Vector-valued expression can only be composed of "
+        << "analytical expressions currently!" );
+  }
+
+  return ret;
 }
 
 PtrCoefFct CoefFunction::Generate( MathParser * mp,
@@ -681,6 +747,113 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
     }
   }
 }
+
+template<class TYPE>
+CoefFunctionConst<TYPE>* CoefFunction::AsConst(bool throw_exception)
+{
+  CoefFunctionConst<TYPE>* ret = dynamic_cast<CoefFunctionConst<TYPE>* >(this);
+
+  if(ret == NULL && throw_exception)
+    EXCEPTION("cannot cast coef" << ToString() << "to CoefFunctionConst.")
+
+  return ret;
+}
+
+//! Rotates a vector from the local to the global coordinate system
+template<typename TYPE>
+void CoefFunction::TransformVectorByCoordSys(Vector<TYPE> &outVec,
+                                             const Vector<TYPE> &inVec,
+                                             const Vector<Double> &point)
+{
+  if (coordSys_ && coordSys_->GetName() != "default") {
+    // rotate the local vector back to global coordinates
+    this->coordSys_->Local2GlobalVector(outVec, inVec, point);
+  } else {
+    outVec = inVec;
+  }
+}
+
+//! Rotates a Vector from the local to the global coordinate system
+template<typename TYPE>
+void CoefFunction::TransformVectorByCoordSys(Vector<TYPE> &outVec,
+                                             const Vector<TYPE> &inVec,
+                                             const LocPointMapped &lpm)
+{
+  if (coordSys_ && coordSys_->GetName() != "default") {
+    // rotate the local vector back to global coordinates
+    Vector<Double> point;
+    lpm.shapeMap->Local2Global(point, lpm.lp);
+    this->coordSys_->Local2GlobalVector(outVec, inVec, point);
+  } else {
+    outVec = inVec;
+  }
+}
+
+// Rotates a tensor from the local to the global coordinate system
+template<typename TYPE>
+void CoefFunction::TransformTensorByCoordSys(Matrix<TYPE> &outMat,
+                                          const Matrix<TYPE> &inMat,
+                                          const Vector<Double> &point)
+{
+  // Just return the original tensor if there is no coordinate system
+  if (!coordSys_ || coordSys_->GetName() == "default") {
+    outMat = inMat;
+    return;
+  }
+
+  Matrix<Double> rotMat;
+  coordSys_->GetFullGlobRotationMatrix(rotMat, point);
+  inMat.PerformRotation(rotMat, outMat);
+}
+
+// Rotates a tensor from the local to the global coordinate system
+template<typename TYPE>
+void CoefFunction::TransformTensorByCoordSys(Matrix<TYPE> &outMat,
+                                          const Matrix<TYPE> &inMat,
+                                          const LocPointMapped &lpm)
+{
+  // Just return the original tensor if there is no coordinate system
+  if (!coordSys_ || coordSys_->GetName() == "default") {
+    outMat = inMat;
+    return;
+  }
+
+  Matrix<Double> rotMat;
+  coordSys_->GetFullGlobRotationMatrix(rotMat, lpm);
+  inMat.PerformRotation(rotMat, outMat);
+}
+
+// ************************************************************************
+// EXPLICIT TEMPLATE INSTANTIATION
+// ************************************************************************
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template void CoefFunction::TransformVectorByCoordSys(Vector<Double> &outVec,
+                                                      const Vector<Double> &inVec,
+                                                      const Vector<Double> &point);
+template void CoefFunction::TransformVectorByCoordSys(Vector<Complex> &outVec,
+                                                      const Vector<Complex> &inVec,
+                                                      const Vector<Double> &point);
+template void CoefFunction::TransformVectorByCoordSys(Vector<Double> &outVec,
+                                                      const Vector<Double> &inVec,
+                                                      const LocPointMapped &lpm);
+template void CoefFunction::TransformVectorByCoordSys(Vector<Complex> &outVec,
+                                                      const Vector<Complex> &inVec,
+                                                      const LocPointMapped &lpm);
+template void CoefFunction::TransformTensorByCoordSys(Matrix<Double> &outMat,
+                                                      const Matrix<Double> &inMat,
+                                                      const Vector<Double> &point);
+template void CoefFunction::TransformTensorByCoordSys(Matrix<Complex> &outMat,
+                                                      const Matrix<Complex> &inMat,
+                                                      const Vector<Double> &point);
+template void CoefFunction::TransformTensorByCoordSys(Matrix<Double> &outMat,
+                                                      const Matrix<Double> &inMat,
+                                                      const LocPointMapped &lpm);
+template void CoefFunction::TransformTensorByCoordSys(Matrix<Complex> &outMat,
+                                                      const Matrix<Complex> &inMat,
+                                                      const LocPointMapped &lpm);
+#endif
+
 // ************************************************************************
 // ENUM INITIALIZATION
 // ************************************************************************
@@ -917,5 +1090,9 @@ void CoefCompoundTest() {
   
 }
 #endif
+
+// template instantiation stuff
+template CoefFunctionConst<double>* CoefFunction::AsConst<double>(bool throw_exception);
+template CoefFunctionConst<std::complex<double> >* CoefFunction::AsConst<std::complex<double> >(bool throw_exception);
 
 } // end of namespace

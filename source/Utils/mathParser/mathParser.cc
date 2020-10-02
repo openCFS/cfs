@@ -5,14 +5,12 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
+#include "registerfunc.hh"
 #include "MatVec/Vector.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
-#include "Utils/Interpolate1D.hh"
 #include "Domain/Domain.hh"
-#include "Utils/mathfunctions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(math)
 DEFINE_LOG(math, "mathParser")
 
 namespace CoupledField {
@@ -517,37 +515,15 @@ namespace CoupledField {
   void MathParser::InitParser( mu::Parser &parser, VarPool& actPool,
                                bool isGlobal, bool setDefaults ) {
     
-    // Register alias functions for >, >=, <=, <
-    parser.DefineOprt( "gt", MathParser::Op_gt, 2);
-    parser.DefineOprt( "ge", MathParser::Op_ge, 2);
-    parser.DefineOprt( "le", MathParser::Op_le, 2);
-    parser.DefineOprt( "lt", MathParser::Op_lt, 2);
-
-    // Register constant variables
-    parser.DefineConst("pi", (double) M_PI);
-
-    // Register functions from within CFS
-    parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
-    parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
-    parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
-
-    // Register signal generating functions
-    parser.DefineFun("sinBurst", SinBurst, false );
-    parser.DefineFun("fadeIn", FadeIn, false );
-    parser.DefineFun("spike", Spike, false );
-    parser.DefineFun("chirp", Chirp, false );
-    //parser.DefineFun("cosPulseComb", CosPulseComb, false );
-    parser.DefineFun("squareBurst", SquarePulse, false );
-    parser.DefineFun("gauss", Gauss, false );
-    parser.DefineFun("triangle", Triangle, false );
+    // Register common math functions
+    RegisterFunctions(parser);
     
-    // Register general functions
-    parser.DefineFun("mod", Mod, false );
-    parser.DefineFun("besselCylJ", BesselCylJ, false );
-    parser.DefineFun("besselCylY", BesselCylY, false );
-    parser.DefineFun("besselSphJ", BesselSphJ, false );
-    parser.DefineFun("besselSphY", BesselSphY, false );
-    
+    // Register functions for MathParser only (not for PyMuParser)
+    // TODO: muParser needs to be extended to handle locCoord2D and locCoord2D
+    // via strfun_type4 and strfun_type5. This has just been added to the current muParser master
+    //parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
+    //parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
+
     // Register factory for dynamic variable registering
     //parser.SetVarFactory( AddVariable );
 

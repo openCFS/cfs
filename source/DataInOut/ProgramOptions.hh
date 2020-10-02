@@ -8,14 +8,10 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
 
-
-// Include defs
-#include <def_build_type_options.hh>
-
-
 // Required for the CFS own data types
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Dependencies.hh"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -185,26 +181,10 @@ namespace CoupledField
     
     /** This gives the head line of CFS++ printed to cout */
     void GetHeaderString(std::ostream& out);
-    
+
     // @}
 
- private:
-    // =======================================================================
-    // INTERNAL HELPER METHODS
-    // =======================================================================
-
-    //@{ \name Additional internal helper methods
-
-    //! Helper function for mapping environment variables to internal names
-    std::string EnvironmentNameMapper( const std::string& envVarName );
-
-    //@}
-
- protected:
-    // =======================================================================
-    // INTERNAL DATA
-    // =======================================================================
-
+  protected:
     //! Command line arguments as vector
     std::vector<std::string> args_;
 
@@ -216,6 +196,18 @@ namespace CoupledField
 
     //! Boost's argument map
     po::variables_map varMap_;
+
+  private:
+    //! Helper function for mapping environment variables to internal names
+    std::string EnvironmentNameMapper( const std::string& envVarName );
+
+    /** Helper for colored output */
+    static void WriteColoredString(std::ostream& out, int trim_size, const string& head, const string& data, const string& opt1 = "", const string& opt2 = "", const string& opt3 = "");
+
+    static void WriteColoredString(std::ostream& out, int trim_size, const string& head, int data);
+
+    // static GetVersionString() has own variant
+    Dependencies deps_;
   };
 }
 #endif

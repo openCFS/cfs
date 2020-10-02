@@ -5,13 +5,16 @@
 #include <fstream>
 #include <iterator>
 
+#include "Domain/Domain.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
+
 namespace CoupledField {
 
 template <class TYPE> class Vector;
 class SingleVector;
   
   //! Driver class for calculating a general eigenvalue problem
-  class EigenFrequencyDriver : public SingleDriver {
+  class EigenFrequencyDriver : public virtual SingleDriver {
 
   public:
 
@@ -64,7 +67,20 @@ class SingleVector;
         freq.Resize( eigRe.GetSize() );
         Double twoPi = 8.0*atan(1.0);
         for (UInt i=0; i < eigRe.GetSize(); i++) {
-            freq[i] = sqrt(eigRe[i])/twoPi;
+          freq[i] = sqrt(std::abs(eigRe[i]))/twoPi; // take the absolute value only to avoid problems with very small but negative EVs
+        }
+    }
+    void QuadEig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq_undamped, Vector<Double> &freq_damped, Vector<Double> & damp ) {
+        assert( eigRe.GetSize() == eigIm.GetSize() );
+        freq_undamped.Resize( eigRe.GetSize() );
+        freq_damped.Resize( eigRe.GetSize() );
+        damp.Resize( eigRe.GetSize() );
+        Double twoPi = 8.0*atan(1.0);
+        for (UInt i=0; i < eigRe.GetSize(); i++) {
+            double eigRatio = eigIm[i]/eigRe[i];
+            damp[i] = sqrt( 1.0/(1.0+eigRatio*eigRatio) );
+            freq_undamped[i] = std::abs(eigRe[i])/damp[i]/twoPi;
+            freq_damped[i] = std::abs(eigIm[i])/twoPi;
         }
     }
     void Eig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq, Vector<Double> & damp ) {
@@ -75,9 +91,10 @@ class SingleVector;
         for (UInt i=0; i < eigRe.GetSize(); i++) {
             double eigRatio = eigIm[i]/eigRe[i];
             damp[i] = sqrt( 1.0/(1.0-eigRatio*eigRatio) );
-            freq[i] = eigRe[i]/damp[i]/twoPi;
+            freq[i] = std::abs(eigRe[i])/damp[i]/twoPi;
         }
     }
+
     void Eig2FreqDamp(Vector<Complex>& eig, Vector<Double> & freq, Vector<Double> & damp ) {
         //assert( eigRe.GetSize() == eigIm.GetSize() );
         freq.Resize( eig.GetSize() );
@@ -85,9 +102,13 @@ class SingleVector;
         Double twoPi = 8.0*atan(1.0);
         for (UInt i=0; i < eig.GetSize(); i++) {
             // no idea if this is correct in general ...
-            double omega = sqrt(eig[i].real());
-            damp[i] = eig[i].imag()/omega;
-            freq[i] = omega/twoPi;
+          Complex lam = sqrt(eig[i]);
+          double omega = lam.real();
+          damp[i] = lam.imag();
+          freq[i] = omega/twoPi;
+          /*double omega = sqrt(eig[i].real()); # alternative implementation from sharedopt
+          damp[i] = eig[i].imag()/omega;
+          freq[i] = omega/twoPi;*/
         }
     }
     void SortModes(){
@@ -95,7 +116,7 @@ class SingleVector;
         std::size_t n(0);
         // allocate modeOrder_
         std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&]{ return n++; });
-        // sort it by requency
+        // sort it by frequency
         std::sort(std::begin(modeOrder_),std::end(modeOrder_),[&](int i1, int i2) { return frequency_[i1] < frequency_[i2]; } );
     }
 
@@ -109,9 +130,8 @@ class SingleVector;
     static unsigned int GetNumBlochWave(PtrParamNode node);
 
     /** @see BaseDriver::StoreResults()
-     * stepNum and step_val are ignored!! */
-    void StoreResults(UInt stepNum, double step_val);
-
+     * step_val is ignored!! */
+    unsigned int StoreResults(UInt stepNum, double step_val);
 
     /** eigenFreqs might be complex in the quadaratic, then we need to extract the real frequency by from the imaginary part
      * @param mode index within eigenFreq (0-based)
@@ -128,16 +148,24 @@ class SingleVector;
     /** for multi sequence optimization we need some information before driver instantiation */
     static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
 
+    void SetToStepValue(UInt stepNum, Double stepVal )  {
+      // ensure that this method is only called if simState has input
+      if( false ) { // ! simState_->HasInput()
+        EXCEPTION( "Can only set external time step, if simulation state "
+                << "is read from external file" );
+      }
+
+      //actFreqStep_ = stepNum;;
+      //actFreq_ = stepVal;
+
+      // Set current frequency value in the mathParser
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", stepVal );
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", stepNum );
+
+    }
+
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs; //ToDo: remove due to new structure -> frequency_
-
-    //! the recent calculated eigen values, might be complex
-    SingleVector* eigenVals_;
-
-    Vector<Double> frequency_; // frequency
-    Vector<Double> dampingRatio_; // damping ratio
-    Vector<Double> eigsRe_; // real part
-    Vector<Double> eigsIm_; // imag part
 
     /** this is the list of wave vectors we have to process.
      * Obtained arbitrary */
@@ -174,6 +202,11 @@ class SingleVector;
     
     bool sort_;
 
+    Vector<Double> frequency_; // frequency
+    Vector<Double> dampingRatio_; // damping ratio
+    Vector<Double> eigsRe_; // real part
+    Vector<Double> eigsIm_; // imag part
+
     //! Number of eigenfrequencies to be calculated
     unsigned int numFreq_;
 
@@ -208,11 +241,9 @@ class SingleVector;
     /** store the first plot.dat line to be repeated in the ibz_ case as last step */
     std::string first_plot_line_;
 
-    /** the step number is complicated with bloch and or optimization. Count by ourselves here! */
-    unsigned int save_step_;
-
     bool eigenValuesAreReal_;
 
+    BaseEigenSolver::ModeNormalization modeNormalization_;
   };
 
 }

@@ -58,7 +58,17 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # signing an agreement with Ch. Zillober
 # CFS expects scpip.tar.bz2 in CFS_DEPS_CACHE_DIR/source/scpip
 
+SET(MIRRORS 
+  "/share/programs/cfsdeps/scpip.tar.bz2")
+
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
+SET(MD5_SUM ${SCPIP_MD5})
+
+SET(DLFN "${scpip_prefix}/scpip-download.cmake")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+
+SET(LOCAL_FILE1 "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
 SET(MD5_SUM ${SCPIP_MD5})
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "scpip" "${SCPIP_VER}")
@@ -96,11 +106,21 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   ExternalProject_Add(scpip
     PREFIX "${scpip_prefix}"
     SOURCE_DIR "${scpip_source}"
-    URL ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}
+    URL ${LOCAL_FILE}
     URL_MD5 ${SCPIP_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
+    CMAKE_ARGS ${CMAKE_ARGS}
+  )
+
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(scpip cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${scpip_prefix}
   )
     
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")

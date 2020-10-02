@@ -1,4 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -10,7 +9,6 @@
 #include <boost/filesystem.hpp>
 
 #include "def_use_openmp.hh"
-#include "def_disable_optimization.hh"
 
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -50,9 +48,12 @@
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
+#include "PDE/LinFlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
+#include "PDE/MagEdgeMixedAVPDE.hh"
+#include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
@@ -68,7 +69,9 @@
 #include "CoupledPDE/FluidMechCoupling.hh"
 #include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
 #include "CoupledPDE/WaterWaveMechCoupling.hh"
-
+#include "CoupledPDE/LinFlowHeatCoupling.hh"
+#include "CoupledPDE/LinFlowAcouCoupling.hh"
+#include "CoupledPDE/LinFlowMechCoupling.hh"
 // Include driver
 #include "Driver/BaseDriver.hh"
 #include "Driver/SingleDriver.hh"
@@ -122,6 +125,8 @@ Domain::Domain(
 void Domain::CreateGrid()
 {
   std::string probGeo;
+  Double depth2d = 1.0;
+  
   param_->Get("domain")->GetValue("geometryType", probGeo);
   if (probGeo == "3d")
   {
@@ -130,6 +135,10 @@ void Domain::CreateGrid()
   else if (probGeo == "axi" || probGeo == "plane")
   {
     dim_ = 2;
+    
+    if( (probGeo == "plane") && (param_->Get("domain")->Has("depth2dPlane")) ){      
+      depth2d = param_->Get("domain")->Get("depth2dPlane")->As<double>();
+    }
   }
   else
   {
@@ -159,14 +168,14 @@ void Domain::CreateGrid()
             << "' was renamed to 'default', as it is the only one.");
       }
       
-      ReadGrid("default", gridInputs_.begin()->second, probGeo == "axi");
+      ReadGrid("default", gridInputs_.begin()->second, probGeo == "axi", depth2d);
       gridInputs_.clear();
     } else {
       if (gridInputs_.find("default") == gridInputs_.end()) {
         EXCEPTION("There is no grid with ID 'default'.");
       }
       
-      ReadGrid("default", gridInputs_["default"], probGeo == "axi");
+      ReadGrid("default", gridInputs_["default"], probGeo == "axi", depth2d);
     }
 
     // Create grids using input readers.
@@ -178,7 +187,7 @@ void Domain::CreateGrid()
     for ( ; gridIt != endIt; ++gridIt )
     {
       if ( gridIt->first != "default") {
-        ReadGrid( gridIt->first, gridIt->second, probGeo == "axi" );
+        ReadGrid( gridIt->first, gridIt->second, probGeo == "axi", depth2d );
       }
     } // loop: input readers
   } // if: use of external grids
@@ -210,7 +219,7 @@ void Domain::CreateGrid()
 
 void Domain::ReadGrid(const std::string & gridId,
                       const StdVector< shared_ptr<SimInput> > & inputs,
-                      bool isAxi)
+                      bool isAxi, Double depth2d)
 {
   // Type of mesh library. May either be cfsGrid or adaptGrid
   // (if AdaptGrid should be ever revived.)
@@ -248,6 +257,11 @@ void Domain::ReadGrid(const std::string & gridId,
 
   // set flag about axisymmetry
   actGrid->SetAxi( isAxi );
+  
+  // set flag about depth in 2dplane
+  if( (!isAxi) && (dim_ == 2) ){
+    actGrid->SetDepth2dPlane(depth2d);
+  }
 
   // add grid to internal map
   gridMap_[gridId] = actGrid;
@@ -278,7 +292,7 @@ void Domain::ReadGrid(const std::string & gridId,
   }
 
   actGrid->FinishInit();
-  
+
   // Initialize non-conforming interfaces
   if (gridId == "default")
     actGrid->InitNcInterfacesFromXML();
@@ -293,6 +307,7 @@ void Domain::ReadGrid(const std::string & gridId,
     else
       non_regular = true;
   }
+
   // finish output for grid reading
   if( isParentDomain_) {
     std::cout << "-> ";
@@ -302,6 +317,7 @@ void Domain::ReadGrid(const std::string & gridId,
       std::cout << "not ";
     std::cout << "regular" << std::endl; // also regular && !non_regular
   }
+  
 }
 
 void Domain::PostInit(UInt sequenceStep)
@@ -324,9 +340,6 @@ void Domain::PostInit(UInt sequenceStep)
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if(GetParamRoot()->Has("optimization"))
   {
-    #ifdef DISABLE_OPTIMIZATION
-      throw Exception("CFS++ was compiled with disabled optimization.");
-    #endif
     Optimization::CreateInstance(); // has an SetOptimization() included
   }
   else
@@ -340,7 +353,7 @@ void Domain::PostInit(UInt sequenceStep)
 
   // For optimization the design needs to be already set to initialize the proper material coefficients
   // in the multisequence case init does something else and was already called above
-  // not that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
+  // note that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
   if(domain->GetMultiSequenceDriver() == NULL)
     driver->Init(restart);
 
@@ -442,7 +455,7 @@ void Domain::SolveProblem()
 
   // PostInit needs to be called in advance!
   if(optimization_ != NULL)
-    optimization_->SolveProblem(); // will call multiple driver-SolveProblem
+    optimization_->SolveProblem(); // will call multiple driver->SolveProblem
   else
     driver->SolveProblem();
 }
@@ -659,7 +672,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   }
 
   
-    // Initialize those PDEs which are not directly coupled
+  // Initialize those PDEs which are not directly coupled
   for( UInt iStage = 1; iStage < 3; ++iStage ) {
     for (UInt i = 0; i < numSinglePde_; i++) {
       it = isDirectCoupled_.find(ptSinglePde_[i]);
@@ -729,27 +742,35 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "split") {
-        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
-                                          simState_, this );
+      ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
+          simState_, this );
     }
     else if (actPdeName == "acousticMixed")
-        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-//
-//    else if (actPdeName == "smooth")
-//      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);
-//
-   else if (actPdeName == "magnetic")
+      ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+
+    else if (actPdeName == "magnetic")
       ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
-    else if (actPdeName == "magneticEdge")
-      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-    
-//    else if (actPdeName == "magneticScalar")
-//          ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
-//
-//
+    else if (actPdeName == "magneticEdge"){
+      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+      if (formulation == "A") {
+        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      }else{
+        if(formulation == "A-V"){
+          ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        }else if(formulation == "specialA-V"){
+          ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        }else{
+          EXCEPTION("Formulation of MagEdgePDE not known!");
+        }
+      }
+    }
+
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+
+    else if (actPdeName == "fluidMechLin")
+      ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
@@ -960,7 +981,37 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new WaterWaveMechCoupling(pde1, pde2, pairNodes[i], info_,
                                            simState_, this );
     }
-//
+    // *** Linear flow coupled with heat ***
+    else if (couplingName == "linFlowHeatDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("heatConduction");
+
+      coupling = new LinFlowHeatCoupling(pde1, pde2, pairNodes[i], info_,
+    		                             simState_, this );
+      // inform linFlowPDE about coupling to heatConduction
+      dynamic_cast<LinFlowPDE*> (pde1)->SetHeatCoupling();
+    }
+    // *** Linear flow coupled with acoustic wave equation***
+    else if (couplingName == "linFlowAcouDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("acoustic");
+
+      coupling = new LinFlowAcouCoupling(pde1, pde2, pairNodes[i], info_,
+    		                             simState_, this );
+    }
+    else if (couplingName == "linFlowMechDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("mechanic");
+
+      coupling = new LinFlowMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                     simState_, this );
+    }
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***
 //    else if (couplingName == "thermoMechDirect")

@@ -1,5 +1,0 @@
-// Define used to check if ANSYS RST output is used
-
-#cmakedefine USE_ANSYSRST
-
-#define CFS_ANSYS_LD_PATH "@LIBRARY_OUTPUT_PATH@"

@@ -163,6 +163,13 @@ namespace CoupledField
     virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
       Exception("Not implemented in base class");
     }
+
+    virtual std::string GetFeSpaceName(){
+      Exception("Not implemented in base class");
+      std::string r = "";
+      return r;
+    }
+
   protected:
 
     //! Actual number of basis functions associated with this element

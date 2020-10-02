@@ -19,17 +19,16 @@ class DesignSpace;
 class Excitation;
 class Function;
 class SingleVector;
+struct ElementAccess;
 struct Elem;
-}  // namespace CoupledField
-
-namespace CoupledField
-{
-
 
 /** The calculation of the von Mises Stress function vms, the derivative dvms/drho and the adjoint RHS are
  * all rather involved and very similar.
  * To share the code and handle also the complexity of piezo stresses, the implementation is class based.
  * The implementation is not tuned for speed and data reuse - it is complicated enough!
+ *
+ * TODO: the code worked in pre-FE-Space. Now, piezo is not enabled any more. To to this, change form -> form1, form2.
+ * Some code is still prepared (B1, B2 app.first, app.second, but always same)
  */
 template<class T>
 class StressConstraint
@@ -55,12 +54,12 @@ private:
 
   /** Set up element data which is integration point independent (E1) */
   /** Set up the data for the general formula (E1 ... stress2). E2 is mode dependent, but not u1 */
-  void SetupElement(DesignElement* de, App::Type app1, App::Type app2, Mode mode);
+  void SetupElement(ElementAccess* ea, DesignElement* de, App::Type app1, Mode mode);
 
   /** Set up integration point dependent element data after SetupElement is called!
-   * calculates: stain1, B1, B2.
+   * calculates: strain1, B1, B2, ...
    * depending on mode: M_E2_B2, strain2, stress2 */
-  void SetupIntPoint(Elem* elem, unsigned int ip, Mode mode);
+  void EvalIP(Mode mode, ElementAccess* ea, unsigned int ip);
 
   /** common for CalcStresses and CalcGradStresses() */
   void CalcStresses(Mode mode, int res_idx, Vector<double>& out);
@@ -69,7 +68,7 @@ private:
    * @return mech/mech or mech/mech, piezo/mech, piezo/piezo, mech/piezo */
   StdVector<std::pair<App::Type, App::Type> > GetApplications();
 
-  /** This is the general formula E1*B1*u1)^T*M*(E2*B2*u2).
+  /** This is the general formula (E1*B1*u1)^T*M*(E2*B2*u2).
    * In the adjoint case u1 = u1^* and u2 is omitted, in the grad case E2 = grad_E2 */
   Matrix<double> M;
   Matrix<double> E1;
@@ -78,8 +77,8 @@ private:
   Matrix<double> B2;
   Vector<double> alpha; // the globalization factors form GRAD_STRESS and ADJOINT_RHS
 
-  StdVector<SingleVector*>* all_u1_elem;
-  StdVector<SingleVector*>* all_u2_elem;
+  StdVector<SingleVector*>* all_u1_elem = NULL;
+  StdVector<SingleVector*>* all_u2_elem = NULL;
 
   /** This are helper data elements */
   Vector<T> strain1; // B*u
@@ -92,13 +91,12 @@ private:
   /** Only calculated in the adjoint case */
   Matrix<double> M_E2_B2;
 
-  /** These are set up by SetupElement() to be used in SetupIp() */
-  BaseForm* form1;
-  BaseForm* form2;
+  /** These are set up by SetupElement() to be used in SetupIp(). There was a form2 for the coupling case */
+  BaseBDBInt* form = NULL;
 
   // we need to be careful to use the right index!!
-  Vector<T>* u1_elem_ptr;
-  Vector<T>* u2_elem_ptr;
+  Vector<T>* u1_elem_ptr = NULL;
+  Vector<T>* u2_elem_ptr = NULL;
 
   Matrix<double> E2_B2; // adjoint case only
 
@@ -106,14 +104,14 @@ private:
   TransferFunction tf; // either stress from xml file or implicitly FULL for off-design stresses */
   ElemList elemList;
 
-  Excitation* excite;
-  Function* f;
-  ErsatzMaterial* em;
-  DesignSpace* space; // shortcut
-  StateContainer* forward;
+  Excitation* excite = NULL;
+  Function* f = NULL;
+  ErsatzMaterial* em = NULL;
+  DesignSpace* space = NULL; // shortcut
+  StateContainer* forward = NULL;
 };
 
 
-}
+} // end of namespace
 
 #endif /* STRESSCONSTRAINT_HH_ */

@@ -28,62 +28,21 @@ namespace CoupledField {
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     void Finalize();
 
-    //! set a scalar real material parameter
-    void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-    //! set a scalar complex material parameter
-    void SetScalar( Complex param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-    
-    //! set a scalar parameter in string representation (gets later parsed by MathParser
-    void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType );
-
-    //! set a real vector
-    virtual void SetVector(const Vector<Double>& param, MaterialType matType,
-			    Global::ComplexPart dataType );
-
-    //! set a real material tensor
-    void SetTensor(const Matrix<Double>& param, MaterialType matType,
-		    Global::ComplexPart dataType );
-
-    //! set a complex material tensor
-    void SetTensor(const Matrix<Complex>& param, MaterialType matType,
-		    Global::ComplexPart dataType );
-
-     //! get a scalar integer material parameter
-    void GetScalar( Integer& param, 
-                    MaterialType matType) const;
-
-    //! get a scalar real material parameter
-    void GetScalar( Double& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a scalar complex real material parameter
-    void GetScalar( Complex& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a real vector
-    void GetVector( Vector<Double>& param, MaterialType matType,
-			    Global::ComplexPart dataType ) const;
+    //! Return scalar-valued coefficient function (linear)
+    virtual PtrCoefFct GetScalCoefFnc(MaterialType matType,
+                                      Global::ComplexPart matDataType) const;
 
     //! get sub vector (e.g. thermal expansion tensor in Voigt notation)
-    PtrCoefFct GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real=false );
-
-    //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;	
-
-    //! get a complex material tensor
-    void GetTensor( Matrix<Complex>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;
+    virtual PtrCoefFct GetSubVectorCoefFnc( MaterialType matType,
+                                            SubTensorType tensorType,
+                                            Global::ComplexPart matDataType
+                                                = Global::COMPLEX) const;
 
     //! Return a specific sub-tensor
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
-                                            bool transposed );
+                                            Global::ComplexPart matDataType,
+                                            bool transposed = false) const;
     
     /** Computes the error to an isotropic elasticity tensor.
      * Assume isotropy and calculate E and v, construct E(E,v) and return ||E(E,v) - tensor||_1 */
@@ -122,6 +81,11 @@ namespace CoupledField {
      * @return first a description with underliner, then the value */
     static StdVector<std::pair<std::string, double> > CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
+    //! Compute the constant full stiffness tensor from isotropic,
+    //! transversely isotropic or orthotropic data
+    static Matrix<Complex> GetFullStiffTensor(BaseMaterial::SymmetryType symType,
+                                              BaseMaterial::CoefMap &coefMap);
+
   private:
 
     /** Calculates orthotrope Youngs moduli.
@@ -137,19 +101,15 @@ namespace CoupledField {
      * @return a vector with 2 or 6 entries  v_21, v_12(, v_31, v_13, v_32, v_23) */
     static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
-    /** compute the correct subTensor (3D, AXI, ..) from the material */
-    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
-
-   void ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix, MaterialType matType, 
-                          SubTensorType subTensor) const;
-
 
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
-    //! Computae vector for thermal expansion
-    void ComputeFullThermalExpanionVector();
+    //! Compute the viscoelastic stiffness tensor from the Prony series
+    void ComputeViscoStiffTensors();
 
+    //! Compute the thermal expansion
+    void ComputeThermExpTensor();
   };
 
 } // end of namespace

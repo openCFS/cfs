@@ -11,6 +11,7 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_FePolynomial.xsd ${DST_DIR}/Schemas/CFS_FePolynomial.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_FileFormats.xsd ${DST_DIR}/Schemas/CFS_FileFormats.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_IntegrationScheme.xsd ${DST_DIR}/Schemas/CFS_IntegrationScheme.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_HystereticSystem.xsd ${DST_DIR}/Schemas/CFS_HystereticSystem.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_LinearSystem.xsd ${DST_DIR}/Schemas/CFS_LinearSystem.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Misc.xsd ${DST_DIR}/Schemas/CFS_Misc.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEacoustic.xsd ${DST_DIR}/Schemas/CFS_PDEacoustic.xsd
@@ -18,6 +19,7 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEbasic.xsd ${DST_DIR}/Schemas/CFS_PDEbasic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEelectrostatic.xsd ${DST_DIR}/Schemas/CFS_PDEelectrostatic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEfluidMech.xsd ${DST_DIR}/Schemas/CFS_PDEfluidMech.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEfluidMechLin.xsd ${DST_DIR}/Schemas/CFS_PDEfluidMechLin.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEheatConduction.xsd ${DST_DIR}/Schemas/CFS_PDEheatConduction.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmagedge.xsd ${DST_DIR}/Schemas/CFS_PDEmagedge.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEsplit.xsd ${DST_DIR}/Schemas/CFS_PDEsplit.xsd
@@ -35,15 +37,9 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMENT "Updating XML schemata for CFS++ simulation..."
 )
 
-if(DISABLE_OPTIMIZATION)
-  ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Disabled_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
-    COMMENT "Updating XML schemata for CFS++ with disabled optimization...")
-else()
-  ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
-    COMMENT "Updating XML schemata for CFS++ optimization...")
-endif()
+ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
+  COMMENT "Updating XML schemata for CFS++ optimization...")
   
 SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/CFS-Material)
 SET(DST_DIR ${CFS_BINARY_DIR}/share/xml/CFS-Material)
@@ -59,6 +55,7 @@ ADD_CUSTOM_TARGET(share_xml_cfsmat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmagnetic.xsd ${DST_DIR}/Schemas/CFS_MATmagnetic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmagStrict.xsd ${DST_DIR}/Schemas/CFS_MATmagStrict.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmechanical.xsd ${DST_DIR}/Schemas/CFS_MATmechanical.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MAThysteresis.xsd ${DST_DIR}/Schemas/CFS_MAThysteresis.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATpiezo.xsd ${DST_DIR}/Schemas/CFS_MATpiezo.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATpyroelectric.xsd ${DST_DIR}/Schemas/CFS_MATpyroelectric.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATthermoelastic.xsd ${DST_DIR}/Schemas/CFS_MATthermoelastic.xsd
@@ -81,9 +78,12 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/CFS_Dat.xsd ${DST_DIR}/CFS_Dat.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_BaseFilter.xsd ${DST_DIR}/Schemas/CFSDat_BaseFilter.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_BinOpFilt.xsd ${DST_DIR}/Schemas/CFSDat_BinOpFilt.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Tensor.xsd ${DST_DIR}/Schemas/CFSDat_Tensor.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DatMeshInput.xsd ${DST_DIR}/Schemas/CFSDat_DatMeshInput.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DatMeshOutput.xsd ${DST_DIR}/Schemas/CFSDat_DatMeshOutput.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DefOn.xsd ${DST_DIR}/Schemas/CFSDat_DefOn.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_GaussDerivative.xsd ${DST_DIR}/Schemas/CFSDat_GaussDerivative.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_VolumeMultiplication.xsd ${DST_DIR}/Schemas/CFSDat_VolumeMultiplication.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Differentiation.xsd ${DST_DIR}/Schemas/CFSDat_Differentiation.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DifferentiationType.xsd ${DST_DIR}/Schemas/CFSDat_DifferentiationType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FilterList.xsd ${DST_DIR}/Schemas/CFSDat_FilterList.xsd
@@ -91,6 +91,7 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Interpolation.xsd ${DST_DIR}/Schemas/CFSDat_Interpolation.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_InterpolationType.xsd ${DST_DIR}/Schemas/CFSDat_InterpolationType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_NearestNeighbour.xsd ${DST_DIR}/Schemas/CFSDat_NearestNeighbour.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FEBased.xsd ${DST_DIR}/Schemas/CFSDat_FEBased.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_ResultDef.xsd ${DST_DIR}/Schemas/CFSDat_ResultDef.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_RotDomain.xsd ${DST_DIR}/Schemas/CFSDat_RotDomain.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd ${DST_DIR}/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd

@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "General/Exception.hh"
 #include "Optimization/Design/AuxDesign.hh"
 
@@ -12,13 +11,12 @@ namespace CoupledField {
 class Condition;
 class Objective;
 
-DECLARE_LOG(aux_des)
 DEFINE_LOG(aux_des, "auxDesign")
 
 AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, int naux)
   : DesignSpace(regions, pn, method)
 {
-  exoprt_fe_design_ = true; // can be different in ShapeDesign
+  export_fe_design_ = true; // can be different in ShapeDesign
   tailing_aux_design_ = true; // set false for shape optimization
   scaling_ = 1.0;
 
@@ -104,11 +102,11 @@ int AuxDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 
-  if(exoprt_fe_design_)
+  if(export_fe_design_)
     DesignSpace::ReadDesignFromExtern(space_in);
 
   unsigned int offset = AuxDesignOffset(); // the size of the simp space - might be != data.GetSize()
-  assert((exoprt_fe_design_ && (offset <= elements * design.GetSize())) || !exoprt_fe_design_);
+  assert((export_fe_design_ && (offset <= elements * design.GetSize())) || !export_fe_design_);
 
   // design_id might be changed above in DesignSpace::ReadDesignFromExtern()
   bool new_design = old_design != design_id;
@@ -129,9 +127,9 @@ int AuxDesign::ReadDesignFromExtern(const double* space_in)
 
 inline unsigned int AuxDesign::AuxDesignOffset() const
 {
-  if(exoprt_fe_design_)
+  if(export_fe_design_)
     return DesignSpace::GetNumberOfVariables();
-  // no exoprt_fe_design_ is shape optimization of shape mapping
+  // no export_fe_design_ is shape optimization of shape mapping
   if(tailing_aux_design_)
     return GetNumberOfVariables() - aux_design_.GetSize(); // GetNumberOfVariables is virtual and covers in shape map design also aux_design_
   // we are first
@@ -140,7 +138,7 @@ inline unsigned int AuxDesign::AuxDesignOffset() const
 
 bool AuxDesign::CompareDesign(const double* space_in)
 {
-  if(exoprt_fe_design_ && !DesignSpace::CompareDesign(space_in))
+  if(export_fe_design_ && !DesignSpace::CompareDesign(space_in))
     return false;
 
   unsigned int offset = AuxDesignOffset();
@@ -157,7 +155,7 @@ bool AuxDesign::CompareDesign(const double* space_in)
 
 int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
 {
-  if(exoprt_fe_design_)
+  if(export_fe_design_)
     DesignSpace::WriteDesignToExtern(space_out, scale);
 
   double rscaling = scale ? 1.0 / scaling_ : 1.0;
@@ -176,7 +174,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
   bool write_aux = true;
-  if(exoprt_fe_design_ && ( f == NULL || f->GetType() != Function::SHAPE_INF) ) // SHAPE_INF, does have a sparse gradient, but no components of it are in the designspace, only in auxspace
+  if(export_fe_design_ && ( f == NULL || f->GetType() != Function::SHAPE_INF) ) // SHAPE_INF, does have a sparse gradient, but no components of it are in the designspace, only in auxspace
   {
     // the number of DesignSpace variables is complicated because of constant region.
     unsigned int data_size = DesignSpace::GetNumberOfVariables(); 
@@ -206,7 +204,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
       out.window = org_window;
   }
 
-  // makes use of the window within out even  if only a part of the window is used in the exoprt_fe_design_ case
+  // makes use of the window within out even  if only a part of the window is used in the export_fe_design_ case
   // check if there is something to write. E.g. for FeasPP out.size is the size sparsity size, don't overwrite
   // a single designBound value with 0 from aux_design_.
   if(write_aux) 
@@ -314,7 +312,7 @@ void AuxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type desi
 
 void AuxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
-  if(exoprt_fe_design_)
+  if(export_fe_design_)
     DesignSpace::WriteBoundsToExtern(x_l, x_u);
 
   unsigned int offset = AuxDesignOffset();
@@ -329,7 +327,7 @@ void AuxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 
 unsigned int AuxDesign::GetNumberOfVariables() const
 {
-  if(exoprt_fe_design_){
+  if(export_fe_design_){
     return(aux_design_.GetSize() + DesignSpace::GetNumberOfVariables());
   }else{
     return(aux_design_.GetSize());
@@ -357,7 +355,7 @@ BaseDesignElement* AuxDesign::GetAuxDesignElement(unsigned int idx){
 inline BaseDesignElement* AuxDesign::GetDesignElement(unsigned int idx)
 {
   // FIXME: data.GetSize() != DesignSpace::GetNumberOfVariables()
-  if(exoprt_fe_design_ && idx < data.GetSize())
+  if(export_fe_design_ && idx < data.GetSize())
     return DesignSpace::GetDesignElement(idx);
   else
     return &aux_design_[idx - AuxDesignOffset()];

@@ -7,17 +7,16 @@ SET(MATERIALS_SRCS
   MechanicMaterial.cc
   FlowMaterial.cc 
   PiezoMaterial.cc
-  magStrictMaterial.cc
+  MagStrictMaterial.cc
   ElectricConductionMaterial.cc
   TestMaterial.cc
   Models/Hysteresis.cc
   Models/Jiles.cc
   Models/PiezoMicroModelBK.cc
   Models/PiezoMicroModelHF.cc
-  Models/VectorPreisachv10.cc
-  #Models/VectorPreisachv7.cc
-  #Models/VectorPreisach.cc
+  Models/VectorPreisachSutor.cc
   Models/Preisach.cc
+  Models/VectorPreisachMayergoyz.cc
   Models/SimplePreisachInv.cc 
   )
 

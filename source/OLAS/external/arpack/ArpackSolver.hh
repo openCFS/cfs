@@ -16,7 +16,7 @@ namespace CoupledField {
   class ArpackSolver {
     
   public:
-    
+
     //! Default Constructor
     
     ArpackSolver(PtrParamNode xml);
@@ -29,22 +29,15 @@ namespace CoupledField {
     //! Setup routine for various initialization tasks.
     //! \param stiffMat Reference to stiffness matrix
     //! \param massMat Reference to mass matrix
-    //! \param numFreq Number of eigenvalues/frequencies to be calculated
-    //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
-    void Setup(ArpackMatInterface *apInterface, UInt size, UInt numFreq, Double freqShift, char* which,
-                char* type, bool shiftMode, bool bloch);
+    //! \param computeMode Computational mode of solver
+    void Setup(ArpackMatInterface *apInterface, UInt size, char* which, char* type,
+               ArpackMatInterface::ComputeMode computeMode, bool complex);
 
     //! Setup routine for various initialization tasks.
     //! \param stiffMat Reference to stiffness matrix
     //! \param massMat Reference to mass matrix
-    //! \param numFreq Number of eigenvalues/frequencies to be calculated
-    //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
-    void QuadSetup( ArpackMatInterface *apInterface, 
-                UInt size, UInt numFreq, Double freqShift, char* which, bool shiftMode );
+    //! \param computeMode Computational mode of solver
+    void QuadSetup( ArpackMatInterface *apInterface, UInt size, char* which, ArpackMatInterface::ComputeMode computeMode );
 
     //! Solve the linear generalized eigenvalue problem
     
@@ -55,13 +48,13 @@ namespace CoupledField {
     //! \param sol Vector with converged eigenvalues
     //! \return Number of converged eigenvalues
     template <class TYPE>
-    UInt FindEigenvalues();
+    UInt FindEigenvalues(UInt numEV, Double valueShift);
 
     //! Method triggers the calculation of the quadratic eigenvalue problem.
     //! Its return value is the number of converged complex eigenvalues.
     //! \param sol Vector with converged eigenvalues (complex)
     //! \return Number of converged eigenvalues (complex)
-    UInt FindQuadEigenvalues();
+    UInt FindQuadEigenvalues(UInt numEV, Double valueShift);
 
     //! This method returns the n-th converged eigenvalue
     //! This is always the original sorting from arpack. It becomes sorted in ArpackEigenSolver.
@@ -123,10 +116,10 @@ namespace CoupledField {
     //! Pointer to matrix interface
     ArpackMatInterface* interface_;
     
-    //! Flag for shift-and-invert mode
-    bool shiftAndInvert_;
+    //! Computational mode / problem transformation used for solving
+    ArpackMatInterface::ComputeMode computeMode_;
 
-    //! Character string for 'which' setting of  arpack
+    //! Character string for 'which' setting of arpack
     char* which_;
     
     /** here we store the std::string with which from xml if given */
@@ -138,11 +131,11 @@ namespace CoupledField {
     //! Tolerance to be achieved in solution
     Double tolerance_;
 
-    //! Shift to be applied
-    Double freqShift_;
+    //! Shift to be applied. Only there as member variable for ToInfo().
+    Double valueShift_;
 
-    //! Maximum number of iterations
-    int numFreq_;
+    //! Number of eigenvalues. Only there as member variable for ToInfo().
+    int numEV_;
 
     //! Maximum number of iterations
     UInt maxIterations_;
@@ -150,7 +143,7 @@ namespace CoupledField {
     //! Number of Arnoldi vectors
     int numArnoldiVec_;
 
-    /** Facor of Arnolid vectors w.r.t number of frequencies (usually 1.1 ... 2) */
+    /** Facor of Arnolid vectors w.r.t number of eigenvalues (usually 1.1 ... 2) */
     double arnoldiFactor_;
 
     //! Size of equation system

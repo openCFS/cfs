@@ -14,7 +14,6 @@ namespace CoupledField
 
 
 // declare logging stream
-DECLARE_LOG(itersolvestep)
 DEFINE_LOG(itersolvestep, "itersolvestep")
 
 // ======================================================================
@@ -910,13 +909,131 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   } 
 
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::PreStepHarmonic()
-  {
-  }
-  
+  void IterSolveStep::PreStepHarmonic(){
+    }
+
   void IterSolveStep::SolveStepHarmonic()
   {
-    EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
+    LOG_TRACE(itersolvestep) << "--------------------------------------";
+    LOG_TRACE(itersolvestep) <<" Solving harmonic step " << actStep_
+                             << ", f = " << actFreq_;
+    LOG_TRACE(itersolvestep) << "--------------------------------------\n";
+
+    UInt iter = 0;
+    bool normsReached = false;
+    std::map<SolutionType, shared_ptr<ConvCriterion> >::iterator convIt;
+
+
+    PtrParamNode actNode = convNode_->Get("step",ParamNode::APPEND);
+    actNode->Get("number")->SetValue(actStep_);
+    if (nonLinLogging_) {
+
+      for( convIt = criterions_.begin();
+          convIt != criterions_.end(); ++convIt ) {
+        convIt->second->ResetValues();
+        std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+        actNode->Get("quantity")->Get("name")->SetValue(quantityName);
+      }
+    }
+    // Create a stream for logging the convergence. It will be used in the end,
+    // if no convergence was achieved to report the status of the lastest iteration.
+    std::stringstream msg;
+    UInt width[4] = {20, 10, 15, 15}; // define widths for convergence output
+
+    while ( iter < maxiter_ &&  (! normsReached) ) {
+
+      LOG_DBG(itersolvestep) << "\n";
+      LOG_DBG(itersolvestep) << "=== Iteration #" << iter+1 << "===";
+
+      //std::cout << "=== Iteration #" << iter+1 << "===" << std::endl;
+
+      // --------------------------------------
+      //  1) Re-Set all convergence criterions
+      // --------------------------------------
+      LOG_DBG(itersolvestep) << "Calling StartSampling for criterions";
+      for( convIt = criterions_.begin();
+          convIt != criterions_.end(); ++convIt ) {
+        convIt->second->StartSampling();
+        LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+      }
+
+      // -----------------------------------
+      //  2) Calculate Single PDEs
+      // -----------------------------------
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+
+        LOG_DBG(itersolvestep) << "Processing PDE '" <<
+            rPDE_.PDEs_[i]->GetName() << "'";
+
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq(actFreq_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
+        rPDE_.PDEs_[i]->GetSolveStep()->PreStepHarmonic();
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepHarmonic();
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic();
+      } // end of for-loop
+
+      // -----------------------------------
+      //  3) Compute Coupling Criterions
+      // -----------------------------------
+      normsReached = true;
+      msg.str(""); // clear logging information stream
+      msg << std::setw(width[0]) << "Quantity"
+               << std::setw(width[1]) << "Converged"
+               << std::setw(width[2]) << "Norm"
+               << std::setw(width[3]) << "Goal" << std::endl
+               << std::setw(width[0]+width[1]+width[2]+width[3]);
+      msg << std::setfill('-') << "" << std::setfill(' ') << std::endl;
+
+      LOG_DBG(itersolvestep) << "Calling StopSampling for criterions";
+      for( convIt = criterions_.begin();
+          convIt != criterions_.end(); ++convIt ) {
+        LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+
+        convIt->second->StopSampling();
+
+
+        // Obtain norm
+        Double norm = convIt->second->GetNorm();
+        normsReached &= convIt->second->Converged();
+        std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+        LOG_DBG3(itersolvestep) << "Quantity " << quantityName << " :" << norm << std::endl;
+        if (nonLinLogging_) {
+          PtrParamNode itNode =actNode->GetByVal("quantity","name", quantityName)
+                  ->Get("iteration",ParamNode::APPEND);
+          itNode->Get("count")->SetValue(iter+1);
+          itNode->Get("norm")->SetValue(norm);
+          itNode->Get("converged")->SetValue(convIt->second->Converged());
+
+          // put information also to message stream
+          msg << std::setw(width[0]) << quantityName
+              << std::setw(width[1]) << (convIt->second->Converged() ? "yes" : "no")
+              << std::setw(width[2]) << std::setiosflags(std::ios::scientific) << norm
+              << std::setw(width[3]) << std::setiosflags(std::ios::scientific) << convIt->second->GetFinalNorm()
+              << std::endl;
+        }
+      }
+      iter++;
+    } // end of while-loop
+
+    LOG_DBG(itersolvestep) << "Finished loop in " << iter << " iterations";
+
+    actNode->Get("numIters")->SetValue(iter);
+    if (iter >= maxiter_ && !normsReached) {
+
+      actNode->Get("converged")->SetValue(normsReached);
+      if( stopOnDivergence_ ) {
+        EXCEPTION("Iterative PDE coupling did not converge\n\n" << msg.str());
+      } else {
+        WARN("Iterative PDE coupling did not converge\n\n" << msg.str());
+      }
+    } else {
+      actNode->Get("converged")->SetValue(normsReached);
+    }
+
+    // now we are converged and can compute any postprocessing-quantities
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic();
   }
 
 

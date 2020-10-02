@@ -39,7 +39,7 @@ namespace CoupledField {
     : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "waterWaveMechDirect";
-    materialClass_ = FLUID;
+    materialClass_ = ACOUSTIC;
 
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
@@ -103,12 +103,7 @@ namespace CoupledField {
       dispFct->AddEntityList(actSDList);
 
       // First ensure, that we have no coupled eigenfrequency simulation:
-      // This case is not tested yet and might not be solveable.
-      if( analysisType_ == BasePDE::EIGENFREQUENCY ) {
-        EXCEPTION("A coupled mechanic-water wave simulation can only be"
-            "performed in the acoustic potential formulation!");
-      }
-      DefCouplInt( "WaterWaveMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct,
+     DefCouplInt( "WaterWaveMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct,
           waterFct, actSDList, oneCoefFuncs, waterRegions );
 
       DefCouplInt( "WaterWaveMechPresMassCouplingInt", false, 1.0, MASS, waterFct,

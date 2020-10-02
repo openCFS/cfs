@@ -5,7 +5,6 @@
 #include <iomanip>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -35,11 +34,13 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
+#include "Optimization/MagSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
 #include "Optimization/ShapeMapping.hh"
+#include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
@@ -70,9 +71,6 @@ using namespace CoupledField;
 using namespace std;
 namespace fs = boost::filesystem;
 
-
-
-DECLARE_LOG(opt)
 DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements
@@ -300,10 +298,12 @@ void Optimization::PostInitSecond()
   {
     for(unsigned int i = 0; i < n; ++i)
       log.AddToHeader("design");
-
-    if(log.designGradient)
-    for(unsigned int i = 0; i < n; ++i)
-      log.AddToHeader("designGradient");
+  }
+  if(log.designGradient)
+  {
+    for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+      for(unsigned int j = 0; j < n; ++j)
+        log.AddToHeader("designGradient_" + objectives.data[i]->GetName());
   }
   if (this->log.designConstraintGradients)
   {
@@ -311,8 +311,8 @@ void Optimization::PostInitSecond()
     {
       Condition* g = constraints.all[i];
       if(!g->IsLocalCondition())
-        for (unsigned int i = 0; i < n; ++i)
-          log.AddToHeader("constraintGradient");
+        for (unsigned int j = 0; j < n; ++j)
+          log.AddToHeader("constraintGradient" + g->ToString());
     }
   }
   design->SetOptimizer(baseOptimizer_);
@@ -370,6 +370,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
   Function::type.Add(Function::OVERHANG_VERT, "overhang_vert");
   Function::type.Add(Function::OVERHANG_HOR, "overhang_hor");
+  Function::type.Add(Function::CONES, "cones");
   Function::type.Add(Function::DESIGN, "design");
   Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
   Function::type.Add(Function::PERIODIC, "periodic");
@@ -391,6 +392,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
+  Function::type.Add(Function::BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SLACK_FNCT, "slackFunction");
@@ -398,7 +400,12 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
-  Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+  Function::type.Add(Function::HEAT_ENERGY, "heatEnergy");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
+  Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
+  Function::type.Add(Function::MAG_COUPLING,"magCoupling");
 
   Function::slackFnct.SetName("Function::SlackFnct");
   Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
@@ -477,7 +484,8 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
-
+  ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
+  
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
@@ -489,6 +497,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MAG, "magnetic");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
   OptimizationMaterial::system.Add(OptimizationMaterial::LBM, "lbm");
 
@@ -496,8 +505,10 @@ void Optimization::SetEnums()
   application.Add(App::NO_APP, "no_app");
   application.Add(App::ACOUSTIC, "acoustic");
   application.Add(App::HEAT, "heat");
+  application.Add(App::MAG, "magnetic");
   application.Add(App::LAPLACE, "laplace");
   application.Add(App::MECH, "mech");
+  application.Add(App::BUCKLING, "buckling");
   application.Add(App::MASS, "mass");
   application.Add(App::ELEC, "elec");
   application.Add(App::PIEZO_COUPLING, "piezoCoupling");
@@ -653,6 +664,10 @@ Optimization* Optimization::CreateInstance()
       opt = new PiezoSIMP();
       break;
 
+    case OptimizationMaterial::MAG:
+      opt = new MagSIMP();
+      break;
+
     default:
       assert(false);
       break;
@@ -675,6 +690,9 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SHAPE_MAP:
     opt = new ShapeMapping();
+    break;
+  case ErsatzMaterial::SPLINE_BOX:
+    opt = new SplineBoxOpt();
     break;
   default: throw Exception("Optimization not implemented");
   }
@@ -725,7 +743,15 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
+  if(context->DoBuckling())
+    return false;
+
+  // easy case
+  if(context->DoMultiSequence() || context->DoLBM())
+    return true;
+
+  // don't do it within forward when we can do it later
+  if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
     return true;
   else
     return false;
@@ -734,9 +760,9 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning());
+  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
-  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
 
@@ -877,9 +903,9 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
 double Optimization::CalcObjective(Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
   // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
@@ -922,16 +948,16 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 
   return result;
 }
 
 void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out, Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
 
   // reset the cost gradients in the design elements and sum them up in a weighted way
@@ -963,14 +989,16 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out, Excitation
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 }
 
 double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
+
+  LOG_DBG2(opt) << " CC g=" << ( g != NULL ? g->ToString() : "null") <<"  eoe=" << ( ev_only_excite != NULL ? ev_only_excite->label : "null");
 
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
@@ -992,21 +1020,21 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 
   g->SetValue(result);
   return result;
-
 }
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out, Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
+  // TODO: disable this assert as multi sequence cannot ruled out for every case
+//  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
 
   if(g == NULL)
     g = constraints.active[0];
@@ -1017,6 +1045,10 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     if(g->DoEvaluate(ex))
     {
       ex->Apply(true); // switch context if necessary
+
+      if(context->DoBuckling())
+        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(0) ); // 0 is first excitation = linear elasticity
+
       CalcFunction(*ex, g, true);
     }
   }
@@ -1039,7 +1071,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 }
 
 void Optimization::EvaluateSpecialResults()
@@ -1059,16 +1091,18 @@ void Optimization::StoreResults(double step_val)
   // For PiezoSIMP we can do storing there and this method is overwritten
   // and might do nothing
 
+  unsigned int internalWriteCounter;
+
   // this will write the CFS result and history file
   if(!IsTransient())
   { // transient optimization saves results in a different way
     if(step_val == -1)
-      context->GetDriver()->StoreResults(writeCounter_, currentIteration);
+      internalWriteCounter = context->GetDriver()->StoreResults(writeCounter_, currentIteration);
     else
-      context->GetDriver()->StoreResults(writeCounter_, step_val);
+      internalWriteCounter = context->GetDriver()->StoreResults(writeCounter_, step_val);
 
     if (!context->GetDriver()->GetResultHandler()->streamOnly)
-      writeCounter_++;
+      writeCounter_ = internalWriteCounter + 1;
   }
 }
 
@@ -1120,9 +1154,21 @@ PtrParamNode Optimization::CommitIteration()
     // see FinalizeStoreResults() !
   }
   else {
-    context->GetDriver()->GetResultHandler()->streamOnly = true;
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
+      ctxt.GetDriver()->GetResultHandler()->streamOnly = true;
+    }
+
     StoreResults();
-    context->GetDriver()->GetResultHandler()->streamOnly = false;
+
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
+      ctxt.GetDriver()->GetResultHandler()->streamOnly = false;
+    }
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
@@ -1189,7 +1235,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     Function* f = objectives.data[i];
 
     std::stringstream ss;
-    ss << std::setprecision(10) << f->GetValue();
+    ss << std::setprecision(15) << f->GetValue();
 
     iteration->Get(f->ToString())->SetValue(ss.str());
     if(f->GetType() == Function::BANDGAP)
@@ -1225,7 +1271,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     // Calculate the max value of multiple displacement constraints
     if((g->GetType() == Function::OUTPUT || g->GetType() == Function::SQUARED_OUTPUT) && g->output_multiple_nodes > 0) {
       max = std::max(max,std::abs(g->GetValue()));
-      std::cout<<"max "<<max<<std::endl;
     }
     if(g->IsLocalCondition())
     {
@@ -1262,24 +1307,27 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
-    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+    for(unsigned int i = 0; i < design->GetNumberOfVariables(); ++i){
       *out << " \t" << d[i];
     }
   }
 
   if(out && log.designGradient){
-    StdVector<double> d;
-    d.Resize(design->GetNumberOfVariables());
-    d.window.Set(d);
-    design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
-    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-      *out << " \t" << d[i];
+    for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+    {
+      Objective* f = objectives.data[i];
+      StdVector<double> d;
+      d.Resize(design->GetNumberOfVariables());
+      d.window.Set(d);
+      design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, f, false);
+      for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
+        *out << " \t" << d[j];
     }
   }
 
   if(out && log.designConstraintGradients)
   {
-    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    for(unsigned int i = 0; i < constraints.all.GetSize(); ++i)
     {
       Condition* g = constraints.all[i]; // Now traverse in global mode
       if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
@@ -1291,9 +1339,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         d.Resize(design->GetNumberOfVariables());
         d.window.Set(d);
         design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
-        for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-          *out << " \t" << d[i];
-        }
+        for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
+          *out << " \t" << d[j];
       }
     }
   }
@@ -1312,20 +1359,20 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
   throw Exception("invalid");
 }
 
-App::Type Optimization::ToApp(DesignElement::Type dt)
-{
-  switch(dt)
-  {
-  case DesignElement::DENSITY:
-    return App::MECH;
-  case DesignElement::ACOU_DENSITY:
-    return App::ACOUSTIC;
-  case DesignElement::POLARIZATION:
-    return App::ELEC;
-  default:
-    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
-  }
-}
+//App::Type Optimization::ToApp(DesignElement::Type dt)
+//{
+//  switch(dt)
+//  {
+//  case DesignElement::DENSITY:
+//      return App::MECH; // wrong for buckling
+//  case DesignElement::ACOU_DENSITY:
+//    return App::ACOUSTIC;
+//  case DesignElement::POLARIZATION:
+//    return App::ELEC;
+//  default:
+//    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
+//  }
+//}
 
 
 Optimization::Log::Log()

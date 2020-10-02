@@ -16,11 +16,10 @@
 
 #include "CoefFunctionPML.hh"
 
-#include "boost/bind.hpp"
+#include "boost/bind/bind.hpp"
 #include "boost/lexical_cast.hpp"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
-
 
 namespace CoupledField{
 
@@ -81,7 +80,9 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
 
 template<typename T>
 CoefFunctionPML<T>::~CoefFunctionPML(){
-
+  //std::cout<<"DESRUC"<<std::endl;
+  //It might be necessary to just disconnect the callback instead of releasing the handle
+  mp_->ReleaseHandle( mHandle_ );
 }
 
 

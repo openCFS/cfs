@@ -1,3 +1,5 @@
 // Define used to check if Ensight reader is used
 
 #cmakedefine USE_ENSIGHT
+
+#define VTK_VERSION @VTK_VERSION@

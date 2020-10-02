@@ -1,0 +1,1078 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.cfs++.org/material"
+            xmlns="http://www.cfs++.org/material"
+            elementFormDefault="qualified">
+
+  <xsd:include schemaLocation="CFS_Misc.xsd"/>
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for all kind of hysteresis stuff
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of hysterese model                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_HystModelElec">
+    <xsd:all>
+      <xsd:element name="elecPolarization" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelElec"/>
+            <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorElec"/>
+            <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzElec"/>
+            <xsd:element name="JilesAtherton" type="DT_JilesAthertonModelElec"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="piezoCouplingAndStrains" minOccurs="0">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="strainModeling" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="muDatWolf" type="DT_MuDATStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+                        i.e.,
+                        S = c1 + |p(e) + c2| + (e - 0.5)*c3
+                        p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
+                        for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirP dirP^T - 1/3[I])
+                        with dirP being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="muDatLoeffler" type="DT_LoefflerStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Model irreversible strains as described used M. Loeffler in his muDat identification script
+                        (arising from his Diplomarbeit)
+                        S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+                        note: p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
+                                        for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="higherOrderPolynomial" type="DT_StrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
+                        i.e.,
+                        S = sum_i=1^N beta_i*P(E)^i
+                        note: P,E are polarization and electric field but not normalized!
+                        with P(E) being the hyst operator which can be the same as for polarization or a separate one;
+                        for 2D and 3D extend in the following way
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="hystOperatorForStrains" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="usePolarization">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use already computed polarization to model irr. strains.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="separateHystOperator">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use separate hyst operator to model irr. strains; requires additional computation effort;
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelStrain"/>
+                        <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorStrain"/>
+                        <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzStrain"/>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smallSignalForm" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="noSmallSignalCoupling">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Coupling between elec. and mech. PDE only via Irr. Strains; small signal
+                        coupling tensor will be set to 0
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="piezo_eform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use small signal coupling tensor as defined under piezo parameter for
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for e-form, i.e.
+                        given coupling tensor = e
+                        given reluctivity = eps^S
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="piezo_dform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use small signal coupling tensor as defined under piezo parameter for
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for d-form, i.e.
+                        given coupling tensor = d
+                        given reluctivity = eps^T
+                        > internally e and eps^S will be computed from e and eps^T
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_HystModelMag">
+    <xsd:all>
+      <xsd:element name="magPolarization" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelMag"/>
+            <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorMag"/>
+            <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzMag"/>
+            <xsd:element name="JilesAtherton" type="DT_JilesAthertonModelElec"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="magstrictCouplingAndStrains" minOccurs="0">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="strainModeling" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="muDatWolf" type="DT_MuDATStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+                        i.e.,
+                        S = c1 + |p(e) + c2| + (e - 0.5)*c3
+                        p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
+                        for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirP dirP^T - 1/3[I])
+                        with dirP being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="muDatLoeffler" type="DT_LoefflerStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Model irreversible strains as described used M. Loeffler in his muDat identification script
+                        (arising from his Diplomarbeit)
+                        S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+                        note: p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
+                                        for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="higherOrderPolynomial" type="DT_StrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
+                        i.e.,
+                        S = sum_i=1^N beta_i*P(E)^i
+                        note: P,E are polarization and electric field but not normalized!
+                        with P(E) being the hyst operator which can be the same as for polarization or a separate one;
+                        for 2D and 3D extend in the following way
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="hystOperatorForStrains" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="usePolarization">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use already computed polarization to model irr. strains.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="separateHystOperator">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use separate hyst operator to model irr. strains; requires additional computation effort;
+                        this additional operator will only operate in forward mode, i.e. no inversion will be done
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelStrain"/>
+                        <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorStrain"/>
+                        <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzStrain"/>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smallSignalForm" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="noSmallSignalCoupling">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Coupling between mag. and mech. PDE only via Irr. Strains; small signal
+                        coupling tensor will be set to 0
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="magstrict_hform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use small signal coupling tensor as defined under magstrict parameter for
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for h-form, i.e.
+                        given coupling tensor = h
+                        given reluctivity = nu^S
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="magstrict_gform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Use small signal coupling tensor as defined under magstrict parameter for
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for g-form, i.e.
+                        given coupling tensor = g
+                        given reluctivity = nu^T
+                        > internally h and nu^S will be computed from g and nu^T
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MuLorentzianParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for Lorentzian weight function as used and defined by
+        Wolf in \n
+        "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+        Mu_Lorentzian(alpha,beta) = A/(1 + ((alpha-h2)/(h2)*sigma2)^2 ) * A/(1 + ((beta+h2)/(h2)*sigma2)^2 );
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MuLorentzianExtendedParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for Lorentzian weight function as used and defined by
+        Wolf in \n
+        "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+        Mu_LorentzianExtended(alpha,beta) = A/(1 + ((alpha-h2)/(h2)*sigma2)^2 ) * A/(1 + ((beta+h1)/(h1)*sigma1)^2 );
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MuDATParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        used script (by M. Loeffler, Dipl. Arbeit) assumes Preisach model in
+        the range from [-0.5, 0.5]; the implemented version, however, uses [-1,1] for
+        Preisach plane; therefore, the muDat parameter have to be adapted; if forHalfRange
+        is true, this adaption is made by CFS; if it is set to false (default) it is assumed
+        that parameter have already been adapted.
+        muDat(alpha,beta) = A/(1 + {[(alpha+beta)*sigma2]^2 + [(alpha-beta-h2)*sigma2]^2}^eta)
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MuDATExtendedParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        used script (by M. Loeffler, Dipl. Arbeit) assumes Preisach model in
+        the range from [-0.5, 0.5]; the implemented version, however, uses [-1,1] for
+        Preisach plane; therefore, the muDat parameter have to be adapted; if forHalfRange
+        is true, this adaption is made by CFS; if it is set to false (default) it is assumed
+        that parameter have already been adapted.
+        muDatExtended(alpha,beta) = A/(1 + {[(alpha+beta+h1)*sigma1]^2 + [(alpha-beta-h2)*sigma2]^2}^eta)
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MuDATStrainParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Model irreversible strains as described by Felix Wolf in his PHD-Thesis
+        S = c1 + |p(e) + c2| + (e - 0.5)*c3
+        p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+
+        scaleToStrainSat:
+          if true: S = strainSat*( c1 + |p(e) + c2| + (e - 0.5)*c3 )/( c1 + |p(emax) + c2| + (emax - 0.5)*c3 )
+          (i.e. resulting strains are normalized to [0,1] and then scaled by strainSat)
+          if false: S = c1 + |p(e) + c2| + (e - 0.5)*c3
+          (i.e. actual amplitude is assumed to be contained in c_i already)
+
+        forHalfRange:
+          if true: c1,c2,c3 have been determined for p,e in range [-0.5,0.5]; in this case
+          c1,c2,c3 are rescaled by CFS to fit p,e in range [-1,1]
+          if false: c1,c2,c3 have been determined for p,e in range [-1,1]; in this case
+          c1,c2,c3 are directly used
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="c1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="c2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="c3" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="false"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_LoefflerStrainParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Model irreversible strains as described used M. Loeffler in his muDat identification script
+        (arising from his Diplomarbeit)
+        S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+        note: p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]; sum starts at 0
+        i.e. parameter ci starts at 1 with c0!
+
+        scaleToStrainSat:
+          if true: S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+          (i.e. resulting strains are assumed to be normalized to [0,1] and then scaled by strainSat)
+          if false: S = sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2
+          (i.e. actual amplitude is assumed to be contained in c_i, d_i)
+
+        forHalfRange:
+          if true: ci and di have been determined for p,e in range [-0.5,0.5]; in this case
+          ci and di are rescaled by CFS to fit p,e in range [-1,1]
+          if false: ci and di have been determined for p,e in range [-1,1]; in this case
+          ci and di are directly used
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dim_ci" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
+      <xsd:element name="ci" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="1"/>
+            <xsd:maxLength value="11"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="d0" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="d1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_StrainParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Model irreversible strains as described by Manfred in his book
+        S = sum_i=1^N c_i*P(E)^i
+        note: P,E are polarization and electric field but not normalized! sum starts at 1
+        i.e. parameter ci starts at 1 with c1!
+
+        scaleToStrainSat:
+          if true: S = strainSat*( sum_i=1^N beta_i*P(E)^i )/( sum_i=1^N beta_i*P(EMax)^i )
+          (i.e. resulting strains are normalized to [0,1] and then scaled by strainSat)
+          if false: S = sum_i=1^N beta_i*P(E)^i
+          (i.e. actual amplitude is assumed to be contained in beta_i already)
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dim_ci" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
+      <xsd:element name="ci" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="1"/>
+            <xsd:maxLength value="11"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="false"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_AnhystereticParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Add anhysteretic part to output of hyst operator to obtain overall POLARIZATION
+          y_anhyst(x) = a*atan(b*x + d) + c*x
+        note1: a,b,c and d are meant for NORMALIZED y and x \n
+        note2: in their works, Sutor and Loeffler model y,x to be normalized to range [-0.5,0.5]
+        in CFS p,e are normalized to [-1,1] such that a,b,c,d have to be adapted which is done by CFS if
+        flag forHalfRange = true        
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="a" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="b" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="c" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="d" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="anhystPartCountsTowardsOutputSat" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            anhystPartCountsTowardsOutputSat:
+              true (default): outputSat = output value of preisach operator + anhyst part at inputSat
+              false: outputSat = output value of preisach operator at inputSat; anhyst part comes on top
+            Note: if muDat and anhyst parameter are determined using M. Loefflers script, true has to be selected
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_HystWeights">
+    <xsd:all>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
+      <xsd:element name="weightType" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="const" type="xsd:double" default="0.5"/>
+            <xsd:element name="muDat" type="DT_MuDATParams" />
+            <xsd:element name="muDatExtended" type="DT_MuDATExtendedParams"/>
+            <xsd:element name="muLorentz" type="DT_MuLorentzianParams" />
+            <xsd:element name="muLorentzExtended" type="DT_MuLorentzianExtendedParams" />
+            <xsd:element name="weightTensor">
+              <xsd:simpleType>
+                <xsd:restriction base="DT_DoubleList">
+                  <xsd:maxLength value="100000000"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VecInversionParams">
+    <xsd:all>
+      <xsd:element name="InversionMethod" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="Fixpoint">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  Inversion via Fixpoint method. Usually very reliable in convergence but requires a lot more (but fortunately cheap)
+                  iterations. Make sure to set the general parameter maxNumberOuterIterations (parameter of element InversionMethod )
+                  to at least 100 (500 better!).
+                  Setting the inversion factor (only parameter of element Fixpoint) to a value larger 1.0 slows down convergence
+                  but makes convergence more reliable. Smaller values on the other hand might lead to faster convergence but at
+                  the risk of non-convergence.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="convergenceFactor" type="xsd:double" minOccurs="0" default="1.0"/>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="LevenbergMarquardtWithTrustregion">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="maxNumberRegularizationIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaRegStart" type="xsd:double" minOccurs="0" default="0.25"/>
+                  <xsd:element name="alphaRegMin" type="xsd:double" minOccurs="0" default="0.001953125"/>
+                  <xsd:element name="alphaRegMax" type="xsd:double" minOccurs="0" default="8192.0"/>
+                  <xsd:element name="trustRegionLow" type="xsd:double" minOccurs="0" default="0.15"/>
+                  <xsd:element name="trustRegionMid" type="xsd:double" minOccurs="0" default="0.35"/>
+                  <xsd:element name="trustRegionHigh" type="xsd:double" minOccurs="0" default="0.85"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-7"/>
+                  <xsd:element name="jacobiImplementation">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="ForwardBackwardDifferences"></xsd:element>
+                        <xsd:element name="CentralDifferences"></xsd:element>
+                        <xsd:element name="ForwardBackwardWithScaledDiagonal"></xsd:element>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="NewtonWithLinesearch">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="numberOfLinesearchSteps" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
+                  <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="stopLinesearchAtLocalMin" type="xsd:boolean" default="false"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-7"/>
+                  <xsd:element name="jacobiImplementation">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="ForwardBackwardDifferences"></xsd:element>
+                        <xsd:element name="CentralDifferences"></xsd:element>
+                        <xsd:element name="ForwardBackwardWithScaledDiagonal"></xsd:element>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="JacobianFreeNewtonKrylovWithLinesearch">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="numberOfLinesearchSteps" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
+                  <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="stopLinesearchAtLocalMin" type="xsd:boolean" default="false"/>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="ProjectedLMWithLinesearch">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  Projected Levenberg Marquardt algorithm taken from
+                  "Levenberg-Marquardt methods for constrained nonlinear equations with strong local convergence properties"
+                  -Kanzow,Yamashita,Fukushima
+                  with Armijo-type linesearch taken from
+                  https://en.wikipedia.org/wiki/Backtracking_line_search
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="numberOfLinesearchSteps" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
+                  <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
+                  <xsd:element name="jacobiImplementation">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="ForwardBackwardDifferences"></xsd:element>
+                        <xsd:element name="CentralDifferences"></xsd:element>
+                        <xsd:element name="ForwardBackwardWithScaledDiagonal"></xsd:element>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="rho" type="xsd:double" minOccurs="0" default="1e-8"/>
+                  <xsd:element name="beta" type="xsd:double" minOccurs="0" default="0.9"/>
+                  <xsd:element name="sigma" type="xsd:double" minOccurs="0" default="1e-4"/>
+                  <xsd:element name="gamma" type="xsd:double" minOccurs="0" default="0.99995"/>
+                  <xsd:element name="p" type="xsd:double" minOccurs="0" default="2.1"/>
+                  <xsd:element name="mu" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="tau" type="xsd:double" minOccurs="0" default="0.8"/>
+                  <xsd:element name="c" type="xsd:double" minOccurs="0" default="0.8"/>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="EverettBasedInversion">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  Efficient inversion for SCALAR preisach model only.
+                  Taken from "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf.
+                  No additional parameter for this element, but make sure to set the tolerances under
+                  the InversionMethod node finer (1e-10 and 1e-12 instead of the default 1e-7 and 1e-10).
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="maxNumberOuterIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+        <xsd:element name="residualTolH">
+          <xsd:complexType>
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Default value is for absolute tolerance.
+                </xsd:documentation>
+               </xsd:annotation>
+               <xsd:attribute name="value" type="DT_PosFloat" default="1e-7"/>
+               <xsd:attribute name="isRelative" type="DT_CFSBool" default="no"/>
+          </xsd:complexType>
+        </xsd:element>
+          <xsd:element name="residualTolB">
+          <xsd:complexType>
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Default value is for absolute tolerance.
+                </xsd:documentation>
+               </xsd:annotation>
+               <xsd:attribute name="value" type="DT_PosFloat" default="1e-9"/>
+               <xsd:attribute name="isRelative" type="DT_CFSBool" default="no"/>
+          </xsd:complexType>
+        </xsd:element>
+      <xsd:element name="printWarnings" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_initialElec">
+    <xsd:choice>
+      <xsd:element name="initialInput" type="DT_initialInOutState"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_initialMag">
+    <xsd:choice>
+      <xsd:element name="initialOutput" type="DT_initialInOutState"/>
+      <xsd:element name="initialInput" type="DT_initialInOutState"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_initialInOutState">
+    <xsd:annotation>
+      <xsd:documentation>
+        initialState: 
+          vector providing an initial input to the hyst operator that shall be applied before the
+          actual simulation starts; can be used to simulate a material which starts in saturation
+          (for that purpose, the initial input has to have an amplitude >= eSat of course)
+        Attention: this has to be conform with boundary conditions, i.e. if you specify initial state
+          to be (eSat,0,0), the polarization must be allowed to point into x direction at the boundary
+          > see e.g. the newly added fieldParallel bcs (i.e. E is parallel to BC but P does not have to be)
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="Vector">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/>
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="scaleVectorBySaturation" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_ScalarPreisachHystModelElec">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dirPolarization" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/>
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_ScalarPreisachHystModelMag">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dirPolarization" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/>
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+            this means, that the actual output of the hyst operator will be
+            equal to the given vector MINUS reversible and anhysteretic parts
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_ScalarPreisachHystModelStrain">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dirPolarization" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/>
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+    </xsd:all>
+  </xsd:complexType>
+
+ <xsd:complexType name="DT_JilesAthertonModelElec">
+    <xsd:all>
+      <xsd:element name="jiles_test" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
+        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
+      </xsd:choice>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+      <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzMag">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
+        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
+      </xsd:choice>
+      <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+      <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+            this means, that the actual output of the hyst operator will be
+            equal to the given vector MINUS reversible and anhysteretic parts
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzStrain">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
+        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
+      </xsd:choice>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Isotropic">
+    <xsd:all>
+      <xsd:element name="numDirections" type="xsd:nonNegativeInteger" minOccurs="1" default="11"/>
+      <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
+      <xsd:element name="startAxis" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Model uses numDirections equally distributed direction vectors; per default the counting
+            starts at the x-axis (1 0 0);
+            by setting a 3d vector here, the starting axis can be set;
+            setting (0 0 0) will trigger random generation (one random direction for each hyst operator!)
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/>
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="rotLossCorrectionFactors" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Additional material dependent parameter that can be used to 
+            correct the non-functional rotational losses of the Mayedrgoyz model 
+            in saturation regime.
+            Source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
+            Correction in form of a correction angle:
+              psi(t) = g(x)|x||dPhi|
+            with
+              g(x) = e^(-a|x| + b))
+            setting a and b to 0 will deactivate this function
+          </xsd:documentation>
+        </xsd:annotation>
+         <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="lossParam_a" type="xsd:double" minOccurs="0" default="0.0"/>
+            <xsd:element name="lossParam_b" type="xsd:double" minOccurs="0" default="0.0"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Anisotropic">
+    <xsd:sequence>
+      <xsd:element name="ScalarModelsForSingleDirection" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
+            <xsd:element name="direction" minOccurs="1">
+              <xsd:simpleType>
+                <xsd:restriction base="DT_DoubleList">
+                  <xsd:minLength value="3"/>
+                  <xsd:maxLength value="3"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+          </xsd:all>
+          <xsd:attribute name="nameTag" type="xsd:token"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Base">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="weightsAdaptedToMayergoyzVectorModel" type="xsd:boolean" minOccurs="1" default="false"/>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MayergoyzClipping">
+    <xsd:choice>
+      <xsd:element name="noClipping"/>
+      <xsd:element name="clipAmplitude"/>
+      <xsd:element name="clipComponentParallelToInput"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelSutorMag">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            enforceSatOutputAtSatInput:
+            + only relevant for revised model and if rotResistance smaller 1
+            + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
+            if input reaches saturation; in that case we have to options:
+            a) allow further filling of Preisach plane for inputs larger than saturation
+            > enforceSatOutputAtSatInput = false
+            b) restrict output to the value that is reached at input saturation, then scale
+            resulting output up such that output is in saturation, too
+            > enforceSatOutputAtSatInput = true
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+            this means, that the actual output of the hyst operator will be
+            equal to the given vector MINUS reversible and anhysteretic parts
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="debuggingParameter" minOccurs="0">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+            <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelSutorElec">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            enforceSatOutputAtSatInput:
+            + only relevant for revised model and if rotResistance smaller 1
+            + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
+            if input reaches saturation; in that case we have to options:
+            a) allow further filling of Preisach plane for inputs larger than saturation
+            > enforceSatOutputAtSatInput = false
+            b) restrict output to the value that is reached at input saturation, then scale
+            resulting output up such that output is in saturation, too
+            > enforceSatOutputAtSatInput = true
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="debuggingParameter" minOccurs="0">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="-1"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-15"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-15"/>
+            <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+            <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_VectorPreisachHystModelSutorStrain">
+    <xsd:all>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            enforceSatOutputAtSatInput:
+            + only relevant for revised model and if rotResistance smaller 1
+            + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
+            if input reaches saturation; in that case we have to options:
+            a) allow further filling of Preisach plane for inputs larger than saturation
+            > enforceSatOutputAtSatInput = false
+            b) restrict output to the value that is reached at input saturation, then scale
+            resulting output up such that output is in saturation, too
+            > enforceSatOutputAtSatInput = true
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="debuggingParameter" minOccurs="0">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+
+  <xsd:complexType name="DT_SutorModelVersion">
+    <xsd:choice>
+      <xsd:element name="Classical_Version_2012__list_implementation">
+      <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+          * The classical Sutor model cannot utilize unsymmetric weights correctly.
+          * The reason is as follows: Due to the setting rules for the rotation states, the lower
+          * trianglular part will always rotate into the direction of the current input (even for 0-vectors).
+          * Therewith, the values for xPar = x_in \cdot rotationState  will always be larger or equal to 0 for
+          * all switching operators in the lower triangle. Thus, the lower triangle will always filled completely with
+          * +1. If we make small steps around the zero input now, we will always step into the upper half of the Preisach
+          * plane and only use the weights which are stored there. In case of (nearly) symmetric weights, this is no issue as
+          * the weights in both parts are matching. If we have unsymmetric weights, however, the contributions around zero
+          * will not cancel out as expected and we will get issues, especially during the evaluation of the Jacobian.
+          * Consequence: In case of the classical model, we enforce symmetry of the weights!
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="Revised_Version_2015__list_implementation"/>
+      <xsd:element name="Classical_Version_2012__matrix_implementation"/>
+      <xsd:element name="Revised_Version_2015__matrix_implementation"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+</xsd:schema>

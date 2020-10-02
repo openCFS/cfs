@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 
-<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xsi:schemaLocation="http://www.cfs++.org ../../../sbm_fespace_090409/share/xml/CFS-Simulation/CFS.xsd"
- xmlns="http://www.cfs++.org">
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   
   
   <fileFormats>
@@ -77,7 +76,7 @@
       <system>
          <solverList>
           <pardiso>
-            <IterRefineSteps> 5 </IterRefineSteps>
+            <IterRefineSteps>5</IterRefineSteps>
           </pardiso>
         </solverList>
       </system>

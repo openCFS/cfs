@@ -6,7 +6,6 @@
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simOutput)
   DEFINE_LOG(simOutput, "simOutput")
     
   
@@ -98,7 +97,7 @@ namespace CoupledField {
   }
 
   // explicit template instantiation
-#if defined(__GNUC__) 
+#if defined(EXPLICIT_TEMPLATE_INSTANTIATION) || defined(__GNUC__)
   template void SimOutput::
   FillGlobalVec<Double>(Vector<Double>& gSol, 
                         const StdVector<shared_ptr<BaseResult> > & solList,

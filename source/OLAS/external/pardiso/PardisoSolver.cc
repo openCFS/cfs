@@ -20,20 +20,9 @@ namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
-  // Declare logging stream and make sure that it is also available in
-  // release mode by using BOOST_DECLARE_LOG() instead of DECLARE_LOG()
-  BOOST_DECLARE_LOG(pardisoSolver)
   DEFINE_LOG(pardisoSolver, "olas.solvers.pardiso")
 
 #if PARDISO_API_VER == 3
-#ifdef __MINGW32__
-  // When building on Windows using the GNU toolchain, a different Fortran
-  // name mangling, than the one from MKL is used.
-  #undef pardiso
-  #define pardiso PARDISO
-  #undef pardisoinit
-  #define pardisoinit PARDISOINIT
-#endif
 
 extern "C" {
     void pardisoinit (void *, int *, int *);

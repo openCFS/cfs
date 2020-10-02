@@ -1,7 +1,6 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -28,6 +27,7 @@
     <xsd:attribute name="numNeighbours" type="xsd:integer" default="20" use="optional"/>
 <!--    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional"/>-->
     <xsd:attribute name="useCGAL4RBF" type="xsd:boolean" default="true" use="optional"/>
+    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional"/>
   </xsd:complexType>
   
 </xsd:schema>

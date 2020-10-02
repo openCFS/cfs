@@ -20,9 +20,6 @@
 
 namespace CoupledField {
 
-
-  // declare logging stream
-  DECLARE_LOG(resHandler)
   DEFINE_LOG(resHandler, "resultHandler")
     
   ResultHandler::ResultHandler( PtrParamNode paramNode) {
@@ -71,18 +68,18 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "writeResult: " << writeResult;
     LOG_DBG(resHandler) << "isFinal: 0";
     LOG_DBG(resHandler) << "outputDest: " << outDestNames.Serialize();
-    LOG_DBG(resHandler) << "postProcId: " << postProcName << std::endl;
+    LOG_DBG(resHandler) << "postProcId: " << postProcName;
+    LOG_DBG(resHandler) << "-------------------";
 
     // check, if result context was already created
     shared_ptr<ResultContext> actContext;
   
-    if( resultContexts_.find( sol) != resultContexts_.end() ) {
+    if( resultContexts_.find(sol) != resultContexts_.end() ) {
       EXCEPTION( "Context was already found" );
     }
 
     // create new ResultContext
-    actContext = 
-      shared_ptr<ResultContext>( new ResultContext() );
+    actContext = shared_ptr<ResultContext>( new ResultContext() );
     actContext->result = sol;
     actContext->functor =  fnc;
     actContext->sequenceStep = sequenceStep;
@@ -115,7 +112,8 @@ namespace CoupledField {
         if( simOutputHandlers_.find( newDest[i] ) == simOutputHandlers_.end() )
           EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
 
-        LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
+        LOG_DBG(resHandler) << "Registering output '" << newDest[i]
+                            << "' with result '" << actDof.resultName << "'";
 
         actContext->outputIds.Push_back( newDest[i] );
 
@@ -138,12 +136,12 @@ namespace CoupledField {
     if( postProcName != "" ) {
       RegisterResultRec( *actContext, postProcName );
     }
-    LOG_DBG(resHandler) << "Finished registering result" << std::endl;
+    LOG_DBG(resHandler) << "Finished registering result";
   }
   
   void ResultHandler::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps )
   {
-    LOG_DBG(resHandler) << "BMS step=" << step << " n=" << numSteps;
+    LOG_DBG(resHandler) << "BMS: step=" << step << " n=" << numSteps;
 
     //assert(numSteps >= numSteps_);
 
@@ -170,7 +168,7 @@ namespace CoupledField {
 
     LOG_DBG(resHandler) << "Begin step " << stepNum;
 
-    // remeber current step values 
+    // remember current step values
     actStep_ = stepNum;
     actStepVal_ = stepVal;
 
@@ -182,7 +180,7 @@ namespace CoupledField {
       BaseResult& actResult  = *((*contextIt)->result);
       LOG_DBG(resHandler) << "IsNeeded for '" << actResult.GetResultInfo()->resultName
                           << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
-                          << (IsOutput( **contextIt ) == true ? "true" : "false");
+                          << (IsOutput( **contextIt ) == true ? "true" : "false") << "'";
       if(IsOutput( **contextIt))
         isNeeded_.insert((*contextIt)->result);
     }
@@ -196,7 +194,7 @@ namespace CoupledField {
       it->second->BeginStep(stepNum, stepVal);
     }
     
-    LOG_DBG(resHandler) << "Finished beginning of new step" << std::endl;
+    LOG_DBG(resHandler) << "Finished beginning of new step";
   }
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
@@ -303,10 +301,10 @@ namespace CoupledField {
             // Standard case, no interpolation necessary
             
             // Add current result to given output file
-            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
                 << "' on '" << actResult.GetEntityList()->GetName() << "' to '"
                 << simOutputHandlers_[actContext.outputIds[iOut]]->GetName() << "'";
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
           }
         }
       }
@@ -798,7 +796,7 @@ namespace CoupledField {
   void ResultHandler::AddInputReader( shared_ptr<SimInput> inClass, 
                                       const std::string& readerId ) {
 
-    LOG_DBG(resHandler) << "Adding input reader with id ";
+    LOG_DBG(resHandler) << "Adding input reader with id '" << readerId << "'";
     inFiles_[readerId] = inClass;
 
   }

@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os
+from setuptools import setup, Extension
+
+source_files = [
+    'muparsermodule.cpp',
+    '@CMAKE_SOURCE_DIR@/source/Utils/mathParser/registerfunc.cc',
+    '@CMAKE_SOURCE_DIR@/source/Utils/mathfunctions.cc',
+    '@CMAKE_SOURCE_DIR@/source/Utils/Interpolate1D.cc',
+    '@CMAKE_SOURCE_DIR@/source/MatVec/Vector.cc',
+    '@CMAKE_SOURCE_DIR@/source/General/Exception.cc',
+    '@muparser_source@/src/muParser.cpp',
+    '@muparser_source@/src/muParserBase.cpp',
+    '@muparser_source@/src/muParserBytecode.cpp',
+    '@muparser_source@/src/muParserCallback.cpp',
+    '@muparser_source@/src/muParserError.cpp',
+    '@muparser_source@/src/muParserInt.cpp',
+    '@muparser_source@/src/muParserTokenReader.cpp',
+]
+
+defines = [
+    ('MUPARSER_STATIC', None),
+    ('CFS_NO_MATRIX_FUNCTIONS', None),
+]
+
+if os.name == 'posix':
+    cxx_flags = [
+        '-std=gnu++11',
+        '-Wno-write-strings'
+    ]
+    link_flags=[]
+elif os.name == 'nt':
+    cxx_flags = [
+        '/Ob2',  # enable inline function expansion
+        '/Oy-',  # disable omission of frame pointers
+        '/Gm-',  # disable minimal rebuild
+    ]
+    link_flags=[]
+else:
+    raise RuntimeError('Unsupported platform')
+
+setup(
+    author="Jens Grabinger",
+    author_email='jensemann126@gmail.com',
+    python_requires='>=3.5',
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+    ],
+    description="Python binding for MuParser",
+    ext_modules=[
+        Extension(
+            name="muparser",
+            sources=source_files,
+            include_dirs=['@MUPARSER_INCLUDE_DIR@','@CMAKE_SOURCE_DIR@/source'],
+            define_macros=defines,
+            extra_compile_args=cxx_flags,
+            extra_link_args=link_flags,
+            language='c++'
+        )
+    ],
+    license='MIT license',
+    long_description='This package is a Python binding for the C/C++ library muParser by Ingo Berg.',
+    include_package_data=True,
+    keywords='muParser',
+    name='PyMuParser',
+    version='@PYMUPARSER_VERSION@',
+    zip_safe=False,
+)

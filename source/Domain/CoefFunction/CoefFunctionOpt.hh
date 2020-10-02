@@ -10,9 +10,10 @@ namespace CoupledField {
 
 class DesignSpace;
 class BiLinearForm;
+class LinearForm;
 
-/** Replaces a material data CoefFunctionConst with an ersatz material optimization version.
- * In the SIMP case this the original const material is scaled, in the bi-material it is interpolated with an additional
+/** Replaces a material data CoefFunction with an ersatz material optimization version.
+ * In the SIMP case the original const material is scaled, in the bi-material it is interpolated with an additional
  * material, in multi-material it is the weighted sum of various materials and in parametric optimization the material (tensor)
  * is completely constructed out of optimization design variables.
  * See the state! */
@@ -57,6 +58,11 @@ public:
   }
 
 
+  //! \copydoc CoefFunction::GetVecSize
+  unsigned int GetVecSize() const {
+    return orgMat->GetVecSize();
+  }
+
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     orgMat->GetTensorSize(numRows, numCols);
@@ -78,9 +84,19 @@ public:
     this->form = form;
   }
 
-  /** only to query the name to finde the proper transfer function */
+  /** set the form such that the proper transfer function can be found */
+  void SetForm(LinearForm* formL) {
+    this->formL = formL;
+  }
+
+  /** only to query the name to find the proper transfer function */
   const BiLinearForm* GetForm() const  {
     return form;
+  }
+
+  /** only to query the name to find the proper transfer function */
+  const LinearForm* GetFormL() const  {
+    return formL;
   }
 
   std::string ToString() const{ return "CoefFunctionOpt";};
@@ -127,6 +143,9 @@ protected:
 
   /** we store the form such that we can identify the proper transfer function */
   BiLinearForm* form;
+
+  /** we store the form such that we can identify the proper transfer function */
+  LinearForm* formL;
 
   /** be may switch the query of optimization off to get the real material */
   State state;

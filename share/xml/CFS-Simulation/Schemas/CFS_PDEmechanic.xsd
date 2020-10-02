@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -158,10 +161,31 @@
                 <!-- Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output-->
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"/>
                 <xsd:element name="preStress" type="DT_MechPreStress"/>
+                <!-- Reference Loading, for e.g. buckling-->
+                <xsd:element name="referenceLoad" type="DT_ReferenceLoad"/>
+                <!-- Stiffness at surface -->
+                <xsd:element name="normalStiffness" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a stiffness in normal-direction of the boundary.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Damping at surface -->
+                <xsd:element name="normalDamping" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a normal traction on the surface proportional to k * normal velovity, i.e.
+                      the 'value' k defines a damping konstant per area in normal-direction of the boundary.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Damping at surface -->
+                <xsd:element name="normalMass" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a normal traction on the surface proportional to k * normal acceleration, 
+                      i.e. the scalar 'value' k specifies a mass per area acting in normal-direction.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
                 <!-- the test strain is for mathematical homogenization. -->
                 <xsd:element name="testStrain"    type="DT_MechTestStrain"/>
-
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <!-- Bloch periodic Boundary Conditions applied to full displacement vector -->
@@ -560,6 +584,9 @@
       <xsd:enumeration value="mechTensor"/>
       <!-- the local tensor in Hill Mandel notation -->
       <xsd:enumeration value="mechTensorHillMandel"/>
+      <!-- the local tensor in Hill Mandel notation -->
+      <xsd:enumeration value="mechElemVol"/>
+      <xsd:enumeration value="mechElemPorosity"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  
@@ -638,7 +665,7 @@
   </xsd:simpleType>
 
   <!-- Definition of field variables (union of nodal and element results) -->
-  <xsd:simpleType name="DT_MechSensorArrayResult">
+  <xsd:simpleType name="DT_MechFieldResult">
     <xsd:union memberTypes="DT_MechNodeResult DT_MechElemResult"/>
   </xsd:simpleType>
 
@@ -651,8 +678,6 @@
       <xsd:enumeration value="mechDyadicStrainSum"/>
       <xsd:enumeration value="mechQuadDisplacementSum"/>
       <xsd:enumeration value="homogenizedTensor"/>
-      <xsd:enumeration value="mechStrainAverage"/>
-      <xsd:enumeration value="mechStressAverage"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -662,8 +687,6 @@
       <xsd:enumeration value="mechDisplacedSurfVolume"/>
       <xsd:enumeration value="mechPower"/>
       <xsd:enumeration value="mechForce"/>
-      <xsd:enumeration value="mechStrainAverage"/>
-      <xsd:enumeration value="mechStressAverage"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -719,6 +742,17 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
+        
+        <!-- averaged Region result definition -->
+        <xsd:element name="regionAverageResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionAverageResult">
+                <xsd:attribute name="type" type="DT_MechFieldResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
 
         <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
@@ -737,7 +771,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
-                <xsd:attribute name="type" type="DT_MechSensorArrayResult"/>
+                <xsd:attribute name="type" type="DT_MechFieldResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -765,6 +799,28 @@
   </xsd:complexType>
 
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for reference Loading -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ReferenceLoad">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="referenceStress">
+          <xsd:complexType>
+            <xsd:attribute name="sequenceStep" type="xsd:unsignedInt" default="0"/>
+          </xsd:complexType>
+        </xsd:element>
+        <xsd:element name="referenceDisplacement">
+          <xsd:complexType>
+            <xsd:attribute name="sequenceStep" type="xsd:unsignedInt" default="0"/>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:choice>
+    </xsd:sequence>
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+  </xsd:complexType>
+  
+  
   <!-- ******************************************************************* -->
   <!--   Definition of data type for prestressing -->
   <!-- ******************************************************************* -->

@@ -15,7 +15,6 @@
 #include "Utils/StdVector.hh"
 #include "CholMod.hh"
 
-DECLARE_LOG(cholmod)
 DEFINE_LOG(cholmod, "cholmod")
 
 namespace CoupledField

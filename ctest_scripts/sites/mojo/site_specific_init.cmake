@@ -12,9 +12,10 @@ SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
-IF(SITE_DIR MATCHES "trunk")
-  SET(CTEST_BUILD_NAME "Update Testsuite trunk")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk_cfs-test")
+IF(SITE_DIR MATCHES "master")
+  # there group_stingl/master and cfs/master need to share the test suite
+  SET(CTEST_BUILD_NAME "Update Testsuite master")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/master_cfs-test")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_cfs-test")
@@ -35,4 +36,19 @@ SET(CTEST_UPDATE_TYPE "git")
 CTEST_START(Nightly )
 CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
 CTEST_SUBMIT()
+MESSAGE("Finished updating testsuite")
 
+# now we commonly update CFS source
+IF(SITE_DIR MATCHES "master")
+  # there group_stingl/master and cfs/master need to share the test suite
+  SET(CTEST_BUILD_NAME "Update master")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/master")
+ELSE()
+  SET(CTEST_BUILD_NAME "Update shared_opt")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
+ENDIF()
+
+message("Update ${CTEST_SOURCE_DIRECTORY}")
+CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+CTEST_SUBMIT()
+MESSAGE("Finished updating ${CTEST_SOURCE_DIRECTORY}")

@@ -19,7 +19,7 @@ namespace CoupledField {
 //! getting the pointer to a specific <solutionStrategy> sub-element.
 //! 
 //! The AlgebraicSystem uses this class for querying parameters of
-//! SBM-Matrix blocks and also about the compound preconiditioners.
+//! SBM-Matrix blocks and also about the compound preconditioners.
 //! In complex setups with several SBM-blocks and a compound
 //! preconditioner, which acts differently on each block, the
 //! SolStrategy class encapsulates the specific layout of the 
@@ -74,7 +74,7 @@ public:
   virtual UInt GetNumSBMBlocks() = 0;
   
   // ========================================================================
-  //  OLAS-PARAMEER HANDLING
+  //  OLAS-PARAMETER HANDLING
   // ========================================================================
   
   //! Return use of static condensation
@@ -107,10 +107,35 @@ public:
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode() = 0;
   
+  //! Return pointer to <hysteresis> element
+  virtual PtrParamNode GetHystNode() = 0;
+
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode() = 0;
   
   PtrParamNode GetParamNode() { return param_; }
+
+  // ========================================================================
+  //  MULTIHARMONIC SECTION
+  // ========================================================================
+  //! Set flag is multiharmonic analysis is used
+  void SetMultHarm(bool isMultHarm){ isMultHarm_ = isMultHarm;}
+
+  bool IsMultHarm(){ return isMultHarm_; }
+
+  void SetMultHarm(const UInt& bF, const UInt& nN, const UInt& nM, const UInt& numFFT, bool fullSystem){
+    baseFreq_ = bF;
+    numHarmN_ = nN;
+    numHarmM_ = nM;
+    numFFT_ = numFFT;
+    fullSystem_ = fullSystem;
+  }
+
+  UInt GetBaseFreq(){ return baseFreq_; }
+  UInt GetNumHarmN(){ return numHarmN_; }
+  UInt GetNumHarmM(){ return numHarmM_; }
+  UInt GetNumFFT(){ return numFFT_; }
+  bool IsFullSystem(){ return fullSystem_; }
 
 protected:
   
@@ -128,12 +153,30 @@ protected:
   
   //! Special matrix element for static condensation
   PtrParamNode statCondMatNode_;
+
+  //! Flag if multiharmonic analysis is used
+  bool isMultHarm_;
+
+  //! Base frequency for multiharmonic excitation
+  UInt baseFreq_;
+  //! Number of harmonics for solution
+  UInt numHarmN_;
+  //! Number of harmonics for nonlinearity
+  UInt numHarmM_;
+
+  //! Number of considered time evaluation points for FFT and iFFT
+  UInt numFFT_;
+
+  //! Boolean, which tells us if we need to incorporate the zero harmonic
+  bool fullSystem_;
+
+
 };
 
 
 //! Standard solution strategy
 
-//! This class represents the "stanard" solution strategy, i.e. we have a
+//! This class represents the "standard" solution strategy, i.e. we have a
 //! SBM-system with only one block and we use a standard solver / 
 //! preconditioner combination with optional static condensation.
 //! The FeSpace does not have to perform a specific numbering strategy 
@@ -198,6 +241,9 @@ public:
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode();
 
+  //! Return pointer to <hysteresis> element
+  virtual PtrParamNode GetHystNode();
+
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode();
 
@@ -221,6 +267,9 @@ protected:
   //! <nonLinear> element
   PtrParamNode nonlinNode_;
   
+  //! <hysteresis> element
+  PtrParamNode hystNode_;
+
   //! <timeStepping> element
   PtrParamNode tsNode_;
   
@@ -293,6 +342,9 @@ public:
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode();
 
+  //! Return pointer to <hysteresis> element
+  virtual PtrParamNode GetHystNode();
+
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode();
 
@@ -316,8 +368,12 @@ protected:
   //! Nonlinear nodes per solution step
   ParamNodeList nonLinNodes_;
   
+    //! Nonlinear nodes per solution step
+  ParamNodeList hystNodes_;
+
   //! Timestepping nodes per solution step
   ParamNodeList timeStepNodes_;
+
 };
 
 } // end of namespace

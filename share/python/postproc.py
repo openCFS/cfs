@@ -12,7 +12,7 @@ def add_key(xml, dic, query, key = None, quiet = True):
   value = xml.xpath(query)
   if not key:
     key = query.split('@')[1] if len(query.split('@')) == 2 else query
-  if len(value) == 1:
+  if len(value) >= 1:
     if value[0].isdigit(): # failes for -3
       dic[key] = int(value[0])
     elif isfloat(value[0]):
@@ -28,6 +28,9 @@ def read_general_info(xml, dic):
   add_key(xml, dic, '//cfsInfo/header/domain/@nx')
   add_key(xml, dic, '//cfsInfo/header/progOpts/@problem')
   add_key(xml, dic, '//cfsInfo/header/@id')
+
+def read_opt_issue(xml, dic):
+  add_key(xml, dic, '//optimization/summary/@problem', 'opt_issue')
 
 def read_selected_opt(xml, dic):
   last_iter = xml.xpath('//optimization/process/iteration')
@@ -71,6 +74,7 @@ parser = argparse.ArgumentParser(description='General tool to analyze a bunch of
 parser.add_argument("input", nargs='*', help="selection of the info.xml files to process (with wildcards), default is all")
 parser.add_argument("--query", help="xpath query, e.g. //transferFunction/@param where the attribute becomes the key")
 parser.add_argument("--alliter", help="read all attributes from iteration", action='store_true')
+parser.add_argument("--issue", help="print reason for terminating optimization", action='store_true')
 parser.add_argument("--sort", help="sort for the key")
 parser.add_argument("--revsort", help="sort reversly for the key")
 parser.add_argument("--extract", help="extract only a single column. With sort, two columns are written")
@@ -97,7 +101,11 @@ for f in input:
     if args.alliter: 
       read_all_opt(xml, dic)
     else:
-      read_selected_opt(xml, dic)    
+      read_selected_opt(xml, dic)
+      
+    if args.issue:
+       read_opt_issue(xml, dic)
+             
     read_general_info(xml, dic)
     res.append(dic)
   except KeyboardInterrupt:

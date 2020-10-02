@@ -36,12 +36,6 @@ IF(USE_LIBFBI)
   LIST(APPEND TARGET_LL ${BOOST_THREAD_LIB} )
 ENDIF()
 
-IF(MINGW)
-  LIST(APPEND TARGET_LL
-    -lws2_32
-    -lwsock32 )
-ENDIF()
-
 IF(USE_PHIST_EV OR USE_PHIST_CG)
   LIST(APPEND TARGET_LL ${CUDA_LIBS} ${HWLOC_LIBRARY})
 ENDIF()
@@ -57,20 +51,8 @@ ENDIF(DEPS_SEQUENTIAL)
 # lapack is in NETLIB, OPENBLAS and MKL
 # LIST(APPEND TARGET_LL -lpthread -lquadmath )
 
-#IF(MINGW)
-#  IF(CFS_BLAS_LAPACK STREQUAL MKL)
-#    SET_TARGET_PROPERTIES(cfsbin PROPERTIES
-#      LINK_FLAGS -Wl,--wrap,__chkstk
-#      LINKER_LANGUAGE CXX)
-#  ENDIF()
-#ENDIF()
-
 SET(CFS_LINK_FLAGS "")
 
-# Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.
-IF(UNIX AND USE_ANSYSRST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
-ENDIF(UNIX AND USE_ANSYSRST)
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)

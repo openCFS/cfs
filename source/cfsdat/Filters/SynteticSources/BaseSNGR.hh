@@ -8,7 +8,7 @@
  *       \brief    <Description>
  *
  *       \date     Jul 24, 2017
- *       \author   r.krusche
+ *       \author   r.krusche, stefan schoder
  */
 //================================================================================================
 
@@ -18,8 +18,8 @@
 #include "cfsdat/Filters/BaseFilter.hh"
 #include <boost/bimap.hpp>
 #include <algorithm>
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdlib>
 
 namespace CFSDat{
 
@@ -37,18 +37,40 @@ public:
 
 protected:
 
-  virtual void FinishInit();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-  virtual void PrepareMethodBailly();
+// utility functions
+  virtual void GetTkeThreshold();
+  virtual void SetRandVectors(UInt k, UInt j, Double rmsOfVelFluct, Vector<Double> kn);
+  virtual void SetVelocityAmplitude(UInt k, UInt j, Double peakWN, Double deltaWN,
+      Double kolmogorovWN, Double rmsOfVelFluct, Vector<Double> kn);
+  virtual void PrepareMethod();
+  virtual void SetRandVectorsBillson();
 
-  virtual void UpdateResultMethodBailly();
+// method blocks
+  // Bailly & Juvé, 1999
+  virtual void InitArraysBailly();
+  virtual void InitResultMethodBailly();
+  virtual void SetTimelineMethodBailly(UInt k);
+
+  // Billson, Eriksson & Davidson, 2003
+  virtual void InitArraysBillson();
+  virtual void UpdateResultBillson();
+  virtual void InitTimelineBillsonSNGR(UInt i);
+  //virtual void FinalTimelineMethodBillsonSNGR();
+
+  // Lafitte, Le Garrec, Bailly & Laurendeau, 2014
+  virtual void InitArraysLafitte();
+  virtual void UpdateResultLafitte();
 
   //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
   //! stored in MeshFilter
+
+// variables to initialise
   Grid* inGrid_;
 
 
@@ -78,23 +100,73 @@ protected:
   std::string incrModes_;
   uuids::uuid iModeId_;
 
+  std::string method_;
+  uuids::uuid methodId_;
+
+
   Double TKEcrit_;
+  Double minTKE_ = 0;
   Double sigLength_;
-  Double fL_;
-  Double ft_;
+  Double fL_; // length scale factor
+  Double ft_; // time scale factor
   Double fa_;
   Double maxWN_;
   Double minWN_;
+  Double c_mu_ = 0.09; // constand of k-epsilon model
+  Double A_ = 1.452762;   // constand of SNGR
+  Double C_k_ = 0.5;      // 'universal' Kolmogorov constant, not so universal as it may seem.
+  Double deltaT_;
+
   UInt maxFreq_;
   UInt minFreq_;
   UInt numModes_;
   UInt ensemble_;
-  
-  Vector<Double> turbReconstVelocity_;
+  UInt numSteps_;
+  UInt numNodes_;
+  UInt tkeFAIL_ = 0;     // counter for nodes for which the deviation of reconstructed and read TKE is not small enough.
+  UInt perpFAIL_ = 0;    // counter for nodes for which waveVec and dirVec are not sufficiently perpendicular to one another
 
-  // time step of output signal
-  Double deltaT_;
-  
+// for Billson method
+  Vector<Double> waveNumIncrements_;
+  Vector<Double> initVelocity_;
+
+// for Lafitte method
+  Vector<Double> peakWNLafitte_;
+  Vector<Double> cutOffWNLafitte_;
+  Vector<UInt> numLargeScaleModes_;
+  Vector<Double> timeScale_;
+  Double aveTDR_;
+  Double numModesBackup_ = numModes_;
+
+//  UInt flg_=0; // counter for number of nodes the TKE-Criterion is met
+  Vector<Double> idsNodesToProcess_;
+  Vector<Double> idsNodesToProcessOnlyMeanVelocity_; //TODO is this necessary
+  Vector<Double> waveVec_; // wave vector
+  Vector<Double> dirVec_;  // direction vector of n-th mode
+  Vector<Double> dWN_; // TODO, wenn incrModes=="logarithmic" ändert sich die step size mit jedem Mode, array benötigt, sonst reicht deltaWN_
+//  Vector<Double> turbLengthScale_;
+  Vector<Double> velAmplitude_;
+  Vector<Double> omega_;
+  Vector<Double> reconstTKE_;
+  Vector<Double> turbReconstVelocity_;
+  Vector<Double> stepValues_; // time step values of calculated time line
+  Vector<Double> phase_;
+
+  Vector<Double> randAngles_; // array of theta and phi for defining wave vector in space
+  //INPUT from RANS solution
+  Vector<Double> TKE_;
+  Vector<Double> meanVelocity_;
+  Vector<Double> localDensity_;
+  Vector<Double> localTemp_;
+
+  Double globalDensity_; //TODO localDensity in Michaels
+  Double globalTemp_;    //TODO localDensity in Michaels
+
+  Vector<Double> TEF_;
+
+  // constants and parameters SNGR
+  //Double fL = 2.5;
+  //Double ft_ = 0.0002;
 
 };
 

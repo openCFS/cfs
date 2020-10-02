@@ -4,7 +4,6 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "General/Exception.hh"
@@ -14,13 +13,9 @@
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 
-
 using namespace CoupledField;
 
-
-DECLARE_LOG(trans)
 DEFINE_LOG(trans, "transferFunction")
-
 
 Enum<TransferFunction::Type> TransferFunction::type;
 
@@ -101,6 +96,8 @@ App::Type TransferFunction::Default(const Context* ctxt)
   {
   case App::MECH:
     return App::MECH;
+  case App::BUCKLING:
+    return App::BUCKLING;
   case App::ELEC:
     return App::ELEC;
   case App::HEAT:
@@ -108,6 +105,8 @@ App::Type TransferFunction::Default(const Context* ctxt)
     return App::LAPLACE;
   case App::LBM:
     return App::LBM;
+  case App::MAG:
+    return App::MAG;
   default:
     throw Exception("invalid");
   }
@@ -128,9 +127,9 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::POISSON:
   case DesignElement::POISSONISO:
   case DesignElement::ROTANGLE:
-  case DesignElement::ROTANGLEX:
-  case DesignElement::ROTANGLEY:
-  case DesignElement::ROTANGLEZ:
+  case DesignElement::ROTANGLEFIRST:
+  case DesignElement::ROTANGLESECOND:
+  case DesignElement::ROTANGLETHIRD:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
@@ -159,10 +158,16 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
     return App::MECH;
+
   case DesignElement::ACOU_DENSITY:
     return App::LAPLACE;
+
   case DesignElement::POLARIZATION:
     return App::PIEZO_COUPLING;
+
+  case DesignElement::RHS_DENSITY:
+    return App::MAG;
+
   default:
     throw Exception("invalid request for transfer function");
   }

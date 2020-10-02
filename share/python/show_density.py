@@ -81,7 +81,7 @@ def get_image(input, set, design, fill=0.0):
   if args.orgsize:
     args.resize = img.size
   
-  img = img.resize(args.resize)
+  img = img.resize(args.resize, Image.NEAREST)
   
   return img, dens
 
@@ -141,7 +141,7 @@ else:
       assert(img.size[0] == img.size[1]) # extend if you need
       if args.orgsize: # otherwise args.resize is set above
         args.resize = (img.size[0]*args.tile, img.size[1]*args.tile)
-      img = img.resize((int(args.resize[0]/args.tile), int(args.resize[1]/args.tile)))
+      img = img.resize((int(args.resize[0]/args.tile), int(args.resize[1]/args.tile)), Image.NEAREST)
       nx, ny = img.size
       dat = numpy.array(img) 
       tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")

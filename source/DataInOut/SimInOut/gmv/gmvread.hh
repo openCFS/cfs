@@ -15,8 +15,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(gmvread)
-
 #ifndef RDATA_INIT
 #define EXTERN extern
 #else

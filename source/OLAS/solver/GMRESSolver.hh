@@ -235,7 +235,7 @@ namespace CoupledField {
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
     void Solve( const BaseMatrix &sysMat, 
-		const BaseVector &rhs, BaseVector &sol );
+    const BaseVector &rhs, BaseVector &sol );
 
     //! Query type of this solver.
 
@@ -247,6 +247,8 @@ namespace CoupledField {
     }
 
   private:
+
+    bool consoleConvergence_;
 
     //! Right-hand side vector of least-squares problem
 
@@ -391,9 +393,9 @@ namespace CoupledField {
     //! \param globNum      on input the number of global iterations steps
     //!                     performed so far
     void InnerLoop( const BaseMatrix &sysMat, const BasePrecond &precond,
-		    const BaseVector &rhs, BaseVector &sol, Double beta,
-		    Double threshold, bool &approxIsGood, UInt &stepCount,
-		    UInt globNum );
+        const BaseVector &rhs, BaseVector &sol, Double beta,
+        Double threshold, bool &approxIsGood, UInt &stepCount,
+        UInt globNum );
 
     //! Default Constructor
 

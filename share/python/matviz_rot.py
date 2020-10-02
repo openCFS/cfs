@@ -15,14 +15,18 @@ from numpy import cos
 from numpy import sqrt
 
 ## print tensor nicely
-def dump_tensor(tensor):
+def dump_tensor(tensor, toString=False):
+  out = ""
   for y in range(tensor.shape[0]):
     msg = '{:2}: '.format(y+1)
     for x in range(tensor.shape[1]):
       msg += '{:10.4g} '.format(tensor[y][x])
-    print(msg)    
+    if toString:
+      out += msg + "\n"
+    else:
+      print(msg)    
 
-
+  return out
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
 def get_rot_2x2(angle):
   R = numpy.zeros((2,2))
@@ -52,6 +56,15 @@ def get_rot_3x3(angle, R):
   Q[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
   
   return Q
+
+## This rotates a 3x3 3D tensor around Euler angles(alpha,beta,gamma), see Wikipedia!
+def get_rot_3x3_3d(alpha, beta, gamma):
+  from numpy import sin, cos
+  Rx = numpy.array([ [1,0,0], [0,cos(alpha),-sin(alpha)], [0,sin(alpha),cos(alpha)] ])
+  Ry = numpy.array([ [cos(beta),0,sin(beta)], [0,1,0], [-sin(beta),0,cos(beta)] ])
+  Rz = numpy.array([ [cos(gamma),-sin(gamma),0], [sin(gamma),cos(gamma),0], [0,0,1] ])
+  
+  return (Rz.dot(Ry)).dot(Rx)
 
 ## This rotates a 6x6 3D tensor from CFS BaseMaterial
 def get_rot_6x6(alpha, beta, gamma):
@@ -327,7 +340,6 @@ def Voigt2HillMandel(tensor):
 # creates a 2D elasticity tensor. To the HillMandel2Voigt conversion if necessary!
 def to_mech_tensor(input):
   assert(len(input) == 6 or len(input) == 21)
-        
       
 
   if len(input) == 6:

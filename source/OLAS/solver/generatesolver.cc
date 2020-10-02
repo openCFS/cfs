@@ -22,10 +22,6 @@
 #include "OLAS/external/pardiso/PardisoSolverPrimitive.hh"
 #endif
 
-#if defined (USE_ILUPACK) || defined (USE_ILUPACK_PARALLEL)
-#include "OLAS/external/ilupack/Ilupack.hh"
-#endif
-
 #ifdef USE_SUITESPARSE
 #include "OLAS/external/cholmod/CholMod.hh"
 #include "OLAS/external/umfpack/UMFPACKSolver.hh"
@@ -49,8 +45,6 @@
 #include "OLAS/external/phist/PhistLinearSolver.hh"
 #endif
 
-
-
 // include source code for templated solvers
 #include "BaseSolver.hh"
 #include "RichardsonSolver.hh"
@@ -61,13 +55,16 @@
 #include "LDLSolver.hh"
 #include "DiagSolver.hh"
 
+// include last as strange stuff can happen with Ilupack.hh due to f2c.h
+#if defined (USE_ILUPACK) || defined (USE_ILUPACK_PARALLEL)
+#include "OLAS/external/ilupack/Ilupack.hh"
+#endif
+
+
 namespace CoupledField {
 
-
 // define logging stream
-DECLARE_LOG(genSolver)
 DEFINE_LOG(genSolver, "genSolver")
-
 
 // ****************************
 //   Generate a solver object

@@ -76,15 +76,27 @@ namespace CoupledField {
     void AssembleMatrices(bool isNewtonPart=false);
     
     //! Assemble matrices with static condensation for transient simulations
-        void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, 
-                                        std::map<FeFctIdType, 
-                                        std::map<FEMatrixType,Double> > timeStepFactors);
+    void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage,
+                                    std::map<FeFctIdType,
+                                    std::map<FEMatrixType,Double> > timeStepFactors);
+
+    //! Assemble matrices for multiharmonic analysis
+    void AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
+     const std::map<RegionIdType, StdVector<NonLinType> >& regionNonLinTypes,
+     const StdVector<Double>& multHarmFreqVec = StdVector<Double>());
+
+    //! Initialize matrices for multiharmonic analysis
+    //! Usually this is done in the Assemble method but
+    //! for the multiharmonic analysis, we need to do it externally
+    void InitMultHarm();
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS();
 
     //! Trigger assenbly of all non-linear right hand side terms
     void AssembleNonLinRHS();
+
+    void PostAssemble();
 
     // ======================================================
     //  MISCELLANEOUS METHODS
@@ -110,9 +122,14 @@ namespace CoupledField {
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
 
-    //Sets a flag to skip eleme assembly for std matrix case
+    //Sets a flag to skip element assembly for std matrix case
     void SkipElemAssembly();
+
+    //! Stops the timer in a multiharmonic analysis. It was started in InitMultHarm
+    void TimerStop();
+
     /** search for an integrator.
+     * @param integrator name where we do only a startswith, hence "curlCurlIntegrator" returns also a "curlCurlIntegrator-NL"
      * @param pde2 the second pde, note the order -> see debug file.
      * @param pde1/pde2 this is the first and second pde. If NULL not compared.
      * @param silent if false no NULL can be returned
@@ -120,12 +137,11 @@ namespace CoupledField {
      * @exception if not silent and nothing found */
     BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
 
+    LinearFormContext* GetLinForm(const std::string& integrator, RegionIdType regionId, StdPDE* pde, bool silent);
+
     bool HasBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL) {
       return GetBiLinForm(integrator, regionId, pde1, pde2, true) != NULL;
     }
-
-    /** @see GetBiLinForm() */
-    LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
 
     /** Returns the algebraic system
      * TODO check if really used */
@@ -145,6 +161,9 @@ namespace CoupledField {
     /** Do we use the region? */
     bool UseRegion(RegionIdType reg);
 
+    //! Perform re-mapping of equation numbers in case of eqn permutation
+    void ReMapEquations( StdVector<Integer>&  eqns, FeFctIdType& fctId );
+
   protected:
 
     //! Assemble matrices without static condensation
@@ -153,7 +172,6 @@ namespace CoupledField {
     //! Assemble matrices with static condensation
     void AssembleMatrices_Cond(bool isNewtonPart=false);
 
-    
     //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
@@ -174,9 +192,6 @@ namespace CoupledField {
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
     
-    //! Perform re-mapping of equation numbers in case of eqn permutation
-    void ReMapEquations( StdVector<Integer>&  eqns, FeFctIdType& fctId );
-    
     //! Perform re-mapping of functionId
     void ReMapFctId( FeFctIdType& fctId );
 
@@ -185,14 +200,20 @@ namespace CoupledField {
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
-                       bool preventStaticCondensation = false );
+                       bool preventStaticCondensation = false,
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
+                       const Double& f = 0,
+                       bool isMultHarmDiag = false);
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
-                       bool preventStaticCondensation = false );
+                       bool preventStaticCondensation = false,
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
+                       const Double& f = 0,
+                       bool isMultHarmDiag = false);
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
@@ -236,6 +257,9 @@ namespace CoupledField {
      * When we do muliload optimization Excitations gains ownership and linForms_ is manipulated.
      * @see Excitytion::form */
     StdVector<LinearFormContext*> linForms_;
+
+    //! Set containing all linear integrator contexts
+    std::set<LinearFormContext*> allLinForms_;
 
     /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
     bool lin_forms_given_;

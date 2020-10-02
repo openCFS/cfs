@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
   elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -16,65 +15,19 @@
   <!-- ******************************************************************* -->
   <!--   Definition of material for thermoelastic PDEs -->
   <!-- ******************************************************************* -->
-
-<!--  <xsd:complexType name="DT_Matthermoelastic">
-    <xsd:sequence>
-	  <xsd:element name="thermalExpansion" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
-    </xsd:sequence>
-  </xsd:complexType>-->
-  
-  
-  
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of material for thermoelastic PDEs -->
-  <!-- ******************************************************************* -->
-  
   <xsd:complexType name="DT_Matthermoelastic">
 	  <xsd:sequence>
 		  <xsd:element name="thermalExpansion" type="DT_thermalExpansion"/>
 	  </xsd:sequence>
   </xsd:complexType>
   
-  
-  
   <!-- ******************************************************************* -->
-  <!--   Definition of the thermal expasion coefficient -->
+  <!--   Definition of the thermal expansion coefficient -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_thermalExpansion">
-	  <xsd:choice>
-		  <xsd:element name="tensor" type="DT_thermalExpansionTensor"/>
-		  
-	  </xsd:choice>
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_Square3TensorType"/>
+    </xsd:sequence>
   </xsd:complexType>
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of the thermal expasion coefficient in tensor form                -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_thermalExpansionTensor">
-	  <xsd:sequence>
-		  <xsd:element name="real">
-			  <xsd:simpleType>
-				  <xsd:restriction base="DT_DoubleList">
-					  <xsd:maxLength value="9"/>
-				  </xsd:restriction>
-			  </xsd:simpleType>
-		  </xsd:element> 
-		  <!--<xsd:element name="imag" minOccurs="0">
-			  <xsd:simpleType>
-				  <xsd:restriction base="DT_DoubleList">
-					  <xsd:maxLength value="9"/>
-				  </xsd:restriction>
-			  </xsd:simpleType>
-		  </xsd:element> -->
-	  </xsd:sequence>
-	  <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
-  </xsd:complexType>
-  
-  
-  
-  
-  
-  
-  
+
 </xsd:schema>

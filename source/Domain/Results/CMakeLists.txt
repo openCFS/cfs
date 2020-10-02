@@ -2,10 +2,15 @@ SET(RESULTS_SRCS
   BaseResults.cc
   ResultFunctor.cc
   ResultInfo.cc
+  MHTimeFreqResult.cc
   )
 
 
 ADD_LIBRARY(results STATIC ${RESULTS_SRCS})
+
+IF(MKL_INCLUDE_DIR)
+  INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+ENDIF(MKL_INCLUDE_DIR)
 
 SET(TARGET_LL
   paramh

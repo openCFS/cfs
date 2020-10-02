@@ -146,6 +146,13 @@ namespace CoupledField
     //! Set if grid is axisymmetric
     void SetAxi(bool isAxi ) { isAxi_ = isAxi;}
 
+    //! Depth for 2d plane
+    Double GetDepth2dPlane() {return depth2dPlane_; }
+    
+    //! Set if grid is axisymmetric
+    void SetDepth2dPlane(Double depth) { depth2dPlane_ = depth;}
+    
+    
     //! Get coordinates of node (dimension: grid dependent)
     
     //! This method returns the nodal coordinate of the point, where the dimension
@@ -178,6 +185,32 @@ namespace CoupledField
                                       const UInt inode,
                                       bool updated = false ) const = 0;
 
+    //! Get elements associated with given node
+
+    //! Returns a list of elements, which have one or more of the given in
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes
+    //!                          of nodeList
+    //! \param node  (in) node for which neighbouring elements
+    //!                      are needed
+    virtual void GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                                      const UInt & node) = 0;
+
+    //! Get elements associated with given node
+
+    //! Returns a list of elements, which have one or more of the given in
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes
+    //!                          of nodeList
+    //! \param node  (in) node for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    virtual void GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                                      const UInt & node,
+                                      const StdVector<RegionIdType>
+                                      & regionIds) = 0;
+
     //! Get elements associated with given nodes
 
     //! Returns a list of elements, which have one or more of the given in
@@ -188,7 +221,7 @@ namespace CoupledField
     //!                      are needed
     //! \param regionIds (in) identifiers for the regions, where the
     //!                       neihgbouring elements are searched in
-    virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList,
+    virtual void GetElemsNextToNodes( StdVector<const Elem*> & elemList,
                                       const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType>
                                       & regionIds) = 0;
@@ -208,6 +241,8 @@ namespace CoupledField
     virtual void GetNumOfElemsNextToNodes( UInt & num,
         const UInt & node,
         const StdVector<RegionIdType>& regionIds) = 0;
+        
+    virtual void ClearNodeToElemConnectivity() = 0;
 
     //! Find for every node the number of neighbouring elements
 
@@ -263,6 +298,9 @@ namespace CoupledField
     
     virtual void AddElems(UInt nElems) = 0;
 
+    //! Reserve memory for a number of elements without adding them
+    virtual void ReserveElems(UInt nElems) = 0;
+    
     virtual void SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,
@@ -418,7 +456,7 @@ namespace CoupledField
     bool IsGridRegular() const;
 
     //! Get name of region using a region id
-    std::string GetRegionName( RegionIdType& id );
+    std::string GetRegionName( RegionIdType id );
     
     //! Get vector containing all region names
     //! Get a vector which contains all region nodes. The order is in that way,
@@ -470,7 +508,10 @@ namespace CoupledField
     virtual void SetElemRegion(UInt ielem, RegionIdType region)
     { EXCEPTION( "Not implemented" ); }
 
-    virtual void GetElemRegion(UInt ielem, RegionIdType region)
+    virtual void GetElemRegion(UInt ielem, RegionIdType& region)
+    { EXCEPTION( "Not implemented" ); }
+
+    virtual RegionIdType GetElemRegion(UInt ielem)
     { EXCEPTION( "Not implemented" ); }
 
     /** Sets the element barycenters for the given region.
@@ -735,6 +776,7 @@ namespace CoupledField
     //! Return vector of element-neighbors for the node with number noOfNode
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
+    //! @see GetElemsByNode()
     virtual void GetNeighboursOfNode(const UInt noOfNode,
                                      StdVector<Elem*> * neighbours)
     { EXCEPTION( "Not implemented" ); }
@@ -783,6 +825,64 @@ namespace CoupledField
         by using maximal and minimal values of barycenters
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
     virtual StdVector<UInt> GetBoundaries(RegionIdType region);
+
+
+    // =======================================================================
+    // FINITE VOLUME REPRESENTATION SECTION
+    // =======================================================================
+    //@{ \name Methods for finite volume representations
+
+  public:
+  
+    //! A struct represting a finite volume (FV) mesh (face based), which usually can not be represented by a CFS grid.
+    //! Such a grid might be loaded from Ensight or CCM datasets, but also a FE grid could be interpreted as
+    //! Finite volume grid
+    struct FiniteVolumeRepresentation {
+    
+      FiniteVolumeRepresentation();
+      
+      // If the FV mesh is set
+      bool isSet;
+      
+      // pointer to the FE grid
+      Grid* grid;
+      
+      // A vector storing if elements of the FE grid are volume elements
+      std::vector<bool> isVolumeElement;
+      
+      //! Master elements of the FE Elements which are the results of splitted FV cells into several FE elements.
+      //! If the FV cell is a polyhedron splitted into 6 tetrahedron elements [1...6], all of these elements
+      //! should have the same master element, e.g. 1. 
+      StdVector<UInt> masterElement;
+    
+      //! Number of faces
+      UInt faceCount;
+      
+      //! stores if a face is a boundary face
+      std::vector<bool> isFaceBoundary;
+      
+      // master elements adjacent to the faces
+      StdVector<UInt> faceMasterElement;
+      
+      // slace elements adjacent to a faces, in case of boundary elements equal to the master element
+      StdVector<UInt> faceSlaveElement;
+      
+      //! index to search for in the facePoint vector to get te points/nodes of the faces
+      //! e.g. the nodes for face 10 can be found in the range 
+      //! from facePoint[facePointIndex[10]] to facePoint[facePointIndex[11]]
+      //! Consequently this vector has to be of length faceCount + 1
+      StdVector<UInt> facePointIndex;
+      
+      //! points/nodes of the faces
+      StdVector<UInt> facePoint;
+    };
+    
+    Grid::FiniteVolumeRepresentation& GetFiniteVolumeRepresentation();
+    
+  private:
+    
+    FiniteVolumeRepresentation fvr_;
+
 
     // =======================================================================
     // NONCONFORMING INTERFACES SECTION
@@ -897,7 +997,8 @@ namespace CoupledField
 
   protected:
     
-   
+    //! Flag for 2d-plane (default = 1m)
+    Double depth2dPlane_;
     
     //! Flag for axi-symmetry
     bool isAxi_;

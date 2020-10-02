@@ -1,7 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -11,6 +11,8 @@
     </xsd:documentation>
   </xsd:annotation>
   
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_FileFormats.xsd"/>
+
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="CFSDat_ResultDef.xsd"/>
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>  
@@ -27,7 +29,7 @@
           <xsd:element name="outputFile">
             <xsd:complexType>
               <xsd:choice>
-                <xsd:group ref="OutputGroup" minOccurs="1" maxOccurs="1"/>
+                <xsd:group ref="sim:OutputGroup" minOccurs="1" maxOccurs="1"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

@@ -116,6 +116,7 @@ else()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
+  #message("build new as it doesn't exist ${PRECOMPILED_PCKG_FILE}")
   ExternalProject_Add(ghost
     PREFIX "${GHOST_PREFIX}"
     SOURCE_DIR "${GHOST_SOURCE}"

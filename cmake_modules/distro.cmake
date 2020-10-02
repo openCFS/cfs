@@ -1,134 +1,10 @@
-#-------------------------------------------------------------------------------
-# Determine the platform  we are building on and the  platform we are building
-# for. Cross-compiling from Linux (CentOS 6 and Ubuntu 12.04 cf. Developer's
-# Manual) is supported for the MinGW toolchain.
-#-------------------------------------------------------------------------------
-IF(MINGW)
-
-  #-----------------------------------------------------------------------------
-  # First determine, if we are really on Windows or we are cross-compiling from
-  # Linux by determining the architecture of the objdump executable that's 
-  # being used.
-  #-----------------------------------------------------------------------------
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_OBJDUMP}" -a "${CMAKE_OBJDUMP}"
-    WORKING_DIRECTORY "${CFS_BINARY_DIR}"
-    OUTPUT_VARIABLE OBJDUMP_ARCH
-    RESULT_VARIABLE RETVAL
-    )
-
-  STRING(REPLACE "\n" ";" OBJDUMP_ARCH "${OBJDUMP_ARCH}")
-  LIST(GET OBJDUMP_ARCH 1 OBJDUMP_ARCH)
-  STRING(REPLACE "file format" ";" OBJDUMP_ARCH "${OBJDUMP_ARCH}")
-  LIST(GET OBJDUMP_ARCH 1 OBJDUMP_ARCH)
-  STRING(STRIP "${OBJDUMP_ARCH}" OBJDUMP_ARCH)
-
-  IF(OBJDUMP_ARCH MATCHES "elf")
-    #---------------------------------------------------------------------------
-    # We are building on Linux and want to get informations about the distro.
-    #---------------------------------------------------------------------------
-    SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/distro.sh")
-  ELSE()
-    #---------------------------------------------------------------------------
-    # We are building on Windows and want to get the version.
-    #---------------------------------------------------------------------------
-    SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/winver.bat")
-  ENDIF()
-
-  #-----------------------------------------------------------------------------
-  # Now try to build an executable and determine its target architecture.
-  #-----------------------------------------------------------------------------
-  SET(MINGW_CPP_SRC "int main(int argc, char** argv) {}")
-  FILE(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tmp/mingw_test.cpp" "${MINGW_CPP_SRC}")
-  TRY_COMPILE(
-    RESULT_VAR "${CMAKE_CURRENT_BINARY_DIR}/tmp"
-    "${CMAKE_CURRENT_BINARY_DIR}/tmp/mingw_test.cpp"
-    COPY_FILE "${CMAKE_CURRENT_BINARY_DIR}/tmp/mingw_test.exe"
-    OUTPUT_VARIABLE BUILD
-  )
-
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_OBJDUMP}"
-    -a "${CMAKE_CURRENT_BINARY_DIR}/tmp/mingw_test.exe"
-    WORKING_DIRECTORY "${CFS_BINARY_DIR}"
-    OUTPUT_VARIABLE OBJDUMP_ARCH
-    RESULT_VARIABLE RETVAL
-    )
-
-  STRING(REPLACE "\n" ";" OBJDUMP_ARCH "${OBJDUMP_ARCH}")
-  LIST(GET OBJDUMP_ARCH 1 OBJDUMP_ARCH)
-  STRING(REPLACE "file format" ";" OBJDUMP_ARCH "${OBJDUMP_ARCH}")
-  LIST(GET OBJDUMP_ARCH 1 OBJDUMP_ARCH)
-  STRING(STRIP "${OBJDUMP_ARCH}" OBJDUMP_ARCH)
-
-  IF(OBJDUMP_ARCH MATCHES "pei-x86-64")
-    SET(MINGW_TARGET_ARCH "X86_64")
-  ELSEIF(OBJDUMP_ARCH MATCHES "pei-i386")
-    SET(MINGW_TARGET_ARCH "I386")
-  ENDIF()
-
-ELSEIF(APPLE)
-  IF(CMAKE_CROSSCOMPILING)
-    #---------------------------------------------------------------------------
-    # Try to build an executable and determine its target architecture.
-    #---------------------------------------------------------------------------
-    SET(CPP_SRC "int main(int argc, char** argv) {}")
-    FILE(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test.cpp" "${CPP_SRC}")
-    TRY_COMPILE(
-      RESULT_VAR "${CMAKE_CURRENT_BINARY_DIR}/tmp"
-      "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test.cpp"
-      COPY_FILE "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test"
-      OUTPUT_VARIABLE BUILD
-    )
-
-    STRING(REPLACE "gcc" "lipo" LIPO_EXE ${CMAKE_C_COMPILER})
-    EXECUTE_PROCESS(
-      COMMAND "${LIPO_EXE}" -info
-      "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test"
-      WORKING_DIRECTORY "${CFS_BINARY_DIR}"
-      OUTPUT_VARIABLE MACOSX_BINARY_ARCH
-      RESULT_VARIABLE RETVAL
-    )
-
-    STRING(REPLACE "\n" "" MACOSX_BINARY_ARCH "${MACOSX_BINARY_ARCH}")
-    STRING(REPLACE ":" ";" MACOSX_BINARY_ARCH "${MACOSX_BINARY_ARCH}")
-    LIST(GET MACOSX_BINARY_ARCH 2 MACOSX_BINARY_ARCH)
-    STRING(STRIP "${MACOSX_BINARY_ARCH}" MACOSX_BINARY_ARCH)
-
-    IF(MACOSX_BINARY_ARCH MATCHES "x86_64")
-      SET(MACOSX_TARGET_ARCH "X86_64")
-    ELSEIF(MACOSX_BINARY_ARCH MATCHES "i386")
-      SET(MACOSX_TARGET_ARCH "I386")
-    ENDIF()
-
-    # Determine version of Mac OSX SDK
-    FILE(READ
-      "${CMAKE_OSX_SYSROOT}/System/Library/CoreServices/SystemVersion.plist"
-      SYSVER_PLIST)
-    STRING(REPLACE "\n" ";" SYSVER_PLIST ${SYSVER_PLIST})
-    SET(LINE_IT 0)
-    FOREACH(LINE IN ITEMS ${SYSVER_PLIST})
-      IF(LINE MATCHES "ProductVersion")
-        MATH(EXPR LINE_VER "${LINE_IT} + 1")
-        LIST(GET SYSVER_PLIST ${LINE_VER} MACOSX_DISTRO_VER)
-        STRING(REPLACE "<string>" "" MACOSX_DISTRO_VER ${MACOSX_DISTRO_VER})
-        STRING(REPLACE "</string>" "" MACOSX_DISTRO_VER ${MACOSX_DISTRO_VER})
-        STRING(STRIP "${MACOSX_DISTRO_VER}" MACOSX_DISTRO_VER)
-      ENDIF()
-      MATH(EXPR LINE_IT "${LINE_IT} + 1")
-    ENDFOREACH()
-
-  ENDIF()
+IF(APPLE)
 
   #-----------------------------------------------------------------------------
   # We are building on Unix and want to get informations about the distro.
   #-----------------------------------------------------------------------------
   SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/distro.sh")
-ELSE(MINGW)
-  #-----------------------------------------------------------------------------
-  # If we are not using the MinGW toolchain, we either build on Windows or on
-  # on Unix.
-  #-----------------------------------------------------------------------------
+ELSE()
   IF(WIN32)
     #---------------------------------------------------------------------------
     # We are building on Windows and want to get the version.
@@ -174,7 +50,7 @@ ELSE(MINGW)
     #---------------------------------------------------------------------------
     SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/distro.sh")
   ENDIF()
-ENDIF(MINGW)
+ENDIF()
 
 
 #-------------------------------------------------------------------------------
@@ -196,107 +72,81 @@ STRING(REPLACE ";" "\n" CFS_DISTRO_TEST "${CFS_DISTRO_TEST}")
 FILE(WRITE "${CFS_BINARY_DIR}/tmp/distro_test.cmake" "${CFS_DISTRO_TEST}")
 
 INCLUDE("${CFS_BINARY_DIR}/tmp/distro_test.cmake")
+#MESSAGE("OS: ${OS}")
+#MESSAGE("DIST: ${DIST}")
+#MESSAGE("DIST_FAMILY: ${DIST_FAMILY}")
+#MESSAGE("REV: ${REV}")
+#MESSAGE("ARCH: ${ARCH}")
+#MESSAGE("SUBARCH: ${SUBARCH}")
 
 #-------------------------------------------------------------------------------
 # Now set some global variables containing informations about build/target plat.
 #-------------------------------------------------------------------------------
-IF(NOT MINGW)
-  IF(NOT WIN32)
-    #---------------------------------------------------------------------------
-    # We are on Unix. Since some major enterprise distros are binary compatible
-    # across minor versions, we just set the DIST_FAMILY and the major version
-    # for them in CFS_DISTRO and CFS_DISTRO_VER and only provide more detailed
-    # infos in CFS_FULL_DISTRO and CFS_FULL_DISTRO_VER.
-    #---------------------------------------------------------------------------
-    SET(CFS_FULL_DISTRO "${DIST}")
-    SET(CFS_FULL_DISTRO_VER "${REV}")
-
-    IF(DIST_FAMILY)
-      SET(CFS_DISTRO "${DIST_FAMILY}")
-      SET(CFS_DISTRO_VER "${MAJOR_REV}")
-    ELSE()
-      SET(CFS_DISTRO "${DIST}")
-      SET(CFS_DISTRO_VER "${REV}")
-    ENDIF()
-
-    
-    SET(CFS_OS "${OS}")
-    SET(CFS_ARCH "${ARCH}")
-    SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_DISTRO_VER}_${CFS_ARCH}")
-    # Determine the subarchitecture of the platform.
-    SET(CFS_SUBARCH "${SUBARCH}")
-    
-    SET(CFS_BUILD_OS "${OS}")
-    SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
-    SET(CFS_TARGET_OS "${OS}")
-
-    # MESSAGE("APPLE = ${APPLE}")
-    # MESSAGE("CMAKE_CROSSCOMPILING = ${CMAKE_CROSSCOMPILING}")
-    # MESSAGE("CFS_ARCH = ${CFS_ARCH}")
-    # MESSAGE("CFS_DISTRO = ${CFS_DISTRO}")
-    # MESSAGE("CFS_DISTRO_VER = ${CFS_DISTRO_VER}")
-    # MESSAGE("MAJOR_REV = ${MAJOR_REV}")
-    
-        
-    IF(APPLE AND CMAKE_CROSSCOMPILING)
-      SET(CFS_OS "MAC OS X")
-      SET(CFS_TARGET_OS "${CFS_OS}")
-      SET(CFS_DISTRO "MACOSX")
-      SET(CFS_DISTRO_VER "${MACOSX_DISTRO_VER}")
-
-      SET(CFS_ARCH "${MACOSX_TARGET_ARCH}")
-      SET(CFS_ARCH_STR "MACOSX_${MACOSX_DISTRO_VER}_${CFS_ARCH}")
-      # Determine the subarchitecture of the platform.
-      SET(CFS_SUBARCH "-")
-
-      SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
-      SET(CFS_FULL_DISTRO_VER "${MACOSX_DISTRO_VER}")
-    ENDIF()
-
+IF(NOT WIN32)
+  #---------------------------------------------------------------------------
+  # We are on Unix. Since some major enterprise distros are binary compatible
+  # across minor versions, we just set the DIST_FAMILY and the major version
+  # for them in CFS_DISTRO and CFS_DISTRO_VER and only provide more detailed
+  # infos in CFS_FULL_DISTRO and CFS_FULL_DISTRO_VER.
+  #---------------------------------------------------------------------------
+  SET(CFS_FULL_DISTRO "${DIST}")
+  SET(CFS_FULL_DISTRO_VER "${REV}")
+  IF(DIST_FAMILY)
+    SET(CFS_DISTRO "${DIST_FAMILY}")
+    SET(CFS_DISTRO_VER "${MAJOR_REV}")
   ELSE()
-    #---------------------------------------------------------------------------
-    # We are on Windows. Since Windows is very compatible across versions we
-    # use the C++ compiler toolchain version as CFS_DISTRO.
-    #---------------------------------------------------------------------------
-    SET(CFS_DISTRO "${CFS_MSVC_SERVICE_PACK}")
-    IF(TARGET_ARCH STREQUAL "x86")
-      SET(CFS_ARCH "I386")
-    ELSEIF(TARGET_ARCH STREQUAL "x64")
-      SET(CFS_ARCH "X86_64")
-    ELSE()
-      MESSAGE(FATAL_ERROR "Unsupported machine architecture '${TARGET_ARCH}' on Windows!")
-    ENDIF()
-      
-    SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_ARCH}")
-
-    SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
-    SET(CFS_FULL_DISTRO_VER "${CMAKE_C_COMPILER_VERSION}")
-
-    SET(CFS_BUILD_OS "${OS}")
-    SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
-    SET(CFS_TARGET_OS "${OS}")
+    SET(CFS_DISTRO "${DIST}")
+    SET(CFS_DISTRO_VER "${REV}")
   ENDIF()
-ELSE()
-  #---------------------------------------------------------------------------
-  # We are using the MinGW toolchain on Linux or Windows. We just use MINGW
-  # as CFS_DISTRO since the toolchain version is already given by the compiler
-  # version.
-  #---------------------------------------------------------------------------
-  SET(CFS_FULL_DISTRO "MINGW")
-  SET(CFS_FULL_DISTRO_VER "")
 
-  SET(CFS_DISTRO "MINGW")
-  SET(CFS_DISTRO_VER "")
-  SET(CFS_ARCH ${MINGW_TARGET_ARCH})
-
-  SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_ARCH}")
-
+    
+  SET(CFS_OS "${OS}")
+  SET(CFS_ARCH "${ARCH}")
+  SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_DISTRO_VER}_${CFS_ARCH}")
+  # Determine the subarchitecture of the platform.
+  SET(CFS_SUBARCH "${SUBARCH}")
+    
   SET(CFS_BUILD_OS "${OS}")
   SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
-  SET(CFS_BUILD_ARCH "${ARCH}")
+  SET(CFS_TARGET_OS "${OS}")
 
-  SET(CFS_TARGET_OS "WINDOWS")
-  SET(CFS_TARGET_ARCH "${MINGW_TARGET_ARCH}")
+  # MESSAGE("APPLE = ${APPLE}")
+  # MESSAGE("CFS_ARCH = ${CFS_ARCH}")
+  # MESSAGE("CFS_DISTRO = ${CFS_DISTRO}")
+  # MESSAGE("CFS_DISTRO_VER = ${CFS_DISTRO_VER}")
+  # MESSAGE("MAJOR_REV = ${MAJOR_REV}")
+    
+        
+ELSE()
+  #---------------------------------------------------------------------------
+  # We are on Windows. Since Windows is very compatible across versions we
+  # use the C++ compiler toolchain version as CFS_DISTRO.
+  #---------------------------------------------------------------------------
+  # MSVC_SERVICE_PACK is no longer supported
+  #    SET(CFS_DISTRO "${CFS_MSVC_SERVICE_PACK}")
+  SET(CFS_FULL_DISTRO "${DIST}")
+  SET(CFS_FULL_DISTRO_VER "${REV}")
+  #    IF(DIST_FAMILY)
+  #  SET(CFS_DISTRO "${DIST_FAMILY}")
+  #  SET(CFS_DISTRO_VER "${MAJOR_REV}")
+  SET(CFS_DISTRO "${DIST}")
+  SET(CFS_DISTRO_VER "${REV}")
+  SET(CFS_OS "${OS}")
+  IF(TARGET_ARCH STREQUAL "x64")
+    SET(CFS_ARCH "X86_64")
+  ELSE()
+    MESSAGE(FATAL_ERROR "Unsupported machine architecture '${TARGET_ARCH}' on Windows!")
+  ENDIF()
+      
+  #SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_ARCH}")
+  SET(CFS_ARCH_STR "")
+
+  SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
+  SET(CFS_FULL_DISTRO_VER "${CMAKE_C_COMPILER_VERSION}")
+
+  SET(CFS_BUILD_OS "${OS}")
+  SET(CFS_BUILD_DISTRO "${DIST}_${CFS_CXX_COMPILER_NAME}_MSVC${CFS_MSVC_VERSION}_${ARCH}")
+  SET(CFS_TARGET_OS "${OS}")
 
 ENDIF()
 
@@ -330,10 +180,11 @@ ELSEIF(CFS_DISTRO STREQUAL "FEDORA" OR
     CFS_DISTRO STREQUAL "RHEL" OR
     CFS_DISTRO STREQUAL "CENTOS")
 
-ELSEIF(MINGW)
-
 ELSEIF(CFS_DISTRO MATCHES "MSVC")
   # Just to support Microsoft toolchain.
+ELSEIF(CFS_DISTRO MATCHES "WINDOWS")
+ELSEIF(CFS_DISTRO MATCHES "WIN10")
+
 ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
 
   IF(CMAKE_OSX_ARCHITECTURES)

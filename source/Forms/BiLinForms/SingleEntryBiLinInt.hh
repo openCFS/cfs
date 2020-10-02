@@ -13,7 +13,8 @@ namespace CoupledField{
 
     //! Constructor
     //! \param val Coefficient function (vector valued)
-    SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val );
+    //! \param isSymmetric allows to optionally overwrite the default true case
+    SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val, bool isSymmetric = true);
 
     //! Constructor for scalar function and dof value
     SingleEntryBiLinInt( UInt numDofs, const std::string& val, UInt dof,
@@ -70,7 +71,7 @@ namespace CoupledField{
       this->ptFeSpace2_ = feSpace2;
       this->intScheme_ = ptFeSpace1_->GetIntScheme();
     }
-    
+
   protected:
 
     //! Number of unknowns 

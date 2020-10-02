@@ -4,6 +4,7 @@
 //include <cstddef>
 #include "Utils/StdVector.hh"
 #include "PDE/BasePDE.hh"
+#include "Design/DesignMaterial.hh"
 
 namespace CoupledField
 {
@@ -11,6 +12,7 @@ class ContextManager;
 class Excitation;
 class SingleDriver;
 class SinglePDE;
+class BucklingDriver;
 class EigenFrequencyDriver;
 class HarmonicDriver;
 class Exctiation;
@@ -18,13 +20,14 @@ class MultipleExcitation;
 class Function;
 class OptimizationMaterial;
 class LatticeBoltzmannPDE;
+class BiLinFormContext;
 
 struct App
 {
   /** The App::Type type identifies the PDE to use.
    *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().
-   * The heat and acoustic transfer functions are Laplace! */
-  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Type;
+   *  The heat and acoustic transfer functions are Laplace! */
+  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, MAG, BUCKLING, NO_APP} Type;
 };
 
 
@@ -83,6 +86,8 @@ class Context
    * @return NULL if other driver. */
   EigenFrequencyDriver* GetEigenFrequencyDriver();
 
+  BucklingDriver* GetBucklingDriver();
+
   HarmonicDriver* GetHarmonicDriver();
 
   LatticeBoltzmannPDE* GetLatticeBoltzmannPDE();
@@ -100,6 +105,8 @@ class Context
   bool DoBloch() const { assert((bloch_ && num_bloch_wave_vectors > 0) || (!bloch_ && num_bloch_wave_vectors == 0)); return bloch_; }
 
   bool DoLBM() const {return (ToApp() == App::LBM);}
+
+  bool DoBuckling() const { return buckling_; }
 
   /** the driver steps: 1 for static, numFreq for harmonic and wave numbers for bloch */
   unsigned int GetDriverSteps() const { assert(driver_steps_ > 0); return driver_steps_; }
@@ -121,11 +128,14 @@ class Context
    * @see SetPDEs() */
   static App::Type ToApp(const SinglePDE* pde);
 
-  App::Type ToApp() const { return ToApp(pde); }
+  App::Type ToApp() const { assert(pde != NULL); return ToApp(pde); }
 
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
   SinglePDE* ToPDE(App::Type app, bool throw_exception = true);
+
+  /** Service function. A linear form would have a similar implementation */
+  BiLinFormContext* GetBiLinFormContext(const RegionIdType reg, App::Type app1, App::Type app2, bool throw_exception);
 
   /** the corresponding 1-based multi sequence step or -1 of not set yes */
   int sequence;
@@ -141,6 +151,9 @@ class Context
 
   /** the pde dependend optimization material. Due to multiple sequence needs to wait for Up */
   OptimizationMaterial* mat;
+
+  /** pde dependend material for parametric optimization, owned by DesignSpace **/
+  DesignMaterial* dm = NULL;
 
   /** our analysis type */
   BasePDE::AnalysisType analysis;
@@ -178,8 +191,9 @@ class Context
 
 private:
 
-  /** make shortcuts for the currently available PDEs in pdes */
-  void SetPDEs();
+  /** make shortcuts for the currently available PDEs in pdes.
+   * @return fals if it was too early and the pdes are not set in the system yet */
+  bool SetPDEs();
 
   /** are we harmonic/EV or static/transient? */
   bool complex_;
@@ -187,11 +201,14 @@ private:
   /** only for the driver, not for complex_! */
   bool harmonic_;
 
-  /** do we solve an eigenvalue problem. Includes block mode problems */
+  /** do we solve an eigenvalue problem. Includes bloch mode problems */
   bool eigenvalue_;
 
   /** bloch mode analysis is also eigenvalue but special due to the wave vectors encapsulated in excitations */
   bool bloch_;
+
+  /** buckling analysis is also eigenvalue but special due to the system matrix of the second excitation depending on the first*/
+  bool buckling_;
 
   /** we read the driver steps even without driver object to allow PrepareMultipleExcitation() */
   unsigned int driver_steps_;
@@ -207,6 +224,7 @@ private:
 
   /** Link to MultipleExcitations. Actually we could own our own instance ... */
   MultipleExcitation* me_;
+
 };
 
 /** we have only one static instance of the context manager in Optimization::contextManager.

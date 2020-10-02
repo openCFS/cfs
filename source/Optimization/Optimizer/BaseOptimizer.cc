@@ -6,7 +6,6 @@
 #include <fstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
 #include "Driver/Assemble.hh"
@@ -30,13 +29,13 @@
 using namespace CoupledField;
 using std::abs;
 
-DECLARE_LOG(optimizer)
 DEFINE_LOG(optimizer, "optimizer")
 
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale)
  : target(0.0),
    tol(0.0),
    logscale(false),
+   manual(0.0),
    opt_scaling(DesignMemory(-1, 0.0)),
    scaling(DesignMemory(-1, 0.0)),
    current(DesignMemory(-1, 0.0)),
@@ -56,6 +55,8 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
     tol    = autoscale->Get("tolerance")->As<Double>();
 
     logscale = autoscale->Get("logscale")->As<bool>();
+
+    manual   = autoscale->Get("manual")->As<Double>();
 
     // Cannot CalcAutoscale() has to be done in PostInit()
   }
@@ -77,45 +78,48 @@ void BaseOptimizer::Scale::PostInit()
 }
 
 
-
 void BaseOptimizer::Scale::CalcAutoscale()
 {
-  if(target == 0.0)
+  if(target == 0.0 && manual == 0.0)
   {
     autoscale_ = false;
     return;
   }
 
   LOG_DBG(optimizer) << "Scale:CalcAutoscale() enter";
+  if (manual == 0.0) {
+    // save the current tolerance and temporarily set to to 0 so we can call common methods
+    double tol_save = tol;
+    tol = 0.0;
   
-  // save the current tolerance and temporarily set to to 0 so we can call common methods
-  double tol_save = tol;
-  tol = 0.0;
+    // We need a double design and gradient array. We use temporary ones
 
-  // We need a double design and gradient array. We use temporary ones
- 
-  // evaluate with the current (initial) design. Use this temporary gradient space
-  StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
-  // make a temporary design as a copy from design space to copy it back there :) - Fabian: what is copied back??
-  StdVector<double> data(grad.GetSize());
-  // copy the design to our temporary space
-  int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
-
-  // evaluate the the gradient -> will be cheap in restart case
-  bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
-  if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
+    // evaluate with the current (initial) design. Use this temporary gradient space
+    StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
+    // make a temporary design as a copy from design space to copy it back there :) - Fabian: what is copied back??
+    StdVector<double> data(grad.GetSize());
+    // copy the design to our temporary space
+    int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
+  
+    // evaluate the the gradient -> will be cheap in restart case
+    bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
+    if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
+    assert(opt_scaling.value != 0.0);
+    // reset the tolerance
+    tol = tol_save;
+    // our new scaling is the optimal scaling for now!
+    scaling.design_id = opt_scaling.design_id;
+    scaling.value = opt_scaling.value;
+    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " design="
+                         << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
+  } else {
+    scaling.design_id = opt_scaling.design_id;
+    scaling.value = manual;
+    opt_scaling.value = manual;
+    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): manual scaling. Scale=" << scaling.value << " design="
+                         << scaling.design_id;
+  }
   assert(opt_scaling.value != 0.0);
-  // reset the tolerance
-  tol = tol_save;
-  
-  // our new scaling is the optimal scaling for now!
-  scaling.design_id = opt_scaling.design_id;
-  scaling.value = opt_scaling.value;
-  
-  autoscale_ = true;
-
-  LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " desing=" 
-                       << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
 }
 
 
@@ -217,7 +221,7 @@ BaseOptimizer::~BaseOptimizer()
 }
 
 
-boost::shared_ptr<Timer> BaseOptimizer::GetRunnungEvalTimer()
+boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 {
   // only one may run
   assert(!(eval_obj_timer_->IsRunning() && (eval_const_timer_->IsRunning() || eval_grad_obj_timer_->IsRunning() || eval_grad_const_timer_->IsRunning() )));
@@ -321,7 +325,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   bool restart_timer = optimizer_timer_->IsRunning();
   optimizer_timer_->Stop();
 
-  assert(!GetRunnungEvalTimer()); // no currently running timer!
+  assert(!GetRunningEvalTimer()); // no currently running timer!
 
   eval_obj_timer_->Start();
 
@@ -482,7 +486,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
   assert(!(!direct_call && !eval_const_timer_->IsRunning()));
   if(direct_call) {
     assert(optimizer_timer_->IsRunning());
-    assert(!GetRunnungEvalTimer());
+    assert(!GetRunningEvalTimer());
     optimizer_timer_->Stop();
     eval_const_timer_->Start();
   }
@@ -574,7 +578,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
   assert(!(!direct_call && !eval_grad_const_timer_->IsRunning()));
   if(direct_call) {
     assert(optimizer_timer_->IsRunning());
-    assert(!GetRunnungEvalTimer());
+    assert(!GetRunningEvalTimer());
     optimizer_timer_->Stop();
     eval_grad_const_timer_->Start();
   }

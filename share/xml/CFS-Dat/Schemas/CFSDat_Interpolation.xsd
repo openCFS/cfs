@@ -1,7 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -11,10 +11,13 @@
     </xsd:documentation>
   </xsd:annotation>
   
-    <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
-    <xsd:include schemaLocation="CFSDat_NearestNeighbour.xsd"/>
-    <xsd:include schemaLocation="../CFS_Dat.xsd"/>
-    <xsd:include schemaLocation="CFSDat_InterpolationType.xsd"/>
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_FileFormats.xsd"/>
+
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="CFSDat_NearestNeighbour.xsd"/>
+  <xsd:include schemaLocation="CFSDat_FEBased.xsd"/>
+  <xsd:include schemaLocation="../CFS_Dat.xsd"/>
+  <xsd:include schemaLocation="CFSDat_InterpolationType.xsd"/>
   
   
   <!-- ******************************************************************** -->
@@ -25,6 +28,7 @@
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
           <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="fetype" type="DT_FEInterpolationType" minOccurs="0"/>
           <xsd:element name="useElemAsTarget" type="xsd:boolean" default="0" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -32,12 +36,16 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element name="noSlipWall" type="xsd:boolean" minOccurs="0"/>
+          <xsd:element name="noSlipWall" minOccurs="0">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
           <xsd:element name="sourceSum" type="xsd:boolean" default="0" minOccurs="0"></xsd:element>
           <xsd:element name="targetMesh">
             <xsd:complexType>
               <xsd:choice>
-                <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="1"/>
+                <xsd:group ref="sim:InputGroup" minOccurs="1" maxOccurs="1"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

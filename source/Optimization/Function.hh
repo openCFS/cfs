@@ -90,8 +90,13 @@ class Function
       YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
       YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
-      TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
-      HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
+      TEMPERATURE,               /*!< for optimization of Poisson and heat conduction pde */
+      HEAT_ENERGY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity */
+      SQR_MAG_FLUX_DENS_X,       /*!< for optimization in squared magnetics Bx component */
+      SQR_MAG_FLUX_DENS_Y,       /*!< for optimization in squared magnetics By component */
+      SQR_MAG_FLUX_DENS_RZ,      /*!< for optimization in squared magnetics Br and Bz component */
+      LOSS_MAG_FLUX_RZ,          /*!< for optimization in squared magnetics Br and Bz component, scaled by density*volume */
+      MAG_COUPLING,              /*!< for optimization of inductive components */
       TEMP_TRACKING_AT_INTERFACE,/*!< tracking temperature at interfaces between solid and void elements */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
@@ -103,6 +108,7 @@ class Function
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
+      BUCKLING_LOAD_FACTOR,      /*!< with the attribute ev for the number of the load factor/ eigenvalue */
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
@@ -123,6 +129,7 @@ class Function
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
       OVERHANG_VERT,             /*!< Overhang constraint for vertical (dof=x) shape mapping structures for additive manufacturing.  */
       OVERHANG_HOR,              /*!< Overhang constraint for horizontal (dof=y) shape mapping structures for additive manufacturing */
+      CONES,                     /*!< Cone constraints for injectivity of spline box in feature mapping */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -176,13 +183,13 @@ class Function
      * little helper. asserts that only of function is set. */
     static Function* GetFunction(Objective* f, Condition* g);
 
-    /** are we objective of condition/constraint */
+    /** are we objective or condition/constraint */
     virtual bool IsObjective() const = 0;
 
     /** Get the parameter, if it was set */
     double GetParameter() const { return parameter_;  }
 
-    /** The evaluates function values. -1.0 if not set. */
+    /** The evaluated function value. -1.0 if not set. */
     virtual double GetValue() const { return value_; }
 
     /** overloaded in SlopeCondition */
@@ -214,6 +221,7 @@ class Function
     unsigned int GetEigenValueID() { return eigenvalue_id_; }
 
     /** Shall/must we evaluate this objective at this excitation?
+     * Sets the attribute excite_
      * Stress constraints in homogenization are triggered for a single constraint only.
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
@@ -328,7 +336,7 @@ class Function
 
     BandGap bandgap;
 
-    /** A function can be be a local function when it is calculated by the local neighborhood state.
+    /** A function can be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
      * of the local information is used!
      * Due to the (current) separation of Objective and Condition the local function property is not
@@ -384,8 +392,8 @@ class Function
       /** The phase for oscillation constraint only to define two constraints with different
        * feature sizes for material and void */
       typedef enum {
-        BOTH = -1000,   // syn the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
-        VOID_MAT = -1,  // with VOID MINGW I386 GCC 4.7.1 DEBUG complains about "error: expected identifier before 'void'"
+        BOTH = -1000,   // sync the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
+        VOID_MAT = -1,
         MATERIAL = 1
       } Phase;
 
@@ -441,11 +449,14 @@ class Function
         /** @param prev if NONE neighbor is size 1 otherwise size two */
         Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si = NO_SIGN);
 
-        /** Identifier when we have a neighborgood defined by a radius - eg mole */
+        /** Identifier when we have a neighborhood defined by a radius - eg mole */
         Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si = NO_SIGN);
 
+        /** Identifier when we have a neighborhood defined by a radius - eg mole */
+        Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, StdVector<BaseDesignElement*> sb_buddies, int si = NO_SIGN);
+
         /** Returns the element
-         * @param idx == -1 for elem, otherwise form neighbors */
+         * @param idx == -1 for elem, otherwise from neighbors */
         BaseDesignElement* GetElement(int idx) {
           return idx == -1 ? element : neighbor[idx];
         }
@@ -484,6 +495,10 @@ class Function
         /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
         double CalcOverhang(Function::Type ft, double eps) const;
         double CalcOverhangGradient(int neigh_idx, Function::Type ft, double eps) const;
+
+        /** calculate the cone constraint for spline box variables */
+        double CalcCones(const Local* local) const;
+        double CalcConesGradient(int neigh_idx, const Local* local) const;
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
@@ -588,9 +603,15 @@ class Function
          * @see GetElement() */
         StdVector<BaseDesignElement*> neighbor;
 
-        /** sign is only needed if we treat slope constraints as two separate constraints
-         *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
+        StdVector<BaseDesignElement*> sb_neighbor;
+
+        /** sign is only needed if we treat slope constraints as two separate constraints.
+         *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P.
+         *  for spline box design with cones constraints, sign will be between -12 and 12
+         *  and indicate which equation of linear cone to use */
         int sign;
+
+        StdVector<int> signs;
       private:
         /** to be reused */
         static StdVector<double> tmp1;
@@ -670,7 +691,7 @@ class Function
        * continuation. This is (global) checkerboard. -1 is real max = infinity */
       double beta_;
 
-      /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. For (global) mole only */
+      /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. */
       double eps_;
 
       /** power for globalization */
@@ -707,7 +728,7 @@ class Function
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
-    /** If condition supports constriction to one region. Currently ALL_REGIONS for objectives */
+    /** If condition supports restriction to one region. Currently ALL_REGIONS for objectives */
     RegionIdType region;
 
     /** real or pseudo design elements defined by the region.
@@ -767,12 +788,6 @@ class Function
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
 
-    /** Excitation index for evaluation.
-     * Note that the index is unique over all sequences!
-     * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
-     * -2 is for unset! */
-    int excite_;
-
     /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
     Excitation* sample_excitation_;
 
@@ -811,6 +826,17 @@ class Function
     /** only for tensor trace and volume */
     DesignMaterial::Notation notation_;
 
+  private:
+    /** special value for excite_ value.
+    * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
+    * -2 is for unset!
+    * -3 for excitation "0_1" */
+    typedef enum { ALL_EX = -1, UNSET_EX = -2, COMBINED_0_1_EX = -3 } ExciteIndex;
+
+    /** Excitation index for evaluation.
+     * Note that the index is unique over all sequences!
+     * >= 0 for the actual excitation, ExciteIndex for other cases */
+    int excite_;
 };
 
 

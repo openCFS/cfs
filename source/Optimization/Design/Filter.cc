@@ -4,16 +4,15 @@
 #include <ostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/Filter.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/tools.hh"
 
-DECLARE_LOG(ds)
-
 using namespace CoupledField;
+
+EXTERN_LOG(ds)
 
 Filter::Filter()
 {

@@ -30,22 +30,10 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    TestMaterial(MathParser* mp,
-                 CoordSystem * defaultCoosy);
+    TestMaterial(MathParser* mp, CoordSystem * defaultCoosy);
 
     //! Destructor
     ~TestMaterial();
-
-    //! set a scalar real material parameter
-    void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-    //! get a scalar real material parameter
-    void GetScalar( Double& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-  private:
-
 
   };
 

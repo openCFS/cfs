@@ -9,14 +9,12 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "SimOutputStreaming.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
+#include "boost/bind/bind.hpp"
 
 using boost::asio::ip::tcp;
 
 using namespace CoupledField;
 
-
-DECLARE_LOG(SOS)
 DEFINE_LOG(SOS, "streaming")
 
 

@@ -1,3 +1,9 @@
 SET(SIMINCDB_SRCS SimInputCDB.cc)
 
 ADD_LIBRARY(simincdb STATIC ${SIMINCDB_SRCS})
+
+ADD_DEPENDENCIES(simincdb boost)
+
+IF(TARGET cgal)
+  ADD_DEPENDENCIES(simincdb cgal)
+ENDIF()

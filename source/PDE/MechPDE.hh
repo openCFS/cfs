@@ -51,7 +51,7 @@ namespace CoupledField
 
     static Enum<TestStrain> testStrain;
 
-  protected:
+protected:
 
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
     void ReadDampingInformation();
@@ -88,11 +88,11 @@ namespace CoupledField
      * @param isComplex either from complex material or bloch mode
      * @param scalingFactor is a factor the material tensor to be multiplied by */
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
-    
+
     /** Returns an integrator for prestressing
      * @param preStressFct is a tensor coefficient function for prestressing
      * @param isComplex either from complex material or bloch mode */
-    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex);
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, Double factor = 1.0);
 
     /** Returns an integrator for prestressing
      * @param preStressFct is a tensor coefficient function for prestressing
@@ -139,7 +139,7 @@ namespace CoupledField
     //! Create CoefFunction for preStressing
     PtrCoefFct CreatePreStressFct( bool isComplex, PtrParamNode stressNode);
 
-    //! Returns a MechStress CoefFunction from a preceeding sequence step
+    //! Returns a MechStress CoefFunction from a preceding sequence step
     PtrCoefFct GetStressCoefFromSeqStep(UInt seqStep);
 
     //! Stores softening for each region
@@ -166,11 +166,11 @@ namespace CoupledField
     //! coefFunctzion for thermal stress
     shared_ptr<CoefFunctionMulti> thermalStress_;
 
-/*old
-    //! flag if effective Mass or Stiffness formulation shall be used 
-    //! effMass_ = true -> mass formulation; effMass_ = false -> stiffness formualation
-    bool effMass_;
-*/
+    /** static matrix which allows the calculation of the von Mises Stress from the stresses in 2D.
+     * See Kocvara and Stingl; 2007 */
+    Matrix<double> vonMisesMatrix_2d_;
+    Matrix<double> vonMisesMatrix_3d_;
+
     StdVector<std::string> dofNames_;
 
     // ========================================================================

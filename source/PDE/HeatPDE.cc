@@ -15,10 +15,12 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
+#include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -43,6 +45,7 @@
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -55,7 +58,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(heatcondpde)
   DEFINE_LOG(heatcondpde, "pde.heatcond")
 
 // ======================================================
@@ -74,6 +76,20 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
   updatedGeo_        = true;
 
   interfaceDrivenHeatSource_ = false;
+
+  // convert to tensor type
+  tensorType_ = FULL;
+  subType_ = "3d";
+  if ( ptGrid_->GetDim() == 2 ) {
+    if ( ptGrid_->IsAxi() ) {
+      tensorType_ = AXI;
+      subType_ = "axi";
+      isaxi_ = true;
+    } else {
+      tensorType_ = PLANE;
+      subType_ = "plane";
+    }
+  }
 }
 
 
@@ -164,17 +180,6 @@ void HeatPDE::DefineIntegrators() {
   RegionIdType actRegion;
   BaseMaterial * actSDMat = NULL;  
 
-  // convert to tensor type
-  SubTensorType tensorType = FULL;
-  if ( ptGrid_->GetDim() == 2 ) {
-    if ( ptGrid_->IsAxi() ) {
-      tensorType = AXI;
-      isaxi_ = true;
-    } else {
-      tensorType = PLANE;
-    }
-  }
-
   // Define integrators for "standard" materials
   std::map<RegionIdType, BaseMaterial*>::iterator it;
   shared_ptr<FeSpace> mySpace = feFunctions_[HEAT_TEMPERATURE]->GetFeSpace();
@@ -240,7 +245,7 @@ void HeatPDE::DefineIntegrators() {
       }
 
       PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
-      PtrCoefFct condNL = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, heatCoef);
+      PtrCoefFct condNL = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY_SCALAR, Global::REAL, heatCoef);
 
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
@@ -274,7 +279,7 @@ void HeatPDE::DefineIntegrators() {
       // ====================================================================
       // linear stiffness integrator
       // ====================================================================
-      shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType, Global::REAL );
+      shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType_, Global::REAL );
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
       if(domain->HasDesign())
@@ -785,8 +790,7 @@ void HeatPDE::HeatTransferBC(){
         PtrCoefFct coeffRHS = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor2, bulkTimesAlpha, CoefXpr::OP_MULT ) );
 
         if(isComplex_) {
-          EXCEPTION("Heat transfer BC not yet implemented for complex case");
-          //lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coeffRHS, coefUpdateGeo);
         }
@@ -919,6 +923,52 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
 }
 
+// similar to MechPDE, except that we have only 3 "test strains" in 3D (2 in 2D)
+void HeatPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms)
+{
+  LOG_DBG(heatcondpde) << "DTTGI: test=" << test << " lf=" << (linForms ? linForms->ToString() : "null");
+
+  shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
+
+  // to generate the vector values coef function for the test strain we need scalar const coef functions for zero and one
+  PtrCoefFct one  = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+  PtrCoefFct zero = CoefFunction::Generate(mp_, Global::REAL, "0.0");
+
+  StdVector<PtrCoefFct> tempGrad(dim_ == 2 ? 2 : 3);
+  tempGrad.Init(zero);
+  tempGrad[test] = one;
+  LOG_DBG(heatcondpde) << "DTTGI: idx=" << test << " -> one";
+
+  std::map<RegionIdType, BaseMaterial*>::iterator it;
+  for(it = materials_.begin(); it != materials_.end(); it++)
+  {
+    // Set current region and material
+    RegionIdType actRegion = it->first;
+
+    shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, ptGrid_->GetRegionName(actRegion));
+
+    PtrCoefFct curCoef = bdbInts_[actRegion]->GetCoef();
+    PtrCoefFct ttg = CoefFunction::Generate(mp_, Global::REAL, tempGrad);
+
+    LinearForm* lin = NULL;
+    if(dim_ == 3)
+      lin = new BDUIntegrator<GradientOperator<FeH1,3>, double>(1.0, ttg, curCoef, false); // no updateGeo
+    else
+      lin = new BDUIntegrator<GradientOperator<FeH1,2>, double>(1.0, ttg, curCoef, false); // no updateGeo
+
+    lin->SetName("TestTempGradInt");
+    LinearFormContext* ctx = new LinearFormContext(lin);
+    ctx->SetEntities(actSDList);
+    ctx->SetFeFunction(myFct);
+
+    if(linForms != NULL)
+      linForms->Push_back(ctx);
+    else
+      assemble_->AddLinearForm(ctx);
+  }
+}
+
+
 void HeatPDE::DefineSolveStep() {
 
   solveStep_ = new StdSolveStep(*this);
@@ -962,6 +1012,23 @@ void HeatPDE::DefinePrimaryResults() {
   availResults_.insert( res1 );
   res1->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
   DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res1 );
+
+  shared_ptr<ResultInfo> res2( new ResultInfo);
+  res2->resultType = HEAT_MEAN_TEMPERATURE;
+  res2->dofNames = "";
+  res2->unit = "K";
+  res2->definedOn = ResultInfo::NODE;
+  res2->entryType = ResultInfo::SCALAR;
+  results_.Push_back( res2 );
+  availResults_.insert( res2 );
+  PtrCoefFct tmpReal = NULL;
+  tmpReal.reset(new CoefFunctionComplexToReal<Double>(feFunctions_[HEAT_TEMPERATURE], ptGrid_));
+  DefineFieldResult( tmpReal, res2 );
+
+  //  DefineFieldResult( convecVelCoef_, velocity );
+  //  res2->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
+  //  DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res2 );
+
 
 
   // -----------------------------------
@@ -1026,20 +1093,61 @@ void HeatPDE::DefinePostProcResults() {
   DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
   // === HEAT FLUX DENSITY ===
-  shared_ptr<ResultInfo> flux ( new ResultInfo );
-  flux->resultType = HEAT_FLUX_DENSITY;
-  flux->SetVectorDOFs(dim_, isaxi_);
-  flux->unit = "W/m^2";
-  flux->definedOn = ResultInfo::ELEMENT;
-  flux->entryType = ResultInfo::VECTOR;
-  shared_ptr<CoefFunctionFormBased> fluxFunc;
+  shared_ptr<ResultInfo> fluxDens ( new ResultInfo );
+  fluxDens->resultType = HEAT_FLUX_DENSITY;
+  fluxDens->SetVectorDOFs(dim_, isaxi_);
+  fluxDens->unit = "W/m^2";
+  fluxDens->definedOn = ResultInfo::ELEMENT;
+  fluxDens->entryType = ResultInfo::VECTOR;
+  shared_ptr<CoefFunctionFormBased> fluxDensFunc;
   if( isComplex_ ) {
-    fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, Complex(-1.0)));
+    fluxDensFunc.reset(new CoefFunctionFlux<Complex>(feFct, fluxDens, Complex(-1.0)));
   } else {
-    fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
+    fluxDensFunc.reset(new CoefFunctionFlux<Double>(feFct, fluxDens, -1.0));
   }
-  DefineFieldResult( fluxFunc, flux );
-  stiffFormCoefs_.insert(fluxFunc);
+  DefineFieldResult( fluxDensFunc, fluxDens );
+  stiffFormCoefs_.insert(fluxDensFunc);
+
+  // === HEAT FLUX INTENSITY ===
+  shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );
+  fluxNormal->resultType = HEAT_FLUX_INTENSITY;
+  fluxNormal->unit = "W/m^2";
+  fluxNormal->dofNames = "";
+  fluxNormal->definedOn = ResultInfo::SURF_ELEM;
+  fluxNormal->entryType = ResultInfo::SCALAR;
+  shared_ptr<CoefFunctionSurf> fluxNormalFunc;
+  fluxNormalFunc.reset(new CoefFunctionSurf(true, 1.0, fluxNormal));
+  DefineFieldResult( fluxNormalFunc, fluxNormal );
+  surfCoefFcts_[fluxNormalFunc] = fluxDensFunc;
+
+  // === HEAT FLUX ===
+  shared_ptr<ResultInfo> flux ( new ResultInfo );
+  flux->resultType = HEAT_FLUX;
+  flux->unit = "W";
+  flux->dofNames = "";
+  flux->definedOn = ResultInfo::SURF_REGION;
+  flux->entryType = ResultInfo::SCALAR;
+  shared_ptr<ResultFunctor> fluxFunc;
+  availResults_.insert( flux );
+  if( isComplex_ ) {
+    fluxFunc.reset(new ResultFunctorIntegrate<Complex>(fluxNormalFunc, feFct, flux) );
+  } else {
+    fluxFunc.reset(new ResultFunctorIntegrate<Double>(fluxNormalFunc, feFct, flux) );
+  }
+  resultFunctors_[HEAT_FLUX] = fluxFunc;
+
+  // === HEAT_CONDUCTIVITY_TENSOR_HOM ====
+  // cannot call it HEAT_CONDUCTIVITY_TENSOR because there exists already a material type with this name
+  shared_ptr<ResultInfo> conduct_tensor(new ResultInfo);
+  conduct_tensor->resultType = HEAT_CONDUCTIVITY_TENSOR_HOM;
+  conduct_tensor->dofNames = "e11", "e12", "e13", "e22", "e23", "e33";
+  conduct_tensor->unit = "W/(mK)";
+  conduct_tensor->entryType = ResultInfo::TENSOR;
+  conduct_tensor->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> conduct_coef;
+  conduct_coef.reset(new CoefFunctionHomogenization<double, App::HEAT>(feFct));
+  DefineFieldResult(conduct_coef, conduct_tensor);
+  stiffFormCoefs_.insert(conduct_coef); // will define the forms
 
   // optimization results are provided in DesignSpace::ExtractResults()
   // copied from MechPDE

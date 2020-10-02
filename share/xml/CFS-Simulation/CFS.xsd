@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-	targetNamespace="http://www.cfs++.org" xmlns="http://www.cfs++.org"
-	xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
+  xmlns:mat="http://www.cfs++.org/material"
+  elementFormDefault="qualified">
 
-	
-	<xsd:annotation>
-		<xsd:documentation xml:lang="en">
-			Parameter file schema for the Coupled Field Solver project
-			CFS++
-		</xsd:documentation>
-	</xsd:annotation>
+  <xsd:import namespace="http://www.cfs++.org/material"
+              schemaLocation="../CFS-Material/CFS_Material.xsd"/>
 
+  <xsd:annotation>
+  	<xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Solver project CFS++
+    </xsd:documentation>
+  </xsd:annotation>
 
   <xsd:include schemaLocation="Schemas/CFS_Misc.xsd" />
   <!-- ******************************************************************* -->
@@ -27,6 +30,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEfluidMechLin.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEelectricConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEwaterWave.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEtest.xsd"/>
@@ -43,6 +47,7 @@
 	<!--   Include further definitions -->
 	<!-- ******************************************************************* -->
 	<xsd:include schemaLocation="Schemas/CFS_PostProc.xsd" />
+  <xsd:include schemaLocation="Schemas/CFS_HystereticSystem.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_LinearSystem.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Solvers.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
@@ -61,7 +66,6 @@
 	<xsd:element name="cfsSimulation">
 		<xsd:complexType>
 			<xsd:sequence>
-        
         <!-- Allows to provide arbitrary info which is copied to .info.xml - similar to "id" attribute  -->     
         <xsd:element name="info" minOccurs="0">
           <xsd:complexType>
@@ -198,10 +202,12 @@
         <!-- Parameters for specifying an optimization (optional) -->
         <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
 
+        <!-- Root element of material database -->
+        <xsd:element ref="mat:cfsMaterialDataBase" minOccurs="0" maxOccurs="1"/>
+        
 			</xsd:sequence>
 			<!-- The simulation can be given an id/token/label/name that is written to info.xml if present. -->
-			<xsd:attribute name="id" type="xsd:token" default=""
-				use="optional" />
+			<xsd:attribute name="id" type="xsd:token" default="" use="optional" />
 		</xsd:complexType>
 
 		<!-- ***************************************************************** -->

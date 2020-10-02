@@ -28,9 +28,7 @@ CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://ftp.uni-erlangen.de/mirrors/GNU/mpfr/${MPFR_BZ2}"
-  "http://ftp.gwdg.de/pub/misc/gnu/ftp/gnu/mpfr/${MPFR_BZ2}"
-  "http://ftp.gnu.org/gnu/mpfr/${MPFR_BZ2}"
+  "http://ftpmirror.gnu.org/gnu/mpfr/${MPFR_BZ2}"
   "${MPFR_URL}/${MPFR_BZ2}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/mpfr/${MPFR_BZ2}")
@@ -150,4 +148,4 @@ SET(CFSDEPS
   mpfr
 )
 
-SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/cfsdeps/mpfr/src/mpfr")
+SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include")

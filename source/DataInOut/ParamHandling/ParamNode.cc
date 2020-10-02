@@ -6,10 +6,17 @@
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
-
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+// save compiler switches
+// prevent include/boost/iostreams/detail/functional.hpp:176:93: error: extra ';' [-Werror=pedantic]
+//     BOOST_DELETED_FUNCTION(flush_buffer_operation& operator=(const flush_buffer_operation&));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include <boost/iostreams/filtering_stream.hpp>
+//restore compiler switches
+#pragma GCC diagnostic pop
+
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <fstream>
@@ -171,6 +178,30 @@ PtrParamNode ParamNode::ReplaceChild(PtrParamNode node, unsigned int index)
   children_[index] = node;
   return node;
 }
+
+void ParamNode::ClearChildren()
+{
+  children_.Clear();
+}
+
+void ParamNode::ClearChildren(const string& child_name)
+{
+  ParamNodeList tmp;
+  tmp.Reserve(children_.GetSize()); // avoid expensive Push_back
+  for(unsigned int i = 0; i < children_.GetSize(); i++)
+    if(children_[i]->GetName() != child_name)
+      tmp.Push_back(children_[i]);
+
+  if(tmp.GetSize() == children_.GetSize())
+    return; // nothing matched, nothing to do
+
+  children_.Clear(true); // keep capacity
+
+  // copy back if there is some important stuff we wanted to keep
+  for(unsigned int i = 0; i < tmp.GetSize(); i++)
+    children_.Push_back(tmp[i]);
+}
+
 
 /************************************************************************
  * N O D E   A C C E S S     M E T H O D S
@@ -337,7 +368,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   // Insert new node with given value
   // action is either APPEND or INSERT, i.e. the following unconstrained
   // Get()-calls will always create a child elements
-  if (insertNew || action == APPEND)
+  if(insertNew || action == APPEND)
   {
     //changed 2nd parameter to APPEND
     PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
@@ -347,6 +378,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
 
   return PtrParamNode();
 }
+
 PtrParamNode ParamNode::GetByVal(const std::string& parent,
     const std::string& child, const char* value, const ActionType action)
 {
@@ -354,10 +386,26 @@ PtrParamNode ParamNode::GetByVal(const std::string& parent,
 }
 
 
-PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,  const string& value1,
-                                                           const string& child2,  const string& value2)
+PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1_raw,  const string& value1,
+                                                           const string& child2_raw,  const string& value2, ActionType action)
 {
+  string parent = ToValidLabel(parent_raw);
+  string child1  = ToValidLabel(child1_raw);
+  string child2  = ToValidLabel(child2_raw);
+
+  if (action == DEFAULT)
+    action = defaultAction_;
+
   ParamNodeList l = GetListByVal(parent_raw, child1, value1);
+
+  if(action == APPEND || (l.IsEmpty() && action == INSERT))
+  {
+    //changed 2nd parameter to APPEND
+    PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
+    ret->Get(child1, ParamNode::APPEND)->SetValue(value1);
+    ret->Get(child2, ParamNode::APPEND)->SetValue(value2);
+    return ret;
+  }
   if(l.IsEmpty())
     EXCEPTION("parent " << parent_raw << " has no child " << child1 << " with value " << value1);
 
@@ -365,24 +413,62 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,
   {
     // assert(l[i]->HasByVal(child1, value1));
     if(l[i]->HasByVal(child2, value2))
-      return l[i];
+      return l[i]; // stupid, as we ignore more matches
   }
 
-  EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
-            " but not also child " << child2 << " with value " << value2);
+  if(action == INSERT)
+  {
+    PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
+    ret->Get(child1, ParamNode::APPEND)->SetValue(value1);
+    ret->Get(child2, ParamNode::APPEND)->SetValue(value2);
+    return ret;
+  }
+  else
+    EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
+            " but no child " << child2 << " with value " << value2);
 }
 
 ParamNodeList ParamNode::GetList(const string& name)
 {
-  const unsigned int chsize(children_.GetSize());
+  string vl = ToValidLabel(name);
   StdVector<PtrParamNode> result;
-  result.Reserve(chsize);
+  result.Reserve(children_.GetSize());
 
-  for (unsigned int i = 0; i < chsize; ++i)
-    if (children_[i]->name_ == ToValidLabel(name))
+  for (unsigned int i = 0; i < children_.GetSize(); ++i)
+    if (children_[i]->name_ == vl)
       result.Push_back(children_[i]);
 
   return result; // copy-constructor magic stuff!
+}
+
+
+ParamNodeList ParamNode::GetListByChild(const ParamNodeList& base, const std::string&  name)
+{
+  string vl = ToValidLabel(name);
+  StdVector<PtrParamNode> result;
+  for(unsigned int b = 0; b < base.GetSize(); b++)
+  {
+    if(base[b]->name_ == vl)
+      result.Push_back(base[b]);
+   }
+  return result;
+}
+
+
+ParamNodeList ParamNode::GetListByGrandChild(const ParamNodeList& base, const std::string&  name)
+{
+  string vl = ToValidLabel(name);
+  StdVector<PtrParamNode> result;
+  for(unsigned int b = 0; b < base.GetSize(); b++)
+  {
+    PtrParamNode pn = base[b];
+    for(unsigned int c = 0; c < pn->children_.GetSize(); c++)
+    {
+      if(pn->children_[c]->name_ == vl)
+        result.Push_back(pn->children_[c]);
+    }
+  }
+  return result;
 }
 
 template<typename TYPE>
@@ -613,30 +699,31 @@ void ParamNode::GetValue(const std::string& name, TYPE& ret, ActionType action)
 bool ParamNode::Has(const string& name) const
 {
   // check in a fast way if we have tokens for trivial xpath
-  if (ContainsTokens(name))
-  {
+  if(ContainsTokens(name)) // check for path, if so, we cannot compare for name
     return TokenizedHasAndGet(name, string(""), false) == NULL ? false : true ;
-  }
-  else
-  {
-    for (unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
-    {
-      if (children_[i]->name_ == name)
-        return true;
-    }
-    return false;
-  }
+
+  return GetIndex(name) >= 0;
 }
 
-template<typename TYPE>
-bool ParamNode::HasByVal(const string& parent, const string& child,
-    const TYPE& value) const
+int ParamNode::GetIndex(const string& name) const
 {
-  if (ContainsTokens(parent))
+  assert(!ContainsTokens(name));
+
+  for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
   {
-    EXCEPTION("HasByVal(parent, child, value) does not allow for "
-        "tokenized search strings! ");
+    if(children_[i]->name_ == name)
+      return i;
   }
+  return -1;
+}
+
+
+template<typename TYPE>
+bool ParamNode::HasByVal(const string& parent, const string& child, const TYPE& value) const
+{
+  if(ContainsTokens(parent))
+    EXCEPTION("HasByVal(parent, child, value) does not allow for tokenized search strings!");
+
   // see GetList() for comments
   for (unsigned int p = 0, chsize = children_.GetSize(); p < chsize; ++p)
   {
@@ -1193,7 +1280,7 @@ void ParamNode::AdjustElementType()
 //    return true;
 //  }
 
-inline std::string ParamNode::ToValidLabel(std::string out) const
+inline std::string ParamNode::ToValidLabel(std::string out)
 {
   boost::trim(out);
 

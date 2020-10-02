@@ -88,6 +88,39 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
         
   return ret
 
+# extrude an 2D array to the third dimenstion
+def extrude(input, nslices):
+  assert(input.ndim == 2)
+  return numpy.tile(input[:,:,numpy.newaxis], (1,1,nslices))
+
+def swap(input, order):
+  if order == 'yx':
+    assert(input.ndim == 2)
+    tmp = numpy.reshape(input,(input.shape[1],input.shape[0]))
+    return numpy.transpose(tmp,(1,0))
+  elif order == 'xzy':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[0],input.shape[2],input.shape[1]))
+    return numpy.transpose(tmp,(0,2,1))
+  elif order == 'yxz':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[1],input.shape[0],input.shape[2]))
+    return numpy.transpose(tmp,(1,0,2))
+  elif order == 'yzx':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[1],input.shape[2],input.shape[0]))
+    return numpy.transpose(tmp,(1,2,0))
+  elif order == 'zxy':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[2],input.shape[0],input.shape[1]))
+    return numpy.transpose(tmp,(2,0,1))
+  elif order == 'zyx':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[2],input.shape[1],input.shape[0]))
+    return numpy.transpose(tmp,(2,1,0))
+  else:
+    return input
+
 def read_stiff_angle_matlab(filename):
   mat = scipy.io.loadmat(filename,appendmat = True)
   mat2 = scipy.io.loadmat('centers',appendmat = True)
@@ -114,14 +147,24 @@ def read_stiff_angle_matlab(filename):
     s2[i] = d[i][2]
     if dim == 3:
       s3[i] = d[i][3]
+  design = dict()
   if dim == 3:
-    return None,s1,s2,coords,s3,None
+    design['angle'] = numpy.zeros((s1.shape[0], 1))
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = s3
+    return design,coords
   else:
-    return angle,s1,s2,coords,s3,'2D'
+    design['angle'] = angle
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = None
+    return design,coords
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
   if not os.path.exists(filename):
+
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
@@ -149,9 +192,12 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   if design6:
     designs = 6
     
-  length = len(sett) / designs
+  length = int(len(sett) / designs)
   offset = int(sett[0].get("nr")) - 1
   out = numpy.zeros((length, designs))
+  nr_vec = numpy.zeros((length,1))
+  counter = 0
+  idx_old = -1
   for element in sett:
     nr = int(element.get("nr"))- offset
     type = element.get("type")
@@ -173,8 +219,29 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       if tmp is None:
         print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
+      # here we assume that the density.xml is ordered like it is written from cfs:
+      # <element nr="1" type="design1" design="0.0"/>
+      # <element nr="2" type="design1" design="0.0"/>
+      # <element nr="3" type="design1" design="0.0"/>
+      # ...
+      # <element nr="1" type="design2" design="0.0"/>
+      # <element nr="2" type="design2" design="0.0"/>
+      # ...
+      if idx != idx_old:
+        counter = 0
       des = float(tmp)
-      out[nr - 1, idx] = des
+      out[counter, idx] = des
+      nr_vec[counter] = int(element.get("nr"))
+      counter += 1
+      idx_old = idx
+    else:
+      # type != designX
+      # i.e. either type is not requested or the requested design was not found in the xml
+      pass
+  if counter < length:
+    # There are designs specified in the xml which are not requested.
+    # Thus the array 'out' is too large.
+    out = out[0:counter, :]
   if matrix:
     output = numpy.zeros((x, y, z, designs))
     for t in range(designs):
@@ -185,7 +252,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
             output[i][j][k][t] = out[count][t]
             count += 1
     out = output
-  return out
+  return out,nr_vec
   
 ## returns all set ids from a density xml
 # return a list of string like stuff
@@ -330,7 +397,7 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
            if elemnr is not None:
-             nr = int(getNDArrayEntry(elemnr, i, j , k))
+             nr = int(getNDArrayEntry(elemnr, i, j, k))
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
              string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
@@ -721,6 +788,35 @@ def refine_density(infile, outfile, design1=None, design2=None, design3=None, de
   write_multi_design_file(outfile, output, (design1, design2, design3, design4, design5)[0:ndes])
   return output
 
+# # handles arbitrary 2d and 3d density files, halves in each dimension 
+# @param infile the density file with the densities to be blown upper
+# @param outfile name of the output file
+def coarsen_density(infile, outfile=None):
+  org = read_density(infile)
+  x, y, z = getDim(org)
+  assert(int(x/2) == x/2)
+  assert(int(y/2) == y/2)
+  if z == 1:
+    out = numpy.zeros((int(x/2),int(y/2)))
+    for i in numpy.arange(int(x/2)):
+      for j in numpy.arange(int(y/2)):
+        out[i,j] = (org[2*i,2*j] + org[2*i+1,2*j] +
+                    org[2*i,2*j+1] + org[2*i+1,2*j+1]) / 4
+  else:
+    assert(int(z/2) == z/2)
+    out = numpy.zeros((int(x/2),int(y/2),int(z/2)))
+    for i in numpy.arange(int(x/2)):
+      for j in numpy.arange(int(y/2)):
+        for k in numpy.arange(int(z/2)):
+          out[i,j,k] = (org[2*i,2*j,2*k] + org[2*i+1,2*j,2*k] +
+                        org[2*i,2*j+1,2*k] + org[2*i+1,2*j+1,2*k] +
+                        org[2*i,2*j,2*k+1] + org[2*i+1,2*j,2*k+1] +
+                        org[2*i,2*j+1,2*k+1] + org[2*i+1,2*j+1,2*k+1]) / 8
+  
+  outfile = outfile if outfile else infile[:infile.find('.density.xml')] + '-out.density.xml'
+  write_density_file(outfile, out)
+
+  
 # Assuming there is a sequence of CFS runs by a parameter study. This method finds the closes
 # valid run
 # @param filename: the filename with a special key for the running number. e.g. 'j_near_f_$_ah_60.info.xml'
@@ -995,22 +1091,6 @@ def make2DWindow(divider, strength, lower):
 
   return ret    
       
-# extrudes an 2D array to the third dimenstion
-def extrude(data_2d):
-  edge = data_2d.shape[0] 
-  if edge != data_2d.shape[1]:
-    raise RuntimeError("require quadratic input")
-  
-  ret = numpy.zeros((edge, edge, edge))
-  
-  for i in range(edge):
-    for j in range(edge):
-      val = data_2d[i][j]
-      for k in range(edge):
-        ret[i][k][j] = val
-        
-  return ret
-
 # checks if file is a valid density file
 # simple and stupid check, maybe better version in the future
 # @param infile the density file to be checked

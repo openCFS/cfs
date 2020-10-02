@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -465,6 +465,125 @@
     </xsd:complexType>
   </xsd:element> 
 
+  <!-- ======================================= -->
+  <!--  Linear Flow - Heat coupling  -->
+  <!-- ======================================= -->
+  <xsd:element name="linFlowHeatDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (volume) region list -->
+            <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded"/>                                                  
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  
+
+
+  <!-- ======================================= -->
+  <!--  Linear Flow - Acoustic coupling  -->
+  <!-- ======================================= -->
+  <xsd:element name="linFlowAcouDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+             
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+              
+            <!-- NC interface list -->
+            <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   LINFLOW-MECHANIC COUPLING -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="linFlowMechDirect"
+    substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="polyId"  type="xsd:string" use="optional" default="default"/>
+                      <xsd:attribute name="integId"
+                        type="xsd:string" use="optional" default="default"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- NC interface list -->
+            <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required" />
+                      <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"/>
+                      <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- Desired solution values (optional) -->
+            <xsd:element name="storeResults" type="DT_FluidMechDirectStoreResults"
+              minOccurs="0" maxOccurs="1"/>          
+          </xsd:sequence>
+          <xsd:attribute name="IsLagrangeMultiplierMethod" type="xsd:boolean" default="false"/>
+          <xsd:attribute name="lmOrderSameAsVel" type="xsd:boolean" default="true"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  
   <!-- ******************************************************************* -->
   <!--   Definition of Post Processing Results -->
   <!-- ******************************************************************* -->
@@ -473,6 +592,8 @@
   <xsd:simpleType name="DT_PiezoElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechIrrStrain"/>
+      <xsd:enumeration value="mechIrrStress"/>
       <xsd:enumeration value="mechStrainIrr"/>
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>

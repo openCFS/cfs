@@ -30,6 +30,12 @@ GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode
 
   this->filtStreamType_ = FIFO_FILTER;
 
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
 }
 
 GridIntersectionFilter::~GridIntersectionFilter(){
@@ -37,16 +43,34 @@ GridIntersectionFilter::~GridIntersectionFilter(){
 }
 
 bool GridIntersectionFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
-  /// this is the vector, which will be filled with the result
-  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+
   Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
-  // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+  if(resultManager_->GetExtInfo(filterResIds[0])->dType == ExtendedResultInfo::COMPLEX){
+    /// this is the vector, which will be filled with the result
+    Vector<Complex>& returnVec = GetOwnResultVector<Complex>(filterResIds[0]);
 
-  returnVec.Init(0.0);
+    // vector, containing the source data values
+    Vector<Complex>& inVec = GetUpstreamResultVector<Complex>(upResIds[0], stepIndex);
 
-  this->InterpolationMatrix->MultAdd(inVec,returnVec);
+    returnVec.Init(0.0);
+
+    this->InterpolationMatrix->MultAdd_type(inVec,returnVec);
+
+    returnVec.ScalarMult(globalFactor_);
+  } else {
+    /// this is the vector, which will be filled with the result
+    Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+
+    // vector, containing the source data values
+    Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+
+    returnVec.Init(0.0);
+
+    this->InterpolationMatrix->MultAdd(inVec,returnVec);
+
+    returnVec.ScalarMult(globalFactor_);
+  }
 
   return true;
 }

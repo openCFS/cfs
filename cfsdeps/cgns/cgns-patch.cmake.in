@@ -2,7 +2,6 @@ set(cgns_source  "@cgns_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 SET(CFS_DISTRO "@CFS_DISTRO@")
-SET(MINGW "@MINGW@")
 
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
@@ -38,13 +37,5 @@ ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 LIST(APPEND patches "cgns-hdf5.patch")
 LIST(APPEND patches "cgns-adjust-install-paths.patch")
-
-IF(MINGW)
-  # MinGW needs two underscores for the declspec keyword.
-  LIST(APPEND patches "cgns-declspec-double-underscore.patch")
-
-  # Some patches concerning build of cgnstools on MinGW.
-  LIST(APPEND patches "cgnstools-mingw.patch")
-ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgns")

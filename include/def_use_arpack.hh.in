@@ -1,3 +1,5 @@
 // Define used to check if ARPACK library is used
 
 #cmakedefine USE_ARPACK
+
+#define ARPACK_VER "@ARPACK_VER@"

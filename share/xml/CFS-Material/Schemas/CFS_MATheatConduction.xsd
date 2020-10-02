@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
   elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -21,72 +20,48 @@
 
     <xsd:complexType name="DT_MatHeatConduction">
     <xsd:sequence>
-      <xsd:element name="density" type="xsd:token"/>
-      <xsd:element name="heatCapacity" type="DT_thermalConductivity"/>
-      <xsd:element name="heatConductivity" type="DT_thermalConductivity"/>
+      <xsd:element name="density" type="DT_HeatScalarLinear"/>
+      <xsd:element name="heatCapacity" type="DT_HeatCapacity"/>
+      <xsd:element name="heatConductivity" type="DT_HeatConductivity"/>
+      <xsd:element name="refTemperature" minOccurs="0" type="DT_HeatScalarLinear">       
+      </xsd:element>         
     </xsd:sequence>
   </xsd:complexType>
   
+  <xsd:complexType name="DT_HeatScalarLinear">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of heat conductivity-->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_thermalConductivity">
+  <xsd:complexType name="DT_HeatConductivity">
     <xsd:sequence>
-      <xsd:element name="linear" type="DT_LinThermalConductivity"/>
-      <xsd:element name="nonlinear" type="DT_NonLinThermalConductivity" minOccurs="0"/>
+      <xsd:element name="linear" type="DT_Square3TensorType"/>
+      <xsd:element name="nonlinear" type="DT_HeatNonLin" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
-  <!--   Definition of Thermal Conductivity -->
+  <!--   Definition of heat capacity-->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_LinThermalConductivity">
-    <xsd:choice>
-      <xsd:element name="tensor" type="DT_thermalConductivityTensor"/>
-      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
-    </xsd:choice>
-  </xsd:complexType>
-  
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of Thermal Conductivity in tensor form                -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_thermalConductivityTensor">
+  <xsd:complexType name="DT_HeatCapacity">
     <xsd:sequence>
-      <xsd:element name="real">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="9"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
+      <xsd:element name="linear" type="DT_ScalarType"/>
+      <xsd:element name="nonlinear" type="DT_MatNonLinearity" minOccurs="0"/>
     </xsd:sequence>
-    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
   </xsd:complexType>
-  
 
   <!-- ******************************************************************* -->
   <!--   Definition of non linear heat conductivity-->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_NonLinThermalConductivity">
+  <xsd:complexType name="DT_HeatNonLin">
     <xsd:sequence>
-      <xsd:element name="isotropic" type="DT_IsotrNonLinThermalConductivity"/>
+      <xsd:element name="isotropic" type="DT_MatNonLinearity"/>
     </xsd:sequence>
   </xsd:complexType>
 
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of isotropic non linear heat conductivity-->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_IsotrNonLinThermalConductivity">
-    <xsd:sequence>
-      <xsd:element name="dependency" type="xsd:string"/>
-      <xsd:element name="approxType" type="xsd:string"/>
-      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
-      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
-      <xsd:element name="dataName" type="xsd:string"/>
-    </xsd:sequence>
-  </xsd:complexType>
-  
 </xsd:schema>

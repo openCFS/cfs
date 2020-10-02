@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -18,7 +17,9 @@
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Function.hh"
@@ -31,7 +32,6 @@
 using namespace CoupledField;
 using std::string;
 
-DECLARE_LOG(density)
 DEFINE_LOG(density, "density")
 
 DensityFile::DensityFile(DesignSpace* designSpace,
@@ -252,11 +252,10 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // In case where we read density file from external file the matrix based filtering is buggy.
     // Dirty fix of disabling it for now
     space->is_matrix_filt = false;
-    if (pn->Has("filters/use_mat_filt") && pn->Get("filters/use_mat_filt")->As<bool>())
+
+    if (domain->GetParamRoot()->Has("filters/use_mat_filt") && domain->GetParamRoot()->Get("filters/use_mat_filt")->As<bool>())
       EXCEPTION("Using Matrix based filtering is not tested when loading material from external file")
-
   }
-
 
   // check bound violations
   double lower_violation = 0.0;
@@ -264,8 +263,10 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
 
 
   bool enforce_bounds = false;
-  if(space->GetNumberOfShapeMappingVariables() > 0)
+  if(space->GetMethod() == ErsatzMaterial::Method::SHAPE_MAP)
      dynamic_cast<ShapeMapDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
+  else if(space->GetMethod() == ErsatzMaterial::Method::SPLINE_BOX)
+     dynamic_cast<SplineBoxDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
   else
    enforce_bounds = ReadDensity(pn, elems, force_region, space, lower_violation, upper_violation);
 
@@ -298,9 +299,19 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
 
-   if(this->space_->IsRegular())
+   /*if(this->space_->IsRegular())
    {
      StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
+     PtrParamNode mesh = in_->Get("mesh");
+     mesh->Get("x")->SetValue(grid[0]);
+     mesh->Get("y")->SetValue(grid[1]);
+     mesh->Get("z")->SetValue(grid[2]);
+   }*/
+
+   // design space can be regular, but grid is probably not
+   StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
+   if(!grid.IsEmpty())
+   {
      PtrParamNode mesh = in_->Get("mesh");
      mesh->Get("x")->SetValue(grid[0]);
      mesh->Get("y")->SetValue(grid[1]);
@@ -336,10 +347,10 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
 
 
   // for shape map we also want to export DesignSpace::data even if this are no design variables
-  assert((dynamic_cast<ShapeMapDesign*>(space_) != NULL && space_->GetNumberOfShapeMappingVariables() > 0) ||
-         (dynamic_cast<ShapeMapDesign*>(space_) == NULL && space_->GetNumberOfShapeMappingVariables() == 0));
+  assert((space_->GetNumberOfFeatureMappingVariables() >  0 && (dynamic_cast<ShapeMapDesign*>(space_) != NULL || dynamic_cast<FeaturedDesign*>(space_) != NULL) ) ||
+         (space_->GetNumberOfFeatureMappingVariables() == 0 &&  dynamic_cast<ShapeMapDesign*>(space_) == NULL && dynamic_cast<FeaturedDesign*>(space_) == NULL));
 
-  unsigned int size = (write_density_ ? space_->data.GetSize() : 0) + space_->GetNumberOfShapeMappingVariables();
+  unsigned int size = (write_density_ ? space_->data.GetSize() : 0) + space_->GetNumberOfFeatureMappingVariables();
   if(space_->HasSlackVariable())
     size++;
   if(space_->HasAlphaVariable())
@@ -389,13 +400,13 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
 
   // add shape map design if we have it. Can be visualized by shape_map.py.
   // Also in the SMD case the above design is of interest!
-  if(space_->GetNumberOfShapeMappingVariables() > 0)
+  if(space_->GetMethod() == ErsatzMaterial::Method::SHAPE_MAP)
   {
     ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
     // skip the aux variables slack and alpha -> they are written to the info.xml
-    for(unsigned int i = 0, n = space_->GetNumberOfShapeMappingVariables(); i < n; i++)
+    for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
     {
-      ShapeParamElement* spe = smd->GetShapeMapDesignElement(i);
+      ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetFeaturedDesignElement(i));
       assert(spe != NULL);
 
       ShapeMapDesign::ShapeParam* shape = smd->GetShape(spe);
@@ -408,6 +419,25 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
       ss << "\" ref=\"" << shape->GetReferenceId(); // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
+      ss << "\"/>";
+      block[base + i] = ss.str();
+    }
+  }
+
+  // add shape map design if we have it.
+  if(space_->GetMethod() == ErsatzMaterial::Method::SPLINE_BOX)
+  {
+    SplineBoxDesign* sbd = dynamic_cast<SplineBoxDesign*>(space_);
+    // skip the aux variables slack and alpha -> they are written to the info.xml
+    for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
+    {
+      BaseDesignElement* de = sbd->GetFeaturedDesignElement(i);
+      assert(de != NULL);
+
+      std::stringstream ss;
+      ss << "<splineBoxParam nr=\"" << de->GetIndex();
+      ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
+      ss << "\" design=\"" << de->GetDesign();
       ss << "\"/>";
       block[base + i] = ss.str();
     }

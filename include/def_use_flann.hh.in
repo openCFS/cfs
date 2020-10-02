@@ -2,3 +2,5 @@
 // Neighbors is activated
 
 #cmakedefine USE_FLANN
+
+#define FLANN_VER @FLANN_VER@

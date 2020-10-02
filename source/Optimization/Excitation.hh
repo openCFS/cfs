@@ -70,6 +70,15 @@ public:
   /** the 0-based wave number is for the first sequence the index */
   int GetWaveNumber() const;
 
+  /** In the case of buckling, we have two excitations, each with one pde,
+   * first linear elasticity (real), then buckling (complex eigenvalue problem).
+   * In optimization we take the solution of the first pde, convert it to
+   * complex and inject it in the second one to get the stresses which we need
+   * to assemble the buckling pde.
+   *  */
+  std::map<RegionIdType, PtrCoefFct> GetStressCoefFctFromExcitation(UInt index);
+  void SetStressCoefFct(std::map<RegionIdType, PtrCoefFct> stress_map);
+
   /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 
@@ -158,7 +167,7 @@ public:
   /** To be called prior to PrepareMultipleExcitations() */
   void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);
 
-  /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
+  /** Handle multiple excitations (loads/frequencies). By definition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC.
    * @param ctxt an own version of Context to setup a multi sequence system */
   void PrepareMultipleExcitations(Optimization* opt, Context* ctxt);
@@ -172,7 +181,7 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   /** The number of homogenization test strains. Important when we do also transform */
-  unsigned int GetNumberHomogenization() const;
+  unsigned int GetNumberHomogenization(App::Type app) const;
 
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }
@@ -195,6 +204,9 @@ public:
 
   /** @param ctxt if NULL search for max (is either none or the same number */
   unsigned int GetNumberRobust(const Context* ctxt, bool mininum_one = false) const;
+
+  /** count the number of unique frequencies for the context. Static is 0 */
+  unsigned int GetUniqueFrequencies() const;
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
@@ -230,12 +242,23 @@ private:
   /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
   void ApplyTransformations(const Context* ctxt, DesignSpace* space);
 
+  /** Helper to find the corresponding form to id out of forms */
+  LinearFormContext* SearchFormByCoilId(StdVector<LinearFormContext*>& forms, const string& id);
+
+  /** Set load for coil case */
+  void SetCoils(unsigned int base, Assemble* ass, const ParamNodeList& pn_ex, int num_loads, MathParser* parser, unsigned int handle);
+
+  /** Reads loads from the boundary conditions or from the optimization part.
+   * Handles the case that we have multiple loads (e.g. magnetic coils) for a single frequency (num_freq = 1) */
   void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
   /** call this only for the last context */
   void WriteInInfo(PtrParamNode in);
 
   void SetHarmonic(Context* ctxt, unsigned int context_base, int num_freq);
+
+  /** sweet little helper for SetHarmonic() */
+  void SetHarmonicExcitation(Context* ctxt, Excitation& ex, int freq_idx);
 
   /** @see SetHomogenizationTestStrains() */
   void SetBlochWaves(Context* ctxt, unsigned int context_base, int num_wave);

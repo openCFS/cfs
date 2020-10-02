@@ -25,6 +25,7 @@
 namespace CoupledField {
 
   class SingleVector;
+  class BaseVector;
 
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
@@ -233,16 +234,34 @@ namespace CoupledField {
        out[i] += fac * other[i];
   }
 
+  /** all vectors need to be either complex or real but the same.
+   * out += fac1 * vec1 + fac2 * vec2 */
+  void Add(BaseVector& out, double fac1, const BaseVector& vec1, double fac2, const BaseVector& vec2);
+
+  /** @see Add() above. If vectors are real, the real part from the scalars is used */
+  void Add(BaseVector& out, Complex fac1, const BaseVector& vec1, Complex fac2, const BaseVector& vec2);
+
+  double Inner(const Vector<double>& v1, const Vector<double>& v2);
+  Complex Inner(const Vector<Complex>& v1, const Vector<Complex>& v2);
+  Complex Inner(const Vector<double>& v1, const Vector<Complex>& v2);
+  Complex Inner(const Vector<Complex>& v1, const Vector<double>& v2);
+
   /** Search for the smallest value within a row
    * @param value set when given
    * @param set the info if given to be used for output
    * @return the 0-based column index */
-   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
+  unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
 
 
   /** transforms a complex matrix to its complex conjugate */
   void Conj(Matrix<Complex>& mat);
 
+
+  //! Convert a path pattern into a regular expression
+
+  //! Converts a path pattern into a regex by escaping all special regex
+  //! characters not used in path patterns.
+  std::string PathPatternToRegEx(const std::string & pattern);
 
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
@@ -343,6 +362,12 @@ namespace CoupledField {
    * @see https://de.wikipedia.org/wiki/Newton-Cotes-Formeln */
   StdVector<Vector<double> > GetNewtonCotes();
 
+  /** Multiple subscripts from linear index */
+  void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind);
+
+  /** Linear index from multiple subscripts */
+  void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub);
+
   /** Return a linspace similar to numpy.python where the ends are always included
    * s=1, e=4, n=5 -> 1, 1.75, 2.5, 3.25, 4. Order can be reversed! */
   Vector<double> Linspace(double start, double end, int n);
@@ -353,10 +378,10 @@ namespace CoupledField {
   Vector<double> LogspaceBase(double start_exponent, double end_exponent, int n);
 
   // omp_get_thread_num
- inline unsigned int GetThreadNum()
+  inline unsigned int GetThreadNum()
   {
-#ifdef USE_OPENMP
-   return omp_get_thread_num();
+  #ifdef USE_OPENMP
+     return omp_get_thread_num();
    #else
      return 0;
    #endif

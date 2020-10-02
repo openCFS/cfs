@@ -12,7 +12,9 @@
 #include "Materials/BaseMaterial.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
+
 
 namespace CoupledField
 {
@@ -25,6 +27,7 @@ namespace CoupledField
   class BaseIDBC_Handler;
   class FeSpace;
   class SolStrategy;
+  class MHTimeFreqResult;
 
   //  class Domain;
   
@@ -91,7 +94,7 @@ namespace CoupledField
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
 
-    //----------------------- HARMONIC---------------------------------------
+    //----------------------- HARMONIC AND MULTIHARMONIC -------------------------
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepHarmonic();
 
@@ -102,13 +105,18 @@ namespace CoupledField
     virtual void StepHarmonicLin();
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin()
-    {EXCEPTION("Harmonic step not implemented!");};
+    virtual void StepHarmonicNonLin();
     
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};
     
-    //----------------------- HARMONIC ---------------------------------------
+    //! same as GetSoltionVal and GetRHSVal but only in the
+    //! multiharmonic case and it's triggered by the MultiHarmonicDriver
+    //! in the SolveProblem() method
+    virtual void GetSolutionValMultHarm(const UInt& h);
+    virtual void GetRHSValMultHarm(const UInt& h);
+
+    //----------------------- EIGENFREQUENCY ----------------------------------
 
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     UInt CalcEigenFrequencies( Vector<Double> & frequencies, Vector<Double> & errBounds,
@@ -129,8 +137,8 @@ namespace CoupledField
     
     //----------------------- helpfull methods--------------------------------------
 
-    /** The Assemle opject contains the bilinear forms */
-    Assemble* GetAssemble() { return assemble_; } 
+    /** The Assemle object contains the bilinear forms */
+    Assemble* GetAssemble() { return assemble_; }
 
     AlgebraicSys * GetAlgSys() { return algsys_; }
 
@@ -138,7 +146,7 @@ namespace CoupledField
     void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
-    Double SetLinRHS(Double loadFactor,bool nonlin = false);
+    Double SetLinRHS(Double loadFactor,bool nonlin = false, bool multiharmonic = false);
 
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
@@ -146,6 +154,11 @@ namespace CoupledField
     //! does a line search and returns the optimal residual norm
     Double LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, 
                       Double& etaLineSearch, bool trans=false);
+
+    //! does a line search for multiharmonic analysis and returns the optimal residual norm
+    Double LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
+                      Double& etaLineSearch, MHTimeFreqResult& ftRes);
+
 
     //! does a line search and returns the optimal residual norm
     Double LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
@@ -157,6 +170,10 @@ namespace CoupledField
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
+    void SetSolveVecZero(){
+      solVec_.Init();
+    }
+
   protected:
     
     // ========================================================
@@ -166,20 +183,10 @@ namespace CoupledField
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
     
-    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, 
-                                          const UInt solStep,
-                                          const UInt iterationCounter,
-                                          const Double residualErr, 
-                                          const Double incrementalErr, 
-                                          double etaLineSearch=0.0);
-
-    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, 
-                                          const UInt coupledIterStep,
-                                          const UInt solStep,
-                                          const UInt iterationCounter,
-                                          const Double residualErr, 
-                                          const Double incrementalErr, 
-                                          double etaLineSearch=0.0);
+    /** Checks programOpt->DoDetail()  */
+    void WriteNonLinIterToInfoXML(const std::string& pdeName, UInt solStep,
+                                  UInt iterationCounter, Double residualErr, Double incrementalErr,
+                                  double etaLineSearch, int coupledIterStep = -1);
     
 
     //------------- storage vectors for nonlinear analysis --------------
@@ -233,6 +240,7 @@ namespace CoupledField
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
+    UInt minLoggingToTerminal_;
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
 
@@ -249,6 +257,7 @@ namespace CoupledField
     SBM_Vector rhsVec_;
 
     //! Vector containing the rhs for the current stage based on the scheme
+    //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system
     SBM_Vector stageRHS_;
 
@@ -258,13 +267,25 @@ namespace CoupledField
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
+    Timer static_non_lin_step_timer_;
 
     std::ofstream logFile_;
     MathParser::HandleType mHandle_;
     MathParser* mParser_;
-  };
+
+private:
+  void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);
+
+  void EvaluateNonlinearity(MHTimeFreqResult& ftRes, const SBM_Vector& actSol);
+
+
+  //! Vector containing all solution vectors for all harmonics
+  //! in a multiharmonic analysis. We need this vector because
+  //! solVec_ is only used to pass certain harmonics back to
+  //! the PDE
+  SBM_Vector solVecMH_;
+};
 
 } // end of namespace
 
 #endif
-

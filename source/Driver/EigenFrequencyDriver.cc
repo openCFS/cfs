@@ -5,18 +5,20 @@
 #include <cmath>
 #include <boost/filesystem.hpp>
 
-#include "Driver/SolveSteps/StdSolveStep.hh"
-#include "Domain/Domain.hh"
-#include "Optimization/Optimization.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Domain/Domain.hh"
+#include "MatVec/SBM_Matrix.hh"
 #include "OLAS/solver/BaseEigenSolver.hh"
 //#include "OLAS/algsys/AlgebraicSys.hh"
-#include "MatVec/SBM_Matrix.hh"
+//#include "Optimization/ErsatzMaterial.hh"
+//#include "Optimization/Excitation.hh"
+#include "Optimization/Optimization.hh"
 
 #include "PDE/StdPDE.hh"
 
@@ -26,7 +28,6 @@ using std::string;
 
 namespace CoupledField {
 
-  DECLARE_LOG(efd)
   DEFINE_LOG(efd, "eigenFrequencyDriver")
 
   // forward declaration
@@ -52,7 +53,6 @@ namespace CoupledField {
     blochSteps_ = 0;
     ibz_     = false;
     eigenFreqs = NULL;
-    save_step_ = 1;
     minVal_ = 0.0;
     maxVal_ = 0.0;
     eigenValuesAreReal_=true;
@@ -102,6 +102,18 @@ namespace CoupledField {
     param_->GetValue( "maxVal", maxVal_, ParamNode::INSERT );
     param_->GetValue( "writeModes", writeModes_, ParamNode::PASS );
     param_->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
+    // determine type of mode normalization
+    std::string normString = "solver";
+    param_->Get("writeModes")->GetValue("normalization",normString, ParamNode::PASS);
+    if (normString == "solver") {
+      modeNormalization_ = BaseEigenSolver::NONE;
+    } else if (normString == "max") {
+      modeNormalization_ = BaseEigenSolver::MAX;
+    } else if (normString == "norm") {
+      modeNormalization_ = BaseEigenSolver::NORM;
+    } else {
+      EXCEPTION("Specified mode normalization '"+normString+"' not implemented");
+    }
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction    
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
@@ -353,7 +365,7 @@ namespace CoupledField {
     // But we call PrintResults() to do the output to the info.xml even in optimization
 
     // we have to estimate the number of steps as we might loop over bloch modes
-    unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1) + 1; // one for savety
+    unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1) + 1; // one for safety
 
     // notify resultHandler about beginning of new sequence step
     // see comments in StaticDriver::SolveProblem() for the interplay with optimization
@@ -369,58 +381,113 @@ namespace CoupledField {
     // Trigger calculation
     ptPDE_->WriteGeneralPDEdefines();
     BaseSolveStep* step = ptPDE_->GetSolveStep();
+
+    // set the mode normalization
+
+    dynamic_cast<StdSolveStep*>(step)->GetAlgSys()->GetEigenSolver()->SetModeNormalization(modeNormalization_);
+
     // Start of FEAST section and layout for new, more flexible structure which does not rely on the intermediate
     // functions in algSys, StdSolveStep, ...
-    if (maxVal_>0) { // use only for feast -> TODO: remove this if
-    // here we should - do the necessary computation depending on the problem type
-    StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
-    BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
-    // initialize AlgSys
-    sstep->GetAlgSys()->InitSol();
-    sstep->GetAlgSys()->InitMatrix();
-    sstep->GetAssemble()->AssembleMatrices();
-    sstep->GetAlgSys()->ExportLinSys(true,false,false); // export the setup
-    // determine which EV problem to set up: we make a generalized one
-    // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
-    SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
-    SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
-    UInt i = massMat->GetNumCols();
-    if (i>1) {
-        EXCEPTION("only implemented for SBM matrices with a single block")
-    }
-    // check matrix dimensions
-    assert( massMat->GetNumCols()==massMat->GetNumRows() );
-    assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
-    // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
-    // setup the eigen solver (problem type is determined in Setup based on matrix properties)
-    sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),isBloch_);
-    // check if the eigenvalues will be complex
-    bool complexEV = eigenSolver->HasComplexEigenvalues();
+    BaseEigenSolver::EigenSolverType solverType = dynamic_cast<StdSolveStep*>(step)->GetAlgSys()->GetEigenSolver()->eigenSolverType_;
+    if (maxVal_>0 || solverType==BaseEigenSolver::PALM ) { // use only for feast and PALM -> TODO: remove this if
+      // here we should - do the necessary computation depending on the problem type
+      StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
+      BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
+      // initialize AlgSys
+      sstep->GetAlgSys()->InitSol();
+      sstep->GetAlgSys()->InitMatrix();
+      sstep->GetAssemble()->AssembleMatrices();
+      sstep->GetAlgSys()->ExportLinSys(true,false,false); // export the setup
+      // determine which EV problem to set up: we make a generalized one
+      // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
 
-    if (minVal_>=0 || maxVal_>=0) { // we have an interval
+      // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
+      if(isQuadratic_)
+      {
+        // determine which EV problem to set up: we make a generalized one
+        // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
+        SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
+        SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+        SBM_Matrix* dampMat = sstep->GetAlgSys()->GetMatrix(DAMPING);
+        UInt i = massMat->GetNumCols();
+        if (i>1) {
+            EXCEPTION("only implemented for SBM matrices with a single block")
+        }
+        // check matrix dimensions
+        assert( massMat->GetNumCols()==massMat->GetNumRows() );
+        assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
+        assert( dampMat->GetNumCols()==dampMat->GetNumRows() );
+        // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
+        // setup the eigen solver (problem type is determined in Setup based on matrix properties)
+        sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(dampMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)));
+      }
+      else
+      {
+
+        SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
+        SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+        UInt i = massMat->GetNumCols();
+        if (i>1) {
+            EXCEPTION("only implemented for SBM matrices with a single block")
+        }
+        // check matrix dimensions
+        assert( massMat->GetNumCols()==massMat->GetNumRows() );
+        assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
+        // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
+        // setup the eigen solver (problem type is determined in Setup based on matrix properties)
+        sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),isBloch_);
+        // check if the eigenvalues will be complex
+
+      }
+      bool complexEV = eigenSolver->HasComplexEigenvalues();
+      if (minVal_!=0 || maxVal_!=0) { // we have an interval
         if (complexEV) {
-            Vector<Complex> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
-            eigsRe_.Resize(evals.GetSize());
-            eigsIm_.Resize(evals.GetSize());
-            for (int i=0;i<(int)evals.GetSize();i++) {
-                eigsRe_[i] = evals[i].real();
-                eigsIm_[i] = evals[i].imag();
-            }
-            Eig2FreqDamp(evals,frequency_,dampingRatio_);
+          Vector<Complex> evals,errs;
+          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          eigsRe_.Resize(evals.GetSize());
+          eigsIm_.Resize(evals.GetSize());
+          for (int i=0;i<(int)evals.GetSize();i++) {
+              eigsRe_[i] = evals[i].real();
+              eigsIm_[i] = evals[i].imag();
+          }
+          Eig2FreqDamp(evals,frequency_,dampingRatio_);
         }
         else {
-            Vector<Double> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
-            eigsRe_.Resize(evals.GetSize());
-            eigsRe_ = evals;
-            Eig2Freq(evals,frequency_);
+          Vector<Double> evals,errs;
+          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          eigsRe_.Resize(evals.GetSize());
+          eigsRe_ = evals;
+          eigsIm_.Resize(evals.GetSize(),0.0);
+          Eig2Freq(evals,frequency_);
         }
+        Vector<Complex> ev(eigsRe_.GetSize());
+        for (int i=0;i<(int)eigsRe_.GetSize();i++) {
+          ev[i] = Complex( eigsRe_[i], eigsIm_[i] );
+        }
+        Eig2FreqDamp(ev,frequency_,dampingRatio_);
         // info output: ToDo: make this pretty
         std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
         std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
         std::cout << "Frequency = " << frequency_.ToString() << "\n";
-        std::cout << "dampingRatio_ = " << dampingRatio_.ToString() << "\n";
+
+        std::cout << "dampingRatio = " << dampingRatio_.ToString() << "\n";
+        SortModes();
+        int n = 15; // field width
+        cout << "\n";
+        cout << " Mode | ";
+        cout << setw(n) << "Frequency in Hz" << " | ";
+        cout << setw(n) << "Damping Ratio" << " | ";
+        cout << setw(n) << "Re(lamda)" << " | ";
+        cout << setw(n) << "Im(lambda)" << "\n";
+        // plot sorted by frequency
+        for(unsigned int i=0; i < modeOrder_.GetSize(); i++) {
+          cout << setw(5) << i+1 << " | ";
+          cout << setw(n) << frequency_[modeOrder_[i]]<< " | ";
+          cout << setw(n) << dampingRatio_[modeOrder_[i]]<< " | ";
+          cout << setw(n) << eigsRe_[modeOrder_[i]]<< " | ";
+          cout << setw(n) << eigsIm_[modeOrder_[i]] << "\n";
+        }
+
         // export solution
         PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
         if (els) {
@@ -432,65 +499,133 @@ namespace CoupledField {
             }
             for (UInt i=0; i< frequency_.GetSize();i++) {
               Vector<Complex> mode;
-              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
+
+              // TU Wien Variant with normalized eigenmodes
+              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode);
               mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
-              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode,false);
+              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode,false);
+
+              // sharedopt variant with non-normalized modes
+              /*sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
+              mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
+              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode,false);*/
+
               mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1),vec_format);
             }
           }
         }
-    }
-    else if ( numFreq_ > 0 || freqShift_ > 0  ){ // we have num + shift
-        // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
-        EXCEPTION("not implemented yet")
-    } else {
-        EXCEPTION("this case should not be possible in the XML schema")
-    }
-    }
-    else{ // the old stuff to (re)move
-
-    if(isBloch_)
-    {
-      assert(!wave_vectors.IsEmpty());
-      LOG_DBG(efd) << "SP: #wv=" << wave_vectors.GetSize();
-      for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
-      {
-        ComputeBlochWaveVector(i);
       }
-    }
-    else
-    {
-      // the eigenfrequencies are complex in the quadratic case or in bloch mode
-      eigenFreqs->Init();
-      errBounds_.Resize(numFreq_);
 
-      if(isQuadratic_)
-      {
-        Vector<Complex> ef = Vector<Complex>();
-        ef.Resize(numFreq_);
-        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
-        frequency_.Resize(ef.GetSize());
-        dampingRatio_.Resize(ef.GetSize());
-        for (int i=0; i<(int)ef.GetSize();i++){
-            frequency_[i] = ef[i].imag()/(2*M_PI);
-            dampingRatio_[i] = ef[i].real();
+      else if ( numFreq_ > 0 || freqShift_ != 0  ) {
+        // we have num + shift
+        // check if the eigenvalues will be complex
+        if(isQuadratic_)
+        {
+          Vector<Complex> evals,errs;
+          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
+          eigsRe_.Resize(evals.GetSize());
+          eigsIm_.Resize(evals.GetSize());
+          for (int i=0;i<(int)evals.GetSize();i++) {
+            eigsRe_[i] = evals[i].real();
+            eigsIm_[i] = evals[i].imag();
+          }
+          Vector<Double> frequency_damped_;
+          QuadEig2FreqDamp(eigsRe_, eigsIm_ ,frequency_, frequency_damped_,dampingRatio_);
+
+          std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
+          std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
+          std::cout << "Undamped Frequency = " << frequency_.ToString() << "\n";
+          std::cout << "Damped Frequency = " << frequency_damped_.ToString() << "\n";
+          std::cout << "dampingRatio = " << dampingRatio_.ToString() << "\n";
+          SortModes();
+          int n = 35; // field width
+          cout << "\n";
+          cout << " Mode | ";
+          cout << setw(n) << "Frequency (undamped) in Hz" << " | ";
+          cout << setw(n) << "Frequency (damped) in Hz" << " | ";
+          cout << setw(n) << "Damping Ratio" << " | ";
+          cout << setw(n) << "Re(lamda)" << " | ";
+          cout << setw(n) << "Im(lambda)" << "\n";
+          // plot sorted by frequency
+          for(unsigned int i=0; i < modeOrder_.GetSize(); i++) {
+            cout << setw(5) << i+1 << " | ";
+            cout << setw(n) << frequency_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << frequency_damped_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << dampingRatio_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << eigsRe_[modeOrder_[i]]<< " | ";
+            cout << setw(n) << eigsIm_[modeOrder_[i]] << "\n";
+          }
+
+          // export solution
+          PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
+          if (els) {
+            if(els->Get("solution")->As<bool>()) {
+              BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+              std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+              if(domain->GetDriver()->GetAnalysisId().ToString(true) != ""){
+                base += "_" + domain->GetDriver()->GetAnalysisId().ToString(true);
+              }
+              for (UInt i=0; i< frequency_.GetSize();i++) {
+                Vector<Complex> mode;
+
+                // TU Wien Variant with normalized eigenmodes
+                sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode);
+                mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
+                sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode,false);
+                mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1),vec_format);
+              }
+            }
+          }
         }
-        PrintResult();
       }
-      else // real generalized
-      {
-        Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_);
-        PrintResult();
+      else {
+        EXCEPTION("this case should not be possible in the XML schema")
       }
     }
+    else { // the old stuff to (re)move
+
+      if(isBloch_)
+      {
+        assert(!wave_vectors.IsEmpty());
+        LOG_DBG(efd) << "SP: #wv=" << wave_vectors.GetSize();
+        for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
+        {
+          ComputeBlochWaveVector(i);
+        }
+      }
+      else {
+        // the eigenfrequencies are complex in the quadratic case or in bloch mode
+        eigenFreqs->Init();
+        errBounds_.Resize(numFreq_);
+
+        if(isQuadratic_)
+        {
+          Vector<Complex> ef = Vector<Complex>();
+          ef.Resize(numFreq_);
+          step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
+          frequency_.Resize(ef.GetSize());
+          dampingRatio_.Resize(ef.GetSize());
+          for (int i=0; i<(int)ef.GetSize();i++){
+              frequency_[i] = ef[i].imag()/(2*M_PI);
+              dampingRatio_[i] = ef[i].real();
+          }
+          PrintResult();
+        }
+        else // real generalized
+        {
+          Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
+          step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_);
+          PrintResult();
+        }
+      }
     }// end old stuff
 
     // in optimization we write the results via StoreResults() because
     // we don't necessarily write every forward step.
     if(!domain->GetOptimization()) // in other words: if not optimization
     {
-      StoreResults(1, -1.0);
+      if(!isBloch_)
+        StoreResults(1, -1.0);
       handler_->FinishMultiSequenceStep();
 
       if(!isPartOfSequence_)
@@ -537,13 +672,12 @@ namespace CoupledField {
     // only if not optimization or if optimization when it is evaluatate_initial_design
     // not for the last step as we have a separate store result!
     if((domain->GetOptimization() == NULL || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN) && (wave_vector_step <  (int) wave_vectors.GetSize() - 1))
-      StoreResults(wave_vector_step, -1.0);
+      StoreResults(wave_vector_step*ef.GetSize(), -1.0);
   }
 
 
-  void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
+  unsigned int EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
   {
-    // stepNum and step_val are ignored
     LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
 
     unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
@@ -552,6 +686,11 @@ namespace CoupledField {
     // generates a index-array modeOrder_ containing the mode indices sorted by ascending Frequency value
     SortModes();
 
+    int total = eigenFreqs->GetSize() * wvs;
+    string s = boost::lexical_cast<string>(step_val);
+    int digs =  boost::lexical_cast<string>(total).size() + s.substr(s.find('.')+1).size();
+    double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
+
     for(unsigned int fi=0; fi < frequency_.GetSize(); fi++)
     {
       // Phase 2: calculate eigenmodes
@@ -559,6 +698,7 @@ namespace CoupledField {
       {
         ptPDE_->GetSolveStep()->SetActStep(fi);
         ptPDE_->GetSolveStep()->SetActFreq(GetFrequency(modeOrder_[fi]));
+        ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", GetFrequency(modeOrder_[fi]) );
         ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
 
         // stupid paraview needs an increasing series of save_value :(
@@ -567,29 +707,32 @@ namespace CoupledField {
 
         if(domain->GetOptimization() && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN)
         {
-          // time is step.nr
-          int total = eigenFreqs->GetSize() * wvs;
-          int digs =  boost::lexical_cast<string>(total).size();
-          double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
-          save_value = stepNum + (w * wvs + fi + 1) * sig; // +1 for one based
+          // time is step.step_val nr
+          save_value = step_val + (w * wvs + fi + 1) * sig; // +1 for one based
 
           LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
         }
         else // for bloch case we label <step>.<nr> from the info.xml
           save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(modeOrder_[fi]));
 
-        LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
+        LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " stepNum=" << stepNum << " save_value=" << save_value;
 
-        handler_->BeginStep(save_step_, save_value);
-        ptPDE_->WriteResultsInFile(save_step_, save_value);
+        handler_->BeginStep(stepNum, save_value);
+        ptPDE_->WriteResultsInFile(stepNum, save_value);
         handler_->FinishStep();
 
         if(writeAllSteps_ || isPartOfSequence_)
-          simState_->WriteStep(save_step_, save_value);
+          simState_->WriteStep(stepNum, save_value);
 
-        save_step_++;
+        if (!GetResultHandler()->streamOnly)
+          stepNum++;
       }
     }
+
+    if (!GetResultHandler()->streamOnly)
+      return stepNum-1;
+    else
+      return stepNum;
   }
 
   void EigenFrequencyDriver::PrintResult(int wave_vector_step)
@@ -715,6 +858,9 @@ namespace CoupledField {
       mode->Get("errorbound")->SetValue(errBounds_[i]);
 
     }
+
+    if(!domain->GetOptimization())
+      cout << "\n";
 
     if(isBloch_ && this->ibz_)
     {

@@ -6,7 +6,6 @@
 namespace CoupledField {
   
 // declare class specific logging stream
-DECLARE_LOG(feHi)
 DEFINE_LOG(feHi, "feHi")
 
 

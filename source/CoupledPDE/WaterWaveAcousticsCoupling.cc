@@ -38,7 +38,7 @@ namespace CoupledField {
 
   {
     couplingName_ = "WaterWaveAcousticDirect";
-    materialClass_ = FLUID;
+    materialClass_ = ACOUSTIC;
 
     nonLin_ = false;
     

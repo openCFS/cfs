@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -37,7 +36,6 @@ using std::vector;
 using std::pair;
 using std::make_pair;
 
-DECLARE_LOG(ls)
 DEFINE_LOG(ls, "levelSet")
 
 /** Set in Optimization::SetEnums() */

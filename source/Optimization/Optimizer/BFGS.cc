@@ -2,10 +2,8 @@
 #include "Optimization/Optimizer/MMA.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ProgramOptions.hh"
 
-DECLARE_LOG(bfgs_LOG)
 DEFINE_LOG(bfgs_LOG, "bfgs_log")
 
 

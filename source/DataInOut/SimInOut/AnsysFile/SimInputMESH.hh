@@ -247,13 +247,13 @@ namespace CoupledField {
     //! \name Attributes
 
     //! Dimension of the mesh
-    UInt dim_;
+    UInt dim_ = 0;
 
     //! Total number of elements
-    UInt maxNumElems_;
+    UInt maxNumElems_ = 0;
 
     //! Total number of nodes
-    UInt maxNumNodes_;
+    UInt maxNumNodes_ = 0;
     
     //! Vector containing all region names of mesh
     std::vector<std::string> regionNames_;
@@ -271,7 +271,7 @@ namespace CoupledField {
     std::ifstream inFile_;
 
     //! End position in input mesh-file
-    std::string::size_type pos_end;
+    std::string::size_type pos_end = 0;
 
     //@}
 

@@ -69,9 +69,6 @@ public:
     delete trgGrid_;
   }
 
-  virtual void FinishInit();
-
-
 
 protected:
 
@@ -86,12 +83,6 @@ protected:
                              const std::set<std::string>& regions,
                              Grid* grid);
 
-
-  virtual void PrepareCalculation() = 0;
-
-  virtual ResultIdList SetUpstreamResults()=0;
-
-  virtual void AdaptFilterResults()=0;
 
   //TODO for now copy paste code from inputfilter... not very nice
   void CreateDummyCfsParamNode();
@@ -122,11 +113,11 @@ protected:
   //! \param resId (in) result-id of the current filter results
   //! \param inVec (in) Vector containing the node-results
   //! \param interpolData (in) information of elements of target-regions
-  void Node2Cell(Vector<Double>& returnVec,
+  template<typename T>
+  void Node2Cell(Vector<T>& returnVec,
                 const boost::uuids::uuid& resId,
-                const Vector<Double>& inVec,
+                const Vector<T>& inVec,
                 const std::vector<QuantityStruct>& interpolData);
-
 
 
   //! Interpolation from cell-center (element-results) to node-results by
@@ -144,18 +135,6 @@ protected:
                   const Vector<Double>& inVec,
                   const std::vector<QuantityStruct>& interpolData,
                   const StdVector<UInt>& nodeNeighbours);
-
-
-  //! Nearest neighbour interpolation
-  void NearestNeighbourInterpolation(Vector<Double>& returnVec,
-      const Vector<Double>& inVec,
-      const UInt& numEquPerEnt,
-      const StdVector<CF::UInt>& targetSource,
-      const StdVector<CF::UInt>& targetSourceIndex,
-      const UInt& numNN,
-      const StdVector<CF::Double>& targetSourceFactor,
-      const UInt& maxNumTrgEntities);
-
 
   //! Perform interpolation, based on a local radial basis functions (RBF)-approach
   //! Performs good, if the source mesh is not significantly bigger than the target
@@ -200,6 +179,8 @@ protected:
                       const UInt& numEquPerEnt,
                       Grid* grid,
                       const Double epsScal,
+					  const Double betaScal,
+					  const Double kScal,
                       const bool logEps);
 
 
@@ -212,6 +193,8 @@ protected:
                       const UInt& numEquPerEnt,
                       Grid* grid,
                       const Double epsScal,
+					  const Double betaScale,
+					  const Double kScale,
                       const bool logEps);
 
 
@@ -224,6 +207,8 @@ protected:
                       const UInt& numEquPerEnt,
                       Grid* grid,
                       const Double epsScal,
+					  const Double betaScal,
+					  const Double kScal,
                       const bool logEps);
 
 

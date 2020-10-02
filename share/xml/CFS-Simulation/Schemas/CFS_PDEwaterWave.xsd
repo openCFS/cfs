@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -137,6 +140,11 @@
                 <xsd:element name="pressure" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>pressure is set to zero</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="displacement" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>displacement is prescribed: -rho*omega^2 u_n</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
 
@@ -434,7 +442,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="waterPressure"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
-      <xsd:enumeration value="waterWaveRhsLoad"/>
+      <xsd:enumeration value="waterRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -442,6 +450,7 @@
   <xsd:simpleType name="DT_WaterWaveElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density"/>
+      <xsd:enumeration value="waterPosition"/>
       <xsd:enumeration value="pmlDampFactor"/>
     </xsd:restriction>
   </xsd:simpleType>

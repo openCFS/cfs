@@ -2,43 +2,66 @@
 
 #include <iostream>
 #include <fstream>
-
-
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 { 
+  class Preisach;
   
-  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
-          Matrix<Double>& preisachWeight, bool isVirgin) 
-  : Hysteresis(numElem)
-  {
-    
-    std::cout << "ScalarPreisach: Using Everett function" << std::endl;
-    
+  DEFINE_LOG(scalpreisach, "scalpreisach")
+  DEFINE_LOG(scalpreisachInversion, "scalpreisachInversion")
+  DEFINE_LOG(scalpreisachVecExtension, "scalpreisachVecExtension")
+
+  Preisach::Preisach(Integer numElem, ParameterPreisachOperators operatorParams,
+          ParameterPreisachWeights weightParams, bool isVirgin, bool ignoreAnhystPart)
+  : Hysteresis(numElem,operatorParams,weightParams){
+
+//  Preisach::Preisach(Integer numElem, Double xSat, Double ySat,
+//          Matrix<Double>& preisachWeight, bool isVirgin, Double anhyst_A, Double anhyst_B, Double anhyst_C,bool anhystOnly)
+//  : Hysteresis(numElem,xSat,ySat,anhyst_A,anhyst_B,anhyst_C,anhystOnly)
+//  {
+    LOG_TRACE(scalpreisach) << "ScalarPreisach: Using Everett function";
     //tol_ = 1e-5;
+    // tolerance for comparing entries of min/max-list
     tol_ = 1e-15;
+
+    // set in base class
+//    if (xSat > 0 ) {
+//      XSaturated_  = xSat;
+//    }
+//    else {
+//      XSaturated_  = 1.0;
+//    }
+//
+//    PSaturated_  = ySat;
     
-    if (xSat > 0 ) {
-      XSaturated_  = xSat;
-    }
-    else {
-      XSaturated_  = 1.0;
-    }
-    
-    YSaturated_  = ySat;
+    fixDirection_ = operatorParams.fixDirection_;
+    dim_ =  fixDirection_.GetSize();
+
     isVirgin_    = isVirgin;
     
-    preisachWeights_ = preisachWeight;
+    preisachWeights_ = weightParams.weightTensor_;
+
     preisachSum_.Resize(numElem);
-    preisachSum_.Init(0);
+    preisachSum_.Init();
     StringLength_.Resize(numElem);
+
+    // needed in combination with Mayergoyz model
+    // > only pure hysteretic part wanted in that case
+    if(ignoreAnhystPart){
+      anhyst_A_ = 0;
+      anhyst_B_ = 0;
+      anhyst_C_ = 0;
+      anhyst_D_ = 0;
+    }
     
     strings_     = new Vector<Double>[numElem];
     helpStrings_ = new Vector<Double>[numElem];
-    minmaxtype_     = new Vector<Integer>[numElem];
+    minmaxtype_ = new Vector<Integer>[numElem];
     evaluatedEverettPixel_ = new Vector<Double>[numElem];
-    maxStringLength_ = 100;
-    
+    maxStringLength_ = 200;
+
     for (Integer el=0; el<numElem; el++) {
       strings_[el].Resize(maxStringLength_);
 			minmaxtype_[el].Resize(maxStringLength_);
@@ -72,10 +95,12 @@ namespace CoupledField
   
   Double Preisach::getValue( Integer idx ) 
   {
-    return ( preisachSum_[idx]*YSaturated_ );
+    return ( preisachSum_[idx]*PSaturated_ );
   }
   
+
   Double Preisach::bisect(Double dY,Double xMin,Double xMax, Double xFixed, Double eps_mu, Double tol){
+		LOG_DBG(scalpreisachInversion) << "perform bisection for dY: " << dY;
 //    std::cout << "perform bisection" << std::endl;
 //    std::cout << "dY: " << dY << std::endl;
 //    std::cout << "xMin: " << xMin << std::endl;
@@ -95,34 +120,47 @@ namespace CoupledField
      * 
      * > use bisection to find xOpt between xMin and xMax
      */ 
-    UInt maxIter = 50;
-    Double xMiddle;
+    UInt maxIter = INV_params_.maxNumIts;// 50;
+//    std::cout << "Fine search via bisection with at max " << maxIter << " iterations" << std::endl;
+    Double xMiddle = 0.5*(xMax+xMin);
     Double diffMin, diffMiddle;
     Double everettMin, everettMiddle;
-    Double dX_to_dY = eps_mu*XSaturated_/YSaturated_;
+    Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
+
+    // new: as preisach operator alone leads to hystSaturated instead of PSaturated
+    //        but dY is normalized to PSaturated, we have to add the scaling dHyst_to_dY to all
+    //        everett related parts (as those return +/-1 which corresponds to +/-hystSaturated
+    Double dHyst_to_dY = hystSaturated_/PSaturated_;
     Double dX = 0.0;
+    Double dAnhyst = 0.0;
     
     if(xFixed >= -1){
+      LOG_DBG(scalpreisachInversion) << "perform bisection with fixed edge";
       //std::cout << "bisection with fixed edge" << std::endl;
       for(UInt i = 0; i<maxIter; i++){
         xMiddle = 0.5*(xMax+xMin);
         dX = xMiddle - xFixed;
+        dAnhyst = evalAnhystPart_normalized(xMiddle) - evalAnhystPart_normalized(xFixed);
         // important: here we need a factor of 2.0 as we have an update
         // to the previous state (i.e. we have to revert from +1 to -1 or
         // vice versa)
         everettMiddle = 2.0*everettPixel(xFixed,xMiddle);
         // dY = dP + dX_to_dY * dX
-        diffMiddle = dY - everettMiddle - dX*dX_to_dY;
+        diffMiddle = dY - dHyst_to_dY*everettMiddle - dX*dX_to_dY - dAnhyst;
         
         if(abs(diffMiddle) < tol){
+					LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
+          LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
           return xMiddle;
         }
         
         dX = xMin - xFixed;
+        dAnhyst = evalAnhystPart_normalized(xMin) - evalAnhystPart_normalized(xFixed);
+
         // syntax for everettPixel: 1. parameter: older/previous entry, 2. parameter new/next entry
         everettMin = 2.0*everettPixel(xFixed,xMin);
-         
-        diffMin = dY - everettMin - dX*dX_to_dY;
+
+        diffMin = dY - dHyst_to_dY*everettMin - dX*dX_to_dY - dAnhyst;
         
 //				std::cout << "xMiddle: " << xMiddle << std::endl;
 //        std::cout << "everettMiddle: " << everettMiddle << std::endl;
@@ -137,8 +175,12 @@ namespace CoupledField
           xMax = xMiddle;
         }
       }
+      LOG_DBG(scalpreisachInversion) << "Maxnumber of iteations reached ( case: xFixed >= -1 )";
+			LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
+      LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
 			return xMiddle;
     } else {
+      LOG_DBG(scalpreisachInversion) << "perform bisection without fixed edge";
       // for the open edge case, we have to be careful as the everettPixel
       // inside an empty Preisach plane will always be positive for x in 0,1;
       // to get a negative dY, we have to search in -1,0 instead
@@ -150,13 +192,16 @@ namespace CoupledField
         //std::cout << "bisection with open edge" << std::endl;
         xMiddle = 0.5*(xMax+xMin);
         dX = xMiddle; // here we have dX towards 0
+        dAnhyst = evalAnhystPart_normalized(xMiddle);
         // here we do not need a factor of 2.0 as we do not have to
         // revert a previous state
         everettMiddle = everettPixel(-xMiddle,xMiddle);
 
-        diffMiddle = dY - everettMiddle - dX*dX_to_dY;
+        diffMiddle = dY - dHyst_to_dY*everettMiddle - dX*dX_to_dY - dAnhyst;
         
         if(abs(diffMiddle) < tol){
+          LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
+          LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
           return xMiddle;
         }
         
@@ -164,10 +209,11 @@ namespace CoupledField
         // and a sign that can be used to find out if this area is to be subtracted
         // or to be added
         dX = xMin; // here we have dX towards 0
+        dAnhyst = evalAnhystPart_normalized(xMin);
         everettMin = everettPixel(-xMin,xMin);
         //everettMax = everettPixel(-xMax,xMax,sign);
 				
-        diffMin = dY - everettMin - dX*dX_to_dY;
+        diffMin = dY - dHyst_to_dY*everettMin - dX*dX_to_dY - dAnhyst;
         //diffMin = dYabs - abs(everettMin + dX*dX_to_dY);
         //diffMax = dYabs - everettMax;
 				
@@ -184,11 +230,14 @@ namespace CoupledField
           xMax = xMiddle;
         }
       }
+      LOG_DBG(scalpreisachInversion) << "Maxnumber of iteations reached ( case: xFixed < -1 )";
+		  LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
+      LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
 			return xMiddle;
     }
   }
-  
-  Double Preisach::computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite){
+
+  Double Preisach::computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite, int& successFlag){
     /*
      * NEW implementation; this shall replace class SimplePreisachInv that
      * apparently is not working
@@ -197,7 +246,9 @@ namespace CoupledField
      * Source: "Generalisiertes Preisach-Modell für die Simulation uund Kompensation
      *         piezokeramischer Aktoren" - Dissertation, Felix Wolf, p. 127ff
      */
-    
+		LOG_TRACE(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin = " << Yin;
+    LOG_TRACE(scalpreisachInversion) << "Index = " << idx;
+		LOG_DBG(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin_normalized = " << Yin/PSaturated_;
     /*
      * 0. Check if Input drives system into saturation
      *    > make sure to not only compare with YSaturated but also 
@@ -207,285 +258,494 @@ namespace CoupledField
      *      when recomputing Yin via YSaturated + eps_mu*XSaturated
      *      we can get a significant difference to the actual Yin
      */
-    Double Xout;
-    Double tol = 1e-8;
-    Double dX_to_dY = eps_mu*XSaturated_/YSaturated_;
+    if(invParamsSet_ == false){
+      EXCEPTION("Hysteresis.cc: Parameter for inversion have not been set yet!")
+    }
     
+    Double Xout;
+		Double x1,x2; // search interval for later bisection
+		x1 = 0.0;
+		x2 = 0.0;
+
+    // 8.6.2020: get tolerance from mat.xml
+    Double tolY = INV_params_.tolB;
+    if(INV_params_.tolB_useAsRelativeNorm && (abs(Yin) != 0)){
+      tolY /= abs(Yin);
+    }
+    Double tolX = INV_params_.tolH;
+    if(INV_params_.tolH_useAsRelativeNorm && (abs(previousXval_[idx]) != 0)){
+      tolX /= abs(previousXval_[idx]);
+    }
+//    std::cout << "Tolerance from mat.xml: tolX = " << tolX << ", tolY = " << tolY << std::endl;
+//    Double tol = 1e-8/XSaturated_;
+    
+    // dX_to_dY is the factor which is needed to transfer a normalized dX to
+    // a normalized dY
+    // dY_norm = dY/YSaturated = eps_mu*dX/YSaturated = eps_mu*dX*XSaturated/XSaturated/YSaturated
+    //         = eps_mu*XSaturated/YSaturated * dX_norm
+    Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
+    // new: as preisach operator alone leads to hystSaturated instead of PSaturated
+    //        but dY is normalized to PSaturated, we have to add the scaling dHyst_to_dY to all
+    //        everett related parts (as those return +/-1 which corresponds to +/-hystSaturated
+    Double dHyst_to_dY = hystSaturated_/PSaturated_;
+    
+    UInt invcase = 0;
+		UInt subcase = 0;
     //std::cout << "Inversion" << std::endl;
     //std::cout << "Yin: " << Yin << std::endl;
-    //std::cout << "YSaturated: " << YSaturated_ << std::endl;
+    //std::cout << "YSaturated: " << PSaturated_ << std::endl;
     //std::cout << "eps_mu: " << eps_mu << std::endl;
-    if(Yin >= (YSaturated_ + eps_mu*XSaturated_) ){
-      //std::cout << "pos saturation" << std::endl;
-      /*
-       * System is actually in positive saturation
-       * 
-       * yIn = Ysaturated_ + eps_mu*xOut
-       *     >= YSaturated_ + eps_mu*XSaturated_
-       * 
-       * xOut = (yIn - Ysaturated_)/eps_mu
-       */
-      Xout = (Yin - YSaturated_)/eps_mu;
-    } else if (Yin <= (-YSaturated_ - eps_mu*XSaturated_) ){
-      //std::cout << "neg saturation" << std::endl;
-      /*
-       * System is actually in negative saturation
-       * 
-       * yIn = -Ysaturated_ + eps_mu*xOut
-       * 
-       * xOut = (yIn + Ysaturated_)/eps_mu
-       */
-      Xout = (Yin + YSaturated_)/eps_mu;
+    // anhysteretic parameter are meant to be combined with saturated X > mult by 1.0 here
+    Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
+    Double anhystPartNegSat = PSaturated_*evalAnhystPart_normalized(-1.0);
+
+    if(anhystOnly_ == true){
+      // actual hyst operator is 0; we just solve for the anhyst part via bisection
+      Double Xup, Xdown, Poffset;
+      Xup = Yin/eps_mu;
+      Xdown = 0.0;
+      Poffset = 0.0;
+      int successFlagBisect = -1;
+      Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tolY,successFlagBisect);
+      //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
+      invcase = 9;
+      if(successFlagBisect >= 0){
+        successFlag = 1;
+      } else {
+        successFlag = -1;
+      }
     } else {
-      /*
-       * 1. Compute difference between requested yVal and previously computed value
-       */
-      // factor for relating a change in x to a change in y for
-      // the non-hysteretic part
-      //  > dY = dP + dX_to_dY*dX
-      // for dY, dP and dX all normalized
-      
-      // TODO:; should be normalized AFTER subtracting x
-      // do not cap to +/-1 here as Y is not the polarization (that is actually capped!)
-      Double Y_normalized = Yin/YSaturated_;
-      Double P_old_normalized = previousPval_[idx];
-//      std::cout << "Y_normalized: " << Y_normalized << std::endl;
-//      std::cout << "P_old_normalized: " << P_old_normalized << std::endl;
-//      
-      Double dY = Y_normalized - P_old_normalized;
-//      std::cout << "Y_normalized - P_old_normalized: " << dY << std::endl;
-//      std::cout << "previousXval_[idx]: " << previousXval_[idx] << std::endl;
-//      std::cout << "dX_to_dY*previousXval_[idx]): " << dX_to_dY*previousXval_[idx] << std::endl;
-//      
-      dY = dY - dX_to_dY*previousXval_[idx];
-      //std::cout << "Y_normalized - P_old_normalized - dX_to_dY*previousXval_[idx]: " << dY << std::endl;
-      
-      Integer minmaxcur = 0.0;
-			if(dY > 0){
-				// larger value than before > input has to be larger than
-				// previous one (this is only true if all Preisach weights >= 0!)
-				// > retrieved input will be a maximum
-				minmaxcur = 1.0;
-			} else if(dY < 0){
-				minmaxcur = -1.0;
-			}
-      //std::cout << "minmaxcur: " << minmaxcur << std::endl;
-      /*
-       * 2. Check if difference to previous value is relevant or not
-       */
-      if(abs(dY) < tol){
-        // difference is negligible
-        //std::cout << "take previous xvalue" << std::endl;
-        Xout = previousXval_[idx];
-      } else{
-        Vector<Double> &stringEl = strings_[idx];
-				Vector<int> &minmaxEl = minmaxtype_[idx];
-				Vector<Double> &everettEl = evaluatedEverettPixel_[idx];
-        
-				Double x1,x2; // search interval for later bisection
-				x1 = -1.0; // lower bound for max, left bound for min
-				x2 = 1.0; // upper bound for max, right bound for min
-				
-				Double xfix; 
-        UInt actLength = StringLength_[idx];
-        
+      // we just invert the actual hysteresis operator, i.e we have to subtract all anhyst and reversible parts
+      //  before starting the inversion
+      if(Yin >= (hystSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
+        LOG_DBG(scalpreisachInversion) << "Pos saturation";
+        //std::cout << "pos saturation" << std::endl;
         /*
-         * first step: list has to be cut down such that it ends with
-         *						 the opposite minmaxtype (as it is easier to add
-         *						 a max after a min than adding a max after a max)
+         * System is actually in positive saturation
+         *
+         * yIn = Ysaturated_ + eps_mu*xOut + PSaturated_*(anhyst_A_*std::atan(anhyst_B_*xOut/Xsaturated_) + anhyst_C_*xOut/Xsaturated_)
+         *     >= PSaturated_ + eps_mu*XSaturated_ + PSaturated_*(anhyst_A_*std::atan(anhyst_B_) + anhyst_C_);
+         *
+         * > inversion without anhysteretic part
+         * xOut = (yIn - Ysaturated_)/eps_mu
+         *
+         * > with anhysteretic part, inversion more complicated!
          */
-				if( (actLength >= 1)&&(minmaxcur == minmaxEl[actLength-1]) ){
-          //std::cout << "remove last entry of list: " << stringEl[actLength-1] << std::endl;
-					// delete last entry (not actually here but just virtually)
-					// the value of the corresponding everett pixel now increases
-					// the difference dY of course
-          // ATTENTION: if eps_mu*XSaturated_ comes into the range of 1e-3 or larger
-          //            we might find an everett pixel that fits dY but the result
-          //            will still be wrong as dY actually computes to be
-          //              Y = everettPixel(X) + eps_mu*X
-          // Conclusion: we have to subtract the influence of eps_mu*X from the
-          //             searched area update
-          Double dP = everettEl[actLength-1];
-          //std::cout << "dP (=everett[actLength-1]): " << dP << std::endl;
-          
-          dY += dP;
-          //std::cout << "dY+dP: " << dY << std::endl;
-          
-          // we search space for dY not dP, so we have to add the contribution of
-          // the reversible part
-          Double dX = stringEl[actLength-1];
-          if(actLength >= 2){
-            dX -= stringEl[actLength-2];
+        if(anhystPartPosSat == 0){
+          Xout = (Yin - hystSaturated_)/eps_mu;
+          invcase = 1;
+          successFlag = 2;
+        } else {
+          Double Xup, Xdown, Poffset;
+          Xup = (Yin - hystSaturated_)/eps_mu;
+          Xdown = XSaturated_;
+          Poffset = hystSaturated_;
+          int successFlagBisect = -1;
+          Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tolY,successFlagBisect);
+          //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
+          invcase = 11;
+          if(successFlagBisect >= 0){
+            successFlag = 2;
+          } else {
+            successFlag = -1;
           }
-          //std::cout << "dX = " << dX << std::endl;
-          dY += dX*dX_to_dY;
-          //std::cout << "dY+dP+dX_to_dY*dX: " << dY << std::endl;
-          
-					if(minmaxcur > 0){
-						// max> max was removed; lower bound can be increased to removed entry
-						x1 = stringEl[actLength-1];
-					} else {
-						// min> min was removed; right bound can be decreased to removed entry
-						x2 = stringEl[actLength-1];
-					}
-					
-					actLength--;
-				}
-				
-				/*
-         * second step: coarse search > find everettPixel that is large enought
-         *							to hold dY
+        }
+      } else if (Yin <= (-hystSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
+        LOG_DBG(scalpreisachInversion) << "Neg saturation";
+        //std::cout << "neg saturation" << std::endl;
+        /*
+         * System is actually in negative saturation
+         *
+         * yIn = -Ysaturated_ + eps_mu*xOut
+         *
+         * xOut = (yIn + Ysaturated_)/eps_mu
          */
-				while(true){
-					if(actLength <= 0){
-            //std::cout << "list empty" << std::endl;
-						// list empty
-						
-						// in bisection, search for x such that triangle
-						// everett(-x,x) = dY
-						// to indicate that we want to search for a triangle with
-						// alpha and beta to be equal and variable, set xfix (the third parameter
-						// to the bisect function to -2.0
-						xfix = -2.0;
-						// searching range between 0 and maximal value
-						x1 = 0;
-						x2 = 1;
-						
-						break; // go to fine search
-					} else {
-            // here we need to check if our dY would lead to a new list entry
-            // after the current one or if we have to step further backwards to find
-            // a fitting place
-            // Idea:
-            //  everettEl[actLength-1] corresponds to the increment of the polarization, i.e. dP_old
-            //  if abs(dP_new) < abs(dP_old), the new change in polarization (dP_new) could be
-            //  achieved by inserting a new extremum to the end of the list
-            //  if abs(dP_new) > abs(dP_old), the new input would wipe out older entries as the space is
-            //  not large enougth; in this case, we go back by 2 positions (to get the same extremum again)
-            //  and check again
-            // Problem:
-            //  aboves procedure only works for updates dP; however, we have dY = dP + eps*dX given
-            //  if eps is negligble (i.e. for electrostatics with eps = eps0) this normally is no issue
-            //  in case of magnetics and large values of dX, the contribution eps*dX might be significant, though
-            //  > we would have to compute dP_new first but this would require the knowledge of dX_new (which of course is unknonw)
-            //  > instead we compute dY_old = dP_old * eps*dX_old and compare dY_new with dY_old
-            //    by aboves steps; at this point we can no longer compare the areas directly (i.e. abs(dP_new), abs(dP_old))
-            //    this leads to problems like the following:
-            //      material in saturation, dP (from 0 to saturation) = 1, eps*dX = 1 > dY_old = 2
-            //      material shall now have a negative y-value, e.g. -0.1 > dY_new = -0.1-2 = -2.1
-            //      > the value -0.1 is larger than neg. saturation (here -1) and thus should lead to a 
-            //        a corresponding x_new that is a minimum after the previous maximum of +1 (=xSat)
-            //      > if we check for dY_old and dY_new, we see however, that dY_new does not fit into the space
-            //        of dY_old (which obviously is wrong)
-            //    > solution idea: take the first everett entry twice in terms of space computation
-            //              this seems legit as the full preisach plane can swtich from +1 to -1 and thus
-            //              has an effetive space of 2
-            //
+        if(anhystPartPosSat == 0){
+          Xout = (Yin + hystSaturated_)/eps_mu;
+          invcase = 2;
+          successFlag = 2;
+        } else {
+          Double Xup, Xdown, Poffset;
+          Xup = (Yin + hystSaturated_)/eps_mu;
+          Xdown = -XSaturated_;
+          Poffset = -hystSaturated_;
+          int successFlagBisect = -1;
+          Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tolY,successFlagBisect);
+          //Xout = bisectForSaturation(Yin, eps_mu, tol, true);
+          invcase = 21;
+          if(successFlagBisect >= 0){
+            successFlag = 2;
+          } else {
+            successFlag = -1;
+          }
+        }
+
+      } else {
+        invcase = 3;
+        /*
+         * 1. Compute difference between requested yVal and previously computed value
+         */
+        // factor for relating a change in x to a change in y for
+        // the non-hysteretic part
+        //  > dY = dP + dX_to_dY*dX
+        // for dY, dP and dX all normalized
+
+        // TODO:; should be normalized AFTER subtracting x
+        // do not cap to +/-1 here as Y is not the polarization (that is actually capped!)
+        // EDIT: 26.3.2018
+        //  we have to cap, but not to +/-1 (that would be for polarization) but
+        //  to +/- (1 + dX_to_dY*Xsaturated)
+        // > reason: in the following we compute dY as the difference between oldthat can
+        //           be represented by the Preisach plane is
+        //           2*PSaturated_ + 2*eps_mu*XSaturated_
+        //           (considering the reversible part);
+        //           If we start in saturation, however, we have a previous |Y| > YSaturated.
+        //           This leads to a dY that can be larger than 2*PSaturated_ + 2*eps_mu*XSaturated_.
+        //           Even if this is not the case, the later finesearch will try to compensate this
+        //           dY by adapting the Preisach plane. This works quite well actually, but is wrong
+        //           apparently as the finesearch computes dY from YSaturated+eps_mu*XSaturated and not from the actual
+        //           Yold.
+        //            > restrict Yold to (YSaturated+eps_mu*XSaturated)/YSaturated
+        //
+
+        // OLD without capping > works well unless we come from a saturated state
+  //      Double Y_normalized = Yin/PSaturated_;
+  //      Double P_old_normalized = previousPval_[idx];
+  //      Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
+  //      LOG_DBG(scalpreisach) << "yOld: " << Y_old_normalized*PSaturated_;
+  //      Double dY = Y_normalized - Y_old_normalized;
+
+        // NEW with capping
+        // NEW 25.4.2018 with anhyst part
+        Double Y_normalized = Yin/PSaturated_;
+        Double P_old_normalized = previousPval_[idx];
+        // IMPORTANT NOTE: previousXval_[idx] is normalized but NOT clipped > exactly what we need!
+        // NOTE: previousPval_ contains already the anhysteretic part and in total is normalized to PSaturated_!
+        Double Y_old_normalized = P_old_normalized + dX_to_dY*previousXval_[idx];// + evalAnhystPart_normalized(previousXval_[idx]);
+        LOG_DBG(scalpreisachInversion) << "Y_old: " << Y_old_normalized*PSaturated_;
+        LOG_DBG(scalpreisachInversion) << "Y_old_normalized: " << Y_old_normalized;
+        if(Y_old_normalized > (dHyst_to_dY + dX_to_dY + evalAnhystPart_normalized(1.0))){
+          Y_old_normalized = dHyst_to_dY + dX_to_dY + evalAnhystPart_normalized(1.0);
+        } else if (Y_old_normalized < -(dHyst_to_dY + dX_to_dY)+evalAnhystPart_normalized(-1.0)){
+          Y_old_normalized = -dHyst_to_dY - dX_to_dY + evalAnhystPart_normalized(-1.0);
+        }
+        LOG_DBG(scalpreisachInversion) << "Y_old_normalized (clipped): " << Y_old_normalized;
+
+        Double dY = Y_normalized - Y_old_normalized;
+
+
+  //     dY = dY - dX_to_dY*previousXval_[idx];
+        //std::cout << "Y_normalized - P_old_normalized - dX_to_dY*previousXval_[idx]: " << dY << std::endl;
+        LOG_TRACE(scalpreisachInversion) << "Starting value for dY: " << dY*PSaturated_;
+        LOG_DBG(scalpreisachInversion) << "Starting value for dY (normalized): " << dY;
+        Integer minmaxcur = 0.0;
+        if(dY > 0){
+          // larger value than before > input has to be larger than
+          // previous one (this is only true if all Preisach weights >= 0!)
+          // > retrieved input will be a maximum
+          minmaxcur = 1.0;
+        } else if(dY < 0){
+          minmaxcur = -1.0;
+        }
+        //std::cout << "minmaxcur: " << minmaxcur << std::endl;
+        /*
+         * 2. Check if difference to previous value is relevant or not
+         */
+        if(abs(dY) < tolY){ //1e-16){
+          // difference is negligible
+          LOG_TRACE(scalpreisachInversion) << "take previous xvalue" << std::endl;
+          invcase = 31;
+          successFlag = 0;
+          // attention: previousXval_ is normalized by XSaturated_
+          Xout = previousXval_[idx];
+        } else{
+          invcase = 32;
+          Vector<Double> &stringEl = strings_[idx];
+          Vector<int> &minmaxEl = minmaxtype_[idx];
+          Vector<Double> &everettEl = evaluatedEverettPixel_[idx];
+
+          x1 = -1.0; // lower bound for max, left bound for min
+          x2 = 1.0; // upper bound for max, right bound for min
+
+          Double xfix;
+          UInt actLength = StringLength_[idx];
+
+          /*
+           * first step: list has to be cut down such that it ends with
+           *						 the opposite minmaxtype (as it is easier to add
+           *						 a max after a min than adding a max after a max)
+           */
+          if( (actLength >= 1)&&(minmaxcur == minmaxEl[actLength-1]) ){
+            LOG_DBG(scalpreisachInversion) << "remove last entry of list: " << stringEl[actLength-1];
+            //std::cout << "remove last entry of list: " << stringEl[actLength-1] << std::endl;
+            // delete last entry (not actually here but just virtually)
+            // the value of the corresponding everett pixel now increases
+            // the difference dY of course
+            // ATTENTION: if eps_mu*XSaturated_ comes into the range of 1e-3 or larger
+            //            we might find an everett pixel that fits dY but the result
+            //            will still be wrong as dY actually computes to be
+            //              Y = everettPixel(X) + eps_mu*X
+            // Conclusion: we have to subtract the influence of eps_mu*X from the
+            //             searched area update
             
-            // the availableSpace consists of the space for dP, i.e. the size of the
-            // everett pixel
-            Double availSpace = everettEl[actLength-1];
-            
+            /*
+             * Important note (27.3.2020): from theory, we have to add the Everett function twice
+             * as the output computes as
+             *   y = sign(e1)*Everett(-e_1,e_1) + sum_p 2 sign(e_(p+1)-e_p) Everett(e_p,e_(p+1))
+             * However, here and in the following, we access everettEl which is referencing to
+             * evaluatedEverettPixel_ which in turn stores 
+             *  Everett(-e_1,e_1), 2 Everett(e_1,e_2), 2 Everett(e_2,e_3), ...
+             * I.e.: The factor 2 is already included!
+             */
+            Double dP = everettEl[actLength-1];
+            //std::cout << "dP (=everett[actLength-1]): " << dP << std::endl;
+
+            dY += dHyst_to_dY*dP;
+            //std::cout << "dY+dP: " << dY << std::endl;
+
+            // we search space for dY not dP, so we have to add the contribution of
+            // the reversible part
             Double dX = stringEl[actLength-1];
-//            std::cout << "stringEl[actLength-1]: "<< stringEl[actLength-1] << std::endl;
-//            std::cout << "actLength: "<< actLength << std::endl;
+            Double dAnhyst = evalAnhystPart_normalized(stringEl[actLength-1]);
+
+            LOG_DBG(scalpreisachInversion) << "Invert Preisach - Add anhystPart " << evalAnhystPart_normalized(stringEl[actLength-1]);
+            LOG_DBG(scalpreisachInversion) << "for X/norm = " << (stringEl[actLength-1]);
+
             if(actLength >= 2){
-              //std::cout << "stringEl[actLength-2]: "<< stringEl[actLength-2] << std::endl;
+              LOG_DBG(scalpreisachInversion) << "remove a second entry: " << stringEl[actLength-2];
               dX -= stringEl[actLength-2];
-            } else {
-              // last entry; everettEl counts twice
-              availSpace += everettEl[actLength-1];
-              // we also have to take the difference towards the other edge of the triangle, so add last entry another time
-              dX += stringEl[actLength-1];
+              dAnhyst -= evalAnhystPart_normalized(stringEl[actLength-2]);
             }
-            availSpace += dX_to_dY*dX;
-            
-//            std::cout << "everettEl[actLength-1]: " << everettEl[actLength-1] << std::endl;
-//            std::cout << "dX_to_dY*dX: " << dX_to_dY*dX << std::endl;
-//            std::cout << "abs(everettEl[actLength-1] + dX_to_dY*dX): " << abs(everettEl[actLength-1] + dX_to_dY*dX) << std::endl;
-//            std::cout << "abs(dY): " << abs(dY) << std::endl;
-            // if( abs(everettEl[actLength-1] + dX_to_dY*dX) >= abs(dY) ){
-						if( abs(availSpace) >= abs(dY) ){
-              // std::cout << "enough space" << std::endl;
-							// > enough space
-							
-							// fix edge of the everett triangle
-							xfix = stringEl[actLength-1];
-							if(actLength >= 2){
-								// reduce searching range (if possible due to previous entries)
-								if(minmaxcur > 0){
-									// entry at position actLength-2 is a maximum again and
-									// marks the upper bound for the everett triangle
-									x2 = stringEl[actLength-2];
-								} else {
-									// entry at position actLength-2 is a minimum again and
-									// marks the left bound for the everett triangle
-									x1 = stringEl[actLength-2];
-								}
-							}
-							
-							break; // go to fine search
-						} else {
-              // std::cout << "not enough space" << std::endl;
-              
-							// not enough space; decrease list by 2 (it has to end with the
-							// same minmaxtype again!) and check again
-							// the removed entries have to be added to dY (as the difference
-							// to the last computed value increases by the removed entries)
-							// and adapt x1,x2 if possible
-              
-              // everettEl = dP
-              // dY = dP + dX_to_dY*dX
-              // we actually try to find a fitting dP here, so we must subtract
-              // the influence of dX
-							dY += everettEl[actLength-1]+dX_to_dY*dX;
-							actLength--;
-							if(actLength >= 1){
-                dX = stringEl[actLength-1];
+            //std::cout << "dX = " << dX << std::endl;
+            dY += dX*dX_to_dY + dAnhyst;
+            //std::cout << "dY+dP+dX_to_dY*dX: " << dY << std::endl;
+
+            if(minmaxcur > 0){
+              // max> max was removed; lower bound can be increased to removed entry
+              x1 = stringEl[actLength-1];
+            } else {
+              // min> min was removed; right bound can be decreased to removed entry
+              x2 = stringEl[actLength-1];
+            }
+            LOG_DBG(scalpreisachInversion) << "Updated dY: " << dY;
+            actLength--;
+          }
+
+          /*
+           * second step: coarse search > find everettPixel that is large enought
+           *							to hold dY
+           */
+          while(true){
+            if(actLength <= 0){
+              //std::cout << "list empty" << std::endl;
+              // list empty
+
+              // in bisection, search for x such that triangle
+              // everett(-x,x) = dY
+              // to indicate that we want to search for a triangle with
+              // alpha and beta to be equal and variable, set xfix (the third parameter
+              // to the bisect function to -2.0
+              xfix = -2.0;
+              // searching range between 0 and maximal value
+              x1 = 0;
+              x2 = 1;
+              subcase = 0;
+              break; // go to fine search
+            } else {
+              // here we need to check if our dY would lead to a new list entry
+              // after the current one or if we have to step further backwards to find
+              // a fitting place
+              // Idea:
+              //  everettEl[actLength-1] corresponds to the increment of the polarization, i.e. dP_old
+              //  if abs(dP_new) < abs(dP_old), the new change in polarization (dP_new) could be
+              //  achieved by inserting a new extremum to the end of the list
+              //  if abs(dP_new) > abs(dP_old), the new input would wipe out older entries as the space is
+              //  not large enougth; in this case, we go back by 2 positions (to get the same extremum again)
+              //  and check again
+              // Problem:
+              //  aboves procedure only works for updates dP; however, we have dY = dP + eps*dX given
+              //  if eps is negligble (i.e. for electrostatics with eps = eps0) this normally is no issue
+              //  in case of magnetics and large values of dX, the contribution eps*dX might be significant, though
+              //  > we would have to compute dP_new first but this would require the knowledge of dX_new (which of course is unknonw)
+              //  > instead we compute dY_old = dP_old * eps*dX_old and compare dY_new with dY_old
+              //    by aboves steps; at this point we can no longer compare the areas directly (i.e. abs(dP_new), abs(dP_old))
+              //    this leads to problems like the following:
+              //      material in saturation, dP (from 0 to saturation) = 1, eps*dX = 1 > dY_old = 2
+              //      material shall now have a negative y-value, e.g. -0.1 > dY_new = -0.1-2 = -2.1
+              //      > the value -0.1 is larger than neg. saturation (here -1) and thus should lead to a
+              //        a corresponding x_new that is a minimum after the previous maximum of +1 (=xSat)
+              //      > if we check for dY_old and dY_new, we see however, that dY_new does not fit into the space
+              //        of dY_old (which obviously is wrong)
+              //    > solution idea: take the first everett entry twice in terms of space computation
+              //              this seems legit as the full preisach plane can swtich from +1 to -1 and thus
+              //              has an effetive space of 2
+              // NOTE 27.3.2020: This is no issue of the reversible part but is just resulting from the fact
+              //  that the preevaluated everettElements all include the factor 2 except the first one. In all
+              //  cases, dP would correspond to twice the Everett function as dP marks a change from +/-1 to -/+1
+              //  but the Everett function only from +/-1 to 0
+
+              // the availableSpace consists of the space for dP, i.e. the size of the
+              // everett pixel (which is twice the Everett integral in this implementation!)
+              Double availSpace = dHyst_to_dY*everettEl[actLength-1];
+
+              Double dX = stringEl[actLength-1];
+              Double dAnhyst = evalAnhystPart_normalized(stringEl[actLength-1]);
+  //            std::cout << "stringEl[actLength-1]: "<< stringEl[actLength-1] << std::endl;
+  //            std::cout << "actLength: "<< actLength << std::endl;
+              if(actLength >= 2){
+                //std::cout << "stringEl[actLength-2]: "<< stringEl[actLength-2] << std::endl;
+                dX -= stringEl[actLength-2];
+                dAnhyst -= evalAnhystPart_normalized(stringEl[actLength-2]);
+                subcase = 2;
+              } else {
+                // last entry; everettEl counts twice
+                // NOTE 27.3.2020: It only counts twice compared the other cases, as this entry is the only
+                //  one that is stored without the factor 2 > see computation of the everett pixel below
+                //  (around line 1024)
+                availSpace += dHyst_to_dY*everettEl[actLength-1];
+                // we also have to take the difference towards the other edge of the triangle, so add last entry another time
+                // dX += stringEl[actLength-1];
+                // > instead: add dX*dX_to_dY to availspace instead of increasing dX!
+                // dX is simply stringEL here
+                availSpace += dX_to_dY*dX + dAnhyst;
+                subcase = 1;
+                //
+              }
+              availSpace += dX_to_dY*dX + dAnhyst;
+
+  //            std::cout << "everettEl[actLength-1]: " << everettEl[actLength-1] << std::endl;
+  //            std::cout << "dX_to_dY*dX: " << dX_to_dY*dX << std::endl;
+  //            std::cout << "abs(everettEl[actLength-1] + dX_to_dY*dX): " << abs(everettEl[actLength-1] + dX_to_dY*dX) << std::endl;
+  //            std::cout << "abs(dY): " << abs(dY) << std::endl;
+              // if( abs(everettEl[actLength-1] + dX_to_dY*dX) >= abs(dY) ){
+              if( abs(availSpace) >= abs(dY) ){
+                // std::cout << "enough space" << std::endl;
+                // > enough space
+
+                // fix edge of the everett triangle
+                xfix = stringEl[actLength-1];
                 if(actLength >= 2){
-                  dX -= stringEl[actLength-2];
+                  // reduce searching range (if possible due to previous entries)
+                  if(minmaxcur > 0){
+                    // entry at position actLength-2 is a maximum again and
+                    // marks the upper bound for the everett triangle
+                    x2 = stringEl[actLength-2];
+                  } else {
+                    // entry at position actLength-2 is a minimum again and
+                    // marks the left bound for the everett triangle
+                    x1 = stringEl[actLength-2];
+                  }
                 }
-								dY += everettEl[actLength-1]+dX_to_dY*dX;
-								if(minmaxcur > 0){
-									// max> max was removed; lower bound can be increased to removed entry
-									x1 = stringEl[actLength-1];
-								} else {
-									// min> min was removed; right bound can be decreased to removed entry
-									x2 = stringEl[actLength-1];
-								}
-								
-								actLength--;
-							}
-						}
-					}	
-				} // while loop
-				
-				/*
-         * thrid step: fine search via bisection (xOut in range -1,1)
-         */
-				Xout = bisect(dY,x1,x2,xfix,eps_mu,tol);
-			} // reuse old value
-      
+
+                break; // go to fine search
+              } else {
+                // std::cout << "not enough space" << std::endl;
+
+                // not enough space; decrease list by 2 (it has to end with the
+                // same minmaxtype again!) and check again
+                // the removed entries have to be added to dY (as the difference
+                // to the last computed value increases by the removed entries)
+                // and adapt x1,x2 if possible
+
+                // everettEl = dP
+                // dY = dP + dX_to_dY*dX
+                // we actually try to find a fitting dP here, so we must subtract
+                // the influence of dX
+                dY += dHyst_to_dY*everettEl[actLength-1]+dX_to_dY*dX + dAnhyst;
+                actLength--;
+                if(actLength >= 1){
+                  dX = stringEl[actLength-1];
+                  dAnhyst = evalAnhystPart_normalized(stringEl[actLength-1]);
+                  if(actLength >= 2){
+                    dX -= stringEl[actLength-2];
+                    dAnhyst -= evalAnhystPart_normalized(stringEl[actLength-2]);
+                  }
+                  dY += dHyst_to_dY*everettEl[actLength-1] + dX_to_dY*dX + dAnhyst;
+                  if(minmaxcur > 0){
+                    // max> max was removed; lower bound can be increased to removed entry
+                    x1 = stringEl[actLength-1];
+                  } else {
+                    // min> min was removed; right bound can be decreased to removed entry
+                    x2 = stringEl[actLength-1];
+                  }
+                  LOG_DBG(scalpreisachInversion) << "Updated dY: " << dY;
+                  actLength--;
+                }
+              }
+            }
+          } // while loop
+
+          /*
+           * thrid step: fine search via bisection (xOut in range -1,1)
+           */
+          Xout = bisect(dY,x1,x2,xfix,eps_mu,tolY);
+        } // reuse old value
+
+        Xout *= XSaturated_;
+      } // pos/neg/no saturation
       // rescale to -xSat to +xSat
-      Xout *= XSaturated_;
-		} // pos/neg/no saturation
-		
+      //LOG_TRACE(scalpreisachInversion) << "Found Xout (normalized): " << Xout;
+      LOG_TRACE(scalpreisachInversion) << "Found Xout: " << Xout;
+
+    } // anhyst only
+
 		/*
      * final step: if overwrite == true > compute forward step to
      *						 update the list (this was not done yet!)
      * 
      * > has to be done for ALL cases
      */	
-		//if(overwrite){
-      computeValueAndUpdate( Xout, idx, overwrite );
-      Double yRetrieved = computeValueAndUpdate( Xout, idx, overwrite );
+    bool debug = !true;
+    successFlag = 4;
+    if(overwrite || debug){
+      LOG_DBG(scalpreisachInversion) << "overwrite? " << overwrite;
+      int successFlagForward = 0;
+      Double yRetrieved = computeValueAndUpdate( Xout, idx, overwrite, successFlagForward );
       //std::cout << "Xout: " << Xout << std::endl;
       //std::cout << "pRetrieved: " << yRetrieved << std::endl;
+			LOG_DBG(scalpreisachInversion) << "Found Xout: " << Xout;
       yRetrieved+=Xout*eps_mu;
-      //std::cout << "yRetrieved: " << yRetrieved << std::endl;
-      //std::cout << "yRequested: " << Yin << std::endl;
-		//}
-		
+      LOG_TRACE(scalpreisachInversion) << "yRequested: " << Yin;
+      LOG_TRACE(scalpreisachInversion) << "Found Yout: " << yRetrieved;
+      LOG_TRACE(scalpreisachInversion) << "InversionCase: " << invcase;
+      LOG_TRACE(scalpreisachInversion) << "SubCase: " << subcase;
+      if(abs(yRetrieved-Yin) > tolY){
+        successFlag = -1;
+      }
+//        LOG_TRACE(scalpreisachInversion) << "Difference: " << yRetrieved-Yin;
+//
+//        Double P_old_normalized = previousPval_[idx];
+//        Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
+//
+//        LOG_TRACE(scalpreisachInversion) << "yOld: " << Y_old_normalized*PSaturated_;
+//        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld: " << Yin-Y_old_normalized*PSaturated_;
+//        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld (normalized): " << Yin-Y_old_normalized;
+//        LOG_TRACE(scalpreisachInversion) << "x1, x2, xOut: " << x1 << ", " << x2 << ", " << Xout;
+//      }
+    } else if(checkInversionResult_){
+      int successFlagForward = 0;
+      bool abortOnFail = false;
+      Double yRetrieved = computeValueAndUpdate( Xout, idx, false, successFlagForward );
+      yRetrieved+=Xout*eps_mu;
+      if(abs(yRetrieved-Yin) > tolY){
+        std::stringstream exceptionmsg;
+        exceptionmsg << "Everett-based-Inversion failed final test; remaining residual norm wrt y: " << abs(yRetrieved-Yin);
+        if(abortOnFail){
+          EXCEPTION(exceptionmsg.str());
+        } else {
+          //WARN(exceptionmsg.str());
+          std::cout << exceptionmsg.str() << std::endl;
+        }
+      }
+
+    } else {
+      //store value for the case that we want to reuse it later
+      // only needed if computeValueAndUpdate is not exectued with overwrite = true
+      //NOTE: we must not execute this line before computeValueAndUpdate as this
+      // function would return without overwriting the hyst memory
+      //previousXval_[idx] = Xout/XSaturated_;
+    }
+
 		return Xout;
 	}
   
@@ -532,24 +792,66 @@ namespace CoupledField
   //      }
   //    }
   //
-  //    return ( Yval*YSaturated_ );
+  //    return ( Yval*PSaturated_ );
   //  }
-  
+
+  Vector<Double> Preisach::computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite,
+      bool debugOut, int& successFlag, bool skipAnhystPart) {
+    
+//    std::cout << "Scal Preisach: computeValue_vec; input: " << xVal.ToString() << std::endl;
+    // apply the same steps as in CoefFunctionHyst
+    Double scalInput;
+    Double scalOutput;
+    fixDirection_.Inner(xVal,scalInput);
+
+    scalOutput = this->computeValueAndUpdate(scalInput,idxElem, overwrite,successFlag);
+    Vector<Double> outputOfHystOperator = Vector<Double>(fixDirection_.GetSize());
+    outputOfHystOperator.Init();
+    outputOfHystOperator.Add(scalOutput,fixDirection_);
+
+    return outputOfHystOperator;
+  }
+
   Double Preisach::computeValueAndUpdate( Double Xin, Integer idx,
-          bool overwrite )  
+          bool overwrite, int& successFlag )
   {
-    
     //do the deletion
-    Double newY = updateMinMaxList(Xin, idx, overwrite);
+    Double newY = 0.0;
+    if(anhystOnly_ == false){
+      // update minmaxlist will add anhyst part
+      newY += updateMinMaxList(Xin, idx, overwrite, successFlag);
+    } else  {
+      Double X_norm_unclipped = Xin / XSaturated_;
+      LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
+      LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
+      newY += evalAnhystPart_normalized(X_norm_unclipped);
+      successFlag = 1; // anhyst Only
+    }
+    return ( newY*PSaturated_ );
+  }
+
+  Double Preisach::computeValueAndUpdateMeasure( Double Xin, Integer idx,
+          bool overwrite, int& successFlag, Double& time )
+  {
+    Timer* timer = new Timer();
+    Double startTime = timer->GetCPUTime();
+    timer->Start();
+
+    Double newY = computeValueAndUpdate( Xin, idx,overwrite, successFlag );
+
+    timer->Stop();
+    Double endTime = timer->GetCPUTime();
+    time = endTime-startTime;
     
-    return ( newY*YSaturated_ );
+    return newY;
   }
   
   
+
   Double Preisach::updateMinMaxList(Double Xin, Integer idx, 
-          bool overwrite )
+          bool overwrite, int& successFlag )
   {
-    
+    LOG_TRACE(scalpreisachInversion) << "UpdateMinMaxList - Input: " << Xin;
     //std::cout << "UpdateMinMaxList - Input: " << Xin << std::endl;
     Double newY;
     
@@ -564,7 +866,16 @@ namespace CoupledField
 		
 		// determine type of current input
 		// only relevant if overwrite is true
-		Double diff = newX - previousXval_[idx];
+
+    // NOTE: previousXval_[idx] = Xin/XSaturated_;
+    // > previousXval_ is unclipped
+    // > compare with clipped version of previousXval (better for saturation
+    //    as > sat and >> sat will reuse max value
+//    Double oldX = normalizeAndClipInput(previousXval_[idx]*XSaturated_);
+//		Double diff = newX - oldX;
+
+
+    Double diff = Xin-previousXval_[idx]*XSaturated_;
 		int minmaxcur = 0;
 		if(diff > 0){
 			// new input is larger than last one > leads to a maximum
@@ -572,6 +883,18 @@ namespace CoupledField
 		} else if(diff < 0){
 			// new input is smaller than last one > leads to a minimum
 			minmaxcur = -1;
+		} else if(diff == 0){
+      // reuse old value but set previousXval anew
+      // reason: above we compare the clipped values, Xin might be different from prevX
+      LOG_TRACE(scalpreisachInversion) << "Reuse: " << preisachSum_[idx];
+      successFlag = 0;
+      if(overwrite){
+        previousXval_[idx] = Xin/XSaturated_;
+      }
+      // note: preisachSum contains hyst part + anhyst part and is normalized to PSaturated_
+      //  if anhystpart counts for PSaturated, preisachSum will be in range [-1,1] if input is below saturation
+      //  if anhystpart does not count for PSaturated, preisachSum may be larger than 1 at saturation
+			return preisachSum_[idx];
 		}
     
     //    std::cout << "Element: " << idx << std::endl;
@@ -591,6 +914,8 @@ namespace CoupledField
     //    std::cout << "#############" << std::endl;
     
     if ( abs(newX) > abs(abs(stringEl[0]) - tol_) || stringLength == 0 ) {
+      // reset
+      successFlag = 4;
       stringLength = 1;
       if ( overwrite ){
 				stringEl[0]  = newX;
@@ -611,7 +936,10 @@ namespace CoupledField
 			}
     }
     else { 
+      // check difference to last entry of list
       if ( abs( newX - stringEl[stringLength-1] ) > tol_ ) {
+        // list modified
+        successFlag = 5;
         helpStringEl[0] = -stringEl[0];
         for ( UInt i=1; i<=stringLength; i++ ) {
           helpStringEl[i] = stringEl[i-1];
@@ -663,8 +991,7 @@ namespace CoupledField
 					// we only have to store the minmax type of the newly added entry
 					// the others are already set (or will be overwritten)
 					minmaxtype_[idx][stringLength-1] = minmaxcur;
-        }
-        else {
+        } else {
           
           //          std::cout << "Print out entries of helper min/max list before resorting" << std::endl;
           //
@@ -689,17 +1016,19 @@ namespace CoupledField
         }
       }
       else {
+        // append
+        successFlag = 6;
         /*
          * Note: We check if a new input is large/small enough to modify the
          * actual storage stringEl;
          * if this is the case, we update
-         * either stringEl (if update = true) or helpStringEl (if update = false)
+         * either stringEl (if overwrite = true) or helpStringEl (if overwrite = false)
          * and everything works just fine
          *
          * if this is not the case, we do neither change stringEl nor helpStringEl
-         * if update = true, this is no problem, as we evaluate stringEl which is
+         * if overwrite = true, this is no problem, as we evaluate stringEl which is
          * up to date (otherwise an update would have been needed)
-         * if update = false, we evaluate helpStringEl. This can be a serious problem
+         * if overwrite = false, we evaluate helpStringEl. This can be a serious problem
          * if helpStringEl is not stringEL
          * -> if no update of list was performed, copy stringEl (which is up to date)
          * to helpStringEl
@@ -730,6 +1059,16 @@ namespace CoupledField
       
       //compute preisach-sum
       Double pixelToAdd = everettPixel(-stringEl[0],stringEl[0]);
+      /*
+       * Important note (27.3.2020): from theory, we have to add the Everett function twice
+       * as the output computes as
+       *   y = sign(e1)*Everett(-e_1,e_1) + sum_p 2 sign(e_(p+1)-e_p) Everett(e_p,e_(p+1))
+       * In this implementation evaluatedEverettPixel_ does NOT store Everett(e_p,e_(p+1)) directly,
+       * but already the correctly scaled versions, i.e.  
+       *  Everett(-e_1,e_1), 2 Everett(e_1,e_2), 2 Everett(e_2,e_3), ...
+       * I.e.: The factor 2 is already included!
+       * This is a crucial point that has to be kept in mind during the inversion process!
+       */
 			evaluatedEverettPixel_[idx][0] = pixelToAdd;
       preisachSum_[idx] = pixelToAdd;
       
@@ -738,8 +1077,31 @@ namespace CoupledField
 				evaluatedEverettPixel_[idx][i+1] = pixelToAdd;
         preisachSum_[idx] += pixelToAdd;   
       }
-      newY = preisachSum_[idx]; 
+
 			
+      // add optional anhysteretic part
+      // > see e.g. "A preisach-based hysteresis model for magnetic and ferroelectric hysteresis" - A. Sutor 2010
+      Double X_norm_unclipped = Xin / XSaturated_;
+      LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
+      LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
+
+      // 1. scale Preisach sum (till now only hysteretic part) by hystSaturated_
+      // 2. add PSaturated_ * anhystPart
+      // 3. normalize sum to PSaturated_
+
+//      std::cout << "preisachSum_[idx]: " << preisachSum_[idx] << std::endl;
+
+      preisachSum_[idx] *= hystSaturated_;
+//      std::cout << "preisachSum_[idx]*= hystSaturated_: " << preisachSum_[idx] << std::endl;
+      preisachSum_[idx] += PSaturated_*evalAnhystPart_normalized(X_norm_unclipped);
+//      std::cout << "preisachSum_[idx]+= PSaturated_*evalAnhystPart_normalized(X_norm_unclipped): " << preisachSum_[idx] << std::endl;
+
+      preisachSum_[idx] /= PSaturated_;
+//      std::cout << "preisachSum_[idx]/= PSaturated_: " << preisachSum_[idx] << std::endl;
+
+      //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped + anhyst_D_) + anhyst_C_*X_norm_unclipped;
+      newY = preisachSum_[idx];
+
 			// store values for next evaluation
 			// ONLY in case of overwrite
       // store the normalized values but Xin has to be unclipped!
@@ -771,9 +1133,30 @@ namespace CoupledField
 				pixelToAdd = 2.0*everettPixel(helpStringEl[i],helpStringEl[i+1]);
         newY +=  pixelToAdd;
       }
+
+      Double X_norm_unclipped = Xin / XSaturated_;
+      LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
+      LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
+
+      // 1. scale Preisach sum (till now only hysteretic part) by hystSaturated_
+      // 2. add PSaturated_ * anhystPart
+      // 3. normalize sum to PSaturated_
+      newY *= hystSaturated_;
+      newY += PSaturated_*evalAnhystPart_normalized(X_norm_unclipped);
+      newY /= PSaturated_;
+
+//      newY += evalAnhystPart_normalized(X_norm_unclipped);
+      //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped + anhyst_D_) + anhyst_C_*X_norm_unclipped;
     }
-    
+    LOG_TRACE(scalpreisachInversion) << "Computed new value: " << newY;
     //std::cout << "UpdateMinMaxList - Output: " << newY << std::endl;
+
+//    if(overwrite){
+//      successFlag = 2;
+//    } else {
+//      successFlag = 3;
+//    }
+
     return newY;
   }
   

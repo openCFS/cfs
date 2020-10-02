@@ -99,12 +99,12 @@ namespace CoupledField
 
     Optimization* optimization;
 
-    /** standard optimiers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
+    /** standard optimizers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
      * the optimizer_timer_ is paused. Special optimizers like EvaluateOnly are more direct and need to pause themselves */
-    boost::shared_ptr<Timer> GetOptimierTimer() { return optimizer_timer_; }
+    boost::shared_ptr<Timer> GetOptimizerTimer() { return optimizer_timer_; }
 
     /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
-    boost::shared_ptr<Timer> GetRunnungEvalTimer();
+    boost::shared_ptr<Timer> GetRunningEvalTimer();
 
   protected:
 
@@ -159,13 +159,13 @@ namespace CoupledField
        * Calculates opt_scaling if target is given!
        * @return true if not active or no tolerance or within tolerance */
       bool CheckScaling(int n, StdVector<double>& grad);
-
+      
       /** Did we do autoscale? Interesting for iteration-0 commit */
-      bool DoAutoscale() 
+      bool DoAutoscale()
       {
         return autoscale_;
       }
-      
+
       std::string ToString();
       
       /** out target for the autoscaled gradient. Not 0.0 means we do autoscale */
@@ -177,6 +177,9 @@ namespace CoupledField
       /** do we do logarithmic scaling */
       bool logscale;
 
+      /** do we do scaling by a manually given factor */
+      double manual;
+
       /** The optimal scaling for the design */
       DesignMemory opt_scaling;
       
@@ -187,9 +190,9 @@ namespace CoupledField
       DesignMemory current;
       
     private:
-      
+
       bool autoscale_;
-      
+
       BaseOptimizer* base_;
     };
 

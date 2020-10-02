@@ -5,7 +5,7 @@
 #include "SimState.hh"
 
 #include <map>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 // include hdf5 cpp file
 #include "H5Cpp.h"
@@ -28,7 +28,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(simState)
 DEFINE_LOG(simState, "simState")
 
 class MaterialHandler;
@@ -43,6 +42,7 @@ class MaterialHandler;
     domain_ = NULL;
     parentDomain_ = parentDomain;
     parentParser_ = NULL;
+    parentHandle_= 0;
     interpol_ = NO_INTERPOLATION;
     
   }
@@ -92,7 +92,7 @@ class MaterialHandler;
                  << "defined" );
     }
 
-    // Attention: currently we may not re-set the seuquence step, if the simState
+    // Attention: currently we may not re-set the sequence step, if the simState
     // is primary intended for output
     sequenceStep_ = sequenceStep;
 
@@ -105,9 +105,9 @@ class MaterialHandler;
 
     // Generate xml parameter reader
     LOG_TRACE(simState) << "Generating parameter node from xml file";
-    std::string schema = progOpts->GetSchemaPathStr();
-    schema += "/CFS-Simulation/CFS.xsd";
-    PtrParamNode rootNode = XmlReader::ParseString(paramContent, schema);
+    std::string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
+    PtrParamNode rootNode = XmlReader::ParseString(paramContent, schema,
+                                                   "http://www.cfs++.org/simulation");
 
 
     // Generate material reader
@@ -202,7 +202,7 @@ class MaterialHandler;
     // In case there is a domain object, we also have to notify the 
     // Driver
     if( domain_ ) {
-      // notify also the driver about the current time / freqeuency step 
+      // notify also the driver about the current time / frequency step
       SingleDriver * ptDriver = domain_->GetSingleDriver();
       Integer index = stepNums_.Find(stepNum);
       if( index == -1 ) {

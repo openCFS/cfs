@@ -1,20 +1,13 @@
 #include "BaseMaterial.hh"
 
-#include <stdlib.h>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <cmath>
-#include <limits.h>
-#include <string>
-
 #include "Utils/StdVector.hh"
 #include "MatVec/Matrix.hh"
 
 #include "Materials/Models/Preisach.hh"
 //#include "Materials/Models/VectorPreisach.hh"
 //#include "Materials/Models/VectorPreisachv7.hh"
-#include "Materials/Models/VectorPreisachv10.hh"
+#include "Materials/Models/VectorPreisachMayergoyz.hh"
+#include "Materials/Models/VectorPreisachSutor.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -28,6 +21,8 @@
 
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
+#include "Utils/helperStructs.hh"
+
 using std::string;
 using std::map;
 using std::set;
@@ -43,6 +38,7 @@ namespace CoupledField
     zScaling = 0.0;
     factor = 0.0;
     approxData = NULL;
+    approxType = NO_APPROX_TYPE;
   }
   
   BaseMaterial::MatDescriptorNl::~MatDescriptorNl() {
@@ -56,109 +52,365 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  BaseMaterial::BaseMaterial(MathParser* mp,
-                             CoordSystem * defaultCoosy ) {
+  BaseMaterial::BaseMaterial( MaterialClass matClass,
+                              MathParser* mp,
+                              CoordSystem * defaultCoosy )
+  : class_(matClass)
+  {
+    name_ = "";
+    model_ = MAT_MODEL_LINEAR;
+    mp_ = mp;
+    coosy_ = defaultCoosy;
 
-
-    materialDatabaseName_ = "";
-    matFileName_ = "";
-    //    nonlinFileName_ = "";
-
-    coosy_ = NULL;
     hyst_  = NULL;
-
     isHysteresis_  = false;
     isHystInverse_ = false;
+    computeHystInverse_ = false;
+    dim_ = 0;
+    dimVecHyst_ = 0;
+    XpreviousVEC_ = NULL;
+    YpreviousVEC_ = NULL;
+    vecHyst_ = NULL;
+    hystY_ = NULL;
+    hystZ_ = NULL;
 
     piezoMicroModel_   = NULL;
     isPiezoMicroModel_ = false;
-    
-    mp_ = mp;
-    
-    // obtain standard coordinate system
-    coosy_ = defaultCoosy;
   }
 
   BaseMaterial::~BaseMaterial() {
-    handleMap::iterator it = scalarStringHandlesReal_.begin(),
-                        itEnd = scalarStringHandlesReal_.end();
-    for ( ; it != itEnd; ++it ) {
-      mp_->ReleaseHandle(it->second);
+    mp_ = NULL;
+    coosy_ = NULL;
+  }
+
+
+  // set the name of the material set
+  void BaseMaterial::SetName(const std::string &name) {
+    name_ = name;
+  }
+
+  // returns the name of the material
+  std::string BaseMaterial::GetName() const {
+    return name_;
+  }
+
+  // returns the class of the material
+  MaterialClass BaseMaterial::GetClass() const {
+    return class_;
+  }
+
+  // set the symmetry type
+  void BaseMaterial::SetSymmetryType(MaterialType matType, SymmetryType symType) {
+    symmetryType_[matType] = symType;
+  }
+
+  // get the symmetry type
+  BaseMaterial::SymmetryType BaseMaterial::GetSymmetryType(MaterialType matType) const {
+    SymmetryType ret = GENERAL;
+    std::map<MaterialType, SymmetryType>::const_iterator it;
+    it = symmetryType_.find(matType);
+    if( it == symmetryType_.end() ) {
+      EXCEPTION("Could not find symmetry type for material '"
+          << MaterialTypeEnum.ToString(matType) << "'");
+    } else {
+      ret = it->second;
     }
 
-    it = scalarStringHandlesImag_.begin();
-    itEnd = scalarStringHandlesImag_.end();
-    for ( ; it != itEnd; ++it ) {
-      mp_->ReleaseHandle(it->second);
+    return ret;
+  }
+
+  // Returns the material model selected for this material
+  BaseMaterial::MaterialModel BaseMaterial::GetModel() const {
+    return model_;
+  }
+
+  // Set the material model
+  void BaseMaterial::SetModel(MaterialModel model) {
+    if (model == MAT_MODEL_LINEAR) {
+      model_ = model;
+    }
+    else if (class_ == MECHANIC && model == MAT_MODEL_LINEARVISCOELASTIC) {
+      model_ = model;
+    }
+    else {
+      EXCEPTION("Cannot use " << MaterialModelEnum.ToString(model)
+          << " model for material '" << name_ /*<< "', because it is a "
+          << MaterialClassEnum.ToString(class_) << " material."*/);
     }
   }
 
 
-
-  void BaseMaterial::SetScalar(const std::string& param, MaterialType matType) {
-        
-      //check, if allowed
-      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-        std::string dim = "scalar";
-        matTypeNotAllowed( matType, dim );
-      }
-      else {
-        isSet_.insert( matType );
-      }
-
-      stringParams_[matType] = param;
-      
+  void BaseMaterial::SetString(const std::string& param, MaterialType matType) {
+    //check, if allowed
+    if ( isAllowed_.find( matType ) == isAllowed_.end() ) {
+      matTypeNotAllowed( matType, "string" );
     }
+    else {
+      stringParams_[matType] = param;
+      isSet_.insert( matType );
+    }
+  }
   
-  void BaseMaterial::SetScalar(int param, MaterialType matType) {
+  void BaseMaterial::GetString( std::string& param, MaterialType matType) const {
+    StringMap::const_iterator pos = stringParams_.find( matType );
 
+    if ( pos == stringParams_.end() ) {
+      matTypeNotInDataBase( matType, "string" );
+    }
+    else {
+      param = pos->second;
+    }
+  }    
 
+  void BaseMaterial::SetScalar(Integer param, MaterialType matType) {
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
+      matTypeNotAllowed( matType, "scalar" );
     }
     else {
       isSet_.insert( matType );
       integerParams_[matType] = param;
     }
   }
-  void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
-
-
-    stringMap::const_iterator pos;
-    pos = stringParams_.find( matType );
-    std::string value;
-
-    if ( pos == stringParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
+  
+  // Set a scalar real constant material parameter
+  void BaseMaterial::SetScalar(Double param, MaterialType matType,
+                               Global::ComplexPart dataType )
+  {
+    if (isAllowed_.find(matType) == isAllowed_.end()) {
+      matTypeNotAllowed(matType, "scalar");
+    }
+    else if (dataType == Global::REAL) {
+      shared_ptr< CoefFunctionConst<Double> > fct(new CoefFunctionConst<Double>());
+      fct->SetScalar(param);
+      scalarCoef_[matType] = fct;
+      isSet_.insert(matType);
     }
     else {
-      param=pos->second;
+      dataTypeNotAllowed4SetGet(dataType, "SetScalar-Double");
     }
-  }    
+  }
 
-  
-                 
-  void BaseMaterial::GetScalar(Integer& param, MaterialType matType, Global::ComplexPart dataType ) const 
+  // set a scalar complex constant material parameter
+  void BaseMaterial::SetScalar(Complex param, MaterialType matType,
+                               Global::ComplexPart dataType )
   {
+    if (isAllowed_.find(matType) == isAllowed_.end()) {
+      matTypeNotAllowed(matType, "scalar");
+    }
+    else if (dataType == Global::INTEGER) {
+      dataTypeNotAllowed4SetGet(dataType, "SetScalar-Double");
+    }
+    else {
+      shared_ptr< CoefFunctionConst<Complex> > fct(new CoefFunctionConst<Complex>());
+      if (dataType == Global::COMPLEX) {
+        fct->SetScalar(param);
+      }
+      else if (dataType == Global::REAL) {
+        fct->SetScalar(Complex(param.real(), 0.0));
+      }
+      else {
+        fct->SetScalar(Complex(0.0, param.imag()));
+      }
+      scalarCoef_[matType] = fct;
+      isSet_.insert(matType);
+    }
+  }
 
+  // set a real constant material vector
+  void BaseMaterial::SetVector(const Vector<Double>& param, MaterialType matType,
+                               Global::ComplexPart dataType) {
+    if (isAllowed_.find(matType) == isAllowed_.end()) {
+      matTypeNotAllowed(matType, "vector");
+    }
+    else if (dataType == Global::REAL) {
+      shared_ptr< CoefFunctionConst<Double> > fct(new CoefFunctionConst<Double>());
+      fct->SetVector(param);
+      vectorCoef_[matType] = fct;
+      isSet_.insert(matType);
+    }
+    else {
+      dataTypeNotAllowed4SetGet(dataType, "SetVector-Double");
+    }
+  }
 
-    integerMap::const_iterator pos;
-    pos = integerParams_.find( matType );
+  // set a complex constant material vector
+  void BaseMaterial::SetVector(const Vector<Complex>& param, MaterialType matType,
+                               Global::ComplexPart dataType)
+  {
+    if (isAllowed_.find(matType) == isAllowed_.end()) {
+      matTypeNotAllowed(matType, "vector");
+    }
+    else if (dataType == Global::INTEGER) {
+      dataTypeNotAllowed4SetGet(dataType, "SetVector-Double");
+    }
+    else {
+      shared_ptr< CoefFunctionConst<Complex> > fct(new CoefFunctionConst<Complex>());
+      if (dataType == Global::COMPLEX) {
+        fct->SetVector(param);
+      }
+      else{
+        Vector<Complex> v(param.GetSize());
+        v.SetPart(dataType, param.GetPart(dataType), true);
+        fct->SetVector(v);
+      }
+      vectorCoef_[matType] = fct;
+      isSet_.insert(matType);
+    }
+  }
+
+  // set a real constant material tensor
+  void BaseMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType,
+                               Global::ComplexPart dataType)
+  {
+    if (isAllowed_.find(matType) == isAllowed_.end()) {
+      matTypeNotAllowed(matType, "tensor");
+    }
+    else if (dataType == Global::REAL) {
+      shared_ptr< CoefFunctionConst<Double> > fct(new CoefFunctionConst<Double>());
+      fct->SetTensor(param);
+      tensorCoef_[matType] = fct;
+      tensorOrigCoef_[matType] = fct;
+      isSet_.insert(matType);
+    }
+    else {
+      dataTypeNotAllowed4SetGet(dataType, "SetTensor-Double");
+    }
+  }
+
+  // set a complex constant material tensor
+  void BaseMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType,
+                               Global::ComplexPart dataType )
+  {
+    if (isAllowed_.find(matType) == isAllowed_.end()) {
+      matTypeNotAllowed(matType, "tensor");
+    }
+    else if (dataType == Global::INTEGER) {
+      dataTypeNotAllowed4SetGet(dataType, "SetTensor-Double");
+    }
+    else {
+      shared_ptr< CoefFunctionConst<Complex> > fct(new CoefFunctionConst<Complex>());
+      if (dataType == Global::COMPLEX) {
+        fct->SetTensor(param);
+      }
+      else{
+        Matrix<Complex> t(param.GetNumRows(), param.GetNumCols());
+        t.SetPart(dataType, param.GetPart(dataType), true);
+        fct->SetTensor(t);
+      }
+      tensorCoef_[matType] = fct;
+      tensorOrigCoef_[matType] = fct;
+      isSet_.insert(matType);
+    }
+  }
+
+  void BaseMaterial::GetScalar(Integer& param, MaterialType matType) const {
+    IntegerMap::const_iterator pos = integerParams_.find( matType );
 
     if ( pos == integerParams_.end() ) {
-      string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
+      matTypeNotInDataBase( matType, "scalar" );
     }
     else {
-      if ( dataType == Global::INTEGER ) {	
-        string msg = "GetScalar-Integer";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-      Integer val = pos->second;
-      param = val;
+      param = pos->second;
+    }
+  }
+
+  void BaseMaterial::GetScalar( Double& param, MaterialType matType,
+                                Global::ComplexPart matDataType) const
+  {
+    PtrCoefFct scal = GetScalCoefFnc( matType, matDataType );
+    if( scal->GetDependency() != CoefFunction::CONSTANT) {
+      matDataNotConstant(matType);
+    }
+
+    LocPointMapped lpm;
+    scal->GetScalar(param, lpm);
+  }
+
+  void BaseMaterial::GetScalar( Complex& param, MaterialType matType,
+                                Global::ComplexPart matDataType) const
+  {
+    PtrCoefFct scal = GetScalCoefFnc( matType, matDataType);
+    if( scal->GetDependency() != CoefFunction::CONSTANT) {
+      matDataNotConstant(matType);
+    }
+
+    LocPointMapped lpm;
+    scal->GetScalar(param, lpm);
+  }
+
+  // Get a constant vector
+  void BaseMaterial::GetVector( Vector<Double>& param, MaterialType matType,
+                                Global::ComplexPart matDataType ) const
+  {
+    PtrCoefFct vec = GetVectorCoefFnc( matType, matDataType );
+    if (vec->GetDependency() != CoefFunction::CONSTANT) {
+      matDataNotConstant(matType);
+    }
+
+    LocPointMapped lpm;
+    vec->GetVector(param, lpm);
+  }
+
+  void BaseMaterial::GetVector( Vector<Complex>& param,  MaterialType matType,
+                                Global::ComplexPart matDataType ) const
+  {
+    PtrCoefFct vec = GetVectorCoefFnc( matType, matDataType );
+    if (vec->GetDependency() != CoefFunction::CONSTANT) {
+      matDataNotConstant(matType);
+    }
+
+    LocPointMapped lpm;
+    vec->GetVector(param, lpm);
+  }
+
+  // get a real material tensor
+  void BaseMaterial::GetTensor( Matrix<Double>& param, MaterialType matType,
+                                Global::ComplexPart dataType,
+                                SubTensorType subTensor ) const
+  {
+    PtrCoefFct tens = GetTensorCoefFnc(matType, subTensor, dataType);
+    if (tens->GetDependency() != CoefFunction::CONSTANT) {
+      matDataNotConstant(matType);
+    }
+
+    if ( dataType == Global::REAL || dataType == Global::IMAG) {
+      Matrix<Complex> matTensor;
+      LocPointMapped lpm;
+      tens->GetTensor(matTensor, lpm);
+      param = matTensor.GetPart( dataType );
+    }
+    else {
+      dataTypeNotAllowed4SetGet( dataType, "GetTensor-Double" );
+    }
+  }
+
+  // get a complex material tensor
+  void BaseMaterial::GetTensor( Matrix<Complex>& param, MaterialType matType,
+                                Global::ComplexPart dataType,
+                                SubTensorType subTensor ) const
+  {
+    PtrCoefFct tens = GetTensorCoefFnc(matType, subTensor, dataType);
+    if (tens->GetDependency() != CoefFunction::CONSTANT) {
+      matDataNotConstant(matType);
+    }
+
+    Matrix<Complex> matTensor;
+    LocPointMapped lpm;
+    tens->GetTensor(matTensor, lpm);
+
+    if ( dataType == Global::COMPLEX ) {
+      param = matTensor;
+    }
+    if ( dataType == Global::REAL || dataType == Global::IMAG) {
+      Matrix<Double> help;
+      help = matTensor.GetPart( dataType );
+      param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+      param.Init();
+      param.SetPart( dataType, help );
+    }
+    else {
+      dataTypeNotAllowed4SetGet( dataType, "GetTensor-Complex" );
     }
   }
 
@@ -187,7 +439,6 @@ namespace CoupledField
        matTypeNotAllowed( matType, dim );
      }
     
-    isSet_.insert( matType ); // enables printing to info.xml
     // switch depending on dimType of coefficient function
     switch(coef->GetDimType()) {
       case CoefFunction::SCALAR:
@@ -204,46 +455,40 @@ namespace CoupledField
         EXCEPTION("Unknown entry type of coefficient function");
         break;
     }
+
+    isSet_.insert( matType ); // enables printing to info.xml
   }
 
   bool BaseMaterial::IsSet( MaterialType matType ) const {
 
-    bool found = false;
-    stringMap::const_iterator stringIt = stringParams_.find( matType );
-    scalarMap::const_iterator scalarIt = scalarParams_.find( matType );
-    tensorMap::const_iterator tensorIt = tensorParams_.find( matType );
+    StringMap::const_iterator stringIt = stringParams_.find( matType );
+    IntegerMap::const_iterator intIt = integerParams_.find( matType );
     CoefMap::const_iterator coefScalIt = scalarCoef_.find( matType );
     CoefMap::const_iterator coefVecIt = vectorCoef_.find( matType );
     CoefMap::const_iterator coefTensIt = tensorCoef_.find( matType );
         
-    if( stringIt != stringParams_.end() ||
-        scalarIt != scalarParams_.end() || 
-        tensorIt != tensorParams_.end() || 
-        coefScalIt != scalarCoef_.end() ||
-        coefVecIt != vectorCoef_.end()  ||
-        coefTensIt != tensorCoef_.end() ) {
-      found = true;
-    }
-
-    return found;
+    return ( stringIt != stringParams_.end() ||
+             intIt != integerParams_.end()   ||
+             coefScalIt != scalarCoef_.end() ||
+             coefVecIt != vectorCoef_.end()  ||
+             coefTensIt != tensorCoef_.end() );
   }
 
   void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const string& dim ) const {
 
     string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" <<  dim <<  ") " << help << 
-               " is not available for " << materialDatabaseName_ 
+               " is not available for " << MaterialClassEnum.ToString(class_)
                << " Database" );
   }
   
 
   void  BaseMaterial::dataTypeNotAllowed4SetGet(Global::ComplexPart dataType, 
-						 const string& msg ) const {
-
+						                                    const string& msg ) const
+  {
     string help;
     help = Global::complexPart.ToString( dataType );
-    EXCEPTION( "Datatype " << help << " is not allowed in function " 
-               << msg );
+    EXCEPTION( "Datatype " << help << " is not allowed in function " << msg );
   }
 
 
@@ -253,15 +498,16 @@ namespace CoupledField
     help1 = Global::complexPart.ToString( dataType );
     help2 = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
-               << help2 << " in material data base " << materialDatabaseName_ );
+               << help2 << " in material data base "
+               << MaterialClassEnum.ToString(class_) );
   }
 
   void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const string& dim ) const {
 
     string help = MaterialTypeEnum.ToString( matType );
 
-    EXCEPTION( "Material type (" << dim << ") " << help 
-               << " was not read from/defined in material file" );
+    EXCEPTION( "Material type (" << dim << ") " << help << " of material "
+               << name_ << " was not read from/defined in material file" );
   }
 
 
@@ -279,20 +525,45 @@ namespace CoupledField
     EXCEPTION("Sub-tensor " << help2 <<" not available for material type " << help1);
   }
 
+  // Error for material data is not constant, but was queried via Get{Scalar,Vector,Tensor}
+  void BaseMaterial::matDataNotConstant(MaterialType matType) const {
+    EXCEPTION( "Material data ' " << MaterialTypeEnum.ToString(matType)
+               << "' of material '" << name_ << "' is not constant!");
+  }
 
-  void BaseMaterial::StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat)
+  void BaseMaterial::StoreTensor(PtrParamNode in, PtrCoefFct tensorFunc)
   {
-    // get the tensor by default as complex
-    if(isComplex)
-    {
-      if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
-        in->SetValue(mat.GetPart(Global::REAL));
-      else
+    LocPointMapped lpm;
+
+    if (tensorFunc->GetDependency() == CoefFunction::CONSTANT) {
+      // get the tensor by default as complex
+      if (tensorFunc->IsComplex()) {
+        Matrix<Complex> mat;
+        tensorFunc->GetTensor(mat, lpm);
+        if (mat.GetPart(Global::IMAG).NormL2() == 0.0)
+          in->SetValue(mat.GetPart(Global::REAL));
+        else
+          in->SetValue(mat);
+      }
+      else {
+        Matrix<Double> mat;
+        tensorFunc->GetTensor(mat, lpm);
         in->SetValue(mat);
+      }
     }
-    else
-    {
-      in->SetValue(mat.GetPart(Global::REAL));
+    else {
+      shared_ptr<CoefFunctionAnalytic> analTensor =
+          dynamic_pointer_cast<CoefFunctionAnalytic>(tensorFunc);
+      if (analTensor) {
+        UInt numRows, numCols;
+        StdVector<std::string> real, imag;
+        analTensor->GetStrTensor(numRows, numCols, real, imag);
+
+        in->Get("dim1")->SetValue(numRows);
+        in->Get("dim2")->SetValue(numCols);
+        in->Get("real")->SetValue(real);
+        in->Get("imag")->SetValue(imag);
+      }
     }
   }
 
@@ -302,71 +573,58 @@ namespace CoupledField
     set<MaterialType>::iterator iter;
 
     // in isSet the actually read material parameters are stored
-    for(iter = isSet_.begin(); iter != isSet_.end(); iter++)
-    {
+    for (iter = isSet_.begin(); iter != isSet_.end(); ++iter) {
       MaterialType mt = *iter;
-      //check, if parameter is complex
-      bool isComplex = isComplex_.find(mt) != isComplex_.end();
 
       //check for material data
-      map<MaterialType, Matrix<Complex> >::const_iterator posTens = tensorParams_.find(mt);
-      map<MaterialType, Complex >::const_iterator         posScal = scalarParams_.find(mt);
-      map<MaterialType, string >::const_iterator          posStr  = stringParams_.find(mt);
-      map<MaterialType, Integer >::const_iterator         posInt  = integerParams_.find(mt);
+      CoefMap::const_iterator posScal = scalarCoef_.find(mt);
+      CoefMap::const_iterator posVec  = vectorCoef_.find(mt);
+      CoefMap::const_iterator posTens = tensorCoef_.find(mt);
+      map<MaterialType, string >::const_iterator  posStr = stringParams_.find(mt);
+      map<MaterialType, Integer >::const_iterator posInt = integerParams_.find(mt);
 
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
-      std::vector<CoefMap*> Coefs; // vector for iteration
-      Coefs.push_back( &scalarCoef_ );Coefs.push_back( &vectorCoef_ );Coefs.push_back( &tensorCoef_ ); // fill it with pointers
-      // iterate over all types of coef functions
-      for(std::vector<CoefMap*>::iterator it=Coefs.begin();it!=Coefs.end();++it)
-      {
-          CoefMap::const_iterator posIt = (*it)->find(mt); // check if it is set
-          if (posIt != (*it)->end() ) {
-              PtrCoefFct coef = posIt->second;
-              in_->Get("value")->SetValue( coef->ToString() ); // print to xml
-          }
+      if (posScal != scalarCoef_.end()) {
+        in_->Get("value")->SetValue(posScal->second->ToString());
       }
 
-      if(rot != NULL && rot->NormMax() > 0)
-      {
+      if (posVec != vectorCoef_.end()) {
+        in_->Get("value")->SetValue(posVec->second->ToString());
+
+        if (stt != FULL && stt != NO_TENSOR) {
+          PtrCoefFct subVec = GetSubVectorCoefFnc(mt, stt, Global::COMPLEX);
+          in_->Get("subvector")->SetValue(subVec->ToString());
+        }
+      }
+
+      if (posTens != tensorCoef_.end()) {
+        StoreTensor(in_->Get("tensor"), posTens->second);
+
+        // e.g. in the flatShellPlateEV test case we have NO_TENSOR which cannot be
+        // handled by ComputeSubTensor()
+        if (stt != FULL && stt != NO_TENSOR) { // electrostatic is NO_TENSOR
+          PtrCoefFct subTensor = GetSubTensorCoefFnc(mt, stt, Global::COMPLEX);
+          StoreTensor(in_->Get("subtensor"), subTensor);
+        }
+      }
+
+      if (posStr != stringParams_.end()) {
+        in_->Get("value")->SetValue(posStr->second);
+      }
+
+      if (posInt != integerParams_.end()) {
+        in_->Get("value")->SetValue(posInt->second);
+      }
+
+      if (rot != NULL && rot->NormMax() > 0) {
         assert(rot->GetSize() == 3);
         PtrParamNode rot_ = in_->Get("rotation");
         rot_->Get("alpha")->SetValue((*rot)[0]);
         rot_->Get("beta")->SetValue((*rot)[1]);
         rot_->Get("gamma")->SetValue((*rot)[2]);
       }
-
-      if(posTens != tensorParams_.end())
-      {
-        const Matrix<Complex>& mat = posTens->second;
-        StoreTensor(in_->Get("tensor"), isComplex, mat);
-
-        // e.g. in the flatShellPlateEV test case we have NO_TENSOR which cannot be
-        // handled by ComputeSubTensor()
-        if(stt != FULL && stt != NO_TENSOR) // electrostatic is NO_TENSOR
-        {
-          Matrix<Complex> sub_mat;
-          ComputeSubTensor(sub_mat, mt, stt);
-          StoreTensor(in_->Get("subtensor"), isComplex, sub_mat);
-        }
-      }
-
-      if(posScal != scalarParams_.end())
-      {
-        Complex val = posScal->second; // see tensor
-        if(isComplex)
-          in_->Get("value")->SetValue(val);
-        else
-          in_->Get("value")->SetValue(val.real());
-      }
-
-      if(posStr != stringParams_.end())
-        in_->Get("value")->SetValue(posStr->second);
-
-      if(posInt != integerParams_.end())
-        in_->Get("value")->SetValue(posInt->second);
     }
   }
 
@@ -399,24 +657,9 @@ namespace CoupledField
   }
   
   void BaseMaterial::RotateAllTensorsByRotationAngles( const Vector<Double>& rotAngle, 
-                                                         bool persistent ) {
-    
-    // 1) Constant-Valued tensors
-    BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
-    for( ; it != tensorParams_.end(); it++ ) {
-      if(it->second.GetNumCols() > 3 || it->second.GetNumRows() > 3){
-        continue;
-        //this is the case for tensors like the preisach weights which shall be allowed to have more than 3 x 3 entries
-        //furthermore, a rotation of these parameter is not necessary
-      } else if (it->second.GetNumCols() == 1 || it->second.GetNumRows() == 1){
-        continue;
-        // similar case as above; for hysteresis we may specify vectors via the material file
-        // those vectors do not have to be rotated
-      }
-      RotateTensorByRotationAngles( rotAngle, it->first, persistent );
-    }
-    
-    // 2) Coefficient tensors
+                                                       bool persistent )
+  {
+    // Rotate all coefficient tensors
     BaseMaterial::CoefMap::iterator cIt = tensorCoef_.begin();
     for( ; cIt != tensorCoef_.end(); cIt++ ) {
       RotateTensorByRotationAngles( rotAngle, cIt->first, persistent );
@@ -426,46 +669,20 @@ namespace CoupledField
   void BaseMaterial::RotateTensorByRotationMatrix( const Matrix<Double>& rotMatrix, 
                                                    MaterialType matType,
                                                    bool persistent ) {
-
-
-    using namespace std;
-
-    
-    
-    tensorMap::iterator pos;
-    pos = this->tensorParams_.find( matType );
-    if( pos != tensorParams_.end() ) {
-      // -----------------------------------------
-      // 1) Tensor is defined as constant matrix
-      // -----------------------------------------
-    tensorMap::const_iterator posOrig;
-    posOrig = this->tensorParamsOrig_.find( matType );
-
-      if ( posOrig == tensorParamsOrig_.end() ) {
-        string dim = "tensorOriginal";
-        matTypeNotInDataBase( matType, dim );
-      }
-
-      Matrix<Complex> & matTensor = pos->second;
-      const Matrix<Complex> & matTensorOrig = posOrig->second;
-
-      //perform rotation 
-      matTensorOrig.PerformRotation(rotMatrix, matTensor); 
-      
-      // In the case of a persistent rotation, we override the
-      // original tensor as well
-      if ( persistent ) {
-        tensorParamsOrig_[matType] = matTensor;
-      }
-    }  else if( tensorCoef_.find( matType) != tensorCoef_.end() ) {
-      // ----------------------------------------------
-      // 2) Tensor is defined as coefficient function
-      // ----------------------------------------------
+    if( tensorCoef_.find( matType) != tensorCoef_.end() ) {
       PtrCoefFct coef;
       PtrCoefFct coefOrig = tensorOrigCoef_[matType];
 
-      //perform rotation
-      PerformRotation( rotMatrix, coef, coefOrig ); 
+      // perform rotation. In case the matrix is constant (99% of all cases)
+      // we resort to an alternative variant
+      assert(coosy_);
+      if (coefOrig->GetDependency() == CoefFunction::CONSTANT /*&&
+          coosy_->HasConstantRotMatrix()*/) { // TODO
+        PerformRotationConst( rotMatrix, coef, coefOrig );
+      } else {
+        PerformRotation( rotMatrix, coef, coefOrig );
+      }
+
       // store back rotated material
       tensorCoef_[matType] = coef;
       
@@ -476,11 +693,45 @@ namespace CoupledField
       }
     } else {
       string dim = "tensor";
-                  matTypeNotInDataBase( matType, dim );
+      matTypeNotInDataBase( matType, dim );
     }
   }
 
+  void BaseMaterial::RotateAllTensorsByRotationMat(  const Matrix<Double>& rotMatrix,
+                                                     bool persistent ) {
+    // Rotate all coefficient tensors
+    BaseMaterial::CoefMap::iterator cIt = tensorCoef_.begin();
+    for( ; cIt != tensorCoef_.end(); cIt++ ) {
+      RotateTensorByRotationMatrix( rotMatrix, cIt->first, persistent );
+    }
+  }
+
+  // Rotate all tensor material parameters by given coordinate system
+  // and axis mapping.
+  void BaseMaterial::RotateAllTensorsByCoordSys(CoordSystem *coordSys,
+                                          const StdVector<std::string> &axisMap,
+                                          const StdVector<Double> &axisFactors,
+                                          bool persistent)
+  {
+    // TODO
+    /*BaseMaterial::CoefMap::iterator coefIt = tensorCoef_.begin(),
+                                    endIt = tensorCoef_.end();
     
+    if( coordSys->HasConstantRotMatrix()) {
+      Matrix<Double> rotMatrix, invRotMatrix;
+      rotMatrix = coordSys->GetRotMatrixFromDirVec(axisMap, axisFactors);
+      rotMatrix.Transpose(invRotMatrix);
+      for ( ; coefIt != endIt; ++coefIt) {
+        RotateTensorByRotationMatrix(invRotMatrix, coefIt->first, persistent);
+      }
+    }
+    else {
+      for ( ; coefIt != endIt; ++coefIt) {
+        coefIt->second->SetCoordinateSystem(coordSys);
+        coefIt->second->SetAxisMapping(axisMap, axisFactors);
+      }
+    }*/
+  }
 
   void BaseMaterial::RotateTensorByPointCoord( const Vector<Double>&  coord,
                                                MaterialType matType ) {
@@ -497,102 +748,15 @@ namespace CoupledField
 
   }
 
+  // Pass coordinate system to material
+  void BaseMaterial::SetCoordSys( CoordSystem* system ) {
+    coosy_ = system;
+  }
 
-//  void BaseMaterial::PerformRotation( Matrix<Complex>& R,  
-//                                      Matrix<Complex>& matTensor,
-//                                      const Matrix<Complex>& matTensorOrig) {
-//
-//    // get memory for transposed rotation matrix
-//    Matrix<Complex> RT;
-//    RT.Resize(3,3);
-//    R.Transpose(RT);
-//
-//    //get dimension of matrix
-//    UInt rowSize = matTensorOrig.GetNumRows();
-//    UInt colSize = matTensorOrig.GetNumCols();
-//
-//    Matrix<Complex> helpMat;
-//
-//    if ( rowSize == 3 && colSize == 3) {
-//      // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
-//      helpMat   = matTensorOrig * RT;
-//      matTensor = R * helpMat;
-//    }
-//    else {
-//      // we also need Q;
-//      Matrix<Complex> Q;
-//
-//      // Composed Rotation Matrix
-//      // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
-//      // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
-//      // Diss., Dresden, 2005, p. 27
-//
-//      Q.Resize(6,6);  
-//
-//      Q[0][0] = R[0][0]*R[0][0];
-//      Q[0][1] = R[0][1]*R[0][1];
-//      Q[0][2] = R[0][2]*R[0][2];
-//      Q[0][3] = 2.0*R[0][1]*R[0][2];
-//      Q[0][4] = 2.0*R[0][0]*R[0][2];
-//      Q[0][5] = 2.0*R[0][0]*R[0][1];
-//
-//      Q[1][0] = R[1][0]*R[1][0];
-//      Q[1][1] = R[1][1]*R[1][1];
-//      Q[1][2] = R[1][2]*R[1][2];
-//      Q[1][3] = 2.0*R[1][1]*R[1][2];
-//      Q[1][4] = 2.0*R[1][0]*R[1][2];
-//      Q[1][5] = 2.0*R[1][0]*R[1][1];
-//
-//      Q[2][0] = R[2][0]*R[2][0];
-//      Q[2][1] = R[2][1]*R[2][1];
-//      Q[2][2] = R[2][2]*R[2][2];
-//      Q[2][3] = 2.0*R[2][1]*R[2][2];
-//      Q[2][4] = 2.0*R[2][0]*R[2][2];
-//      Q[2][5] = 2.0*R[2][0]*R[2][1];
-//
-//      Q[3][0] = R[1][0]*R[2][0];
-//      Q[3][1] = R[1][1]*R[2][1];
-//      Q[3][2] = R[1][2]*R[2][2];
-//      Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
-//      Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
-//      Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
-//
-//      Q[4][0] = R[0][0]*R[2][0];
-//      Q[4][1] = R[0][1]*R[2][1];
-//      Q[4][2] = R[0][2]*R[2][2];
-//      Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
-//      Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
-//      Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
-//
-//      Q[5][0] = R[0][0]*R[1][0];
-//      Q[5][1] = R[0][1]*R[1][1];
-//      Q[5][2] = R[0][2]*R[1][2];
-//      Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
-//      Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
-//      Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
-//
-//
-//      // 	std::cout << "R:\n" << R << std::endl;
-//      // 	std::cout << "Q:\n" << Q << std::endl;
-//      // 	std::cout << "Tensor orig:\n" << matTensor << std::endl;
-//
-//      Matrix<Complex> QT;
-//      QT.Resize(6,6);
-//      Q.Transpose(QT);
-//
-//      if ( rowSize == 3 && colSize == 6 ) {
-//        helpMat   = matTensorOrig * QT;
-//        matTensor = R * helpMat;
-//      }
-//      else if (rowSize == 6 && colSize == 6 ) {
-//        helpMat   = matTensorOrig * QT;
-//        matTensor = Q * helpMat;
-//      }
-//      // 	else {
-//      // 	  EXCEPTION("Cannot rotate tensor due to dimensions!");
-//      // 	}
-//    }
-//  }
+  // Get coordinate system from material
+  CoordSystem* BaseMaterial::GetCoordSys() {
+    return coosy_;
+  }
 
   void BaseMaterial::PerformRotation( const Matrix<Double>& R, PtrCoefFct& rotatedCoef,
                                        PtrCoefFct origCoef) {
@@ -625,7 +789,9 @@ namespace CoupledField
       CoefXprBinOp final( mp_, cR, tmp, CoefXpr::OP_MULT );
       rotatedCoef = CoefFunction::Generate( mp_, part, final );
     }
-    else {
+    else if ((rowSize == 3 && colSize == 6) ||
+             (rowSize == 6 && colSize == 6))
+    {
       // we also need Q;
       Matrix<Double> Q;
 
@@ -709,12 +875,183 @@ namespace CoupledField
         rotatedCoef = CoefFunction::Generate(mp_, part, final );
       
       }
-      //  else {
-      //    EXCEPTION("Cannot rotate tensor due to dimensions!");
-      //  }
+    }
+    else {
+      EXCEPTION("Tensor rotation currently only works for 3D matrices!");
     }
   }
   
+  void BaseMaterial::PerformRotationConst(const Matrix<Double>& R,
+                                          PtrCoefFct& rotatedCoef,
+                                          PtrCoefFct origCoef)
+  {
+
+    if (origCoef->GetDependency() != CoefFunction::CONSTANT) {
+      EXCEPTION( "This type of rotation only works with constant coefficient matrices");
+    }
+
+    LocPointMapped lpm; // can be arbitrary
+
+    if (origCoef->IsComplex()) {
+      // Obtain constant matrix
+      Matrix<Complex> origMat, rotMat;
+      origCoef->GetTensor(origMat, lpm);
+
+      // Do the rotation
+      origMat.PerformRotation(R, rotMat);
+
+      // Generate a constant coefficient matrix
+      shared_ptr<CoefFunctionConst<Complex> > rotCoefConst(new CoefFunctionConst<Complex>());
+      rotCoefConst->SetTensor(rotMat);
+      rotatedCoef = rotCoefConst;
+    }
+    else {
+      // Obtain constant matrix
+      Matrix<Double> origMat, rotMat;
+      origCoef->GetTensor(origMat, lpm);
+
+      // Do the rotation
+      origMat.PerformRotation(R, rotMat);
+
+      // Generate a constant coefficient matrix
+      shared_ptr<CoefFunctionConst<Double> > rotCoefConst(new CoefFunctionConst<Double>());
+      rotCoefConst->SetTensor(rotMat);
+      rotatedCoef = rotCoefConst;
+    }
+  }
+
+  template<typename T>
+  void BaseMaterial::PerformRotationVoigt( const Matrix<Double>& rotMatrix,
+                                           Vector<T>& rotMatTensor,
+                                           const Vector<T>& origMatTensor ) {
+
+    // ensure that only 6x6 vector gets entered
+    if( origMatTensor.GetSize() != 6 ) {
+      EXCEPTION( "Only 6-element tensor can be rotated" );
+    }
+
+    Vector<T>& ret = rotMatTensor;
+    const Vector<T>& s = origMatTensor;
+
+
+    // Note: We have to transpose the rotation matrix, as we want to calculate
+    //       R^T * [sigma] * R
+    // but the formula below computes R * [sigma] * R^T, as given in
+    // http://en.wikipedia.org/wiki/Cauchy_stress_tensor#Transformation_rule_of_the_stress_tensor
+
+    Matrix<Double> r;
+    rotMatrix.Transpose(r);
+    ret.Resize(6);
+
+    // sigma_11
+    ret[0] = (r[0][0]*r[0][0])*s[0] + (r[0][1]*r[0][1])*s[1] + (r[0][2]*r[0][2])*s[2]
+             + 2.*( r[0][0]*r[0][1]*s[5]
+             + r[0][0]*r[0][2]*s[4]
+             + r[0][1]*r[0][2]*s[3]);
+
+    // sigma_22
+    ret[1] = (r[1][0]*r[1][0])*s[0] + (r[1][1]*r[1][1])*s[1] + (r[1][2]*r[1][2])*s[2]
+             + 2.*(r[1][0]*r[1][1]*s[5]
+             + r[1][0]*r[1][2]*s[4]
+             + r[1][1]*r[1][2]*s[3]);
+
+    // sigma_33
+    ret[2] = (r[2][0]*r[2][0])*s[0] + (r[2][1]*r[2][1])*s[1] + (r[2][2]*r[2][2])*s[2]
+             + 2.*(r[2][0]*r[2][1]*s[5]
+             + r[2][0]*r[2][2]*s[4]
+             + r[2][1]*r[2][2]*s[3]);
+
+    // sigma_23
+    ret[3] = r[1][0]*r[2][0]*s[0] + r[1][1]*r[2][1]*s[1] + r[1][2]*r[2][2]*s[2]
+             + (r[1][0]*r[2][1] + r[1][1]*r[2][0]) * s[5]
+             + (r[1][1]*r[2][2] + r[1][2]*r[2][1]) * s[3]
+             + (r[1][0]*r[2][2] + r[1][2]*r[2][0]) * s[4];
+
+    // sigma_13
+    ret[4] = r[0][0]*r[2][0]*s[0] + r[0][1]*r[2][1]*s[1] + r[0][2]*r[2][2]*s[2]
+             + (r[0][0]*r[2][1] + r[0][1]*r[2][0]) * s[5]
+             + (r[0][1]*r[2][2] + r[0][2]*r[2][1]) * s[3]
+             + (r[0][0]*r[2][2] + r[0][2]*r[2][0]) * s[4];
+
+    // sigma_12
+    ret[5] = r[0][0]*r[1][0]*s[0] + r[0][1]*r[1][1]*s[1] + r[0][2]*r[1][2]*s[2]
+             + (r[0][0]*r[1][1] + r[0][1]*r[1][0]) * s[5]
+             + (r[0][1]*r[1][2] + r[0][2]*r[1][1]) * s[3]
+             + (r[0][0]*r[1][2] + r[0][2]*r[1][0]) * s[4];
+
+    //    std::cerr << "origTensor: " << s.Serialize() << std::endl;
+    //    std::cerr << "rotatedTensor: " << ret.Serialize() << std::endl;
+
+  }
+  template void BaseMaterial::
+  PerformRotationVoigt<Complex>( const Matrix<Double>& rotMatrix,
+                            Vector<Complex>& rotMatTensor,
+                            const Vector<Complex>& origMatTensor );
+
+  template void BaseMaterial::
+  PerformRotationVoigt<Double>( const Matrix<Double>& rotMatrix,
+                           Vector<Double>& rotMatTensor,
+                           const Vector<Double>& origMatTensor );
+
+  void BaseMaterial::CalcFull3x3Tensor( MaterialType isoProp,
+                                        MaterialType* orthoProp,
+                                        MaterialType tensorProp ) {
+
+    PtrCoefFct val1, val2, val3, isoVal, valTensor;
+    StdVector<PtrCoefFct> tensorComp(9);
+
+    // depending on symmetry, calculate full 3x3 permeability tensor
+    switch(GetSymmetryType(tensorProp)) {
+
+      case GENERAL:
+        // in this case we have already the full material tensor
+        break;
+
+      case ISOTROPIC:
+        isoVal = GetScalCoefFnc( isoProp, Global::COMPLEX );
+        // set diagonal entries
+        tensorComp[0] = isoVal;
+        tensorComp[4] = isoVal;
+        tensorComp[8] = isoVal;
+        valTensor = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                           3, 3, tensorComp );
+        SetCoefFct( tensorProp, valTensor );
+        break;
+
+      case TRANS_ISOTROPIC:
+        val1 = GetScalCoefFnc( isoProp, Global::COMPLEX );
+        val3 = GetScalCoefFnc( orthoProp[2], Global::COMPLEX );
+        // set diagonal entries
+        tensorComp[0] = val1;
+        tensorComp[4] = val1;
+        tensorComp[8] = val3;
+        valTensor = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                           3, 3, tensorComp );
+        SetCoefFct( tensorProp, valTensor );
+        break;
+
+      case ORTHOTROPIC:
+
+        val1 = GetScalCoefFnc( orthoProp[0], Global::COMPLEX );
+        val2 = GetScalCoefFnc( orthoProp[1], Global::COMPLEX );
+        val3 = GetScalCoefFnc( orthoProp[2], Global::COMPLEX );
+        tensorComp[0] = val1;
+        tensorComp[4] = val2;
+        tensorComp[8] = val3;
+        valTensor = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                           3, 3, tensorComp );
+        SetCoefFct( tensorProp, valTensor );
+        break;
+
+      default:
+        EXCEPTION( "Calculation of full matrix for property '"
+            << MaterialTypeEnum.ToString( tensorProp )
+            << "' with symmetry type '"
+            << SymmetryTypeEnum.ToString(GetSymmetryType(tensorProp))
+            << "' not implemented!" );
+    }
+  }
+
 
   void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                bool isInverse, bool computeHystInverse, UInt dim ) {
@@ -723,132 +1060,144 @@ namespace CoupledField
      * is this function ever called?
      * -> grep shows NO call to InitHyst;
      *    instead everything is handled via CoefFunctionHyst
+     * -> BUT linker needs some reference to Preisach and VectorPreisach
+     *    if we comment out the calls below (even though they are never used)
+     *    the classes are loaded in correct order for linker
      */
-    isHystInverse_      = isInverse;
-    computeHystInverse_ = computeHystInverse;
+    // just make dummy calls for linker
+    ParameterPreisachOperators operatorParams = ParameterPreisachOperators();
+    ParameterPreisachWeights weightParams = ParameterPreisachWeights();
+    bool isVirgin = false;
+    bool ignoreAnhystPart = false;
+    Integer numElem = 1;
 
-    string val = stringParams_[HYST_MODEL];
-    if ( val != "preisach" ) {
-      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
-    }
-    else {
-
-
-      isHysteresis_ = true;
-
-      Double Xsat, Ysat;
-      GetScalar(Xsat, X_SATURATION, Global::REAL);
-      GetScalar(Ysat, Y_SATURATION, Global::REAL);
-      Matrix<Double> weights;
-      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
-      bool isVirgin = true;   
-
-      if(dim == 1){
-
-        hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
-
-      } else if(dim > 1 && dim <= 3){
-
-        Double rotationalResistance = 1.0;
-        GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
-
-        int evalVersion;
-        GetScalar(evalVersion, EVAL_VERSION);
-
-        int isTesting;
-        GetScalar(isTesting, IS_TESTING);
-
-        Double angDistance;
-        Double angClipping;
-        Matrix<Double> easyAxis_Matrix;
-        Vector<Double> easyAxis = Vector<Double>(dim);
-        GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
-        GetScalar(angClipping, ANG_CLIPPING, Global::REAL);
-
-      /*
-       * should be obsolete as hyst_ is initialized in coefFctHyst
-       */
-
-      bool classical;
-
-      if(evalVersion == 1){
-        classical = true; // original vector preisach model -> sutor2012
-
-        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else if(evalVersion == 2){
-        classical = false; // revised vector preisach model -> sutor2015
-
-        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else if(evalVersion == 10){
-        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
-
-        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else if(evalVersion == 20){
-        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
-
-        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
-                                                   weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
-      } else {
-        EXCEPTION("evalVersion has to be one of the following: \n "
-            "1: classical vector model (sutor2012) \n"
-            "2: revised vector model (sutor2015) [DEFAULT] \n"
-            "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
-            "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
-      }
-
-//        if((evalVersion == 7)||(evalVersion == 8)){
-//          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
-//        } else if((evalVersion == 9)||(evalVersion == 10)){
-//		  Vector<Double> easyAxis = Vector<Double>(dim_);
-//		  Double phaseLag = 0.0;
-//		  hyst_ = new VectorPreisachv10(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
-//        } else {
-//          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
-//        }
-
-      }
-
-
-      // set map: global to local element number
-      EntityIterator it = actSDList->GetIterator();
-      UInt iel = 0;
-      UInt globalElNr;
-      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-
-      globalElNr = it.GetElem()->elemNum;
-      globalElem2Local_[globalElNr] = iel;
-      }
-    }
-
-    //allocate memory for previous results, needed for the
-    //effective material parameter formulation
-    if(dim == 1){
-      Xprevious_.Resize(numElemSD);
-      Yprevious_.Resize(numElemSD);
-      Xprevious_.Init();
-      Yprevious_.Init();
-    }  else if(dim > 1 && dim <= 3){
-      XpreviousVEC_ = new Vector<Double>[numElemSD];
-      YpreviousVEC_ = new Vector<Double>[numElemSD];
-
-      for(UInt i = 0; i < numElemSD; i++){
-        XpreviousVEC_[i].Resize(dim_);
-        XpreviousVEC_[i].Init();
-
-        YpreviousVEC_[i].Resize(dim_);
-        YpreviousVEC_[i].Init();
-       }
-    }
-
+    hyst_ = new Preisach(numElem,operatorParams,weightParams,isVirgin,ignoreAnhystPart);
+    hyst_ = new VectorPreisachSutor(numElem,operatorParams,weightParams,dim,isVirgin);
+    hyst_ = new VectorPreisachMayergoyz(numElem,operatorParams,weightParams,dim,isVirgin);
+    EXCEPTION( "BaseMaterial::InitHyst should not be used anymore" );
+//
+//    isHystInverse_      = isInverse;
+//    computeHystInverse_ = computeHystInverse;
+//
+//    string val = stringParams_[HYST_MODEL];
+//    if ( val != "preisach" ) {
+//      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
+//    }
+//    else {
+//     // EXCEPTION( "BaseMaterial::InitHyst should not be used anymore" );
+////
+////      isHysteresis_ = true;
+////
+////      Double Xsat, Ysat;
+////      GetScalar(Xsat, X_SATURATION, Global::REAL);
+////      GetScalar(Ysat, Y_SATURATION, Global::REAL);
+////      Matrix<Double> weights;
+////      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
+////      bool isVirgin = true;
+////
+////      if(dim == 1){
+////
+////        hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
+////
+////      } else if(dim > 1 && dim <= 3){
+////
+////        Double rotationalResistance = 1.0;
+////        GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
+////
+////        int evalVersion;
+////        GetScalar(evalVersion, EVAL_VERSION);
+////
+////        int isTesting;
+////        GetScalar(isTesting, IS_TESTING);
+////
+////        Double angDistance;
+////        Matrix<Double> easyAxis_Matrix;
+////        Vector<Double> easyAxis = Vector<Double>(dim);
+////        GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
+////
+////      /*
+////       * should be obsolete as hyst_ is initialized in coefFctHyst
+////       */
+////
+////      bool classical;
+////
+////      if(evalVersion == 1){
+////        classical = true; // original vector preisach model -> sutor2012
+////
+////        hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else if(evalVersion == 2){
+////        classical = false; // revised vector preisach model -> sutor2015
+////
+////        hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else if(evalVersion == 10){
+////        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
+////
+////        hyst_ = new VectorPreisachSutor_MatrixApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else if(evalVersion == 20){
+////        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
+////
+////        hyst_ = new VectorPreisachSutor_MatrixApproach(numElemSD, Xsat, Ysat,
+////                                                   weights, rotationalResistance, dim_, isVirgin,
+////                                                   classical, angDistance, 0, 0, 0, 0, false);
+////      } else {
+////        EXCEPTION("evalVersion has to be one of the following: \n "
+////            "1: classical vector model (sutor2012) \n"
+////            "2: revised vector model (sutor2015) [DEFAULT] \n"
+////            "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+////            "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+////      }
+////
+//////        if((evalVersion == 7)||(evalVersion == 8)){
+//////          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//////        } else if((evalVersion == 9)||(evalVersion == 10)){
+//////		  Vector<Double> easyAxis = Vector<Double>(dim_);
+//////		  Double phaseLag = 0.0;
+//////		  hyst_ = new VectorPreisachSutor(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
+//////        } else {
+//////          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//////        }
+////
+////      }
+////
+////
+////      // set map: global to local element number
+////      EntityIterator it = actSDList->GetIterator();
+////      UInt iel = 0;
+////      UInt globalElNr;
+////      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+////
+////      globalElNr = it.GetElem()->elemNum;
+////      globalElem2Local_[globalElNr] = iel;
+////      }
+////    }
+////
+////    //allocate memory for previous results, needed for the
+////    //effective material parameter formulation
+////    if(dim == 1){
+////      Xprevious_.Resize(numElemSD);
+////      Yprevious_.Resize(numElemSD);
+////      Xprevious_.Init();
+////      Yprevious_.Init();
+////    }  else if(dim > 1 && dim <= 3){
+////      XpreviousVEC_ = new Vector<Double>[numElemSD];
+////      YpreviousVEC_ = new Vector<Double>[numElemSD];
+////
+////      for(UInt i = 0; i < numElemSD; i++){
+////        XpreviousVEC_[i].Resize(dim_);
+////        XpreviousVEC_[i].Init();
+////
+////        YpreviousVEC_[i].Resize(dim_);
+////        YpreviousVEC_[i].Init();
+////       }
+////
+//    }
   }
-
 
   void BaseMaterial::InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                   UInt dim ) {
@@ -898,7 +1247,7 @@ namespace CoupledField
     actDiffVal4VecHyst_.Resize(dim,numElemSD);
     previousDiffVal4VecHyst_.Resize(dim,numElemSD);
     Double nu;
-    GetScalar(nu,MAG_RELUCTIVITY,Global::REAL);
+    GetScalar(nu,MAG_RELUCTIVITY_SCALAR,Global::REAL);
     for (UInt i=0; i<dim; i++)
       for (UInt j=0; j<numElemSD; j++)
         previousDiffVal4VecHyst_[i][j] = nu;
@@ -936,24 +1285,29 @@ namespace CoupledField
     if ( IsSet( RAYLEIGH_ALPHA ) 
          && IsSet( RAYLEIGH_BETA ) 
          && IsSet(RAYLEIGH_FREQUENCY) ) {
-      GetScalar( alphaOrig, RAYLEIGH_ALPHA ); 
-      GetScalar( betaOrig, RAYLEIGH_BETA); 
+      Double a, b;
+      GetScalar( a, RAYLEIGH_ALPHA, Global::REAL );
+      GetScalar( b, RAYLEIGH_BETA, Global::REAL);
       GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
 
+      alphaOrig = lexical_cast<std::string>(a);
+      betaOrig = lexical_cast<std::string>(b);
+
       if( abs(measuredFreq-dampFreq) > 0.001*measuredFreq ){
-        alphaOrig = "(" + alphaOrig + "*" + lexical_cast<std::string>(dampFreq/measuredFreq) + ")";
-        betaOrig= "(" + betaOrig + "*" + lexical_cast<std::string>(measuredFreq/dampFreq)+ ")";
-//        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-//        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
+        alphaOrig = "(" + alphaOrig + "*" +
+                    lexical_cast<std::string>(dampFreq/measuredFreq) + ")";
+        betaOrig= "(" + betaOrig + "*" +
+                  lexical_cast<std::string>(measuredFreq/dampFreq)+ ")";
       }
     }
     else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
 
       std::string tanDelta, deltaFreq, omega1, omega2;
 
-      GetScalar( tanDelta, LOSS_TANGENS_DELTA ); 
+      Double td;
+      GetScalar( td, LOSS_TANGENS_DELTA , Global::REAL );
       // make sure to enclose the expression by brackets!
-      tanDelta = "("+ tanDelta + ")";
+      tanDelta = "("+ lexical_cast<std::string>(td) + ")";
       deltaFreq= lexical_cast<std::string>(ratioDeltaF)+"*"+ lexical_cast<std::string>(measuredFreq);
 
       omega1= "(("+lexical_cast<std::string>(measuredFreq)+"-"+deltaFreq+")*2.0*pi)";
@@ -973,12 +1327,12 @@ namespace CoupledField
     // we can adjust alpha and beta to keep the loss factor (tangens Delta)
     // constant frequency.
     if( adjustDamping && isHarmonic ) {
-      
       // calculate modified alpha' = alpha / measuredFreq * f
       alpha = "(" + alphaOrig + ")/" + lexical_cast<std::string>(measuredFreq)  + "* f";
       // calculate modified beta' = beta * measuredFreq / f
       beta =  "(" + betaOrig + ")*" + lexical_cast<std::string>(measuredFreq) + " / f";
-    } else {
+    }
+    else {
       alpha = alphaOrig;
       beta = betaOrig;
     }
@@ -1020,8 +1374,8 @@ namespace CoupledField
       UInt iel = 0;
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[globalElNr] = iel;
+        globalElNr = it.GetElem()->elemNum;
+        globalElem2Local_[globalElNr] = iel;
       }
   }
   
@@ -1067,164 +1421,104 @@ namespace CoupledField
    }
 
 
-   PtrCoefFct  BaseMaterial::GetTensorCoefFnc(MaterialType matType, SubTensorType type,
-                                              Global::ComplexPart matDataType, 
-                                              bool transpose ) {
-     PtrCoefFct mFunct;
-          
-     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
-       // --------------------------------------
-       //  Coefficient Function already defined
-       // --------------------------------------
-       PtrCoefFct tmp = GetSubTensorCoefFnc( matType, type, transpose  );
-       PtrCoefFct ret = tmp->GetComplexPart( matDataType );
-       return ret;
-       
-       
-     } else {
-       // -------------------------------------------
-       //  Create CoefFunction from constant entries
-       // -------------------------------------------
-       if(matDataType == Global::REAL){
-         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
-         Matrix<Double> coefMat;
+   PtrCoefFct BaseMaterial::GetTensorCoefFnc(MaterialType matType, SubTensorType type,
+                                             Global::ComplexPart matDataType,
+                                             bool transpose ) const
+   {
+     if ( tensorCoef_.find(matType) == tensorCoef_.end() ) {
+       matTypeNotInDataBase(matType, "tensor");
+     } 
 
-         GetTensor(coefMat,matType,matDataType,type);
-         //std::cout << "PreTranspose: " << coefMat << std::endl;
-         // transpose if flag is true
-
-         if( transpose ) {
-           Matrix<Double> temp;
-           coefMat.Transpose(temp);
-           coefMat = temp;
-         }
-		//std::cout << "PostTranspose: " << coefMat << std::endl;
-         tmpFnc->SetTensor(coefMat);
-         mFunct.reset(tmpFnc);
-       }else if(matDataType == Global::COMPLEX){
-
-         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
-         Matrix<Complex> coefMat;
-         GetTensor(coefMat,matType,matDataType,type);
-         // transpose if flag is true
-         if( transpose ) {
-           Matrix<Complex> temp;
-           coefMat.Transpose(temp);
-           coefMat = temp;
-         }
-         tmpFnc->SetTensor(coefMat);
-         mFunct.reset(tmpFnc);
-       }else{
-         EXCEPTION("Material Data Type not supported");
-       }
-     }
+     PtrCoefFct mFunct = GetSubTensorCoefFnc( matType, type, matDataType, transpose );
      mFunct->SetCoordinateSystem(this->coosy_);
-
      return mFunct;
    }
    
-   PtrCoefFct  BaseMaterial::GetVectorCoefFnc(MaterialType matType,
-                                              Global::ComplexPart matDataType) {
-     //EXCEPTION("Not implemented")
-     PtrCoefFct mFunct;
-
-     if( vectorCoef_.find(matType) !=  vectorCoef_.end() ) {
-       // --------------------------------------
-       //  Coefficient Function already defined
-       // --------------------------------------
-       mFunct = vectorCoef_[matType]->GetComplexPart( matDataType );
-
-     } else {
-       // -------------------------------------------
-       //  Create CoefFunction from constant entries
-       // -------------------------------------------
-       if(matDataType == Global::REAL){
-         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
-         Vector<Double> real;
-         GetVector(real,matType,matDataType);
-         tmpFnc->SetVector(real);
-         mFunct.reset(tmpFnc);
-       }else if(matDataType == Global::COMPLEX){
-         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
-         Vector<Complex> val;
-         GetVector(val,matType,matDataType);
-         tmpFnc->SetVector(val);
-         mFunct.reset(tmpFnc);
-       }else{
-         EXCEPTION("Material Data Type not supported");
-       }
+   PtrCoefFct BaseMaterial::GetVectorCoefFnc(MaterialType matType,
+                                             Global::ComplexPart matDataType) const
+   {
+     CoefMap::const_iterator it = vectorCoef_.find(matType);
+     if ( it == vectorCoef_.end() ) {
+       matTypeNotInDataBase(matType, "vector");
      }
+
+     PtrCoefFct mFunct = it->second->GetComplexPart( matDataType );
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
    }
 
    PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,
-                                            Global::ComplexPart matDataType) {
-     PtrCoefFct mFunct;
-
-     if( scalarCoef_.find(matType) !=  scalarCoef_.end() ) {
-       // --------------------------------------
-       //  Coefficient Function already defined
-       // --------------------------------------
-       mFunct = scalarCoef_[matType]->GetComplexPart( matDataType );
-
-     } else {
-       // -------------------------------------------
-       //  Create CoefFunction from constant entries
-       // -------------------------------------------
-       if(matDataType == Global::REAL){
-         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
-         Double real;
-         GetScalar(real,matType,matDataType);
-         tmpFnc->SetScalar(real);
-         mFunct.reset(tmpFnc);
-       }else if(matDataType == Global::COMPLEX){
-         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
-         Complex val;
-         // transpose if flag is true
-         GetScalar(val,matType,matDataType);
-         tmpFnc->SetScalar(val);
-         mFunct.reset(tmpFnc);
-       }else{
-         EXCEPTION("Material Data Type not supported");
-       }
+                                            Global::ComplexPart matDataType) const
+   {
+     CoefMap::const_iterator it = scalarCoef_.find(matType);
+     if ( it == scalarCoef_.end() ) {
+       matTypeNotInDataBase(matType, "scalar");
      }
+
+     PtrCoefFct mFunct = it->second->GetComplexPart( matDataType );
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
    }
 
    PtrCoefFct BaseMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                  SubTensorType tensorType,
-                                                 bool transposed  ) {
-// TODO: include 'complexPart' in input arguments - this is now ignored!
-     PtrCoefFct mFunct;
-     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
-       CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
-
-       subTensorXpr.SetSubTensorType( tensorType, transposed );
-       mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
-     } else {
-       EXCEPTION( "Material tensor not found" );
+                                                 Global::ComplexPart matDataType,
+                                                 bool transposed ) const
+   {
+     CoefMap::const_iterator it = tensorCoef_.find(matType);
+     if( it ==  tensorCoef_.end() ) {
+       matTypeNotInDataBase(matType, "tensor");
      }
-     return mFunct;
+     
+     if (tensorType == FULL) {
+       if( (matType == PREISACH_WEIGHTS) || (matType == PREISACH_WEIGHTS_STRAIN) || (matType == HYST_IRRSTRAIN_CI)){
+         // special cases; these tensors are Nx1; need no transpose and can be taken as set in param handler
+         // just return tensorCoef_
+         return it->second;
+       }
+     }
+ 
+     CoefXprSubTensor subTensorXpr(mp_, it->second );
+     subTensorXpr.SetSubTensorType( tensorType, transposed );
+     return CoefFunction::Generate( mp_, matDataType, subTensorXpr );
+   }
+
+   PtrCoefFct BaseMaterial::GetSubVectorCoefFnc( MaterialType matType,
+                                                 SubTensorType tensorType,
+                                                 Global::ComplexPart matDataType) const
+   {
+       EXCEPTION("Not implemented in base class");
    }
 
    PtrCoefFct BaseMaterial::GetTensorCoefFncNonLin( MaterialType matType,
                                                     SubTensorType type,
                                                     Global::ComplexPart matDataType,
-                                                    PtrCoefFct dependency ) {
+                                                    PtrCoefFct dependency )
+   {
      EXCEPTION("Currently only implemented for ElectroMagnetic material")
    }
    
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType matType,
                                                            Global::ComplexPart matDataType,
-                                                           PtrCoefFct mechStrain ) {
-	EXCEPTION("Only implemented for ElectroMagnetic material")									     
+                                                           PtrCoefFct mechStrain )
+   {
+     EXCEPTION("Only implemented for ElectroMagnetic material")
+   }
+
+   PtrCoefFct BaseMaterial::GetScalCoefFncMultivariateNonLin(
+       MaterialType matType,
+       NonLinType nlType,
+       Global::ComplexPart matDataType,
+       StdVector<PtrCoefFct> dependencies,
+       StdVector<RegionIdType> & regs)
+   {
+     EXCEPTION("not implemented in base class");
    }
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                  Global::ComplexPart matDataType,
-                                                 PtrCoefFct dependency) {
+                                                 PtrCoefFct dependency)
+   {
      shared_ptr<CoefFunctionApprox> coef;
      
      // Ensure that only real-valued parameters are used
@@ -1239,7 +1533,13 @@ namespace CoupledField
      }
      
      // check, if nonlinear curve was already calculated
-     MatDescriptorNl & matNl = nonlinIsoParams_[matType];
+     NonLinIsoMap::iterator it = nonlinIsoParams_.find(matType);
+     if(it == nonlinIsoParams_.end() ) {
+       EXCEPTION( "Could not find material type '"
+           << MaterialTypeEnum.ToString( matType) << "' in material '"
+           << name_ << "'");
+     }
+     MatDescriptorNl & matNl = it->second;
      
      // Check, if smooth spline approximation was already created 
      // and initialized
@@ -1276,4 +1576,29 @@ namespace CoupledField
 
      return coef;
    }
+
+   // Definition of available tensor symmetry types
+   static EnumTuple symTypeTuples[] =
+   {
+    EnumTuple(BaseMaterial::NOSYMMETRY, "noSymmetry"),
+    EnumTuple(BaseMaterial::GENERAL, "general"),
+    EnumTuple(BaseMaterial::ISOTROPIC, "isotropic"),
+    EnumTuple(BaseMaterial::ORTHOTROPIC, "orthotropic"),
+    EnumTuple(BaseMaterial::TRANS_ISOTROPIC, "transversalIsotropic")
+   };
+   Enum<BaseMaterial::SymmetryType> BaseMaterial::SymmetryTypeEnum = \
+       Enum<BaseMaterial::SymmetryType>("Tensor symmetry types",
+                                        sizeof(symTypeTuples) / sizeof(EnumTuple),
+                                        symTypeTuples);
+
+   // Definition of available material models
+   static EnumTuple matModelTuples[] = {
+       EnumTuple(BaseMaterial::MAT_MODEL_LINEAR, "linear"),
+       EnumTuple(BaseMaterial::MAT_MODEL_LINEARVISCOELASTIC, "linearViscoElastic")
+   };
+   Enum<BaseMaterial::MaterialModel> BaseMaterial::MaterialModelEnum =
+       Enum<BaseMaterial::MaterialModel>("Material model",
+                                         sizeof(matModelTuples) / sizeof(EnumTuple),
+                                         matModelTuples);
+
 } // end of namespace

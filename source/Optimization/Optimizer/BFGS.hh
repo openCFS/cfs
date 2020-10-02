@@ -49,7 +49,7 @@ class BFGS {
   StdVector<BFGSInfo> bfgs_details;
 
   /** @see BaseOptimier */
-  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+  void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
 
   private:

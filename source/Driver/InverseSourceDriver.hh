@@ -61,8 +61,7 @@ public:
    Double ComputeFrequencyStep(UInt actFreqStep);
 
    /** This StoreResults meant for Optimization only */
-  void StoreResults(UInt stepNum,
-                    double step_val );
+   unsigned int StoreResults(UInt stepNum, double step_val);
 
   //! \copydoc SingleDriver::SetToStepValue
   virtual void SetToStepValue(UInt stepNum, Double stepVal );
@@ -174,6 +173,9 @@ protected:
 
   //! level of log writing
   std::string logLevel_;
+
+  //! scales the measured data to this value
+  Double scale2Val_;
 };
 
 }

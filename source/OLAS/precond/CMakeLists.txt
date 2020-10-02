@@ -15,6 +15,7 @@ SET(PRECOND_SRCS
     MGPrecond.cc
     SSORPrecond.cc
     SBMDiagPrecond.cc
+    SBMJacobiPrecond.cc
     ILDLPrecond/ildl0factoriser.cc
     ILDLPrecond/ildlcnfactoriser.cc
     ILDLPrecond/ildlkfactoriser.cc

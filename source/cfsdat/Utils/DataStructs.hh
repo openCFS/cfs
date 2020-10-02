@@ -28,16 +28,18 @@
 
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/bind/bind.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
+#define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/for_each.hpp>
-#include <boost/bind.hpp>
 #include <typeinfo>
 #include <cxxabi.h>
+
+using namespace boost::placeholders;
 
 namespace CFSDat{
 
@@ -61,6 +63,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     eqnNumbers.reset(new CF::StdVector<UInt>);
     stepNumbers.reset(new CF::StdVector<UInt>);
     isValid = false;
+    isStatic = false;
     ptGrid = NULL;
     isMeshResult = false;
     minStepOffset = 0;
@@ -114,6 +117,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     isEqual &= (*other.stepNumbers.get()) == (*this->stepNumbers.get());
     isEqual &= other.complexFormat == this->complexFormat;
     isEqual &= other.definedOn == this->definedOn;
+    isEqual &= other.isStatic == this->isStatic;
     isEqual &= other.dofNames == this->dofNames;
     isEqual &= other.entryType == this->entryType;
     isEqual &= other.resultName == this->resultName;
@@ -130,6 +134,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     this->stepNumbers         = other->stepNumbers;
     this->complexFormat       = other->complexFormat;
     this->definedOn           = other->definedOn;
+    this->isStatic            = other->isStatic;
     this->dofNames            = other->dofNames;
     this->entryType           = other->entryType;
     this->resultName          = other->resultName;
@@ -142,6 +147,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
 
   void ImportResultInfo(str1::shared_ptr<ResultInfo> info){
     this->definedOn           = info->definedOn;
+    this->isStatic            = info->isStatic;
     this->dofNames            = info->dofNames;
     this->entryType           = info->entryType;
     this->resultName          = info->resultName;
@@ -163,6 +169,7 @@ private:
     this->stepNumbers         = other->stepNumbers;
     this->complexFormat       = other->complexFormat;
     this->definedOn           = other->definedOn;
+    this->isStatic            = other->isStatic;
     this->dofNames            = other->dofNames;
     this->entryType           = other->entryType;
     this->resultName          = other->resultName;
@@ -193,6 +200,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string, unit)
     (CoupledField::ResultInfo::EntityUnknownType, definedOn)
     (bool, isValid)
+    (bool, isStatic)
     (Grid* , ptGrid)
     (bool, isMeshResult)
 )

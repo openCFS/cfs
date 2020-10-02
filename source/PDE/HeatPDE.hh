@@ -35,8 +35,21 @@ namespace CoupledField {
     //! Destructor
     virtual ~HeatPDE(){};
 
+    /** constants for test temperature gradients (rhs), used for homogenization. We depend on the int values! */
+    typedef enum {X=0, Y=1, Z=2} TestStrain;
+
     //! Is heat source (RHS) definition driven by interface between solid and void?
     inline bool HasInterfaceDrivenRHS() { return interfaceDrivenHeatSource_; }
+
+    /** Add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
+     * called from Excitation::ReadLoads or Excitation::SetHomogenizationTestStrains() (optimization)
+     * @param test is an enum
+     * @param linForms set to append linear Forms to, if NULL use assemble_
+     * very similar to MechPDE::DefineTestStrainIntegrator*/
+    void DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms = NULL);
+
+    /** Stores test temperature gradients for asymptotic homogenization*/
+    static Enum<TestStrain> testStrain;
 
   protected:
     
@@ -114,7 +127,11 @@ namespace CoupledField {
     //! special neumann boundary conditions
     RobinBcList robinBcs_;
     
+    //! flag for heat source on design boundary, need this for tracking optimization
     bool interfaceDrivenHeatSource_;
+
+    //! Tensor type
+    SubTensorType tensorType_;
 
     //! Coefficient function for the convective velocity
 

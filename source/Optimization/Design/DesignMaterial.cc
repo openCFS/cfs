@@ -7,7 +7,6 @@
 
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
@@ -20,8 +19,6 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 //#include "Utils/tools.hh"
-#include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "FeBasis/H1/H1Elems.hh"
@@ -32,7 +29,6 @@
 #include "sgpp_optimization.hpp"
 #endif
 
-DECLARE_LOG(dm)
 DEFINE_LOG(dm, "designMaterial")
 
 using namespace CoupledField;
@@ -41,6 +37,7 @@ using std::string;
 Enum<DesignMaterial::Type> DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation> DesignMaterial::notation;
+Enum<DesignMaterial::RotationType> DesignMaterial::rotationType;
 
 DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space)
 #ifdef USE_SGPP
@@ -69,6 +66,10 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
   space_ = space;
+
+  rotationType_ = RotationType::XYZ;
+  if(pn->Has("rotationtype"))
+    rotationType_ = rotationType.Parse(pn->Get("rotationtype")->As<std::string>());
 
   // initialize, maybe overwritten later
   interpolation_ = DesignMaterial::NOTYPE;
@@ -119,17 +120,23 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 
   std::string interpolation_str;
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == SGP_MATLAB || type_ == HEAT) {
+    if (type_ == HEAT && dim !=3)
+      EXCEPTION("DesignMaterial Heat only implemented and tested for 3d!");
     string p_node = "";
-    if (type_ == HOM_RECT_C1) {
+    if (type_ == HOM_RECT_C1 || type_ == SGP_MATLAB)
       p_node = "homRectC1";
-    } else {
+    if (type_ == HOM_ISO_C1)
       p_node = "homIsoC1";
-    }
+    if (type_ == HEAT)
+      p_node = "heat";
+
     PtrParamNode hr = pn->Get(p_node);
     std::string file = hr->Get("file")->As<std::string>();
     // read interpolation method
     interpolation_str = hr->Get("interpolation")->As<std::string>();
+
+    LOG_DBG3(dm) << "DM: sequence=" << Optimization::context->sequence << " reading coeff file " << file;
 
     // full C1 interpolation with text coefficients for 2D (without shearing angle)
     if (interpolation_str == "c1_text_2d") {
@@ -229,110 +236,88 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       interpolation_ = C1;
       PtrParamNode root = XmlReader::ParseFile(file);
       Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+
+      // number of sample intervals
+      int num_intervals = root->Get("coeff11/matrix/dim1")->As<int>();
+      // number of interpolation coefficients per interval (2d:16, 3d: 64)
+      int num_interp_coeffs = root->Get("coeff11/matrix/dim2")->As<int>();
+      // number of parameter samples in x direction
+      int num_samples_1 = root->Get("a/matrix/dim1")->As<int>();
+      // number of parameter samples in y direction
+      int num_samples_2 = root->Get("b/matrix/dim1")->As<int>();
+      // 2d stuff
+      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff11_);
+      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff12_);
+      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff22_);
+      // heat tensor has only size of 2 x 2 (2d) and is symmetric
+      if (type_ != HEAT){
+        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff33_);
+        hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+      }
+
+      // samples for first and second parameter
+      ParamTools::AsTensor<double>(root->Get("a/matrix/real"), num_samples_1, 1, hom_rect_a_);
+      ParamTools::AsTensor<double>(root->Get("b/matrix/real"), num_samples_2, 1, hom_rect_b_);
+
       if (dim == 2) {
-        //Check for old format of coefficient file. Delete at some point in the future.
-        if (!root->Has("a/matrix/real")) {
-          ParamTools::AsMatrix<double>(root->Get("a/matrix"),hom_rect_a_);
-          ParamTools::AsMatrix<double>(root->Get("b/matrix"),hom_rect_b_);
-          ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), hom_rect_coeff11_);
-          ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), hom_rect_coeff12_);
-          ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), hom_rect_coeff22_);
-          ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), hom_rect_coeff33_);
-          hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
-          if (root->Has("c") || type_ == HOM_ISO_C1) {
-            ParamTools::AsMatrix<double>(root->Get("c/matrix"), hom_rect_c_);
-            ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), hom_rect_coeff13_);
-            ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), hom_rect_coeff23_);
-            hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-            hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-          } else {
-            unsigned int dim1 = hom_rect_coeff11_.GetNumRows();
-            unsigned int dim2 = hom_rect_coeff11_.GetNumCols();
-            hom_rect_c_.Resize(0,0);
-            hom_rect_c_.Init();
-            hom_rect_coeff13_.Resize(dim1,dim2);
-            hom_rect_coeff13_.Init();
-            hom_rect_coeff23_.Resize(dim1,dim2);
-            hom_rect_coeff23_.Init();
-          }
+        if (root->Has("c") || type_ == HOM_ISO_C1) {
+          int dim5 = root->Get("c/matrix/dim1")->As<int>();
+          ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
+          ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff13_);
+          ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff23_);
+          hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
+          hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
         } else {
-          int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
-          int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-          int dim3 = root->Get("a/matrix/dim1")->As<int>();
-          int dim4 = root->Get("b/matrix/dim1")->As<int>();
-          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
-          hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
-          if (root->Has("c") || type_ == HOM_ISO_C1) {
-            int dim5 = root->Get("c/matrix/dim1")->As<int>();
-            ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
-            ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
-            ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
-            hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-            hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
-          } else {
-            hom_rect_c_.Resize(0,0);
-            hom_rect_c_.Init();
-            hom_rect_coeff13_.Resize(dim1,dim2);
-            hom_rect_coeff13_.Init();
-            hom_rect_coeff23_.Resize(dim1,dim2);
-            hom_rect_coeff23_.Init();
-          }
+          hom_rect_c_.Resize(0,0);
+          hom_rect_c_.Init();
+          hom_rect_coeff13_.Resize(num_intervals,num_interp_coeffs);
+          hom_rect_coeff13_.Init();
+          hom_rect_coeff23_.Resize(num_intervals,num_interp_coeffs);
+          hom_rect_coeff23_.Init();
         }
-      } else if (dim == 3) {
-        int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
-        int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-        int dim3 = root->Get("a/matrix/dim1")->As<int>();
-        int dim4 = root->Get("b/matrix/dim1")->As<int>();
-        int dim5 = root->Get("c/matrix/dim1")->As<int>();
+      } else {
+        assert(dim == 3);
+        int num_samples_3 = root->Get("c/matrix/dim1")->As<int>();
+        ParamTools::AsTensor<double>(root->Get("c/matrix/real"), num_samples_3, 1, hom_rect_c_);
 
-        ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-        ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-        ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-        ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
-        ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
-        ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), dim1, dim2, hom_rect_coeff44_);
-        ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), dim1, dim2, hom_rect_coeff55_);
-        ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), dim1, dim2, hom_rect_coeff66_);
-
-        ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-        ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
-        ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
-        // the internal tensor representation in 3D hom_rect_samples_ is Hill-Mandel
-        hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.);
-        hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.);
-        hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 2.0 : 1.);
-
+        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff33_);
+        ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff13_);
+        ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff23_);
+        // heat tensor has only size of 3 x 3 (3d) and is symmetric
+        if (type_ != HEAT){
+          ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff44_);
+          ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff55_);
+          ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff66_);
+          // the internal tensor representation in 3D hom_rect_samples_ is Hill-Mandel
+          hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.);
+          hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.);
+          hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 2.0 : 1.);
+        }
         if (type_ == HOM_ISO_C1) {
           // only necessary for the non-ortho case
-          ParamTools::AsTensor<double>(root->Get("coeff14/matrix/real"), dim1, dim2, hom_rect_coeff14_);
+          ParamTools::AsTensor<double>(root->Get("coeff14/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff14_);
           hom_rect_coeff14_ = hom_rect_coeff14_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff15/matrix/real"), dim1, dim2, hom_rect_coeff15_);
+          ParamTools::AsTensor<double>(root->Get("coeff15/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff15_);
           hom_rect_coeff15_ = hom_rect_coeff15_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff16/matrix/real"), dim1, dim2, hom_rect_coeff16_);
+          ParamTools::AsTensor<double>(root->Get("coeff16/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff16_);
           hom_rect_coeff16_ = hom_rect_coeff16_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff24/matrix/real"), dim1, dim2, hom_rect_coeff24_);
+          ParamTools::AsTensor<double>(root->Get("coeff24/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff24_);
           hom_rect_coeff24_ = hom_rect_coeff24_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff25/matrix/real"), dim1, dim2, hom_rect_coeff25_);
+          ParamTools::AsTensor<double>(root->Get("coeff25/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff25_);
           hom_rect_coeff25_ = hom_rect_coeff25_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff26/matrix/real"), dim1, dim2, hom_rect_coeff26_);
+          ParamTools::AsTensor<double>(root->Get("coeff26/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff26_);
           hom_rect_coeff26_ = hom_rect_coeff26_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff34/matrix/real"), dim1, dim2, hom_rect_coeff34_);
+          ParamTools::AsTensor<double>(root->Get("coeff34/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff34_);
           hom_rect_coeff34_ = hom_rect_coeff34_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff35/matrix/real"), dim1, dim2, hom_rect_coeff35_);
+          ParamTools::AsTensor<double>(root->Get("coeff35/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff35_);
           hom_rect_coeff35_ = hom_rect_coeff35_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff36/matrix/real"), dim1, dim2, hom_rect_coeff36_);
+          ParamTools::AsTensor<double>(root->Get("coeff36/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff36_);
           hom_rect_coeff36_ = hom_rect_coeff36_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff45/matrix/real"), dim1, dim2, hom_rect_coeff45_);
+          ParamTools::AsTensor<double>(root->Get("coeff45/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff45_);
           hom_rect_coeff45_ = hom_rect_coeff45_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff46/matrix/real"), dim1, dim2, hom_rect_coeff46_);
+          ParamTools::AsTensor<double>(root->Get("coeff46/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff46_);
           hom_rect_coeff46_ = hom_rect_coeff46_ * (notation == VOIGT ? sqrt(2.0) : 1.);
-          ParamTools::AsTensor<double>(root->Get("coeff56/matrix/real"), dim1, dim2, hom_rect_coeff56_);
+          ParamTools::AsTensor<double>(root->Get("coeff56/matrix/real"), num_intervals, num_interp_coeffs, hom_rect_coeff56_);
           hom_rect_coeff56_ = hom_rect_coeff56_ * (notation == VOIGT ? sqrt(2.0) : 1.);
         }
       }
@@ -536,12 +521,12 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   Notation notation =  homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
 
   PtrParamNode data = homRect->GetByVal("data", "a", a, "b", b);
-  hom_rect_samples_[idx][DesignElement::MECH_11 - DesignElement::MECH_11] = data->Get("e11")->As<double>();
-  hom_rect_samples_[idx][DesignElement::MECH_12 - DesignElement::MECH_11] = data->Get("e12")->As<double>();
-  hom_rect_samples_[idx][DesignElement::MECH_22 - DesignElement::MECH_11] = data->Get("e22")->As<double>();
-  hom_rect_samples_[idx][DesignElement::MECH_33 - DesignElement::MECH_11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
-  hom_rect_samples_[idx][DesignElement::MECH_13 - DesignElement::MECH_11] = 0.0;
-  hom_rect_samples_[idx][DesignElement::MECH_23 - DesignElement::MECH_11] = 0.0;
+  hom_rect_samples_[idx][0] = data->Get("e11")->As<double>();
+  hom_rect_samples_[idx][5] = data->Get("e12")->As<double>();
+  hom_rect_samples_[idx][1] = data->Get("e22")->As<double>();
+  hom_rect_samples_[idx][2] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
+  hom_rect_samples_[idx][4] = 0.0;
+  hom_rect_samples_[idx][3] = 0.0;
 }
 
 bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem)
@@ -608,6 +593,12 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
       return r + (material == OptimizationMaterial::MECH ? 6 : 15);
     else
       return r + (material == OptimizationMaterial::MECH ? 21 : 15);
+  case SGP_MATLAB:
+    assert(material == OptimizationMaterial::MECH || material == OptimizationMaterial::PIEZOCOUPLING);
+    if (dim == 2)
+      return r + (material == OptimizationMaterial::MECH ? 9 : 15);
+    else
+      return r + (material == OptimizationMaterial::MECH ? 25 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r + 2;
@@ -632,10 +623,9 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
     else
       return r + 6;
   case HOM_ISO_C1:
-    if (dim == 2)
-      return r + 2;
-    else
-      return r + 3;
+  case HEAT:
+    assert(dim == 2 || dim == 3);
+    return r + dim;
   case MSFEM_C1:
     if (dim == 2)
       return r + 3;
@@ -675,8 +665,10 @@ bool DesignMaterial::CheckRequiredDesigns(
           || design.Find(DesignElement::DAMPINGBETA) < 0)) {
     return (false);
   }
+
   switch (type_) {
   case FMO:
+  case SGP_MATLAB:
     if (dim == 2) {
       return (design.Find(DesignElement::MECH_11) >= 0
           && design.Find(DesignElement::MECH_22) >= 0
@@ -739,15 +731,20 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::GMODUL) >= 0
-        && (dim != 2 || design.Find(DesignElement::ROTANGLE))
-        && (dim != 3 || (design.Find(DesignElement::POISSONISO) >= 0 && design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 ) ) );
+        && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
+        && (dim != 3 || (design.Find(DesignElement::POISSONISO) >= 0
+                        && design.Find(DesignElement::ROTANGLEFIRST) >= 0
+                        && design.Find(DesignElement::ROTANGLESECOND) >= 0
+                        && design.Find(DesignElement::ROTANGLETHIRD) >= 0) ) );
   case DENSITY_TIMES_ROT_PA12:
     return (design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::EMODULISO) >= 0
         && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::GMODUL) >= 0
         && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
-        && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 ) ) );
+        && (dim != 3 || (design.Find(DesignElement::ROTANGLEFIRST) >= 0
+                        && design.Find(DesignElement::ROTANGLESECOND) >= 0
+                        && design.Find(DesignElement::ROTANGLETHIRD) >= 0) ) );
   case D_INTERP_TENSOR:
     return (design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::INTERPOLATION) >=0);
@@ -756,7 +753,9 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::EMODUL) >=0
         && design.Find(DesignElement::INTERPOLATION) >=0
         && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
-        && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 && design.Find(DesignElement::ROTANGLEZ) >= 0 ) ) );
+        && (dim != 3 || (design.Find(DesignElement::ROTANGLEFIRST) >= 0
+                        && design.Find(DesignElement::ROTANGLESECOND) >= 0
+                        && design.Find(DesignElement::ROTANGLETHIRD) >= 0) ) );
   case ORTHOTROPIC:
     return(design.Find(DesignElement::MECH_11) >= 0
         && design.Find(DesignElement::MECH_22) >= 0
@@ -822,8 +821,8 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
           && design.Find(DesignElement::STIFF3) >= 0
-          && design.Find(DesignElement::ROTANGLEX) >= 0
-          && design.Find(DesignElement::ROTANGLEY) >= 0);
+          && design.Find(DesignElement::ROTANGLETHIRD) >= 0
+          && design.Find(DesignElement::ROTANGLESECOND) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
@@ -833,8 +832,8 @@ bool DesignMaterial::CheckRequiredDesigns(
   case HOM_ISO_C1:
     if (dim == 3) {
       return (design.Find(DesignElement::STIFF1) >= 0
-          && design.Find(DesignElement::ROTANGLEX) >= 0
-          && design.Find(DesignElement::ROTANGLEY) >= 0);
+          && design.Find(DesignElement::ROTANGLETHIRD) >= 0
+          && design.Find(DesignElement::ROTANGLESECOND) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::ROTANGLE) >= 0);
@@ -844,12 +843,22 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
           && design.Find(DesignElement::STIFF3) >= 0
-          && design.Find(DesignElement::ROTANGLEX) >= 0
-          && design.Find(DesignElement::ROTANGLEY) >= 0);
+          && design.Find(DesignElement::ROTANGLETHIRD) >= 0
+          && design.Find(DesignElement::ROTANGLESECOND) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
+    }
+  case HEAT:
+    if (dim == 3) {
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0
+          && design.Find(DesignElement::STIFF3) >= 0);
+    } else {
+      assert(dim == 2);
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0);
     }
   }
   assert(false);
@@ -1067,7 +1076,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
       double rotAngle = GetParameter(DesignElement::ROTANGLE);
       LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
-      RotateTensor(t, direction, notation, CW,true, rotAngle);
+      RotateTensor(t, direction, notation, CW, true, rotAngle);
       LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
 
       //    static int count(0);
@@ -1116,8 +1125,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   case DesignElement::NO_DERIVATIVE:
   case DesignElement::DENSITY: // almost the same as no derivative, we only changed the factor above
   case DesignElement::ROTANGLE:
-  case DesignElement::ROTANGLEX:
-  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLETHIRD:
+  case DesignElement::ROTANGLESECOND:
   {
     double D = (1.0-n3)*f;
     double D3 = (1.0-nu)*E3/c;
@@ -1195,7 +1204,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
     // RotateTensor needs Hill-Mandel matrix
     t.VoigtToHillMandel();
-    RotateTensor(t, direction,VOIGT,CCW);
+    RotateTensor(t, direction, VOIGT, CCW);
     LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString(2);
   }
   if(notation == HILL_MANDEL || notation == HILL_MANDEL_NO_DENSITY){
@@ -1470,9 +1479,6 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
   double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
   double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
 
-
-
-
   double e14 = 0, e15 = 0, e16 = 0, e24 = 0, e25 = 0, e26 = 0, e34 = 0, e35 = 0, e36 = 0, e44 = 0, e45 = 0, e46 = 0, e55 = 0, e56 = 0, e66 = 0;
   if (subTensor == FULL) {
     // 3D tensor
@@ -1621,10 +1627,9 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
     E.HillMandelToVoigt();
   //RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
   LOG_DBG2(dm) << "GEFMOT: E  =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
-
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetInterpolatedHomTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   // only relevant for hom_rect and hom_rect_c1
   FeH1LagrangeQuad9 fe;
@@ -1651,7 +1656,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
     p.coord[0] = -1.0 + 4 * a; // assume max 0.5
     p.coord[1] = -1.0 + 4 * b; // assume max 0.5
   }
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == HEAT) {
     p.coord[0] = a;
     p.coord[1] = b;
     p.coord[2] = c;
@@ -1670,8 +1675,8 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
   case DesignElement::ROTANGLE:
-  case DesignElement::ROTANGLEX:
-  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLETHIRD:
+  case DesignElement::ROTANGLESECOND:
   case DesignElement::DENSITY:
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
@@ -1679,9 +1684,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       ApplyHomRectTensor(E, shape);
       LOG_DBG2(dm)<< "GHRT: shape=" << shape.ToString();
     }
-    if (type_ == HOM_RECT_C1) {
+    if (type_ == HOM_RECT_C1 || type_ == HEAT) {
       if (interpolation_ == C1) {
-        ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
+        ApplyHomC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
         else if (interpolation_ == SG) {
@@ -1702,7 +1707,6 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::STIFF3:
   case DesignElement::SHEAR1:
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
-      Matrix<double> dummy; // not used -> strange function ?! :(
       Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
       Vector<double> d_shape;
@@ -1711,9 +1715,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       // correct scaling to local FE coordinates
       E *= 4;
       LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
-    } else if(type_ == HOM_RECT_C1) {
+    } else if(type_ == HOM_RECT_C1 || type_ == HEAT) {
       if (interpolation_ == C1) {
-        ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
+        ApplyHomC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
         else if (interpolation_ == SG) {
@@ -1732,16 +1736,17 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   default:
     ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
   }
-  LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
-  if (subTensor == FULL) {
-    // Hill-Mandel notation temporarily necessary for RotateTensor
-    //E.VoigtToHillMandel();
-    RotateTensor(E, direction, VOIGT, CCW);
-  } else {
-    RotateTensor(E, direction, notation, CW, true, rotAngle);
+  if (type_ != HEAT) {
+    LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
+    if (subTensor == FULL) {
+      // Hill-Mandel notation temporarily necessary for RotateTensor
+      //E.VoigtToHillMandel();
+      RotateTensor(E, direction, VOIGT, CCW);
+    } else {
+      RotateTensor(E, direction, notation, CW, true, rotAngle);
+    }
+    LOG_DBG2(dm)<< "GHRT: E after rotation =  " << E.ToString(2);
   }
-  LOG_DBG2(dm)<< "GHRT: E after rotation =  " << E.ToString(2);
-
   if (type_ == D_HOM_RECT)
   {
     double dens = GetParameter(map, DesignElement::DENSITY);
@@ -1764,29 +1769,30 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
 }
 
 
+
 void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
 {
   E.Resize(3, 3);
   E.Init(); // for off-diagonal
   Vector<double> data;
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_11 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 0);
   
   E[1 - 1][1 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 11=" << E[1-1][1-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_12 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 5);
   E[1 - 1][2 - 1] = shape * data;
   E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
   LOG_DBG(dm)<< "AHRT 12=" << E[1-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_22 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 1);
   E[2 - 1][2 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 22=" << E[2-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::MECH_33 - DesignElement::MECH_11);
+  hom_rect_samples_.GetCol(data, 2);
   E[3 - 1][3 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 }
 
-void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
-    DesignElement::Type direction, SubTensorType subTensor) const {
+void DesignMaterial::ApplyHomC1Tensor(Matrix<double>& E, Vector<double>& p,
+    DesignElement::Type direction, SubTensorType subTensor) {
   // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
@@ -1805,93 +1811,101 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     l = GetInterpolationIndex(hom_rect_c_,p[2]);
   }
 
+  // assume mech material
+  int nrows = dim == 2? 3: 6;
+  if (type_ == HEAT)
+    nrows = dim;
+
+  E.Resize(nrows, nrows);
+  E.Init(); // for off-diagonal
   if (subTensor == FULL) {
-    E.Resize(6, 6);
-    E.Init(); // for off-diagonal
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
-        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
-      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
-      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
-      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da, db, dc, j, k, l, m, n, o);
-      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da, db, dc, j, k, l, m, n, o);
-      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da, db, dc, j, k, l, m, n, o);
-      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da, db, dc, j, k, l, m, n, o);
-      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da, db, dc, j, k, l, m, n, o);
-      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da, db, dc, j, k, l, m, n, o);
-      E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
-      E[3 - 1][1 - 1] = E[1 - 1][3 - 1];
-      E[3 - 1][2 - 1] = E[2 - 1][3 - 1];
-      LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
+      E[0][0] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
+      E[0][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
+      E[0][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
+      E[1][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da, db, dc, j, k, l, m, n, o);
+      E[1][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da, db, dc, j, k, l, m, n, o);
+      E[2][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da, db, dc, j, k, l, m, n, o);
+      LOG_DBG(dm) << "E11= " << E[0][0] << " E12= " << E[0][1] << "E13= " << E[0][2] << " E22= " << E[1][1] << " E23= " << E[1][2]<< " E33= " << E[2][2];
+      // symmetry
+      E[1][0] = E[0][1];
+      E[2][0] = E[0][2];
+      E[2][1] = E[1][2];
+      if (type_ != HEAT) {
+        E[3][3] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da, db, dc, j, k, l, m, n, o);
+        E[4][4] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da, db, dc, j, k, l, m, n, o);
+        E[5][5] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da, db, dc, j, k, l, m, n, o);
+        LOG_DBG(dm) << " E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      }
     } else {
       // Calculation of the interpolated tensor derivatives
-      E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
-      E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
-      E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
-      E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
-      E[4-1][4-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
-      E[5-1][5-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
-      E[6-1][6-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][1-1] = E[1-1][2-1];
-      E[3-1][1-1] = E[1-1][3-1];
-      E[3-1][2-1] = E[2-1][3-1];
-      LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      E[0][0] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
+      E[0][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
+      E[0][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
+      E[2][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
+      // symmetry
+      E[1][0] = E[0][1];
+      E[2][0] = E[0][2];
+      E[2][1] = E[1][2];
+      LOG_DBG(dm) << "Derivative " << ((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3")) << " E11= " << E[0][0] << " E12= " << E[0][1] << " E13= " << E[0][2] << " E22= " << E[1][1] << " E33= " << E[2][2] << " E23= " << E[1][2];
+      if (type_ != HEAT) {
+        E[3][3] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
+        E[4][4] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
+        E[5][5] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
+        LOG_DBG(dm)<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+      }
     }
   } else {
-    E.Resize(3,3);
-    E.Init(); // for off-diagonal
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (o == 0) { // no shearing
-        E[1-1][1-1] = EvaluateC1Interpolation(p, hom_rect_coeff11_,da,db,j,k,m,n);
-        E[1-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff12_,da,db ,j,k,m,n);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
-        E[3-1][3-1] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
-        E[3-1][1-1] = 0.;
-        E[1-1][3-1] = 0.;
-        E[2-1][3-1] = 0.;
-        E[3-1][2-1] = 0.;
+        E[0][0] = EvaluateC1Interpolation(p, hom_rect_coeff11_,da,db,j,k,m,n);
+        E[0][1] = EvaluateC1Interpolation(p, hom_rect_coeff12_,da,db ,j,k,m,n);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
+        E[2][2] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
       } else { // shearing
-        E[1-1][1-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_,da,db,dc,j,k,l,m,n,o);
-        E[1-1][2-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_,da,db,dc,j,k,l,m,n,o);
-        E[1-1][3-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_,da,db,dc,j,k,l,m,n,o);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o);
-        E[2-1][3-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o);
-        E[3-1][1-1] = E[1-1][3-1];
-        E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o);
+        assert(type_ != HEAT);
+        E[0][0] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_,da,db,dc,j,k,l,m,n,o);
+        E[0][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_,da,db,dc,j,k,l,m,n,o);
+        E[0][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_,da,db,dc,j,k,l,m,n,o);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o);
+        E[1][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o);
+        E[2][0] = E[0][2];
+        E[2][1] = E[1][2];
+        E[2][2] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o);
       }
       LOG_DBG(dm)<<p;
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     } else {
+      assert(dim == 2);
       if (o == 0) { // no shearing
-        E[1-1][1-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
-        E[1-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
-        E[3-1][3-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
-        E[3-1][1-1] = 0.;
-        E[1-1][3-1] = 0.;
-        E[2-1][3-1] = 0.;
-        E[3-1][2-1] = 0.;
+        E[0][0] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
+        E[0][1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
+        if (type_ != HEAT)
+          E[2][2] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
       } else { // shearing
-        E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
-        E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
-        E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
-        E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
-        E[3-1][1-1] = E[1-1][3-1];
-        E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
+        assert(type_ != HEAT);
+        E[0][0] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
+        E[0][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
+        E[0][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
+        E[1][0] = E[0][1];
+        E[1][1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
+        E[1][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
+        E[2][0] = E[0][2];
+        E[2][1] = E[1][2];
+        E[2][2] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
       }
       LOG_DBG(dm)<<p;
+      double E_33 = type_ == HEAT? 0 : E[2][2];
       LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
-          <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
+          <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E_33;
     }
   }
 
@@ -1910,7 +1924,7 @@ void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
     E.Init(); // for off-diagonal
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
-        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+        || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da,da,da,j,j,j,m,m,m);
       E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da,da,da,j,j,j,m,m,m);
       E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da,da,da,j,j,j,m,m,m);
@@ -1983,7 +1997,7 @@ void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
   } else {
     E.Resize(3,3);
     E.Init();
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       E[1-1][1-1] = EvaluateC1Interpolation(p, hom_rect_coeff11_, da,da,j,j,m,m);
       E[1-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff12_, da,da,j,j,m,m);
       E[2-1][1-1] = E[1-1][2-1];
@@ -2023,7 +2037,7 @@ void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
     }
   }
 
-}
+}// end function ApplyHomIsoC1Tensor
 
 #ifdef USE_SGPP
 
@@ -2428,7 +2442,7 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
   E.Init(); // for off-diagonal
 
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (!shearIsDesign_) { // no shearing
         E[1-1][1-1] = op_eval_->eval(alpha1_, point);
         E[1-1][2-1] = op_eval_->eval(alpha2_, point);
@@ -2469,7 +2483,7 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
           <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     }
   } else {
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
       if (!shearIsDesign_) { // no shearing
         E[1-1][1-1] = op_naive_eval_->eval(alpha1_, point);
         E[1-1][2-1] = op_naive_eval_->eval(alpha2_, point);
@@ -2537,7 +2551,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
         if ((i2 < 1-margin) || (i2 > 64+margin)) continue;
         double bspl_val;
         // evaluate tensor product B-spline
-        if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+        if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
           // 6 because 64 is 2 to the 6th
           bspl_val = bspline.eval(6, i1, p[0]) * bspline.eval(6, i2, p[1]);
         } else if (direction == DesignElement::STIFF1) {
@@ -2558,7 +2572,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
       }
     }
 //    // take positive part (if we're not calculating derivatives)
-//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
 //      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
 //      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
 //      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
@@ -2591,7 +2605,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
           if ((i3 < 1-margin) || (i3 > 63+margin)) continue;
           double bspl_val;
           // evaluate tensor product B-spline
-          if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+          if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
             // 6 because 64 is 2 to the 6th
             bspl_val = bspline.eval(6, i1, p[0]) * bspline.eval(6, i2, p[1]) * bspline.eval(6, i3, p[2]);
           } else if (direction == DesignElement::STIFF1) {
@@ -2617,7 +2631,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
       }
     }
 //    // take positive part (if we're not calculating derivatives)
-//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLETHIRD || direction == DesignElement::ROTANGLESECOND) {
 //      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
 //      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
 //      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
@@ -3519,8 +3533,8 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
 void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles, double rx, double ry, double rz){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
-  // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
-  // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
+  // rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
+  // direction of rotation around an axis is positive (ccw), i.e. right hand rule applies
   // this is identical to BaseMaterial::RotateTensorByRotationAngles
 
   // tranform temporarily to Voigt notation (assumes that all matrices are HILL_MANDEL in the Optimization
@@ -3533,46 +3547,38 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     dim = 2;
   }
 
-  double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
+  double theta3 = 0.0, theta2 = 0.0, theta1 = 0.0;
   if(dim == 3){
     if (angles) {
-      thetax = rx;
-      thetay = ry;
-      thetaz = rz;
+      theta3 = rx;
+      theta2 = ry;
+      theta1 = rz;
     } else {
-      thetax = GetParameter(DesignElement::ROTANGLEX);
-      thetay = GetParameter(DesignElement::ROTANGLEY);
-      thetaz = 0.0;
-      if(HasParameter(DesignElement::ROTANGLEZ))
-        thetaz = GetParameter(DesignElement::ROTANGLEZ);
-      else if(transIsoType_ != TRANSISO_XY)
-        throw Exception("The parameterization of the rotation is incompatible to the choice of the isotropic plane");
+      theta3 = GetParameter(DesignElement::ROTANGLETHIRD);
+      theta2 = GetParameter(DesignElement::ROTANGLESECOND);
+      theta1 = 0.0;
+      if(HasParameter(DesignElement::ROTANGLEFIRST))
+        theta1 = GetParameter(DesignElement::ROTANGLEFIRST);
     }
   }else{ // dim == 2
     if (angles) {
       // this is correct
-      thetaz = rx;
+      theta1 = rx;
     } else {
-      thetaz = GetParameter(DesignElement::ROTANGLE);
+      theta1 = GetParameter(DesignElement::ROTANGLE);
     }
   }
 
   // if rotation is clockwise, change rotation angles
   if (dim == 2 && clock == CW) {
-    thetax = -thetax;
-    thetay = -thetay;
-    thetaz = -thetaz;
+    theta3 = -theta3;
+    theta2 = -theta2;
+    theta1 = -theta1;
   }
 
-  double sthetax = sin(thetax);
-  double cthetax = cos(thetax);
-  double sthetay = sin(thetay);
-  double cthetay = cos(thetay);
-  double sthetaz = sin(thetaz);
-  double cthetaz = cos(thetaz);
   Matrix<Double> R(dim, dim);
-  SetRotationMatrix(R, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz);
-  LOG_DBG3(dm) << "Rotation matrix for tx=" << thetax << ", ty=" << thetay << ", tz=" << thetaz << " is " << R.ToString();
+  SetRotationMatrix(R, theta1, theta2, theta3);
+
   // see also baseMaterial.cc for this
   int dimQ = dim == 3 ? 6 : 3;
   Matrix<Double> Q(dimQ, dimQ);
@@ -3618,7 +3624,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
   }
   LOG_DBG3(dm) << "Corresponding Q is " << Q.ToString();
-  if(direction != DesignElement::ROTANGLEX && direction != DesignElement::ROTANGLEY && direction != DesignElement::ROTANGLEZ && direction != DesignElement::ROTANGLE){
+  if(direction != DesignElement::ROTANGLETHIRD && direction != DesignElement::ROTANGLESECOND && direction != DesignElement::ROTANGLEFIRST && direction != DesignElement::ROTANGLE){
     // calculate Q*t*Q' and store back to t. unfortunately MultT is the wrong way
     Matrix<Double> help(dimQ, dimQ);
     Q.Mult(t, help);
@@ -3628,8 +3634,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     help.Mult(QT, t);
   }else{ // we need a derivative
     Matrix<Double> dR(dim, dim);
-    SetRotationMatrix(dR, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz, direction); // this now produces the derivative
-    LOG_DBG3(dm) << "Corresponding dR is " << dR.ToString();
+    SetRotationMatrix(dR, theta1, theta2, theta3, direction); // this now produces the derivative
 
     Matrix<Double> dQ(dimQ, dimQ);
     // this part can be produced from the definition of Q above by sed 's/Q/dQ;s/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/(dR\1*R\2+R\1*dR\2)/g', effectively using the product rule
@@ -3699,48 +3704,136 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     t.VoigtToHillMandel();
   }
 }
-void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction){
-  // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
-  // and also found in Wikipedia Drehmatrix (german)
-  // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
-  // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
+void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis, bool derivative) {
+  // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis
+
+  double stheta, ctheta, dx;
+  if(!derivative) {
+    stheta = sin(theta);
+    ctheta = cos(theta);
+    dx = 1;
+  }  else {
+    stheta = cos(theta);
+    ctheta = -sin(theta);
+    dx = 0;
+  }
+
+  Matrix<double> Q;
+  Q.Resize(2,2);
+  Q[0][0] = ctheta;
+  Q[0][1] = -stheta;
+  Q[1][0] = stheta;
+  Q[1][1] = ctheta;
+
   R.Resize(dim, dim);
-  double ndx = 1.0, ndy = 1.0, ndz = 1.0;
-  // for the derivative, we replace the correspond sin by cos and cos by -sin and set nd to 0.0
-  switch(direction){
-  case DesignElement::ROTANGLEX:
-    ndx = sthetax;
-    sthetax = cthetax;
-    cthetax = -ndx;
-    ndx = 0.0;
-    break;
-  case DesignElement::ROTANGLEY:
-    ndy = sthetay;
-    sthetay = cthetay;
-    cthetay = -ndy;
-    ndy = 0.0;
-    break;
-  case DesignElement::ROTANGLEZ:
-  case DesignElement::ROTANGLE:
-    ndz = sthetaz;
-    sthetaz = cthetaz;
-    cthetaz = -ndz;
-    ndz = 0.0;
-    break;
-  default:
-    break;
+  if (dim == 2)
+    R = Q;
+  else {
+    // For three dimensions shift entries modulo 3
+    R.Init();
+    R[axis][axis] = dx;
+    for (int row = 0; row < 2; ++row) {
+      int new_row = (row+axis+1) % 3;
+      for (int col = 0; col < 2; ++col) {
+        int new_col = (col+axis+1) % 3;
+        R[new_row][new_col] = Q[row][col];
+      }
+    }
   }
-  R[0][0] =  ndx * cthetay * cthetaz;
-  R[0][1] = -ndx * cthetay * sthetaz;
-  R[1][0] =  cthetax * ndy * sthetaz + sthetax * sthetay * cthetaz;
-  R[1][1] =  cthetax * ndy * cthetaz - sthetax * sthetay * sthetaz;
-  if(dim == 3){
-    R[0][2] =  ndx * sthetay * ndz;
-    R[1][2] = -sthetax * cthetay * ndz;
-    R[2][0] =  sthetax * ndy * sthetaz - cthetax * sthetay * cthetaz;
-    R[2][1] =  sthetax * ndy * cthetaz + cthetax * sthetay * sthetaz;
-    R[2][2] =  cthetax * cthetay * ndz;
+  LOG_DBG2(dm) << "SOARM: rotation matrix around axis " << axis << " = " << R.ToString();
+}
+
+void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction) {
+  // rotation axes ares given by rotationType (default XYZ, i.e. first z, then y, then x)
+  // direction of rotation around an axis is positive (ccw), i.e. right hand rule applies
+  R.Resize(dim, dim);
+
+  if(dim == 2) {
+    SetOneAxisRotationMatrix(R, theta1, NONE, direction == DesignElement::ROTANGLE);
+  } else {
+    Matrix<double> R1, R2, R3;
+    R1.Resize(dim, dim);
+    R2.Resize(dim, dim);
+    R3.Resize(dim, dim);
+
+    int axis1, axis2, axis3;
+    switch(rotationType_) {
+    case RotationType::ZXZ:
+      axis3 = 2;
+      axis2 = 0;
+      axis1 = 2;
+      break;
+    case RotationType::ZYZ:
+      axis3 = 2;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    case RotationType::YZY:
+      axis3 = 1;
+      axis2 = 2;
+      axis1 = 1;
+      break;
+    case RotationType::YXY:
+      axis3 = 1;
+      axis2 = 0;
+      axis1 = 1;
+      break;
+    case RotationType::XYX:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 0;
+      break;
+    case RotationType::XZX:
+      axis3 = 0;
+      axis2 = 2;
+      axis1 = 0;
+      break;
+    case RotationType::XYZ:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    case RotationType::YXZ:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    case RotationType::XZY:
+      axis3 = 0;
+      axis2 = 2;
+      axis1 = 1;
+      break;
+    case RotationType::ZXY:
+      axis3 = 2;
+      axis2 = 0;
+      axis1 = 1;
+      break;
+    case RotationType::ZYX:
+      axis3 = 2;
+      axis2 = 1;
+      axis1 = 0;
+      break;
+    case RotationType::YZX:
+      axis3 = 1;
+      axis2 = 2;
+      axis1 = 0;
+      break;
+    default:
+      axis3 = 0;
+      axis2 = 1;
+      axis1 = 2;
+      break;
+    }
+    SetOneAxisRotationMatrix(R1, theta1, axis1, direction == DesignElement::ROTANGLEFIRST);
+    SetOneAxisRotationMatrix(R2, theta2, axis2, direction == DesignElement::ROTANGLESECOND);
+    SetOneAxisRotationMatrix(R3, theta3, axis3, direction == DesignElement::ROTANGLETHIRD);
+
+    // we use R as temporary cache: R=R2*R1, R1=R3*R, R<-R1
+    R2.Mult(R1,R);
+    R3.Mult(R,R1);
+    R = R1;
   }
+  LOG_DBG3(dm)  << "SRM:Rotation matrix for t1=" << theta1 << ", t2=" << theta2 << ", t3=" << theta3 << " with derivative w.r.t. to " << direction << " is \n" << R.ToString();
 }
 
 void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
@@ -3918,7 +4011,7 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
 
 bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1 && type_ != SGP_MATLAB  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
   // make the code save and remove the lock in calling DesingSpace!
   if(!CollectMaterialParametersForElement(space_, elem))
@@ -3926,8 +4019,9 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 
   switch (type_) {
   case FMO:
+  case SGP_MATLAB:
       GetElasticFMOTensor(t, subTensor, direction, notation);
-    break;
+      break;
   case ORTHOTROPIC:
   case DENSITY_TIMES_ORTHOTROPIC:
     GetOrthotropicMaterialTensor(t, subTensor, direction, notation);
@@ -3960,7 +4054,8 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   case D_HOM_RECT:
   case HOM_RECT_C1:
   case HOM_ISO_C1:
-    GetHomRectTensor(t, subTensor, elem, direction, notation);
+  case HEAT:
+    GetInterpolatedHomTensor(t, subTensor, elem, direction, notation);
     break;
   case D_INTERP_TENSOR:
   case D_INTERP_TENSOR_ROT:
@@ -4176,8 +4271,10 @@ void DesignMaterial::SetEnums() {
   type.Add(HOM_RECT_C1, "hom-rect-C1");
   type.Add(HOM_ISO_C1, "hom-iso-C1");
   type.Add(MSFEM_C1, "msfem-C1");
+  type.Add(SGP_MATLAB, "sgp-matlab");
   type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
   type.Add(D_INTERP_TENSOR_ROT, "density-times-rotated-interpolated-tensor");
+  type.Add(HEAT, "heat");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");
@@ -4187,5 +4284,19 @@ void DesignMaterial::SetEnums() {
   notation.Add(VOIGT, "voigt");
   notation.Add(HILL_MANDEL, "hill_mandel");
   notation.Add(HILL_MANDEL_NO_DENSITY, "hill_mandel_no_density");
+
+  rotationType.SetName("RotationType");
+  rotationType.Add(ZXZ, "zxz");
+  rotationType.Add(ZYZ, "zyz");
+  rotationType.Add(YZY, "yzy");
+  rotationType.Add(YXY, "yxy");
+  rotationType.Add(XYX, "xyx");
+  rotationType.Add(XZX, "xzx");
+  rotationType.Add(XYZ, "xyz");
+  rotationType.Add(YXZ, "yxz");
+  rotationType.Add(XZY, "xzy");
+  rotationType.Add(ZXY, "zxy");
+  rotationType.Add(ZYX, "zyx");
+  rotationType.Add(YZX, "yzx");
 }
 

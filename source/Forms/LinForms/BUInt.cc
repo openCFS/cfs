@@ -27,16 +27,17 @@ BUIntegrator(BaseBOperator * bOp,
              shared_ptr<CoefFunction > rhsCoef, 
              bool coordUpdate,
              bool fullEvaluation,
-			 bool extractReal)
+             bool extractReal,
+             const string& id)
              : LinearForm( coordUpdate ),
                fullEvaluation_(fullEvaluation) {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
 
-
   this->rhsCoefs_ = rhsCoef;
   extractReal_ = extractReal;
+  id_ = id;
 
 }
 
@@ -48,7 +49,8 @@ BUIntegrator(BaseBOperator * bOp,
              const std::set<RegionIdType>& volRegions,
              bool coordUpdate,
              bool fullEvaluation,
-			 bool extractReal)
+             bool extractReal,
+             const string& id)
              : LinearForm( coordUpdate ), 
                fullEvaluation_(fullEvaluation) 
                {
@@ -56,6 +58,8 @@ BUIntegrator(BaseBOperator * bOp,
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
   extractReal_ = extractReal;
+  id_ = id;
+
   assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
          rhsCoef->GetDimType() == CoefFunction::SCALAR);
 #ifndef NDEBUG
@@ -147,7 +151,6 @@ BUIntegrator(BaseBOperator * bOp,
          } else {
            rhsCoefs_->GetVector(cVec,lp);
            if (SURFACE && (ptFeSpace_->GetSpaceType() == FeSpace::HCURL)) {
-
              //uxn
              pt1 = lp.normal;
              cVec.CrossProduct(pt1,pt2);
@@ -159,13 +162,14 @@ BUIntegrator(BaseBOperator * bOp,
              TF = JacT * lp.jac;
              TF.Invert(TFinv);
 
+             // Transformation of a function in curl space (see Zaglmayer Lemma 4.15)
              cVec = (TFinv * JacT) * pt2;
+             fac *= lp.lpmVol->jacDet;
            }
          }
        }
        elemVec += bMat * cVec * fac;
 
      }
-
   }
 }

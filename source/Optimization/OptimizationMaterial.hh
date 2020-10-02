@@ -13,6 +13,7 @@
 #include "MatVec/Vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/HeatPDE.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -47,39 +48,6 @@ class OptimizationMaterial
 public:
   
   virtual ~OptimizationMaterial();
-  
-  /** Id of our material class */
-  typedef enum { NO_SYSTEM = -1, PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC, LBM } System;
-
-  /** calls the proper constructor */
-  static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em, Context* ctxt);
-
-  /** Here we store the system enum */
-  static Enum<System> system;
-
-  System GetSystem() const { return system_; }
-
-  /** works fine for standard single pde SIMP stuff. We have a complex stiffness matrix for bloch.
-   * The direction (param mat derivatives are only for MechMat::MechStiffness() */
-  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
-    return GetElementMatrix(stiff_, elem, bimaterial, multimaterial, mat_deriv);
-  }
-
-  /** we have a dense mass matrix for bloch */
-  const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
-    return GetElementMatrix(mass_, elem, bimaterial, multimaterial, mat_deriv);
-  }
-
-  /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
-  bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
-
-  virtual shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
-
-protected:
-
-  /** @param em for the standard constructor to be used in ErsatzMaterial.
-   * @param space  This allows to gain the MassMatrix for pamping where we might have no ErsatzMaterial  */
-  OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, DesignSpace* space = NULL);
 
   /** this structure describes a material form. Most systems have a stiffness and a mass variant. */
   struct FormID
@@ -95,12 +63,75 @@ protected:
     CfsTLS<Matrix<double> >  calc_real;
     CfsTLS<Matrix<Complex> > calc_cplx;
   };
+  
+  /** Id of our material class */
+  typedef enum { NO_SYSTEM = -1, PIEZOCOUPLING, MECH, ELEC, HEAT, MAG, ACOUSTIC, LBM } System;
+
+  /** calls the proper constructor */
+  static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em, Context* ctxt);
+
+  /** Here we store the system enum */
+  static Enum<System> system;
+
+  System GetSystem() const { return system_; }
+
+  /** works fine for standard single pde SIMP stuff. We have a complex stiffness matrix for bloch.
+   * The direction (param mat derivatives are only for MechMat::MechStiffness() */
+  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(stiff, elem, bimaterial, multimaterial, mat_deriv);
+  }
+
+  /** we have a dense mass matrix for bloch */
+  const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(mass, elem, bimaterial, multimaterial, mat_deriv);
+  }
+
+  const DenseMatrix& GeometricStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(gstiff, elem, bimaterial, multimaterial, mat_deriv);
+  }
+
+  /** service function which indeed computes the matrix.
+   * The underlaying CoefFunctionOpt needs to be org or opt before. State is resetted!
+   * @param use stiff/mass from your OptimizationMaterial
+   * @param this material is used for the BDBInt */
+  template <class T>
+  const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow);
+
+  /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
+  bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
+
+
+  /** in contrast to CoefFunctionOpt* GetMatCoef() this is always the original material. Works for optimization domains and shall be extended for non-optimization domains!
+   * @return don't store the coef!! */
+  CoefFunction* GetOrgMatCoef(BaseBDBInt* bdb);
+
+  CoefFunctionOpt* GetMatCoef(BiLinFormContext* context);
+
+  CoefFunctionOpt* GetMatCoef(LinearFormContext* context);
+
+  CoefFunctionOpt* GetMatCoef(const string& integrator, RegionIdType reg_id);
+
+  CoefFunctionOpt* GetMatCoef(const FormID& form_id, RegionIdType reg_id) {
+    return GetMatCoef(form_id.integrator, reg_id);
+  }
+
+
+  FormID stiff;
+  FormID mass;
+  FormID gstiff;
+
+protected:
+
+  /** @param em for the standard constructor to be used in ErsatzMaterial.
+   * @param space  This allows to gain the MassMatrix for pamping where we might have no ErsatzMaterial  */
+  OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, DesignSpace* space = NULL);
+
 
   /** This is the common function for Stiffness() and Mass(). It either calls ComputeElementMatrix() or gets the stuff from LocalElementCache */
   const DenseMatrix& GetElementMatrix(FormID& id, const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE);
 
   /** If we don't have cached element matrices we compute them here. This is necessary for many param mat derivatives and also fallback.
-   * @return this is out, just a convenience funciton. */
+   * @return this is out, just a convenience function. */
   template <class T>
   const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
@@ -109,6 +140,8 @@ protected:
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                           BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
+
+  void GetOrgElementVector(LinearFormContext* lc, const Elem* elem, Vector<double>& elemVec);
 
   StdVector<RegionIdType> regionIds;
 
@@ -128,9 +161,6 @@ protected:
   /** needs to be replaced by derived classes */
   System system_ = NO_SYSTEM;
 
-
-  FormID stiff_;
-  FormID mass_;
 };
 
 class MechMat : public OptimizationMaterial
@@ -238,6 +268,35 @@ class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em, Context* ctxt);
+
+  // for numerical homogenization:
+  // we compute chi_e^0 by solving element-wise system K_e chi_e^0 = f_e
+  // with respect to scalar temperature the dimensions are: K-e (4 x 4), chi_e^0 (4 x 1), f_e (4 x 1)
+  // if mesh is regular, we only need to do this once
+  // Ke is the element stiffness matrix
+  Vector<double> CalcElementTemperature(Context* ctxt, const Elem* elem, HeatPDE::TestStrain testStrain);
+
+private:
+  // temperature on each node of finite element
+  // assume a regular FE mesh
+  // for each region and for each excitation, store chi_e^0
+  std::map<RegionIdType, StdVector<Vector<double> > > elem_temp;
+};
+
+
+class MagMat : public OptimizationMaterial
+{
+public:
+  MagMat(ErsatzMaterial* em, Context* ctxt);
+
+  /** To get the rhs in magTopOpt, it is necessary to switch to the ORG Material.
+   * @return the elem rhs contribution for the original case, not design dependent. */
+  const Vector<double>& MagExcitationRHS(const std::string& integrator, const Elem* elem);
+
+protected:
+
+  /** We do not cache the vectors but always precalculate them. NOT thread safe */
+  Vector<double> mag_excitation;
 };
 
 

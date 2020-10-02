@@ -41,16 +41,18 @@ def create_figure(min, max, res, for_save):
   ax.set_ylim(min[1], max[1])
   return fig, ax
 
-# # @param centers barycenters
 # @param min/max minimal/maximal real node (not barycenter)
-# @retuen image, draw, dim of image, dx to scale from node coord to image coords  
-def create_image(min, max, nx, color="white"):
-  dim = (nx, int(nx * (max[1] + min[1]) / (max[0] + min[0])))
+# @return image, draw, dim of image, dx to scale from node coord to image coords  
+def create_image(min, max, res, color="white"):
+  if np.size(res) == 1:
+    dim = (res, int(res * (max[1] - min[1]) / (max[0] - min[0])))
+  else:
+    dim = res
   
-  dx = dim[0] / (max[0] + 2.0 * min[0])
-  dy = dim[1] / (max[1] + 2.0 * min[1])
+  dx = dim[0] / (max[0] - min[0])
+  dy = dim[1] / (max[1] - min[1])
  
-  # print "dx=" + str(dx) + " dy=" + str(dy) + " nx=" + str(nx) + " dim=" + str(dim) + " max=" + str(max) 
+  # print "dx=" + str(dx) + " dy=" + str(dy) + " res=" + str(res) + " dim=" + str(dim) + " max=" + str(max) 
   im = Image.new("RGB", dim, color)
   draw = ImageDraw.Draw(im)
   
@@ -69,7 +71,9 @@ def calc_volume(s1, s2):
   vol = 0.0
   for i in range(len(s1)):
     vol += s1[i] + s2[i] - s1[i] * s2[i]
-  return (vol / len(s1))[0]  # somehow this is a numpy.ndarry
+  if vol.ndim > 1:
+    vol = vol[0]
+  return (vol / len(s1))
 
 
 # # generate polygon vertices out of rotation data
@@ -180,7 +184,7 @@ def get_interpol_data(coords, data, fallback, x, eval=True):
   v = data[x]
   if v[0] == -1.0:
     v = fallback[x]
-  return coords[x], v  
+  return coords[x], v
 
 # # helper for get_interpolation and Fields
 # @return 2d locations and 2d data
@@ -220,7 +224,7 @@ def convert_single_data_interpolation_input(centers, s1, angle):
 
 # # helper which returns an interpolated grid and one nearest neighbor interpolated grid
 def get_interpolation(coords, grad, sample, s1, s2, angle=None):
-  assert(sample == 'elem_nodes' or sample == 'edge_centers')
+  assert(sample == 'elem_nodes' or sample == 'edge_centers' or sample == 'elem_centers')
   
   centers, min, max, elem = coords
   # where we want nodes
@@ -233,7 +237,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
       for x in range(nx + 1):
         out[y * (nx + 1) + x][0] = float(x) / nx * max[0]
         out[y * (nx + 1) + x][1] = float(y) / ny * max[1]
-  else:  # 'edge_centers' this is much more complicated, draw a coarse grid and mark all element edge centers!
+  elif sample == 'edge_centers':  # 'edge_centers' this is much more complicated, draw a coarse grid and mark all element edge centers!
     # ---5-------6----
     # |      |       | 
     # 2      3       4
@@ -253,8 +257,18 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
         out[nx + y * (2 * nx + 1) + x][0] = float(x) / nx * max[0]
         out[nx + y * (2 * nx + 1) + x][1] = float(y) / ny * max[1] + 0.5 * elem[1]
         # print "out[" + str(nx + y * (2*nx+1) + x) + "] = " + str(out[nx + y * (2*nx+1) + x])
+  else: # sample == 'elem_centers'
+    out = numpy.zeros((nx * ny, 2))
+    for y in range(ny):
+      for x in range(nx):
+        out[y * nx + x][0] = (float(x) + 0.5) / nx * max[0]
+        out[y * nx + x][1] = (float(y) + 0.5) / ny * max[1]
 
-  c, v = convert_two_data_interpolation_input(centers, s1, s2, angle)
+
+  if s2 is None:
+    c, v = convert_single_data_interpolation_input(centers, s1, angle)
+  else:
+    c, v = convert_two_data_interpolation_input(centers, s1, s2, angle)
     
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolation but nearest neighbor can only interpolate in the convex hull,
@@ -863,6 +877,201 @@ def show_framed_cross(coords, design, nx, scale, color, do_save):
         draw_poly(pol)
 
   return (fig, sub)
+
+
+def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilateral=True, param=None):
+  
+  s1 = design['s1']
+  
+  centers, min, max, elem = coords
+  
+  # set size dx/dy/dz of one cell
+  if samples is not None:
+    tmp = samples.split(',')
+    if len(tmp) == 1:
+      samples = [int(tmp[0]), int(tmp[0])]
+    else:
+      samples = [int(tmp[0]), int(tmp[1])]
+  
+    dx = (max[0] - min[0]) / samples[0]
+    dy = (max[1] - min[1]) / samples[1]
+    elem = np.array([dx, dy, 0])
+  
+  if equilateral:
+    # rescale element for equilateral triangle
+    elem = np.array([elem[0], elem[0] * sqrt(3), 0])
+
+  nx = int((max[0]-min[0]) / elem[0])
+  ny = int(np.round((max[1]-min[1]) / elem[1]))
+  
+  if equilateral:
+    if not param:
+      elem[1] = (max[1]-min[1]) / ny
+    else:
+      max[0] = 3*elem[0]
+      max[1] = 2*elem[1]
+   
+    # calculate new element centers
+    centers_new = []
+    for y in range(ny):
+      for x in range(nx):
+        center = np.array([elem[0]/2.0 + x * elem[0], elem[1]/2.0 + y * elem[1]])
+        centers_new.append(center)
+   
+    # get image resolution
+    res = (res, int(res * ny * elem[1] / (nx * elem[0]))) if not param else [res, int(res*sqrt(3)*2/3)]
+
+  im, draw, dim, dx, dy = create_image(min, max, res, "white")
+
+  # size of element in pixels
+  height = elem[1] * dy 
+  length = elem[0] * dx
+
+  if equilateral:
+    # interpolate original data at new centers
+    c, v = convert_single_data_interpolation_input(centers, s1, None)
+    ip_data = ip.griddata(c, v, centers_new, grad, -1.0)
+    # any interpolation but nearest neighbor can only interpolate in the convex hull,
+    ip_near = ip.griddata(c, v, centers_new, 'nearest') if grad != 'nearest' else None
+  else:
+    ip_near = s1
+    ip_data = s1
+  
+
+  for y in range(ny):
+    for x in range(nx):
+      # if the value is -1 we use the nearest interpolation
+      mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, y * nx + x)
+      if param:
+        v = param
+
+      v = 1-np.sqrt(1-np.min((v,1)))
+
+      l = 1.15
+      v = v if v > thres else 1-l
+      
+      v = (v-1)/l + 1
+      
+      # scale v
+#       v *= 2.0/3.0
+      
+      # black outer triangle
+      n1x = mid[0] * dx - length
+      n2x = mid[0] * dx
+      n3x = mid[0] * dx + length
+      n4x = mid[0] * dx - length * 0.5
+      n5x = mid[0] * dx + length * 0.5
+      if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+        # 1-----3     1-----3     1-----3
+        #  \   /      |    /       \    |
+        #   \ /       |   /         \   |
+        #    2        4--2           2--5
+        n1y = dim[1] - mid[1] * dy + height * 0.5
+        n2y = dim[1] - mid[1] * dy - height * 0.5
+      else:
+        # upside down
+        n1y = dim[1] - mid[1] * dy - height * 0.5
+        n2y = dim[1] - mid[1] * dy + height * 0.5
+      n3y = n1y
+      n4y = n2y
+      n5y = n2y
+
+      tupels = []
+      tupels.append((n1x, n1y))
+      if x == 0: # left boundary
+        tupels.append((n4x, n4y))
+      tupels.append((n2x, n2y))
+      if x == nx-1: # right boundary
+        tupels.append((n5x,n5y))
+      tupels.append((n3x, n3y))
+      
+      #draw.polygon(tupels, fill=(0,0,int(np.random.rand(1)[0]*256)))
+      draw.polygon(tupels, fill="black")
+
+      # white inner triangle
+      offsetx = 0.5 * v * (sqrt(pow(length,2) + pow(height,2)) + length)
+      of = 0.5 * v * length
+      offsetx = np.min((offsetx, length))
+      offsety = 0.5 * v * sqrt(pow(length,2) + pow(height,2)) / length * height
+      offsety = np.min((offsety, (1 - v * 0.5) * height))
+      n1x = mid[0] * dx - length + offsetx
+      n2x = mid[0] * dx
+      n3x = mid[0] * dx + length - offsetx
+      if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+        n1y = dim[1] - mid[1] * dy + height * 0.5 - height * 0.5 * v
+        n2y = dim[1] - mid[1] * dy - height * 0.5 + offsety
+        n3y = n1y
+      else:
+        n1y = dim[1] - mid[1] * dy - height * 0.5 + height * 0.5 * v
+        n2y = dim[1] - mid[1] * dy + height * 0.5 - offsety
+        n3y = n1y
+ 
+      tupels = []
+      tupels.append((n1x, n1y))
+      tupels.append((n2x, n2y))
+      tupels.append((n3x, n3y))
+      
+      #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0))
+      draw.polygon(tupels, fill="white")
+      
+      # white triangle at boundary
+      if x == 0:
+        offsetx = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 0.5))
+        offsety = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 1 - v * 0.5))
+        n1x = mid[0] * dx - length * 0.5
+        n2x = mid[0] * dx - length * offsetx
+        n3x = n1x
+        if y % 2 == 1:
+          # 3
+          # |\
+          # | \
+          # 1--2
+          n1y = dim[1] - mid[1] * dy - height * 0.5
+          n2y = n1y
+          n3y = dim[1] - mid[1] * dy - height * offsety
+        else:
+          # upside down
+          n1y = dim[1] - mid[1] * dy + height * 0.5
+          n2y = n1y
+          n3y = dim[1] - mid[1] * dy + height * offsety
+
+        tupels = []
+        tupels.append((n1x, n1y))
+        tupels.append((n2x, n2y))
+        tupels.append((n3x, n3y))
+        
+        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0))
+        draw.polygon(tupels, fill="white")
+        
+      if x == nx-1:
+        offsetx = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 0.5))
+        offsety = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 1 - v * 0.5))
+        n1x = mid[0] * dx + length * 0.5
+        n2x = mid[0] * dx + length * offsetx
+        n3x = n1x
+        if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+          n1y = dim[1] - mid[1] * dy - height * 0.5
+          n2y = n1y
+          n3y = dim[1] - mid[1] * dy - height * offsety
+        else:
+          # upside down
+          n1y = dim[1] - mid[1] * dy + height * 0.5
+          n2y = n1y
+          n3y = dim[1] - mid[1] * dy + height * offsety
+
+        tupels = []
+        tupels.append((n1x, n1y))
+        tupels.append((n3x, n3y))
+        tupels.append((n2x, n2y))
+        
+        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0))
+        draw.polygon(tupels, fill="white")
+
+  if param:
+    im = im.crop((max[0]/3/2*dx, min[1]*dy, max[0]/3/2*5*dx, max[1]*dy))
+
+  return im
+
 
 def color_code(color_map, value):
   c = color_map.to_rgba(value)

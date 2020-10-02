@@ -1,0 +1,27 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for nearest neighbour search -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_FEInterpolationType">
+    <xsd:attribute name="conservative" type="xsd:boolean" default="false" use="optional"/>
+    <xsd:attribute name="hundredPercent" type="xsd:boolean" default="true" use="optional"/>
+    <xsd:attribute name="connectivity" type="xsd:boolean" default="true" use="optional"/>
+    <xsd:attribute name="useFV" type="xsd:boolean" default="false" use="optional"/>
+    <xsd:attribute name="numNeighbours" type="xsd:integer" default="1" use="optional"/>
+    <xsd:attribute name="maxDistance" type="xsd:double" default="0.03" use="optional"/>
+    <xsd:attribute name="exponent" type="xsd:double" default="1.0" use="optional"/>
+  </xsd:complexType>
+  
+</xsd:schema>

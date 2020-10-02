@@ -3,7 +3,6 @@
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
-SET(MINGW "@MINGW@")
 SET(vtk_source "@vtk_source@")
 
 #=============================================================================

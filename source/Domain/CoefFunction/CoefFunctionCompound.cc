@@ -45,41 +45,7 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
                          this->numRows_, this->numCols_ ); 
 
   // Rotate material, if coordinate system is not the global one
-  if( this->coordSys_ ) {
-    if( coordSys_->GetName() != "default" ) {
-      // Obtain rotation matrix
-      Matrix<Double> rotMatrix;
-      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-      EXCEPTION("The rotation is not fully finished ':-(\n" <<
-                "Here we have to add a call to the method BaseMaterial::PerformRotation "
-                "This method should be moved to the base class of the CoefFunction"
-                "In addition the initial rotation of the material must be incorporated"
-                "somewhere in string-notation, as we are generally dealing with string"
-                "parameters."
-                "Thus we should treat the case, where rotation angles are multiples of "
-                "90 degree separately, where the entries are just interchanged");
-    } else {
-      coefMat = locMatrix;
-    }
-  }else{
-    if( this->coordSys_ ) {
-      // Obtain rotation matrix
-      Matrix<Double> rotMatrix;
-      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-      EXCEPTION("The rotation is not fully finished ':-(\n" <<
-                "Here we have to add a call to the method BaseMaterial::PerformRotation "
-                "This method should be moved to the base class of the CoefFunction"
-                "In addition the initial rotation of the material must be incorporated"
-                "somewhere in string-notation, as we are generally dealing with string"
-                "parameters."
-                "Thus we should treat the case, where rotation angles are multiples of "
-                "90 degree separately, where the entries are just interchanged");
-    } else {
-      coefMat = locMatrix;
-    }
-  }
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 
 //#pragma omp critical
 //  {
@@ -145,7 +111,7 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
 }
 
 void CoefFunctionCompound<Double>::
-SetScalar( std::string& expr, 
+SetScalar( const std::string& expr,
            std::map<std::string, PtrCoefFct >& vars ) {
   dimType_ = SCALAR;
   
@@ -215,14 +181,14 @@ void CoefFunctionCompound<Double>::GetTensorSize( UInt& numRows, UInt& numCols )
 
 std::string CoefFunctionCompound<Double>::ToString() const {
   std::stringstream out;
+  out << "CoefFunctionCompound" << std::endl;
   out << "expression: '" << expr_ << std::endl;
-  out << "registered variables:\n";
+  out << "registered variables:" << std::endl;
   std::map<std::string, PtrCoefFct>::const_iterator it;
   it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
     out << "\tvariable: " << it->first << std::endl;
-    out << "\ttype: " 
-        << CoefDimType_.ToString(it->second->GetDimType() ) << std::endl;
+    out << "\ttype: " << CoefDimType_.ToString(it->second->GetDimType() ) << std::endl;
     out << "\tvalue: " << it->second->ToString() << std::endl;
   }
   
@@ -245,7 +211,7 @@ RegisterCoefFct( const std::string& name,
                << "' was already registered!" );
   }
   
-  // adjust dependency tpye of own coefficient function
+  // adjust dependency type of own coefficient function
   dependType_ = std::max(this->GetDependency(), 
                          coef->GetDependency());
   
@@ -263,8 +229,8 @@ RegisterCoefFct( const std::string& name,
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
-    // insert value 
-    parser_->RegisterExternalVar(handle_, real,  &(scalVars_[name]) );
+        // insert value
+        parser_->RegisterExternalVar(handle_, real,  &(scalVars_[name]) );
       }
     }
     
@@ -276,10 +242,10 @@ RegisterCoefFct( const std::string& name,
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
-    vecVars_[name].Resize(real.GetSize());
-    for( UInt i = 0; i < real.GetSize(); ++ i ) {
-      parser_->RegisterExternalVar(handle_, real[i],  &(vecVars_[name][i]) );
-    }
+        vecVars_[name].Resize(real.GetSize());
+        for( UInt i = 0; i < real.GetSize(); ++ i ) {
+          parser_->RegisterExternalVar(handle_, real[i],  &(vecVars_[name][i]) );
+        }
       }
     }
     
@@ -290,14 +256,14 @@ RegisterCoefFct( const std::string& name,
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
-    tensorVars_[name].Resize(numRows_, numCols_);
-    UInt pos = 0;
-    for( UInt i = 0; i < numRows_; ++i ) {
-      for( UInt j = 0; j < numCols_; ++j ) {
-        parser_->RegisterExternalVar(handle_, real[pos],  &(tensorVars_[name][i][j]) );
-        pos++;
-      }
-    }
+        tensorVars_[name].Resize(numRows_, numCols_);
+        UInt pos = 0;
+        for( UInt i = 0; i < numRows_; ++i ) {
+          for( UInt j = 0; j < numCols_; ++j ) {
+            parser_->RegisterExternalVar(handle_, real[pos],  &(tensorVars_[name][i][j]) );
+            pos++;
+          }
+        }
       }
     }
   } else {
@@ -318,7 +284,20 @@ UpdateXpr( const LocPointMapped& lpm ) {
     if( dim == SCALAR ) {
       it->second->GetScalar( scalVars_[name], lpm );
     } else if( dim == VECTOR ) {
-      it->second->GetVector( vecVars_[name], lpm );
+      // This is a dirty hack for buckling optimization.
+      // In that case, we have two pdes, first linear elasticity (real),
+      // then buckling (complex eigenvalue problem). In the optimization
+      // (Excitation::Apply) we take the solution of the first pde,
+      // convert it to complex and inject it in the second one to get the
+      // stresses which we need to assemble the buckling pde. For assembly
+      // the values have to be real again.
+      if (it->second->IsComplex()) {
+        Vector<Complex> vec;
+        it->second->GetVector( vec, lpm );
+        vecVars_[name] = vec.GetPart(Global::REAL);
+      } else {
+        it->second->GetVector( vecVars_[name], lpm );
+      }
     } else if( dim == TENSOR ) {
       it->second->GetTensor( tensorVars_[name], lpm );
     } else {
@@ -402,22 +381,7 @@ GetTensor( Matrix<Complex>& coefMat, const LocPointMapped& lpm ) {
   locMatrix.SetPart(Global::IMAG, temp);
 
   // Rotate material, if coordinate system is not the global one
-  if( coordSys_->GetName() != "default") {
-    // Obtain rotation matrix
-    Matrix<Double> rotMatrix;
-    coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
-
-    EXCEPTION("The rotation is not fully finished ':-(\n" << 
-              "Here we have to add a call to the method BaseMaterial::PerformRotation "
-              "This method should be moved to the base class of the CoefFunction"
-              "In addition the initial rotation of the material must be incorporated"
-              "somewehre in string-notation, as we are generally dealing with string"
-              "parameters."
-              "Thus we should treat the case, where rotation angles are multiples of "
-              "90 degree separately, where the entries are just interchanged");
-  } else {
-    coefMat = locMatrix;
-  }
+  TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 }
 
 void CoefFunctionCompound<Complex>::
@@ -548,9 +512,10 @@ void CoefFunctionCompound<Complex>::GetTensorSize( UInt& numRows, UInt& numCols 
 
 std::string CoefFunctionCompound<Complex>::ToString() const {
   std::stringstream out;
+  out << "CoefFunctionCompound" << std::endl;
   out << "expression (real): '" << exprReal_ << std::endl;
   out << "expression (imag): '" << exprImag_ << std::endl;
-  out << "registered variables:\n";
+  out << "registered variables:" << std::endl;
   std::map<std::string, PtrCoefFct>::const_iterator it;
   it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {

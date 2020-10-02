@@ -46,10 +46,13 @@ namespace CoupledField {
     analysisType.Add(STATIC, "static");
     analysisType.Add(TRANSIENT, "transient");
     analysisType.Add(HARMONIC, "harmonic");
+    analysisType.Add(MULTIHARMONIC, "multiharmonic");
     analysisType.Add(HARMONIC, "paramIdent", false); // the value is not unique
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
     analysisType.Add(INVERSESOURCE, "inverseSource");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
+    analysisType.Add(BUCKLING, "buckling");
+
 
     MechPDE::testStrain.SetName("MechPDE::TestStrain");
     MechPDE::testStrain.Add(MechPDE::X, "x");
@@ -71,6 +74,8 @@ namespace CoupledField {
     retMap[STIFFNESS_UPDATE] = 0;
     retMap[AUXILIARY] = 0;
     retMap[CONVECTION] = 0;
+    retMap[GEOMETRIC_STIFFNESS] = 0;
+
 
     return retMap;
   }

@@ -2,10 +2,6 @@
 #include "boost/filesystem/operations.hpp"
 #include <boost/tokenizer.hpp>  //TODO
 
-#ifdef __MINGW64__
-#include <intrin.h>
-#endif
-
 #include "CoefFunctionScatteredData.hh"
 #include "FeBasis/FeSpace.hh"
 

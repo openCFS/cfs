@@ -94,7 +94,7 @@ public:
   void GetScalar( Double& coefScalar, const LocPointMapped& lpm );
 
   //! Set Scalar valued expression
-  void SetScalar( std::string& expr, 
+  void SetScalar( const std::string& expr,
                   std::map<std::string, PtrCoefFct >& vars );
 
   //! Set Vector valued expression
@@ -102,9 +102,12 @@ public:
                   std::map<std::string, PtrCoefFct >& vars );
 
   //! Set Tensor valued expression
-void SetTensor( StdVector<std::string>& expr,
+  void SetTensor( StdVector<std::string>& expr,
                   UInt numRows, UInt numCols,
                   std::map<std::string, PtrCoefFct >& vars );
+
+  //! Return reference to coefs_ map. coefs_ can be changed!
+  std::map<std::string, PtrCoefFct>& GetCoefFcts() { return coefs_; }
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
@@ -115,40 +118,39 @@ void SetTensor( StdVector<std::string>& expr,
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
 
-      //! \copydoc CoefFunction::SetDerivativeOperation
-    virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
-      this->derivType_ = type;
+  //! \copydoc CoefFunction::SetDerivativeOperation
+  virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
+    this->derivType_ = type;
 
-      //make some checks here!
-      switch(dimType_){
-      case SCALAR:
-        //only NONE is valid right now
-        //if extended to gradient, this would be fine too
-        if(type==VECTOR_DIVERGENCE){
-          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
-        }
-        break;
-      case VECTOR:
-        //this is fine in all cases right now
-        if(type==VECTOR_DIVERGENCE){
-          //change dim type to scalar
-          this->dimType_ = SCALAR;
+    //make some checks here!
+    switch(dimType_){
+    case SCALAR:
+      //only NONE is valid right now
+      //if extended to gradient, this would be fine too
+      if(type==VECTOR_DIVERGENCE){
+        EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+      }
+      break;
+    case VECTOR:
+      //this is fine in all cases right now
+      if(type==VECTOR_DIVERGENCE){
+        //change dim type to scalar
+        this->dimType_ = SCALAR;
 //          UInt gDim = this->domain_->GetGrid()->GetDim();
 //          UInt dDim = this->resultInfo_->dofNames.GetSize();
-          this->CreateDivOperator(gDim,dDim);
-        }
-        break;
-      case TENSOR:
-        if(type==VECTOR_DIVERGENCE){
-          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
-        }
-        break;
-      default:
-        break;
+        this->CreateDivOperator(gDim,dDim);
       }
-      return;
+      break;
+    case TENSOR:
+      if(type==VECTOR_DIVERGENCE){
+        EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+      }
+      break;
+    default:
+      break;
     }
-
+    return;
+  }
 
 protected:
   
@@ -239,6 +241,9 @@ public:
                   StdVector<std::string>& imagExpr,
                   UInt numRows, UInt numCols,
                   std::map<std::string, PtrCoefFct >& vars );
+
+  //! Return reference to coefs_ map. coefs_ can be changed!
+  std::map<std::string, PtrCoefFct>& GetCoefFcts() { return coefs_; }
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;

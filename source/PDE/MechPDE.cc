@@ -44,6 +44,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionCache.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
@@ -53,14 +54,15 @@
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/EigenFrequencyDriver.hh"
+#include "Driver/BucklingDriver.hh"
 
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Context.hh"
 
 namespace CoupledField {
-  
-  DECLARE_LOG(mechpde)
+
   DEFINE_LOG(mechpde, "mechpde")
           
           /** the static test strain enum mapping */
@@ -69,7 +71,6 @@ namespace CoupledField {
   MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           shared_ptr<SimState> simState, Domain* domain )
   :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
-    
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
     
@@ -432,7 +433,7 @@ namespace CoupledField {
         
         BaseBDBInt* stiffInt;
         
-        // We use a stiffness integrator that implements the scaled strain operator if a PML or MApping domain is considered.
+        // We use a stiffness integrator that implements the scaled strain operator if a PML or Mapping domain is considered.
         // Otherwise, we proceed with the normal stiffness integrator.
         if(isMapping){
           stiffInt =  GetStiffIntegrator(actSDMat, actRegion, false, coeffMAPScal);
@@ -445,7 +446,7 @@ namespace CoupledField {
         }
         else
         {
-          // in the optimization case the coef fucntion will be CoefFunctionOpt
+          // in the optimization case the coef function will be CoefFunctionOpt
           stiffInt =  GetStiffIntegrator(actSDMat, actRegion, isComplex);
         }
         
@@ -664,6 +665,68 @@ namespace CoupledField {
       
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
+
+
+      // ====================================================================
+      //  Geometric / Stress Stiffness Matrix for Buckling Analysis
+      // ====================================================================
+      if (analysistype_ == BUCKLING) {
+        bool refLoadFound = false;
+        PtrParamNode referenceLoadNode;
+        PtrParamNode loadNode = this->myParam_->Get("bcsAndLoads");
+
+        // check if BC are set at all. If not set, the eigenSolver may not be able to solve problem.
+        if(!loadNode->Has("fix")){
+          std::cout << "\n" << "++ " << "WARNING no fixed BC found. This can lead to non positive definite stiffness matrix" << "\n";
+        }
+
+        // check if current region has referencLoad
+        if (loadNode) {
+          referenceLoadNode = loadNode->GetByVal("referenceLoad", "region", regionName.c_str(), ParamNode::PASS);
+        }
+        if (referenceLoadNode) {
+          PtrParamNode variant_referenceLoadNode;
+
+          // generate stress dependent stiffness matrix
+          variant_referenceLoadNode = referenceLoadNode->Get("referenceStress", ParamNode::PASS);
+          if (variant_referenceLoadNode) {
+            BaseBDBInt *preStressInt = NULL;
+
+            PtrCoefFct preStressFct = CreatePreStressFct(false, referenceLoadNode);
+
+            // factor = -1 to account for different sign in the general eigenvalue formulation [A+w(-B)]x = 0 => Ax = wBx
+            preStressInt = GetPreStressIntegrator(preStressFct, actRegion, false, -1.0);
+
+            preStressInt->SetName("PreStressInt");
+            preStressInt->SetFeSpace(mySpace);
+
+            // add stress dependent matrix to GEOMETRIC_STIFFNESS matrix
+            BiLinFormContext *stressContext = new BiLinFormContext(preStressInt, GEOMETRIC_STIFFNESS);
+            stressContext->SetEntities(actSDList, actSDList);
+            stressContext->SetFeFunctions(myFct, myFct);
+
+            assemble_->AddBiLinearForm(stressContext);
+            refLoadFound = true;
+          }
+
+          // generate displacement dependent stiffness matrix
+          variant_referenceLoadNode = referenceLoadNode->Get("referenceDisplacement", ParamNode::PASS);
+          if (variant_referenceLoadNode) {
+            // TODO currently only conventional buckling analysis is implemented
+            // see nonLinearStressOperator for implementation
+            // add displacement dependent matrix to GEOMETRIC_STIFFNESS Matrix
+            // (!! set bilinear factor to -1 !!)
+
+            EXCEPTION("referenceLoad with displacement is not yet implemented.")
+
+            refLoadFound = true;
+          }
+        }
+        if (refLoadFound == false) {
+          EXCEPTION("No referenceLoad defined.")
+        }
+      }// end Geometric Stiffness Matrix
+
     }
     
     // ====================================================================
@@ -671,16 +734,16 @@ namespace CoupledField {
     // ====================================================================
     DefineConcentratedElems();
   }
-  
+
   
   void MechPDE::DefineSurfaceIntegrators( ){
-    //========================================================================================
-    // ABC boundaries
-    //========================================================================================
+
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
+      //========================================================================================
+      // ABC boundaries
+      //========================================================================================
       ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
-      
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
@@ -795,7 +858,63 @@ namespace CoupledField {
         feFunctions_[MECH_DISPLACEMENT]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( abcContext );
       }
-      
+
+      //========================================================================================
+      // Normal X : assumes a normal traction proportional to the normal Y
+      // X/Y = Stiffness/Displacement or Damping/Velocity or Mass/Acceleration
+      // Essentially the mechanic boundary traction arising in the weak form u'*t_n
+      // is replaced by u'*k u_n = u'*(k u*n n) = k u'*n u*n
+      // where k is the parameter read from the input file, and u represents the unknown Y
+      //========================================================================================
+      typedef std::pair<std::string, FEMatrixType> normalBCtype;
+      std::vector<normalBCtype> normalBCs;
+      normalBCs.push_back(std::make_pair("normalStiffness", STIFFNESS));
+      normalBCs.push_back(std::make_pair("normalDamping", DAMPING));
+      normalBCs.push_back(std::make_pair("normalMass", MASS));
+      for( std::vector<normalBCtype>::iterator it = normalBCs.begin() ; it != normalBCs.end(); ++it ){
+        std::string xmlName = it->first;
+        FEMatrixType feMat = it->second;
+        LOG_DBG(mechpde) << "Reading '" << xmlName << "' definition";
+        StdVector<shared_ptr<EntityList> > ent;
+        StdVector<PtrCoefFct > kCoef;
+        StdVector<std::string> volumeRegions;
+        ReadRhsExcitation( xmlName , feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames, ResultInfo::SCALAR, ent, kCoef, updatedGeo_, volumeRegions);
+        for( UInt i = 0; i < ent.GetSize(); ++i ) {
+          // get the volume region for defining the correct normal direction
+          RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+          std::set<RegionIdType> volRegion;
+          volRegion.insert(aRegion);
+          // check type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION( xmlName << " must be defined on (surface) elements")
+          }
+          if ( kCoef[i]->IsComplex() && !(isComplex_) ) {
+            EXCEPTION( xmlName << " is defied as complex but PDE is not")
+          }
+          // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
+          BiLinearForm * tangInt = NULL;
+          if( kCoef[i]->IsComplex() ) {
+            if (dim_ == 2){
+              tangInt = new SurfaceBBInt<Complex,Double>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              tangInt = new SurfaceBBInt<Complex,Double>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+            }
+          } else {
+            if (dim_ == 2){
+              tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+            } else {
+              tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+            }
+          }
+          tangInt->SetName(xmlName + "Integrator");
+          BiLinFormContext *tangContext = new BiLinFormContext(tangInt, feMat );
+          tangContext->SetEntities( ent[i], ent[i]);
+          tangContext->SetFeFunctions( feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+          feFunctions_[MECH_DISPLACEMENT]->AddEntityList( ent[i] );
+          assemble_->AddBiLinearForm( tangContext );
+        }
+      }
+
       // Bloch-periodic boundary conditions
       this->ptGrid_->MapEdges();
       this->ptGrid_->MapFaces();
@@ -1539,11 +1658,11 @@ namespace CoupledField {
       PtrCoefFct cCoef, aCoef;
       if( isComplex_ ) {
         cCoef = materials_[myRegionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, subType, Global::COMPLEX);
-        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_TE_TENSOR, subType);
+        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_THERMAL_EXPANSION_TENSOR, subType, Global::COMPLEX);
       }
       else {
         cCoef = materials_[myRegionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, subType, Global::REAL);
-        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_TE_TENSOR, subType, true);
+        aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_THERMAL_EXPANSION_TENSOR, subType, Global::REAL);
       }
       
       // get reference temperature and compute dT = T - T_ref
@@ -1557,7 +1676,7 @@ namespace CoupledField {
       thermalStrain_->AddRegion( myRegionId, thermalStrainCoef);
       
       // Compute thermal stress (C*alpha)*dT
-      // Note: the order of combining coef functions is important: C*alpha can unsually be evaluated anaytically. 
+      // Note: the order of combining coef functions is important: C*alpha can usually be evaluated analytically.
       // Therefore, we combine it first. Then it is multiplied with dT, which might be a CoefFuctionGrid. 
       PtrCoefFct Calpha = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,cCoef,aCoef,CoefXpr::OP_MULT));
       PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_,Calpha,dT,CoefXpr::OP_MULT));
@@ -1586,7 +1705,7 @@ namespace CoupledField {
     // ===============
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
-    ReadRhsExcitation("pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    ReadRhsExcitation("pressure", empty, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -1868,59 +1987,63 @@ namespace CoupledField {
     return integ;
   }
   
-  BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex)
+  BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, Double factor)
   {
     BaseBDBInt *preStressInt = NULL;
     if(dim_==2 && subType_ != "2.5d"){
       if( regionSoftening_[regionId] == "icModesTW") {
         if(isComplex){
           preStressInt = new ICModesInt<Complex>(new PiolaStressOperator<FeH1,2,Complex>(true),
-                  new PiolaStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
+                  new PiolaStressOperator<FeH1,2,Complex>(true),preStressFct,factor);
         }else{
           preStressInt = new ICModesInt<Double>(new PiolaStressOperator<FeH1,2,Double>(true),
-                  new PiolaStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
+                  new PiolaStressOperator<FeH1,2,Double>(true),preStressFct,factor);
         }
       }else{
         if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,2,Complex>(false),preStressFct,factor);
         }else{
-          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,2,Double>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,2,Double>(false),preStressFct,factor);
         }
       }
     }else if (dim_==2 && subType_ == "2.5d"){
       if( regionSoftening_[regionId] == "icModesTW") {
         if(isComplex){
           preStressInt = new ICModesInt<Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(true),
-                  new PreStressOperator2p5D<FeH1,2,3,Complex>(true),preStressFct,1.0);
+                  new PreStressOperator2p5D<FeH1,2,3,Complex>(true),preStressFct,factor);
         }else{
           preStressInt = new ICModesInt<Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(true),
-                  new PreStressOperator2p5D<FeH1,2,3,Double>(true),preStressFct,1.0);
+                  new PreStressOperator2p5D<FeH1,2,3,Double>(true),preStressFct,factor);
         }
       }else{
         if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(false),preStressFct,factor);
         }else{
-          preStressInt = new BDBInt<Double, Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Double, Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(false),preStressFct,factor);
         }
       }
     }else{
       if( regionSoftening_[regionId] == "icModesTW") {
         if(isComplex){
           preStressInt = new ICModesInt<Complex>(new PiolaStressOperator<FeH1,3,Complex>(true),
-                  new PiolaStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
+                  new PiolaStressOperator<FeH1,3,Complex>(true),preStressFct,factor);
         }else{
           preStressInt = new ICModesInt<Double>(new PiolaStressOperator<FeH1,3,Double>(true),
-                  new PiolaStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
+                  new PiolaStressOperator<FeH1,3,Double>(true),preStressFct,factor);
         }
       }else{
         if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,3,Complex>(false),preStressFct,factor);
         }else{
-          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,3,Double>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,3,Double>(false),preStressFct,factor);
         }
       }
     }
-    
+
+    // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+    if (domain->HasDesign())
+      dynamic_pointer_cast<CoefFunctionOpt>(preStressFct)->SetForm(preStressInt);
+
     return preStressInt;
   }
   
@@ -2119,7 +2242,44 @@ namespace CoupledField {
   {
     solveStep_ = new StdSolveStep(*this);
   }
-  
+
+  const Matrix<double>& MechPDE::GetVonMisesMatrix(int dim)
+  {
+    Matrix<double>& m = dim == 2 ? vonMisesMatrix_2d_ : vonMisesMatrix_3d_;
+    if(m.GetNumRows() == 0)
+    {
+      // Kocvara and Stingl; 2007 -> von Mises Stress = stress^T * M * stress
+      if(dim == 2)
+      {
+        m.Resize(3,3);
+        m.Init();
+        m[0][0] = 1.0;
+        m[1][1] = 1.0;
+        m[2][2] = 3.0;
+        m[0][1] = -0.5;
+        m[1][0] = -0.5;
+
+      }
+      else
+      {
+        m.Resize(6,6);
+        m.Init();
+        m[0][0] = 2.0;
+        m[1][1] = 2.0;
+        m[2][2] = 2.0;
+        m[3][3] = 6.0;
+        m[4][4] = 6.0;
+        m[5][5] = 6.0;
+        m[0][1] = -1.0;
+        m[0][2] = -1.0;
+        m[1][2] = -1.0;
+        m[1][0] = -1.0;
+        m[2][0] = -1.0;
+        m[2][1] = -1.0;
+      }
+    }
+    return m;
+  }
   
   // ======================================================
   // TIME STEPPING SECTION
@@ -2159,7 +2319,7 @@ namespace CoupledField {
     disp->SetFeFunction(feFunctions_[MECH_DISPLACEMENT]);
     disp->definedOn = ResultInfo::NODE;
     feFunctions_[MECH_DISPLACEMENT]->SetResultInfo(disp);
-    
+
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
@@ -2193,7 +2353,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
     shared_ptr<BaseFeFunction> vFct;
     shared_ptr<BaseFeFunction> aFct;
-    if ( analysistype_ != STATIC ) {
+    if ( analysistype_ != STATIC && analysistype_ != BUCKLING) {
       // === MECHANIC VELOCITY ===
       shared_ptr<ResultInfo> vel(new ResultInfo);
       vel->resultType = MECH_VELOCITY;
@@ -2471,18 +2631,7 @@ namespace CoupledField {
     } else {
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
-    
-    if ( isThermalStrain )  {
-      //add thermal strain to mechanical strain
-      shared_ptr<CoefFunction> totalStrain;
-      totalStrain =
-              CoefFunction::Generate( mp_, part,
-              CoefXprBinOp(mp_,strainFunc,thermalStrain_,CoefXpr::OP_ADD));
-      DefineFieldResult( totalStrain, strain );
-    }
-    else {
-      DefineFieldResult( strainFunc, strain );
-    }
+    DefineFieldResult( strainFunc, strain );
     stiffFormCoefs_.insert(strainFunc);
     
     // === MECHANIC PRINCIPAL STRAIN ===
@@ -2638,7 +2787,7 @@ namespace CoupledField {
     shared_ptr<ResultFunctor> keFunc;
     shared_ptr<CoefFunctionSurf> sNormStructIntens;
     shared_ptr<ResultFunctor> powerFunc;
-    if ( analysistype_ != STATIC ) {
+    if ( analysistype_ != STATIC && analysistype_ != BUCKLING) {
       // === MECHANIC STRUCTURAL INTENSTIY ===
       shared_ptr<ResultInfo> intens(new ResultInfo);
       intens->resultType = MECH_STRUCT_INTENSTIY;
@@ -2651,13 +2800,8 @@ namespace CoupledField {
       // I = -[stress] * conj(v)
       PtrCoefFct velFnc = this->GetCoefFct( MECH_VELOCITY );
       // define temporary function, without the -1 sign
-      PtrCoefFct intensTmp = 
-              CoefFunction::Generate(mp_, part,
-              CoefXprBinOp( mp_,  sigmaFunc, velFnc,
-              CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ ) );
-      intensFct = 
-              CoefFunction::Generate(mp_, part,
-              CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT ));
+      PtrCoefFct intensTmp = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, sigmaFunc, velFnc, CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ));
+      intensFct = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT));
       DefineFieldResult( intensFct, intens );
       
       
@@ -2778,36 +2922,6 @@ namespace CoupledField {
     else
       dssFunc.reset(new ResultFunctorIntegrate<Double>(dyadic, feFct, dyadicStrainSum));
     resultFunctors_[MECH_DYADIC_STRAIN_SUM] = dssFunc;
-    
-    // === homogenised (=averaged) MECHANIC QUANTITIES ===
-    // take the original result info and coef function, and then apply the ResultFunctorIntegrate
-    // you need to add a new SolutionType in Environment (and xml).
-    std::map<SolutionType,std::pair<shared_ptr<ResultInfo>, PtrCoefFct> > averages;
-    averages[MECH_STRAIN_AVERAGE] = std::pair<shared_ptr<ResultInfo>, PtrCoefFct>(strain,strainFunc);
-    averages[MECH_STRESS_AVERAGE] = std::pair<shared_ptr<ResultInfo>, PtrCoefFct>(stress,sigmaFunc);
-    for (auto const& i : averages) {
-      shared_ptr<ResultInfo> origResInfo = i.second.first;
-      PtrCoefFct origCoef = i.second.second;
-      shared_ptr<ResultInfo> homResInfo(new ResultInfo);
-      homResInfo->resultType = i.first; // must be changed to correct SolutionType
-      homResInfo->definedOn = ResultInfo::REGION; // on the region, because we integrate it over the volume
-      // copy the rest
-      homResInfo->dofNames = origResInfo->dofNames;
-      homResInfo->unit = origResInfo->unit;
-      homResInfo->entryType = origResInfo->entryType;
-      availResults_.insert( homResInfo );
-      // set the result functor to integrate and average over the volume
-      shared_ptr<ResultFunctor> homResFunctor;
-      if(isComplex_) {
-        homResFunctor.reset(new ResultFunctorIntegrate<Complex>(origCoef, feFct, homResInfo));
-        dynamic_pointer_cast< ResultFunctorIntegrate<Complex> >(homResFunctor)->SetAveraged(true);
-      }
-      else {
-        homResFunctor.reset(new ResultFunctorIntegrate<Double>(origCoef, feFct, homResInfo));
-        dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(homResFunctor)->SetAveraged(true);
-      }
-      resultFunctors_[i.first] = homResFunctor;
-    }
 
     // === MECHANIC DEFORMATION ENERGY DENSITY ===
     shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);
@@ -2851,8 +2965,8 @@ namespace CoupledField {
     totEnergyDens->entryType = ResultInfo::SCALAR;
     totEnergyDens->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunction> tedFunc;
-    // in static analysis, the total energy density equals the deformation one
-    if (analysistype_ == STATIC )
+    // in static and buckling analysis, the total energy density equals the deformation one
+    if (analysistype_ == STATIC  || analysistype_ == BUCKLING)
       tedFunc = dedFunc;
     else
       tedFunc = CoefFunction::Generate(mp_, part, CoefXprBinOp( mp_, dedFunc, kedFunc, CoefXpr::OP_ADD) );
@@ -2955,7 +3069,7 @@ namespace CoupledField {
 //    DefineFieldResult( densFunc, kinEnergyDens );
 //    massFormCoefs_.insert(kedFunc);
 
-    // === MECH_TENOSR_HILL_MANDEL converts to HillMandel notation
+    // === MECH_TENSOR_HILL_MANDEL converts to HillMandel notation
     shared_ptr<ResultInfo> mech_tensor_hm(new ResultInfo);
     mech_tensor_hm->resultType = MECH_TENSOR_HILL_MANDEL;
     mech_tensor_hm->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
@@ -2964,9 +3078,9 @@ namespace CoupledField {
     mech_tensor_hm->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionFormBased> stiff_coef_hm;
     if(isComplex_) // does not really handle the case where only some regions have complex material
-      stiff_coef_hm.reset(new CoefFunctionStiffness<Complex>(feFct, DesignMaterial::HILL_MANDEL));
+      stiff_coef_hm.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, DesignMaterial::HILL_MANDEL));
     else
-      stiff_coef_hm.reset(new CoefFunctionStiffness<double>(feFct, DesignMaterial::HILL_MANDEL));
+      stiff_coef_hm.reset(new CoefFunctionHomogenization<double, App::MECH>(feFct, DesignMaterial::HILL_MANDEL));
     DefineFieldResult(stiff_coef_hm, mech_tensor_hm);
     stiffFormCoefs_.insert(stiff_coef_hm); // will define the forms
     
@@ -2979,9 +3093,9 @@ namespace CoupledField {
     mech_tensor->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionFormBased> stiff_coef;
     if(isComplex_) // does not really handle the case where only some regions have complex material
-      stiff_coef.reset(new CoefFunctionStiffness<Complex>(feFct, DesignMaterial::VOIGT));
+      stiff_coef.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, DesignMaterial::VOIGT));
     else
-      stiff_coef.reset(new CoefFunctionStiffness<double>(feFct, DesignMaterial::VOIGT));
+      stiff_coef.reset(new CoefFunctionHomogenization<double, App::MECH>(feFct, DesignMaterial::VOIGT));
     DefineFieldResult(stiff_coef, mech_tensor);
     stiffFormCoefs_.insert(stiff_coef); // will define the forms
     
@@ -3025,6 +3139,26 @@ namespace CoupledField {
     ms->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
     
+    // === MECH_ELEM_VOL for free and parameterized material optimization
+    shared_ptr<ResultInfo> mev(new ResultInfo);
+    mev->resultType = MECH_ELEM_VOL;
+    mev->dofNames = "elemVol";
+    mev->unit = "";
+    mev->entryType = ResultInfo::SCALAR;
+    mev->definedOn = ResultInfo::ELEMENT;
+    mev->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mev);
+
+    // === MECH_ELEM_POROSITY for parameterized material optimization (currently only necessary for two-scale optimization)
+    shared_ptr<ResultInfo> mep(new ResultInfo);
+    mep->resultType = MECH_ELEM_POROSITY;
+    mep->dofNames = "elemPorosity";
+    mep->unit = "";
+    mep->entryType = ResultInfo::SCALAR;
+    mep->definedOn = ResultInfo::ELEMENT;
+    mep->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mep);
+
     // the OPT_RESULT_* are added via the optimization stuff in DesignSpace.
   }
   
@@ -3047,7 +3181,7 @@ namespace CoupledField {
   // PreStressing CoefFunction Creation
   
   //Helper
-  void MakeBigPreStressVector(StdVector<std::string>& bigVec, StdVector<std::string> smallVec, UInt dim){
+  void MakeBigPreStressVector(StdVector<std::string>& bigVec, StdVector<std::string> smallVec, UInt dim) {
     // this is in accordance with Voigt notation
     if(dim ==2){
       bigVec.Resize(16);
@@ -3078,18 +3212,20 @@ namespace CoupledField {
       }
     }
   }
-  
+
   PtrCoefFct MechPDE::CreatePreStressFct( bool isComplex, PtrParamNode stressNode){
-    PtrParamNode preNode = stressNode->Get("prescribedLHS",ParamNode::PASS);
-    PtrParamNode compNode = stressNode->Get("computeLHS",ParamNode::PASS);
-    PtrCoefFct coef;
+
+    PtrCoefFct   coef;
+    PtrParamNode inputNode;
     
     UInt dimPre = dim_;
     // in 2.5D case the dimension of the prestress vector is the same as that in 3D, i.e. = 3
     if (subType_ == "2.5d")
       dimPre = 3;
     
-    if(preNode){
+    if(stressNode->Has("prescribedLHS")){
+
+      inputNode = stressNode->Get("prescribedLHS",ParamNode::PASS);
       //TODO: This does not support coordinate systems. If this is needed,
       // one possibility would be to create a stress tensor coeffunction first, apply coordinate systems and then blow it up
       // according to the space dimension
@@ -3098,12 +3234,11 @@ namespace CoupledField {
       typedef boost::tokenizer<boost::char_separator<char> >
       tokenizer;
       boost::char_separator<char> sep(" ");
-      
-      
+
       StdVector<std::string> preVecR;
       StdVector<std::string> preVecI;
       
-      std::string valueRStr =  preNode->Get("value")->As<std::string>();
+      std::string valueRStr =  inputNode->Get("value")->As<std::string>();
       tokenizer tokensR(valueRStr, sep);
       for (tokenizer::iterator tok_iter = tokensR.begin();
               tok_iter != tokensR.end(); ++tok_iter){
@@ -3136,12 +3271,20 @@ namespace CoupledField {
         coef =  CoefFunction::Generate(mp_,Global::REAL,dimPre*dimPre,dimPre*dimPre,bigVecR);
       }
       return coef;
-    }else if(compNode){
+
+    }
+    else if(stressNode->Has("computeLHS") || stressNode->Has("referenceStress")){
+
+      if (stressNode->Has("computeLHS")) {
+        inputNode = stressNode->Get("computeLHS",ParamNode::PASS);
+      } else if(stressNode->Has("referenceStress")) {
+        inputNode = stressNode->Get("referenceStress",ParamNode::PASS);
+      }
       
       UInt aSStep = 0;
       //redefine if user passes the argument
-      if( compNode->Get("sequenceStep",ParamNode::PASS) ){
-        aSStep = compNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
+      if( inputNode->Get("sequenceStep",ParamNode::PASS) ){
+        aSStep = inputNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
       }
       
       if(aSStep < 1){
@@ -3149,53 +3292,74 @@ namespace CoupledField {
         aSStep = domain_->GetDriver()->GetActSequenceStep();
         aSStep--;
       }
-      
+
       //only real valued coefFunctions supported
-      PtrCoefFct stressVec = GetStressCoefFromSeqStep(aSStep);
+      PtrCoefFct stressVec;
+      if(!domain->GetOptimization()) {
+        stressVec = GetStressCoefFromSeqStep(aSStep);
+      } else {
+        // dummy for PostInit
+        // we update this with the actual values in each iteration by Excitation::SetStressCoefFct
+        stressVec.reset(new CoefFunctionConst<Double>());
+        Vector<Double> vec(dimPre == 2 ? 3 : 6);
+        vec.Init(0.0);
+        dynamic_cast< CoefFunctionConst<Double>* > (stressVec.get())->SetVector(vec);
+      }
+
       std::map<std::string, PtrCoefFct> var;
       var["a"]  = stressVec;
-      
+
       StdVector<std::string> preVecR;
       StdVector<std::string> preVecI;
       StdVector<std::string> bigVecR;
       StdVector<std::string> bigVecI;
-      
+
       if(dimPre == 2){
         const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" };
         preVecR.Import(vecR,3);
-        MakeBigPreStressVector(bigVecR,preVecR,2);
+        // convert vector preVecR to 4th-order tensor with 2^4 entries
+        MakeBigPreStressVector(bigVecR,preVecR,dimPre);
         if(isComplex){
           const std::string vecI[] = { "0.0" , "0.0" , "0.0" };
           preVecI.Import(vecI,3);
-          MakeBigPreStressVector(bigVecI,preVecI,2);
+          MakeBigPreStressVector(bigVecI,preVecI,dimPre);
         }
-      }else{
+      } else {
         const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" , "a_3_R" , "a_4_R" , "a_5_R"};
         preVecR.Import(vecR,6);
-        MakeBigPreStressVector(bigVecR,preVecR,3);
+        // convert vector preVecR to 4th-order tensor with 3^4 entries
+        MakeBigPreStressVector(bigVecR,preVecR,dimPre);
         if(isComplex){
           const std::string vecI[] = { "0.0" , "0.0" , "0.0" , "0.0" , "0.0" , "0.0" };
           preVecI.Import(vecI,6);
-          MakeBigPreStressVector(bigVecI,preVecI,3);
+          MakeBigPreStressVector(bigVecI,preVecI,dimPre);
         }
       }
+
       //create the coefFunction object
-      if(bigVecI.GetSize()>0){
+      if(isComplex){
         coef.reset(new CoefFunctionCompound<Complex>(mp_));
         CoefFunctionCompound<Complex>*  stressTens = dynamic_cast< CoefFunctionCompound<Complex>* > (coef.get());
         stressTens->SetTensor(bigVecR,bigVecI,dimPre*dimPre,dimPre*dimPre,var);
-      }else{
+      } else {
         coef.reset(new CoefFunctionCompound<Double>(mp_));
         CoefFunctionCompound<Double>*  stressTens = dynamic_cast< CoefFunctionCompound<Double>* > (coef.get());
         stressTens->SetTensor(bigVecR,dimPre*dimPre,dimPre*dimPre,var);
       }
+
+      if(domain->HasDesign())
+      {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef, this);
+        coef.reset(tmpFnc);
+      }
+
       return coef;
-    }else{
+    } else {
       EXCEPTION("Cannot read definition of prestressing!");
       return coef;
     }
   }
-  
+
   PtrCoefFct MechPDE::GetStressCoefFromSeqStep(UInt seqStep){
     //This function uses mostly the simState algorithms from SinglePDE
     //TODO: This is the third(?) time this code is used (see ReadUserFieldValues and ReadInitialConditions).
@@ -3216,7 +3380,8 @@ namespace CoupledField {
       in.reset(new SimInputHDF5(fileName, node, infoNode));
       inState->SetInputHdf5Reader(in);
       SimState::GridMap gridMap = domain_->GetGridMap();
-      
+
+
       inDomain = inState->GetDomain(seqStep, gridMap);
       Double stepVal = 0.0;
       UInt lastStepNum = 0;
@@ -3229,16 +3394,15 @@ namespace CoupledField {
       inState->UpdateToStep(seqStep, lastStepNum);
       SinglePDE * inPDE = inDomain->GetSinglePDE(pdename_);
       if( inPDE->GetAnalysisType() != STATIC && inPDE->GetAnalysisType() != TRANSIENT){
-        EXCEPTION("Prestressing is only supported for a preceeding transient or static analysis");
+        EXCEPTION("Prestressing is only supported for a preceding transient or static analysis");
       }
       
-      // Directly aquire the mechanical stress from the previous sequence step
+      // Directly acquire the mechanical stress from the previous sequence step
       stressVec = inPDE->GetCoefFct(MECH_STRESS);
       
-      // Store the data input for later. It will be destroyed in the destructor
-      // of the SinglePDE
+      // Store the data input for later. It will be destroyed in the destructor of the SinglePDE
       inputs_[inState] = inDomain;
-    } catch (Exception& e){
+    } catch (Exception& e) {
       if( inState ) {
         inState->Finalize();
         inState.reset();

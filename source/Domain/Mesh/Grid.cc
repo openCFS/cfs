@@ -31,13 +31,13 @@ namespace CoupledField
 {
 
   // declare class specific logging stream
-  DECLARE_LOG(grid)
   DEFINE_LOG(grid, "grid")
 
   Grid::Grid(PtrParamNode param, PtrParamNode infoNode)
   {
     isInitialized_ = false; // set by FinishInit()
     isAxi_ = false;
+    depth2dPlane_ = 1.0;
     param_ = param;
     info_ = infoNode;
     
@@ -345,7 +345,7 @@ namespace CoupledField
     return true;
   }
 
-  std::string Grid::GetRegionName( RegionIdType& id )
+  std::string Grid::GetRegionName(RegionIdType id )
   {
     for(UInt i = 0; i < regionData.GetSize(); i++) {
       if(regionData[i].id == id) {
@@ -597,6 +597,19 @@ namespace CoupledField
 
       std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
     }
+  }
+
+
+  // =======================================================================
+  // FINITE VOLUME REPRESENTATION SECTION
+  // =======================================================================
+
+  Grid::FiniteVolumeRepresentation::FiniteVolumeRepresentation() {
+    isSet = false;
+  }
+
+  Grid::FiniteVolumeRepresentation& Grid::GetFiniteVolumeRepresentation() {
+    return fvr_;    
   }
 
   // =========================================================================
@@ -1071,7 +1084,7 @@ namespace CoupledField
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-    for( UInt iM = 0; iM < numMatches; ++iM ) {
+    for( Integer iM = 0; iM < (Integer) numMatches; ++iM ) {
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;
       const std::set<const Elem*> & mElems = matches[iM].matches;

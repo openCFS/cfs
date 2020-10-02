@@ -7,9 +7,8 @@
 #ifndef OPTIMIZATION_DESIGN_SHAPEMAPDESIGN_HH_
 #define OPTIMIZATION_DESIGN_SHAPEMAPDESIGN_HH_
 
-#include "Optimization/Design/AuxDesign.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Function.hh"
-
 
 namespace CoupledField
 {
@@ -24,7 +23,7 @@ class ShapeParam;
  * "Internally" however DesignSpace::data is used for the mapping from  ShapeMapDesign::shape_param_ to DesignSpace::data
  * via MadShapeToDensity()
  * Also standard SIMP gradients are computed and stored in DesignSpace::data and added on shape_param_ via MapShapeGradient().*/
-class ShapeMapDesign : public AuxDesign
+class ShapeMapDesign : public FeaturedDesign
 {
 public:
   ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
@@ -53,12 +52,10 @@ public:
 
   virtual unsigned int GetNumberOfVariables() const;
 
-  virtual int GetNumberOfShapeMappingVariables() const { return shape_param_.GetSize(); }
-
   /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D this fails! */
-  static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
+  static ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
   /** Flip dof for center pairs: X,Y -> Z */
-  static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof first, ShapeParamElement::Dof second);
+  static ShapeParamElement::Dof Flip(ShapeParamElement::Dof first, ShapeParamElement::Dof second);
 
   /** In case DesignSpace::FindDesign() searches for NODE and PROFILE.
    * @return either DesignSpace::FindDesign() or the index within shape_ */
@@ -68,7 +65,7 @@ public:
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
   /** does not go on opt_shape_param_ but on shape_param_ */
-  ShapeParamElement* GetShapeMapDesignElement(unsigned int idx) { return &(shape_param_[idx]);}
+//  ShapeParamElement* GetShapeMapDesignElement(unsigned int idx) { return shape_param_[idx];}
 
   virtual void ToInfo(ErsatzMaterial* em);
 
@@ -82,7 +79,7 @@ public:
 
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
-   * @param locality just given to assert() it is PREV_AND_NEXT */
+   * @param locality the local type */
   void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
   /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
@@ -91,7 +88,7 @@ public:
   /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
   void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
-  /** this maps the mesh to a regular lexicographic design representation. For the moment is assumes the mesh to be already
+  /** this maps the mesh to a regular lexicographic design representation. For the moment it assumes the mesh to be already
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!
   @param design_reg extend to vector if necessary!
   @return the size of the mapping as nx, ny, nz with nz = 1 for 2D */
@@ -105,11 +102,6 @@ public:
   typedef enum { CENTER = -1, NODE = 0, PROFILE = 1} Type;
 
   static Enum<Type> type;
-
-  /** The integration strategy applied forItem::GetOrder() */
-  typedef enum { CONSTANT_FULL, FULL_OR_NOTHING, TAILORED } IntStrategy;
-
-  static Enum<IntStrategy> intStrategy;
 
   /** this describes the continuation of a strucuture in 1D. Either tanh as in Wein, Stingl; 2017 or piecewise linear for cheaper numerical integration. */
   typedef enum { TANH, LINEAR } ShapeFunc;
@@ -185,14 +177,14 @@ public:
     /** for the 3D center node case give back the first center node. This can be called for the first center node, the second
      * center node and the common profile node. Note that the implementation is at the end of this file.
      * @return NULL if none of the three cases above holds */
-    inline ShapeParam* GetFirstCenterNode();
+    ShapeParam* GetFirstCenterNode();
 
-    inline bool IsFirstCenterNode() const;
+    bool IsFirstCenterNode() const;
 
-    inline bool IsSecondCenterNode() const;
+    bool IsSecondCenterNode() const;
 
     /** @see GetFirstCenterNode() */
-    inline ShapeParam* GetSecondCenterNode();
+    ShapeParam* GetSecondCenterNode();
 
     /** The reference for 2d shape is the shape, for 3d second the first and for profiles the first shape.
      * We need to implement here */
@@ -305,11 +297,10 @@ public:
   const ShapeParam* GetShape(const ShapeParamElement* spe) const { return shape_param_map_[spe->GetIndex()]; }
   const ShapeParam* GetShape(const ShapeParamElement& spe) const { return GetShape(&spe); }
 
-  /** combines our settings for numerical integration */
-  struct NumInt
+  struct NumInt : FeaturedDesign::NumInt
   {
     /** the constructor with the ShapeMap pn. Calls SetTailored conditionally */
-    void Init(ShapeMapDesign* smd, PtrParamNode pn, PtrParamNode info);
+    void Init(ShapeMapDesign* fd, PtrParamNode pn, PtrParamNode info);
 
     /** standard output, does not print warning here */
     void ToInfo(PtrParamNode info) const;
@@ -317,25 +308,15 @@ public:
     /** searches tailored_bounds and returns the appropriate tailored_order content */
     int GetTailoredOrder(double max_min) const;
 
-    /** for Item::GetOrder(), however it makes only sense in debug to reduce it. */
-    int max_order;
-
-    IntStrategy strategy;
-
-    /** this is the decision value for CloseEnough() */
-    double sensitivity;
-
     /** for tailored order we set the necessary order for max-min bounds. */
-    Vector<double> tailored_bounds; // 1e-10, 1e-9, ..., 0.1, 1
-    Vector<int>    tailored_order;
-
-    /** for statistics: cells which need integration */
-    unsigned int int_cells_cnt = 0;
-
-    /** for statistics: sum of 1D integration on cells we integrate (-> avg. order)  */
-    unsigned int int_cells_order_sum = 0;
+    Vector<double> tailored_bounds_; // 1e-10, 1e-9, ..., 0.1, 1
+    Vector<int>    tailored_order_;
 
   private:
+    /** find the necessary order, where order=2 means two integration points which is newton cotes order 1
+     * @return newtonCotes.GetSize() when the order was not sufficient   */
+    int FindOrder(double x1, double x2, double pos, double accuracy) const;
+
     /** determined tailored one by evaluating necessary order for dtanh(beta) on a 1D min(n) grid
      * based on the tanh(beta) max - min bounds per element
      * @param info will add warnings there when max_order is too small or the max newtwon-cotes order is not sufficient */
@@ -357,46 +338,36 @@ public:
      * @return abs(analytical - numerical)*/
     double IntGradError(double x1, double x2, double pos, int order) const;
 
-    /** find the necessary order, where order=2 means two integration points which is newton cotes order 1
-     * @return newtonCotes.GetSize() when the order was not sufficient   */
-    int FindOrder(double x1, double x2, double pos, double accuracy) const;
-
-    double beta = -1.0;
-
-    /** product of n */
-    unsigned int cells_;
-
     ShapeMapDesign::ShapeFunc sf_;
+
+    double beta_ = -1.0;
 
     /** what GetTailoredOrder() returns in the LINEAR case with 1st order integration */
     int linear_int_order_ = -1;
-
-    /** the element spacing */
-    double h = -1.0;
   };
 
 private:
 
   /** Setup shape variables from a shape map description. These are abstract structures
    * @param pn a shapeMap element from problem.xml */
-  void SetupShapeDesign(PtrParamNode pn);
+  void SetupDesign(PtrParamNode pn);
 
-  /** from the shapes creatate the rho ShapeParamElement variables to be post processed by SetupOptShapeParam() */
+  /** from the shapes create the rho ShapeParamElement variables to be post processed by SetupOptShapeParam() */
   void SetupShapeParam();
 
   /** From the rho variables from SetupShapeParam() intialize the optimization variables which is complex due to symmetry. */
-  void SetupOptShapeParam();
+  void SetupOptParam();
 
   /** map shape design to rho (DesignSpace::data). Sets DesignSpace::data. Shall be called by ReadDesignFromExtern().
    * Sets Item::ip_param_idx within map_ for fast MapShapeGradient() */
-  void MapShapeToDensity();
+  void MapFeatureToDensity();
 
   /** Takes the density gradients and sums it up on the shape variables using map_. To be called within WriteGradientToExtern().
    * All the tanh stuff is repeatedly calculated for each function. However WriteGradientToExtern(f) is not called after all simp function gradients are set,
    * therefore we cannot cache it.
    * Uses Item::ip_param_idx within map_ set by MapShapeToDensity()
    * @param f the function we add the stuff to the gradient. */
-  void MapShapeGradient(const Function* f);
+  void MapFeatureGradient(const Function* f);
 
   /** Index of rho in DesignSpace::data() by element coordinate */
   unsigned int DensityIdx(int x, int y) const { return y * nx_ + x; }
@@ -405,16 +376,11 @@ private:
   /** This is the inverse to DensityIdx */
   void DensityIdx(unsigned int i, Vector<unsigned int>& idx) const;
 
-  /** Index for integration point */
-  unsigned int IntPointIdx(int order, int ip_x, int ip_y) const { return ip_y * order+ip_x; }
-  unsigned int IntPointIdx(int order, int ip_x, int ip_y, int ip_z) const { return dim_ == 3 ? ip_z * order * order + ip_y * order + ip_x : IntPointIdx(order, ip_x, ip_y); }
-
   /** Search in shape_ */
   StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, ShapeParamElement::Dof dof);
 
   /** centers have in xml two nodes as children. They are not stored as center in shape_ but need to be searched. */
   StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > FindCenters();
-
 
   /** slow version of GetShape() when shape_param_map_ is not yet initialized */
   ShapeParam* FindShape(const ShapeParamElement* spe);
@@ -445,8 +411,8 @@ private:
   void EvalAllCornerValues();
 
   /** Find the corresponding profile variable - needs to identify the shape first :( */
-  inline const ShapeParamElement* GetProfile(const ShapeParamElement* node) const;
-  inline ShapeParamElement* GetProfile(const ShapeParamElement* node);
+  const ShapeParamElement* GetProfile(const ShapeParamElement* node) const;
+  ShapeParamElement* GetProfile(const ShapeParamElement* node);
 
   /** do we use a fixed profile? Then opt_shape_param_ is smaller than shape_param_ */
   bool IsProfileFixed() const;
@@ -454,8 +420,6 @@ private:
   /** do we have at least a single node shape which is not fixed?.
    * contains a loop, hence cache! */
   bool IsAllNodeFixed() const;
-
-
   /** small helper which gives the start index of the element based on type (default, node or profile) of opt_shape_param_ */
   unsigned int GetFirstOptVarIdx(const Function* f) const;
 
@@ -482,6 +446,13 @@ private:
   ShapeParam* InduceSymmetryNodeHelper(ShapeParam& ref_node);
   void InduceSymmetryNodeHelper(ShapeParam& first, ShapeParam& second);
 
+  /** helper for Levelset */
+  double DensityToLevelSet(int x, int y) const;
+
+  /** export a levelset file in vtk format */
+  void ExportLevelSet() const;
+
+
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
   StdVector<ShapeParam> shape_;
@@ -490,11 +461,7 @@ private:
    * This is NOT the size within shape_param_! */
   int num_node_shapes_ = -1;
 
-  /** This are the shape parameters, defined in ersatzMaterial/shapeMap. This includes fixed elements which are not object
-   * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
-  StdVector<ShapeParamElement> shape_param_;
-
-  /** This is a map from shape_param_ to shape of size shape_param_. */
+  /** This is a map from shape_param_ to shape_ of size shape_param_. */
   StdVector<ShapeParam*> shape_param_map_;
 
   /** helper for shape_param_: number of nodes within shape_param_ which not necessarily 1:1 nodes and profiles as 3d center nodes share a profile */
@@ -561,15 +528,13 @@ private:
     ElementSymmetry*   sym = NULL;
   };
 
-  /** This are the external shape param variables which means shape_param_ w/o fixed and optional symmetry links */
+  /** This are the external shape param variables which means shape_param_ w/o fixed and optional symmetry links
+   * overrides StdVector<ShapeParamElement> FeaturedDesign::opt_shape_param_ */
   StdVector<OptVar> opt_shape_param_;
 
   /** to conveniently handle the mapping shape param to design */
-  struct Item
+  struct Item : FeaturedDesign::Item
   {
-    /** our Design Element */
-    DesignElement* rho;
-
     /** This is static information.
      * The node variables the mapping is based on. Profiles via the nodes
      * The major order is structures, the SPE* vector are the variables for the structure
@@ -581,32 +546,22 @@ private:
      * Filled in SetupShapeParam() */
     StdVector<StdVector<ShapeParamElement*> > nodes;
 
-    /** This is for each "real" node the minimal corner value of all 4 (8 corners). Set by EvalAllCorners() */
-    Vector<double> min_corner_value;
-    Vector<double> max_corner_value;
-
     /** Determines based on corner_vals the order of integration for each shape. 0=void, 1=solid, >=2 integration.
      * @param order output
-     * @param sensitivity to identify void and solid and set the proper order. This shall come from numerical studies!
      * @param max_order the maximal order. This may conflict with sensitivity
      * @return the maximal number in order. This is <= the parameter max_order */
     int GetOrder(Vector<int>& order, const NumInt& numInt) const;
 
-    /** Set generalized integration points and weights
-     * @param ip result: vector [0...1]^dim
-     * @param ip_x, ip_y, ip_y index of integration < max_order
-     * @return closed Newton-Cotes weight for the 2D/3D point */
+    /** @see FeaturedDesign::Item */
     static double SetIPGetWeight(const ShapeMapDesign* smd, StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
-
-    /** maximal diff max_corner_value and min_corner_value for all shapes */
-    double MaxDiffCornerValue() const;
   };
 
-  /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
+  /** mapping with size of rho to ShapeParamElement pointers to shape_param_
+   *  overrides FeaturedDesign::map_ because we override Item */
   StdVector<Item> map_;
 
-  /** This structure evaluates a single integration point. It stores exp calculations to reused for gradient calculations. It is aware of
-   * Item::nodes */
+  /** This structure evaluates a single integration point. It stores exp calculations to be reused for gradient calculations.
+   * It is aware of Item::nodes */
   struct EvalAtIp
   {
     EvalAtIp(ShapeMapDesign* smd) { Init(smd); };
@@ -678,7 +633,7 @@ private:
     Vector<double> coord_;
   };
 
-  /** this is the design_id for the last MapShapeToDensit() run */
+  /** this is the design_id for the last MapShapeToDensity() run */
   int mapped_design_ = -1;
 
   ShapeFunc shapeFunc_;
@@ -724,6 +679,7 @@ private:
     double scale = -1.0;  // works with offset
   } tanh_sum_;
 
+  NumInt numInt_;
 
   /** number of elements of rho in x-direction. +1 for nodes! */
   unsigned int nx_ = 0;
@@ -739,9 +695,6 @@ private:
   /** this is the edge size */
   Vector<double> coord_step_;
 
-  /** shortcut to the dimension (2,3) */
-  static unsigned int dim_;
-
   /** checks lower and upper when loading from ersatz material */
   bool enforce_bounds_;
 
@@ -754,19 +707,16 @@ private:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
-  /** Measure MapShapeToDensity() */
-  shared_ptr<Timer> mapping_timer_;
-
-  /** Measure MapShapeGradient() */
-  shared_ptr<Timer> gradient_timer_;
+  /** do we export a levelset file? Shall become a struct with more options.
+   * In the simplest case writes when we export the density. New files with -d else always overwrite. Make smarter! */
+  bool export_leveset_;
 
   NumInt numInt;
 };
 
 
-
 /** as the inline function is used in DensityFile it needs to be given in the header */
-ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetFirstCenterNode()
+inline ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetFirstCenterNode()
 {
   assert(!(other_center != NULL && other_center->other_center != this));
   assert(!(other_center != NULL && type == PROFILE)); // due to unsymmetry only nodes have the link

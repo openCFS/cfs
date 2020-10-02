@@ -8,37 +8,48 @@ include(CheckCXXSourceCompiles)
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-IF(UNIX OR MINGW)
+IF(UNIX)
   #-----------------------------------------------------------------------------
   # Let's first find out some infos about the system GNU compiler first.
   #-----------------------------------------------------------------------------
   SET(COMPILER "g++")
-  
+
   SET(ID_GXX "${CFS_BINARY_DIR}/share/scripts/identify_gxx.cmake")
   CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_GXX}" @ONLY)
-  
+
   EXECUTE_PROCESS(
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
     WORKING_DIRECTORY "${CFS_BINARY_DIR}"
     RESULT_VARIABLE RETVAL
     )
-  
+
   EXECUTE_PROCESS(
     COMMAND "${CMAKE_COMMAND}" -P "${ID_GXX}"
     WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
     RESULT_VARIABLE RETVAL
     )
-  
+
   INCLUDE("${COMPILER_ID_FILE}")
-  
+
   SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
-ENDIF(UNIX OR MINGW)
+ENDIF(UNIX)
+
+IF(WIN32)
+  #-----------------------------------------------------------------------------
+    # we currently support 
+    #    Visual Studio 2017 or 2019 plus Intel Fortran (2019/2020)
+    # or
+    #    Intel 2020 C++ and Fortran
+    # the later requires either VC2017 or VC2019 environment
+    # in order to build boost correctly, we need to know which env is used
+    SET(CFS_MSVC_VERSION $ENV{VisualStudioVersion})
+ENDIF(WIN32)
 
 
 
 #-------------------------------------------------------------------------------
 # Collect output of compiler version command to determine compiler type and
-# version information. 
+# version information.
 #-------------------------------------------------------------------------------
 SET(COMPILER "")
 
@@ -84,41 +95,41 @@ SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 #-------------------------------------------------------------------------------
 # Check if compiler supports OpenMP
 #-------------------------------------------------------------------------------
-FIND_PACKAGE(OpenMP)
+find_package(OpenMP)
 
-IF(OPENMP_FOUND)
+if(USE_OPENMP)
+  if(OPENMP_FOUND)
+    set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
+    set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
+    if(APPLE)
+      # let's hope this does not make the compiler use system gmp, hdf5, ...
+      include_directories(AFTER SYSTEM "/usr/local/include")
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L/usr/local/lib")
+    endif() # APPLE
+  else()
+    message(FATAL_ERROR "USE_OPENMP enabled but OpenMP not found on the system")
+  endif() # OPENMP_FOUND
+endif() # USE_OPENMP
 
-  #-----------------------------------------------------------------------------
-  # The USE_OPENMP option triggers the usage of OpenMP versions of external
-  # libraries and the compilation of CFS++ with OpenMP compiler switches.
-  #-----------------------------------------------------------------------------
-  SET(USE_OPENMP "${USE_OPENMP_DEFAULT}" CACHE BOOL "Enable support for OpenMP. Needs GCC >= 4.8, Intel C++ or Clang >= 3.8.")
-  
-  #-----------------------------------------------------------------------------
-  # Check if compiler has OpenMP support. GCC >= 4.2 has.
-  #-----------------------------------------------------------------------------
-  IF(USE_OPENMP)
-    SET(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
-    # MESSAGE("Use OpenMP-Flags ${OpenMP_C_FLAGS}")
-    # sets to -qopenmp for icc and -fopenmp for gcc
-  ENDIF()
-ENDIF()
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ or clang compiler
 #-------------------------------------------------------------------------------
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
-  SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1 ${CFS_CXX_FLAGS}")
   # Obtain major version number of GCC or Clang
   STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
   # we assue C++11 for CFS for any compiler
-  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
-  SET(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
-  SET(CFS_C_FLAGS "-std=c11")
+  set(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  set(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
+  set(CFS_C_FLAGS "-std=c11")
+
+  IF(CFS_FSANITIZE)
+    SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS " -fsanitize=address ${CFS_C_FLAGS}")
+  ENDIF()
   
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
@@ -129,7 +140,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
-    # 
+    #
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
     # -frounding-math: is needed for CGAL library
@@ -144,12 +155,12 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
-    IF(CFS_ARCH STREQUAL "X86_64" AND NOT MINGW)
+    IF(CFS_ARCH STREQUAL "X86_64")
       SET(CFS_OPT_FLAGS "-m64 -march=k8 -msse2")
     ENDIF()
-     
+
   ENDIF() # end debug/release
-  
+
   # Disable some annoying warnings.
   # note we have at least gcc 4.8
   # -Wno-overflow because of /boost/iostreams/filter/gzip.hpp:674:13: error: overflow in implicit constant conversion [-Werror=overflow]
@@ -158,48 +169,49 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   # stuff that was removed with boost 1.67: -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
-    # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined] 
+    # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined]
      #if ! DONT_USE_HAS_NEW_OPERATOR
 
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-expansion-to-defined ")
-  ENDIF()  
+  ENDIF()
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0")
     # -Wno-misleading-indentation -Wno-error=placement-new are for gcc 6.1.1 and boost 1.61 maybe remove when a newer boost ist available!
-    # however cfsbin has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58 
+    # however cfsbin has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58
     # we must not set this to CFS_SUPRESSIONS because these also become CMAKE_C_FLAGS and then the following happens:
     # CheckFortranRuntime.cmake (CFS) ->  FortranCInterface.cmake (system) -> Detect.cmake (system) -> try_compile(FortranCInterface_COMPILED
     # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option *** is valid for C++ but not for C"
     # for debug with -Werror this fails and as a result Fortran name mangling does not work (BUILD/include/def_cfs_fortran_interface.hh is empty)
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new") 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new")
   ENDIF()
 
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
+  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
     # on macOS with gcc-7.1 
     # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined")
-  ENDIF()
-  
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined ")
+  endif()
+
+  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "8.0")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-stringop-truncation ")
+  endif()
+
+
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
-    # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
+    # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
-    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
+    # include/boost/smart_ptr/detail/sp_counted_base_clang.hpp: warning: '_Atomic' is a C11 extension
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-c11-extensions")
+    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
+    # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-nested-anon-types")
+    # not all gcc options are compatible with clang (mac)
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-unknown-warning-option")
   ENDIF()
 
   IF(APPLE)
-    IF(NOT CMAKE_CROSSCOMPILING)
-      #-------------------------------------------------------------------------
-      # The C++ linker creates compact exception stack unwinding data since
-      # MacOS X 10.6. This can cause page long linker warnings, which cannot be
-      # deactivated. So we disable it here alltogether (cf. man unwinddump).
-      #-------------------------------------------------------------------------
-      SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
-    ENDIF()
-
     # Check wether the compiler has the -sysroot= flag.
     SET(CXX_HAS_SYSROOT_FLAG_SOURCE "
 int
@@ -213,20 +225,21 @@ main ()
     UNSET(CMAKE_REQUIRED_FLAGS)
   ENDIF()
 
-  IF(COVERAGE)
+  # see https://en.wikipedia.org/wiki/Gcov
+  IF(CFS_COVERAGE)
     SET(CFS_C_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_CXX_FLAGS}")
     SET(CFS_LINKER_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_LINKER_FLAGS}")
-  ENDIF(COVERAGE)
-  
+  ENDIF()
+
   IF(NOT USE_OPENMP)
     IF(NOT USE_PHIST_EV OR USE_PHIST_CG)
-      SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
-      SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
-    ENDIF(NOT USE_PHIST_EV OR USE_PHIST_CG )  
-  ENDIF(NOT USE_OPENMP)
-  
-  
+      SET(CFS_C_FLAGS "-Werror ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS "-Werror ${CFS_CXX_FLAGS}")
+    ENDIF()
+  ENDIF()
+
+
   IF(NOT USE_CGAL)
     SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
@@ -235,25 +248,20 @@ main ()
     SET(CFS_CXX_FLAGS "-frounding-math ${CFS_CXX_FLAGS}")
   ENDIF()
 # end gcc/clang section
-ELSEIF(MSVC)
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "MSVC")
   #-------------------------------------------------------------------------------
   # Check for Visual Studio C++ compiler
   #-------------------------------------------------------------------------------
-
-  include(CMakeDetermineVSServicePack)
-  DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
-  string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
-  SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
-  
-  if( CFS_MSVC_SERVICE_PACK )
-    message(STATUS "Detected: ${CFS_MSVC_SERVICE_PACK}")
-  endif()
+#  include(CMakeDetermineVSServicePack)
+#  DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
+#  string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
+#  SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
 
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
   # For details google for 'MSDN Checked Iterators', '_SCL_SECURE_NO_WARNINGS'
   # and 'MSDN Security Enhancements in the CRT', _CRT_SECURE_NO_WARNINGS
-  SET(CFS_CXX_FLAGS "/wd4996")
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4996")
 
   # 'identifier' : macro redefinition
   # The macro identifier is defined twice. The compiler uses the second
@@ -264,8 +272,12 @@ ELSEIF(MSVC)
   # compiler did not override when parameters only differed by
   # const/volatile qualifiers
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4373")
- 
 
+  # this is for WINDOWS 10
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
+
+  # support for alternative tokens requires the following
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /permissive- /Zc:twoPhase-")
 
 #  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
 
@@ -273,35 +285,71 @@ ELSEIF(MSVC)
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc and the c++-compiler is icpcp?!
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
-  IF(DEBUG)
-    SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
-    # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
-    # however it works without a flag, mabye the intel compiler checks the stdlib.
-    # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
-    # It's anoying that intel depends on the system stdlib :(
-    SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
-    SET(CHECK_MEM_ALLOC 1)
+  IF(UNIX)
+    IF(DEBUG)
+      SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
+      # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
+      # however it works without a flag, mabye the intel compiler checks the stdlib.
+      # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
+      # It's anoying that intel depends on the system stdlib :(
+      SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
+      SET(CHECK_MEM_ALLOC 1)
+    ELSE()
+      # release case
+      SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
+      # see above with -std=c++11
+      SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
+    ENDIF()
   ELSE()
-    # release case
-    SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
-    # see above with -std=c++11
-    SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
-    SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
+    # this is for WINDOWS 10
+    SET(CFS_C_FLAGS "${CFS_C_FLAGS} /D_WIN32_WINNT=0x0A00")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
+    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
+    IF(DEBUG)
+      SET(CFS_C_FLAGS "/Z7 -c99 /w1 /Wcheck /Werror ${CFS_C_FLAGS}")
+      # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
+      # however it works without a flag, mabye the intel compiler checks the stdlib.
+      # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
+      # It's anoying that intel depends on the system stdlib :(
+      SET(CFS_CXX_FLAGS "/Qstd=c++11 /Z7 /W1 /Wcheck /Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "/Qstd=c++11 /Z7 ${CFSDEPS_CXX_FLAGS}")
+      SET(CHECK_MEM_ALLOC 1)
+    ELSE()
+      # release case
+      SET(CFS_C_FLAGS "/Qstd=c99 /W0 ${CFS_C_FLAGS}")
+      # see above with -std=c++11
+      SET(CFS_CXX_FLAGS "/Qstd=c++11 /W0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "/Qstd=c++11 /W0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_SUPPRESSIONS "/Qdiag-disable1125,654,980")
+    ENDIF()
   ENDIF()
 
-  # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
-  # If we have newest intel compiler we assume that we have newest gcc as well
-  #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
-    SET(CFS_C_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFS_CXX_FLAGS}")
-    SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFSDEPS_CXX_FLAGS}")
-  #ENDIF()
+  # on windows deactivate all MS special features
+  # should be an easy way to activate use of alternative tokens for intel
+  # unfortunaley, this leads to many, many, many, issues using boost
+  # --> deactivated......
+  #  IF(WIN32)
+	  #    SET(CFS_C_FLAGS "${CFS_C_FLAGS} /Za -wd2358")
+	  #  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /Za -wd2358")
+	  #    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /Za -wd2358")
+  #  ENDIF()
+
+  IF(UNIX)
+    # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
+    # If we have newest intel compiler we assume that we have newest gcc as well
+    #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
+      SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
+    #ENDIF()
+  ENDIF()
   
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
@@ -309,15 +357,17 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
   # Additionally the following warnings / remarks are suppressed:
   #    191: type qualifier is meaningless on cast type
   #    279: controlling expression is constant
-  #    654: overloaded virtual function 
-  #   1125: entity-kind "entity" is hidden by "entity" -- virtual function 
+  #    654: overloaded virtual function
+  #   1125: entity-kind "entity" is hidden by "entity" -- virtual function
   #         override intended?
   #   1170: invalid redeclaration of nested class
   #   2259: non-pointer conversion from "type" to "type" may lose significant bits
   #---------------------------------------------------------------------------
-  SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
+  IF(UNIX)
+    SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
+  ENDIF()
 
   #---------------------------------------------------------------------------
   # The  following flags and  defines are  necessary due  to incompatibilities
@@ -331,16 +381,16 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
-  # Open64 compiler support removed. See svn version 15997  
+  # Open64 compiler support removed. See svn version 15997
 ENDIF() # close all CXX compiler specific blocks
 
 # common for all compilers
 # adds debug information to the code such that vtune, valgrind, ... can show the lines of the hotspots
 # this is different from adding gprof support by -pg wich adds changes the code to generate an output file
-IF(PROFILING)
+IF(CFS_PROFILING)
  SET(CFS_PROF_FLAGS "-g -fno-omit-frame-pointer")
 ENDIF()
-    
+
 
 
 #-------------------------------------------------------------------------------
@@ -361,10 +411,10 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   ENDIF()
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
-    
+
 #  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
 #  IF(NOT CFS_ARCH STREQUAL "IA64")
-#    SET(CFS_FORTRAN_DYNRT_LIBS 
+#    SET(CFS_FORTRAN_DYNRT_LIBS
 #      "svml"
 #      ${CFS_FORTRAN_DYNRT_LIBS})
 #  ENDIF(NOT CFS_ARCH STREQUAL "IA64")
@@ -372,6 +422,37 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 #    "ifcoremt_pic"
 #    "irc"
 #    )
+
+  IF(WIN32)
+    #-----------------------------------------------------------------------------
+    # Copy compiler runtime .dlls to bin directory
+    #-----------------------------------------------------------------------------
+    SET(INTEL_DLLS
+        libifcoremd.dll
+        libifportmd.dll
+        libiomp5md.dll
+        libmmd.dll
+        svml_dispmd.dll
+    )
+    IF(DEBUG)
+      SET(INTEL_DLLS 
+        ${INTEL_DLLS}
+        libifcoremdd.dll
+        libmmdd.dll
+      )
+    ENDIF()
+    
+    SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
+    GET_FILENAME_COMPONENT(INTEL_COMPILER_DIR ${CMAKE_Fortran_COMPILER} PATH)    
+
+    SET(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64/compiler/")
+    
+    MESSAGE(STATUS "Copying INTEL redistributable files from ${ICC_REDIST_DIR} to ${LIB_DEST_DIR}")
+    FOREACH(lib IN LISTS INTEL_DLLS)
+      FILE(COPY ${ICC_REDIST_DIR}/${lib} DESTINATION ${LIB_DEST_DIR})
+    ENDFOREACH()
+  ENDIF(WIN32)
+
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
 

@@ -68,6 +68,18 @@ namespace CoupledField {
     }
   }
 
+  // ******************************
+  //   Reset the initial EntryType
+  // ******************************
+  void SBM_Vector::ResetEntryType(BaseMatrix::EntryType entryType){
+    if(size_ == 0 && subVec_ == NULL && ownSubVectors_){
+      myEntryType_ = entryType;
+    }else{
+      EXCEPTION("SBM_Vector::ResetEntryType Cannot reset the entry-type\n"
+                "because the SBM_Vector was already modified");
+    }
+  }
+
 
   // ***********************************************************
   //   Set number of vector entries and re-size internal array
@@ -171,16 +183,12 @@ namespace CoupledField {
 			
         // switch depending on entry type
         if( myEntryType_ == BaseMatrix::DOUBLE ) {
-          Vector<Double> & myVec = 
-              dynamic_cast<Vector<Double>& >(*subVec_[i]);
-          Vector<Double> & rVec = 
-              dynamic_cast<Vector<Double>& >(*bVec.subVec_[i]);
+          Vector<Double> & myVec = dynamic_cast<Vector<Double>& >(*subVec_[i]);
+          Vector<Double> & rVec = dynamic_cast<Vector<Double>& >(*bVec.subVec_[i]);
           myVec = rVec;
         } else if( myEntryType_ == BaseMatrix::COMPLEX ) {
-          Vector<Complex> & myVec = 
-              dynamic_cast<Vector<Complex>& >(*subVec_[i]);
-          Vector<Complex> & rVec = 
-              dynamic_cast<Vector<Complex>& >(*bVec.subVec_[i]);
+          Vector<Complex> & myVec = dynamic_cast<Vector<Complex>& >(*subVec_[i]);
+          Vector<Complex> & rVec = dynamic_cast<Vector<Complex>& >(*bVec.subVec_[i]);
           myVec = rVec;
         } else {
           EXCEPTION( "Can only copy double- and complex "
@@ -282,6 +290,7 @@ namespace CoupledField {
         os <<   "sub-Vector #" << i
            << "\n--------------\n";
         os <<  subVec_[i]->ToString(level, separator );
+        os << "\n";
       }
     }
     return os.str();
@@ -479,8 +488,7 @@ namespace CoupledField {
   // ***************************************************************
   //   Replace this vector object by the sum of two scaled vectors
   // ***************************************************************
-  void SBM_Vector::Add( Double alpha, const BaseVector& y,
-			Double beta, const BaseVector& z ) {
+  void SBM_Vector::Add( Double alpha, const BaseVector& y, Double beta, const BaseVector& z ) {
 
     try {
 
@@ -549,7 +557,6 @@ namespace CoupledField {
     return sqrt( norm );
   }
 
-
   // *****************
   //   Export vector
   // *****************
@@ -565,6 +572,7 @@ namespace CoupledField {
       if(size_ > 1)
         ss << '_' << j;
       outFile = fname + ss.str();
+      ss.str(std::string());
 
       // export sub-vector
       if ( subVec_[j] != NULL ) {

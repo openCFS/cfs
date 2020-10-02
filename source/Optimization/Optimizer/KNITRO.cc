@@ -11,7 +11,6 @@
 
 
 // declare class specific logging stream
-DECLARE_LOG(knitro)
 DEFINE_LOG(knitro, "knitro")
 
 

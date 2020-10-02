@@ -1,7 +1,6 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
   elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -22,12 +21,14 @@
         <xsd:all>
           <xsd:element name="quantity1" maxOccurs="1" minOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+              <xsd:attribute name="value" type="xsd:double" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="quantity2" maxOccurs="1" minOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+              <xsd:attribute name="value" type="xsd:double" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="output" maxOccurs="1" minOccurs="1">
@@ -43,6 +44,24 @@
               <xsd:enumeration value="minus"/>
               <xsd:enumeration value="div"/>
               <xsd:enumeration value="mult"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute> 
+        <xsd:attribute name="multType" use="optional" default="default">
+          <xsd:simpleType>
+            <xsd:restriction  base="xsd:string">
+              <xsd:enumeration value="default"/>
+              <xsd:enumeration value="inner"/>
+              <xsd:enumeration value="dot"/>
+              <xsd:enumeration value="scalar"/>
+              <xsd:enumeration value="entrywise"/>
+              <xsd:enumeration value="Hadamard"/>
+              <xsd:enumeration value="Schur"/>
+              <xsd:enumeration value="matrix"/>
+              <xsd:enumeration value="matrixvector"/>
+              <xsd:enumeration value="cross"/>
+              <xsd:enumeration value="outer"/>
+              <xsd:enumeration value="dyadic"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 

@@ -81,12 +81,20 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         ptdriver = new HarmonicDriver( seqStep, false, state, myDom, seqNode, info  );
         break;
 
+      case BasePDE::MULTIHARMONIC:
+        ptdriver = new MultiHarmonicDriver( seqStep, false, state, myDom, seqNode, info  );
+        break;
+
       case BasePDE::INVERSESOURCE:
         ptdriver = new InverseSourceDriver( seqStep, false, state, myDom, seqNode, info  );
         break;
 
       case BasePDE::EIGENFREQUENCY:
         ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom, seqNode, info );
+        break;
+
+      case BasePDE::BUCKLING:
+        ptdriver = new BucklingDriver( seqStep, false, state, myDom, seqNode, info );
         break;
 
       default:

@@ -86,7 +86,6 @@
 */
 
 // declare class specific logging stream
-DECLARE_LOG(feSpaceHCurlHi)
 DEFINE_LOG(feSpaceHCurlHi, "feSpaceHCurlHi")
 namespace CoupledField{
 
@@ -556,7 +555,7 @@ namespace CoupledField{
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ,
                                  IntScheme::IntegMethod& method,
                                  IntegOrder & order  ) {
-    BaseFE * ret = GetFe(ent);
+    BaseFE* ret = GetFe(ent);
 
     // Set correct integration order
     RegionIdType eRegion = GetVolElem(ent.GetElem())->regionId;
@@ -620,13 +619,21 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
-    RegionIdType eRegion = ptElem->regionId;
     
+    // Note: if the element is a surface element, we must omit the regionId
+    // and look for the neigbor
+    RegionIdType eRegion = GetVolElem(ptElem)->regionId;
+    //RegionIdType eRegion = ptElem->regionId;
+
+    std::string regionName = ptGrid_->GetRegion().ToString(eRegion);
+
+
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       eRegion = ALL_REGIONS;
     }
+
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
@@ -1029,6 +1036,7 @@ namespace CoupledField{
     //but it could be, that the PDE requires a minimum order of elements...
     ApproxOrder order (ptGrid_->GetDim());
     order.SetIsoOrder(0);
+
     if(orderOffset_>0){
       order.SetIsoOrder(orderOffset_);
     }

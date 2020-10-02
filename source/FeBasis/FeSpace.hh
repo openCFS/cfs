@@ -178,7 +178,7 @@ public:
   struct SingleEqnMap{
 
     //! Map for every node (key to map) its equations (values)
-    boost::unordered_map<Integer, StdVector<Integer> > eqns;
+    boost::unordered_map< Integer, StdVector<Integer> > eqns;
     
     //! Map for every node (key to map) its boundary conditions types
     boost::unordered_map< Integer,StdVector<BcType> > BcKeys;
@@ -221,7 +221,8 @@ public:
   static shared_ptr<FeSpace> CreateInstance(PtrParamNode aNode, 
                                             PtrParamNode infoNode,
                                             SpaceType reqType,
-                                            Grid* ptGrid );
+                                            Grid* ptGrid,
+                                            bool isAVExc = false );
   
   // ========================================================================
   //  INITIALIZATION 
@@ -257,6 +258,10 @@ public:
 
   //! Sets a default approximation for all regions
   void SetDefaultRegionApproximation();
+
+  virtual void SetUseGradients(RegionIdType region){
+    EXCEPTION("Not implemented here in baseclass!");
+  }
 
   //@}
   // ========================================================================
@@ -337,8 +342,8 @@ public:
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
 
   //! Return equation numbers for a specific dof
-  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof );
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                        UInt dof );
   
   //! Return equation numbers for a specific dof and entitytype
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
@@ -349,10 +354,10 @@ public:
                         BaseFE::EntityType ); 
 
   //! Get Equation numbers for a specific element
-  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem);
+  virtual void GetElemEqns(StdVector<Integer>& eqns, const Elem* elem);
 
   //! Get Equation numbers for a specific element
-  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof);
+  virtual void GetElemEqns(StdVector<Integer>& eqns, const Elem* elem, UInt dof);
 
   //! Get equations for a given entityList
   virtual void GetEntityListEqns(StdVector<Integer>& eqns, 
@@ -444,6 +449,9 @@ public:
   //! active set of equations is switched between lowest order equations only 
   //! and the full set.
   virtual void UpdateToSolStrategy() {;}
+
+  virtual void InsertElemsToCoilList(shared_ptr<ElemList> eL, shared_ptr<CoilList> cL){}
+
  //@}
 
   void SetLagrSurfSpace() 

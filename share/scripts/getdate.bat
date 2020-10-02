@@ -9,6 +9,10 @@ for /f "tokens=%toks% delims=.-/ " %%i in ('date/t') do (
     set '%%a'=%%i
     set '%%b'=%%j
     set '%%c'=%%k))
+
+if "%dd%A" EQU "A" (set 'dd'=%'tt'%)
+if "%yy%A" EQU "A" (set 'yy'=%'jj'%)
+
 if %'yy'% LSS 100 set 'yy'=20%'yy'%
 set Today=%'yy'%-%'mm'%-%'dd'% 
 ENDLOCAL & SET v_year=%'yy'%& SET v_month=%'mm'%& SET v_day=%'dd'%

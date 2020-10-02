@@ -100,7 +100,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     IMPEDANCE_TYPE impedanceType_; // type of impedance
 
-    BaseMaterial material_; // material data
+    BaseMaterial * material_; // material data
     bool isNormalised_; // is impedance normalised or not
     Double normalisedFactor_;
     Double c0_; // speed of sound

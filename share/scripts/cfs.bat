@@ -1,6 +1,6 @@
 @echo off
 rem This is the start script for CFS. It should be placed in
-rem CFS_DIST/bin under the name 'nacs.bat'
+rem CFS_DIST/bin under the name 'cfs.bat'
 
 setlocal
 
@@ -22,7 +22,7 @@ set BASEDIR=%CD%
 
 rem Check if CFS_ROOT_DIR is defined
 if not defined CFS_ROOT_DIR (
-   goto :nacs_root_dir_undefined
+   goto :cfs_root_dir_undefined
 )
 
 rem Replace double quotes in CFS_ROOT_DIR with empty string
@@ -57,7 +57,7 @@ set CFS_BIN_DIR=%CD%
 goto :call_common_bat
 
 
-:nacs_root_dir_undefined
+:cfs_root_dir_undefined
 rem If CFS_ROOT_DIR is undefined we just take the base dir
 rem of the current script as CFS_BIN_DIR
 set CFS_BIN_DIR=%BASEDIR%
@@ -84,9 +84,9 @@ rem Set XML schema root path
 set CFS_SCHEMA_ROOT="%CFS_ROOT_DIR%\share\xml"
 
 rem Set path to CFS executable
-set CFS_EXE="%CFS_BIN_DIR%\%WINDOWS_ARCH_STR%\cfsbin.exe"
+set CFS_EXE="%CFS_BIN_DIR%\cfsbin.exe"
 
-set PATH=%CFS_ROOT_DIR%\%LIB%\%WINDOWS_ARCH_STR%;%CFS_ROOT_DIR%\%LIB%\%WINDOWS_ARCH_STR%\v110\winx64;%CFS_ROOT_DIR%\bin\%WINDOWS_ARCH_STR%;%PATH%
+set PATH=%CFS_ROOT_DIR%\%LIB%;%CFS_ROOT_DIR%\bin;%PATH%
 
 if defined CFS_SCRIPT_DEBUG (
     echo CFS_SCHEMA_ROOT: %CFS_SCHEMA_ROOT%

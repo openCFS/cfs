@@ -1,6 +1,6 @@
 #include "FeFunctions.hh"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <def_expl_templ_inst.hh>
 
 #include "PDE/SinglePDE.hh"
@@ -14,30 +14,29 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
-DECLARE_LOG(fefunc)
- DEFINE_LOG(fefunc, "feFunction")
+  DEFINE_LOG(fefunc, "feFunction")
 
  
 // Helper macro to generate prefix for logging output
 #define PREFIX  SolutionTypeEnum.ToString(result_->resultType) << ": "
  
- BaseFeFunction::BaseFeFunction(MathParser* mp){
+    BaseFeFunction::BaseFeFunction(MathParser* mp) {
 
-  fctId_ = NO_FCT_ID;
-  pde_ = NULL;
-  grid_ = NULL;
-  if(mp) {
-    mp_ = mp;
-    mHandle_ = mp_->GetNewHandle();
-  } else  {
-    mp_ = NULL;
-  }
-  algsys_ = NULL;
+    fctId_ = NO_FCT_ID;
+    pde_ = NULL;
+    grid_ = NULL;
+    if(mp) {
+      mp_ = mp;
+      mHandle_ = mp_->GetNewHandle();
+    } else  {
+      mp_ = NULL;
+    }
+    algsys_ = NULL;
 
-  // initialize members of coefficient function
-  dependType_ = CoefFunction::GENERAL;
-  isAnalytic_ = false;
-  dimType_ = NO_DIM;
+    // initialize members of coefficient function
+    dependType_ = CoefFunction::GENERAL;
+    isAnalytic_ = false;
+    dimType_ = NO_DIM;
 
   }
 
@@ -755,10 +754,10 @@ DECLARE_LOG(fefunc)
 
       idOp_->ApplyOp(temp, lpm, ptFe, elemSolution );
     } else {
-
+      LOG_DBG3(fefunc) << "vals=" << vals.ToString() << "  eqns=" << eqns.ToString();
       for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
         if( eqns[iDof] != 0 ) {
-	    temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
+          temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
         } else {
           temp[iDof] = 0.0;
         }
@@ -776,16 +775,16 @@ DECLARE_LOG(fefunc)
      StdVector<Integer> eqns;
      Vector<T> & vals = *coeffs_;
      temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
-     for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
+     for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++) {
        feSpace_->GetEqns(eqns, it,iDof);
-       for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
+       for(UInt iEqn = 0; iEqn < eqns.GetSize() ; iEqn++) {
          if( eqns[iEqn] > 0 ) {
-         temp[iDof][iEqn] = factor_ * vals[std::abs(eqns[iEqn])-1];
-       } else {
-         temp[iDof][iEqn] = 0.0;
+           temp[iDof][iEqn] = factor_ * vals[std::abs(eqns[iEqn])-1];
+         } else {
+           temp[iDof][iEqn] = 0.0;
+         }
        }
      }
-   }
    }
    
   template<typename T>
@@ -938,9 +937,7 @@ DECLARE_LOG(fefunc)
 			  }
 			  else{
 				  //ok here we pass again the work to the space
-				  //        // check, if entity list is defined on elements or nodes
-				  //        if( curEnt->GetType() == EntityList::ELEM_LIST ||
-				  //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+
 				  // Map coefficient function onto the actual FeSpace
 				  std::map<Integer, T> coefs;
 				  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
@@ -1181,8 +1178,12 @@ DECLARE_LOG(fefunc)
     Vector<T> elemSol, temp;
     GetElemSolution( elemSol, lpm.ptEl);
     // apply identity operator to it
-    BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
-    idOp_->ApplyOp(temp, lpm, ptFe, elemSol );
+    if( feSpace_->GetSpaceType() == FeSpace::SpaceType::CONSTANT){
+      temp = elemSol;
+    }else{
+      BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+      idOp_->ApplyOp(temp, lpm, ptFe, elemSol );
+    }
     scal = temp[0];
   }
   

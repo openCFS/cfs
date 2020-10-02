@@ -14,6 +14,7 @@ SET(CFSDAT_SRCS
   Filters/BaseMeshFilterType.cc
   Filters/MeshFilter.cc
   Filters/Arithmetic/BinOpFilter.cc
+  Filters/Arithmetic/TensorFilter.cc
   Filters/Input/InputFilter.cc
   Filters/Output/OutputFilter.cc
   Filters/Derivatives/TimeDerivFilter.cc
@@ -24,6 +25,8 @@ SET(CFSDAT_SRCS
   Filters/Derivatives/Lighthill.cc
   Filters/Derivatives/AeroacousticBase.cc
   Filters/Derivatives/PostLighthillSource.cc
+  Filters/Derivatives/GaussDerivative.cc
+  Filters/Interpolators/AbstractInterpolator.cc
   Filters/Interpolators/CentroidInterpolator.cc
   Filters/Interpolators/NearestNeighbourInterpolator.cc
   Filters/Interpolators/Cell2NodeInterpolator.cc
@@ -37,6 +40,8 @@ SET(CFSDAT_SRCS
   Filters/SignalProcessing/TemporalBlendingFilter.cc
   Filters/SignalProcessing/TimeMeanFilter.cc
   Filters/SynteticSources/BaseSNGR.cc
+  Filters/Utils/VolumeMultiplication.cc
+  Utils/KNNIndexSearch.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc

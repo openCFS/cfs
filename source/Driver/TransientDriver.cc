@@ -28,7 +28,6 @@ namespace pt = boost::posix_time;
 
 namespace CoupledField {
 
-  DECLARE_LOG(trans_driver)
   DEFINE_LOG(trans_driver, "transient_driver")
 
   // Define pointer to transient driver instance, needed for the signal handler
@@ -93,6 +92,12 @@ namespace CoupledField {
     // in the end, directly register the global transient variables
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 1 );
     
+    // Accumulated time so far (including time of all previous MS steps)
+    accTime_ = 0.0;
+
+    // Estimated time per step
+    timePerStep_ = 0.0;
+
     // register signal handler only, if it is a child driver
     if( !simState_->HasInput() ) {
       if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
@@ -131,7 +136,7 @@ namespace CoupledField {
         domain->GetInfoRoot()->ToFile();
         exit(-1);
       }
-      
+
       // set global pointer to zero
       instance = NULL;
     }

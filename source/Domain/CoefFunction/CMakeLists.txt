@@ -24,9 +24,16 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
   CoefFunctionHyst.cc
+  CoefFunctionHarmBalance.cc
+  CoefFunctionComplexToReal.cc
+  CoefFunctionDiagTensorFromScalar.cc
 )
 
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
+
+IF(TARGET cgal)
+  ADD_DEPENDENCIES(coeffunction cgal)
+ENDIF()
 
 SET(TARGET_LL 
   scattereddatainout

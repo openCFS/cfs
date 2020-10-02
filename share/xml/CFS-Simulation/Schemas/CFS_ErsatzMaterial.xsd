@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-            targetNamespace="http://www.cfs++.org"
-            xmlns="http://www.cfs++.org"
-            xmlns:cfs="http://www.cfs++.org"
+            targetNamespace="http://www.cfs++.org/simulation"
+            xmlns="http://www.cfs++.org/simulation"
+            xmlns:cfs="http://www.cfs++.org/simulation"
             elementFormDefault="qualified">
   
   <xsd:annotation>
@@ -18,11 +18,7 @@
   <xsd:complexType name="DT_ErsatzMaterial">
     <!-- Load the ersatz material e.g. from a SIMP optimization to do a
       normal analysis on it (static, harmonic, ... -->
-    <!-- <loadErsatzMaterial file="pizeo_density.xml" set="last">
-           <region name="mech"/>
-           <region name="piezo"/>
-         </loadErsatzMaterial> 
-    -->
+    <!-- <loadErsatzMaterial file="pizeo_density.xml" set="last" /> -->
     <xsd:attribute name="file" use="required" type="xsd:token" />
     <!-- this is either "first", "last" or anything a match to the <set id="*" .../> in 
          the ersatz material file -->

@@ -5,6 +5,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/regex.hpp>
 
 #include "tools.hh"
 #include "MatVec/Matrix.hh"
@@ -18,7 +19,6 @@ using boost::char_separator;
 using boost::tokenizer;
 using boost::bad_lexical_cast;
 
-DECLARE_LOG(tools)
 DEFINE_LOG(tools, "tools")
 
 namespace CoupledField {
@@ -172,6 +172,20 @@ namespace CoupledField {
   }
 
 
+  //! Converts a path pattern into a regex by escaping all special regex
+  //! characters not used in path patterns.
+  std::string PathPatternToRegEx(const std::string & pattern) {
+    std::ostringstream oss;
+    std::ostream_iterator<char, char> osit(oss);
+    // This regular expression finds all special regex characters that need escaping.
+    // * and ? are handled speparately, because they need a prepdended period.
+    boost::regex expr("(\\.|\\[|\\{|\\}|\\(|\\)|\\\\|\\+|\\||\\^|\\$)|(\\*|\\?)");
+    boost::regex_replace(osit, pattern.begin(), pattern.end(), expr,
+        "(?1\\\\$&)(?2\\.$&)", boost::match_default | boost::format_all);
+    return oss.str();
+  }
+
+
   std::string ToValidXML(const std::string& input)
   {
     std::string out = input;
@@ -259,6 +273,59 @@ namespace CoupledField {
 
     return os.str();
   }
+
+  /** all vectors need to be either complex or real but the same. */
+  void Add(BaseVector& out, double fac1, const BaseVector& vec1, double fac2, const BaseVector& vec2)
+  {
+    assert((out.IsComplex() == vec1.IsComplex()) && (out.IsComplex() == vec2.IsComplex()));
+    if(out.IsComplex())
+      out.Add(Complex(fac1), vec1, Complex(fac2), vec2);
+    else
+      out.Add(fac1, vec1, fac2, vec2);
+  }
+
+  /** @see Add() above. If vectors are real, the real part from the scalars is used */
+  void Add(BaseVector& out, Complex fac1, const BaseVector& vec1, Complex fac2, const BaseVector& vec2)
+  {
+    assert((out.IsComplex() == vec1.IsComplex()) && (out.IsComplex() == vec2.IsComplex()));
+    if(out.IsComplex())
+      out.Add(fac1, vec1, fac2, vec2);
+    else
+      out.Add(fac1.real(), vec1, fac2.real(), vec2);
+  }
+
+  double Inner(const Vector<double>& v1, const Vector<double>& v2)
+  {
+    return v1.Inner(v2);
+  }
+
+  Complex Inner(const Vector<Complex>& v1, const Vector<Complex>& v2)
+  {
+    return v1.Inner(v2);
+  }
+
+  Complex Inner(const Vector<double>& v1, const Vector<Complex>& v2)
+  {
+    assert(v1.GetSize() == v2.GetSize());
+
+    Complex s(0,0);
+
+    for(unsigned int i = 0; i < v1.GetSize(); i++)
+      s += v1[i] * std::conj(v2[i]);
+    return s;
+  }
+
+  Complex Inner(const Vector<Complex>& v1, const Vector<double>& v2)
+  {
+    assert(v1.GetSize() == v2.GetSize());
+
+    Complex s(0,0);
+
+    for(unsigned int i = 0; i < v1.GetSize(); i++)
+      s += v1[i] * Complex(v2[i]);
+    return s;
+  }
+
 
 
   double Average(const double* data, unsigned int size)
@@ -683,6 +750,44 @@ Vector<double> Linspace(double start, double end, int n)
   for(int i = 0; i < n; n++)
     res[i] = start + i*(end-start)/(n-1);
   return res;
+}
+
+void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind)
+{
+  assert(size.GetSize() >= sub.GetSize());
+
+  // cumulative product
+  StdVector<int> cumprod = StdVector<int>(size.GetSize());
+  cumprod[0] = size[0];
+  for(unsigned int i = 1; i < size.GetSize(); ++i) {
+    cumprod[i] = cumprod[i-1] * size[i];
+  }
+
+  int idx = sub[0] + 1; // zero based
+  for(unsigned int i = 1; i < sub.GetSize(); ++i) {
+    idx += sub[i] * cumprod[i-1];
+  }
+  ind = idx - 1; // zero based
+}
+
+void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub)
+{
+  sub.Resize(size.GetSize());
+
+  // cumulative product
+  StdVector<int> cumprod = StdVector<int>(size.GetSize());
+  cumprod[0] = size[0];
+  for(unsigned int i = 1; i < size.GetSize(); ++i) {
+    cumprod[i] = cumprod[i-1] * size[i];
+  }
+
+  unsigned int idx = ind + 1; //zero based
+  for(unsigned int i = sub.GetSize()-1; i > 0; i--) {
+    int v = (idx-1) % cumprod[i-1] + 1;
+    sub[i] = (idx - v) / cumprod[i-1];
+    idx = v;
+  }
+  sub[0] = idx-1;
 }
 
 Vector<double> LogspaceBase(double start, double end, int n)

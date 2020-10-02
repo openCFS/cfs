@@ -12,7 +12,6 @@ SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 SET(CFS_DISTRO "@CFS_DISTRO@")
 SET(CFS_ARCH "@CFS_ARCH@")
-SET(MINGW "@MINGW@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -33,14 +32,5 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
    )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
   NOT CFS_DISTRO STREQUAL "MACOSX")
-
-IF(MINGW)
-  IF(CFS_ARCH STREQUAL "X86_64")
-    LIST(APPEND patches
-      "gmp-mingw64.patch"
-      )
-  ENDIF()
-ENDIF(MINGW)
-
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gmp")

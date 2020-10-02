@@ -83,6 +83,16 @@ namespace CoupledField {
     GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
                                const Vector<Double>& point ) const = 0;
     
+    //! Return the full 3x3 global rotation matrix for a given point
+
+    //! This method returns the full 3x3 rotation matrix defining
+    //! a rotation, by which the global coordinate system has to be rotated,
+    //! it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param lpm local point w.r.t. to an element
+    virtual void GetFullGlobRotationMatrix(Matrix<Double> & rotMatrix,
+                                           const LocPointMapped &lpm) const;
+
     //@{
     //! Transform local vector into global one for a given global model point
 

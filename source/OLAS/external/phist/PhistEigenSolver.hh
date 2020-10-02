@@ -8,7 +8,6 @@
 namespace CoupledField {
   
   class StdMatrix;
-  class sparseMat_t; // phist matrix type
 
   class PhistEigenSolver : public BaseEigenSolver , PhistCore
   {
@@ -26,16 +25,23 @@ namespace CoupledField {
 
 
     /** @see BaseEigenSolver */
-    virtual void Setup(const BaseMatrix & A, bool isHermitian=false)
-    {
-      std::cout << "PistEigenSolver::Setup(A)\n";
+    void Setup(const BaseMatrix & A, bool isHermitian=false) {
+      EXCEPTION("not implemented yet");
     }
 
     /** @see BaseEigenSolver */
-    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false)
-    {
-      std::cout << "PistEigenSolver::Setup(A, B)\n";
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false) {
+      EXCEPTION("not implemented yet");
     }
+
+    /** @see BaseEigenSolver */
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, const BaseMatrix & C, bool isHermitian=false) {
+      EXCEPTION("not implemented yet");
+    }
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+        EXCEPTION("not yet implemented")
+    };
 
     //! Setup routine for standard eigenvalue problem
 
@@ -120,7 +126,7 @@ namespace CoupledField {
     typedef struct {
       /** either stiff, mass, or damping */
       const StdMatrix* mat = NULL;
-      /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_mass*/
+      /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_B_*/
       double scale = 1.0;
     } SparseMatRowFuncService;
 
@@ -155,10 +161,11 @@ namespace CoupledField {
     //static int Diag(ghost_gidx row, ghost_lidx *rowlen, ghost_gidx *col, void *val, __attribute__((unused)) void *arg);
 
     /** phist copy of stiffmess matrix */
-    sparseMat_t* A_ = NULL;
+    VsparseMat_t* A_ = NULL;
+
 
     /** phist copy of mass matrix */
-    sparseMat_t* B_ = NULL;
+    VsparseMat_t* B_ = NULL;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
@@ -171,12 +178,6 @@ namespace CoupledField {
 
     /** for some strange reason CFS only expects as complex ?! */
     Matrix<std::complex<double> > mode_;
-
-    /** shall we scale the mass matrix as suggested by Jonas? */
-    bool scale_mass_;
-
-    /** in case we have scale_mass_, this is the value */
-    double scale_mass_val_ = 1.0;
 
     /** is this a Hermitian system */
     bool hermitian_ = false;

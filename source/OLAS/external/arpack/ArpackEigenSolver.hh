@@ -10,8 +10,7 @@ namespace CoupledField {
   
   class StdMatrix;
   
-  
-  
+
   // =========================================================================
   //   ARPACK SOLVER
   // =========================================================================
@@ -33,13 +32,13 @@ namespace CoupledField {
     virtual ~ArpackEigenSolver();
 
     //! Setup for a standard EVP
-    virtual void Setup(const BaseMatrix & A, bool isHermitian=false){
-        EXCEPTION("not yet implemented")
-    };
+    void Setup(const BaseMatrix & A, bool isHermitian=false);
+
     //! Setup for a generalised EVP
-    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false ){
-        EXCEPTION("not yet implemented")
-    };
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
+    //! Setup for a quadratic EVP
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, const BaseMatrix & C);
 
     //! Setup routine for standard eigenvalue problem
 
@@ -48,8 +47,6 @@ namespace CoupledField {
     //! \param mat Reference to matrix
     //! \param numFreq Number of eigenvalues/frequencies to be calculated
     //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
     void Setup(const BaseMatrix & mat, UInt numFreq, double freqShift, bool sort);
 
     //! Setup routine for a generalized eigenvalue problem
@@ -59,14 +56,12 @@ namespace CoupledField {
     //! \param massMat Reference to mass matrix
     //! \param numFreq Number of eigenvalues/frequencies to be calculated
     //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
     void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat,
                UInt numFreq, double freqShift, bool sort, bool bloch);
     
     //! Setup routine for a quadratic eigenvalue problem
-    
-    //! Setup routine for various initialization tasks of a quadratic 
+
+    //! Setup routine for various initialization tasks of a quadratic
     //! eigenvalue problem.
     //! \param stiffMat Reference to stiffness matrix
     //! \param massMat Reference to mass matrix
@@ -78,6 +73,10 @@ namespace CoupledField {
     void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
                UInt numFreq, double freqShift, bool sort );
 
+    //! Sets the computational mode for solving the problem.
+    //! Must be called before Setup() to have an effect!
+    //! \param mode Computational mode
+    void SetComputeMode(ArpackMatInterface::ComputeMode mode) { this->computeMode_ = mode; }
 
     //! Solve the linear generalized eigenvalue problem
     
@@ -85,23 +84,32 @@ namespace CoupledField {
     //! \param sol Vector with converged eigenvalues. The size is the number of converged evs
     //! \param err Vector with error bound of eigenvalues
     void CalcEigenFrequencies(BaseVector &sol, BaseVector &err);
-    void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal){
-        EXCEPTION("not yet implemented");;
-    }
-    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint){
-        EXCEPTION("not yet implemented");;
-    }
+
+    //! This method triggers the calculation of the eigenvalue problem.
+    //! \param sol Vector with converged eigenvalues. The size is the number of converged evs
+    //! \param err Vector with error bound of eigenvalues
+    //! \param minVal unused
+    //! \param maxVal unused
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal) {
+      EXCEPTION( "Not implemented yet!" );
+    };
+
+    //! This method triggers the calculation of the eigenvalue problem.
+    //! \param sol Vector with converged eigenvalues. The size is the number of converged evs
+    //! \param err Vector with error bound of eigenvalues
+    //! \param N number of requested eigenvalues
+    //! \param shiftPoint shiftpoint
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint);
 
     
     //! Calculate a particular eigenmode as a postprocessing solution
 
     //! This method may be called after the CalcEigenFrequencies() method.
-    //! It calculates a given eigenmode and stores in a use supplied vector.
+    //! It calculates a given eigenmode and stores it in a supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
-    //! \param mode Vector with the eignmode
+    //! \param mode Vector with the eigenmode
     void GetEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true );
     void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
-
 
     //! Calculate condition number
 
@@ -157,8 +165,8 @@ namespace CoupledField {
     //! Flag indicating if problem is generalized problem
     bool isGeneralized_;
 
-    //! Flag for shift-and-invert mode
-    bool shiftAndInvert_;
+    //! Computational mode / problem transformation used for solving
+    ArpackMatInterface::ComputeMode computeMode_;
     
     //! Character string for 'which' setting of  arpack
     char* which_;

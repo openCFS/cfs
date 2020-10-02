@@ -54,7 +54,7 @@ namespace CoupledField {
      typedef std::string IdType;
 
      //! Enumeration type for distinguishing the different source types of coils
-     typedef enum {NO_SOURCE_TYPE, CURRENT, VOLTAGE, EXTERNAL } SourceType;
+     typedef enum {NO_SOURCE_TYPE, CURRENT, CURRENT_MULTHARM, VOLTAGE, SPECIALVOLTAGE, SPECIALVOLTAGE_MULTHARM, SPECIALCURRENT, EXTERNAL } SourceType;
      
      //! Constructor for coils
 
@@ -72,10 +72,6 @@ namespace CoupledField {
            MathParser * mp,
            Global::ComplexPart type );
 
-     
-     /*//! Simplified constructor for coils, just defined by string
-     Coil( const std::string& id, Grid * ptGrid );*/
-     
      //! Default destructor
 
      //! The default destructor is responsible for closing the output files
@@ -95,6 +91,14 @@ namespace CoupledField {
      //! Scalar value of excitation (voltage, current)
      PtrCoefFct srcVal_;
      
+     //! Do coil Optimization with toppology optimization variable magCoilPseudoDensity?
+     bool coilOptimization_;
+     //! Values of excitation in different harmonics.
+     //! Key is the harmonic (only prescribe positive harmonics,
+     //! because the mirroring to the negative spectrum is performed
+     //! internally).
+     std::map<UInt, PtrCoefFct> srcValMH_;
+
      //! Define part of a coil
      struct Part {
        
@@ -110,12 +114,8 @@ namespace CoupledField {
        //! Coefficient function with unit vector for current density direction
        PtrCoefFct jUnitVec;
 
-       /*//! Identifier of input surface region
-       StdVector<std::string> inputSurfRegions;
-       
-       //! Identifier of input surface region
-       StdVector<std::string> outputSurfRegions;*/
-       
+       PtrCoefFct gVgVFct;
+
        //! Orientation flag (+/- 1)
        Integer orientFlag;
 
@@ -141,14 +141,6 @@ namespace CoupledField {
        //! Cross section of wire
        Double wireCrossSect;
        
-       /*! Fill factor kappa
-       Double fillFactor;*/
-       
-       /*! Assume uniform current density
-       bool uniformCurrentDens_;
-       
-       //! Flag if current density direction is analytical
-       bool hasAnalyticalDir_;*/
 
      private:
        //! Prevent usage of copy constructor
@@ -164,6 +156,9 @@ namespace CoupledField {
      //! Contains parts having direction from external simulation
      std::map<shared_ptr<Part>, PtrParamNode > partsExtJDir_;
 
+     //! Contains parts having int_\Omega_C grad(V) \cdot grad(V)
+     std::map<shared_ptr<Part>, PtrParamNode > partsExtIntgVgV_;
+
    private:
 
      //! The default constructor is not allowed
@@ -172,14 +167,6 @@ namespace CoupledField {
      //! The copy constructor is not allowed
      Coil( const Coil &c );
 
-     /* Helper method for setting up a free coordinate system
-     shared_ptr<CoordSystem>
-     SetupCoosy( UInt iPart, 
-                 const Part& actPart,
-                 StdVector<RegionIdType>& regions,
-                 const StdVector<std::string>& inSurfaces,
-                 const StdVector<std::string>& outSurfaces );*/
-                 
      //! Parameter node
      PtrParamNode myParam_;
      
@@ -191,6 +178,9 @@ namespace CoupledField {
      
      //! Math parser instance
      MathParser * mParser_;
+
+     //! Flag if we have multiharmonic excitation
+     bool isMultHarm_;
    };
 }
 

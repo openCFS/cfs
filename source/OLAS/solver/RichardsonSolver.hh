@@ -6,17 +6,12 @@
 
 #include <def_expl_templ_inst.hh>
 
-#include "MatVec/StdMatrix.hh"
-
 #include "BaseSolver.hh"
 
 namespace CoupledField {
 
   class BasePrecond;
   
-  class OLAS_Report;
-  
-  // template<typename> class Matrix;
 
   //! Class for a Preconditioned Richardson scheme
 
@@ -29,11 +24,13 @@ namespace CoupledField {
    * The template parameter T relates to the scalar entry type of the system 
    * matrix in the linear system. The solver is applied to.
    * The RichardsonSolver object reads the following parameters from the 
-   * parameter object myParams_:
-   * - eps = stopping tolerance for the iteration (Double)
-   * - epsmach = machine precision (Double)
-   * - MaxIter = maximal number of iterations (Integer)
-   * - R_omega = relaxation parameter (Double)
+   * xml node:
+   * - stoppingRule = absNorm, relNormRHS or relNormRes0
+   * - tol = specified tolerance for the stopping rule
+   * - maxIter = maximal number of iterations
+   * - logging = yes or no to write detailed output to info node
+   * - consoleConvergence = yes or no to write the current tolerance for every iteration into terminal
+   * - omega = relaxation parameter
    *
    * and writes the following keys into the report object myReport_:
    * - numIter = number of iterations performed
@@ -52,8 +49,10 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    RichardsonSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) :
-      r_(NULL), w_(NULL) {
+    RichardsonSolver( PtrParamNode solverNode, PtrParamNode olasInfo )
+      : r_(NULL),
+        w_(NULL) {
+
       xml_ = solverNode;
       infoNode_ = olasInfo->Get("richardson");
     };
@@ -77,7 +76,7 @@ namespace CoupledField {
     //! This method implements the pure virtual setup function defined in the
     //! BaseSolver class. In the case of the Richardson solver there is nothing
     //! to be done.
-    void Setup( BaseMatrix &sysmat ) {};
+    void Setup( BaseMatrix &sysmat );
 
     //! Query type of the solver
 
@@ -101,7 +100,7 @@ namespace CoupledField {
     //! The default constructor is private in order to disallow its use. The
     //! reason is that we need pointers to the parameter and report objects to
     //! perform correct setup of an object of this class.
-    RichardsonSolver(){};
+    RichardsonSolver(): r_(NULL), w_(NULL) {};
 
   };
 

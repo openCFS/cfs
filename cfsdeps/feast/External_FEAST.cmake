@@ -13,12 +13,16 @@ SET(feast_source  "${feast_prefix}/src/feast")
 SET(feast_install "${feast_prefix}/install")
 SET(feast_include "${feast_source}/${FEAST_VER}/include")
 
-# determine which feast library to copy over in the post_install step
-IF(USE_FEAST_COMMUNITY_PRECOMPILED)
-  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
-ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
-  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
-ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
+# determine which feast library to copy over in the install step
+IF(UNIX)
+  IF(USE_FEAST_COMMUNITY_PRECOMPILED)
+    SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
+  ELSE()
+    SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
+  ENDIF()
+ELSE()
+  SET(FEAST_LIB_DIR "${feast_install}/lib64")
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Determine paths of FEAST includes.
@@ -29,9 +33,15 @@ MARK_AS_ADVANCED(FEAST_INCLUDE_DIR)
 #-------------------------------------------------------------------------------
 # Configure FEAST by copying the config file.
 #-------------------------------------------------------------------------------
-SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/make.inc.in")
-SET(CONF "${feast_prefix}/make.inc"	)
-CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
+IF(UNIX)
+  SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/make.inc.in")
+  SET(CONF "${feast_prefix}/make.inc"	)
+  CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
+ELSE()
+  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/feast-patch.cmake.in")
+  SET(PFN "${feast_prefix}/feast-patch.cmake")
+  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
@@ -72,23 +82,42 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 # Determine paths of FEAST libraries.
 #-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(FEAST_LIBS "feast" "feast_sparse")
-foreach(LIB IN LISTS FEAST_LIBS)
-  LIST(APPEND LIBS "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-endforeach()
-SET(FEAST_LIBRARY ${LIBS} CACHE FILEPATH "FEAST library.")
+IF(UNIX)
+  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  SET(FEAST_LIBS "feast" "feast_sparse")
+  foreach(LIB IN LISTS FEAST_LIBS)
+    LIST(APPEND LIBS "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  endforeach()
+  SET(FEAST_LIBRARY ${LIBS} CACHE FILEPATH "FEAST library.")
+ELSE()
+  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
+  SET(FEAST_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}feast${CMAKE_STATIC_LIBRARY_SUFFIX}" CACHE FILEPATH "FEAST library.")
+ENDIF()
 MARK_AS_ADVANCED(FEAST_LIBRARY)
 
+IF(WIN32)
+  IF(USE_OPENMP)
+    SET(FEAST_FORTRAN_FLAGS "${FEAST_FORTRAN_FLAGS} /Qopenmp")
+  ENDIF(USE_OPENMP)
+
+  SET(CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX:PATH=${feast_install}
+    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+    -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
+    -DCMAKE_Fortran_FLAGS:STRING=${FEAST_FORTRAN_FLAGS}
+    -DCMAKE_BUILD_TYPE:STRING=Release
+    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  )
+
+  IF(CMAKE_TOOLCHAIN_FILE)
+    LIST(APPEND CMAKE_ARGS
+      -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+    )
+  ENDIF()
+ENDIF()
 #-------------------------------------------------------------------------------
 # The FEAST external project
 #-------------------------------------------------------------------------------
-# determine which feast library to copy over in the install step
-IF(USE_FEAST_COMMUNITY_PRECOMPILED)
-  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
-ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
-  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
-ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
 
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
@@ -130,20 +159,47 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${FEAST_LIBRARY}
   )
-  ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
-  # compile feast
-  ExternalProject_Add(feast
-    PREFIX "${feast_prefix}"
-    SOURCE_DIR "${feast_source}"
-    URL ${LOCAL_FILE}
-    URL_MD5 "${FEAST_MD5}"
-    BINARY_DIR "${feast_source}/${FEAST_VER}/src"
-    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E copy "${CONF}" "${feast_source}/${FEAST_VER}/src" # copy over file
-    BUILD_COMMAND ${FEAST_MAKE_PROGRAM} "ARCH=${CFS_ARCH_STR}" "LIB=feast" "all"
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${FEAST_LIBRARY}
-  )
-  ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ELSE() # not USE_FEAST_COMMUNITY_PRECOMPILED
+    # compile feast
+    IF(UNIX)
+      ExternalProject_Add(feast
+        PREFIX "${feast_prefix}"
+        SOURCE_DIR "${feast_source}"
+        URL ${LOCAL_FILE}
+        URL_MD5 "${FEAST_MD5}"
+        BINARY_DIR "${feast_source}/${FEAST_VER}/src"
+        CONFIGURE_COMMAND ${CMAKE_COMMAND} -E copy "${CONF}" "${feast_source}/${FEAST_VER}/src" # copy over file
+        BUILD_COMMAND ${FEAST_MAKE_PROGRAM} "ARCH=${CFS_ARCH_STR}" "LIB=feast" "all"
+        INSTALL_COMMAND ""
+        BUILD_BYPRODUCTS ${FEAST_LIBRARY}
+    )
+    ELSE()
+      ExternalProject_Add(feast
+        PREFIX "${feast_prefix}"
+        DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/feast
+        URL ${FEAST_URL}/${FEAST_GZ}
+        URL_MD5 ${FEAST_MD5}
+        PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+	SOURCE_DIR "${feast_source}"
+        CMAKE_ARGS ${CMAKE_ARGS}
+        INSTALL_DIR ${feast_install}
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_INSTALL 1
+      )
+    ENDIF()
+  ENDIF() # switch of USE_FEAST_COMMUNITY_PRECOMPILED
+
+  #-------------------------------------------------------------------------------
+  # Add custom patch step, needed for windows
+  #-------------------------------------------------------------------------------
+  #  ExternalProject_Add_Step(feast winpatch
+  #  COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  #  DEPENDERS build
+  #  DEPENDEES download
+  #  DEPENDS "${PFN}"
+  #  WORKING_DIRECTORY ${BOOST_source}
+  #)
 
   # post install for precompiled
   ExternalProject_Add_Step(feast post_install

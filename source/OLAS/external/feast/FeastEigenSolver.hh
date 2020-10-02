@@ -10,21 +10,30 @@ namespace CoupledField {
 
   /** This is the BaseEigenSolver implementation based on the FEAST Eigensolver.
    * We are here based on the MKL implementation, but it should be easy to use also the original FEAST academic code */
-  class FeastEigenSolver : public BaseEigenSolver
-  {
+  class FeastEigenSolver : public BaseEigenSolver {
+
   public:
+
+    //! Default Constructor
     FeastEigenSolver( shared_ptr<SolStrategy> strat,
                        PtrParamNode xml,
                        PtrParamNode solverList,
                        PtrParamNode precondList,
                        PtrParamNode eigenInfo );
 
+    //! Default Destructor
     virtual ~FeastEigenSolver();
 
     //! Setup for a standard EVP
     void Setup(const BaseMatrix & A, bool isHermitian=false);
+
     //! Setup for a generalised EVP
     void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
+    //! Setup for a quadratic EVP
+    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+        EXCEPTION("not yet implemented")
+    };
 
     /* Setup routine for standard eigenvalue problem
      * @see BaseEigenSolver::Setup() */
@@ -49,7 +58,9 @@ namespace CoupledField {
 
     /** Solve the linear generalized eigenvalue problem
      * @see BaseEigenSolver::CalcEigenFrequencies() */
-    void CalcEigenFrequencies(BaseVector& sol, BaseVector& err); //removed EXCEPTION due to compiler Error. of duplicate function in .cc
+    void CalcEigenFrequencies(BaseVector& sol, BaseVector& err){
+        EXCEPTION("obsolete - should be removed from interface");
+    }
 
     /**Calculate a particular eigenmode as a postprocessing solution
      * @see BaseEigenSolver::GetEigenMode() */
@@ -59,6 +70,9 @@ namespace CoupledField {
 
     /** @see BaseEigenSolver::CalcConditionNumber() */
     void CalcConditionNumber( const BaseMatrix& mat, double& condNumber, Vector<double>& evs, Vector<double>& err);
+
+    //! Translate the info integer to a message
+    std::string FeastInfo(Integer info);
 
   private:
     /** print setup information */
@@ -97,10 +111,10 @@ namespace CoupledField {
     /** subspace dimension n >= m0_ >= m_ */
     int m0_;
 
-    /** the last result value -> MKL manual pake 1635 */
+    /** the last result value -> MKL manual page 1635 */
     int info_;
 
-    /** the right and left eingenvectors */
+    /** the right and left eigenvectors */
     StdVector<Complex> vr_;
     StdVector<Complex> vl_;
 

@@ -38,7 +38,6 @@ class DensityFile;
 class DesignDependentRHS;
 class DesignStructure;
 class OptimizationMaterial;
-class SinglePDE;
 class TransferFunction;
 struct SurfElem;
 
@@ -81,7 +80,7 @@ public:
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
-    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP
+    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP, SPLINE_BOX
   } Method;
 
   static Enum<Method> method;
@@ -128,7 +127,8 @@ protected:
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD,
-    EIGENFREQ    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
+    EIGENFREQ,    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
+    BUCKLING      /*!< The derivative is <u, (K' - ev G') u> */
   };
 
   /*!< add <u, K' u> which is in the real case as STANDARD
@@ -166,20 +166,17 @@ protected:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
+  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
   {
     throw Exception("not implemented");
   }
 
-
-  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf,
-      App::Type app, SingleVector* out, CalcMode calcMode, bool derivative =
-          true)
-  {
-    throw Exception("not implemented");
-  }
+  /** This is a helper for CalcU1KU2() and called when CalcU1KU2 got a DesignDependentRHS* rhs value. To be specified form MagSIMP, ...
+   * It substracts a from mat_vec */
+  virtual void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
 
   /** Helper that asks MechanicMaterial. Works only for a single region.
+   * works also with multiple regions if grid is regular
    * @param excitation we need to make sure the excitation is the active one for robust
    * @return empty if multiple regions */
   StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex);
@@ -227,6 +224,7 @@ protected:
    * @return invalid in derivative case*/
   virtual double CalcVolume(Objective* f, Condition* g, bool derivative,
       bool normalized = true);
+
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode
    * @param excite for multiple excitations, defines which solution and rhs to use
@@ -238,10 +236,13 @@ protected:
    * @return invalid in derivative case*/
   virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
+
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
+
   /** Calculates heat energy as an equivalence to compliance in lin elasticity */
   virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
+
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T>
   double CalcOutput(Excitation& excite, Function* f);
@@ -270,6 +271,9 @@ protected:
    */
   virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
 
+  /** magnetic flux density */
+  void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
@@ -281,6 +285,8 @@ protected:
    * This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output
    * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
+
+  void CalcEigenvalueDerivativeBuckling(Excitation& excite, Function* f, StateSolution* sol, Double ev);
 
   /** bandgap is the difference between two eigenfrequency problems in the bloch mode.
    * It would make sense to have a generic gap function between two independent functions */
@@ -306,9 +312,10 @@ protected:
   void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
 
   /** converts the teststrain vector in voigt notation to the corresponding matrix
+   * @param app application type (PDE)
    * @param matrix output
    * @param vec input */
-  void SetTestStrainMatrix(Matrix<double>& matrix, const Vector<double>& vec);
+  void SetTestStrainMatrix(App::Type app, Matrix<double>& matrix, const Vector<double>& vec);
 
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
@@ -340,7 +347,7 @@ protected:
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @param meta the meta excitation index (rotations, robust) or 0 for standard case
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
+  double CalcHomogenizedTensorEntry(Function* f, const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
@@ -353,6 +360,7 @@ protected:
    * @param grad_out only used in derivative case
    * @return zero for derivative */
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
   /** Store the results from the forward/adjoint problem. Handles multiple excitations
    * @param read_sol store solution (maybe one would only like to save rhs)
    * @param read_rhs is only interesting for the forward problem
@@ -368,6 +376,23 @@ protected:
   /** Helper that gives the physical material tensor considers bi-material */
   void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
+  /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
+
+  /** This is a helper for SetElementK() which adds for App::MECH in the buckling case geometric stiffness
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddGeometricStiffnessToStiffness(Context* ctxt, const TransferFunction* tf, DesignElement* de, Matrix<Complex>& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
+
+  /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructRealAdjointRHS()
+   * @return true if function is handled */
+  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs) { return false; }
+
+
+  /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructComplexAdjointRHS()
+   * @return true if function is handled */
+  virtual bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs) { return false; }
+
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   StateContainer forward;
 
@@ -378,11 +403,8 @@ protected:
   Method method_;
 
   /** cache the 1.0 / complete volume of the domain */
-  double volume_fraction_;
+  double volumeFraction_;
 
-  /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
-   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
-  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -404,13 +426,13 @@ private:
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff  */
-  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, Context* ctxt, DesignElement* de, bool derivative, Vector<double>& u1,
-      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1, Vector<double>& u2, UInt ij, UInt kl);
 
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
 
   /** See the non-template version for documentation! */
-  template<class T> double CalcU1KU2(TransferFunction* tf,
+  template<class T>
+  double CalcU1KU2(TransferFunction* tf,
       StdVector<SingleVector*>& u1, App::Type k, StdVector<SingleVector*>& u2,
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
@@ -420,9 +442,14 @@ private:
    *  run over all neighbor nodes of design de
    *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
    * @param function f */
-  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f, TransferFunction* tf);
+  template<class T>
+  void CalcAndStoreInterfaceDrivenGrad(Function* f, TransferFunction* tf);
 
-  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out);
+  template<class T>
+  void SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out);
+
+  template<class T>
+  void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, Vector<T>& mat_vec);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
@@ -454,16 +481,36 @@ private:
   // void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[App::MECH] */
-  template<class T> void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+  void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+
+  /** return value of PrepareAdjointSystem */
+  struct SystemState
+  {
+    StdVector<LinearFormContext*> forms;
+    IdBcList  idbc;
+  };
+
+  /** Preparing the adjoint system constructs the rhs and the system (IDBC- > HDBC).
+   * It needs afterwards to be solved by assemble->GetAlgSys()->Solve()
+   * Then the adjoint state can be read and after this the system can be resored to the state system */
+  SystemState PrepareAdjointSystem(Excitation& excite, Function* f);
+
+  /** restores state system after PrepareAdjointSystem(), solve and StateSolution::Read(). To have IDBC->HDBC in the adjoint
+   * requires first StateSolution::Read() before we reset proper IDBC. */
+  void RestoreStateSystem(SystemState& sys);
 
   /** Helper for CommitIteration. Appends or replaces a design line */
   void SetCurrentExportDesign();
 
   /** In ErsatzMaterial: Saves the original loads and sets the output nodes as adjoint pde rhs
    * Has distinct implementations for complex and real part.
-   * @see virtual ConstructAdjointRHS() */
+   * @see virtual ConstructAdjointRHS()
+   * @see FillReadAdjointRHS() ! */
   void ConstructRealAdjointRHS(Excitation& excite, Function* f);
   void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
+
+  void ConstructAdjointRHSBucklingOld(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
+  void ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
 
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
@@ -510,6 +557,8 @@ private:
   bool interfaceDrivenGradCalc_;
 
   Function* trackingFunc_;
+
+  bool printProgressBar_;
 
   boost::shared_ptr<Timer> calc_u1ku2_timer_;
 

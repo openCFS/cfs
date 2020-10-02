@@ -15,29 +15,31 @@ namespace CoupledField {
     
   public:
     
+    //! Computational mode / problem transformation used for solving
+    //! see e.g. https://www.caam.rice.edu/software/ARPACK/UG/node39.html
+    typedef enum {REGULAR, SHIFT_INVERT, BUCKLING} ComputeMode;
+
     //! Constructor (standard EV problem)
-    ArpackMatInterface( const BaseMatrix * matA,
-                        bool shiftMode, Double shift );
+    ArpackMatInterface( const BaseMatrix * matA, ComputeMode computeMode);
     
     //! Constructor (generalized EV problem)
-    ArpackMatInterface( const BaseMatrix * matA, const BaseMatrix * matB,
-                        bool shiftMode, Double shift );
-    ArpackMatInterface( BaseMatrix * matA, BaseMatrix * matB,
-                        BaseMatrix * matD, bool shiftMode, Double shift );    
+    ArpackMatInterface( const BaseMatrix * matA, const BaseMatrix * matB, ComputeMode computeMode);
+    ArpackMatInterface( BaseMatrix * matA, BaseMatrix * matB, BaseMatrix * matD, ComputeMode computeMode);
+
     //! Destructor
     ~ArpackMatInterface();
     
     //! Setup the internal methods for solving
-    void Setup( BaseSolver* solver, BasePrecond* precond );
+    void Setup( BaseSolver* solver, BasePrecond* precond, Double shift );
     
     //! Setup the internal methods for solving, quadratic case
-    void QuadSetup( BaseSolver* solver, BasePrecond* precond );
+    void QuadSetup( BaseSolver* solver, BasePrecond* precond, Double shift );
 
     //! Method to set diagonal scaling factor
-    void SetDiagScaling( Double scaleFac );
+    void SetDiagScaling( Double scaleFac ) { diagScale_ = scaleFac; };
 
     //! Method to get diagonal scaling factor
-    Double GetDiagScaling( );
+    Double GetDiagScaling( ) { return diagScale_; };
 
 
     //! use stiffnes matrix in nonsingular N matrix in quadratic solver
@@ -86,7 +88,7 @@ namespace CoupledField {
     //! size of rows / columns
     UInt size_;
     
-    //! Value of frequency shift
+    //! Value of eigenvalue shift
     Double shift_;
     
     //! Pointer to matrix which gets interfaced
@@ -104,9 +106,9 @@ namespace CoupledField {
     //! Pointer to preconditionier
     BasePrecond * precond_;
 
-    //! Flag for shift-and-invert mode
-    bool shiftAndInvert_;
-    
+    //! Computational mode / problem transformation used for solving
+    ComputeMode computeMode_;
+
     //! Flag for generalized eigenvalue problem
     bool isGeneralized_;
 

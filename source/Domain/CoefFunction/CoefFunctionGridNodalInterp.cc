@@ -36,7 +36,6 @@
 namespace CoupledField{
 
 // declare class specific logging stream
-DECLARE_LOG(coeffunctiongridnodalinterp)
 DEFINE_LOG(coeffunctiongridnodalinterp, "coeffunctiongridnodalinterp")
 
 template<typename DATA_TYPE>
@@ -82,6 +81,29 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
 }
 
 template<typename DATA_TYPE>
+void CoefFunctionGridNodalInterp<DATA_TYPE>::PrepareInterpolation(){
+
+  if(!this->stdInterpReady_){
+    std::cout << "++ Preparing for interpolation of external data...";
+    std::cout.flush();
+    //====================================================
+    // Create Data structures for easy solution access
+    //====================================================
+    //read in the first solution
+    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    this->PrepareForStdInterp(this->myConfigNode_);
+    std::cout << "Done" << std::endl;
+    std::cout.flush();
+  }else{
+    EXCEPTION("CoefFunctionGridNodalInterp<DATA_TYPE>::PrepareInterpolation() This should not happen!!");
+  }
+
+}
+
+
+
+
+template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMat,
                                                                const LocPointMapped& lpm ){
   if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE){
@@ -120,22 +142,14 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
   //if this is the first time we call the procedure, std interpolation is not ready
   //so we prepare it
   if(!this->stdInterpReady_){
-    std::cout << "++ Preparing for interpolation of external data...";
-    std::cout.flush();
-    //====================================================
-    // Create Data structures for easy solution access
-    //====================================================
-    //read in the first solution
-    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
-    this->PrepareForStdInterp(this->myConfigNode_);
-    std::cout << "Done" << std::endl;
-    std::cout.flush();
+    EXCEPTION("CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector You are trying to read in the external grid again!!");
   }else{
     if(this->dependType_ != CoefFunction::SPACE){
       if(this->UpdateSolution())
         this->interpolFunction_->ApplyExternalData();
     }
   }
+
   
   //there is a special case when dealing with surface elements
   //we need to obtain a valid volume from them
@@ -570,7 +584,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         StdVector<DATA_TYPE> tSum(this->dimDof_);
         tSum.Init(0.0);
 #pragma omp for
-        for (UInt i = 0; i < size; ++i) {
+        for (Integer i = 0; i < (Integer) size; ++i) {
           if (this->countSolvecIndex_[i]) {
             tSum[this->solVecIndexDim_[i]] += feFncVec[i];
           }
@@ -597,7 +611,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       {
         DATA_TYPE tSum = 0.0;
 #pragma omp for
-        for (UInt i = 0; i < size; ++i) {
+        for (Integer i = 0; i < (Integer) size; ++i) {
           if (this->countSolvecIndex_[i]) {
             tSum += feFncVec[i];
           }

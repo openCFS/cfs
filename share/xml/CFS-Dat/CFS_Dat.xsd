@@ -1,6 +1,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org" xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+  targetNamespace="http://www.cfs++.org/simulation" xmlns="http://www.cfs++.org/simulation"
+  xmlns:sim="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
 
 
   <xsd:annotation>
@@ -12,15 +13,14 @@
   <!-- ******************************************************************* -->
   <!--   Includes from CFS -->
   <!-- ******************************************************************* -->
-<!--  <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
-  <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_PDEbasic.xsd" />-->
-  <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_FileFormats.xsd" />
   <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_Documentation.xsd"/>
   
   <!-- ******************************************************************* -->
   <!--   Includes from cfsdat -->
   <!-- ******************************************************************* -->  
   <xsd:include schemaLocation="Schemas/CFSDat_Differentiation.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_GaussDerivative.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_VolumeMultiplication.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_Aeroacoustic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_DatMeshInput.xsd"/>
@@ -30,6 +30,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_RotSubstantialTimeDeriv.xsd"/> 
   <xsd:include schemaLocation="Schemas/CFSDat_Interpolation.xsd"/>  
   <xsd:include schemaLocation="Schemas/CFSDat_BinOpFilt.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_Tensor.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_PostLighthill.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FftFilter.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_TemporalBlending.xsd"/>
@@ -47,8 +48,11 @@
       <xsd:element name="substantialDeriv" type="DT_RotSTDeriv"/>
       <xsd:element name="interpolation" type="DT_Interpolation"/>
       <xsd:element name="differentiation" type="DT_Differentiation"/>
+      <xsd:element name="gaussDerivative" type="DT_GaussDerivative"/>
+      <xsd:element name="volumeMultiplication" type="DT_VolumeMultiplication"/>
       <xsd:element name="aeroacoustic" type="DT_Aeroacoustic"/>
       <xsd:element name="postLighthill" type="DT_postLighthill"/>
+      <xsd:element name="tensorFilter" type="DT_TensorFilter"/>
       <xsd:element name="binaryOperation" type="DT_BinOpFilt">
         <xsd:annotation>
           <xsd:documentation>
@@ -57,7 +61,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="syntheticTurbulence_SNGR" type="DT_SNGR"/>
+      <xsd:element name="syntheticTurbulence" type="DT_SNGR"/>
       <xsd:element name="fft" type="DT_FFT"/>
       <xsd:element name="timeMean" type="DT_TMean">
         <xsd:annotation>
@@ -85,7 +89,7 @@
     <xsd:complexType>
       <xsd:sequence>
 			  <!-- Tags for documenting simulations (required just for test suite)-->
-        <xsd:element name="documentation" type="DT_Documentation" minOccurs="0"/>
+        <xsd:element name="documentation" type="sim:DT_Documentation" minOccurs="0"/>
         <!-- File format list for io-specifications (required)-->
         <xsd:element name="pipeline" type="DT_FilterList" minOccurs="1" maxOccurs="1"/>
       </xsd:sequence>

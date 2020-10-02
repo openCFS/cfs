@@ -1,5 +1,6 @@
+
 #include <assert.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <cmath>
 #include <list>
@@ -7,7 +8,6 @@
 #include <sstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
@@ -31,9 +31,9 @@ using std::string;
 using std::pair;
 
 using namespace CoupledField;
-class DesignStructure;
+namespace CoupledField {class DesignStructure;}
 
-DECLARE_LOG(conditions)
+DEFINE_LOG(conditions, "conditions")
 
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
@@ -80,10 +80,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // validated in StressConstraint::GetApplications()
   stressType_ = stressType.Parse(pn->Get("stress")->As<string>());
 
-  // default is set in Function, may this moves later to Function, too
-  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
-    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
-
   // set number of displacement constraints realized by multiple output constraints
   if (pn->Has("output") && pn->Get("output")->Has("displacement") && pn->Get("output")->Get("displacement")->Has("multiple_nodes"))
     output_multiple_nodes = pn->Get("output")->Get("displacement")->Get("multiple_nodes")->As<double>();
@@ -122,7 +118,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   }
 
 
-  // value is not mandatory for all almost all constraints. Check for homogenization later
+  // value is not mandatory for almost all constraints. Check for homogenization later
   if(!observation_)
   {
     switch(type_)
@@ -767,6 +763,10 @@ string Condition::ToString() const
     else
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
+
+  if(type_ == BUCKLING_LOAD_FACTOR)
+    os << "_" << eigenvalue_id_;
+
   // add bound type if multiple unique conditions exist
   if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
     os << "_" << bound.ToString(bound_);
@@ -845,9 +845,6 @@ void Condition::ToInfo(PtrParamNode in)
   //  in->Get("delta_logging")->SetWarning("no value given");
   // else
   //  in->Get("delta_logging")->SetValue(delta_logging);
-
-  if(region != ALL_REGIONS)
-    in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
 
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());
@@ -1300,7 +1297,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
         unsigned int id = all[i]->GetEigenValueID();
         assert(id > 0); // ensured by xml schema
         if(id > max)
-          EXCEPTION("eigenvalue id 'ev'" << id << " larger the the " << max << " calculated eigenfrequencies");
+          EXCEPTION("eigenvalue id 'ev'" << id << " larger than the " << max << " calculated eigenfrequencies");
 
         if(ids.Contains(id))
           EXCEPTION("eigenvalue id 'ev'" << id << " is not unique");
@@ -1328,22 +1325,6 @@ void ConditionContainer::ToInfo(PtrParamNode in)
   for(unsigned int i = 0; i < all.GetSize(); i++)
     all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
 }
-
-std::string ConditionContainer::GetFeasiblityMessage() const
-{
-  std::stringstream ss;
-
-  if(IsFesible())
-    ss << "all constraints are fasible";
-  else
-  {
-    for(unsigned int i = 0; i < all.GetSize(); i++)
-      all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
-   }
-
-  return ss.str();
-}
-
 
 
 Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception)

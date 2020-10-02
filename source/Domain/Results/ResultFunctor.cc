@@ -6,7 +6,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(resfunc)
 DEFINE_LOG(resfunc, "resultFunctor")
 
 
@@ -27,7 +26,6 @@ template<class TYPE> FieldCoefFunctor<TYPE>::~FieldCoefFunctor() {
 template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseResult> res )
 {
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
-
   // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
   if(res->GetResultInfo()->fromOptimization)
   {
@@ -567,7 +565,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
     nameIt.GetGrid()->GetNodesByRegion(surfNodeList, ptGrid_->GetRegionId(nameIt.GetName()) );
 
     // get volume elements next to nodes
-    StdVector<Elem*> elemList;
+    StdVector<const Elem*> elemList;
     ptGrid_->GetElemsNextToNodes( elemList, surfNodeList, neighborIds);
 
     //get memory

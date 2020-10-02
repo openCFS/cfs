@@ -20,16 +20,13 @@ namespace CoupledField {
   public:
 
     //! Typedef for the unknown entities where the result is defined on
-    typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, REGION, 
+    typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, REGION, REGION_AVERAGE,
                   SURF_REGION, NODELIST, COIL, FREE } EntityUnknownType;
     static Enum<EntityUnknownType> EntityUnknownTypeEnum_;
     
     //! Typedef describing the entryType of the result
     typedef enum { UNKNOWN = 0, SCALAR = 1, VECTOR = 2, TENSOR = 3, STRING = 4 } EntryType;
     static Enum<EntryType> EntryTypeEnum_;
-
-    //! Friend declaration for operator==
-    friend bool operator==(ResultInfo& a, ResultInfo& b );
 
     //! Constructor
     ResultInfo();
@@ -102,6 +99,9 @@ namespace CoupledField {
 
     //! Is this result provided from the optimization part
     bool fromOptimization;
+    
+    //! this is true if the result is not depending on time/frequency
+    bool isStatic;
 
     /** Gives back a debug summary of the result info */
     std::string ToString() const; 

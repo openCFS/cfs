@@ -9,7 +9,6 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -32,7 +31,6 @@
 using namespace CoupledField;
 using std::abs;
 
-DECLARE_LOG(oc)
 DEFINE_LOG(oc, "optimalityCondition")
 
 OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNode pn)
@@ -125,6 +123,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
+  std::cout << type_;
   
   PostInitScale(1.0, true);
 }
@@ -197,7 +196,11 @@ void OptimalityCondition::SolveProblem()
     optimizer_timer_->Stop();
     
     // solve the state problem for the new design vector
-    Optimization::context->pde->GetAssemble()->SetAllReassemble();
+    // we have to set reassemblence for all pdes
+    for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++) {
+      Optimization::manager.SwitchContext(i);
+      Optimization::context->pde->GetAssemble()->SetAllReassemble();
+    }
     optimization->SolveStateProblem();
 
     // calc the objective for the logging in CommitIteration(),
@@ -416,7 +419,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   // elements but the first have old and new elements in their filter
   // stencil. Hence we store in evaluate_tmp_
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-  for(unsigned int i = 0; i < data.GetSize(); i++)    
+  for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
   {
     DesignElement* de = &data[i];
     // rho_e is the old rho
@@ -469,7 +472,7 @@ double OptimalityCondition::Evaluate(double lambda)
    // stencil. Hence we store in evaluate_tmp_
    
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-   for(unsigned int i = 0; i < data.GetSize(); i++)    
+   for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
    {
      DesignElement* de = &data[i];
      // rho_e is the old rho

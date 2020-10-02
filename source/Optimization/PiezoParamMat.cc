@@ -19,13 +19,11 @@ using namespace CoupledField;
 
 using std::complex;
 
-DECLARE_LOG(ppm)
 DEFINE_LOG(ppm, "piezo_para_mat")
-
 
 PiezoParamMat::PiezoParamMat() : PiezoSIMP()
 {
-  design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
+  design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()));
 }
 
 PiezoParamMat::~PiezoParamMat()
@@ -33,7 +31,7 @@ PiezoParamMat::~PiezoParamMat()
 }
 
 
-void PiezoParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void PiezoParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);

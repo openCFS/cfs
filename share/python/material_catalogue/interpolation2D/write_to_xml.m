@@ -1,4 +1,4 @@
-function write_to_xml(file,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33)
+function write_to_xml(file,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33,VolCoeff)
 % Erzeugt .xml file mit namen file fuer CFS
 filename = file;
 fid = fopen(filename,'wt'); 
@@ -48,6 +48,15 @@ for i=1:ende
     fprintf(fid,'\n');
 end
 fprintf(fid,'</real>\n </matrix>\n </coeff33>\n');
+
+fprintf(fid,'<volcoeff>\n<matrix dim1="%d" dim2="16">\n <real>\n',ende);
+for i=1:ende
+    for j=1:16
+        fprintf(fid,'%.16f ', VolCoeff(i,j));
+    end
+    fprintf(fid,'\n');
+end
+fprintf(fid,'</real>\n </matrix>\n </volcoeff>\n');
 
 fprintf(fid,'</homRectC1>');
 fclose(fid);

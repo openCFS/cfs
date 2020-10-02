@@ -18,7 +18,7 @@ SET(CFS_FORTRAN_LIBS "")
 
 #-----------------------------------------------------------------------------
 # Lets find the runtime libraries of gfortran. This branch should be taken
-# on most Linuces and MacOS X but also for MinGW (cross-)compilers.
+# on most Linuxes and MacOS.
 #-----------------------------------------------------------------------------
 IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
 
@@ -50,7 +50,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
   SET(DIRSEP ":")
   STRING(REPLACE ";" "#____#" GFORTRAN_SEARCH_DIRS "${GFORTRAN_SEARCH_DIRS}")
   STRING(REPLACE "\n" ";" SEARCH_DIRS "${GFORTRAN_SEARCH_DIRS}")
-  IF(NOT CMAKE_CROSSCOMPILING AND WIN32)
+  IF(WIN32)
     SET(DIRSEP "#____#")
   ENDIF()
 
@@ -67,20 +67,6 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     SET(GFORTRAN_SEARCH_DIRS "")
   ENDIF(NOT RETVAL EQUAL 0)
 
-  IF(APPLE AND CMAKE_CROSSCOMPILING)
-    IF(NOT MACOSX_BINARY_ARCH STREQUAL "i386")
-      SET(ADDITIONAL_GFORTRAN_SEARCH_DIRS "")
-      foreach(line IN ITEMS ${GFORTRAN_SEARCH_DIRS})
-        LIST(APPEND ADDITIONAL_GFORTRAN_SEARCH_DIRS "${line}/${MACOSX_BINARY_ARCH}")
-      endforeach()
-
-      SET(GFORTRAN_SEARCH_DIRS
-        ${ADDITIONAL_GFORTRAN_SEARCH_DIRS}
-        ${GFORTRAN_SEARCH_DIRS}
-      )
-    ENDIF()
-  ENDIF()
-
   #---------------------------------------------------------------------------
   # Let's find the shared version of the gfortran runtime lib.
   #---------------------------------------------------------------------------
@@ -94,63 +80,50 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     NO_CMAKE_SYSTEM_PATH 
   )
 
-  # For some strange reason GFORTRAN_LIBRARY needs to be explicitly set to /usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a
-  # either via set or -D cmake option with opensuse tumbleweed original packaged crosscompiler
-  IF(GFORTRAN_LIBRARY MATCHES "NOTFOUND")
-    MESSAGE("GFORTRAN_LIBRARY not found: ${GFORTRAN_LIBRARY}")
-    MESSAGE("GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
-    MESSAGE("Try /usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a")
-    SET(GFORTRAN_LIBRARY "/usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a")
-  ENDIF()
-
   MARK_AS_ADVANCED(GFORTRAN_LIBRARY)
 
   #---------------------------------------------------------------------------
   # Now, let's see if we can also find the static runtime libs.
   #---------------------------------------------------------------------------
-  STRING(REGEX REPLACE "gfortran\\..*" ""
-     GFORTRAN_LIBRARY_DUMMY "${GFORTRAN_LIBRARY}")
+  FIND_LIBRARY(QUADMATH_LIBRARY_STATIC
+    NAMES libquadmath${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PATHS ${GFORTRAN_SEARCH_DIRS}
+    NO_DEFAULT_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_CMAKE_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_SYSTEM_PATH
+  )
+  #message("QUADMATH_LIBRARY_STATIC=${QUADMATH_LIBRARY_STATIC}")
+  MARK_AS_ADVANCED(QUADMATH_LIBRARY_STATIC)
 
-  SET(GFORTRAN_STATIC_LIBS "gfortranbegin;gfortran")
-  foreach(lib IN LISTS GFORTRAN_STATIC_LIBS)
-    string(TOUPPER "${lib}" GFORTRAN_LIB_UPPER)
-
-    IF(EXISTS "${GFORTRAN_LIBRARY_DUMMY}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-      # MESSAGE("${GFORTRAN_LIBRARY_DUMMY}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-
-      SET(DUMMY "${GFORTRAN_LIBRARY_DUMMY}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    ELSE()
-      SET(DUMMY "${GFORTRAN_LIB_UPPER}_LIBRARY_STATIC-NOTFOUND")
-    ENDIF()
-
-    SET(${GFORTRAN_LIB_UPPER}_LIBRARY_STATIC
-        "${DUMMY}"  
-        CACHE PATH
-        "Path to ${lib} static library.")
-
-    MARK_AS_ADVANCED(${GFORTRAN_LIB_UPPER}_LIBRARY_STATIC)
-
-    UNSET(DUMMY)
-    UNSET(GFORTRAN_LIB_UPPER)
-  endforeach()
-
-  UNSET(GFORTRAN_LIB_DUMMY)
+  FIND_LIBRARY(GFORTRAN_LIBRARY_STATIC
+    NAMES libgfortran${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PATHS ${GFORTRAN_SEARCH_DIRS}
+    NO_DEFAULT_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_CMAKE_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_SYSTEM_PATH
+  )
+  #message("GFORTRAN_LIBRARY_STATIC=${GFORTRAN_LIBRARY_STATIC}")
+  MARK_AS_ADVANCED(GFORTRAN_LIBRARY_STATIC)
 
   #---------------------------------------------------------------------------
   # Prefer static runtime libs over shared ones.
   #---------------------------------------------------------------------------
-  IF(GFORTRANBEGIN_LIBRARY_STATIC AND GFORTRAN_LIBRARY_STATIC)
-    LIST(APPEND CFS_FORTRAN_LIBS
-      "${GFORTRANBEGIN_LIBRARY_STATIC}"
-      "${GFORTRAN_LIBRARY_STATIC}"
-      "-lquadmath"
-    )
-  ELSE()
-    LIST(APPEND CFS_FORTRAN_LIBS
-      "${GFORTRAN_LIBRARY}"
-      "-lquadmath"
-    )
-  ENDIF()
+  if(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND" AND NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
+    
+    LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
+    
+    # clang on macOS complains about -static-libgfortran"
+    if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG")) 
+      LIST(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
+    endif()  
+  else()
+    LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}" "-lquadmath")
+  endif()
+  #message("CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
 
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
 
@@ -195,36 +168,6 @@ ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 # Fortran for C/C++ developers made easier with CMake:
 # http://www.kitware.com/blog/home/post/231
 #==============================================================================
-
-IF(CMAKE_CROSSCOMPILING)
-  IF(MINGW)
-    #--------------------------------------------------------------------------
-    # When cross-compiling on Linux, the CMake FIND_PROGRAM macro obviously
-    # has a problem finding a dummy Windows executable built during the
-    # Fortran interface detection. Therefore, we set it by hand from here.
-    #--------------------------------------------------------------------------
-    SET(FortranCInterface_EXE
-        "${CFS_BINARY_DIR}/CMakeFiles/FortranCInterface/FortranCInterface.exe"
-    )
-    
-    FIND_LIBRARY(QUADMATH_LIBRARY
-      NAMES quadmath
-      PATHS ${GFORTRAN_SEARCH_DIRS}
-      NO_DEFAULT_PATH
-      NO_CMAKE_ENVIRONMENT_PATH
-      NO_CMAKE_PATH
-      NO_SYSTEM_ENVIRONMENT_PATH
-      NO_CMAKE_SYSTEM_PATH 
-    )
-    
-    IF(QUADMATH_LIBRARY MATCHES "NOTFOUND")
-      MESSAGE("WARNING quadmath not found! But this might be harmless?! ${QUADMATH_LIBRARY}")
-    ELSE()
-      LIST(APPEND GFORTRAN_LIBRARY "${QUADMATH_LIBRARY}")
-    ENDIF()
-    
-  ENDIF()
-ENDIF()
 
 include(FortranCInterface)
 
@@ -271,14 +214,19 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   zgetrf
   zgetri
   ilaver
+  cblas_zdscal
+  cblas_dznrm2
   # ARPACK
   dsaupd
   dseupd
+  debug
   znaupd
   zneupd
-  debug
   # Pardiso
   pardisoinit
   pardiso
+  # additionally for PALM
+  dscal
+  dgesvd
 )
 

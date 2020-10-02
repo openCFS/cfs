@@ -42,7 +42,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 # Determine paths of hwloc libraries.
 
 # we need runtime libs, which are quite different for the systems:
-# openSUSE tumbleweed: -lpciaccess;-ludev
+# openSUSE tumbleweed: -lpciaccess;-ludev or strangely /usr/lib64/libpciaccess.so.0;/usr/lib64/libudev.so.1
 # leo (ubuntu 14.04): -lnuma;-lOpenCL
 # woody (ubuntu 16.04): -lpciaccess;-lnuma
 if(HWLOC_SYSTEM_LIBS_DEFAULT)

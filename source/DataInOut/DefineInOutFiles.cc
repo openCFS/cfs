@@ -9,25 +9,18 @@
 #include <string>
 
 // Include headers which define what types of in/output files CFS++ supports
-#include <def_use_mesh.hh>
 #include <def_use_gidpost.hh>
-#include <def_use_hdf5.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
-#include <def_use_ansysrst.hh>
-#include <def_use_comsol.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ensight.hh>
 
 #include "DefineInOutFiles.hh"
 
 #include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
-
-#ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
-#endif
 
 #ifdef USE_GMV
 #include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
@@ -40,11 +33,9 @@
 #include "DataInOut/SimInOut/gmsh/SimOutputParsed.hh"
 #endif
 
-#ifdef USE_HDF5
 // HDF5 readers and writers
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-#endif
 
 #include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
 
@@ -52,18 +43,8 @@
 #include "DataInOut/SimInOut/GiD/SimOutGiD.hh"
 #endif
 
-#ifdef USE_UNV
 #include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
 #include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
-#endif
-
-#ifdef USE_ANSYSRST
-#include "DataInOut/SimInOut/AnsysRST/SimOutputRST.hh"
-#endif
-
-#ifdef USE_COMSOL
-#include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
-#endif
 
 #ifdef USE_ENSIGHT
 #include "DataInOut/SimInOut/VTKBased/Ensight/SimInputEnsight.hh"
@@ -76,11 +57,7 @@
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
-#ifndef __MINGW32__
-//#ifndef __INTEL_COMPILER
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
-//#endif
-#endif
 
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
 
@@ -144,11 +121,9 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
     meshNode->GetValue("gridId", actGridId, ParamNode::INSERT);
     
     if ( meshFile.find(".h5", meshFile.length()-4) != std::string::npos ) {
-      inFiles[actId] = shared_ptr<SimInput>( new SimInputHDF5(meshFile,
-          PtrParamNode(new ParamNode()), infoNode) );
+      inFiles[actId] = shared_ptr<SimInput>( new SimInputHDF5(meshFile, PtrParamNode(new ParamNode()), infoNode) );
     } else {
-      inFiles[actId] = shared_ptr<SimInput>( new SimInputMESH(meshFile,
-          PtrParamNode(), infoNode) );
+      inFiles[actId] = shared_ptr<SimInput>( new SimInputMESH(meshFile, PtrParamNode(), infoNode) );
     }
     gridInputs[actGridId].Push_back(inFiles[actId]);
     return;
@@ -332,15 +307,10 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
 
   if (fFormat == "mesh")
   {
-#ifdef USE_MESH
     if(fName.empty()){
       fName += simName + ".mesh";
     }
-    aInput = shared_ptr<SimInput> (
-        new SimInputMESH(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for MESH input file format." );
-#endif // USE_MESH
+    aInput = shared_ptr<SimInput>(new SimInputMESH(fName, configNode, infoNode));
   }
   else if (fFormat == "cdb")
   {
@@ -352,15 +322,10 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   }
   else if (fFormat == "hdf5")
   {
-#ifdef USE_HDF5
     if(fName.empty()){
       fName += simName + ".h5";
     }
-    aInput = shared_ptr<SimInput> (
-        new SimInputHDF5(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for HDF5 input file format." );
-#endif // USE_HDF5
+    aInput = shared_ptr<SimInput>(new SimInputHDF5(fName, configNode, infoNode));
   }
   else if (fFormat == "gmv")
   {
@@ -394,18 +359,6 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
     EXCEPTION( "No support for GMSH input file format." );
 #endif // USE_GMSH
   }
-  else if (fFormat == "mphtxt")
-  {
-#ifdef USE_COMSOL
-    if(fName.empty()){
-      fName += simName + ".mphtxt";
-    }
-    aInput = shared_ptr<SimInput> (
-        new SimInputMPHTXT(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for Comsol .mphtxt input file format." );
-#endif // USE_COMSOL
-  }
   else if (fFormat == "cgns")
   {
 #ifdef USE_CGNS
@@ -420,14 +373,10 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   }
   else if (fFormat == "unv")
   {
-#ifdef USE_UNV
     if(fName.empty()){
       fName += simName + ".unv";
     }
     aInput = shared_ptr<SimInput> (new SimInputUnv(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for UNV input file format." );
-#endif // USE_UNV
   }
   else if (fFormat == "ensight")
   {
@@ -438,19 +387,14 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
     aInput = shared_ptr<SimInput> (new SimInputEnsight(fName, configNode, infoNode));
 #else
     EXCEPTION( "No support for ENSIGHT Gold input file format." );
-#endif // USE_UNV
+#endif
   }
   else if (fFormat == "internal")
   {
-#ifdef USE_MESH
     if(fName.empty()){
       fName += simName + ".mesh";
     }
-    aInput =
-        shared_ptr<SimInput> (new InternalMesh(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for internalMesh input file format." );
-#endif // USE_MESH
+    aInput = shared_ptr<SimInput>(new InternalMesh(fName, configNode, infoNode));
   }
   else
   {
@@ -469,12 +413,7 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string
   std::string fFormat = configNode->GetName();
   if (fFormat == "unv")
   {
-#ifdef USE_UNV
-    aOutput = shared_ptr<SimOutput> (new SimOutputUnv(fName, configNode,
-                                                      infoNode, isRestart));
-#else
-    EXCEPTION( "No support for UNV output file format." );
-#endif
+    aOutput = shared_ptr<SimOutput> (new SimOutputUnv(fName, configNode, infoNode, isRestart));
   }
 
   if (fFormat == "cgns")
@@ -530,29 +469,18 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string
 
   if (fFormat == "hdf5")
   {
-#ifdef USE_HDF5
-    aOutput = shared_ptr<SimOutput> (new SimOutputHDF5(fName, configNode,
-                                                       infoNode, isRestart));
-
-#else
-    EXCEPTION( "No support for HDF5 output file format." );
-#endif
+    aOutput = shared_ptr<SimOutput>(new SimOutputHDF5(fName,configNode,infoNode, isRestart));
   }
 
   if (fFormat == "rst")
   {
-#ifdef USE_ANSYSRST
-    aOutput =
-    shared_ptr<SimOutput>( new SimOutputRST( fName, configNode, infoNode, isRestart ) );
-#else
+    // was SimOutputRST(), but this is no more in the code?!
     EXCEPTION( "No support for ANSYS RST output file format." );
-#endif
   }
 
   if (fFormat == "text" || fFormat == "csv")
   {
-    aOutput = shared_ptr<SimOutput> (new SimOutputText(fName, configNode,
-                                                       infoNode, isRestart));
+    aOutput = shared_ptr<SimOutput> (new SimOutputText(fName, configNode, infoNode, isRestart));
   }
 
   if (fFormat == "info")
@@ -560,14 +488,10 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string
     aOutput = shared_ptr<SimOutput> (new SimOutputInfo(configNode,infoNode, isRestart));
   }
 
-#ifndef __MINGW32__
-// #ifndef __INTEL_COMPILER
   if (fFormat == "streaming")
   {
     aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, infoNode, isRestart));
   }
-// #endif
-#endif
 
   return aOutput;
 }

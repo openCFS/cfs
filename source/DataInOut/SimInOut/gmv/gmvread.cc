@@ -1,9 +1,9 @@
 #include <set>
 #include <iostream>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstdio>
-#include <string.h>
+#include <string>
 
 #include <sys/types.h>
 #include <cmath>

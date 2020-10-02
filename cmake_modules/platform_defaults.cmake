@@ -1,84 +1,89 @@
-SET(USE_MESH_DEFAULT ON)
-SET(USE_COMSOL_DEFAULT ON)
-SET(USE_GIDPOST_DEFAULT ON)
-SET(USE_GMV_DEFAULT ON)
-SET(USE_GMSH_DEFAULT ON)
-SET(USE_UNV_DEFAULT ON)
-SET(USE_ENSIGHT_DEFAULT ON)
-SET(USE_ANSYSRST_DEFAULT OFF)
+# In this file we set the default configuration for open CFS
+# It is a good idea always to set the *_DEFAULT, because setting the 
+# actual variable (e.g as in the main cmake file), a warning
+# "Policy CMP0077 is not set: option() honors normal variables" can appear
+# when a cache variable is set there but the variable already exists. 
 
-SET(CFS_BLAS_LAPACK_DEFAULT "MKL")
-SET(CFS_PARDISO_DEFAULT "MKL")
+# This settings can be overwritten in the following ways:
+# - calling cmake -D<variable>_DEFAULT=*
+# - configuring a $HOME/.cfs_platform_defaults.cmake (read at the end)
+# - on Windows from platform_defaults_win.cmake (read at the end)
+# - on specific hosts from cfs_platform_defaults_${CFS_BUILD_HOST}.cmake
+# - configuring a $HOME/.cfs_platform_defaults_${CFS_BUILD_HOST}.cmake
+# - simply manually via ccmake
+
+set(BUILD_TESTING_DEFAULT OFF)
+set(BUILD_CFSTOOL_DEFAULT ON)
+set(BUILD_CFSDAT_DEFAULT ON)
+set(BUILD_UNIT_TESTS_DEFAULT ON)
+set(BUILD_HDFVIEW_DEFAULT OFF)
+# will not be shown root cmake file option for WIN32 case
+set(BUILD_CPACK_BINARY_DEFAULT OFF)
+
+set(DEBUG_DEFAULT OFF)
+
+set(TESTSUITE_DIR_DEFAULT "${CFS_SOURCE_DIR}/Testsuite")
+set(EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT ON)
+set(CFS_DEPS_CACHE_DIR_DEFAULT "${CFS_BINARY_DIR}/cfsdeps/cache")
+set(CFS_DEPS_PRECOMPILED_DEFAULT ON)
+
+set(USE_GIDPOST_DEFAULT ON)
+set(USE_GMV_DEFAULT ON)
+set(USE_GMSH_DEFAULT ON)
+set(USE_ENSIGHT_DEFAULT ON)
+
+set(USE_BLAS_LAPACK_DEFAULT "MKL")
+set(CFS_PARDISO_DEFAULT "MKL")
 
 # the established one, libxml2 is lighter
-SET(XML_READER_DEFAULT "xerces")
+set(USE_XML_READER_DEFAULT "xerces")
 
-SET(USE_PARDISO_DEFAULT ON)
-SET(USE_ARPACK_DEFAULT ON)
-SET(USE_PHIST_CG_DEFAULT OFF)
-SET(USE_PHIST_EV_DEFAULT OFF)
-SET(BUILD_GHOST_DEFAULT OFF)
-SET(USE_FEAST_DEFAULT ON)
-SET(USE_ILUPACK_DEFAULT ON)
-SET(USE_SUITESPARSE_DEFAULT ON)
-SET(USE_LIS_DEFAULT ON)
-SET(USE_SUPERLU_DEFAULT ON)
+set(USE_PARDISO_DEFAULT ON)
+set(USE_ARPACK_DEFAULT ON)
+set(USE_PHIST_CG_DEFAULT OFF)
+set(USE_PHIST_EV_DEFAULT OFF)
+set(BUILD_GHOST_DEFAULT OFF)
+set(USE_FEAST_DEFAULT ON)
+set(USE_ILUPACK_DEFAULT ON)
+set(USE_SUITESPARSE_DEFAULT ON)
+set(USE_LIS_DEFAULT ON)
+set(USE_SUPERLU_DEFAULT ON)
 
-SET(USE_HDF5_DEFAULT ON)
-SET(USE_CGNS_DEFAULT ON)
-SET(USE_CCMIO_DEFAULT OFF) # proprietary, distribution not allowed
-SET(USE_CFXIO_DEFAULT OFF) # proprietary, distribution not allowed
-SET(USE_METIS_DEFAULT ON)
-SET(USE_ZEROMQ_DEFAULT OFF)
+set(USE_CGNS_DEFAULT ON)
+set(USE_METIS_DEFAULT ON)
 
-SET(USE_SCPIP_DEFAULT OFF)  
-SET(USE_SNOPT_DEFAULT OFF)  
+set(USE_SCPIP_DEFAULT OFF)  
+set(USE_SNOPT_DEFAULT OFF)
 
-SET(USE_IPOPT_DEFAULT OFF)
-SET(USE_CGAL_DEFAULT ON)
-SET(USE_LIBFBI_DEFAULT OFF)
-SET(USE_FLANN_DEFAULT ON)
-SET(USE_FFTW_DEFAULT OFF)
+set(CFS_ICC_GCC_VERSION_DEFAULT 9)
 
-SET(USE_OPENMP_DEFAULT ON)
-SET(DEBUG_DEFAULT OFF)
-SET(PROFILING_DEFAULT OFF)
+set(USE_IPOPT_DEFAULT OFF)
+set(USE_CGAL_DEFAULT ON)
+set(USE_LIBFBI_DEFAULT OFF)
+set(USE_FLANN_DEFAULT ON)
+set(USE_FFTW_DEFAULT OFF)
 
-SET(CFSTOOL_DEFAULT OFF)
-SET(CFSDAT_DEFAULT ON)
-SET(UNIT_TESTS_DEFAULT OFF)
-SET(BUILD_HDFVIEW_DEFAULT OFF)
+set(USE_OPENMP_DEFAULT ON)
 
-SET(EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT ON)
+# ----------------------------------------------------------------------
+# by the following specific platform_defaults values can be overwritten
+# ----------------------------------------------------------------------
 
-SET(CFS_DEPS_CACHE_DIR_DEFAULT "${CFS_BINARY_DIR}/cfsdeps/cache")
-SET(CFS_DEPS_PRECOMPILED_DEFAULT ON)
+if(WIN32)
+  include("cmake_modules/platform_defaults_win.cmake")
+endif()
 
-SET(INTEL_OPT_REPORT_DEFAULT OFF)
+set(CMAKE_HOST_DEFAULTS_INC "${CFS_SOURCE_DIR}/cmake_modules/platform_defaults_${CFS_BUILD_HOST}.cmake") 
+if(EXISTS "${CMAKE_HOST_DEFAULTS_INC}")
+  include("${CMAKE_HOST_DEFAULTS_INC}")
+endif()
 
-IF(CFS_BUILD_HOST MATCHES "altix")
-  INCLUDE("cmake_modules/platform_defaults_altix.cmake")
-ENDIF(CFS_BUILD_HOST MATCHES "altix")
+set(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOME}/.cfs_platform_defaults.cmake") 
+if(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME}")
+  include("${CMAKE_HOST_DEFAULTS_INC_HOME}")
+endif()
 
-IF(CFS_BUILD_HOST MATCHES "lse")
-  INCLUDE("cmake_modules/platform_defaults_lse.cmake")
-ENDIF(CFS_BUILD_HOST MATCHES "lse")
-
-IF(CFS_BUILD_HOST MATCHES "woody")
-  INCLUDE("cmake_modules/platform_defaults_woody.cmake")
-ENDIF(CFS_BUILD_HOST MATCHES "woody")
-
-SET(CMAKE_HOST_DEFAULTS_INC "${CFS_SOURCE_DIR}/cmake_modules/platform_defaults_${CFS_BUILD_HOST}.cmake") 
-IF(EXISTS "${CMAKE_HOST_DEFAULTS_INC}")
-  INCLUDE("${CMAKE_HOST_DEFAULTS_INC}")
-ENDIF(EXISTS "${CMAKE_HOST_DEFAULTS_INC}")
-
-SET(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOME}/.cfs_platform_defaults.cmake") 
-IF(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME}")
-  INCLUDE("${CMAKE_HOST_DEFAULTS_INC_HOME}")
-ENDIF(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME}")
-
-SET(CMAKE_HOST_DEFAULTS_INC_HOME_HOST "$ENV{HOME}/.cfs_platform_defaults_${CFS_BUILD_HOST}.cmake") 
-IF(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME_HOST}")
-  INCLUDE("${CMAKE_HOST_DEFAULTS_INC_HOME_HOST}")
-ENDIF(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME_HOST}")
+set(CMAKE_HOST_DEFAULTS_INC_HOME_HOST "$ENV{HOME}/.cfs_platform_defaults_${CFS_BUILD_HOST}.cmake") 
+if(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME_HOST}")
+  include("${CMAKE_HOST_DEFAULTS_INC_HOME_HOST}")
+endif()

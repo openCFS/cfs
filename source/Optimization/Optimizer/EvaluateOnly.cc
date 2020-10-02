@@ -13,10 +13,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
-
-DECLARE_LOG(eval)
 DEFINE_LOG(eval, "eval")
 
 using namespace CoupledField;
@@ -51,7 +48,7 @@ void EvaluateOnly::SolveProblem()
   for(int i = 0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
+    LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g->GetIndex()+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
   }
   optimization->constraints.view->Done();
 
@@ -60,7 +57,7 @@ void EvaluateOnly::SolveProblem()
   // end is > 1 for "multiple_excitations" set to false in order to evaluate the functions separately for each frequency
   int end = optimization->context->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
-  // space to store the gradient values, we need it to evaluate density filtering.
+  // space to store the gradient values, we need it to evaluate sensitivity filtering, special results and debugging.
   StdVector<double> grad(optimization->GetDesign()->GetNumberOfVariables());
   grad.Init(0.0);
   // scale the window to the whole data domain
@@ -103,7 +100,7 @@ void EvaluateOnly::SolveProblem()
         LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
       }
     }
-    
+
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);

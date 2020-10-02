@@ -7,16 +7,22 @@ IF(MKL_INCLUDE_DIR)
 ENDIF(MKL_INCLUDE_DIR)
 
 # List of source codes for current target.
-SET(UNIT_TESTS
+SET(UNIT_TESTS_SRC
   unittests.cc
+#  bsplinetests.cc
+#  bicubicinttests.cc
 )
 
 # Main CFS++ Dat executable target.
-ADD_EXECUTABLE(cfstestbin ${UNIT_TESTS})
+ADD_EXECUTABLE(cfstestbin ${UNIT_TESTS_SRC})
 
 SET(TARGET_LL 
   matvec
+  design
   cfsgeneral
+  utils
+  datainout
+  paramh
 )
 
 IF(MKL_BLAS_LIB)

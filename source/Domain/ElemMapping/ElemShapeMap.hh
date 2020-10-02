@@ -128,7 +128,7 @@ namespace CoupledField {
     //!            physical domain    
     //! \param weight Integration weight (should be set to 0.0 if not used 
     //!               within an integration loop)
-    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight);
+    void Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight = 0.0);
     
     //! Initialize shape map with with given local point and shape map
 
@@ -339,7 +339,7 @@ namespace CoupledField {
     virtual void GetGlobMidPoint( Vector<Double>& midPoint ) = 0;
 
     //! Calculate volume of element
-    virtual Double CalcVolume( ) = 0;
+    virtual Double CalcVolume(bool useDepth = false) = 0;
 
     //! Calculate normal of element
     
@@ -464,8 +464,12 @@ namespace CoupledField {
          \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
      */
     virtual Double CalcJDet( Matrix<Double>& jac, 
-                             const LocPoint& ip ) = 0;
+                             const LocPoint& ip, bool useDepth = false ) = 0;
 
+    virtual void SetModelDepth(Double depth) = 0;
+    
+    virtual Double GetModelDepth() = 0;
+    
     //! obtain pointer to geometric reference element
     virtual BaseFE* GetBaseFE()  = 0;
 
@@ -539,7 +543,7 @@ namespace CoupledField {
     void GetGlobMidPoint( Vector<Double>& midPoint );
 
     //! @copydoc ElemShapeMap::CalcVolume
-    Double CalcVolume( );
+    Double CalcVolume(bool useDepth = false);
 
     //! @copydoc ElemShapeMap::CalcNormal
     void CalcNormal( Vector<Double>& normal, 
@@ -598,7 +602,11 @@ namespace CoupledField {
 
     //! @copydoc ElemShapeMap::CalcJ
     Double CalcJDet( Matrix<Double>& jac, 
-                     const LocPoint& ip );
+                     const LocPoint& ip, bool useDepth = false );
+    
+    void SetModelDepth(Double depth);
+    
+    Double GetModelDepth();
     
     //! @copydoc ElemShapeMap::GetBaseFE
     virtual BaseFE* GetBaseFE();

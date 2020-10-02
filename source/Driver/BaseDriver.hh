@@ -46,15 +46,14 @@ namespace CoupledField
      * output (gid, hdf5, gmv, ...) for every forward solution. 
      * <p>E.g. because this are linesearch steps of IPOPT. For non-optimization SolveProblem()
      * will have been called with write_results = true.<p>
-     * <p>Note that you have to Wrap within a Multisequencestep and finalize the result handler explicitly, 
+     * <p>Note that you have to wrap within a multisequencestep and finalize the result handler explicitly,
      * as this can be done only once for HDF5 -> this is done in Optimization::SolveProblem()</p> */
-    virtual void StoreResults(UInt stepNum = 1, double step_val = -1.0) { assert(false); }
+    virtual unsigned int StoreResults(UInt stepNum = 0, double step_val = -1.0) { assert(false); return stepNum; }
 
     //! Return current analysistype
 
     //! Returns the current analysistype. 
-    virtual BasePDE::AnalysisType GetAnalysisType( ) { 
-      return analysis_; }
+    virtual BasePDE::AnalysisType GetAnalysisType( ) const { return analysis_; }
     
     //! Return current (multi)sequenceStep
     virtual UInt GetActSequenceStep();
@@ -91,6 +90,25 @@ namespace CoupledField
     PtrParamNode GetParam() { return param_; }
 
     ResultHandler* GetResultHandler() { return handler_; }
+
+    //! Compute the index of a given harmonic
+    virtual UInt IndexOfHarmonic(const Integer& harmonic){
+      EXCEPTION("IndexOfHarmonic not implemeted here in the baseclass!");
+    }
+    //! Compute the harmonic of a given harmonic
+    virtual Integer HarmonicOfIndex(const UInt& Index){
+      EXCEPTION("HarmonicOfIndex not implemeted here in the baseclass!");
+    }
+    //! Get the number of the considered frequencies (positive and negative)
+    virtual UInt GetNumFreq(){
+      EXCEPTION("GetNumFreq() not implemeted here in the baseclass!");
+    }
+
+    //! True, if we are considering the full system with all harmonics (odd and even ones)
+    virtual bool IsFullSystem(){
+      EXCEPTION("IsFullSystem() not implemented here in the baseclass!");
+    }
+
   protected:
     
     //! type of analysis

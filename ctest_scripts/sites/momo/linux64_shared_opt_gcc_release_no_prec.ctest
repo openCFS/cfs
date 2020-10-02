@@ -9,7 +9,7 @@
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_opt")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/builds/release-shared_opt")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/builds/release-shared_opt_no-prec")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
@@ -41,27 +41,25 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/testsuites/shared_opt-test
-   MATVIZ_TESTS:BOOL=ON
+   TESTSUITE_DIR:STRING=$ENV{HOME}/testsuites/test-shared_opt
+   TESTSUITE_PYTHON:BOOL=ON
    CFS_DEPS_PRECOMPILED:BOOL=OFF
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/caches/cache-shared_opt
-   CFSDAT:BOOL=ON
+   BUILD_CFSDAT:BOOL=ON
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=ON
    USE_CGNS:BOOL=ON
    USE_CCMIO:BOOL=OFF
    USE_FLANN:BOOL=OFF   
    USE_ENSIGHT:BOOL=OFF
-   USE_FEAST:BOOL=OFF
+   USE_FEAST:BOOL=ON
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
+   TESTSUITE_CFSTOOL_MODE=relL2diff
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
-
-find_program(CTEST_GIT_COMMAND NAMES git)
-set(CTEST_UPDATE_TYPE "git")
 
 DO_TESTING()

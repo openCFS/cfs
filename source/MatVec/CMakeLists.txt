@@ -3,7 +3,6 @@ SET(MATVEC_SRCS
   generatematvec.cc
   SBM_Vector.cc
   SBM_Matrix.cc
-  SingleVector.cc
   StdMatrix.cc
   matrixSerialization.cc
   vectorSerialization.cc
@@ -16,7 +15,7 @@ SET(MATVEC_SRCS
 )
 
 IF(MKL_INCLUDE_DIR)
-  INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(SYSTEM ${MKL_INCLUDE_DIR})
 ENDIF(MKL_INCLUDE_DIR)
 
 ADD_LIBRARY(matvec STATIC ${MATVEC_SRCS})

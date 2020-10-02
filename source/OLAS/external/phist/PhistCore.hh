@@ -51,8 +51,11 @@ namespace CoupledField {
 class BaseMatrix;
 class BaseVector;
 class Flags;
-class sparseMat_t; // phist matrix type
 class StdMatrix;
+
+// phist has only typed pointers
+typedef void VsparseMat_t;
+
 
 class PhistCore
 {
@@ -66,7 +69,7 @@ protected:
    * @param see it as referenece to the pointer we store the stuff to. It shall point to NULL in the beginning!
    * @return new content of phist */
   template<class TYPE>
-  sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
+  VsparseMat_t* InitMatrix(const BaseMatrix& cfs, VsparseMat_t** phist, double scale);
 
   template<class TYPE>
   static int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service_void);
@@ -75,7 +78,7 @@ protected:
   {
     /** either stiff, mass, or damping */
     const StdMatrix* mat = NULL;
-    /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_mass*/
+    /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_B*/
     double scale = 1.0;
   } SparseMatRowFuncService;
 

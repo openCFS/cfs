@@ -20,7 +20,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(feSpaceHi)
 DEFINE_LOG(feSpaceHi, "feSpaceHi")
 
   // -----------------------------------

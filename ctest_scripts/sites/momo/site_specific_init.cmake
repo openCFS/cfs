@@ -14,10 +14,10 @@ SET(ENV{LANGUAGE} "C")
 
 IF(${SITE_DIR} MATCHES "master_stingl")
   SET(CTEST_BUILD_NAME "Update Testsuite stingl master")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/test-master_stingl")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/shared_opt-test")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/test-shared_opt")
 ENDIF()
 
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
@@ -36,4 +36,20 @@ SET(CTEST_UPDATE_TYPE "git")
 CTEST_START(Nightly)
 CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
 CTEST_SUBMIT()
+
+# now we commonly update CFS source
+IF(SITE_DIR MATCHES "master")
+  # there group_stingl/master and cfs/master need to share the test suite
+  SET(CTEST_BUILD_NAME "Update master_stingl")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/master_stingl")
+ELSE()
+  SET(CTEST_BUILD_NAME "Update shared_opt")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_opt")
+ENDIF()
+
+message("Update ${CTEST_SOURCE_DIRECTORY}")
+CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+CTEST_SUBMIT()
+
+MESSAGE("Finished updating ${CTEST_SOURCE_DIRECTORY}")
 

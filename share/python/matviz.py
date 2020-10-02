@@ -5,7 +5,6 @@ from matviz_vtk import *
 from matviz_unstructured_mesh import *
 from matviz_2d  import *
 from matviz_streamline import *
-from hdf5_tools import *
 from mesh_tool import *
 from optimization_tools import *
 import argparse
@@ -15,12 +14,12 @@ import io
 import xml.etree.ElementTree
 import xml.dom.minidom
 from cfs_utils import *
-import matviz_3d_ortho # two scale 3d ortho stuff
+
 try:
   from mpi4py import MPI
-except:
-  print("WARNING:Could not load mpi4py!")
-
+except ImportError:
+  print("WARNING: Could not load mpi4py")
+import matviz_3d_ortho # two scale 3d ortho stuff
 
 TWO_SCALE = (
   "hom_rot_cross",
@@ -28,7 +27,8 @@ TWO_SCALE = (
   "hom_frame",
   "hom_framed_cross",
   "hom_rect",
-  "hom_ortho_3d"
+  "hom_ortho_3d",
+  "hom_triangle"
   )
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
@@ -56,6 +56,17 @@ def read_design(hdf_file, dim_2D, args):
         res['s2'] = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show != "rot" else numpy.ones((len(centers),1)) * .1
         res['s3'] = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
         res['sh1'] = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
+    else:
+      if args.h5_region == 'all':
+        s1 = [[None]]
+        for region in f['/Mesh/Regions']:
+          s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+          s1 = numpy.concatenate((s1,s))
+        res['s1'] = s1[1:]
+      else:
+        res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+      res['s2'] = res['s1']
+      res['s3'] = res['s1']
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -138,7 +149,6 @@ def read_design(hdf_file, dim_2D, args):
 def show_or_write(viz, args):
   assert(viz is not None)
   volume = None
-  
   global info
   if isinstance(viz, Image.Image):
     # print 'array' + str(numpy.array(viz))
@@ -194,8 +204,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None, elems_in_regions = None):
-  
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes = None, min_bb = None, max_bb = None, elems_in_regions = None):
   volume = None  # might ne set
   
   scale = force_scale if force_scale else args.scale
@@ -206,14 +215,14 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
+    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp", "hom_ortho_3d", "hom_triangle"):
       if args.show == "simp":
         args.parametrization = "simp"
       if h5_read:
         design = read_design(f, dim_2D, args)
       else:
-        angle, s1, s2, coords = read_stiff_angle_matlab(args.input)
-
+        design, coords = read_stiff_angle_matlab(args.input)
+        
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
       # add angle bias, e.g. by 90 deg to correct thomas
@@ -225,8 +234,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         design['angle'] *= args.angle_factor
       
       for key, value in design.items():
-        print('unscaled {:s} in [{:f}:{:f}]'.format(key, numpy.min(value), numpy.max(value)))
-  
+        print('unscaled {:s} in [{:s}:{:s}]'.format(key, str(numpy.min(value)), str(numpy.max(value))))  
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
         if args.show == "hom_rect": 
@@ -255,6 +263,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         elif args.show == "hom_cross_bar":
           design['angle'] = numpy.zeros((len(s1),1))
           viz = show_cross_bar(coords, design, args.hom_dir, args.res, args.scale, args.color, args.save)
+        elif args.show == "hom_triangle":
+          assert(args.hom_grad != 'none')
+          #coords = centers, min, max, elem
+          viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, args.parameter)
         elif args.show == "stream":
             samples = args.hom_samples.split(',')
             design['angle'] = design['angle'][:,0]
@@ -304,17 +316,20 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   valid_position = valid_position_lufo
                   valid_ring_position = None
                   print('Lufo bracket is calculated!')
-
+                
+                assert(nondes is not None)
+                assert(nondes[0] is not None)
+                assert(len(nondes[0]) == 3)
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes[0], design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
                   if args.type == "apod6" or args.type == "robot": 
-                    me = create_validation_mesh(coords, nondes_coords, design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
+                    me = create_validation_mesh(coords, nondes[0], design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
                 if args.show == "hom_rot_cross":
-                  viz = create_3d_cross_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres,csize)   
+                  viz = create_3d_cross_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres, csize)   
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
@@ -323,35 +338,34 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
-                samples = [float(tmp[0]),float(tmp[0]),float(tmp[0])]
+                samples = [int(tmp[0]),int(tmp[0]),int(tmp[0])]
               else:
-                samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
+                samples = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
               if args.show == "hom_ortho_3d" or args.mesh:
-                tmp = args.hom_samples.split(',')
-                samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
-                name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                viz = matviz_3d_ortho.create_3d_interpretation_ortho_new(args, coords, min_bb, max_bb, design, scale, samples, args.hom_grad, args.thres)
-
+#                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
+                name = args.save + ".stl" if args.save is not None else "interpretation_mc"
+                # region_map: maps local node id (list idx) in given design region (e.g. "mech") to global node id in all regions
+                reg_info = {"nodes":reg_nodes, "elements":elems_in_regions, "connectivity":connectivity, "region_map":reg_nodes_map}
+                if nondes:
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, reg_info, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=nondes)
+                else:
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, reg_info, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=None)
                 me = None                
                 if args.save:
                   if args.save.endswith(".vtp"):
                     name = args.save[:-4]+".stl"
                   
                   matviz_vtk.write_stl(viz, name)
-                if (args.type == "box_varel" or args.type == "ppbox") and args.mesh:    
+                if args.type == "box_varel" or args.type == "ppbox" or args.mesh:    
+#                 if args.mesh:
                   if not args.save: # write surface mesh in case we haven't done it before
                     matviz_vtk.write_stl(viz, name)
                   
-                  if args.type == "box_varel":  
-                    me = mesh_tool.create_validation_mesh_for_box_varel(viz,name)
-                  else:
-                    me = mesh_tool.create_validation_mesh_for_pp_box(name, "nondes_diff.stl", "nondes_union.stl")
+#                   write_gid_mesh(create_volume_mesh_from_stl(name),name[:-4]+".mesh")
+                  create_volume_mesh_with_gmsh(name)
                   if not args.save:
                     viz = None # avoid showing or writing vtp file
-                elif args.mesh:
-                  me = create_volume_mesh_from_stl(name)
-                  assert(me is not None)  
-                  write_gid_mesh(me, "validation_mesh.mesh", scale)      
+                viz = None    
               else:
                 viz = create_3d_cross_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
@@ -371,10 +385,13 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
               # write design values for each element node to file 
               write_node_design(args.nodefile + '_' + repr(nx) + 'x' + repr(ny) + 'x' + repr(nz), mesh, coords, design)
             else:
+              assert(nondes is not None)
+              assert(nondes[0] is not None)
+              assert(len(nondes[0]) == 3)
               # create structured 3D mesh from given hdf5_file which can be non-structured
-              mesh = create_3d_mesh_unstructured(coords, nondes_coords, nondes_force, nondes_support, design, nx, ny, nz, args.hom_grad, args.scale)
+              mesh = create_3d_mesh_unstructured(coords, nondes[0], nondes_force, nondes_support, design, nx, ny, nz, args.hom_grad, args.scale)
               # postprocess the structured mesh for the robot arm, removal of some irregularities 
-              mesh = post_process_mesh(mesh, coords, nondes_coords, nx, ny, nz)
+              mesh = post_process_mesh(mesh, coords, nondes[0], nx, ny, nz)
           else:
             print("hom_rect in 3D only for '--hom_grad none' implemented")
             exit()
@@ -393,7 +410,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         exit() 
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
-    if (MPI.COMM_WORLD.Get_rank()==0):  
+    if get_MPI_rank()==0:  
 	    if viz is None:
 	      print('Error: no visualization calculated!')
 	    else:
@@ -434,25 +451,49 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     show_write_vtk(poly, args.res, args.save, actors, args.axes, camera_settings=args.cam)  
   
   return volume
+
+def read_input_from_info_xml(infoXmlName):
+  assert(os.path.exists(infoXmlName))
+  xml = open_xml(infoXmlName)
+  dim = xpath(xml, "//grid/@dimensions")
+  matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") # "text()" must be added due to lxml, otherwise matrix is just a string <Element real ...>
+  res = list(map(float, matrix.split())) # convert list with string elements to list with float elements
+  res = np.asarray(res)            # convert list to array
+  if dim == '2':
+    res = res.reshape(3,3)         # reshaping array
+    input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2]]
+  else:
+    assert(dim == '3')
+    res = res.reshape(6,6)         # reshaping array
+    input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
   
-  
-  
+  return input
+
+def get_MPI_rank():
+  try:
+    return MPI.COMM_WORLD.Get_rank()
+  except NameError: # shall be name 'MPI' is not defined when from mpi4py import MPI failed
+    return 0  
+    
+      
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
-parser.add_argument("--h5_nondes", help="non-design region name (default 'non-design')", default="non-design")
+parser.add_argument("--h5_nondes", help="non-design (solid) region name (default 'non-design')", default="None")
+parser.add_argument("--h5_nondes_void", help="non-design (void) region name (default 'non-design')", default="None")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
+parser.add_argument('--hist', help='plot histograms of the results in the h5 file. Has to be used with --show', type=int, default=0)
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
-parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
-parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d'])
+parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
+parser.add_argument("--sampling", help="sampling rate for tensor rotation (default 180)", default=180, type=float)
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d', 'hom_triangle'])
 parser.add_argument("--axes", help="show axes", action='store_true', default=False)
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
-parser.add_argument("--symmetries", help="same options as for shows", default="default")
+parser.add_argument("--symmetries", help="same options as for show", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
 parser.add_argument("--symmetries_threshold", help="threshold value for symmetries (default 9999)", default=9999)
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
@@ -479,18 +520,19 @@ parser.add_argument("--color", help="only for hom_rot_cross: 'black' or colormap
 parser.add_argument("--info", help="creates a xml file of given name with additional information")
 parser.add_argument("--unstructured", help="number of structured elements per coordinate as list nx,ny,nz", default="")
 parser.add_argument("--nodefile", help="name of the design to node file", default="")
-parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
+parser.add_argument("--thres", help="threshold value for plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
 parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot','ppbox','box_varel'])
 # 3d ortho basecell stuff
 parser.add_argument("--bc_res", help="resolution of voxelized ortho basecell", type=int)
-parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)",choices=['linear', 'heaviside'])
+parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)",choices=['linear', 'heaviside'],default="heaviside")
 parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float,default=7)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
-parser.add_argument("--bc_num_threads", help="number of threads for parallelized basecell generation (default:4)", type=int,default=4)
-parser.add_argument("--bc_volume_thresh", help="lower bound threshold (default 0.0)", type=float,default=0.0)
+parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=0)
+parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
+parser.add_argument("--parameter", help="parameter for different usage", type=float, default=None)
 # print sys.argv
 
 args = parser.parse_args()
@@ -534,12 +576,20 @@ tensor = []  # becomes a single tensor or a tensor array
 centers = []
 dim_2D = None
 h5_read = None
-matlab_read = None
 infoXml_read = None
 elem_dim = None
 min_bb = None
 max_bb = None
 elems_in_regions = [[None]]
+# need this for interpolating cell to point data
+reg_nodes = None
+connectivity = None
+nondes_void_elements = None
+nondes_void_min = None
+nondes_void_max = None
+design_elems = None
+design_elems_min = None
+design_elems_max = None
 
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
@@ -557,22 +607,10 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
   
     dim_2D = len(input) != 21
   elif args.input.endswith(".info.xml"):
-    xml = open_xml(args.input)
-    dim = xpath(xml, "//domain/@dimensions")
-    matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") # "text()" must be added due to lxml, otherwise matrix is just a string <Element real ...>
-    res = list(map(float, matrix.split())) # convert list with string elements to list with float elements
-    res = np.asarray(res)            # convert list to array
-    if dim == '2':
-      res = res.reshape(3,3)         # reshaping array
-      input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2]]
-    else:
-      assert(dim == '3')
-      res = res.reshape(6,6)         # reshaping array
-      input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
+    input = read_input_from_info_xml(args.input)
   else:
     #data from matlab file
     assert(args.input.endswith(".mat"))
-    matlab_read = True
     input = args.input
     args.tensor = 'matlab'
   if not args.tensor == 'matlab' and args.tensor == 'mechTensor':
@@ -611,7 +649,7 @@ else:
     sys.exit()   
   validate_region(f, args.h5_region)
   if len(args.unstructured) != 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes, False, 'load', 'support')
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _, _, _, _ = centered_elements(f, args.h5_nondes, False, 'load', 'support')
     print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
@@ -621,7 +659,7 @@ else:
     min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
     max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
     for region in f['/Mesh/Regions']:
-      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements = centered_elements(f, region)
+      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements, connectivity, reg_nodes, reg_nodes_map  = centered_elements(f, region)
       elems_in_regions.append(reg_elements)
       centers = numpy.concatenate((centers, reg_centers))
       min_bb = numpy.min([min_bb,reg_min_bb],0);
@@ -629,19 +667,77 @@ else:
     elems_in_regions = elems_in_regions[1:]
     centers = centers[1:,:]
   else:
-    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions = centered_elements(f, args.h5_region)
-  
-  if args.mesh:
-    if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _ = centered_elements(f, args.h5_nondes)
+    # similar to centers, but not centered
+    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region)
+    
+    design_elems = None 
+  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
+    if get_MPI_rank() == 0:
+      nondes_regs = args.h5_nondes
+      # in case we have more than 1 non-design solid region
+      if "," in args.h5_nondes:
+        nondes_regs = args.h5_nondes.split(",")
+      elif type(nondes_regs) == str:
+        nondes_regs = [nondes_regs]
+      
+      if args.h5_nondes != "None":
+        nondes_centers = []
+        nondes_elements = []
+        nondes_min = 999999
+        nondes_max = -999999 
+        for nr in list(nondes_regs):
+          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _, _ = centered_elements(f, nr,centered=False)
+          nondes_elements.extend(tmp_nondes_elements)
+          nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
+          nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
+      
+      # take centered values and interpolate to edges  
+      design_elems, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
+    
+    print("args.h5_nondes_void:",args.h5_nondes_void)        
+    if args.h5_nondes_void != "None":
+      if get_MPI_rank() == 0: 
+        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
+         
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
+  
+  if args.hist:
+    if args.show == None:
+      print('ERROR: The option --hist can only be used in combination with --show.')
+      sys.exit()
+    design = read_design(f, dim_2D, args)
+    s1 = design['s1']
+    s2 = design['s2']
+    if dim_2D:
+      vol = s1 + s2 - s1*s2
+    else:
+      s3 = design['s3']
+      vol = pow(s1,2) + pow(s2,2) + pow(s3,2) - (pow(s1,2)*s2+pow(s1,2)*s3+pow(s2,2)*s1+pow(s2,2)*s3+pow(s3,2)*s1+pow(s3,2)*s2)/6.0 *2.0 # rough approximation
+    matplotlib.pyplot.hist(vol,args.hist)
+    matplotlib.pyplot.title('element volume')
+    matplotlib.pyplot.xlim((min(vol),max(vol)))
+    matplotlib.pyplot.show()
+    for des in design:
+      val = design[des]
+      if val.ndim != 1:
+        continue
+    sys.exit()   
 
 # do we have to do 1D optimization? 
 if not args.target_volume:
-  if args.mesh and args.h5_nondes != "None":
-    nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, matlab_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
+  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
+    nondes_void = None
+    nondes_solid = None
+    design = None
+    if get_MPI_rank() == 0:
+      if args.h5_nondes != "None":
+        nondes_solid = (nondes_elements, nondes_min, nondes_max)
+      if args.h5_nondes_void != "None":   
+        nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
+      design = (design_elems, design_elems_min, design_elems_max)
+      
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design),min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
   else:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:
@@ -660,7 +756,7 @@ else:
   best_s = -1
   while upper - lower > 0.000001 and abs(best_err) > 0.0001:
     for s in numpy.arange(lower, upper, (upper - lower) / 5.):
-      vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, s)
+      vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
       err = abs(vol - args.target_volume)
       if vol == None:
         sys.exit(1)
@@ -690,7 +786,7 @@ else:
 
   # the last result does not mean to be the best result
   if err != best_err:
-    vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, best_s)
+    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
     print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume)))
     tv = xml.etree.ElementTree.SubElement(info, "best_target_volume")
     tv.set("target", str(args.target_volume))

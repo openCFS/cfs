@@ -155,7 +155,7 @@ namespace CoupledField{
     Matrix<Double> eTensor;
     piezoMat_->GetTensor( eTensor, PIEZO_TENSOR, Global::REAL, tensorType_ );
     Matrix<Double> epsTensor_cStrain, eTensorTrans;
-    elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
+    elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY_TENSOR, Global::REAL, tensorType_ );
 
     cTensor.Invert(sTensorOrig_);
     dTensorOrig_   = eTensor*sTensorOrig_;
@@ -431,7 +431,7 @@ namespace CoupledField{
       Matrix<Double> eTensorOld, cTensorOld, epsTensorOld;
       piezoMat_->GetTensor( eTensorOld, PIEZO_TENSOR, Global::REAL, tensorType_ );
       mechMat_->GetTensor( cTensorOld, MECH_STIFFNESS_TENSOR, Global::REAL, tensorType_ );
-      elecMat_->GetTensor( epsTensorOld, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
+      elecMat_->GetTensor( epsTensorOld, ELEC_PERMITTIVITY_TENSOR, Global::REAL, tensorType_ );
  //      std::cout << "eTensorOld\n" << eTensorOld << std::endl;
 //       std::cout << "cTensorOld\n" << cTensorOld << std::endl;
 //       std::cout << "epsTensorOld\n" << epsTensorOld << std::endl;
@@ -439,7 +439,7 @@ namespace CoupledField{
       // perform rotation of material tensors
       piezoMat_->RotateTensorByRotationAngles( rotAngle, PIEZO_TENSOR, false );
       mechMat_->RotateTensorByRotationAngles( rotAngle, MECH_STIFFNESS_TENSOR, false );
-      elecMat_->RotateTensorByRotationAngles( rotAngle, ELEC_PERMITTIVITY, false );
+      elecMat_->RotateTensorByRotationAngles( rotAngle, ELEC_PERMITTIVITY_TENSOR, false );
 
       // get the rotated material tensor
       Matrix<Double> cTensor;
@@ -447,7 +447,7 @@ namespace CoupledField{
       Matrix<Double> eTensor;
       piezoMat_->GetTensor( eTensor, PIEZO_TENSOR, Global::REAL, tensorType_ );
        Matrix<Double> epsTensor_cStrain, eTensorTrans;
-      elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
+      elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY_TENSOR, Global::REAL, tensorType_ );
 
 //       std::cout << "eTensor\n" << eTensor << std::endl;
 //       std::cout << "cTensor\n" << cTensor << std::endl;
@@ -467,7 +467,7 @@ namespace CoupledField{
     rotAngle.Init( 0.0 );
     piezoMat_->RotateTensorByRotationAngles( rotAngle, PIEZO_TENSOR, false );
     mechMat_->RotateTensorByRotationAngles( rotAngle, MECH_STIFFNESS_TENSOR, false );
-    elecMat_->RotateTensorByRotationAngles( rotAngle, ELEC_PERMITTIVITY, false );
+    elecMat_->RotateTensorByRotationAngles( rotAngle, ELEC_PERMITTIVITY_TENSOR, false );
   }
 
 

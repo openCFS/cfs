@@ -10,7 +10,6 @@ using namespace CoupledField;
 
 Enum<Transform::Type> Transform::type;
 
-DECLARE_LOG(transform)
 DEFINE_LOG(transform, "transform")
 
 Transform::Transform(PtrParamNode pn, DesignSpace* space)

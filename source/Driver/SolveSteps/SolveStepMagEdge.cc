@@ -318,9 +318,9 @@ namespace CoupledField {
 
         //std::cout << "Norm:\n" << "Residual: " << residualErr << "  Incr.Error: " <<  incrementalErr << std::endl << std::endl;
         // output of norms and data
+        WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr,
-                                   incrementalErr, etaLineSearch);
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"

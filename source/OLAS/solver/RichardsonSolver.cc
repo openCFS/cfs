@@ -3,7 +3,11 @@
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/solver/RichardsonSolver.hh"
 
-namespace CoupledField {
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+namespace CoupledField
+{
+DEFINE_LOG(richardsonsolver, "richardsonsolver")
 
 
   // **************
@@ -15,6 +19,27 @@ namespace CoupledField {
     delete w_;
   }
 
+// ****************
+//   Setup method
+// ****************
+template<typename T>
+  void RichardsonSolver<T>::Setup( BaseMatrix &sysmat ) {
+
+  if( r_ != NULL ) {
+    delete r_;
+    r_ = NULL;
+    delete w_;
+    w_ = NULL;
+  }
+
+  // If not yet done, create auxilliary vectors
+  if ( r_ == NULL ) {
+    r_ = GenerateVectorObject(sysmat);
+    w_ = GenerateVectorObject(sysmat);
+  }
+
+}
+
 
   // ****************
   //   Solve method
@@ -22,15 +47,6 @@ namespace CoupledField {
   template<typename T>
   void RichardsonSolver<T>::Solve( const BaseMatrix &sysmat,
 				   const BaseVector &rhs, BaseVector &sol ) {
-
-    EXCEPTION("The Richardson solver has not been in use for a very long time."
-              << "Please check if it is still working for you!");
-    
-    // If not yet done, create auxilliary vectors
-    if ( r_ == NULL ) {
-      r_ = GenerateVectorObject(sysmat);
-      w_ = GenerateVectorObject(sysmat);
-    }
 
     // Set auxilliary vectors to zero
     r_->Init();
@@ -40,52 +56,47 @@ namespace CoupledField {
     // Variables for loop control
     bool loop = true;
     Integer niter = 0;
-    Double norm_new;
+    Double resNorm = 0.0;
 
     // Query parameter object for values
     Integer maxiter = 1; 
-    xml_->GetValue("maxIter", maxiter, ParamNode::INSERT);
-    Double eps      = 1e-6;
-    xml_->GetValue("tol", eps, ParamNode::INSERT);
-    Double epsmach  = 1e-20;
-    xml_->GetValue("epsmach", epsmach, ParamNode::INSERT);
-    Double omega    = 1.0;
-    xml_->GetValue("omega", omega, ParamNode::INSERT);
+    Double tol      = 1e-6;
+    Double omegaRe    = 1.0;
+    bool consoleConvergence = false;
 
-#ifdef DEBUG_RICHARDSON
-    (*debug) << " ------- START RICHARDSON ITERATION -------- " << std::endl;
-#endif
+    // overwrite if set in xml
+    if(xml_ != NULL)
+    {
+      xml_->GetValue("maxIter", maxiter, ParamNode::INSERT);
+      xml_->GetValue("tol", tol, ParamNode::INSERT);
+      xml_->GetValue("consoleConvergence", consoleConvergence, ParamNode::INSERT);
+      xml_->GetValue("omega", omegaRe, ParamNode::INSERT);
+    }
+
+    // To call the correct vector methods
+    T omega = (T) omegaRe;
+
 
     // precond.Apply(sysmat,rhs,sol);
 
     // Compute residual of initial guess
     sysmat.CompRes( *r_, sol, rhs );
 
-#ifdef DEBUG_RICHARDSON
-    (*debug) << " initial residual: " << std::endl;
-    r_->Print(*debug);
-#endif
-
     // compute the euclidean norm of the residual
-    norm_new = r_->NormL2();
+    resNorm = r_->NormL2();
 
-#ifdef DEBUG_RICHARDSON
-    (*debug) << " initial residual norm: " << norm_new << std::endl;
-#endif
+    LOG_DBG(richardsonsolver) << "Initial residual L2 norm: " << resNorm;
 
     // Compute preconditioned residual
     ptPrecond_->Apply( sysmat, *r_, *w_ );
 
 
-    // TEST: Due to the use of the penalty method we currently
-    // follow the same approach as in LAS and use a relative
-    // stopping criterion
-    Double tol = norm_new * eps;
-
-    //check if we have to start at all
-    if ( norm_new < eps || norm_new < epsmach ) {
+    // If Euclidean norm of initial preconditioned residual is too small
+    // do not start the loop
+    if ( resNorm < tol || resNorm == 0 ) {
       loop = false;
     }
+
 
     // ====================
     //   Loop Phase of Richardson
@@ -105,27 +116,42 @@ namespace CoupledField {
       ptPrecond_->Apply( sysmat, *r_, *w_ );
 
       // compute the euclidean norm of the residual
-      norm_new = r_->NormL2();
+      resNorm = r_->NormL2();
 	  
+      if(consoleConvergence == true){
+        std::cout<<"Residual L2 norm of iteration "<<niter<<" = "<<resNorm<<std::endl;
+      }
 
       // Check stopping criterion
-      if ( norm_new < tol || norm_new < epsmach ) {
+      if ( resNorm < tol ) {
         loop = false;
       }
       
-    }//iter
+    } // loop
 
 
-#ifdef DEBUG_RICHARDSON
-    (*debug) << " ------- END RICHARDSON ITERATION -------- " << std::endl;
-#endif
-
-    // ****************************
+    // ============================
     //   Generate solution report
-    // ****************************
+    // ============================
+    Double reduction = resNorm / scalFac_;
     PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
-    out->Get("finalPrecondResNorm")->SetValue(norm_new);
+    out->Get("finalNorm")->SetValue(resNorm);
+    if ( loop == false ) {
+      out->Get("solutionIsOkay")->SetValue(true);
+    }
+    else {
+      out->Get("solutionIsOkay")->SetValue(boost::any(false));
+    }
+
+    // Calculate average number of iterations and residual error reduction
+    numCalls_++;
+    accIters_ += niter;
+    accReduction_ += reduction;
+
+    PtrParamNode stat = infoNode_->Get(ParamNode::SUMMARY)->Get("statistics");
+    stat->Get("avgIterations")->SetValue(accIters_ / numCalls_);
+    stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
     
   }
 

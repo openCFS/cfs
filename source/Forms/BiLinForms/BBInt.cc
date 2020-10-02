@@ -18,6 +18,9 @@
 
 #include "BBInt.hh"
 #include "Domain/Domain.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+DEFINE_LOG(bbint, "bbint")
 
 namespace CoupledField{
 
@@ -28,7 +31,8 @@ namespace CoupledField{
          PtrCoefFct scalCoef, MAT_DATA_TYPE factor, 
          bool coordUpdate) :
    BaseBDBInt(coordUpdate) {
-     this->name_ = "BBInt";
+     this->type_ = BB_INT;
+     this->name_ = type.ToString(type_);
      this->isSymmetric_ = true;
      this->bOperator_ = bOp;
      this->coefScalar_ = scalCoef;
@@ -78,9 +82,11 @@ namespace CoupledField{
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMat( bMat, lp, ptFe);
+       LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " bMat= " << bMat;
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
+       LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " nu= " << fac;
 
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
@@ -88,6 +94,8 @@ namespace CoupledField{
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
        elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << fac << " bmat=" << bMat.ToString(2);
+       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " -> K_" << i << "=" << elemMat.ToString(2);
 #endif
      }
    }
@@ -340,6 +348,7 @@ namespace CoupledField{
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMatTransposed( bMatT_, lp1, ptFe1);
        this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFe2);
+
 
        // Calculate scalar factor
        //TODO: Which point to take? lp1 or lp2?

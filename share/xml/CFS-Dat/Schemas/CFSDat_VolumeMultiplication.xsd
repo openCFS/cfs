@@ -1,0 +1,51 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="../CFS_Dat.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for field-differentiation -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_VolumeMultiplication">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+          <xsd:element name="singleResult">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="inputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="outputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

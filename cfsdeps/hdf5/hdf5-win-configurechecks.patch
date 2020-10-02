@@ -1,0 +1,21 @@
+--- config/cmake/ConfigureChecks.cmake.orig	Thu Nov 21 16:14:03 2013
++++ config/cmake/ConfigureChecks.cmake	Fri Mar 06 18:05:06 2020
+@@ -13,6 +13,7 @@
+ INCLUDE (${CMAKE_ROOT}/Modules/TestBigEndian.cmake)
+ INCLUDE (${CMAKE_ROOT}/Modules/TestForSTDNamespace.cmake)
+ 
++SET (CMAKE_TRY_COMPILE_CONFIGURATION RELEASE)
+ #-----------------------------------------------------------------------------
+ # APPLE/Darwin setup
+ #-----------------------------------------------------------------------------
+@@ -185,8 +186,8 @@
+   ENDIF (NOT UNIX AND NOT CYGWIN AND NOT MINGW)
+   SET (H5_HAVE_FUNCTION 1)
+   SET (H5_GETTIMEOFDAY_GIVES_TZ 1)
+-  SET (H5_HAVE_TIMEZONE 1)
+-  SET (H5_HAVE_GETTIMEOFDAY 1)
++  SET (H5_HAVE_TIMEZONE 0)
++  SET (H5_HAVE_GETTIMEOFDAY 0)
+   SET (H5_LONE_COLON 0)
+   IF (MINGW)
+     SET (H5_HAVE_WINSOCK2_H 1)

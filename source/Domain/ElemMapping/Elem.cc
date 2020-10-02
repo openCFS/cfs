@@ -28,6 +28,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     return os.str();
   }
   
+  std::string Elem::ToString(const StdVector<Elem*>& vec)
+  {
+    std::ostringstream os;
+    for(unsigned int i = 0; i < vec.GetSize(); i++)
+      os << "(" << vec[i]->elemNum << "/" << vec[i]->regionId << ") ";
+
+    return os.str();
+  }
+
+
  Elem & Elem::operator=(const Elem& t) {
    if (this!=&t) {
      elemNum = t.elemNum;
@@ -99,6 +109,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      dummy = connect[4];
      connect[4] = connect[5];
      connect[5] = dummy;
+     // intentionally no break
    case ET_TRIA3:
      dummy = connect[0];
      connect[0] = connect[1];
@@ -112,6 +123,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      dummy = connect[5];
      connect[5] = connect[6];
      connect[6] = dummy;
+     // intentionally no break
    case ET_QUAD4:
      dummy = connect[1];
      connect[1] = connect[3];
@@ -126,6 +138,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      dummy = connect[6];
      connect[6] = connect[8];
      connect[8] = dummy;
+     // intentionally no break
    case ET_TET4:
      dummy = connect[3];
      connect[3] = connect[2];
@@ -139,6 +152,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        connect[n1] = connect[n1+4];
        connect[n1+4] = dummy;
      }
+     // intentionally no break
    case ET_HEXA8:
      for (int n1=0; n1<=3; n1++) {
        dummy = connect[n1];
@@ -156,6 +170,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      dummy = connect[12];
      connect[12] = connect[10];
      connect[10] = dummy;
+     // intentionally no break
    case ET_PYRA5:
      dummy = connect[1];
      connect[1] = connect[3];
@@ -167,6 +182,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        connect[n1] = connect[n1+3];
        connect[n1+3] = dummy;
      }
+     // intentionally no break
    case ET_WEDGE6:
      for (int n1=0; n1<=2; n1++) {
        dummy = connect[n1];
@@ -183,6 +199,13 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    }
   }
   
+
+ std::ostream& operator<< ( std::ostream& os , const Elem& elem)
+ {
+   os << elem.elemNum << " ";
+   return os;
+ }
+
   void SetElemInfo( ElemShape& shape,
                       Double midPoint[],
                       Double nodeCoords[], UInt edgeVertices[],
@@ -360,7 +383,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.order = 1;
       s.numVertices = 2;
       s.numNodes = 2;
-      s.numNodes = 2;
       s.numEdges = 1;
       s.numFaces = 0;
       s.numSurfElems = 2;
@@ -426,7 +448,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt numEdgeNodes[] =
       {
-       3 // #1
+       2 /* former 3*/ // #1
       };
       Integer edgeLocDirs[] =
       {

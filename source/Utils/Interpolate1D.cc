@@ -31,7 +31,7 @@ namespace CoupledField {
     Vector<Double> const & yVals = yVals_[fileName];
 
     // Convert type of interpolation
-    InterpolType type = InterpolType(method);
+    InterpolType type = InterpolType((Integer) method);
     
     Double yValue = 0.0;
 

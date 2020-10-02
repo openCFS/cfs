@@ -1,80 +1,81 @@
 #ifndef CFS_LOG_HH
 #define CFS_LOG_HH
 
-
-// include files of BOOST's (unofficial) log library
-#include "DataInOut/Logging/log.hpp"
-#include "DataInOut/Logging/functions.hpp"
+// include files of BOOST's log library
+#include <boost/log/common.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/core/null_deleter.hpp>
 #include <boost/limits.hpp>
 
-using namespace boost::logging;
+#include <memory>
 
-// Create customized levels
-BOOST_LOG_DEFINE_LEVEL(dbg2, 1300)
-BOOST_LOG_DEFINE_LEVEL(dbg3, 1200)
-BOOST_LOG_DEFINE_LEVEL(trace, 1500)
-BOOST_LOG_DEFINE_LEVEL(trace2, 1450)
+// enables "named" sinks
+BOOST_LOG_ATTRIBUTE_KEYWORD(bAttrClassName, "bAttrClassName", std::string)
 
-// Create own logging statements, in order to ease the
-// use of logging
-#ifndef NDEBUG
-#define DECLARE_LOG(log_name) BOOST_DECLARE_LOG(log_name)
-#else
-#define DECLARE_LOG(log_name) BOOST_DECLARE_LOG_COMPILE_TIME(log_name,0)
-#endif
+namespace CoupledField { namespace logging {
+    const int level_disable_all = -1;
+    const int level_default_ = 1000;
+    const int level_enable_all = 0;
 
-#define LOG_DEFINE_LEVEL(lvl, value) BOOST_LOG_DEFINE_LEVEL(lvl,value)
-#define DEFINE_LOG(log_name,log_str) BOOST_DEFINE_LOG(log_name,log_str) 
-#define IS_LOG_ENABLED(log_name,lvl) BOOST_IS_LOG_ENABLED(log_name,lvl)
-
-
-#define LOGL(log_name,lvl) BOOST_LOGL(log_name,lvl)
-// This conflicts with a logarithm definition in ilupackmacros.h.
-//#define LOG(log_name) BOOST_LOG(log_name)
+    const int level_fatal  = 2000;
+    const int level_err    = 1600;
+    const int level_trace  = 1500;
+    const int level_trace2 = 1450;
+    const int level_dbg    = 1400;
+    const int level_dbg2   = 1300;
+    const int level_dbg3   = 1200;
+    const int level_warn   = 1200;
+    const int level_info   = 1000;
+}
+}
 
 #ifndef NDEBUG
-#define LOG_DBG3(log_name) BOOST_LOGL(log_name,dbg3)
-#define LOG_DBG2(log_name) BOOST_LOGL(log_name,dbg2)
-#define LOG_DBG(log_name) BOOST_LOGL(log_name,dbg)
-#define LOG_TRACE2(log_name) BOOST_LOGL(log_name,trace2)
-#define LOG_TRACE(log_name) BOOST_LOGL(log_name,trace)
+#define LOG_DBG3(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg3) << __LINE__ << "] "
+#define LOG_DBG2(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg2) << __LINE__ << "] "
+#define LOG_DBG(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_dbg) << __LINE__ << "] "
+#define LOG_TRACE2(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_trace2) << __LINE__ << "] "
+#define LOG_TRACE(logger) BOOST_LOG_SEV(logger, ::CoupledField::logging::level_trace) << __LINE__ << "] "
 #else
-#define LOG_DBG3(log_name) if(false) std::cout
-#define LOG_DBG2(log_name) if(false) std::cout
-#define LOG_DBG(log_name) if(false) std::cout
-#define LOG_TRACE2(log_name) if(false) std::cout
-#define LOG_TRACE(log_name) if(false) std::cout
+#define LOG_DBG3(logger) if(true) {} else std::cout
+#define LOG_DBG2(logger) if(true) {} else std::cout
+#define LOG_DBG(logger) if(true) {} else std::cout
+#define LOG_TRACE2(logger) if(true) {} else std::cout
+#define LOG_TRACE(logger) if(true) {} else std::cout
 #endif
+
+#define DEFINE_LOG(logger, loggerName) auto logger = ::CoupledField::LogConfigurator::getLogger(loggerName);
+
+#define EXTERN_LOG(logger) extern boost::log::sources::severity_logger<int> logger;
+
+#define IS_LOG_ENABLED(asdf, jkl) false /// TODO: check every occourence
 
 namespace CoupledField {
-  
+
   //! This class manages the output for the different logging streams (only per script)
   class LogConfigurator  {
     
   public:
-    
-    //! Constructor 
-    LogConfigurator(const std::string& confFile);
+
+    //! Read logging configuration file
+    static void ParseLogConfFile(const std::string& confFile);
     
     //! Destructor
     virtual ~LogConfigurator() {}
     
-    //! Read logging configuration file
-    void ParseLogConfFile();
-    
-    //! Add output destination for given stream
-    void AddAppender( const std::string& logStream,
-                      const std::string& destination,
-                      const std::string& destDetail );
-    
     //! Set logging level
-    void SetLogLevel( const std::string& logStream,
-                      const std::string& level );
+    /*static void SetLogLevel( const std::string& logStream,
+                      const std::string& level );*/
 
-  protected:
-    
-    //! Name of XML file containing the settings for logging.
-    std::string confFile_;
+    static boost::log::sources::severity_logger<int> getLogger(const std::string& loggerName);
+
+  private:
+
+    //std::atomic<int> loggingLevel;
+
+    //! Constructor - not needed, so private
+    LogConfigurator(void);
   };
 
 }

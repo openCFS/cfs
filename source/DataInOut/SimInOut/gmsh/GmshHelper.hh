@@ -7,7 +7,6 @@
 
 #include <map>
 
-#include <boost/detail/endian.hpp>
 #include <boost/bimap.hpp>
 
 #include "General/Environment.hh"
@@ -27,23 +26,13 @@
 
 namespace CoupledField {
 
-  // Solution for endian conversion in C++ from:
-  // http://stackoverflow.com/questions/105252/how-do-i-convert-between-big-endian-and-little-endian-values-in-c
-
-  // We define some constant for little, big and host endianess. Here I use
-  // BOOST_LITTLE_ENDIAN/BOOST_BIG_ENDIAN to check the host indianess. If you
-  // don't want to use boost you will have to modify this part a bit.
+    // old BOOST_LITTLE_ENDIAN/BOOST_BIG_ENDIAN does not work any more. Hope for the best, or change to order::native
+  // https://www.boost.org/doc/libs/1_71_0/libs/endian/doc/html/endian.html
   enum EEndian
   {
     LITTLE_ENDIAN_ORDER,
     BIG_ENDIAN_ORDER,
- #if defined(BOOST_LITTLE_ENDIAN)
     HOST_ENDIAN_ORDER = LITTLE_ENDIAN_ORDER
- #elif defined(BOOST_BIG_ENDIAN)
-    HOST_ENDIAN_ORDER = BIG_ENDIAN_ORDER
- #else
- #error "Impossible to determine endianness of system."
- #endif
   };
 
   // this function swap the bytes of values given it's size as a template

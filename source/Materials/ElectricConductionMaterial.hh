@@ -19,8 +19,7 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    ElectricConductionMaterial(MathParser* mp,
-                 CoordSystem * defaultCoosy);
+    ElectricConductionMaterial(MathParser* mp, CoordSystem * defaultCoosy);
 
     //! Destructor
     ~ElectricConductionMaterial();
@@ -28,54 +27,12 @@ namespace CoupledField {
     //! Trigger finalization of material
     void Finalize();
 
-    //! set a scalar real material parameter
-    void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-    //! set a scalar complex material parameter
-    void SetScalar( Complex param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-    //! set a real material tensor
-    void SetTensor(const Matrix<Double>& param, 
-                   MaterialType matType, 
-                   Global::ComplexPart  dataType );
-
-    //! get a scalar real material parameter
-    void GetScalar( Double& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a scalar complex real material parameter
-    void GetScalar( Complex& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-    
-    //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;	
-
-    //! Return scalar-valued coefficient function for nonlinear function 
-    virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
-                                            Global::ComplexPart matDataType,
-                                            PtrCoefFct fluxDensity );
-
-    virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(MaterialType matType,
-                                                   NonLinType nlType,
-                                                   Global::ComplexPart matDataType,
-                                                   StdVector<PtrCoefFct> dependencies,
- 					           StdVector<RegionIdType> & regs) ;
-
-  private:
-
-    //! compute the correct subTensor (3D, AXI, ..)
-    void ComputeSubTensor(Matrix<Complex>& matMatrix,
-			  const MaterialType& matType, 
-			  const SubTensorType& subTensor) const;
-    
-
-    //! Calculate full tensor from scalar values
-    void ComputeFullMuTensor();
-
+    virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(
+        MaterialType matType,
+        NonLinType nlType,
+        Global::ComplexPart matDataType,
+        StdVector<PtrCoefFct> dependencies,
+        StdVector<RegionIdType> & regs);
   };
 
 } // end of namespace

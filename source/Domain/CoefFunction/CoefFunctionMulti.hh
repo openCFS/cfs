@@ -30,7 +30,7 @@ public:
   virtual ~CoefFunctionMulti();
   
   //! Set coefficient function for a region
-  void AddRegion( RegionIdType region, PtrCoefFct coef );
+  void AddRegion( RegionIdType region, PtrCoefFct coef, bool allowReplacement = false );
 
   //! Get all region definitions
   std::map<RegionIdType,PtrCoefFct > GetRegionCoefs() {

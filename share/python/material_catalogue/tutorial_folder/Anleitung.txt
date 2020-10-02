@@ -1,0 +1,20 @@
+Hier das Programm inkl Anleitung, welches dir den Materialkatalog erzeugt. Kannst ja mal ausprobieren ob du es nochmal bauen musst, oder ob es auch so geht. Falls du es nochmal kompilieren musst, einfach das Makefile aufrufen. Die aktuelle Version von tricubic braucht Boost, welches ich dir hier mal hochgeladen habe: https://faubox.rrze.uni-erlangen.de/dl/fi74V6YWQCvg7yoDV5u8dGJe  .
+Ich kann das evtl auch umschreiben, falls zwingend noetig, da ich nur eine Boost Funktion verwende.
+
+Anleitung:
+./tricubic aufrunfen:
+
+Der Rest des Programms laeuft dann interaktiv ab:
+
+Man muss dann eine Option auswaehlen. Fuer dich relevant ist Option 2 (Interpolationsfile fuer orthotrope Tensoren erstellen) oder Option 4 (Interpolationsfile fuer orthotrope Tensoren  und zugehoeriges Volumen erstellen).
+Nehmen wir an du waehlst Option 4.
+Dann fragt er anschliessend nach dem File in welchem die homogenisierten Tensoren stehen. Dieses File sollte wie die angehaengte Datei detailed_stats_ortho_fcrc_bracket_99lines.txt aussehen.
+Du gibts also ein:
+detailed_stats_ortho_fcrc_bracket_99lines.txt
+Danach fragt er dich nach dem Volumenfile, welches wie folgt heisst:
+detailed_stats_ortho_fcrc_bracket_99lines.txt
+Zum Schluss wird gefragt wie dein Materialkatalog xml heissen soll:
+
+test.xml
+
+Diese Datei test.xml, kannst du dann wie gehabt im SGP einlesen.

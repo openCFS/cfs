@@ -140,7 +140,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 // ==========================================================================
 
   // declare class specific logging stream
-  DECLARE_LOG(feSpace)
   DEFINE_LOG(feSpace, "feSpace")
   
   
@@ -184,7 +183,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   shared_ptr<FeSpace> FeSpace::CreateInstance( PtrParamNode aNode, 
                                                PtrParamNode infoNode,
                                                SpaceType reqType,
-                                               Grid* ptGrid ) {
+                                               Grid* ptGrid,
+                                               bool isAVExc) {
      
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
@@ -244,6 +244,14 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
         if( regList->HasByVal("surfRegion", "polyId", id ) ) {
           usedPolys.insert(polys[i]);
+        }
+        // check for "velPolyId" and "presPolyId" in the PDE definition (used in LinFlowPDE)
+        std::vector<std::string> polyIds = {"velPolyId", "presPolyId"};
+        for (const std::string & polyId :polyIds)
+        {
+          if ( aNode->HasByVal(polyId,id) ) {
+            usedPolys.insert(polys[i]);
+          }
         }
       }
       
@@ -310,7 +318,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         break;
       case CONSTANT:
         LOG_DBG(feSpace) << "Creating CONST space";
-        ret.reset(new FeSpaceConst(aNode, infoNode, ptGrid));
+        ret.reset(new FeSpaceConst(aNode, infoNode, ptGrid, isAVExc));
         break;
       case HDIV:
       case L2:
@@ -366,7 +374,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
       // Case 2: We rely on the the information of the virtualNodes_ array.
       //         which gets filled depending on the number of "unknown" nodes
-      //          initially.
+      //         initially.
     } else {
       EntityList::ListType defType = ent->GetType();
       EntityIterator entIt = ent->GetIterator();
@@ -912,7 +920,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   // GENERATE REGION SPECIFIC DATA AND PROCESS USER INPUT
   // ************************************************************************
   void FeSpace::SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId){
-    
     std::string regionName = ptGrid_->GetRegion().ToString(region);
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
     
@@ -1185,10 +1192,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         eqns.Resize(0);
       }
 
-
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
-        ent.GetType() == EntityList::SURF_ELEM_LIST||
-        ent.GetType() == EntityList::NC_ELEM_LIST){
+        ent.GetType() == EntityList::SURF_ELEM_LIST ||
+        ent.GetType() == EntityList::NC_ELEM_LIST) {
 
       // check if last accessed element is the same as this one
 
@@ -1207,7 +1213,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         UInt pos = 0;
         for (UInt iNode = 0; iNode < nrNodes; iNode++ ) {
           const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes[iNode]];
-          for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+          for (UInt iDof = 0; iDof < dofsPerUnknown; iDof++) {
             eqns[pos + iDof] = nodeEqns[iDof];
           }
           pos += dofsPerUnknown;
@@ -1412,8 +1418,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
    //=======================================================
    //Perform Nodal equation Numbering
    //=======================================================
-  void FeSpace::MapNodalEqns(UInt phase){
-    LOG_TRACE(feSpace) << "Mapping nodal Eqns, Phase " << phase;
+  void FeSpace::MapNodalEqns(UInt phase) {
+    LOG_DBG(feSpace) << "Mapping nodal Eqns, Phase " << phase;
     UInt dofsPerUnknown = 0;
     shared_ptr<ResultInfo> feFctResult;
     StdVector< shared_ptr<EntityList> > fctEntList;
@@ -1424,35 +1430,44 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     
-    switch(phase){
+    switch(phase) {
       case 1:
         // number the nodal equations if they are not contained in the BcKeys
         // due to our virtual node array we have a valid structure
 
-        //Get result for the feFunction
+        // Get result for the feFunction
         feFctResult = feFct->GetResultInfo();
         
         // Get number of dofs
         dofsPerUnknown = GetNumDofs();
         
-        //now loop over all nodes and assign an equation number
-         it= nodesType_.begin();
+        // now loop over all nodes and assign an equation number
+        it = nodesType_.begin();
         for( ; it != nodesType_.end(); ++it ) {
           actNode = it->first;
+          LOG_DBG3(feSpace) << "actNode=" << actNode;
+          // create entry if it does not exist
           if(nodeMap_.eqns.find(actNode) == nodeMap_.eqns.end()){
+            LOG_DBG3(feSpace) << "not found -> create";
             nodeMap_[actNode] = StdVector<Integer>(dofsPerUnknown);
-            nodeMap_[actNode].Init(-1);
+            // let's hope, we never have more nodes than INT_MAX...
+            nodeMap_[actNode].Init(INT_MAX);
           }
 
           for(UInt iDof = 0; iDof < dofsPerUnknown; iDof ++){
             if(nodeMap_.BcKeys.find(actNode) != nodeMap_.BcKeys.end()){
+              // node has no bc
               if(nodeMap_.BcKeys[actNode][iDof] == NOBC){
+                // dof has no bc
                 nodeMap_[actNode][iDof] = ++numEqns_;
                 numFreeEquations_++;
+                LOG_DBG3(feSpace) << "no bc -> eqn num=" << numEqns_;
               }
-            }else if(nodeMap_[actNode][iDof] == -1){
+            } else if(nodeMap_[actNode][iDof] == INT_MAX) {
+              // node is initialized but not set
               nodeMap_[actNode][iDof] = ++numEqns_;
               numFreeEquations_++;
+              LOG_DBG3(feSpace) << "not set -> eqn num=" << numEqns_;
             }
           }
         }
@@ -1467,15 +1482,18 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           UInt vNode = bcIt->first;
           StdVector<BcType> & dofs = bcIt->second;
           
-          LOG_DBG3(feSpace) << "\tvNode: " << vNode;
-          LOG_DBG3(feSpace) << "\teqns: " << nodeMap_[vNode].ToString();
+          LOG_DBG3(feSpace) << "vNode: " << vNode
+                            << ", eqns: " << nodeMap_[vNode].ToString();
+          // set dirichlet bc's
           for(UInt iDof =0; iDof < dofs.GetSize(); iDof++){
             if(dofs[iDof]!=NOBC){
                //nodeMap_[bcIt->first] = ++numEqns_;
               if(dofs[iDof] == IDBC){
                 nodeMap_[vNode][iDof] = ++numEqns_;
+                LOG_DBG3(feSpace) << "idbc -> eqn num=" << numEqns_;
               } else if(dofs[iDof] == HDBC){
                 nodeMap_[vNode][iDof] = 0 ;
+                LOG_DBG3(feSpace) << "hdbc -> eqn num=0";
               } 
               //else if(bcIt->second[iDof] == CONSTRAINT){
               //  Integer masterNode = nodeMap_.slaveMasterNodes[bcIt->first];
@@ -1486,6 +1504,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           bcIt++;
         }
         {
+          // set periodic bc's
+          // the map is ordered by C++, so we do not know, in which order bc's are applied!
+          std::queue<std::pair<Integer,Integer>> unprocessed;
           std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  >::iterator  conNodes = nodeMap_.constraintNodes.begin();
           for(; conNodes !=nodeMap_.constraintNodes.end() ; conNodes++){
 
@@ -1502,7 +1523,51 @@ ApproxOrder::ApproxOrder(UInt dim ) {
               EXCEPTION("Slave node of constraints could not be found");
             }
 
-            nodeMap_[slaveP.first][slaveP.second] = -1*nodeMap_[masterP.first][masterP.second];
+            Integer eqn = nodeMap_[masterP.first][masterP.second];
+
+            if(eqn == INT_MAX) {
+              // master is not set -> cannot set slave, put it into queue
+              LOG_DBG3(feSpace) << "slave=" << slaveP.first
+                                 << " | master=" << masterP.first
+                                 << " -> not set";
+              unprocessed.push(slaveP);
+              continue;
+            }
+
+            if(eqn >= 0) {
+              // master is regular node
+              nodeMap_[slaveP.first][slaveP.second] = -1*eqn;
+            } else {
+              // master is itself a slave of another node
+              nodeMap_[slaveP.first][slaveP.second] = eqn;
+            }
+
+            LOG_DBG3(feSpace) << "slave=" << slaveP.first << ", dof=" << slaveP.second
+                               << " | master=" << masterP.first << ", dof=" << masterP.second
+                               << " -> eqn num=" << nodeMap_[slaveP.first][slaveP.second];
+          }
+
+          while (!unprocessed.empty()) {
+            // get first element from queue and remove it
+            std::pair<Integer,Integer> slaveP = unprocessed.front();
+            std::pair<Integer,Integer> masterP = nodeMap_.constraintNodes[slaveP];
+            unprocessed.pop();
+
+            Integer eqn = nodeMap_[masterP.first][masterP.second];
+
+            if(eqn == INT_MAX) {
+              // master is still not set -> cannot set slave,
+              // put it at the end of queue
+              unprocessed.push(slaveP);
+            } else {
+              // master is set and itself a slave, so eqn has to be negative
+              assert(eqn < 0);
+              nodeMap_[slaveP.first][slaveP.second] = eqn;
+
+              LOG_DBG3(feSpace) << "slave=" << slaveP.first << ", dof=" << slaveP.second
+                                << " | master=" << masterP.first << ", dof=" << masterP.second
+                                << " -> eqn num=" << nodeMap_[slaveP.first][slaveP.second];
+            }
           }
         }
         break;

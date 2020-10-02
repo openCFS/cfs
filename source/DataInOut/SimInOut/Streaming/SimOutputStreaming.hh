@@ -11,7 +11,6 @@
 #include "DataInOut/SimOutput.hh"
 #include "Utils/StdVector.hh"
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
 namespace CoupledField {

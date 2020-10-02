@@ -46,6 +46,7 @@ class BiLinearForm : public CfsCopyable{
         isSymmetric_ = false;
         isNewtonBilinearForm_ = false;
         isSymmetric_ = false;
+        isSolDependent_ = false;
       }
 
       /** This assignment operator is only! designed for use for OMP
@@ -66,11 +67,12 @@ class BiLinearForm : public CfsCopyable{
 
         this->name_ = right.name_;
 
-        // we just cpoy the feSpace pointers and need to make sure
+        // we just copy the feSpace pointers and need to make sure
         // not to alter their state...
         this->ptFeSpace1_ = right.ptFeSpace1_;
         this->ptFeSpace2_ = right.ptFeSpace2_;
         this->intScheme_ = right.intScheme_;
+        this->isSolDependent_ = false;
       }
 
       /** Create a deep copy of the current objects pointer in combination
@@ -78,10 +80,12 @@ class BiLinearForm : public CfsCopyable{
        */
       virtual BiLinearForm* Clone()=0;
 
+      virtual ~BiLinearForm() {}
 
-      virtual ~BiLinearForm(){
+      typedef enum { NO_BILIN_TYPE = -1, BILIN_WRAPPED_LIN, BDB_INT, BB_INT, AB_INT, ADB_INT, SINGLE_ENTRY_BILIN_INT, IC_MODES_INT} Type;
+      static Enum<Type> type;
 
-      }
+      Type GetType() const { return type_; }
 
       virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                           EntityIterator& ent1,
@@ -151,10 +155,18 @@ class BiLinearForm : public CfsCopyable{
     	  isSolDependent_ = depend;
       }
 
+      IntScheme* GetIntScheme() { return intScheme_.get(); }
+      shared_ptr<IntScheme> GetPtrIntScheme() { return intScheme_; }
+
+      FeSpace* GetFeSpace1() { return ptFeSpace1_.get(); }
+      shared_ptr<FeSpace> GetPtrFeSpace1() { return ptFeSpace1_; }
+
     protected:
 
-      //! name of (bi)linearform
+      /** name of (bi)linearform. This is in the constructor BDBInt, ... and can be overwritten by SetName() */
       std::string name_;
+
+      Type type_ = NO_BILIN_TYPE;
 
       //! is the (bi)linear form symmetric
       bool isSymmetric_;

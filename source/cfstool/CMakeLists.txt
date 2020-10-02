@@ -53,26 +53,14 @@ IF(USE_GIDPOST)
   LIST(APPEND TARGET_LL simoutgid)
 ENDIF(USE_GIDPOST)
 
-IF(USE_MESH)
-  LIST(APPEND TARGET_LL siminmesh)
-ENDIF(USE_MESH)
-
-IF(USE_UNV)
-  LIST(APPEND TARGET_LL simoutunv)
-ENDIF(USE_UNV)
-
-IF(USE_HDF5)
-  LIST(APPEND TARGET_LL ${HDF5_LT_LIBRARY})
-  LIST(APPEND TARGET_LL siminouthdf5)
-ENDIF(USE_HDF5)
-
-IF(USE_ANSYSRST)
-  LIST(APPEND TARGET_LL simoutansysrst)
-ENDIF(USE_ANSYSRST)
+LIST(APPEND TARGET_LL simoutunv)
 
 # Target link libraries for cfstool target.
 # add optimization to avoid a strange linke problem introduced in @13977 
 LIST(APPEND TARGET_LL
+  ${HDF5_LT_LIBRARY}
+  siminouthdf5
+  siminmesh
   domain
   mesh
   febasis
@@ -88,12 +76,11 @@ LIST(APPEND TARGET_LL
   simouttext
   ${BOOST_SERIALIZATION_LIB}
   ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
   )
 
-IF(NOT MINGW)
+IF(NOT WIN32)
   LIST(APPEND TARGET_LL -lpthread ${CFS_FORTRAN_DYNRT_LIBS} )
-ENDIF()
+ENDIF(NOT WIN32)
   
 LIST(APPEND TARGET_LL
   algsys-olas
@@ -121,24 +108,20 @@ IF(USE_PARDISO)
   LIST(APPEND TARGET_LL pardiso-olas)
 ENDIF(USE_PARDISO)
 
+#IF(MKL_BLAS_LIB)
+#  LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
+#ENDIF(MKL_BLAS_LIB)
+
+##IF(DEPS_SEQUENTIAL)
+#	#LIST(APPEND TARGET_LL ${DEPS_SEQUENTIAL})
+#  #ENDIF(DEPS_SEQUENTIAL)
+
 LIST(APPEND TARGET_LL ${CFS_FORTRAN_DYNRT_LIBS} )
 
 TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
 
-#IF(MINGW)
-#  IF(CFS_BLAS_LAPACK STREQUAL MKL)
-#    SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES
-#      LINK_FLAGS -Wl,--wrap,__chkstk
-#      LINKER_LANGUAGE CXX)
-#  ENDIF()
-#ENDIF()
 
 SET(CFS_LINK_FLAGS "")
-
-# Make sure CFS Tool gets linked with system libgcc.so instead of ANSYS libgcc.so.
-IF(UNIX AND USE_ANSYSRST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
-ENDIF(UNIX AND USE_ANSYSRST)
 
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.

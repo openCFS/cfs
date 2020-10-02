@@ -10,7 +10,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
@@ -30,7 +29,6 @@ namespace CoupledField
 using std::fstream;
 using std::ios;
 
-DECLARE_LOG(lbm)
 DEFINE_LOG(lbm, "lbm")
 
 // instantiation of the static elements
@@ -265,9 +263,9 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 void LatticeBoltzmann::InitializePdfs()
 {
 #pragma omp parallel for
-  for (int elem = 0; elem < nNodes_; elem++) {
+  for (Integer elem = 0; elem < nNodes_; elem++) {
     #pragma ivdep
-    for (int  dir = 0; dir < n_q_; dir++) {
+    for (Integer dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
     }
@@ -531,9 +529,11 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
   {
     Vector<double> pdfs;
     pdfs.Resize(n_q_);
+#ifndef _MSC_VER
     #pragma omp parallel for collapse(2)
-    for (int y = 0; y < sizeY_ ; ++y) {
-      for (int x = 0; x < sizeX_ ; ++x) {
+#endif
+    for (Integer y = 0; y < sizeY_ ; ++y) {
+      for (Integer x = 0; x < sizeX_ ; ++x) {
 
         int index= GetIndex(x,y,z);
 
@@ -599,7 +599,7 @@ void LatticeBoltzmann::Prop_coll_velinlet(int cur)
   {
     Vector<double> pdfs(n_q_);
     #pragma omp for
-    for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
+    for(Integer i = 0; i < (Integer) inlet.GetSize(); i++) {
       int index = inlet[i];
 
       for (int  dir = 0; dir < n_q_; dir++) {
@@ -640,7 +640,7 @@ void LatticeBoltzmann::Prop_coll_bounce_back(int cur)
   {
     Vector<double> pdfs(n_q_);
     #pragma omp for
-    for(unsigned int  i = 0; i < bb.GetSize(); i++) {
+    for(Integer i = 0; i < (Integer) bb.GetSize(); i++) {
       int index = bb[i];
 
       for (int  dir = 0; dir < n_q_; dir++) {
@@ -664,7 +664,7 @@ void LatticeBoltzmann::Prop_coll_densoutlet(int cur)
     pdfs.Resize(n_q_);
 
     #pragma omp for
-    for(unsigned int  i = 0; i < outlet.GetSize(); i++) {
+    for(Integer i = 0; i < (Integer) outlet.GetSize(); i++) {
       int index = outlet[i];
 
       for (int  dir = 0; dir < n_q_; dir++) {
@@ -694,10 +694,12 @@ void LatticeBoltzmann::Prop_coll_densoutlet(int cur)
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
   PDFDirectionVector transform;
+#ifndef _MSC_VER
   #pragma omp parallel for default(none) private(transform) shared(next) collapse(3)
-  for (int z = 0; z < sizeZ_; z++)
-    for (int y = 0; y < sizeY_; y++)
-      for (int x = 0; x < sizeX_; x++)
+#endif
+  for (Integer z = 0; z < sizeZ_; z++)
+    for (Integer y = 0; y < sizeY_; y++)
+      for (Integer x = 0; x < sizeX_; x++)
       {
         // adjoint propagation
         for (int  dir = 0; dir < n_q_; dir++) {
@@ -749,10 +751,10 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
       tmp.Resize(n_q_);
       /***************** Adjoint SRT collision ***/
       #pragma omp for schedule(static)
-      for (int index = 0; index < nNodes_; index++)
+      for (Integer index = 0; index < nNodes_; index++)
       {
         #pragma ivdep
-        for (int dir = 0; dir < n_q_; dir++)
+        for (Integer dir = 0; dir < n_q_; dir++)
           pdfs[dir] = APDF(adjCur_,index,dir);
 
         // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
@@ -762,7 +764,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
         MultLinMatrixVector(collisionMatrices[index],pdfs,tmp);
 
         #pragma ivdep
-        for (int dir = 0; dir < n_q_; dir++) {
+        for (Integer dir = 0; dir < n_q_; dir++) {
           tmpPdfs_[GetPdfIndex(index,dir)] = -d_pdrop_d_f[index][dir] + tmp[dir];
         }
       }
@@ -827,7 +829,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
 {
 
-  int x, y, z;
+  Integer x, y, z = 0;
   double tmp, tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
 
   int index;

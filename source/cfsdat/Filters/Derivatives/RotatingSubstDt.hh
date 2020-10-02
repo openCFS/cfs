@@ -60,7 +60,7 @@ public:
 
   }
 
-  virtual void FinishInit();
+  virtual void PrepareCalculation();
 
 protected:
 

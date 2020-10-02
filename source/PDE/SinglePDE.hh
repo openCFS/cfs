@@ -131,6 +131,10 @@ class BaseFieldFunctor;
     //! Define a field result
     void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
 
+    /** Shortcut for DefineFieldResult() */
+    void DefineFieldResult(SolutionType solType, ResultInfo::EntryType entryType, ResultInfo::EntityUnknownType definedOn, const std::string& dofNames, bool fromOptimization);
+
+
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     
@@ -163,12 +167,26 @@ class BaseFieldFunctor;
     void ReadRhsExcitation( const std::string& elemName,
                                 const StdVector<std::string>& compNames,
                                 ResultInfo::EntryType type,
+                                StdVector<shared_ptr<EntityList> >& entities,
+                                StdVector<PtrCoefFct>& coef,
+                                bool& updateGeo,
+                                PtrParamNode input = PtrParamNode());
+
+    void ReadRhsExcitation( const std::string& elemName,
+                                const StdVector<std::string>& compNames,
+                                ResultInfo::EntryType type,
                                 bool isComplex,
                                 StdVector<shared_ptr<EntityList> >& entities,
                                 StdVector<PtrCoefFct>& coef,
                                 bool& updateGeo,
                                 StdVector<std::string>& volumeRegions);
-
+    void ReadRhsExcitation( const std::string& elemName,
+                                    const StdVector<std::string>& compNames,
+                                    ResultInfo::EntryType type,
+                                    StdVector<shared_ptr<EntityList> >& entities,
+                                    StdVector<PtrCoefFct>& coef,
+                                    bool& updateGeo,
+                                    StdVector<std::string>& volumeRegions);
 
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
@@ -191,7 +209,23 @@ class BaseFieldFunctor;
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
-    
+    //! as ReadUserFieldValues but determine isComplex from xml-input
+    void ReadUserFieldValues( shared_ptr<EntityList> list,
+                                  PtrParamNode valueNode,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  PtrCoefFct & coef,
+                                  std::set<UInt>& definedDofs,
+                                  bool& updateGeo);
+
+    //! Read history result
+    template<typename T>
+    void ReadUserHistValues(  PtrParamNode valueNode,
+        ResultInfo::EntryType type,
+        Vector<T>& res,
+        std::string regionName);
+
+
     /** Define all RHS linearforms for load / excitation
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
@@ -217,6 +251,19 @@ class BaseFieldFunctor;
       // For compiler
       return *this;
       }
+
+    //! Helper function for ReadRhsLoad ...
+    void ReadEntities( const std::string& elemName,
+                                         const StdVector<std::string>& compNames,
+                                         ResultInfo::EntryType type,
+                                         StdVector<shared_ptr<EntityList> >& entities,
+                                         StdVector<PtrParamNode >& xmls,
+                                         StdVector<PtrCoefFct >& coef,
+                                         bool& updateGeo,
+                                         PtrParamNode input);
+
+    //! Helper function for ReadRhsLoad ...
+    void ReadVolumeRegions( const std::string& elemName, StdVector<std::string>& volumeRegions);
 
     // ======================================================
     // INITIALIZATION METHODS
@@ -433,12 +480,23 @@ class BaseFieldFunctor;
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> bdbInts_;
     
+    //! Map for storing the auxiliary primary BDB integrators of the problem
+
+    //! This map stores the auxiliary primary BDB integrators, which can be used for
+    //! calculating spatial derivatives, fluxes and energy.
+    //! This is necessary because we can have a SinglePDE with more than
+    //! one unknown (FeFunction) and also need the primary BOperator for that
+    //! secondary FeFunction
+    std::map<RegionIdType, BaseBDBInt*> bdbIntsAux1_;
 
     //! Map for storing the primary mass integrator of the problem
     
     //! This map stores the primary MASS integrators, which can be used for 
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
+
+    //! true, if analysistype is multiharmonic
+    bool isMultHarm_;
 
     // -----------------------------------------------------------------------
     //  Result Handling
@@ -465,6 +523,9 @@ class BaseFieldFunctor;
     //! e.g. energy, total force etc.
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
+    //! stores the functors to field average results
+    std::map<SolutionType, shared_ptr<ResultFunctor> > fieldAverageFunctors_;
+
     //! Store bilinarform-based coefficient function for stiffness integrator
     
     //! In this set we store all coefficient functions, which compute by the
@@ -473,6 +534,9 @@ class BaseFieldFunctor;
     //! this map gets related to the stiffness integrator on each region.
     std::set<shared_ptr<CoefFunctionFormBased> > stiffFormCoefs_;
     
+    std::set<shared_ptr<CoefFunctionFormBased> > stiffFormCoefsAux1_;
+
+
     //! Store bilinarform-based coefficient function for mass integrator
     
     //! In this set we store all coefficient functions, which compute by the
@@ -484,6 +548,8 @@ class BaseFieldFunctor;
     //! Store result functors related to stiffness integrator
     std::set<shared_ptr<ResultFunctor> > stiffFormFunctors_;
 
+    std::set<shared_ptr<ResultFunctor> > stiffFormFunctorsAux1_;
+
     //! Store bilinarform-based coefficient function for mass integrator
     std::set<shared_ptr<ResultFunctor> > massFormFunctors_;
     
@@ -494,6 +560,8 @@ class BaseFieldFunctor;
     //! which has to be set for each region the surface is neighboring to.
     //! This is performed in the method  SinglePde::FinalizePostProcResults().
     std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFcts_;
+
+    std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFctsAux1_;
 
     
     //! Map containing the input states and the related domains
@@ -542,7 +610,8 @@ class BaseFieldFunctor;
     //! interface.
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
-                                NcInterfaceInfo &iface );
+                                NcInterfaceInfo &iface,
+                                shared_ptr<CoefFunctionMulti> additionalCoef = NULL);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

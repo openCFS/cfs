@@ -7,7 +7,10 @@ SET(PDE_SRCS
   ElecPDE.cc
   PerturbedFlowPDE.cc
   HeatPDE.cc
+  MagBasePDE.cc
   MagEdgePDE.cc
+  MagEdgeSpecialAVPDE.cc
+  MagEdgeMixedAVPDE.cc
   MagneticPDE.cc
   MechPDE.cc
   SinglePDE.cc
@@ -18,6 +21,8 @@ SET(PDE_SRCS
   ElecCurrentPDE.cc
   WaterWavePDE.cc
   FlowPDE.cc
+  LinFlowPDE.cc
+  LinFlowPDE.cc
   TestPDE.cc
   LatticeBoltzmannPDE.cc
 )
@@ -42,14 +47,7 @@ SET(TARGET_LL
   coeffunction
   linforms
   bilinforms
-  
+  siminouthdf5
 )
-
-IF(USE_HDF5)
-  SET(TARGET_LL
-    ${TARGET_LL}
-    siminouthdf5
-    )
-ENDIF(USE_HDF5)
 
 TARGET_LINK_LIBRARIES(pde ${TARGET_LL})

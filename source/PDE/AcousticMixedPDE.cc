@@ -59,7 +59,6 @@
 
 namespace CoupledField{
 
-  DECLARE_LOG(acousticmixedpde)
    DEFINE_LOG(acousticmixedpde, "pde.acousticmixed")
 
    AcousticMixedPDE::AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode,
@@ -69,7 +68,7 @@ namespace CoupledField{
                : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
 
      pdename_           = "acousticMixed";
-     pdematerialclass_  = FLUID;
+     pdematerialclass_  = ACOUSTIC;
      nonLin_            = false;
      usePiola_          = false;
      penalized_         = true;

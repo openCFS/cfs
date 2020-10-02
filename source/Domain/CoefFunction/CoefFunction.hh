@@ -37,6 +37,7 @@ namespace CoupledField{
 class CoordSystem;
 class CoefXpr;
 class CoefFunction;
+template < typename TYPE > class CoefFunctionConst;
 class FeSpace;
 class BaseFeFunction;
 
@@ -196,13 +197,21 @@ public:
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
   
+  //! Generate tensor-valued coefficient function from scalar CoefFunctions,
+  //! separate for real and imaginary parts
+  static PtrCoefFct
+  Generate( MathParser * mp,
+            Global::ComplexPart type,
+            UInt numRows, UInt numCols,
+            const StdVector<PtrCoefFct>& realVal,
+            const StdVector<PtrCoefFct>& imagVal );
+
   //! Generate tensor-valued coefficient function from scalar CoefFunctions
   static PtrCoefFct 
   Generate( MathParser * mp,
             Global::ComplexPart type,
             UInt numRows, UInt numCols,
-            const StdVector<PtrCoefFct>& realVal,
-            const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
+            const StdVector<PtrCoefFct>& scalars );
 
 
   //! Generate coefficient function from coefficient expression
@@ -233,6 +242,7 @@ public:
     isComplex_ = false;
     supportDerivative_ = false;
     derivType_ = NONE;
+    inverseType_ = NOINVERS;
     
     // by default, the coefficients do not
     // depend on any coordinate system
@@ -270,7 +280,7 @@ public:
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
+    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen "
         << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
@@ -330,6 +340,19 @@ public:
   
   //@}
 
+  virtual void Init(shared_ptr<BaseFeFunction> feFct,
+            shared_ptr<FeSpace> feSpc,
+            const StdVector<RegionIdType>& regions,
+            std::map<RegionIdType, BaseMaterial*>& materials,
+            Grid* ptGrid,
+            PtrCoefFct magFluxCoef,
+            const UInt& N,
+            const UInt& M,
+            const Double& baseFreq,
+            const UInt& nFFT){
+    EXCEPTION("Not implemented here in base class");
+    return;
+  }
 
   //! Set associated coordinate system
   virtual void SetCoordinateSystem(CoordSystem* cSys){
@@ -392,6 +415,14 @@ public:
     return isComplex_;
   }
 
+  /** helper for using simplified CoefFunctionConst interface GetScalar(), ... without lpm.
+   * For performance reason don't use shared pointers, hence don't store the pointer!
+   * Does NOT return a const version but a CoefFunctionCons cast!
+   * To be used like double val = coef->AsConst<double>->GetScalar();
+   * @return NULL if the type is wrong (is just a dynamic cast) */
+  template<class TYPE>
+  CoefFunctionConst<TYPE>* AsConst(bool throw_exception = false);
+
   //! stes the coefFnc as active (just used for inverse source identififcation)
   virtual void SetActive(bool val) {
     isActive_ = val;
@@ -427,7 +458,7 @@ public:
   //! set all parameters for inverse scheme
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
 		                        Double& freq, std::string fileNameMeasdata,
-								std::string logLevel) {
+								std::string logLevel, Double& scalVal) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
 
@@ -437,7 +468,7 @@ public:
   }
 
   //! update the source values (amplitude and phase)
-  virtual void UpdateSource(Double& stepLength, bool lineSearch) {
+  virtual void UpdateSource(Double& stepLength, bool lineSearch, bool scaleBack=false) {
 	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
   }
 
@@ -587,12 +618,51 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(const UInt& iRegion,
+                                                      const std::string& name,
+                                                      const bool nonLin,
+                                                      shared_ptr<ElemList> actSDList){
+    EXCEPTION("Not implemented in base class");
+  }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                                     const UInt& iRegion){
+    EXCEPTION("Not implemented in base class");
+  }
+
+
   //! Functions needed for Hystersis
-  virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
+  virtual void GetCouplTensorSize(UInt& numRows, UInt& numCols){
+    EXCEPTION("GetCouplTensorSize not available");
+  }
+
+  virtual void ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign, std::string vectorName, bool onBoundary, bool usedAsRHSload ){
+    EXCEPTION("ComputeVector not available");
+  }
+
+  virtual void ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm,
+          std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat ){
+    EXCEPTION("ComputeTensor not available");
+  }
+
+  virtual void PrecomputeMaterialTensorForInverison(){
+    EXCEPTION("PrecomputeMaterialTensorForInverison not available");
+  }
+
+  virtual void SetPreviousHystVals(bool lastTS = false, bool forceMemoryLock = false){
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
+  virtual void TestInversion(PtrParamNode testNode){
+    EXCEPTION( "Not implemented in base class");
+  }
   virtual void SetFlag(std::string flagName, Integer intState){
+    EXCEPTION( "Not implemented in base class");
+  }
+  virtual void SetDoubleFlag(std::string flagName, Double intState){
     EXCEPTION( "Not implemented in base class");
   }
   
@@ -600,6 +670,14 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
+  virtual int GetStrainForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+
+  virtual void SetStrainForm(int intState){
+    EXCEPTION("Not implemented in base class");
+  }
+
   virtual std::string getPDEName(){
     EXCEPTION("Not implemented in base class");
   }
@@ -608,6 +686,9 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
+  virtual bool couplingTensorSet(){
+    EXCEPTION("Not implemented in base class");
+  }
   virtual int GetDeltaForm(){
     EXCEPTION("Not implemented in base class");
   }
@@ -622,15 +703,76 @@ public:
   virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false){
     EXCEPTION("Not implemented in base class");
   }
+  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, shared_ptr<CoefFunction> coefFunctionToBeIncluded){
+    EXCEPTION("Not implemented in base class");
+  }
+
   virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
     EXCEPTION("Not implemented in base class");
   }
   
-  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
+  virtual void ActiveOneShotSlopeEstimation(Double steppingLength, Double scaling){
     EXCEPTION( "Not implemented in base class");
   }
 
-  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
+  virtual void checkSaturationStateAllElements(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
+      Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual Matrix<Double> ConvertFromVoigtToTensor(Vector<Double> Si_voigt){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool forStrain){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void SetFPMaterialTensors(Integer intState){
+    EXCEPTION( "Not implemented in base class");
+  }
+  virtual UInt GetFPMaterialState(){
+    EXCEPTION( "Not implemented in base class");
+  }
+  virtual UInt GetFPMaterialStateRHS(){
+    EXCEPTION( "Not implemented in base class");
+  }
+  virtual Matrix<Double> GetFPMaterialTensor(const LocPointMapped& OriginalLPM){
+    EXCEPTION( "Not implemented in base class");
+  }
+  virtual Vector<Double> GetFPCorrectionVector(const LocPointMapped& OriginalLPM, Integer timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual bool anyMatrixForLocalInversionRequiresComputation(){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void getMatrixForLocalInversion(const LocPointMapped& Originallpm, Matrix<Double>& matrixForInversion, Matrix<Double>& matrixForInversionInverse){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void setMatrixForLocalInversion(Matrix<Double> matrixForInversion, Matrix<Double> matrixForInversionInverse, UInt storageIdx, bool reuse){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void getLPMMaps(std::map<UInt, LocPointMapped >& allLPM, std::map<UInt, LocPointMapped >& midpointLPM){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void GetScaledAndRotatedCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
   bool rotate=true){
     EXCEPTION( "Not implemented in base class");
   }
@@ -644,7 +786,7 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
-  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool onSurface){
+  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, RegionIdType volReg, bool onSurface){
     EXCEPTION( "Not implemented in base class");
   }
   
@@ -691,8 +833,34 @@ public:
   
   //! Returns true, if expression depends on space
   static bool ExprDependsOnSpace(MathParser* mp, const StdVector<std::string>& expr);
-  //@}
+
 protected:
+
+  //! Rotates a vector from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformVectorByCoordSys(Vector<TYPE> &outVec,
+                              const Vector<TYPE> &inVec,
+                              const Vector<Double> &point);
+
+  //! Rotates a Vector from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformVectorByCoordSys(Vector<TYPE> &outVec,
+                              const Vector<TYPE> &inVec,
+                              const LocPointMapped &lpm);
+
+  //! Rotates a tensor from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformTensorByCoordSys(Matrix<TYPE> &outMat,
+                              const Matrix<TYPE> &inMat,
+                              const Vector<Double> &point);
+
+  //! Rotates a tensor from the local to the global coordinate system
+  template<typename TYPE>
+  void TransformTensorByCoordSys(Matrix<TYPE> &outMat,
+                              const Matrix<TYPE> &inMat,
+                              const LocPointMapped &lpm);
+
+  //@}
 
   //TODO: CHANGE THIS TO SHARED POINTER
   // i.e. change the domain to hold a shared_ptr to the coordinate systems!
@@ -708,7 +876,7 @@ protected:
   CoefDerivativeType derivType_;
 
   //! storing the type for inverse scheme
-   CoefInverseType inverseType_;
+  CoefInverseType inverseType_;
 
   //! how the source term is approximated
   CoefInverseSourceApprox inverseApproxType_;
@@ -734,7 +902,7 @@ protected:
   //! sets the rhsFnc active
   bool isActive_;
 
-  //! approximate source terms with delta fu	nctions
+  //! approximate source terms with delta functions
   CoefInverseSourceApprox approxSourceType_;
 };
 

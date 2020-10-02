@@ -6,9 +6,7 @@
 #include "MatVec/BLASLAPACKInterface.hh"
 #include "MatVec/Matrix.hh"
 
-DECLARE_LOG(vbrMat)
 DEFINE_LOG(vbrMat, "vbrMatrix")
-
 
 namespace CoupledField {
 

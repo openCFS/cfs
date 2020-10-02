@@ -61,7 +61,7 @@ namespace CoupledField {
     
 
  // explicit template instantiation for GCC compiler
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(_MSC_VER)
   template class Result<Double>;
   template class Result<Complex>;
 #endif

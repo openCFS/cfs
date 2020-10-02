@@ -3,17 +3,16 @@
 #include "MatVec/Matrix.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include <math.h>
 #include "Optimization/TransferFunction.hh"
 #include "PDE/StdPDE.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Driver/Assemble.hh"
 #include "Optimization/Optimization.hh"
 #include <limits>
 
-DECLARE_LOG(sgp)
 DEFINE_LOG(sgp, "sgp")
 
 using namespace CoupledField;
@@ -91,12 +90,12 @@ void SGP::PostInit()
   obj->PostInit();
 
   /** Setup material tensor E_0 */
-  E_0.Resize(3,3);
-  SinglePDE * pde = Optimization::context->pde;
-  BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm("LinElastInt", optimization->GetDesign()->GetRegionId(), pde, pde, false);
-  shared_ptr<CoefFunctionOpt> coef = Optimization::context->mat->GetMatCoef("LinElastInt", c);
-  LocPointMapped lpm;
-  coef->orgMat->GetTensor(E_0,lpm);
+  assert(Optimization::manager.context.GetSize() == 1);
+  assert(optimization->GetDesign()->GetRegionIds().GetSize() == 1);
+  OptimizationMaterial* mat = Optimization::context->mat;
+  CoefFunctionConst<double>* om = dynamic_cast<CoefFunctionConst<double>*>(mat->GetMatCoef(mat->stiff, optimization->GetDesign()->GetRegionId())->orgMat.get());
+  E_0 = om->GetTensor();
+  assert(E_0.GetNumRows() == 3);
 
   /** Setup inner variable material Tensor E_inner */
   DesignSpace* space = optimization->GetDesign();
@@ -536,11 +535,10 @@ double SGP::EvalCostFunction(void) {
   unsigned int mech23 = space->FindDesign(DesignElement::MECH_23);
   unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
   for (unsigned int i = 0; i < n_elem; i++) {
-
     // calculate temporary E_outer
     if (configuration == FOMO || configuration == FOMO_TOP || configuration == DENSITY_ROTANGLE) {
       E_tmp_outer = E_inner[i];
-      space->designMaterial->RotateTensor(E_tmp_outer,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
+      Optimization::context->dm->RotateTensor(E_tmp_outer,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
       if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP)
         E_tmp_outer *= tf->Transform(rho_outer[i]);
     } else if ( configuration == FMO) {
@@ -548,8 +546,8 @@ double SGP::EvalCostFunction(void) {
     } else if (configuration == STIFF1_STIFF2) {
       p[0] = s1_outer[i];
       p[1] = s2_outer[i];
-      helper_dm->ApplyHomRectC1Tensor(E_tmp_outer,p,DesignElement::NO_DERIVATIVE,PLANE);
-      space->designMaterial->RotateTensor(E_tmp_outer,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_outer[i]);
+      helper_dm->ApplyHomC1Tensor(E_tmp_outer,p,DesignElement::NO_DERIVATIVE,PLANE);
+      Optimization::context->dm->RotateTensor(E_tmp_outer,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_outer[i]);
     } else {
       throw("Configuration not known!");
     }
@@ -804,7 +802,7 @@ void SGP::TestRotation() {
   //DesignMaterial::RotateHMStiffnessTensor(unit3,PLANE,DesignElement::NO_DERIVATIVE,0.78539816339,DesignMaterial::VOIGT);
   //std::cout<<"Rotby0.5 Voigt = "<<unit3.ToString(2)<<std::endl;
 
-  optimization->GetDesign()->designMaterial->RotateTensor(unit2,DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, DesignMaterial::CCW, true, 0.78539816339);
+  Optimization::context->dm->RotateTensor(unit2,DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, DesignMaterial::CCW, true, 0.78539816339);
   std::cout<<"Rotby0.5 Voigt = "<<unit2.ToString(2)<<std::endl;
 
 }
@@ -888,7 +886,7 @@ void SGP::DesignToOuter(bool inner,bool initial) {
         Matrix<double> tmp(E_0);
 
         tmp = E_inner[i];
-        space->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
+        Optimization::context->dm->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
         E_outer[i] = tmp;
         if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP)
           E_outer[i] *= tf->Transform(rho_outer[i]);
@@ -902,8 +900,8 @@ void SGP::DesignToOuter(bool inner,bool initial) {
       if (!inner) {
         p[0] = s1_outer[i];
         p[1] = s2_outer[i];
-        helper_dm->ApplyHomRectC1Tensor(E_outer[i],p,DesignElement::NO_DERIVATIVE,PLANE);
-        space->designMaterial->RotateTensor(E_outer[i],DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_outer[i]);
+        helper_dm->ApplyHomC1Tensor(E_outer[i],p,DesignElement::NO_DERIVATIVE,PLANE);
+        Optimization::context->dm->RotateTensor(E_outer[i],DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_outer[i]);
       }
     } else if (configuration == FMO) {
       if (!inner)
@@ -1431,7 +1429,7 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
     Matrix<double> tmp(BB);
     ev.Resize(2);
     ev_vector.Resize(2,2);
-    common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
+    Optimization::context->dm->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
     E_tmp[0][0] = tmp[0][0];
     E_tmp[0][1] = tmp[0][1];
     E_tmp[1][0] = tmp[1][0];
@@ -1490,7 +1488,7 @@ double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, double
     Matrix<double> tmp(BB);
     ev.Resize(3);
     ev_vector.Resize(3,3);
-    common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
+    Optimization::context->dm->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
     E_tmp[0][0] = tmp[0][0];
     E_tmp[0][1] = tmp[0][1];
     E_tmp[0][2] = tmp[0][2];
@@ -1606,9 +1604,9 @@ void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s
   Vector<double> p(2);
   p[0] = s1;
   p[1] = s2;
-  common->helper_dm->ApplyHomRectC1Tensor(E_inner,p,DesignElement::NO_DERIVATIVE,PLANE);
+  common->helper_dm->ApplyHomC1Tensor(E_inner,p,DesignElement::NO_DERIVATIVE,PLANE);
   // Rotate 2-scale tensor
-  common->optimization->GetDesign()->designMaterial->RotateTensor(E_inner,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
+  Optimization::context->dm->RotateTensor(E_inner,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
   // only for debuggin purpose, delete afterwards
   //common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
 
@@ -1618,7 +1616,7 @@ void SGPApproximation::CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Ma
   E_inner.Resize(3,3);
   Matrix<double> tmp(E_0);
   //don't know why VOIGT is used here
-  common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, DesignMaterial::CCW, true, theta_inner);
+  Optimization::context->dm->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, DesignMaterial::CCW, true, theta_inner);
   E_inner = tmp;
 }
 

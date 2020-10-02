@@ -201,6 +201,10 @@ namespace CoupledField {
     //! which possesses the largest absolute value and returns its modulus.
     Double GetMaxDiag() const;
 
+    //! The method determines the sum of the entries on the main diagonal
+    //! of the matrix.
+    Double GetTrace() const;
+
     //! Set a diagonal entry
 
     //! This method sets the value of the diagonal entry of the i-th

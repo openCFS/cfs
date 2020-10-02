@@ -140,5 +140,18 @@ namespace CoupledField{
           << "current coordinate system.");
   }
 
+  void CoordSystem::GetFullGlobRotationMatrix(Matrix<Double> & rotMatrix,
+                                              const LocPointMapped &lpm) const
+  {
+    /*if (hasConstantRotMatrix_) {
+      rotMatrix = invRotationMatFull_;
+    }
+    else {*/
+      Vector<Double> globPoint;
+      lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+      GetGlobRotationMatrix(rotMatrix, globPoint);
+    //}
+  }
+
 
 } // end of namespace

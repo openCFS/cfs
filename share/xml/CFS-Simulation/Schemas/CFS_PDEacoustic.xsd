@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -45,6 +48,7 @@
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="lambId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="initialFieldD1Id" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="complexFluid" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
@@ -117,7 +121,7 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -125,8 +129,8 @@
                 <!-- Initial state of previous sequence step / external file -->
                 <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
                 <!-- Initial state given by used -->
-                <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"
-                />
+                <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="initialFieldD1" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -147,7 +151,7 @@
 
                 <!-- acoustic source density -->
                 <xsd:element name="acouSourceDensity"  type="DT_BcInhomScalar"/>
-                
+
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
@@ -155,6 +159,7 @@
                 <xsd:element name="rhsMassTimeDeriv" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsMassConvective" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
+                <xsd:element name="boundaryLayer" type="DT_AcouBoundaryLayer"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
               </xsd:choice>
             </xsd:complexType>
@@ -494,6 +499,36 @@
     <xsd:attribute name="impedanceId" type="xsd:token" use="optional" default="id"/>
   </xsd:complexType>
 
+  <!-- Element type for specifying an acoustic boundary layer -->
+  <xsd:complexType name="DT_AcouBoundaryLayer">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="volumeRegion" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>The volume next to the impedance surface. Needed to read the correct environment values from the material file which are needed for calculating the speed of sound.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="cp" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Specific heat capacity as constant pressure</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="cv" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Specific heat capacity as constant volume</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="nu" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Kinematic viscosity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="k" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Thermal conductivity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+
 
   <!-- RHS values, sources for the acoustic inside the domain -->
   <xsd:complexType name="DT_AcousticRHS">
@@ -663,6 +698,7 @@
       <xsd:enumeration value="acouIntensity"/>
       <xsd:enumeration value="acouSpeedOfSound"/>
       <xsd:enumeration value="acouVelocity"/>
+      <xsd:enumeration value="acouPosition"/>
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>

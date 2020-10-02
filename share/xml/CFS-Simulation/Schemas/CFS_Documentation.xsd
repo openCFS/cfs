@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-            targetNamespace="http://www.cfs++.org"
-            xmlns="http://www.cfs++.org"
-            xmlns:cfs="http://www.cfs++.org"
+            targetNamespace="http://www.cfs++.org/simulation"
+            xmlns="http://www.cfs++.org/simulation"
+            xmlns:cfs="http://www.cfs++.org/simulation"
             elementFormDefault="qualified">
 
   <xsd:annotation>
@@ -126,6 +126,7 @@
       <xsd:enumeration value="transient"/>
       <xsd:enumeration value="harmonic"/>
       <xsd:enumeration value="eigenFrequency"/>
+      <xsd:enumeration value="buckling"/>
       <xsd:enumeration value="multiSequence"/>
       <xsd:enumeration value="restart"/>
       <xsd:enumeration value="cfsdat"/>
@@ -192,6 +193,8 @@
       <xsd:enumeration value="complex material parameters"/>
       <xsd:enumeration value="damping"/>
       <xsd:enumeration value="nonlinear"/>
+      <xsd:enumeration value="hysteresis"/>
+      <xsd:enumeration value="linesearch"/>
       
       <!-- ========================================================== -->
       <!--  Approximation Related Keywords                            -->

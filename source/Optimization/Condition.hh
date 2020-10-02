@@ -443,10 +443,6 @@ namespace CoupledField
      /** are the active constraints feasible */
      bool IsFeasible() const;
 
-    /** human readble comment on feasibilty of constraints */
-    std::string GetFeasiblityMessage() const;
-
-
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */
      VirtualView* view;

@@ -1,13 +1,12 @@
 #include <assert.h>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <iostream>
 #include <limits>
 #include <map>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Domain.hh"
@@ -39,7 +38,6 @@ using std::string;
 using std::map;
 using namespace CoupledField;
 
-DECLARE_LOG(ds)
 DEFINE_LOG(ds, "designStructure")
 
 Enum<DesignStructure::FilterSpace> DesignStructure::filterSpace;
@@ -148,6 +146,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       throw Exception("expect 'robust_excitation' for 'filter' as more than one filter is defined for the design");
   }
 
+  // Filter ref is something heavy we copy for each element where the meta data data is copied.
   Filter ref;
 
   ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
@@ -231,13 +230,14 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
-  #pragma omp parallel shared(ref)
+  // we modify ref, therefore we need firstprivate
+  #pragma omp parallel firstprivate(ref) num_threads(CFS_NUM_THREADS)
   {
     // don't do it in for-loop, thread local vector
     StdVector<Filter::NeighbourElement> neighbors;
 
-    #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours) firstprivate(radius)
-    for(unsigned int e = start; e < end; e++)
+    #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours)
+    for(Integer e = (Integer) start; e < (Integer) end; e++)
     {
       DesignElement* de = &data[e];
 
@@ -250,8 +250,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       }
       de->simp->filter.Push_back(ref); // copy the reference data
 
-      assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
-
+      /* what does this assert do? deactivating for now */
+      //assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
       // for unstructured grids only "radius" filter makes sense
       assert(regular || filter_space_ == RADIUS);
 
@@ -259,7 +259,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       // recursively via element neighbors.
       neighbors.Resize(0); // keeps capacity
 
-      LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
+      // LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
       if(regular)
         FindRegularNeighborhood(de, radius, edges, neighbors);
       else
@@ -286,7 +286,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       sum_radius += radius;
       sum_neighbours += neighbors.GetSize();
       if(done && neighbors.GetSize() > 1000) {
-        #pragma omp critical
+        //#pragma omp critical
         in->SetWarning("Filter radius too large. Neighborhood for some elements is bigger than 1000!");
         done = false;
       }
@@ -305,6 +305,28 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     space->density_filter.Push_back(filter_mat);
     int filter_index =space->density_filter.GetSize() - 1 ;
     space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index);
+  }
+
+  if (space->write_matrix_filt && sum_neighbours > 0) {
+    // writes filter matrix to .mtx file for first filter radius > 1
+    DensityFilterMat filter_mat;
+    space->density_filter.Push_back(filter_mat);
+    int filter_index =space->density_filter.GetSize() - 1 ;
+    // This are the designs we deal with
+    unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
+    unsigned int end = start + space->GetNumberOfElements();
+    //std::vector<DesignElement>   sub(&data[start],&data[end]);
+    //StdVector<DesignElement> data_red(sub);
+    //std::vector<DesignElement>::const_iterator first = data.Begin() + start;
+    //std::vector<DesignElement>::const_iterator last = data.Begin() + end;
+    //std::vector<DesignElement> sub(data.Begin() + start, data.Begin() + end);
+    //DesignElement *arrayOfT = &data[0] + start;
+    //size_t arrayOfTLength = (end - start);
+    //StdVector<DesignElement> data_red(arrayOfT);
+    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index,start,end);
+    space->density_filter.Last().ExportDensityFilterMatrix();
+    // makes sure that matrix is only written once for first filter radius > 1
+    space->write_matrix_filt = false;
   }
 }
 

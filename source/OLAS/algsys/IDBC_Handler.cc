@@ -5,7 +5,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <boost/type_traits/is_complex.hpp>
 
-DECLARE_LOG(idbcElim)
 DEFINE_LOG(idbcElim, "idbcElim")
 
 namespace CoupledField {
