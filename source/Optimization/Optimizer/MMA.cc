@@ -504,14 +504,15 @@ void MMA::GenerateSubProblem()
           for(unsigned int i =0; i< n; ++i)
           {
             sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-            if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-            else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-            else gamma = 1.0; // there is no design change
+            if(sign_change < 0.0)
+              gamma = asymdec; // if there is oscillation decrease the asymptotes, convergence will be slower
+            else if (sign_change > 0.0)
+              gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+            else
+              gamma = 1.0; // there is no design change
             low[i] = xval[i] - gamma*(xold1[i] - low[i]);
             upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
             double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
-            double x_max_tmp = 0.0;
-
 
             /** implementation of robust asymptote based on TopOpt code
              * refer function GenSub(...) in MMA.cc for the case RobustAsymptotesType == 1*/
@@ -526,21 +527,20 @@ void MMA::GenerateSubProblem()
              * refer function GenSub(...) in MMA.c */
             else if(asymUpdate_ == TOPOPT_ROBUST_LONG)
             {
-              double x_min_tmp = 0.0;
               //Robust Asymptotes
               low[i]=max(low[i],xval[i]-100.0*x_max_min);
               low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
               upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
               upp[i]=min(upp[i],xval[i]+100.0*x_max_min);
 
-              x_min_tmp = xmin[i] - 1.0e-5;
-              x_max_tmp = xmax[i] + 1.0e-5;
+              x_max_min = xmin[i] - 1.0e-5;
+              double x_max_max = xmax[i] + 1.0e-5;
               if(xval[i] < x_max_min)
               {
-                low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
-                upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
+                low[i] = xval[i] - (x_max_max - xval[i])/0.9;
+                upp[i] = xval[i] + (x_max_max - xval[i])/0.9;
               }
-              if(xval[i] > x_max_tmp)
+              if(xval[i] > x_max_max)
               {
                 low[i] = xval[i] - (xval[i] - x_max_min)/0.9;
                 upp[i] = xval[i] + (xval[i] - x_max_min)/0.9;
