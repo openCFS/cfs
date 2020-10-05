@@ -2,4 +2,4 @@
 #cmakedefine USE_FEAST
 #cmakedefine USE_FEAST_COMMUNITY
 
-#define FEAST_VER @FEAST_VER@
+#define FEAST_VER "@FEAST_VER@"

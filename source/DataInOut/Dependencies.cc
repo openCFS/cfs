@@ -200,14 +200,17 @@ void Dependencies::ReadSetting()
   data.Push_back(petsc);
 
 
-  // blas
-
-
   Dependency arpack("ARPACK", "USE_ARPACK", BSD);
 #ifdef USE_ARPACK
   arpack.SetVersion(ARPACK_VER);
 #endif
   data.Push_back(arpack);
+
+  Dependency feast("FEAST", "USE_FEAST", BSD);
+#ifdef USE_FEAST
+  feast.SetVersion(FEAST_VER);
+#endif
+  data.Push_back(feast);
 
   Dependency mkl("MKL", "USE_MKL", ISSL);
 #ifdef USE_MKL
@@ -439,13 +442,36 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(ipopt);
 
-  Dependency sgpp("SGPP", "USE_SGPP", EASY);
+  Dependency sgpp("SGPP", "USE_SGPP", COMMERCIAL); // to be replaced by a open source version when it is avaiable
 #ifdef USE_SGPP
   sgpp.SetVersion(SGPP_VER)
 #endif
   data.Push_back(sgpp);
 
+  // build options are not for the version output to be used via WriteCMakeUSE() in the testsuite
+  Dependency cfsdat("cfsdat", "BUILD_CFSDAT", CFS);
+#ifdef BUILD_CFSDAT
+  cfsdat.active = true;
+#endif
+  data.Push_back(cfsdat);
 
+  Dependency cfstool("cfstool", "BUILD_CFSTOOL", CFS);
+#ifdef BUILD_TOOL
+  cfstool.active = true;
+#endif
+  data.Push_back(cfstool);
+
+  Dependency testing("TESTING", "BUILD_TESTING", CFS);
+#ifdef BUILD_TESTING
+  testing.active = true;
+#endif
+  data.Push_back(testing);
+
+  Dependency unittests("Unit-Tests", "BUILD_UNIT_TESTS", CFS);
+#ifdef BUILD_UNIT_TESTS
+  unittests.active = true;
+#endif
+  data.Push_back(unittests);
 
   // https://www.boost.org/users/license.html
   Dependency boost("boost", "", BOOST);
@@ -503,8 +529,14 @@ Dependencies::Dependency::Dependency(const string& name, const string& cmake, co
 
 bool Dependencies::Dependency::IsSwitchable() const
 {
-  return cmake.find("USE_") != string::npos;
+  return cmake.find("USE_") != string::npos || IsBuildOption();
 }
+
+bool Dependencies::Dependency::IsBuildOption() const
+{
+  return cmake.find("BUILD_") != string::npos;
+}
+
 
 void Dependencies::Dependency::SetVersion(const string& version, const string& sub, const string& minor)
 {

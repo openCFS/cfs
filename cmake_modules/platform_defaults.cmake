@@ -38,6 +38,9 @@ set(CFS_PARDISO_DEFAULT "MKL")
 # the established one, libxml2 is lighter
 set(USE_XML_READER_DEFAULT "xerces")
 
+# this is required on Linux using the intel C++ compiler only
+set(CFS_ICC_GCC_VERSION_DEFAULT 9)
+
 set(USE_PARDISO_DEFAULT ON)
 set(USE_ARPACK_DEFAULT ON)
 set(USE_PHIST_CG_DEFAULT OFF)
@@ -52,12 +55,12 @@ set(USE_SUPERLU_DEFAULT ON)
 set(USE_CGNS_DEFAULT ON)
 set(USE_METIS_DEFAULT ON)
 
+# commercial or condifential code required for the developer building the modules
 set(USE_SCPIP_DEFAULT OFF)  
 set(USE_SNOPT_DEFAULT OFF)
-
-set(CFS_ICC_GCC_VERSION_DEFAULT 9)
-
+set(USE_SGPP_DEFAULT OFF)
 set(USE_IPOPT_DEFAULT OFF)
+
 set(USE_CGAL_DEFAULT ON)
 set(USE_LIBFBI_DEFAULT OFF)
 set(USE_FLANN_DEFAULT ON)

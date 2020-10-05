@@ -566,6 +566,9 @@ namespace CoupledField {
     for(auto& dep: deps.data)
       if(dep.IsSwitchable())
       {
+        // build artefacts are not relevant for the cfs binary itself for user output
+        if(dep.IsBuildOption())
+          continue;
         if(dep.active)
           WriteColoredString(out, trim_size, dep.cmake, dep.version != "" ? dep.version : "unknown version", dep.date, dep.comment);
         else
@@ -576,10 +579,8 @@ namespace CoupledField {
     for(auto& dep: deps.data)
       if(!dep.IsSwitchable())
       {
-        if(!dep.active)
-          WriteColoredString(out, trim_size, dep.name, "NO", dep.cmake);
-        else
-          WriteColoredString(out, trim_size, dep.name, dep.version != "" ? dep.version : "YES", dep.date, dep.comment, dep.cmake);
+        assert(dep.active);
+        WriteColoredString(out, trim_size, dep.name, dep.version != "" ? dep.version : "YES", dep.date, dep.comment, dep.cmake);
       }
     out << endl;
 

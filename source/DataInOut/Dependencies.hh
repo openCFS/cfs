@@ -15,7 +15,7 @@ class Dependencies
 public:
   Dependencies();
 
-  /** write a file in CMake format with all set(USE_* ON/OFF) to be included via CMake
+  /** write a file in CMake format with all set(USE_/BUILD_* ON/OFF ) to be included via CMake
    * @return success */
   bool WriteCMakeUSE(const string& filename);
 
@@ -34,6 +34,9 @@ public:
 
     /** is this a user switchable option? */
     bool IsSwitchable() const;
+
+    /** is this a BUILD_ option? */
+    bool IsBuildOption() const;
 
     // set the version and automatically sets active
     void SetVersion(const string& val) {
