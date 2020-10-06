@@ -779,7 +779,7 @@ namespace CoupledField
     // NOTE: If we are using the optimized version, we only consider odd harmonics,
     // therefore the column isn't anymore iRow+harmonic !!!
     // =========== This is difficult to describe here, see notes (K.Roppert 2018) =====
-    StdVector<UInt> sbmInd(0);
+    StdVector<UInt> sbmInd;
     bool isFullSys = domain->GetDriver()->IsFullSystem();
     for( UInt iRow = 0; iRow < size; ++iRow ) {
       if(harm == 0){
