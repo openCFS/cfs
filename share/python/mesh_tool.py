@@ -389,10 +389,10 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
   mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
   mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-  mesh.bc.append(("left_lower", [0]))
-  mesh.bc.append(("right_lower", [nx]))
-  mesh.bc.append(("left_upper", [(nx + 1) * ny]))
-  mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
+  mesh.bc.append(("south_west", [0]))
+  mesh.bc.append(("south_east", [nx]))
+  mesh.bc.append(("north_west", [(nx + 1) * ny]))
+  mesh.bc.append(("north_east", [(nx + 1) * (ny + 1) - 1]))
 
 
   
@@ -655,11 +655,12 @@ def validate_periodicity(mesh):
   
 ## creates a 2D mesh of predefined geometry
    #create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
-def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None, pfem=False):
+def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None, pfem=False, numbering='row_major'):
   
   assert(type == 'bulk2d' or type == 'cantilever2d' or  type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
+  assert(numbering == 'row_major' or type == 'bulk2d' or type == 'cantilever2d')
   
   nx = x_res
   ny = x_res if y_res is None else y_res
@@ -693,9 +694,14 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   dx = width / nx
   dy = height / ny
 
-  for y in range(ny + 1):
+  if numbering == 'row_major':
+    for y in range(ny + 1):
+      for x in range(nx + 1):
+        mesh.nodes.append((offx + x * dx, offy + y * dy))
+  else:
     for x in range(nx + 1):
-      mesh.nodes.append((offx + x * dx, offy + y * dy))
+      for y in range(ny + 1):
+        mesh.nodes.append((offx + x * dx, offy + y * dy))
   
   scale = 2 if type == 'triangle_msfem' else 1
 
@@ -709,90 +715,77 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   upper_iface = []
   lower_iface = []
  
-  # print mesh.nodes 
-  for y in range(ny):
-    for x in range(nx):
-      e = Element()
-      e.density = 1.0
-      e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
-      # assign nodes
-      ll = (nx+1) * y + x  # lowerleft
-      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
-      # set region for appropriate load case
-      e.region = set_region(x,y,nx,ny,type,patch)
-      # mark the interface of the inclusion with the outer boundary
-      #if inclusion != None:
-      #  if x==0 and e.region == 'inner':
-      #    left_iface.append(ll)
-      #    left_iface.append(ll+nx+1)
-      #  if x == nx-1 and e.region == 'inner':  
-      #    right_iface.append(ll+1)
-      #    right_iface.append(ll+1+nx+1)
-      #  if y==0 and e.region == 'inner':
-      #    lower_iface.append(ll)
-      #    lower_iface.append(ll+1)
-      #  if y==ny-1 and e.region == 'inner':
-      #    upper_iface.append(ll+nx+1)
-      #    upper_iface.append(ll+1+nx+1)
-            
-      if type == 'triangle_msfem':
-        e.nodes = ((ll, ll + 1, ll + 1 + nx + 1))
-        e2 = Element()
-        e2.density = e.density
-        e2.region = e.region
-        e2.type = e.type
-        e2.nodes = ((ll + 1 + nx + 1, ll + nx + 1, ll))
-        mesh.elements.append(e)
-        mesh.elements.append(e2)
-      else:  
-        e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
-        mesh.elements.append(e)
-    
-  if pfem:  
-    # create lines on west and east boundaries for pfem
+  # print mesh.nodes
+  if numbering == 'row_major':
     for y in range(ny):
-      for x in [0, nx]:
+      for x in range(nx):
         e = Element()
-        e.type = LINE
-        e.density = 1
+        e.density = 1.0
+        e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
+        # set region for appropriate load case
+        e.region = set_region(x,y,nx,ny,type,patch)
         # assign nodes
         ll = (nx+1) * y + x  # lowerleft
-        e.nodes = ((ll,ll+nx+1))
-        # set region for appropriate load case
-        e.region = "west_surf" if x == 0 else "east_surf"
-        mesh.elements.append(e)
-        
-        # add load elements
-        if e.region == "east_surf":
-          if y < int(0.15*(ny+1)):
-            e2 =  Element()
-            e2.type = e.type
-            e2.density = e.density
-            e2.nodes = e.nodes
-            e2.region = "load_surf"
-            mesh.elements.append(e2)
-    
-    # create lines on north and south boundaries for pfem
+        # mark the interface of the inclusion with the outer boundary
+        #if inclusion != None:
+        #  if x==0 and e.region == 'inner':
+        #    left_iface.append(ll)
+        #    left_iface.append(ll+nx+1)
+        #  if x == nx-1 and e.region == 'inner':
+        #    right_iface.append(ll+1)
+        #    right_iface.append(ll+1+nx+1)
+        #  if y==0 and e.region == 'inner':
+        #    lower_iface.append(ll)
+        #    lower_iface.append(ll+1)
+        #  if y==ny-1 and e.region == 'inner':
+        #    upper_iface.append(ll+nx+1)
+        #    upper_iface.append(ll+1+nx+1)
+        if type == 'triangle_msfem':
+          e.nodes = ((ll, ll + 1, ll + 1 + nx + 1))
+          e2 = Element()
+          e2.density = e.density
+          e2.region = e.region
+          e2.type = e.type
+          e2.nodes = ((ll + 1 + nx + 1, ll + nx + 1, ll))
+          mesh.elements.append(e)
+          mesh.elements.append(e2)
+        else:
+          e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))
+          mesh.elements.append(e)
+  else:
     for x in range(nx):
-      for y in [0, ny]:
+      for y in range(ny):
         e = Element()
-        e.type = LINE
-        e.density = 1
+        e.density = 1.0
+        e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
         # assign nodes
-        ll = (nx+1) * y + x  # lowerleft
-        e.nodes = ((ll,ll+1))
+        ll = (ny+1) * x + y  # lowerleft
+        e.nodes = ((ll, ll+ny+1, ll+1+ny+1, ll+1))
         # set region for appropriate load case
-        e.region = "south_surf" if y == 0 else "north_surf"
-        mesh.elements.append(e)    
-      
-  mesh.bc.append(("south", list(range(0, nx + 1))))
-  mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
-  mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
-  mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-  mesh.bc.append(("left_lower", [0]))
-  mesh.bc.append(("right_lower", [nx]))
-  mesh.bc.append(("left_upper", [(nx+1)*ny]))
-  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+        e.region = set_region(x,y,nx,ny,type,patch)
+        mesh.elements.append(e)
+
+  if pfem:
+    add_elements_pfem(mesh, numbering)
+
+  if numbering == 'row_major':
+    mesh.bc.append(("south", list(range(0, nx + 1))))
+    mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+    mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+    mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
+    mesh.bc.append(("south_west", [0]))
+    mesh.bc.append(("south_east", [nx]))
+    mesh.bc.append(("north_west", [(nx+1)*ny]))
+    mesh.bc.append(("north_east", [(nx+1)*(ny+1)-1]))
+  else:
+    mesh.bc.append(("south", list(range(0, (ny + 1) * nx + 1, ny + 1))))
+    mesh.bc.append(("north", list(range(ny, (ny + 1) * (nx + 1), ny + 1))))
+    mesh.bc.append(("west", list(range(0, ny + 1))))
+    mesh.bc.append(("east", list(range((ny + 1) * nx, (ny + 1) * (nx + 1)))))
+    mesh.bc.append(("south_west", [0]))
+    mesh.bc.append(("south_east", [(ny+1)*nx]))
+    mesh.bc.append(("north_west", [ny]))
+    mesh.bc.append(("north_east", [(ny+1)*(nx+1)-1]))
 
   if type == 'two_load':
     mid = int((nx+1.)/2.)
@@ -806,13 +799,13 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       factor = 2
     else:
       factor = 1
-      mesh.bc.append(("left_upper", numpy.arange(int(round((nx+1)*ny-2*(ny-1)/25*(nx+1))),(nx+1)*ny,nx+1)))
-    mesh.bc.append(("left_lower", numpy.arange(0,int(round(factor*2*(ny-1)/25*(nx+1))),nx+1)))
-    mesh.bc.append(("right_lower", [nx]))
-    mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+    mesh.bc.append(("north_west", numpy.arange(int(round((nx+1)*ny-2*(ny-1)/25*(nx+1))),(nx+1)*ny,nx+1)))
+    mesh.bc.append(("south_west", numpy.arange(0,int(round(factor*2*(ny-1)/25*(nx+1))),nx+1)))
+    mesh.bc.append(("south_east", [nx]))
+    mesh.bc.append(("north_east", [(nx+1)*(ny+1)-1]))
 
   print('width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy))
-  
+
 #  liu = numpy.unique(left_iface)
 #  
 #  if len(left_iface) > 0:
@@ -829,6 +822,43 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     print(str(second) + ' elements of secondary region (' + str(100.0 * second / (nx * ny)) + '%)')
 
   return mesh
+
+def add_elements_pfem(mesh, numbering='row_major'):
+  # create lines on west and east boundaries for pfem
+  for y in range(ny):
+    for x in [0, nx]:
+      e = Element()
+      e.type = LINE
+      e.density = 1
+      # assign nodes
+      ll = (nx+1) * y + x if numbering == 'row_major' else (ny+1) * x + y  # lowerleft
+      e.nodes = ((ll,ll+nx+1 if numbering == 'row_major' else ll+1))
+      # set region for appropriate load case
+      e.region = "west_surf" if x == 0 else "east_surf"
+      mesh.elements.append(e)
+
+      # add load elements
+      if e.region == "east_surf":
+        if y < int(0.15*(ny+1)):
+          e2 =  Element()
+          e2.type = e.type
+          e2.density = e.density
+          e2.nodes = e.nodes
+          e2.region = "load_surf"
+          mesh.elements.append(e2)
+
+  # create lines on north and south boundaries for pfem
+  for x in range(nx):
+    for y in [0, ny]:
+      e = Element()
+      e.type = LINE
+      e.density = 1
+      # assign nodes
+      ll = (nx+1) * y + x if numbering == 'row_major' else (ny+1) * x + y  # lowerleft
+      e.nodes = ((ll,ll+1 if numbering == 'row_major' else ll+ny+1))
+      # set region for appropriate load case
+      e.region = "south_surf" if y == 0 else "north_surf"
+      mesh.elements.append(e)
 
 def set_region(x,y,nx,ny,type,patch):
   if type == 'cantilever2d_reinforced' and float(x) >= (28. / 30. * nx):
@@ -1232,10 +1262,10 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
   mesh.bc.append(("south", list(range(nx+2, 2*nx+1, 1))))
   #mesh.bc.append(("south",[nx,2*nx]))
   #mesh.bc.append(("south", [nx]))
-  mesh.bc.append(("left_lower", [0]))
-  mesh.bc.append(("right_lower", [nx]))
-  mesh.bc.append(("left_upper", [(nx + 1) * ny]))
-  mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
+  mesh.bc.append(("south_west", [0]))
+  mesh.bc.append(("south_east", [nx]))
+  mesh.bc.append(("north_west", [(nx + 1) * ny]))
+  mesh.bc.append(("north_east", [(nx + 1) * (ny + 1) - 1]))
 
   if case == 'pipe_bend': 
     mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
@@ -2518,10 +2548,10 @@ def create_2d_mesh_from_array(array):
   mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
   mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
   mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-  mesh.bc.append(("left_lower", [0]))
-  mesh.bc.append(("right_lower", [nx]))
-  mesh.bc.append(("left_upper", [(nx+1)*ny]))
-  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  mesh.bc.append(("south_west", [0]))
+  mesh.bc.append(("south_east", [nx]))
+  mesh.bc.append(("north_west", [(nx+1)*ny]))
+  mesh.bc.append(("north_east", [(nx+1)*(ny+1)-1]))
   
   return mesh
 
