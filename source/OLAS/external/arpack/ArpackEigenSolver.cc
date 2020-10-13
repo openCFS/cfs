@@ -322,7 +322,7 @@ namespace CoupledField {
       }
     }
 
-    LOG_DBG(aes) << "AES:S B-scale=" << scale_B_val_;
+    LOG_DBG(aes) << "Setup: B-scale=" << scale_B_val_;
 
     // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
     // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>

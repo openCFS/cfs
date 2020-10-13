@@ -87,7 +87,7 @@ template<typename T> class ElemStoreSol;
       data_ = size_ > 0 ? new T[size_] : NULL;
 
       for(unsigned int i = 0; i < size_; ++i)
-        data_ [i] = origVec.data_[i];
+        data_[i] = origVec.data_[i];
     }
 
     /** constructs a vector out of two vectors with the size of both vectors */

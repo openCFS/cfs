@@ -83,7 +83,12 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     complex_ = true;
     eigenvalue_ = true;
     buckling_ = true;
-    num_eigenmodes = EigenFrequencyDriver::GetNumModes(node); // FIXME buckling get correct number of eigenmodes
+    // we need num_eigenmodes to reserve enough space in StateContainer::Get
+    // however "numModes" is only given for Arpack, so we choose a hopefully large enough number
+    if (node->Has("numModes"))
+      num_eigenmodes = EigenFrequencyDriver::GetNumModes(node);
+    else
+      num_eigenmodes = 20;
     break;
 
   case BasePDE::STATIC:

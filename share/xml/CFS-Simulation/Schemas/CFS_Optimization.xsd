@@ -1603,7 +1603,6 @@
                 <xsd:attribute name="id" use="required">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
-
                       <xsd:enumeration value="optResult_1"/>
                       <xsd:enumeration value="optResult_2"/>
                       <xsd:enumeration value="optResult_3"/>
@@ -1755,6 +1754,19 @@
 
                 <!-- optional excitation parameter, can be used for penalized stress which is excitation dep. Uses the index, not the label -->
                 <xsd:attribute name="excitation" use="optional" type="xsd:nonNegativeInteger" />
+              </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="macrostress" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="comp" minOccurs="1" maxOccurs="6">
+                    <xsd:complexType>
+                      <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                      <xsd:attribute name="value" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
 

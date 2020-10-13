@@ -299,8 +299,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
     print('angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6')
     return 0 
   dx = scale / nx / math.cos(angle)
-  # from daniel ?! dy = scale/ny
-  dy = dx
+  dy = scale / ny
   
   mesh.nx = nx
   mesh.ny = ny

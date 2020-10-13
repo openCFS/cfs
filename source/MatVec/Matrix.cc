@@ -2772,7 +2772,7 @@ namespace CoupledField
  
     for (i = 0; i < size_col_; i++)
       for (j = 0; j < size_row_; j++)
-        transposedMat.data_[i][j] = data_[j] [i];
+        transposedMat.data_[i][j] = data_[j][i];
   }
 
   

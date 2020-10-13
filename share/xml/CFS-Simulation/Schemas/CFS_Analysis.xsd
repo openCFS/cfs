@@ -212,14 +212,14 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
           <xsd:choice>
-            <xsd:sequence>
+            <xsd:choice minOccurs="0" maxOccurs="unbounded">
               <xsd:element name="numModes"   type="xsd:token"/>
               <xsd:element name="valueShift" type="xsd:float" default="0.0"/>
-            </xsd:sequence>
-            <xsd:sequence>
+            </xsd:choice>
+            <xsd:choice minOccurs="0" maxOccurs="unbounded">
               <xsd:element name="maxVal" type="xsd:token"/>
               <xsd:element name="minVal" type="xsd:token" default="0"/>
-            </xsd:sequence>
+            </xsd:choice>
           </xsd:choice>
           <xsd:element name="calcModes" minOccurs="0">
             <xsd:complexType>
@@ -228,6 +228,7 @@
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="inverse" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="stressFilter" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -246,14 +247,14 @@
         <xsd:sequence>
           <xsd:element name="isQuadratic" type="DT_CFSBool"/>
           <xsd:choice>
-            <xsd:sequence>
+            <xsd:choice minOccurs="0" maxOccurs="unbounded">
               <xsd:element name="numModes" type="xsd:token"/>
               <xsd:element name="freqShift" type="DT_NonNegFloat"/>
-            </xsd:sequence>
-            <xsd:sequence>
+            </xsd:choice>
+            <xsd:choice minOccurs="0" maxOccurs="unbounded">
               <xsd:element name="minVal" type="xsd:token" default="0" minOccurs="0"/>
               <xsd:element name="maxVal" type="xsd:token"/>
-            </xsd:sequence>
+            </xsd:choice>
           </xsd:choice>
           <xsd:element name="writeModes">
             <xsd:complexType>

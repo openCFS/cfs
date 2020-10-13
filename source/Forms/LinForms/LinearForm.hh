@@ -117,7 +117,7 @@ namespace CoupledField{
       std::string name_;
 
       //! for a multiharmonic analysis, we need to have the information, which
-      //! harmonic, the rhs entry belongs to
+      //! harmonic the rhs entry belongs to
       UInt harm_;
 
       //! flag for use of updated Lagrangian formulation

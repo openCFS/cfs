@@ -109,16 +109,16 @@ namespace CoupledField{
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
-      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
       assert(dMat_.IsSymmetric(1e-8));
-      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
 
-      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << weights[i];
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " i=" << i << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << weights[i];
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
@@ -133,10 +133,10 @@ namespace CoupledField{
       //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " dBMat=" << dbMat_.ToString(2) << " -> K_" << i << "=" << elemMat.ToString(2);
 #endif
 
-      //LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
+      //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
     }
 
-    // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();
+    //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " elemMat=" << elemMat.ToString(2);
   }
 
   // ===============

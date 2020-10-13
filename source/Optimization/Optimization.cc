@@ -1047,7 +1047,11 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
       ex->Apply(true); // switch context if necessary
 
       if(context->DoBuckling())
-        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(0) ); // 0 is first excitation = linear elasticity
+      {
+        unsigned int linElaExIndex = ex->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+        assert(manager.GetContext(&(me->excitations[linElaExIndex])).driver->GetAnalysisType() == BasePDE::STATIC);
+        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(linElaExIndex) );
+      }
 
       CalcFunction(*ex, g, true);
     }
@@ -1234,6 +1238,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   {
     Function* f = objectives.data[i];
 
+    // set the precision for the output of objective function values
     std::stringstream ss;
     ss << std::setprecision(15) << f->GetValue();
 
@@ -1295,8 +1300,12 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       if(out && (g->GetType() != Function::EIGENFREQUENCY || log.plot_ev)) // don't spoil
         *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one (ErsatzMaterial::CommitIteration())
-      if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
-        iteration->Get(g->ToString())->SetValue(value);
+      if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2) {
+        // set the precision for the output of objective function values
+        std::stringstream ss;
+        ss << std::setprecision(15) << value;
+        iteration->Get(g->ToString())->SetValue(ss.str());
+      }
     }
   }
   // max output_constraint value
@@ -1321,7 +1330,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       d.window.Set(d);
       design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, f, false);
       for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
-        *out << " \t" << d[j];
+        *out << " \t" << setprecision(15) << d[j];
     }
   }
 
@@ -1340,7 +1349,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         d.window.Set(d);
         design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
         for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
-          *out << " \t" << d[j];
+          *out << " \t" << setprecision(15) << d[j];
       }
     }
   }

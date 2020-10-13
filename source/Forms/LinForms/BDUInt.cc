@@ -125,20 +125,16 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
        
-       Matrix<VEC_DATA_TYPE> tmp;
-       bMat.Transpose(tmp);
-
+//       Matrix<VEC_DATA_TYPE> tmp;
+//       bMat.Transpose(tmp);
 //       std::cout << "bMat:\n" << tmp.ToString(0) << std::endl;
        
-       //bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
-       bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumCols());
+       assert(bMat.GetNumRows() == nrFncs * B_OP::DIM_DOF);
+       bdMat.Resize(bMat.GetNumRows(), dMat.GetNumCols());
        
        // Calculate BdMat
-       
-#define USE_BLAS_VERSION
-
-#ifdef USE_BLAS_VERSION
-       bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0); // bdMat = 1.0 * bMat * dMat + 0.0 * bdMat
+#ifdef NDEBUG
+       bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0); // bdMat = fac * bMat * dMat + 0.0 * bdMat
 #else
        bdMat = (bMat * dMat) * fac;
 #endif

@@ -78,7 +78,7 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
 
   numEigenValues_ = -1;
   eigenValues = new Vector<Complex>();
-  errBounds = new Vector<Complex>();
+  errors = new Vector<Complex>();
 
   loadFactors_ = new Vector<Complex>();
 
@@ -88,6 +88,10 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
 
   // some variables needed later
   writeAllSteps_ = false;
+  isInverseProblem_ = false;
+
+  solver = NULL;
+  solverType_ = BaseEigenSolver::NO_EIGENSOLVER;
 }
 
 BucklingDriver::~BucklingDriver() {
@@ -171,10 +175,8 @@ void BucklingDriver::SolveProblem() {
   }
 
   // actually solve problem
+  SetupSolver();
   CalcValues();
-  SortModes(false);
-  if(calcModes_)
-    StoreModes();
 
   PrintResult();
 
@@ -193,12 +195,12 @@ void BucklingDriver::SolveProblem() {
     simState_->FinishMultiSequenceStep(true);
 }
 
-void BucklingDriver::CalcValues() {
+void BucklingDriver::SetupSolver() {
   BaseSolveStep *step = ptPDE_->GetSolveStep();
   StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
 
   // get active solver
-  BaseEigenSolver *solver = sstep->GetAlgSys()->GetEigenSolver();
+  solver = sstep->GetAlgSys()->GetEigenSolver();
 
   // get type of solver
   solverType_ = solver->GetEigenSolverName();
@@ -238,7 +240,6 @@ void BucklingDriver::CalcValues() {
  */
 /* TODO ARPACK
  * - add inputMethod_ 1, as min/maxValue
- * - add CalcEigenValues()
  */
 /* TODO PHIST
  * - add non-symmetric Mode (?)
@@ -246,42 +247,49 @@ void BucklingDriver::CalcValues() {
 
   if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
     eigenValues = new Vector<Double>();
-    errBounds = new Vector<Double>();
+    errors = new Vector<Double>();
     loadFactors_ = new Vector<Double>();
   } // else vectors are complex, see constructor
 
-  // solve \f$(G - 1/\lambda * K) * v = 0\f$
+  // setup \f$(G - 1/\lambda * K) * v = 0\f$
   // unfortunately the implemented eigenSolvers do not conform to a single scheme
-  if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
-    assert(solverType_ ==  BaseEigenSolver::FEAST);
-    if (isInverseProblem_)
-      solver->Setup(*(geoStiffMat->GetPointer(0, 0)), *(stiffMat->GetPointer(0, 0)), false);
-    else
-      solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), false);
-    solver->CalcEigenValues(*eigenValues, *errBounds, minVal_, maxVal_);
-  }
-  else if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
+  if (isInverseProblem_)
+    solver->Setup(*(geoStiffMat->GetPointer(0, 0)), *(stiffMat->GetPointer(0, 0)), false);
+  else
+    solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), false);
+
+  if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
     assert(solverType_ == BaseEigenSolver::ARPACK);
     isStoredSymmetric_ = true;
-    // this is necessary for the original problem, but ill lead to wrong results
-    // for the reformulated problem due to wrong ordering of the eigenvalues
+
     if (valueShift_ == 0.0) {
       valueShift_ = 0.1;
       info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for buckling. Changed to 0.1.");
     }
+
     if (isInverseProblem_)
-      solver->Setup(*(geoStiffMat->GetPointer(0, 0)), *(stiffMat->GetPointer(0, 0)), numMode_, 1.0/valueShift_, true, false);
-    else
+      valueShift_ = 1.0/valueShift_;
+
+    // this is necessary for the original problem, but might lead to wrong results
+    // for the reformulated problem due to wrong ordering of the eigenvalues
+    if (!isInverseProblem_)
     {
 #ifdef USE_ARPACK
+      // to be done after Setup
       dynamic_cast<ArpackEigenSolver*>(solver)->SetComputeMode(ArpackMatInterface::BUCKLING);
 #endif
-      solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), numMode_, valueShift_, true, false);
     }
-    solver->CalcEigenValues(*eigenValues, *errBounds, numMode_, valueShift_);
   }
-  else {
-    EXCEPTION("input method not known")
+}
+
+void BucklingDriver::CalcValues(unsigned int recursionCount) {
+  if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
+    assert(solverType_ ==  BaseEigenSolver::FEAST);
+    solver->CalcEigenValues(*eigenValues, *errors, minVal_, maxVal_);
+  }
+  else if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
+    assert(solverType_ == BaseEigenSolver::ARPACK);
+    solver->CalcEigenValues(*eigenValues, *errors, numMode_, valueShift_);
   }
 
   numEigenValues_ = eigenValues->GetSize();
@@ -291,8 +299,54 @@ void BucklingDriver::CalcValues() {
     EXCEPTION( "Did not find any eigenvalue!" );
   }
 
-  LOG_DBG(buckD) << "CV: eigenvalues = " << eigenValues->ToString();
+  LOG_DBG(buckD) << "CV: eigenvalues = " << eigenValues->ToString(2);
 
+  Vector<Double> eigenValuesRealPart = GetRealPartOfVector(eigenValues);
+
+  SortModes(false);
+
+  // treat negative eigenvalues
+  if (eigenValuesRealPart.Min() < 0 && recursionCount < 3)
+  {
+    LOG_DBG3(buckD) << "CV: Found negative eigenvalue";
+
+    assert(eigenValues->IsComplex() == false); // this part is written only for real eigenValues
+
+    // remove negative eigenvalues and corresponding modes
+    Vector<Double> tmp1;
+    StdVector<int> tmp2;
+    for (unsigned int ev = 0; ev < numEigenValues_; ev++) {
+      if (eigenValuesRealPart[ev] >= 0) {
+        tmp1.Push_back(eigenValuesRealPart[ev]);
+        tmp2.push_back(modeOrder_[ev]);
+      }
+    }
+    (*eigenValues) = tmp1; //copy
+    modeOrder_ = tmp2;
+    numEigenValues_ = eigenValues->GetSize();
+
+    LOG_DBG3(buckD) << "CV: eigenValues = " << eigenValues->ToString(2);
+    LOG_DBG3(buckD) << "CV: modeOrder_ = " << modeOrder_.ToString();
+
+    // if all eigenvalues were negative, search for more
+    if (numEigenValues_ == 0)
+    {
+      if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
+        assert(minVal_ >= 0 && maxVal_ >= 0);
+        minVal_ = minVal_ / 2.0;
+        maxVal_ = maxVal_ * 2.0;
+      }
+      else if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
+        numMode_ = numMode_ * 2.0;
+      }
+
+      CalcValues(++recursionCount);
+    }
+  }
+
+  domain->GetOptimization()->context->num_eigenmodes = numEigenValues_;
+
+  // convert eigenvalues to load factors (inverse problem: lf=1/ev, else: lf=ev)
   loadFactors_->Resize(numEigenValues_);
   for (UInt i = 0; i < numEigenValues_; i++)
   {
@@ -311,38 +365,33 @@ void BucklingDriver::CalcValues() {
     }
   }
 
-  LOG_TRACE(buckD) << "CV: loadFactors = " << loadFactors_->ToString();
+  LOG_DBG(buckD) << "CV: loadFactors = " << loadFactors_->ToString(2);
 
   if(!domain->GetOptimization())
     cout << "\n++ Finished solving eigenvalue Problem." << std::endl;
 }
 
-void BucklingDriver::StoreModes() {
-  Vector<Double> loadFactorsRealPart = GetRealPartOfLoadFactors();
+void BucklingDriver::StoreMode(unsigned int index) {
+  Vector<Double> loadFactorsRealPart = GetRealPartOfVector(loadFactors_);
+  Double currentLoadFactor = loadFactorsRealPart[modeOrder_[index]];
 
+  // store the eigen mode in algsys sol_
   StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep());
-
-  for(unsigned int ev = 0; ev < numEigenValues_; ev++)
+  sstep->SetActStep(index);
+  sstep->SetActFreq(currentLoadFactor);
+  if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK)
   {
-    Double currentLoadFactor = loadFactorsRealPart[modeOrder_[ev]];
-
-    // store the eigen mode in algsys sol_
-    sstep->SetActStep(ev);
-    sstep->SetActFreq(currentLoadFactor);
-    if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK)
-    {
-      sstep->SetActFreq(loadFactors_->GetDoubleEntry(modeOrder_[ev]));
-      ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetDoubleEntry(modeOrder_[ev]));
-    }
-    else
-    {
-      sstep->SetActFreq(loadFactors_->GetComplexEntry(modeOrder_[ev]).real());
-      ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetComplexEntry(modeOrder_[ev]).real());
-    }
-    sstep->GetEigenMode(modeOrder_[ev]); // this stores the eigen mode result in algsys sol_
-
-    LOG_DBG(buckD) << "stored mode " << ev;
+    sstep->SetActFreq(loadFactors_->GetDoubleEntry(modeOrder_[index]));
+    ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetDoubleEntry(modeOrder_[index]));
   }
+  else
+  {
+    sstep->SetActFreq(loadFactors_->GetComplexEntry(modeOrder_[index]).real());
+    ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", loadFactors_->GetComplexEntry(modeOrder_[index]).real());
+  }
+  sstep->GetEigenMode(modeOrder_[index]); // this stores the eigen mode result in algsys sol_
+
+  LOG_DBG(buckD) << "stored mode " << index;
 }
 
 void BucklingDriver::PrintResult() {
@@ -358,13 +407,13 @@ void BucklingDriver::PrintResult() {
 
   int fieldwidth = 23; // field width
 
-  // console output (reduced form bloch)
+  // console output
   if(!domain->GetOptimization() || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN)
   {
     cout << "\n";
     cout << " Mode | ";
     cout << setw(fieldwidth) << "Load Factor" << " | ";
-    cout << setw(fieldwidth) << "Error Bounds" << " | ";
+    cout << setw(fieldwidth) << "Error" << " | ";
     if (!isStoredSymmetric_) {
       cout << setw(fieldwidth) << "Imaginary Part" << " | ";
     }
@@ -372,7 +421,6 @@ void BucklingDriver::PrintResult() {
   }
 
   // also log via info node.
-  // new result only on detailed output and for bloch case only for step=0
   PtrParamNode res;
   bool append = progOpts->DoDetailedInfo();
   if(append)
@@ -402,13 +450,13 @@ void BucklingDriver::PrintResult() {
     {
       cout << setw(5) << i + 1 << " | ";
       if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
-        cout << setw(fieldwidth) << loadFactors_->GetDoubleEntry(modeOrder_[i]) << " | ";
-        cout << setw(fieldwidth) << errBounds->GetDoubleEntry(modeOrder_[i]) << " | " << "\n";
+        cout << setw(fieldwidth) << std::setprecision(10) << loadFactors_->GetDoubleEntry(modeOrder_[i]) << " | ";
+        cout << setw(fieldwidth) << errors->GetDoubleEntry(modeOrder_[i]) << " | " << "\n";
       }
       else {
         Complex ev = loadFactors_->GetComplexEntry(modeOrder_[i]);
         cout << setw(fieldwidth) << ev.real() << " | ";
-        cout << setw(fieldwidth) << errBounds->GetComplexEntry(modeOrder_[i]).real() << " | ";
+        cout << setw(fieldwidth) << errors->GetComplexEntry(modeOrder_[i]).real() << " | ";
         cout << setw(fieldwidth) << ev.imag() << " | " << "\n";
       }
     }
@@ -419,11 +467,11 @@ void BucklingDriver::PrintResult() {
     mode->Get("nr")->SetValue(i+1); // not the mode but eigenvalue in list
     if (isStoredSymmetric_) {
       mode->Get("loadfactor")->SetValue(loadFactors_->GetDoubleEntry(i),15);
-      mode->Get("errorbound")->SetValue(errBounds->GetDoubleEntry(i));
+      mode->Get("error")->SetValue(errors->GetDoubleEntry(i));
     }
     else {
       mode->Get("loadfactor")->SetValue(loadFactors_->GetComplexEntry(i).real(),15);
-      mode->Get("errorbound")->SetValue(errBounds->GetComplexEntry(i).real());
+      mode->Get("error")->SetValue(errors->GetComplexEntry(i).real());
     }
   }
 }
@@ -434,7 +482,7 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
 
   if(calcModes_)
   {
-    Vector<Double> loadFactorsRealPart = GetRealPartOfLoadFactors();
+    Vector<Double> loadFactorsRealPart = GetRealPartOfVector(loadFactors_);
 
     // check if negative Eigenvalues are present
     for (unsigned int ev = 0; ev < numEigenValues_; ev++) {
@@ -458,7 +506,6 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
         LOG_DBG3(buckD) << "SR: total=" << numEigenValues_ << " digs=" << digs << " sig=" << sig << " count=" << (ev + 1);
       }
       else {
-        Vector<Double> loadFactorsRealPart = GetRealPartOfLoadFactors();
         save_value = std::abs(loadFactorsRealPart[modeOrder_[ev]]);
       }
 
@@ -473,6 +520,9 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
         StateSolution* ss = em->GetForwardStates().Get(excite, NULL, ev);
         ss->Write(context->pde); // forward is function NULL
       }
+      else
+        if(calcModes_)
+          StoreMode(ev);
 
       // write modes to file
       handler_->BeginStep(stepNum, save_value);
@@ -520,37 +570,51 @@ void BucklingDriver::ExportModes() {
 }
 
 void BucklingDriver::SortModes(bool inAbs) {
-  Vector<Double> loadFactorsRealPart = GetRealPartOfLoadFactors();
+  Vector<Double> realPart = GetRealPartOfVector(eigenValues);
 
   if (inAbs) {
-    for (unsigned int i = 0; i < loadFactorsRealPart.GetSize(); i++) {
-      loadFactorsRealPart[i] = std::abs(loadFactorsRealPart[i]);
+    for (unsigned int i = 0; i < realPart.GetSize(); i++) {
+      realPart[i] = std::abs(realPart[i]);
     }
   }
 
-  modeOrder_.Resize(loadFactorsRealPart.GetSize());
+  modeOrder_.Resize(numEigenValues_);
   std::size_t n(0);
+  LOG_DBG3(buckD) << "numEigenValues_ = " << numEigenValues_;
+
   // allocate modeOrder_
   std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&] {return n++;});
+  LOG_DBG3(buckD) << "SM: modeOrder_ before sorting = " << modeOrder_.ToString();
+
   // sort it by value
   std::sort(std::begin(modeOrder_), std::end(modeOrder_), [&](int i1, int i2) {
-    return loadFactorsRealPart[i1] < loadFactorsRealPart[i2];
+    if (isInverseProblem_)
+      return realPart[i1] > realPart[i2];
+    else
+      return realPart[i1] < realPart[i2];
   });
+
+  LOG_DBG3(buckD) << "SM: modeOrder_  after sorting = " << modeOrder_.ToString();
 }
 
-Vector<Double> BucklingDriver::GetRealPartOfLoadFactors() {
-  Vector<Double> loadFactorsRealPart;
+Vector<Double> BucklingDriver::GetRealPartOfVector(SingleVector* vec) {
+  Vector<Double> realPart;
 
-  loadFactorsRealPart.Resize(numEigenValues_);
-  if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
-    loadFactorsRealPart = dynamic_cast<Vector<Double>&>(*loadFactors_);
+  LOG_DBG3(buckD) << "GRPOV: vec = " << vec->ToString(2);
+
+  unsigned int sz = vec->GetSize();
+  realPart.Resize(sz);
+
+  if (vec->IsComplex())
+  {
+    for (unsigned int mI = 0; mI < sz; mI++)
+      realPart[mI] = vec->GetComplexEntry(mI).real();
   }
   else
-  {
-    for (unsigned int mI = 0; mI < numEigenValues_; mI++)
-      loadFactorsRealPart[mI] = loadFactors_->GetComplexEntry(mI).real();
-  }
-  return loadFactorsRealPart;
+    realPart = dynamic_cast<Vector<Double>&>(*vec);
+
+  LOG_DBG3(buckD) << "GRPOV: realPart = " << realPart.ToString(2);
+  return realPart;
 }
 
 } // end of namespace

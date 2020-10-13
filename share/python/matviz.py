@@ -173,9 +173,9 @@ def show_or_write(viz, args):
       if args.save.split('.')[-1] != 'pdf':      
         # I was not able to render a memory image first, make an array out of the data and determine the grayness
         # So read again from file :( 
-        tmp = Image.open(args.save).convert('L')  # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
+        tmp = Image.open(args.save).convert('L')  # make gray, otherwise data has the dimension x*y*4 (rgb + alpha)
         dat = numpy.array(tmp)
-        volume = len(numpy.where(dat.reshape(dat.size, 1) < 128)[0]) / float(dat.size)  # cont fields below 128 which is become black with a thrshold of 0.5
+        volume = len(numpy.where(dat.reshape(dat.size, 1) < 128)[0]) / float(dat.size)  # count fields below 128 which is become black with a threshold of 0.5
         print('volume fraction from image : ' + str(volume))
         if info != None:
           vol = xml.etree.ElementTree.SubElement(info, "volume")

@@ -956,7 +956,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     if(DoMSFEM())
     {
       assert(IsRegular());
-      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
+      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast<Matrix<Double>&>(retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
 
     // if we do prestressing (e.g. in buckling analysis), the tensor is never constructed but instead generated from stresses
@@ -993,10 +993,14 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   double factor = -4711; // set below
   double bimat_factor = -1.0;
 
-  // we store the original material tensor in retMat
-  coef->orgMat->GetTensor(retMat, *lpm);
-
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
+
+  Optimization* opt = domain->GetOptimization();
+  if(app == App::BUCKLING && opt && opt->me && opt->me->DoHomogenization())
+    dynamic_cast<ErsatzMaterial*>(opt)->CalcStressesForBucklingHomogenization(dynamic_cast<Matrix<Double>&>(retMat), lpm);
+  else
+    // we store the original material tensor in retMat
+    coef->orgMat->GetTensor(retMat, *lpm);
 
   if(app == App::MAG)
   {
@@ -1022,20 +1026,30 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     // @see CoefFunctionFlux::GetVector
     factor = 1.0;
 
-    // stress filtering
-    // for each element, where density < 0.1, we set the stress to 10^-15
-    DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, false);
-    if(de)
+    ParamNodeList sequenceSteps = domain->GetParamRoot()->GetList("sequenceStep");
+    bool stressFiltering = false;
+    for (unsigned int i=0; i<sequenceSteps.GetSize(); ++i)
+      if (sequenceSteps[i]->Get("analysis")->Has("buckling"))
+        if (sequenceSteps[i]->Get("analysis")->Get("buckling")->Get("stressFilter")->As<bool>())
+          stressFiltering = true;
+
+    if (stressFiltering)
     {
-      assert(de->GetType() == BaseDesignElement::DENSITY);
-      double density = de->GetDesign(BaseDesignElement::PLAIN);
-      if(density < 0.1)
+      // stress filtering
+      // for each element, where density < 0.1, we set the stress to 10^-15
+      DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, false);
+      if(de)
       {
-        unsigned int ncols = domain->GetGrid()->GetDim() == 2 ? 4 : 9;
-        Matrix<Double> zero(ncols, ncols);
-        zero.InitValue(pow(10,-15));
-        retMat.Resize(ncols, ncols);
-        retMat.SetPart(Global::REAL, zero);
+        assert(de->GetType() == BaseDesignElement::DENSITY);
+        double density = de->GetDesign(BaseDesignElement::PLAIN);
+        if(density < 0.1)
+        {
+          unsigned int ncols = retMat.GetNumCols();
+          for (unsigned int i=0; i<ncols; ++i)
+              for (unsigned int j=0; j<ncols; ++j)
+                if (std::abs(retMat(i,j)) > 1e-10)
+                  retMat(i,j) = pow(10,-15);
+        }
       }
     }
   }

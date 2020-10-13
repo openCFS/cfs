@@ -68,18 +68,21 @@ class BucklingDriver: public virtual SingleDriver {
     }
 
     SingleVector* eigenValues;
-    SingleVector* errBounds;
+    SingleVector* errors;
 
   private:
 
     // print eigenValues to the console
     void PrintResult();
 
-    // calculate eigen values and (implicitly) eigen modes
-    void CalcValues();
+    // setup the eigenvalue solver
+    void SetupSolver();
 
-    // store modes in algebraic system solution
-    void StoreModes();
+    // calculate eigen values and (implicitly) eigen modes
+    void CalcValues(unsigned int recursionCount = 0);
+
+    // store mode in algebraic system solution
+    void StoreMode(unsigned int index);
 
     // export eigenmodes
     void ExportModes();
@@ -87,7 +90,11 @@ class BucklingDriver: public virtual SingleDriver {
     // sort modes with ascending eigenvalues
     void SortModes(bool inAbs);
 
-    Vector<Double> GetRealPartOfLoadFactors();
+    // extracts the real part of the load factor vector
+    // if loadFactors_ is already real, this is just a cheap cast operation
+    Vector<Double> GetRealPartOfVector(SingleVector* vec);
+
+    BaseEigenSolver* solver;
 
     BaseEigenSolver::EigenSolverType solverType_;
 

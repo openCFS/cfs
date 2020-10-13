@@ -320,7 +320,7 @@ namespace CoupledField
     /** Set the matrix out of a vector.
      * This matrix is resized. rows times cols needs to match vec.GetSize()
      * @param row_major = true assumes a11, a12, a13, a21, a22, ... (C style)
-     *        row_major = false = col_major assumes a11, a21, a31, ... (Fotran style)
+     *        row_major = false = col_major assumes a11, a21, a31, ... (Fortran style)
      * @see https://en.wikipedia.org/wiki/Row-major_order */
     void Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major);
 
@@ -473,7 +473,7 @@ namespace CoupledField
     //! This method calculates the inverse of the matrix and stores it
     //! into \a inv. The original matrix remains unchanged.
     //! This method is explicitly and efficient coded for matrices up 
-    //! to size 3 x 3 and thus intneded e.g. for Jacobian matrices.
+    //! to size 3 x 3 and thus intended e.g. for Jacobian matrices.
     //! For larger ones it uses a factorization scheme.
     //! \param inv matrix which will hold the inverse
     void Invert ( Matrix <TYPE> & inv ) const;
@@ -482,8 +482,6 @@ namespace CoupledField
 
     //! This method calculates the inverse of the matrix and stores it
     //! into \a inv. The original matrix remains unchanged.
-    //! This method is explicitly and efficient coded for matrices up
-    //! \param inv matrix which will hold the inverse
     void PseudoInvert ( Matrix <TYPE> & inv ) const;
 
     //! Invert the matrix itself with Lapack

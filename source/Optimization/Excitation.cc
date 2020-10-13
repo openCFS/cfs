@@ -114,6 +114,7 @@ unsigned int MultipleExcitation::GetNumberHomogenization(App::Type app) const
     switch(app)
     {
       case App::MECH:
+      case App::BUCKLING:
         return dim == 2 ? 3 : 6;
       case App::HEAT:
         return dim;
@@ -131,6 +132,9 @@ bool MultipleExcitation::IsEnabled(int sequence) const
     return multiple_excitation_;
   // for bloch we do not set multiple excitation, it is implicit and we might use ME for homogenization
   if(Optimization::manager.context[sequence-1].DoBloch())
+    return true;
+
+  if(Optimization::manager.context[sequence-1].DoBuckling())
     return true;
 
   return multiple_excitation_ && sequence == sequence_;
@@ -340,27 +344,36 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   // initialize data and do simple plausibility check. Note that also 1 is "multiple"
   // only for our sequence. We assume only one multipleExcitations element in xml even for multiple sequence optimization
-  if(IsEnabled(ctxt->sequence) && sequence_ == ctxt->sequence)
+  if(IsEnabled(ctxt->sequence))
   {
-    // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
-    // and trackings in one excitation when specified in multipleExcitation (only non-harmonic) (this is done here)
-    if(!ctxt->IsHarmonic() && pn->Has("multipleExcitation/excitations"))
+    if(sequence_ == ctxt->sequence)
     {
-      pn_ex = pn->Get("multipleExcitation/excitations")->GetChildren();
-      num_loads = pn_ex.GetSize(); // in the magnetic coil case, we overwrite the num_loads from bcs
+      // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
+      // and trackings in one excitation when specified in multipleExcitation (only non-harmonic) (this is done here)
+      if(!ctxt->IsHarmonic() && pn->Has("multipleExcitation/excitations"))
+      {
+        pn_ex = pn->Get("multipleExcitation/excitations")->GetChildren();
+        num_loads = pn_ex.GetSize(); // in the magnetic coil case, we overwrite the num_loads from bcs
+      }
+
+      // decide if we have multiple loads or multiple frequencies
+      // we cannot do both!
+
+      if(num_freq > 1 && num_loads > 1)
+        throw Exception("Cannot do concurrent multiple excitations for multiple loads and multiple frequencies");
+
+      assert(!(num_wave > 0 && (num_freq > 0 || num_loads > 0  || num_trans_ > 0)));
+
+      // sets and resizes excitations with strain loads
+      if(DoHomogenization())
+        num_loads = SetHomogenizationTestStrains(context_base, ctxt);
     }
 
-    // decide if we have multiple loads or multiple frequencies
-    // we cannot do both!
-
-    if(num_freq > 1 && num_loads > 1)
-      throw Exception("Cannot do concurrent multiple excitations for multiple loads and multiple frequencies");
-
-    assert(!(num_wave > 0 && (num_freq > 0 || num_loads > 0  || num_trans_ > 0)));
-
-    // sets and resizes excitations with strain loads
-    if(DoHomogenization())
-      num_loads = SetHomogenizationTestStrains(context_base, ctxt);
+    // usually we provide a macrostress in the xml, so we have only one excitation
+    // one could change that to more excitations and use unit vectors as test stresses
+    if(DoHomogenization() && ctxt->DoBuckling())
+      //num_loads += SetHomogenizationTestStrains(context_base, ctxt);
+      num_loads += 1;
 
     // we average the solutions(s) only for output.
     // In the calculations we average the individual calculations
@@ -389,7 +402,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   // SetLoadCases() recognizes a harmonic load
   if( IsEnabled(ctxt->sequence) &&
-      ( (!ctxt->IsComplex() || num_freq == 1) && !ctxt->DoBloch() ) ) // multiple loads case
+      ( ( (!ctxt->IsComplex() || num_freq == 1) && !ctxt->DoBloch() ) // multiple loads case
+      || ( DoHomogenization() && ctxt->DoBuckling() ) ) ) // homogenization with buckling -> SetLoadCases only resizes 'exitations'
     SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
@@ -498,9 +512,9 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
     testStrains[i] = i;
 
   App::Type app = ctxt->ToApp();
-  assert(app == App::MECH || app == App::HEAT);
+  assert(app == App::MECH || app == App::HEAT || app == App::BUCKLING);
 
-  if (app == App::MECH && dim == 2){
+  if ((app == App::MECH || app == App::BUCKLING) && dim == 2){
     testStrains.Clear(cases);
     testStrains.Push_back(MechPDE::X);
     testStrains.Push_back(MechPDE::Y);
@@ -515,10 +529,13 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
     //MechPDE has more test strains than HeatPDE, naming is the same
     ex.label = MechPDE::testStrain.ToString(ts);
 
-    ex.ReadTestStrain(ctxt, ts);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    ex.weight = i < cases-1 ? 0.0 : 1.0;
-    LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
+    if(app == App::MECH || app == App::HEAT)
+    {
+      ex.ReadTestStrain(ctxt, ts);
+      // The homogenized tensor can only be evaluated for the last excitation!
+      ex.weight = i < cases-1 ? 0.0 : 1.0;
+      LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
+    }
     LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString(2);
   }
 
@@ -998,15 +1015,14 @@ std::map<RegionIdType, PtrCoefFct> Excitation::GetStressCoefFctFromExcitation(UI
     // Set current region
     actRegion = mat.first;
 
-    // buckling is implemented as multisequence
-    // we assume that the first excitation is linear elasticity
+    // get excitation at index
     Optimization* opt = domain->GetOptimization();
-    assert(opt->GetMultipleExcitation()->excitations.GetSize());
-    Excitation& lin_elas_ex = opt->GetMultipleExcitation()->excitations[index];
+    assert(opt->GetMultipleExcitation()->excitations.GetSize() > 1);
+    Excitation& excite = opt->GetMultipleExcitation()->excitations[index];
 
-    // get the solution (displacement) of this first excitation
+    // get the solution (displacement) of this excitation
     ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
-    StateSolution* ss = em->GetForwardStates().Get(lin_elas_ex, NULL, -1);
+    StateSolution* ss = em->GetForwardStates().Get(excite, NULL, -1);
     Vector<Double> mech_displ;
     mech_displ = ss->GetRealVector(StateSolution::RAW_VECTOR);
 

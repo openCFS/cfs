@@ -55,7 +55,7 @@ def create_image(min, max, res, color="white"):
   # print "dx=" + str(dx) + " dy=" + str(dy) + " res=" + str(res) + " dim=" + str(dim) + " max=" + str(max) 
   im = Image.new("RGB", dim, color)
   draw = ImageDraw.Draw(im)
-  
+
   return im, draw, dim, dx, dy  
 
 
@@ -882,7 +882,7 @@ def show_framed_cross(coords, design, nx, scale, color, do_save):
 def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilateral=True, param=None):
   
   s1 = design['s1']
-  
+
   centers, min, max, elem = coords
   
   # set size dx/dy/dz of one cell
@@ -899,18 +899,18 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
   
   if equilateral:
     # rescale element for equilateral triangle
-    elem = np.array([elem[0], elem[0] * sqrt(3), 0])
+    elem = np.array([elem[0], elem[0] * np.sqrt(3), 0])
 
   nx = int((max[0]-min[0]) / elem[0])
   ny = int(np.round((max[1]-min[1]) / elem[1]))
-  
+
   if equilateral:
-    if not param:
+    if param is None:
       elem[1] = (max[1]-min[1]) / ny
     else:
       max[0] = 3*elem[0]
       max[1] = 2*elem[1]
-   
+
     # calculate new element centers
     centers_new = []
     for y in range(ny):
@@ -919,10 +919,14 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         centers_new.append(center)
    
     # get image resolution
-    res = (res, int(res * ny * elem[1] / (nx * elem[0]))) if not param else [res, int(res*sqrt(3)*2/3)]
+    res = (res, int(res * ny * elem[1] / (nx * elem[0]))) if param is None else [res, int(res*np.sqrt(3)*2/3)]
 
   im, draw, dim, dx, dy = create_image(min, max, res, "white")
 
+  if param == 0.0:
+    im = im.crop((max[0]/3/2*dx, min[1]*dy, max[0]/3/2*5*dx, max[1]*dy))
+    return im
+  
   # size of element in pixels
   height = elem[1] * dy 
   length = elem[0] * dx
@@ -931,30 +935,35 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
     # interpolate original data at new centers
     c, v = convert_single_data_interpolation_input(centers, s1, None)
     ip_data = ip.griddata(c, v, centers_new, grad, -1.0)
-    # any interpolation but nearest neighbor can only interpolate in the convex hull,
+    # any interpolation but nearest neighbor can only interpolate in the convex hull
     ip_near = ip.griddata(c, v, centers_new, 'nearest') if grad != 'nearest' else None
   else:
     ip_near = s1
     ip_data = s1
-  
 
   for y in range(ny):
     for x in range(nx):
       # if the value is -1 we use the nearest interpolation
       mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, y * nx + x)
-      if param:
+
+      if v < thres:
+        v = 0.0
+
+      if param is not None:
         v = param
 
-      v = 1-np.sqrt(1-np.min((v,1)))
+      # this will generate a linear param-volume realtionship
+      # else it will be volume = -param^2 + 2*param
+      # we have to apply this if we performed optimization with volume as design variable
+      if param is None:
+        v = 1-np.sqrt(1-np.min((v,1)))
 
-      l = 1.15
-      v = v if v > thres else 1-l
-      
-      v = (v-1)/l + 1
-      
-      # scale v
-#       v *= 2.0/3.0
-      
+      # set the minimal volume
+      #v = (v-1)/1.15 + 1
+
+      if param is not None:
+        v *= 2.0/3.0
+
       # black outer triangle
       n1x = mid[0] * dx - length
       n2x = mid[0] * dx
@@ -986,6 +995,9 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       tupels.append((n3x, n3y))
       
       #draw.polygon(tupels, fill=(0,0,int(np.random.rand(1)[0]*256)))
+#      data = numpy.array(im)
+#      print((numpy.min(data),numpy.max(data),numpy.average(data)))
+#      print(tupels)
       draw.polygon(tupels, fill="black")
 
       # white inner triangle
@@ -1067,7 +1079,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0))
         draw.polygon(tupels, fill="white")
 
-  if param:
+  if param is not None:
     im = im.crop((max[0]/3/2*dx, min[1]*dy, max[0]/3/2*5*dx, max[1]*dy))
 
   return im
