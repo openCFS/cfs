@@ -29,7 +29,7 @@ SET(CFS_DS_WEBDAV "${CFS_DS_HTTPS}/files")
 # ----------------------------------------------------------------------------
 # Alternative mirror from the optimization group - plain http!
 # ----------------------------------------------------------------------------
-SET(CFS_FAU_MIRROR "http://eamc080.eam.uni-erlangen.de/cfsdeps")
+SET(CFS_FAU_MIRROR "http://movm.mi.uni-erlangen.de/cfsdepscache")
 
 #-----------------------------------------------------------------------------
 # Base directory CFS_DEPS_CACHE_DIR mirror.

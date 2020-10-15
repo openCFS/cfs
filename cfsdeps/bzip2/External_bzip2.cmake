@@ -62,6 +62,7 @@ SET(MIRRORS
   "https://fossies.org/linux/misc/${BZIP2_GZ}"
   "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/${BZIP2_GZ}"
   "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/${BZIP2_GZ}"
+  "${CFS_FAU_MIRROR}/sources/bzip2/${BZIP2_GZ}"
   "${BZIP2_URL}/${BZIP2_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/bzip2/${BZIP2_GZ}")

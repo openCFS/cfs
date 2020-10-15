@@ -18,6 +18,7 @@ set(openblas_source  "${openblas_prefix}/src/openblas")
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "https://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_GZ}"
+  "${CFS_FAU_MIRROR}/sources/openblas/${OPENBLAS_GZ}"
   "${OPENBLAS_URL}/${OPENBLAS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")

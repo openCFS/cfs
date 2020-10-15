@@ -66,8 +66,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # To obfuscate the download,. the filename is replaced by its md5 sum.
 #-------------------------------------------------------------------------------
 SET(MIRRORS 
-  "${CFS_FAU_MIRROR}/sources/ilupack/${ILUPACK_MD5}"
-  "${CFS_DS_SOURCES_DIR}/ilupack/${ILUPACK_MD5}")
+  "${CFS_DS_SOURCES_DIR}/ilupack/${ILUPACK_GZ}")
 
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}")
 SET(MD5_SUM ${ILUPACK_MD5})

@@ -38,6 +38,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 
 SET(MIRRORS
   "https://dl.bintray.com/boostorg/release/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/source/${BOOST_GZ}"
+  "${CFS_FAU_MIRROR}/sources/boost/${BOOST_GZ}"
   "${CFS_DS_SOURCES_DIR}/boost/${BOOST_ZIP}"
 )
 

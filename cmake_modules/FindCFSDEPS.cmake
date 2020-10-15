@@ -262,7 +262,7 @@ IF(USE_SUITESPARSE OR USE_ILUPACK)
   SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
   INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Find ILUPACK library

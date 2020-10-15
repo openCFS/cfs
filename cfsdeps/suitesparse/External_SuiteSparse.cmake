@@ -82,6 +82,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://faculty.cse.tamu.edu/davis/SuiteSparse/${SUITESPARSE_GZ}"
+  "${CFS_FAU_MIRROR}/sources/suitesparse/${SUITESPARSE_GZ}"
   "${SUITESPARSE_URL}/${SUITESPARSE_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/suitesparse/${SUITESPARSE_GZ}")
