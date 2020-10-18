@@ -254,7 +254,7 @@ void Dependencies::ReadSetting()
   // on a private communication base from the author Matthias Bollhoefer,
   // hence we cannot give the code but shall be allowed to give the binaries.
   // There is no license information mentioned on the web page: http://ilupack.tu-bs.de
-  Dependency il("ILUPACK", "USE_ILUPACK", NOT_KNOWN);
+  Dependency il("ILUPACK", "USE_ILUPACK", CLOSED );
  #ifdef USE_ILUPACK
   il.active = true;
  #endif
