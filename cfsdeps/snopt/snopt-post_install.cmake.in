@@ -11,7 +11,9 @@
 #FILE(REMOVE_RECURSE "@SNOPT_SOURCE@")
 
 # remove libblas.a, we have own blas in cfs
-FILE(REMOVE "@SNOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libblas.a")
+IF(UNIX)
+  FILE(REMOVE "@SNOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libblas.a")
+ENDIF()
 
 # copy data from install dir to the target.
 FILE(COPY "@SNOPT_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

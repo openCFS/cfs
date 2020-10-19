@@ -16,8 +16,9 @@ IF(TARGET cgal)
 ENDIF()
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-set_source_files_properties(SimOutputUnv.cc
-                            PROPERTIES COMPILE_FLAGS
-                            "-D '__sync_fetch_and_add(ptr,addend)=_InterlockedExchangeAdd(const_cast<void*>(reinterpret_cast<volatile void*>(ptr)), addend)'")
+  IF(NOT WIN32)
+    set_source_files_properties(SimOutputUnv.cc PROPERTIES COMPILE_FLAGS
+         "-D '__sync_fetch_and_add(ptr,addend)=_InterlockedExchangeAdd(const_cast<void*>(reinterpret_cast<volatile void*>(ptr)), addend)'")
+  ENDIF()
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 

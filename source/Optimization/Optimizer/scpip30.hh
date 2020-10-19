@@ -1,6 +1,8 @@
 #ifndef SCPIP30_HH_
 #define SCPIP30_HH_
 
+#include <def_cfs_fortran_interface.hh>
+
 /** Declare a C header for the SCPIP fortran implementation by Ch. Zillober */ 
 
 extern "C" 
@@ -35,7 +37,7 @@ extern "C"
    * @param rinfo (5) Double precision array of dimension 5 containing some problem information (OUT)  
    * 
    * */
-  void scpip30_(const int* n,            // ON INPUT (INTEGER = I): NUMBER OF VARIABLES, AT LEAST >=1. NOT ALTERED (NA)
+  void scpip30(const int* n,            // ON INPUT (INTEGER = I): NUMBER OF VARIABLES, AT LEAST >=1. NOT ALTERED (NA)
                 const int* mie,          // ON INPUT (I): NUMBER OF INEQUALITY CONSTRAINTS (NA)
                 const int* meq,          // ON INPUT (I): NUMBER OF EQUALITY CONSTRAINTS (NA)
                 const int* iemax,        // ON INPUT (I): DIMENSION OF INEQUALITY DEPENDENT ARRAYS H_ORG, Y_IE,ACTIVE. MUST BE AT LEAST MIE AND >=1. (NA)

@@ -214,7 +214,7 @@ int SCPIPBase::solve_problem(bool fromWarmstart)
 // but USE_SCPIP needs to be enabled for USE_FEAS_SCP because it is a subclass!
 
 #ifndef USE_FEAS_SCP
-    scpip30_(&n,                      // 1
+    scpip30(&n,                      // 1
              &mie,                    // 2
              &meq,                    // 3
              &iemax,                  // 4
