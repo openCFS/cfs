@@ -69,7 +69,7 @@ namespace CoupledField {
       ;
     };
     
-    Double evaluateLagCorrectionAngle(Vector<Double>& xVal, Vector<Double>& prevXVal);
+    Double evaluateLagCorrectionAngle(Vector<Double>& xVal, Vector<Double>& prevXVal, Double maxAngle);
 
   private:
     // for 2D > only semicircle required due to symmetry

@@ -145,6 +145,9 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN );
     isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN );
     isAllowed_.insert( IRRSTRAIN_REUSE_P );
+    isAllowed_.insert( TRACE_FORCE_CENTRALDIFF );
+    isAllowed_.insert( TRACE_FORCE_RETRACING );
+    isAllowed_.insert( TRACE_JAC_RESOLUTION );
   }
 
   ElectroStaticMaterial::~ElectroStaticMaterial() {

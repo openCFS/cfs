@@ -28,6 +28,28 @@
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>
+      
+      <xsd:element name="AdaptTracingOfHystOperator" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              Advanced parameter for adapting the tracing operator of the hyst operator.<br/>
+              JacResolution: resolution for evaluation of the Jacobian matrix in terms of 
+              finite differences<br/>
+              forceCentral: compute Jacobian during tracing with central Differences instead of
+              the default forward differences<br/> 
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="JacResolution" type="DT_PosFloat" default="1e-5" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="forceCentral" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+            <xsd:element name="forceRetracing" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>  
+      
       <xsd:element name="piezoCouplingAndStrains" minOccurs="0">
         <xsd:complexType>
           <xsd:all>
@@ -164,6 +186,28 @@
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>
+
+      <xsd:element name="AdaptTracingOfHystOperator" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              Advanced parameter for adapting the tracing of the hyst operator.<br/>
+              JacResolution: resolution for evaluation of the Jacobian matrix in terms of 
+              finite differences<br/>
+              forceCentral: compute Jacobian during tracing with central Differences instead of
+              the default forward differences<br/> 
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="JacResolution" type="DT_PosFloat" default="1e-5" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="forceCentral" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+            <xsd:element name="forceRetracing" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>  
+      
       <xsd:element name="magstrictCouplingAndStrains" minOccurs="0">
         <xsd:complexType>
           <xsd:all>

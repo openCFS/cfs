@@ -1024,7 +1024,41 @@ namespace CoupledField {
     } else {
       EXCEPTION("Either elecPolarization or magPolarization has to be defined for hysteresis node.")
     }
-
+    
+    /*
+     * tracing related flags (tracing of hyst operator is done in CoefFunctionHyst.cc)
+     * > must be done via mat.xml; as tracing is done for each material separately
+     */
+    Double trace_JacResolution = 1e-5;
+    bool trace_forceCentral = false;
+    bool trace_forceRetracing = false;
+    
+    PtrParamNode tracingNode = NULL;
+    if(hystNode->Has("AdaptTracingOfHystOperator")){
+      tracingNode = hystNode->Get("AdaptTracingOfHystOperator");
+      if(tracingNode->Has("JacResolution")){
+        trace_JacResolution = tracingNode->Get("JacResolution")->As<Double>();
+      }
+      if(tracingNode->Has("forceCentral")){
+        trace_forceCentral = tracingNode->Get("forceCentral")->As<bool>();       
+      }   
+      if(tracingNode->Has("forceRetracing")){
+        trace_forceRetracing = tracingNode->Get("forceRetracing")->As<bool>();
+      } 
+    } 
+    
+    material->SetScalar(trace_JacResolution, TRACE_JAC_RESOLUTION, Global::REAL );
+    if (trace_forceCentral){
+      material->SetScalar(1, TRACE_FORCE_CENTRALDIFF);
+    } else {
+      material->SetScalar(0, TRACE_FORCE_CENTRALDIFF);
+    }
+    if (trace_forceRetracing){
+      material->SetScalar(1, TRACE_FORCE_RETRACING);
+    } else {
+      material->SetScalar(0, TRACE_FORCE_RETRACING);
+    }
+    
     PtrParamNode couplingNode = NULL;
     int usePolarization = 0;
     if (hystNode->Has("piezoCouplingAndStrains")){

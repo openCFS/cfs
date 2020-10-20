@@ -24,7 +24,7 @@ namespace CoupledField {
     Double minSlope_;
     Double maxPolarization_;
     Double negCoercivity_;
-
+    
 //    bool forStrain_;
   };
 

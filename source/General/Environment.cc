@@ -2085,6 +2085,10 @@ namespace CoupledField {
 
     MaterialTypeEnum.Add( HYST_COUPLING_DEFINED, "hystCouplingDefined" );
 
+    MaterialTypeEnum.Add( TRACE_FORCE_CENTRALDIFF, "traceForceCentralDifferences" );
+    MaterialTypeEnum.Add( TRACE_FORCE_RETRACING, "traceForceRetracing" );
+    MaterialTypeEnum.Add( TRACE_JAC_RESOLUTION, "traceJacResolution" );
+    
     // ==== Initialization of Material Classes ====
     MaterialClassEnum.Add(NO_CLASS, "no material class");
     MaterialClassEnum.Add(TESTMAT, "test");

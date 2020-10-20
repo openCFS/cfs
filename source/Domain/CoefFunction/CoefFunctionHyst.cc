@@ -1018,6 +1018,14 @@ namespace CoupledField {
 		material_ = material;
 		ptFeSpace_ = ptFeSpace;
 
+    // default values used for tracing until nov 2020; 
+    // worked acceptably well for most cases but failed for tracing extended Mayergoyz model
+    // can now be set via mat.xml
+    // > init must be done before call to readInMaterial!
+    trace_forceRetracing_ = false; // false: load trace from if possible; true: retrace (but only once for each material!)
+    trace_forceCentral_ = false;
+    trace_JacResolution_ = 1e-5;
+    
     ReadInMaterial(material);
 
 		/*
@@ -1109,7 +1117,7 @@ namespace CoupledField {
 
 		XML_EvaluationDepth_ = 0;
 		XML_performanceMeasurement_ = 0;
-
+    
 		/*
      * get elements and integration points
      */
@@ -1949,6 +1957,36 @@ namespace CoupledField {
     bool forStrain = false;
 
     /*
+     * 6.11.2020
+     * Get general parameter required for tracing
+     * motivation: tracing is one of the most critical parts for solving the hysteretic 
+     * equation systems; if not done properly, the derived slopes - which in terms are
+     * used to derive the Fixed-Point contraction factors - can be too large or too small
+     * causing either a too slow convergence or no convergence at all
+     * Most of the older testcases were successful for 
+     * - forward differences > set by switching forceCentral in setFlag() function below
+     * - JacResolution (min resolution for computation of jacobian) = 1e-5
+     * However, this combination lead to serious problems with the Mayergoyz model so that
+     * adaptions had to be made
+     */
+    int forceRetraceTmp; 
+    int forceCentralTmp; 
+    material->GetScalar(trace_JacResolution_, TRACE_JAC_RESOLUTION, Global::REAL);
+    material->GetScalar(forceRetraceTmp, TRACE_FORCE_RETRACING);
+    material->GetScalar(forceCentralTmp, TRACE_FORCE_CENTRALDIFF);
+    
+    if(forceRetraceTmp == 1){
+      trace_forceRetracing_ = true;
+    } else {
+      trace_forceRetracing_ = false;
+    }
+    if(forceCentralTmp == 1){
+      trace_forceCentral_ = true;
+    } else {
+      trace_forceCentral_ = false;
+    }
+    
+    /*
      * Get weights first, then operator parameters
      */
     ReadAndSetWeights(material, forStrain);
@@ -2004,7 +2042,7 @@ namespace CoupledField {
         LOG_DBG(coeffunctionhyst_main) << "Defined inversion method: " << usedMethod;
 
         if(InversionParams_.inversionMethod == LOCAL_FIXPOINT){
-          // global fp method
+          // local fp method
           // Trace hyst operator first
 //          std::cout << "Setting parameter for local inversion - trace hyst operator for inversion via fp" << std::endl;
           if(!hystModelTraced_){
@@ -2025,15 +2063,18 @@ namespace CoupledField {
           }
           Double contractionFactorLocalInversion;
           material->GetScalar(contractionFactorLocalInversion, HYST_INV_FP_SAFETYFACTOR, Global::REAL);
-
+          
+          // the global system has its own safety factors (localFPFactor_C,globalFPFactor_C) see coeffnchyst.hh; 
+          // note that the "local" of localFPFactor_C refers to the localized FP method, not
+          // to the local inversion on element level!
           InversionParams_.safetyFactor_C = contractionFactorLocalInversion;
           InversionParams_.minSlopeHystOperator = minSlopeGlobal_;
           InversionParams_.maxSlopeHystOperator = maxSlopeGlobal_;
         }
 
-
         material->GetScalar(InversionParams_.tolH, RES_TOL_H_HYST_INV, Global::REAL);
         material->GetScalar(InversionParams_.tolB, RES_TOL_B_HYST_INV, Global::REAL);
+
         int tolH_useAsRelativeNormInt = 0;
         material->GetScalar(tolH_useAsRelativeNormInt, RES_TOL_H_HYST_INV_ISREL);
         if(tolH_useAsRelativeNormInt == 1){
@@ -2108,6 +2149,8 @@ namespace CoupledField {
         material->GetScalar(InversionParams_.projLM_c, HYST_INV_PROJLM_C, Global::REAL);
         material->GetScalar(InversionParams_.projLM_p, HYST_INV_PROJLM_P, Global::REAL);
 
+      } else {
+        InversionParams_.inversionMethod = LOCAL_NOTIMPLEMENTED; // undefined
       }
 //    } else if(POL_operatorParams_.methodName_ == "scalarPreisach"){
 //      inversionSet_ = true; // scalar model needs no additional parameter for inversion, it is always ready
@@ -2512,8 +2555,8 @@ namespace CoupledField {
     //		std::cout << "numStorageEntries_: " << numStorageEntries_ << std::endl;
     //		std::cout << "numHystOperators_: " << numHystOperators_ << std::endl;
 //    std::cout << "CoefFunction::CoefDimType(POL_operatorParams_.methodType_): " << CoefFunction::CoefDimType(POL_operatorParams_.methodType_) << std::endl;
-		if (POL_operatorParams_.methodType_ == 0) {
-
+		if (POL_operatorParams_.methodType_ == 0) { 
+      // Scalar model
       bool isVirgin = true;
       POL_useExtension_ = false;
       //      int useExtensionInt;
@@ -2523,53 +2566,6 @@ namespace CoupledField {
       //      }
       if(POL_useExtension_){
         EXCEPTION("No longer available");
-        //        material_->GetScalar(POL_operatorParams_.rotResistance_, ROT_RESISTANCE, Global::REAL);
-        //        material_->GetScalar(POL_operatorParams_.angularDistance_, ANG_DISTANCE, Global::REAL);
-        //
-        //        hyst_ = new ExtendedPreisach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_,
-        //                POL_operatorParams_.rotResistance_, POL_operatorParams_.angularDistance_, dim_, isVirgin, POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_, POL_weightParams_.anhystOnly_);
-        //
-        //        // set initial direction
-        //        POL_initialInput_ = Vector<Double>(dim_);
-        //
-        //        material_->GetScalar(POL_initialInput_[0], INITIAL_STATE_X, Global::REAL);
-        //        material_->GetScalar(POL_initialInput_[1], INITIAL_STATE_Y, Global::REAL);
-        //        if (dim_ == 3) {
-        //          material_->GetScalar(POL_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
-        //        }
-        //
-        //        Vector<Double> initialInputForRotstate = POL_initialInput_;
-        //        // if no value is given for initial state, set it to dirP
-        //        if (initialInputForRotstate.NormL2() < 1e-16) {
-        //          initialInputForRotstate.Init();
-        //          if(POL_setWithFlux_){
-        //            // update rotation states with flux quantity
-        //            // POL_initialInput_ = (POL_operatorParams_.outputSat_*Identity + POL_operatorParams_.inputSat_*eps_nu_base_)*POL_operatorParams_.fixDirection_
-        //            // > flux with value just at saturation
-        //            // > but: saturation alone would not suffice! we need to consdier anhyst parts, too
-        //            eps_nu_base_.Mult(POL_operatorParams_.fixDirection_,initialInputForRotstate);
-        //            initialInputForRotstate.ScalarMult(POL_operatorParams_.inputSat_);
-        //            Double anhystPart = hyst_->evalAnhystPart_normalized(1.0);
-        //            initialInputForRotstate.Add((anhystPart+1.0)*POL_operatorParams_.outputSat_,POL_operatorParams_.fixDirection_);
-        //          } else {
-        //            // update rotation states with field intensity
-        //            // > scaling with x saturation sufficient
-        //            initialInputForRotstate.Add(POL_operatorParams_.inputSat_,POL_operatorParams_.fixDirection_);
-        //          }
-        //        }
-        //
-        //        if(POL_setWithFlux_){
-        //          for(UInt i = 0; i < numHystOperators_; i++){
-        //            hyst_->UpdateRotationStateWithFluxDensity(initialInputForRotstate,eps_nu_base_,i);
-        //            hyst_->EvaluateRotationState(i);
-        //          }
-        //        } else {
-        //          for(UInt i = 0; i < numHystOperators_; i++){
-        //            hyst_->UpdateRotationStateWithFieldIntensity(POL_initialInput_,i);
-        //            hyst_->EvaluateRotationState(i);
-        //          }
-        //        }
-
       } else {
         bool ignoreAnhyst = false;
         hyst_ = new Preisach(numHystOperators_, POL_operatorParams_, POL_weightParams_, isVirgin, ignoreAnhyst);
@@ -2579,8 +2575,11 @@ namespace CoupledField {
 
       POL_operatorParams_.hasInverseModel_ = false;
       // used during testing of hyst operator so it is set here
-      InversionParams_.tolB = 1e-10;
-      InversionParams_.tolH = 1e-8; // criterion as used in Preisach.cc for inversion; note: here for actual pol; in Preisach.cc scaled by XSatuated as it calcs with normalized values
+      // 4.11.2020
+      // not a good idea! tolB and tolH are already set at this point
+      // this just overwrites the given input
+//      InversionParams_.tolB = 1e-10;
+//      InversionParams_.tolH = 1e-8; // criterion as used in Preisach.cc for inversion; note: here for actual pol; in Preisach.cc scaled by XSatuated as it calcs with normalized values
 
 		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") {
       POL_operatorParams_.hasInverseModel_ = false;
@@ -3820,13 +3819,15 @@ namespace CoupledField {
      *                        not fail); Option 1 has slightly different values on off-diagonal
      *                    > Option 3 seems to be the best working version!
      */
-      if(InversionParams_.inversionMethod == LOCAL_NOTIMPLEMENTED){
-        // in case of the everett based inversion, we are no longer allowed to call computeValue_vec as
-        // the retrieved input from computeValue_vec will not return the original input (the inverse of a sum is
-        // not the sum of the inverted terms!); instead we compute the output by subtracting mu*E_H from 
-        // B; problem: we do neither know B nor P here!
-        EXCEPTION("JacobianApproximationOfMaterialRelation not supported for Everett based inversion of Mayergoyz model!");
-      }
+      
+    if( (InversionParams_.inversionMethod == LOCAL_NOTIMPLEMENTED) && (inversionSet_) ){
+      // NOTE: in electrostatics, the inversion parameter are not se as we need no local inversion!
+      // in case of the everett based inversion, we are no longer allowed to call computeValue_vec as
+      // the retrieved input from computeValue_vec will not return the original input (the inverse of a sum is
+      // not the sum of the inverted terms!); instead we compute the output by subtracting mu*E_H from 
+      // B; problem: we do neither know B nor P here!
+      EXCEPTION("No prober inversion method defined (InversionParams_.inversionMethod == LOCAL_NOTIMPLEMENTED), although inversionSet_ == True!");
+    }
       
     Double scaling = 1e-7; // sqrt(double precision)
     Double steppingDistance;
@@ -8321,7 +8322,12 @@ namespace CoupledField {
 
     std::stringstream basedir_name;
     std::stringstream forcedResolution_name;
-    basedir_name << "./history_hystOperator/";
+    
+    basedir_name << targetDirForResultFiles_;
+    if(targetDirForResultFiles_.back() != '/'){
+      basedir_name << "/";
+    }
+    //basedir_name << "./history_hystOperator/";
     
     try {
       fs::create_directory( basedir_name.str() );
@@ -8342,7 +8348,7 @@ namespace CoupledField {
     }
     std::string basedir = basedir_name.str();
     std::string forcedResolutionString = forcedResolution_name.str();
-    
+
     try {
       fs::create_directory( basedir );
     } catch (std::exception &ex) {
@@ -8415,6 +8421,8 @@ namespace CoupledField {
       orientationTowardsExcitation_p.open(orientation_name.str());
 		}
 
+//    writeResultsToInfoXML_
+    
 		if(printStatistics){
 			statistics.open(statistics_name.str());
 		}
@@ -8559,12 +8567,17 @@ namespace CoupledField {
 			statistics << "TEST: " << name << std::endl;
       statistics << "HYSTERESIS MODEL: " << POL_operatorParams_.methodName_ << std::endl;
       statistics << "LOCAL INVERSION METHOD: " << usedInversionMethod << std::endl;
+      if(InversionParams_.inversionMethod == LOCAL_FIXPOINT){
+        statistics << "FP-Contraction/Safety factor: " << InversionParams_.safetyFactor_C << std::endl;
+        statistics << "Min/max slope from tracing: " << InversionParams_.minSlopeHystOperator << " / " << InversionParams_.maxSlopeHystOperator << std::endl;
+      }      
       statistics << "Error Criteria: " << std::endl;
 			statistics << "- Residual wrt input (=x): " << InversionParams_.tolH << std::endl;
       statistics << "-> Relative? " << InversionParams_.tolH_useAsRelativeNorm << std::endl;
       statistics << "- Residual wrt output (=y): " << InversionParams_.tolB << std::endl;
       statistics << "-> Relative? " << InversionParams_.tolB_useAsRelativeNorm << std::endl;
-		}
+      statistics << "Maximal number of outer iterations: " << InversionParams_.maxNumIts << std::endl;
+    }
 
 		/*
      * 1. Create temporal hyst operator; this should be done for each test to ensure
@@ -8986,27 +8999,66 @@ namespace CoupledField {
 
       xInBak = xIn;
 
+      /*
+       * Note 25.10.2020
+       * Change:
+       * - in case of inversion test, we have to measure the evaluation time during the
+       *   initial evaluation, i.e., with the prescribed input
+       * Reason:
+       * - if inversion fails, the retrieved input might be completely different to the actual
+       *   desired one; this can lead to completely different runtimes which are required for the
+       *   models evaluation
+       * - Example: during performance tests for the Mayergoyz model, the evaluation time for fixed-point
+       *   inversion was much smaller than the evaluation time for Newton based inversion; this was caused
+       *   by the fixed-point inversion which could not invert the hystoperator correctly; thus, during the
+       *   evaluation with time-measurement, the Mayergoyz model became a much weaker input signal than it
+       *   should have, which does not use the single scalar models to a full extend; thus it was cheaper
+       */
+      
+      
       if(testInversion){
 				/*
          * Inversion test:
          *	1. evaluate forward hyst operator with given input; overwrite memory = false
+         *      > measure forward time
          *  2. retrieve input by passing result of 2 to inverse hyst operator
          *			> measure backward
          *  3. pass retrieved input to forward hyst operator; overwrite memroy = true
-         *			> measure forward time
+         *			CHANGED > do not measure forward time
          */
 
 				// 1. forward; do not overwrite
 				overwriteMemory = false;
 
 				successFlagForward = -1;
-				hIn.Init();
-//        if(vector){
-          hIn = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
-//        } else {
-//          Double hscal = hystTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
-//          hIn.Add(hscal,projectionDir);
-//        }
+        hIn.Init();
+        
+        if (measurePerformance) {
+          forwardTimer->Start();
+          startTime = forwardTimer->GetCPUTime();
+        }
+
+				hIn = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
+
+        if (measurePerformance) {
+          forwardTimer->Stop();
+
+          // only count actual computations; if value gets reused, this should not count
+          if(successFlagForward != 0) {
+            forwardEvalCounter++;
+
+            endTime = forwardTimer->GetCPUTime();
+            evalTime = endTime-startTime;
+            if(evalTime > forwardMaxEvalTime){
+              forwardMaxEvalTime = evalTime;
+            }
+            forwardTotalEvalTime += evalTime;
+
+            performance << "- forward: " << evalTime << std::endl;
+          } else {
+            performance << "- forward: " << evalTime << "(reused)" << std::endl;
+          }
+        }
 
 				yIn.Init();
         yIn.Add(1.0,hIn);
@@ -9137,6 +9189,9 @@ namespace CoupledField {
 			} // testInversion
 
 			// 3. forward; overwrite this time and measure performance
+      // Note 25.10.2020: If inversion is tested, measure forward time during the initial
+      //  evaluation (step 1.) due to the same reason as in the NOTE below (failed inverison leads
+      //  to wrong input which might be much faster or slower to be evaluated)
       // NOTE: in case of inversion, we set the memory of the system with the RETRIEVED SOLUTION
       // i.e. if inversion fails, it will also affect the reference solution!
 			overwriteMemory = true;
@@ -9155,7 +9210,7 @@ namespace CoupledField {
         cntTS++;
       }
       
-			if (measurePerformance) {
+			if (measurePerformance && (testInversion == false)) {
 				forwardTimer->Start();
 				startTime = forwardTimer->GetCPUTime();
 			}
@@ -9166,7 +9221,7 @@ namespace CoupledField {
 //				houtScal = hystTMP->computeValueAndUpdate(hinScal, 0, overwriteMemory, successFlagForward);
 //			}
 
-			if (measurePerformance) {
+			if (measurePerformance && (testInversion == false)) {
 				forwardTimer->Stop();
 
 				// only count actual computations; if value gets reused, this should not count
@@ -9273,6 +9328,23 @@ namespace CoupledField {
         results_xps << S_irr.ToString(precisionDigits,separatorString) << std::endl;
       }
       if(writeResultsToFile){
+        
+        if(writeResultsToInfoXML_){
+          Double Px,Py,Pz,Pabs,Pangle1,Pangle2;
+          Px = hOut[0];
+          Py = hOut[1];
+          Pabs = hOut.NormL2();
+          Pangle1 = std::atan2(hOut[1],hOut[0])/M_PI*180;
+          if(dimHystOperator == 3){
+            Pz = hOut[2];
+            Pangle2 = std::atan2(Pabs,hOut[2])/M_PI*180;
+          } else {
+            Pz = 0.0;
+            Pangle2 = 0.0;
+          }
+          WriteTestStepToInfoXML(i+1,Px,Py,Pz,Pabs,Pangle1,Pangle2);
+        }
+        
         //results_xp << i+1 << " " << std::setprecision(precisionDigits) << xIn.ToString() << " " << hOut.ToString() << std::endl;
         //        results_xp << i+1 << separatorString << std::setprecision(precisionDigits) << xIn[0] << " " << xIn[1] << " " << hOut[0] << " " << hOut[1] << std::endl;
         results_xp << i+1 << separatorString << xIn.ToString(precisionDigits,separatorString) << separatorString;
@@ -10978,7 +11050,7 @@ namespace CoupledField {
 //  }
 
   
-  void CoefFunctionHyst::TestInversion(PtrParamNode testNode){
+  void CoefFunctionHyst::TestInversion(PtrParamNode testNode, PtrParamNode infoNode){
 
     if(testNode == NULL){
       EXCEPTION("No input to inversion test provided");
@@ -11020,6 +11092,15 @@ namespace CoupledField {
     if(testNode->Has("PrintStatistics")){
       testNode->GetValue("PrintStatistics",printStatistics,ParamNode::PASS);
     }
+    writeResultsToInfoXML_ = false;
+    if(testNode->Has("writeResultsToInfoXML")){
+      testNode->GetValue("writeResultsToInfoXML",writeResultsToInfoXML_,ParamNode::PASS);
+      if(infoNode == NULL){
+        EXCEPTION("Cannot print to info.xml - infoNode = NULL");
+      }
+      infoNodeLoc_ = infoNode;
+    }
+    
     bool writeResultsToFile = false;
     if(testNode->Has("WriteResultsToFile")){
       testNode->GetValue("WriteResultsToFile",writeResultsToFile,ParamNode::PASS);
@@ -11028,6 +11109,12 @@ namespace CoupledField {
     if(testNode->Has("WriteInputToFile")){
       testNode->GetValue("WriteInputToFile",writeInputToFile,ParamNode::PASS);
     }
+    
+    targetDirForResultFiles_ = "history_hystOperator";
+    if(testNode->Has("DirectoryForTestoutput")){
+      testNode->GetValue("DirectoryForTestoutput",targetDirForResultFiles_,ParamNode::PASS);
+    }
+    
     bool measurePerformance = false;
     std::string commonPerfFile;
     std::string additionalTag1 = "---";
@@ -11625,7 +11712,7 @@ namespace CoupledField {
 
     if(stopAfterTests){
       std::cout << ("--- Stop after testing ---") << std::endl;
-      exit(0);
+//      exit(0);
     }
 
 
@@ -11656,8 +11743,6 @@ namespace CoupledField {
   }
 
   void CoefFunctionHyst::TestJacobianApproximations(){
-
-
 		/*
      * 1. Create temporal hyst operator; this should be done for each test to ensure
      *		that operator is in initial state
@@ -11760,6 +11845,31 @@ namespace CoupledField {
     hystTMP->CompareJacobianApproximations(xIn, yIn, eps_mu_inv, 0);
   }
 
+  void CoefFunctionHyst::WriteTestStepToInfoXML(const UInt testNum,
+          const Double Px, const Double Py, const Double Pz,
+          const Double Pabs, const Double Pangle1, const Double Pangle2){
+
+    // cp. EigenfrequencyDriver.cc
+    PtrParamNode res;
+    if(testNum <= 1){
+      res = infoNodeLoc_->Get("result", ParamNode::APPEND);
+    } else  {
+      // create or take the last
+      ParamNodeList l = infoNodeLoc_->GetList("result");
+      res = l.IsEmpty() ? infoNodeLoc_->Get("result") : l.Last();
+    }
+
+    PtrParamNode testStep = res->Get("Teststep", ParamNode::APPEND);
+
+    testStep->Get("nr")->SetValue(testNum); 
+    testStep->Get("Px")->SetValue(Px,15);
+    testStep->Get("Py")->SetValue(Py,15);
+    testStep->Get("Pz")->SetValue(Pz,15);
+    testStep->Get("Pabs")->SetValue(Pabs,15);
+    testStep->Get("phi")->SetValue(Pangle1,15);
+    testStep->Get("theta")->SetValue(Pangle2,15);
+  }
+  
   std::string CoefFunctionHyst::ToString() const {
 
     static UInt initialOutput = 0;
@@ -12020,197 +12130,197 @@ namespace CoupledField {
 
   void CoefFunctionHyst::TraceHystOperator(UInt baseSteps, Double& maxSlope, Double& minSlope, Double& negCoercivity, Double& maxPolarization, bool dedicatedOperatorForStrains){
     EXCEPTION("TraceHystOperator (non-vector-version) Should not be needed/used anymore");
-
-    /*
-       * Get temporal hyst operator first
-       * > has to have same parameter as the actually used operators but must be temporal to not mess up with storage
-       */
-      bool forceScalarDirection = false;
-      if(dedicatedOperatorForStrains){
-        if(STRAIN_operatorParams_.methodName_ == "scalarPreisach"){
-          std::cout << "++ Tracing Dedicated SCALAR Strain Hysteresis Operator for Material " << material_->GetName() << std::endl;
-          forceScalarDirection = true;
-        } else {
-          std::cout << "++ Tracing Dedicated VECTOR Strain Hysteresis Operator for Material " << material_->GetName() << std::endl;
-          forceScalarDirection = false;
-        }
-      } else {
-        if(POL_operatorParams_.methodName_ == "scalarPreisach"){
-          std::cout << "++ Tracing Dedicated SCALAR Hysteresis Operator for Material " << material_->GetName() << std::endl;
-          forceScalarDirection = true;
-        } else {
-          std::cout << "++ Tracing Dedicated VECTOR Hysteresis Operator for Material " << material_->GetName() << std::endl;
-          forceScalarDirection = false;
-        }
-      }
-
-      Hysteresis* hystOperatorForTrace = getTemporalHystOperator(dedicatedOperatorForStrains,forceScalarDirection,dim_);
-      Timer* traceTimer = new Timer();
-      Double startTime = traceTimer->GetCPUTime();
-      traceTimer->Start();
-
-      /*
-       * Define signal to trace the relevant parts of the hyst loop
-       * 1) Virgin Curve to Saturation
-       * 2) Saturation to multiples of Saturation (for the case that Hyst model grows beyound hysteresis)
-       * 3) Saturation to remanence
-       * 4) Remanence to negative saturation
-       */
-      UInt virginSteps = 2*baseSteps;
-      UInt beyondSaturationSteps = baseSteps;
-      UInt saturationToRemanenceSteps = 2*baseSteps;
-      UInt remanenceToNegSaturationSteps = 5*baseSteps;
-      UInt totalSteps = virginSteps + beyondSaturationSteps + saturationToRemanenceSteps + remanenceToNegSaturationSteps;
-
-      Vector<Double> scalarInputs = Vector<Double>(totalSteps);
-      Vector<Double> scalarOutputs = Vector<Double>(totalSteps);
-      Vector<Double> estimatedSlope = Vector<Double>(totalSteps);
-
-      Double inputSat, outputSat;
-      if(dedicatedOperatorForStrains){
-        inputSat = STRAIN_operatorParams_.inputSat_;
-        outputSat = STRAIN_operatorParams_.outputSat_;
-      } else {
-        inputSat = POL_operatorParams_.inputSat_;
-        outputSat = POL_operatorParams_.outputSat_;
-      }
-
-
-      Vector<UInt> steps =  Vector<UInt>(4);
-      steps[0] = virginSteps;
-      steps[1] = beyondSaturationSteps;
-      steps[2] = saturationToRemanenceSteps;
-      steps[3] = remanenceToNegSaturationSteps;
-
-      Vector<UInt> positionOffsets = Vector<UInt>(4);
-      positionOffsets[0] = 0;
-      positionOffsets[1] = steps[0];
-      positionOffsets[2] = steps[0] + steps[1];
-      positionOffsets[3] = steps[0] + steps[1] + steps[2];
-
-      Double maxAmplitude = 10*inputSat;
-      Vector<Double> endAmplitudes = Vector<Double>(6);
-      endAmplitudes[0] = inputSat; // go to saturation
-      endAmplitudes[1] = maxAmplitude; // go beyond saturation
-      endAmplitudes[2] = 0; // go to remanence
-      endAmplitudes[3] = -inputSat; // go to negative saturation
-
-      for(UInt k = 0; k < 4; k++){
-        Double increment = 0.0;
-        Double startAmplitude = 0.0;
-        if(k != 0){
-          startAmplitude = endAmplitudes[k-1];
-        }
-        increment = (endAmplitudes[k]-startAmplitude)/(Double (steps[k]));
-        for(UInt i = 0; i < steps[k]; i++){
-          Double currentAmplitude = startAmplitude + (i+1)*increment; // we want to reach amplitudeEnd at maximal i
-          scalarInputs[positionOffsets[k] + i] = currentAmplitude;
-        }
-      }
-
-      /*
-       * Trace hyst operator (only in 1d direction; should be ok for estimate of slopes)
-       * > true for most cases, but for revised sutor model, we get problems!
-       * > here we have the angular distance which can completely wreck up slope!
-       * > additionally check for remdrop, i.e. at end when material is in remanence, drive it to saturation by
-       *   increasing field perpendicular to polarization
-       */
-      int successFlagForward = 0;
-      maxSlope = 0;
-      minSlope = 1e16;
-      // get some additinal info if we are already traverse loop
-      negCoercivity = 0.0;
-      maxPolarization = 0.0;
-
-      UInt idxMaxSlope, idxMinSlope;
-      Double fieldMaxPolarization;
-      Double fieldMaxSlope, fieldMinSlope;
-
-      Vector<Double> vecIn = Vector<Double>(dim_);
-      Vector<Double> vecOut = Vector<Double>(dim_);
-
-      for(UInt i = 0; i < totalSteps; i++){
-        vecIn.Init();
-        vecIn[0] = scalarInputs[i];
-
-        vecOut = hystOperatorForTrace->computeValue_vec(vecIn, 0, true, false, successFlagForward);
-        scalarOutputs[i] = vecOut[0];
-
-        if(i > 0){
-          estimatedSlope[i] = (scalarOutputs[i] - scalarOutputs[i-1])/(scalarInputs[i] - scalarInputs[i-1]);
-
-          if(estimatedSlope[i] < 0){
-            if(abs(estimatedSlope[i]) > 1e-16){
-              std::stringstream warnmsg;
-              warnmsg << "Negative slope (" << estimatedSlope[i]<<") detected between " << scalarInputs[i] << " and " << scalarInputs[i-1] << std::endl;
-              warnmsg << "Hysteresis model (Preisach) is assumed to be monoton (at least in the 1d case!)" << std::endl;
-              WARN(warnmsg.str());
-            }
-          }
-          if(estimatedSlope[i] > maxSlope){
-            maxSlope = estimatedSlope[i];
-            fieldMaxSlope = scalarInputs[i];
-            idxMaxSlope = i;
-          }
-          if(estimatedSlope[i] < minSlope){
-            minSlope = estimatedSlope[i];
-            fieldMinSlope = scalarInputs[i];
-            idxMinSlope = i;
-          }
-
-          if(scalarOutputs[i] > maxPolarization){
-            // only positive values checked here as we drive system beyond the positive polarization only
-            maxPolarization = scalarOutputs[i];
-            fieldMaxPolarization = scalarInputs[i];
-          }
-
-          if(scalarOutputs[i] == 0){
-            // excact hit; very unlikely
-            negCoercivity = scalarInputs[i];
-          }
-          if((scalarOutputs[i] < 0) && (scalarOutputs[i-1] > 0)){
-            // negative coercivity somewhere between the two inputs
-            // > note: due to the form of the tested signal, we just hit the negative coercivity here and only have to check for it
-            negCoercivity = (scalarInputs[i] + scalarInputs[i-1])/2.0;
-          }
-        }
-      }
-
-      traceTimer->Stop();
-      Double endTime = traceTimer->GetCPUTime();
-
-      bool testOutput = true;
-      if(testOutput){
-//        std::cout << "Traced hyst operator for material " << material_->GetName() << std::endl;
-
-        std::ofstream tracedData;
-        std::stringstream tracedData_FILENAME;
-        tracedData_FILENAME << "Traced_Hysteresis_data_" << material_->GetName() << ".trace";
-
-        tracedData.open(tracedData_FILENAME.str());
-        tracedData << "### INFO " << std::endl;
-        tracedData << "# > hysteresis operator was tested with 1d input signal " << std::endl;
-        tracedData << "# > maximal slope  " << maxSlope << "\t (found at (idx,Field) = (" << idxMaxSlope << "," << fieldMaxSlope << ") )" << std::endl;
-        tracedData << "# > minimal slope  " << minSlope << "\t (found at (idx,Field) = (" << idxMinSlope << "," << fieldMinSlope << ") )" << std::endl;
-        tracedData << "# > maximal polarization  " << maxPolarization << "\t (found for Field " << fieldMaxPolarization << ")" << std::endl;
-        tracedData << "# > specified saturatin values for field and polarization  " << inputSat << ", " << outputSat << std::endl;
-        tracedData << "# > negative coercivity found for Field " << negCoercivity << std::endl;
-        tracedData << "# > number of traced positions " << totalSteps << std::endl;
-        tracedData << "# > requied runtime " << endTime-startTime << std::endl;
-        tracedData << "#" << std::endl;
-        tracedData << "# Traced data: " << std::endl;
-        tracedData << "#IDX   Field   Polarization" << std::endl;
-        for(UInt i = 0; i < totalSteps; i++){
-          tracedData << i << "\t" << scalarInputs[i] << "\t" << scalarOutputs[i] << std::endl;
-        }
-        tracedData.close();
-      }
-
-      /*
-       * free memory
-       */
-      delete hystOperatorForTrace;
-      delete traceTimer;
+//
+//    /*
+//       * Get temporal hyst operator first
+//       * > has to have same parameter as the actually used operators but must be temporal to not mess up with storage
+//       */
+//      bool forceScalarDirection = false;
+//      if(dedicatedOperatorForStrains){
+//        if(STRAIN_operatorParams_.methodName_ == "scalarPreisach"){
+//          std::cout << "++ Tracing Dedicated SCALAR Strain Hysteresis Operator for Material " << material_->GetName() << std::endl;
+//          forceScalarDirection = true;
+//        } else {
+//          std::cout << "++ Tracing Dedicated VECTOR Strain Hysteresis Operator for Material " << material_->GetName() << std::endl;
+//          forceScalarDirection = false;
+//        }
+//      } else {
+//        if(POL_operatorParams_.methodName_ == "scalarPreisach"){
+//          std::cout << "++ Tracing Dedicated SCALAR Hysteresis Operator for Material " << material_->GetName() << std::endl;
+//          forceScalarDirection = true;
+//        } else {
+//          std::cout << "++ Tracing Dedicated VECTOR Hysteresis Operator for Material " << material_->GetName() << std::endl;
+//          forceScalarDirection = false;
+//        }
+//      }
+//
+//      Hysteresis* hystOperatorForTrace = getTemporalHystOperator(dedicatedOperatorForStrains,forceScalarDirection,dim_);
+//      Timer* traceTimer = new Timer();
+//      Double startTime = traceTimer->GetCPUTime();
+//      traceTimer->Start();
+//
+//      /*
+//       * Define signal to trace the relevant parts of the hyst loop
+//       * 1) Virgin Curve to Saturation
+//       * 2) Saturation to multiples of Saturation (for the case that Hyst model grows beyound hysteresis)
+//       * 3) Saturation to remanence
+//       * 4) Remanence to negative saturation
+//       */
+//      UInt virginSteps = 2*baseSteps;
+//      UInt beyondSaturationSteps = baseSteps;
+//      UInt saturationToRemanenceSteps = 2*baseSteps;
+//      UInt remanenceToNegSaturationSteps = 5*baseSteps;
+//      UInt totalSteps = virginSteps + beyondSaturationSteps + saturationToRemanenceSteps + remanenceToNegSaturationSteps;
+//
+//      Vector<Double> scalarInputs = Vector<Double>(totalSteps);
+//      Vector<Double> scalarOutputs = Vector<Double>(totalSteps);
+//      Vector<Double> estimatedSlope = Vector<Double>(totalSteps);
+//
+//      Double inputSat, outputSat;
+//      if(dedicatedOperatorForStrains){
+//        inputSat = STRAIN_operatorParams_.inputSat_;
+//        outputSat = STRAIN_operatorParams_.outputSat_;
+//      } else {
+//        inputSat = POL_operatorParams_.inputSat_;
+//        outputSat = POL_operatorParams_.outputSat_;
+//      }
+//
+//
+//      Vector<UInt> steps =  Vector<UInt>(4);
+//      steps[0] = virginSteps;
+//      steps[1] = beyondSaturationSteps;
+//      steps[2] = saturationToRemanenceSteps;
+//      steps[3] = remanenceToNegSaturationSteps;
+//
+//      Vector<UInt> positionOffsets = Vector<UInt>(4);
+//      positionOffsets[0] = 0;
+//      positionOffsets[1] = steps[0];
+//      positionOffsets[2] = steps[0] + steps[1];
+//      positionOffsets[3] = steps[0] + steps[1] + steps[2];
+//
+//      Double maxAmplitude = 10*inputSat;
+//      Vector<Double> endAmplitudes = Vector<Double>(6);
+//      endAmplitudes[0] = inputSat; // go to saturation
+//      endAmplitudes[1] = maxAmplitude; // go beyond saturation
+//      endAmplitudes[2] = 0; // go to remanence
+//      endAmplitudes[3] = -inputSat; // go to negative saturation
+//
+//      for(UInt k = 0; k < 4; k++){
+//        Double increment = 0.0;
+//        Double startAmplitude = 0.0;
+//        if(k != 0){
+//          startAmplitude = endAmplitudes[k-1];
+//        }
+//        increment = (endAmplitudes[k]-startAmplitude)/(Double (steps[k]));
+//        for(UInt i = 0; i < steps[k]; i++){
+//          Double currentAmplitude = startAmplitude + (i+1)*increment; // we want to reach amplitudeEnd at maximal i
+//          scalarInputs[positionOffsets[k] + i] = currentAmplitude;
+//        }
+//      }
+//
+//      /*
+//       * Trace hyst operator (only in 1d direction; should be ok for estimate of slopes)
+//       * > true for most cases, but for revised sutor model, we get problems!
+//       * > here we have the angular distance which can completely wreck up slope!
+//       * > additionally check for remdrop, i.e. at end when material is in remanence, drive it to saturation by
+//       *   increasing field perpendicular to polarization
+//       */
+//      int successFlagForward = 0;
+//      maxSlope = 0;
+//      minSlope = 1e16;
+//      // get some additinal info if we are already traverse loop
+//      negCoercivity = 0.0;
+//      maxPolarization = 0.0;
+//
+//      UInt idxMaxSlope, idxMinSlope;
+//      Double fieldMaxPolarization;
+//      Double fieldMaxSlope, fieldMinSlope;
+//
+//      Vector<Double> vecIn = Vector<Double>(dim_);
+//      Vector<Double> vecOut = Vector<Double>(dim_);
+//
+//      for(UInt i = 0; i < totalSteps; i++){
+//        vecIn.Init();
+//        vecIn[0] = scalarInputs[i];
+//
+//        vecOut = hystOperatorForTrace->computeValue_vec(vecIn, 0, true, false, successFlagForward);
+//        scalarOutputs[i] = vecOut[0];
+//
+//        if(i > 0){
+//          estimatedSlope[i] = (scalarOutputs[i] - scalarOutputs[i-1])/(scalarInputs[i] - scalarInputs[i-1]);
+//
+//          if(estimatedSlope[i] < 0){
+//            if(abs(estimatedSlope[i]) > 1e-16){
+//              std::stringstream warnmsg;
+//              warnmsg << "Negative slope (" << estimatedSlope[i]<<") detected between " << scalarInputs[i] << " and " << scalarInputs[i-1] << std::endl;
+//              warnmsg << "Hysteresis model (Preisach) is assumed to be monoton (at least in the 1d case!)" << std::endl;
+//              WARN(warnmsg.str());
+//            }
+//          }
+//          if(estimatedSlope[i] > maxSlope){
+//            maxSlope = estimatedSlope[i];
+//            fieldMaxSlope = scalarInputs[i];
+//            idxMaxSlope = i;
+//          }
+//          if(estimatedSlope[i] < minSlope){
+//            minSlope = estimatedSlope[i];
+//            fieldMinSlope = scalarInputs[i];
+//            idxMinSlope = i;
+//          }
+//
+//          if(scalarOutputs[i] > maxPolarization){
+//            // only positive values checked here as we drive system beyond the positive polarization only
+//            maxPolarization = scalarOutputs[i];
+//            fieldMaxPolarization = scalarInputs[i];
+//          }
+//
+//          if(scalarOutputs[i] == 0){
+//            // excact hit; very unlikely
+//            negCoercivity = scalarInputs[i];
+//          }
+//          if((scalarOutputs[i] < 0) && (scalarOutputs[i-1] > 0)){
+//            // negative coercivity somewhere between the two inputs
+//            // > note: due to the form of the tested signal, we just hit the negative coercivity here and only have to check for it
+//            negCoercivity = (scalarInputs[i] + scalarInputs[i-1])/2.0;
+//          }
+//        }
+//      }
+//
+//      traceTimer->Stop();
+//      Double endTime = traceTimer->GetCPUTime();
+//
+//      bool testOutput = true;
+//      if(testOutput){
+////        std::cout << "Traced hyst operator for material " << material_->GetName() << std::endl;
+//
+//        std::ofstream tracedData;
+//        std::stringstream tracedData_FILENAME;
+//        tracedData_FILENAME << "Traced_Hysteresis_data_" << material_->GetName() << ".trace";
+//
+//        tracedData.open(tracedData_FILENAME.str());
+//        tracedData << "### INFO " << std::endl;
+//        tracedData << "# > hysteresis operator was tested with 1d input signal " << std::endl;
+//        tracedData << "# > maximal slope  " << maxSlope << "\t (found at (idx,Field) = (" << idxMaxSlope << "," << fieldMaxSlope << ") )" << std::endl;
+//        tracedData << "# > minimal slope  " << minSlope << "\t (found at (idx,Field) = (" << idxMinSlope << "," << fieldMinSlope << ") )" << std::endl;
+//        tracedData << "# > maximal polarization  " << maxPolarization << "\t (found for Field " << fieldMaxPolarization << ")" << std::endl;
+//        tracedData << "# > specified saturatin values for field and polarization  " << inputSat << ", " << outputSat << std::endl;
+//        tracedData << "# > negative coercivity found for Field " << negCoercivity << std::endl;
+//        tracedData << "# > number of traced positions " << totalSteps << std::endl;
+//        tracedData << "# > requied runtime " << endTime-startTime << std::endl;
+//        tracedData << "#" << std::endl;
+//        tracedData << "# Traced data: " << std::endl;
+//        tracedData << "#IDX   Field   Polarization" << std::endl;
+//        for(UInt i = 0; i < totalSteps; i++){
+//          tracedData << i << "\t" << scalarInputs[i] << "\t" << scalarOutputs[i] << std::endl;
+//        }
+//        tracedData.close();
+//      }
+//
+//      /*
+//       * free memory
+//       */
+//      delete hystOperatorForTrace;
+//      delete traceTimer;
     }
 
   /*
@@ -12229,6 +12339,35 @@ namespace CoupledField {
       bool startAtRemanence = true;
       UInt precisionDigits = 12;//+1 for output
       
+      // Note 6.11.2020:
+      // 1. the difference between centralFD and forwardFD is negligble for
+      // most cases (only if jumps occur central differences show other results);
+      // > no additional scaling factor required! 
+      // > due to this additional factor, the testsuite examples were solved differently
+      // 2. the scaling factor has significant influence on the derived Jacobian
+      // > due to chaning it from 1e-5 to 1e-7 the max slope for the electrostatic testcases
+      // changed by a factor of 4 which in turn leads to different convergence behavior
+      /*
+       * make scaling, additonalSafetyFactor and forceCentral to intput
+       * arguments that are read from simulation xml file
+       * > get read in via solve step and then passed to this function
+       * > cmp. contraction factors for FP iteration 
+       */
+
+      // minimal stepping for FiniteDifference stepping
+      Double scaling = trace_JacResolution_; //1e-5
+      // edit 5.11.2020: 
+      // central differences result in less peaks in the Jacobian which in turn leads to better convergence factors
+      // for the fixedpoint methods (local and global); unfortunately, the computed slopes are sometimes too small
+      // to allow for global convergence (as not all possible worst cases can be traced)
+      // thus if we enforce central differences, we should increase the sefetyfactor a bit
+      bool forceCentral = trace_forceCentral_;
+
+//      if(forceCentral){
+//        additionalSafetyFactor_ = 1.125;
+//      } else {
+//        additionalSafetyFactor_ = 1.00;
+//      }
       /*
        * Note 26.6.2020 - there are some testcases that fail if traced data is loaded from file instead
        * of being traced on the fly. to ensure that this is not due different precisions, the directly traced and 
@@ -12278,7 +12417,7 @@ namespace CoupledField {
        */
       TracedData currentMaterial;
       
-      // search in interal array first
+      // search in interal array first > even if forceRetracing is true, we just trace every material just once
       if(CoefFunctionHyst::tracedOperatorData_.find(tracedData_FILENAME.str()) != CoefFunctionHyst::tracedOperatorData_.end()){
         std::cout << "++ Material " << material_->GetName() << " has already been traced. Reuse values from internal array." << std::endl;
         currentMaterial = CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()];
@@ -12287,99 +12426,102 @@ namespace CoupledField {
         minSlope = currentMaterial.minSlope_;
         negCoercivity = currentMaterial.negCoercivity_;
         maxPolarization = currentMaterial.maxPolarization_;
-
+ 
         return;
       }
       
-      // check if file with data already exists
       std::fstream tracedData;
-      tracedData.open(tracedData_FILENAME.str(),std::ios_base::in);
-      if(tracedData.is_open()){
-        // material has already been traced; read data from file
-        UInt numParamsToBeRead = 4;
-        UInt numParamsRead = 0;
-        size_t found;
-        double tmp;
-        std::string readLine;
-        std::string dataField;
-        std::string searchString;
-        while(numParamsRead < numParamsToBeRead){
-          if(std::getline(tracedData,readLine)){
-            
-            searchString = "###MaxSlope###";
-            found = readLine.find(searchString); 
-            if (found != string::npos){
-              dataField = readLine.substr(found+searchString.length()+1);
-              tmp = std::stod(dataField);
-              maxSlope = tmp;
-              numParamsRead++;
-            } 
-            
-            searchString = "###MinSlope###";
-            found = readLine.find(searchString); 
-            if (found != string::npos){
-              dataField = readLine.substr(found+searchString.length()+1);
-              tmp = std::stod(dataField);
-              minSlope = tmp;
-              numParamsRead++;
-            } 
-            
-            searchString = "###NegCoercivity###";
-            found = readLine.find(searchString);
-            if (found != string::npos){
-              dataField = readLine.substr(found+searchString.length()+1);
-              tmp = std::stod(dataField);
-              negCoercivity = tmp;
-              numParamsRead++;
-            } 
-            
-            searchString = "###MaxPolarization###";
-            found = readLine.find(searchString);
-            if (found != string::npos){
-              dataField = readLine.substr(found+searchString.length()+1);
-              tmp = std::stod(dataField);
-              maxPolarization = tmp;
-              numParamsRead++;
-            } 
-          } else {
-            break;
+      if(trace_forceRetracing_){
+        std::cout << "++ Retracing of Material " << material_->GetName() << " has already been forced. Previous tracing-data will not be read from files." << std::endl;
+      } else {
+        // check if file with data already exists
+        tracedData.open(tracedData_FILENAME.str(),std::ios_base::in);
+        if(tracedData.is_open()){
+          // material has already been traced; read data from file
+          UInt numParamsToBeRead = 4;
+          UInt numParamsRead = 0;
+          size_t found;
+          double tmp;
+          std::string readLine;
+          std::string dataField;
+          std::string searchString;
+          while(numParamsRead < numParamsToBeRead){
+            if(std::getline(tracedData,readLine)){
+
+              searchString = "###MaxSlope###";
+              found = readLine.find(searchString); 
+              if (found != string::npos){
+                dataField = readLine.substr(found+searchString.length()+1);
+                tmp = std::stod(dataField);
+                maxSlope = tmp;
+                numParamsRead++;
+              } 
+
+              searchString = "###MinSlope###";
+              found = readLine.find(searchString); 
+              if (found != string::npos){
+                dataField = readLine.substr(found+searchString.length()+1);
+                tmp = std::stod(dataField);
+                minSlope = tmp;
+                numParamsRead++;
+              } 
+
+              searchString = "###NegCoercivity###";
+              found = readLine.find(searchString);
+              if (found != string::npos){
+                dataField = readLine.substr(found+searchString.length()+1);
+                tmp = std::stod(dataField);
+                negCoercivity = tmp;
+                numParamsRead++;
+              } 
+
+              searchString = "###MaxPolarization###";
+              found = readLine.find(searchString);
+              if (found != string::npos){
+                dataField = readLine.substr(found+searchString.length()+1);
+                tmp = std::stod(dataField);
+                maxPolarization = tmp;
+                numParamsRead++;
+              }           
+            } else {
+              break;
+            }
+          }
+          tracedData.close();
+
+          if(numParamsRead == numParamsToBeRead){
+            /*
+             * round data to ensure consistent results whether file was read or tracing was done on the fly
+             */
+  //          std::cout << "++ Material " << material_->GetName() << " has already been traced. All required parameter read from file." << std::endl;
+  //          std::cout << "PRE-cutting" << std::endl;
+  //          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
+  //          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
+  //          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
+  //          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
+  //          
+            maxSlope = restrictPrecision(maxSlope,precisionDigits);
+            minSlope = restrictPrecision(minSlope,precisionDigits);
+            negCoercivity = restrictPrecision(negCoercivity,precisionDigits);
+            maxPolarization = restrictPrecision(maxPolarization,precisionDigits);
+
+            std::cout << "++ Material " << material_->GetName() << " has already been traced. All required parameter read from file." << std::endl;
+            std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
+            std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
+            std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
+            std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;         
+
+            // store for later usage
+            currentMaterial.maxSlope_ = maxSlope;
+            currentMaterial.minSlope_ = minSlope;
+            currentMaterial.negCoercivity_ = negCoercivity;
+            currentMaterial.maxPolarization_ = maxPolarization;
+            CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()] = currentMaterial;
+
+            return;
           }
         }
-        tracedData.close();
-        
-        if(numParamsRead == numParamsToBeRead){
-          /*
-           * round data to ensure consistent results whether file was read or tracing was done on the fly
-           */
-//          std::cout << "++ Material " << material_->GetName() << " has already been traced. All required parameter read from file." << std::endl;
-//          std::cout << "PRE-cutting" << std::endl;
-//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
-//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
-//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
-//          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
-//          
-          maxSlope = restrictPrecision(maxSlope,precisionDigits);
-          minSlope = restrictPrecision(minSlope,precisionDigits);
-          negCoercivity = restrictPrecision(negCoercivity,precisionDigits);
-          maxPolarization = restrictPrecision(maxPolarization,precisionDigits);
-
-          std::cout << "++ Material " << material_->GetName() << " has already been traced. All required parameter read from file." << std::endl;
-          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxSlope### " << maxSlope << std::endl;
-          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
-          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
-          std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
-          
-          // store for later usage
-          currentMaterial.maxSlope_ = maxSlope;
-          currentMaterial.minSlope_ = minSlope;
-          currentMaterial.negCoercivity_ = negCoercivity;
-          currentMaterial.maxPolarization_ = maxPolarization;
-          CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()] = currentMaterial;
-          
-          return;
-        }
-      }
-
+      } 
 
       std::cout << "++ Tracing hysteresis operator for material " << material_->GetName() << std::endl;
       
@@ -12522,8 +12664,6 @@ namespace CoupledField {
       Vector<Double> stepping_neg = Vector<Double>(dim_);
 
       Double steppingDistance;
-      // 1e-7 scheint zu klein zu sein! aenderungen im hyst operator teilweise nur 1e-16
-      Double scaling = 1e-5; //1e-5
       //std::cout << "++ Start with eval" << std::endl;
       if(startAtRemanence){
         // drive material above saturation in y
@@ -12537,6 +12677,8 @@ namespace CoupledField {
 
       bool output = false;
       //std::cout << "++ Start loop" << std::endl;
+      std::stringstream Jacwarnmsg;
+
       for(UInt i = 0; i < totalSteps; i++){
         vecIn.Init();
         // would be a workaround for peaking Jacobian issue around zero
@@ -12562,69 +12704,166 @@ namespace CoupledField {
         // bring material to next point first, then estimate Jacobian around this point
 //        vecOut = hystOperatorForTrace->computeValue_vec(vecIn, 0, true, output, successFlagForward);
         bool debug_output = false;
-        vecOut = hystOperatorForTrace->computeValue_vec(vecIn, 0, true, debug_output, successFlagForward);
-
+        
+//        output = true;
+        Vector<Double> vecOutTMP;
+        Vector<Double> vecOutTMPpost;
         if(output){
+          // has to be evaluated before working on permanent storage
+          // just for testing; do we get same output if working on tmp and perm storage?
+          // 26.10.2020: works fine
+          vecOutTMP = hystOperatorForTrace->computeValue_vec(vecIn, 0, false, debug_output, successFlagForward);
+        }
+        vecOut = hystOperatorForTrace->computeValue_vec(vecIn, 0, true, debug_output, successFlagForward);
+        if(output){
+          vecOutTMPpost = hystOperatorForTrace->computeValue_vec(vecIn, 0, false, debug_output, successFlagForward);
           std::cout << "In: = " << std::scientific<< std::setprecision(precisionDigits+1) << vecIn[0] << ", " << vecIn[1] << std::endl;
-          std::cout << "Out: = " << std::scientific<< std::setprecision(precisionDigits+1) << vecOut[0] << ", " << vecOut[1] << std::endl;
+          std::cout << "Out (permStorage): = " << std::scientific<< std::setprecision(precisionDigits+1) << vecOut[0] << ", " << vecOut[1] << std::endl;
+          std::cout << "Out (tmpStorage pre): = " << std::scientific<< std::setprecision(precisionDigits+1) << vecOutTMP[0] << ", " << vecOutTMP[1] << std::endl;
+          std::cout << "Out (tmpStorage post): = " << std::scientific<< std::setprecision(precisionDigits+1) << vecOutTMPpost[0] << ", " << vecOutTMPpost[1] << std::endl;
           std::cout << "++  " << i << std::endl;
           std::cout << "++++ TEMPORAL STORAGE / JACOBI STEPS  " << i << std::endl;
         }
-
+        output = false;
+        
         vectorOutputs[i] = Vector<Double>(dim_);
         vectorOutputs[i] = vecOut;
 
+        /*
+         * Edit 25.10.2020
+         * Sometimes the hysteresis operator shows strange behavior; evaluating 
+         * the operator with the shifted input might jump way too much in both stepping directions;
+         * however, the values in both shifted directions are fine in value, the problem seems to be
+         * the value of vecOut; using central differences at such points leads to reasonable results for the
+         * Jacobian; 
+         * Why this is important: if fixed-point inversion shall be used, we take the maximal and minimal slope
+         * of this tracing process as indicator for the local/global convergence factor to be used; if this value
+         * is vastly overestimated, the convergence factor is way too small; in this case a convergence would work
+         * but it will be so slow that the number of iterations will always exceed (example: the typical slopes are 
+         * around 1e-5 for FeCo but at some peaks it goes up to 1e0)
+         * Solution idea: Use forward backward differences as it is done currently; after setting up the Jacobian
+         * check whether there is such a large jump in slopes; if so, repeat the evaluation with central differences
+         * 26.10.2020: tryAgain works well but only if we reallly encounter spikes;
+         * in some cases, however, the slopes creeped up continously; reason still
+         * unknown; until then > forceCentral differences!
+         */
+        bool tryAgain = true;
+        Double maxAllowedIncreaseFactor = 100.0;
+        
         /*
          * estimate Jacobian by forward/backward OR central differences
          */
         useCentral = false; // per default to save runtime
         Jacobians[i] = Matrix<Double>(dim_,dim_);
+        Matrix<Double> tmpJacAbs = Matrix<Double>(dim_,dim_);
+        // for debugging; currently needed as output of hyst operator above (vecOut)
+        // sometimes changes strongly if input is shifted slightly;
+        // however, if input is slightly shifted into the other direction, too,
+        // the difference between both shifed outputs is just fine; somehow vecOut
+        // seems to be wrong > until error is found, take central differences
+        // Example output: 
+//        ++ Inner step 1 of outer step 913
+//        UseCentral
+//        Unshifted In: = -9.9358095600000e+05, 0.0000000000000e+00
+//        Unshifted Out: = -2.9384986440569e+00, 6.4784209914851e-02
+//        Shifted pos In: = -9.9358095600000e+05, 8.2800000000000e-05
+//        Shifted pos Out: = -2.9384986440569e+00, 6.4981088529329e-02
+//        Shifted neg In2: = -9.9358095600000e+05, -8.2800000000000e-05
+//        Shifted neg Out2: = -2.9384986440569e+00, 6.4981088094017e-02
+         // both shifted outputs lead to different values but the difference is only at 
+         // the eigth-th digit; the diference to the unshifted input is however appearing
+        // alread in the second digit > factor 1e6 higher!
 
         steppingDistance = std::max(scaling,scaling*vecIn.NormL2()/inputSat);
-        if(vecIn.NormL2() < 1e-4*steppingDistance){
+        if((vecIn.NormL2() < 1e-4*steppingDistance)){
+          Jacwarnmsg << "# vecIn.NormL2() < 1e-4*steppingDistance (stepping distance = "<<steppingDistance<<") at step "<<i<<"; use central differences at this point." << std::endl;  
+          useCentral = true;
+        }
+        if(forceCentral){
           useCentral = true;
         }
 
-        for(UInt k = 0; k < dim_; k++){
-          if(output){
-            std::cout << "++ Inner step " << k << std::endl;
-          }
+        while(tryAgain == true){
+          for(UInt k = 0; k < dim_; k++){
+//            output = true;
+            if(output){
+              std::cout << "++ Inner step " << k << " of outer step " << i << std::endl;
+            }
 
-          stepping = vecIn;
-          stepping[k] += steppingDistance;
+            stepping = vecIn;
+            stepping[k] += steppingDistance;
 
-          debug_output = false;
-//          if((k == 0)&&(output)){
-//            debug_output = true;
-//          }
+            debug_output = false;
+  //          if((k == 0)&&(output)){
+  //            debug_output = true;
+  //          }
 
-          // no overwrite here!
-          Pshifted = hystOperatorForTrace->computeValue_vec(stepping, 0, false, debug_output, successFlagForward);
+            // no overwrite here!
+            Pshifted = hystOperatorForTrace->computeValue_vec(stepping, 0, false, debug_output, successFlagForward);
 
-          Double usedSteppingDistance = steppingDistance;
-          if(useCentral){
-            usedSteppingDistance += steppingDistance;
-            stepping_neg = vecIn;
-            stepping_neg[k] -= steppingDistance;
-            Pshifted_neg = hystOperatorForTrace->computeValue_vec(stepping_neg, 0, false, debug_output, successFlagForward);
-          } else {
-            // to utilize the same structure further below, just assign vecOut and vecIn to Pshifted_neg and stepping_neg
-            Pshifted_neg = vecOut;
-          }
-
-
-          if(output){
-            std::cout << "In: = " << std::scientific<< std::setprecision(precisionDigits+1) << stepping[0] << ", " << stepping[1] << std::endl;
-            std::cout << "Out: = " << std::scientific<< std::setprecision(precisionDigits+1) << Pshifted[0] << ", " << Pshifted[1] << std::endl;
+            Double usedSteppingDistance = steppingDistance;
             if(useCentral){
-              std::cout << "In2: = " << std::scientific<< std::setprecision(precisionDigits+1) << stepping_neg[0] << ", " << stepping_neg[1] << std::endl;
-              std::cout << "Out2: = " << std::scientific<< std::setprecision(precisionDigits+1) << Pshifted_neg[0] << ", " << Pshifted_neg[1] << std::endl;
+              if(output) std::cout << "UseCentral" << std::endl;
+              usedSteppingDistance += steppingDistance;
+              stepping_neg = vecIn;
+              stepping_neg[k] -= steppingDistance;
+              Pshifted_neg = hystOperatorForTrace->computeValue_vec(stepping_neg, 0, false, debug_output, successFlagForward);
+            } else {
+              if(output) std::cout << "UseForward" << std::endl;
+              // to utilize the same structure further below, just assign vecOut and vecIn to Pshifted_neg and stepping_neg
+              Pshifted_neg = vecOut;
+            }
+
+            if(output){
+              std::cout << "Unshifted In: = " << std::scientific<< std::setprecision(precisionDigits+1) << vecIn[0] << ", " << vecIn[1] << std::endl;
+              std::cout << "Unshifted Out: = " << std::scientific<< std::setprecision(precisionDigits+1) << vecOut[0] << ", " << vecOut[1] << std::endl;
+              std::cout << "Shifted pos In: = " << std::scientific<< std::setprecision(precisionDigits+1) << stepping[0] << ", " << stepping[1] << std::endl;
+              std::cout << "Shifted pos Out: = " << std::scientific<< std::setprecision(precisionDigits+1) << Pshifted[0] << ", " << Pshifted[1] << std::endl;
+              if(useCentral){
+                std::cout << "Shifted neg In2: = " << std::scientific<< std::setprecision(precisionDigits+1) << stepping_neg[0] << ", " << stepping_neg[1] << std::endl;
+                std::cout << "Shifted neg Out2: = " << std::scientific<< std::setprecision(precisionDigits+1) << Pshifted_neg[0] << ", " << Pshifted_neg[1] << std::endl;
+              }
+            }
+            output = false;
+
+            // compute dP/dH
+            for(UInt j = 0; j < dim_; j++){
+              tmp[j][k] = (Pshifted[j] - Pshifted_neg[j])/usedSteppingDistance;
             }
           }
-
-          // compute dP/dH
-          for(UInt i = 0; i < dim_; i++){
-            tmp[i][k] = (Pshifted[i] - Pshifted_neg[i])/usedSteppingDistance;
+          
+          if(i == 0){
+            // the first Jacobian cannot be compared as there is no counterpart
+            tryAgain = false;
+          } else {
+            // check tmp-Jacobian before inserting
+            tmp.GetAbsValues(tmpJacAbs);
+            Double tmpJacMaxVal = tmpJacAbs.GetMax();
+          
+            Jacobians[i-1].GetAbsValues(tmpJacAbs);
+            Double tmpJacMaxValOld = tmpJacAbs.GetMax();
+//            std::cout << "tmpJacMaxVal/tmpJacMaxValOld:" << tmpJacMaxVal/tmpJacMaxValOld << std::endl;
+            if( (tmpJacMaxVal/tmpJacMaxValOld > maxAllowedIncreaseFactor) ){
+              //|| (tmpJacMaxValOld/tmpJacMaxVal > maxAllowedIncreaseFactor) ){
+              if(useCentral == false){
+                Jacwarnmsg << "# Jump in Forward-Differences-Jacobian detected at step "<<i<<"! Try again with central differences." << std::endl;                
+                std::cout<<"Jump in Forward-Differences-Jacobian detected at step "<<i<<"! Try again with central differences."<<std::endl;
+                useCentral = true;
+                tryAgain = true;
+              } else {
+                Jacwarnmsg << "# Jump in Central-Differences-Jacobian detected at step "<<i<<"!" <<std::endl;
+                Jacwarnmsg << "# Current Jacobian: "<<tmp.ToString(0,false)<<std::endl;
+                Jacwarnmsg << "# Previous Jacobian: "<<Jacobians[i-1].ToString(0,false)<<std::endl;
+                Jacwarnmsg << "# Skip current Jacobian and replace it with the Jacobian from position "<<i-1<<std::endl;
+                std::cout<<"Jump in Central-Differences-Jacobian detected at step "<<i<<"! Skip current Jacobian and replace it with the Jacobian from position "<<i-1<<std::endl;
+                useCentral = false;
+                tryAgain = false;
+                tmp = Jacobians[i-1];
+              }
+            } else {
+              useCentral = false;
+              tryAgain = false;
+            }
           }
         }
         Jacobians[i] = tmp;
@@ -12711,13 +12950,14 @@ namespace CoupledField {
 //      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
 //      std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
 //      
+
       /*
        * Restrict prescision via stringstreams
        */
       maxSlope = restrictPrecision(maxSlope,precisionDigits);
       minSlope = restrictPrecision(minSlope,precisionDigits);
       negCoercivity = restrictPrecision(negCoercivity,precisionDigits);
-      maxPolarization = restrictPrecision(maxPolarization,precisionDigits);
+      maxPolarization = restrictPrecision(maxPolarization,precisionDigits);      
 
       // store for later usage
       currentMaterial.maxSlope_ = maxSlope;
@@ -12733,10 +12973,16 @@ namespace CoupledField {
         tracedData << "### INFO " << std::endl;
         tracedData << "# > hysteresis operator was tested with 1d input signal " << std::endl;
         if(dedicatedOperatorForStrains){
-          tracedData << "# > hysteresis operator will be used for evaluation of irreversible strains " << std::endl;
+          tracedData << "# > hysteresis operator will be used ONLY for evaluation of irreversible strains " << std::endl;
         } else {
-          tracedData << "# > hysteresis operator will be used for evaluation of polarization and irreversible strains " << std::endl;
+          tracedData << "# > hysteresis operator will be used for BOTH the evaluation of polarization and irreversible strains " << std::endl;
         }
+        if(forceCentral){
+          tracedData << "# > central differences were enforced" << std::endl;
+        } else {
+          tracedData << "# > forward differences were used whenever possible" << std::endl;
+        }
+        tracedData << "# > minimal stepping distance for Jacobian computation (parameter: trace_JacResolution_) = " << trace_JacResolution_ << std::endl;       
         tracedData << "# > maximal absolute entry of Jacobian (used as maxSlope)  " << std::scientific<< std::setprecision(precisionDigits+1)<< maxSlope << "\t (found at (idx,Field) = (" << idxMaxSlope << "," << fieldMaxSlope << ") )" << std::endl;
         tracedData << "# > minimal absolute entry of Jacobian (used as minSlope)  " << std::scientific<< std::setprecision(precisionDigits+1)<< minSlope << "\t (found at (idx,Field) = (" << idxMinSlope << "," << fieldMinSlope << ") )" << std::endl;
         tracedData << "# > maximal polarization  " << std::scientific<< std::setprecision(precisionDigits+1)<< maxPolarization << "\t (found for Field " << fieldMaxPolarization << ")" << std::endl;
@@ -12744,6 +12990,9 @@ namespace CoupledField {
         tracedData << "# > negative coercivity found for Field " << std::scientific<< std::setprecision(precisionDigits+1)<< negCoercivity << std::endl;
         tracedData << "# > number of traced positions " << totalSteps << std::endl;
         tracedData << "# > required runtime " << std::scientific<< std::setprecision(precisionDigits+1)<< endTime-startTime << std::endl;
+        tracedData << "# Warnings and errors during evaluation:" << std::endl;
+        tracedData << "#" << std::endl;
+        tracedData << Jacwarnmsg.str();
         tracedData << "#" << std::endl;
         tracedData << "# Parameter to be read-in/reused by CFS" << std::endl;
         tracedData << "###MaxSlope### " << std::scientific<< std::setprecision(precisionDigits+1)<< maxSlope << std::endl;
@@ -12761,7 +13010,6 @@ namespace CoupledField {
         std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MinSlope### " << minSlope << std::endl;
         std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
         std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;
-        
       }
 
       /*

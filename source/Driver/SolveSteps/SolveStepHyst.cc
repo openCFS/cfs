@@ -401,11 +401,15 @@ namespace CoupledField {
     }
     
     std::cout << "++ Selected solution method for non-linear system: "  << solveFlagToString(solutionApproach_) << std::endl;
-
+    if( (solutionApproach_ == SOLVE_LOCAL_FIXPOINT_B) ||
+            (solutionApproach_ == SOLVE_LOCAL_FIXPOINT_B_v2) ||
+            (solutionApproach_ == SOLVE_LOCAL_FIXPOINT_H) ){
+      std::cout << "++ safety-factor for localized FP-iterations "  << FPLocalC_ << std::endl;
+    } 
     // NOTE: the initial FP steps have to be done each timestep!
     // > copy the following steps to Solve_Step1_PrepareSolveStep!
     if(initialNumberFPSteps_ != 0){
-      std::cout << "++ " << initialNumberFPSteps_ << " initial fixpoint iterations (Global B, safety-factor 2.0) will be applied " << std::endl;
+      std::cout << "++ " << initialNumberFPSteps_ << " initial FP iterations (Global B, safety-factor 2.0) will be applied " << std::endl;
       FPGlobalC_ = 2.0;
       currentFPApproach_ = FP_GLOBAL_B;
       currentNonLinMethod_ = "HYST_FP_GLOBAL";
@@ -805,7 +809,7 @@ namespace CoupledField {
     DEBUG_testJacobianApproximations_ = false;
     DEBUG_measureLSPerformance_ = false;
     DEBUG_compareLinesearches_ = 0;
-
+    
     if( !hystNode ) {
       EXCEPTION("SolveStepHyst::ReadNonLinDataHyst --- No hyst node found in input file");
     } else {
@@ -822,7 +826,7 @@ namespace CoupledField {
         resetNode = hystNode->Get("resetSolutionVectorToZero");
         resetNode->GetValue("iterationsTillReset",iterationsTillReset_,ParamNode::PASS);
       }
-
+      
       PtrParamNode evalDepthNode = NULL;
       if(hystNode->Has("evaluationDepth")){
         evalDepthNode = hystNode->Get("evaluationDepth");
@@ -1015,6 +1019,15 @@ namespace CoupledField {
       std::cout << "++ Test hysteresis operator" << std::endl;
 			PDE_.TestInversionOfHystOperator(testNode_);
 			testInversion_ = 0;
+      
+      bool stopAfterTests = false;
+      if(testNode_->Has("StopAfterTests")){
+        testNode_->GetValue("StopAfterTests",stopAfterTests,ParamNode::PASS);
+      }
+      if(stopAfterTests){
+        exit(0);
+      }
+      
 		}
     if(DEBUG_testJacobianApproximations_){
       std::cout << "++ Test different approximations for the Jacobian matrix" << std::endl;
@@ -1854,7 +1867,7 @@ namespace CoupledField {
       } else {
         forceJacobian = false;
       }
-
+      
       /*
        * NEW SOLUTION
        */
@@ -2292,7 +2305,7 @@ namespace CoupledField {
           if(resVec_n_0_.NormL2() > precision){
             valueToCheck /= resVec_n_0_.NormL2();
           } else {
-            logger << "Info: Norm of initial residual (" << resVec_n_0_.NormL2() << ") < " << precision << "; taking absolute value of residual" << std::endl;
+            logger << "Info: Norm of initial residual (" << resVec_n_0_.NormL2() << ") less " << precision << "; taking absolute value of residual" << std::endl;
           }
         }
 
@@ -2304,7 +2317,7 @@ namespace CoupledField {
           if(solVec_.NormL2() > precision){
             valueToCheck /= solVec_.NormL2();
           } else {
-            logger << "Info: Norm of current solution vector (" << solVec_.NormL2() << ") < " << precision << "; taking absolute value of increment" << std::endl;
+            logger << "Info: Norm of current solution vector (" << solVec_.NormL2() << ") less " << precision << "; taking absolute value of increment" << std::endl;
           }
         }
       }
@@ -2318,12 +2331,12 @@ namespace CoupledField {
         allPassed = false;
         logger << " (" << criterionIterator->checkingOrder_ << "): " << criterionIterator->nameTag_ << " \t FAILED";
         if(loggingLevel > 0){
-          logger << " ( " << valueToCheck << " > " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
+          logger << " ( " << valueToCheck << " greater " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
         }
       } else {
         logger << " (" << criterionIterator->checkingOrder_ << "): " << criterionIterator->nameTag_ << " \t PASSED";
         if(loggingLevel > 0){
-          logger << " ( " << valueToCheck << " <= " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
+          logger << " ( " << valueToCheck << " lessEqu " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
         }
       }
 
@@ -2332,11 +2345,11 @@ namespace CoupledField {
     }
     if(minLoggingToTerminal_ > 1){
       logger << "- Reference values in case of relative norms " << std::endl;
-      logger << "-> Norm of current solution vector = " << solVec_.NormL2() << std::endl;
-      logger << "-> Norm of initial residual vector = " << resVec_n_0_.NormL2() << std::endl;
+      logger << "- Norm of current solution vector = " << solVec_.NormL2() << std::endl;
+      logger << "- Norm of initial residual vector = " << resVec_n_0_.NormL2() << std::endl;
     }
     if(allPassed){
-      logger << " -> ALL convergence criteria satisfied -> STOP " << std::endl;
+      logger << " - ALL convergence criteria satisfied - STOP " << std::endl;
       return 0;
     }
 
@@ -2379,7 +2392,7 @@ namespace CoupledField {
           if(resVec_n_0_.NormL2() > precision){
             valueToCheck /= resVec_n_0_.NormL2();
           } else {
-            logger << "Info: Norm of initial residual (" << resVec_n_0_.NormL2() << ") < " << precision << "; taking absolute value of residual" << std::endl;
+            logger << "Info: Norm of initial residual (" << resVec_n_0_.NormL2() << ") less " << precision << "; taking absolute value of residual" << std::endl;
           }
         }
 
@@ -2391,7 +2404,7 @@ namespace CoupledField {
           if(solVec_.NormL2() > precision){
             valueToCheck /= solVec_.NormL2();
           } else {
-            logger << "Info: Norm of current solution vector (" << solVec_.NormL2() << ") < " << precision << "; taking absolute value of increment" << std::endl;
+            logger << "Info: Norm of current solution vector (" << solVec_.NormL2() << ") less " << precision << "; taking absolute value of increment" << std::endl;
           }
         }
       }
@@ -2404,13 +2417,13 @@ namespace CoupledField {
       if(valueToCheck > criterionIterator->stoppingTolerance_){
         logger << " (" << criterionIterator->checkingOrder_ << "): " << criterionIterator->nameTag_ <<  " \t FAILED";
         if(loggingLevel > 0){
-          logger << " ( " << valueToCheck << " > " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
+          logger << " ( " << valueToCheck << " greater " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
         }
       } else {
         anyPassed = true;
         logger << " (" << criterionIterator->checkingOrder_ << "): " << criterionIterator->nameTag_ <<  " \t PASSED";
         if(loggingLevel > 0){
-          logger << " ( " << valueToCheck << " <= " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
+          logger << " ( " << valueToCheck << " lessEqual " << criterionIterator->stoppingTolerance_ << " ) " << std::endl;
         }
       }
 
@@ -2419,7 +2432,7 @@ namespace CoupledField {
 
       // failback satisfied; stop
       if(anyPassed){
-        logger << " -> ANY failback criterion satisfied -> STOP " << std::endl;
+        logger << " - ANY failback criterion satisfied - STOP " << std::endl;
         return 1;
       }
     }
@@ -5063,6 +5076,7 @@ namespace CoupledField {
             if(eta < etaMin){
 //              std::cout << "STOP as eta = "<<eta<< " < etaMin = " << etaMin <<std::endl;
 //              std::cout << "BacktrackingLS - eta < etaMin (" << minEta_ << ") > return etaMin" << std::endl;
+              eta = etaMin;
               break;
             }
           }
@@ -5286,7 +5300,7 @@ namespace CoupledField {
 //      std::cout << "Taking best eta ("<<bestEta<<") leading to smallest absolute residual ("<<bestNorm<<")" << std::endl;
 
       bool failAtMinEta = false;
-      if(bestEta > minEta){
+      if(bestEta >= minEta){
         successClassicApproach = true;
       } else if(!failAtMinEta) {
         successClassicApproach = true;
@@ -5331,7 +5345,8 @@ namespace CoupledField {
       }
 
       // valid eta found but maybe too small!
-      if(validEtaFound){
+      // also restrict in cases of non-success
+      //if(validEtaFound){
         if(abs(alphaClassic) < TrialAndErrorParameter.minEta_){
           if(alphaClassic < 0){
             alphaClassic = -TrialAndErrorParameter.minEta_;
@@ -5339,7 +5354,7 @@ namespace CoupledField {
             alphaClassic = TrialAndErrorParameter.minEta_;
           }
         }
-      }
+      //}
 
       LSResults curMethod;
       curMethod.name = "INEXACT_TrialAndError";

@@ -206,6 +206,9 @@ namespace CoupledField
     isAllowed_.insert( IRRSTRAIN_REUSE_P );
 
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mag );
+    isAllowed_.insert( TRACE_FORCE_CENTRALDIFF );
+    isAllowed_.insert( TRACE_FORCE_RETRACING );
+    isAllowed_.insert( TRACE_JAC_RESOLUTION );
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {

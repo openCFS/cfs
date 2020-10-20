@@ -126,7 +126,7 @@ namespace CoupledField
     Double diffMin, diffMiddle;
     Double everettMin, everettMiddle;
     Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
-
+   
     // new: as preisach operator alone leads to hystSaturated instead of PSaturated
     //        but dY is normalized to PSaturated, we have to add the scaling dHyst_to_dY to all
     //        everett related parts (as those return +/-1 which corresponds to +/-hystSaturated
@@ -288,6 +288,26 @@ namespace CoupledField
     //        but dY is normalized to PSaturated, we have to add the scaling dHyst_to_dY to all
     //        everett related parts (as those return +/-1 which corresponds to +/-hystSaturated
     Double dHyst_to_dY = hystSaturated_/PSaturated_;
+    
+    //
+    // Note: finesearch uses bisection which by definition stops if
+    // dY is smaller than a given tolerance, i.e., tolBisect
+    // if tolBisect, finesearch will terminate with a success once dY < tolY
+    // thus the failback criterion is satisfied but not necessarily the 
+    // desired criterion for X!
+    // Idea: derive criterion for fineSearch from tolX 
+    bool useTolXForBisect = true;
+    Double tolBisect;
+    if(useTolXForBisect){
+      // note: do scaling with eps_mu and not with dX_to_dY; otherwise
+      // criterion not strict enough
+      tolBisect = tolX*eps_mu;
+    } else {
+      tolBisect = tolY;
+    }
+//    std::cout << "Tolerance wrt X:" << tolX << std::endl;
+//    std::cout << "Tolerance wrt Y:" << tolY << std::endl; 
+//    std::cout << "Tolerance used for bisection:" << tolBisect << std::endl; 
     
     UInt invcase = 0;
 		UInt subcase = 0;
@@ -677,8 +697,13 @@ namespace CoupledField
 
           /*
            * thrid step: fine search via bisection (xOut in range -1,1)
+           * 4.11.2020: note that bisect terminates when dY < tolBisect!
+           * thus, if successful the failback criterion is satisfied but
+           * not necessarily the desired main criterion w.r.t. x!
+           * > therefore, it might be reasonable to define the tolerance for
+           * bisection from tolX, so that the bisection stops if dX < tolY
            */
-          Xout = bisect(dY,x1,x2,xfix,eps_mu,tolY);
+          Xout = bisect(dY,x1,x2,xfix,eps_mu,tolBisect);
         } // reuse old value
 
         Xout *= XSaturated_;
@@ -861,9 +886,12 @@ namespace CoupledField
     Vector<Double> &stringEl     = strings_[idx];
     Vector<Double> &helpStringEl = helpStrings_[idx];
 		
+    // note 26.10.2020: actLength is reference to StringLength_!
+    // changing its value, will change the stored string length;
+    // if it would not be a reference, stringLength would never be set 
     UInt& actLength = StringLength_[idx];
     UInt stringLength = actLength;
-		
+    
 		// determine type of current input
 		// only relevant if overwrite is true
 

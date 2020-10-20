@@ -1773,7 +1773,7 @@ namespace CoupledField {
           FPSlope = restrictPrecision(FPSlopeComp, restrictedPrecision); // restrict precision to hopefully increase stability
           
           if(outputOnce){
-            std::cout << std::scientific << std::setprecision(12) << "###Global globalFPFactor_C and additionally used safetyFactor### " << globalFPFactor_C << " / " << safetyFactor << std::endl;
+            std::cout << std::scientific << std::setprecision(12) << "###Global globalFPFactor_C and additional safetyFactor: " << globalFPFactor_C << " / " << safetyFactor << std::endl;
             std::cout << std::scientific << std::setprecision(12) << "###Global FP Slope (computed/truncated)### " << FPSlopeComp << " / " << FPSlope << std::endl;
             outputOnce = false;
           }
@@ -2404,7 +2404,7 @@ namespace CoupledField {
     //    Integer timeLevel_boundaryTerms_;
 
     void TestJacobianApproximations();
-    void TestInversion(PtrParamNode testNode);
+    void TestInversion(PtrParamNode testNode, PtrParamNode infoNode);
 
     void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals, Double initialAmplitude = std::numeric_limits<double>::infinity());
 
@@ -2417,7 +2417,10 @@ namespace CoupledField {
     std::string additionalTag1,std::string additionalTag2,std::string additionalTag3);
 
     void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals, Vector<Double> zVals);
-
+    void WriteTestStepToInfoXML(const UInt testNum,
+          const Double Px, const Double Py, const Double Pz,
+          const Double Pabs, const Double Pangle1, const Double Pangle2);
+    
     void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
       //std::cout << "Elast and Coupl tensor were passed by coupled pde!" << std::endl;
       elastTensorFct_ = elastTensor;
@@ -3112,6 +3115,14 @@ namespace CoupledField {
      * ### Misc parameter ###
      * ######################
      */
+    
+    /*
+     * For testing of hyst operator in general
+     */
+    std::string targetDirForResultFiles_;
+    bool writeResultsToInfoXML_;
+    PtrParamNode infoNodeLoc_;
+      
     /*
      * For performance measurement
      */
@@ -3465,6 +3476,11 @@ namespace CoupledField {
     // > can be set via input.xml
     Double globalFPFactor_C;
     Double localFPFactor_C;
+    
+    // parameters to adapt tracing
+    Double trace_JacResolution_;
+    bool trace_forceCentral_;
+    bool trace_forceRetracing_;
 
     // information from hyst operator
     bool hystModelTraced_;

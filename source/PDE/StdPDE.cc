@@ -542,7 +542,7 @@ namespace CoupledField {
             /*
              * Note: If locked = true, overwrite = false
              */
-            it->second->TestInversion(testNode);
+            it->second->TestInversion(testNode,this->GetInfoNode());
           }
      }
   }
