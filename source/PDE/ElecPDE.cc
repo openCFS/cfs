@@ -857,7 +857,7 @@ namespace CoupledField {
     LOG_DBG(elecpde) << "Reading charges";
     ReadRhsExcitation( "charge", dofNames, ResultInfo::VECTOR, 
             isComplex_, ent, coef,coefUpdateGeo );
-    
+ 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -1053,6 +1053,40 @@ namespace CoupledField {
       }
       
       
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
+    
+    // =========================================
+    //  PERMANENT POLARIZATION (VOLUME) 
+    // =========================================
+    LOG_DBG(elecpde) << "Reading prescribed polarization";
+    ReadRhsExcitation( "polarization", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) { EXCEPTION("Polarization must be defined on elements") }
+      
+      // determine elements dimension
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if (elemDim != dim_) { EXCEPTION("Polarization elements must have same dimension as geometry") }
+      
+      // === VOLUME ===
+      if(isComplex_)
+      {
+        if( dim_ == 2 ) { lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(), Complex(factor), coef[i], coefUpdateGeo); }
+        else { lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,3,1,Complex>(), Complex(factor), coef[i], coefUpdateGeo ); }
+      } 
+      else
+      {
+        if( dim_ == 2 ) { lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2> (), factor, coef[i], coefUpdateGeo ); }
+        else { lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3> (), factor, coef[i], coefUpdateGeo ); }
+      }
+      
+      lin->SetName("PermanentPolarizationInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);

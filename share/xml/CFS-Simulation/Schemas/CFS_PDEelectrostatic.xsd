@@ -129,7 +129,12 @@
                     <xsd:documentation>Defines normal component of dielectric displacement (similar to a surface charge density)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-
+                <xsd:element name="polarization" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines constant polarisation on domain. Materials Permittivity has to be set to vacuum permittivity</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
                 <xsd:element name="constraint" type="DT_ElecCS">
                   <xsd:annotation>
                     <xsd:documentation>Defines for selected elements just one degree of freedom, e.g., do model an electrode with unknown potential (models an equipotental surface)</xsd:documentation>
