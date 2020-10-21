@@ -21,6 +21,13 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 #=============================================================================
 message("target dir ${SNOPT_SOURCE}/src")
 IF(WIN32)
+#  run_program("${CFS_SOURCE_DIR}" "" ${CMAKE_COMMAND} -E copy_directory
+#  "${SNOPT_SOURCE}/snopt7"
+#  "${SNOPT_SOURCE}"
+#)
+#  run_program("${CFS_SOURCE_DIR}" "" ${CMAKE_COMMAND} -E rm -r
+#  "${SNOPT_SOURCE}/snopt7"
+#)
   run_program("${CFS_SOURCE_DIR}" "" ${CMAKE_COMMAND} -E copy_if_different
           "${CFS_SOURCE_DIR}/cfsdeps/snopt/CMakeLists.txt"
 	  "${SNOPT_SOURCE}/CMakeLists.txt"

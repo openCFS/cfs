@@ -249,7 +249,7 @@ namespace CoupledField {
         elementPhysicsTypes_.resize(idx + numElements);
         connectivity_.resize(idx*numNodesPerElem_ + numElements*numNodesPerElem_);
         std::fill(&connectivity_[idx*numNodesPerElem_],
-                  &connectivity_[idx*numNodesPerElem_ + numElements*numNodesPerElem_],
+                  &connectivity_[idx*numNodesPerElem_ + numElements*numNodesPerElem_-1],
                   0);
           
         UInt id, type, regPhys, regElem, numElementNodes, numTags;

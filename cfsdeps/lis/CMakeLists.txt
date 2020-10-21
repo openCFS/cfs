@@ -66,6 +66,9 @@ endif (NOT CMAKE_BUILD_TYPE)
 # Lis build settting
 
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+IF(WIN32)
+  ADD_DEFINITIONS(-DWIN32)
+ENDIF()
 # Create Configure.h
 CONFIGURE_FILE (include/lis_config.h.in ${PROJECT_BINARY_DIR}/lis_config.h)
 INCLUDE_DIRECTORIES (${PROJECT_BINARY_DIR}/)

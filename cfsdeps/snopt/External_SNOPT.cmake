@@ -71,11 +71,19 @@ IF(WIN32)
   #-------------------------------------------------------------------------------
   # CMAKE Args
   #-------------------------------------------------------------------------------
-  SET(CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${SNOPT_INSTALL}
-    -DCMAKE_BUILD_TYPE:STRING=Release
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  )
+  IF(DEBUG)
+    SET(CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX:PATH=${SNOPT_INSTALL}
+      -DCMAKE_BUILD_TYPE:STRING=Debug
+      -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    )
+  ELSE()
+    SET(CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX:PATH=${SNOPT_INSTALL}
+      -DCMAKE_BUILD_TYPE:STRING=Release
+      -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    )
+  ENDIF()
 
   IF(CMAKE_TOOLCHAIN_FILE)
     LIST(APPEND CMAKE_ARGS
@@ -133,6 +141,7 @@ ELSE()
       # don't dowload but simply copy w/o md5 check
       DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE1} ${SNOPT_SOURCE}
       # the zip file is encrypted!
+      #      PATCH_COMMAND unzip -q -u -d ${SNOPT_PREFIX}/tmp -P ${CFS_KEY_SNOPT} ../../${SNOPT_ZIP}
       PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
       LOG_CONFIGURE 1
       LOG_BUILD 1
@@ -143,7 +152,7 @@ ELSE()
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(snopt winpatch
       COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-      DEPENDERS build
+      DEPENDERS configure
       DEPENDEES patch 
       DEPENDS "${PFN}"
     )

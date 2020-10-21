@@ -114,6 +114,7 @@ ELSE()
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS ${CMAKE_ARGS}
     BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
+    WORKING_DIRECTORY ${ARPACK_prefix}
   )
 
   #-------------------------------------------------------------------------------

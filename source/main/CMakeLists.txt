@@ -59,6 +59,11 @@ IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}  ")
 ENDIF()
 
+IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
+  SET(INTEL_LIB_DIR "${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win")
+  TARGET_LINK_DIRECTORIES(cfsbin PUBLIC ${INTEL_LIB_DIR})
+ENDIF()
+
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL})
 
