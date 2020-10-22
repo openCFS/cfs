@@ -899,6 +899,8 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
   
   if equilateral:
     # rescale element for equilateral triangle
+    # height = sqrt(3) / 2 * baseline
+    # triangles form tesellation, i.e. their surrounding rectangles overlap and thus element width is baseline / 2
     elem = np.array([elem[0], elem[0] * np.sqrt(3), 0])
 
   nx = int((max[0]-min[0]) / elem[0])
@@ -906,10 +908,15 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
 
   if equilateral:
     if param is None:
+      # recalculate elem size, such that we always draw complete triangles in y-direction
       elem[1] = (max[1]-min[1]) / ny
     else:
-      max[0] = 3*elem[0]
-      max[1] = 2*elem[1]
+      # if we generate base cells, we draw three triangles in x-direction and two in y-direction
+      # after drawing, we crop the image to obtain a periodic base cell with an "X" and three horizontal bars
+      nx = 3
+      ny = 2
+      max[0] = nx*elem[0]
+      max[1] = ny*elem[1]
 
     # calculate new element centers
     centers_new = []
@@ -919,12 +926,15 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         centers_new.append(center)
    
     # get image resolution
-    res = (res, int(res * ny * elem[1] / (nx * elem[0]))) if param is None else [res, int(res*np.sqrt(3)*2/3)]
+    res = (res, int(res * ny/nx * elem[1] / elem[0])) if param is None else [res, int(res * ny/nx * np.sqrt(3))]
 
   im, draw, dim, dx, dy = create_image(min, max, res, "white")
 
+  # if the parameter is zero, we do not have to draw anything and return a white image
   if param == 0.0:
-    im = im.crop((max[0]/3/2*dx, min[1]*dy, max[0]/3/2*5*dx, max[1]*dy))
+    # crop argument = (left, upper, right, lower)
+    # remove half of an element on both sides (times dx for pixels)
+    im = im.crop((max[0]/nx*1/2*dx, min[1]*dy, max[0]/nx*(nx-1/2)*dx, max[1]*dy))
     return im
   
   # size of element in pixels
@@ -944,13 +954,17 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
   for y in range(ny):
     for x in range(nx):
       # if the value is -1 we use the nearest interpolation
+      # NOTE THAT mid IS NOT THE MIDPOINT OF THE TRIANGLE BUT OF elem (=rectangle)
       mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, y * nx + x)
 
-      if v < thres:
-        v = 0.0
+      if v > thres:
+        v = thres
 
       if param is not None:
         v = param
+
+      if isinstance(v,np.ndarray):
+        v = v[0]
 
       # this will generate a linear param-volume realtionship
       # else it will be volume = -param^2 + 2*param
@@ -958,13 +972,12 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       if param is None:
         v = 1-np.sqrt(1-np.min((v,1)))
 
-      # set the minimal volume
-      #v = (v-1)/1.15 + 1
-
-      if param is not None:
-        v *= 2.0/3.0
+      # midpoint of equilateral triangle is h/3. Thus v/2 should be in [0,1/3].
+      v *= 2.0/3.0
 
       # black outer triangle
+      # This would not be necessary if im was created as black image.
+      # But then, param == 0.0, would have to be treated in another way above.
       n1x = mid[0] * dx - length
       n2x = mid[0] * dx
       n3x = mid[0] * dx + length
@@ -993,22 +1006,18 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       if x == nx-1: # right boundary
         tupels.append((n5x,n5y))
       tupels.append((n3x, n3y))
-      
-      #draw.polygon(tupels, fill=(0,0,int(np.random.rand(1)[0]*256)))
-#      data = numpy.array(im)
-#      print((numpy.min(data),numpy.max(data),numpy.average(data)))
-#      print(tupels)
+
+      #draw.polygon(tupels, fill=(0,0,int(np.random.rand(1)[0]*256))) #colored for debug
       draw.polygon(tupels, fill="black")
 
       # white inner triangle
-      offsetx = 0.5 * v * (sqrt(pow(length,2) + pow(height,2)) + length)
-      of = 0.5 * v * length
+      # intercept theorem: ox / length = v/2*height / height/3
+      offsetx = v * 0.5 * length * 3
       offsetx = np.min((offsetx, length))
-      offsety = 0.5 * v * sqrt(pow(length,2) + pow(height,2)) / length * height
-      offsety = np.min((offsety, (1 - v * 0.5) * height))
       n1x = mid[0] * dx - length + offsetx
       n2x = mid[0] * dx
       n3x = mid[0] * dx + length - offsetx
+      offsety = np.sqrt(pow(offsetx,2) + pow(height*0.5*v,2))
       if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
         n1y = dim[1] - mid[1] * dy + height * 0.5 - height * 0.5 * v
         n2y = dim[1] - mid[1] * dy - height * 0.5 + offsety
@@ -1023,7 +1032,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       tupels.append((n2x, n2y))
       tupels.append((n3x, n3y))
       
-      #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0))
+      #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0)) #colored for debug
       draw.polygon(tupels, fill="white")
       
       # white triangle at boundary
@@ -1051,10 +1060,10 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         tupels.append((n1x, n1y))
         tupels.append((n2x, n2y))
         tupels.append((n3x, n3y))
-        
-        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0))
+
+        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0)) #colored for debug
         draw.polygon(tupels, fill="white")
-        
+
       if x == nx-1:
         offsetx = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 0.5))
         offsety = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 1 - v * 0.5))
@@ -1075,12 +1084,14 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         tupels.append((n1x, n1y))
         tupels.append((n3x, n3y))
         tupels.append((n2x, n2y))
-        
-        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0))
+
+        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0)) #colored for debug
         draw.polygon(tupels, fill="white")
 
   if param is not None:
-    im = im.crop((max[0]/3/2*dx, min[1]*dy, max[0]/3/2*5*dx, max[1]*dy))
+    # crop argument = (left, upper, right, lower)
+    # remove half of an element on both sides (times dx for pixels)
+    im = im.crop((max[0]/nx*1/2*dx, min[1]*dy, max[0]/nx*(nx-1/2)*dx, max[1]*dy))
 
   return im
 
