@@ -739,6 +739,10 @@ if not args.target_volume:
       
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design),min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
   else:
+    if not max_bb:
+      max_bb = [1.0,1.0] if dim_2D else [1.0, 1.0, 1.0]
+    if not min_bb:
+      min_bb = [0.0,0.0] if dim_2D else [0.0, 0.0, 0.0]  
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:
   if args.scale > 0:
