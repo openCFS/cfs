@@ -125,9 +125,85 @@ BOOST_AUTO_TEST_CASE(vector_compare_performance)
   }
 }
 
+
+/** copy function for copy_performance_test */
+void loop_copy(double* source, double* target, int size)
+{
+  for(int i = 0; i < size; i++)
+    target[i] = source[i];
+}
+
+void par_loop_copy(double* source, double* target, int size)
+{
+  #pragma omp parallel for num_threads(4)
+  for(int i = 0; i < size; i++)
+    target[i] = source[i];
+}
+
+
+/** measure performance of looped copy vs. std::copy */
+BOOST_AUTO_TEST_CASE(loop_vs_copy)
+{
+   int max_p = 6;
+   StdVector<Vector<double> > source(max_p + 1);
+   StdVector<Vector<double> > target(max_p + 1);
+
+   // our exponent from 8 * 10^1 to 8 * 10^p bytes
+   for(int p = 1; p <= max_p; p++) {
+     source[p].Resize((int) pow(10,p));
+     target[p].Resize((int) pow(10,p));
+   }
+
+   long values = (long) 1e7;
+
+   std::cout << "#set logscale y; set xlabel \"datasize in doubles 10^p\"; set ylabel \"copy " << values << " doubles in s\"\n";
+   std::cout << "# plot \"loop.dat\" u 1:4 t \"loop\" w lp, \"loop.dat\" u 1:5 t \"par (4) loop\" w lp, \"loop.dat\" u 1:6 t \"std::copy\" w lp, \"loop.dat\" u 1:7 t \"std::memcopy\" w lp\n";
+   std::cout << "#(1) p \t(2) n \t(3) loops \t(4) loop \t(5) par_4_loop \t(6) std::copy \t(7) std::memcpy\n";
+   for(int p = 1; p <= max_p; p++) {
+     Vector<double>& s = source[p];
+     Vector<double>& t = target[p];
+     unsigned int n = s.GetSize();
+
+     int loops = values / n;
+
+     Time t1(boost::posix_time::microsec_clock::local_time());
+     for(int l = 0; l < loops; l++)
+       loop_copy(s.GetPointer(), t.GetPointer(), n);
+     Time t2(boost::posix_time::microsec_clock::local_time());
+
+     Time t3(boost::posix_time::microsec_clock::local_time());
+     for(int l = 0; l < loops; l++)
+       par_loop_copy(s.GetPointer(), t.GetPointer(), n);
+     Time t4(boost::posix_time::microsec_clock::local_time());
+
+
+     Time t5(boost::posix_time::microsec_clock::local_time());
+     for(int l = 0; l < loops; l++)
+      std::copy_n(s.GetPointer(), n, t.GetPointer());
+     Time t6(boost::posix_time::microsec_clock::local_time());
+
+
+     Time t7(boost::posix_time::microsec_clock::local_time());
+     for(int l = 0; l < loops; l++)
+       std::memcpy(t.GetPointer(), s.GetPointer(), sizeof(double) * n);
+     Time t8(boost::posix_time::microsec_clock::local_time());
+
+     TimeDuration loop = t2 - t1;
+     TimeDuration parl = t4 - t3;
+     TimeDuration copy = t6 - t5;
+     TimeDuration memcpy = t8 - t7;
+
+     std::cout << p << " \t" << n << " \t"  << loops << " \t" <<  std::setprecision(8) <<  loop.total_microseconds() / 1.0e6
+               << " \t" << parl.total_microseconds() / 1.0e6 << " \t" << copy.total_microseconds() / 1.0e6
+               << " \t" << memcpy.total_microseconds() / 1.0e6 << std::endl;
+   }
+}
+
+
+
 // example for template test
-typedef boost::mpl::list<int,long,unsigned char> test_types;
+typedef boost::mpl::list<long,double> test_types;
 BOOST_AUTO_TEST_CASE_TEMPLATE( my_test, T, test_types )
 {
-  BOOST_TEST( sizeof(T) == (unsigned)4 );
+  BOOST_TEST( sizeof(T) == (unsigned) 8 );
 }
