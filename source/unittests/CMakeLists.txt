@@ -31,7 +31,7 @@ ENDIF(MKL_BLAS_LIB)
 
 TARGET_LINK_LIBRARIES(cfstestbin ${TARGET_LL})
 
-SET(CFS_LINK_FLAGS "")
+SET(CFS_LINK_FLAGS "-lrt")
 
 if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0") # there is no >= and also there is no 5.0.0.0
   # the current boost test case is crap :(
