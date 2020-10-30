@@ -2,4 +2,4 @@
 
 #cmakedefine USE_FFTW
 
-#define FFTW_VER @FFTW_VER@ 
+#define FFTW_VER "@FFTW_VER@"

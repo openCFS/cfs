@@ -2,4 +2,5 @@
 
 #cmakedefine USE_ENSIGHT
 
-#define VTK_VERSION @VTK_VERSION@
+// a C++ define VTK_VERSION conflicts with the original define from the vtk headers.
+#define CFS_VTK_VERSION "@VTK_VERSION@"

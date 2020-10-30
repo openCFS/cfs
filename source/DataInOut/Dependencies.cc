@@ -385,8 +385,8 @@ void Dependencies::ReadSetting()
 
   Dependency vtk("VTK", "USE_ENSIGHT", BSD);
 #ifdef USE_ENSIGHT
-  vtk.SetVersion(VTK_VERSION);
-  vtk.comment = "VTK_VERSION enabled by USE_ENSIGHT";
+  vtk.SetVersion(CFS_VTK_VERSION);
+  vtk.comment = "VTK enabled by USE_ENSIGHT";
 #endif
   data.Push_back(vtk);
 

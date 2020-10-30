@@ -3,4 +3,4 @@
 
 #cmakedefine USE_FLANN
 
-#define FLANN_VER @FLANN_VER@
+#define FLANN_VER "@FLANN_VER@"
