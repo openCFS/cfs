@@ -520,6 +520,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         in->Get("norm_L2")->SetValue(ht.NormL2());
         in->Get("trace")->SetValue(ht.Trace());
+        StdVector<Function*> funcs = GetFunctions(false);
+        DesignMaterial::Notation notation = DesignMaterial::NO_TYPE;
+        for(unsigned int fi = 0; fi < funcs.GetSize(); ++fi)
+          if(funcs[fi]->GetType() == Function::HOM_TENSOR)
+            notation = funcs[fi]->GetNotation();
+        in->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation));
 
         //FIXME Only for linear elasticity
         if (ctxt->ToApp() == App::MECH)
@@ -1233,7 +1239,8 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
       return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
     else
     {
-      std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
+      std::cout << "Homogenized Tensor (" << DesignMaterial::notation.ToString(f->GetNotation())
+          << "): " << std::endl << hom_tensor.ToString(0, true);
 
       if (f->ctxt->ToApp() == App::MECH)
       {
