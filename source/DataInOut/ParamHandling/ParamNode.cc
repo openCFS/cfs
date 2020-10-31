@@ -8,14 +8,7 @@
 #include "Domain/Domain.hh"
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
-// save compiler switches
-// prevent include/boost/iostreams/detail/functional.hpp:176:93: error: extra ';' [-Werror=pedantic]
-//     BOOST_DELETED_FUNCTION(flush_buffer_operation& operator=(const flush_buffer_operation&));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
 #include <boost/iostreams/filtering_stream.hpp>
-//restore compiler switches
-#pragma GCC diagnostic pop
 
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
