@@ -18,7 +18,6 @@ set(IPOPT_INSTALL  "${IPOPT_PREFIX}/install")
 
 SET(MIRRORS
   "http://www.coin-or.org/download/source/Ipopt/${IPOPT_TGZ}"
-  "${CFS_FAU_MIRROR}/sources/ipopt/${IPOPT_TGZ}"
   "${CFS_DS_SOURCES_DIR}/ipopt/${IPOPT_TGZ}"
 )
 

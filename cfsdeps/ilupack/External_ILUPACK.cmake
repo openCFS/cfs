@@ -61,8 +61,6 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The ilupack source is closed source! It must not be redistributed!!
-# There is a copy at ${CFS_DS_WEBDAV}/ but it has certificate issuses, therefore there
-# is also a mirror by the FAU CFS optimization group.
 # To obfuscate the download,. the filename is replaced by its md5 sum.
 #-------------------------------------------------------------------------------
 SET(MIRRORS 

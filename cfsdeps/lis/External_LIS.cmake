@@ -63,7 +63,6 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://www.ssisc.org/lis/dl/${LIS_GZ}"
-  "${CFS_FAU_MIRROR}/sources/lis/${LIS_GZ}"
   "${LIS_URL}/${LIS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lis/${LIS_GZ}")

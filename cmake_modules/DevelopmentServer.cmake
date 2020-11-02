@@ -1,40 +1,11 @@
 #=============================================================================
-# Global defines for CFS++ development server.
+# Global defines for server infrastructure related to CFS development
 #=============================================================================
-#-----------------------------------------------------------------------------
-# CFS_(D)evelopment_(S)erver_HOSTNAME
-#-----------------------------------------------------------------------------
-SET(CFS_DS_HOSTNAME "cfs.mdmt.tuwien.ac.at")
-
-#-----------------------------------------------------------------------------
-# Base directory for public FTP server.
-#-----------------------------------------------------------------------------
-SET(CFS_DS_FTP "ftp://${CFS_DS_HOSTNAME}")
-
-#-----------------------------------------------------------------------------
-# Base directory for secure FTP server.
-#-----------------------------------------------------------------------------
-SET(CFS_DS_SFTP "sftp://${CFS_DS_HOSTNAME}")
-
-#-----------------------------------------------------------------------------
-# Base directory for restricted HTTPS server.
-#-----------------------------------------------------------------------------
-SET(CFS_DS_HTTPS "https://${CFS_DS_HOSTNAME}")
-
-#-----------------------------------------------------------------------------
-# Base directory of WEBDAV server.
-#-----------------------------------------------------------------------------
-SET(CFS_DS_WEBDAV "${CFS_DS_HTTPS}/files")
 
 # ----------------------------------------------------------------------------
-# Alternative mirror from the optimization group - plain http!
+# Mirror for cfsdeps hosted at the optimization group - plain http!
 # ----------------------------------------------------------------------------
 SET(CFS_FAU_MIRROR "http://movm.mi.uni-erlangen.de/cfsdepscache")
-
-#-----------------------------------------------------------------------------
-# Base directory CFS_DEPS_CACHE_DIR mirror.
-#-----------------------------------------------------------------------------
-SET(CFS_DS_CFSDEPS "${CFS_DS_FTP}")
 
 #-----------------------------------------------------------------------------
 # Drop site for nightly build/test results at FAU.

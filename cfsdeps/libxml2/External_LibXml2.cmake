@@ -14,7 +14,6 @@ set(libxml2_install  "${libxml2_prefix}/libxml2_target")
 SET(MIRRORS
   "ftp://xmlsoft.org/libxml2/${LIBXML2_GZ}"
   "http://ftp.osuosl.org/pub/blfs/conglomeration/libxml2/${LIBXML2_GZ}"
-  "${CFS_FAU_MIRROR}/sources/libxml2/${LIBXML2_GZ}"
   "${libxml2_URL}/${LIBXML2_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/libxml2/${LIBXML2_GZ}")

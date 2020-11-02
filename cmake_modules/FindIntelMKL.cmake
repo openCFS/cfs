@@ -17,11 +17,6 @@ function(MKL_VERSION_FROM_HEADER)
   ELSEIF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
     FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
   ELSE(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
-    SET(MSG "Please download the file ")
-    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/mkl/mkl_win.zip'")
-    SET(MSG "${MSG}, unpack it and set a proper MKL_ROOT_DIR.")
-
-    colormsg(HIRED "${MSG}")
     MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
   ENDIF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
 

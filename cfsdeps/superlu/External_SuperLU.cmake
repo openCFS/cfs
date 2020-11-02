@@ -70,7 +70,6 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://crd-legacy.lbl.gov/~xiaoye/SuperLU/${SUPERLU_GZ}"
-  "${CFS_FAU_MIRROR}/sources/superlu/${SUPERLU_GZ}"
   "${SUPERLU_URL}/${SUPERLU_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/superlu/${SUPERLU_GZ}")
