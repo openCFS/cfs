@@ -52,7 +52,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
       args.parametrization = "simp"
 
     if h5_read:
-      design = matviz_io.read_design(f, dim_2D, args, TWO_SCALE)
+      design = matviz_io.read_design(f, args, dim_2D, centers, TWO_SCALE)
     else:
       design, coords = read_stiff_angle_matlab(args.input)
 

@@ -1,5 +1,6 @@
 from PIL import Image
 from cfs_utils import open_xml, xpath
+from hdf5_tools import get_element, has_element
 import numpy
 import os.path
 import xml.etree.ElementTree
@@ -10,35 +11,48 @@ import xml.dom.minidom
 # considers density read
 # @param angle array of anglex, angley, anglez
 # @return dict with design variables (s1, s2, s3, sh1, angle)
-def read_design(hdf_file, dim_2D, args, TWO_SCALE):
+def read_design(hdf_file, args, dim_2D, centers, TWO_SCALE):
   res = dict()
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
   sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing
   if args.parametrization == 'hom_rect':
     if args.show in TWO_SCALE:
       try:
-        res['microparams'] = [get_element(f, "design_microparam{}_{}".format(i + 1, args.hom_access), args.h5_region, args.h5_step) for i in range(TWO_SCALE[args.show])]
+        res['microparams'] = [get_element(hdf_file, "design_microparam{}_{}".format(i + 1, args.hom_access), args.h5_region, args.h5_step) for i in range(TWO_SCALE[args.show])]
       except:
-        res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step)
-        res['s2'] = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step)
-        res['s3'] = get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step) if not dim_2D else numpy.ones((len(centers),1)) * .1
-        res['sh1'] = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
+        try:
+          res['s1'] = get_element(hdf_file, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step)
+          res['s2'] = get_element(hdf_file, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step)
+          res['s3'] = get_element(hdf_file, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step) if not dim_2D else numpy.ones((len(centers),1)) * .1
+          res['sh1'] = get_element(hdf_file, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
+        except:
+          # this is for two scale results with just one parameter
+          if args.h5_region == 'all':
+            s1 = [[None]]
+            for region in hdf_file['/Mesh/Regions']:
+              s = get_element(hdf_file, "physicalPseudoDensity", region, args.h5_step)
+              s1 = numpy.concatenate((s1,s))
+            res['s1'] = s1[1:]
+          else:
+            res['s1'] = get_element(hdf_file, "physicalPseudoDensity", args.h5_region, args.h5_step)
+          res['s2'] = res['s1']
+          res['s3'] = res['s1']
     else:
       if args.h5_region == 'all':
         s1 = [[None]]
-        for region in f['/Mesh/Regions']:
-          s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+        for region in hdf_file['/Mesh/Regions']:
+          s = get_element(hdf_file, "physicalPseudoDensity", region, args.h5_step)
           s1 = numpy.concatenate((s1,s))
         res['s1'] = s1[1:]
       else:
-        res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+        res['s1'] = get_element(hdf_file, "physicalPseudoDensity", args.h5_region, args.h5_step)
       res['s2'] = res['s1']
       res['s3'] = res['s1']
   elif args.parametrization == 'trans-iso':
-    s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
-    s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
+    s1 = get_element(hdf_file, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
+    s2 = get_element(hdf_file, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
     try:
-      theta = get_element(f, "design_poisson_" + args.hom_access, args.h5_region, args.h5_step)
+      theta = get_element(hdf_file, "design_poisson_" + args.hom_access, args.h5_region, args.h5_step)
     except:
       theta = 0.0
       print('could not read theta (design_poisson_' + args.hom_access + '), setting to ' + str(theta))
@@ -49,10 +63,10 @@ def read_design(hdf_file, dim_2D, args, TWO_SCALE):
     res['s2'] = s2
     res['s3'] = numpy.ones((len(centers), 1)) * .1  # fix for 3D
   elif args.parametrization == 'ortho':
-    t11 = get_element(f, "design_tensor11_" + args.hom_access, args.h5_region, args.h5_step)
-    t12 = get_element(f, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
-    t22 = get_element(f, "design_tensor22_" + args.hom_access, args.h5_region, args.h5_step)
-    t33 = get_element(f, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
+    t11 = get_element(hdf_file, "design_tensor11_" + args.hom_access, args.h5_region, args.h5_step)
+    t12 = get_element(hdf_file, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
+    t22 = get_element(hdf_file, "design_tensor22_" + args.hom_access, args.h5_region, args.h5_step)
+    t33 = get_element(hdf_file, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
     s1 = t11*t11+t12*t12
     s2 = t12*t12+t22*t22
     m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
@@ -63,26 +77,26 @@ def read_design(hdf_file, dim_2D, args, TWO_SCALE):
     res['s3'] = numpy.ones((len(centers),1)) * .1 # fix for 3D
   elif args.parametrization == "hom_iso":
     # isotropic homogenized basecell e.g. lufo fuller or V7 base cell
-    res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step)
+    res['s1'] = get_element(hdf_file, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step)
     res['s2'] = res['s1']
     res['s3'] = res['s1']
   elif args.parametrization == 'simp':
     if args.h5_region == 'all':
       s1 = [[None]]
-      for region in f['/Mesh/Regions']:
-        s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+      for region in hdf_file['/Mesh/Regions']:
+        s = get_element(hdf_file, "physicalPseudoDensity", region, args.h5_step)
         s1 = numpy.concatenate((s1,s))
       res['s1'] = s1[1:]
       shape(res['s1'])
     else:
-      res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+      res['s1'] = get_element(hdf_file, "physicalPseudoDensity", args.h5_region, args.h5_step)
     res['s2'] = res['s1']
     res['s3'] = res['s1']
     res['angle'] = numpy.zeros(((len(res['s1']), 3)))
     return res
   if has_element(hdf_file, "design_density_" + args.hom_access):
     print("args.h5_step:" + str(args.h5_step))
-    rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
+    rho = get_element(hdf_file, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
     res['s1'] *= rho
     res['s2'] *= rho
@@ -95,14 +109,14 @@ def read_design(hdf_file, dim_2D, args, TWO_SCALE):
     try:
       if dim_2D:
         try:
-          angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
+          angle[:,0] = get_element(hdf_file, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         except:
           print('could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain')
-          angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
+          angle[:,0] = get_element(hdf_file, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
       else:
-        angle[:, 0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
-        angle[:, 1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
-        angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
+        angle[:, 0] = get_element(hdf_file, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
+        angle[:, 1] = get_element(hdf_file, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
+        angle[:, 2] = get_element(hdf_file, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
     except Exception as e:
       print('could not read angle, ignore it: ', e)
   res['angle'] = angle
