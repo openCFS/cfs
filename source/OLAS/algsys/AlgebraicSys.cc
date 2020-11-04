@@ -315,8 +315,12 @@ namespace CoupledField {
       sysMat_[*fIt] = GenerateSBM_Matrix( *fIt, entryType, sharePattern );
     }
 
-    // Log what we will do
-    //PrintFeMatrixInfo();
+    // Log what we will do.
+    // This should work always, but with commit f487c43e Florian mentioned
+    // "commented out because it produces a segfault - only for small problems ???"
+    // if this is fixed, one could print the information always
+    if(progOpts->DoDetailedInfo())
+      PrintFeMatrixInfo();
 
     // --------------------------------------------
     //  Treatment of Dirichlet Boundary Conditions
