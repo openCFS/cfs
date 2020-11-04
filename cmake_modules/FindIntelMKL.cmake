@@ -45,7 +45,6 @@ function(MKL_VERSION_FROM_HEADER)
 
 endfunction(MKL_VERSION_FROM_HEADER)
 
-
 IF(MSVC)
   #-----------------------------------------------------------------------------
   # If not specified by the user, try to determine proper MKL root directory.
@@ -71,7 +70,7 @@ IF(MSVC)
       )
 
     STRING(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
-#    MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
+    #  MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
   ENDIF()
 
 
@@ -118,8 +117,8 @@ IF(MSVC)
   FILE(COPY ${MKL_REDIST_DIR} DESTINATION ${LIB_DEST_DIR}
        FILES_MATCHING PATTERN "*.dll")
 
-
-elseif(APPLE) # END MSVC
+# END MSVC
+elseif(APPLE) # note tha APPLE is ALSO UNIX! 
   # for APPLE we do it as with MSVC, we forget about the complex LINUX compile_mkl_test.sh.in stuff
   # this is possibly also an option for Linux to get rid of the ugly stuff. 
   # base is the interactive configurator: https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
@@ -127,7 +126,6 @@ elseif(APPLE) # END MSVC
   if(NOT MKL_ROOT_DIR)
     set(MKL_POSSIBLE_ROOT_DIRS 
        "/opt/intel/mkl"
-       "/share/programs/intel-mkl/latest/mkl"       
        $ENV{MKLROOT}) # set by compilervars.sh intel64 
 
     find_file(MKL_H
@@ -151,12 +149,8 @@ elseif(APPLE) # END MSVC
   #---------------------------------------------------------------------------
   MKL_VERSION_FROM_HEADER()
   set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
-
-  if(UNIX)
-    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_lin")
-  else()
-    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib")
-  endif()
+  
+  set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib")
 
   # https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
   if(USE_OPENMP)
@@ -172,12 +166,11 @@ elseif(APPLE) # END MSVC
     ${MKL_LIB_DIR}/libmkl_intel_lp64.a
     ${MKL_THREAD_LIB}
     ${MKL_LIB_DIR}/libmkl_core.a
-    -liomp5
+    -liomp5 
     -lpthread 
     -lm 
     -ldl)
 
-  if(APPLE)
   # for macOS and clang and MKL we need to link -lgcc_s.1.dylib from the libgfortran.a location
   # to prevent undefined references ___divtf3, ___eqtf2, ___gttf2, ..., ___subtf3, ___unordtf2
   # according to nm there is no static lib to provide this (used by libgfortran.a)
@@ -190,22 +183,11 @@ elseif(APPLE) # END MSVC
     ${MKL_BLAS_LIB}
     -L${GFORTRAN_LIB_DIR}
     -lgcc_s.1)
-  endif()
 
   # the path for libimp5 is not set by defeault: LD_LIBRARY_PATH=$MKLROOT/../compiler/lib/ works, 
   # but it is easier to copy the file to the lib-dir.
-  if(UNIX)
-    set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
-  else()
-   set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX}")
-  endif()
-  # add a target for MKL copy
-  ADD_CUSTOM_TARGET(mkl ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so ${LIBRARY_OUTPUT_PATH}/libiomp5.so
-    BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.so ${MKL_LIB_DIR}/libmkl_intel_lp64.a ${MKL_THREAD_LIB} ${MKL_LIB_DIR}/libmkl_core.a
-    COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
-    USES_TERMINAL)
-
+  file(COPY ${MKL_ROOT_DIR}/../compiler/lib/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} DESTINATION "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+     
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
   set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
@@ -214,7 +196,7 @@ elseif(APPLE) # END MSVC
   mark_as_advanced(MKL_H)
   mark_as_advanced(MKL_ROOT_DIR)
 
-elseif(UNIX)
+elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX und Linux. Note that APPLE is als UNIX
   if(NOT MKL_ROOT_DIR)
     set(MKL_POSSIBLE_ROOT_DIRS
        "/opt/intel/mkl"
@@ -273,10 +255,10 @@ elseif(UNIX)
      -ldl)
 
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+else() # end UNIX
+  message(FATAL_ERROR "unhandled system type")
+endif()  
 
-else() # neither MSVC, APPLE or UNIX
-  message("what system?")
-ENDIF() # end of UNIX
 
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.

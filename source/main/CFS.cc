@@ -246,9 +246,15 @@ int CFS::Run()
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
-    infoNode->Get(ParamNode::SUMMARY)->SetComment("memory in MB");
-    infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)/1024.);
-    infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true)/1024.);
+
+    // memory usage works currently only on linux system
+    int peak = MemoryUsage(true);
+    if(peak > 0)
+    {
+      infoNode->Get(ParamNode::SUMMARY)->SetComment("memory in MB");
+      infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)/1024.);
+      infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(peak/1024.);
+    }
 
     return 0;
   }
