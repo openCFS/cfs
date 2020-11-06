@@ -231,7 +231,10 @@ def show_boebbale(tensor, args, coords, scale, aux_code):
   if dim_2D:
     assert(args.show is None or args.show in ['ortho_norm', 'mono_norm', 'ortho_err'])
     if h5_read:
-      tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      tensors = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      tensor = numpy.zeros((len(tensors),3,3)) if tensors.shape[1] == 6 else numpy.zeros((len(tensors),6,6))
+      for i, vec in enumerate(tensors):
+        tensor[i] = to_mech_tensor(vec)
     angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.show)
 
     if args.gnuplot != None:

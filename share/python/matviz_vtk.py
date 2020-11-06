@@ -325,7 +325,7 @@ def create_point_vector_centered_bar(center, dim, angle=None):
   sthetaz = sin(angle_z)
 
   # see DesignMaterial::SetRotationMatrix()
-  R = zeros((3, 3))
+  R = numpy.zeros((3, 3))
   R[0][0] = cthetay * cthetaz
   R[0][1] = -cthetay * sthetaz
   R[1][0] = cthetax * sthetaz + sthetax * sthetay * cthetaz

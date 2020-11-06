@@ -1,11 +1,13 @@
 from PIL import Image
 from cfs_utils import open_xml, xpath
 from hdf5_tools import get_element, has_element
+from matviz_vtk import show_write_vtk
 import numpy
 import os.path
 import xml.etree.ElementTree
 import xml.dom.minidom
 
+import matplotlib
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults
 
 # considers density read
