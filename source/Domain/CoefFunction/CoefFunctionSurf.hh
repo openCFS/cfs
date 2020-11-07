@@ -80,6 +80,11 @@ public:
   // ===========================
   //@{ \name Functions for normal mapping
   
+  //! Mapping operation for scalars
+  template<typename TYPE>
+  static void MapScalNormal( Vector<TYPE>& ret, TYPE& scal,
+                            const Vector<Double>& normal );
+
   //! Mapping operation for vectors
   template<typename TYPE>
   static void MapVecNormal( TYPE& ret, const Vector<TYPE>& vec, 

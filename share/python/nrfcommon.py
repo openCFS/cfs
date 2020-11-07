@@ -123,6 +123,7 @@ class NrfCommon(object):
                    ('elecFluxDensity', 4),
                    ('elecEnergy', 7),
                    ('elecEnergyDensity', 4),
+                   ('elecForceDensity',4),
                    ('elecRhsLoad', 1)]
     magResults = [('magPotential', 1),
                   ('magPotentialD1', 1),

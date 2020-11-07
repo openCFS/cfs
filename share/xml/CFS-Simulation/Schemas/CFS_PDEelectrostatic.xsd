@@ -338,6 +338,7 @@
   <xsd:simpleType name="DT_ElecSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecChargeDensity"/>
+      <xsd:enumeration value="elecForceDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

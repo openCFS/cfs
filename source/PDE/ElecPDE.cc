@@ -1742,23 +1742,23 @@ namespace CoupledField {
     ed->definedOn = ResultInfo::ELEMENT;
     ed->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionFormBased> edFunc;
-    
+
     // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
     // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)
     Double factor = 1.0;
     if ( isPiezoCoupled_ ){
       factor = -1.0;
     }
-    
+
     if( isComplex_ ) {
       edFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, factor*0.5));
     } else {
       edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, factor*0.5));
     }
-    
+
     DefineFieldResult( edFunc, ed );
     stiffFormCoefs_.insert(edFunc);
-    
+
     // Electric energy
     shared_ptr<ResultInfo> energy( new ResultInfo );
     energy->resultType = ELEC_ENERGY;
@@ -1775,7 +1775,21 @@ namespace CoupledField {
     }
     resultFunctors_[ELEC_ENERGY] = energyFunc;
     stiffFormFunctors_.insert(energyFunc);
-    
+
+
+    // === ELECTROSTATC FORCE DENSITY ===
+    shared_ptr<ResultInfo> efd(new ResultInfo);
+    efd->resultType = ELEC_FORCE_DENSITY;
+    efd->SetVectorDOFs(dim_, isaxi_, is2p5);
+//    efd->dofNames= "";
+    efd->unit = "N/m^2";
+    efd->definedOn = ResultInfo::ELEMENT;
+    efd->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionSurf> efdFuncS;
+    //factor -1 because positive normal direction points into mechanic region
+    efdFuncS.reset(new CoefFunctionSurf(true, -1.0, efd));
+    DefineFieldResult(efdFuncS, efd);
+    surfCoefFcts_[efdFuncS] = edFunc;
   }
   
   

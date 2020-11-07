@@ -127,6 +127,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
+    SolutionTypeEnum.Add(ELEC_FORCE_DENSITY, "elecForceDensity");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
     SolutionTypeEnum.Add(ELEC_ELEM_PERMITTIVITY, "elecElemPermittivity");
 
@@ -905,6 +906,9 @@ namespace CoupledField {
       case ELEC_POWER_DENSITY:
         return "W/m^3";
         break;
+
+      case ELEC_FORCE_DENSITY:
+        return "N/m^2";
 
       case DIV_MEAN_FLUIDMECH_VELOCITY:
       case FLUIDMECH_VELOCITY_DERIV_1:

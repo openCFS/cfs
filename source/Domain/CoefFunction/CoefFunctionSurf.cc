@@ -98,37 +98,76 @@ void CoefFunctionSurf::GetTensor(Matrix<Complex>& coefMat,
 
 void CoefFunctionSurf::GetVector(Vector<Double>& coefVec, 
                                  const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
-
   // create local point for surface
   LocPointMapped surfLpm(lpm);
   surfLpm.SetSurfInfo( regions_);
   RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-  if( mapNormal_ ) {
-    Vector<Double> coefTens;
-    coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
-    MapTensorNormal<Double>( coefVec, coefTens, surfLpm.normal);
-  } else {
-    coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+
+  //Confirm that output variable is defined as a vector
+  assert(this->dimType_ == VECTOR);
+
+  //For tensor or vector volume coefficient function
+  if (coefs_[region]->GetDimType() == TENSOR || coefs_[region]->GetDimType() == VECTOR ){
+    //normal mapping (from Tensor)
+    if( mapNormal_ ) {
+      Vector<Double> coefTens;
+      coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
+      MapTensorNormal<Double>( coefVec, coefTens, surfLpm.normal);
+    //get vector without normal mapping
+    } else {
+      coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+    }
   }
+
+  //normal mapping from scalar CoefFunction
+  else if (mapNormal_ && coefs_[region]->GetDimType() == SCALAR){
+    Double coefScal;
+    coefs_[region]->GetScalar(coefScal, *surfLpm.lpmVol);
+    MapScalNormal<Double>( coefVec, coefScal, surfLpm.normal);
+  }
+
+  else{
+    EXCEPTION("Case not implemented.");
+  }
+
   coefVec *= factor_;
 }
 
+
 void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec, 
                                const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
-
   // create local point for surface
   LocPointMapped surfLpm(lpm);
   surfLpm.SetSurfInfo( regions_);
   RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-  if( mapNormal_ ) {
-    Vector<Complex> coefTens;
-    coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
-    MapTensorNormal<Complex>( coefVec, coefTens, surfLpm.normal);
-  } else {
-    coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+
+  //Confirm that output variable is defined as a vector
+  assert(this->dimType_ == VECTOR);
+
+  //For tensor or vector volume coefficient function
+  if (coefs_[region]->GetDimType() == TENSOR || coefs_[region]->GetDimType() == VECTOR ){
+    //normal mapping (from Tensor)
+    if( mapNormal_ ) {
+      Vector<Complex> coefTens;
+      coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
+      MapTensorNormal<Complex>( coefVec, coefTens, surfLpm.normal);
+    //get vector without normal mapping
+    } else {
+      coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+    }
   }
+
+  //normal mapping from scalar CoefFunction
+  else if (mapNormal_ && coefs_[region]->GetDimType() == SCALAR){
+    Complex coefScal;
+    coefs_[region]->GetScalar(coefScal, *surfLpm.lpmVol);
+    MapScalNormal<Complex>( coefVec, coefScal, surfLpm.normal);
+  }
+
+  else{
+    EXCEPTION("Case not implemented.");
+  }
+
   coefVec *= factor_;
 }
 
@@ -195,6 +234,14 @@ std::string  CoefFunctionSurf::ToString() const {
   return ret.str();
 }
 
+template<typename TYPE>
+void CoefFunctionSurf::MapScalNormal( Vector<TYPE>& ret, TYPE& scal,
+                                     const Vector<Double>& normal ) {
+//  ret = normal * scal;
+  ret.Resize(normal.GetSize());
+  for(UInt i=0; i<normal.GetSize();++i)
+    ret[i] = normal[i]*scal;
+}
 
 template<typename TYPE>
 void CoefFunctionSurf::MapVecNormal( TYPE& ret, const Vector<TYPE>& vec,
@@ -218,7 +265,7 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
     ret[0] = tensor[0]*n[0] + tensor[2]*n[1];
     ret[1] = tensor[1]*n[1] + tensor[2]*n[0];
   } else {
-    EXCEPTION( "Case not implemented" );
+    EXCEPTION( "Case not implemented" << tensor.GetSize());
   }
 }
   

@@ -1547,7 +1547,7 @@ namespace CoupledField {
         //Complex factor = Complex(1.0);
         Complex factor = Complex(1.0);
         if( subType_ == "axi" ) {
-			    
+
           lin = new BDUIntegrator<StrainOperatorAxi<FeH1,Complex>, Complex> (factor,coef[i],curCoef,coefUpdateGeo);
           /*  		
            lin = new BUIntegrator<Complex> (new StrainOperatorAxi<FeH1,Complex>(),
@@ -1730,21 +1730,21 @@ namespace CoupledField {
       
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2,1>(),
                   Complex(presFac), coef[i],
                   volRegions, coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+          lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2,1>(),
                   presFac, coef[i], volRegions,
                   coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3,1>(),
                   Complex(presFac), coef[i],
                   volRegions, coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+          lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3,1>(),
                   presFac, coef[i],
                   volRegions, coefUpdateGeo);
         }
