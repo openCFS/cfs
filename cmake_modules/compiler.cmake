@@ -293,37 +293,31 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
       # however it works without a flag, mabye the intel compiler checks the stdlib.
       # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
       # It's anoying that intel depends on the system stdlib :(
-      SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_CXX_FLAGS "-std=c++14 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -g ${CFSDEPS_CXX_FLAGS}")
       SET(CHECK_MEM_ALLOC 1)
     ELSE()
       # release case
       SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
       # see above with -std=c++11
-      SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_CXX_FLAGS "-std=c++14 -w0 -Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -w0 ${CFSDEPS_CXX_FLAGS}")
       SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
     ENDIF()
   ELSE()
     # this is for WINDOWS 10
-    SET(CFS_C_FLAGS "${CFS_C_FLAGS} /D_WIN32_WINNT=0x0A00")
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
-    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
+    SET(CFS_C_FLAGS "${CFS_C_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c99")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++14")
+    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++14")
     IF(DEBUG)
-      SET(CFS_C_FLAGS "/Z7 -c99 /w1 /Wcheck /Werror ${CFS_C_FLAGS}")
-      # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
-      # however it works without a flag, mabye the intel compiler checks the stdlib.
-      # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
-      # It's anoying that intel depends on the system stdlib :(
-      SET(CFS_CXX_FLAGS "/Qstd=c++11 /Z7 /W1 /Wcheck /Werror ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "/Qstd=c++11 /Z7 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_C_FLAGS "/Z7 /w1 /Wcheck /Werror ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS "/Z7 /W1 /Wcheck /Werror ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "/Z7 ${CFSDEPS_CXX_FLAGS}")
       SET(CHECK_MEM_ALLOC 1)
     ELSE()
       # release case
-      SET(CFS_C_FLAGS "/Qstd=c99 /W0 ${CFS_C_FLAGS}")
-      # see above with -std=c++11
-      SET(CFS_CXX_FLAGS "/Qstd=c++11 /W0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "/Qstd=c++11 /W0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_CXX_FLAGS "/W0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "/W0 ${CFSDEPS_CXX_FLAGS}")
       SET(CFS_SUPPRESSIONS "/Qdiag-disable1125,654,980")
     ENDIF()
   ENDIF()

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- Run: cplreader --type GENGRIDS --name surf_mesh --xmlfile THIS_FILES_NAME -->
+<!-- Run: cplreader with Params type GENGRIDS name surf_mesh xmlfile THIS_FILES_NAME -->
 
 <cplreaderOptions>
     <type name="GENGRIDS">
