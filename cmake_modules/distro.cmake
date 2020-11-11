@@ -203,7 +203,7 @@ ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
       IF(OSX_ARCH STREQUAL "x86_64")
 	SET(CFS_ARCH "X86_64")
       ELSE(OSX_ARCH STREQUAL "x86_64")
-	MESSAGE(FATAL_ERROR "Building for architecture ${OSX_ARCH} not supported!")
+	MESSAGE(WARNING "Building for architecture ${OSX_ARCH} not supported!")
       ENDIF(OSX_ARCH STREQUAL "x86_64")
     ENDIF(OSX_ARCH STREQUAL "i386")
 
@@ -215,7 +215,7 @@ ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
     ENDIF(CFS_DISTRO_VER VERSION_GREATER 10.5)
   ENDIF(CMAKE_OSX_ARCHITECTURES)
 ELSE()
-  MESSAGE(FATAL_ERROR "CFS_DISTRO '${CFS_DISTRO}' not supported!")
+  MESSAGE(WARNING "CFS_DISTRO '${CFS_DISTRO}' not supported!")
 ENDIF()
 
 #-----------------------------------------------------------------------------

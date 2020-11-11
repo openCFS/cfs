@@ -240,10 +240,7 @@ main ()
   ENDIF()
 
 
-  IF(NOT USE_CGAL)
-    SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
-  ELSE()
+  IF(USE_CGAL)
     SET(CFS_C_FLAGS "-frounding-math ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-frounding-math ${CFS_CXX_FLAGS}")
   ENDIF()

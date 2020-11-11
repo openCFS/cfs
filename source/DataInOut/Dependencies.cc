@@ -205,14 +205,17 @@ void Dependencies::ReadSetting()
   data.Push_back(petsc);
 
 
-  // blas
-
-
   Dependency arpack("ARPACK", "USE_ARPACK", BSD);
 #ifdef USE_ARPACK
   arpack.SetVersion(ARPACK_VER);
 #endif
   data.Push_back(arpack);
+
+  Dependency feast("FEAST", "USE_FEAST", BSD);
+#ifdef USE_FEAST
+  feast.SetVersion(FEAST_VER);
+#endif
+  data.Push_back(feast);
 
   Dependency mkl("MKL", "USE_MKL", ISSL);
 #ifdef USE_MKL
@@ -256,7 +259,7 @@ void Dependencies::ReadSetting()
   // on a private communication base from the author Matthias Bollhoefer,
   // hence we cannot give the code but shall be allowed to give the binaries.
   // There is no license information mentioned on the web page: http://ilupack.tu-bs.de
-  Dependency il("ILUPACK", "USE_ILUPACK", NOT_KNOWN);
+  Dependency il("ILUPACK", "USE_ILUPACK", CLOSED );
  #ifdef USE_ILUPACK
   il.active = true;
  #endif
@@ -387,8 +390,8 @@ void Dependencies::ReadSetting()
 
   Dependency vtk("VTK", "USE_ENSIGHT", BSD);
 #ifdef USE_ENSIGHT
-  vtk.SetVersion(VTK_VERSION);
-  vtk.comment = "VTK_VERSION enabled by USE_ENSIGHT";
+  vtk.SetVersion(CFS_VTK_VERSION);
+  vtk.comment = "VTK enabled by USE_ENSIGHT";
 #endif
   data.Push_back(vtk);
 
@@ -451,13 +454,37 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(python);
 
-  Dependency sgpp("SGPP", "USE_SGPP", EASY);
+  // to be replaced by a open source version when it is avaiable
+  Dependency sgpp("SGPP", "USE_SGPP", COMMERCIAL);
 #ifdef USE_SGPP
   sgpp.SetVersion(SGPP_VER)
 #endif
   data.Push_back(sgpp);
 
+  // build options are not for the version output to be used via WriteCMakeUSE() in the testsuite
+  Dependency cfsdat("cfsdat", "BUILD_CFSDAT", CFS);
+#ifdef BUILD_CFSDAT
+  cfsdat.active = true;
+#endif
+  data.Push_back(cfsdat);
 
+  Dependency cfstool("cfstool", "BUILD_CFSTOOL", CFS);
+#ifdef BUILD_TOOL
+  cfstool.active = true;
+#endif
+  data.Push_back(cfstool);
+
+  Dependency testing("TESTING", "BUILD_TESTING", CFS);
+#ifdef BUILD_TESTING
+  testing.active = true;
+#endif
+  data.Push_back(testing);
+
+  Dependency unittests("Unit-Tests", "BUILD_UNIT_TESTS", CFS);
+#ifdef BUILD_UNIT_TESTS
+  unittests.active = true;
+#endif
+  data.Push_back(unittests);
 
   // https://www.boost.org/users/license.html
   Dependency boost("boost", "", BOOST);
@@ -515,8 +542,14 @@ Dependencies::Dependency::Dependency(const string& name, const string& cmake, co
 
 bool Dependencies::Dependency::IsSwitchable() const
 {
-  return cmake.find("USE_") != string::npos;
+  return cmake.find("USE_") != string::npos || IsBuildOption();
 }
+
+bool Dependencies::Dependency::IsBuildOption() const
+{
+  return cmake.find("BUILD_") != string::npos;
+}
+
 
 void Dependencies::Dependency::SetVersion(const string& version, const string& sub, const string& minor)
 {

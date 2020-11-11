@@ -4,13 +4,12 @@ Created on Fri Dec 11 09:35:12 2015
 Last edited on Mar 08 2017
 
 @author: martin, ivan lazarov, florian toth
-
-Use Python 2.*, because Python 3.* is currently buggier!
 """
 
 from __future__ import division, print_function
 
-import os, sys
+import os
+import sys
 from collections import OrderedDict
 from datetime import datetime
 import h5py

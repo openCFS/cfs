@@ -54,7 +54,6 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "https://github.com/opencollab/arpack-ng/archive/${ARPACK_GZ}"
-  "${CFS_FAU_MIRROR}/sources/arpack/${ARPACK_GZ}"
   "${ARPACK_URL}/${ARPACK_GZ}"
 )
 

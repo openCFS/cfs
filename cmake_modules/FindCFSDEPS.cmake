@@ -24,7 +24,7 @@ INCLUDE(ExternalProject)
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalData)
 
-SET(CFS_DS_SOURCES_DIR "${CFS_DS_CFSDEPS}/cfsdeps/sources")
+SET(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
 SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
 #-----------------------------------------------------------------------------
@@ -296,7 +296,7 @@ IF(USE_SUITESPARSE OR USE_ILUPACK)
   SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
   INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
@@ -497,7 +497,7 @@ INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 IF(USE_FEAST_COMMUNITY)
   SET(FEAST_URL "${CFS_DS_SOURCES_DIR}/feast")
   SET(FEAST_BASE "feast")
-  SET(FEAST_VER "3.0")
+  SET(FEAST_VER "3.0") # note that this is ignored in feast/CMakeLists.txt
   SET(FEAST_GZ "${FEAST_BASE}_${FEAST_VER}.tgz")
   SET(FEAST_MD5 "f03819c19a8724d0095dd24eae7ba43a")
   INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
@@ -634,3 +634,4 @@ endif()
 #-------------------------------------------------------------------------------
 ADD_CUSTOM_TARGET(cfsdeps)
 ADD_DEPENDENCIES(cfsdeps ${CFSDEPS})
+

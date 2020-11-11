@@ -5,11 +5,9 @@
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #ifdef __GNUG__
-#pragma GCC diagnostic ignored "-Wpedantic"
 #endif
 #include <boost/sort/sort.hpp>
 #ifdef __GNUG__
-#pragma GCC diagnostic error "-Wpedantic"
 #endif
 
 namespace CoupledField

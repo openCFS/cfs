@@ -3,7 +3,7 @@
 #
 # IPOPT needs a solver. This can be HSL, which can be requested for academic purpose
 # for free or MKL-Pardiso.
-# * HSL is provied encrypted via ipopt_hsl.zip and requires CFS_KEY_IPOPT_HSL
+# * You cannot use the encypted ipopt_hsl.zip but need to get the sources yourself
 # * MKL pardiso is only recently possible for IPOPT and not used here. You might 
 #   change this file to use MKL pardiso!
 #-------------------------------------------------------------------------------

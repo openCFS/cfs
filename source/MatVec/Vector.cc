@@ -91,8 +91,7 @@ namespace CoupledField {
   void Vector<T>::Fill(const T* source, unsigned int new_size)
   {
     Resize(new_size);
-    for(unsigned int i = 0; i < new_size; i++)
-      data_[i] = source[i];
+    std::copy_n(source, new_size, data_);
   }
 
   template<typename T>
@@ -111,7 +110,6 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-//#pragma omp parallel for
     for(Integer i = 0; i < (Integer) size_; ++i)
       data_[i] += idvec[i];
   }
@@ -127,32 +125,10 @@ namespace CoupledField {
     const Vector<T>& idvec1 = dynamic_cast<const Vector<T>&>(vec1);
     const Vector<T>& idvec2 = dynamic_cast<const Vector<T>&>(vec2);
 
-//#pragma omp parallel for 
     for(Integer i = 0; i < (Integer) size_; ++i)
       data_[i] = a * idvec1[i] + b * idvec2[i];	
   }
   
-  /*
-  template <typename T>
-  void Vector<T>::Add(Double a, const SingleVector& vec1,
-                      Double b, const SingleVector& vec2) {
-    if(typeid(Double) != typeid(T))
-      EXCEPTION("Wrong typeids in Vector<T>::Add ("
-                << typeid(Double).name() << " != "
-                << typeid(T).name() << ")");
-
-    //    unsigned int result = Add(a, vec1, b, vec2);
-  }
-
-  template <typename T>
-  void Vector<T>::Add(Complex a, const SingleVector& vec1,
-                      Complex b, const SingleVector& vec2) {
-    if(typeid(Double) != typeid(T))
-      EXCEPTION("Wrong typeids in Vector<T>::Add ("
-                << typeid(Double).name() << " != "
-                << typeid(T).name() << ")");
-  }
-*/
   
   // **********************************************************
   //   Add a scaled version of a vector to this vector object
@@ -163,7 +139,6 @@ namespace CoupledField {
     assert(vec.GetSize() == this->GetSize());
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-//#pragma omp parallel for 
     for(Integer i = 0; i < (Integer) size_; ++i)
       data_[i] += a * idvec[i];
   }
@@ -505,12 +480,12 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i){
       ret_new = std::max(ret, std::abs(data_[i]));
       if(ret != ret_new){
-		// std::abs(data_[i]) > ret -> save index
-		idx = i;
-	}
-	ret = ret_new;
-	}
-		
+        // std::abs(data_[i]) > ret -> save index
+        idx = i;
+      }
+      ret = ret_new;
+    }
+
     return data_[idx]; 
   }
 
@@ -524,11 +499,11 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i) {
       ret_new = std::max(std::abs(ret), std::abs(data_[i].real())); 
       if(std::abs(ret) != std::abs(ret_new)){
-		// std::abs(data_[i]) > ret -> save index
-		idx = i;
-	ret = ret_new;
-	}
-    }		
+        // std::abs(data_[i]) > ret -> save index
+        idx = i;
+        ret = ret_new;
+      }
+    }
     return data_[idx].real(); 
   } 
 
@@ -1100,7 +1075,8 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if((boost::math::isnan)(data_[k])) return true;
+      if((boost::math::isnan)(data_[k]))
+        return true;
 
     return false;
   }
@@ -1110,8 +1086,10 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if((boost::math::isnan)(data_[k].real())) return true;
-      if((boost::math::isnan)(data_[k].imag())) return true;
+      if((boost::math::isnan)(data_[k].real()))
+        return true;
+      if((boost::math::isnan)(data_[k].imag()))
+        return true;
     }
     return false;
   }
@@ -1121,7 +1099,8 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if((boost::math::isinf)(data_[k])) return true;
+      if((boost::math::isinf)(data_[k]))
+        return true;
 
     return false;
   }
@@ -1131,8 +1110,10 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if((boost::math::isinf)(data_[k].real())) return true;
-      if((boost::math::isinf)(data_[k].imag())) return true;
+      if((boost::math::isinf)(data_[k].real()))
+        return true;
+      if((boost::math::isinf)(data_[k].imag()))
+        return true;
     }
     return false;
   }

@@ -41,7 +41,11 @@ ENDIF(MKL_BLAS_LIB)
 
 TARGET_LINK_LIBRARIES(cfstestbin ${TARGET_LL})
 
-SET(CFS_LINK_FLAGS "")
+# this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)
+# new apple system have no more librt dll, probably same for Windows
+if(NOT APPLE AND NOT WIN32)
+  set(CFS_LINK_FLAGS "-lrt")
+endif()
 
 if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0") # there is no >= and also there is no 5.0.0.0
   # the current boost test case is crap :(

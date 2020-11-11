@@ -2,4 +2,4 @@
 
 #cmakedefine USE_SGPP
 
-#define SGPP_VER @SGPP_VER@
+#define SGPP_VER "@SGPP_VER@"
