@@ -97,6 +97,10 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         ptdriver = new BucklingDriver( seqStep, false, state, myDom, seqNode, info );
         break;
 
+      case BasePDE::EIGENVALUE:
+        ptdriver = new EigenValueDriver( seqStep, false, state, myDom, seqNode, info);
+        break;
+
       default:
         EXCEPTION( "Could not create driver" );
     }

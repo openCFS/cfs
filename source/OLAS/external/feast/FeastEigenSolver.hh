@@ -55,6 +55,9 @@ namespace CoupledField {
     void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint){
         EXCEPTION("not implemented yet");
     }
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint){
+        EXCEPTION("not implemented yet");
+    }
 
     /** Solve the linear generalized eigenvalue problem
      * @see BaseEigenSolver::CalcEigenFrequencies() */

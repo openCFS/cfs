@@ -30,10 +30,13 @@ namespace CoupledField {
     ~ArpackMatInterface();
     
     //! Setup the internal methods for solving
-    void Setup( BaseSolver* solver, BasePrecond* precond, Double shift );
-    
+    template <class TYPE>
+    void Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift );
+
     //! Setup the internal methods for solving, quadratic case
-    void QuadSetup( BaseSolver* solver, BasePrecond* precond, Double shift );
+    template <class TYPE>
+    void QuadSetup( BaseSolver* solver, BasePrecond* precond, TYPE shift );
+
 
     //! Method to set diagonal scaling factor
     void SetDiagScaling( Double scaleFac ) { diagScale_ = scaleFac; };
@@ -87,9 +90,10 @@ namespace CoupledField {
     
     //! size of rows / columns
     UInt size_;
+    bool complex_shift_ = false;
     
     //! Value of eigenvalue shift
-    Double shift_;
+    Complex shift_ = Complex(0.0,0.0);
     
     //! Pointer to matrix which gets interfaced
     const BaseMatrix * matrixA_, * matrixB_, *matrixD_;

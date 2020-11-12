@@ -478,11 +478,42 @@ namespace CoupledField {
       }
     } else 
     {
-      EXCEPTION("SCRS_Matrix<T>::SetSparsityPattern not yet implemented for complex matrices.");
+    	if(srcMat.GetEntryType() == BaseMatrix::COMPLEX)
+    	{
+    	      const SCRS_Matrix<Complex>& mat = dynamic_cast< const SCRS_Matrix<Complex>& >(srcMat);
+    	      const UInt* srcColInd = mat.GetColPointer();
+    	      const UInt* srcRowPtr = mat.GetRowPointer();
+
+    	      delete[] colInd_;
+    	      delete[] rowPtr_;
+    	      delete[] data_;
+
+    	      NEWARRAY( colInd_, UInt, mat.GetNumEntries() );
+    	      NEWARRAY( rowPtr_, UInt, mat.GetNumRows() + 1 );
+    	      NEWARRAY( data_, T, mat.GetNumEntries() );
+
+    	      // Copy information
+    	      for ( UInt i = 0; i < (UInt)numEntries_; i++ ) {
+    	        colInd_[i] = srcColInd[i];
+    	      }
+
+    	      for ( UInt i = 0; i < (UInt)numEntries_; i++ ) {
+    	        data_[i] = T(0.0);
+    	      }
+
+    	      for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
+    	        rowPtr_[i] = srcRowPtr[i];
+    	      }
+
+    	}	else
+    		{
+    			EXCEPTION("SCRS_Matrix<T>::SetSparsityPattern not yet implemented for complex matrices.");
+    		}
+    	}
     }
     
     
-  }
+
 
 
   // ***********************************

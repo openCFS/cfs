@@ -171,8 +171,8 @@ namespace CoupledField {
 
     //! compute N eigenvalues closest to the shift point
     //! the return type StdVector<T> depends on the problem type
+    virtual void CalcEigenValues( BaseVector &sol, BaseVector &err, UInt N, Complex shiftPoint ) = 0;
     virtual void CalcEigenValues( BaseVector &sol, BaseVector &err, UInt N, Double shiftPoint ) = 0;
-
     //! Calculate a particular eigenmode as a postprocessing solution
 
     //! This method may be called after the CalcEigenFrequencies() method.

@@ -90,7 +90,9 @@ public:
     EXCEPTION("not implemented yet");
   }
   void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint);
-
+  void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint){
+    EXCEPTION("not implemented yet");
+  }
 
   /**Calculate a particular eigenmode as a postprocessing solution
    * @see BaseEigenSolver::GetEigenMode() */

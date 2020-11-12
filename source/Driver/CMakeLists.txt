@@ -2,6 +2,7 @@ SET(DRIVER_SRCS
   Assemble.cc
   BaseDriver.cc
   EigenFrequencyDriver.cc
+  EigenValueDriver.cc
   BucklingDriver.cc
   FormsContexts.cc
   HarmonicDriver.cc

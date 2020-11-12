@@ -99,8 +99,8 @@ namespace CoupledField {
     //! \param err Vector with error bound of eigenvalues
     //! \param N number of requested eigenvalues
     //! \param shiftPoint shiftpoint
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint);
     void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint);
-
     
     //! Calculate a particular eigenmode as a postprocessing solution
 

@@ -140,11 +140,11 @@ namespace CoupledField {
   }
 
   template <class TYPE>
-  UInt ArpackSolver::FindEigenvalues(UInt numEV, Double valueShift)
+  UInt ArpackSolver::FindEigenvalues(UInt numEV, TYPE valueShift)
   {
     // based on zndrv4.f and dsdrv4.f
     numEV_ = numEV;
-    valueShift_ = valueShift;
+    valueShift_ = (Complex) valueShift;
 
     // set default value for Arnoldi vectors
     numArnoldiVec_ = std::max(int(numEV_ + 1), int(numEV_ * arnoldiFactor_));
@@ -315,11 +315,11 @@ namespace CoupledField {
     bool rvec = true;
     StdVector<double> select(numArnoldiVec_); // is logical in Fortran! // Double *select = new Double [numArnoldiVec_];
     StdVector<TYPE> d(numArnoldiVec_*2);  // in dsdrv4.f (maxncv,2) and in zndrv4.f (maxncv)
-    TYPE vShift = valueShift_;
+    TYPE vShift = valueShift;
 
-//    eigenValues_->Resize(numArnoldiVec_);
-//    eigenVectors_->Resize(numEV_*size_);
-//    eigenTolerances_.Resize(numArnoldiVec_);
+    //eigenValues_->Resize(numArnoldiVec_);
+    //eigenVectors_->Resize(numEV_*size_);
+    //eigenTolerances_.Resize(numArnoldiVec_);
     Vector<TYPE>& eval = dynamic_cast<Vector<TYPE>&>(*eigenValues_);
     Vector<TYPE>& evec = dynamic_cast<Vector<TYPE>&>(*eigenVectors_);
 
@@ -358,6 +358,7 @@ namespace CoupledField {
 
     return numEVConverged;
   }
+
 
   /**
   * Call of ARPACK subroutine.
@@ -433,10 +434,11 @@ namespace CoupledField {
         resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, workDbleD, info);
   }
 
-  UInt ArpackSolver::FindQuadEigenvalues(UInt numEV, Double valueShift)
+  template <class TYPE>
+  UInt ArpackSolver::FindQuadEigenvalues(UInt numEV, TYPE valueShift)
   {
     numEV_ = numEV;
-    valueShift_ = valueShift;
+    valueShift_ =(Complex) valueShift;
 
     // adjust to higher number of wanted eigenvalues
     Double logNF = std::log10(numEV_*1.0);
@@ -784,7 +786,6 @@ namespace CoupledField {
     return found;
   }
 
-
   void ArpackSolver::InitQuadTempSpace(Complex *tempV,Complex *residual,
          Complex* workD, Complex* workL, Complex* matrixV, Double* workDbleD) {
 
@@ -987,6 +988,9 @@ namespace CoupledField {
 
   // Explicit template instantiation
   template UInt ArpackSolver::FindEigenvalues<Double>(UInt, Double);
-  template UInt ArpackSolver::FindEigenvalues<Complex>(UInt, Double);
+  template UInt ArpackSolver::FindEigenvalues<Complex>(UInt, Complex);
+
+  template UInt ArpackSolver::FindQuadEigenvalues<Double>(UInt, Double);
+  template UInt ArpackSolver::FindQuadEigenvalues<Complex>(UInt, Complex);
 
 } // end of namespace

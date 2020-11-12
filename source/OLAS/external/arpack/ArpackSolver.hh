@@ -48,13 +48,14 @@ namespace CoupledField {
     //! \param sol Vector with converged eigenvalues
     //! \return Number of converged eigenvalues
     template <class TYPE>
-    UInt FindEigenvalues(UInt numEV, Double valueShift);
+    UInt FindEigenvalues(UInt numEV, TYPE valueShift);
 
     //! Method triggers the calculation of the quadratic eigenvalue problem.
     //! Its return value is the number of converged complex eigenvalues.
     //! \param sol Vector with converged eigenvalues (complex)
     //! \return Number of converged eigenvalues (complex)
-    UInt FindQuadEigenvalues(UInt numEV, Double valueShift);
+    template <class TYPE>
+    UInt FindQuadEigenvalues(UInt numEV, TYPE valueShift);
 
     //! This method returns the n-th converged eigenvalue
     //! This is always the original sorting from arpack. It becomes sorted in ArpackEigenSolver.
@@ -132,8 +133,7 @@ namespace CoupledField {
     Double tolerance_;
 
     //! Shift to be applied. Only there as member variable for ToInfo().
-    Double valueShift_;
-
+    Complex valueShift_;
     //! Number of eigenvalues. Only there as member variable for ToInfo().
     int numEV_;
 
