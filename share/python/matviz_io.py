@@ -1,5 +1,6 @@
 from PIL import Image
 from cfs_utils import open_xml, xpath
+from matviz_vtk import show_write_vtk
 from hdf5_tools import get_element, has_element
 from matviz_vtk import show_write_vtk
 import numpy

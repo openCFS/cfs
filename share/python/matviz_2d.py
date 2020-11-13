@@ -1174,17 +1174,18 @@ def show_orientational_stiffness(coords, angle, data, nx, scale=-1.0, axes=False
     # draw circles for absolute value
     num_axes = 6
     max = numpy.max(data[:])
-    num_digits = len(str(math.trunc(max)))
-    axes_per_unit = numpy.round(pow(num_axes-1, num_digits+1)/(max * pow(num_axes-1, num_digits)))
+    mult = pow(10,-np.floor(np.log10(max/num_axes)))
+    axes_step = np.ceil(max*mult/num_axes) / mult
+    num_axes = int(np.ceil(max/axes_step))
     x_center = (coord[0] + min[0]) * dx
     y_center = (coord[1] + min[1]) * dy
     for r in range(1, num_axes + 1):
-      radius = r / axes_per_unit * scale
+      radius = r * axes_step * scale
       twoPointList = [x_center-radius, y_center-radius, x_center+radius, y_center+radius]
       draw.ellipse(twoPointList, outline="black", width=1)
+      label = str(r*axes_step)
       pos = (x_center + radius/sqrt(2), y_center - radius/sqrt(2))
       fnt = ImageFont.truetype("arial.ttf", int(dx/50))
-      label = str(math.trunc(r/axes_per_unit*100)/100)
       draw.text(pos, label, anchor="lb", fill="black", font=fnt)
     # draw lines for angles
     for seg in range(12):
