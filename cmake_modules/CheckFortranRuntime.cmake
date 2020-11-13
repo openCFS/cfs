@@ -117,13 +117,14 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
     
     # clang on macOS complains about -static-libgfortran"
-    if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG")) 
+    if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG"))
       LIST(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
     endif()  
   else()
+    message(WARNING "no static Fortran library found - this build will not run on systems missing compatible Fortran runtime libs!")
     LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}" "-lquadmath")
   endif()
-  #message("CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
+  message(STATUS "setting CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
 
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
 

@@ -146,7 +146,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     case REAL_GENERAL : {
         LOG_DBG3(fes) << "real-general EVP";
         //Complex Emid = Complex()
-        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0;
+        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0; LOG_DBG3(fes) << "CEF Emid: " << I1[0];
         I2 = 0.5*(maxVal-minVal); LOG_DBG3(fes) << "CEF r: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
         LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
@@ -206,8 +206,8 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     } break;;
     case COMPLEX_SYMMETRIC: {
         LOG_DBG3(fes) << "complex-symmetric EVP";
-        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0;
-        I2 = 0.5*(maxVal-minVal);
+        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0; LOG_DBG3(fes) << "CEF Emid: " << I1[0];
+        I2 = 0.5*(maxVal-minVal); LOG_DBG3(fes) << "CEF r: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
         LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
         LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
@@ -273,7 +273,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     case COMPLEX_GENERAL: {
         LOG_DBG3(fes) << "complex-general EVP";
         I2 = 0.5*(maxVal-minVal); LOG_DBG3(fes) << "CEF r: " << I2;
-        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0;
+        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0; LOG_DBG3(fes) << "CEF Emid: " << I1[0];
         I2 = 0.5*(maxVal-minVal); LOG_DBG3(fes) << "CEF r: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
         LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
@@ -403,8 +403,8 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     } break;;
     case REAL_SYMMETRIC : {
         LOG_DBG3(fes) << "real-symmetric EVP";
-        I1[0] = minVal;
-        I2 = maxVal;
+        I1[0] = minVal; LOG_DBG3(fes) << "CEF Emin: " << I1[0];
+        I2 = maxVal; LOG_DBG3(fes) << "CEF Emax: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
         LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
         LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem

@@ -334,7 +334,7 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
 
     # move any lib to lib64/CFS_ARCH_STR. Extend to lib64/files if necessary
     IF(EXISTS "${TMP_DIR}/lib")
-      FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+	    FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
       FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
     ENDIF()
    
@@ -345,8 +345,14 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
       RESULT_VARIABLE rv)
       
     # copy data from TMP_DIR install dir to the target where cfs needs it and where the zip would be extracted.
-    FILE(COPY "${TMP_DIR}/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
-    
+    # Install only the contents of TMP_DIR since trying to copy . too leads to permission error
+    # file INSTALL cannot set permissions on CMAKE_CURRENT_BINARY_DIR
+    # if the build user does not own the target directory (but is allowed to write into it)
+    file(GLOB files LIST_DIRECTORIES true RELATIVE "${TMP_DIR}" "${TMP_DIR}/*")
+    FOREACH(file ${files})
+      message(STATUS "installing contents of ${file}")
+      FILE(INSTALL "${TMP_DIR}/${file}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+    ENDFOREACH()
   ELSE()
     # Manifests exists -> zip files listed therein
     FOREACH(manifest ${MANIFESTS})
