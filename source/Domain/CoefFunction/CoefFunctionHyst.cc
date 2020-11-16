@@ -12972,7 +12972,24 @@ namespace CoupledField {
         tracedData.open(tracedData_FILENAME.str(),std::ios_base::out);
         tracedData << "### INFO " << std::endl;
         tracedData << "# > hysteresis operator was tested with 1d input signal " << std::endl;
-        if(dedicatedOperatorForStrains){
+		if(enforcedPreisachResolution > 0){
+			UInt preisachRes;
+			if(dedicatedOperatorForStrains){
+			  preisachRes = STRAIN_weightParamsForTesting_.numRows_;
+			} else {
+			  preisachRes = POL_weightParamsForTesting_.numRows_;
+			}
+			tracedData << "# > used resolution for Preisach plane as enforced in input.xml: " << preisachRes << " x " << preisachRes << std::endl;
+        } else {
+			UInt preisachRes;
+			if(dedicatedOperatorForStrains){
+			  preisachRes = STRAIN_weightParams_.numRows_;
+			} else {
+			  preisachRes = POL_weightParams_.numRows_;
+			}
+			tracedData << "# > used resolution for Preisach plane as given in mat.xml: " << preisachRes << " x " << preisachRes << std::endl;
+		}
+		if(dedicatedOperatorForStrains){
           tracedData << "# > hysteresis operator will be used ONLY for evaluation of irreversible strains " << std::endl;
         } else {
           tracedData << "# > hysteresis operator will be used for BOTH the evaluation of polarization and irreversible strains " << std::endl;
