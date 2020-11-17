@@ -285,8 +285,14 @@ namespace CoupledField {
       Double crossProduct2d = data_[0]*other[1] - data_[1]*other[0];
       angleRad = std::atan2(crossProduct2d,innerProduct);
     } else {
-      angleRad = std::acos(innerProduct/std::sqrt(len1Sq + len2Sq));
+      // floating point precision might cause argument to exceed bounds of allowed input for acos
+      // furthermore, formula was wrong; had + instead of *
+      Double argument = innerProduct/std::sqrt(len1Sq * len2Sq);
+      if(argument>1.0){ argument = 1.0;}
+      if(argument< -1.0){ argument = -1.0;}
+      angleRad = std::acos(argument);
     }
+
     return angleRad;
   }
 
