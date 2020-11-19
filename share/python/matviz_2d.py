@@ -822,7 +822,7 @@ def show_frame2(coords, design, nx, scale, color, do_save):
   return (fig, sub)
 
 def show_framed_cross(coords, design, nx, scale, color, do_save):
-  
+
   design = design['microparams']
 
   centers, min, max, elem = coords
@@ -886,8 +886,7 @@ def show_framed_cross(coords, design, nx, scale, color, do_save):
   return (fig, sub)
 
 
-def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilateral=True, param=None):
-
+def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilateral=True, param=None, radius=None):
   s1 = design['s1']
 
   centers, min, max, elem = coords
@@ -944,6 +943,11 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
     im = im.crop((max[0]/nx*1/2*dx, min[1]*dy, max[0]/nx*(nx-1/2)*dx, max[1]*dy))
     return im
 
+  if radius:
+    assert(radius >= 0)
+    assert(radius <= 1)
+    radius = np.round(radius * dx/2/(2*np.sqrt(3))/2)
+
   # size of element in pixels
   height = elem[1] * dy
   length = elem[0] * dx
@@ -961,7 +965,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
   for y in range(ny):
     for x in range(nx):
       # if the value is -1 we use the nearest interpolation
-      # NOTE THAT mid IS NOT THE MIDPOINT OF THE TRIANGLE BUT OF elem (=rectangle)
+      # mid IS NOT THE MIDPOINT OF THE TRIANGLE BUT OF elem (=rectangle)
       mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, y * nx + x)
 
       if v < thres:
@@ -970,7 +974,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       #  v = 1.0
 
       if param is not None:
-        v = param
+        v = np.min((1.0, np.max((0.0, param))))
 
       if isinstance(v,np.ndarray):
         v = v[0]
@@ -993,14 +997,18 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       n4x = mid[0] * dx - length * 0.5
       n5x = mid[0] * dx + length * 0.5
       if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
-        # 1-----3     1-----3     1-----3
-        #  \   /      |    /       \    |
-        #   \ /       |   /         \   |
         #    2        4--2           2--5
+        #   / \       |   \         /   |
+        #  /   \      |    \       /    |
+        # 1-----3     1-----3     1-----3
         n1y = dim[1] - mid[1] * dy + height * 0.5
         n2y = dim[1] - mid[1] * dy - height * 0.5
       else:
         # upside down
+        # 1-----3     1-----3     1-----3
+        #  \   /      |    /       \    |
+        #   \ /       |   /         \   |
+        #    2        4--2           2--5
         n1y = dim[1] - mid[1] * dy - height * 0.5
         n2y = dim[1] - mid[1] * dy + height * 0.5
       n3y = n1y
@@ -1027,31 +1035,100 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       n2x = mid[0] * dx
       n3x = mid[0] * dx + length - offsetx
       offsety = np.sqrt(pow(offsetx,2) + pow(height*0.5*v,2))
+
+      # raise a ValueError, if the radius is too large for the parameter
+      # too large radius would result no longer in a triangle with round vertices
+      if radius > (n3x - n1x)/2/sqrt(3):
+        raise ValueError('Bending parameter to large')
+      height_tria = np.sqrt(3)/2 * (n3x - n1x)
+
       if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
         n1y = dim[1] - mid[1] * dy + height * 0.5 - height * 0.5 * v
         n2y = dim[1] - mid[1] * dy - height * 0.5 + offsety
         n3y = n1y
+        mid_tria = (n2x, n2y + 2/3 * height_tria)
       else:
         n1y = dim[1] - mid[1] * dy - height * 0.5 + height * 0.5 * v
         n2y = dim[1] - mid[1] * dy + height * 0.5 - offsety
         n3y = n1y
+        mid_tria = (n2x, n2y - 2/3 * height_tria)
 
       tupels = []
       tupels.append((n1x, n1y))
       tupels.append((n2x, n2y))
       tupels.append((n3x, n3y))
 
-      #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0)) #colored for debug
-      draw.polygon(tupels, fill="white")
+      if radius is None:
+          #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0)) #colored for debug
+        draw.polygon(tupels, fill="white")
+      else:
+        new_tupels = []
+        for idx in range(3):
+          p = tupels[idx]
+          p1 = tupels[(idx+1)%3]
+          p2 = tupels[(idx+2)%3]
+
+          # midpoint of arc
+          vec = np.array(mid_tria) - np.array(p)
+          mid_circ = np.array(p) + vec/np.linalg.norm(vec) * radius / np.sin(np.pi/6)
+          mid_circ = np.round(mid_circ)
+
+          # get bounding box of circle
+          cp_e = (mid_circ[0] + radius)
+          cp_s = (mid_circ[1] + radius)
+          cp_w = (mid_circ[0] - radius)
+          cp_n = (mid_circ[1] - radius)
+          bbox = [cp_w, cp_n, cp_e, cp_s]
+
+          a1 = np.zeros((2,))
+          a2 = np.zeros((2,))
+          if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+            # angles for arc
+            if idx == 0:
+              start, end = 90, 210
+            elif idx == 1:
+              start, end = 210, 330
+            elif idx == 2:
+              start, end = 330, 90
+            # endpoints of arc
+            a2[0] = mid_circ[0] + radius * np.cos(start/180*np.pi)
+            a2[1] = mid_circ[1] + radius * np.sin(start/180*np.pi)
+            a1[0] = mid_circ[0] + radius * np.cos(end/180*np.pi)
+            a1[1] = mid_circ[1] + radius * np.sin(end/180*np.pi)
+          else:
+            # angles for arc
+            if idx == 0:
+              start, end = 150, 270
+            elif idx == 1:
+              start, end = 30, 150
+            elif idx == 2:
+              start, end = 270, 30
+            # endpoints of arc
+            a1[0] = mid_circ[0] + radius * np.cos(start/180*np.pi)
+            a1[1] = mid_circ[1] + radius * np.sin(start/180*np.pi)
+            a2[0] = mid_circ[0] + radius * np.cos(end/180*np.pi)
+            a2[1] = mid_circ[1] + radius * np.sin(end/180*np.pi)
+
+          # draw section of circle
+          draw.chord(bbox, start, end, fill="white")
+
+          # add end points of arc to form new white inner "triangle" (actually hexagon)
+          a1, a2 = np.round(a1), np.round(a2)
+          new_tupels.append((a2[0],a2[1]))
+          new_tupels.append((a1[0],a1[1]))
+        draw.polygon(new_tupels, fill="white")
 
       # white triangle at boundary
-      if x == 0:
+      if x == 0 or x == nx-1:
         offsetx = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 0.5))
         offsety = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 1 - v * 0.5))
-        n1x = mid[0] * dx - length * 0.5
-        n2x = mid[0] * dx - length * offsetx
+
+        fac = 1 if x == 0 else -1
+        n1x = mid[0] * dx - fac * length * 0.5
+        n2x = mid[0] * dx - fac * length * offsetx
         n3x = n1x
-        if y % 2 == 1:
+
+        if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
           # 3
           # |\
           # | \
@@ -1069,30 +1146,6 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         tupels.append((n1x, n1y))
         tupels.append((n2x, n2y))
         tupels.append((n3x, n3y))
-
-        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0)) #colored for debug
-        draw.polygon(tupels, fill="white")
-
-      if x == nx-1:
-        offsetx = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 0.5))
-        offsety = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 1 - v * 0.5))
-        n1x = mid[0] * dx + length * 0.5
-        n2x = mid[0] * dx + length * offsetx
-        n3x = n1x
-        if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
-          n1y = dim[1] - mid[1] * dy - height * 0.5
-          n2y = n1y
-          n3y = dim[1] - mid[1] * dy - height * offsety
-        else:
-          # upside down
-          n1y = dim[1] - mid[1] * dy + height * 0.5
-          n2y = n1y
-          n3y = dim[1] - mid[1] * dy + height * offsety
-
-        tupels = []
-        tupels.append((n1x, n1y))
-        tupels.append((n3x, n3y))
-        tupels.append((n2x, n2y))
 
         #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0)) #colored for debug
         draw.polygon(tupels, fill="white")

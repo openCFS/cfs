@@ -4504,6 +4504,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
   LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
 
   // homogenized material tensor was calculated in ErsatzMaterial::SolveStateProblem
+  // voigt notation! -> macro stress has to be voigt
   Matrix<double> hom_tensor_inv;
   // hom_tensor is only 3x3 or 6x6 so we can afford the inverse
   homogenizedTensor[0].Invert(hom_tensor_inv);

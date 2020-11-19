@@ -624,8 +624,7 @@ namespace CoupledField {
     // we don't necessarily write every forward step.
     if(!domain->GetOptimization()) // in other words: if not optimization
     {
-      if(!isBloch_)
-        StoreResults(1, -1.0);
+      StoreResults(1, -1.0);
       handler_->FinishMultiSequenceStep();
 
       if(!isPartOfSequence_)

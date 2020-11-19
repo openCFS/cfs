@@ -155,13 +155,11 @@ def show_or_write(viz, args):
   volume = None
   if isinstance(viz, Image.Image):
     # print 'array' + str(numpy.array(viz))
-    print('average ' + str(numpy.average(numpy.array(viz))))
     volume = 1 - numpy.average(numpy.array(viz)) / 255
     print('volume fraction from image : ' + str(volume))
     if infoxml != None:
       vol = xml.etree.ElementTree.SubElement(infoxml, "volume")
       vol.set("imageMaterial", str(volume))
-
     if args.save:
       viz.save(args.save)
     else:

@@ -39,7 +39,7 @@ TWO_SCALE = {
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
 def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None, nondes = None, min_bb = None, max_bb = None, elems_in_regions = None):
-  volume = None  # might ne set
+  volume = None  # might never be set
 
   scale = force_scale if force_scale else args.scale
 
@@ -64,13 +64,24 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
       print('scale angle by ' + str(args.angle_factor))
       design['angle'] *= args.angle_factor
 
-    for key, value in design.items():
-      print('unscaled {:s} in [{:s}:{:s}]'.format(key, str(numpy.min(value)), str(numpy.max(value))))
+#    for key, value in design.items():
+#      print('unscaled {:s} in [{:s}:{:s}]'.format(key, str(numpy.min(value)), str(numpy.max(value))))
 
     if dim_2D:
-      viz = perform_2d(args, coords, design, scale)
+      func = perform_2d
     else:
-      viz = perform_3d(args, coords, design, scale, nondes)
+      func = perform_3d
+
+    # do we have to do 1D optimization?
+    if args.target_volume is None:
+      viz = func(args, coords, design, scale, nondes)
+    elif args.target_volume == 0.0:
+      viz = func(args, coords, design, 0.0, nondes)
+    else:
+      if args.tv_alg == 'bisec':
+        viz = match_volume_bisec(args.target_volume, func, [args, coords, design, scale, nondes], 3)
+      else:
+        viz = match_volume_raster(args.target_volume, func, [args, coords, design, scale, nondes], 3)
 
     if get_MPI_rank()==0:
       if viz is None:
@@ -82,7 +93,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
 
   return volume
 
-def perform_2d(args, coords, design, scale):
+def perform_2d(args, coords, design, scale, nondes = None):
   if args.show == 'simp':
     pass
   elif args.show == "hom_rect":
@@ -111,7 +122,10 @@ def perform_2d(args, coords, design, scale):
     viz = show_cross_bar(coords, design, args.hom_dir, args.res, args.scale, args.color, args.save)
   elif args.show == "hom_triangle":
     assert(args.hom_grad != 'none')
-    viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, args.parameter)
+    if args.target_volume is None:
+      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, args.parameter, args.bc_bend)
+    else:
+      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, scale*args.parameter, args.bc_bend)
   elif args.show == "stream":
       samples = args.hom_samples.split(',')
       design['angle'] = design['angle'][:,0]
@@ -174,7 +188,7 @@ def perform_3d(args, coords, design, scale, nondes = None):
           raise Exception("hom_ortho_3d not possible with cell_size")
     else:
       tmp = args.hom_samples.split(',')
-      
+
       samples = [int(tmp[0]),int(tmp[0]),int(tmp[0])] if len(tmp) == 1 else [int(tmp[0]),int(tmp[1]),int(tmp[2])]
 
       if args.show == "hom_ortho_3d" or args.mesh:
@@ -245,17 +259,17 @@ def show_boebbale(tensor, args, coords, scale, aux_code):
       matviz_io.show_or_write(viz, args)
   else:
     angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
-    
+
     angle_max = angle[numpy.argmax(numpy.abs(data))]
     angle_min = angle[numpy.argmin(numpy.abs(data))]
-  
+
     print(" largest e-modulus: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
     print("smallest e-modulus: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
-  
+
     poly = create_vtk_poly_data(angle, data if args.show == None else aux)
-  
+
     actors = []
     if not args.symmetries == "default":
       tmp = []
@@ -274,12 +288,138 @@ def show_boebbale(tensor, args, coords, scale, aux_code):
         if tmp3[i][1] <= float(args.symmetries_threshold):
           mins.append(tmp3[i])
       actors = create_symmetry_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
-  
+
     if args.gnuplot != None:
       matviz_io.write_angle_data(args.gnuplot, angle, data)
       sys.exit() # all done
     else:
       show_write_vtk(poly, args.res, args.save, actors, args.axes, camera_settings=args.cam)
+
+def match_volume_bisec(target_volume, func, params, param_idx):
+# performs a bisection to match volume
+# @param vol  desired volume
+# @param func  function to calculate the image (show_...)
+# @param params  array of parameters for func. the parameter to perform bisection with
+#                can be chosen arbitrarily as we will change it anyway
+# @param param_idx  index of the parameter in params to perform bisection with (zero-based)
+# @return viz  Image returned by func for the optimal parameter
+#
+# @example  params = [coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, 0.0, args.bc_bend]
+#           viz = match_volume_bisec(args.parameter, show_triangle_grad, params, 8)
+    tol = 1e-15
+    # initial values
+    param1 = 0.0
+    param2 = 1e10
+    # func should raise a ValueError, if param does not fit to other function parameters
+    # e.g. show_triangle_grad raises a ValueError, if param is too large for the choosen radius
+    while True:
+      try:
+        params[param_idx] = param1
+        viz1 = func(*params)
+        break
+      except ValueError:
+        if param1 == 0.0:
+          param1 = param1 + .00001
+        else:
+          param1 = param1 * 2
+    while True:
+      try:
+        params[param_idx] = param2
+        viz2 = func(*params)
+        break
+      except ValueError:
+        param2 = np.max((param2 / 2, 1.0))
+    assert(param2 > param1)
+
+    vol1 = 1 - numpy.average(numpy.array(viz1)) / 255 if type(viz1) is Image.Image else viz1
+    vol2 = 1 - numpy.average(numpy.array(viz2)) / 255 if type(viz2) is Image.Image else viz2
+    assert((vol1-target_volume)*(vol2-target_volume) < 0),'no root in initial interval [{},{}]'.format(param1,param2)
+
+    # actual bisection
+    while param2-param1 > tol:
+      param3 = (param1 + param2) / 2
+      params[param_idx] = param3
+      viz3 = func(*params)
+      vol3 = 1 - numpy.average(numpy.array(viz3)) / 255 if type(viz3) is Image.Image else viz3
+      #print((param1,param3,param2,vol1,vol3,vol2))
+      if (vol1 - target_volume)*(vol3 - target_volume) < 0:
+        param2 = param3
+        vol2 = vol3
+      else:
+        param1 = param3
+        vol1 = vol3
+    # check which volume is closer to the desired volume. we have to do this because we get rounding errors due to the discrete resolution of viz
+    params[param_idx] = param1 if target_volume-vol1 < vol2-target_volume else param2
+    viz = func(*params)
+    print('best parameter: {}'.format(params[param_idx]))
+
+    return viz
+
+def match_volume_raster(target_volume, func, params, param_idx):
+  if args.scale > 0:
+    raise Exception("Don't give --scale and --target_volume concurrently!")
+
+  # unfortunately we are not necessary convex! therefore we may not do bisection
+  lower = 0.0
+  upper = 10.0
+  level = 0
+  best_err = 999
+  err = 999
+  best_s = -1
+  num_intervals = 11
+  if args.info is not None:
+    xml_vm = xml.etree.ElementTree.SubElement(matviz_io.infoxml, "volume_match")
+  while upper - lower > 1e-20 and abs(best_err) > 1e-5:
+    xml_level = xml.etree.ElementTree.SubElement(xml_vm, "level")
+    xml_level.set("idx", str(level))
+    xml_level.set("lower", str(lower))
+    xml_level.set("upper", str(upper))
+    xml_level.set("delta", str(upper - lower))
+    for s in numpy.linspace(lower, upper, num_intervals):
+      params[param_idx] = s
+      viz = func(*params)
+      vol = 1 - numpy.average(numpy.array(viz)) / 255 if type(viz) is Image.Image else viz
+      err = abs(vol - target_volume)
+      if vol == None:
+        raise Exception("volume is None")
+      if(err < best_err):
+        best_err = err
+        best_s = s
+
+      if args.info is not None:
+        xml_search = xml.etree.ElementTree.SubElement(xml_level, "search")
+        xml_search.set("target", str(target_volume))
+        xml_search.set("current", str(vol))
+        xml_search.set("scale_argument", str(s))
+        xml_search.set("err", str(err))
+      else:
+        msg =  ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper - lower) + " best=" + str(best_err) + " test=" + str(s)
+        msg += " -> " + str(vol) + " err=" + str(err) + (" *" if err == best_err else "")
+        print(msg)
+    xml_best = xml.etree.ElementTree.SubElement(xml_search, "best")
+    xml_best.set("err", str(best_err))
+    xml_best.set("scale", str(best_s))
+
+    new_lower = numpy.max((0.0, best_s - (upper - lower) / (num_intervals-1)))
+    upper = numpy.min((10.0, best_s + (upper - lower) / (num_intervals-1)))
+    lower = new_lower
+    level += 1
+
+  # the last result does not mean to be the best result
+  if err != best_err:
+    params[param_idx] = s
+    viz = func(*params)
+    vol = 1 - numpy.average(numpy.array(viz)) / 255 if type(viz) is Image.Image else viz
+    if args.info is not None:
+      tv = xml.etree.ElementTree.SubElement(xml_vm, "best_target_volume")
+      tv.set("target", str(target_volume))
+      tv.set("current", str(vol))
+      tv.set("scale_argument", str(best_s))
+      tv.set("err", str(abs(vol - target_volume)))
+    else:
+      print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - target_volume)))
+
+  return viz
 
 def get_MPI_rank():
   try:
@@ -295,11 +435,12 @@ parser.add_argument("--h5_region", help="design region name (default 'mech')", d
 parser.add_argument("--h5_nondes", help="non-design (solid) region name (default 'non-design')", default="None")
 parser.add_argument("--h5_nondes_void", help="non-design (void) region name (default 'non-design')", default="None")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
-parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
-parser.add_argument('--hist', help='plot histograms of the results in the h5 file. Has to be used with --show', type=int, default=0)
+parser.add_argument("--h5_info", action="store_true", help="dump some meta data information about the h5 file")
+parser.add_argument("--hist", help="plot histograms of the results in the h5 file. Has to be used with --show", type=int, default=0)
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--target_volume", help="scale design to given volume", type=float)
+parser.add_argument("--tv_alg", help="algorithm to match target volume", choices=['bisec','raster'], default='bisec')
 parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
 parser.add_argument("--sampling", help="sampling rate for tensor rotation (default 180)", default=180, type=float)
 parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d', 'hom_triangle'])
@@ -316,7 +457,7 @@ parser.add_argument("--hom_dir", help="visualization of stiffness directions (de
 parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float)
 parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float)
 parser.add_argument("--hom_samples", help="activates interpolation and the value gives samples in x,y,z direction")
-parser.add_argument("--cell_size", help="cell size in [mm] in x,y,z direction")
+parser.add_argument("--cell_size", help="cell size in [mm] in x,y,z direction", type=float)
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
 parser.add_argument("--stream_max_traces_per_cell", help="maximum number of traces such that we may start a trace (>= 1)", type=int, default=1)
@@ -335,14 +476,14 @@ parser.add_argument("--nodefile", help="name of the design to node file", defaul
 parser.add_argument("--thres", help="threshold value for plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
-parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot','ppbox','box_varel'])
+parser.add_argument("--type", help="type of 3D object for 2-scale visualization", choices=['apod6', 'robot','ppbox','box_varel'])
 # 3d ortho basecell stuff
 parser.add_argument("--bc_res", help="resolution of voxelized ortho basecell", type=int)
-parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)",choices=['linear', 'heaviside'],default="heaviside")
-parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float,default=7)
-parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
-parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
-parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=0)
+parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)", choices=['linear', 'heaviside'], default="heaviside")
+parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float, default=7)
+parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float, default=0.5)
+parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float, default=0.5)
+parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int, default=0)
 parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
 parser.add_argument("--parameter", help="parameter for different usage", type=float, default=None)
 # print sys.argv
@@ -513,79 +654,25 @@ else:
         continue
     sys.exit()
 
-# do we have to do 1D optimization?
-if not args.target_volume:
-  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
-    nondes_void = None
-    nondes_solid = None
-    design = None
-    if get_MPI_rank() == 0:
-      if args.h5_nondes != "None":
-        nondes_solid = (nondes_elements, nondes_min, nondes_max)
-      if args.h5_nondes_void != "None":
-        nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
-      design = (design_elems, design_elems_min, design_elems_max)
+if args.h5_nondes != "None" or args.h5_nondes_void != "None":
+  nondes_void = None
+  nondes_solid = None
+  design = None
+  if get_MPI_rank() == 0:
+    if args.h5_nondes != "None":
+      nondes_solid = (nondes_elements, nondes_min, nondes_max)
+    if args.h5_nondes_void != "None":
+      nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
+    design = (design_elems, design_elems_min, design_elems_max)
 
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
-  else:
-    if not max_bb:
-      max_bb = [1.0, 1.0] if dim_2D else [1.0, 1.0, 1.0]
-    if not min_bb:
-      min_bb = [0.0, 0.0] if dim_2D else [0.0, 0.0, 0.0]
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code, min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
+  perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
 else:
-  if args.scale > 0:
-    raise Exception("Don't give --scale and --target_volume concurrently!")
-    # coords for non-design region
-    if args.unstructured:
-      nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-  # unfortunately we are not necessary convex! therefore we may not do bisection
-  lower = 1e-4
-  upper = 2.0
-  level = 0
-  best_err = 999
-  err = 999
-  best_s = -1
-  while upper - lower > 0.000001 and abs(best_err) > 0.0001:
-    for s in numpy.arange(lower, upper, (upper - lower) / 5.):
-      vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
-      err = abs(vol - args.target_volume)
-      if vol == None:
-        raise Exception("volume is None")
+  if max_bb is None:
+    max_bb = [1.0, 1.0] if dim_2D else [1.0, 1.0, 1.0]
+  if min_bb is None:
+    min_bb = [0.0, 0.0] if dim_2D else [0.0, 0.0, 0.0]
+  perform(args, h5_read, dim_2D, tensor, centers, aux_code, min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
 
-      tv = xml.etree.ElementTree.SubElement(matviz_io.infoxml, "target_volume")
-      tv.set("target", str(args.target_volume))
-      tv.set("current", str(vol))
-      tv.set("scale_argument", str(s))
-      tv.set("err", str(err))
-
-      tvs = xml.etree.ElementTree.SubElement(tv, "search")
-      tvs.set("level", str(level))
-      tvs.set("lower", str(lower))
-      tvs.set("upper", str(upper))
-      tvs.set("delta", str(upper - lower))
-      tvs.set("best_err", str(best_err))
-      if(err < best_err):
-        best_err = err
-        best_s = s
-      msg =  ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper - lower) + " best=" + str(best_err) + " test=" + str(s)
-      msg += " -> " + str(vol) + " err=" + str(err) + (" *" if err == best_err else "")
-      print(msg)
-
-    lower = numpy.max((1e-4, best_s - 0.5 * (upper - lower) / 5.))
-    upper = numpy.min((2.0, best_s + 0.5 * (upper - lower) / 5.))
-    level += 1
-
-  # the last result does not mean to be the best result
-  if err != best_err:
-    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
-    print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume)))
-    tv = xml.etree.ElementTree.SubElement(matviz_io.infoxml, "best_target_volume")
-    tv.set("target", str(args.target_volume))
-    tv.set("current", str(vol))
-    tv.set("scale_argument", str(best_s))
-    tv.set("err", str(abs(vol - args.target_volume)))
 
 if args.info:
   matviz_io.write_info_xml(args.info)
-  
