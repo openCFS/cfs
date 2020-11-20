@@ -550,7 +550,7 @@ testsuite:gcc7max:linux:
   tags:
     - linux
   stage: test
-  extends: .max_cfs_config
+  <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal"
   <<: *test_all_multicore
