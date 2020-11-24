@@ -23,14 +23,10 @@
 #include "General/Enum.hh"
 
 
-// include the original lis header
-//extern "C"
-
 #include "lis_config.h"
 #include "lis.h"
+// note that lis_precon.h is by default not in lis/install/include - we make it manually via cfsdeps
 #include "lis_precon.h"
-   //#include <lisf.h>
-//}
 
 namespace CoupledField
 {

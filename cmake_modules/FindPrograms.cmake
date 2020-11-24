@@ -36,7 +36,6 @@ endif()
 
 # Find LaTeX.
 find_package(LATEX)
-
 if(NOT LATEX_COMPILER)
   set(MSG "LaTex could not be found! Note that you cannot build")
   set(MSG "${MSG} documentation!")
@@ -47,9 +46,21 @@ endif()
 find_program(PYGMENTIZE_EXECUTABLE NAMES pygmentize.cmd pygmentize)
 mark_as_advanced(PYGMENTIZE_EXECUTABLE)
 
-# Find patch command.
+# check if we have relevant tools installed
 find_program(PATCH_EXECUTABLE patch)
-# todo: check for NOTFOUND
+find_program(FIND_EXECUTABLE find)
+find_program(DIFF_EXECUTABLE diff)
+
+if(PATCH_EXECUTABLE MATCHES "NOTFOUND")
+  message(WARNING "command patch not found, some cfsdeps will fail")
+endif()
+if(FIND_EXECUTABLE MATCHES "NOTFOUND")
+  message(WARNING "command find not found, some cfsdeps (e.g. lis) will fail")
+endif()
+if(DIFF_EXECUTABLE MATCHES "NOTFOUND")
+  message(WARNING "command diff not found, some cfsdeps (e.g. lis) will fail")
+endif()
+
 mark_as_advanced(PATCH_EXECUTABLE)
-
-
+mark_as_advanced(FIND_EXECUTABLE)
+mark_as_advanced(DIFF_EXECUTABLE)

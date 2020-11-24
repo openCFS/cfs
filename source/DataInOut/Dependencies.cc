@@ -60,10 +60,6 @@
 #include <amd.h>
 #endif
 
-#ifdef USE_LIS
-#include <lis.h>
-#endif
-
 #ifdef USE_CGAL
 #include <CGAL/version.h>
 #endif
@@ -83,7 +79,7 @@
 
 #ifdef USE_CGNS
 #include <cgnslib.h>
-// The NO_ERROR and NO_DATA symbols are defined in some windows headers
+// The NO_ERROR and NO_DATA symbols are defined in some windows headers:
 // and conflict with ADF headers...
 #define CFS_DUMMY_NO_ERROR NO_ERROR
 #define CFS_DUMMY_NO_DATA NO_DATA
@@ -282,7 +278,7 @@ void Dependencies::ReadSetting()
 
   Dependency lis("LIS", "USE_LIS", BSD);
 #ifdef USE_LIS
-  lis.SetVersion(LIS_VERSION);
+  lis.SetVersion(LIS_VER);
 #endif
   data.Push_back(lis);
 

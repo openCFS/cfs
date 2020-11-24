@@ -1,3 +1,5 @@
 // Define used to check if LIS Library of Iterative Solvers is used
 
 #cmakedefine USE_LIS @USE_LIS@
+
+#define LIS_VER "@LIS_VER@"
