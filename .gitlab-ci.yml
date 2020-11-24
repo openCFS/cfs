@@ -550,7 +550,7 @@ testsuite:gcc7max:linux:
   tags:
     - linux
   stage: test
-  extends: .max_cfs_config
+  <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal"
   <<: *test_all_multicore
@@ -670,10 +670,10 @@ pages:
   dependencies:
     - build:gcc5
   script:
-    - tar -xzf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
+    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mkdir -p public
     - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
-    - cp -r "build/CFS-$CI_COMMIT_REF_SLUG-Linux/share/xml" "public/." # publish XML scheme
+    - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
   artifacts:
     paths:
       - public
@@ -692,7 +692,7 @@ copy_to_draco:
     - build:gcc5
   script:
     # copy over via scp
-    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
+    - scp "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
   environment:
     name: share_programs
   <<: *deploy_rules
