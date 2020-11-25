@@ -12,7 +12,8 @@ INCLUDE(cmake/FindIncludeHeader.cmake)
 ######################################################################
 # Options
 
-OPTION(LIS_ENABLE_OPENMP "Use OpenMP" OFF)
+OPTION(LIS_ENABLE_COMPLEX "Enable complex" ON)
+OPTION(LIS_ENABLE_OPENMP "Use OpenMP" ON)
 OPTION(LIS_ENABLE_MPI "Use MPI" OFF)
 OPTION(LIS_ENABLE_FORTRAN "build Fortran 77 interfaces" OFF)
 OPTION(LIS_ENABLE_SAAMG "build SA-AMG preconditioner" OFF)
@@ -66,6 +67,9 @@ endif (NOT CMAKE_BUILD_TYPE)
 # Lis build settting
 
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+IF(WIN32)
+  ADD_DEFINITIONS(-DWIN32)
+ENDIF()
 # Create Configure.h
 CONFIGURE_FILE (include/lis_config.h.in ${PROJECT_BINARY_DIR}/lis_config.h)
 INCLUDE_DIRECTORIES (${PROJECT_BINARY_DIR}/)
@@ -90,6 +94,10 @@ IF(LIS_ENABLE_MPI)
 	ENDIF(MPI_FOUND)			
 ENDIF()
 
+IF(LIS_ENABLE_COMPLEX)
+	SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DHAVE_COMPLEX /DUSE_COMPLEX /DCOMPLEX" )
+	SET( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /DHAVE_COMPLEX /DUSE_COMPLEX /DCOMPLEX" )
+ENDIF()
 
 ######################################################################
 # Add subdirectories

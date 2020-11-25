@@ -26,6 +26,7 @@
               <xsd:enumeration value="eigenFrequency"/>
               <xsd:enumeration value="inverseSource"/>
               <xsd:enumeration value="buckling"/>
+              <xsd:enumeration value="eigenValue"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -340,5 +341,215 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
+  
+  
+    <!-- ******************************************************************* -->
+  <!--   Definition of element EigenValue  -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="eigenValue" type="DT_AnalysisEigenvalue" substitutionGroup="AnalysisBasic"/>
+  <!-- Data type for performing an eigenvalue analysis with selectable matrices -->
+  
+  <xsd:complexType name="DT_AnalysisEigenvalue">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+        <xsd:choice minOccurs="1" maxOccurs="1">
+	        <xsd:element name="inInterval">
+	        <xsd:annotation>
+              <xsd:documentation>
+				Computation of eigenvalues which are in the given interval
+              </xsd:documentation>
+            </xsd:annotation>
+	        	<xsd:complexType>
+	        		<xsd:attribute name = "max" type="xsd:float" use="required"/>
+	        		<xsd:attribute name = "min" type="xsd:float" use="required"/>
+	            </xsd:complexType>
+	        </xsd:element>
+     	    <xsd:element name="valuesAround">
+     	    <xsd:annotation>
+              <xsd:documentation>
+				Computation of eigenvalues which are around the given complex shiftpoint
+              </xsd:documentation>
+            </xsd:annotation>
+	        	<xsd:complexType>
+	        	<xsd:sequence>
+	        		<xsd:element name = "shiftPoint">
+	        			<xsd:complexType>
+	        				<xsd:sequence>
+	        					<xsd:element name = "Real" type = "xsd:float" minOccurs = "1">
+       						        <xsd:annotation>
+						              <xsd:documentation>
+										Real part of the complex valued shiftpoint
+						              </xsd:documentation>
+						            </xsd:annotation>
+	        					</xsd:element>
+	        					<xsd:element name = "Imag" type = "xsd:float" default = "0.0" minOccurs = "0">
+	        						<xsd:annotation>
+						              <xsd:documentation>
+										Imaginary part of the complex valued shiftpoint (optional default = 0)
+						              </xsd:documentation>
+						            </xsd:annotation>
+	        					</xsd:element>
+	        				</xsd:sequence>
+		        		</xsd:complexType>
+	        		</xsd:element>
+	        		<xsd:element name = "number" type="xsd:integer" minOccurs = "1">
+     		       		<xsd:annotation>
+		              		<xsd:documentation>
+								Number of Shiftpoints
+		              		</xsd:documentation>
+		            	</xsd:annotation>
+	        		</xsd:element>
+	        		</xsd:sequence>
+	            </xsd:complexType>
+	        </xsd:element>
+        </xsd:choice>
+          <xsd:element name="eigenVectors" minOccurs = "0" maxOccurs = "1">
+            <xsd:complexType>
+                  <xsd:attribute name="normalization" use="required">
+                   <xsd:simpleType>
+                     <xsd:restriction base="xsd:token">
+	                  <xsd:enumeration value="none"/>
+	                  <xsd:enumeration value="unit"/>
+	                  <xsd:enumeration value="norm"/>
+	                 </xsd:restriction>
+	                </xsd:simpleType>
+                  </xsd:attribute>
+                  <xsd:attribute name="side" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+	                  <xsd:enumeration value="left"/>
+	                  <xsd:enumeration value="right"/>
+	                </xsd:restriction>
+	                </xsd:simpleType>
+                  </xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="problemType" minOccurs = "1" maxOccurs = "1">
+          	<xsd:annotation>
+				<xsd:documentation>
+					Definition of the problemtype (standard EVP, generalized EVP, quadratic EVP)
+				</xsd:documentation>
+			</xsd:annotation>
+	        <xsd:complexType>
+	        <xsd:choice>
+	     	<xsd:element name="Standard"> <!-- Generalized EVP of the form A*x = lambda*B*x -->
+	       		<xsd:annotation>
+              		<xsd:documentation>
+						Standard EVP of form Matrix*x = lambda*B*x
+              		</xsd:documentation>
+             	</xsd:annotation>
+	           <xsd:complexType>
+	             <xsd:sequence>
+	               <xsd:element name="Matrix">
+	                    <xsd:simpleType>
+	                      <xsd:restriction base="xsd:token">
+	                        <!-- Use the massmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="mass"/>
+	                        <!--  Use the dampingmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="damping"/>
+	                        <!-- Use the stiffnessmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="stiffness"/>
+	                      </xsd:restriction>
+	                    </xsd:simpleType>
+	               </xsd:element>
+	            </xsd:sequence>
+	          </xsd:complexType>
+	         </xsd:element>
+	
+	     <xsd:element name="Generalized"> <!-- Generlalized EVP of the form A*x = lambda*B*x -->
+	     	    <xsd:annotation>
+              		<xsd:documentation>
+						Generlalized EVP of the form aMatrix*x = lambda*bMatrix*x
+              		</xsd:documentation>
+             	</xsd:annotation>
+	           <xsd:complexType>
+	             <xsd:sequence>
+	               <xsd:element name="aMatrix">
+	                    <xsd:simpleType>
+	                      <xsd:restriction base="xsd:token">
+	                        <!-- Use the massmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="mass"/>
+	                        <!--  Use the dampingmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="damping"/>
+	                        <!-- Use the stiffnessmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="stiffness"/>
+	                        </xsd:restriction>
+	                    </xsd:simpleType>
+	               </xsd:element>
+	               <xsd:element name="bMatrix">
+	                    <xsd:simpleType>
+	                      <xsd:restriction base="xsd:token">
+	                        <!-- Use the massmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="mass"/>
+	                        <!--  Use the dampingmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="damping"/>
+	                        <!-- Use the stiffnessmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="stiffness"/>
+	                        </xsd:restriction>
+	                    </xsd:simpleType>
+	               </xsd:element>
+	             </xsd:sequence>
+	           </xsd:complexType>
+	         </xsd:element>
+	        
+	     <xsd:element name="Quadratic"> <!-- Quadratic EVP of the form lamda²*A + lambda*B + C = 0 -->
+	     	    <xsd:annotation>
+              		<xsd:documentation>
+						Quadratic EVP of the form lamda²*A (quadratic matrix) + lambda*B (linear matrix) + C (constant matrix) = 0
+              		</xsd:documentation>
+             	</xsd:annotation>
+	          <xsd:complexType>
+	             <xsd:sequence>
+	               <xsd:element name="quadratic">
+	                    <xsd:simpleType>
+	                      <xsd:restriction base="xsd:token">
+	                        <!-- Use the massmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="mass"/>
+	                        <!--  Use the dampingmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="damping"/>
+	                        <!-- Use the stiffnessmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="stiffness"/>
+	                        </xsd:restriction>
+	                    </xsd:simpleType>
+	               </xsd:element>
+	               <xsd:element name="linear">
+	                    <xsd:simpleType>
+	                      <xsd:restriction base="xsd:token">
+	                        <!-- Use the massmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="mass"/>
+	                        <!--  Use the dampingmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="damping"/>
+	                        <!-- Use the stiffnessmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="stiffness"/>
+	                        </xsd:restriction>
+	                    </xsd:simpleType>
+	               </xsd:element>
+	               <xsd:element name="constant">
+	                    <xsd:simpleType>
+	                      <xsd:restriction base="xsd:token">
+	                        <!-- Use the massmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="mass"/>
+	                        <!--  Use the dampingmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="damping"/>
+	                        <!-- Use the stiffnessmatrix for eigenvalue analysis -->
+	                        <xsd:enumeration value="stiffness"/>
+	                        </xsd:restriction>
+	                    </xsd:simpleType>
+	               </xsd:element>
+	             </xsd:sequence>
+	           </xsd:complexType>
+	         </xsd:element>
+	          </xsd:choice>
+          	</xsd:complexType>
+          </xsd:element>
+      </xsd:sequence>
+        <!-- Arpack sometimes presents unsorted evs. 
+             By this option the evs are sorted by magnitude. For quadratic problems with real complex evs
+            this makes not sense. For bloch it is ok as the imaginary part is only spurious (Hermitian system)  -->
+        <xsd:attribute name="sort" use="optional" type="xsd:boolean" default="true"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 </xsd:schema>

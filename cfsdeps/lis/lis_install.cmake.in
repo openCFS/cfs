@@ -1,0 +1,9 @@
+IF(WIN32)
+  # include files
+  FILE(COPY "@lis_source@/include/lis_config.h" DESTINATION "@lis_install@/include")
+  FILE(COPY "@lis_source@/include/lis.h" DESTINATION "@lis_install@/include")
+  FILE(COPY "@lis_source@/include/lisf.h" DESTINATION "@lis_install@/include")
+
+  # lib
+  FILE(COPY "@lis_source@/win/lis.lib" DESTINATION "@lis_install@/lib64")
+ENDIF()

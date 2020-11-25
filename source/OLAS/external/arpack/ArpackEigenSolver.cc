@@ -105,7 +105,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular | shiftAndInvert | buckling)
-    arpackSolver_->Setup(interface_, size, which_ , (char*) "I", computeMode_, isBloch_);
+    arpackSolver_->Setup(interface_, size, which_ , (char*) "I", computeMode_, isBloch_||this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX);
 
     // Create solver
     solver_ = GenerateSolverObject( *matrixA_, solStrat_, solverList_, info_ );
@@ -201,7 +201,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular | shiftAndInvert | buckling)
-    arpackSolver_->Setup( interface_, size, which_ , (char*) "G", computeMode_, isBloch_);
+    arpackSolver_->Setup( interface_, size, which_ , (char*) "G", computeMode_, isBloch_||this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX);
 
     // Create solver - for every bloch wave vector :( Make sure it will be deleted!
     if(solver_ != NULL)
@@ -264,7 +264,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular | shiftAndInvert | buckling)
-    arpackSolver_->Setup(interface_, size, which_ , (char*) "I", computeMode_, isBloch_);
+    arpackSolver_->Setup(interface_, size, which_ , (char*) "I", computeMode_, isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX);
 
     // Create solver
     solver_ = GenerateSolverObject( *matrixA_, solStrat_, solverList_, info_ );
@@ -370,7 +370,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular | shiftAndInvert | buckling)
-    arpackSolver_->Setup( interface_, size, which_ , (char*) "G", computeMode_, isBloch_);
+    arpackSolver_->Setup( interface_, size, which_ , (char*) "G", computeMode_, isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX);
 
     // Create solver - for every bloch wave vector :( Make sure it will be deleted!
     if(solver_ != NULL)
@@ -428,7 +428,6 @@ namespace CoupledField {
 
     // need twice the original system size and twice the number of frequencies
     UInt size = 2*matrixA_->GetNumRows();
-    
     // NOTE: Hard coded!!!
     computeMode_ = ArpackMatInterface::ComputeMode::SHIFT_INVERT;
 
@@ -464,10 +463,9 @@ namespace CoupledField {
 
     // Create matrix interface for arpack
     interface_ = new ArpackMatInterface( zStiff_, zMass_, zDamp_, computeMode_ );
-
+    eigenProblemType_ = COMPLEX_SYMMETRIC;
     // Create solver class
     arpackSolver_ = new ArpackSolver(xml_);
-    
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "SI";
     xml_->GetValue("which", whichString, ParamNode::INSERT );
@@ -688,11 +686,9 @@ namespace CoupledField {
   {
     solveTimer_->Start();
 
-    assert(!(isBloch_ && isQuadratic_));
-
     unsigned int numEVs = 0;
-    // case1: generalized real problem
-    if(!isQuadratic_ && !isBloch_)
+    // generalized real problem
+    if( !(isQuadratic_ || isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX) )
     {
       // Setup matrixinterface
       interface_->Setup( solver_, precond_, shiftPoint );
@@ -708,28 +704,52 @@ namespace CoupledField {
         solConverted[i] = arpackSolver_->Eigenvalue(idx_[i]);
         LOG_DBG(aes) << "CEV: i=" << i << " ev=" << solConverted[i];
       }
-    }
-    // case2: quadratic complex problem
-    // case3: bloch modes are generalized complex problems
-    else
-    {
-      if(isQuadratic_) {
-        interface_->QuadSetup( solver_, precond_, shiftPoint );
-        numEVs = arpackSolver_->FindQuadEigenvalues(N, shiftPoint);
 
-      } else {
-        interface_->Setup( solver_, precond_, shiftPoint);
-        numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
-      }
+      PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+      in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
+      in->Get("rci/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
+      in->Get("rci/solve_B_x")->SetValue(arpackSolver_->counter_solve_OP_B_x);
+      in->Get("rci/matvec_B_x")->SetValue(arpackSolver_->counter_B_x);
+      in->Get("rci/total")->SetValue(arpackSolver_->counter_calll_aupd);
 
-      SetupIndex(numEVs);
-
-      Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
-      solConverted.Resize( numEVs );
+      // Save error norms
+      Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
+      errVec.Resize( numEVs );
       for (UInt i = 0; i < numEVs; i++ ) {
-        solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
+          errVec[i] = arpackSolver_->Tolerance(idx_[i]);
       }
 
+      solveTimer_->Stop();
+    }
+    else
+      CalcEigenValues(sol, err, N, Complex(shiftPoint, 0.0));
+  }
+
+  void ArpackEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint)
+  {
+    solveTimer_->Start();
+
+    assert(!(isBloch_ && isQuadratic_));
+    assert(isQuadratic_ || isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX);
+
+    unsigned int numEVs = 0;
+    // complex problem or
+    // quadratic complex problem or
+    // bloch modes (generalized complex problem)
+    if(isQuadratic_) {
+      interface_->QuadSetup<Complex>( solver_, precond_, shiftPoint);
+      numEVs = arpackSolver_->FindQuadEigenvalues<Complex>(N, shiftPoint);
+    } else {
+      interface_->Setup<Complex>( solver_, precond_, shiftPoint);
+      numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
+    }
+
+    SetupIndex(numEVs);
+
+    Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
+    solConverted.Resize( numEVs );
+    for (UInt i = 0; i < numEVs; i++ ) {
+      solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
     }
 
     PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
@@ -748,6 +768,7 @@ namespace CoupledField {
 
     solveTimer_->Stop();
   }
+
 
   void ArpackEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
   {
@@ -824,11 +845,19 @@ namespace CoupledField {
     mode.Resize( size );
     mode.Init();
 
-    // we rescale x by sqrt(scaling) as we have x^T (scale*B) x = 1
+    // we rescale x by sqrt(scale_B_val_) as we have x^T (scale*B) x = 1
     double rescale = std::sqrt(scale_B_val_);
 
-    for(UInt i = 0; i < size; i++)
-      mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i]*rescale,0);
+    if(this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX || isQuadratic_)
+    {
+    	this->GetComplexEigenMode(modeNr, mode);
+    	mode.ScalarMult(rescale);
+    }
+    else
+    {
+      for(UInt i = 0; i < size; i++)
+        mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i]*rescale,0);
+    }
 
     // BLOCH better? mode.Fill(arpackSolver_->GetEigenvector(modeNr), matrixA_->GetNumRows());
 

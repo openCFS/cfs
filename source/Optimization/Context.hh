@@ -14,6 +14,7 @@ class SingleDriver;
 class SinglePDE;
 class BucklingDriver;
 class EigenFrequencyDriver;
+class EigenValueDriver;
 class HarmonicDriver;
 class Exctiation;
 class MultipleExcitation;
@@ -87,6 +88,8 @@ class Context
   EigenFrequencyDriver* GetEigenFrequencyDriver();
 
   BucklingDriver* GetBucklingDriver();
+
+  EigenValueDriver* GetEigenValueDriver();
 
   HarmonicDriver* GetHarmonicDriver();
 

@@ -3,18 +3,19 @@
 #
 # Syntax tipps:
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
-# * do not use a command `echo "warming: the : is not allowed in a string"`
+# * do not use a command `echo "warning: the : is not allowed in a string"`
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
   GIT_SUBMODULE_STRATEGY: recursive
-  CDASH_TRACK: Gitlab # will be overwritten by nichtly schedule
+  CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
 
 # stages in the pipeline run in succession
 stages:
   - check
-  - build # config and build combined
+  - build debug # build stages: debug and release
+  - build release # config and build combined
   - test # we may have several test configs for one build
   - deploy
 
@@ -28,11 +29,6 @@ stages:
       - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
       - schedules # For scheduled pipelines
 
-# this is run after every step
-after_script:
-  - cd build
-  - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
 # it is stored as a zip archive and extracted before each stage - this takes time,
@@ -42,17 +38,22 @@ cache:
   key: ${CI_COMMIT_REF_NAME}
   paths:
     - build/cfsdeps/cache
-    - build/bin
-    - build/lib*
 
 #################################################
 # Check STAGE
 #################################################
+
+# skip the check stage if 'skip-check' is in the commit message
+.except-skip-ckeck: &except-skip-ckeck
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-check/
+
 # Check the revision of the testsuite submodule
 testsuite-revision:
   stage: check
   tags:
-    - git
+    - linux
   variables:
     # we clone to make sure we have everyting (including current names of the SHAs)
     GIT_STRATEGY: clone
@@ -70,6 +71,7 @@ testsuite-revision:
   cache: {} # disable
   allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
   <<: *default_pipeline_rules
+  <<: *except-skip-ckeck
 
 # this job is intended as a warning if the piepline has changed
 # it is created only if there are changes, and will always fail (but is allowed to)
@@ -77,7 +79,7 @@ pipeline-changes:
   extends: .default_pipeline_rules
   stage: check
   tags:
-    - git
+    - linux
   before_script:
     - git diff HEAD~1 -- .gitlab-ci.yml
   script:
@@ -88,6 +90,7 @@ pipeline-changes:
   only:
     changes:
       - .gitlab-ci.yml
+  <<: *except-skip-ckeck
 
 # this job is intended as a warning if the piepline has been skipped by commit messages
 #  
@@ -104,6 +107,7 @@ pipeline-skip:
     # print files without match (-L) and check for "message", i.e. "skip-XXX" is not in commit message 
     - grep -v skip-platform-builds message-oneline
     - grep -v skip-stable-tests message-oneline
+    - grep -v skip-debug message-oneline
     - grep -v skip-testsuite-tests message-oneline
     - grep -v skip-gcc-builds message-oneline
     - grep -v skip-python-tests message-oneline
@@ -111,10 +115,40 @@ pipeline-skip:
   allow_failure: true
   cache: {} # disable 
 
+runner-debug:
+  extends: .default_pipeline_rules
+  stage: check
+  tags:
+    - linux
+  before_script: []
+  script:
+    - echo $CI_SERVER_HOST
+    - echo $CI_SERVER
+    - echo $GITLAB_USER_ID
+    - echo $GITLAB_USER_LOGIN
+    - echo $CI_RUNNER_ID
+    - echo $CI_RUNNER_SHORT_TOKEN
+    - echo $CI_PROJECT_NAMESPACE
+    - echo $CI_PIPELINE_URL
+    - echo $CI_PAGES_URL
+    - echo $CI_MERGE_REQUEST_ID
+    - echo $CI_JOB_URL
+  after_script: []
+  when: manual
+  allow_failure: true
+  cache: {} # disable
+  <<: *except-skip-ckeck
+
 #################################################
 # BUILD STAGE
 #################################################
 # Here we define the build jobs, if one fails we do not need to test
+
+# this is run after every CTest step
+.ctest_after: &ctest_after
+  after_script:
+    - cd build
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
 
 .default_build_job: &default_build_job
   extends: .default_pipeline_rules
@@ -123,22 +157,26 @@ pipeline-skip:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
   script:
-    - cat pre_cmd || touch pre_cmd # be sure pre_cmd exists (it may contain scl-enable)
-    # we use the devtoolset for any second-level configure things to have the correct environment
+    # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
+    # update to current revision (gives link on CDash)
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
-    - sh -c "$(cat pre_cmd) ctest -D ExperimentalConfigure --track $CDASH_TRACK -V"
+    # configure
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
-    - sh -c "$(cat pre_cmd) ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out"
+    # build
+    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
+    # install test to create arifacts
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
+    - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
     # check the coding_score
     - ../ctest_scripts/shared/coding_score.sh build.out
+  <<: *ctest_after
   coverage: '/coding_score=(\d+[.]\d+)/'
   artifacts:
     paths: # just an example
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
-      - build/config_cmd # needed in test to apply same configure command on different runner
     expire_in: 3 days
 
 .gcc_before: &gcc_before
@@ -150,56 +188,77 @@ pipeline-skip:
     - rm -f scl_version
     # debug output
     - echo "GCC_VERSION=$GCC_VERSION"
+    - gcc --version
     # check gcc version via grep
-    - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || (scl enable devtoolset-4 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "4" > scl_version ) || (gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && touch scl_version )
-    # debug output
-    - cat scl_version
-    # write out the config_cmd
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${BUILD_NAME}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' -DBUILD_TESTING=ON -DBUILD_CPACK_BINARY=ON ${CFS_CONFIG_OPTIONS} .." > config_cmd && cat config_cmd
-    # write out the correct scl as pre_cmd
-    - scl enable devtoolset-`cat scl_version` -- echo "scl enable devtoolset-$(cat scl_version) -- " > pre_cmd || echo "" > pre_cmd
-    - sh -c "$(cat pre_cmd) $(cat config_cmd)"
+    - gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
+    # configure
+    - echo "git;checkout;$CI_COMMIT_SHA"
+    - echo "$CFS_CONFIG_OPTIONS"
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_GIT_UPDATE_CUSTOM="git;checkout;$CI_COMMIT_SHA" -DBUILD_TESTING=ON -DBUILD_CPACK_BINARY=ON ${CFS_CONFIG_OPTIONS} ..
     # go back one revision and then update by ctest
     - git checkout HEAD~1
 
-build:gcc4: # eventually we should have one job for each required configuration
-  stage: build
-  tags:
-    - gcc4
-    - libc2.12 # this is the lowest libc version we can build with -> it should run on all runners
+.max_rules: &max_rules
+  only:
+    variables:
+      - $CI_SERVER_HOST == "cfs-dev.mdmt.tuwien.ac.at"
+
+.max_cfs_config: &max_cfs_config
+  extends: .default_build_job
+  <<: *max_rules
   variables:
-    BUILD_NAME: "GCC4"
-    GCC_VERSION: 4
-  <<: *gcc_before
-  <<: *default_build_job
-  # allow the release build again (since it is required for deploy)
+    MAX_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON"
+
+      
+#################################################
+# BUILD DEBUG STAGE
+#################################################
+
+# skip the debug stage if 'skip-debug' is in the commit message
+.except-skip-debug: &except-skip-debug
   except:
-    variables: []
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-debug/
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
+
+# maximal build using as many options as possible
+build:gcc7max-debug:
+  extends: .max_cfs_config
+  stage: build debug
+  tags:
+    - gcc7
+    - license-keys
+  variables:
+    BUILD_NAME: "GCC7 maximal debug"
+    GCC_VERSION: 7
+    CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
+  <<: *gcc_before
+  allow_failure: false
+  when: on_success
+
+#################################################
+# BUILD RELEASE STAGE
+#################################################
 
 build:gcc5:
-  stage: build
+  stage: build release
+  image: opencfs/centos6-gcc5
   tags:
-    - gcc5
+    - docker
   variables:
     BUILD_NAME: "GCC5"
     GCC_VERSION: 5
   <<: *gcc_before
   <<: *default_build_job
-
-build:gcc6:
-  stage: build
-  tags:
-    - gcc6
-  variables:
-    BUILD_NAME: "GCC6"
-    GCC_VERSION: 6
-  <<: *gcc_before
-  <<: *default_build_job
+  # do not allow to skip this one since we need it for deploy
+  except:
+    variables: []
 
 build:gcc7:
-  stage: build
+  stage: build release
+  image: opencfs/centos6-gcc7
   tags:
-    - gcc7
+    - docker
   variables:
     BUILD_NAME: "GCC7"
     GCC_VERSION: 7
@@ -207,21 +266,24 @@ build:gcc7:
   <<: *default_build_job
 
 build:gcc7min:
-  stage: build
+  stage: build release
+  image: opencfs/centos6-gcc7
   tags:
-    - gcc7
+    - docker
   variables:
     BUILD_NAME: "GCC7 minimal"
     GCC_VERSION: 7
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=OPENBLAS -DUSE_ARPACK=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_ENSIGHT=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF"
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCFS_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_GMSH=OFF -DUSE_GMV=OFF -DUSE_ILUPACK=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF"
   <<: *gcc_before
   <<: *default_build_job
 
 # maximal build using as many options as possible
 build:gcc7max:
-  stage: build
+  extends: .max_cfs_config
+  stage: build release
   tags:
     - gcc7
+    - release
     - license-keys
     - python
   variables:
@@ -230,10 +292,33 @@ build:gcc7max:
     CFS_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON"
   <<: *gcc_before
   <<: *default_build_job
-
+  <<: *max_rules
+  
+.build:gcc9:
+  stage: build release
+  image: opencfs/centos6-gcc9
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC9"
+    GCC_VERSION: 9
+  <<: *gcc_before
+  <<: *default_build_job
+    
+build:gcc10:
+  stage: build release
+  image: opencfs/fedora32
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC10"
+    GCC_VERSION: 10
+  <<: *gcc_before
+  <<: *default_build_job
+  
 # Template for the platform builds
 .platform:image:
-  stage: build
+  stage: build release
   tags:
     - docker
   after_script: []
@@ -333,27 +418,19 @@ platform:centos:7:
     IMAGE: "centos"
     TAG: "7"
 
-# re-build everything
-complete-build:linux:
-  stage: build
-  tags:
-    - linux
-  when: manual
-  before_script:
-    - rm -rf build # clear
-    - mkdir build
-    - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
-    # go back one revision and then update by ctest
-    - git checkout HEAD~1
-  <<: *default_build_job
-
-
 #################################################
 # TEST STAGE
 #################################################
 # the test stage might run on a different runner than the build, thus
 # the binaries are shared via the gitlab server (artifacts/dependencies)
+#
+# We have the following different test configurations
+# * stable - runs the Testsuite on a single thread and disabling some unstable tests (and python tests)
+# * testsuite - runs the Testsuite on all available cores (disabling python tests)
+# * python - runs the Python-Tests of the testsuite
+# Both _stable_ and _testsuite_ are run for all build configs (GCCx),
+# _python_ is seperate as not to re-run python tests for all GCCx versions.
+
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
@@ -366,9 +443,14 @@ complete-build:linux:
     - mkdir -p build
     - cd build # descend in build
     - ls # debug
-    - tar -xzvf "CFS-$CI_COMMIT_SHA-Linux.tar.gz" --strip-components=1 # extract to correct location
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" .. # ensure we have a working update command
-    - sh -c "$(cat config_cmd)" # configure with the used build options (to have the correct tests turned ON/OFF)
+    # install CFS
+    - tar -xzvf "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" --strip-components=1 # extract to correct location
+    # obtain the build config
+    - ./bin/cfs --dependencies config.cmake
+    # get testsuite SHA
+    - export TESTSUITE_SHA=$(git submodule | grep Testsuite | awk '{print $1}')
+    - echo $TESTSUITE_SHA # debug
+  <<: *ctest_after
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -377,105 +459,65 @@ complete-build:linux:
   cache: {}
 
 
-# this is the config that has to pass
+# this is the config that has to pass (excludes PYTHON since they do not need to be tested for every GCCx)
 .test_stable: &test_stable
-  extends: .ctest_default
+  <<: *ctest_default
   # disable also if 'skip-stable-tests' is contained in commit message
   except:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DTESTSUITE_THREADS=1 -DTESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    # configure
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
+    # start the testing
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential" --track $CDASH_TRACK # exclude the install step and the failing tests
 
-# test everything
+# test everything (but python, which is tested seperately)
 .test_all_multicore: &test_all_multicore
-  extends: .ctest_default
+  <<: *ctest_default
   # disable also if 'skip-testsuite-tests' is contained in commit message
   except:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
-  script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DTESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+  script:    
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
-
+  
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependecies
-stable:gcc4:linux:
+stable:gcc5:linux:
   tags:
     - linux
   stage: test
   variables:
-    BUILD_NAME: GCC4
+    BUILD_NAME: "GCC5"
   retry: 1
   <<: *test_stable
   dependencies:
-    - build:gcc4
-
-# pre-pend the jobs with x as they are sorted alphabetically
-testsuite:gcc4:linux: # if the machine has multiple
-  tags:
-    - linux
-  stage: test
-  variables:
-    BUILD_NAME: GCC4
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc4
+    - build:gcc5
 
 testsuite:gcc5:linux:
   tags:
     - linux
-    - run_libc2.17
   stage: test
   variables:
-    BUILD_NAME: GCC5
+    BUILD_NAME: "GCC5"
   <<: *test_all_multicore
-  allow_failure: true
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
     - build:gcc5
-
-testsuite:gcc6:linux: # if the machine has multiple
-  tags:
-    - linux
-    - run_libc2.17
-  stage: test
-  variables:
-    BUILD_NAME: GCC6
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc6
-
-testsuite:gcc7:linux: # if the machine has multiple
-  tags:
-    - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
-  stage: test
-  variables:
-    BUILD_NAME: GCC7
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc7
 
 stable:gcc7min:linux:
   tags:
     - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
   stage: test
   variables:
     BUILD_NAME: "GCC7 minimal"
@@ -487,8 +529,6 @@ stable:gcc7min:linux:
 testsuite:gcc7min:linux:
   tags:
     - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
   stage: test
   variables:
     BUILD_NAME: "GCC7 minimal"
@@ -500,12 +540,10 @@ testsuite:gcc7min:linux:
 stable:gcc7max:linux:
   tags:
     - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
   stage: test
+  <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal"
-  retry: 1
   <<: *test_stable
   dependencies:
     - build:gcc7max
@@ -513,9 +551,8 @@ stable:gcc7max:linux:
 testsuite:gcc7max:linux:
   tags:
     - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
   stage: test
+  <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal"
   <<: *test_all_multicore
@@ -523,8 +560,62 @@ testsuite:gcc7max:linux:
   dependencies:
     - build:gcc7max
 
+.stable:gcc7max-debug:linux:
+  tags:
+    - linux
+  stage: test
+  <<: *max_rules
+  variables:
+    BUILD_NAME: "GCC7 maximal debug"
+    TEST_CONFIG_OPTIONS: "-DTESTSUITE_TIMEOUT=1500"
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
+      - $CI_COMMIT_MESSAGE =~ /skip-debug/
+  retry: 1
+  <<: *test_stable
+  needs:
+    - build:gcc7max-debug
+
+.stable:gcc9:linux:
+  tags:
+    - linux
+  stage: test
+  variables:
+    BUILD_NAME: GCC9
+  retry: 1
+  <<: *test_stable
+  dependencies:
+    - build:gcc9
+
+stable:gcc10:linux:
+  image: opencfs/fedora32
+  tags:
+    - linux
+    - docker
+  stage: test
+  variables:
+    BUILD_NAME: GCC10
+  retry: 1
+  <<: *test_stable
+  dependencies:
+    - build:gcc10
+
+testsuite:gcc10:linux:
+  image: opencfs/fedora32
+  tags:
+    - linux
+  stage: test
+  variables:
+    BUILD_NAME: "GCC10"
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc10
 
 python:stable:
+  image: opencfs/centos6
   extends: .ctest_default
   # disable if 'skip-python-tests' is found in commit message
   except:
@@ -539,7 +630,7 @@ python:stable:
   before_script:
     - mkdir -p build
     - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME"  -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DBUILD_TESTING=ON -DTESTSUITE_PYTHON=ON ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - git checkout HEAD~1 # back one revision and then update
@@ -553,7 +644,7 @@ python:all:
     TEST_NAME: "all"
     EXCLUDE: ""
   allow_failure: true
-
+  
 #################################################
 # DEPLOY STAGES
 #################################################
@@ -573,13 +664,37 @@ python:all:
   cache: {}
   after_script: []
   before_script: []
-  
+
+pages:
+  stage: deploy
+  tags:
+    - linux
+  dependencies:
+    - build:gcc5
+  script:
+    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
+    - mkdir -p public
+    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
+    - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
+  artifacts:
+    paths:
+      - public
+  only:
+    refs:
+      - master # only for refs pushed to master
+    variables:
+      # only deploy on gitlab.com
+      - $CI_PROJECT_NAMESPACE == "openCFS"
+  cache: {}
+  after_script: []
+  before_script: []
+
 copy_to_draco:
   dependencies:
-    - build:gcc4
+    - build:gcc5
   script:
     # copy over via scp
-    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
+    - scp "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
   environment:
     name: share_programs
   <<: *deploy_rules
@@ -587,7 +702,7 @@ copy_to_draco:
 install_on_draco:
   dependencies: []
   script:
-    # wait for the copy to finish, timeout after 120s, if timeout try to list file
+    # wait for the copy to finish, timeout after 180s, if timeout try to list file
     - ssh draco "inotifywait -t180 -e close_write /opt/programs/cfs_master" || ssh draco "ls /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
     # extract on draco by ssh
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
@@ -598,35 +713,3 @@ install_on_draco:
   environment:
     name: share_programs
   <<: *deploy_rules
-
-# this creates the XML-schema and copies it to cfs-doc/xml/<branch>/
-xml_to_cfs-doc:
-  extends: .deploy_rules  
-  dependencies: []
-  before_script:
-    - mkdir -p build
-    - mkdir -p public
-    - cd build
-    - cmake -DBUILD_TESTING=OFF ..
-    - cd share/xml
-    - make
-  script:
-    - mkdir -p $CI_COMMIT_REF_NAME
-    - mv CFS-* $CI_COMMIT_REF_NAME
-    - scp -r $CI_COMMIT_REF_NAME cfs-doc:/var/www/xml/.
-  environment:
-    name: cfs-dev_xml/$CI_COMMIT_REF_NAME
-    url: https://cfs-doc.mdmt.tuwien.ac.at/xml/$CI_COMMIT_REF_NAME/CFS-Simulation/CFS.xsd
-
-xml_to_cfs-doc_tag:
-  extends: xml_to_cfs-doc
-  only:
-    refs:
-      - tags # only if pipeline is triggerd for a tag
-  script:
-    - mkdir -p $CI_COMMIT_TAG
-    - mv CFS-* $CI_COMMIT_TAG   
-    - scp -r $CI_COMMIT_TAG cfs-doc:/var/www/xml/.
-  environment:
-    name: cfs-dev_xml/$CI_COMMIT_TAG
-    url: https://cfs-doc.mdmt.tuwien.ac.at/xml/$CI_COMMIT_TAG/CFS-Simulation/CFS.xsd

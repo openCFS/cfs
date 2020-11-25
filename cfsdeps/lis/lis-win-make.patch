@@ -1,0 +1,11 @@
+--- win\Makefile.in.org	Tue Nov 17 10:51:28 2020
++++ win\Makefile.in	Tue Nov 17 10:47:59 2020
+@@ -9,7 +9,7 @@
+ 
+ # See win32.mak for details. 
+ 
+-!include <win32.mak>
++#!include <win32.mak>
+ #!include <C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include\win32.mak>
+ 
+ 

@@ -73,15 +73,15 @@ namespace CoupledField {
     precond_ = NULL;
   }
   
-  
-  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, Double shift ) {
+  template<class TYPE>
+  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift ) {
 
+	complex_shift_ = boost::is_complex<TYPE>::value;
     // Copy references
     solver_ = solver;
     precond_ = precond;
     solver_->SetPrecond(precond_);
-
-    shift_ = shift;
+    shift_= (Complex) shift;
 
     // Setup() might be called multiple times for Bloch mode analysis
     if(matrixC_) {
@@ -103,7 +103,10 @@ namespace CoupledField {
         const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
         matrixC_ = CopyStdMatrixObject( matB );
 
-        matrixC_->Scale( -shift_ );
+        if(complex_shift_)
+        	matrixC_->Scale( -shift_ );
+        else
+        	matrixC_->Scale( -shift_.real());
         matrixC_->Add( 1.0, matA );
       }
     } else {
@@ -116,10 +119,10 @@ namespace CoupledField {
         StdMatrix & matC = dynamic_cast<StdMatrix &>(*matrixC_);
 
         // calculate C = ( A - shift * I) with I being the unit matrix
-        Double diag = 0.0;
+        TYPE diag = 0.0;
         for( UInt i = 0; i < matC.GetNumRows(); i++) {
           matC.GetDiagEntry( i, diag );
-          diag = (diag - shift_ * 1.0 );
+          diag = (diag - shift * 1.0 );
           matC.SetDiagEntry( i, diag );
         }
       }
@@ -139,25 +142,37 @@ namespace CoupledField {
     solver_->GetSetupTimer()->Stop();
   }
 
-  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond, Double shift ) {
+  template<class TYPE>
+  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond, TYPE shift ) {
 
     // Copy references
     solver_ = solver;
     precond_ = precond;
-
+	complex_shift_ = boost::is_complex<TYPE>::value;
     if (matrixC_ == NULL || shift_ != shift) {
-      shift_ = shift;
+      shift_= (Complex) shift;
 
       const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
       const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
       const StdMatrix & matD = dynamic_cast<const StdMatrix &>(*matrixD_);
 
       // form (B*shift + D)*shift + A) = A + sigma*D + sigma**2*B
-      matrixC_ = CopyStdMatrixObject( matB );
-      matrixC_->Scale( shift_ );
-      matrixC_->Add( 1.0, matD );
-      matrixC_->Scale( shift_ );
-      matrixC_->Add( 1.0, matA );
+      if(complex_shift_)
+      {
+		  matrixC_ = CopyStdMatrixObject( matB );
+		  matrixC_->Scale( shift_ );
+		  matrixC_->Add( 1.0, matD );
+		  matrixC_->Scale( shift_ );
+		  matrixC_->Add( 1.0, matA );
+      }
+      else
+      {
+		  matrixC_ = CopyStdMatrixObject( matB );
+		  matrixC_->Scale( shift_.real() );
+		  matrixC_->Add( 1.0, matD );
+		  matrixC_->Scale( shift_.real() );
+		  matrixC_->Add( 1.0, matA );
+      }
 
       // set diagonal scaling entry (hard coded = 1)
       diagScale_ = 1.0;
@@ -295,8 +310,10 @@ namespace CoupledField {
     // mx = (C+sigma*M)*N**(-1)*b2
     matrixD_->Mult(nInvB2,cx);
     matrixB_->Mult(nInvB2,mx);
-    mx.Axpy(shift_,cx);
-
+    if(complex_shift_)
+    	mx.Axpy(shift_,cx);
+    else
+        mx.Axpy(shift_.real(),cx);
     vecB1.Add(mx);
     // full rhs
     vecB1.ScalarMult(-1.0);
@@ -304,7 +321,10 @@ namespace CoupledField {
     solver_->Solve( *matrixC_, vecB1, vecA2 );
     solver_->GetSolveTimer()->Stop();
     // solve for a1 (lower part of equation system)
-    vecA1.Add(shift_, vecA2, 1., nInvB2);
+    if(complex_shift_)
+    	vecA1.Add(shift_, vecA2, 1., nInvB2);
+    else
+    	vecA1.Add(shift_.real(), vecA2, 1., nInvB2);
   }
 
   void ArpackMatInterface::MultBVQuad( Complex* x, Complex* y ) {
@@ -463,5 +483,11 @@ namespace CoupledField {
   template void ArpackMatInterface::MultRegularOpV<Complex>(Complex*, Complex*);
   template void ArpackMatInterface::MultBV<Complex>(Complex*, Complex*);
   template void ArpackMatInterface::MultAV<Complex>(Complex*, Complex*);
+
+  template void ArpackMatInterface::Setup<Double>( BaseSolver* , BasePrecond*, Double);
+  template void ArpackMatInterface::Setup<Complex>( BaseSolver* , BasePrecond*, Complex);
+
+  template void ArpackMatInterface::QuadSetup<Double>( BaseSolver*, BasePrecond*, Double );
+  template void ArpackMatInterface::QuadSetup<Complex>( BaseSolver*, BasePrecond*, Complex );
 
 }

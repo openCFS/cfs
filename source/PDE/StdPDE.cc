@@ -84,7 +84,7 @@ namespace CoupledField {
     algsys_->InitMatrix();
     
     // Check for analysistype
-    if ( analysistype_ != EIGENFREQUENCY && analysistype_ != BUCKLING) {
+    if ( analysistype_ != EIGENFREQUENCY && analysistype_ != BUCKLING && analysistype_ != EIGENVALUE) {
       
       // create solver and preconditioner
       algsys_->CreateSolver();
@@ -542,7 +542,7 @@ namespace CoupledField {
             /*
              * Note: If locked = true, overwrite = false
              */
-            it->second->TestInversion(testNode);
+            it->second->TestInversion(testNode,this->GetInfoNode());
           }
      }
   }

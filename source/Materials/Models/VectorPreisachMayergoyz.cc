@@ -42,20 +42,14 @@ namespace CoupledField
      *
      */
     dim_ = dim;
-//    if(dim != 2){
-//      EXCEPTION("Mayergoyz vector model (currently) only implemented for 2d");
-//      // for the 3d case the computation of the weightings has to be adapted; furtherone
-//      // one has to specify many more directions as we have to integrate over a whole
-//      // hemisphere instead of a hemicircle
-//    }
-    std::cout << "###Dimension of hyst-operator### " << dim_ << std::endl;
+
     numDirections_ = numDirections;
     if(numDirections_ < 2){
       EXCEPTION("To obtain vector functionality, at least 2 directions are required!");
     }
 
     if(dim_ == 3){
-      // TODO: allow direct setting of theta and phi directions via mat file;
+      // possible TODO: allow direct setting of theta and phi directions via mat file;
       // Edit: 3.6.2020 - Phi should be resolved with 4x as many directions as Theta
       // > until now the sqrt was taken 
       bool useOldDistribution=false;
@@ -67,7 +61,6 @@ namespace CoupledField
                   "The number of directions into the third dimensions is computed via floor(sqrt(totalNumberDirections)).");
         }
         numDirectionsPhi_ = UInt(numDirections/sqrtRound);
-  //      std::cout << "3D Isotropic Mayergoyz Vector Model with N_theta = " << numDirectionsTheta_ << " and N_phi = " << numDirectionsPhi_ << std::endl;
       } else {
         UInt sqrtCeil = std::ceil(std::sqrt(numDirections/4.0));
         numDirectionsTheta_ = sqrtCeil;
@@ -76,16 +69,17 @@ namespace CoupledField
                   "The number of directions into the third dimensions is computed via ceil(sqrt(totalNumberDirections/4)) so that resolution in both angular directions is equal.");
         }
         numDirectionsPhi_ = std::ceil(Double(numDirections)/Double(numDirectionsTheta_));
-        std::cout << "###NumTheta x NumPhi### " << numDirectionsTheta_ << " x " << numDirectionsPhi_ << std::endl;
+        //std::cout << "###NumTheta x NumPhi### " << numDirectionsTheta_ << " x " << numDirectionsPhi_ << std::endl;
       }
       if(numDirectionsPhi_ < 2){
         EXCEPTION("To obtain vector functionality in 3d, at least 2 directions are required into the each dimension! Increase number of directions in mat.xml.");
       }
       numDirections_ = numDirectionsTheta_*numDirectionsPhi_;
       numDirections = numDirections_; // just for the case that I missed it somewhere below to replace numDirections with numDirections_
-    } else {
-      std::cout << "###NumPhi### " << numDirections_ << std::endl;
-    }
+    } 
+//    else {
+//      std::cout << "###NumPhi### " << numDirections_ << std::endl;
+//    }
     operatorParams.numDirections_ = numDirections_;
     singleDirections_ = new Vector<Double>[numDirections_];
 
@@ -94,7 +88,6 @@ namespace CoupledField
     }
 
     if(startingAxis_.NormL2() < 1e-16){
-//      std::cout << "Generate random starting axis" << std::endl;
       // generate random starting axis
       for(UInt i = 0; i < startingAxis_.GetSize(); i++){
         startingAxis_[i] = 2*((float) rand()) / (float) RAND_MAX-1.0;
@@ -117,7 +110,6 @@ namespace CoupledField
       // we should use randomly distributed starting angle to make up for the missing symmetry property due to discretization
       Double angleOffset = atan2(startingAxis_[1],startingAxis_[0]);
 
-  //    Double startingAngle = -deltaAngle/2;
       Double currentAngle = 0.0;
   //    std::cout << "MG-model-Directions of scalar models: " << std::endl;
   //    std::cout << "Staring axis: " << startingAxis_.ToString() << std::endl;
@@ -131,7 +123,6 @@ namespace CoupledField
         singleDirections_[i] = Vector<Double>(dim_);
         singleDirections_[i][0] = std::cos(currentAngle);
         singleDirections_[i][1] = std::sin(currentAngle);
-
   //      std::cout << "angle (" << i << "): " << currentAngle << std::endl;
   //      std::cout << "direction (" << i << "): " << singleDirections_[i].ToString() << std::endl;
       }
@@ -162,7 +153,6 @@ namespace CoupledField
         sinTheta_[cnt] = s;
 
         for(UInt j = 0; j < numDirectionsPhi_; j++){
-//          std::cout << "Index " << cnt << " of " << numDirections_ << std::endl;
           phi = angleOffsetPhi + j*deltaAnglePhi_;
           singleDirections_[cnt] = Vector<Double>(dim_);
           singleDirections_[cnt][0] = s*std::cos(phi);
@@ -184,7 +174,7 @@ namespace CoupledField
     isIsotropic_ = true;
 
     if(isIsotropic_){
-      // add anhysteretic part directly to output and set saturation parameter accordingly
+      // add anhysteretic part directly to output and set saturation parameter accordingly;
       // the single scalar models will not have anhysteretic parts
       // already done in Hysteresis base class
 //      XSaturated_ = xSat;
@@ -211,6 +201,7 @@ namespace CoupledField
       }
 
     } else {
+      // anisotropic case:
       // in each single direction, we need specifiy values for
       // xSat, ySat, preisachWeights, anhyst_A, anhyst_B, anhyst_C
       // > unless we have a way to measure or compute these values, the anisotropic case is not available
@@ -218,6 +209,8 @@ namespace CoupledField
     }
 
     // new for rotational loss computation
+    // > extended Mayergoyz model
+    // cf. Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
     lossParam_a_ = operatorParams.lossParam_a;
     lossParam_b_ = operatorParams.lossParam_b;
     improveRotLoss_ = false;
@@ -225,42 +218,6 @@ namespace CoupledField
       improveRotLoss_ = true;
     }
     
-    bool testSatOutput = false;
-    if(testSatOutput){
-      std::cout << "hystSaturated: " << hystSaturated_ << std::endl;
-      std::cout << "PSaturated: " << PSaturated_ << std::endl;
-      std::cout << "anhyst_A_ " << anhyst_A_ << std::endl;
-      std::cout << "anhyst_B_ " << anhyst_B_ << std::endl;
-      std::cout << "anhyst_C_ " << anhyst_C_ << std::endl;
-      std::cout << "anhyst_D_ " << anhyst_D_ << std::endl;
-      
-      Vector<Double> satInput = Vector<Double>(dim_);
-      Vector<Double> vectorResult = Vector<Double>(dim_);
-      std::cout << "direction [0]: " << singleDirections_[0].ToString() << std::endl;
-      satInput.Init();
-      satInput.Add(XSaturated_,singleDirections_[0]);
-
-      int blub;
-      Double scalarResult = singlePreisachOperators_[0]->computeValueAndUpdate(XSaturated_,0,false,blub);
-      std::cout << "result of scalar model in direction [0]: " << scalarResult << std::endl;
-      vectorResult.Init();
-      vectorResult.Add(scalarResult,singleDirections_[0]);
-      std::cout << "resulting vector in direction [0]: "<< vectorResult.ToString() << std::endl;
-
-      vectorResult = this->computeValue_vec(satInput,0,false,false,blub,true);
-      std::cout << "result of vector model in directon [0] (without anhyst part!): " << vectorResult.ToString() << std::endl;
-
-      vectorResult = this->computeValue_vec(satInput,0,false,false,blub);
-      std::cout << "result of vector model in directon [0] (with anhyst part!): " << vectorResult.ToString() << std::endl;
-
-      /*
-       * NOTE: we cannot get the same result here! reason: we compare the vector result with one of the internally stored
-       *      scalar models; these scalar models use the adapted weights, however! for a correct comparison, we would have
-       *      to compare the vector model (with adapted weights) to a scalar model with original weights!
-       * > can only be done in coefFunctionHyst where the actual transformation of weights is done
-       */
-    }
-
     prevXVal_ = new Vector<Double>[numElem];
     prevHVal_ = new Vector<Double>[numElem];
     for(int k = 0; k < numElem; k++){
@@ -376,21 +333,90 @@ namespace CoupledField
     return computedInput;
   }
   
-  
-  
-  
   Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx,
           bool overwrite,bool debugOutput,int& successFlag, bool skipAnhystPart){
 
-        /*
-     * Vectorial output = integral/sum over scalar models
+    /*
+     * Vector output = integral/sum over scalar models
      */
     Vector<Double> output = Vector<Double>(dim_);
     output.Init();
 
-//    Vector<Double> tmp = Vector<Double>(dim_);
-//    Vector<Double> currentDir;
-//    Double scalarInput, scalarOutput;
+    successFlag = 0;
+    int successFlagSingle = 0;
+    Vector<Double> scalContribution = Vector<Double>(dim_);
+    
+    // compute correction angle; 
+    // if it is 0, scalInput is just the dotProduct betwen xVal and the direction
+    // > Note that this angle does not depend on the direction of the scalar model, so we just have to evaluate it once
+    Double angleCorrection = 0.0;
+    if(improveRotLoss_ == true){
+      // edit 19.10.2020: 
+      // angleCorrection restricted to angle between prevHVal_ and xVal (previously restriction to 2pi)!
+      // > see also comments in evaluateLagCorrectionAngle
+
+      Double phaseLagMax = 2*M_PI;
+      
+      // restrict angle to angle between X and Y; as Y is not known yet, restrict to previous
+      // output of hyst operator H instead (Y = mu*X + H)
+      phaseLagMax = std::abs(xVal.InnerAngle(prevHVal_[idx]));
+    
+      angleCorrection = evaluateLagCorrectionAngle(xVal, prevXVal_[idx], phaseLagMax);
+    }
+
+    for(UInt i = 0; i < numDirections_; i++){
+      scalContribution.Init();
+      if(improveRotLoss_ == false){
+        scalContribution = singlePreisachOperators_[i]->computeValue_vec(xVal,idx,overwrite,debugOutput,successFlagSingle);
+      } else {
+        Double scalInput;
+        Double scalOutput;
+
+        Double absProd = xVal.NormL2()*singleDirections_[i].NormL2();
+        /*
+         * Important edit 15.10.2020
+         * by the old implementation we get the absolute value of the angle between
+         * the two vectors; as long as we later use just the cos of this angle, it
+         * makes no difference as cos is a symmetric function w.r.t. the angle
+         * however, as we modify the angle by subtracting the lag angle, the sign
+         * will play an important role!
+         * > use new implementation in vector class
+         */      
+        Double baseAngle = 0;
+        baseAngle = singleDirections_[i].InnerAngle(xVal);
+        
+        scalInput = absProd*std::cos(baseAngle - angleCorrection);
+        scalOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalInput,idx, overwrite,successFlagSingle);
+        scalContribution.Add(scalOutput,singleDirections_[i]);        
+      }
+
+      if(dim_ == 3){
+        scalContribution *= sinTheta_[i];
+      }
+
+      output.Add(1.0,scalContribution);
+
+      // just check if at least one of the scalar models required reevaluation
+      if(successFlagSingle != 0){
+        successFlag = successFlagSingle;
+      }
+    }
+
+    //Double deltaAngle = M_PI/numDirections_;
+    // for numerical integration we have to multiply by deltaAngle
+    // and to average out correctly over the halfspace we have to multiply by 2.0/Pi
+    // > in total, multiply by 2/numDir
+		// Question: why do we average out in the first place?
+    //output.ScalarMult(2.0/numDirections_);
+    // actually M_PI/numDirections works better ...
+//		output.ScalarMult(M_PI/numDirections_);
+    if(dim_ == 2){
+      output.ScalarMult(deltaAngle_);
+    } else {
+      // multiply with dTheta dPhi
+      // Note: sin(theta) already considered above
+      output.ScalarMult(deltaAngleTheta_*deltaAnglePhi_);
+    }
 
     /*
      * Remarks to capping/clipping:
@@ -423,95 +449,6 @@ namespace CoupledField
      *      > equaliy to scalar model beyond saturation but difference when leaving saturation again
      *        (as Preisach planes have been set inside the single scalar models)
      */
-
-    successFlag = 0;
-    int successFlagSingle = 0;
-    Vector<Double> scalContribution = Vector<Double>(dim_);
-    
-    // compute correction angle; if it is 0, scalInput is just the dotProduct betwen xVal and the direction
-    // Note that this angle does not depend on the direction of the scalar model, so we just have to evaluate it once
-    Double angleCorrection = 0.0;
-    if(improveRotLoss_ == true){
-      // edit 19.06.2020: angleCorrection restricted to angle between prevXVal_ and xVal! see comments in eval function
-      angleCorrection = evaluateLagCorrectionAngle(xVal, prevXVal_[idx]);
-    }
-    
-//    Vector<Double> testOutput = Vector<Double>(dim_);
-    for(UInt i = 0; i < numDirections_; i++){
-      scalContribution.Init();
-      if(improveRotLoss_ == false){
-        scalContribution = singlePreisachOperators_[i]->computeValue_vec(xVal,idx,overwrite,debugOutput,successFlagSingle);
-      } else {
-        Double scalInput;
-        Double scalOutput;
-        
-        Double dotProd = 0;
-        singleDirections_[i].Inner(xVal,dotProd);
-        Double absProd = xVal.NormL2()*singleDirections_[i].NormL2();
-        
-        Double baseAngle = 0;
-        Double tmp = 0;
-        if(absProd != 0){
-          tmp = dotProd/absProd;
-          if(tmp > 1.0){
-            tmp = 1.0;
-          } else if(tmp < -1.0){
-            tmp = -1.0;
-          }
-          baseAngle = std::acos(tmp);
-        } else {
-          // if one of the vectors is zero (absProd = 0), assume alignment
-          baseAngle = 0;
-        }
-        
-        scalInput = absProd*std::cos(baseAngle - angleCorrection);
-        scalOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalInput,idx, overwrite,successFlagSingle);
-        scalContribution.Add(scalOutput,singleDirections_[i]);
-        
-//        if(idx == 0){
-//          int precisionDigits = 4;
-//          char separatorString = ';';
-//          std::cout << "Direction " << i << " = " << singleDirections_[i].ToString(precisionDigits,separatorString) << std::endl;
-//          std::cout << "Base Angle = " << baseAngle << std::endl;
-//          std::cout << "Correction Angle = " << angleCorrection << std::endl;
-//        }
-        
-      }
-
-      if(dim_ == 3){
-        scalContribution *= sinTheta_[i];
-      }
-
-      output.Add(1.0,scalContribution);
-
-//      // old version
-//        currentDir = singleDirections_[i];
-//        currentDir.Inner(xVal,scalarInput);
-//        scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite,successFlagSingle);
-//        output.Add(scalarOutput,currentDir);
-
-      // just check if at least one of the scalar models required reevaluation
-      if(successFlagSingle != 0){
-        successFlag = successFlagSingle;
-      }
-    }
-
-    //Double deltaAngle = M_PI/numDirections_;
-    // for numerical integration we have to multiply by deltaAngle
-    // and to average out correctly over the halfspace we have to multiply by 2.0/Pi
-    // > in total, multiply by 2/numDir
-		// Question: why do we average out in the first place?
-    //output.ScalarMult(2.0/numDirections_);
-    // actually M_PI/numDirections works better ...
-//		output.ScalarMult(M_PI/numDirections_);
-    if(dim_ == 2){
-      output.ScalarMult(deltaAngle_);
-    } else {
-      // multiply with dTheta dPhi
-      // Note: sin(theta) already considered above
-      output.ScalarMult(deltaAngleTheta_*deltaAnglePhi_);
-    }
-
     Vector<Double> dirInput = Vector<Double>(dim_);
     dirInput.Init();
     if((xVal.NormL2() != 0)){ //&&(clipOutput_ == 2)){
@@ -561,8 +498,8 @@ namespace CoupledField
 
     return output;
   }
-  
-  Double VectorPreisachMayergoyz::evaluateLagCorrectionAngle(Vector<Double>& xVal, Vector<Double>& prevXVal){
+
+  Double VectorPreisachMayergoyz::evaluateLagCorrectionAngle(Vector<Double>& xVal, Vector<Double>& prevXVal, Double maxAngle){   
     /*
      * Compute phase shift/angle that can be considered during the input projection of xVal onto the directions
      * of the scalar models to imporve the rotational loss properties of the vector model.
@@ -576,72 +513,92 @@ namespace CoupledField
      *  in extremely large values; in the original paper, the authors only show the results for x = B where a
      *  typical B does not exceed 1-2T
      * 
-     * Note 2 (19.06.2020):
+     * Note 2 (19.06.2020, 20.10.2020):
      *  after matching 'a' and 'b' to rotloss curves, 'a' became negative; thus, the exponential function does not tend
      *  to 0 for large inputs but instead goes to infinity; as long as we stay in the range around saturation
      *  the normalized values as used above work but once we hit a critical input level, the exponential function will
      *  result in nan and from then on, computations are only non-sense;
      *  in general it seems to be non-sense if the computed correction is larger than the actual angle between the
      *  old and the new direction; the maximum lag should be this angle between old state and new state;
-     *  another remarkable point when 'a' is negative is the following: as the angular lag can exceed pi (by far), the
-     *  'corrected' evaluated projections of the input onto the directions of the single scalar models can be in the
-     *  wrong directions; thus, one could obtain an output that points into the completely wrong directions; this might
-     *  still be appropriate in some cases, e.g., if old and new state are perfectly anti-parallel and this extrem phase
-     *  lag shall remain, but the issue is as follows: when computing the Jacobian in the Newton inversion scheme, the
-     *  even small steppings in the input might cause a flip of sign of the output; therewith the entries of the Jacobian
-     *  are just non-sense; this leads of course to a non-convergence of the Newton scheme
-     * > add limitation to output > may no longer exceed the angle difference between old state and new state
+     *  > this aspect seems to be intended in the cited paper above (cf. Fig 10); the intention between the lag angle is
+     *    to rotate the coordinate systems of the input or output in such a way, that input and output align
+     *  > Consequence 1: all scalar directions have to be rotated by same value
+     *  > Consequence 2: we have to make sure that all projections of the input vector on the single direction vectors
+     *    follows the same turn; in the previous implementation only the absolute value of the angle was retrieved which
+     *    then got modified by the correction/lag angle; in that way ALL angles reduced towards or increased away from
+     *    the input instead of rotating all directions by the same value 
+     *  > Consequence 3: the angle correction should be restricted to the actual angle between input and output; otherwise
+     *    the angle correction could cause the formerly behind-lagging vector to preceed the other
      */
+
     Double absX = xVal.NormL2();
     Double absPrevX = prevXVal.NormL2();
     if(absPrevX <= 1e-16){
       return 0;
     }
    
-    // dPhi is the angle between xVal and prevXVal (not clearly stated in article but phi is the polar angle of xVal
-    // so that dPhi seems to be the difference between the polar angles of xVal and prevXval)
-    Double dotProd = 0;
-    xVal.Inner(prevXVal,dotProd);
-    Double absProd = absX*absPrevX;
+    // 20.10.2020: according to the original source, the lag angle always takes the absolute value of dPhi, i.e.,
+    // the absolute change in input-angle; the question is, if the computed correction angle will work correctly for
+    // clockwise and counterclockwise rotations
+    bool useAbsDPhi = true;
     Double absDPhi = 0;
-    Double tmp = 0;
-    if(absProd != 0){
-      tmp = dotProd/absProd;
-      if(tmp > 1.0){
-        tmp = 1.0;
-      } else if(tmp < -1.0){
-        tmp = -1.0;
-      }
-      absDPhi = std::abs(std::acos(tmp));
-    } else {
-      // if one of the vectors is zero (absProd = 0), assume alignment
-      absDPhi = 0;
-    }
-
+    
+//    // old way of computing the angle dPhi
+//    Double dotProd = 0;
+//    xVal.Inner(prevXVal,dotProd);
+//    Double absProd = absX*absPrevX;
+//    
+//    Double tmp = 0;
+//    if(absProd != 0){
+//      tmp = dotProd/absProd;
+//      if(tmp > 1.0){
+//        tmp = 1.0;
+//      } else if(tmp < -1.0){
+//        tmp = -1.0;
+//      }
+//      absDPhi = (std::acos(tmp));
+//    } else {
+//      // if one of the vectors is zero (absProd = 0), assume alignment
+//      absDPhi = 0;
+//    }
+//
+//    std::cout << "-- absDPhi (old comp, in deg): " << absDPhi*180.0/M_PI << std::endl; 
+   
+    absDPhi = xVal.InnerAngle(prevXVal);
+        
+    if(useAbsDPhi){
+//      std::cout << "Take absolute value of dPhi" << std::endl;
+      absDPhi = std::abs(absDPhi);
+    } 
+//    else {
+//      std::cout << "Take dPhi directly, not its absolute value" << std::endl;
+//    }
+    
     Double absXNormalized = absX/XSaturated_;
     Double gX = std::exp(-lossParam_a_*absXNormalized + lossParam_b_);
     // regarding note from 19.06.2020 above: limit angular correction (=maximal angular lag) to absDPhi
     Double psi = 0;
-    
+
     // note: 20.6.2020 - be restricting the angluar lag to absDPhi we are again able to invert the mayergoyz
     // model appropriately as the jacobian no longer jumps; however, this restriction also leads to a non-sufficient
     // reduction of rotational losses
-    int mode = 3;
-//    std::cout << "Mode = "<<mode<<"; rotA = "<<lossParam_a_<<"; rotB = "<<lossParam_b_<<std::endl;
+    int mode = 4;
     // 0: unrestricted; matching works but inversion fails
     // 1: restricted to absDPhi; inversion works but matching fails; rotloss is not reduced to 0
     // 2: restricted to absDPhi; negative value returned; same issue as 1
     // 3: restricted to 0,2pi; maybe this works > yes it does! it leads to the same rotational losses as mode 0 but
-    //    keeps the model invertible with newton, as the jacobian no longer jumps
+    //    keeps the model invertible with newton, as the jacobian no longer jumps;
+    //    > matching to actual loss curves fails however
+    // 4: restricted to angle between current input and previous output; best results so far
     // CONCLUSION: 
     //  - angular lag must be allowed to become larger than absXNormalized
     //  - angular lag must be allowed to become larger than 180 degree, i.e., it some of the scalar models
     //      must be allowed to flip their direction!
-    //  - ONLY MODE 3 WORKING PROPERLY AT THE MOMEMENT!
+    //  - ONLY MODE 4 WORKING PROPERLY AT THE MOMEMENT!
     // Further note: if the starting value for Newton inversion is good enough, the problem with the exploding
     //  Jacobian does not appear for mode 0 either! Nevertheless, it is a risk to use mode 0.
-    if(mode != 3){
-      WARN("Lag correction for extended Mayergoyz model with mode "<<mode<<" requested. However, only mode 3 is working properly (at the moment).")
+    if(mode != 4){
+      WARN("Lag correction for extended Mayergoyz model with mode "<<mode<<" requested. However, only mode 4 is working properly (at the moment).")
     }
     
     Double scaling = gX*absXNormalized;
@@ -659,12 +616,17 @@ namespace CoupledField
       psi = -scaling*absDPhi;
     } else if(mode == 3){
       psi = scaling*absDPhi;
+      
       if(psi > 2*M_PI){
         psi = 2*M_PI;
-//        std::cout << "Psi restricted to 2pi"<<std::endl;
+      }
+    } else if(mode == 4){
+      psi = scaling*absDPhi;
+      
+      if(psi > maxAngle){
+        psi = maxAngle;
       }
     }
-//    std::cout << "Psi = "<<psi<<std::endl;
     return psi;
   }
 }

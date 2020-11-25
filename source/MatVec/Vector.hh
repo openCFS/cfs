@@ -319,6 +319,8 @@ template<typename T> class ElemStoreSol;
 
     T Inner() const;
 
+    Double InnerAngle(const Vector<T>& other) const;
+    
     Vector<T> Conj() const;
 
     //! Override SingleVector functions

@@ -336,11 +336,10 @@ ENDIF()
 # Find Library of Iterative Solvers
 #-------------------------------------------------------------------------------
 IF(USE_LIS)
-  SET(LIS_URL "${CFS_DS_SOURCES_DIR}/lis")
   SET(LIS_BASE "lis")
-  SET(LIS_VER "1.7.28")
-  SET(LIS_GZ "${LIS_BASE}-${LIS_VER}.tar.gz")
-  SET(LIS_MD5 "59fbaea19fbf443d9a991ebacd7e58cd")
+  SET(LIS_VER "2.0.24")
+  SET(LIS_ZIP "${LIS_BASE}-${LIS_VER}.zip")
+  SET(LIS_MD5 "1c7a84d3204dcefb3af2627eba58e97f")
   
   INCLUDE("${CFSDEPS_DIR}/lis/External_LIS.cmake")
 ENDIF(USE_LIS)

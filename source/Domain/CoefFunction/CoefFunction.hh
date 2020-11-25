@@ -656,7 +656,7 @@ public:
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
-  virtual void TestInversion(PtrParamNode testNode){
+  virtual void TestInversion(PtrParamNode testNode, PtrParamNode infoNode){
     EXCEPTION( "Not implemented in base class");
   }
   virtual void SetFlag(std::string flagName, Integer intState){

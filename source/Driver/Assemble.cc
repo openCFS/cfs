@@ -1607,7 +1607,7 @@ namespace CoupledField
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         } else {
-          // That should be STATIC, TRANSIENT, EIGENFREQUENCY or BUCKLING
+          // That should be STATIC, TRANSIENT, EIGENFREQUENCY, EIGENVALUE or BUCKLING
           Vector<Double> elemVec;
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -2041,6 +2041,16 @@ namespace CoupledField
       matrixMap_[GEOMETRIC_STIFFNESS] = GEOMETRIC_STIFFNESS;
       break;
 
+    case BasePDE::EIGENVALUE:
+        matrixMap_[SYSTEM]    = NOTYPE;
+        matrixMap_[STIFFNESS] = STIFFNESS;
+        matrixMap_[DAMPING]   = DAMPING;
+        matrixMap_[MASS]      = MASS;
+        matrixMap_[AUXILIARY] = NOTYPE;
+        matrixMap_[STIFFNESS_UPDATE] = STIFFNESS;
+        matrixMap_[DAMPING_UPDATE]   = DAMPING;
+        matrixMap_[MASS_UPDATE]      = MASS;
+      break;
     default:
       EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_)
                 << "' not known!");
@@ -2114,7 +2124,7 @@ namespace CoupledField
 
     bool isComplex = false;
     if (actCt->GetIntegrator()->IsComplex() ||
-        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
+        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE||analysisType_ == BasePDE::EIGENVALUE) {
       isComplex = true;
     }
     return isComplex;
@@ -2149,8 +2159,8 @@ namespace CoupledField
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::BUCKLING) {
-      if ( (analysisType_ == BasePDE::EIGENFREQUENCY) && (algsys_->IsMatrixComplex()) ) {
+    if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::BUCKLING || analysisType_ == BasePDE::EIGENVALUE) {
+      if ( (analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::EIGENVALUE) && (algsys_->IsMatrixComplex()) ) {
         // we have an eigenvalue problem with complex system matrices (e.g. mechanics with complex stiffness tensor)
         Matrix2Harmonic( harmMat, elemMat, STIFFNESS, context.GetEntryType(), 1.0 ); // elemMat -> harmMat with omega=1 and STIFFNESS will convert REAL->COMPLEX
         algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
@@ -2204,7 +2214,7 @@ namespace CoupledField
     assert(mappedDest != NOTYPE);
     // bloch mode analysis is complex
     assert(analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::HARMONIC
-        || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY);
+        || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::EIGENVALUE);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 

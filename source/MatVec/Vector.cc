@@ -248,6 +248,57 @@ namespace CoupledField {
   }
   */
 
+  // ***********************************
+  //   Inner angle between two vectors
+  // ***********************************
+  template<typename T>
+  Double Vector<T>::InnerAngle(const Vector<T>& other) const
+  {
+    EXCEPTION("Inner angle only for Vector<Double>.")
+  }
+  
+  template<>
+  Double Vector<Double>::InnerAngle(const Vector<Double>& other) const
+  {
+    /*
+     * Simple helper function computing the angle between two vectors
+     * 
+     * > no optimization, 2d and 3d only, basically following:
+     * https://stackoverflow.com/questions/14066933/direct-way-of-computing-clockwise-angle-between-2-vectors
+     *
+     * Returned angle in radians
+     */
+    assert(size_ == other.GetSize());
+    assert(size_ >= 2);
+    assert(size_ <= 3);
+    
+    Double len1Sq = this->NormL2_squared();
+    Double len2Sq = other.NormL2_squared();
+    
+    Double angleRad = 0.0;
+    if((len1Sq == 0) || (len2Sq == 0)){
+      return angleRad;
+    }
+    
+    Double innerProduct = 0.0;
+    this->Inner(other,innerProduct);
+    
+    if(size_ == 2){
+      Double crossProduct2d = data_[0]*other[1] - data_[1]*other[0];
+      angleRad = std::atan2(crossProduct2d,innerProduct);
+    } else {
+      // floating point precision might cause argument to exceed bounds of allowed input for acos
+      // furthermore, formula was wrong; had + instead of *
+      Double argument = innerProduct/std::sqrt(len1Sq * len2Sq);
+      if(argument>1.0){ argument = 1.0;}
+      if(argument< -1.0){ argument = -1.0;}
+      angleRad = std::acos(argument);
+    }
+
+    return angleRad;
+  }
+
+  
   // **********************************
   //   Set all vector entries to zero
   // **********************************

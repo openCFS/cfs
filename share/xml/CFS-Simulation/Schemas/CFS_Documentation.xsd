@@ -127,6 +127,7 @@
       <xsd:enumeration value="harmonic"/>
       <xsd:enumeration value="eigenFrequency"/>
       <xsd:enumeration value="buckling"/>
+      <xsd:enumeration value="eigenValue"/>
       <xsd:enumeration value="multiSequence"/>
       <xsd:enumeration value="restart"/>
       <xsd:enumeration value="cfsdat"/>

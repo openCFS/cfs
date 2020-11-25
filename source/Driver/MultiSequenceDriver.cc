@@ -3,6 +3,7 @@
 #include <set>
 
 // include all kinds of single drivers
+#include "EigenValueDriver.hh"
 #include "StaticDriver.hh"
 #include "TransientDriver.hh"
 #include "HarmonicDriver.hh"
@@ -240,6 +241,9 @@ DEFINE_LOG(msDriver, "msDriver")
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::BUCKLING ) {
         actDriver_ = new BucklingDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+      }
+      else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENVALUE ) {
+        actDriver_ = new EigenValueDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::MULTIHARMONIC ) {
         actDriver_ = new MultiHarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );

@@ -100,7 +100,7 @@ namespace CoupledField {
     //! \param N number of requested eigenvalues
     //! \param shiftPoint shiftpoint
     void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint);
-
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint);
     
     //! Calculate a particular eigenmode as a postprocessing solution
 

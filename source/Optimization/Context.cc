@@ -6,6 +6,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "Driver/BucklingDriver.hh"
+#include "Driver/EigenValueDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/MultiSequenceDriver.hh"
 #include "Driver/Assemble.hh"
@@ -91,6 +92,11 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
       num_eigenmodes = 20;
     break;
 
+  case BasePDE::EIGENVALUE:
+    complex_ = true;
+    eigenvalue_ = true;
+    break;
+
   case BasePDE::STATIC:
     // FIXME num_static_loads not that easy to determine w/o pde. allows 0 (explixit excitations or homogenization) or more
     break;
@@ -167,6 +173,11 @@ EigenFrequencyDriver* Context::GetEigenFrequencyDriver()
 BucklingDriver* Context::GetBucklingDriver()
 {
   return dynamic_cast<BucklingDriver*>(driver);
+}
+
+EigenValueDriver* Context::GetEigenValueDriver()
+{
+  return dynamic_cast<EigenValueDriver*>(driver);
 }
 
 HarmonicDriver* Context::GetHarmonicDriver()

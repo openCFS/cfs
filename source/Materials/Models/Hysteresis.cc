@@ -2367,27 +2367,43 @@ namespace CoupledField
 
       // should also work for H-version with globalFPFactor_C = 1 but apparently it does not > maybe slope estimate is wrong?!
       muFP = INV_params_.safetyFactor_C*0.5*(slope1 + slope2);
-
+//      std::cout << "slope1: " << slope1 << std::endl;
+//      std::cout << "slope2: " << slope2 << std::endl;
       Vector<Double> hystVal = Vector<Double>(dim_);
+//      std::stringstream convergenceStream;
+//      convergenceStream << "Start FP inversion" << std::endl;
       for(UInt i = 0; i < maxIter; i++){
         totalNumberOfLMIterations++; // for statistics
         hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
         mu.Mult(xVal,deltaY);
         deltaY.Add(1.0,hystVal);
         deltaY.Add(-1.0,yVal);
-
+//        convergenceStream << "Iteration/maxNumIterations = " << i << "/" << maxIter << std::endl;
+//        convergenceStream << "deltaY: " << deltaY.ToString(8,',') << std::endl;
+//        convergenceStream << "deltaY NormL2: " << deltaY.NormL2() << std::endl;
+        // test 27.10.2020 > should we add this before returing xVal or afterwards
+        xVal.Add(-1.0/muFP,deltaY);
+//        convergenceStream << "xVal: " << xVal.ToString(8,',') << std::endl;
+//        convergenceStream << "hystVal: " << hystVal.ToString(8,',') << std::endl;
+//        convergenceStream << "yVal: " << yVal.ToString(8,',') << std::endl;
         if(deltaY.NormL2()/abs(mu.GetMax()) < tolH){
           successFlag = 7;
           return xVal;
         }
-        xVal.Add(-1.0/muFP,deltaY);
       }
 
       if(deltaY.NormL2() < tolB){
         // Failback with tolB criterion
         successFlag = 8;
         return xVal;
-      }
+      } 
+//      else {
+//        std::cout << "FP inversion did not succeed! here is the log:" << std::endl;
+//        std::cout << convergenceStream.str() << std::endl;
+//        std::cout << "slope1: " << slope1 << std::endl;
+//        std::cout << "slope2: " << slope2 << std::endl;
+//        std::cout << "muFP: " << muFP << std::endl;
+//      }
 
       if(warnAtNonConvergence_){
         std::stringstream warnmsg;

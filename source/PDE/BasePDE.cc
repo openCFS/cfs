@@ -52,6 +52,7 @@ namespace CoupledField {
     analysisType.Add(INVERSESOURCE, "inverseSource");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
     analysisType.Add(BUCKLING, "buckling");
+    analysisType.Add(EIGENVALUE, "eigenValue");
 
 
     MechPDE::testStrain.SetName("MechPDE::TestStrain");

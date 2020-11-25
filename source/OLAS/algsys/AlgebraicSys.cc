@@ -999,11 +999,9 @@ namespace CoupledField {
 
     LOG_DBG(algSys) << "GEM #" << numMode;
     Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
-    if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
-      eigenSolver_->GetComplexEigenMode(numMode, solHelp);
-    } else {
-      eigenSolver_->GetNormalizedEigenMode(numMode, solHelp);
-    }
+
+    eigenSolver_->GetNormalizedEigenMode(numMode, solHelp);
+
     LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }
 

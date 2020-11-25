@@ -887,7 +887,7 @@
           <xsd:attribute name="iterationsTillReset" type="xsd:nonNegativeInteger" default="0"/>
         </xsd:complexType>
       </xsd:element>
-
+            
       <xsd:element name="performTests" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -1033,6 +1033,8 @@
         <xsd:element name="PrintStatistics" type="DT_CFSBool" default="yes"/>
         <xsd:element name="WriteInputToFile" type="DT_CFSBool" default="no"/>
         <xsd:element name="WriteResultsToFile" type="DT_CFSBool" default="no"/>
+        <xsd:element name="writeResultsToInfoXML" type="DT_CFSBool" minOccurs="0" default="no"/>
+        <xsd:element name="DirectoryForTestoutput" type="xsd:token" minOccurs="0" default="history_hystOperator"/>
         <xsd:element name="OutputIrrStrains" type="DT_CFSBool" default="no"/>
         <xsd:element name="MeasurePerformance">
           <xsd:complexType>
