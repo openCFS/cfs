@@ -61,7 +61,7 @@ class EigenValueDriver: public virtual SingleDriver {
     // TODO implement optimization (StoreResults() is currently functionless)
     /** @see BaseDriver::StoreResults()
      * stepNum and step_val are ignored!! */
-    void StoreResults(UInt stepNum, double step_val);
+    unsigned int StoreResults(UInt stepNum, double step_val);
 
     // return proportionality factor (currently unused)
     double GetPropFactor(unsigned int idx) const;
