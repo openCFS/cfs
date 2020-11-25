@@ -147,7 +147,7 @@ namespace CoupledField {
     valueShift_ = (Complex) valueShift;
 
     // set default value for Arnoldi vectors
-    numArnoldiVec_ = std::max(int(numEV_ + 1), int(numEV_ * arnoldiFactor_));
+    numArnoldiVec_ = std::max(int(numEV_ + 2), int(numEV_ * arnoldiFactor_));
 
     // check, if number of Arnoldi vectors is larger than size of system
     if( numArnoldiVec_ > size_) {
@@ -448,7 +448,7 @@ namespace CoupledField {
     }
 
     // set default value for Arnoldi vectors
-    numArnoldiVec_ = numEV_*2;
+    numArnoldiVec_ = std::max(int(numEV_ + 2), int(numEV_ * arnoldiFactor_));
 
     // check, if number of arnoldi vectors is larger than size of system
     if( numArnoldiVec_ > size_ ) {
@@ -868,7 +868,7 @@ namespace CoupledField {
         break;
 
       case -3: 
-        msg = "NCV must be greater than NEV and less than or equal to N";
+        msg = "NCV-NEV >= 2 and less than or equal to N";
         break;
       
       case -4: 
