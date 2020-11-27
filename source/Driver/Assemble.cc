@@ -1629,7 +1629,7 @@ namespace CoupledField
             }
             
             LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
-            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString(2);
 
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);

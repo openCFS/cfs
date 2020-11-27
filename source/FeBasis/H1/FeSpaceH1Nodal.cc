@@ -609,9 +609,9 @@ namespace CoupledField{
     ConstraintList::const_iterator actConstr;
     for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
       StdVector<UInt> slaveNodes;
-      GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
       UInt masterDof = (*actConstr)->masterDof;
       UInt slaveDof = (*actConstr)->slaveDof;
+      GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
       UInt mNode = slaveNodes[0];
 
       for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {

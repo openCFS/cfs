@@ -303,8 +303,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   // reorder design
-  StdVector<double> x;
-  x.Import(x_snopt, n);
+  Vector<double> x(n, x_snopt, false);
 
   LOG_DBG(snopt)  << "CB: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x.GetPointer(), n) << " x_std_dev = " << StandardDeviation(x.GetPointer(), n);
   LOG_DBG3(snopt) << "CB: x_org=" << StdVector<double>::ToString(n, x_snopt);

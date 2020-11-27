@@ -8,6 +8,7 @@
 #include "Driver/BaseDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "MatVec/SparseOLASMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "OLAS/precond/generateprecond.hh"
 #include "OLAS/precond/BasePrecond.hh"
@@ -46,6 +47,8 @@ namespace CoupledField {
 
     isGeneralized_ = false;
     computeMode_ = ArpackMatInterface::ComputeMode::REGULAR;
+
+    scale_B_ = xml_->Has("scale_B") ? xml_->Get("scale_B")->As<bool>() : false;
 
     BaseEigenSolver::PostInit();
   }
@@ -134,10 +137,42 @@ namespace CoupledField {
     // NOTE: Hard coded!!!
     computeMode_ = ArpackMatInterface::ComputeMode::SHIFT_INVERT;
 
+    if(scale_B_)
+    {
+      // we scale the B-Matrix as suggested by Jonas:
+      // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
+      if(B.GetEntryType() == BaseMatrix::COMPLEX)
+      {
+        const SparseOLASMatrix<Complex>* olas = dynamic_cast<const SparseOLASMatrix<Complex>* >(&B);
+        assert(olas != NULL);
+        Complex b11 = olas->GetAvgDiag();
+        assert(b11.real() > 1e-15);
+        scale_B_val_ = scale_B_ ? (1./b11).real() : 1.0;
+      }
+      else
+      {
+        const SparseOLASMatrix<Double>* olas = dynamic_cast<const SparseOLASMatrix<Double>* >(&B);
+        assert(olas != NULL);
+        Double b11 = olas->GetAvgDiag();
+        assert(b11 > 1e-15);
+        scale_B_val_ = scale_B_ ? 1./b11 : 1.0;
+      }
+    }
+
+    LOG_DBG(aes) << "AES:S B-scale=" << scale_B_val_;
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(A);
-    matrixB_ = & dynamic_cast<const StdMatrix&>(B);
+    if(scale_B_)
+    {
+      StdMatrix* Temp = CopyStdMatrixObject(dynamic_cast<const StdMatrix&>(B));
+      Temp->Scale(scale_B_val_);
+      matrixB_ = Temp;
+      Temp = NULL;
+    }
+    else
+      matrixB_ = & dynamic_cast<const StdMatrix&>(B);
+
 
     UInt size = matrixA_->GetNumRows();
 
@@ -265,13 +300,43 @@ namespace CoupledField {
 
     this->SetProblemType(stiffMat);
 
-    // Copy matrix references and determine size of system
-    matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
+    if(scale_B_)
+    {
+      // we scale the B-Matrix as suggested by Jonas:
+      // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
+      if(massMat.GetEntryType() == BaseMatrix::COMPLEX)
+      {
+        const SparseOLASMatrix<Complex>* olas = dynamic_cast<const SparseOLASMatrix<Complex>* >(&massMat);
+        assert(olas != NULL);
+        Complex b11 = olas->GetAvgDiag();
+        assert(b11.real() > 1e-15);
+        scale_B_val_ = scale_B_ ? (1./b11).real() : 1.0;
+      }
+      else
+      {
+        const SparseOLASMatrix<Double>* olas = dynamic_cast<const SparseOLASMatrix<Double>* >(&massMat);
+        assert(olas != NULL);
+        Double b11 = olas->GetAvgDiag();
+        assert(b11 > 1e-15);
+        scale_B_val_ = scale_B_ ? 1./b11 : 1.0;
+      }
+    }
+
+    LOG_DBG(aes) << "Setup: B-scale=" << scale_B_val_;
 
     // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
     // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>
 
-    matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
+    // Copy matrix references and determine size of system
+    matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
+    if(scale_B_)
+    {
+      StdMatrix* Temp = CopyStdMatrixObject(dynamic_cast<const StdMatrix&>(massMat));
+      Temp->Scale(scale_B_val_);
+      matrixB_ = Temp;
+    }
+    else
+      matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
 
     UInt size = matrixA_->GetNumRows();
 
@@ -621,23 +686,9 @@ namespace CoupledField {
   {
     solveTimer_->Start();
 
-    assert(!(isBloch_ && isQuadratic_));
-
     unsigned int numEVs = 0;
-    //case0: generalized problem with complex matrices
-    if(!isQuadratic_ && this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX )
-    {
-        interface_->Setup( solver_, precond_, shiftPoint);
-        numEVs = arpackSolver_->FindEigenvalues<Complex>(N, Complex(shiftPoint,0.0));
-        SetupIndex(numEVs);
-        Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
-        solConverted.Resize( numEVs );
-        for (UInt i = 0; i < numEVs; i++ ) {
-          solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
-        }
-    }
-    // case1: generalized real problem
-    else if(!isQuadratic_ && !isBloch_)
+    // generalized real problem
+    if( !(isQuadratic_ || isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX) )
     {
       // Setup matrixinterface
       interface_->Setup( solver_, precond_, shiftPoint );
@@ -653,105 +704,52 @@ namespace CoupledField {
         solConverted[i] = arpackSolver_->Eigenvalue(idx_[i]);
         LOG_DBG(aes) << "CEV: i=" << i << " ev=" << solConverted[i];
       }
-    }
-    // case2: quadratic complex problem
-    // case3: bloch modes are generalized complex problems
-    else
-    {
-      if(isQuadratic_) {
-          interface_->QuadSetup( solver_, precond_, shiftPoint );
-          numEVs = arpackSolver_->FindQuadEigenvalues(N, shiftPoint);
 
-      } else {
-        interface_->Setup( solver_, precond_, shiftPoint);
-        numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
-      }
+      PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+      in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
+      in->Get("rci/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
+      in->Get("rci/solve_B_x")->SetValue(arpackSolver_->counter_solve_OP_B_x);
+      in->Get("rci/matvec_B_x")->SetValue(arpackSolver_->counter_B_x);
+      in->Get("rci/total")->SetValue(arpackSolver_->counter_calll_aupd);
 
-      SetupIndex(numEVs);
-
-      Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
-      solConverted.Resize( numEVs );
+      // Save error norms
+      Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
+      errVec.Resize( numEVs );
       for (UInt i = 0; i < numEVs; i++ ) {
-        solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
+          errVec[i] = arpackSolver_->Tolerance(idx_[i]);
       }
 
+      solveTimer_->Stop();
     }
-
-    PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
-    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
-    in->Get("rci/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
-    in->Get("rci/solve_B_x")->SetValue(arpackSolver_->counter_solve_OP_B_x);
-    in->Get("rci/matvec_B_x")->SetValue(arpackSolver_->counter_B_x);
-    in->Get("rci/total")->SetValue(arpackSolver_->counter_calll_aupd);
-
-    // Save error norms
-    Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
-    errVec.Resize( numEVs );
-    for (UInt i = 0; i < numEVs; i++ ) {
-        errVec[i] = arpackSolver_->Tolerance(idx_[i]);
-    }
-
-    solveTimer_->Stop();
+    else
+      CalcEigenValues(sol, err, N, Complex(shiftPoint, 0.0));
   }
 
   void ArpackEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint)
   {
-	solveTimer_->Start();
+    solveTimer_->Start();
 
     assert(!(isBloch_ && isQuadratic_));
+    assert(isQuadratic_ || isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX);
 
     unsigned int numEVs = 0;
-    //case0: generalized complex problem
-    if(!isQuadratic_ && this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX)
-    {
-        interface_->Setup( solver_, precond_, shiftPoint);
-        numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
-        SetupIndex(numEVs);
-        Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
-        solConverted.Resize( numEVs );
-        for (UInt i = 0; i < numEVs; i++ ) {
-          solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
-        }
-    }
-    // case1: generalized real problem
-    else if(!isQuadratic_ && !isBloch_)
-    {
-      // Setup matrixinterface
-      interface_->Setup( solver_, precond_, shiftPoint );
-
-      // Find the eigenvalues and calculate the eigenvectors
+    // complex problem or
+    // quadratic complex problem or
+    // bloch modes (generalized complex problem)
+    if(isQuadratic_) {
+      interface_->QuadSetup<Complex>( solver_, precond_, shiftPoint);
+      numEVs = arpackSolver_->FindQuadEigenvalues<Complex>(N, shiftPoint);
+    } else {
+      interface_->Setup<Complex>( solver_, precond_, shiftPoint);
       numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
-
-      SetupIndex(numEVs);
-      Vector<Double> & solConverted = dynamic_cast<Vector<Double>&>(sol);
-      solConverted.Resize( numEVs );
-      for (UInt i = 0; i < numEVs; i++ )
-      {
-        solConverted[i] = arpackSolver_->Eigenvalue(idx_[i]);
-        LOG_DBG(aes) << "CEV: i=" << i << " ev=" << solConverted[i];
-      }
     }
-    // case2: quadratic complex problem
-    // case3: bloch modes are generalized complex problems
-    else
-    {
-      if(isQuadratic_) {
-          interface_->QuadSetup( solver_, precond_, shiftPoint );
-          numEVs = arpackSolver_->FindQuadEigenvalues(N, shiftPoint);
 
-      } else {
-        interface_->Setup( solver_, precond_, shiftPoint);
-        numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
-      }
+    SetupIndex(numEVs);
 
-      SetupIndex(numEVs);
-
-      Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
-      solConverted.Resize( numEVs );
-      for (UInt i = 0; i < numEVs; i++ ) {
-        solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
-      }
-
+    Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
+    solConverted.Resize( numEVs );
+    for (UInt i = 0; i < numEVs; i++ ) {
+      solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
     }
 
     PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
@@ -847,14 +845,18 @@ namespace CoupledField {
     mode.Resize( size );
     mode.Init();
 
+    // we rescale x by sqrt(scale_B_val_) as we have x^T (scale*B) x = 1
+    double rescale = std::sqrt(scale_B_val_);
+
     if(this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX || isQuadratic_)
     {
     	this->GetComplexEigenMode(modeNr, mode);
+    	mode.ScalarMult(rescale);
     }
     else
     {
-    	for(UInt i = 0; i < size; i++)
-    		mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i],0);
+      for(UInt i = 0; i < size; i++)
+        mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i]*rescale,0);
     }
 
     // BLOCH better? mode.Fill(arpackSolver_->GetEigenvector(modeNr), matrixA_->GetNumRows());

@@ -488,7 +488,7 @@ namespace CoupledField {
     //! map, which knows about the material data defined by strings
     StringMap stringParams_;
 
-    //! map, which knows about the material data defined by strings
+    //! map, which knows about the material data defined by integers
     IntegerMap integerParams_;
 
     //! map storing the isotropic nonlinear material parameters

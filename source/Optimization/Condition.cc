@@ -680,9 +680,15 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
 }
 
 
-bool Condition::IsFeasible() const
+double Condition::CalcFeasibility() const
 {
   double diff = GetValue() - boundValue_; // handles also local constraints!
+  return diff;
+}
+
+bool Condition::IsFeasible() const
+{
+  double diff = CalcFeasibility();
 
   switch(bound_)
   {
@@ -1321,7 +1327,6 @@ void ConditionContainer::ToInfo(PtrParamNode in)
 }
 
 
-
 Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception)
 {
   assert(design != DesignElement::NO_TYPE);
@@ -1397,6 +1402,16 @@ bool ConditionContainer::HasUniqueBounds(const StdVector<Condition*>& list)
 bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
   const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false, g->GetAccess());
   return list.GetSize() > 1 && HasUniqueBounds(list);
+}
+
+
+bool ConditionContainer::IsAllStateDependent() const
+{
+  for(auto c : active)
+    if(c->IsStateDependent())
+      return true;
+
+  return false;
 }
 
 

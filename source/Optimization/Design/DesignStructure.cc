@@ -231,7 +231,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
   // we modify ref, therefore we need firstprivate
-  #pragma omp parallel firstprivate(ref)
+  #pragma omp parallel firstprivate(ref) num_threads(CFS_NUM_THREADS)
   {
     // don't do it in for-loop, thread local vector
     StdVector<Filter::NeighbourElement> neighbors;
@@ -259,7 +259,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       // recursively via element neighbors.
       neighbors.Resize(0); // keeps capacity
 
-      LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
+      // LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
       if(regular)
         FindRegularNeighborhood(de, radius, edges, neighbors);
       else

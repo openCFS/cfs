@@ -233,8 +233,6 @@ AddIntegrator( BaseBDBInt* form,
     EXCEPTION( "Multiply defined region");
   }
 
-  
-  
   // check for compatibility of dimension
   PtrCoefFct coef = form->GetCoef();
   if( coef->GetDimType() == CoefFunction::TENSOR ) {

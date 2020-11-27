@@ -417,12 +417,18 @@ void ErsatzMaterial::StoreResults(double step_val)
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& ex = me->excitations[e];
-      Context& ctxt = manager.GetContext(&ex);
-      // in case of eigenvalues we have for each excitation many modes but write only the first one here
-      // in that case we need mode number 0 instead of the default -1
-      int mode = ctxt.IsEigenvalue() ? 0 : -1;
-      forward.Get(ex, NULL, mode)->Write(ctxt.pde); // forward is function NULL
-      // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
+
+      // switch context and excitation
+      // context switch is necessary for Optimization::StoreResults to use the correct Driver->StoreResults
+      // excitation switch is necessary for eigenvalues, where we write the mode of the current excitation to the pde
+      ex.Apply(true);
+
+      // In case of eigenvalues we have for each excitation many modes and the correct one will be
+      // written to the pde in EigenFrequencyDriver::StoreResults or BucklingDriver::StoreResults.
+      // Else we use the default -1.
+      int mode = context->IsEigenvalue() ? 0 : -1;
+      forward.Get(ex, NULL, mode)->Write(context->pde); // forward is function NULL
+      // call real implementation in Optimization. stepvals are fractions of 0.5 and range from 0 to 0.5
       Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e);
     }
   }
@@ -442,9 +448,10 @@ void ErsatzMaterial::StoreResults(double step_val)
     {
       for(unsigned int e = 0; me->excitations.GetSize(); e++)
       {
-        assert(me->excitations[e].sequence == context->sequence); // will fail for multiple sequence!
-        adjoint.Get(me->excitations[e], funcs[fi])->Write(context->pde);
-        // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
+        Excitation& ex = me->excitations[e];
+        Context& ctxt = manager.GetContext(&ex);
+        adjoint.Get(me->excitations[e], funcs[fi])->Write(ctxt.pde);
+        // call real implementation in Optimization. stepvals are fractions of 0.5 and range from 0.5 to 1
         double index = (me->excitations.GetSize() * funcs.GetSize()) * (fi * funcs.GetSize()) * e;
         Optimization::StoreResults(real_step + 0.5 + (0.5 / index));
       }
@@ -513,6 +520,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         in->Get("norm_L2")->SetValue(ht.NormL2());
         in->Get("trace")->SetValue(ht.Trace());
+        StdVector<Function*> funcs = GetFunctions(false);
+        DesignMaterial::Notation notation = DesignMaterial::NO_TYPE;
+        for(unsigned int fi = 0; fi < funcs.GetSize(); ++fi)
+          if(funcs[fi]->GetType() == Function::HOM_TENSOR)
+            notation = funcs[fi]->GetNotation();
+        in->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation));
 
         //FIXME Only for linear elasticity
         if (ctxt->ToApp() == App::MECH)
@@ -859,7 +872,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       // de is the potentially transformed stuff. Note, that we also store the stuff for the transformed element!
       // the general idea about gradients of transformation is the following
       // - in the forward problem the state is calculated for the transformed (rotated) element
-      // - for the gradient the state is already transformed, we no need ONLY to transform the element index for
+      // - for the gradient the state is already transformed, we do need ONLY to transform the element index for
       //   - dK/drho
       //   - storing the gradient
       //   - do NOT use the element state for the transformed element -> this has already been done for the forward problem!
@@ -914,7 +927,8 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       sum += this_value;
 
-      if(res_idx != -1) de->specialResult[res_idx] = this_value;
+      if(res_idx != -1)
+        de->specialResult[res_idx] = this_value;
     }
   }
   if(calc_u1ku2_timer_)
@@ -1031,10 +1045,16 @@ void ErsatzMaterial::AddGeometricStiffnessToStiffness(Context* ctxt, const Trans
   assert(derivative == true);
 
   Double factor = 1.0;
-  Double tv =  tf->Transform(de, DesignElement::SMART, bimaterial);
-  Double dv =  tf->Derivative(de, DesignElement::SMART, bimaterial);
-  // we already applied the transfer function in calculation of the stresses = dMat
-  factor *= derivative ? dv/tv : 1.0;
+
+  // ParamMat (i.e. design material) modifies the tensor directly and the derivative is 1.0
+  if(Optimization::context->dm == NULL)
+  {
+    Double tv = tf->Transform(de, DesignElement::SMART, bimaterial);
+    Double dv = tf->Derivative(de, DesignElement::SMART, bimaterial);
+    // we applied the transfer function (tv*D) in calculation of the stresses = dMat
+    // -> derivative = dv*D' -> factor = dv/tv
+    factor *= derivative ? dv/tv : 1.0;
+  }
 
   if (!context->GetBucklingDriver()->IsInverseProblem())
     factor *= -ev;
@@ -1219,7 +1239,8 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
       return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
     else
     {
-      std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
+      std::cout << "Homogenized Tensor (" << DesignMaterial::notation.ToString(f->GetNotation())
+          << "): " << std::endl << hom_tensor.ToString(0, true);
 
       if (f->ctxt->ToApp() == App::MECH)
       {
@@ -1721,6 +1742,9 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   // TODO: App::MECH is stupid when we do App::LBM
   TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), App::MECH) : NULL;
   bool regular = design->IsRegular();
+  // FIXME: Careful: This is not always the number of elements in the grid!
+  // e.g. for FMO it is number of design tensor entries times the number of elements in the grid
+  // i.e. in 2D numEls = 6 * nelemGrid
   unsigned int numEls = f->elements.GetSize();
   unsigned int base;
   if(design->HasMultiMaterial())
@@ -1742,7 +1766,7 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
         total_vol += f->elements[i]->CalcVolume();
     }
     else
-    total_vol = numEls;
+      total_vol = numEls;
   }
   // in the multimaterial case we have to consider, the multiple design element case
   if(design->HasMultiMaterial())
@@ -1789,7 +1813,7 @@ double ErsatzMaterial::CalcDesignTracking(Condition* g, bool derivative)
       double val = (rho - target) * (rho - target);
       result += val;
       if (res_idx > 0)
-      de->specialResult[res_idx] = val;
+        de->specialResult[res_idx] = val;
     }
   }
 
@@ -1858,7 +1882,6 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
   else // now comes not derivative
   {
     UInt timesteps = func->ctxt->GetDriver()->GetNumSteps();
-    result = 0.0;
     for(unsigned int ts = 0; ts < timesteps; ++ts)
     {
       // this formulation works for transient as well as static cases, integral over time
@@ -2343,7 +2366,6 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
   } // end derivative
 
   // for the reformulated buckling problem the load factor is 1/eigenvalue
-  // and its derivative is -1/eigenvalue^2 * deigenvalue
   if(f->ctxt->DoBuckling() && f->ctxt->GetBucklingDriver()->IsInverseProblem())
     freq = 1.0/freq;
 
@@ -2406,12 +2428,14 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
   // and the matrix is set by SetElementK with App::BUCKLING + derivative = true
   Double sumFirstTerm = CalcU1KU2(tf, sol->elem[App::BUCKLING], App::BUCKLING, sol->elem[App::BUCKLING], NULL, factor, BUCKLING, f, -1, ev);
 
-  // this is the adjoint solution v (stored as real vector!)
+  // this is the adjoint solution v (stored as real vector)
   StateSolution* adj = adjoint.Get(excite, f, mode_idx);
   LOG_DBG2(em) << "sol_adj: " << adj->GetRealVector(StateSolution::RAW_VECTOR).ToString();
 
-  // this is the solution u of the linear elasticity excitation (stored as real vector!)
-  StateSolution* mech_displ = forward.Get(&(me->excitations[0]));
+  // this is the solution u of the linear elasticity excitation (stored as real vector)
+  unsigned int linElaExIndex = excite.index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  StateSolution* mech_displ = forward.Get(&(me->excitations[linElaExIndex]));
   LOG_DBG2(em) << "mech_displ: " << mech_displ->GetRealVector(StateSolution::RAW_VECTOR).ToString();
 
   assert(adj->elem[App::MECH].GetSize() == mech_displ->elem[App::MECH].GetSize());
@@ -2431,7 +2455,7 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
     dynamic_cast<Vector<Complex>*>(complex_elem_mech_displs[i])->SetPart(Global::REAL, *elem_mech_displ);
   }
 
-  // add  fac * (v^T dK/drho u)  or  fac * (-ev * v^T dK/drho u)
+  // add  fac * (v^T dK/drho u)  or  fac * -ev * (v^T dK/drho u)
   if (!f->ctxt->GetBucklingDriver()->IsInverseProblem())
     factor *= -ev;
   Double sumSecTerm = CalcU1KU2(tf, complex_elem_adjoints, App::MECH, complex_elem_mech_displs, NULL, factor, STANDARD, f, -1, ev);
@@ -2934,7 +2958,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
     // -> more than one rotation or robust
     StdVector<SingleVector*>& u1 = forward.Get(f->ctxt->GetExcitation(ij, f))->elem[app]; // equal to \chi^{ij}
     for (unsigned int i = 0; i < u1.size(); i++)
-      LOG_DBG3(em) << "CHT: u1(" << i << ")= " << (*u1[i]).ToString();
+      LOG_DBG3(em) << "CHT: u1(" << i << ")= " << (*u1[i]).ToString(2);
     for (unsigned int kl = 0;kl < ex_size;++kl)
     {
       if (ij > kl) // already computed this entry!
@@ -3117,7 +3141,7 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tupl
 
   // for multiple meta excitations (rotations, robustness) take the corresponding state
   StdVector<SingleVector*>& u1 = forward.Get(ctxt->GetExcitation(ij, meta))->elem[App::MECH]; // equal to \chi^{ij}
-  StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, meta))->elem[App::MECH];// equal to \chi^{kl}
+  StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, meta))->elem[App::MECH]; // equal to \chi^{kl}
 
   double result = 0.0;
 
@@ -3184,62 +3208,64 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
     // coordinates of "this" element
     // coordinates of current element
     domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
-    LOG_DBG3(em) << "CHEP: coords elem " << tmp_mat.ToString(0);
+    LOG_DBG3(em) << "CHEP: coords elem " << tmp_mat.ToString(2);
     Matrix<double> u1_tmp;
     u1_tmp = test_strain_matrix_ij * tmp_mat;
     Matrix<double> u2_tmp;
     u2_tmp = test_strain_matrix_kl * tmp_mat;
 
-    LOG_DBG3(em) << "CHEP: u1_tmp " << u1_tmp.ToString(2);
-    LOG_DBG3(em) << "CHEP: u2_tmp " << u2_tmp.ToString(2);
+    LOG_DBG3(em) << "CHEP: elem= " << de->elem->elemNum << " u1_tmp= " << u1_tmp.ToString(2);
+    LOG_DBG3(em) << "CHEP: elem= " << de->elem->elemNum << " u2_tmp= " << u2_tmp.ToString(2);
     assert(u1_tmp.GetNumCols() == u2_tmp.GetNumCols());
     assert(u1_tmp.GetNumRows() == u2_tmp.GetNumRows());
     assert(u1_tmp.GetNumRows() == dim);
 
     // this assert is only true because displacement is a vector-valued function
     // in heat case, the temperature is a scalar-valued function
-    if(app == App::MECH)
-      assert(u1_tmp.GetNumCols() * dim == u2_vec.GetSize());
-
+    assert(u1_tmp.GetNumCols() * dim == u2_vec.GetSize());
     assert(u1_tmp.GetNumRows() * u1_tmp.GetNumCols() == u1_vec.GetSize());
-    // u1_tmp, u2_tmp have to be transformed into vectors
+    // u1_tmp, u2_tmp have to be reshaped into vectors
     // 2D: from 2x4 to 8x1 on quad elems, 2x3 to 6x1 on triangles
     u1_0.Resize(u1_vec.GetSize());
     u2_0.Resize(u2_vec.GetSize());// u1 and u2 have the same size
 
-    for (unsigned int out = 0, cols = u1_tmp.GetNumCols();out < cols;++out)
+    // reshape
+    for (unsigned int out = 0, cols = u1_tmp.GetNumCols(); out < cols; ++out)
     {
-      for (unsigned int in = 0;in < dim;++in)
+      for (unsigned int in = 0; in < dim; ++in)
       {
         u1_0[out * dim + in] = u1_tmp[in][out]; // equal to \chi^{0(ij)}
         u2_0[out * dim + in] = u2_tmp[in][out]; // equal to \chi^{0(kl)}
       }
     }
-  } else{
+  } else {
     assert(app == App::HEAT);
     // get chi_0 by solving element-wise linear system of equations, solution is cached per region and excitation
     HeatMat* mat = dynamic_cast<HeatMat*>(Optimization::context->mat);
     assert(mat != NULL);
 
-    assert(ij >= ij && kl >= 0);
+    assert(ij >= 0 && kl >= 0);
     assert(ij <= 3  && kl <= 3);
 
     u1_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) ij);
     u2_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) kl);
   }
 
-  LOG_DBG3(em) << "testStrain: " << ij << "  chi_0^i:" << u1_0.ToString(2);
-  LOG_DBG3(em) << "testStrain: " << kl << "  chi_0^j:" << u2_0.ToString(2);
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << ij << "  chi_0^i:" << u1_0.ToString(2);
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << kl << "  chi_0^j:" << u2_0.ToString(2);
 
   u1_0 -= u1_vec;
   u2_0 -= u2_vec;
+
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << ij << "  chi_0^i:" << u1_0.ToString(2);
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << kl << "  chi_0^j:" << u2_0.ToString(2);
 
   // reuse tmp_mat as elementK-Matrix
   // Matrix<double> k_mat;
   TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, app);
   obj->SetElementK(f, de, tf, app, &tmp_mat, derivative);
 
-  LOG_DBG3(em) << "CHEP: SetElementK: " << tmp_mat.ToString(0);
+  LOG_DBG3(em) << "CHEP: ElementK= " << tmp_mat.ToString(2);
 
   assert(tmp_mat.GetNumRows() == tmp_mat.GetNumCols() && tmp_mat.GetNumCols() == u1_0.GetSize());
 
@@ -3487,8 +3513,24 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
     bool switched = excite.Apply(true); // make the multiple sequence switch if necessary
     assert(excite.sequence == context->sequence);
 
+    // for buckling, the state solution depends on the stresses of the linear elasticity excitation
     if(context->DoBuckling())
-      excite.SetStressCoefFct( excite.GetStressCoefFctFromExcitation(0) ); // 0 is first excitation = linear elasticity
+    {
+      if(!me->DoHomogenization())
+      {
+        // get the stress CoefFunction from the linear elasticity excitation for assembling the geometric stiffness matrix
+        unsigned int linElaExIndex = excite.index - 1;
+        assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+        excite.SetStressCoefFct( excite.GetStressCoefFctFromExcitation(linElaExIndex) );
+      }
+      else
+        // We do not set the stresses here, but calculate the effective stress tensor
+        // in ErsatzMaterial::CalcStressesForBucklingHomogenization directly,
+        // which will be used in DesignSpace::ApplyPhysicalDesign.
+        // For this we precalculate the homogenized material tensor here.
+        // TODO change function
+        CalcHomogenizedTensor(dynamic_cast<Function*>(objectives.data[0]));
+    }
 
     if(context->DoBloch() && (e == 0 || switched)) // handle no multiple sequence case and multiple sequence case with bloch not first
       context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
@@ -3516,7 +3558,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
       {
         assert(context->driver == context->GetEigenFrequencyDriver()
                || context->driver == context->GetBucklingDriver());
-        for(int m = 0; m < (int) context->driver->GetNumSteps() ; m++)
+        for(int m = 0; m < (int) context->driver->GetNumSteps(); m++)
           StorePDESolution(forward, excite, NULL, m, true, true, true, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
       }
       else
@@ -3594,7 +3636,9 @@ void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& exc
 
   // if we do buckling and store the adjoint solution, we have to get the solution
   // from the linear elasticity excitation as we used this as adjoint system
-  Context* ctxt = context->DoBuckling() && f ? &(manager.GetContext(&(me->excitations[0]))) : context;
+  unsigned int linElaExIndex = excite.index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  Context* ctxt = context->DoBuckling() && f ? &(manager.GetContext(&(me->excitations[linElaExIndex]))) : context;
 
   // store solution element wise for gradient and raw vector for objective.
   // This is redundant as currently the solution is the global one!
@@ -3810,15 +3854,17 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       SystemState state = PrepareAdjointSystem(*excite, f);
 
       // We have to solve Kv = phi^T dG(u)/du phi, which is the system
-      // from the first excitation with another right hand side.
-      // Thus, we hijack the algebraic system from the first excitation.
-      Excitation* ex = &(me->excitations[0]);
+      // from the linear elasticity excitation with another right hand side.
+      // Thus, we hijack the algebraic system from the lin ela excitation.
+      unsigned int linElaExIndex = excite->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+      assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+      Excitation* ex = &(me->excitations[linElaExIndex]);
       Context& ctxt = manager.GetContext(ex);
       assert(ctxt.analysis == BasePDE::STATIC);
 
       ctxt.pde->GetAssemble()->GetAlgSys()->Solve();
 
-      // export manually (automatic is confusing because we hijacked the previous excitation's system)
+      // export manually (automatic is confusing because we hijacked the lin ela excitation's system)
       StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(context->pde->GetSolveStep());
       PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
       if(els)
@@ -3869,7 +3915,9 @@ ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& exc
   assert(f->ctxt == context);
 
   // @see ErsatzMaterial::SolveAdjointProblem
-  Context* ctxt = context->DoBuckling() ? &(manager.GetContext(&(me->excitations[0]))) : context;
+  unsigned int linElaExIndex = excite.index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  Context* ctxt = context->DoBuckling() ? &(manager.GetContext(&(me->excitations[linElaExIndex]))) : context;
   Assemble* assemble = ctxt->pde->GetAssemble();
 
   SystemState state;
@@ -3918,7 +3966,10 @@ void ErsatzMaterial::RestoreStateSystem(ErsatzMaterial::SystemState& state)
   context->GetDriver()->GetAnalysisId().adjoint = false;
 
   // @see ErsatzMaterial::SolveAdjointProblem
-  Context* ctxt = context->DoBuckling() ? &(manager.GetContext(&(me->excitations[0]))) : context;
+  Excitation* excite = context->GetExcitation();
+  unsigned int linElaExIndex = excite->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  Context* ctxt = context->DoBuckling() ? &(manager.GetContext(&(me->excitations[linElaExIndex]))) : context;
   Assemble* assemble = ctxt->pde->GetAssemble();
 
   shared_ptr<BaseFeFunction> fe = ctxt->pde->GetFeFunction(context->pde->GetNativeSolutionType()); // no reference but copy constructor
@@ -4013,12 +4064,20 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   assert(context->sequence == excite.sequence);
   assert(f->ctxt == context);
 
-  int ts = context->DoBuckling() ? f->GetEigenValueID()-1 : -1;
+  int ts = -1;
+  if(context->IsEigenvalue())
+  {
+    ts = f->GetEigenValueID()-1;
+    if (ts > (int) context->driver->GetNumSteps())
+      EXCEPTION("Requested eigenvalue index in objective/constraint is larger than total number of eigenvalues");
+  }
+
   LOG_DBG2(em) << "ts: " << ts << " f: " << f->ToString();
   Vector<Complex>& u = forward.Get(excite, NULL, ts)->GetComplexVector(StateSolution::RAW_VECTOR);
   Vector<Complex>& l = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::SEL_VECTOR);
   LOG_DBG2(em) << "ConstructComplexAdjointRHS: u = " << u.ToString();
   LOG_DBG2(em) << "ConstructComplexAdjointRHS: l = " << l.ToString();
+
 
   // create a OLAS vector
   Vector<Complex>& rhs = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::RHS_VECTOR);
@@ -4089,10 +4148,14 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       ConstructAdjointRHSBuckling(f, u, rhs);
 
       // switch to linear elasticity context
-      Context* ctxt = &(manager.GetContext(&(me->excitations[0])));
+      unsigned int linElaExIndex = excite.index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+      assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+      Context* ctxt = &(manager.GetContext(&(me->excitations[linElaExIndex])));
 
       shared_ptr<BaseFeFunction> fe = ctxt->pde->GetFeFunction(ctxt->pde->GetNativeSolutionType());
-      // we cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
+      // We cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
+      // For the adjoint we use the algsys from the linear elasticity
+      // excitation, which is real. Thus, we only thake the real part of rhs.
       fe->GetSystem()->InitRHS(fe->GetFctId());
       fe->GetSystem()->SetFncRHS(rhs.GetPart(Global::REAL), fe->GetFctId());
       LOG_DBG2(em) << "CARHS<complex>: buckling! ev=" << f->GetEigenValueID()
@@ -4134,9 +4197,7 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
   // The actual context is complex and so are our forward solutions,
   // which are the buckling modes. However, the imaginary part should
   // be zero.
-  // The adjoint system is Kv = phi^T dG(u)/du phi
-  // For the adjoint we use the algsys from the linear elasticity
-  // excitation, which is real. Thus, we construct a real rhs.
+  // The adjoint system is \f$Kv = phi^T \frac{\partial G(u)}{\partial u} phi\f$.
   //
   // The formula can be broken down to element level:
   // sum_{k=0}^{#IP} sum_{l=0}^{nstress} v_loc^T N^T E_l N v_loc B^T D_l^T
@@ -4151,9 +4212,14 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
   if (printProgressBar_)
     cout << "\n- Establishing adjoint right hand side";
 
-  Context* linEla_ctxt = &(manager.GetContext(&(me->excitations[0])));
+  // get stuff from linear elasticity
+  Excitation* excite = f->ctxt->GetExcitation();
+  unsigned int linElaExIndex = excite->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  Context* linEla_ctxt = &(manager.GetContext(&(me->excitations[linElaExIndex])));
   SinglePDE* linEla_pde = linEla_ctxt->pde;
 
+  // timer
   boost::shared_ptr<Timer> rhs_timer = optInfoNode->Get(ParamNode::SUMMARY)->Get("construct_adjoint_rhs/timer")->AsTimer();
   optInfoNode->Get(ParamNode::SUMMARY)->Get("construct_adjoint_rhs/timer")->SetValue(rhs_timer);
   rhs_timer->Start();
@@ -4231,7 +4297,8 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
 
     const EntityList* entities = linEla_blfc->GetFirstEntities().get();
 
-    UInt en = f->elements.GetSize();
+    // UInt en = domain->GetGrid()->GetNumElems();
+    UInt en = design->GetNumberOfElements();
 
 #pragma omp parallel firstprivate(buckl_ea, linEla_ea) num_threads(CFS_NUM_THREADS)
     {
@@ -4277,15 +4344,13 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
       // set an arbitrary integration point for GetTensor()
       linEla_ea.SetIP(0);
 
-      // get the material tensor
-      linEla_ctxt->mat->GetOrgMatCoef(linEla_bdb)->GetTensor(D, linEla_ea.lpm);
-      TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, App::MECH, true);
-      D *= tf->Transform(de, DesignElement::SMART);
+      // get the current material tensor (design is already applied)
+      dynamic_cast<CoefFunctionOpt*>(linEla_bdb->GetCoef().get())->GetTensor(D, linEla_ea.lpm);
 
       // get integration parameters
       IntegOrder order;
       IntScheme::IntegMethod method;
-      FeSpace* feSpace = linEla_ctxt->pde->GetFeFunction(MECH_DISPLACEMENT)->GetFeSpace().get();
+      FeSpace* feSpace = linEla_bdb->GetFeSpace1();
       feSpace->GetFe(it, method, order);
 
       // get integration points and weights. linEla_bdb and buckl_bdb should have same integration!
@@ -4305,8 +4370,9 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
       DmNENm.Resize(D.GetNumCols(), 0);
       derivativeElemIP.Resize(eqns.GetSize(), 0);
 
-      // get local part of mode. we could also use sol->elem[App::BUCKLING],
-      // if we replaced the argument 'Vector mode' by the statesolution
+      // get local part of mode
+      // we could also use sol->elem[App::BUCKLING], if we replaced the argument 'Vector mode' of
+      // ErsatzMaterial::ConstructAdjointRHSBuckling by statesolution.
       for(UInt eq = 0 ; eq < eqns.GetSize(); ++eq) {
         if( eqns[eq] != 0 )
           modeElem[eq] = mode[std::abs(eqns[eq])-1];
@@ -4379,6 +4445,160 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
 
   assert(rhs.GetSize() == mode.GetSize());
   rhs_timer->Stop();
+}
+
+void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, const LocPointMapped* lpm) {
+  /* \f$\sigma = (D - D B U) D_h^{-1} \bar{\sigma}\f$
+   * see eq (12) on page 119 of
+   * Thomsen, Christian Rye, Fengwen Wang, and Ole Sigmund. "Buckling strength topology
+   * optimization of 2D periodic materials based on linearized bifurcation analysis."
+   * Computer Methods in Applied Mechanics and Engineering 339 (2018): 115-136.
+   * */
+
+  assert(me->DoHomogenization());
+
+  // get stuff from linear elasticity
+  Excitation* excite = context->GetExcitation();
+  unsigned int linElaExIndex = excite->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  Context* linEla_ctxt = &(manager.GetContext(&(me->excitations[linElaExIndex])));
+  BiLinFormContext* linEla_blfc = linEla_ctxt->GetBiLinFormContext(lpm->ptEl->regionId, App::MECH, App::NO_APP, true);
+  BDBInt<double,double>* linEla_bdb = dynamic_cast<BDBInt<double,double>*>(linEla_blfc->GetIntegrator());
+
+  // get the current material tensor (design is already applied)
+  Matrix<double> D;
+  dynamic_cast<CoefFunctionOpt*>(linEla_bdb->GetCoef().get())->GetTensor(D, *lpm);
+
+  // get B from linear elasticity
+  Matrix<double> B;
+  BaseFE* ptFe = linEla_bdb->GetFeSpace1()->GetFe(lpm->ptEl->elemNum);  //1-based
+  linEla_bdb->GetBOp()->CalcOpMat(B, *lpm, ptFe);
+
+  unsigned int num_hom = me->GetNumberHomogenization(App::MECH);
+  assert((dim == 2 && num_hom == 3) || (dim == 3 && num_hom == 6));
+
+  // get the local displacement from the linear elasticity homogenization
+  Matrix<double> U = Matrix<double>(B.GetNumCols(), num_hom);
+  for(unsigned int i=0; i < num_hom; ++i)
+  {
+    const SingleVector* u = forward.Get(me->excitations[i])->elem[App::MECH][lpm->ptEl->elemNum-1]; // 0-based
+    for(unsigned int j=0; j < U.GetNumRows(); ++j)
+      U[j][i] = (*dynamic_cast<const Vector<double>*>(u))[j];
+  }
+  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " U=" << U.ToString(2);
+
+  Vector<double> sigma_bar = GetMacroStress();
+
+  // calc local strain
+  Matrix<double> BU;
+  BU.Resize(num_hom, num_hom);
+  B.Mult_Blas(U, BU, false, false, 1.0, 0);
+
+  Matrix<double> DBU;
+  DBU.Resize(num_hom, num_hom);
+  D.Mult_Blas(BU, DBU, false, false, 1.0, 0);
+  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
+
+  // D = D - D B U
+  D.Add(-1.0, DBU);
+  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
+
+  // homogenized material tensor was calculated in ErsatzMaterial::SolveStateProblem
+  // voigt notation! -> macro stress has to be voigt
+  Matrix<double> hom_tensor_inv;
+  // hom_tensor is only 3x3 or 6x6 so we can afford the inverse
+  homogenizedTensor[0].Invert(hom_tensor_inv);
+
+  // \f$\bar{epsilon} = D_h^{-1} \bar{\sigma}\f$
+  Vector<double> eps_bar = Vector<double>(num_hom);
+  hom_tensor_inv.Mult(sigma_bar, eps_bar);
+  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " epsBar=" << eps_bar.ToString(2);
+
+  // local stress
+  Vector<double> sigma = Vector<double>(num_hom);
+  D.Mult(eps_bar, sigma);
+  LOG_DBG2(em) << "elem: " << lpm->ptEl->elemNum << " ip: " << lpm->lp.number << " sigma= " << sigma.ToString(2);
+
+  // this is in accordance with Voigt notation
+  // @see MechPDE::MakeBigPreStressVector
+  Vector<double> SVec;
+  if(dim ==2) {
+    SVec.Resize(16);
+    SVec.Init();
+    SVec[0] = sigma[0];
+    SVec[1] = sigma[2];
+    SVec[4] = sigma[2];
+    SVec[5] = sigma[1];
+    SVec[10] = sigma[0];
+    SVec[11] = sigma[2];
+    SVec[14] = sigma[2];
+    SVec[15] = sigma[1];
+    S.Assign(SVec,4,4,false);
+  } else if (dim ==3) {
+    S.Resize(81);
+    SVec.Init();
+    for(UInt i=0;i<3;i++){
+      SVec[i*30+0] = sigma[0];
+      SVec[i*30+1] = sigma[5];
+      SVec[i*30+2] = sigma[4];
+
+      SVec[i*30+9] = sigma[5];
+      SVec[i*30+10] = sigma[1];
+      SVec[i*30+11] = sigma[3];
+
+      SVec[i*30+18] = sigma[4];
+      SVec[i*30+19] = sigma[3];
+      SVec[i*30+20] = sigma[2];
+    }
+    S.Assign(SVec,9,9,false);
+  }
+}
+
+Vector<double> ErsatzMaterial::GetMacroStress() {
+
+  if (!pn->Has("macrostress"))
+    EXCEPTION("no macrostress given");
+
+  // allowed dofs
+  StdVector<std::string> stressComponents;
+  switch(context->stt)
+  {
+  case FULL:
+    stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+    break;
+  case PLANE_STRAIN:
+    stressComponents = "xx", "yy", "xy";
+    break;
+  case PLANE_STRESS:
+    stressComponents = "xx", "yy", "xy";
+    break;
+  default:
+    stressComponents = "";
+  }
+
+  Vector<double> sigma = Vector<double>(stressComponents.GetSize());
+
+  // read from xml and put into correct component
+  ParamNodeList macrostress = pn->Get("macrostress")->GetList("comp");
+  for (unsigned int i=0; i<macrostress.GetSize(); ++i) {
+    bool allowed = false;
+    std::string dof = macrostress[i]->Get("dof")->As<std::string>();
+    for (UInt j=0; j<stressComponents.GetSize(); ++j) {
+      if (dof.compare(stressComponents[j]) == 0) {
+        allowed = true;
+        sigma[j] = macrostress[i]->Get("value")->As<double>();
+      }
+    }
+    if (!allowed)
+    {
+      std::string subType;
+      Enum2String(context->stt, subType);
+      EXCEPTION("Component " + dof + " not allowed for type " + subType);
+    }
+  }
+  LOG_DBG3(em) << "sigma= " << sigma.ToString(2);
+
+  return sigma;
 }
 
 // template instantiation stuff

@@ -135,7 +135,7 @@ namespace CoupledField {
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 1 );    
   }
 
-  void StaticDriver::StoreResults(UInt stepNum, double step_val)
+  unsigned int StaticDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::STATIC);
 
@@ -145,6 +145,8 @@ namespace CoupledField {
     handler_->FinishStep();
     if( writeAllSteps_ || isPartOfSequence_ )
       simState_->WriteStep(stepNum, step_val );
+
+    return stepNum;
   }
 
 } // end of namespace

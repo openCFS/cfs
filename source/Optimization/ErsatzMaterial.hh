@@ -111,6 +111,8 @@ public:
   // calculates for given node res = load * stateSol
   double CalcTempAtInterface(int node);
 
+  void CalcStressesForBucklingHomogenization(Matrix<Double>& S, const LocPointMapped* lpm);
+
 protected:
   
   /** overwrites the Optimization version. To be called within Optimization::CommitIteration() */
@@ -203,6 +205,7 @@ protected:
    * Handles also non-regular and physical
    * @param normalized @see CalcVolume() */
   double CalcTrivialVolume(Function* f, bool derivative, bool normalized);
+
   /** calculates the integral over a design variable (note that volume is a special case of this (with all standard values) @see CalcVolume
    * regularization is using this usually with normalized = true, scale = true, square = true, factor = "the regularization parameter"
    * @param dtype The design variable to integrate over, use TENSOR_TRACE for tensor trace or DEFAULT for single design
@@ -215,6 +218,7 @@ protected:
   virtual double IntegrateDesignVariable(Objective* f, Condition* g,
       bool derivative, DesignElement::Type dtype, bool normalized = true,
       bool scale = false, double exponent = 1.0);
+
   /** Handles the Volume constraint. Has a constraint and constraint derivative mode
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set.
@@ -246,6 +250,7 @@ protected:
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T>
   double CalcOutput(Excitation& excite, Function* f);
+
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
    * constraint and constraint derivative mode
    * @param excite  the excitation used 
@@ -360,6 +365,7 @@ protected:
    * @param grad_out only used in derivative case
    * @return zero for derivative */
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
   /** Store the results from the forward/adjoint problem. Handles multiple excitations
    * @param read_sol store solution (maybe one would only like to save rhs)
    * @param read_rhs is only interesting for the forward problem
@@ -386,7 +392,6 @@ protected:
   /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructRealAdjointRHS()
    * @return true if function is handled */
   virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs) { return false; }
-
 
   /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructComplexAdjointRHS()
    * @return true if function is handled */
@@ -508,7 +513,8 @@ private:
   void ConstructRealAdjointRHS(Excitation& excite, Function* f);
   void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
 
-  void ConstructAdjointRHSBucklingOld(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
+  /** construct the right hand side for the adjoint equation of the buckling problem
+   * The adjoint system is \f$Kv = phi^T \frac{\partial G(u)}{\partial u} phi\f$. */
   void ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
 
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
@@ -551,6 +557,11 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
+
+  /**
+   * Get the prescribed macro stress from the xml for buckling homogenization.
+   */
+  Vector<Double> GetMacroStress();
 
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_;

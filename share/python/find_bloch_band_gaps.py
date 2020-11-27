@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 
-def print_gnuplot(offset, args, segments, max_mode, max_freq):
+def print_gnuplot(offset, args, bloch, segments, max_mode, max_freq):
   if args.maxfreq:
     print('set yrange [0:' + str(args.maxfreq) + ']')
     max_freq = min(max_freq, args.maxfreq)
@@ -47,7 +47,7 @@ def print_gnuplot(offset, args, segments, max_mode, max_freq):
   lc = ' lc black ' if args.paper or args.commonsymbol else ''
   for i in range(offset, max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i - offset + 1) + '. mode" '
-    print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i + 1) + title + wl + lc + (' ,\\' if i < max_mode - 1 else ''))
+    print(('plot' if i <= offset else '    ') + '"' + bloch + '" u ' + str(i + 1) + title + wl + lc + (' ,\\' if i < max_mode - 1 else ''))
 
 gap_count = 0
 offset = None
@@ -59,6 +59,10 @@ def create_plot(org, dim):
   assert(org.shape[1] > dim + 1)
   # extract the real data
   data = org[:,dim+1:]
+
+  # clear the plot, we might have mupltiple bloch.dat files
+  plt.clf()
+
   # number of wave vectors, the first is already reapeated as last row
   vectors = data.shape[0]
   modes = data.shape[1]
@@ -111,9 +115,9 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
 
 
 # return the feader of bloch.dat or "" if none
-def get_header(filename):
+def get_header(bloch):
   header = ""
-  with open(args.bloch) as f:
+  with open(bloch) as f:
     for line in f:
        if line.startswith('#'):
          header += line
@@ -125,9 +129,9 @@ def get_header(filename):
      
 # tries to determine dimension. searches for k_z in comment if there is a comment. 
 # if dim is given at arguement and there is a mismatch prints a warning 
-def get_dim(args):
+def get_dim(args, bloch):
   
-  header = get_header(args.bloch)
+  header = get_header(bloch)
     
   has_header = header.find("k_y") > -1  
   header_dim = 3 if header.find("k_z") > -1 else 2 # check has_header!
@@ -135,28 +139,28 @@ def get_dim(args):
   if args.dim is None:
     if has_header:
       if not args.gnuplot:
-        print("detect dim " + str(header_dim) + " from comment in file " + args.bloch)
+        print("detect dim " + str(header_dim) + " from comment in file " + bloch)
       return header_dim  
     else:  
-      raise "no --dim given and no valid comment in '" + args.bloch + "' to derive the dimension"
+      raise "no --dim given and no valid comment in '" + bloch + "' to derive the dimension"
   else:
     if has_header:
       if args.dim != header_dim and not args.gnuplot:
-        print("--dim " + str(args.dim) + " given but header in '" + args.bloch + "' suggests dimension " + str(header_dim))
+        print("--dim " + str(args.dim) + " given but header in '" + bloch + "' suggests dimension " + str(header_dim))
     return args.dim                                                                                                     
 
 ## determines the number of segments and segment size
 # for horizrontal num = 1, for 2D it is 3 for symmetric and 4 for quadrant and in 3D one more
 # uses --horizontal and the header comment (# <ibz dim="2" edges="4"/>)
 #@return array of of size segments with the last wave number
-def get_segments(args, data, dim): 
+def get_segments(args, bloch, data, dim): 
   num = dim+1 # default 
   if args.horizontal:
     num = 1
     if not args.gnuplot:
        print('assume horizontal segment')  
   else:
-    header = get_header(args.bloch)    
+    header = get_header(bloch)    
     if 'edges="' in header:
       start = header.find('edges="') + 7 # add the string
       end   = header[start:].find('"')  
@@ -181,7 +185,7 @@ def get_segments(args, data, dim):
   return result    
   
 parser = argparse.ArgumentParser()
-parser.add_argument("bloch", help="a sorted bloch.dat file. Sort by sort_bloch.py")
+parser.add_argument("bloch", nargs='*', help="one or more sorted bloch.dat file(s). Sort by sort_bloch.py")
 parser.add_argument("--dim", help="2 or 3 dimensions, for old .bloch.dat files without #<ibz/>", type=int, required=False, choices=[2,3])
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
@@ -190,7 +194,7 @@ parser.add_argument('--maxfreq', help="maximal frequency", type=float)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info as xml to the given filename')
 parser.add_argument('--show', help='pop-up a matplotlib figure', action='store_true')
-parser.add_argument('--save', help='write the matplotlib figure to the given file name (png, pdf, svg, ...)')
+parser.add_argument('--save', help='write the matplotlib figure to the given file name (png, pdf, svg, ...) or only provide the extension')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
@@ -202,108 +206,117 @@ parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice 
 parser.add_argument('--horizontal', action='store_true', help='display only the horizontal part of the wavevector (G->X)')
 args = parser.parse_args()
 
-if not os.path.exists(args.bloch):
-  print("file not found '" + args.bloch + "'")
+if len(args.bloch) < 1:
+  print("error: give at least on .bloch.dat file as input")
   sys.exit(1)
-org = numpy.loadtxt(args.bloch)
-dim = get_dim(args)
-
-offset = 3 if dim == 2 else 4 # step, k_x, k_y (,k_z)
-
-# check for unsorted
-# we may not simpy sort here as the plot is done via the original data which needs also the sorted and saved to another file
-for w in range(len(org)):
-  wv = org[w]
-  for ev in range(offset+1, len(wv)):
-    if wv[ev] < wv[ev-1]:
-      print('#unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1]))                 
-
-segments = get_segments(args, org, dim)
-
-eps = float(args.mingap) 
-max_mode = min((args.maxmode + offset + 1,org.shape[1]))
-max_freq =  numpy.amax(org[:,offset:])
-cnt = 1
-
-# the info.xml root node
-root = None if not args.xml else etree.Element('bloch', file=args.bloch)
-
-if args.info and not args.gnuplot: 
-  print("\nmode range:")
-  print("-----------")
-  for i in range(offset, max_mode):
-    mi = min(org[:,i])
-    ma = max(org[:,i])
-    print('mode ' + str(i-offset+1) + ' min:' + str(mi) + ' max:' + str(ma) + ' size:' + str(ma - mi) + ' rel.size: ' + str((ma - mi)/((ma+mi)/2.0))) 
-
-if args.xml:
-  modes = etree.SubElement(root, "modes")
-  for i in range(offset, max_mode):
-    mi = min(org[:,i])
-    ma = max(org[:,i])
-    mode = etree.SubElement(modes, "mode")
-    mode.attrib["nr"] = str(i-offset+1)
-    mode.attrib["min"] = str(mi)
-    mode.attrib["max"] = str(ma)
-    mode.attrib["size"] = str(ma - mi)
-    mode.attrib["rel_size"] = str((ma - mi)/((ma+mi)/2.0))
-
-gaps = None if args.xml is None else etree.SubElement(root, "gaps")  
   
-if args.gnuplot:
-  fontsize = str(args.fontsize) if args.fontsize else "18"
-  
-  if args.gnuplot == "eps":
-    print('set size ratio 1.0')
-    print('set terminal postscript eps enhanced "Helvetica, ' + fontsize + '" color') #  change to monochrome for papers
-    print('set output "' + args.bloch[:-len(".dat")] + '.eps"')
-  if args.gnuplot == "png":
-    print('set size ratio 1.0')
-    print('set terminal png size 1000,1000 font "Helvetica, ' + fontsize + '"')
-    print('set output "' + args.bloch[:-len(".dat")] + '.png"') # leave it as bloch.png
-        
-    # print 'set output "tmp.eps"'
-  # unset eventually older boxes
-  for i in range(60):
-     print('unset object ' + str(i))
-  print('set style rectangle back fc rgb "gray"')         
+for bloch in args.bloch:
+  if not os.path.exists(bloch):
+    print("error: file not found: '" + bloch + "'")
+    sys.exit(1)
 
-  
-# search for partial band gaps
-if not args.nopartial:
-  if not args.gnuplot and not args.xml:
-    print("\npartial band gaps >= rel.size " + str(eps))
-    print("---------------------------------------")
-  for s in range(0,len(segments)):
-    for i in range(offset+1, max_mode):  
-      check_gap(org, i, 0 if s == 0 else segments[s-1], segments[s], eps, args.gnuplot, gaps)
-  
-# search for full band gaps
-if not args.horizontal:
-  if not args.gnuplot and not args.xml:
-    print("\nfull band gaps >= rel.size " + str(eps))
-    print("---------------------------------------")
-  for i in range(offset+1,  max_mode): # we start comparing the second to the first
-    check_gap(org, i, 0, segments[-1], eps, args.gnuplot, gaps)
+  org = numpy.loadtxt(bloch)
 
-if args.gnuplot:
-  print_gnuplot(offset, args, segments, max_mode, max_freq) 
- 
-
-if args.show or args.save:
-  plt = create_plot(org, dim)
-  if args.save:
-    plt.savefig(args.save)
-    print("created file '" + args.save + "'")
-  if args.show:
-    plt.show()
-
-if args.xml:
-  root.find("gaps").attrib["count"]=str(gap_count)
-  tree = etree.ElementTree(root)
-  tree.write(args.xml)
+  dim = get_dim(args, bloch)
+  offset = 3 if dim == 2 else 4 # step, k_x, k_y (,k_z)
   
-  #file = open(args.xml, "w")
-  #file.write(str(etree.tostring(root, pretty_print=True)))
-  #file.close()
+  # check for unsorted
+  # we may not simpy sort here as the plot is done via the original data which needs also the sorted and saved to another file
+  for w in range(len(org)):
+    wv = org[w]
+    for ev in range(offset+1, len(wv)):
+      if wv[ev] < wv[ev-1]:
+        print('#unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1]))                 
+  
+  segments = get_segments(args, bloch, org, dim)
+  
+  eps = float(args.mingap) 
+  max_mode = min((args.maxmode + offset + 1,org.shape[1]))
+  max_freq =  numpy.amax(org[:,offset:])
+  cnt = 1
+  
+  # the info.xml root node
+  root = None if not args.xml else etree.Element('bloch', file=bloch)
+  
+  if args.info and not args.gnuplot: 
+    print("\nmode range:")
+    print("-----------")
+    for i in range(offset, max_mode):
+      mi = min(org[:,i])
+      ma = max(org[:,i])
+      print('mode ' + str(i-offset+1) + ' min:' + str(mi) + ' max:' + str(ma) + ' size:' + str(ma - mi) + ' rel.size: ' + str((ma - mi)/((ma+mi)/2.0))) 
+  
+  if args.xml:
+    modes = etree.SubElement(root, "modes")
+    for i in range(offset, max_mode):
+      mi = min(org[:,i])
+      ma = max(org[:,i])
+      mode = etree.SubElement(modes, "mode")
+      mode.attrib["nr"] = str(i-offset+1)
+      mode.attrib["min"] = str(mi)
+      mode.attrib["max"] = str(ma)
+      mode.attrib["size"] = str(ma - mi)
+      mode.attrib["rel_size"] = str((ma - mi)/((ma+mi)/2.0))
+  
+  gaps = None if args.xml is None else etree.SubElement(root, "gaps")  
+    
+  if args.gnuplot:
+    fontsize = str(args.fontsize) if args.fontsize else "18"
+    
+    if args.gnuplot == "eps":
+      print('set size ratio 1.0')
+      print('set terminal postscript eps enhanced "Helvetica, ' + fontsize + '" color') #  change to monochrome for papers
+      print('set output "' + bloch[:-len(".dat")] + '.eps"')
+    if args.gnuplot == "png":
+      print('set size ratio 1.0')
+      print('set terminal png size 1000,1000 font "Helvetica, ' + fontsize + '"')
+      print('set output "' + bloch[:-len(".dat")] + '.png"') # leave it as bloch.png
+          
+      # print 'set output "tmp.eps"'
+    # unset eventually older boxes
+    for i in range(60):
+       print('unset object ' + str(i))
+    print('set style rectangle back fc rgb "gray"')         
+  
+    
+  # search for partial band gaps
+  if not args.nopartial:
+    if not args.gnuplot and not args.xml:
+      print("\npartial band gaps >= rel.size " + str(eps))
+      print("---------------------------------------")
+    for s in range(0,len(segments)):
+      for i in range(offset+1, max_mode):  
+        check_gap(org, i, 0 if s == 0 else segments[s-1], segments[s], eps, args.gnuplot, gaps)
+    
+  # search for full band gaps
+  if not args.horizontal:
+    if not args.gnuplot and not args.xml:
+      print("\nfull band gaps >= rel.size " + str(eps))
+      print("---------------------------------------")
+    for i in range(offset+1,  max_mode): # we start comparing the second to the first
+      check_gap(org, i, 0, segments[-1], eps, args.gnuplot, gaps)
+  
+  if args.gnuplot:
+    print_gnuplot(offset, args, bloch, segments, max_mode, max_freq) 
+   
+  
+  if args.show or args.save:
+    plt = create_plot(org, dim)
+    
+    if args.save:
+      # if only a 3-letter extension is given, add it to the bloch name
+      name = bloch[:-3] + args.save if len(args.save) == 3 else args.save
+      plt.savefig(name)
+      print("created file '" + name + "'")
+    if args.show:
+      plt.show()
+  
+  if args.xml:
+    root.find("gaps").attrib["count"]=str(gap_count)
+    tree = etree.ElementTree(root)
+    tree.write(args.xml)
+    
+    #file = open(args.xml, "w")
+    #file.write(str(etree.tostring(root, pretty_print=True)))
+    #file.close()
           

@@ -45,11 +45,13 @@ public:
   //! Return type of entry (scalar, vector, tensor)
   virtual CoefDimType GetDimType() const { return dimType_;  }
 
+  std::map<RegionIdType, BaseBDBInt* > GetForms() const { return forms_.Mine(); }
+
 protected:
-  
+
   //! Store bilinearform for each region
   CfsTLS< std::map<RegionIdType, BaseBDBInt* > > forms_;
-  
+
 };
 
 

@@ -77,6 +77,9 @@ namespace CoupledField
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
 
+       /** some own norm as we have no lagrange multipliers */
+       double CalcFeasibility() const;
+
        /** Is this a feasibility constraint for FeasSCP */
        bool IsFeasibilityConstraint() const;
 
@@ -436,6 +439,11 @@ namespace CoupledField
      /** if so we need to add the bound to the name */
      bool RequiresBoundForUniqueness(const Condition* g);
 
+     /** is at least one constraint state sensitive? */
+     bool IsAllStateDependent() const;
+
+     /** are the active constraints feasible */
+     bool IsFeasible() const;
 
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */

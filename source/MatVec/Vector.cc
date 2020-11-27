@@ -1,7 +1,9 @@
+#include <def_use_embedded_python.hh>
 
 #include "Vector.hh"
 #include "opdefs.hh"
 #include "Matrix.hh"
+
 #include <boost/type_traits/is_complex.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 
@@ -860,7 +862,6 @@ namespace CoupledField {
 
     if(level == 0 || level == 1 || level > 2)
     {
-      os << std::scientific << std::setprecision(level);
       int nnz = 0;
       for(unsigned int i = 0; i < size_; ++i)
       {
@@ -1241,6 +1242,33 @@ namespace CoupledField {
     CrossProduct(vec, a);
     return ( fabs(a.NormL2()) < 1e-12 );
   }
+
+// the USE_EMBEDDED_PYTHON implementation is VectorPython.cc
+#ifndef USE_EMBEDDED_PYTHON
+
+  template<typename T>
+  Vector<T>::Vector(PyObject* obj, bool decref)
+  {
+    this->capacity_ = 0;
+    this->size_ = 0;
+    this->memBelongsToMe_= true;
+    this->data_= NULL;
+    EXCEPTION("Compile with USE_EMBEDDED_PYTHON");
+  }
+
+  template<typename T>
+  void Vector<T>::Fill(PyObject* obj, bool decref)
+  {
+    EXCEPTION("Compile with USE_EMBEDDED_PYTHON");
+  }
+
+  template<typename T>
+  void Vector<T>::Export(PyObject* obj)
+  {
+    EXCEPTION("Compile with USE_EMBEDDED_PYTHON");
+  }
+#endif
+
 
   
   // ***********************************************************************

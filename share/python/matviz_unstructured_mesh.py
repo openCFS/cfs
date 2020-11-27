@@ -10,12 +10,12 @@ import scipy.interpolate as ip
 
 
 def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_support, design, ip_nx, ip_ny, ip_nz, grad, scale):
-  
+
   st1 = design['s1']
   st2 = design['s2']
   st3 = design['s3']
   angle = design['angle']
-  
+
   mesh = Mesh()
   centers, min, max = coords[0:3]  # design nodes
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign nodes
@@ -30,24 +30,24 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
   nx = ip_nx
   ny = ip_ny
   nz = ip_nz
-  
+
   # non-design region points are added to design region points in order to create a structured mesh
   centers_full = copy.deepcopy(centers)
   for i in range(len(nondes_centers)):
     centers_full.append((nondes_centers[i]))
   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
-  centers_full, min_full, max_full = coords_full[0:3] 
- 
+  centers_full, min_full, max_full = coords_full[0:3]
+
   delta_full = (abs(max_full[0] - min_full[0]), abs(max_full[1] - min_full[1]), abs(max_full[2] - min_full[2]))
   nx_full = int(delta_full[0] / dx)
   ny_full = int(delta_full[1] / dy)
   nz_full = int(delta_full[2] / dz)
-  
+
   # calculate the upper and lower bound of the discretization with respect to min,max of design nodes
   overhead_x_l = int(round(abs(min_full[0] - min[0]) / dx))
   overhead_y_l = int(round(abs(min_full[1] - min[1]) / dy))
   overhead_z_l = int(round(abs(min_full[2] - min[2]) / dz))
-  
+
   overhead_x_u = int(round(abs(max_full[0] - max[0]) / dx))
   overhead_y_u = int(round(abs(max_full[1] - max[1]) / dy))
   overhead_z_u = int(round(abs(max_full[2] - max[2]) / dz))
@@ -58,7 +58,7 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
         mesh.nodes.append((min[0] + float(x) * dx, min[1] + float(y) * dy, min[2] + float(z) * dz))
   # initialize pseudo-designvariables for design and nondesign region
   st1_full = zeros((len(centers_full) , 1))
-  st2_full = zeros((len(centers_full), 1)) 
+  st2_full = zeros((len(centers_full), 1))
   st3_full = zeros((len(centers_full), 1))
   idx = 0
   for i in range(len(st1_full)):
@@ -71,27 +71,27 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
       st1_full[i, 0] = 1.
       st2_full[i, 0] = 1.
       st3_full[i, 0] = 1.
-  
+
   # add pseudo angles for non-design region
   if angles != None:
     ang_full = zeros((len(centers_full), 3))
     for i in range((ang_full.shape)[0]):
-      if i < (angles.shape)[0]: 
+      if i < (angles.shape)[0]:
         ang_full[i, :] = angles[i, :]
       else:
-        ang_full[i, :] = zeros((1, 3)) 
+        ang_full[i, :] = zeros((1, 3))
   # interpolate design values with nearest neighbor interpolation for design region
   ip_data, ip_near, out, ndim = get_interpolation_unstructured(coords, grad, st1, st2, st3, 0, 0, 0, nx, ny, nz, dx, dy, dz, None, None, angles)
   # interpolate design values by linear interpolation for non-design and design region
   ip_data_full, ip_near_full, out_full, ndim_full = get_interpolation_unstructured(coords_full, grad, st1_full, st2_full, st3_full, -overhead_x_l, -overhead_y_l, - -overhead_z_l, nx + overhead_x_u, ny + overhead_y_u, nz + overhead_z_u, dx, dy, dz, min, max, ang_full)
-  
+
   i = 0
   idx = 0
   within = 0
   invalid = 0
   nnx = nx + overhead_x_u + overhead_x_l
   nny = ny + overhead_y_u + overhead_y_l
-  nnz = nz + overhead_z_u + overhead_z_l 
+  nnz = nz + overhead_z_u + overhead_z_l
   for z in range(-overhead_z_l, nz + overhead_z_u):
     for y in range(-overhead_y_l, ny + overhead_y_u):
       for x in range(-overhead_x_l, nx + overhead_x_u):
@@ -103,7 +103,7 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
         else:
           s1, s2, s3 = [-1., -1., -1.]
           angle = zeros((3, 1))
-        
+
         s1_full, s2_full, s3_full = ip_data_full[idx, 0:3]
         angle_full = None if angles is None else ip_data_full[idx, 3:6]
         e = Element()
@@ -126,7 +126,7 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
             else:
               e.region = 'nondesign'
           else:
-            e.region = 'void'    
+            e.region = 'void'
         e.type = HEXA8
         e.stiff1 = s1
         e.stiff2 = s2
@@ -135,7 +135,7 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
         e.rotY = None if angles is None else angle[1]
         e.rotZ = None if angles is None else angle[2]
         ll = (nnx + 1) * (nny + 1) * (z + overhead_z_l) + (nnx + 1) * (y + overhead_y_l) + (x + overhead_x_l)  # lowerleft
-        e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))      
+        e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))
         mesh.elements.append(e)
         idx += 1
   # add support and load nodes to the mesh
@@ -143,16 +143,16 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
   max_mod = (min[0] + (overhead_x_u + nx) * dx, min[1] + (ny + overhead_y_u) * dy, min[2] + (nz + overhead_z_u) * dz)
   mesh = map_bc_to_node(mesh, nodes_force, min_mod, max_mod, 'load', dx, dy, dz, nnx + 1, nny + 1, nnz + 1, -1)
   mesh = map_bc_to_node(mesh, nodes_support, min_mod, max_mod, 'support', dx, dy, dz, nnx + 1, nny + 1, nnz + 1, 1)
-    
-  if grad != 'nearest':  
-    print(str(within) + ' elements out of ' + str(len(out)) + ' in convex hull')  
-  if invalid > 0:  
+
+  if grad != 'nearest':
+    print(str(within) + ' elements out of ' + str(len(out)) + ' in convex hull')
+  if invalid > 0:
     print(str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)')
   return mesh
-  
 
-  
-  
+
+
+
 
 
 
@@ -180,12 +180,12 @@ def map_bc_to_node(mesh, nodes, min, max, name, dx, dy, dz, nnx, nny, nnz, flag)
     else:
       if ind_y >= round(ind_y):
         if ind_z >= round(ind_z):
-          out_ind = index + 1 
+          out_ind = index + 1
         else:
-          out_ind = index + (nnx) * (nny) + 1  
+          out_ind = index + (nnx) * (nny) + 1
       else:
         if ind_z >= round(ind_z):
-          out_ind = index + nnx + 1 
+          out_ind = index + nnx + 1
         else:
           out_ind = index + (nnx) * (nny) + nnx + 1
     if flag > 0:
@@ -194,14 +194,14 @@ def map_bc_to_node(mesh, nodes, min, max, name, dx, dy, dz, nnx, nny, nnz, flag)
       elem.append(out_ind - 2 * nnx)
   mesh.bc.append((name, elem))
   return mesh
- 
+
 
 def get_interpolation_unstructured(coords, grad, s1, s2, s3, lx, ly, lz, ux, uy, uz, dx, dy, dz, mi=None, ma=None, angle=None):
   # we make our own elem
   if mi != None and max != None:
     centers = coords[0]  # skip elem
   else:
-    centers, mi, ma = coords[0:3] 
+    centers, mi, ma = coords[0:3]
   if ux - lx == 0 or uy - ly == 0 or uz - lz == 0:
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
@@ -225,10 +225,10 @@ def get_interpolation_unstructured(coords, grad, s1, s2, s3, lx, ly, lz, ux, uy,
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
   ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
-  
+
   print('interpolation end')
-  
-  return ip_data, ip_near, out, (ux - lx, uy - ly, uz - lz)                             
+
+  return ip_data, ip_near, out, (ux - lx, uy - ly, uz - lz)
 
 
 # # for the robot arm we have check for the two nondesign holes as they are within the
@@ -238,30 +238,30 @@ def valid_position(pos, coords):
   delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
   # if int(delta[0]) == 508 and int(delta[2]) == 126:
   if (pos[0] + 147.4) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center -147, 0, 0
-    return False 
+    return False
   if (pos[0] - 250.0) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center 250, 0, 0
-    return False 
-  
+    return False
 
-  return True 
+
+  return True
 
 
 #def mkhull(points):
 #    p = Vrep (points)
 #    return Hrep (p.A, p.b)
-  
+
 def point_inside_polygon(point, poly):
   #     -----------------------------------------------
   # C-Library cddlib (version 0.91) README FILE
   # -----------------------------------------------
-  # 1. The C-library  cddlib is a C implementation of the Double Description 
+  # 1. The C-library  cddlib is a C implementation of the Double Description
   # Method of Motzkin et al. for generating all vertices (i.e. extreme points)
-  # and extreme rays of a general convex polyhedron in R^d given by a system 
+  # and extreme rays of a general convex polyhedron in R^d given by a system
   # of linear inequalities:
-  # 
+  #
   #    P = { x=(x1, ..., xd)^T :  b - A  x  >= 0 }
-  # 
-  # where  A  is a given m x d real matrix, b is a given m-vector 
+  #
+  # where  A  is a given m x d real matrix, b is a given m-vector
   # and 0 is the m-vector of all zeros.
   #     return inside
   if all(dot(p.A, point) <= p.b):
@@ -270,7 +270,7 @@ def point_inside_polygon(point, poly):
     return False
 
 def write_node_design(name, mesh, coords, design):
-  
+
   st1 = design['s1']
   st2 = design['s2']
   st3 = design['s3']
@@ -301,7 +301,7 @@ def write_node_design(name, mesh, coords, design):
     elif mesh.elements[i].region == 'nondesign':
       for j in range(len(mesh.elements[i].nodes)):
         nb_ndes_count[mesh.elements[i].nodes[j]] += 1
-  output_file = open(name, "w")    
+  output_file = open(name, "w")
   output_file.write(str(len(nodes_st1)) + '  ' + str(6 if angles != None else 3) + ' \n')
   for i in range(len(mesh.nodes)):
     if nb_des_count[i] != 0:
@@ -313,7 +313,7 @@ def write_node_design(name, mesh, coords, design):
       # void node
       nodes_st1[i] = -10
       nodes_st2[i] = -10
-      nodes_st3[i] = -10 
+      nodes_st3[i] = -10
     elif nb_des_count[i] == 0:
       # nondesign node
       nodes_st1[i] = -1
@@ -324,8 +324,8 @@ def write_node_design(name, mesh, coords, design):
     else:
       output_file.write(str(nodes_st1[i]) + '\t ' + str(nodes_st2[i]) + '\t ' + str(nodes_st3[i]) + ' \n')
   output_file.close()
-  
-  
+
+
 def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
   centers, min, max = coords[0:3]  # design nodes
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # design nodes
@@ -339,30 +339,30 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
   nx = ip_nx
   ny = ip_ny
   nz = ip_nz
-  
+
   # non-design region points are added to design region points in order to create a structured mesh
   centers_full = copy.deepcopy(centers)
   for i in range(len(nondes_centers)):
     centers_full.append((nondes_centers[i]))
   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
-  centers_full, min_full, max_full = coords_full[0:3] 
+  centers_full, min_full, max_full = coords_full[0:3]
 
   delta_full = (abs(max_full[0] - min_full[0]), abs(max_full[1] - min_full[1]), abs(max_full[2] - min_full[2]))
   nx_full = int(delta_full[0] / dx)
   ny_full = int(delta_full[1] / dy)
   nz_full = int(delta_full[2] / dz)
-  
+
   overhead_x_l = int(round(abs(min_full[0] - min[0]) / dx))
   overhead_y_l = int(round(abs(min_full[1] - min[1]) / dy))
   overhead_z_l = int(round(abs(min_full[2] - min[2]) / dz))
-  
+
   overhead_x_u = int(round(abs(max_full[0] - max[0]) / dx))
   overhead_y_u = int(round(abs(max_full[1] - max[1]) / dy))
   overhead_z_u = int(round(abs(max_full[2] - max[2]) / dz))
-  
+
   nnx = nx + overhead_x_u + overhead_x_l
   nny = ny + overhead_y_u + overhead_y_l
-  nnz = nz + overhead_z_u + overhead_z_l 
+  nnz = nz + overhead_z_u + overhead_z_l
   idx = 0
   i = 0
   print('mesh.elements = ' + repr(len(mesh.elements)))
@@ -374,12 +374,12 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
     for x in range(nnx):
       idx = z * (nnx) * (nny) + x
       idx2 = idx + nnx
-      idx3 = idx + 2 * nnx 
+      idx3 = idx + 2 * nnx
       idx4 = idx + 3 * (nnx)
       tmp = mesh.elements[idx2]
       tmp2 = mesh.elements[idx3]
       tmp3 = mesh.elements[idx4]
-#       print 'tmp = ' + repr(tmp.region) 
+#       print 'tmp = ' + repr(tmp.region)
 #       print 'tm2 = ' + repr(tmp2.region)
       if tmp.region == 'nondesign' and tmp2.region == 'nondesign' and tmp3.region == 'nondesign':
 #         print 'drin'
@@ -411,47 +411,47 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #   nx = ip_nx
 #   ny = ip_ny
 #   nz = ip_nz
-#   
+#
 #   # non-design region points are added to design region points in order to create a structured mesh
 #   centers_full = copy.deepcopy(centers)
 #   for i in range(len(nondes_centers)):
 #     centers_full.append((nondes_centers[i]))
 #   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
-#   centers_full, min_full, max_full = coords_full[0:3] 
+#   centers_full, min_full, max_full = coords_full[0:3]
 #   print 'min = ' + repr(min)
 #   print 'max = ' + repr(max)
 #   print 'min_full = ' + repr(min_full)
 #   print 'max_full = ' + repr(max_full)
-#   
-#   
+#
+#
 #   delta_full = (abs(max_full[0] - min_full[0]), abs(max_full[1] - min_full[1]), abs(max_full[2] - min_full[2]))
 #   nx_full = int(delta_full[0] / dx)
 #   ny_full = int(delta_full[1] / dy)
 #   nz_full = int(delta_full[2] / dz)
-#   
+#
 # #   overhead_x = round((nx_full - nx) * 0.5)
 # #   overhead_y = round((ny_full - ny) * 0.5)
 # #   overhead_z = round((nz_full - nz) * 0.5)
-# 
+#
 #   overhead_x_l = int(round(abs(min_full[0] - min[0]) / dx))
 #   overhead_y_l = int(round(abs(min_full[1] - min[1]) / dy))
 #   overhead_z_l = int(round(abs(min_full[2] - min[2]) / dz))
-#   
+#
 #   overhead_x_u = int(round(abs(max_full[0] - max[0]) / dx))
 #   overhead_y_u = int(round(abs(max_full[1] - max[1]) / dy))
 #   overhead_z_u = int(round(abs(max_full[2] - max[2]) / dz))
-#   
+#
 # #   overhead_x_l = 0
 # #   overhead_y_l = 0
 # #   overhead_z_l = 0
-# #   
+# #
 # #   overhead_x_u = 0
 # #   overhead_y_u = 0
 # #   overhead_z_u = 0
 # #   nx2 = nx + 1 + 2 * overhead_x
 # #   ny2 = ny + 1 + 2 * overhead_y
 # #   nz2 = nz + 1 + 2 * overhead_z
-# #   
+# #
 # #   num = (nx2 + 1) * (ny2 + 1) * (nz2 + 1)
 # #   st1_full = zeros((num, 1))
 # #   st2_full = zeros((num, 1))
@@ -475,10 +475,10 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 # #           st3_full[idx, 0] = st3[i]
 # #           if angles <> None:
 # #             ang_full[idx, 3:6] = angles[i, 3:6]
-# #           i += 1        
+# #           i += 1
 # #         idx += 1
 #   st1_full = zeros((len(centers_full) , 1))
-#   st2_full = zeros((len(centers_full), 1)) 
+#   st2_full = zeros((len(centers_full), 1))
 #   st3_full = zeros((len(centers_full), 1))
 #   idx = 0
 #   for i in range(len(st1_full)):
@@ -491,20 +491,20 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #       st1_full[i, 0] = -1.
 #       st2_full[i, 0] = -1.
 #       st3_full[i, 0] = -1.
-#     
+#
 # #   print 'shape angle = ' + repr(len(angles))
 # #   print 'angles = ' + repr(angles[0])
-#   
+#
 #   # add pseudo angles for non-design region
 #   if angles <> None:
 # #     print 'angles = ' + repr(angles.shape)
 #     ang_full = zeros((len(centers_full), 3))
 #     for i in range((ang_full.shape)[0]):
-#       if i < (angles.shape)[0]: 
+#       if i < (angles.shape)[0]:
 #         ang_full[i, :] = angles[i, :]
 #       else:
-#         ang_full[i, :] = zeros((1, 3)) 
-#     
+#         ang_full[i, :] = zeros((1, 3))
+#
 #   print 'st1.shape = ' + repr(st1.shape)
 #   print 'coord.shape = ' + repr(len(coords[0]))
 #   print 'nx =' + repr(nx)
@@ -516,7 +516,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #   print 'overhead_x_l =' + repr(overhead_x_l)
 #   print 'overhead_y_l =' + repr(overhead_y_l)
 #   print 'overhead_z_l =' + repr(overhead_z_l)
-#   
+#
 #   print 'overhead_x_u =' + repr(overhead_x_u)
 #   print 'overhead_y_u =' + repr(overhead_y_u)
 #   print 'overhead_z_u =' + repr(overhead_z_u)
@@ -535,15 +535,15 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 # #         if max[j] < nondes_centers[i][j]:
 # #           max[j] = nondes_centers[i][j]
 # #       non.append(nondes_centers[i])
-# #   
+# #
 # #   nonn = (non, min, max)
 # #   print 'test min' + repr(min)
-# #   print 'test max' + repr(max)  
+# #   print 'test max' + repr(max)
 # #   st1 = ones((len(non), 1))
 # #   st2 = ones((len(non), 1))
 # #   st3 = ones((len(non), 1))
 # #   angles = zeros((len(non), 3))
-#   print 'len of centers = ' + repr(len(centers)) 
+#   print 'len of centers = ' + repr(len(centers))
 #   print 'len of centers_full = ' + repr(len(centers_full))
 #   for i in range(len(centers_full)):
 #     if centers_full[i][0] >= -118. and centers_full[i][0] < -112. and centers_full[i][1] >= -17. and centers_full[i][1] < -11. and centers_full[i][2] >= 30. and centers_full[i][2] < 38.:
@@ -551,19 +551,19 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #       print 'center_full = ' + repr(centers_full[i])
 #       print 'stiff1 = ' + repr(st1_full[i, 0])
 #   print 'center_nondes[75] = ' + repr(nondes_centers[75])
-#   print 'center_nondes[76] = ' + repr(nondes_centers[76])  
+#   print 'center_nondes[76] = ' + repr(nondes_centers[76])
 #   ip_data_full, ip_near_full, out_full, ndim_full = get_interpolation_unstructured(coords_full, 'nearest', st1_full, st2_full, st3_full, -overhead_x_l, -overhead_y_l, -overhead_z_l, nx + overhead_x_u, ny + overhead_y_u, nz + overhead_z_u, dx, dy, dz, min, max, ang_full)
 #   ip_data_full2, ip_near_full2, out_full2, ndim_full2 = get_interpolation_unstructured(coords_full, grad, st1_full, st2_full, st3_full, -overhead_x_l, -overhead_y_l, -overhead_z_l, nx + overhead_x_u, ny + overhead_y_u, nz + overhead_z_u, dx, dy, dz, min, max, ang_full)
 #   ip_data_full3, ip_near_full3, out_full3, ndim_full3 = get_interpolation_unstructured(coords, grad, st1, st2, st3, overhead_x_l, -overhead_y_l, -overhead_z_l, nx + overhead_x_u, ny + overhead_y_u, nz + overhead_z_u, dx, dy, dz, min, max, angles)
-# 
-# 
+#
+#
 #   i = 0
 #   idx = 0
 #   within = 0
 #   invalid = 0
 #   nnx = nx + overhead_x_u + overhead_x_l
 #   nny = ny + overhead_y_u + overhead_y_l
-#   nnz = nz + overhead_z_u + overhead_z_l 
+#   nnz = nz + overhead_z_u + overhead_z_l
 #   for z in range(-overhead_z_l, nz + overhead_z_u):
 #     for y in range(-overhead_y_l, ny + overhead_y_u):
 #       for x in range(-overhead_x_l, nx + overhead_x_u):
@@ -571,7 +571,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 # #         s1_full, s2_full, s3_full = ip_data_full[idx, 0:3]
 # #         s1_full2, s2_full2, s3_full2 = ip_data_full2[idx, 0:3]
 # #         s1_full3, s2_full3, s3_full3 = ip_data_full3[idx, 0:3]
-# # 
+# #
 # #         # assert(s1_full == -1. or s1_full == 1.)
 # #         angle_full = None if angles is None else ip_data_full[idx, 3:6]
 #         s1_full = ip_data_full[idx, 0]
@@ -599,7 +599,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #             else:
 #               e.region = 'nondesign'
 #         else:
-#           e.region = 'void' 
+#           e.region = 'void'
 #         e.type = HEXA8
 #         e.stiff1 = 1.
 #         e.stiff2 = 1.
@@ -611,12 +611,12 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #         e.rotY = 0.
 #         e.rotZ = 0.
 #         ll = (nnx + 1) * (nny + 1) * (z + overhead_z_l) + (nnx + 1) * (y + overhead_y_l) + (x + overhead_x_l)  # lowerleft
-#         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))      
+#         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))
 #         mesh.elements.append(e)
 #         idx += 1
-#   if grad <> 'nearest':  
-#     print str(within) + ' elements out of ' + str(len(out_full)) + ' in convex hull'  
-#   if invalid > 0:  
+#   if grad <> 'nearest':
+#     print str(within) + ' elements out of ' + str(len(out_full)) + ' in convex hull'
+#   if invalid > 0:
 #     print str(invalid) + ' elements out of ' + str(len(out_full)) + ' are considered invalid (shall not be visualized)'
 #   return mesh
 # def create_3d_mesh_unstructured_4(coords, nondes_coords, nodes_force, nodes_support, st1, st2, st3, angles, ip_nx, ip_ny, ip_nz, grad, scale):
@@ -639,44 +639,44 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #   for i in range(len(nondes_centers)):
 #     centers_full.append((nondes_centers[i]))
 #   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
-#   centers_full, min_full, max_full = coords_full[0:3] 
+#   centers_full, min_full, max_full = coords_full[0:3]
 #   print 'min = ' + repr(min)
 #   print 'max = ' + repr(max)
 #   print 'min_full = ' + repr(min_full)
 #   print 'max_full = ' + repr(max_full)
-#   
-#   
+#
+#
 #   delta_full = (abs(max_full[0] - min_full[0]), abs(max_full[1] - min_full[1]), abs(max_full[2] - min_full[2]))
 #   nx_full = int(delta_full[0] / dx)
 #   ny_full = int(delta_full[1] / dy)
 #   nz_full = int(delta_full[2] / dz)
-# 
+#
 #   overhead_x_l = int(round(abs(min_full[0] - min[0]) / dx))
 #   overhead_y_l = int(round(abs(min_full[1] - min[1]) / dy))
 #   overhead_z_l = int(round(abs(min_full[2] - min[2]) / dz))
-#   
+#
 #   overhead_x_u = int(round(abs(max_full[0] - max[0]) / dx))
 #   overhead_y_u = int(round(abs(max_full[1] - max[1]) / dy))
 #   overhead_z_u = int(round(abs(max_full[2] - max[2]) / dz))
-#   
+#
 #   nnx = nx + overhead_x_u + overhead_x_l
 #   nny = ny + overhead_y_u + overhead_y_l
-#   nnz = nz + overhead_z_u + overhead_z_l 
-#   
-#   
+#   nnz = nz + overhead_z_u + overhead_z_l
+#
+#
 #   out = numpy.zeros(((nnx + 1) * (nny + 1) * (nnz + 1), 3))
 #   for z in range(-overhead_z_l, nz + 1 + overhead_z_u):
 #     for y in range(-overhead_y_l, ny + 1 + overhead_y_u):
 #       for x in range(-overhead_x_l, nx + 1 + overhead_x_u):
 #         mesh.nodes.append((min[0] + float(x) * dx, min[1] + float(y) * dy, min[2] + float(z) * dz))
-#         
+#
 #   idx = 0
 #   for z in range(-overhead_z_l, nz + overhead_z_u):
 #     for y in range(-overhead_y_l, ny + overhead_y_u):
 #       for x in range(-overhead_x_l, nx + overhead_x_u):
 #         out[idx] = ((min[0] + 0.5 * dx + float(x) * dx, min[1] + 0.5 * dy + float(y) * dy, min[2] + 0.5 * dz + float(z) * dz))
 #         idx += 1
-#         
+#
 #   i = 0
 #   idx = 0
 #   within = 0
@@ -708,7 +708,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 # #             else:
 # #               e.region = 'nondesign'
 # #           else:
-#           e.region = 'void'    
+#           e.region = 'void'
 #         e.type = HEXA8
 #         e.stiff1 = 1.
 #         e.stiff2 = 1.
@@ -717,13 +717,13 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #         e.rotY = None if angles is None else 0.
 #         e.rotZ = None if angles is None else 0.
 #         ll = (nnx + 1) * (nny + 1) * (z + overhead_z_l) + (nnx + 1) * (y + overhead_y_l) + (x + overhead_x_l)  # lowerleft
-#         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))      
+#         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))
 #         mesh.elements.append(e)
 #         idx += 1
-#         
-#   if grad <> 'nearest':  
-#     print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
-#   if invalid > 0:  
+#
+#   if grad <> 'nearest':
+#     print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'
+#   if invalid > 0:
 #     print str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)'
 #   return mesh
 

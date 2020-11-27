@@ -460,7 +460,7 @@ void EigenValueDriver::PrintResult() {
   }
 }
 
-void EigenValueDriver::StoreResults(unsigned int stepNum, double step_val)
+unsigned int EigenValueDriver::StoreResults(unsigned int stepNum, double step_val)
 {
   // stepNum and step_val are ignored
   LOG_DBG(evd) << "SR step=" << stepNum << " val=" << step_val;
@@ -494,34 +494,38 @@ void EigenValueDriver::StoreResults(unsigned int stepNum, double step_val)
       save_step_++;
     }
   }
-	  for(unsigned int fi=0; fi < eigenValues_.GetSize(); fi++)
-	  {
-	    // Phase 2: calculate eigenmodes
-	    if(save_step_)
-	    {
-	      ptPDE_->GetSolveStep()->SetActStep(fi);
-	      ptPDE_->GetSolveStep()->SetActFreq(eigenValues_[modeOrder_[fi]]);
-	      ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", eigenValues_[modeOrder_[fi]]);
-	      ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
+  for(unsigned int fi=0; fi < eigenValues_.GetSize(); fi++)
+  {
+    // Phase 2: calculate eigenmodes
+    if(save_step_)
+    {
+      ptPDE_->GetSolveStep()->SetActStep(fi);
+      ptPDE_->GetSolveStep()->SetActFreq(eigenValues_[modeOrder_[fi]]);
+      ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", eigenValues_[modeOrder_[fi]]);
+      ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
 
-	      // stupid paraview needs an increasing series of save_value :(
+      // stupid paraview needs an increasing series of save_value :(
 
-	      double save_value = -1.0;
-	      save_value =std::abs(eigenValues_[modeOrder_[fi]]);
+      double save_value = -1.0;
+      save_value =std::abs(eigenValues_[modeOrder_[fi]]);
 
-	      LOG_DBG(evd) <<  "fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
+      LOG_DBG(evd) <<  "fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
 
-	      handler_->BeginStep(save_step_, save_value);
-	      ptPDE_->WriteResultsInFile(save_step_, save_value);
-	      handler_->FinishStep();
+      handler_->BeginStep(save_step_, save_value);
+      ptPDE_->WriteResultsInFile(save_step_, save_value);
+      handler_->FinishStep();
 
-	      if(writeAllSteps_ || isPartOfSequence_)
-	        simState_->WriteStep(save_step_, save_value);
+      if(writeAllSteps_ || isPartOfSequence_)
+        simState_->WriteStep(save_step_, save_value);
 
-	      save_step_++;
-	    }
-	  }
+      save_step_++;
+    }
+  }
 
+  if (!GetResultHandler()->streamOnly)
+    return stepNum-1;
+  else
+    return stepNum;
 }
 // ***************
 //   Sort modes by imaginary part

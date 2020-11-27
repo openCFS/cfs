@@ -826,7 +826,7 @@ namespace CoupledField {
     //convert set to vector
     if(!setToElemDone_){
   #pragma omp parallel for schedule(static,10) num_threads(CFS_NUM_THREADS)
-      for(Integer i=0;i< (Integer) numNodes_;i++){
+      for(int i=0;i< (int) numNodes_;i++){
         element_[i].resize(setElements_[i].size());
         std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
         setElements_[i].clear();

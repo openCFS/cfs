@@ -50,8 +50,9 @@
 #include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
+#include "def_use_embedded_python.hh"
 #include "Optimization/Optimizer/SGP.hh"
-
+#include "Optimization/Optimizer/MMA.hh"
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/Optimizer/IPOPTHolder.hh"
@@ -65,6 +66,9 @@
 #endif
 #ifdef USE_KNITRO
   #include "Optimization/Optimizer/KNITRO.hh"
+#endif
+#ifdef USE_EMBEDDED_PYTHON
+  #include "Optimization/Optimizer/PythonOptimizer.hh"
 #endif
 
 using namespace CoupledField;
@@ -100,7 +104,7 @@ Optimization::Optimization()
   optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
   PtrParamNode header = optInfoNode->Get(ParamNode::HEADER);
   optParamNode = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
-  
+
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = optParamNode->Has("firstStepStatic");
   if(firstStepStatic)
@@ -140,7 +144,7 @@ Optimization::Optimization()
   this->commitStride = optParamNode->Has("commit") ? optParamNode->Get("commit/stride")->As<Integer>() : 1;
   optInfoNode->Get("commit/mode")->SetValue(cm);
   optInfoNode->Get("commit/stride")->SetValue(commitStride);
-  
+
   // write the HALTOPT file, helps to memorize how to write the file
   optInfoNode->Get("haltopt_file")->SetValue(fs::current_path().string() + "/HALTOPT");
 
@@ -248,6 +252,10 @@ void Optimization::PostInitSecond()
          #endif
          break;
 
+    case MMA_SOLVER:
+         baseOptimizer_ = new MMA(this, opt);
+         break;
+
     case SNOPT_SOLVER:
          #ifdef USE_SNOPT
            baseOptimizer_ = new SnOpt(this, opt);
@@ -264,6 +272,14 @@ void Optimization::PostInitSecond()
          #endif
       break;
 
+    case PYTHON_SOLVER:
+         #ifdef USE_EMBEDDED_PYTHON
+           baseOptimizer_ = new PythonOptimizer(this, opt);
+         #else
+           throw Exception("openCFS was compiled w/o USE_EMBEDDED_PYTHON");
+         #endif
+         break;
+
     case SGP_SOLVER:
          baseOptimizer_ = new SGP(this, opt);
          break;
@@ -279,7 +295,7 @@ void Optimization::PostInitSecond()
     case EVALUATE_INITIAL_DESIGN:
          baseOptimizer_ = new EvaluateOnly(this, opt);
          break;
-         
+
     case GRADIENT_CHECK:
          baseOptimizer_ = new GradientCheck(this, opt);
          break;
@@ -294,10 +310,12 @@ void Optimization::PostInitSecond()
   {
     for(unsigned int i = 0; i < n; ++i)
       log.AddToHeader("design");
-
-    if(log.designGradient)
-    for(unsigned int i = 0; i < n; ++i)
-      log.AddToHeader("designGradient");
+  }
+  if(log.designGradient)
+  {
+    for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+      for(unsigned int j = 0; j < n; ++j)
+        log.AddToHeader("designGradient_" + objectives.data[i]->GetName());
   }
   if (this->log.designConstraintGradients)
   {
@@ -305,8 +323,8 @@ void Optimization::PostInitSecond()
     {
       Condition* g = constraints.all[i];
       if(!g->IsLocalCondition())
-        for (unsigned int i = 0; i < n; ++i)
-          log.AddToHeader("constraintGradient");
+        for (unsigned int j = 0; j < n; ++j)
+          log.AddToHeader("constraintGradient" + g->ToString());
     }
   }
   design->SetOptimizer(baseOptimizer_);
@@ -463,9 +481,11 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
+  optimizer.Add(MMA_SOLVER, "mma");
   optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
+  optimizer.Add(PYTHON_SOLVER, "python");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluate");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
@@ -557,7 +577,7 @@ bool Optimization::DoStopOptimization()
     in->Get("reason/msg")->SetValue(user_break_reason);
     return true;
   }
-  
+
   ObjectiveContainer::StoppingRule& stop = objectives.stop;
 
   // check for too long?!
@@ -637,9 +657,9 @@ Optimization* Optimization::CreateInstance()
 
   ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method")->As<string>());
   OptimizationMaterial::System material = ParseSystem();
-  
+
   Optimization* opt = NULL;
-  
+
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
@@ -652,7 +672,7 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
       break;
-      
+
     case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
       break;
@@ -666,7 +686,7 @@ Optimization* Optimization::CreateInstance()
       break;
     }
     break;
-    
+
   // FMO, ShapeGrad, ...
   case ErsatzMaterial::PARAM_MAT:
     if(material == OptimizationMaterial::PIEZOCOUPLING)
@@ -689,10 +709,10 @@ Optimization* Optimization::CreateInstance()
     break;
   default: throw Exception("Optimization not implemented");
   }
-  
+
   // we have to do this, as PostInitSecond does already run CalcObjective/Gradient
   domain->SetOptimization(opt);
-  
+
   return opt;
 }
 
@@ -700,7 +720,7 @@ void Optimization::SolveProblem()
 {
   // one driver is one multisequence step. We do this stuff here
   // and call the driver->StoreResults() multiple times f
-  
+
   ResultHandler* rh = NULL;
 
   if(!IsTransient()){ // transient optimization saves results in a different way
@@ -770,7 +790,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
 
   id.excite = me->IsEnabled() ? excite->GetFullLabel() : "";
   id.adjoint = false;
-  
+
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
     SinglePDE* mech = context->ToPDE(App::MECH);
     assert(false);
@@ -779,7 +799,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
     assert(false);
     // FIXME mech->GetSolveStep()->ReInit();
   }
-                                         
+
   // Do not store the results. This is to be done in CommitIteration
   if(context->IsHarmonic() && excite != NULL)
   {
@@ -1017,7 +1037,6 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
 
   g->SetValue(result);
   return result;
-
 }
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out, Excitation* ev_only_excite)
@@ -1041,7 +1060,11 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
       ex->Apply(true); // switch context if necessary
 
       if(context->DoBuckling())
-        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(0) ); // 0 is first excitation = linear elasticity
+      {
+        unsigned int linElaExIndex = ex->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
+        assert(manager.GetContext(&(me->excitations[linElaExIndex])).driver->GetAnalysisType() == BasePDE::STATIC);
+        ex->SetStressCoefFct( ex->GetStressCoefFctFromExcitation(linElaExIndex) );
+      }
 
       CalcFunction(*ex, g, true);
     }
@@ -1085,16 +1108,18 @@ void Optimization::StoreResults(double step_val)
   // For PiezoSIMP we can do storing there and this method is overwritten
   // and might do nothing
 
+  unsigned int internalWriteCounter;
+
   // this will write the CFS result and history file
   if(!IsTransient())
   { // transient optimization saves results in a different way
     if(step_val == -1)
-      context->GetDriver()->StoreResults(writeCounter_, currentIteration);
+      internalWriteCounter = context->GetDriver()->StoreResults(writeCounter_, currentIteration);
     else
-      context->GetDriver()->StoreResults(writeCounter_, step_val);
+      internalWriteCounter = context->GetDriver()->StoreResults(writeCounter_, step_val);
 
     if (!context->GetDriver()->GetResultHandler()->streamOnly)
-      writeCounter_++;
+      writeCounter_ = internalWriteCounter + 1;
   }
 }
 
@@ -1146,9 +1171,21 @@ PtrParamNode Optimization::CommitIteration()
     // see FinalizeStoreResults() !
   }
   else {
-    context->GetDriver()->GetResultHandler()->streamOnly = true;
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
+      ctxt.GetDriver()->GetResultHandler()->streamOnly = true;
+    }
+
     StoreResults();
-    context->GetDriver()->GetResultHandler()->streamOnly = false;
+
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
+      ctxt.GetDriver()->GetResultHandler()->streamOnly = false;
+    }
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
@@ -1214,6 +1251,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   {
     Function* f = objectives.data[i];
 
+    // set the precision for the output of objective function values
     std::stringstream ss;
     ss << std::setprecision(15) << f->GetValue();
 
@@ -1251,7 +1289,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     // Calculate the max value of multiple displacement constraints
     if((g->GetType() == Function::OUTPUT || g->GetType() == Function::SQUARED_OUTPUT) && g->output_multiple_nodes > 0) {
       max = std::max(max,std::abs(g->GetValue()));
-      std::cout<<"max "<<max<<std::endl;
     }
     if(g->IsLocalCondition())
     {
@@ -1276,8 +1313,12 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       if(out && (g->GetType() != Function::EIGENFREQUENCY || log.plot_ev)) // don't spoil
         *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one (ErsatzMaterial::CommitIteration())
-      if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
-        iteration->Get(g->ToString())->SetValue(value);
+      if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2) {
+        // set the precision for the output of objective function values
+        std::stringstream ss;
+        ss << std::setprecision(15) << value;
+        iteration->Get(g->ToString())->SetValue(ss.str());
+      }
     }
   }
   // max output_constraint value
@@ -1288,24 +1329,27 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
-    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+    for(unsigned int i = 0; i < design->GetNumberOfVariables(); ++i){
       *out << " \t" << d[i];
     }
   }
-  
+
   if(out && log.designGradient){
-    StdVector<double> d;
-    d.Resize(design->GetNumberOfVariables());
-    d.window.Set(d);
-    design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
-    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-      *out << " \t" << d[i];
+    for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+    {
+      Objective* f = objectives.data[i];
+      StdVector<double> d;
+      d.Resize(design->GetNumberOfVariables());
+      d.window.Set(d);
+      design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, f, false);
+      for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
+        *out << " \t" << setprecision(15) << d[j];
     }
   }
-  
+
   if(out && log.designConstraintGradients)
   {
-    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    for(unsigned int i = 0; i < constraints.all.GetSize(); ++i)
     {
       Condition* g = constraints.all[i]; // Now traverse in global mode
       if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
@@ -1317,9 +1361,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         d.Resize(design->GetNumberOfVariables());
         d.window.Set(d);
         design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
-        for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-          *out << " \t" << d[i];
-        }
+        for(unsigned int j = 0; j < design->GetNumberOfVariables(); ++j)
+          *out << " \t" << setprecision(15) << d[j];
       }
     }
   }

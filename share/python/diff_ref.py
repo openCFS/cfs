@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import matplotlib
-from Crypto.Random.random import choice
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 import argparse
 import os
@@ -13,7 +12,7 @@ parser = argparse.ArgumentParser(description = 'Compare columns of a .plot.dat f
 parser.add_argument("first", help=".plot.dat file, default is <directory name>.plot.dat", nargs='?')
 parser.add_argument("second", help="second .plot.dat file, default is <first> but .ref.plot.dat", nargs='?')
 parser.add_argument('--col', help="the column to dispplay", type=int, default=2)
-parser.add_argument('--marker', help="style for current data line", choices=['o'])
+parser.add_argument('--marker', help="style for current data line", choices=['o'], default='o')
 args = parser.parse_args()
 
 first = args.first

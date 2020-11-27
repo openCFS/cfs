@@ -374,7 +374,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->upper_ = 1.0;
   this->lower_ = 1.0;
   this->multimaterial = NULL;
-  this->specialResult.Resize(9, 0.0);
+  this->specialResult.Resize(66, 0.0);
   this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
@@ -387,7 +387,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   if(!elem->extended)
     this->elem->extended = new ExtendedElementInfo;
 
-  this->specialResult.Resize(9, 0.0);
+  this->specialResult.Resize(66, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
   this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
@@ -440,12 +440,12 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
 const Point* DesignElement::GetLocation()
 {
   if(location_ != NULL) return location_;
-  
+
   // calc location
   location_ = new Point();
   // check for ghost elements
   if(elem == NULL) EXCEPTION("location_ not set but elem is NULL");
-    
+
   domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(*location_);
 
   LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
@@ -485,68 +485,37 @@ int DesignElement::GetOptResultIndex(SolutionType st)
 {
   switch(st)
   {
-  case OPT_RESULT_1:
-    return 0;
-  case OPT_RESULT_2:
-    return 1;
-  case OPT_RESULT_3:
-    return 2;
-  case OPT_RESULT_4:
-    return 3;
-  case OPT_RESULT_5:
-    return 4;
-  case OPT_RESULT_6:
-    return 5;
-  case OPT_RESULT_7:
-    return 6;
-  case OPT_RESULT_8:
-    return 7;
-  case OPT_RESULT_9:
-    return 8;
-  case OPT_RESULT_10:
-    return 9;
-  case OPT_RESULT_11:
-    return 10;
-  case OPT_RESULT_12:
-    return 11;
-  case OPT_RESULT_13:
-    return 12;
-  case OPT_RESULT_14:
-    return 13;
-  case OPT_RESULT_15:
-    return 14;
-  case OPT_RESULT_16:
-    return 15;
-  case OPT_RESULT_17:
-    return 16;
-  case OPT_RESULT_18:
-    return 17;
-  case OPT_RESULT_19:
-    return 18;
-  case OPT_RESULT_20:
-    return 19;
-  case OPT_RESULT_21:
-    return 20;
-  case OPT_RESULT_22:
-    return 21;
-  case OPT_RESULT_23:
-    return 22;
-  case OPT_RESULT_24:
-    return 23;
-  case OPT_RESULT_25:
-    return 24;
-  case OPT_RESULT_26:
-    return 25;
-  case OPT_RESULT_27:
-    return 26;
-  case OPT_RESULT_28:
-      return 27;
-  case OPT_RESULT_29:
-      return 28;
-  case OPT_RESULT_30:
-      return 29;
-  case OPT_RESULT_31:
-      return 30;
+  case OPT_RESULT_1: return 0;
+  case OPT_RESULT_2: return 1;
+  case OPT_RESULT_3: return 2;
+  case OPT_RESULT_4: return 3;
+  case OPT_RESULT_5: return 4;
+  case OPT_RESULT_6: return 5;
+  case OPT_RESULT_7: return 6;
+  case OPT_RESULT_8: return 7;
+  case OPT_RESULT_9: return 8;
+  case OPT_RESULT_10: return 9;
+  case OPT_RESULT_11: return 10;
+  case OPT_RESULT_12: return 11;
+  case OPT_RESULT_13: return 12;
+  case OPT_RESULT_14: return 13;
+  case OPT_RESULT_15: return 14;
+  case OPT_RESULT_16: return 15;
+  case OPT_RESULT_17: return 16;
+  case OPT_RESULT_18: return 17;
+  case OPT_RESULT_19: return 18;
+  case OPT_RESULT_20: return 19;
+  case OPT_RESULT_21: return 20;
+  case OPT_RESULT_22: return 21;
+  case OPT_RESULT_23: return 22;
+  case OPT_RESULT_24: return 23;
+  case OPT_RESULT_25: return 24;
+  case OPT_RESULT_26: return 25;
+  case OPT_RESULT_27: return 26;
+  case OPT_RESULT_28: return 27;
+  case OPT_RESULT_29: return 28;
+  case OPT_RESULT_30: return 29;
+  case OPT_RESULT_31: return 30;
   case OPT_RESULT_32: return 31;
   case OPT_RESULT_33: return 32;
   case OPT_RESULT_34: return 33;
@@ -603,6 +572,12 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == SHAPE_MAP_GRAD
       || rd.value == SHAPE_MAP_ORDER
       || rd.value == SHAPE_MAP_CORNER
+      || rd.value == MMA_ASYMPTOTE
+      || rd.value == MMA_LOWER_VAL
+      || rd.value == MMA_UPPER_VAL
+      || rd.value == MMA_OBJ_GRADIANT
+      || rd.value == MMA_CON_GRADIANT_1
+      || rd.value == MMA_CON_GRADIANT_2
       || rd.value == SPLINE_BOX_GRAD_X
       || rd.value == SPLINE_BOX_GRAD_Y
       || rd.value == SPLINE_BOX_GRAD_Z
@@ -703,7 +678,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().weight;
 
-  case NUM_NEIGHBOURS:       
+  case NUM_NEIGHBOURS:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().neighborhood.GetSize();
 
@@ -814,7 +789,7 @@ std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
     else
       ss << " t=" << type.ToString(de->type_);
   }
-  
+
   return ss.str();
 }
 
@@ -997,6 +972,12 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(LEVEL_SET_GRAD_ZN, "levelSetGradZN");
   valueSpecifier.Add(HEAT_NODAL_TRACK_VAL, "heatNodalTrackValue");
   valueSpecifier.Add(TEMP_AT_INTERFACE, "tempAtInterface");
+  valueSpecifier.Add(MMA_ASYMPTOTE, "mmaAsymptote");
+  valueSpecifier.Add(MMA_LOWER_VAL, "mmaLowerVal");
+  valueSpecifier.Add(MMA_UPPER_VAL, "mmaUpperVal");
+  valueSpecifier.Add(MMA_OBJ_GRADIANT, "mmaGradiant_0");
+  valueSpecifier.Add(MMA_CON_GRADIANT_1, "mmaGradiant_1");
+  valueSpecifier.Add(MMA_CON_GRADIANT_2, "mmaGradiant_2");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -1492,7 +1473,7 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
     else
       res = diff[2] < 0 ? Z_P : Z_N;
   }
-  
+
   LOG_DBG2(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
 
   if(res == NONE)

@@ -68,18 +68,18 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "writeResult: " << writeResult;
     LOG_DBG(resHandler) << "isFinal: 0";
     LOG_DBG(resHandler) << "outputDest: " << outDestNames.Serialize();
-    LOG_DBG(resHandler) << "postProcId: " << postProcName << std::endl;
+    LOG_DBG(resHandler) << "postProcId: " << postProcName;
+    LOG_DBG(resHandler) << "-------------------";
 
     // check, if result context was already created
     shared_ptr<ResultContext> actContext;
   
-    if( resultContexts_.find( sol) != resultContexts_.end() ) {
+    if( resultContexts_.find(sol) != resultContexts_.end() ) {
       EXCEPTION( "Context was already found" );
     }
 
     // create new ResultContext
-    actContext = 
-      shared_ptr<ResultContext>( new ResultContext() );
+    actContext = shared_ptr<ResultContext>( new ResultContext() );
     actContext->result = sol;
     actContext->functor =  fnc;
     actContext->sequenceStep = sequenceStep;
@@ -136,7 +136,7 @@ namespace CoupledField {
     if( postProcName != "" ) {
       RegisterResultRec( *actContext, postProcName );
     }
-    LOG_DBG(resHandler) << "Finished registering result" << std::endl;
+    LOG_DBG(resHandler) << "Finished registering result";
   }
   
   void ResultHandler::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps )
@@ -168,7 +168,7 @@ namespace CoupledField {
 
     LOG_DBG(resHandler) << "Begin step " << stepNum;
 
-    // remeber current step values 
+    // remember current step values
     actStep_ = stepNum;
     actStepVal_ = stepVal;
 
@@ -194,7 +194,7 @@ namespace CoupledField {
       it->second->BeginStep(stepNum, stepVal);
     }
     
-    LOG_DBG(resHandler) << "Finished beginning of new step" << std::endl;
+    LOG_DBG(resHandler) << "Finished beginning of new step";
   }
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {

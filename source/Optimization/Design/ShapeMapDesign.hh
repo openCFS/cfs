@@ -10,7 +10,6 @@
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Function.hh"
 
-
 namespace CoupledField
 {
 
@@ -421,8 +420,6 @@ private:
   /** do we have at least a single node shape which is not fixed?.
    * contains a loop, hence cache! */
   bool IsAllNodeFixed() const;
-
-
   /** small helper which gives the start index of the element based on type (default, node or profile) of opt_shape_param_ */
   unsigned int GetFirstOptVarIdx(const Function* f) const;
 
@@ -448,6 +445,13 @@ private:
   /** create a new node, add it as induced to ref_node and set properties */
   ShapeParam* InduceSymmetryNodeHelper(ShapeParam& ref_node);
   void InduceSymmetryNodeHelper(ShapeParam& first, ShapeParam& second);
+
+  /** helper for Levelset */
+  double DensityToLevelSet(int x, int y) const;
+
+  /** export a levelset file in vtk format */
+  void ExportLevelSet() const;
+
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
@@ -703,6 +707,11 @@ private:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
+  /** do we export a levelset file? Shall become a struct with more options.
+   * In the simplest case writes when we export the density. New files with -d else always overwrite. Make smarter! */
+  bool export_leveset_;
+
+  NumInt numInt;
 };
 
 

@@ -1,0 +1,3 @@
+// Define used to check if we want to include python code in exectution (e.g. as optimizer "python")
+
+#cmakedefine USE_EMBEDDED_PYTHON

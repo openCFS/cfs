@@ -4,7 +4,7 @@
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
 #matplotlib.use('Agg')
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 
 import matplotlib.patches
 import matplotlib.pyplot as plt
@@ -396,7 +396,7 @@ def read_xml(xml, set, profile):
   scale = [1.0, float(ny)/nx, float(nz)/nx] # nz=1 ignored in 2D 
   
   shapes = []
-  sq = 'last()' if not set else '@id="' + str(set) + '"'
+  sq = 'last()' if set == None else '@id="' + str(set) + '"'
   ref = 0 # the current ref id to read the shape from, incremented at end of loop
   query = '//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]'
   list = xml.xpath(query) 
@@ -415,7 +415,7 @@ def read_xml(xml, set, profile):
         shape.a.append(v)
         shape.el.append(nr)
         # works currently only for 2D. This is the running coordinate
-        print(idx/len(list))
+        #print(idx/len(list))
         
       else:
         if t == 'node':

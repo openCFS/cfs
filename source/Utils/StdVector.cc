@@ -201,7 +201,8 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Import(const TYPE* source, size_type size)
   {
-    if(source == NULL) EXCEPTION("cannot import NULL");
+    if(source == NULL)
+      EXCEPTION("cannot import NULL");
 
     // Reserve and Resize do stuff we don't need
     if(data_ != NULL) delete[] data_;
@@ -212,7 +213,20 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size; i++)
       data_[i] = source[i];
   }
-  
+
+  template<class TYPE>
+  void StdVector<TYPE>::Assign(TYPE* source, size_type size, bool delete_old_data)
+  {
+    assert(!(source == NULL && size != 0));
+    assert(!(source != NULL && size == 0));
+
+    if(delete_old_data && data_ != NULL)
+      delete[] data_;
+
+    data_ = source;
+    size_ = size;
+    capacity_ = size;
+  }
 
   // *************
   //   Push_back

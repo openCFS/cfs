@@ -51,7 +51,7 @@ namespace CoupledField
      Function* function;
      Excitation* excite;
    };*/
-   
+
   /** This is a general optimization object. The optimiziation loop is around
    *  Driver::SolveProblem() and as such general. Note convention,
    * that Optimization solves an optimization problem and an Optimizer is the
@@ -85,8 +85,8 @@ namespace CoupledField
          void SolveProblem();
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
-                        FEAS_PP_SOLVER, SGP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER, PYTHON_SOLVER,
+                        FEAS_PP_SOLVER, MMA_SOLVER, SGP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
@@ -109,7 +109,7 @@ namespace CoupledField
 
         /** Evaluates the cost-function gradient w.r.t. the design space. Apply SetDesignSpace() first!
          * Writes to DesingElement.objective_gradient.
-         * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
+         * Does a multiplication with Excitation::GetWeightedFactor(). Note, that
          * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
         virtual void CalcObjectiveGradient(StdVector<double>* grad_out, Excitation* ev_only_excite = NULL);
@@ -146,14 +146,14 @@ namespace CoupledField
          * and in the line search case we need only states and not the adjoint
          * @see Function::IsAdjointBased() */
         virtual void SolveAdjointProblems(Excitation* excite = NULL);
-        
+
         /** Solves the Adjoint problem, for given excite and objective
          * This does the real work
          * Only Bastian had an implementation for transient and tracking in Optimization.cc
          * @param excite multi-excitation
          * @param cost multi-objective */
         virtual void SolveAdjointProblem(Excitation* excite, Function* f) { assert(false); }
-        
+
         /** Sets the rhs for the adjoint, called by assemle */
         // only for transient and tracking
         // virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
@@ -185,14 +185,14 @@ namespace CoupledField
         /** are we in transient optimization?
          * FIXE -> Context */
         static bool IsTransient();
-        
+
         /** in transient, first step can be static, so that start displacement can depend on material parameters */
         bool IsFirstTransientStepStatic() const {return firstStepStatic; };
-        
+
         /** in transient, first step can be static and have a different weight for the objective, this is the weight
          * converted so that it just has to be multiplied */
         double GetStepWeight(unsigned int ts) const;
-        
+
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return me; }
 
@@ -226,13 +226,13 @@ namespace CoupledField
 
         /** Manages the context. Enables to deal with multi sequence optimization, e.g. for different pdes */
         static ContextManager manager;
-        
+
         /** is called from transientDriver after each time step is finished, to store the solution */
 //        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
-        
+
         /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
   //      virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
-        
+
         /** Helper to convert from natural solution/design to application
          * @param DesignElement::DENSITY -> App::MECH, DesignElement::POLARIZATION -> App::ELEC */
 //        static App::Type ToApp(DesignElement::Type dt);
@@ -343,15 +343,15 @@ namespace CoupledField
          * In the harmonic magnetic coupling we have multiple harmonic extiations of the same frequencies, however we need all forward states first, hence return false */
         bool DoSolveAdjointWithState() const;
 
-        /** The way the date is stored. Forward/ adjoint/ both and stride. 
+        /** The way the date is stored. Forward/ adjoint/ both and stride.
          * Set in the <commit> element */
         CommitMode commitMode_;
 
          /* Set in the <commit> element.
           * stride = 0 corresponds to infinity (first and last)
          * stride = 1 is every iteration
-         * stride = 2 is the first, the third, the fifth and the last */ 
-        int commitStride; 
+         * stride = 2 is the first, the third, the fifth and the last */
+        int commitStride;
 
         /** The current iteration, 0 is the first run. Note that the state problem might be
          * executed more often (-> line search).
@@ -381,7 +381,7 @@ namespace CoupledField
 
         /** is the first step static */
         bool firstStepStatic;
-        
+
         /** if the first step is static, this weight specifies how much the other steps add to the functional */
         double otherStepWeight;
 
@@ -415,4 +415,3 @@ namespace CoupledField
 
 
 #endif /*OPTIMIZATION_HH_*/
-

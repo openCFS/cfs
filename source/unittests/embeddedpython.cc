@@ -1,0 +1,208 @@
+#define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
+//#include <Python.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/core/include/numpy/arrayobject.h>
+#include <Python.h>
+
+
+#include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
+#include <iostream>
+#include "Utils/StdVector.hh"
+#include <def_use_embedded_python.hh>
+
+#ifdef USE_EMBEDDED_PYTHON
+  #include "MatVec/Vector.hh"
+#endif
+
+using namespace CoupledField;
+
+
+static int callback_val=5;
+
+/* expects a long of value 4 and returns callback_val which is 5 */
+static PyObject* cfs_val(PyObject *self, PyObject *args)
+{
+  long c;
+  PyArg_ParseTuple(args, "l", &c);
+  assert(c == 4);
+
+  return PyLong_FromLong(callback_val);
+}
+
+
+/** get a numpy array (dim = 1) and a long with the size of the array */
+static PyObject* cfs_vec(PyObject *self, PyObject *args)
+{
+  PyArrayObject *vec1;
+  PyArrayObject *vec2;
+  long test;
+  std::cout << "cfs_vec: args= " << PyTuple_GET_SIZE(args) << std::endl;
+  PyArg_ParseTuple(args, "O!|O!|n", &PyArray_Type, &vec1,&PyArray_Type, &vec2, &test);
+  BOOST_TEST(PyArray_NDIM(vec1) == 1);
+  BOOST_TEST(PyArray_TYPE(vec1) == NPY_DOUBLE);
+  int n = PyArray_DIM(vec1,0);
+  BOOST_TEST(n == test);
+  //  BOOST_TEST(PyArray_DIM((PyArrayObject*) obj,0) == n);
+
+  return PyLong_FromLong(n);
+}
+
+
+static PyMethodDef cfs_methods[] = {
+    {"val", cfs_val, METH_VARARGS, "Shall return 5"},
+    {"vec", cfs_vec, METH_VARARGS, "get array and size, return size+1"},
+    {NULL, NULL, 0, NULL}
+};
+
+static PyModuleDef cfs_modules = {
+    PyModuleDef_HEAD_INIT, "cfs", NULL, -1, cfs_methods, NULL, NULL, NULL, NULL
+};
+
+static PyObject* PyInit_cfs(void)
+{
+  // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
+  import_array();
+
+  return PyModule_Create(&cfs_modules);
+}
+
+
+BOOST_AUTO_TEST_CASE(embedded_python)
+{
+  // needs to be done before Py_Initialize
+  PyImport_AppendInittab("cfs", &PyInit_cfs);
+
+  Py_Initialize();
+
+  PyRun_SimpleString("import os; print('embedded python: runs in ' + os.getcwd())");
+
+  // test system
+  PyObject* version = PySys_GetObject("version");
+  std::cout << "pyobject version=" << version << std::endl;
+  if(!version)
+    PyErr_Print();
+
+  const char* c_str = PyUnicode_AsUTF8(version);
+  std::cout << "version c_str=" << c_str << std::endl;
+
+  Py_XDECREF(version);
+
+  // assume we are in the build directory
+  boost::filesystem::path test = boost::filesystem::path("../source/unittests/embeddedpython.py");
+  std::cout << "test filename=" << test.filename() << std::endl;
+  std::cout << "test path=" << test.parent_path()  << std::endl; // is "" in case of test = "embeddedpython.py"
+  boost::filesystem::path path = boost::filesystem::absolute(test.parent_path()); // is pwd for ""
+  std::cout << "test absolute path=" << path  << std::endl;
+  std::cout << "test no extension=" << boost::filesystem::change_extension(test.filename(), "") << std::endl;
+
+
+
+  // add it to the system path
+  if(boost::filesystem::is_directory(path))
+  {
+    PyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append
+    PyList_Append(sysPath, PyUnicode_FromString(path.string().c_str()));
+  }
+  else
+    std::cout << "WARNING: not running in build directory, make sure */source/unittest is in PYTHONPATH" << std::endl;
+
+  // https://docs.python.org/3.8/extending/embedding.html
+  PyObject* pModule = PyImport_ImportModule("embeddedpython");
+
+  if(pModule != NULL)
+  {
+    // call python function
+    PyObject* pFunc = PyObject_GetAttrString(pModule, "inc_a");
+    assert(pFunc && PyCallable_Check(pFunc));
+    PyObject* pValue = PyObject_CallObject(pFunc, NULL);
+    BOOST_TEST(pValue);
+    BOOST_TEST(PyLong_AsLong(pValue) == 1);
+    std::cout << "inc_c returned: " << PyLong_AsLong(pValue) << std::endl;
+    Py_XDECREF(pValue);
+    Py_XDECREF(pFunc); // could be NULL
+
+    // get numpy object from python
+    // https://stackoverflow.com/questions/43437885/how-do-i-access-a-numpy-array-in-embedded-python-from-c
+    PyArrayObject* array = (PyArrayObject*) PyObject_GetAttrString(pModule, "A");
+    BOOST_TEST(array);
+    std::cout << "dims: " << PyArray_NDIM(array) << ":" << PyArray_DIM(array,0) << "," << PyArray_DIM(array,1) << std::endl;
+    BOOST_TEST(PyArray_NDIM(array) == 2);
+    for(int i = 0; i < PyArray_DIM(array,0); i++)
+      for(int j = 0; j < PyArray_DIM(array,1); j++)
+        (*((double*) PyArray_GETPTR2(array, i,j)))++;
+        // std::cout << i << ":" << j << " -> " << *((double*) PyArray_GETPTR2(array, i,j)) << std::endl;
+    Py_XDECREF(array);
+
+    PyObject* pA = PyObject_GetAttrString(pModule, "print_A");
+    assert(pA && PyCallable_Check(pA));
+    PyObject_CallObject(pA, NULL);
+    Py_DECREF(pA);
+
+    // call python method with more than one return value
+    PyObject* mv = PyObject_GetAttrString(pModule, "many_values");
+    assert(mv && PyCallable_Check(mv));
+    PyObject* arg = PyTuple_New(2);
+    PyTuple_SetItem(arg, 0, PyLong_FromLong(6));
+    PyTuple_SetItem(arg, 1, PyFloat_FromDouble(3.14));
+    PyObject* ret = PyObject_CallObject(mv, arg);
+    Py_XDECREF(arg); // I guess val1 and val1 are decremented here?!
+    if(!ret)
+      PyErr_Print();
+    BOOST_TEST_REQUIRE(ret);
+    BOOST_TEST_REQUIRE(PyTuple_Size(ret) == 2);
+
+    // test Vector and numpy conversion
+    PyObject* V = PyObject_GetAttrString(pModule, "V");
+    if(!V)
+      PyErr_Print();
+    Vector<double> v(V,true);
+    std::cout << v.ToString() << std::endl;
+
+    // test for numpy type
+    PyObject* a = (PyObject*) PyObject_GetAttrString(pModule, "a");
+
+    if(!a)
+      PyErr_Print();
+
+    std::cout << "a as long is " << PyLong_AsLong(a) << std::endl;
+    // std::cout << "isinstance : " << PyObject_IsInstance(a,(PyObject*) &PyArray_Type) << std::endl;
+    // std::cout << "check a: " << PyArray_Check(a) << std::endl;
+    Py_XDECREF(a);
+
+
+    // test dictionary
+    PyObject* dict = PyDict_New();
+    PyDict_SetItemString(dict, "franz", PyUnicode_FromString("franzl"));
+    PyDict_SetItemString(dict, "hans", PyLong_FromLong(5));
+    arg = PyTuple_New(1);
+    PyTuple_SetItem(arg, 0, dict);
+    pFunc = PyObject_GetAttrString(pModule, "print_dict");
+    assert(pFunc && PyCallable_Check(pFunc));
+    pValue = PyObject_CallObject(pFunc, arg);
+    Py_XDECREF(arg);
+    Py_XDECREF(pValue);
+    Py_XDECREF(pFunc);
+
+
+
+    // PyArray_Zeros, PyArray_SimpleNew(), PyArray_SimpleNewFromData and PyArray_Resize don't work.  :(
+    // PyObject* resized = PyArray_Resize(vec, &ad, 0, NPY_CORDER);
+    //PyObject* new_vec = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data.GetPointer());
+
+
+    Py_DECREF(pModule); // we know it is not NULL
+  }
+  else
+  {
+    PyErr_Print();
+    std::cout << "make sure the current directory is in the PYTHONPATH!";
+    assert(false);
+  }
+
+  Py_Finalize();
+}
+
+
+
+

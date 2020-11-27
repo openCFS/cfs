@@ -485,6 +485,13 @@ MACRO(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CC} "${SCL_CC}")
     SET(ENV{CXX} "${SCL_CXX}")
     SET(ENV{FC} "${SCL_FC}")
+    
+  # we call this GCC8 insteaf of GCC-8 as we don't use the scl infrastructure as with GCC-6/7  
+  elseif(${COMPILER_TYPE} STREQUAL "GCC8")
+    set(ENV{CC} "gcc-8")
+    set(ENV{CXX} "g++-8")
+    set(ENV{FC} "gfortran-8")
+    
 
   ELSEIF(${COMPILER_TYPE} STREQUAL "CLANG")
     SET(ENV{CC} "clang")
@@ -506,7 +513,7 @@ MACRO(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{FC} "mpif90")
 
   ELSE()
-    MESSAGE("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG, ICC or MPI, not for ${COMPILER}!")
+    MESSAGE("can only set compiler environment for GCC, GCC-6, GCC-7, GCC8, CLANG, ICC or MPI, not for ${COMPILER}!")
   ENDIF()
 
   SET(ENV{LC_MESSAGES} "C")

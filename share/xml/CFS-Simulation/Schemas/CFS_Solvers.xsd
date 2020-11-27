@@ -1428,7 +1428,7 @@
          </xsd:simpleType>
         </xsd:attribute>
         <!-- shall we scale the mass matrix by 1/m[1,1]?. Rescaling is done automatically -->
-        <xsd:attribute name="scale_mass" type="xsd:boolean" use="optional" default="true"/>
+        <xsd:attribute name="scale_B" type="xsd:boolean" use="optional" default="true"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

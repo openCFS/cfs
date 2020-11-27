@@ -60,6 +60,7 @@
 
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Context.hh"
+#include "Optimization/Excitation.hh"
 
 namespace CoupledField {
 
@@ -680,22 +681,43 @@ namespace CoupledField {
           std::cout << "\n" << "++ " << "WARNING no fixed BC found. This can lead to non positive definite stiffness matrix" << "\n";
         }
 
-        // check if current region has referencLoad
-        if (loadNode) {
+        PtrParamNode variant_referenceLoadNode;
+
+        if (loadNode)
           referenceLoadNode = loadNode->GetByVal("referenceLoad", "region", regionName.c_str(), ParamNode::PASS);
+
+        if (referenceLoadNode)
+          variant_referenceLoadNode = referenceLoadNode->Get("referenceDisplacement", ParamNode::PASS);
+        if (variant_referenceLoadNode) {
+          // generate displacement dependent stiffness matrix
+
+          // TODO currently only conventional buckling analysis is implemented
+          // see nonLinearStressOperator for implementation
+          // add displacement dependent matrix to GEOMETRIC_STIFFNESS Matrix
+          // (!! set bilinear factor to -1 !!)
+          EXCEPTION("referenceLoad with displacement is not yet implemented.")
+          refLoadFound = true;
         }
-        if (referenceLoadNode) {
-          PtrParamNode variant_referenceLoadNode;
-
+        else {
           // generate stress dependent stiffness matrix
-          variant_referenceLoadNode = referenceLoadNode->Get("referenceStress", ParamNode::PASS);
-          if (variant_referenceLoadNode) {
-            BaseBDBInt *preStressInt = NULL;
+          PtrCoefFct preStressFct = NULL;
 
-            PtrCoefFct preStressFct = CreatePreStressFct(false, referenceLoadNode);
-
+          if (domain->GetOptimization()) {
+            preStressFct = CreatePreStressFct(false, NULL);
+            refLoadFound = true;
+          }
+          else {
+            // check if current region has referencLoad
+            if (referenceLoadNode)
+              variant_referenceLoadNode = referenceLoadNode->Get("referenceStress", ParamNode::PASS);
+            if (variant_referenceLoadNode) {
+              preStressFct = CreatePreStressFct(false, referenceLoadNode);
+              refLoadFound = true;
+            }
+          }
+          if (preStressFct != NULL) {
             // factor = -1 to account for different sign in the general eigenvalue formulation [A+w(-B)]x = 0 => Ax = wBx
-            preStressInt = GetPreStressIntegrator(preStressFct, actRegion, false, -1.0);
+            BaseBDBInt* preStressInt = GetPreStressIntegrator(preStressFct, actRegion, false, -1.0);
 
             preStressInt->SetName("PreStressInt");
             preStressInt->SetFeSpace(mySpace);
@@ -706,25 +728,11 @@ namespace CoupledField {
             stressContext->SetFeFunctions(myFct, myFct);
 
             assemble_->AddBiLinearForm(stressContext);
-            refLoadFound = true;
-          }
-
-          // generate displacement dependent stiffness matrix
-          variant_referenceLoadNode = referenceLoadNode->Get("referenceDisplacement", ParamNode::PASS);
-          if (variant_referenceLoadNode) {
-            // TODO currently only conventional buckling analysis is implemented
-            // see nonLinearStressOperator for implementation
-            // add displacement dependent matrix to GEOMETRIC_STIFFNESS Matrix
-            // (!! set bilinear factor to -1 !!)
-
-            EXCEPTION("referenceLoad with displacement is not yet implemented.")
-
-            refLoadFound = true;
           }
         }
-        if (refLoadFound == false) {
+
+        if (refLoadFound == false)
           EXCEPTION("No referenceLoad defined.")
-        }
       }// end Geometric Stiffness Matrix
 
     }
@@ -3223,7 +3231,7 @@ namespace CoupledField {
     if (subType_ == "2.5d")
       dimPre = 3;
     
-    if(stressNode->Has("prescribedLHS")){
+    if(stressNode != NULL && stressNode->Has("prescribedLHS")){
 
       inputNode = stressNode->Get("prescribedLHS",ParamNode::PASS);
       //TODO: This does not support coordinate systems. If this is needed,
@@ -3273,37 +3281,38 @@ namespace CoupledField {
       return coef;
 
     }
-    else if(stressNode->Has("computeLHS") || stressNode->Has("referenceStress")){
+    else if(stressNode == NULL || stressNode->Has("computeLHS") || stressNode->Has("referenceStress")){
 
-      if (stressNode->Has("computeLHS")) {
-        inputNode = stressNode->Get("computeLHS",ParamNode::PASS);
-      } else if(stressNode->Has("referenceStress")) {
-        inputNode = stressNode->Get("referenceStress",ParamNode::PASS);
-      }
-      
-      UInt aSStep = 0;
-      //redefine if user passes the argument
-      if( inputNode->Get("sequenceStep",ParamNode::PASS) ){
-        aSStep = inputNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
-      }
-      
-      if(aSStep < 1){
-        // GetPreceeding sequence step
-        aSStep = domain_->GetDriver()->GetActSequenceStep();
-        aSStep--;
-      }
-
-      //only real valued coefFunctions supported
+      // only real valued coefFunctions supported!
       PtrCoefFct stressVec;
-      if(!domain->GetOptimization()) {
-        stressVec = GetStressCoefFromSeqStep(aSStep);
-      } else {
+
+      if(stressNode == NULL) {
         // dummy for PostInit
         // we update this with the actual values in each iteration by Excitation::SetStressCoefFct
         stressVec.reset(new CoefFunctionConst<Double>());
         Vector<Double> vec(dimPre == 2 ? 3 : 6);
         vec.Init(0.0);
         dynamic_cast< CoefFunctionConst<Double>* > (stressVec.get())->SetVector(vec);
+      }
+      else {
+        if (stressNode->Has("computeLHS"))
+          inputNode = stressNode->Get("computeLHS",ParamNode::PASS);
+        else if(stressNode->Has("referenceStress"))
+          inputNode = stressNode->Get("referenceStress",ParamNode::PASS);
+
+        UInt aSStep = 0;
+
+        //redefine if user passes the argument
+        if( inputNode->Get("sequenceStep",ParamNode::PASS) )
+          aSStep = inputNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
+
+        if(aSStep < 1) {
+          // GetPreceeding sequence step
+          aSStep = domain_->GetDriver()->GetActSequenceStep();
+          aSStep--;
+        }
+
+        stressVec = GetStressCoefFromSeqStep(aSStep);
       }
 
       std::map<std::string, PtrCoefFct> var;

@@ -1,13 +1,13 @@
 #ifndef FILE_BUCKLING_DRIVER_HH
 #define FILE_BUCKLING_DRIVER_HH
 
-#include "SingleDriver.hh"
 #include <fstream>
 #include <iterator>
 
+#include "SingleDriver.hh"
 #include "Domain/Domain.hh"
-#include "OLAS/solver/BaseEigenSolver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
 
@@ -54,7 +54,7 @@ class BucklingDriver: public virtual SingleDriver {
 
     /** @see BaseDriver::StoreResults()
      *  step_val has no effect! */
-    void StoreResults(UInt stepNum, double step_val);
+    unsigned int StoreResults(UInt stepNum, double step_val);
 
     void SetToStepValue(UInt stepNum, Double stepVal) {
       // ensure that this method is only called if simState has input
@@ -68,15 +68,21 @@ class BucklingDriver: public virtual SingleDriver {
     }
 
     SingleVector* eigenValues;
-    SingleVector* errBounds;
+    SingleVector* errors;
 
   private:
 
     // print eigenValues to the console
     void PrintResult();
 
+    // setup the eigenvalue solver
+    void SetupSolver();
+
     // calculate eigen values and (implicitly) eigen modes
-    void CalcValues();
+    void CalcValues(unsigned int recursionCount = 0);
+
+    // store mode in algebraic system solution
+    void StoreMode(unsigned int index);
 
     // export eigenmodes
     void ExportModes();
@@ -84,7 +90,11 @@ class BucklingDriver: public virtual SingleDriver {
     // sort modes with ascending eigenvalues
     void SortModes(bool inAbs);
 
-    Vector<Double> GetRealPartOfLoadFactors();
+    // extracts the real part of the load factor vector
+    // if loadFactors_ is already real, this is just a cheap cast operation
+    Vector<Double> GetRealPartOfVector(SingleVector* vec);
+
+    BaseEigenSolver* solver;
 
     BaseEigenSolver::EigenSolverType solverType_;
 
@@ -118,9 +128,6 @@ class BucklingDriver: public virtual SingleDriver {
 
     // order of the sorted modes
     StdVector<int> modeOrder_;
-
-    //! needed parameter see calcMode()
-    unsigned int save_step_;
 
     //! input parameter, set method of Mode sizing
     BaseEigenSolver::ModeNormalization modeNormalization_;

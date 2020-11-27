@@ -6,6 +6,7 @@
 
 #include <def_expl_templ_inst.hh>
 #include <def_build_type_options.hh>
+#include <def_use_embedded_python.hh>
 
 #include "Utils/tools.hh"
 #include "Utils/boost-serialization.hh"
@@ -14,6 +15,15 @@
 #include "exprt/xpr1.hh"
 #else
 #include "promote.hh"
+#endif
+
+
+
+#ifdef USE_EMBEDDED_PYTHON
+  #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
+  #include <Python.h>
+#else
+  struct PyObject;
 #endif
 
 namespace CoupledField {
@@ -86,8 +96,7 @@ template<typename T> class ElemStoreSol;
 
       data_ = size_ > 0 ? new T[size_] : NULL;
 
-      for(unsigned int i = 0; i < size_; ++i)
-        data_ [i] = origVec.data_[i];
+      std::copy_n(origVec.data_, size_, data_);
     }
 
     /** constructs a vector out of two vectors with the size of both vectors */
@@ -106,6 +115,38 @@ template<typename T> class ElemStoreSol;
         data_[lower.size_ + i] = upper.data_[i];
     }
 
+    /** construct a data with external data. Either copy the date or be a frontend for it.
+     * @param entries when transferMem note, that the const is casted away
+     * @param copy if false point to external data and refuse resizing and deletion */
+    Vector(UInt length, const T* entries, bool copy)
+    {
+      memBelongsToMe_ = copy;
+      // if copy we start with 0 and copy afterwards via Fill()
+      size_ = !copy ? length : 0;
+      capacity_ = size_;
+      data_ = !copy ? const_cast<T*>(entries) : NULL;
+
+      if(copy)
+        Fill(entries, length);
+    }
+
+     Vector(UInt length, T* entries, bool copy)
+     {
+       memBelongsToMe_ = copy;
+       // if copy we start with 0 and copy afterwards via Fill()
+       size_ = !copy ? length : 0;
+       capacity_ = size_;
+       data_ = !copy ? entries : NULL;
+
+       if(copy)
+         Fill(entries, length);
+     }
+
+    /** construct a vector from a numpy array vector (dim=1).
+     * Creates own data and copies the content.
+     * @param obj numpy array which is validated
+     * @param decref shall the object referecence counter be decremented */
+    Vector(PyObject* obj, bool decref);
 
     //! Destructor
     
@@ -208,7 +249,7 @@ template<typename T> class ElemStoreSol;
       memBelongsToMe_ = true;
     }
 
-    /** Fills the vector with data.
+    /** Fills the vector with data. Does a resize
      * The data is copied */
     void Fill(const T* source, unsigned int size);
 
@@ -216,6 +257,9 @@ template<typename T> class ElemStoreSol;
      * @param start this value will be at the first position
      * @param increment second = start + increment, ... */
     void Fill(const T& start, const T& increment);
+
+    /** Resize and fill the object with a numpy array (dim=1) object */
+    void Fill(PyObject* obj, bool decref = true);
 
     //@}
 
@@ -500,6 +544,9 @@ template<typename T> class ElemStoreSol;
     //! rows contain the vector's entries, so row (k+1) contains entry
     //! \f$a_k\f$.
     virtual void Export(const std::string& fname, BaseMatrix::OutputFormat format ) const;
+
+    /** writes the content of the vector to a numpy array which needs to have proper size and type */
+    void Export(PyObject* obj);
 
     //@}
 

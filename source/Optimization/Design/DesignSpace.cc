@@ -4,6 +4,10 @@
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
@@ -11,7 +15,6 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
-#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -246,7 +249,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           domain->GetGrid()->GetElems(elems, reg_data[r]);
           unsigned int n = elems.GetSize();
           std::string reg = regNames[reg_data[r]];
-	
+
           bool design_all = design_reg == "all";
           if(design_all || design_reg == reg)
           {
@@ -430,7 +433,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
       throw Exception("In 'design' give 'lower' or 'pyhical_lower'");
     return pn->Get("lower")->As<double>();
   }
-     
+
   // we have to find the lower bound by the transfer function.
   assert(tf != NULL);
 
@@ -928,7 +931,6 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
     retMat.Add(bimat_factor, other); // rho^p * E_l + (1-rho)^p * E_u
   }
 
-
   LOG_DBG2(designSpace) << "APDEM el="  << elem->elemNum << " f=" << factor << " bf=" << bimat_factor;
   LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString(2);
   return true;
@@ -947,18 +949,40 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   if(idx == -1)
     return false;
 
+  //LOG_DBG3(designSpace) << "APD: form name=" << coef->GetForm()->GetName() << ", dir=" << DesignElement::type.ToString(coef->GetMaterialDerivative());
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
   if(Optimization::context->dm != NULL) // easy to extend to piezo and other stuff!
   {
     if(DoMSFEM())
     {
       assert(IsRegular());
-      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
+      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast<Matrix<Double>&>(retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
-    return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
-  }
 
-  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
+    // if we do prestressing (e.g. in buckling analysis), the tensor is never constructed but instead generated from stresses
+    if(coef->GetForm()->GetName() != "PreStressInt")
+      return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+
+    if(coef->GetMaterialDerivative() != DesignElement::NO_DERIVATIVE)
+    {
+      // We have "PreStressInt" and param-mat -> we have to set the direction for the stress computation
+      // stress = D' * B * u, i.e. stress is a nested coeffunction
+      // In OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
+      // and we do it here for the inner one (resulting in D')
+      // Only then, `coef->orgMat->GetTensor(retMat, *lpm)` will use the correct tensor D' for retMat = stress
+      CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(coef->orgMat.get());
+      assert(stressTens != NULL);
+      std::map<std::string, PtrCoefFct>& map = stressTens->GetCoefFcts();
+      assert(map.find("a") != map.end());
+      CoefFunctionFlux<Complex>* stressVec = dynamic_cast<CoefFunctionFlux<Complex>*>(map["a"].get());
+      assert(stressVec != NULL);
+      std::map<RegionIdType, BaseBDBInt* > forms = stressVec->GetForms();
+      BaseBDBInt* bdb = forms[lpm->ptEl->regionId];
+      assert(bdb != NULL);
+      assert(bdb->GetCoef());
+      dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get())->SetToMaterialDerivative(coef->GetMaterialDerivative());
+    }
+  }
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
   if (coef->GetForm()->GetName() == "PreStressInt")
@@ -969,8 +993,14 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   double factor = -4711; // set below
   double bimat_factor = -1.0;
 
-  // we store the original material tensor in retMat
-  coef->orgMat->GetTensor(retMat, *lpm);
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
+
+  Optimization* opt = domain->GetOptimization();
+  if(app == App::BUCKLING && opt && opt->me && opt->me->DoHomogenization())
+    dynamic_cast<ErsatzMaterial*>(opt)->CalcStressesForBucklingHomogenization(dynamic_cast<Matrix<Double>&>(retMat), lpm);
+  else
+    // we store the original material tensor in retMat
+    coef->orgMat->GetTensor(retMat, *lpm);
 
   if(app == App::MAG)
   {
@@ -995,6 +1025,33 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     // we already applied the ErsatzMaterialFactor in the calculation of stresses
     // @see CoefFunctionFlux::GetVector
     factor = 1.0;
+
+    ParamNodeList sequenceSteps = domain->GetParamRoot()->GetList("sequenceStep");
+    bool stressFiltering = false;
+    for (unsigned int i=0; i<sequenceSteps.GetSize(); ++i)
+      if (sequenceSteps[i]->Get("analysis")->Has("buckling"))
+        if (sequenceSteps[i]->Get("analysis")->Get("buckling")->Get("stressFilter")->As<bool>())
+          stressFiltering = true;
+
+    if (stressFiltering)
+    {
+      // stress filtering
+      // for each element, where density < 0.1, we set the stress to 10^-15
+      DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, false);
+      if(de)
+      {
+        assert(de->GetType() == BaseDesignElement::DENSITY);
+        double density = de->GetDesign(BaseDesignElement::PLAIN);
+        if(density < 0.1)
+        {
+          unsigned int ncols = retMat.GetNumCols();
+          for (unsigned int i=0; i<ncols; ++i)
+              for (unsigned int j=0; j<ncols; ++j)
+                if (std::abs(retMat(i,j)) > 1e-10)
+                  retMat(i,j) = pow(10,-15);
+        }
+      }
+    }
   }
   else
   {
@@ -1182,12 +1239,12 @@ double DesignSpace::GetErsatzMaterialFactor(DesignElement* de, App::Type applic,
   double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
   LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum
       << " trans to " << DesignElement::ToString(trans,true)
-  << "/" << Optimization::application.ToString(applic) << " for "
-  << DesignElement::type.ToString(dt) << ": "
-  << TransferFunction::type.ToString(tf->GetType()) << "("
-  << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-  << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
-  << " -> " << transformed;
+      << "/" << Optimization::application.ToString(applic) << " for "
+      << DesignElement::type.ToString(dt) << ": "
+      << TransferFunction::type.ToString(tf->GetType()) << "("
+      << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
+      << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
+      << " -> " << transformed;
   return transformed;
 }
 
@@ -1539,6 +1596,17 @@ int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) co
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
 
+void DesignSpace::WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u) const
+{
+  x_l.Resize(GetNumberOfVariables());
+  x_u.Resize(GetNumberOfVariables());
+  // TODO remove the ugly pointer variant!
+  WriteBoundsToExtern(x_l.GetPointer(), x_u.GetPointer());
+}
+
+
+
+
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions[0].GetSize();
@@ -1572,6 +1640,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   // had to weaken this condition for DESIGN_TRACKING in debug mode
   assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
   assert(f != NULL); // only constraints can have sparse Jacobians
+  assert(!f->IsObjective()); // only constraints can have sparse Jacobians
   
   unsigned int data_size = DesignSpace::GetNumberOfVariables(); // do not take aux variables
 
@@ -1790,7 +1859,7 @@ void DesignSpace::EnableTransferFunctions()
   for(unsigned int i = 0; i < transfer.GetSize(); i++) transfer[i].Enable(true);
 }
 
-unsigned int DesignSpace::GetNumberOfVariables() const 
+unsigned int DesignSpace::GetNumberOfVariables() const
 {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions.GetSize() > 0 ? regions[0].GetSize() : 0; // e.g. for pure shape optimization
@@ -1799,10 +1868,10 @@ unsigned int DesignSpace::GetNumberOfVariables() const
     for(unsigned int r = 0; r < nr; r++){
       const DesignRegion& cur_reg = regions[des][r];
       switch(cur_reg.constant){
-      case VARIABLE: 
+      case VARIABLE:
         n += cur_reg.elements;
         break;
-      case CONSTANT_PER_REGION: 
+      case CONSTANT_PER_REGION:
         n++;
         break;
       case CONSTANT_ON_ALL_REGIONS:

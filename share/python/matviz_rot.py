@@ -1,4 +1,4 @@
-# The file has been copied from paraview_fmo.py which is now depreciated. 
+# The file has been copied from paraview_fmo.py which is now depreciated.
 
 # visualize:
 # import pylab
@@ -24,7 +24,7 @@ def dump_tensor(tensor, toString=False):
     if toString:
       out += msg + "\n"
     else:
-      print(msg)    
+      print(msg)
 
   return out
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
@@ -35,14 +35,16 @@ def get_rot_2x2(angle):
   R[0][1] =  sin(angle)
   R[1][0] =  -sin(angle)
   R[1][1] =  cos(angle)
-  
+
   return R
-  
+
 ## This rotates a 3*3 2D tensor via the third direction. As in Richter and CFS
-def get_rot_3x3(angle, R):
-  
+def get_rot_3x3(angle):
+
+  R = get_rot_2x2(angle)
+
   Q = numpy.zeros((3,3))
-  
+
   Q[0][0] = R[0][0]*R[0][0];
   Q[0][1] = R[0][1]*R[0][1];
   Q[0][2] = 2.0*R[0][0]*R[0][1];
@@ -54,7 +56,7 @@ def get_rot_3x3(angle, R):
   Q[2][0] = R[0][0]*R[1][0];
   Q[2][1] = R[0][1]*R[1][1];
   Q[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
-  
+
   return Q
 
 ## This rotates a 3x3 3D tensor around Euler angles(alpha,beta,gamma), see Wikipedia!
@@ -63,7 +65,7 @@ def get_rot_3x3_3d(alpha, beta, gamma):
   Rx = numpy.array([ [1,0,0], [0,cos(alpha),-sin(alpha)], [0,sin(alpha),cos(alpha)] ])
   Ry = numpy.array([ [cos(beta),0,sin(beta)], [0,1,0], [-sin(beta),0,cos(beta)] ])
   Rz = numpy.array([ [cos(gamma),-sin(gamma),0], [sin(gamma),cos(gamma),0], [0,0,1] ])
-  
+
   return (Rz.dot(Ry)).dot(Rx)
 
 ## This rotates a 6x6 3D tensor from CFS BaseMaterial
@@ -79,9 +81,9 @@ def get_rot_6x6(alpha, beta, gamma):
   R[2][0] =  sin(alpha)*sin(gamma) - cos(alpha)*sin(beta)*cos(gamma)
   R[2][1] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma)
   R[2][2] =  cos(alpha)*cos(beta)
-  
+
   Q = numpy.zeros((6,6))
-  
+
   Q[0][0] = R[0][0]*R[0][0]
   Q[0][1] = R[0][1]*R[0][1]
   Q[0][2] = R[0][2]*R[0][2]
@@ -123,13 +125,13 @@ def get_rot_6x6(alpha, beta, gamma):
   Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1]
   Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0]
   Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0]
-  
+
   return Q
-  
+
 ## this performs the cfs rotation for 2D.
 # works for 2*2 tensors (permitivity), 2*3 (piezo coupling) and 3*3 (elasticity in Voigt notation)
 # @param tensor: we assume the cfs rotation alpha=-90 and gamma=-90 already to be done -> XML-Reference
-# @return with the dimension of tensor  
+# @return with the dimension of tensor
 def rotate_cfs(tensor, theta, phi = None):
 
   out = numpy.zeros(tensor.shape)
@@ -144,23 +146,23 @@ def rotate_cfs(tensor, theta, phi = None):
   R = get_rot_2x2(theta)
   if tensor.shape == (2,2):
     return dot(R,dot(tensor,R.transpose()))
-  
-  Q = get_rot_3x3(theta, R)
+
+  Q = get_rot_3x3(theta)
   if tensor.shape == (2,3):
     return dot(R, dot(tensor, Q.transpose()))
 
   if tensor.shape == (3,3):
    return dot(Q, dot(tensor, Q.transpose()))
 
-  assert(false) 
+  assert(False)
 
 
 ## this performs a Hill-Mandel 2D elasticity tensor rotation.
 # Hill-Mandel rotation is trace invariant
 def rotate_hill_mandel(tensor, theta):
-  
+
   assert(theta >= 0 and theta <= numpy.pi)
-  
+
   out = numpy.zeros(tensor.shape)
 
   Q = numpy.zeros((3,3))
@@ -177,9 +179,9 @@ def rotate_hill_mandel(tensor, theta):
   return dot(Q.transpose(),dot(tensor,Q))
 
 def test_rotation(tensor, steps, notation):
-  
+
   res = []
-  
+
   for x in numpy.arange(0, numpy.pi, numpy.pi/steps):
     test = 0
     if notation == "mandel":
@@ -187,22 +189,24 @@ def test_rotation(tensor, steps, notation):
     else:
       test = rotate_cfs(tensor, x)
     res.append(test.trace())
-  
-  return res    
-  
+
+  return res
+
 
 
 # performs a cfs-rotation study for elast (Voigt), elec and piezo tensors
 # in the result the pi is copied to the end!
 # @param steps: how many probes
 # @param aux: "default" = none, "ortho_norm", "mono_norm" for 3D elasticity, "e21_normed"
-# @return: 1st: list of angles (angle or (theta, phi) in 3D), 2nd: vector of magnitudes, 3rd: aux vector of option 
+# @return: 1st: list of angles (angle or (theta, phi) in 3D), 2nd: vector of magnitudes, 3rd: aux vector of option
 def perform_cfs_rotation(tensor, steps, aux_data = "default"):
   angle = []
-  data  = [] 
+  data  = []
   aux   = []
   idx = 0
   
+  assert(numpy.ndim(tensor) == 2)
+
   if tensor.shape == (6,6):
     # 3D case for mech
     # we do not use the standard spherical coordinate system but in to_vector() stuff from our rotation matrix
@@ -216,24 +220,24 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
         invtest = numpy.linalg.inv(test)
         angle.append((phi, theta))
         data.append(1./invtest[0,0])
-            
+
         if aux_data == "ortho_norm":
           aux.append(sqrt(2.0 * (test[0,3]**2 + test[1,3]**2 + test[2,3]**2 + test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +
                                  test[0,5]**2 + test[1,5]**2 + test[2,5]**2 + test[3,5]**2 + test[4,5]**2)))
-        if aux_data == "mono_norm":  
+        if aux_data == "mono_norm":
           aux.append(sqrt(2.0 * (test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +
                                  test[0,5]**2 + test[1,5]**2 + test[2,5]**2 + test[3,5]**2)))
-  else: 
+  else:
     # 2D case for elec, piezo, mech
     # for mech it is enought to go from 0 to pi and duplicate, for piezo we need all. Do slow and easy
-    for x in numpy.arange(0, 2.0 * numpy.pi, numpy.pi/steps):
+    for x in numpy.arange(0, 2.0*numpy.pi, 2.0*numpy.pi/steps):
       test = rotate_cfs(tensor, x)
       #print "angle=" + str(x) + " -> " + str(test)
       angle.append(x)
       data.append(test[0,0])
       #print str(test[0,2])
-  
-      if aux_data == "ortho_norm" or aux == "mono_norm": 
+
+      if aux_data == "ortho_norm" or aux == "mono_norm":
         if tensor.shape == (2,2):
           aux.append(sqrt(2.0 * test[0,1]**2))
         if tensor.shape == (3,3):
@@ -242,17 +246,17 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
           aux.append(numpy.min((sqrt(test[0,0]**2 + test[0,1]**2 + test[1,2]**2), sqrt(test[1,0]**2 + test[1,1]**2 + test[0,2]**2))))
       if aux_data == "e21_normed":
         aux.append(test[2,2])
-        # aux.append(numpy.abs(test[1,0]/test[1,1]))    
-                  
+        # aux.append(numpy.abs(test[1,0]/test[1,1]))
+
       idx += 1
-  
+
     # duplicate
     #data.extend(data)
     #aux.extend(aux)
     #for x in numpy.arange(numpy.pi, 2.0 * numpy.pi, numpy.pi/steps):
     #  angle.append(x)
-  
-  assert(len(data) == len(angle))    
+
+  assert(len(data) == len(angle))
   assert(len(aux) == len(data) or len(aux) == 0)
   return angle, data, aux
 
@@ -263,7 +267,7 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
 def find_maxima(data):
   first = [-1, -1e60]
   second = [-1, -1e60]
-  for i in range(1, (len(data)/2)+1):      
+  for i in range(1, (len(data)/2)+1):
     if data[i-1] <= data[i] and data[i] >= data[i+1]:
       if data[i] >= first[1]:
         second = first[:] # deep copy
@@ -271,7 +275,7 @@ def find_maxima(data):
         first[1] = data[i]
       elif data[i] >= second[1]:
         second[0] = i
-        second[1] = data[i]        
+        second[1] = data[i]
 
   return first[0], second[0]
 
@@ -280,7 +284,7 @@ def find_maxima(data):
 # @return unsorted list of (angle, value)
 def find_minima(angle, data):
   result = []
-  
+
   # 1D or 2D search?
   if type(angle[0]) == float:
     for i in range(1, (len(data)/2)+1):
@@ -290,13 +294,13 @@ def find_minima(angle, data):
     samples = int(sqrt(len(angle)))
     half    = samples/2
     assert(samples**2 == len(angle))
-    
+
     for i in range(0, half):
       for j in range(0, samples):
         #print "i=" + str(i) + " j=" + str(j)
         idx = i * samples + j
         this  = data[idx]
-        #print "this=" + str(i * samples + j) + " phi=" + str(angle[idx][0]) + " theta=" + str(angle[idx][1]) + " -> " + str(this) 
+        #print "this=" + str(i * samples + j) + " phi=" + str(angle[idx][0]) + " theta=" + str(angle[idx][1]) + " -> " + str(this)
         north = data[(i-1 if i > 0 else half) * samples + j]
         #print "north=" + str((i-1 if i > 0 else half) * samples + j) + " -> " + str(north)
         south = data[i+1 * samples + j] # range is samples/2
@@ -307,40 +311,37 @@ def find_minima(angle, data):
         #print "east=" + str(i * samples + (j+1 if j < samples-1 else 0)) + " -> " + str(east)
         if this <= north and this <= south and this <= west and this <= east:
           #print "new minimum found"
-          result.append((angle[idx], this)) 
+          result.append((angle[idx], this))
 
   return result
 
 
-## transforms Hill-Mandel to Voigt elasticity tensor 
+## transforms Hill-Mandel to Voigt elasticity tensor
 def HillMandel2Voigt(tensor):
   ret = tensor.copy()
-  
+
   for i in range(len(ret)-1):
     ret[i, len(ret)-1] *= 1/sqrt(2.0)
-    ret[len(ret)-1, i] *= 1/sqrt(2.0)      
-      
+    ret[len(ret)-1, i] *= 1/sqrt(2.0)
 
-
-  ret[len(ret)-1,len(ret)-1] *= 0.5    
+  ret[len(ret)-1,len(ret)-1] *= 0.5
   return ret
 
-## transforms Voigt elasticity tensor to Hill-Mandel notation 
+## transforms Voigt elasticity tensor to Hill-Mandel notation
 def Voigt2HillMandel(tensor):
   ret = tensor.copy()
-  
+
   for i in range(len(ret)-1):
     ret[i, len(ret)-1] *= sqrt(2.0)
     ret[len(ret)-1, i] *= sqrt(2.0)
 
-  ret[len(ret)-1,len(ret)-1] *= 2.0    
+  ret[len(ret)-1,len(ret)-1] *= 2.0
   return ret
 
 
 # creates a 2D elasticity tensor. To the HillMandel2Voigt conversion if necessary!
 def to_mech_tensor(input):
   assert(len(input) == 6 or len(input) == 21)
-      
 
   if len(input) == 6:
     # "e11", "e22", "e33", "e23", "e13", "e12";
@@ -369,7 +370,7 @@ def to_mech_tensor(input):
           idx += 1
           tensor[x][y] = val
           tensor[y][x] = val
-    return tensor    
+    return tensor
 
 ## invert to_mech_tensor()
 # 2D = "strain notation", 3D is by upper columns
@@ -378,14 +379,12 @@ def to_mech_vector(tensor, as_array=False):
   assert(tensor.shape == (3,3) or tensor.shape == (6,6))
 
   vec = []
-  
+
   if len(tensor) == 3:
     vec.append(tensor[0,0])
     vec.append(tensor[1,1])
     vec.append(tensor[2,2])
-    vec.append(tensor[1,2])      
-      
-
+    vec.append(tensor[1,2])
     vec.append(tensor[0,2])
     vec.append(tensor[0,1])
   else:
@@ -395,16 +394,16 @@ def to_mech_vector(tensor, as_array=False):
            continue
         else:
           vec.append(tensor[y,x])
-   
-    assert(len(vec) == 21)    
-    
+
+    assert(len(vec) == 21)
+
   if as_array:
-    array = numpy.zeros((len(vec)))  
+    array = numpy.zeros((len(vec)))
     array[:] = vec
     return array
   else:
-    return vec   
-    
+    return vec
+
 # creates a piezoelectric coupling tensor
 def to_piezo_tensor(input):
   # print "tpt: " + str(len(input)) + " -> " + str(input)
@@ -426,43 +425,42 @@ def to_piezo_vector(tensor, as_array=False):
   assert(tensor.shape == (2,3))
 
   vec = []
-  
+
   vec.append(tensor[0,0])
   vec.append(tensor[0,1])
   vec.append(tensor[0,2])
-  vec.append(tensor[1,0])      
+  vec.append(tensor[1,0])
   vec.append(tensor[1,1])
   vec.append(tensor[1,2])
-    
+
   if as_array:
-    array = numpy.zeros((len(vec)))  
+    array = numpy.zeros((len(vec)))
     array[:] = vec
     return array
   else:
-    return vec   
+    return vec
 
 
 # creates a permittivity tensor
 def to_elec_tensor(input):
   assert(len(input) == 3)
   # "e11", "e22", "e12"
-  #    0      1      2 
+  #    0      1      2
   tensor = numpy.zeros((2,2))
   tensor[0,0] = input[0]
   tensor[0,1] = input[2]
   tensor[1,0] = input[2]
-  tensor[1,1] = input[1]      
-      
+  tensor[1,1] = input[1]
+
 
   return tensor
- 
+
 ## give vector from angle
 # angle a scalar or (phi,theta)
 def to_vector(angle):
-   
+
   result = numpy.zeros((3))
-  
-  if type(angle) is float:
+  if numpy.isscalar(angle):
     result[0] = cos(angle)
     result[1] = sin(angle)
     result[2] = 0
@@ -475,7 +473,7 @@ def to_vector(angle):
     result[0] = cos(angle[1]) * cos(angle[0])
     result[1] = -1 * cos(angle[1]) * sin(angle[0])
     result[2] = sin(angle[1])
-    
+
   return result
 
 ## gives the two Poisson's ratios for a given tensor which needs to be in Voigt notation in elasticity notation
@@ -493,9 +491,9 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
   idx_first, idx_second = find_maxima(data)
 
   first = to_vector(angle[idx_first]) * data[idx_first]
-  
+
   second = [0,0,0]
-  if idx_second > -1: 
+  if idx_second > -1:
     second = to_vector(angle[idx_second]) * data[idx_second]
 
   if also_poissons_ratio:
@@ -505,18 +503,18 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
     idx = idx_first
     if data[idx_second] > data[idx_first]:
       idx = idx_second
-    v21, v12 = poissons_ratio(rotate_cfs(tensor, angle[idx]))  
+    v21, v12 = poissons_ratio(rotate_cfs(tensor, angle[idx]))
     return first, second, v21, v12
   else:
     return first, second
 
-  
+
 # e2d = numpy.zeros((2,2))
 # e2d[0,0] = 1.51
 # e2d[0,1] = 0.0
 # e2d[1,0] = 0.0
 # e2d[1,1] = 1.27
-# 
+#
 # p0 = numpy.zeros((2,3))
 # p0[0,0] = 0.01
 # p0[0,1] = 0.01
@@ -524,14 +522,14 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
 # p0[1,0] = -6.5
 # p0[1,1] = 23.3
 # p0[1,2] = 0.01
-# 
+#
 # e3d = numpy.zeros((6,6))
 # e3d[0,0] = 1.0
-# 
+#
 # iso3d = to_mech_tensor(eval("[9.999406e-01,2.999666e-01,9.999406e-01,2.999666e-01,2.999666e-01,9.999406e-01,0.0,0.0,0.0,3.499870e-01,0,0,0,0,3.499870e-01,0,0,0,0,0,3.499870e-01]"))
-# 
+#
 # t3d = HillMandel2Voigt(to_mech_tensor(eval("[0.00401617093935,-2.56173585052e-07,0.00401617094245,2.20294623258e-07,2.2027694833e-07,0.00401566744551,3.38547287661e-07,3.38534101428-07,-5.93702112942e-07,0.00401568927622,-4.13754162037e-08,-6.18071141999e-08,6.94156633186e-08,2.81430319706e-07,0.00401628783183,-6.181071466e-08,-4.13602971057e-08,6.94018181029e-08,2.81408882188e-07,-1.66007908852e-07,0.00401628785427]")))
-#   
-# triv3d = to_mech_tensor(eval("[1, 0, 0.5, 0, 0, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ]"))  
-#   
-# orient_0_degrees = to_mech_tensor(eval("[2.022,0.615,0.0148,0.0,0.0,0.0949]"))  
+#
+# triv3d = to_mech_tensor(eval("[1, 0, 0.5, 0, 0, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ]"))
+#
+# orient_0_degrees = to_mech_tensor(eval("[2.022,0.615,0.0148,0.0,0.0,0.0949]"))

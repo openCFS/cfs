@@ -134,13 +134,13 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
 
       tf = design->GetTransferFunction(de->GetType(), App::BUCKLING);
       AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, calcMode, ev); // no bimaterial
-      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+      // LOG_DBG3(simp) << "SetElementK: GeoStiff out -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         AddGeometricStiffnessToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, calcMode, ev); // bimaterial
-        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+        // LOG_DBG3(simp) << "SetElementK: GeoStiff bimat out " -> " << out.ToString();
       }
     }
 
@@ -148,13 +148,13 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
     {
       tf = design->GetTransferFunction(de->GetType(), App::MASS);
       AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
-      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+      // LOG_DBG3(simp) << "SetElementK: Mass out -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
-        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+        // LOG_DBG3(simp) << "SetElementK: Mass bimat out " -> " << out.ToString();
       }
     }
     break;

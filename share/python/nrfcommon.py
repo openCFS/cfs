@@ -4,8 +4,6 @@ Created on Fri Dec 11 09:35:12 2015
 Last edited on Mar 08 2017
 
 @author: martin, ivan lazarov, florian toth
-
-Use Python 2.*, because Python 3.* is currently buggier!
 """
 
 from __future__ import division, print_function
@@ -269,9 +267,9 @@ class NrfCommon(object):
     Examples
     --------
     >>> f._getRegions()
-    [u'domain']
+    ['domain']
     """
-    return self._h5['Mesh/Regions'].keys()
+    return list(self._h5['Mesh/Regions'].keys())
     
   def _getGroups(self):
     """
@@ -282,7 +280,7 @@ class NrfCommon(object):
     >>> [key for key in f._getGroups()]
     []
     """
-    return self._h5['Mesh/Groups'].keys()
+    return list(self._h5['Mesh/Groups'].keys())
     
   def _getDefinedOnStr(self, result):
     """
@@ -325,7 +323,7 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getBBoxForMesh()
-    array([[ 0.,  1.,  0.,  1.,  0.,  0.]])
+    array([[0., 1., 0., 1., 0., 0.]])
     """
     coords = self._h5['Mesh/Nodes/Coordinates'][:,:]
     bbox = np.zeros((1,6))
@@ -342,7 +340,7 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getBBoxForRegion('domain')
-    array([[ 0.,  1.,  0.,  1.,  0.,  0.]])
+    array([[0., 1., 0., 1., 0., 0.]])
     """    
     bbox = np.zeros((1,6))
     regionNodes = self._h5['Mesh/Regions/%s/Nodes' % region][:]-1
@@ -361,7 +359,7 @@ class NrfCommon(object):
     --------
     >>> f.getBBoxForGroup('mic1')
     ERROR: group mic1 is not contained in the file!
-    array([[ 0.,  0.,  0.,  0.,  0.,  0.]])
+    array([[0., 0., 0., 0., 0., 0.]])
     """    
     
     bbox = np.zeros((1,6))
@@ -639,15 +637,15 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getNodeCoordinates()
-    array([[ 0. ,  0. ,  0. ],
-           [ 0.5,  0. ,  0. ],
-           [ 1. ,  0. ,  0. ],
-           [ 0. ,  0.5,  0. ],
-           [ 0.5,  0.5,  0. ],
-           [ 1. ,  0.5,  0. ],
-           [ 0. ,  1. ,  0. ],
-           [ 0.5,  1. ,  0. ],
-           [ 1. ,  1. ,  0. ]])
+    array([[0. , 0. , 0. ],
+           [0.5, 0. , 0. ],
+           [1. , 0. , 0. ],
+           [0. , 0.5, 0. ],
+           [0.5, 0.5, 0. ],
+           [1. , 0.5, 0. ],
+           [0. , 1. , 0. ],
+           [0.5, 1. , 0. ],
+           [1. , 1. , 0. ]])
     """
     return self._h5['Mesh/Nodes/Coordinates'][:]
   
@@ -658,7 +656,7 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getCoordForNode(5)
-    array([ 0.5,  0.5,  0. ])
+    array([0.5, 0.5, 0. ])
     """
     return self._h5['Mesh/Nodes/Coordinates'][node-1,:]
 
@@ -721,7 +719,7 @@ class NrfCommon(object):
     try:
       stepGroup = self._h5['/Results/Mesh/%s/%s' % (self._getMultiStepStr(msStep),
                                                    self._getStepStr(stepNum))] 
-      fn = stepGroup.attrs['ExtHDF5FileName']
+      fn = str(stepGroup.attrs['ExtHDF5FileName'], 'utf-8')
       fn = os.path.normpath(os.path.join(os.path.dirname(self.fileName), fn))
     except:
       nameTuple = os.path.splitext(self.fileName)
@@ -758,7 +756,7 @@ class NrfCommon(object):
     
     analStr = ''
     if 'AnalysisType' in msGroup.attrs.keys():
-      analStr = msGroup.attrs['AnalysisType']
+      analStr = str(msGroup.attrs['AnalysisType'], 'utf-8')
     
     if analStr == 'static' or analStr == 'transient' \
         or analStr == 'harmonic' or analStr == 'eigenFrequency':
@@ -782,7 +780,7 @@ class NrfCommon(object):
     if not stepStr in self._h5['Results/History']:
       return []
     else:
-      return self._h5['Results/History/%s/ResultDescription' % stepStr].keys()
+      return list(self._h5['Results/History/%s/ResultDescription' % stepStr].keys())
       
   def getMeshResultsForMultisequenceStep(self, step):
     """
@@ -792,7 +790,7 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getMeshResultsForMultisequenceStep(1)
-    [u'dummyResScalar', u'dummyResVector']
+    ['dummyResScalar', 'dummyResVector']
     """
     if not self._hasMesh():
       return []
@@ -800,7 +798,7 @@ class NrfCommon(object):
     if not stepStr in self._h5['Results/Mesh']:
       return []
     else:
-      return self._h5['Results/Mesh/%s/ResultDescription' % stepStr].keys()
+      return list(self._h5['Results/Mesh/%s/ResultDescription' % stepStr].keys())
       
   def getStepsForHistoryResult(self, step, result):
     """
@@ -913,9 +911,9 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getDofNamesForResult('dummyResScalar')
-    array([u''], dtype=object)
+    array([''], dtype=object)
     >>> f.getDofNamesForResult('dummyResVector')
-    array([u'x', u'y'], dtype=object)
+    array(['x', 'y'], dtype=object)
     """
     
     # initialize addrStr    
@@ -954,9 +952,9 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getEntitiesForMeshResult(1, 'dummyResScalar')
-    array([u'domain'], dtype=object)
+    array(['domain'], dtype=object)
     >>> f.getEntitiesForMeshResult(1, 'dummyResVector')
-    array([u'domain'], dtype=object)
+    array(['domain'], dtype=object)
     """
     if not result in self.getMeshResultsForMultisequenceStep(step):
       return list()
@@ -1017,7 +1015,7 @@ class NrfCommon(object):
     if not result in self.getHistoryResultsForMultisequenceStep(step):
       return np.array([])
     addrStr = 'Results/History/%s/%s' % (self._getMultiStepStr(step), result)
-    thisType= self._h5[addrStr].keys()[0]
+    thisType= list(self._h5[addrStr].keys())[0]
     addrStr += '/%s' % thisType
     if thisType == "Nodes" :
       theseItems = self.getNodesForGroup(entity)
@@ -1082,21 +1080,14 @@ class NrfCommon(object):
                    
     Examples
     --------
-    >>> f._getIndexMapping(1, 'dummyResScalar', regions=None, indices=None, verbose=False)
-    {0: array([1, 2, 3, 4], dtype=int32), u'domain': array([[0, 0],
-        [1, 1],
-        [2, 2],
-        [3, 3]])} 
-    >>> f._getIndexMapping(1, 'dummyResVector', regions=None, indices=None, verbose=False)
-    {0: array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=int32), u'domain': array([[0, 0],
-        [1, 1],
-        [2, 2],
-        [3, 3],
-        [4, 4],
-        [5, 5],
-        [6, 6],
-        [7, 7],
-        [8, 8]])}
+    >>> np.testing.assert_equal(\
+    f._getIndexMapping(1, 'dummyResScalar', regions=None, indices=None, verbose=False),\
+    {'domain': np.array([[0, 0], [1, 1], [2, 2], [3, 3]]),\
+            0: np.array([1, 2, 3, 4])})
+    >>> np.testing.assert_equal(\
+    f._getIndexMapping(1, 'dummyResVector', regions=None, indices=None, verbose=False),\
+    {'domain': np.array([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7], [8, 8]]),\
+            0: np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])})
     """
 
     indexDict = dict()
@@ -1227,10 +1218,10 @@ class NrfCommon(object):
     Examples
     --------
     >>> f.getMeshResult(1, 2, 'dummyResScalar', regions=None, indices=None, verbose = False)
-    array([[ 1.],
-           [ 2.],
-           [ 3.],
-           [ 4.]])
+    array([[1.],
+           [2.],
+           [3.],
+           [4.]])
     """
     
     steps = self.getStepsForMeshResult(msStep, result)
@@ -1244,9 +1235,9 @@ class NrfCommon(object):
     # get index mapping for the current setup
     indexDict = self._getIndexMapping(msStep, result, regions, indices)
     
-    # external data storage for subSteps?    
+    # external data storage for subSteps?
     addrStr = 'Results/Mesh/%s/%s' % (self._getMultiStepStr(msStep),
-                                      self._getStepStr(steps.keys()[0]))
+                                      self._getStepStr(list(steps.keys())[0]))
     if 'ExtHDF5FileName' in self._h5[addrStr].attrs.keys():
       extData = True
     else:
@@ -1290,7 +1281,8 @@ class NrfCommon(object):
       if extData:
         addrStr = 'Results/Mesh/%s/%s' % (self._getMultiStepStr(msStep),
                                           self._getStepStr(stepIndex))
-        extFile = os.path.join(os.path.dirname(self.fileName),self._h5[addrStr].attrs['ExtHDF5FileName'])
+        fn = str(self._h5[addrStr].attrs['ExtHDF5FileName'], 'utf-8')
+        extFile = os.path.join(os.path.dirname(self.fileName), fn)
         thisFile = h5py.File(extFile,'r')
         addrStr = '%s/%s/%s/' % (result,
                                  region,
@@ -1345,15 +1337,9 @@ class NrfCommon(object):
     
     Examples
     --------
-    >>> f.getMeshResultOverTime(1, 'dummyResScalar', regions=None, indices=None, verbose = False)
-    array([[[ 0.],
-        [ 1.]],
-       [[ 0.],
-        [ 2.]],
-       [[ 0.],
-        [ 3.]],
-       [[ 0.],
-        [ 4.]]])
+    >>> np.testing.assert_equal(\
+    f.getMeshResultOverTime(1, 'dummyResScalar', regions=None, indices=None, verbose = False),\
+    np.array([[[0.],[1.]], [[0.],[2.]], [[0.],[3.]], [[0.],[4.]]]))
     """
     
     steps = self.getStepsForMeshResult(msStep, result)
@@ -1367,9 +1353,9 @@ class NrfCommon(object):
       regions = [regions]
     indexDict = self._getIndexMapping(msStep, result, regions, indices)
     
-    # external data storage for subSteps?    
+    # external data storage for subSteps?
     addrStr = 'Results/Mesh/%s/%s' % (self._getMultiStepStr(msStep),
-                                      self._getStepStr(steps.keys()[0]))
+                                      self._getStepStr(list(steps.keys())[0]))
     if 'ExtHDF5FileName' in self._h5[addrStr].attrs.keys():
       extData = True
     else:
@@ -1406,7 +1392,7 @@ class NrfCommon(object):
     
     # iterate over results
     # get step
-    stepIdxes = steps.keys()
+    stepIdxes = list(steps.keys())
     stepIdxes.sort()
     for idx, stepIndex in enumerate(stepIdxes):
       if verbose:
@@ -1422,7 +1408,8 @@ class NrfCommon(object):
         if extData:
           addrStr = 'Results/Mesh/%s/%s' % (self._getMultiStepStr(msStep),
                                             self._getStepStr(stepIndex))
-          extFile = os.path.join(os.path.dirname(self.fileName),self._h5[addrStr].attrs['ExtHDF5FileName'])
+          fn = str(self._h5[addrStr].attrs['ExtHDF5FileName'], 'utf-8')
+          extFile = os.path.join(os.path.dirname(self.fileName), fn)
           thisFile = h5py.File(extFile,'r')
           addrStr = '%s/%s/%s/' % (result,
                                    region,
@@ -1504,7 +1491,8 @@ if __name__ == "__main__":
                        writeable=False,
                        template=None,
                        externalFiles=False)
-    
+
+    f.getMeshResult(1, 2, 'dummyResScalar', regions=None, indices=None, verbose = False)
     # perform doctest
     import doctest
     result = doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)

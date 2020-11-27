@@ -69,7 +69,7 @@ int PhistCore::SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx*
 
 
 template<class TYPE>
-sparseMat_t* PhistCore::InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale)
+VsparseMat_t* PhistCore::InitMatrix(const BaseMatrix& cfs, VsparseMat_t** phist, double scale)
 {
   // create stiffness or mass matrix for phist - which will be ghost matrices
   assert(!(boost::is_complex<TYPE>::value && cfs.GetEntryType() != BaseMatrix::COMPLEX));
@@ -100,12 +100,12 @@ sparseMat_t* PhistCore::InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, d
   assert(iflag == 0);
 
   assert(smp != NULL);
-  return (sparseMat_t*) smp;
+  return (VsparseMat_t*) smp;
 }
 
 // template instantiation stuff
-template sparseMat_t* PhistCore::InitMatrix<double>(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
-template sparseMat_t* PhistCore::InitMatrix<Complex>(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
+template VsparseMat_t* PhistCore::InitMatrix<double>(const BaseMatrix& cfs, VsparseMat_t** phist, double scale);
+template VsparseMat_t* PhistCore::InitMatrix<Complex>(const BaseMatrix& cfs, VsparseMat_t** phist, double scale);
 
 template int PhistCore::SparseMatRowFunc<double>(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service_void);
 template int PhistCore::SparseMatRowFunc<Complex>(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service_void);

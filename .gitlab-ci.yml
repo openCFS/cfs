@@ -207,7 +207,7 @@ runner-debug:
   extends: .default_build_job
   <<: *max_rules
   variables:
-    MAX_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON"
+    MAX_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON"
 
       
 #################################################
@@ -228,6 +228,7 @@ build:gcc7max-debug:
   tags:
     - gcc7
     - license-keys
+    - python
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     GCC_VERSION: 7
@@ -285,6 +286,7 @@ build:gcc7max:
     - gcc7
     - release
     - license-keys
+    - python
   variables:
     BUILD_NAME: "GCC7 maximal"
     GCC_VERSION: 7
@@ -408,6 +410,7 @@ platform:centos:
   variables:
     IMAGE: "centos"
     TAG: "latest"
+    CMAKE_CXX_FLAGS: "-lrt"
 
 platform:centos:7:
   extends: .platform:image

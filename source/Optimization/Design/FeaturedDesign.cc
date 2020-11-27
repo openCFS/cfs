@@ -19,11 +19,11 @@ FeaturedDesign::FeaturedDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->export_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
   this->tailing_aux_design_ = true; // we want our own design (e.g. SBD: param_, SMD: shape_param_ or better their opt_* versions) to take the role of DesignSpace::data
 
-  this->mapping_timer_  = info_->Get("splineBox/mapping/timer")->AsTimer();
-  this->mapping_timer_->SetLabel("splineBox_map");
+  this->mapping_timer_  = info_->Get("features/mapping/timer")->AsTimer();
+  this->mapping_timer_->SetLabel("features_map");
   this->mapping_timer_->SetSub(); // already in eval_*
-  this->gradient_timer_ = info_->Get("splineBox/gradient/timer")->AsTimer();
-  this->gradient_timer_->SetLabel("splineBox_grad");
+  this->gradient_timer_ = info_->Get("features/gradient/timer")->AsTimer();
+  this->gradient_timer_->SetLabel("features_grad");
   this->gradient_timer_->SetSub(); // already in eval_*
 }
 

@@ -62,7 +62,7 @@ int main(int argc, const char **argv)
   //find which is my rank
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD,&size);
-  if (rank==0)
+  if(rank==0)
   {
     CFS cfs(argc, argv);   
     ret = cfs.Run();
@@ -279,6 +279,8 @@ int CFS::Run()
     {
       cerr << endl << ">> Error: " << ex.what() << endl;
     }
+
+    cerr.flush();
 
     // Print error cause to info file
     if(infoNode != NULL)

@@ -48,7 +48,7 @@ void EvaluateOnly::SolveProblem()
   for(int i = 0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
+    LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g->GetIndex()+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
   }
   optimization->constraints.view->Done();
 
@@ -100,7 +100,7 @@ void EvaluateOnly::SolveProblem()
         LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
       }
     }
-    
+
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);

@@ -47,6 +47,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
   this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
+  this->export_leveset_ = pn->Has("shapeMap/export") ? pn->Get("shapeMap/export/enable")->As<bool>() : false;
 
   // set shape_, shape_param_ and map_, does not apply the mapping yet
   SetupDesign(pn->Get("shapeMap"));
@@ -1111,6 +1112,10 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scaling) const
   AuxDesign::WriteDesignToExtern(space_out, scaling);
 
   LOG_DBG(SMD) << "WDTE: di -> " << design_id;
+
+  if(export_leveset_)
+    ExportLevelSet();
+
   return design_id;
 }
 
@@ -1776,7 +1781,7 @@ void ShapeMapDesign::MapFeatureToDensity()
   int cells_cnt = 0;
   int cells_order_sum = 0;
 
-#pragma omp parallel
+  #pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
     // these are thread local objects reused over the for loop iterations
     Vector<unsigned int> idx(dim_);
@@ -1789,7 +1794,7 @@ void ShapeMapDesign::MapFeatureToDensity()
 
      // the integration effort is not evenly distributed
      #pragma omp for schedule(dynamic) reduction(+:cells_cnt,cells_order_sum)
-     for(Integer r = 0; r < (Integer) map_.GetSize(); r++)
+     for(int r = 0; r < (int) map_.GetSize(); r++)
      {
        Item& item = map_[r];
        DesignElement* de = item.rho;
@@ -1933,7 +1938,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
   Vector<double> shape_f_grad(shape_param_.GetSize());
   shape_f_grad.Init(0.0);
 
-#pragma omp parallel
+  #pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
     // this are thread private constructs to be reused over the for loop iterations
 
@@ -2105,7 +2110,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
 
     // now gather private_shape_f_grad to shape_f_grad as we may not use array reduction yet
     // https://stackoverflow.com/questions/20413995/reducing-on-array-in-openmp
-#pragma omp critical
+    #pragma omp critical
     {
       // we are in the omp parallel section with n threads. The critical only of the n threads at one time
       // but this is executed for all.
@@ -2161,6 +2166,54 @@ void ShapeMapDesign::WriteGradientFile()
     out << std::endl;
   }
   out.close();
+}
+
+
+void ShapeMapDesign::ExportLevelSet() const
+{
+  // this is still a dump implementation
+  assert(export_leveset_);
+
+  std::ofstream out;
+  string name = progOpts->GetSimName() + ".leveset.vtk";
+  out.open(name.c_str());
+  out.precision(8);
+  out.flags(std::ios::scientific);
+
+  out << "# vtk DataFile Version 3.0\n";
+  out << "Para0\n";
+  out << "ASCII\n";
+  out << "DATASET RECTILINEAR_GRID\n";
+  assert(dim_ == 2);
+  out << "DIMENSIONS " << (nx_+1) << " " << (ny_+1) << " 1\n";
+  out << "X_COORDINATES " << (nx_+1) << " int\n";
+  for(unsigned int i = 0; i <= nx_; i++)
+    out << i << " ";
+  out << "\nY_COORDINATES " << (ny_+1) << " int\n";
+  for(unsigned int i = 0; i <= ny_; i++)
+    out << i << " ";
+  out << "\nZ_COORDINATES 1 int\n0\n\n";
+  out << "POINT_DATA " << ((nx_+1) * (ny_+1) * 1) << "\n";
+  out << "SCALARS lsf_0 float 1\n";
+  out << "LOOKUP_TABLE default\n";
+  // first shot simply takes the density, cooler options are nodes and Gaussian points
+  // write the upper right corner with special handling for -1
+  // lowest y-line first
+  out << DensityToLevelSet(0,0) << std::endl;
+  for(int x = 0; x < (int) nx_; x++)
+    out << DensityToLevelSet(x,0) << std::endl;
+  for(int y = 0; y < (int) ny_; y++)
+  {
+    out << DensityToLevelSet(0,y) << std::endl;
+    for(int x = 0; x < (int) nx_; x++)
+      out << DensityToLevelSet(x,y) << std::endl;
+  }
+  out.close();
+}
+
+inline double ShapeMapDesign::DensityToLevelSet(int x, int y) const
+{
+  return 2.0 * map_[DensityIdx(x,y)].rho->GetPlainDesignValue() - 1.0;
 }
 
 void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)

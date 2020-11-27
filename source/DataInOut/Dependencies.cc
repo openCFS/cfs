@@ -3,6 +3,7 @@
 #include <def_use_cgal.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ensight.hh>
+#include <def_use_embedded_python.hh>
 #include <def_use_feast.hh>
 #include <def_use_fftw.hh>
 #include <def_use_flann.hh>
@@ -93,6 +94,10 @@
 #define NO_DATA CFS_DUMMY_NO_DATA
 #undef CFS_DUMMY_NO_ERROR
 #undef CFS_DUMMY_NO_DATA
+#endif
+
+#ifdef USE_EMBEDDED_PYTHON
+#include <patchlevel.h>
 #endif
 
 #define _QUOTEME(x) #x
@@ -438,7 +443,15 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(ipopt);
 
-  Dependency sgpp("SGPP", "USE_SGPP", COMMERCIAL); // to be replaced by a open source version when it is avaiable
+  // requires simply python on the system set by PYTHON_INCLUDE_DIR and PYTHON_LIBRARY
+  Dependency python("Python", "USE_EMBEDDED_PYTHON", EASY);
+#ifdef USE_EMBEDDED_PYTHON
+  python.SetVersion(PY_VERSION);
+#endif
+  data.Push_back(python);
+
+  // to be replaced by a open source version when it is avaiable
+  Dependency sgpp("SGPP", "USE_SGPP", COMMERCIAL);
 #ifdef USE_SGPP
   sgpp.SetVersion(SGPP_VER)
 #endif

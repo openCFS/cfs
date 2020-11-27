@@ -417,7 +417,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   assert(me != NULL && me->excitations.GetSize() > 0);
 
   // some functions need to be evaluated only once (first) for multiple excitations
-  // however for meta excitations (rotations) whey need to be be evaluates at the last base
+  // however for meta excitations (rotations) they need to be be evaluates at the last base
   //
   // multiple excitations are:
   // * static load cases
@@ -529,7 +529,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_ = ALL_EX; // all excitations within this sequence/ context
       // why is there no excite_sensitive_ = true; ??
     } else {
-      excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+      const std::string& ex_label = pn->Get("excitation")->As<string>();
+      const std::string& label = ctxt->DoMultiSequence() ? "s_" + lexical_cast<string>(ctxt->sequence) + "-" + ex_label : ex_label;
+      excite_ = me->GetExcitation(label)->index;
       excite_sensitive_ = true;
     }
     break;
@@ -552,7 +554,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
     } else {
       assert(excite_index == UNSET_EX); // assert there is no conflict
-      excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+      const std::string& ex_label = pn->Get("excitation")->As<string>();
+      const std::string& label = ctxt->DoMultiSequence() ? "s_" + lexical_cast<string>(ctxt->sequence) + "-" + ex_label : ex_label;
+      excite_ = me->GetExcitation(label)->index;
     }
     excite_sensitive_ = true;
     break;
@@ -589,6 +593,42 @@ bool Function::DoEvaluateAlways(int context_sequence) const {
 bool Function::IsExcitationSensitive() const {
   return excite_sensitive_;
 }
+
+
+bool Function::IsStateDependent() const
+{
+  if(IsAdjointBased())
+    return true;
+
+  // only a few state dependent functions are not adjoint based
+
+  // be careful: IsStateDependend() is not much used and might be incomplete!
+  switch(type_)
+  {
+  case BANDGAP:
+  case CONJUGATE_COMPLIANCE:
+  case GLOBAL_DYNAMIC_COMPLIANCE:
+  case ELEC_ENERGY:
+  case COMPLIANCE:
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
+  case POISSONS_RATIO:
+  case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
+  case TEMPERATURE:
+  case HEAT_ENERGY:
+  case EIGENFREQUENCY:
+  case PRESSURE_DROP:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+
 
 bool Function::IsAdjointBased() const {
   switch (type_) {

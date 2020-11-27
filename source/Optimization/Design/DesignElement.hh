@@ -152,6 +152,12 @@ public:
     SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
     SHAPE_MAP_ORDER, /* the number of integration points for this element */
     SHAPE_MAP_CORNER, /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
+    MMA_ASYMPTOTE, /* element and function wise MMA asymptotes for own MMA implementation */
+    MMA_LOWER_VAL ,/* own MMA implementation lower bound for design variable */
+    MMA_UPPER_VAL, /* own MMA implementation lower bound for design variable */
+    MMA_OBJ_GRADIANT, /* own MMA implementation gradiant of objective */
+    MMA_CON_GRADIANT_1, /* own MMA implementation gradiant of constraint */
+    MMA_CON_GRADIANT_2, /* own MMA implementation gradiant of constraint */
     SPLINE_BOX_GRAD_X, /* gradient (sum over all ip w.r.t. control point movement in x direction) for a rho element for spline box mapping */
     SPLINE_BOX_GRAD_Y, /* gradient (sum over all ip w.r.t. control point movement in y direction) for a rho element for spline box mapping */
     SPLINE_BOX_GRAD_Z, /* gradient (sum over all ip w.r.t. control point movement in z direction) for a rho element for spline box mapping */
@@ -428,6 +434,7 @@ public:
       SM_NODE_B, /*!< for 3D shape map */
       SM_PROFILE,  /*!< for shape map */
       SP_CP, /*!< for spline box mapping */
+      BUCKLINGLOADFACTOR
     } Detail;
 
     /** Gets the design element
@@ -461,7 +468,7 @@ public:
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
-    
+
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
     void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
@@ -471,7 +478,7 @@ public:
 
     /** makes a short dump, handles NULL */
     static std::string ToString(const DesignElement* de, bool barycenter = false);
-    
+
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec, bool print_type = false);
     static std::string ToString(const StdVector<DesignElement>& vec, bool print_val = false, bool print_type = false);
@@ -523,7 +530,7 @@ public:
 
     /** The level-set element, will be destroyed by LevelSet */
     LevelSetElement* lse_;
-    
+
     /** The topgrad element, will be destroyed by TopGrad */
     TopGradElement *tge;
 

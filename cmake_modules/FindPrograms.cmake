@@ -10,12 +10,13 @@
 # and also note, that the variables are case sensitive and different to the old PYTHON_EXECUTABLE, ... stuff
 
 # this is here for TU-Wien, if it does not apply, it has no effect
+# look for anaconda in mdmt environment
 find_program(PYTHON_EXECUTABLE NAMES python PATHS "/share/programs/anaconda/latest/bin" "/share/programs/anaconda/3/latest/bin"  NO_DEFAULT_PATH)
 
 # identifies default "python" and sets PYTHON_EXECUTABLE. You can change this via -DPYTHON_EXECUTABLE=...
 find_package(PythonInterp)
 
-# sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, can both the set via -DPYTHON_ ...
+# sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, can both the set via -DPYTHON_...
 find_package(PythonLibs)
 
 # Since DOXYGEN  and DOT are  not cache variables  in newer CMake  versions we
