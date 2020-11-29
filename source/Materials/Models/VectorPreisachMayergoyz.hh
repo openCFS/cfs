@@ -69,6 +69,8 @@ namespace CoupledField {
       ;
     };
     
+    bool testInnerAngle3d(UInt numTests, bool verbose);
+    
     Double evaluateLagCorrectionAngle(Vector<Double>& xVal, Vector<Double>& prevXVal, Double maxAngle);
 
   private:
@@ -103,7 +105,12 @@ namespace CoupledField {
     // source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
     Double lossParam_a_;
     Double lossParam_b_;
+    int restrictionOfPsi_;
+    bool useAbsoluteValueOfdPhi_;
+    bool normalizeXInExponentOfG_;
+    Double scalingFactorXInExponent_;
     bool improveRotLoss_;
+    bool preferPositiveZ_;
   };
 
 } //end of namespace

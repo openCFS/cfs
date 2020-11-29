@@ -303,6 +303,28 @@ namespace CoupledField {
     // if anhystCountingToOutputSat_ == false > preisachSat = outputSat = value of preisach operator alone at inputSat
     // if anhystCountingToOutputSat_ == true > preisachSat = outputSat*(1-anhystAtSat_normalized_)
     bool fieldsAlignedAboveSat_;
+    
+    /*
+     * Added specifically for revised version
+     * here, we get a guaranteed alignment of input and output if abs(input) > inputSat_/kappa_rev;
+     * we can further have alignment if we enforce it by hand via mat.xml by setting flag enforceSatOutputAtSatInput; 
+     * note: for kappa_rev >= 1, alignment is not necessarily achieved by inputSat_/kappa_rev as the
+     * angular lag deltaPhi first vanishes at inputSat_! so inputSat_ is the lower limit!
+     * 
+     * for classic version, we have guaranteed alignment of input and output if abs(input) > inputSat_
+     * for Mayergoyz, there is no guaranteed alignment due to remanent contributions (those can be zero in
+     * specific cases, i.e., if whole excitation history is uniaxial, but ingeneral no alignment can be ensured)
+     * 
+     * Consequence: 
+     *  Classic: inputForAlignment_ = inputSat_
+     *  Revised: inputForAlignment_ = inputSat_/kappa_rev for kappa_rev < 1; inputSat for kappa_rev >= 1 or if enforceSatOutputAtSatInput=true
+     *  Mayergoyz: inputForAlignment_ = numeric_limits<Double>::max()
+     * 
+     * inputForAlignment_ can be used in Hysteresis.cc to check whether we are in the region where
+     * input and output align ABOVE inputSat_ so that we can utilize simple bisection for anhyst part
+     */
+    Double inputForAlignment_;
+    
     bool hystOutputRestrictedToSat_; // meant is value of preisachSat_ here
     bool hasInverseModel_;
 
@@ -336,6 +358,10 @@ namespace CoupledField {
     // source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
     Double lossParam_a;
     Double lossParam_b;
+    int restrictionOfPsi_;
+    bool useAbsoluteValueOfdPhi_;
+    bool normalizeXInExponentOfG_;
+    Double scalingFactorXInExponent_;
 
     // debugging option
     bool checkInversionResult_;

@@ -81,6 +81,16 @@ namespace CoupledField
     isAllowed_.insert( MAYERGOYZ_LOSSPARAM_B );
     isAllowed_.insert( MAYERGOYZ_LOSSPARAM_A_STRAIN );
     isAllowed_.insert( MAYERGOYZ_LOSSPARAM_B_STRAIN );
+    
+    isAllowed_.insert( MAYERGOYZ_USEABSDPHI );
+    isAllowed_.insert( MAYERGOYZ_USEABSDPHI_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_NORMALIZEXINEXP );
+    isAllowed_.insert( MAYERGOYZ_NORMALIZEXINEXP_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_RESTRICTIONOFPSI );
+    isAllowed_.insert( MAYERGOYZ_RESTRICTIONOFPSI_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_SCALINGOFXINEXP );
+    isAllowed_.insert( MAYERGOYZ_SCALINGOFXINEXP_STRAIN );
+
     isAllowed_.insert( PREISACH_PRESCRIBEOUTPUT );
     isAllowed_.insert( PREISACH_SCALEINITIALSTATE );
     isAllowed_.insert( SCALETOSAT );

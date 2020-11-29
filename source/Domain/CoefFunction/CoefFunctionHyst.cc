@@ -1862,7 +1862,9 @@ namespace CoupledField {
           paramSet.fixDirection_[2]/=dirNorm;
         }
       }
-
+      
+      paramSet.fieldsAlignedAboveSat_ = true;
+      paramSet.inputForAlignment_ = paramSet.inputSat_;
 //      std::cout << "Scalar model - using direction (normalized): " << paramSet.fixDirection_.ToString() << std::endl;
 
     } else if(paramSet.methodName_ == "JilesAtherton"){
@@ -1906,7 +1908,49 @@ namespace CoupledField {
       } else {
         paramSet.scaleUpToSaturation_ = false;
       }
+      
+      /*
+       * changes regarding treatment of revised model;
+       * actually we have an alignment of input and output but not necessarily at input saturation directly
+       * for kappa_revised >= 1, alignment is obtained at input saturation (angular lag is vanishing, whole Preisach plane filled in terms of 
+       * rotational operator)
+       * for kappa_revised (aka rotResistance_) < 1, alignment is obtained at input saturation times 1/kappa_revised (angular lag is
+       * vanishing at input saturation; Preisach plane is filled completely at 1/kappa_revised
+       * if scaleUpToSaturation_ is set to true, alignment is given at input saturation for all kappa_revised
+       * -->  fieldsAlignedAboveSat_ should always be set to true, but to distinguish the different cases,
+       * another parameter is used that defines the required input field (inputForAlignment_)
+       */
+      paramSet.fieldsAlignedAboveSat_ = true;
+      if((paramSet.evalVersion_ == 1)||(paramSet.evalVersion_ == 10)){
+        paramSet.isClassical_=true;
+      } else {
+        paramSet.isClassical_=false;
+      }
+//      std::cout << "1. - ReadAndSetParamsForHystOperator" << std::endl;
+//      std::cout << "set value of paramSet.inputForAlignment_" << std::endl;
+      if(paramSet.isClassical_==true){
+//        std::cout << "Classic" << std::endl;
+        paramSet.inputForAlignment_ = paramSet.inputSat_;
+      } else {
+//        std::cout << "Revised" << std::endl;
+        if(paramSet.scaleUpToSaturation_ == true){
+//          std::cout << "ForcedAlignment" << std::endl;
+          paramSet.inputForAlignment_ = paramSet.inputSat_;
+        } else {
+          if(paramSet.rotResistance_ >= 1.0){
+//            std::cout << "KappaRes=" << paramSet.rotResistance_ <<" >= 1" << std::endl;
+            paramSet.inputForAlignment_ = paramSet.inputSat_;
+          } else {
+//            std::cout << "KappaRes=" << paramSet.rotResistance_ <<" < 1" << std::endl;
+            paramSet.inputForAlignment_ = paramSet.inputSat_/paramSet.rotResistance_;
+          }
+        }
+      }
+      std::cout << "paramSet.inputSat_ = " << paramSet.inputSat_ << std::endl;
+      std::cout << "paramSet.inputForAlignment_ = " << paramSet.inputForAlignment_ << std::endl;
 
+      std::cout << "paramSet.fieldsAlignedAboveSat_? " << paramSet.fieldsAlignedAboveSat_ << std::endl;
+      
     } else if(paramSet.methodName_ == "vectorPreisach_Mayergoyz"){
       int isIsotropic = 1;
       material->GetScalar(isIsotropic, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset));
@@ -1915,6 +1959,7 @@ namespace CoupledField {
         EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
       }
       paramSet.fieldsAlignedAboveSat_ = false;
+      paramSet.inputForAlignment_ = std::numeric_limits<Double>::max();
       paramSet.hasInverseModel_ = false;
       paramSet.isIsotropic_ = true;
 
@@ -1936,7 +1981,25 @@ namespace CoupledField {
       
       material->GetScalar(paramSet.lossParam_a, MaterialType(MAYERGOYZ_LOSSPARAM_A+enumOffset), Global::REAL);
       material->GetScalar(paramSet.lossParam_b, MaterialType(MAYERGOYZ_LOSSPARAM_B+enumOffset), Global::REAL);
-    
+
+      int useAbsoluteValueOfdPhi_int;
+      int normalizeXInExponentOfG_int;
+      material->GetScalar(useAbsoluteValueOfdPhi_int, MaterialType(MAYERGOYZ_USEABSDPHI+enumOffset));
+      material->GetScalar(normalizeXInExponentOfG_int, MaterialType(MAYERGOYZ_NORMALIZEXINEXP+enumOffset));
+      material->GetScalar(paramSet.restrictionOfPsi_, MaterialType(MAYERGOYZ_RESTRICTIONOFPSI+enumOffset));
+      if(useAbsoluteValueOfdPhi_int == 1){
+        paramSet.useAbsoluteValueOfdPhi_ = true;
+      } else {
+        paramSet.useAbsoluteValueOfdPhi_ = false;
+      }
+      if(normalizeXInExponentOfG_int == 1){
+        paramSet.normalizeXInExponentOfG_ = true;
+      } else {
+        paramSet.normalizeXInExponentOfG_ = false;
+      }
+      
+      material->GetScalar(paramSet.scalingFactorXInExponent_, MaterialType(MAYERGOYZ_SCALINGOFXINEXP+enumOffset), Global::REAL);
+
     } else {
       std::stringstream exceptionMSG;
       exceptionMSG << paramSet.methodName_ << " is not available as hysteresis model";
@@ -2525,8 +2588,9 @@ namespace CoupledField {
       return;
     }
 
-//    std::cout << "Init storage" << std::endl;
-
+//    std::cout << "4. Init storage" << std::endl;
+//    std::cout << "Check if new parameter inputForAlignment_ has been set" << std::endl;
+//    std::cout << "POL_operatorParams.inputForAlignment_ = " << POL_operatorParams_.inputForAlignment_ << std::endl;
 		// 1. determine the number of required storages
 		if (XML_EvaluationDepth_ == 1) {
 			// standard evaluation
@@ -2637,16 +2701,26 @@ namespace CoupledField {
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
 
-      if( (POL_operatorParams_.scaleUpToSaturation_ == false)&&(POL_operatorParams_.isClassical_ == false) ){
-        POL_operatorParams_.fieldsAlignedAboveSat_ = false;
-      }
-
+      
+      // setting of fieldsAlignedAboveSat_ is already treated in ReadAndSetParamsForHystOperator
+      // the following lines are only for debugging purpose
+//      bool useOldAlignmentCriterion = false;
+//      if(useOldAlignmentCriterion){
+//        std::cout << "POL_operatorParams_.fieldsAlignedAboveSat_ before checking old criterion: "<<POL_operatorParams_.fieldsAlignedAboveSat_<<std::endl;
+//        if( (POL_operatorParams_.scaleUpToSaturation_ == false)&&(POL_operatorParams_.isClassical_ == false) ){
+//          POL_operatorParams_.fieldsAlignedAboveSat_ = false;
+//        }
+//        std::cout << "POL_operatorParams_.fieldsAlignedAboveSat_ after checking old criterion: "<<POL_operatorParams_.fieldsAlignedAboveSat_<<std::endl;
+//      }
 		}
     else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
       // basically a scalar model in multiple directions
       // isotropic case: all scalar models are equal (same weights etc)
       // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
-      POL_operatorParams_.fieldsAlignedAboveSat_ = false;
+      // already treated in ReadAndSetParamsForHystOperator
+      //      POL_operatorParams_.fieldsAlignedAboveSat_ = false;
+      //      // set dummy value for new parameter inputForAlignment_
+      //      POL_operatorParams_.inputForAlignment_ = numeric_limits<Double>::max();
       bool isVirgin = true;
 
       /*
@@ -2686,6 +2760,7 @@ namespace CoupledField {
 
       if (STRAIN_operatorParams_.methodType_ == 0) {
         bool ignoreAnhystPart = false;
+
         hystStrain_ = new Preisach(numHystOperators_, STRAIN_operatorParams_, STRAIN_weightParams_, isVirgin, ignoreAnhystPart);
 //                (numHystOperators_, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
 //                STRAIN_weightParams_.weightTensor_, isVirgin,
@@ -2693,7 +2768,7 @@ namespace CoupledField {
 //                STRAIN_weightParams_.anhystOnly_);
 
       } else if (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") {
-
+       
         if (STRAIN_operatorParams_.evalVersion_ == 1) {
           STRAIN_operatorParams_.isClassical_ = true; // original vector preisach model -> sutor2012
 
@@ -2749,16 +2824,22 @@ namespace CoupledField {
                   "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                   "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
         }
-        if( (STRAIN_operatorParams_.scaleUpToSaturation_ == false)&&(STRAIN_operatorParams_.isClassical_ == false) ){
-          STRAIN_operatorParams_.fieldsAlignedAboveSat_ = false;
-        }
+        // already treated in ReadAndSetParamsForHystOperator
+        // compare with POL_operatorParams_ above
+        //        if( (STRAIN_operatorParams_.scaleUpToSaturation_ == false)&&(STRAIN_operatorParams_.isClassical_ == false) ){
+        //          STRAIN_operatorParams_.fieldsAlignedAboveSat_ = false;
+        //          
+        //        }
+        
       }
       else if (STRAIN_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
         // basically a scalar model in multiple directions
         // isotropic case: all scalar models are equal (same weights etc)
         // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
-        STRAIN_operatorParams_.fieldsAlignedAboveSat_ = false;
-
+        // already treated in ReadAndSetParamsForHystOperator
+        //        STRAIN_operatorParams_.fieldsAlignedAboveSat_ = false;
+        //        // set dummy value for new parameter inputForAlignment_
+        //        STRAIN_operatorParams_.inputForAlignment_ = numeric_limits<Double>::max();
         /*
          * IMPORTANT REMARK:
          *  > although the Mayergoyz model is based on the scalar models
@@ -8531,6 +8612,8 @@ namespace CoupledField {
 		UInt totalReused = 0;
 		UInt totalAnhystOnly = 0;
 		UInt totalBisection = 0;
+    UInt totalFixedPoint = 0;
+    UInt totalNewtonBased = 0;
 		UInt totalRemanence = 0;
 		UInt totalPassedErrorTol = 0;
 		UInt totalPassedResTolX = 0;
@@ -9157,8 +9240,18 @@ namespace CoupledField {
           totalPassedErrorTol++;
         } else if((successFlagBackward == 5) || (successFlagBackward == 7)){
           totalPassedResTolX++;
+          if(successFlagBackward == 7){
+            totalFixedPoint++;
+          } else {
+            totalNewtonBased++;
+          }
         } else if((successFlagBackward == 6) || (successFlagBackward == 8)){
           totalPassedResTolY++;
+          if(successFlagBackward == 8){
+            totalFixedPoint++;
+          } else {
+            totalNewtonBased++;
+          }
         }
         successCodeVectorBackward[i] = successFlagBackward;
 
@@ -9651,7 +9744,9 @@ namespace CoupledField {
 
 			if(vector){
 				statistics << " " << totalRemanence << " of " << totalSteps << " cases were in remanence" << std::endl;
-				statistics << " " << LMcases << " of " << totalSteps << " were solved using Levenberg-Marquardt, Newton or Fixpoint" << std::endl;
+				statistics << " " << totalFixedPoint << " of " << totalSteps << " cases were solved via local FP iteration" << std::endl;
+        statistics << " " << totalNewtonBased << " of " << totalSteps << " cases were solved by a Newton based approach " << std::endl;
+        //statistics << " " << LMcases << " of " << totalSteps << " were solved using Levenberg-Marquardt, Newton or Fixpoint" << std::endl;
 				if(LMcases != 0){
 					statistics << "## Detailed Statistics on local inversion: " << std::endl;
 					statistics << " " << totalPassedErrorTol << " of " << LMcases << " tests passed due to error tolerance |JacT*Res| < " << InversionParams_.tolH << "(not checked for Fixpoint)" << std::endl;
@@ -11948,6 +12043,10 @@ namespace CoupledField {
       POL_operatorParams_.printWarnings_ = true;
       STRAIN_operatorParams_.printWarnings_ = true;
 
+      std::cout << "2. - getTemporalHystOperator" << std::endl;
+    std::cout << "Check if new parameter inputForAlignment_ has been set" << std::endl;
+    std::cout << "POL_operatorParams.inputForAlignment_ = " << POL_operatorParams_.inputForAlignment_ << std::endl;
+      
       ParameterPreisachWeights weightParamsForTMPOperator;
       if(forcedPreisachResolutionForTests > 0){
         // get temporal weights with different resolution than specified in mat.xml

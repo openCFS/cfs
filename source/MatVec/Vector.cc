@@ -252,13 +252,13 @@ namespace CoupledField {
   //   Inner angle between two vectors
   // ***********************************
   template<typename T>
-  Double Vector<T>::InnerAngle(const Vector<T>& other) const
+  Double Vector<T>::InnerAngle(const Vector<T>& other, bool preferPositiveZ) const
   {
     EXCEPTION("Inner angle only for Vector<Double>.")
   }
   
   template<>
-  Double Vector<Double>::InnerAngle(const Vector<Double>& other) const
+  Double Vector<Double>::InnerAngle(const Vector<Double>& other, bool preferPositiveZ) const
   {
     /*
      * Simple helper function computing the angle between two vectors
@@ -266,6 +266,19 @@ namespace CoupledField {
      * > no optimization, 2d and 3d only, basically following:
      * https://stackoverflow.com/questions/14066933/direct-way-of-computing-clockwise-angle-between-2-vectors
      *
+     * > in 2d (x,y) the returned angle is measured in a counterclockwise fashion from "this" towards "other" rotating
+     *    around the positve z-axis
+     *   i.e., the returned angle is negative if "this" has a larger counterclockwise angle than "other"
+     * > in 3d the returned angle is always positive as the rotation axis is not fix; per definition the one
+     *    that leads to a positive angle is utilized (see source above)
+     * > by setting the newly introduced flag "preferPositiveZ" (default = false) to true,
+     *    the actual rotation axis is evaluated from the cross product of "this" and "other" and 
+     *    its z-component will be checked; if it is negative, the rotation axis will get reverted
+     *    and consequntly the returned angle will be multiplied by -1;
+     *    Obviously, this does not work if the normal has a zero value z-component; however it ensures
+     *    that the angle between two vectors inside the x-y-plane has the same sign whether it is
+     *    evaluated in 2d or 3d
+     * 
      * Returned angle in radians
      */
     assert(size_ == other.GetSize());
@@ -284,7 +297,7 @@ namespace CoupledField {
     this->Inner(other,innerProduct);
     
     if(size_ == 2){
-      Double crossProduct2d = data_[0]*other[1] - data_[1]*other[0];
+      Double crossProduct2d = data_[0]*other[1] - data_[1]*other[0];   
       angleRad = std::atan2(crossProduct2d,innerProduct);
     } else {
       // floating point precision might cause argument to exceed bounds of allowed input for acos
@@ -293,6 +306,13 @@ namespace CoupledField {
       if(argument>1.0){ argument = 1.0;}
       if(argument< -1.0){ argument = -1.0;}
       angleRad = std::acos(argument);
+      
+      if(preferPositiveZ){
+        Double crossProduct3d_z = data_[0]*other[1] - data_[1]*other[0];
+        if(crossProduct3d_z<0){
+          angleRad = -angleRad;
+        }
+      }
     }
 
     return angleRad;

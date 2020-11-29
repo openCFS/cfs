@@ -23,6 +23,7 @@ namespace CoupledField
   Hysteresis::Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double hystSaturated,
           Double anhystA, Double anhystB, Double anhystC, Double anhystD, bool anhystOnly){
 
+    EXCEPTION("Hysteresis - old type constructor - Should not be used anymore");
     numElements_ = numElem;
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
@@ -48,6 +49,8 @@ namespace CoupledField
     anhystOnly_ = weightParams.anhystOnly_;
 
     XSaturated_ = operatorParams.inputSat_;
+    XForAlignment_ = operatorParams.inputForAlignment_;
+//    std::cout << "3. and 5. - HysteresisConstructor - New parameter XForAlignment_ = " << XForAlignment_ << std::endl;
     PSaturated_ = operatorParams.outputSat_;
     hystSaturated_ = operatorParams.preisachSat_;
     checkInversionResult_ = operatorParams.checkInversionResult_;
@@ -1187,7 +1190,7 @@ namespace CoupledField
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent,
           int operatorIdx, int stayBelowSat,
           Double& alpha, Double& alphaMin, Double& alphaMax,
-          bool stopLineSearchAtLocalMin, Double scalingForJacDiagonal){
+          bool stopLineSearchAtLocalMin, Double scalingForJacDiagonal, UInt& numberOfIterations){
 
     /*
      * Initial checks
@@ -1229,9 +1232,12 @@ namespace CoupledField
     Vector<Double> resNew;
     Vector<Double> xNew = Vector<Double>(dim_);
     Vector<Double> jacTresNew = Vector<Double>(dim_);
-
+    numberOfIterations = 0;
     for(UInt k = 0; k < numAlphas; k++){
-
+      // for statistics; if stopLineSearchAtLocalMin = false, numberOfIterations will always reach numAlphas
+      // > this is quite inefficient! a suitable stopping criterion like the Armijo-rule would help here
+      // or the quick and dirty check for locally optimal stepping (stopLineSearchAtLocalMin = true)
+      numberOfIterations++;
       curAlpha = alphaMax - deltaAlpha*k;
 
       xNew = xCurrent;
@@ -1279,6 +1285,11 @@ namespace CoupledField
         }
       }
     }
+    
+    // return for statistics
+    // the last found alpha=alphaCur may not be the best one; take optAlpha
+    alpha = optAlpha;
+    
     xUpdate.Init();
     if(allAlphasOutOfBound){
       // update failed > discard
@@ -2136,6 +2147,19 @@ namespace CoupledField
     satInput.Add(XSaturated_,yDir);
     int successCodeTmp = 0;
     Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, successCodeTmp);
+    
+    // make use of new parameter XForAlignment_
+    // see coeffunction hyst ReadAndSetParamsForHystOperator for explanation
+    Vector<Double> alignmentInput = Vector<Double>(dim_);
+    Vector<Double> hystValAtAlignment = Vector<Double>(dim_);
+    Double anhystPartAtAlginment = 0.0;
+    alignmentInput.Init();
+    if(XForAlignment_ < std::numeric_limits<Double>::max()){
+      alignmentInput.Add(XForAlignment_,yDir);
+      hystValAtAlignment = computeValue_vec(alignmentInput, operatorIndex, false, false, successCodeTmp);
+      anhystPartAtAlginment = PSaturated_*evalAnhystPart_normalized(XForAlignment_/XSaturated_);
+    }
+ 
     Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
 //         std::cerr << "yNorm: " << yNorm << std::endl;
 //          std::cerr << "hystValAtXSat: " << hystValAtXSat.ToString(12) << std::endl;
@@ -2175,7 +2199,11 @@ namespace CoupledField
         traceMsg << "--I 1-- Inversion: Input above Saturation found" << std::endl;
         stayBelowSat = -1;
         if(fieldsAlignedAboveSat == true){
-          useBisection = true;
+          if(yNorm >= (hystValAtAlignment.NormL2() + eps_mu*XForAlignment_)){
+//            std::cout << "Hysteresis.cc: yNorm >= (hystValAtAlignment.NormL2() + eps_mu*XForAlignment_)" << std::endl;
+//            std::cout << "Use bisection!" << std::endl;
+            useBisection = true;
+          }
         }
 				if(hystOutputRestrictedToSat == false){
 					// here we cannot actually say if input really has to be above saturation
@@ -2204,46 +2232,64 @@ namespace CoupledField
 
       if(useBisection){
         Double xScal = 0.0;
-
+        std::stringstream convergenceStream;
+        convergenceStream << "Use bisection" << std::endl;
         if(anhystPartPosSat == 0){
-          traceMsg << "--B1-- Inversion: Anhysteretic part zero > solve by simple division" << std::endl;
+          convergenceStream << "--B1-- Inversion: Anhysteretic part zero > solve by simple division" << std::endl;
           //xScal = (yNorm - PSaturated_)/eps_mu;
-          xScal = (yNorm - hystValAtXSat.NormL2())/eps_mu;
+          // > has to be changed to value at which fields align
+          // xScal = (yNorm - hystValAtXSat.NormL2())/eps_mu;
+          // will not change behavior of classical model and clipped revised model as here
+          // the input for alignmet = Xsaturated_
+          // for revised model with kappa_rev aka. rotress < 1 however we previously never came
+          // to this point; the new treatment allows for it but requires higher field
+          // (for revised XForAlignment_ = Xsaturated_/kappa_rev if kappa_rev < 1)
+          xScal = (yNorm - hystValAtAlignment.NormL2())/eps_mu;
           xVal.Init();
           xVal.Add(xScal,yDir);
           successFlag = 2;
-          return xVal;
         } else {
-          traceMsg << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl;
+          convergenceStream << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl;
 //          Double tol = tolB; //1e-12;
           Double Xup, Xdown, Poffset;
           //Xup = (yNorm - PSaturated_)/eps_mu;
           //Poffset = PSaturated_;
           Xup = (yNorm - hystSaturated_)/eps_mu;
           //Xup = (yNorm - hystValAtXSat.NormL2())/eps_mu;
-          Xdown = XSaturated_;
+          Xdown = XForAlignment_;
+          //Xdown = XSaturated_;
           //Poffset = hystSaturated_;//hystValAtXSat.NormL2();
           // subtract anhyst part to get a better approximation 
           // of the Poffset than just hystSaturated_
-          Poffset = hystValAtXSat.NormL2()-anhystPartPosSat; 
+          Poffset = hystValAtAlignment.NormL2()-anhystPartAtAlginment;
+          //Poffset = hystValAtXSat.NormL2()-anhystPartPosSat; 
+          
 //          std::cerr << "hystValAtXSat.NormL2(): " << hystValAtXSat.NormL2() << std::endl;
 //          std::cerr << "hystSaturated_: " << hystSaturated_ << std::endl;
 //          std::cerr << "hystSaturated_-hystValAtXSat.NormL2(): " << hystSaturated_-hystValAtXSat.NormL2() << std::endl;
           int successFlagBisect = -1;
           xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tolB,successFlagBisect);
           if(successFlagBisect >= 0){
-            traceMsg << "-- bisection successful after " << successFlagBisect << " iterations " << std::endl;
+            convergenceStream << "-- bisection successful after " << successFlagBisect << " iterations " << std::endl;
             successFlag = 2;
           } else {
-            traceMsg << "-- bisection exceeded maximal number of iterations! no success!" << std::endl;
+            convergenceStream << "-- bisection exceeded maximal number of iterations! no success!" << std::endl;
             successFlag = -1;
           }
-
           xVal.Init();
           xVal.Add(xScal,yDir);
           successFlag = 2;
-          return xVal;
         }
+        
+        if(xVal.NormL2() > 1e20){
+          std::cout << convergenceStream.str() << std::endl;
+          if(xVal.NormL2() > 1e20){
+            std::cout << "Norm of xVal" << xVal.NormL2() << std::endl;
+            EXCEPTION("Bisection went terribly wrong.");
+          }
+        }
+
+        return xVal;
       }
     } // yNorm != 0
 
@@ -2370,22 +2416,22 @@ namespace CoupledField
 //      std::cout << "slope1: " << slope1 << std::endl;
 //      std::cout << "slope2: " << slope2 << std::endl;
       Vector<Double> hystVal = Vector<Double>(dim_);
-//      std::stringstream convergenceStream;
-//      convergenceStream << "Start FP inversion" << std::endl;
+      std::stringstream convergenceStream;
+      convergenceStream << "Start FP inversion" << std::endl;
       for(UInt i = 0; i < maxIter; i++){
         totalNumberOfLMIterations++; // for statistics
         hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
         mu.Mult(xVal,deltaY);
         deltaY.Add(1.0,hystVal);
         deltaY.Add(-1.0,yVal);
-//        convergenceStream << "Iteration/maxNumIterations = " << i << "/" << maxIter << std::endl;
-//        convergenceStream << "deltaY: " << deltaY.ToString(8,',') << std::endl;
-//        convergenceStream << "deltaY NormL2: " << deltaY.NormL2() << std::endl;
+        convergenceStream << "Iteration/maxNumIterations = " << i << "/" << maxIter << std::endl;
+        convergenceStream << "deltaY: " << deltaY.ToString(8,',') << std::endl;
+        convergenceStream << "deltaY NormL2: " << deltaY.NormL2() << std::endl;
         // test 27.10.2020 > should we add this before returing xVal or afterwards
         xVal.Add(-1.0/muFP,deltaY);
-//        convergenceStream << "xVal: " << xVal.ToString(8,',') << std::endl;
-//        convergenceStream << "hystVal: " << hystVal.ToString(8,',') << std::endl;
-//        convergenceStream << "yVal: " << yVal.ToString(8,',') << std::endl;
+        convergenceStream << "xVal: " << xVal.ToString(8,',') << std::endl;
+        convergenceStream << "hystVal: " << hystVal.ToString(8,',') << std::endl;
+        convergenceStream << "yVal: " << yVal.ToString(8,',') << std::endl;
         if(deltaY.NormL2()/abs(mu.GetMax()) < tolH){
           successFlag = 7;
           return xVal;
@@ -2397,13 +2443,17 @@ namespace CoupledField
         successFlag = 8;
         return xVal;
       } 
-//      else {
-//        std::cout << "FP inversion did not succeed! here is the log:" << std::endl;
-//        std::cout << convergenceStream.str() << std::endl;
-//        std::cout << "slope1: " << slope1 << std::endl;
-//        std::cout << "slope2: " << slope2 << std::endl;
-//        std::cout << "muFP: " << muFP << std::endl;
-//      }
+      else {
+        if(xVal.NormL2() > 1e20){
+          std::cout << "FP inversion did not succeed! here is the log:" << std::endl;
+          std::cout << convergenceStream.str() << std::endl;
+          std::cout << "slope1: " << slope1 << std::endl;
+          std::cout << "slope2: " << slope2 << std::endl;
+          std::cout << "muFP: " << muFP << std::endl;
+          std::cout << "Norm of xVal" << xVal.NormL2() << std::endl;
+          EXCEPTION("FP-Inversion went terribly wrong.");
+        }
+      }
 
       if(warnAtNonConvergence_){
         std::stringstream warnmsg;
@@ -2770,7 +2820,7 @@ namespace CoupledField
       } else {
         discardUpdate = computeUpdateNewton_Linesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat,
-                alpha, alphaMin, alphaMax, stopLineSearchAtLocalMin, scalingForJacDiagonal);
+                alpha, alphaMin, alphaMax, stopLineSearchAtLocalMin, scalingForJacDiagonal, numberOfIterations);
       }
 
       LOG_DBG(hysteresis_inversion) << "Computed update: " << xUpdate.ToString();

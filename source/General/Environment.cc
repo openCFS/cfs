@@ -1958,6 +1958,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Z, "preisach_mayergoyz_start_z" );
     MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_A, "preisach_mayergoyz_lossa" );
     MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_B, "preisach_mayergoyz_lossb" );
+    MaterialTypeEnum.Add( MAYERGOYZ_USEABSDPHI, "preisach_mayergoyz_useAbsDPhi" );
+    MaterialTypeEnum.Add( MAYERGOYZ_NORMALIZEXINEXP, "preisach_mayergoyz_normalizeXinExp" );
+    MaterialTypeEnum.Add( MAYERGOYZ_RESTRICTIONOFPSI, "preisach_mayergoyz_restrictionOfPsi" );
+    MaterialTypeEnum.Add( MAYERGOYZ_SCALINGOFXINEXP, "preisach_mayergoyz_scalingOfXinExp" );
     MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH, "isPreisachType" );
     MaterialTypeEnum.Add( PREISACH_PRESCRIBEOUTPUT, "preisach_prescribe_output" );
     MaterialTypeEnum.Add( PREISACH_SCALEINITIALSTATE, "preisach_scale_initial_state" );
@@ -2081,6 +2085,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAYERGOYZ_STARTAXIS_Z_STRAIN, "preisach_mayergoyz_start_z_strain" );
     MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_A_STRAIN, "preisach_mayergoyz_lossa_strain" );
     MaterialTypeEnum.Add( MAYERGOYZ_LOSSPARAM_B_STRAIN, "preisach_mayergoyz_lossb_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_USEABSDPHI_STRAIN, "preisach_mayergoyz_useAbsDPhi_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_NORMALIZEXINEXP_STRAIN, "preisach_mayergoyz_normalizeXinExp_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_RESTRICTIONOFPSI_STRAIN, "preisach_mayergoyz_restrictionOfPsi_strain" );
+    MaterialTypeEnum.Add( MAYERGOYZ_SCALINGOFXINEXP_STRAIN, "preisach_mayergoyz_scalingOfXinExp_strain" );
     MaterialTypeEnum.Add( HYST_TYPE_IS_PREISACH_STRAIN, "isPreisachType_strain" );
 
     MaterialTypeEnum.Add( HYST_COUPLING_DEFINED, "hystCouplingDefined" );

@@ -525,7 +525,19 @@
     <xsd:all>
       <xsd:element name="a" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="b" type="xsd:double" minOccurs="1" default="0"/>
-      <xsd:element name="c" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="c" type="xsd:double" minOccurs="1" default="0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Warning: (Relatively large) negative values of c, i.e., c smaller -0.x, can lead to serious convergence
+               issues at large input fields. 
+          Reason: for negative c, the corresponding contribution to the output will oppose the output of the hysteresis
+               operator. The latter output is limited whereas the anhysteretic contribution grows even beyond input 
+               saturation. Thus, if input becomes large enough, c will overrule the hysteretic output so that the overall
+               model output (hysteretic + anhysteretic) points in the wrong direction. From that point on, the inversion
+               of the hysteresis model will most likely fail.
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
       <xsd:element name="d" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
       <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
@@ -911,16 +923,76 @@
             in saturation regime.
             Source: Dlala - "Improving Loss Properties of the Mayergoyz Vector Hysteresis Model"
             Correction in form of a correction angle:
-              psi(t) = g(x)|x||dPhi|
+              psi(t) = g(x)|x_normalized||dPhi|
             with
-              g(x) = e^(-a|x| + b))
-            setting a and b to 0 will deactivate this function
+              g(x) = e^(-a|x_exponent| + b))
+            setting a and b to 0 will deactivate this function.
+            Fine-tuning possible by additional parameters:
+              1. useAbsoluteValueOfdPhi (default = false)
+              2. restrictionOfPsi (default = 4)
+              3. normalizeXInExponentOfG (default = true)
+               4. fixScalingOfXInExponentOfG (default = 1.0)
           </xsd:documentation>
         </xsd:annotation>
          <xsd:complexType>
           <xsd:all>
             <xsd:element name="lossParam_a" type="xsd:double" minOccurs="0" default="0.0"/>
             <xsd:element name="lossParam_b" type="xsd:double" minOccurs="0" default="0.0"/>
+            <xsd:element name="useAbsoluteValueOfdPhi" type="xsd:boolean" minOccurs="0" default="false">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  1. useAbsoluteValueOfdPhi (default = false): 
+                  if set to false, psi(t) = g(x)|x_normalized| dPhi
+                  else psi(t) = g(x)|x_normalized||dPhi|
+                  note: the latter option (true) corresponds to literature but is only suitable
+                  for x rotating/changing in counterclockwise direction as here a positive value
+                  of dPhi leads to the desired behind-lagging behavior; if rotating in clockwise
+                  fashing, a negative value of dPhi is required as tests have shown
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="restrictionOfPsi" type="xsd:nonNegativeInteger" minOccurs="0" default="4">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  2. restrictionOfPsi (default = 4):
+                  note: currently only mode 4 usable
+                  if set to 3, psi(t) will be restricted to a maximum of 2pi
+                  if set to 4, psi(t) will be restricted to the angle between the current input x
+                  and the output y of the previous step 
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="normalizeXInExponentOfG" type="xsd:boolean" minOccurs="0" default="true">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  3. normalizeXInExponentOfG (default = true):
+                  if true, x_exponent in the exponent of g is normalized to the saturation value xSat, i.e.,
+                  x_exponent = x_normalized
+                  if false, x_exponent = x will be used directly
+                  note: the values for a will obviously not be compatible between both versions;
+                  the option false should be chosen during parameter determination if xSat is optimized
+                  along a and b as xSat and a are no independent parameters in this context (xSat will 
+                  still have an influence on the models behavior as it affects the single scalar models
+                  and as x_normalized is used in the multiplication with g(x))
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="fixScalingOfXInExponentOfG" type="xsd:double" minOccurs="0" default="1.0">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  4. fixScalingOfXInExponentOfG (default = 1.0):
+                  optional parameter that is inteneded for improving parameter matching and to make values of
+                  lossParam_a retrieved from normalizeXInExponentOfG=true and normalizeXInExponentOfG=false compatible;
+                  this parameter allows for an additional scaling of x in the exponent that (so basically it does the
+                  same as lossParam_a but compared to lossParam_a it is not varied during optimization; it
+                  thus can be used to adapt the order of magnitude;
+                  x_exponent_scaled = fixScalingOfXInExponentOfG*x_exponent 
+                  typical values:
+                  if normalizeXInExponentOfG=true: 1.0
+                  else: in the order of 1.0/Hsat
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
           </xsd:all>
         </xsd:complexType>
       </xsd:element>

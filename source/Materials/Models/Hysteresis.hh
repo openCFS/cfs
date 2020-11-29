@@ -288,7 +288,7 @@ namespace CoupledField {
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent,
       int operatorIdx, int stayBelowSat,
       Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin,
-      Double scalingForJacDiagonal);
+      Double scalingForJacDiagonal, UInt& numberOfIterations);
 
     bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res,
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv,
@@ -363,6 +363,7 @@ namespace CoupledField {
 //    bool anhyst_cInAtan_;
     bool anhystOnly_;
     Double XSaturated_;
+    Double XForAlignment_;
     Double PSaturated_;
     /*
      * saturation value of hyst operator alone (without anhyst part); can be the same as PSaturated

@@ -2281,7 +2281,8 @@ namespace CoupledField {
     bool allPassed = true;
     Double valueToCheck = 0.0;
     Double precision = 1e-12;
-
+    logger << "- Current residual norm: "<<resVec_n_k_.NormL2()<<std::endl;
+    logger << "- Initial residual norm: "<<resVec_n_0_.NormL2()<<std::endl;
     logger << "- Checked stopping criteria: " << std::endl;
     for(criterionIterator = stoppingCriteria_.begin(); criterionIterator != stoppingCriteria_.end(); criterionIterator++){
       // shall criterion be checked already?
@@ -2344,9 +2345,9 @@ namespace CoupledField {
       criterionIterator->lastCheckedValue_ = valueToCheck;
     }
     if(minLoggingToTerminal_ > 1){
-      logger << "- Reference values in case of relative norms " << std::endl;
-      logger << "- Norm of current solution vector = " << solVec_.NormL2() << std::endl;
-      logger << "- Norm of initial residual vector = " << resVec_n_0_.NormL2() << std::endl;
+      logger << "- Reference values in case of relative norms: " << std::endl;
+      logger << "-- Norm of current solution vector = " << solVec_.NormL2() << std::endl;
+      logger << "-- Norm of initial residual vector = " << resVec_n_0_.NormL2() << std::endl;
     }
     if(allPassed){
       logger << " - ALL convergence criteria satisfied - STOP " << std::endl;

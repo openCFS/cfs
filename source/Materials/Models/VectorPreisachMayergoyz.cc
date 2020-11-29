@@ -217,6 +217,13 @@ namespace CoupledField
     if( (lossParam_a_ != 0)||(lossParam_b_ != 0) ){
       improveRotLoss_ = true;
     }
+    // new optional parameter to function InnerAngle; simple attempt to utilize a common reference system for
+    // rotations in 3d; 
+    preferPositiveZ_ = true;
+    restrictionOfPsi_=operatorParams.restrictionOfPsi_;
+    useAbsoluteValueOfdPhi_=operatorParams.useAbsoluteValueOfdPhi_;
+    normalizeXInExponentOfG_=operatorParams.normalizeXInExponentOfG_;
+    scalingFactorXInExponent_=operatorParams.scalingFactorXInExponent_;
     
     prevXVal_ = new Vector<Double>[numElem];
     prevHVal_ = new Vector<Double>[numElem];
@@ -227,6 +234,20 @@ namespace CoupledField
       prevHVal_[k].Init();
     }
 
+    bool testInnerAngle = false;
+    bool verbose = true;
+    UInt numTests = 5;
+    if(testInnerAngle){
+      bool success = testInnerAngle3d(numTests,verbose);
+      if(success){
+        std::cout << "All tests passed." << std::endl;
+      } else {
+        std::cout << "Some tests have failed." << std::endl;
+        // rerun with verbose flag = true
+        testInnerAngle3d(numTests,true);
+      }
+    }
+    
   }
 
   VectorPreisachMayergoyz::~VectorPreisachMayergoyz(){
@@ -354,12 +375,11 @@ namespace CoupledField
       // edit 19.10.2020: 
       // angleCorrection restricted to angle between prevHVal_ and xVal (previously restriction to 2pi)!
       // > see also comments in evaluateLagCorrectionAngle
-
       Double phaseLagMax = 2*M_PI;
       
       // restrict angle to angle between X and Y; as Y is not known yet, restrict to previous
       // output of hyst operator H instead (Y = mu*X + H)
-      phaseLagMax = std::abs(xVal.InnerAngle(prevHVal_[idx]));
+      phaseLagMax = std::abs(xVal.InnerAngle(prevHVal_[idx],preferPositiveZ_));
     
       angleCorrection = evaluateLagCorrectionAngle(xVal, prevXVal_[idx], phaseLagMax);
     }
@@ -383,7 +403,7 @@ namespace CoupledField
          * > use new implementation in vector class
          */      
         Double baseAngle = 0;
-        baseAngle = singleDirections_[i].InnerAngle(xVal);
+        baseAngle = singleDirections_[i].InnerAngle(xVal,preferPositiveZ_);
         
         scalInput = absProd*std::cos(baseAngle - angleCorrection);
         scalOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalInput,idx, overwrite,successFlagSingle);
@@ -539,8 +559,36 @@ namespace CoupledField
    
     // 20.10.2020: according to the original source, the lag angle always takes the absolute value of dPhi, i.e.,
     // the absolute change in input-angle; the question is, if the computed correction angle will work correctly for
-    // clockwise and counterclockwise rotations
-    bool useAbsDPhi = true;
+    // clockwise (cw) and counterclockwise (ccw) rotations
+    // 30.11.2020: simulations with forced absolute value and direct usage of dPhi showed, that
+    // in case of forced absolute value, the resulting polarization curves for cw and ccw rotation 
+    // differ whereas the curves have the same shape in case of dPhi taken directly;
+    // this is actually, what could be expected as the enforcement of the absolute value will
+    // always cause a cw or ccw lag (depending on whether -psi or psi is used in the computation of
+    // scalInput = absProd*std::cos(baseAngle - angleCorrection); (see line 396)) regardless on the
+    // actual rotation of the field; however, if rotating ccw, M should have a smaller total phase angle
+    // (lagging behind) whereas in case of cw, M should have a larger total phase angle (again lagging behind)
+    // 1.12.2020: For the correction to work properly, it is important to compute all angles in the same
+    // fashion and (if possible in 3d) around the same rotation axis. Currently, both baseAngle
+    // and angleCorrection are retrieved from the function InnerAngle that returns for two vectors
+    // v1 and v2 the angle from v1 towards v2. So in 2d if v1 has a larger angle with respect to the
+    // x axis than v2, the returned angle will be negative. If the angle would be computed from the
+    // difference between the single vectors' angle towards the x axis, the angle would be positive.
+    // Consequently, the problem with taking the absolute value of dPhi arises in the current implementation
+    // if the input rotates in counterclockwise direction as here the angle between two consecutive inputs
+    // will be negative. Following the computation from literature, where the single angles are computed and
+    // subtracted, we would get the issue for a clockwise field rotation.
+    // In 3d, there is the problem, that the rotation axis cannot easily be set to either the positive
+    // or negative z-axis, as the rotation axis depends on v1 and v2. The formula used inside InnerAngle
+    // implicitly considers the rotation axis, that causes a positive angle between v1 and v2. This behavior
+    // is not desired here as the angleCorrection might have to be negative. To make the model work in 3d
+    // it is important to assure that baseAngle and angleCorrection are computed for the same orientation.
+    // This is not trivial and not fully resolved in InnerAngle() yet. However, a first attempt is made by
+    // forcing the z-component of the rotation axis to a positive sign (obviously this works only if the normal
+    // vector has a non-zero z-component). In that fashion one can at least guarantee that the angle between
+    // two vectors in the x-y-plane will have the same sign whether they are computed in a 2d or 3d context.
+    // 
+    bool useAbsDPhi = useAbsoluteValueOfdPhi_;
     Double absDPhi = 0;
     
 //    // old way of computing the angle dPhi
@@ -564,25 +612,30 @@ namespace CoupledField
 //
 //    std::cout << "-- absDPhi (old comp, in deg): " << absDPhi*180.0/M_PI << std::endl; 
    
-    absDPhi = xVal.InnerAngle(prevXVal);
+    absDPhi = xVal.InnerAngle(prevXVal,preferPositiveZ_);
         
     if(useAbsDPhi){
-//      std::cout << "Take absolute value of dPhi" << std::endl;
       absDPhi = std::abs(absDPhi);
+//      std::cout << "Take absolute value of dPhi = " << absDPhi << std::endl;
     } 
 //    else {
-//      std::cout << "Take dPhi directly, not its absolute value" << std::endl;
+//      std::cout << "Take dPhi = " << absDPhi << " directly, not its absolute value" << std::endl;
 //    }
     
+    //std::cout << "New parameter scalingFactorXInExponent_ = " << scalingFactorXInExponent_ << std::endl;
+    Double absXInExponent = scalingFactorXInExponent_*absX;
+    if(normalizeXInExponentOfG_){
+      absXInExponent = absXInExponent/XSaturated_;
+    }
     Double absXNormalized = absX/XSaturated_;
-    Double gX = std::exp(-lossParam_a_*absXNormalized + lossParam_b_);
+    Double gX = std::exp(-lossParam_a_*absXInExponent + lossParam_b_);
     // regarding note from 19.06.2020 above: limit angular correction (=maximal angular lag) to absDPhi
     Double psi = 0;
 
     // note: 20.6.2020 - be restricting the angluar lag to absDPhi we are again able to invert the mayergoyz
     // model appropriately as the jacobian no longer jumps; however, this restriction also leads to a non-sufficient
     // reduction of rotational losses
-    int mode = 4;
+    int mode = restrictionOfPsi_;
     // 0: unrestricted; matching works but inversion fails
     // 1: restricted to absDPhi; inversion works but matching fails; rotloss is not reduced to 0
     // 2: restricted to absDPhi; negative value returned; same issue as 1
@@ -619,14 +672,128 @@ namespace CoupledField
       
       if(psi > 2*M_PI){
         psi = 2*M_PI;
+      } else if(psi < -2*M_PI) {
+        psi = -2*M_PI;
       }
     } else if(mode == 4){
       psi = scaling*absDPhi;
       
+      // maxAngle is always positiv as we take the absolute value above
+      // see phaseLagMax in line 370
+      // 30.11.2020: during tests, psi was seldom larger than maxAngle
       if(psi > maxAngle){
+//        std::cout << "restrict lag angle from " << psi << " to " << maxAngle << std::endl;
         psi = maxAngle;
-      }
+      } 
+      // new for the case of negative psi (if useAbsDPhi = false, absDPhi may be negative)
+      else if (psi < -maxAngle){
+//        std::cout << "restrict lag angle from " << psi << " to " << -maxAngle << std::endl;
+        psi = -maxAngle;
+      } 
+//      else {
+//        std::cout << "take lag angle " << psi << std::endl;
+//      }
     }
     return psi;
+  }
+  
+  bool VectorPreisachMayergoyz::testInnerAngle3d(UInt numTests, bool verbose){
+    Vector<Double> VecA_2d = Vector<Double>(2);
+    Vector<Double> VecB_2d = Vector<Double>(2);
+    Vector<Double> VecA_3d = Vector<Double>(3);
+    Vector<Double> VecB_3d = Vector<Double>(3);
+    bool allTestsPassed = true;
+
+    for(UInt i = 0; i < numTests; i++){
+      Double angleA;
+      Double angleB;
+      
+      if(i==0){
+        angleA = 2*M_PI/3;
+        angleB = M_PI/3;
+      } else if(i==1){
+        angleA = -2*M_PI/3;
+        angleB = M_PI/3;
+      } else if(i==2){
+        angleA = M_PI/3;
+        angleB = 2*M_PI/3;
+      } else {
+        angleA = M_PI*(std::rand()%100 - 50)/50.0;
+        angleB = M_PI*(std::rand()%100 - 50)/50.0;
+      }
+      
+      VecA_2d[0] = std::cos(angleA);
+      VecA_2d[1] = std::sin(angleA);
+      VecB_2d[0] = std::cos(angleB);
+      VecB_2d[1] = std::sin(angleB);
+      Double angleAToB_2d = VecA_2d.InnerAngle(VecB_2d);
+      Double angleBToA_2d = VecB_2d.InnerAngle(VecA_2d);
+
+      VecA_3d[0] = VecA_2d[0];
+      VecA_3d[1] = VecA_2d[1];
+      VecA_3d[2] = 0.0;
+      VecB_3d[0] = VecB_2d[0];
+      VecB_3d[1] = VecB_2d[1];
+      VecB_3d[2] = 0.0;
+      Double angleAToB_3d = VecA_3d.InnerAngle(VecB_3d);
+      Double angleBToA_3d = VecB_3d.InnerAngle(VecA_3d);
+      Double angleAToB_3d_preferPositiveZ = VecA_3d.InnerAngle(VecB_3d,true);
+      Double angleBToA_3d_preferPositiveZ = VecB_3d.InnerAngle(VecA_3d,true);
+
+      if(verbose){
+        std::cout << "Vectors A and B in the x-y-plane:" << std::endl;
+        std::cout << "A:" << VecA_3d.ToString() << std::endl;
+        std::cout << "B:" << VecB_3d.ToString() << std::endl;
+        std::cout << "angleA:" << angleA << std::endl;
+        std::cout << "angleB:" << angleB << std::endl;
+
+        std::cout << "Angle from A towards B (2d computation):" << angleAToB_2d << std::endl;
+        std::cout << "Angle from B towards A (2d computation):" << angleBToA_2d << std::endl;
+        std::cout << "Angle from A towards B (3d computation):" << angleAToB_3d << std::endl;
+        std::cout << "Angle from B towards A (3d computation):" << angleBToA_3d << std::endl;
+        std::cout << "Angle from A towards B (3d computation, preferPositiveZ=true):" << angleAToB_3d_preferPositiveZ << std::endl;
+        std::cout << "Angle from B towards A (3d computation, preferPositiveZ=true):" << angleBToA_3d_preferPositiveZ << std::endl;  
+      }
+      bool check1 = angleAToB_3d_preferPositiveZ==angleAToB_2d;
+      bool check2 = angleBToA_2d==-angleAToB_2d;
+      bool check3 = angleBToA_3d_preferPositiveZ==-angleAToB_3d_preferPositiveZ;
+      bool check4 = angleAToB_2d==(angleB-angleA);
+      bool check5 = angleBToA_2d==(angleA-angleB);
+
+      if(verbose){
+        std::cout << "Check 1: angleAToB_3d_preferPositiveZ != angleAToB_2d -> ";
+        if(check1){
+          std::cout << "passed" << std::endl;
+        } else {
+          std::cout << "failed" << std::endl;
+        }
+        std::cout << "Check 2: angleBToA_2d != -angleAToB_2d -> ";
+        if(check2){
+          std::cout << "passed" << std::endl;
+        } else {
+          std::cout << "failed" << std::endl;
+        }
+        std::cout << "Check 3: angleBToA_3d_preferPositiveZ != -angleAToB_3d_preferPositiveZ -> ";
+        if(check3){
+          std::cout << "passed" << std::endl;
+        } else {
+          std::cout << "failed" << std::endl;
+        }
+        std::cout << "Check 4: angleAToB_2d != (angleB-angleA) -> ";
+        if(check4){
+          std::cout << "passed" << std::endl;
+        } else {
+          std::cout << "failed" << std::endl;
+        }
+        std::cout << "Check 5: angleBToA_2d != (angleA-angleB) -> ";
+        if(check5){
+          std::cout << "passed" << std::endl;
+        } else {
+          std::cout << "failed" << std::endl;
+        }
+      }
+      allTestsPassed = allTestsPassed && (check1 && check2 && check3 && check4 && check5);  
+    }
+    return allTestsPassed;
   }
 }

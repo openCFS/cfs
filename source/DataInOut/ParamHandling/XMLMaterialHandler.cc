@@ -1437,6 +1437,11 @@ namespace CoupledField {
 
         Double lossParam_a = 0;
         Double lossParam_b = 0;
+        // for fine-tuning; explanetion can be found in CFS_MAThysteresis.xsd
+        bool useAbsoluteValueOfdPhi = false;
+        bool normalizeXInExponentOfG = true;
+        int restrictionOfPsi = 4;
+        Double fixScalingOfXInExponentOfG = 1.0;
         
         if(innerModel->Has("rotLossCorrectionFactors")){
           if(innerModel->Get("rotLossCorrectionFactors")->Has("lossParam_a")){
@@ -1445,16 +1450,41 @@ namespace CoupledField {
           if(innerModel->Get("rotLossCorrectionFactors")->Has("lossParam_b")){
             lossParam_b = innerModel->Get("rotLossCorrectionFactors")->Get("lossParam_b")->As<Double>();
           }
+          
+          if(innerModel->Get("rotLossCorrectionFactors")->Has("useAbsoluteValueOfdPhi")){
+            useAbsoluteValueOfdPhi = innerModel->Get("rotLossCorrectionFactors")->Get("useAbsoluteValueOfdPhi")->As<bool>();
+          }
+          if(innerModel->Get("rotLossCorrectionFactors")->Has("normalizeXInExponentOfG")){
+            normalizeXInExponentOfG = innerModel->Get("rotLossCorrectionFactors")->Get("normalizeXInExponentOfG")->As<bool>();
+          }
+          if(innerModel->Get("rotLossCorrectionFactors")->Has("restrictionOfPsi")){
+            restrictionOfPsi = innerModel->Get("rotLossCorrectionFactors")->Get("restrictionOfPsi")->As<Integer>();
+          }
+          if(innerModel->Get("rotLossCorrectionFactors")->Has("fixScalingOfXInExponentOfG")){
+            fixScalingOfXInExponentOfG = innerModel->Get("rotLossCorrectionFactors")->Get("fixScalingOfXInExponentOfG")->As<Double>();
+          }
         }
         
         material->SetScalar( lossParam_a, MaterialType(MAYERGOYZ_LOSSPARAM_A+enumOffset), Global::REAL);
         material->SetScalar( lossParam_b, MaterialType(MAYERGOYZ_LOSSPARAM_B+enumOffset), Global::REAL);
-
+        material->SetScalar( fixScalingOfXInExponentOfG, MaterialType(MAYERGOYZ_SCALINGOFXINEXP+enumOffset), Global::REAL);
+        
+        if(useAbsoluteValueOfdPhi==true){
+          material->SetScalar( 1, MaterialType(MAYERGOYZ_USEABSDPHI+enumOffset));
+        } else {
+          material->SetScalar( 0, MaterialType(MAYERGOYZ_USEABSDPHI+enumOffset));
+        }
+        if(normalizeXInExponentOfG==true){
+          material->SetScalar( 1, MaterialType(MAYERGOYZ_NORMALIZEXINEXP+enumOffset));
+        } else {
+          material->SetScalar( 0, MaterialType(MAYERGOYZ_NORMALIZEXINEXP+enumOffset));
+        }
+        material->SetScalar( restrictionOfPsi, MaterialType(MAYERGOYZ_RESTRICTIONOFPSI+enumOffset));
+                
         int numDir = 11;
         if (innerModel->Has("numDirections")){
           numDir = innerModel->Get("numDirections")->As<Integer>();
         }
-
         material->SetScalar(numDir, MaterialType(PREISACH_MAYERGOYZ_NUM_DIR+enumOffset) );
 
         if (innerModel->Has("ScalarModel")){
