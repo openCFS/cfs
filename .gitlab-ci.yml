@@ -636,9 +636,10 @@ testsuite:gcc10:linux:
   image: opencfs/fedora32
   tags:
     - linux
+    - docker
   stage: test
   variables:
-    BUILD_NAME: "GCC10"
+    BUILD_NAME: GCC10
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
