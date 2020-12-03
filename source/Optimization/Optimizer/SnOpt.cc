@@ -90,10 +90,10 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
 SnOpt::~SnOpt()
 {
   if (iPrint != 0 && iPrint != 6)
-    snclose_(&iPrint);
+    snclose(&iPrint);
 
   if (iSpecs != 0)
-    snclose_(&iSpecs);
+    snclose(&iSpecs);
 }
 
 void SnOpt::Init()
@@ -108,7 +108,7 @@ void SnOpt::Init()
   cw.Resize(8*mincw);
   rw.Resize(minrw);
   iw.Resize(miniw);
-  sninit_(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
+  sninit(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
 
   // set the file for snopt, formerly fort.1
   setSnoptOutputFiles();
@@ -169,7 +169,7 @@ void SnOpt::setSnoptOutputFiles()
     else
     { 
       iPrint = 15;
-      snopenappend_(&iPrint, (char*) outfilename.c_str(), &INFO, outfilename.size());
+      snopenappend(&iPrint, (char*) outfilename.c_str(), &INFO, outfilename.size());
     }
   }
 
@@ -209,7 +209,7 @@ void SnOpt::SolveProblem()
     assert(nA == 0);
   }
   
-  snopta_(
+  snopta(
       &Start, &nF, &n, &nxname, &nFname,
       &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
       iAfun.GetPointer(), jAvar.GetPointer(), &lenA, &nA, A.GetPointer(),
@@ -499,7 +499,7 @@ void SnOpt::AdjustWorkArrayMemory()
   integer tmprw(lenrw);
   
   // try to determine minimal amount of memory needed for this problem
-  snmema_(&INFO, &nF, &n, &nxname, &nFname, &nA, &nG, &mincw, &miniw, &minrw,
+  snmema(&INFO, &nF, &n, &nxname, &nFname, &nA, &nG, &mincw, &miniw, &minrw,
       &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, 8*lencw);
   
   LOG_DBG(snopt) << "After snmema_:";
@@ -518,7 +518,7 @@ void SnOpt::AdjustWorkArrayMemory()
   {
     lencw = static_cast<int>(factor * static_cast<double>(mincw));
     cw.Resize(8*lencw);
-    snseti_("Total character workspace", &lencw, &iPrt, &iSum, &INFO,
+    snseti("Total character workspace", &lencw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 25, 8*lencw);
     LOG_DBG(snopt) << "new value: lencw = " << lencw << ", INFO = " << INFO;
   }
@@ -527,7 +527,7 @@ void SnOpt::AdjustWorkArrayMemory()
   {
     leniw = static_cast<int>(factor * static_cast<double>(miniw));
     iw.Resize(leniw);
-    snseti_("Total integer workspace", &leniw, &iPrt, &iSum, &INFO,
+    snseti("Total integer workspace", &leniw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 23, 8*lencw);
     LOG_DBG(snopt) << "new value: leniw = " << leniw << ", INFO = " << INFO;
   }
@@ -536,7 +536,7 @@ void SnOpt::AdjustWorkArrayMemory()
   {
     lenrw = static_cast<int>(factor * static_cast<double>(minrw));
     rw.Resize(lenrw);
-    snseti_("Total real workspace", &lenrw, &iPrt, &iSum, &INFO,
+    snseti("Total real workspace", &lenrw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 20, 8*lencw);
     LOG_DBG(snopt) << "new value: lenrw = " << lenrw << ", INFO = " << INFO;
   }
@@ -774,7 +774,7 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   {
     LOG_DBG(snopt) << "adjusted " << key;
     // set the option
-    snseti_(option.c_str(), &value, &iPrint, &iSumm, &INFO,
+    snseti(option.c_str(), &value, &iPrint, &iSumm, &INFO,
         &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw);
     
     // check INFO, if after setting an option INFO > 0 we have had an error!
@@ -821,7 +821,7 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
   {
     LOG_DBG(snopt) << "adjusted " << key;
     // set the option
-    snsetr_(option.c_str(), &value, &iPrint, &iSumm, &INFO,
+    snsetr(option.c_str(), &value, &iPrint, &iSumm, &INFO,
         &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw );
     
     // check INFO, if after setting an option INFO > 0 we have had an error!
@@ -845,7 +845,7 @@ void SnOpt::SetStringValue(const std::string& key, const std::string& value)
   {
     LOG_DBG(snopt) << "adjusted " << key;
     // set the option
-    snset_(option.c_str(), &iPrint, &iSumm, &INFO,
+    snset(option.c_str(), &iPrint, &iSumm, &INFO,
         &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw );
 
     // check INFO, if after setting an option INFO > 0 we have had an error!

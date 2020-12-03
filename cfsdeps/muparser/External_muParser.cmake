@@ -64,6 +64,9 @@ ELSE()
   SET(MUPARSER_SHARED_LIBS OFF)
   IF(WIN32)
     SET(MUPARSER_SHARED_LIBS ON)
+    IF(DEBUG)
+      SET(CMAKE_ARGS "${CMAKE_ARGS}" "-DCMAKE_BUILD_TYPE=DEBUG")
+    ENDIF()
   ENDIF()
   ExternalProject_Add(muparser
     PREFIX "${muparser_prefix}"

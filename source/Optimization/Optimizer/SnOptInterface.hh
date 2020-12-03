@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include <def_cfs_fortran_interface.hh>
+
 typedef intptr_t ftnlen;
 typedef int32_t integer;
 typedef double doublereal;
@@ -22,7 +24,7 @@ extern "C" {
        integer    iu[],    integer *leniu,
        double ru[],    integer *lenru );
 
-  void snopta_
+  void snopta
      ( integer *start, integer *nf, integer *n,
        integer *nxname, integer *nfname, double *objadd, const integer *objrow,
        char *prob, My_fp usrfun, integer *iafun, integer *javar,
@@ -38,57 +40,57 @@ extern "C" {
        ftnlen prob_len, ftnlen xnames_len, ftnlen fnames_len, ftnlen cu_len,
        ftnlen cw_len);
 
-  void sninit_
+  void sninit
      ( integer *iPrint, integer *iSumm, char *cw,
        integer *lencw, integer *iw, integer *leniw,
        double *rw, integer *lenrw, ftnlen cw_len );
 
-  void sngeti_
+  void sngeti
      ( char *buffer, integer *ivalue, integer *inform__,
        char *cw, integer *lencw, integer *iw,
        integer *leniw, double *rw, integer *lenrw,
        ftnlen buffer_len, ftnlen cw_len);
 
 
-  void sngetr_
+  void sngetr
      ( char *buffer, double *ivalue, integer *inform__,
        char *cw, integer *lencw, integer *iw,
        integer *leniw, double *rw, integer *lenrw,
        ftnlen buffer_len, ftnlen cw_len);
 
-  void snset_
+  void snset
      ( const char *buffer, integer *iprint, integer *isumm,
        integer *inform__, char *cw, integer *lencw,
        integer *iw, integer *leniw,
        double *rw, integer *lenrw,
        ftnlen buffer_len, ftnlen cw_len);
 
-  void sngetc_
+  void sngetc
      ( char *buffer, char *ivalue, integer *inform__,
        char *cw, integer *lencw, integer *iw,
        integer *leniw, double *rw, integer *lenrw,
        ftnlen buffer_len, ftnlen ivalue_len, ftnlen cw_len);
 
-  void snseti_
+  void snseti
      ( const char *buffer, integer *ivalue, integer *iprint,
        integer *isumm, integer *inform__, char *cw,
        integer *lencw, integer *iw, integer *leniw,
        double *rw, integer *lenrw, ftnlen buffer_len,
        ftnlen cw_len);
 
-  void snsetr_
+  void snsetr
      ( const char *buffer, double *rvalue, integer * iprint,
        integer *isumm, integer *inform__, char *cw,
        integer *lencw, integer *iw, integer *leniw,
        double *rw, integer *lenrw, ftnlen buffer_len,
        ftnlen cw_len);
 
-  void snspec_
+  void snspec
      ( integer *ispecs, integer *inform__, char *cw,
        integer *lencw, integer *iw, integer *leniw,
        double *rw, integer *lenrw, ftnlen cw_len);
 
-  void snmema_
+  void snmema
      ( integer *iexit, integer *nf, integer *n, integer *nxname,
        integer *nfname, integer *nea, integer *neg,
        integer *mincw, integer *miniw,
@@ -97,7 +99,7 @@ extern "C" {
        ftnlen cw_len);
 
 
-  void snjac_
+  void snjac
      ( integer *inform__, integer *nf, integer *n, My_fp userfg,
        integer *iafun, integer *javar, integer *lena,
        integer *nea, double *a, integer *igfun,
@@ -112,10 +114,10 @@ extern "C" {
 
   // from filewrapper.h
   // function for opening snopt output files
-  int snopenappend_ 
+  int snopenappend 
   (integer *iunit, char *name, integer *inform, ftnlen name_len);
 
-  int snclose_
+  int snclose
   (integer *iunit);
 
 #undef real

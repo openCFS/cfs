@@ -537,8 +537,8 @@ namespace CoupledField {
   
   void SimInputCDB::GenerateVolElemFaces(FacesType& faces) 
   {
-    std::vector<UInt> faceTopo(8);
-    std::vector<UInt> faceTopoSorted(8);
+    std::vector<UInt> faceTopo(10);
+    std::vector<UInt> faceTopoSorted(10);
 
     boost::unordered_set<UInt>::const_iterator reIt, reEnd;
     reIt = referencedElems_.begin();
@@ -2590,9 +2590,9 @@ namespace CoupledField {
 
       UInt numNodes = Elem::shapes[feType].numNodes;
       std::copy(&topology_[ansElemNum][0],
-                &topology_[ansElemNum][numNodes],
+                &topology_[ansElemNum][numNodes-1],
                 &topo[0]);
-      std::sort(&topo[0], &topo[numNodes]);
+      std::sort(&topo[0], &topo[numNodes-1]);
 
       for(UInt ng=0, ngs=nodeGroupNames_.size(); ng<ngs; ng++) 
       {

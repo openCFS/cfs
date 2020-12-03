@@ -46,9 +46,12 @@ if(USE_SCPIP)
    set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SCPIP.cc SCPIPBase.cc)
 endif()
 
+
 if(USE_SNOPT)
    set(TARGET_LL ${TARGET_LL}  ${SNOPT_LIBRARY} ${DEPENDS})
-   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SnOptInterface.f SnOpt.cc)
+   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SnOpt.cc)
+   set(OPTIMIZER_FSRCS SnOptInterface.f)
+   ADD_LIBRARY(snopt_ftnif STATIC ${OPTIMIZER_FSRCS})
 endif()
 
 if(USE_IPOPT)
@@ -68,4 +71,8 @@ endif()
 
 add_library(optimizer STATIC ${OPTIMIZER_SRCS})
 
-target_link_libraries(optimizer ${TARGET_LL})
+IF(USE_SNOPT)
+  TARGET_LINK_LIBRARIES(optimizer snopt_ftnif ${TARGET_LL})
+ELSE()
+  TARGET_LINK_LIBRARIES(optimizer ${TARGET_LL})
+ENDIF()

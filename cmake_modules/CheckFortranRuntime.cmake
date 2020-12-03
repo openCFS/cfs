@@ -229,5 +229,21 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   # additionally for PALM
   dscal
   dgesvd
+  # scpip
+  scpip30
+  # snopt
+  snopta
+  sninit
+  sngeti
+  sngetr
+  snset
+  sngetc
+  snseti
+  snsetr
+  snspec
+  snmema
+  snjac
+  snopenappend
+  snclose
 )
 

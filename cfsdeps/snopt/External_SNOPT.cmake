@@ -60,7 +60,37 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${SNOPT_PREFIX}/snopt-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+IF(WIN32)
+  #-------------------------------------------------------------------------------
+  # Configure SNOPT by copying the config file.
+  #-------------------------------------------------------------------------------
+  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/snopt/snopt-win-patch.cmake.in")
+  SET(PFN "${SNOPT_PREFIX}/snopt-win-patch.cmake")
+  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
+  #-------------------------------------------------------------------------------
+  # CMAKE Args
+  #-------------------------------------------------------------------------------
+  IF(DEBUG)
+    SET(CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX:PATH=${SNOPT_INSTALL}
+      -DCMAKE_BUILD_TYPE:STRING=Debug
+      -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    )
+  ELSE()
+    SET(CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX:PATH=${SNOPT_INSTALL}
+      -DCMAKE_BUILD_TYPE:STRING=Release
+      -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    )
+  ENDIF()
+
+  IF(CMAKE_TOOLCHAIN_FILE)
+    LIST(APPEND CMAKE_ARGS
+      -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+    )
+  ENDIF()
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # The snopt external project
@@ -82,22 +112,51 @@ ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  ExternalProject_Add(snopt
-    PREFIX "${SNOPT_PREFIX}"
-    SOURCE_DIR "${SNOPT_SOURCE}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${SNOPT_MD5}
-    CMAKE_ARGS ${CMAKE_ARGS}
-    # all in the zip is below snopt7
-    BINARY_DIR "${SNOPT_SOURCE}/snopt7"
-    # don't dowload but simply copy w/o md5 check
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE1} ${SNOPT_SOURCE}
-    # the zip file is encrypted!
-    PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
-    # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
-    # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
-    CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c F77=${CMAKE_Fortran_COMPILER} FFLAGS=-O3 
-  )
+  IF(UNIX)
+    ExternalProject_Add(snopt
+      PREFIX "${SNOPT_PREFIX}"
+      SOURCE_DIR "${SNOPT_SOURCE}"
+      URL ${LOCAL_FILE}
+      URL_MD5 ${SNOPT_MD5}
+      CMAKE_ARGS ${CMAKE_ARGS}
+      # all in the zip is below snopt7
+      BINARY_DIR "${SNOPT_SOURCE}/snopt7"
+      # don't dowload but simply copy w/o md5 check
+      DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE1} ${SNOPT_SOURCE}
+      # the zip file is encrypted!
+      PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
+      # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
+      # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
+      CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c F77=${CMAKE_Fortran_COMPILER} FFLAGS=-O3 
+    )
+  ELSE()
+    ExternalProject_Add(snopt
+      PREFIX "${SNOPT_PREFIX}"
+      URL ${LOCAL_FILE}
+      URL_MD5 ${SNOPT_MD5}
+      SOURCE_DIR "${SNOPT_SOURCE}"
+      CMAKE_ARGS ${CMAKE_ARGS}
+      # all in the zip is below snopt7
+      #BINARY_DIR "${SNOPT_SOURCE}/snopt7"
+      # don't dowload but simply copy w/o md5 check
+      DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE1} ${SNOPT_SOURCE}
+      # the zip file is encrypted!
+      #      PATCH_COMMAND unzip -q -u -d ${SNOPT_PREFIX}/tmp -P ${CFS_KEY_SNOPT} ../../${SNOPT_ZIP}
+      PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
+      LOG_CONFIGURE 1
+      LOG_BUILD 1
+      LOG_INSTALL 1
+    )
+    #-------------------------------------------------------------------------------
+    # Add custom patch step, needed for windows
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(snopt winpatch
+      COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+      DEPENDERS configure
+      DEPENDEES patch 
+      DEPENDS "${PFN}"
+    )
+  ENDIF()
 
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors
@@ -136,6 +195,10 @@ SET(CFSDEPS ${CFSDEPS} snopt)
 
 # Determine paths of SNOPT libraries. We have only libs and nothing to include
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a" CACHE FILEPATH "SNOPT library.")
+IF(UNIX)
+  SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a" CACHE FILEPATH "SNOPT library.")
+ELSE()
+  SET(SNOPT_LIBRARY "${LD}/snopt.lib;${LD}/snprint.lib" CACHE FILEPATH "SNOPT library.")
+ENDIF()
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)

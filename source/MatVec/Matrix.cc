@@ -2194,22 +2194,29 @@ namespace CoupledField
   {
     if(nRows != size_row_ || nCols != size_col_)
     {
-      // set the size to requested values
-      size_row_ = nRows; 
-      size_col_ = nCols;
-      
+      // delete old data, if existend
       if (data_ != NULL)
       {
         delete [] data_[0];
         delete [] data_;
       }
 
-      data_    = new TYPE*[size_row_];
-      data_[0] = new TYPE [size_row_*size_col_];
+      // set the size to requested values
+      size_row_ = nRows; 
+      size_col_ = nCols;
+      
+      if (size_row_ == 0 || size_col_ == 0)
+      {
+        data_ = nullptr;
+      }
+      else {
+        data_    = new TYPE*[size_row_];
+        data_[0] = new TYPE [size_row_*size_col_];
 
-      for (UInt k = 1; k < size_row_; ++k) 
-        data_[k] = data_[k-1] + size_col_;
+        for (UInt k = 1; k < size_row_; ++k) 
+          data_[k] = data_[k-1] + size_col_;
 
+      }
     }
   }
 

@@ -16,6 +16,8 @@ SET(FEAST_HEADERS
   feast_cpp.h
 )
 
+SET(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} /fpp")
+
 INCLUDE_DIRECTORIES(
   ${FEAST_VERSION}/src/kernel
 )

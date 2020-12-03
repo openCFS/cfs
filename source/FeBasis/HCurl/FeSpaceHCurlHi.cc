@@ -472,7 +472,7 @@ namespace CoupledField{
     }
     std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > >::iterator regIt1St = refElems1St_.begin();
     while(regIt1St != refElems1St_.end()){
-      TL_refElems1St_[regIt->first] = regIt1St->second;
+      TL_refElems1St_[regIt1St->first] = regIt1St->second;
       ++regIt1St;
     }
 #endif

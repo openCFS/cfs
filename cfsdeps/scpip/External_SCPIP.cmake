@@ -150,7 +150,11 @@ SET(SCPIP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 # Determine paths of SCPIP libraries.
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
+IF(UNIX)
+  SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
+ELSE()
+  SET(SCPIP_LIBRARY "${LD}/scpip.lib" CACHE FILEPATH "SCPIP library.")
+ENDIF()
 
 MARK_AS_ADVANCED(SCPIP_LIBRARY)
 MARK_AS_ADVANCED(SCPIP_INCLUDE_DIR)
