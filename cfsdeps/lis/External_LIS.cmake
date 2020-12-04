@@ -21,7 +21,7 @@ IF(UNIX)
      # "--enable-quad" #          enable quadruple precision operations [[default=no]]
      "--enable-sse2" #          use Intel Streaming SIMD Extensions [[default=yes]]
      "--enable-fma"  #          use fused multiply add [[default=no]]
-     "--enable-complex"    #    enable complex scalar support [[default=no]]
+     #"--enable-complex"    #    enable complex scalar support [[default=no]]
      "--enable-static" # [=PKGS]  build static libraries [default=yes]
      #  --enable-fast-install[=PKGS]  optimize for fast installation [default=yes]
   )
@@ -186,6 +186,7 @@ ELSE()
   IF(UNIX)
     ExternalProject_Add_Step(lis post_install
       COMMAND ${CMAKE_COMMAND} -P "${PI}"
+      WORKING_DIRECTORY ${lis_prefix}
       DEPENDEES install
     )
   ENDIF()
