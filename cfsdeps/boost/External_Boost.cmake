@@ -220,6 +220,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS "${BOOST_DATE_TIME_LIB}"
   )
 ELSE()
   #-------------------------------------------------------------------------------

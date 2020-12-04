@@ -316,7 +316,36 @@ build:gcc10:
     GCC_VERSION: 10
   <<: *gcc_before
   <<: *default_build_job
-  
+
+
+# build with ninja
+build:gcc10:ninja:
+  stage: build release
+  image: opencfs/fedora32
+  tags:
+    - docker
+  before_script:
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+  script:
+    # configure with correct generator
+    - cmake -G Ninja ..
+    # build in 2 steps necessary
+    - ninja -j1 cfsdeps
+    - ninja
+    # create artifacts
+    - cpack -G TGZ
+  after_script:
+    - ls -la
+  <<: *default_pipeline_rules
+  when: manual
+  artifacts:
+    paths:
+      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+    expire_in: 1 days
+  dependencies: []
+
+
 # Template for the platform builds
 .platform:image:
   stage: build release

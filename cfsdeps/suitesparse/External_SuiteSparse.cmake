@@ -152,7 +152,6 @@ ENDIF()
 LIST(APPEND CHOLMOD_LIBRARY
   ${AMD_LIBRARY}
   ${LAPACK_LIBRARY}
-  ${BLAS_LIBRARY}
   )
 SET(UMFPACK_LIBS
   umfpack_dlong
@@ -169,7 +168,7 @@ foreach(lib IN LISTS UMFPACK_LIBS)
     "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 endforeach()
 
-LIST(APPEND UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
+#LIST(APPEND UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
 
 #-------------------------------------------------------------------------------
 # The suitesparse external project

@@ -105,6 +105,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${METIS_LIBRARY}
   )
   # This is still required for the build to work properly since we need to replace the metis related files from ilupack with old metis
   IF(USE_ILUPACK_PARALLEL)
