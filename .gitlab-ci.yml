@@ -234,6 +234,7 @@ build:gcc7max-debug:
     GCC_VERSION: 7
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
   <<: *gcc_before
+  <<: *except-skip-debug
   allow_failure: false
   when: on_success
 
