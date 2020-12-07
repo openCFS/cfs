@@ -1194,11 +1194,6 @@ namespace CFSTool {
                       diffAvg = diffVec.Avg();
                       refAvg = inVec_ref.Avg();
                       diffL2 = diffVec.NormL2();
-                      if ( !(std::isfinite(diffL2)) ) {
-                        std::cout << "WARNING: non-finite value encountered\n";
-                        // set the difference to the maximum possible such that the test will fail
-                        diffL2 = std::numeric_limits<Double>::max();
-                      }
                       // output
                       std::cout << "\t\tMinimum: " << diffMin << " (difference), "<< refMin <<" (reference)\n";
                       std::cout << "\t\tMaximum: " << diffMax << " (difference), "<< refMax <<" (reference)\n";
@@ -1206,6 +1201,12 @@ namespace CFSTool {
                   }  else {
                       EXCEPTION("not impl");
                   } // switch: Analysitype
+                  // make sure NAN in result do not pass
+                  if ( !(std::isfinite(diffL2)) ) {
+                    std::cout << "WARNING: non-finite value encountered\n";
+                    // set the difference to the maximum possible such that the test will fail
+                    diffL2 = std::numeric_limits<Double>::max();
+                  }
                   // output results
                   Double relL2 = diffL2/refL2;
                   std::cout << "\t\tL2-Norm: " << diffL2 << " (difference), "<< refL2 <<" (reference), " << relL2 <<" (relative)\n";
