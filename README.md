@@ -1,7 +1,12 @@
-CFS++
+openCFS
 ==============================
 
-This is the git repository of CFS++.
+Multiphysics and more based on the finite element method:
+openCFS (Coupled Field Simulation) is a finite element-based multi-physics modelling and simulation tool.
+With about 20 years of research driven development, the core of openCFS is used in scientific research and industrial application.
+The modelling strategy focuses on physical fields and their respective couplings.
+
+openCFS is under **[MIT License](LICENSE)**. You may use, distribute and copy it under the license terms.
 
 Building
 --------
@@ -9,7 +14,7 @@ Building
 For building you need
 * [CMake](https://cmake.org)
 * C++ and Fortran compilers
-* some additional dependecies depending on the build configuration
+* some additional dependencies depending on the build configuration
 
 There are installation instructions for required dependencies for
 [Ubuntu](share/doc/developer/build-dependencies/ubuntu_latest.md), 
@@ -31,18 +36,34 @@ To get started be sure to visit the [wiki](/../wikis).
 Running
 ------------
 
-After a sucessful build you can execute
+After a successful build you can execute
 ```shell
 ./bin/cfs
 ```
-For details visit the [user documentation](https://cfs-doc.mdmt.tuwien.ac.at) with plenty of examples.
+For details visit the [user documentation](https://opencfs.gitlab.io/userdocu/) with plenty of examples.
+
+Contributing
+------------
+
+Interested in contributing to the project?
+We're happy about
+* constructive feedback
+* code contributions
+* scientific collaboration
+
+Please consult our [contributing guide](CONTRIBUTING.md) for details.
+
+Want to suggest an awesome feature? 
+Did you _really_ find a bug? 
+Please create an [issue](/../issues)!
 
 
-[Developer Documentation](/share/doc/developer/README.md)
----------------------------------------------------------
-Is done by markdown files at appropriate locations direclty in the source tree.
-They should be all linked in [`share/doc/developer/README.md`](/share/doc/developer/README.md).
+Resources
+---------
 
-Bugs
-----------------
-Did you _really_ find a bug? Please create an [issue](/../issues), and then fix it ...
+* [project homepage](www.opencfs.org)
+* [user documentation](https://opencfs.gitlab.io/userdocu)
+* [related projects](https://gitlab.com/openCFS)
+* [developer wiki](/../wikis)
+* [issue tracker](/../issues/)
+* [Developer documentation](/share/doc/developer/README.md) in the source tree

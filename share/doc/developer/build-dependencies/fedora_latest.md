@@ -1,9 +1,9 @@
 CFS++ build dependencies for Fedora Core
 ========================================
 
-For the minimal build config we need
+For the default build config we need
 ```shell
-dnf install -y make gcc gcc-c++ gcc-gfortran patch m4 cmake
+dnf install -y make gcc gcc-c++ gcc-gfortran cmake patch m4 findutils diffutils
 ```
 
 Intel MKL can be installed using [Intel's YUM repositories](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-yum-repo).
@@ -35,5 +35,5 @@ dnf install -y git
 Further more having python including some handy libraries is recommended
 (and required for some parts of the testsuite).
 ```shell
-dnf install -y python3 python3-lxml python3-numpy python3-h5py python3-scipy
+dnf install -y python3 python3-lxml python3-numpy python3-h5py python3-scipy python3-vtk
 ```

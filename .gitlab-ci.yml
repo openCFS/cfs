@@ -374,6 +374,8 @@ build:gcc10:ninja:
     GIT_SUBMODULE_STRATEGY: none
   # install dependecies in the docker image
   before_script:
+    # ensure build does not exist
+    - rm -rf build
     # debug output
     - echo "IMAGE=$IMAGE"
     - echo "IMAGE=$TAG"
