@@ -145,6 +145,19 @@
                     </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="absorbingBCs" type="DT_AbsorbingBC">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      absorbing boundary condition applies complex impedance of fluid instead of
+                      specified impedance ⎛z ⎞ at the boundary
+                                          ⎝ 0⎠
+                      
+                      ⎛        ⎛                     T⎞   ⎛    2    ⎞            ⎞                       
+                      ⎜-pI + μ ⎝nabla(v) + (nabla(v)) ⎠ + ⎜λ - ─ ⋅ μ⎟ ⋅ I(div(v))⎟ ⋅ n = z  ⋅ (v ⋅ n) ⋅ n
+                      ⎝                                   ⎝    3    ⎠            ⎠        0              
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!-- RHS Load Values-->
                 <xsd:element name="traction" type="DT_BcInhomVector">
                   <xsd:annotation>

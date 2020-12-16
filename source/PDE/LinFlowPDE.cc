@@ -90,7 +90,7 @@ namespace CoupledField {
     isCompressible_ = false;
     std::string formulation = myParam_->Get("formulation")->As<std::string>();
     if ( formulation == "compressible")
-    	isCompressible_ = true;
+        isCompressible_ = true;
 
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
@@ -193,7 +193,7 @@ namespace CoupledField {
       presSpace->SetRegionApproximation(actRegion, presPolyId_, presIntegId_);
 
       PtrCoefFct density =
-    		  materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
+              materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
@@ -229,35 +229,35 @@ namespace CoupledField {
         // ====================================================================
         // K_PP: stiffness integrator, conservation of mass
         // add time derivative of density expressed by pressure according to
-    	  // thermodynamic relation
+          // thermodynamic relation
         // In general form : adiabaticExp \(\rho * c^2)
         // ====================================================================
-    	  PtrCoefFct fnc;
-    	  if ( isHeatCoupled_ ) {
-    		  fnc = CoefFunction::Generate( mp_, Global::REAL,
-    		  				  CoefXprBinOp(mp_, adiabaticExp, compressionModulus, CoefXpr::OP_DIV ) );
-    	  }
-    	  else {
-    		  fnc = CoefFunction::Generate( mp_, Global::REAL,
-				  CoefXprBinOp(mp_, constOne, compressionModulus, CoefXpr::OP_DIV ) );
-    	  }
+          PtrCoefFct fnc;
+          if ( isHeatCoupled_ ) {
+              fnc = CoefFunction::Generate( mp_, Global::REAL,
+                              CoefXprBinOp(mp_, adiabaticExp, compressionModulus, CoefXpr::OP_DIV ) );
+          }
+          else {
+              fnc = CoefFunction::Generate( mp_, Global::REAL,
+                  CoefXprBinOp(mp_, constOne, compressionModulus, CoefXpr::OP_DIV ) );
+          }
 
-    	  BiLinearForm *dampIntpp = NULL;
-    	  if( dim_ == 2 ) {
-    		  dampIntpp = new BBInt<Double>(new IdentityOperator<FeH1,2,1,
-    	        		  Double>, fnc, 1.0, updatedGeo_ );
-    	  } else {
-    		  dampIntpp = new BBInt<Double>(new IdentityOperator<FeH1,3,1,
-    	        		  Double>, fnc, 1.0, updatedGeo_ );
-    	  }
-    	  dampIntpp->SetName("FlowDampIntPP");
+          BiLinearForm *dampIntpp = NULL;
+          if( dim_ == 2 ) {
+              dampIntpp = new BBInt<Double>(new IdentityOperator<FeH1,2,1,
+                          Double>, fnc, 1.0, updatedGeo_ );
+          } else {
+              dampIntpp = new BBInt<Double>(new IdentityOperator<FeH1,3,1,
+                          Double>, fnc, 1.0, updatedGeo_ );
+          }
+          dampIntpp->SetName("FlowDampIntPP");
 
-    	  BiLinFormContext *dampContextpp = NULL;
-    	  dampContextpp = new BiLinFormContext(dampIntpp, DAMPING );
+          BiLinFormContext *dampContextpp = NULL;
+          dampContextpp = new BiLinFormContext(dampIntpp, DAMPING );
 
-    	  dampContextpp->SetEntities( actSDList, actSDList );
-    	  dampContextpp->SetFeFunctions( presFct, presFct );
-    	  assemble_->AddBiLinearForm( dampContextpp );
+          dampContextpp->SetEntities( actSDList, actSDList );
+          dampContextpp->SetFeFunctions( presFct, presFct );
+          assemble_->AddBiLinearForm( dampContextpp );
       }
 
       // ====================================================================
@@ -504,36 +504,36 @@ namespace CoupledField {
     // ====================================================================
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
-    	ParamNodeList surfPresNodes = bcNode->GetList( "pressure" );
-    	//std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
+        ParamNodeList surfPresNodes = bcNode->GetList( "pressure" );
+        //std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
-    	for( UInt i = 0; i < surfPresNodes.GetSize(); i++ ) {
-    		std::string regionName = surfPresNodes[i]->Get("name")->As<std::string>();
-    		shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        for( UInt i = 0; i < surfPresNodes.GetSize(); i++ ) {
+            std::string regionName = surfPresNodes[i]->Get("name")->As<std::string>();
+            shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
 
-    		velFct->AddEntityList( actSDList );
-    		// --------------------------------------------------------------------
-    		//  VERSION 2: K_VP Integrator
-    		//  (upper off-diagonal integrators - partially integrated, surface)
-    		// --------------------------------------------------------------------
-    		BiLinearForm * stiffIntVPSurf = NULL;
-    		if( dim_ == 2 ) {
-    			stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
-    					             new IdentityOperatorNormal<FeH1,2>(),
-    		                         oneFuncs, 1.0, flowRegions);
-    		} else {
-    			stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
-    		                         new IdentityOperatorNormal<FeH1,3>(),
-    		                         oneFuncs, 1.0, flowRegions);
-    		}
-    		stiffIntVPSurf->SetName("LinFlowStiffIntVPSurf");
-    		BiLinFormContext *stiffContVP = NULL;
-    		stiffContVP = new BiLinFormContext(stiffIntVPSurf, STIFFNESS );
+            velFct->AddEntityList( actSDList );
+            // --------------------------------------------------------------------
+            //  VERSION 2: K_VP Integrator
+            //  (upper off-diagonal integrators - partially integrated, surface)
+            // --------------------------------------------------------------------
+            BiLinearForm * stiffIntVPSurf = NULL;
+            if( dim_ == 2 ) {
+                stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                     new IdentityOperatorNormal<FeH1,2>(),
+                                     oneFuncs, 1.0, flowRegions);
+            } else {
+                stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                     new IdentityOperatorNormal<FeH1,3>(),
+                                     oneFuncs, 1.0, flowRegions);
+            }
+            stiffIntVPSurf->SetName("LinFlowStiffIntVPSurf");
+            BiLinFormContext *stiffContVP = NULL;
+            stiffContVP = new BiLinFormContext(stiffIntVPSurf, STIFFNESS );
 
-    		stiffContVP->SetEntities( actSDList, actSDList );
-    		stiffContVP->SetFeFunctions( velFct, presFct );
-    		assemble_->AddBiLinearForm( stiffContVP );
-    	}
+            stiffContVP->SetEntities( actSDList, actSDList );
+            stiffContVP->SetFeFunctions( velFct, presFct );
+            assemble_->AddBiLinearForm( stiffContVP );
+        }
     }
 
     // Since we manage the mean flow FeFunction, we also have to finalize here.
@@ -689,7 +689,9 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( surfMassContext );
       }
       //========================================================================================
-      //
+      //Impedance BC : sigma.n = z_0 (v.n).n
+      // high z_0 : wall(sound hard) BC
+      // low z_0 : sound soft BC
       //========================================================================================
       ReadRhsExcitation("normalImpedance", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
           ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
@@ -723,6 +725,144 @@ namespace CoupledField {
         impedanceContext->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY], feFunctions_[FLUIDMECH_VELOCITY]);
         feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( ent[i] );
         assemble_->AddBiLinearForm( impedanceContext );
+      }
+      //========================================================================================
+      // Absorbing BC : sigma.n = z_0 (v.n).n
+      // z_0 is the LinFLow impedance at the boundary
+      // for traveling waves:
+      // z_0 = rho*c /(1+real(complexWaveNum)/complexWaveNum)
+      //complexWaveNumber = sqrt((omega^2*-rho/(K+(4/3 shearVisc+ bulkVisc)*jomega)))
+      //========================================================================================
+      ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
+      if ( this->analysistype_ != HARMONIC && !abcNodes.IsEmpty() )
+        EXCEPTION("AbsorbingBCs are only allowed in harmonic analysis");
+      // omega = 2*pi*f
+      PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL,CoefXprBinOp(mp_,
+          CoefFunction::Generate( mp_,  Global::REAL, "pi*f"),
+          CoefFunction::Generate( mp_, Global::REAL, "2"),CoefXpr::OP_MULT));
+
+      PtrCoefFct jomega = CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_,
+          omega, CoefFunction::Generate( mp_, Global::COMPLEX, "0", "1"),
+          CoefXpr::OP_MULT));
+
+      PtrCoefFct omega2 = CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_,
+          omega, omega,CoefXpr::OP_MULT));
+      //========================================================================================
+      // complexWaveNumber = sqrt(complexWaveNumber1)
+      // https://math.stackexchange.com/questions/44406/how-do-i-get-the-square-root-of-a-complex-number
+      // z=c+di, and we want to find sqrt(z)=a+bi
+      // a = sqrt((c+norm(z))/2), norm(z) = sqrt(c^2+d^2)
+      // b = d/abs(d)*sqrt((-c+norm(z))/2)
+      //========================================================================================
+      for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        PtrCoefFct density = materials_[aRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
+        PtrCoefFct compressionModulus = materials_[aRegion]->GetScalCoefFnc( FLUID_BULK_MODULUS, Global::REAL );
+        PtrCoefFct shearViscosity = materials_[aRegion]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
+        PtrCoefFct bulkViscosity = materials_[aRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
+        // visc = (4/3 shearVisc+ bulkVisc)
+        PtrCoefFct visc = CoefFunction::Generate( mp_,  Global::REAL,
+            CoefXprBinOp(mp_,
+                bulkViscosity,
+                CoefXprBinOp(mp_,
+                    CoefFunction::Generate( mp_,
+                        Global::REAL,CoefXprBinOp(mp_,
+                            shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "4"),
+                            CoefXpr::OP_MULT)),
+                            CoefFunction::Generate( mp_, Global::REAL, "3"),
+                            CoefXpr::OP_DIV),
+                            CoefXpr::OP_ADD ));
+
+        // complexWaveNum2 = K +(4/3 shearVisc+ bulkVisc)*jomega
+        PtrCoefFct complexWaveNum2 = CoefFunction::Generate(mp_,  Global::COMPLEX,
+            CoefXprBinOp(mp_,
+                CoefFunction::Generate(mp_,
+                    Global::COMPLEX,CoefXprBinOp(mp_,
+                        visc, jomega,
+                        CoefXpr::OP_MULT)),
+                        compressionModulus,
+                        CoefXpr::OP_ADD));
+
+        //complexWaveNumber1 = -rho*omega^2/(K+(4/3 shearVisc+ bulkVisc)*jomega))
+        PtrCoefFct complexWaveNum1 = CoefFunction::Generate(mp_, Global::COMPLEX,
+            CoefXprBinOp(mp_,
+                omega2,
+                CoefFunction::Generate(mp_,
+                    Global::COMPLEX,CoefXprBinOp(mp_,
+                        CoefFunction::Generate( mp_,
+                            Global::COMPLEX,CoefXprBinOp(mp_,
+                                density, CoefFunction::Generate( mp_, Global::REAL, "-1"),
+                                CoefXpr::OP_MULT)), complexWaveNum2,
+                                CoefXpr::OP_DIV)),
+                                CoefXpr::OP_MULT ));
+        //finding c and d
+        PtrCoefFct complexWaveNumRe1 = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_RE));//real
+        PtrCoefFct complexWaveNumIm1 = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_IM));//imag
+        // norm(z)
+        PtrCoefFct complexWaveNumAbs = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_NORM));
+        //finding a = sqrt((c+norm(z))/2), norm(z) = sqrt(c^2+d^2)
+        PtrCoefFct complexWaveNumRe = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,
+            CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_,
+                CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,complexWaveNumAbs,complexWaveNumRe1, CoefXpr::OP_ADD)),
+                CoefFunction::Generate( mp_, Global::REAL, "2"),
+                CoefXpr::OP_DIV)),
+                CoefXpr::OP_SQRT));
+        //d/abs(d)
+        PtrCoefFct dabsd = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_,complexWaveNumIm1,
+            CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNumIm1, CoefXpr::OP_NORM)), CoefXpr::OP_DIV));
+        //finding b = d/abs(d)*sqrt((-c+norm(z))/2)
+        PtrCoefFct complexWaveNumIm = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_,dabsd,
+            CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,
+                CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_,
+                    CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_, complexWaveNumAbs, complexWaveNumRe1, CoefXpr::OP_SUB)),
+                    CoefFunction::Generate( mp_, Global::REAL, "2"),
+                    CoefXpr::OP_DIV)),
+                    CoefXpr::OP_SQRT)),
+                    CoefXpr::OP_MULT));
+        //create a+bi
+        PtrCoefFct complexWaveNum = CoefFunction::Generate(mp_, Global::COMPLEX ,CoefXprBinOp(mp_,complexWaveNumRe,
+            CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_,
+                complexWaveNumIm, CoefFunction::Generate( mp_, Global::COMPLEX, "0", "1"),
+                CoefXpr::OP_MULT)),
+                CoefXpr::OP_ADD));
+        // rhoC = rho*C =sqrt(rho*k)
+        PtrCoefFct rhoC = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,
+            CoefFunction::Generate( mp_, Global::REAL,CoefXprBinOp(mp_, density, compressionModulus, CoefXpr::OP_MULT)),
+            CoefXpr::OP_SQRT));
+        //complex impedance of a viscous fluid:
+        //impCoeff = rhoC/(1+real(complexWaveNum)/complexWaveNum)
+        PtrCoefFct impCoeff = CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_, rhoC,
+            CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_, CoefFunction::Generate( mp_, Global::REAL, "1"),
+                CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_, complexWaveNumRe, complexWaveNum, CoefXpr::OP_DIV)),
+                CoefXpr::OP_ADD)),
+                CoefXpr::OP_DIV));
+
+        // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = z_0 u'*n u*n
+        BiLinearForm * abcInt = NULL;
+        if(isComplex_) {
+          if (dim_ == 2){
+            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), impCoeff, Complex(1.0,0), volRegion, updatedGeo_ );
+          } else {
+            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), impCoeff, Complex(1.0,0), volRegion, updatedGeo_ );
+          }
+        } else {
+          if (dim_ == 2){
+            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), impCoeff, 1.0, volRegion, updatedGeo_ );
+          } else {
+            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), impCoeff, 1.0, volRegion, updatedGeo_ );
+          }
+        }
+        abcInt->SetName("abcIntegrator");
+        BiLinFormContext *abcContext = new BiLinFormContext(abcInt, STIFFNESS );
+        abcContext->SetEntities( actSDList, actSDList);
+        abcContext->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY], feFunctions_[FLUIDMECH_VELOCITY]);
+        feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( abcContext );
       }
     }
   }
@@ -959,8 +1099,8 @@ namespace CoupledField {
   }
 
   BaseBDBInt* LinFlowPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
-		  	              	  	  	  	  	  RegionIdType regionId,
-											  bool isComplex ) {
+                                              RegionIdType regionId,
+                                              bool isComplex ) {
 
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
