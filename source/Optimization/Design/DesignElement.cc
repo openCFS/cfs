@@ -566,7 +566,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_OSCILLATION
       || rd.value == MAX_MOLE
       || rd.value == MAX_JUMP
-      || rd.value == PENALIZED_STRESS
+      || rd.value == QUADRATIC_VM_STRESS
       || rd.value == DESIGN_TRACKING
       || rd.value == PROJECTION
       || rd.value == SHAPE_MAP_GRAD
@@ -690,7 +690,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
   case MAX_MOLE:
   case MAX_OSCILLATION:
   case MAX_JUMP:
-  case PENALIZED_STRESS:
+  case QUADRATIC_VM_STRESS:
     assert(false); // should be covered before by special result index
     break; // only for the compiler
 
@@ -945,7 +945,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(MAX_JUMP, "maxJump");
-  valueSpecifier.Add(PENALIZED_STRESS, "penalizedStress");
+  valueSpecifier.Add(QUADRATIC_VM_STRESS, "quadraticVMStress");
   valueSpecifier.Add(DESIGN_TRACKING, "designTracking");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");

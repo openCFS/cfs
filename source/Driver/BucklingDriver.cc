@@ -517,7 +517,7 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
         ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
         Context* context = domain->GetOptimization()->context;
         Excitation* excite = context->GetExcitation();
-        StateSolution* ss = em->GetForwardStates().Get(excite, NULL, ev);
+        StateSolution* ss = em->forward.Get(excite, NULL, ev);
         ss->Write(context->pde); // forward is function NULL
       }
       else

@@ -215,11 +215,10 @@ void Optimization::PostInitSecond()
         log.AddToHeader("ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv");
     }
     else {
-      if(progOpts->DoDetailedInfo()) {
-        log.AddToHeader("max_" + g->ToString());
-        log.AddToHeader("mean_" + g->ToString());
-        log.AddToHeader("infeas_" + g->ToString());
-      }
+      log.AddToHeader((g->GetBound() != Condition::LOWER_BOUND ? "max_abs_" : "min_abs_") + g->ToString());
+      if(progOpts->DoDetailedInfo())
+        log.AddToHeader("mean_abs_" + g->ToString());
+      log.AddToHeader("infeas_" + g->ToString());
     }
     LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString() << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
   }
@@ -363,8 +362,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::FILTERING_GAP, "filteringGap");
-  Function::type.Add(Function::STRESS, "stress");
-  Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
+  Function::type.Add(Function::GLOBAL_STRESS, "globalStress");
+  Function::type.Add(Function::LOCAL_STRESS, "localStress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");
@@ -1293,15 +1292,19 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     if(g->IsLocalCondition())
     {
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
-      double max     = local->CalcMaxValue();
+      double minmax  = local->CalcMinMaxAbsValue();
       int    inf_cnt = local->CountInfeasibles();
-      double mean    = progOpts->DoDetailedInfo() ? local->CalcMeanValue() : -1.0;
-      if(progOpts->DoDetailedInfo() && out)
-        *out << " \t" << max << " \t" << mean << " \t" << inf_cnt;
+      double mean    = progOpts->DoDetailedInfo() ? local->CalcMeanAbsValue() : -1.0;
+      if(out) {
+        *out << " \t" << minmax;
+        if(progOpts->DoDetailedInfo())
+          *out << " \t" << mean;
+        *out << " \t" << inf_cnt;
+      }
 
-      iteration->Get("max_" + g->ToString())->SetValue(max);
+      iteration->Get((g->GetBound() != g->LOWER_BOUND ? "max_abs_" : "min_abs_") + g->ToString())->SetValue(minmax);
       if(progOpts->DoDetailedInfo())
-        iteration->Get("mean_" + g->ToString())->SetValue(mean);
+        iteration->Get("mean_abs_" + g->ToString())->SetValue(mean);
       iteration->Get("infeas_" + g->ToString())->SetValue(inf_cnt);
     }
 

@@ -69,9 +69,6 @@ public:
    * assert() if vector exists (debug mode, NULL in release) */
   SingleVector* GetVector(StorageType st);
 
-  template<class T>
-  Vector<T>& GetVectorRef(StorageType st);
-
   /** return (eventually create) a nodal vector.
    *  creates what is desired when the vector does not exist yet and hence always return a vector.
    * @see GetVector() */
@@ -101,7 +98,7 @@ public:
   /** For identification: the timestep is only for transient problems, the mode is for eigenmodes. We use this as a union.
    * For eigenvalue problems (hence also Bloch) one solution has as many states as
    * eigenmodes and eigenvalues are calculated. With Bloch mode all modes share one excitation */
-  int timestep_mode;
+  int timestep_mode_local;
 
   /** For identification: This is the active excitation when storing the state. Contains also the sequence */
   const Excitation* excitation;
@@ -143,7 +140,7 @@ private:
 /** As the solutions come for multiple excitations in sets we store the list and the
  * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1.
  *
- * For eigenvalue problems the modes are seen as timestep_mode in StateSolutions. The excitations are here only if we
+ * For eigenvalue problems the modes are seen as timestep_mode_local in StateSolutions. The excitations are here only if we
  * do Bloch mode optimization where an excitation is a wave_vector.  */
 class StateContainer
 {
@@ -154,9 +151,9 @@ public:
    * Similar to ParamNode the requested item is created if it does not exist yet!.
    * If data_ was not initialized (capacity set, does it on the fly)
    * @param f the function is NULL for the forward problems, for the adjoints it needs to be given!
-   * @param timestep_mode only for transient or eigenvalue problems */
-  StateSolution* Get(const Excitation& excitation, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
-  StateSolution* Get(const Excitation* excitation, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
+   * @param timestep_mode_local only for transient or eigenvalue problems */
+  StateSolution* Get(const Excitation& excitation, const Function* f = NULL, int timestep_mode_local = -1, TimeDeriv derivative = NO_DERIVTYPE);
+  StateSolution* Get(const Excitation* excitation, const Function* f = NULL, int timestep_mode_local = -1, TimeDeriv derivative = NO_DERIVTYPE);
 
   /** Averages the specified states over all excitations.
    * @param sequence 1-based context
@@ -173,12 +170,15 @@ public:
   /** Return all eigenfrequencies of all wave vectors */
   Matrix<double> CollectBlochEigenfrequencies(Context* ctxt);
 
+  /** for debug output */
+  void Dump();
+
 private:
 
   /** returns all matching items.
    * @param excitation might be NULL for WriteAverage()
    * @param sequence the context as encoded in StateSolution::excitation->sequence. -1 == unspecific. For WriteAverage() where no specific excitation can be given */
-  StdVector<StateSolution*> Search(const Excitation* excitation, int sequence = -1, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
+  StdVector<StateSolution*> Search(const Excitation* excitation, int sequence = -1, const Function* f = NULL, int timestep_mode_local = -1, TimeDeriv derivative = NO_DERIVTYPE);
 
   /** @see WriteAverage() */
   template<class T>

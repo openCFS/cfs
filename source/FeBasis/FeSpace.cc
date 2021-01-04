@@ -1694,7 +1694,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   {
     std::ostream& out = file != NULL ? *file : std::cout;
 
-    // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
+    // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS. Note that indices are 1-based!
     StdVector<UInt> blockNums, indices;
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
@@ -1705,12 +1705,14 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     
     std::string resultName = SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
     
-    out << " *****************************************\n";
-    out << "  F E - S P A C E - I N F O R M A T I O N \n";
-    out << " *****************************************\n";
-    out << " Physical Quantity: " << resultName << std::endl;
-    out << " FeFunction Id: " << fctId << std::endl << std::endl;
+    out << "*****************************************\n";
+    out << " F E - S P A C E - I N F O R M A T I O N \n";
+    out << "*****************************************\n";
+    out << "Physical Quantity: " << resultName << std::endl;
+    out << "FeFunction Id: " << fctId << std::endl << std::endl;
     
+    out << "size of indices: " << indices.GetSize() << std::endl;
+    out << "indices=" << indices.ToString() << std::endl << std::endl;
     
     // =================================
     // 1) ELEMENT INFORMATION
@@ -1724,11 +1726,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     std::set<const Elem*>::iterator elemIt;
     for( elemIt = allElems.begin(); elemIt != allElems.end(); ++elemIt ) {
       // print element information (type, region, connect, edges, faces)
-      const Elem * ptElem = *elemIt;
+      const Elem* ptElem = *elemIt;
       
-      out << "=============\n"
-                << " Elem #" << ptElem->elemNum << std::endl
-                << "=============\n";
+      out << "Elem #" << ptElem->elemNum << std::endl;
       out << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
       out << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
       
@@ -1738,13 +1738,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         StdVector<UInt> edgeNodes;
         Integer edgeNum = ptElem->extended->edges[i];
         ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
-        out << "E #" << edgeNum << " ("
-                  << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
+        out << "E #" << edgeNum << " (" << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
       }
-      out << "\n";
       
       // Print face  information
-      out << "Faces: ";
+      out << std::endl << "Faces: ";
       for( UInt i=0, numFaces = ptElem->extended->faces.GetSize(); i < numFaces; ++i ) {
         StdVector<UInt> faceNodes;
         UInt faceNum = ptElem->extended->faces[i];
@@ -1752,7 +1750,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         out << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
       out << "\n\n";
-
 
       // print header
       out << "\t\t#num\tvNodes\tEqnNrs\tSBM\tindex\n";
@@ -1851,7 +1848,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                 out << blockNums[eqn-1] << "\t";
 
                 // index
-                out << indices[eqn-1] << "\n";
+                out << indices[eqn-1] <<  " (" << indices[eqn-1]-1 << ")\n";
               } else {
                 out << "-\t-\n";
               }
@@ -1875,51 +1872,37 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
     out << "EQUATION MAPPING" << std::endl << std::endl;
-    out << "nodeNr \t|"  << " type  | " <<  std::setw (7)
-    <<" Comp" << "|\teqnNr  \t| SBM\t|\tindex   |\t BC" << std::endl;
-    out << "----------------------------------------------------------------------------"
-              << std::endl;
-    while(nodeIt != nodeMap_.eqns.end()){
+    out << "nodeNr | type | comp | eqnNr | SBM |  index 1 / 0    |  BC " << std::endl;
+    out << "------------------------------------------------------------" << std::endl;
+    while(nodeIt != nodeMap_.eqns.end())
+    {
       nodeBcIt = nodeMap_.BcKeys.find(nodeIt->first);
       for(UInt iDof =0; iDof < nodeIt->second.GetSize(); iDof++){
+
+        const int& eqn = nodeIt->second[iDof];
+
         // virtual node number (only once for all dofs) and type
-        if( iDof == 0) { 
-          out << nodeIt->first;
-          
-          // type of node (print first character of entityType )
-          out << "\t|  "
-              << BaseFE::entityType.ToString(nodesType_[nodeIt->first])[0];
-        } else {
-          out << "        |";
-        }
+        if(iDof == 0)
+          out << std::setw(6) << nodeIt->first << " |   " << BaseFE::entityType.ToString(nodesType_[nodeIt->first])[0];
+        else
+          out << "       |    ";
 
-        // component 
-        out << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
-        // eqn number
-        const Integer & eqn = nodeIt->second[iDof];
-        out << "|\t" << eqn;
+        // component and equation
+        out << "  |" << std::setw(5) << feFctResult->dofNames[iDof];
+        out << " |" << std::setw(6) << eqn;
 
-
-        if( eqn == 0 || !algSys) {
-          out << "\t|" << std::setw(1) << "-";;
-
-          // index
-          out << "\t|" << std::setw(8) << "-";
-        } else {
-          // sbm-block  
-          out << "\t|" << std::setw(1) << blockNums[std::abs(eqn)-1];
-
-          // index
-          out << "\t|" << std::setw(8) << indices[std::abs(eqn)-1];
-        }
+        // sbm and index in original 1-based plus 0-based
+        if(eqn == 0 || !algSys)
+          out << " |   - |        -       ";
+        else
+          out << " | " << std::setw(3) << blockNums[std::abs(eqn)-1] << " | "
+               << std::setw(6) << indices[std::abs(eqn)-1] << " / "
+               << std::setw(6) << indices[std::abs(eqn)-1]-1;
 
         // bc type
-        out << "\t|\t";
-        if(  nodeBcIt != nodeMap_.BcKeys.end() ) {
-          if( nodeBcIt->second[iDof] != NOBC ) {
+        out << " | ";
+        if(nodeBcIt != nodeMap_.BcKeys.end() && nodeBcIt->second[iDof] != NOBC)
             out << BcTypeEnum.ToString(nodeBcIt->second[iDof]);
-          } 
-        }
         out << std::endl;
       }
       nodeIt++;

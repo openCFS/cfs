@@ -66,17 +66,18 @@ Matrix<double> StateContainer::CollectBlochEigenfrequencies(Context* ctxt)
 
 
 
-StateSolution* StateContainer::Get(const Excitation* ex, const Function* f, int timestep_mode, TimeDeriv derivative)
+StateSolution* StateContainer::Get(const Excitation* ex, const Function* f, int timestep_mode_local, TimeDeriv derivative)
 {
   assert(ex != NULL);
-  return Get(*ex, f, timestep_mode, derivative);
+  return Get(*ex, f, timestep_mode_local, derivative);
 }
 
-StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int timestep_mode, TimeDeriv derivative)
+StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int timestep_mode_local, TimeDeriv derivative)
 {
-  LOG_DBG2(statesol) << "SC:G: ex=" << ex.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative;
+  LOG_DBG2(statesol) << "SC:G: ex=" << ex.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL")
+                     << " ts=" << timestep_mode_local << " d=" << derivative << " size=" << data_.GetSize();
 
-  assert(timestep_mode == -1 || Optimization::manager.any().eigenvalue); // add transient
+  assert(timestep_mode_local == -1 || f->IsLocal() || Optimization::manager.any().eigenvalue); // add transient
 
   if(data_.GetCapacity() == 0)
   {
@@ -84,12 +85,9 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
     assert(em != NULL);
 
     unsigned int size = 2; // more does not harm
-    for(unsigned int i = 0; i < em->constraints.active.GetSize(); i++)
-      if(em->constraints.active[i]->IsAdjointBased())
-        size++;
-    for(unsigned int i = 0; i < em->constraints.observe.GetSize(); i++)
-      if(em->constraints.observe[i]->IsAdjointBased())
-        size++;
+    for(auto& cond : em->constraints.all)
+      if(cond->IsAdjointBased())
+        size += cond->IsLocal() ? cond->GetLocal()->virtual_elem_map.GetSize() : 1;
 
     size *= em->GetMultipleExcitation()->excitations.GetSize();
 
@@ -101,9 +99,9 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
     LOG_DBG(statesol) << "SC:G reserved " << size;
   }
 
-  StdVector<StateSolution*> found = Search(&ex, ex.sequence, f, timestep_mode, derivative);
+  StdVector<StateSolution*> found = Search(&ex, ex.sequence, f, timestep_mode_local, derivative);
   if(found.GetSize() > 1)
-    EXCEPTION("request non-unique state from StateContainer: ex=" << ex.index << " func=" << (f == NULL ? "NULL" : f->ToString()) << " timestep_mode=" << timestep_mode << " deriv=" << derivative);
+    EXCEPTION("request non-unique state from StateContainer: ex=" << ex.index << " func=" << (f == NULL ? "NULL" : f->ToString()) << " timestep_mode_local=" << timestep_mode_local << " deriv=" << derivative);
 
   if(found.GetSize() == 1)
     return found[0];
@@ -117,16 +115,16 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
 
   state.excitation = &ex;
   state.func = f;
-  state.timestep_mode = timestep_mode;
+  state.timestep_mode_local = timestep_mode_local;
   state.derivative = derivative;
 
-  LOG_DBG2(statesol) << "SC:G: add state ex=" << ex.index << " f=" << (f == NULL ? "NULL" : f->ToString()) << " tsm=" << timestep_mode << " der=" << derivative << " -> " << data_.GetSize();
+  LOG_DBG2(statesol) << "SC:G: add state ex=" << ex.index << " f=" << (f == NULL ? "NULL" : f->ToString()) << " tsm=" << timestep_mode_local << " der=" << derivative << " -> " << data_.GetSize();
 
   return &state;
 }
 
 
-StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, const Function* f, int timestep_mode, const TimeDeriv derivative)
+StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, const Function* f, int timestep_mode_local, const TimeDeriv derivative)
 {
   StdVector<StateSolution*> found;
 
@@ -135,21 +133,21 @@ StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, 
   assert(!(ex == NULL && seq == -1)); // one needs to be given
 
   LOG_DBG2(statesol) << "SC:S search for ex=" << (ex == NULL ? -1 : ex->index) << " seq=" << seq << " f=" << (f == NULL ? "NULL" : f->ToString())
-                     << " ts_m=" << timestep_mode << " der=" << derivative;
+                     << " ts_m=" << timestep_mode_local << " der=" << derivative << " size=" << data_.GetSize();
 
   for(unsigned int i = 0, n = data_.GetSize(); i < n; i++)
   {
     StateSolution& s = data_[i];
     bool ex_ok = ex == NULL || s.excitation == ex; // if no excitation is given we don't exclude
     bool seq_ok = seq == -1 ? true : s.excitation->sequence == seq;
-    bool tsm_ok = timestep_mode == -1 ? true : s.timestep_mode == timestep_mode;
+    bool tsm_ok = timestep_mode_local == -1 ? true : s.timestep_mode_local == timestep_mode_local;
 
     if(ex_ok && seq_ok && s.func == f && tsm_ok && s.derivative == derivative)
       found.Push_back(&s);
 
     LOG_DBG2(statesol) << "SC:S cand i=" << i << " ex=" << (s.excitation == NULL ? -1 : s.excitation->index) << " seq="
                        << (s.excitation == NULL ? -1 : s.excitation->sequence) << " f=" << (s.func == NULL ? "NULL" : s.func->ToString())
-                       << " ts_m=" << s.timestep_mode << " der=" << s.derivative << " set=" << s.ContainsState() << " -> " << found.GetSize();
+                       << " ts_m=" << s.timestep_mode_local << " der=" << s.derivative << " set=" << s.ContainsState() << " -> " << found.GetSize();
   }
 
   return found;
@@ -206,6 +204,14 @@ StdVector<const Function*> StateContainer::GetFunctions() const
   return result;
 }
 
+void StateContainer::Dump()
+{
+  for(auto& state : data_)
+    std::cout << state.ToString() << std::endl;
+}
+
+
+
 StateSolution::StateSolution()
 {
   this->raw = NULL;
@@ -217,7 +223,7 @@ StateSolution::StateSolution()
   // by this we identify the solution uniquely
   this->func = NULL;
   this->derivative = NO_DERIVTYPE;
-  this->timestep_mode = -1; // only set different for eigenmodes or transient
+  this->timestep_mode_local = -1; // only set different for eigenmodes or transient
   this->excitation = NULL;
 }
 
@@ -276,9 +282,9 @@ std::string StateSolution::ToString()
   std::stringstream ss;
   ss << " excite=" << (excitation != NULL ? excitation->GetFullLabel() : "NULL");
   ss << " func=" << (func != NULL ? func->ToString() : "NULL");
-  ss << " raw=" << (raw != NULL ? raw->GetSize() : -1 ) << (raw != NULL ? BaseMatrix::entryType.ToString(raw->GetEntryType()) : "");
-  ss << " rhs=" << (rhs != NULL ? rhs->GetSize() : -1 ) << (rhs != NULL ? BaseMatrix::entryType.ToString(rhs->GetEntryType()) : "");
-  ss << " select=" << (select != NULL ? select->GetSize() : -1) << (select != NULL ? BaseMatrix::entryType.ToString(select->GetEntryType()) : "");
+  ss << " raw=" << (raw != NULL ? (int) raw->GetSize() : -1 ) << " " << (raw != NULL ? BaseMatrix::entryType.ToString(raw->GetEntryType()) : "");
+  ss << " rhs=" << (rhs != NULL ? (int) rhs->GetSize() : -1 ) << " " << (rhs != NULL ? BaseMatrix::entryType.ToString(rhs->GetEntryType()) : "");
+  ss << " select=" << (select != NULL ? (int) select->GetSize() : -1) << " " << (select != NULL ? BaseMatrix::entryType.ToString(select->GetEntryType()) : "");
   return ss.str();
 }
 
@@ -308,7 +314,7 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
 
   SolutionType solt = GetSolutionType(pde, app);
 
-  LOG_DBG2(statesol) << "SS:R st=" << st << " org='" << ToString();
+  LOG_DBG2(statesol) << "SS:R st=" << st << " org='" << ToString() << "'";
 
   if(app == App::LAPLACE)
   {
@@ -448,7 +454,7 @@ void StateSolution::Write(SinglePDE* pde)
 {
   assert(set_);
 
-  LOG_DBG2(statesol) << "SS:W pde=" << pde->GetName() << " ss=" << ToString();
+  LOG_DBG(statesol) << "SS:W pde=" << pde->GetName() << " ss=" << ToString();
 
   // TODO make robust for App::LBM
   if(raw != NULL)
@@ -483,6 +489,7 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 
 
 
+
 template <class T>
 SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
@@ -514,15 +521,6 @@ SingleVector* StateSolution::GetVector(StorageType st, bool create)
   EXCEPTION("false");
 }
 
-template<class T>
-Vector<T>& StateSolution::GetVectorRef(StorageType st)
-{
-  SingleVector* sv = GetVector<T>(st, false);
-  assert(sv != NULL);
-  return dynamic_cast<Vector<T>& >(*sv);
-}
-
-
 
 SingleVector* StateSolution::GetVector(StorageType st)
 {
@@ -541,9 +539,3 @@ Vector<complex<double> >& StateSolution::GetComplexVector(StorageType st)
 {
   return dynamic_cast<Vector<complex<double> >& >(*GetVector<complex<double> >(st, true));
 }
-
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template Vector<double>& StateSolution::GetVectorRef<double>(StorageType st);
-template Vector<complex<double> >& StateSolution::GetVectorRef<complex<double> >(StorageType st);
-#endif

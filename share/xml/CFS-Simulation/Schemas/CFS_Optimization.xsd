@@ -379,9 +379,10 @@
                 <xsd:enumeration value="globalDesign" />
                 <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala'. < 0 if slope changes -->
                 <xsd:enumeration value="bump" />
-                <xsd:enumeration value="stress" />
-                <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
-                <xsd:enumeration value="stressDensity" />
+                <!-- globalized stress sum max(<sigma, M sigma> - param)^power. Note that simga is scaled by transfer function stress -->
+                <xsd:enumeration value="globalStress" />
+                <!-- local stress constraints <sigma, M sigma> with stress transfer function. Quite expensive! -->
+                <xsd:enumeration value="localStress"/> 
                 <!-- requires the attribute 'designTarget' to be set to a filename -->
                 <xsd:enumeration value="designTracking" />
                 <!-- for (DENSITY_TIMES_)ORTHOTROPIC only -->
@@ -1697,8 +1698,9 @@
                       <xsd:enumeration value="maxMole" />
                       <xsd:enumeration value="maxJump" />
 
-                      <!-- for stress constraints a transferFunciton penalizes low density stresses, here they can be visualized. The element vonMisesStress result gives the physical one -->
-                      <xsd:enumeration value="penalizedStress" />
+                      <!-- element (Bu,M Bu) for stress constraints with stress transfer function. vonMisesStress has mech transfer function and squares.
+                      Note that the stess constraints are evaluated at the integration points an the cfs pde results at the center only -->
+                      <xsd:enumeration value="quadraticVMStress" />
                       <!-- This is (rho - rho^*)^2 (rho is physical) without 1/N -->
                       <xsd:enumeration value="designTracking" />
                       <!-- for shape mapping the max of dtanh_da for a rho element -->
@@ -2086,9 +2088,6 @@
       <xsd:enumeration value="globalTensorTrace" />
       <xsd:enumeration value="globalOrthotropicTensorTrace" />
       <xsd:enumeration value="globalTwoScaleVolume" />
-      <xsd:enumeration value="stress" />
-      <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
-      <xsd:enumeration value="stressDensity" />
       <!-- Pressure drop for the external LBM solver -->
       <xsd:enumeration value="pressureDrop" />
       <!-- Heat energy for heat pde -->
@@ -2313,7 +2312,7 @@
       <xsd:enumeration value="globalMole" />
       <xsd:enumeration value="globalJump" />
       <xsd:enumeration value="globalDesign" />
-      <xsd:enumeration value="stress" />
+      <xsd:enumeration value="globalStress" />
       <!-- Shape mapping -->
       <!-- for 2D -->
       <xsd:enumeration value="node" />

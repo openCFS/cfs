@@ -95,11 +95,6 @@ public:
 
   Method GetMethod() { return method_; }
 
-  StateContainer& GetForwardStates() { return forward; }
-
-  /** this is the optimization->ersatzMaterial XML element */
-  PtrParamNode pn;
-
   inline const DesignStructure& GetDesignStructure(){
     assert(structure_ != NULL);
     return *structure_;
@@ -112,6 +107,15 @@ public:
   double CalcTempAtInterface(int node);
 
   void CalcStressesForBucklingHomogenization(Matrix<Double>& S, const LocPointMapped* lpm);
+
+  /** this is the optimization->ersatzMaterial XML element */
+  PtrParamNode pn;
+
+  /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
+  StateContainer forward;
+
+  /** Here we store the solution of the adjoint problem. */
+  StateContainer adjoint;
 
 protected:
   
@@ -356,9 +360,8 @@ protected:
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
-   * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
-   * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
-  double CalcGlobalFunction(Function* f, bool derivative,  const Vector<double>* von_mises_stress = NULL);
+   * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality */
+   double CalcGlobalFunction(Function* f, bool derivative);
 
   /** Evaluates objective and constraint functiond and gradient.
    * Overloaded in PiezoSIMP for own objectives.
@@ -367,12 +370,13 @@ protected:
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
   /** Store the results from the forward/adjoint problem. Handles multiple excitations
+   * @param timestep_mode_local transient time step, bloch mode oder local stress virtual index
    * @param read_sol store solution (maybe one would only like to save rhs)
    * @param read_rhs is only interesting for the forward problem
    * @param save_sol set this in the adjoint problem -> see Solution::Read()
    * @param comment is just to LOG_DBG */
   virtual void StorePDESolution(StateContainer& solutions, Excitation& excite,
-      Function* f, int timestep_mode, bool read_sol, bool read_rhs,
+      Function* f, int timestep_mode_local, bool read_sol, bool read_rhs,
       bool save_sol, TimeDeriv derivative, const std::string& comment);
 
   // virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
@@ -396,12 +400,6 @@ protected:
   /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructComplexAdjointRHS()
    * @return true if function is handled */
   virtual bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs) { return false; }
-
-  /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
-  StateContainer forward;
-
-  /** Here we store the solution of the adjoint problem. */
-  StateContainer adjoint;
 
   /** do we do SIMP or FreeMat or ... */
   Method method_;

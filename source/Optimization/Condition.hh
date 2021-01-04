@@ -105,9 +105,10 @@ namespace CoupledField
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
 
-       /** Is the gradient dense or sparse. Only local conditions and slack obj are sparse
+       /** Is the gradient dense or sparse. Almost all local conditions and slack obj are sparse.
+        * The only dense local function is localStress which is state dependent
         * @see Function::HasDenseJacobian() */
-       bool HasDenseJacobian() const { return !IsLocalCondition();  }
+       bool HasDenseJacobian() const { return !IsLocalCondition() || type_ == LOCAL_STRESS; } // todo: what is with slack?
        
        /** Is it a constraint on the imaginary part? */
        bool IsImag() const { return imag_; }
@@ -189,7 +190,7 @@ namespace CoupledField
       /** the bound value, the value_ attribute contains the function value */
       double boundValue_;
 
-      bool delta_logging_ignored_;
+      bool delta_logging_ignored_ = false;
 
       bool objective_scaling_;
 
@@ -274,9 +275,10 @@ namespace CoupledField
      }
 
      /** The relative position within this local constraints
-      * @return starts from 0 */
-     int GetCurrentRelativePosition() const {
-       return current_view_index_ - virtual_base_index_;
+      * @return starts from 0 if valid, -1 if not valid
+      * @see Function::GetCurrentRelativePosition() */
+     virtual int GetCurrentRelativePosition() const {
+       return std::max(current_view_index_ - virtual_base_index_, -1);
      }
 
      /** The absolute postion of the local constraint
@@ -289,7 +291,7 @@ namespace CoupledField
 
      /** The number of slope constraints. */
      unsigned int GetConstraintSize() const {
-       return local->values.GetSize();
+       return local->local_values.GetSize();
      }
 
      /** The local mode has current_view_index_ set. For -1 we are in global mode.
@@ -319,11 +321,11 @@ namespace CoupledField
      /** This is the local context currently requested by the optimizer */
      Function::Local::Identifier& GetCurrentVirtualContext();
 
-     /** Calculates the mean |value|  */
-     double CalcMeanValue() const;
+     /** Calculates the mean |value| based on local_values */
+     double CalcMeanAbsValue() const;
 
-     /** Calculates the max |value| */
-     double CalcMaxValue() const;
+     /** Calculates the max |value| if upper bound or equal and min if lower bounded */
+     double CalcMinMaxAbsValue() const;
 
      /** count the infeasible elements where the value is out of bound. This can be problematic for linear functions! */
      int CountInfeasibles() const;
@@ -341,7 +343,7 @@ namespace CoupledField
    private:
 
      /** To be set via SetCurrentViewIndex(). Negative if not initialized. */
-     int current_view_index_;
+     int current_view_index_ = -1;
    };
 
    /** This is a container for the conditions within Optimization.

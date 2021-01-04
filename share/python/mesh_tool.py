@@ -722,7 +722,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
         e.density = 1.0
         e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
         # set region for appropriate load case
-        e.region = set_region(x,y,nx,ny,type,patch)
+        e.region = set_region(x+.5,y+.5,nx,ny,type,patch,inclusion, inclusion_size)
         # assign nodes
         ll = (nx+1) * y + x  # lowerleft
         # mark the interface of the inclusion with the outer boundary
@@ -859,7 +859,8 @@ def add_elements_pfem(mesh, numbering='row_major'):
       e.region = "south_surf" if y == 0 else "north_surf"
       mesh.elements.append(e)
 
-def set_region(x,y,nx,ny,type,patch):
+def set_region(x,y,nx,ny,type,patch, inclusion=None, inclusion_size=0):
+  
   if type == 'cantilever2d_reinforced' and float(x) >= (28. / 30. * nx):
     region = 'reinforce'
   # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!
@@ -884,13 +885,11 @@ def set_region(x,y,nx,ny,type,patch):
       region = 'ghost'
     else:
       region = 'mech'
-  #elif inclusion == 'rect' and x >= nx/2 * (1 - inclusion_size) and x < nx/2 * (1 + inclusion_size) \
-  #    and y >= ny/2 * (1 - inclusion_size) and y < ny/2 * (1 + inclusion_size):
-  #  region = 'inner'
-  #  second += 1
-  #elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size:
-  #  region = 'inner'
-  #  second += 1
+  elif inclusion == 'rect' and x >= nx/2 * (1 - inclusion_size) and x < nx/2 * (1 + inclusion_size) \
+      and y >= ny/2 * (1 - inclusion_size) and y < ny/2 * (1 + inclusion_size):
+    region = 'inner'
+  elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size):
+    region = 'inner'
   elif patch:
     assert(patch == "3x3")
     region = 'reg_' + str((y % ny/3)+1) + '_' + str((x % nx/3)+1)

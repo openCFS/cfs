@@ -152,8 +152,8 @@ def print_timer(timers, brief=False, wall=True, cpu=True, ref=None, threshold=0.
     else:
       head += ':  ___MIN_CPU____  |  ___CPU_REF____  '
   print(head)
- 
-  total_wall = max(timer[0][0].wall, 1)
+
+  total_wall = max(timer[0][0].wall, 1e-3)
   total_cpu  = max(timer[0][0].cpu, 1e-3)
   if ref:
     total_cpu_ref  = max(ref[0].cpu, 1e-3)

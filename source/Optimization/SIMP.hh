@@ -114,8 +114,12 @@ protected:
   /** overwrites the ErsatzMaterial version, is overwritten in PiezoSIMP */
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
-  /** Calculate the Stress gradient. The weight is always 1 as the stress needs to be per excitation */
-  void CalcVonMisesStressGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+  /** calculates the global stresses and the gradients. The weight is always 1 as the stress needs to be per excitation */
+  template<class TYPE>
+  double CalcGlobalVonMisesStress(Excitation& excite, Function* f, bool gradient);
+
+  /** calculates local stress value or gradient. We do not go via LocalFunction here! */
+  double CalcLocalVonMisesStress(Excitation& excite, Function* f, bool gradient);
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases include a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().

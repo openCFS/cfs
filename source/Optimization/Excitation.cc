@@ -1022,7 +1022,7 @@ std::map<RegionIdType, PtrCoefFct> Excitation::GetStressCoefFctFromExcitation(UI
 
     // get the solution (displacement) of this excitation
     ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
-    StateSolution* ss = em->GetForwardStates().Get(excite, NULL, -1);
+    StateSolution* ss = em->forward.Get(excite, NULL, -1);
     Vector<Double> mech_displ;
     mech_displ = ss->GetRealVector(StateSolution::RAW_VECTOR);
 

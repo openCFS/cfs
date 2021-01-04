@@ -2,8 +2,8 @@
 #include <def_use_blas.hh>
 #include <def_use_cgal.hh>
 #include <def_use_cgns.hh>
-#include <def_use_ensight.hh>
 #include <def_use_embedded_python.hh>
+#include <def_use_ensight.hh>
 #include <def_use_feast.hh>
 #include <def_use_fftw.hh>
 #include <def_use_flann.hh>
@@ -14,6 +14,7 @@
 #include <def_use_hwloc.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_ipopt.hh>
+#include <def_use_knitro.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_libxml2.hh>
 #include <def_use_lis.hh>
@@ -26,6 +27,7 @@
 #include <def_use_phist_ev.hh>
 #include <def_use_sgpp.hh>
 #include <def_use_snopt.hh>
+#include <def_use_scpip.hh>
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
 #include <def_use_unv.hh>
@@ -442,6 +444,14 @@ void Dependencies::ReadSetting()
   ipopt.SetVersion(IPOPT_VER);
 #endif
   data.Push_back(ipopt);
+
+  // knitro is a commercial optimizer which failed to be effective for topology optimization
+  // To use knitro organize it yourself, provide the lib and set USE_KNITRO
+  Dependency knitro("KNITRO", "USE_KNITRO", COMMERCIAL);
+#ifdef USE_KNITRO
+  knitro.active(true)
+#endif
+  data.Push_back(knitro);
 
   // requires simply python on the system set by PYTHON_INCLUDE_DIR and PYTHON_LIBRARY
   Dependency python("Python", "USE_EMBEDDED_PYTHON", EASY);

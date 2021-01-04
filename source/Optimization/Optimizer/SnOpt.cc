@@ -394,7 +394,7 @@ bool SnOpt::get_nlp_info()
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; ++c)
   {
     Condition* g = optimization->constraints.view->Get(c);
-    assert(g->GetSparsityPattern().GetSize() > 0);
+    assert(g->GetSparsityPatternSize() > 0);
 
     if(g->IsLinear())
     {

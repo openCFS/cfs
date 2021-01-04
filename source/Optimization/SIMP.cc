@@ -201,20 +201,21 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   // this app is for the PDE
   App::Type app = f->ctxt->ToApp();
 
+  // an exceptional case where we also calculate the function value as we share a lot code with the gradient
+  if(f->GetType() == Function::GLOBAL_STRESS)
+    if(f->ctxt->IsComplex())
+      return CalcGlobalVonMisesStress<Complex>(excite, f, derivative);
+    else
+      return CalcGlobalVonMisesStress<double>(excite, f, derivative);
+  if(f->GetType() == Function::LOCAL_STRESS)
+    return CalcLocalVonMisesStress(excite, f, derivative);
+
   if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
 
   // only special derivatives, the rest also EM
   switch(f->GetType())
   {
-  case Function::STRESS:
-  case Function::STRESS_DENSITY:
-  {
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
-    CalcVonMisesStressGradient(excite, f, tf);
-    break;
-  }
-
   case Function::GLOBAL_DYNAMIC_COMPLIANCE:
   case Function::OUTPUT:
   case Function::SQUARED_OUTPUT:
@@ -255,10 +256,13 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 }
 
 
-void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferFunction* tf)
+template<class TYPE>
+double SIMP::CalcGlobalVonMisesStress(Excitation& excite, Function* f, bool gradient)
 {
   assert(excite.sequence == f->ctxt->sequence);
-	// see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
+
+  // for the function we pack the stuff in Function::Local
+
   // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
   // away from the other local gradient computations.
   //
@@ -266,68 +270,139 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   //
   // that means, if the stress constraint region is not a design region, we don't add something. But take
   // care, there might also be several stress constraints for a set of design regions.
-  //
-  // we do NOT weight!
 
-  for(unsigned int i = 0; i < design->data.GetSize(); i++)
-    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << design->data[i].elem->elemNum << " org=" << design->data[i].GetPlainGradient(f);
+  StressConstraint<TYPE> sc(&excite, f, this, &forward);
 
-  // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
-  Vector<double> alpha;
-  // 2 * stress^T * M * (rho^p)' * E_0 * B * u
-  Vector<double> appendix;
+  Vector<double> stress = sc.CalcStresses();
 
-  if(f->ctxt->IsComplex())
+  // alpha is from the globalization which is in the form sum max(0, g_i-c)^p
+  // in the gradient case alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
+  Vector<double> alpha = sc.CalcGlobalizationFactor(stress, gradient);
+
+  if(!gradient)
   {
-    StressConstraint<complex<double> > sc(&excite, f, this, &forward);
-    sc.CalcGlobalizationFactor(alpha);
+    // we pack the stuff to local_values
+    f->GetLocal()->local_values.Import(stress.GetPointer(), stress.GetSize());
+    LOG_DBG(simp) << "CGVMS: f=" << f->ToString() << " sum=" << alpha.Sum() << " alpha=" << alpha.ToString();
+    return alpha.Sum();
+  }
+  else // gradient
+  {
+
+    // 2 * stress^T * M * (rho^p)' * E_0 * B * u
+    Vector<double> appendix;
+
     sc.CalcGradStresses(appendix);
+    assert(appendix.GetSize() == alpha.GetSize());
+
+    // rhs is from the legacy copy and usually empty
+    DesignDependentRHS rhs(App::STRESS);
+    rhs.Init<double>(excite.label);
+
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
+
+    // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MECH], App::MECH, forward.Get(excite)->elem[App::MECH], &rhs, 1.0, STANDARD, f);
+
+    // add the appendix stuff
+    for(unsigned int i = 0; i < design->data.GetSize(); i++)
+    {
+      DesignElement& de = design->data[i];
+      // Three cases:
+      // a) stress is defined on whole design domain (one or more regions)
+      // b) stress region is defined on one of two or more design regions
+      // c) stress region is not in any of the design regions.
+
+      // case c): idx is already -1
+      int idx = -1;
+
+      // case a) reset idx
+      if(f->region == ALL_REGIONS || design->regions[0].GetSize() == 1)
+      {
+        assert(de.elem->elemNum == f->elements[i]->elem->elemNum);
+        idx = i;
+      }
+      // case b) possibly reset idx
+      if(idx == -1 && design->Contains(f->region))
+      {
+        // we are at a design element and have to find it within stress
+        // TODO make it faster and check if it is right?!
+        for(unsigned int e = 0; idx == -1 && e < f->elements.GetSize(); e++)
+          if(de.elem->elemNum == f->elements[e]->elem->elemNum)
+            idx = e;
+      }
+
+      if(idx != -1)
+        de.AddGradient(f, alpha[idx] * appendix[idx]);
+
+      LOG_DBG2(simp) << "CGVMS: f=" << f->ToString() << " de=" << de.elem->elemNum << " idx=" << idx << " alpha="
+                     << (idx != -1 ? alpha[idx] : -1.0)  << "* app=" << (idx != -1 ? appendix[idx] : -1.0) << " -> " << de.GetPlainGradient(f);
+  	} // end loop
+    return 0.0;
+  } // end gradient
+}
+
+
+double SIMP::CalcLocalVonMisesStress(Excitation& excite, Function* f, bool gradient)
+{
+  // we share a lot of code between gradient and local function value, hence share the code
+  // local stress constraints are expensive and are not efficiently implemented. They are meant for a proof of concept, not for real use
+  assert(excite.sequence == f->ctxt->sequence);
+
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
+
+  // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
+  // away from the other local gradient computations.
+
+  assert(f->GetType() == Function::LOCAL_STRESS && f->IsLocal() && !f->IsObjective());
+  assert(f->GetCurrentRelativePosition() >= 0); // we are in a virtual loop
+  assert(f->GetLocal()->virtual_elem_map.GetSize() == f->elements.GetSize());
+  LocalCondition* lc = dynamic_cast<LocalCondition*>(f);
+  Function::Local::Identifier& id = lc->GetCurrentVirtualContext();
+
+  DesignElement* de = dynamic_cast<DesignElement*>(id.element);
+  assert(de != NULL);
+
+  // the gradient is lambda^T * ( K' * u - f')  + 2 * stress^T * M * (rho^p)' * E_0 * B * u
+  // f' is usually 0,
+  // 2 * stress^T * M * (rho^p)' * E_0 * B * u is the dJ/drho_e part and applies only for element e
+
+  assert(!f->ctxt->IsComplex()); // otherwise use template for StressConstraint
+
+  StressConstraint<double> sc(&excite, f, this, &forward);
+
+  if(!gradient)
+  {
+    double val = sc.CalcElementStress(de);
+    lc->SetValue(val); // for CalcMaxValue() used in Function::Local::Identifier::EvalFunction()
+    LOG_DBG2(simp) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " val=" << val << " values=" << f->GetLocal()->local_values.ToString();
+    return val;
   }
   else
   {
-    StressConstraint<double> sc(&excite, f, this, &forward);
-    sc.CalcGlobalizationFactor(alpha);
-    sc.CalcGradStresses(appendix);
+    // the BaseDesignElement::constraintGradient space is not for virtual functions
+    // we reuse the same space and it is written before we calculate the next function
+    // this is the only case we use Reset for all for a specific function
+    for(DesignElement& t : design->data)
+      t.Reset(DesignElement::CONSTRAINT_GRADIENT, f);
+
+    // rhs is from the legacy copy and usually empty
+    DesignDependentRHS rhs(App::STRESS);
+    rhs.Init<double>(excite.label);
+
+    StdVector<SingleVector*>& u2 = forward.Get(excite)->elem[App::MECH];
+
+    // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
+    int idx =lc->GetCurrentRelativePosition();
+
+    StdVector<SingleVector*>& u1 = adjoint.Get(excite, f, idx)->elem[App::MECH];
+    CalcU1KU2(tf, u1, App::MECH, u2, &rhs, 1.0, STANDARD, f);
+
+    double appendix = sc.CalcGradElementStress(de);
+    de->AddGradient(f, appendix); // de is called for all f->elements, hence there is no a),b),c) case as for the global stress gradient
+    LOG_DBG2(simp) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " idx=" << idx << " appendix=" << appendix;
+    return 0;
   }
-  assert(appendix.GetSize() == alpha.GetSize());
-
-  DesignDependentRHS rhs(App::STRESS);
-  rhs.Init<double>(excite.label);
-  // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MECH], App::MECH, forward.Get(excite)->elem[App::MECH], &rhs, 1.0, STANDARD, f);
-
-  // add the appendix stuff
-  for(unsigned int i = 0; i < design->data.GetSize(); i++)
-  {
-    DesignElement& de = design->data[i];
-    // Three cases:
-    // a) stress is defined on whole design domain (one or more regions)
-    // b) stress region is defined on one of two or more design regions
-    // c) stress region is not in any of the design regions.
-
-    int idx = -1; // case c) an sometimes b) never a)
-
-    // case a)
-    if(f->region == ALL_REGIONS || design->regions[0].GetSize() == 1)
-    {
-      assert(de.elem->elemNum == f->elements[i]->elem->elemNum);
-      idx = i;
-    }
-    // case b)
-    if(idx != -1 && design->Contains(f->region))
-    {
-      // we are at a design element and have to find it within stress
-      // TODO make it faster
-      for(unsigned int e = 0; idx != -1 && e < f->elements.GetSize(); e++)
-        if(de.elem->elemNum == f->elements[e]->elem->elemNum)
-          idx = e;
-    }
-    // case c): idx is already -1
-    if(idx != -1)
-      de.AddGradient(f, alpha[idx] * appendix[idx]);
-    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << de.elem->elemNum << " idx=" << idx << " alpha="
-                   << (idx != -1 ? alpha[i] : -1.0)  << "* app=" << (idx != -1 ? appendix[i] : -1.0) << " -> " << de.GetPlainGradient(f);
-	}
 }
 
 

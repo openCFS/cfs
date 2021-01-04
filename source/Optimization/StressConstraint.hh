@@ -38,15 +38,37 @@ public:
   StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateContainer* forward);
 
   /** The stress values for every f->elements */
-  void CalcStresses(Vector<double>& out);
+  Vector<double> CalcStresses();
+
+  /** element version for local stress */
+  double CalcElementStress(DesignElement* de) {
+    int res_idx = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::QUADRATIC_VM_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite->label);
+    return CalcElementStress(STRESS, res_idx, de);
+  }
+
+
 
   /** The design gradient of the stress values for every f->elements */
   void CalcGradStresses(Vector<double>& out);
 
+  /** element version for local stress */
+  double CalcGradElementStress(DesignElement* de) {
+    return CalcElementStress(GRAD_STRESS, -1, de);
+  }
+
+
+
+  /** globalizes rhs by Calling CalcElemAdjointRHS in a loop
+   * @param out will be set, resized and filled */
   void CalcAdjointRHS(Vector<T>& out);
 
+  /** helper for the globalized function and for LOCAL_STRESS
+   * @param out_set needs to be a set output rhs where we add our stuff ad the dofs of de */
+  void CalcElemAdjointRHS(DesignElement* de, double alpha, Vector<T>& out_set);
+
+
   /** is actually the max(0, stress-c)^2 applied per element. if the bound c is too large it is all zero */
-  void CalcGlobalizationFactor(Vector<double>& out);
+  Vector<double> CalcGlobalizationFactor(const Vector<double>& stresses, bool gradient);
 
 private:
   /** This are the three modes of operation */
@@ -63,6 +85,10 @@ private:
 
   /** common for CalcStresses and CalcGradStresses() */
   void CalcStresses(Mode mode, int res_idx, Vector<double>& out);
+
+  /** Element extraction from CalcStresses() */
+  double CalcElementStress(Mode mode, int res_idx, DesignElement* de);
+
 
   /** Determines if we have mech stress or piezoelectric stress.
    * @return mech/mech or mech/mech, piezo/mech, piezo/piezo, mech/piezo */

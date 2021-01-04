@@ -139,8 +139,7 @@ Function::Function(PtrParamNode pn) {
   case GLOBAL_SLOPE:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
   case PERIMETER:
     if (!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
@@ -359,7 +358,7 @@ void Function::ToInfo(PtrParamNode info) {
     info->Get("parameter")->SetValue(parameter_);
 
   // We might have non-standard stresses
-  if(type_ == STRESS || type_ == STRESS_DENSITY)
+  if(type_ == GLOBAL_STRESS  || type_ == LOCAL_STRESS)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(type_ == EIGENFREQUENCY || type_ == BUCKLING_LOAD_FACTOR)
@@ -545,8 +544,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     excite_sensitive_ = true;
     break;
 
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
+  case LOCAL_STRESS:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
   case BUCKLING_LOAD_FACTOR:
     // there might be the optional excitation index set
@@ -641,8 +640,8 @@ bool Function::IsAdjointBased() const {
   case DYNAMIC_OUTPUT:
   case ELEC_ENERGY:
   case ENERGY_FLUX:
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
+  case LOCAL_STRESS:
   case TEMP_TRACKING_AT_INTERFACE:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_Y:
@@ -747,6 +746,7 @@ bool Function::IsLocal(Type t) {
   case BENSON_VANDERBEI_3:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
+  case LOCAL_STRESS:
     return true;
   default:
     return false;
@@ -817,8 +817,8 @@ bool Function::ForSensitivityFiltering() const {
   case YOUNGS_MODULUS_E2:
   case TEMPERATURE:
   case ABS_OUTPUT:
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
+  case LOCAL_STRESS:
   case PRESSURE_DROP:
   case HEAT_ENERGY:
   case SQR_MAG_FLUX_DENS_Y:
@@ -947,14 +947,25 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      //TODO help, this is ugly
-      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING && type_ != LOSS_MAG_FLUX_RZ)
+      switch(type_)
       {
-        string a = grid->GetRegion().ToString(region);
-        string msg = "region " + grid->GetRegion().ToString(region)
-            + " of condition " + type.ToString(type_)
-            + " not within design domain";
-        preInfo_->SetWarning(msg);
+      case GLOBAL_STRESS:
+      case LOCAL_STRESS:
+      case SQR_MAG_FLUX_DENS_X:
+      case SQR_MAG_FLUX_DENS_Y:
+      case SQR_MAG_FLUX_DENS_RZ:
+      case MAG_COUPLING:
+      case LOSS_MAG_FLUX_RZ:
+        // do nothing
+        break;
+      default: {
+          string a = grid->GetRegion().ToString(region);
+          string msg = "region " + grid->GetRegion().ToString(region)
+              + " of condition " + type.ToString(type_)
+              + " not within design domain";
+          preInfo_->SetWarning(msg);
+          break;
+        }
       }
 
       assert(elements.GetSize() == 0);
@@ -1041,8 +1052,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case DESIGN:
   case GLOBAL_DESIGN:
   case MULTIMATERIAL_SUM:
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
+  case LOCAL_STRESS:
   case SUM_MODULI:
   case SHAPE_INF:
 
@@ -1146,8 +1157,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_OSCILLATION:
   case GLOBAL_SLOPE:
   case GLOBAL_DESIGN:
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
     this->globalized_ = true;
     break;
 
@@ -1277,8 +1287,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     locality_ = BOUNDARY;
     break;
 
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
+  case LOCAL_STRESS:
   case DESIGN:
   case GLOBAL_DESIGN:
     if (locality_ != ELEMENT && locality_ != DEFAULT)
@@ -1406,7 +1416,7 @@ void Function::Local::PostInit()
     throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
-  values.Resize(virtual_elem_map.GetSize(), -1.0);
+  local_values.Resize(virtual_elem_map.GetSize(), -1.0);
 }
 
 
@@ -2188,7 +2198,7 @@ double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, cons
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_glob, double von_mises_stress) const
+double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_glob)
 {
   // function value
   double fv = 0.0;
@@ -2203,10 +2213,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   }
 
   switch (f->type_) {
-  case STRESS:
-  case STRESS_DENSITY:
-    assert(von_mises_stress >= 0);
-    fv = von_mises_stress;
+
+  case LOCAL_STRESS:
+  case GLOBAL_STRESS:
+    fv = f->GetValue(); // from local_values, set in SIMP::Calc[Global/Local]VonMisesStress() or ErsatzMaterial::CalcGlobalFunction() for the global case, we might be objective function.
+    assert(fv != -1);
     break;
 
   case SLOPE:
@@ -2320,7 +2331,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     break;
   }
 
-  LOG_DBG2(func) << "L:I:EF: f=" << f->type.ToString(f->type_)
+  LOG_DBG2(func) << "L:I:EF: f=" << f->type.ToString(f->type_) << " loc=" << f->IsLocal()
                  << " de=" << element->GetIndex() << " sign=" << sign << " fv=" << fv;
 
   // handle globalization
@@ -2330,8 +2341,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case GLOBAL_MOLE:
   case GLOBAL_JUMP:
   case GLOBAL_DESIGN:
-  case STRESS:
-  case STRESS_DENSITY:
+  case GLOBAL_STRESS:
   case GLOBAL_SUM_MODULI:
   case GLOBAL_TWO_SCALE_VOL:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
@@ -2447,9 +2457,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       gv = CalcConesGradient(n, local);
       break;
 
-    case STRESS:
-    case STRESS_DENSITY:
-      assert(false); // in SIMP::CalcVonMisesStressGradient() only!
+    case GLOBAL_STRESS:
+    case LOCAL_STRESS:
+      assert(false); // in SIMP::Calc[Local/Global]VonMisesStress() only!
       break;
 
     case SUM_MODULI:

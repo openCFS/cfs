@@ -1318,24 +1318,10 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       result = CalcFilteringGap(g,derivative);
       break;
 
-    case Objective::STRESS:
-    case Objective::STRESS_DENSITY:
-    {
-      // copy data for element von Mises stress
-      Vector<double> data;
-      if(f->ctxt->IsComplex())
-      {
-        StressConstraint<complex<double> > sc(&excite, f, this, &forward);
-        sc.CalcStresses(data);
-      }
-      else
-      {
-        StressConstraint<double> sc(&excite, f, this, &forward);
-        sc.CalcStresses(data);
-      }
-      result = CalcGlobalFunction(f, false, &data);
+    case Function::GLOBAL_STRESS:
+    case Function::LOCAL_STRESS:
+      assert(false); // implemented in SIMP
       break;
-    }
 
     case Function::GLOBAL_SLOPE:
     case Function::GLOBAL_MOLE:
@@ -1888,7 +1874,7 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
       // compliance is easier computed using f^T u on nodes with force
       // to avoid any work for assembling force again, we simply calculate solution times rhs from the system
 
-      // when not transient or eigenvalue we dont't store timestep_mode as the default 0 is valid there as timestep-nr/mode-nr.
+      // when not transient or eigenvalue we dont't store timestep_mode_local as the default 0 is valid there as timestep-nr/mode-nr.
       int corr_ts = timesteps == 1 ? -1 : (int) ts;
       LOG_DBG2(em) << "CC: ts=" << ts << " corr_ts=" << corr_ts;
       Vector<double>& u = forward.Get(excite, NULL, corr_ts)->GetRealVector(StateSolution::RAW_VECTOR);
@@ -2302,7 +2288,7 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
   assert(f->GetEigenValueID() >= 1);
   unsigned int mode_idx = f->GetEigenValueID() - 1; // 0-based
 
-  // each mode is encoded in forward as timestep_mode and in the bloch mode case the excitation idx is the wave number
+  // each mode is encoded in forward as timestep_mode_local and in the bloch mode case the excitation idx is the wave number
 
   // we have the bloch=full case, then org_excite is exatly the wave number constraint
   // for bloch=extremal we need to search for the wave number (=excitation) which is minimal/maximal
@@ -3426,9 +3412,9 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
 double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 {
   LocalCondition* loc_cond = dynamic_cast<LocalCondition*>(g);
-// take care, similar logic in SlopeCondition::GetSparsityPattern() !
+  // take care, similar logic in SlopeCondition::GetSparsityPattern() !
   assert(loc_cond->IsLocal());
-// The neighborhood is already determined
+  // The neighborhood is already determined
   Function::Local* local = g->GetLocal();
   assert(local != NULL);
   Function::Local::Identifier& id = loc_cond->GetCurrentVirtualContext();
@@ -3444,8 +3430,10 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
   return res;
 }
 
-double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress)
+double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative)
 {
+  assert(f->GetType() != f->GLOBAL_STRESS); // handled in SIMP::CalcGlobalVonMisesStress()
+
   LOG_DBG(em) << "CGF c=" << f->type.ToString(f->GetType()) << " derivative=" << derivative;
   Function::Local* local = f->GetLocal();
   assert(local != NULL);
@@ -3457,11 +3445,14 @@ double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative, const Ve
     // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
     double res = 0.0;
 
-    assert(von_mises_stress == NULL || (von_mises_stress->GetSize() == vem.GetSize()));
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
+      assert(false); // set index such that EvalFunction finds ints local_values
+
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
+      assert(local->local_values.GetSize() == vem.GetSize());
+
+      double fv = id.EvalFunction(local, false);
 
       // save design element volume, eg. two-scale volume
       if (dynamic_cast<DesignElement*> (id.element) != NULL && (f->GetType() == Function::TWO_SCALE_VOL || f->GetType() ==  Function::GLOBAL_TWO_SCALE_VOL))
@@ -3619,20 +3610,20 @@ void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
   }
 }
 
-void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& excite, Function* f, int timestep_mode, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment)
+void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& excite, Function* f, int timestep_mode_local, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment)
 {
   assert(context->pde != NULL);
   assert(context->sequence == excite.sequence);
   assert(f == NULL || f != NULL); // f is NULL for forward problem
 
   Assemble* assemble = context->pde->GetAssemble(); // context is valid as it was switched by Excitation::Apply(true)
-  StateSolution& sol = *(solutions.Get(excite, f, timestep_mode, derivative));
+  StateSolution& sol = *(solutions.Get(excite, f, timestep_mode_local, derivative));
   SingleVector* raw = NULL;
 
   // in the eigenvalue case we have not only one solution vector but one for each mode.
   // Stores the mode in the the solution part of algsys
   if(context->IsEigenvalue())
-    assemble->GetAlgSys()->GetEigenMode(timestep_mode);
+    assemble->GetAlgSys()->GetEigenMode(timestep_mode_local);
 
   // if we do buckling and store the adjoint solution, we have to get the solution
   // from the linear elasticity excitation as we used this as adjoint system
@@ -3646,7 +3637,7 @@ void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& exc
   {
     stringstream ss;
     ss << "SPDES: prob=" << comment << " excite=" << excite.index << " pde: " << it->second->ToString()
-       << " app: " << it->first << " timestep_mode=" << timestep_mode;
+       << " app: " << it->first << " timestep_mode_local=" << timestep_mode_local;
 
     LOG_DBG(em) << ss.str() << " read_sol=" << read_sol << " read_rhs=" << read_rhs;
     if(read_sol)
@@ -3665,9 +3656,9 @@ void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& exc
 
     if(context->IsEigenvalue())
     {
-      assert(timestep_mode >= 0);
+      assert(timestep_mode_local >= 0);
       SingleVector* ef = context->DoBuckling() ? context->GetBucklingDriver()->eigenValues : context->GetEigenFrequencyDriver()->eigenFreqs;
-      sol.eigenfreq = ef->GetEntryType() == BaseMatrix::DOUBLE ? ef->GetDoubleEntry(timestep_mode) : ef->GetComplexEntry(timestep_mode).real();
+      sol.eigenfreq = ef->GetEntryType() == BaseMatrix::DOUBLE ? ef->GetDoubleEntry(timestep_mode_local) : ef->GetComplexEntry(timestep_mode_local).real();
       LOG_DBG(em) << ss.str() << " store freq " << sol.eigenfreq;
     }
   }
@@ -3788,6 +3779,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   assert(excite->sequence == context->sequence);
   assert(context->pde != NULL);
   assert(f->ctxt == context);
+  // we assume, that we do not traverse local functions!
+  assert(f->GetCurrentRelativePosition() == -1);
 
   switch(f->GetType())
   {
@@ -3819,9 +3812,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::DYNAMIC_OUTPUT:
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
-    case Function::STRESS:
+    case Function::GLOBAL_STRESS: // LOCAL_STRESS is handled below
     case Function::TEMP_TRACKING_AT_INTERFACE: // track boundary driven load
-    case Function::STRESS_DENSITY:
     case Function::SQR_MAG_FLUX_DENS_X:
     case Function::SQR_MAG_FLUX_DENS_Y:
     case Function::SQR_MAG_FLUX_DENS_RZ:
@@ -3840,7 +3832,9 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       context->pde->GetAssemble()->GetAlgSys()->Solve();
 
       // store the stuff -> no rhs but special handling of element results
-      StorePDESolution(adjoint, *excite, f, -1, true, false, true, NO_DERIVTYPE, "adjoint");
+      int local_index = f->GetCurrentRelativePosition();
+      assert(!(f->GetType() == Function::LOCAL_STRESS && local_index == 0));
+      StorePDESolution(adjoint, *excite, f,local_index, true, false, true, NO_DERIVTYPE, "adjoint");
 
       // restore system state
       RestoreStateSystem(state);
@@ -3849,6 +3843,45 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       forward.Get(excite)->Write(context->pde);
       break;
     }
+
+    case Function::LOCAL_STRESS:
+    {
+      // similar to above but we need to solve the adjoints for the virtual local constraints
+      SystemState state = PrepareAdjointSystem(*excite, f); // ConstructAdjointRHS() is ignored here
+
+      Vector<double> rhs; // own OLAS vector
+      Vector<double>& t = forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR);
+      rhs.Resize(t.GetSize()); // let's hope that the adjoint system has same size (BC-handling)
+
+      shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
+
+      StressConstraint<double> sc(excite, f, this, &forward);
+
+      assert(f->IsLocal() && f->GetCurrentRelativePosition() == -1); // we are *NOT* in a virtual function loop
+      StdVector<Function::Local::Identifier>& vem = f->GetLocal()->virtual_elem_map;
+
+      for(unsigned int i = 0; i < vem.GetSize(); i++)
+      {
+        Function::Local::Identifier& id = vem[i];
+
+        DesignElement* de = dynamic_cast<DesignElement*>(id.element);
+        assert(de != NULL);
+        rhs.Init(0); // reset from last run
+        sc.CalcElemAdjointRHS(de, 1.0, rhs);
+
+        // we cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
+        fe->GetSystem()->InitRHS(fe->GetFctId());
+        fe->GetSystem()->SetFncRHS(rhs, fe->GetFctId());
+        context->pde->GetAssemble()->GetAlgSys()->Solve();
+
+        // store the stuff -> no rhs but special handling of element results
+        StorePDESolution(adjoint, *excite, f, i, true, false, true, NO_DERIVTYPE, "adjoint");
+      }
+      // restore system state
+      RestoreStateSystem(state);
+      break;
+    }
+
     case Function::BUCKLING_LOAD_FACTOR:
     {
       SystemState state = PrepareAdjointSystem(*excite, f);
@@ -3946,8 +3979,9 @@ ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& exc
   fe->GetInHomDirichletBCs().Resize(0);
   fe->ApplyBC();
 
-  // set the adjoint rhs
-  ConstructAdjointRHS(excite, f);
+  // set the adjoint rhs, ignored for LOCAL_STRESS
+  if(f->GetType() != Function::LOCAL_STRESS) // done explicitly in ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
+    ConstructAdjointRHS(excite, f);
 
   assert(context->GetDriver()->GetAnalysisId().adjoint == false);
   context->GetDriver()->GetAnalysisId().adjoint = true;
@@ -4030,8 +4064,7 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
       break;
     }
 
-    case Function::STRESS:
-    case Function::STRESS_DENSITY:
+    case Function::GLOBAL_STRESS:
     {
       StressConstraint<double> sc(&excite, f, this, &forward);
       sc.CalcAdjointRHS(rhs);
@@ -4135,8 +4168,8 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       break;
     }
 
-    case Function::STRESS:
-    case Function::STRESS_DENSITY:
+    case Function::GLOBAL_STRESS:
+    case Function::LOCAL_STRESS:
     {
       StressConstraint<Complex> sc(&excite, f, this, &forward);
       sc.CalcAdjointRHS(rhs);

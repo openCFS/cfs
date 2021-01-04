@@ -567,7 +567,7 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
     if(grtype == ALL || (grtype == LINEAR && g->IsLinear()) || (grtype == NONLINEAR && !g->IsLinear()))
     {
       int tmp = EvalGradConstraint(optimization->constraints.view->Get(c), start, cfs_scale, normalize, values, false); // no direct call
-      LOG_DBG3(optimizer) << "EvalGradConstraint: co=" << c << " scaled val=" << values.ToString(true);
+      LOG_DBG3(optimizer) << "EGCs: g=" << g->ToString() << " co=" << c << " scaled val=" << values.ToString(true);
       start += tmp;
     }
   }
@@ -590,7 +590,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
     eval_grad_const_timer_->Start();
   }
   // always initialize the window!!
-  int nnz(0);
+  int nnz = 0;
   values.window.Set(start, nnz);
 
   LOG_DBG(optimizer) << "EGC g=" << g->ToString() << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();

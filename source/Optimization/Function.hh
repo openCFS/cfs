@@ -105,8 +105,7 @@ class Function
       GLOBAL_CURVATURE,
       GLOBAL_DESIGN,
       PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
-      STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
-      STRESS_DENSITY,            /*!< global stress divided by volume */
+      GLOBAL_STRESS,             /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
       BUCKLING_LOAD_FACTOR,      /*!< with the attribute ev for the number of the load factor/ eigenvalue */
 
@@ -121,6 +120,7 @@ class Function
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
       ORTHOTROPY,                /*!< just some 0 constraints */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
+      LOCAL_STRESS,              /*!< local constraint <sigma, M sigma> with stress transfer function */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
@@ -192,7 +192,7 @@ class Function
     /** The evaluated function value. -1.0 if not set. */
     virtual double GetValue() const { return value_; }
 
-    /** overloaded in SlopeCondition */
+    /** overloaded in LocalCondition */
     virtual void SetValue(double val) { value_ = val; }
 
     /** Access of the design variable in local constraints:
@@ -250,6 +250,15 @@ class Function
     /** to be overwritten in Condition */
     virtual bool HasDenseJacobian() const { return true; }
 
+    /** Is this a local function type */
+    static bool IsLocal(Type t);
+
+    bool IsLocal() const { return IsLocal(this->type_); }
+
+    /** The relative position within this local constraints
+     * @return -1 if it does not apply or >= 0 for local functions */
+    virtual int GetCurrentRelativePosition() const { return -1; }
+
     /** Gives the sparsity pattern of the Jacobian. It gives the sorted, 0-based indices which have
      * values. For the dens case this is 0, 1, ... m.
      * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
@@ -289,8 +298,6 @@ class Function
     /** is the local function intended for double bounded when the optimizer (snopt) supports it. Use with Local::IsReverse() */
     static bool CouldDoubleBounded(Type type);
 
-    /** Is this a local function type */
-    static bool IsLocal(Type t);
 
     /** Is this function sensitive for density filtering?
      * This implies the gradient with post differentiation.
@@ -476,12 +483,12 @@ class Function
          * @param get_parameter == true works for ParamMat parameters. Works only for special neighborhoods! */
         double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool get_parameter = true) const;
 
-        /** Service function. Calculates the actual objective, based on function->type.
+        /** Calculates the local function based on function->type.
+         * In the *_STRESS case uses GetValue(), Calls SetValue().
          * Is very fast for grad_glob and power == 1
          * @param grad_glob only active when globalized. If grad_glob is active EvalFunction is called as in EvalGrad in order to calculated
-         * the gradient.
-         * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
-        double EvalFunction(const Local* local, bool grad_glob = false, double von_mises_stresss = -1.0) const;
+         * the gradient. */
+        double EvalFunction(const Local* local, bool grad_glob = false);
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * Note, that the von Mises Stress gradient is NOT calculated here but in SIMP::CalcVonMisesStressGradient()!
@@ -632,8 +639,8 @@ class Function
       /** We need the design space to access the values */
       DesignSpace* space;
 
-      /** Store the local values. */
-      Vector<double> values;
+      /** Store the local values. At least used for LOCAL_STRESS. See LocalCondition::Get/SetValue() */
+      StdVector<double> local_values;
 
     private:
       /** Service method for the constructor

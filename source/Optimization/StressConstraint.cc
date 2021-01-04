@@ -42,7 +42,7 @@ template<typename T>
 StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateContainer* forward) :
     elemList(domain->GetGrid())
 {
-  assert(f->GetType() == Function::STRESS || f->GetType() == Function::STRESS_DENSITY);
+  assert(f->GetType() == f->GLOBAL_STRESS || f->GetType() == f->LOCAL_STRESS);
 
   this->excite = excite;
   this->f = f;
@@ -68,12 +68,16 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
 }
 
 template<typename T>
-void StressConstraint<T>::CalcStresses(Vector<double>& out)
+Vector<double> StressConstraint<T>::CalcStresses()
 {
   // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
-  int res_idx = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite->label);
+  int res_idx = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::QUADRATIC_VM_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite->label);
+
+  Vector<double> out;
 
   CalcStresses(STRESS, res_idx, out);
+
+  return out;
 }
 
 template<typename T>
@@ -112,6 +116,7 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
       DesignElement* de = f->elements[e];
       ea.SetElem(de->elem);
       SetupElement(&ea, de, app.first, mode);
+      double elem_vol = ea.esm->CalcVolume();
 
 
       // we integrate over the element by averages summation and then multiplying with the volume
@@ -125,8 +130,8 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
         T inner = stress1.Inner(M_stress2);
 
         // do the (de)normalization stuff outside of the inner product
-        // the element volume is actually only required if we no NOT want the stress density
-        double factor = fm * ea.weights[ip] * ea.lpm.jacDet / (f->GetType() == Function::STRESS ? ea.esm->CalcVolume() : 1.0); // fuck 1-based!
+        // ea.lpm.jacDet is elem vol and ref vol, by canceling elem_vol we have a field property
+        double factor = fm * ea.weights[ip] * ea.lpm.jacDet / elem_vol;
 
         out[e] += factor * Real(inner);
 
@@ -146,6 +151,67 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
   }
 }
 
+
+template<typename T>
+double StressConstraint<T>::CalcElementStress(Mode mode, int res_idx, DesignElement* de)
+{
+  assert(mode == STRESS || mode == GRAD_STRESS);
+
+  Vector<T> M_stress2; // temporary
+
+  double res = 0.0;
+
+  double fm = mode == STRESS ? 1.0 : 2.0;
+
+  StdVector<pair<App::Type, App::Type> > apps = GetApplications();
+
+  for(unsigned int a = 0; a < apps.GetSize(); a++)
+  {
+    pair<App::Type, App::Type>& app = apps[a];
+
+    all_u1_elem = &(forward->Get(excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
+    all_u2_elem = &(forward->Get(excite)->elem[app.second == App::MECH ? App::MECH : App::ELEC]); // for the adjoint rhs we need no app2 solution
+
+
+    ElementAccess ea(em->context->GetBiLinFormContext(f->elements[0]->elem->regionId, app.first, app.second, true));
+
+    ea.SetElem(de->elem);
+    SetupElement(&ea, de, app.first, mode);
+    double elem_vol = ea.esm->CalcVolume(); // see ::CalcStresses()
+
+
+    // we integrate over the element by averages summation and then multiplying with the volume
+    for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
+    {
+      EvalIP(mode, &ea, ip);
+
+      // normal von Mises stress element results < stress, M*stress>
+      M_stress2 = M * stress2;
+
+      T inner = stress1.Inner(M_stress2);
+
+      // do the (de)normalization stuff outside of the inner product
+      double factor = fm * ea.weights[ip] * ea.lpm.jacDet / elem_vol;
+
+      res += factor * Real(inner);
+
+      LOG_DBG2(sc) << "CS de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << ea.weights[ip] << " f=" << factor
+          << " stress1=" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << (factor * Real(inner));
+    }
+
+    // output von mises stress? Note, that this is excitation specific! Only for STRESS
+    if(res_idx != -1)
+    {
+      de->specialResult[res_idx] = res;
+      // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
+    }
+    LOG_DBG2(sc) << "CES de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << ea.esm->CalcVolume() << " sMs=" << res << " trans=" <<  tf.Transform(de, DesignElement::SMART);
+  }
+
+  return res;
+}
+
+
 template<typename T>
 void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 {
@@ -159,21 +225,38 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   // +1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=mech and app2=piezo
   // app2 determines the pde. The elastic case is simply App::MECH, App::MECH
 
-  bool harmonic = em->context->IsComplex();
+  const Vector<double> stress = CalcStresses();
+  Vector<double> alpha = CalcGlobalizationFactor(stress, true);
 
-  // evaluate in the piezo case 4 times. Better nice code!
-  Vector<double> alpha;
-  CalcGlobalizationFactor(alpha);
+  SingleVector* sv = em->forward.Get(excite)->GetVector(StateSolution::RAW_VECTOR);
+  assert(out.GetSize() == 0); // if not, check the logic
+  assert(sv->GetSize() > 0);
+  out.Resize(sv->GetSize());
+  out.Init(0);
+
+  // It might be that stress sensitive region is not within the design domain itself
+  for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
+  {
+    DesignElement* de = f->elements[e];
+    CalcElemAdjointRHS(de, alpha[e], out);
+  }
+}
+
+
+template<typename T>
+void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Vector<T>& out_set)
+{
+  bool harmonic = em->context->IsComplex();
 
   Matrix<T> stress_transp(1, domain->GetGrid()->GetDim() == 2 ? 3 : 6);
   Matrix<T> rhs_transp;
 
   // any bilinear shall do, hence take any region
-  RegionIdType reg = f->region != ALL_REGIONS ? f->region : f->elements[0]->elem->regionId;
+  RegionIdType reg = f->region != ALL_REGIONS ? f->region : de->elem->regionId;
   ElementAccess ea(em->context->pde->GetAssemble()->GetBiLinForm(em->context->mat->stiff.integrator, reg));
 
-  out = em->GetForwardStates().Get(excite,NULL)->template GetVectorRef<T>(StateSolution::RAW_VECTOR);
-  assert(out.GetSize() > 0);
+  // out needs to be set already!
+  assert(out_set.GetSize() > 0);
 
   StdVector<pair<App::Type, App::Type> > apps = GetApplications();
 
@@ -184,76 +267,80 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
     all_u1_elem = &(forward->Get(*excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
-    // It might be that stress sensitive region is not within the design domain itself
-    for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
+    ea.SetElem(de->elem);
+    LOG_DBG3(sc) << "CEAR " << ea.ToString(2);
+    SetupElement(&ea, de, app.first, ADJOINT_RHS);
+    double elem_vol = ea.esm->CalcVolume(); // see ::CalcStresses()
+
+    for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
     {
-      DesignElement* de = f->elements[e];
-      ea.SetElem(de->elem);
-      LOG_DBG3(sc) << "CAR " << ea.ToString(2);
-      SetupElement(&ea, de, app.first, ADJOINT_RHS);
+      // Calculate for each integration point the LocPointMapped
+      EvalIP(ADJOINT_RHS, &ea, ip);
 
-      for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
+      assert(stress1.GetSize() == stress_transp.GetNumCols());
+      // we have to transpose the stress (3*1 or 6*1) manually and do the conjugate stuff
+      for(unsigned int si = 0; si < stress1.GetSize(); si++)
+        stress_transp[0][si] = conj(stress1[si]); // nothing changes in real case
+
+      // finally :)
+      rhs_transp = stress_transp * M_E2_B2;
+
+      // include all the factors
+
+      double factor = (harmonic ? -1.0 : -2.0) * ea.weights[ip] * ea.lpm.jacDet / elem_vol;
+
+      LOG_DBG3(sc) << "CEAR ip=" << ip << " w=" << ea.weights[ip] << " jD=" << ea.lpm.jacDet << " vol=" << ea.esm->CalcVolume() << " -> " << factor;
+
+      // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
+      rhs_transp *= factor * alpha;
+
+      LOG_DBG3(sc) << "CEAR " << ea.ToString(3) << " alpha=" << alpha << " factor=" << factor;
+      LOG_DBG3(sc) << "CEAR idx=" << ea.elem_eqn_idx.ToString() << " rhs=" << rhs_transp.ToString(-1, false);
+
+      for(unsigned int n = 0; n < ea.elem_eqn_idx.GetSize(); n++)
       {
-        // Calculate for each integration point the LocPointMapped
-        EvalIP(ADJOINT_RHS, &ea, ip);
-
-        assert(stress1.GetSize() == stress_transp.GetNumCols());
-        // we have to transpose the stress (3*1 or 6*1) manually and do the conjugate stuff
-        for(unsigned int si = 0; si < stress1.GetSize(); si++)
-          stress_transp[0][si] = conj(stress1[si]); // nothing changes in real case
-
-        // finally :)
-        rhs_transp = stress_transp * M_E2_B2;
-
-        // include all the factors
-        double factor = (harmonic ? -1.0 : -2.0) * ea.weights[ip] * ea.lpm.jacDet  / (f->GetType() == Function::STRESS ? ea.esm->CalcVolume() : 1.0);
-
-        // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
-        rhs_transp *= factor * alpha[e];
-
-        LOG_DBG3(sc) << "CAR " << ea.ToString(3);
-
-        for(unsigned int n = 0; n < ea.elem_eqn_idx.GetSize(); n++)
+        // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
+        if(ea.elem_eqn_idx[n] >= 0)
         {
-          // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
-          if(ea.elem_eqn_idx[n] >= 0)
-          {
-            out[ea.elem_eqn_idx[n]] += rhs_transp[0][n];
-            LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor << " n=" << n << " val=" << rhs_transp[0][n] << " -> " << out[ea.elem_eqn_idx[n]];
-          }
+          out_set[ea.elem_eqn_idx[n]] += rhs_transp[0][n];
+          // LOG_DBG3(sc) << "CEAR de=" << de->ToString() << " alpha=" << alpha << " factor=" << factor << " n=" << n << " val=" << rhs_transp[0][n] << " -> " << out_set[ea.elem_eqn_idx[n]];
         }
-      } // ip
-    } // elements
+      }
+    } // ip
   } // apps
 }
 
+
+
 template<typename T>
-void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
+Vector<double> StressConstraint<T>::CalcGlobalizationFactor(const Vector<double>& stress, bool gradient)
 {
-  const Function::Local* local = f->GetLocal();
+  Function::Local* local = f->GetLocal();
   assert(local != NULL);
 
-  Vector<double> stress;
-  CalcStresses(stress);
-  out.Resize(stress.GetSize());
+  Vector<double> out(stress.GetSize());
 
   // this is a complicated way to calc element wise power*max(0,stress)^(power-1) but that way
   // we are open for further globalization functions and it is not that expensive
 
-  const StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
+  StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
   assert(vem.GetSize() == stress.GetSize());
+
+  double org_value = f->GetValue(); // we use it for the local evaluation but don't want to spoil info.xml and plot.dat output
 
   for(unsigned int i = 0; i < vem.GetSize(); i++)
   {
-    const Function::Local::Identifier& id = vem[i];
+    Function::Local::Identifier& id = vem[i];
     assert(id.neighbor.GetSize() == 0);
-    double gfv = id.EvalFunction(local, true, stress[i]);
-    //int idx = design->Find(id.element);
-    // unsigned int idx = id.element->GetIndex();
+    f->SetValue(stress[i]); // in case of objective LocalCondition::GetValue() is not available
+    double gfv = id.EvalFunction(local, gradient);
     out[i] = gfv;
   }
+  f->SetValue(org_value);
 
   LOG_DBG2(sc) << "CGF ex=" << excite->index << " alpha=" << out.ToString();
+
+  return out;
 }
 
 template<typename T>

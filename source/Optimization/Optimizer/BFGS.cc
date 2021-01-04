@@ -60,7 +60,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
    * nsmax determines how many points we store*/
 
   Matrix<double> ystore(n,nsmax+1);
-  Matrix<double>sstore=ystore;
+  Matrix<double> sstore=ystore;
   int ns= -1; //TODO: I have not understood what this is? This value is taken from TimKelly code
 
   // Start of iteration

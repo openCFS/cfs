@@ -185,7 +185,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
 
 
   // shall not be necessary when we register all pdes!
-  //if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != App::MECH)
+  //if((type_ == STRESS) && stressType_ != App::MECH)
   // {
     // it might be that we do piezo stresses on a pure elastic optimization problem.
     // Then register the App::ELEC PDE such that it is stored for the stress calculation by StressConstraint()
@@ -492,7 +492,8 @@ void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Co
 void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
 {
   // no multiple excitations, no additional stress constraints
-  if(!me->IsEnabled()) return;
+  if(!me->IsEnabled())
+    return;
 
   // do we need to blow up the list? This is the case when there is stress constraint with
   // the default excitation attribute all which is Function::excite_ = -1.
@@ -500,14 +501,19 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
   int blow_up = -1;
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
-    if(list[i]->GetType() == STRESS || list[i]->GetType() == STRESS_DENSITY)
+    switch(list[i]->GetType())
     {
+    case GLOBAL_STRESS:
+    case LOCAL_STRESS:
       assert(!Optimization::context->DoMultiSequence());
       if(list[i]->DoEvaluateAlways(1)) // sequence 1
         blow_up = i;
       else
         if(blow_up != -1)
           throw Exception("You cannot mix stress constraints with excitation and with default 'all' excitation");
+      break;
+    default:
+      break;
     }
   }
 
@@ -748,7 +754,7 @@ string Condition::ToString() const
   // e.g. stresses are extended for every excitation
   if(GetExcitation() != NULL && domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
   {
-    if(type_ == STRESS || type_ == STRESS_DENSITY)
+    if(type_ == GLOBAL_STRESS || type_ == LOCAL_STRESS)
       os << "_" << GetExcitation()->GetFullLabel(); // change to excite label
     else if(domain->GetOptimization()->GetMultipleExcitation()->DoMetaExcitation(GetExcitation()->sequence))
       os << "_" << GetExcitation()->GetMetaLabel();  }
@@ -849,7 +855,7 @@ void Condition::ToInfo(PtrParamNode in)
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());
 
-  if(type_ == STRESS || type_ == STRESS_DENSITY)
+  if(type_ == GLOBAL_STRESS || type_ == LOCAL_STRESS)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(type_ == EIGENFREQUENCY && GetExcitation()->DoBloch())
@@ -893,7 +899,6 @@ bool Condition::IsForRegion(RegionIdType regionId)
 
 LocalCondition::LocalCondition(PtrParamNode pn) : Condition(pn)
 {
-  current_view_index_ = -1;
 }
 
 
@@ -907,16 +912,28 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
 
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
+  if(IsAdjointBased())
+  {
+    assert(type_ == LOCAL_STRESS); // the only known case up to now
+    assert(!jac_sparsity_.empty());
+    return jac_sparsity_.GetSize();
+  }
+
   if(!this->ForDensityFiltering())
-    return local->virtual_elem_map[0].neighbor.GetSize() + 1; // why the fuck +1
+    return local->virtual_elem_map[0].neighbor.GetSize() + 1; // the element itself is not a neighbor of itself, therefore +1
   else
     return ((Condition*) this)->GetSparsityPattern().GetSize();
 }
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
-  // for debug purposes you can enable the dense pattern by commenting out the two lines
   assert(IsLocal());
+
+  // up to now only LOCAL_STRESS has a full gradient
+  assert(!IsStateDependent() || type_ == LOCAL_STRESS);
+  if(IsStateDependent())
+    return Function::GetSparsityPattern();
+
 
   Function::Local::Identifier& id = GetCurrentVirtualContext();
 
@@ -1082,44 +1099,45 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
   }
 }
 
-double LocalCondition::CalcMeanValue() const
+double LocalCondition::CalcMeanAbsValue() const
 {
+  assert(local->local_values.GetSize() > 0);
+
   double sum = 0.0;
-  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
-  {
-    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
-    sum += v;
-  }
-  double res = local->virtual_elem_map.GetSize() > 0 ? sum / local->virtual_elem_map.GetSize() : 0.0;
-  LOG_DBG(conditions) << "LC:CMV: " << ToString() << " sum=" << sum << " c=" << local->virtual_elem_map.GetSize() << " -> " << res;
-  return res;
+
+  // we cannot use GetValue() as we have no current_local_index
+  for(double val : local->local_values)
+    sum += std::abs(val);
+
+  return sum / local->local_values.GetSize();
 }
 
-double LocalCondition::CalcMaxValue() const
+double LocalCondition::CalcMinMaxAbsValue() const
 {
-  double max = 0.0;
-  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
-  {
-    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
-    max = std::max(max, v);
-  }
-
-  return max;
+  assert(local->virtual_elem_map.GetSize() == local->local_values.GetSize());
+  double minmax = 0.0;
+  for(double val : local->local_values)
+    if(bound_ == LOWER_BOUND)
+       minmax = std::min(minmax, std::abs(val));
+    else
+      minmax = std::max(minmax, std::abs(val));
+  return minmax;
 }
 
 
 int LocalCondition::CountInfeasibles() const
 {
+  assert(local->virtual_elem_map.GetSize() == local->local_values.GetSize());
+
   int cnt = 0;
-  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  for(unsigned int i = 0; i < local->local_values.GetSize(); i++)
   {
-    double v = local->virtual_elem_map[i].EvalFunction(local);
+    double v = local->local_values[i];
     double d = v - GetBoundValue();
     LOG_DBG2(conditions) << "LC:CI check f=" << ToString() << " i=" << i << " b=" << Condition::bound.ToString(bound_) << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
 
     // upper_bound: 0 < 3 -> -3 < 0 (ok)   4 < 3 -> 1 < 0 (false)
     // lower_bound: 3 > 2 ->  1 > 0 (ok)   3 > 4 -> -1 > 0 (false)
-
 
     if((bound_ == Condition::EQUAL && std::abs(d) > 1e-5) ||
        (bound_ == Condition::LOWER_BOUND && d <= 1e-6) ||
@@ -1136,7 +1154,7 @@ int LocalCondition::CountInfeasibles() const
 double LocalCondition::GetValue() const
 {
   if(IsLocal())
-    return local->values[current_view_index_ - virtual_base_index_];
+    return local->local_values[current_view_index_ - virtual_base_index_];
   else
     return value_;
 }
@@ -1145,7 +1163,7 @@ void LocalCondition::SetValue(double val)
 {
   if(IsLocal())
   {
-    local->values[current_view_index_ - virtual_base_index_] = val;
+    local->local_values[current_view_index_ - virtual_base_index_] = val;
     value_ = -1.0; // invalidated
   }
   else

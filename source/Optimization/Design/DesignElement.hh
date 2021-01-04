@@ -143,7 +143,7 @@ public:
     MAX_MOLE, /* the max mole value */
     MAX_OSCILLATION, /* the max value per element */
     MAX_JUMP, /* weak greyness constraint formulation */
-    PENALIZED_STRESS, /* stess with own transfer function */
+    QUADRATIC_VM_STRESS, /* element wise <Bu, M Bu> with transfer function for stress. Note that the stess constraints are evaluated at the integration points an the cfs pde results at the center only */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     HEAT_NODAL_TRACK_VAL, /* for each node: (stateSol - trackVal)^2 */
     TEMP_AT_INTERFACE, /* temperature at interface between solid and void */
