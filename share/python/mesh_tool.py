@@ -888,7 +888,7 @@ def set_region(x,y,nx,ny,type,patch, inclusion=None, inclusion_size=0):
   elif inclusion == 'rect' and x >= nx/2 * (1 - inclusion_size) and x < nx/2 * (1 + inclusion_size) \
       and y >= ny/2 * (1 - inclusion_size) and y < ny/2 * (1 + inclusion_size):
     region = 'inner'
-  elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size):
+  elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size:
     region = 'inner'
   elif patch:
     assert(patch == "3x3")
