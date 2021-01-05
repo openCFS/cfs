@@ -891,7 +891,7 @@ def set_region(x,y,nx,ny,type,patch, inclusion=None, inclusion_size=0):
   elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size:
     region = 'inner'
   elif patch:
-    assert(patch == "3x3")
+    assert patch == "3x3"
     region = 'reg_' + str((y % ny/3)+1) + '_' + str((x % nx/3)+1)
   else:
     region = 'mech'
