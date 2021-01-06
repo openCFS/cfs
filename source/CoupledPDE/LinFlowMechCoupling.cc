@@ -28,7 +28,7 @@
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
-
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 namespace CoupledField {
 
@@ -165,7 +165,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
         this->ptGrid_->MapEdges();
         this->ptGrid_->MapFaces();
         RegionIdType volMasterId = nitscheIf->GetMasterVolRegion();
-        PtrCoefFct matData, tmpData;
+        RegionIdType volSlaveId = nitscheIf->GetSlaveVolRegion();
 
         //we set here the penalty factor
         Double beta = ncList[i]->Get("nitscheFactor")->As<std::double_t>();
@@ -185,39 +185,62 @@ void LinFlowMechCoupling::DefineIntegrators() {
           tensorType = PLANE_STRESS;
 
         //get correct scaling of penalty term
-        Double matVal = 0.0;
         StdVector<Vector<Double> > points(1);
         Vector<Double> p1(dim_);
         p1.Init();
         points[0]= p1;
         bool isMaterialComplex_( false );
 
-        // extract stiffness tensor from mech pde
+        // extract stiffness tensor from mech pde for stress tensor
         std::map<RegionIdType, BaseMaterial*>  mechMat;
         mechMat = pde2_->GetMaterialData();
 
-        // To compute the penalty factor we need mechanics material
         // Here the mechanic PDE must be considered as MASTER
         if ( isMaterialComplex_ ) {
           coefMech = mechMat[volMasterId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
           StdVector< Matrix<Complex> > mat;
           coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
-          for (UInt j = 0, numRows = mat[0].GetNumRows(); j < numRows; ++j) {
-            matVal += mat[0][j][j].real();
-          }
-          matVal /= (Double) mat[0].GetNumRows();
         }
         else {
           coefMech = mechMat[volMasterId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
           StdVector< Matrix<Double> > mat;
           coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
-          for (UInt j = 0, numRows = mat[0].GetNumRows(); j < numRows; ++j) {
-            matVal += mat[0][j][j];
-          }
-          matVal /= (Double) mat[0].GetNumRows();
         }
-        //scale the penalty value
-        beta *= matVal;
+
+        //get correct scaling of penalty term
+        Double Beta = 0.0;
+
+        // extract material from LinFlow pde
+        shared_ptr<CoefFunction > shearViscosity;
+        shared_ptr<CoefFunction > bulkViscosity;
+        shearViscosity = flowMaterials[volSlaveId]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL);
+        bulkViscosity = flowMaterials[volSlaveId]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
+        PtrCoefFct density_f = flowMaterials[volSlaveId]->GetScalCoefFnc(DENSITY, Global::REAL);
+        PtrCoefFct density_s = mechMat[volMasterId]->GetScalCoefFnc(DENSITY, Global::REAL);
+
+        PtrCoefFct shearPlusBulkCoeff = CoefFunction::Generate(mp,Global::REAL,CoefXprBinOp(mp,shearViscosity,bulkViscosity, CoefXpr::OP_ADD)); //sum of the viscosities
+        LocPointMapped map;
+        Double shearPlusBulk = 0;
+        shearPlusBulkCoeff->GetScalar(shearPlusBulk,map);
+        if (shearPlusBulk == 0) {    //make sure viscosities are not zero
+          shearPlusBulkCoeff = CoefFunction::Generate( mp, Global::REAL, "1");
+        }
+
+        // densratiosqr = sqrt(density_f/density_s)
+        PtrCoefFct densratiosqr = CoefFunction::Generate(mp, Global::REAL,
+            CoefXprUnaryOp(mp,
+                CoefXprBinOp(mp,density_f ,density_s ,CoefXpr::OP_DIV)
+                ,CoefXpr::OP_SQRT));
+
+        //  betaCoeff = densratiosqr*(\lambda+\mu)
+        PtrCoefFct betaCoeff = CoefFunction::Generate(mp,Global::REAL,CoefXprBinOp(mp,shearPlusBulkCoeff,densratiosqr, CoefXpr::OP_MULT));
+        betaCoeff->GetScalar(Beta,map);
+
+        // Create final Nitsche's factor
+        beta *= Beta;
+
+        PtrCoefFct coefOne = CoefFunction::Generate( mp, Global::REAL, "1");
+        PtrCoefFct coefMinusOne = CoefFunction::Generate( mp, Global::REAL, "-1.0");
         // Note:
         // Define the bilinear forms for the Nitsche coupling consists of six terms
         // The terms are divided into four categories:
@@ -227,9 +250,6 @@ void LinFlowMechCoupling::DefineIntegrators() {
         // 4) The Penalty integrals coupling LinFlow velocity with mechanical displacement
         // assume phi is displacement test function and u is displacement
         // psi is velocity test function and v LinFlow velocity
-
-        PtrCoefFct coefOne = CoefFunction::Generate( mp, Global::REAL, "1");
-        PtrCoefFct coefMinusOne = CoefFunction::Generate( mp, Global::REAL, "-1.0");
 
         BiLinearForm* int_PhiM_duM = NULL;   // Term 1: u'M_duM : phi * sigma[u].n
         BiLinearForm* penalty_PhiM_uM = NULL;// term 2  u'M_uM : beta*phi*du/dt
