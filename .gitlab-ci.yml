@@ -192,11 +192,8 @@ runner-debug:
     # check gcc version via grep
     - gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
     # configure
-    - echo "git;checkout;$CI_COMMIT_SHA"
     - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_GIT_UPDATE_CUSTOM="git;checkout;$CI_COMMIT_SHA" -DBUILD_TESTING=ON -DBUILD_CPACK_BINARY=ON ${CFS_CONFIG_OPTIONS} ..
-    # go back one revision and then update by ctest
-    - git checkout HEAD~1
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DBUILD_CPACK_BINARY=ON ${CFS_CONFIG_OPTIONS} ..
 
 .max_rules: &max_rules
   only:
@@ -667,7 +664,6 @@ python:stable:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
