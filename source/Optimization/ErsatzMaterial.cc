@@ -3449,8 +3449,6 @@ double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative)
 
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
-      assert(false); // set index such that EvalFunction finds ints local_values
-
       Function::Local::Identifier& id = vem[i];
       assert(local->local_values.GetSize() == vem.GetSize());
 

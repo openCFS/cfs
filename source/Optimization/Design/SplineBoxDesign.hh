@@ -18,37 +18,13 @@ public:
 
   virtual ~SplineBoxDesign() { } ;
 
-  virtual void PostInit(int objectives, int constraints);
+  void PostInit(int objectives, int constraints) override;
 
   /** conditionally calls UpdateCoordinates()
    *  @see AuxDesign::ReadDesignFromExtern() */
-  virtual int ReadDesignFromExtern(const double* space_in);
+  int ReadDesignFromExtern(const double* space_in) override;
 
-  /** overwrites DesignSpace::CompareDesign() */
-  virtual bool CompareDesign(const double* space_in);
-
-  /** writes design to the vector, beginning with shape variables (shape_param_) and then aux_design_ */
-  virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
-
-  /** write gradient out to the vector, appending with shape gradient
-   * Sparse and dense! */
-  virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
-
-  /** same as in DesignSpace, setting elements to zero, but also aux elements */
-  virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
-
-  virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
-
-  virtual unsigned int GetNumberOfVariables() const;
-
-  /** In case DesignSpace::FindDesign() searches for SPLINE_BOX and CP.
-   * @return either DesignSpace::FindDesign() or the index within param_ */
-  virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
-
-  /** goes on opt_shape_param_ only! */
-  virtual BaseDesignElement* GetDesignElement(unsigned int idx);
-
-  virtual void ToInfo(ErsatzMaterial* em);
+  void ToInfo(ErsatzMaterial* em) override;
 
   /** Set or move one control point */
   void SetControlPoint(int idx, Point coords, bool add = false);
@@ -84,12 +60,12 @@ public:
   /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
    * @param set the set from the density.xml
    * @param lower_violation the maximal violation */
-  void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation);
+  void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation) override;
 
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
    * @param locality the local type */
-  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
+  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override;
 
   /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
   void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
@@ -106,13 +82,13 @@ public:
 private:
 
   /** Setup distortion variables from xml file */
-  void SetupDesign(PtrParamNode pn);
+  void SetupDesign(PtrParamNode pn) override;
 
   /** Extract optimization variables from distortion */
   void SetupOptParam();
 
   /** some sanity checks, e.g. volume shall not be linear */
-  void CheckPlausibility();
+  void CheckPlausibility() override;
 
   /** bounding_box is assumed to be rectangular */
   StdVector<Vector<Double>> GetPointsForBasis();
@@ -137,12 +113,12 @@ private:
 
   /** Map (distorted) structure to rho (DesignSpace::data). Sets DesignSpace::data.
    *  Shall be called by ReadDesignFromExtern(). */
-  void MapFeatureToDensity();
+  void MapFeatureToDensity() override;
 
   /** Takes the density gradients and sums it up on the shape variables using map_.
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
-  void MapFeatureGradient(const Function* f);
+  void MapFeatureGradient(const Function* f) override;
 
   /** assumes rectangular grid */
   void ReadFeature(string file_in, string key = "last");
@@ -230,13 +206,6 @@ private:
 
   /** factor to scale the feature */
   double feature_scale_;
-
-
-  /** reference to optimization as we need it in MapFeatureGradient() to get the functions */
-  Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
-
-  /** this is the design_id for the last MapFeatureToDensity() run */
-  int mapped_design_ = -1;
 
   Matrix<double> injMatrix_;
 

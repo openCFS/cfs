@@ -168,11 +168,18 @@ public:
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
      * make sure, that ALL_DESIGNS is the last with the highest number!!! */
-    typedef enum { UNITY = -11, NO_DERIVATIVE = -10, NO_MULTIMATERIAL = -9,
-                   SHAPE_MAP = -8, // NODE or PROFILE
-                   MECH_TRACE = -7, // MECH_11, MECH_22, MECH_33
-                   MECH_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
-                   POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
+    typedef enum { UNITY = -20, // unused stuff from ShapeOpt
+                   // wrapper design types representig a class of design types
+                   SHAPE_MAP, // NODE or PROFILE
+                   SPAGHETTI, // NODE, PROFILE, NORMAL
+                   SPLINE_BOX, // e.g. CP
+                   MECH_TRACE, // MECH_11, MECH_22, MECH_33
+                   MECH_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL,
+                   // special types
+                   MULTIMATERIAL,NO_MULTIMATERIAL, INTERPOLATION,
+                   NO_DERIVATIVE = -3, DEFAULT = -2, NO_TYPE = -1,
+                   // real design types
+                   DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA = 12,
                    MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16,
                    MECH_22, MECH_23, MECH_24, MECH_25, MECH_26,
@@ -180,14 +187,14 @@ public:
                    MECH_44, MECH_45, MECH_46,
                    MECH_55, MECH_56,
                    MECH_66,
-                   SLACK = 34, ALPHA,
+                   RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                    ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, 
-                   MULTIMATERIAL,INTERPOLATION,
-                   NODE, PROFILE, // shape mapping 
-                   RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
-                   SPLINE_BOX, CP,
-                   ALL_DESIGNS } Type;
+                   SLACK, ALPHA,  // slack variables
+                   NODE, PROFILE, // shape mapping and spaghetti
+                   NORMAL,        // spaghetti height
+                   CP,            // spline box control point
+                   ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -337,7 +344,7 @@ public:
   ShapeDesignElement(unsigned int index);
 };
 
-/** for FeaturedDesign. Holds a shape parameter. E.g. node with dof=x ny+1 times with ny is number of elements */
+/** for FeaturedDesign. Holds a shape parameter. E.g. node in shape mapping with dof=x ny+1 times with ny is number of elements */
 class ShapeParamElement : public BaseDesignElement
 {
 public:
@@ -363,18 +370,11 @@ public:
   static Enum<Dof> dof;
 
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
-  Dof dof_;
-
-  /** The dof variable is set to -1.0.  */
-  StdVector<double> coord;
-
-  /** the coord in terms of index within the regular space. Again -1 for the dof setting.
-   * Note this is for node and we have one node more than elements in one direction.*/
-  StdVector<int> idx;
+  Dof dof_ = NOT_SET;
 
 private:
   /** see BaseDesignElement::GetOptIndex() */
-  unsigned int opt_index_;
+  unsigned int opt_index_ = std::numeric_limits<unsigned int>::max();
 };
 
 
@@ -401,15 +401,9 @@ public:
   virtual ~DesignElement();
 
    /** We might need the transfer functions! */
-  static void SetDesignSpace(DesignSpace* space)
-  {
-    space_ = space;
-  }
+  static void SetDesignSpace(DesignSpace* space) { space_ = space; }
 
-  static DesignSpace* GetDesignSpace()
-  {
-    return space_;
-  }
+  static DesignSpace* GetDesignSpace() { return space_; }
 
   /** Default mapping from the PDE */
   static Type Default(const Context* ctxt);
@@ -495,7 +489,7 @@ public:
 
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
-    Elem* elem;
+    Elem* elem = NULL;
 
     /** In case we are a pseudo design element which is not within the design domain but from the
      *  non-design region of a function (e.g. stress) this index stores the index within the element storage.
@@ -523,20 +517,20 @@ public:
     static Enum<Detail> detail;
 
     /** This are our add-ons, not all are initialized! */
-    SIMPElement* simp;
+    SIMPElement* simp = NULL;
 
     /** The vicinity (structured grids, e.g. for Level-Set */
-    VicinityElement* vicinity;
+    VicinityElement* vicinity = NULL;
 
     /** The level-set element, will be destroyed by LevelSet */
-    LevelSetElement* lse_;
+    LevelSetElement* lse_ = NULL;
 
     /** The topgrad element, will be destroyed by TopGrad */
-    TopGradElement *tge;
+    TopGradElement *tge = NULL;
 
     /** if we are a multimaterial this is our material
      * and the index there is our own index*/
-    MultiMaterial* multimaterial;
+    MultiMaterial* multimaterial = NULL;
 
     /** calculates the location on request and stores it */
     const Point* GetLocation();

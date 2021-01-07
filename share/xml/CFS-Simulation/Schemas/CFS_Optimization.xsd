@@ -927,7 +927,7 @@
             <xsd:element name="python" minOccurs="0">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element minOccurs="0" maxOccurs="unbounded" name="option">
+                  <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="key" type="xsd:string" use="required"/>
                       <xsd:attribute name="value" type="xsd:string" use="required"/>
@@ -1402,6 +1402,107 @@
               </xsd:complexType>
             </xsd:element>
 
+            <!-- feature mapping via spaghetti -->
+            <xsd:element name="spaghetti" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <!-- when given use the python file for feature mapping wich requires a special structure.
+                      See spaghetti.py -->
+                  <xsd:element name="python" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
+                          <xsd:complexType>
+                            <xsd:attribute name="key" type="xsd:string" use="required"/>
+                            <xsd:attribute name="value" type="xsd:string" use="required"/>
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:sequence>
+                      <xsd:attribute name="file" type="xsd:string" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="noodle" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="node" minOccurs="4" maxOccurs="4">
+                          <xsd:annotation>
+                            <xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
+                          </xsd:annotation>
+                          <xsd:complexType>
+                            <xsd:attribute name="dof" use="required" type="DT_Axis" />
+                            <xsd:attribute name="tip" use="required" >
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="start" />
+                                  <xsd:enumeration value="end" />
+                                </xsd:restriction>
+                             </xsd:simpleType>
+                            </xsd:attribute>
+                            <!-- lower, upper and initial go together or fixed! We apply the mathparser to all of them! -->
+                            <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                            <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                            <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                            <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+                          </xsd:complexType>
+                        </xsd:element>
+                        <xsd:element name="profile" minOccurs="1" maxOccurs="1">
+                          <xsd:annotation>
+                            <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
+                          </xsd:annotation>
+                          <xsd:complexType>
+                            <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                            <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                            <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                            <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+                          </xsd:complexType>
+                        </xsd:element>
+                        <xsd:element name="normal" minOccurs="0" maxOccurs="unbounded">
+                          <xsd:annotation>
+                            <xsd:documentation>The normals are the heights between two segments. Use iff segments larger or equal 2</xsd:documentation>
+                          </xsd:annotation>
+                          <xsd:complexType>
+                            <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                            <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                            <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                            <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:sequence>
+                      <!-- corresponds to segments-1 normals -->
+                      <xsd:attribute name="segments" type="xsd:int" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+
+                <!-- how to hande model the 1D shape profile. -->
+                <xsd:attribute name="boundary" use="optional" default="poly">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!-- the polynomial is almost cos and requires transition -->
+                      <xsd:enumeration value="poly" />
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+
+                <!-- full transition zone for poly which is 2*h -->
+                <xsd:attribute name="transition" type="xsd:float" use="required" />
+
+                <!-- The radius for a spaghetti. Could be a variable in theory -->
+                <xsd:attribute name="radius" type="xsd:float" use="required" />
+
+                <!-- combination approach -->
+                <xsd:attribute name="combine" use="optional" default="max">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!-- non differentiable easy approach -->
+                      <xsd:enumeration value="max" />
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+
+
             <!-- parametric shape optimization mapped to density (spline box)-->
             <xsd:element name="splineBox" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -1825,6 +1926,7 @@
                 <!-- parametric shape is mapped to density -->
                 <xsd:enumeration value="shapeMap" />
                 <xsd:enumeration value="splineBox" />
+                <xsd:enumeration value="spaghetti" />
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>

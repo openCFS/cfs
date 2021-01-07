@@ -629,7 +629,8 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
 
   bool restart_timer = optimizer_timer_->IsRunning();
-  optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
+  if(restart_timer)
+    optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 

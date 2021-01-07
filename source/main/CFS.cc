@@ -106,15 +106,15 @@ void PrintWarning(CoupledField::Exception& ex ) {
     
 
 CFS::CFS(int argc, const char **argv) :
-    timer(new Timer())
+  timer(new Timer())
 {
+  timer->Start();
 
   resultHandler = NULL;
   materialHandler = NULL;
 
   // Set segfault to false
   Exception::segfault_ = false;
-
 
   // =========================================================================
   // HANDLE COMMAND LINE PARAMETERS
@@ -144,7 +144,6 @@ CFS::CFS(int argc, const char **argv) :
   infoNode = ParamNode::GenerateWriteNode("cfsInfo", progOpts->GetSimName() + ".info.xml", ParamNode::INSERT, true, true); // lazy write and add counters
   infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
   infoNode->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
-  timer->Start(); // ignore that this is not the real beginning
 
   // Register callback function with exception class for warning
   Exception::SetCallbackWarn(&PrintWarning);

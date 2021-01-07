@@ -36,3 +36,9 @@ def many_values(val1, val2):
   
 def print_dict(data):
   print('embeddedpython.py: dict=', data)
+  
+def get_vec(vec, emptyvec, n):
+  print('embeddedpython.py get_vec ->', vec,emptyvec, n)  
+  assert len(vec) == n
+   
+  

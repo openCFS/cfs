@@ -338,10 +338,6 @@ ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement()
 ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesignElement(type)
 {
   index_ = index;
-  opt_index_ = std::numeric_limits<unsigned int>::max();
-  dof_ = NOT_SET;
-  coord.Resize(domain->GetGrid()->GetDim(), -1.0);
-  idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
 
 std::string ShapeParamElement::ToString() const
@@ -373,7 +369,6 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->pseudoElementIndex_ = pseudoElementIndex;
   this->upper_ = 1.0;
   this->lower_ = 1.0;
-  this->multimaterial = NULL;
   this->specialResult.Resize(66, 0.0);
   this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
@@ -863,7 +858,9 @@ void DesignElement::SetEnums()
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
   type.Add(NO_DERIVATIVE, "no_derivative");
   type.Add(SHAPE_MAP, "shape_map");
-  type.Add(MECH_TRACE, "mech_trace");
+  type.Add(SPAGHETTI, "spaghetti");
+  type.Add(SPLINE_BOX, "spline_box");
+    type.Add(MECH_TRACE, "mech_trace");
   type.Add(MECH_ALL, "mech_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
   type.Add(DIELEC_ALL, "dielec_all");
@@ -929,7 +926,7 @@ void DesignElement::SetEnums()
   type.Add(INTERPOLATION, "interpolation");
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
-  type.Add(SPLINE_BOX, "spline_box");
+  type.Add(NORMAL, "normal");
   type.Add(CP, "controlpoint");
   type.Add(ALL_DESIGNS, "allDesigns");
 

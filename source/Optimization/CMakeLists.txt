@@ -26,9 +26,19 @@ SET(OPTIMIZATION_SRCS
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
 
+
+if(USE_EMBEDDED_PYTHON)
+  # see FindPrograms.cmake on how the PYTHON_ stuff is set
+  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
+  # already in FindCFSDEPS.cmake: include_directories(${PYTHON_INCLUDE_DIR})
+  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  set(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} PythonTools.cc)
+endif()
+
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 
 SET(TARGET_LL
+  utils
   algsys-olas
   cfsgeneral
   datainout
@@ -38,9 +48,7 @@ SET(TARGET_LL
   materials
   matvec
   paramh
-  pde
-  utils
-)
+  pde)
 
 INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
 SET(TARGET_LL ${TARGET_LL} ${XERCES_LIBRARY})

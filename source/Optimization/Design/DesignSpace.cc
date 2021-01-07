@@ -1,3 +1,5 @@
+#include "def_use_embedded_python.hh"
+
 #include <assert.h>
 #include <cmath>
 #include <cstdlib>
@@ -30,6 +32,9 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#ifdef USE_EMBEDDED_PYTHON // currently only the python version
+  #include "Optimization/Design/SpaghettiDesign.hh"
+#endif
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Function.hh"
@@ -160,9 +165,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
-
-
-
 
   if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
@@ -333,6 +335,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               if(method == ErsatzMaterial::SIMP_METHOD
                   || method == ErsatzMaterial::PARAM_MAT
                   || method == ErsatzMaterial::SHAPE_MAP
+                  || method == ErsatzMaterial::SPAGHETTI
                   || method == ErsatzMaterial::SPLINE_BOX)
               {
                 DesignElement* ptr = &(data.Last());
@@ -404,11 +407,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
    // Check if write filter matrix is enabled by the user
    write_matrix_filt = false;
    if(pn->Has("filters/write_mat_filt"))
-   {
      write_matrix_filt = pn->Get("filters/write_mat_filt")->As<bool>();
-   }
-
-
 }
 
 DesignSpace::~DesignSpace(){
@@ -485,6 +484,12 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
     return new ShapeDesign(reg_data, pn, method);
   case ErsatzMaterial::SHAPE_MAP:
     return new ShapeMapDesign(reg_data, pn, method);
+  case ErsatzMaterial::SPAGHETTI:
+#ifdef USE_EMBEDDED_PYTHON
+    return new SpaghettiDesign(reg_data,pn);
+#else
+    EXCEPTION("currently spaghetti optimization requires embedded Python")
+#endif
   case ErsatzMaterial::SPLINE_BOX:
     return new SplineBoxDesign(reg_data, pn, method);
   default:
@@ -1794,10 +1799,10 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
   }
 
   PtrParamNode dv = in->Get("designVariables");
-  dv->Get("optimizationVariables")->SetValue(GetNumberOfVariables());
+  dv->Get("opt_vars")->SetValue(GetNumberOfVariables());
   // TODO @Bastian - add you shape stuff if you like
-  dv->Get("modelVariables")->SetValue(data.GetSize());
-  dv->Get("modelElements")->SetValue(GetNumberOfElements());
+  dv->Get("field_elems")->SetValue(data.GetSize()); // density, angle, ... -> no variables for featured designs
+  dv->Get("field_fe_elemes")->SetValue(GetNumberOfElements()); // fe-elems the field elems are assigned to
   for(unsigned int i = 0; i < design.GetSize(); i++)
   {
     DesignElement& de = data[i * elements];

@@ -110,6 +110,11 @@ if(USE_EMBEDDED_PYTHON)
   
   # sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, which can be also set via -D
   find_package(PythonLibs)
+
+  # it might happen, when configured first w/o USE_EMBEDDED_PYTHON, that the cachend two variables are empty
+  # and not overwritten by find_package - cmake is such a mess :( Setting via ccmake helps  
+  # message(STATUS "PYTHON_INCLUDE_DIR = ${PYTHON_INCLUDE_DIR}")
+  # message(STATUS "PYTHON_LIBRARY = ${PYTHON_LIBRARY}")
   
   # PYTHON_SITE_PACKAGES_DIR needs to be set to /usr/lib64/python3.8/site-packages
   # PYTHON_LIBRARY is /usr/lib64/libpython3.8.so, so it does not help

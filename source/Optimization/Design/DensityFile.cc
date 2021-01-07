@@ -19,6 +19,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SpaghettiDesign.hh"
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/ErsatzMaterial.hh"
@@ -261,24 +262,22 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   double lower_violation = 0.0;
   double upper_violation = 0.0;
 
+  // shape map, spaghetti and spline box
+  FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space);
+  if(fd)
+    fd->ReadDensityXml(set, lower_violation, upper_violation);
 
-  bool enforce_bounds = false;
-  if(space->GetMethod() == ErsatzMaterial::Method::SHAPE_MAP)
-     dynamic_cast<ShapeMapDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
-  else if(space->GetMethod() == ErsatzMaterial::Method::SPLINE_BOX)
-     dynamic_cast<SplineBoxDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
-  else
-   enforce_bounds = ReadDensity(pn, elems, force_region, space, lower_violation, upper_violation);
+  bool enforce_bounds = fd ? false : ReadDensity(pn, elems, force_region, space, lower_violation, upper_violation);
 
   if(lower_violation > 1e-5) {
-    std::string msg = "the external design violates lower design bounds up to " + boost::lexical_cast<std::string>(lower_violation);
+    std::string msg = "the external design violates lower design bounds up to " + std::to_string(lower_violation);
     if(enforce_bounds)
       in->Get("bound_violation")->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
     else
       in->SetWarning(msg);
   }
   if(upper_violation > 1e-5) {
-    std::string msg = "the external design violates upper design bounds up to " + boost::lexical_cast<std::string>(upper_violation);
+    std::string msg = "the external design violates upper design bounds up to " + std::to_string(upper_violation);
     if(enforce_bounds)
       in->Get("bound_violation", ParamNode::APPEND)->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
     else
@@ -328,6 +327,9 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    if(regularize)
      in_->Get("dummy")->SetValue(regularize, true);
+
+   // off the design space to add stuff to the header. Done by SpaghettiDesing
+   space_->AddToDensityHeader(in_);
 
    return in;
 }
@@ -403,7 +405,8 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   if(space_->GetMethod() == ErsatzMaterial::Method::SHAPE_MAP)
   {
     ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
-    // skip the aux variables slack and alpha -> they are written to the info.xml
+    // skip the aux variables slack and alpha -> they are written above the info.xml
+    // this are all variables form shape_param_ and not only the ones from opt_shape_param_ - important for visualization!
     for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
     {
       ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetFeaturedDesignElement(i));
@@ -418,6 +421,30 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
         ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
       ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
       ss << "\" ref=\"" << shape->GetReferenceId(); // legacy density.xml files don't have this attribute
+      ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
+      ss << "\"/>";
+      block[base + i] = ss.str();
+    }
+  }
+
+  // spaghetti.py can visualize the noodles
+  if(space_->GetMethod() == ErsatzMaterial::Method::SPAGHETTI)
+  {
+    FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space_);
+    // skip the aux variables slack and alpha -> they are written to the info.xml
+    for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
+    {
+      SpaghettiDesign::Variable* spe = dynamic_cast<SpaghettiDesign::Variable*>(fd->GetFeaturedDesignElement(i));
+      assert(spe != NULL);
+
+      std::stringstream ss;
+      ss << "<shapeParamElement nr=\"" << spe->GetIndex();
+      ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
+      if(spe->GetType() == DesignElement::NODE) {
+        ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
+        ss << "\" tip=\"" << SpaghettiDesign::tip.ToString(spe->tip);
+      }
+      ss << "\" shape=\"" << spe->noodle; // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
       block[base + i] = ss.str();

@@ -240,7 +240,8 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
 
   // we have no "do_transform" either there is transformation or not
   num_trans_  = opt->GetDesign()->transform.GetSize();
-  int num_robust = opt->GetDesign()->data[0].simp->filter.GetSize();
+  assert(!opt->GetDesign()->data.IsEmpty() && opt->GetDesign()->data[0].simp != NULL);
+  int num_robust =  opt->GetDesign()->data[0].simp->filter.GetSize();
 
   robust_.Resize(manager->context.GetSize());
 

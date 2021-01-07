@@ -144,6 +144,9 @@ namespace CoupledField
      * @param cerr_warning shall a warning be written to cerr */
     void SetValue(PtrParamNode node, bool overwrite_name, bool cerr_warning = true);
 
+    /** Set ParamaNodes as child nodes. Works recursively */
+    void SetValue(ParamNodeList nodes);
+
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);
 

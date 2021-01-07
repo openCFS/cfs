@@ -290,7 +290,6 @@ namespace CoupledField
                             const StdVector<UInt> & connect,
                             bool updated );
 
-
     //! Get elements associated with given node
 
     //! Returns a list of elements, which have one or more of the given

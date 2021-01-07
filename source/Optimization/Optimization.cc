@@ -21,6 +21,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/SpaghettiDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
@@ -40,6 +41,7 @@
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
 #include "Optimization/ShapeMapping.hh"
+#include "Optimization/Spaghetti.hh"
 #include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
@@ -85,6 +87,8 @@ Enum<Optimization::CommitMode>       Optimization::commitMode;
 Context*                             Optimization::context;
 ContextManager                       Optimization::manager;
 
+// have it here as SpaghettiDesign.cc is currently conditionally compiled with USE_EMBEDDED_PYTHON only
+Enum<SpaghettiDesign::Tip> SpaghettiDesign::tip;
 
 Optimization::Optimization()
 {
@@ -496,6 +500,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SPAGHETTI, "spaghetti");
   ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
@@ -702,6 +707,9 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SHAPE_MAP:
     opt = new ShapeMapping();
+    break;
+  case ErsatzMaterial::SPAGHETTI:
+    opt = new Spaghetti();
     break;
   case ErsatzMaterial::SPLINE_BOX:
     opt = new SplineBoxOpt();

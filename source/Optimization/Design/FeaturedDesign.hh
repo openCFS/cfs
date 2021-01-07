@@ -14,36 +14,48 @@ public:
 
   virtual ~FeaturedDesign() { } ;
 
-  virtual void PostInit(int objectives, int constraints) { AuxDesign::PostInit(objectives, constraints); };
+  virtual void PostInit(int objectives, int constraints) override;
 
-  /** @see DesignSpace::ReadDesignFromExtern() */
-  virtual int ReadDesignFromExtern(const double* space_in) = 0;
+  /** @see DesignSpace::ReadDesignFromExtern().
+   * Already increments design_id in case!
+   * This is the default implementation for part of SplineBox and almost all of Spaghetti.
+   * It cannot apply for ShapeMap as there opt_shape_param_ is overwritten */
+  virtual int ReadDesignFromExtern(const double* space_in) override;
 
   /** overwrites DesignSpace::CompareDesign() */
-  virtual bool CompareDesign(const double* space_in) = 0;
+  virtual bool CompareDesign(const double* space_in) override;
 
   /** writes design to the vector, beginning with shape_param_ and then aux_design_ */
-  virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const = 0;
+  virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const override;
 
   /** write gradient out to the vector, appending with shape gradient
    * Sparse and dense! */
-  virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) = 0;
+  virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) override;
 
   /** same as in DesignSpace, setting elements to zero, but also aux elements */
-  virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT) = 0;
+  virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT) override;
 
-  virtual void WriteBoundsToExtern(double* x_l, double* x_u) const = 0;
+  virtual void WriteBoundsToExtern(double* x_l, double* x_u) const override;
 
-  virtual unsigned int GetNumberOfVariables() const = 0;
+  /** total of real variables, which is non-fixed feature variables plus slack variables from AuxDesign */
+  unsigned int GetNumberOfVariables() const override {
+    return aux_design_.GetSize() + opt_shape_param_.GetSize();
+  }
 
-  virtual int GetNumberOfFeatureMappingVariables() const { return shape_param_.GetSize(); }
+  /** all feature variables including fixed ones and without slack variables */
+  int GetNumberOfFeatureMappingVariables() const override { return shape_param_.GetSize(); }
 
-  virtual BaseDesignElement* GetDesignElement(unsigned int idx) = 0;
+  BaseDesignElement* GetDesignElement(unsigned int idx) override {
+    return idx < opt_shape_param_.GetSize() ? opt_shape_param_[idx] : AuxDesign::GetDesignElement(idx);
+  }
 
   /** does not go on opt_shape_param_ but on shape_param_ */
   BaseDesignElement* GetFeaturedDesignElement(unsigned int idx) { return shape_param_[idx];}
 
-  virtual void ToInfo(ErsatzMaterial* em) = 0;
+  /** handles spaghetti and spline box */
+  virtual int FindDesign(DesignElement::Type dt, bool throw_exception) const override;
+
+  virtual void ToInfo(ErsatzMaterial* em) override = 0 ;
 
   /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
    * @param set the set from the density.xml
@@ -92,9 +104,8 @@ public:
 
 protected:
 
+  /** meant to set up the design variables. Possibly call SetupMapping() next() */
   virtual void SetupDesign(PtrParamNode pn) = 0;
-
-  virtual void SetupOptParam() = 0;
 
   /** Map (distorted) structure to rho (DesignSpace::data). Sets DesignSpace::data.
    *  Shall be called by ReadDesignFromExtern(). */
@@ -104,6 +115,17 @@ protected:
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
   virtual void MapFeatureGradient(const Function* f) = 0;
+
+  /** set n_, nx_, ny_, nz_. Shall do verification of the lexicographic ordering later.
+   * @see SetupLexicographicMesh() */
+  void SetupMeshStructure();
+
+  /** set map_ */
+  void SetupMapping();
+
+  /** called in the optimization case in PostInit().
+   * E.g. check meaningful constraints line no linear volume */
+  virtual void CheckPlausibility();
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
@@ -132,6 +154,30 @@ protected:
     double MaxDiffCornerValue() const;
   };
 
+  /** MAX means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will be considered at that ip.
+   * The drawbacks are loss of material at overlaps and doubtful differentiability.
+   *
+   * TANH_SUM limits via tanh_l( sum(tanh(shape) ) where tanh_l maps to 0..1 with own beta and the beta within sum(tanh(shape)) is halfed.
+   *
+   * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
+  typedef enum {NO_COMBINE, MAX, TANH_SUM } Combine;
+
+  /** this describes the continuation of a structure in 1D. See feature mapping review.
+   * Not every class uses all boundary functions, this is handled in the schema file */
+  typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY } Boundary;
+
+  Boundary GetBoundary() const { return boundary_; }
+
+  /** no need for static */
+  Enum<Combine> combine;
+
+  Enum<Boundary> boundary;
+
+  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
+  Combine combine_ = NO_COMBINE;
+
+  Boundary boundary_ = NO_BOUNDARY;
+
   /** shortcut to the dimension (2|3) */
   static unsigned int dim_;
 
@@ -144,7 +190,7 @@ protected:
   Vector<unsigned int> n_;
 
   /** this is the design_id for the last MapFeatureToDensity() run */
-  int mapped_design_ = -1;
+  int mapped_design_ = -2; // make sure we do not match uninitialized design_id
 
   /** Measure MapFeatureToDensity() */
   shared_ptr<Timer> mapping_timer_;
@@ -156,12 +202,18 @@ protected:
    * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
   StdVector<ShapeParamElement*> shape_param_;
 
-  /** This are the external design parameters which means shape_param_ w/o fixed and optional links */
+  /** This are the external design parameters which means shape_param_ w/o fixed and optional links.
+   * Note that in ShapeMapDesign the variable is a vector of another type */
   StdVector<ShapeParamElement*> opt_shape_param_;
 
   /** mapping with size of rho to ShapeParamElement pointers to design variables */
   StdVector<Item> map_;
 
+  /** reference to optimization as we need it in MapFeatureGradient() to get the functions */
+  Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
+
+private:
+  void SetEnums();
 };
 
 /** definition of inline static function has to be in header file */

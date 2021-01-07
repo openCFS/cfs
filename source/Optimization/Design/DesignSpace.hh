@@ -376,6 +376,9 @@ namespace CoupledField
 
      PtrParamNode GetInfo() { return info_; }
 
+     /** allows to set a line in the header of the density.xml via DesnsityFile::Create(). Done by SpaghettiDensity */
+     virtual void AddToDensityHeader(PtrParamNode pn) {};
+
      /** the global LocalElementCache instance, not necessary enabled. Only a pointer for include reasons */
      LocalElementCache* elementCache = NULL;
 

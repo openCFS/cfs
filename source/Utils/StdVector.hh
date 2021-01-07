@@ -247,6 +247,9 @@ namespace CoupledField {
     //! Returns capacity of the vector
     inline size_type GetCapacity() const {return capacity_;}
 
+    /** Is there space for another Push_back() ? */
+    bool HasSpace() const { return size_ < capacity_; }
+
     /** Increases the capacity.
      * If the new capacity is smaller than the current one nothing happens.
      * Otherwise the old data is copied up to size and the rest is uninitialized! */
@@ -330,7 +333,8 @@ namespace CoupledField {
      * If there is not enough capacity (GetCapacity()) the data is copied to a new data of doubled size.
      * Note that this invalidates all pointers to data entries! If you have such an issue, make sure you Reserve() sufficient
      * space before Push_back() the first element.
-     * @param no_expand throws an exception if the capacity is too small and data expanding would be necessary */
+     * @param no_expand throws an exception if the capacity is too small and data expanding would be necessary
+     * @see HasSpace() to check if Push_back() does not need expansion */
     inline void Push_back(const TYPE & y = TYPE(), bool no_expand = false) {
       if ( size_ < capacity_ ) {
         data_[size_++] = y;

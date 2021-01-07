@@ -19,7 +19,7 @@ namespace CoupledField
     /** The transfer functions for a design-variable x:
      * <ul>
      * <li>SIMP_TPYE: tf(x) = x^param, tf'(x)=param*x^(param-1)</li>
-     * <li>IDENTIT: tf(x) = x, tf'(x)=1</li>
+     * <li>IDENTITY: tf(x) = x, tf'(x)=1</li>
      * <li>RAMP: ... very slow :(</li>
      * <li>FIXED: tf(x) = param == 0 ? 1.0 : param, tf'(x)=0</li>
      * <li>FULL:  tf(x) = 1, tf'(x)=0</li>

@@ -1,4 +1,5 @@
 #include "Utils/Timer.hh"
+#include "General/Exception.hh"
 #include <sstream>
 
 using namespace CoupledField;
@@ -17,8 +18,11 @@ Timer::Timer(const std::string& name, bool sub, bool start_immediately) :
 }
 
 
-bool Timer::Start()
+bool Timer::Start(bool validate)
 {
+  if(validate && running)
+    throw Exception("attempt to start already running timer");
+
   // Return immediately if the timer is already running
   if(running)
     return false;
@@ -51,8 +55,11 @@ bool Timer::ResetStart()
   return !was_running;
 }
 
-bool Timer::Stop()
+bool Timer::Stop(bool validate)
 {
+  if(validate && !running)
+    throw Exception("attempt to stop not running timer");
+
   if(!running)
     return false;
   // Compute accumulated running time and set timer status to not running

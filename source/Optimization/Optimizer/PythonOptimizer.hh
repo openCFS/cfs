@@ -9,6 +9,7 @@
 #endif
 
 #include <utility>
+#include <tuple>
 #include <boost/filesystem.hpp>
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 
@@ -37,6 +38,8 @@ public:
 
   void EvalGradConstraints(PyObject* args);
 
+  /** this should be in PythonTools but somehow this gives a segfault which indicates that PyArg_ParseTuple is not defined?! */
+  static StdVector<PyObject*> ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
 
 protected:
 
@@ -44,21 +47,12 @@ protected:
   void SolveProblem();
 private:
 
-  PyObject* GetOptions() const;
-
-  /** Helper which processes a PyTupleObject which needs to consist only of 1dim numpy arrays
-   * @param decref if false make sure to decref the objects via the return array
-   * @return you must not uses the PyObjects when decref is true */
-  StdVector<PyObject*> ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
 
   /** the options from the xml file */
   StdVector<std::pair<std::string, std::string> > options;
 
   /** given filename */
   boost::filesystem::path givenname;
-
-  /** absolute path */
-  boost::filesystem::path absolute;
 
   /** the module givenname opened as embedded python environment */
   PyObject* module = NULL;

@@ -264,6 +264,13 @@ namespace CoupledField
                                     const StdVector<UInt> & connect,
                                     bool updated = false ) = 0;
 
+    /** The slower convenient method */
+    Matrix<double> GetElemNodesCoord(const Elem* elem, bool updated=true) {
+      Matrix<double> ret; // trust return value optimization
+      GetElemNodesCoord(ret, elem->connect, updated);
+      return ret;
+    }
+
     //! Set offset for coordinates due to updated Lagrangian formulation
     virtual void SetNodeOffset( const StdVector<UInt>& nodes,
                                 const Vector<Double>& offsets ) = 0;

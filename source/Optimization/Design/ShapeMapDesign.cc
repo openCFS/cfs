@@ -27,22 +27,14 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 {
   intStrategy_.Add(TAILORED, "tailored");
 
-  overlap.SetName("ShapeMapDesign::Overlap");
-  overlap.Add(MAX, "max");
-  overlap.Add(TANH_SUM, "tanh_sum");
-
-  shapeFunc.SetName("ShapeMapDesign::ShapeFunc");
-  shapeFunc.Add(TANH, "tanh");
-  shapeFunc.Add(LINEAR, "linear");
-
-  this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
-  this->shapeFunc_ = shapeFunc.Parse(pn->Get("shapeMap/shape")->As<string>());
-  if(shapeFunc_ == TANH || overlap_ == TANH_SUM) {
+  this->combine_ = combine.Parse(pn->Get("shapeMap/overlap")->As<string>());
+  this->boundary_ = boundary.Parse(pn->Get("shapeMap/shape")->As<string>());
+  if(boundary_ == TANH || combine_ == TANH_SUM) {
     if(!pn->Has("shapeMap/beta"))
       throw Exception("'shapeMap' attribute 'beta' mandatory for 'shape'='tanh' or 'overlap'='tanh_sum'");
     this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   }
-  if(shapeFunc_ == LINEAR && overlap_ == TANH_SUM)
+  if(boundary_ == LINEAR && combine_ == TANH_SUM)
     info_->Get(ParamNode::HEADER)->SetWarning("'overlap'='tanh_sum' with 'shape'='linear' is questionable!");
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
   this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
@@ -72,7 +64,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
       (dim_ == 2 && GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE_B) != -1))
     info_->Get(ParamNode::HEADER)->SetWarning("'result' attribute 'detail' with 'node' for 2D and 'node_a' and 'node_b' for 3D");
 
-  // from the shapes create the rho equivalent ShapeParamElement variables
+  // from the shapes create the rho equivalent ShapeMapVariable variables
   SetupShapeParam();
 
   // copy the non-fixed stuff to opt_shape_param_ and reflect symmetry
@@ -84,13 +76,6 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
 }
 
-void ShapeMapDesign::CheckPlausibility()
-{
-  assert(opt_ != NULL);
-  if(  (opt_->constraints.Has(Function::VOLUME) && opt_->constraints.Get(Function::VOLUME)->IsLinear())
-      || (opt_->objectives.Has(Function::VOLUME) && opt_->objectives.Get(Function::VOLUME)->IsLinear()))
-    throw Exception("Set 'volume' function to non-linear with shape mapping");
-}
 
 ShapeMapDesign::ShapeParam* ShapeMapDesign::InduceSymmetryNodeHelper(ShapeParam& ref_node)
 {
@@ -564,7 +549,7 @@ void ShapeMapDesign::SetupShapeParam()
 
   LOG_DBG(SMD) << "SSP data=" << data.GetSize() << " map=" << map_.GetSize() << " n_=" << n_.ToString();
 
-  // now set the nodes idx in map_::nodes. For every rho we store here the two (2D) or 4 (3D surface) ShapeParamElements which have an bilinear interpolation
+  // now set the nodes idx in map_::nodes. For every rho we store here the two (2D) or 4 (3D surface) ShapeMapVariables which have an bilinear interpolation
   // within the node per shape
 
   if(dim_ == 2)
@@ -584,7 +569,7 @@ void ShapeMapDesign::SetupShapeParam()
 
     for(int i = 0; i < num_node_shape_params_; i++)
     {
-      ShapeParamElement* spe = shape_param_[i];
+      ShapeMapVariable* spe = dynamic_cast<ShapeMapVariable*>(shape_param_[i]);
       ShapeParam* shape = FindShape(spe); // GetShape() is not initialized yet
       assert(shape->IsPart(spe));
       assert(shape->idx >= 0);
@@ -628,9 +613,9 @@ void ShapeMapDesign::SetupShapeParam()
 
   if(dim_ == 3)
   {
-    for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeParamElements an set it to the proper map_::nodes
+    for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeMapVariables an set it to the proper map_::nodes
     {
-      ShapeParamElement* spe1 = shape_param_[i]; // will be first node param
+      ShapeMapVariable* spe1 = dynamic_cast<ShapeMapVariable*>(shape_param_[i]); // will be first node param
       ShapeParam* shape = FindShape(spe1); // GetShape() not yet ready
       assert(spe1->GetType() == Convert(shape->type));
 
@@ -653,7 +638,7 @@ void ShapeMapDesign::SetupShapeParam()
         assert(shape->orientation != shape->dof && shape->orientation != shape->GetSecondCenterNode()->dof);
         assert(shape->GetFirstCenterNode()->orientation == shape->GetSecondCenterNode()->orientation);
 
-        ShapeParamElement* spe2 = GetSecondCenterNodeParam(shape, spe1);
+        ShapeMapVariable* spe2 = GetSecondCenterNodeParam(shape, spe1);
 
         // in 2D a dof=x node connects to 1 or 2 y lines.
         // for a 3D rod with we have always dof pairs and they hold for each of the common orientation
@@ -767,12 +752,11 @@ void ShapeMapDesign::SetupOptParam()
       // For the mapping case only half and then the center element is mapped or not (depending on odd or even shape elements)
       for(unsigned int p = shape.start_param; p < end; p++)
       {
-        opt_shape_param_.Push_back(OptVar()); // when we have fixed nodes we shall handle the index!!
-        OptVar& var = opt_shape_param_.Last();
-        var.Init(shape_param_[p]);
-        assert(var.sym->hidden.IsEmpty());
-        ShapeParamElement* opt = var.elem; // this are the elements
-        ElementSymmetry* sym = var.sym; // and this corresponding structure has all additional virtual elements
+        ShapeMapVariable* opt = dynamic_cast<ShapeMapVariable*>(shape_param_[p]);
+        opt_shape_param_.Push_back(opt); // when we have fixed nodes we shall handle the index!!
+        opt->sym = new ShapeMapDesign::ElementSymmetry(opt);
+        assert(opt->sym->hidden.IsEmpty());
+        ElementSymmetry* sym = opt->sym; // and this corresponding structure has all additional virtual elements
         unsigned int idx = p - shape.start_param;
         bool odd_center_elem = odd_elements && p == end - 1; // is this for an odd number the center element?
 
@@ -828,7 +812,7 @@ void ShapeMapDesign::SetupOptParam()
   // set for the design subject to optimization the opt_index_ as BaseDesignElement::index_ may not reflect the design space seen
   // by external optimizers when we have symmetry -> necessary for the sparse Jacobian.
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
-    opt_shape_param_[i].elem->SetOptIndex(i);
+    opt_shape_param_[i]->SetOptIndex(i);
 
   LOG_DBG(SMD)<< "SOSP osp=" << opt_shape_param_.GetSize() << " sp=" << shape_param_.GetSize() << " data=" << data.GetSize();
 }
@@ -876,13 +860,13 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
       // skip the last element as we want only 'full' elements with next when we are not periodic
       for(int e = shape.start_opt + (prev ? (periodic ? 0 : 1) : 0), n = shape.end_opt - (periodic ? 0 : +1); e < n; e++)
       {
-        BaseDesignElement* bde = opt_shape_param_[e].elem;
+        BaseDesignElement* bde = opt_shape_param_[e];
         assert(f->GetDesignType() == bde->GetType());
         assert((!periodic && e < shape.end_opt-1) || (periodic && e < shape.end_opt));
 
         // note that opt_shape_param can be a fragmented variant of shape_param which is an issue with the index which needs to consecutive in opt_shape_param
-        BaseDesignElement* prev_de = prev ? opt_shape_param_[e == shape.start_opt ? shape.end_opt-1 : e-1].elem : NULL; // if not prev take last
-        BaseDesignElement* next_de =        opt_shape_param_[e == shape.end_opt-1 ? shape.start_opt : e+1].elem; // we next cannot be next we take first (only if periodic)
+        BaseDesignElement* prev_de = prev ? opt_shape_param_[e == shape.start_opt ? shape.end_opt-1 : e-1] : NULL; // if not prev take last
+        BaseDesignElement* next_de =        opt_shape_param_[e == shape.end_opt-1 ? shape.start_opt : e+1]; // we next cannot be next we take first (only if periodic)
 
         LOG_DBG(SMD) << "SVSEM s=" << s << " n=" << n << " po=" << (prev_de != NULL ? (int) prev_de->GetOptIndex() : -1) << " eo=" << e << " no=" << (next_de != NULL ? (int) next_de->GetOptIndex() : -1)
                                                           << " p="  << (prev_de != NULL ? (int) prev_de->GetIndex() : -1)    << " e=" << bde->GetIndex() << " n=" << (next_de != NULL ? (int) next_de->GetIndex() : -1);
@@ -899,8 +883,8 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
       {
         // curvature over the inner element
         // note that the slope should actually have half the curvature bound!
-        BaseDesignElement* bde  = opt_shape_param_[shape.end_opt-2].elem;
-        BaseDesignElement* next = opt_shape_param_[shape.end_opt-1].elem;
+        BaseDesignElement* bde  = opt_shape_param_[shape.end_opt-2];
+        BaseDesignElement* next = opt_shape_param_[shape.end_opt-1];
 
         LOG_DBG(SMD) << "SVSEM s=" << s << " curvature slope: eo=" << bde->GetOptIndex() << " no=" << next->GetOptIndex() << " e=" << bde->GetIndex() << " n=" << next->GetIndex();
         vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_1));
@@ -908,8 +892,8 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
           vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_2));
 
         // curvature over the outer element last - 0 - 1 which would be 1 - 0 - 1 which is slope 0 - 1 (should be actually half bound)
-        bde  = opt_shape_param_[shape.start_opt].elem;
-        next = opt_shape_param_[shape.start_opt+1].elem;
+        bde  = opt_shape_param_[shape.start_opt];
+        next = opt_shape_param_[shape.start_opt+1];
 
         LOG_DBG(SMD) << "SVSEM s=" << s << " curvature slope: eo=" << bde->GetOptIndex() << " no=" << next->GetOptIndex() << " e=" << bde->GetIndex() << " n=" << next->GetIndex();
         vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_1));
@@ -975,17 +959,17 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
     // skip the last element as we want only 'full' elements with next when we are not periodic
     for(int e = node.start_opt + (prev ? 1 : 0), n = node.end_opt - 1; e < n; e++) // we always assume 'next'
     {
-      BaseDesignElement* bde = opt_shape_param_[e].elem;
+      BaseDesignElement* bde = opt_shape_param_[e];
       assert(bde->GetType() == DesignElement::NODE);
 
       // note that opt_shape_param can be a fragmented variant of shape_param which is an issue with the index which needs to consecutive in opt_shape_param
-      BaseDesignElement* prev_de = prev ? opt_shape_param_[e == node.start_opt ? node.end_opt-1 : e-1].elem : NULL; // if not prev take last
-      BaseDesignElement* next_de =        opt_shape_param_[e == node.end_opt-1 ? node.start_opt : e+1].elem; // we next cannot be next we take first (only if periodic)
+      BaseDesignElement* prev_de = prev ? opt_shape_param_[e == node.start_opt ? node.end_opt-1 : e-1] : NULL; // if not prev take last
+      BaseDesignElement* next_de =        opt_shape_param_[e == node.end_opt-1 ? node.start_opt : e+1]; // we next cannot be next we take first (only if periodic)
 
       // the profile for the nodes
-      BaseDesignElement* bde_pr = opt_shape_param_[prof.start_opt + (bde->GetOptIndex() - node.start_opt)].elem;
-      BaseDesignElement* prev_pr = prev_de != NULL ? opt_shape_param_[prof.start_opt + (prev_de->GetOptIndex() - node.start_opt)].elem : NULL;
-      BaseDesignElement* next_pr = next_de != NULL ? opt_shape_param_[prof.start_opt + (next_de->GetOptIndex() - node.start_opt)].elem : NULL;
+      BaseDesignElement* bde_pr = opt_shape_param_[prof.start_opt + (bde->GetOptIndex() - node.start_opt)];
+      BaseDesignElement* prev_pr = prev_de != NULL ? opt_shape_param_[prof.start_opt + (prev_de->GetOptIndex() - node.start_opt)] : NULL;
+      BaseDesignElement* next_pr = next_de != NULL ? opt_shape_param_[prof.start_opt + (next_de->GetOptIndex() - node.start_opt)] : NULL;
 
       buddies.Clear(true); // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
       buddies.Push_back(bde_pr);
@@ -1035,8 +1019,8 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
     {
       assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
 
-      BaseDesignElement* left  = opt_shape_param_[shape.start_opt].elem;
-      BaseDesignElement* right = opt_shape_param_[shape.end_opt-1].elem; // now take the last which is end-1
+      BaseDesignElement* left  = opt_shape_param_[shape.start_opt];
+      BaseDesignElement* right = opt_shape_param_[shape.end_opt-1]; // now take the last which is end-1
 
       vem.Push_back(Function::Local::Identifier(left, NULL, right)); // makes a neighborhood of size 1
     }
@@ -1048,6 +1032,9 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
 int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 {
+  // TODO: This is almost in FeaturedDesign()
+
+
   assert(!std::isnan(scaling_));
   int old_design = design_id;
 
@@ -1061,15 +1048,15 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   {
     double v = space_in[i] * scaling_;
     assert(!std::isnan(v));
-    if(!new_design && v != opt_shape_param_[i].elem->GetPlainDesignValue())
+    if(!new_design && v != opt_shape_param_[i]->GetPlainDesignValue())
       new_design = true;
 
-    opt_shape_param_[i].elem->SetDesign(v);
+    opt_shape_param_[i]->SetDesign(v);
 
-    if(opt_shape_param_[i].sym->HasSymmetry())
-      opt_shape_param_[i].sym->ApplyDesign();
+    if(dynamic_cast<ShapeMapVariable*>(opt_shape_param_[i])->sym->HasSymmetry())
+      dynamic_cast<ShapeMapVariable*>(opt_shape_param_[i])->sym->ApplyDesign();
 
-    LOG_DBG3(SMD) << "RDFE: i=" << i << "=" << opt_shape_param_[i].elem->ToString() << " -> " << v;
+    LOG_DBG3(SMD) << "RDFE: i=" << i << "=" << opt_shape_param_[i]->ToString() << " -> " << v;
   }
 
   // append aux design, might also change design_id
@@ -1086,32 +1073,10 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   return design_id;
 }
 
-bool ShapeMapDesign::CompareDesign(const double* space_in)
-{
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    double v = space_in[i] * scaling_;
-    if(v != opt_shape_param_[i].elem->GetPlainDesignValue())
-      return false;
-  }
-
-  // no change here, let base class decide
-  return AuxDesign::CompareDesign(space_in);
-}
 
 int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scaling) const
 {
-  double rscaling = scaling ? 1.0 / scaling_ : 1.0;
-
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    space_out[i] = opt_shape_param_[i].elem->GetPlainDesignValue() * rscaling;
-    LOG_DBG3(SMD) << "WDTE: out[" << i << "]=" << space_out[i];
-  }
-
-  AuxDesign::WriteDesignToExtern(space_out, scaling);
-
-  LOG_DBG(SMD) << "WDTE: di -> " << design_id;
+  FeaturedDesign::WriteDesignToExtern(space_out, scaling);
 
   if(export_leveset_)
     ExportLevelSet();
@@ -1121,6 +1086,9 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scaling) const
 
 void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
+  // TODO: Almost same as FeaturedDesign::WriteGradientToExtern()
+
+
   LOG_DBG2(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " out=" << out.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
   assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
 
@@ -1150,10 +1118,10 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     {
       assert(out.InWindow(base + s));
 
-      double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
-      double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
+      double opt = opt_shape_param_[s]->GetPlainGradient(f);
+      double sym = dynamic_cast<ShapeMapVariable*>(opt_shape_param_[s])->sym->GetPlainSymGradient(f);
 
-      LOG_DBG3(SMD) << "WGTE oe=" << opt_shape_param_[s].elem->ToString();
+      LOG_DBG3(SMD) << "WGTE oe=" << opt_shape_param_[s]->ToString();
       assert(!std::isnan(opt));
       assert(!std::isnan(sym));
 
@@ -1181,8 +1149,8 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
 
-      double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
-      double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
+      double opt = opt_shape_param_[s]->GetPlainGradient(f);
+      double sym = dynamic_cast<ShapeMapVariable*>(opt_shape_param_[s])->sym->GetPlainSymGradient(f);
 
       out[base + i] = (opt + sym) * scale;
     }
@@ -1192,42 +1160,15 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
   assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::NODE); // extend to check for profile
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    opt_shape_param_[i].elem->Reset(vs);
-    opt_shape_param_[i].sym->Reset(vs);
-    assert(!opt_shape_param_[i].elem->costGradient.IsEmpty());
 
+  FeaturedDesign::Reset(vs, design);
+
+  for(ShapeParamElement* spe : opt_shape_param_) {
+    dynamic_cast<ShapeMapVariable*>(spe)->sym->Reset(vs);
+    assert(!spe->costGradient.IsEmpty());
   }
-
-  AuxDesign::Reset(vs, design);
 }
 
-void ShapeMapDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
-{
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    x_l[i] = opt_shape_param_[i].elem->GetLowerBound() / scaling_;
-    x_u[i] = opt_shape_param_[i].elem->GetUpperBound() / scaling_;
-    LOG_DBG3(SMD) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
-  }
-
-  AuxDesign::WriteBoundsToExtern(x_l, x_u);
-}
-
-inline unsigned int ShapeMapDesign::GetNumberOfVariables() const
-{
-  return aux_design_.GetSize() + opt_shape_param_.GetSize();
-}
-
-
-inline BaseDesignElement* ShapeMapDesign::GetDesignElement(unsigned int idx)
-{
-  if(idx < opt_shape_param_.GetSize())
-    return opt_shape_param_[idx].elem;
-  else
-    return AuxDesign::GetDesignElement(idx); // handles its offset properly
-}
 
 int ShapeMapDesign::FindDesign(DesignElement::Type dt, bool throw_exception) const
 {
@@ -1266,7 +1207,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
     const PtrParamNode pn = list[i];
-    ShapeParamElement* spe = shape_param_[i];
+    ShapeMapVariable* spe = dynamic_cast<ShapeMapVariable*>(shape_param_[i]);
     ShapeParam* shape = GetShape(spe);
     assert(spe->GetIndex() == i);
     assert(pn->Get("nr")->As<unsigned int>() == i);
@@ -1322,11 +1263,13 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
   }
 
   // now apply symmetries. The density.xml doesn't make a difference between opt and sym variables
-  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+  for(ShapeParamElement* var : opt_shape_param_)
   {
-    if(opt_shape_param_[i].sym->HasSymmetry())
-      opt_shape_param_[i].sym->ApplyDesign();
+    ShapeMapVariable* opt = dynamic_cast<ShapeMapVariable*>(var);
+    if(opt->sym->HasSymmetry())
+      opt->sym->ApplyDesign();
   }
+
   MapFeatureToDensity();
 }
 
@@ -1452,7 +1395,7 @@ void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
   AuxDesign::ToInfo(em);
 
   PtrParamNode sm = info_->Get("shapeMap");
-  sm->Get("overlap")->SetValue(overlap.ToString(overlap_));
+  sm->Get("overlap")->SetValue(combine.ToString(combine_));
   PtrParamNode msh = sm->Get("mesh");
   msh->Get("n")->SetValue(n_.ToString());
   msh->Get("min")->SetValue(coord_min_.ToString());
@@ -1468,6 +1411,9 @@ void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
 Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem)
 {
   // for 2D n_z_=1
+
+  // TODO use FeaturedDesign:SetupMeshStructure()
+
   StdVector<unsigned int> t = grid->GetBoundaries(design_reg);
   Vector<unsigned int> n(3);
   Copy(t, n);
@@ -1541,7 +1487,7 @@ inline double ShapeMapDesign::Item::SetIPGetWeight(const ShapeMapDesign* smd, St
   assert(ip[1] >= 0 && ip[1] <= 1);
   assert(dim_ == 2 || (ip[2] >= 0 && ip[2] <= 1));
 
-  if(smd->GetShapeFunc() == TANH)
+  if(smd->GetBoundary() == TANH)
   {
     assert(order >= 2  && order <= (int) ShapeMapDesign::newtonCotes.GetSize());
     const Vector<double>& w = ShapeMapDesign::newtonCotes[order-1];
@@ -1551,7 +1497,7 @@ inline double ShapeMapDesign::Item::SetIPGetWeight(const ShapeMapDesign* smd, St
   }
   else
   {
-    assert(smd->GetShapeFunc() == LINEAR);
+    assert(smd->GetBoundary() == LINEAR);
     assert(order > 1);
 
     double weight = 1.0;
@@ -1566,7 +1512,7 @@ inline double ShapeMapDesign::Item::SetIPGetWeight(const ShapeMapDesign* smd, St
 
 void ShapeMapDesign::NumInt::Init(ShapeMapDesign* smd, PtrParamNode pn, PtrParamNode info)
 {
-  this->sf_  = smd->GetShapeFunc();
+  this->sf_  = smd->GetBoundary();
   this->beta_ = smd->GetBeta();
   Vector<unsigned int> n = smd->GetDiscretization();
 
@@ -1574,7 +1520,7 @@ void ShapeMapDesign::NumInt::Init(ShapeMapDesign* smd, PtrParamNode pn, PtrParam
 
   if(max_order_ < 2)
     info->SetWarning("minimal value for 'max_order' is '2'");
-  if(smd->GetShapeFunc() == TANH && max_order_ > (int) ShapeMapDesign::newtonCotes.Last().GetSize())
+  if(smd->GetBoundary() == TANH && max_order_ > (int) ShapeMapDesign::newtonCotes.Last().GetSize())
     info->SetWarning("maximal value for 'max_order' is " + to_string(ShapeMapDesign::newtonCotes.Last().GetSize()));
 
   assert(n[n.GetSize()-1] != 0);
@@ -1815,10 +1761,10 @@ void ShapeMapDesign::MapFeatureToDensity()
       double rho = -1.0; // indicator value!
       if(max_order == 0)
         rho = 0.0;
-      if(overlap_ == MAX && max_order ==1)
+      if(combine_ == MAX && max_order ==1)
         rho = 1.0;
       // in the max sum case we need no integration if there is a 1.
-      if(overlap_ == MAX && max_order >= 2 && order.Contains(1))
+      if(combine_ == MAX && max_order >= 2 && order.Contains(1))
         rho = 1.0;
 
       LOG_DBG2(SMD) << "MSTD: de=" << de->elem->elemNum << " mo=" << max_order << " o=" << order.ToString() << " rho=" << rho;
@@ -1843,7 +1789,7 @@ void ShapeMapDesign::MapFeatureToDensity()
             {
               double ip_rho = 0.0; // the final value for one integration point. shall be not much larger one
               double weight = Item::SetIPGetWeight(this, ip, ip_x, ip_y, ip_z, num_ip);
-              switch(overlap_)
+              switch(combine_)
               {
               case MAX:
                 assert(order.Max() >= 2);
@@ -1874,7 +1820,9 @@ void ShapeMapDesign::MapFeatureToDensity()
                 // correct ip_rho by mapping <= 1. This is not exact, it might be slightly larger 1. See TanhSum()
                 ip_rho = tanh_sum_.map(ip_rho);
                 break;
-              } // end of switch(overlap_)
+              default:
+                break;
+              } // end of switch(combine_)
               assert(ip_rho >= 0 && ip_rho <= 1.02); // allow small overlap for TANH_SUM
               rho += weight * ip_rho; // apply weight only here at the and such that tanh_sum_.map() can be applied
               LOG_DBG3(SMD) << "MSTD: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " mo=" << max_order << " ni=" << num_ip << " w=" << weight << " ip_rho=" << ip_rho << " -> " << rho;
@@ -1886,8 +1834,8 @@ void ShapeMapDesign::MapFeatureToDensity()
       de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * rho); // we assume 0 <= v <= 1
       LOG_DBG2(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue()
                          << " delta=" << (de->GetPlainDesignValue() - de->GetLowerBound());
-      assert(!(overlap_ == MAX && de->GetPlainDesignValue() >= de->GetUpperBound() + 1e-10));
-      assert(!(overlap_ == TANH_SUM && de->GetPlainDesignValue() >= de->GetUpperBound() + 0.01)); // allow a slight overshot at overlap
+      assert(!(combine_ == MAX && de->GetPlainDesignValue() >= de->GetUpperBound() + 1e-10));
+      assert(!(combine_ == TANH_SUM && de->GetPlainDesignValue() >= de->GetUpperBound() + 0.01)); // allow a slight overshot at overlap
       assert(de->GetPlainDesignValue() >= de->GetLowerBound() - 1e-10);
     } // end loop over density elements
   } // end of omp parallel section
@@ -1925,7 +1873,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
   int res_idx_dw = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_PROFILE);
 
   // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
-  double beta = overlap_ == TANH_SUM ? 0.5 * beta_ : beta_;
+  double beta = combine_ == TANH_SUM ? 0.5 * beta_ : beta_;
 
 
   bool node_grad = !IsAllNodeFixed();
@@ -1973,14 +1921,14 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
 
       // max_order = 0=void there is no gradient to add.
       // if max_order=1=solid and we have strict solid and the gradient is also zero.
-      if((overlap_ != MAX && max_order >= 1) || (overlap_ == MAX && max_order >= 2 && !order.Contains(1)))
+      if((combine_ != MAX && max_order >= 1) || (combine_ == MAX && max_order >= 2 && !order.Contains(1)))
       {
         // case were we have a non-zero gradient!
         double de_plain_f_grad = de->GetPlainGradient(f);
         assert(!std::isnan(de_plain_f_grad));
 
-        assert(max_order >= 2 || (max_order == 1 && overlap_ == TANH_SUM));
-        assert(!(overlap_ == MAX && order.Contains(1)));
+        assert(max_order >= 2 || (max_order == 1 && combine_ == TANH_SUM));
+        assert(!(combine_ == MAX && order.Contains(1)));
 
         // @see MapShapeToDensity()
         int num_ip = std::max(max_order, 2);
@@ -1998,7 +1946,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
               // we don't save this from MapShapeToDensity() as the number can be extremely large
               int max_idx = 0; // such it works also for TANH_SUM
               double eval_sum = 0;
-              switch(overlap_)
+              switch(combine_)
               {
               case MAX:
               {
@@ -2021,6 +1969,8 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
                   eval_sum += eval[s].SmartShapeFunc(order[s]);
                 }
                 break;
+              default:
+                break;
               }
 
               double da = 0.0;
@@ -2028,8 +1978,8 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
               double dw = 0.0;
 
               // in the MAX case we operate exactly on one shape, for TANH_SUM we loop over all
-              assert(!(overlap_ == TANH_SUM && max_idx != 0));
-              for(unsigned int si = max_idx; si < (overlap_ == MAX ? max_idx+1 : item.nodes.GetSize()); si++)
+              assert(!(combine_ == TANH_SUM && max_idx != 0));
+              for(unsigned int si = max_idx; si < (combine_ == MAX ? max_idx+1 : item.nodes.GetSize()); si++)
               {
                 double t = eval[si].Setup(item.nodes[si], idx, ip, beta);
                 assert(t >= 0 && t <= 1);
@@ -2043,7 +1993,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
                   if(dim_ == 3) // FIXME assumes center nodes!
                     db = eval[si].SmartGradShapeFunc(order[si], false, true, false); // dtanh_db
 
-                  if(overlap_ == TANH_SUM) { // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
+                  if(combine_ == TANH_SUM) { // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
                     da = tanh_sum_.d_map(eval_sum, da);
                     if(dim_ == 3)
                       db = tanh_sum_.d_map(eval_sum, db);
@@ -2052,15 +2002,15 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
                 if(profile_grad)
                 {
                   dw = eval[si].SmartGradShapeFunc(order[si], false, false, true); // dtanh_dw
-                  if(overlap_ == TANH_SUM)
+                  if(combine_ == TANH_SUM)
                     dw = tanh_sum_.d_map(eval_sum, dw);
                 }
 
                 // even if we have no node_grad, we need a0 for profile_grad
-                ShapeParamElement* a0 = item.nodes[si][0]; // due to symmetrie, this element is not necessarily a direct optimization variable
-                ShapeParamElement* a1 = item.nodes[si][dim_ == 3 ? 2 : 1];
-                ShapeParamElement* b0 = dim_ == 3 ? item.nodes[si][1] : NULL;
-                ShapeParamElement* b1 = dim_ == 3 ? item.nodes[si][3] : NULL;
+                ShapeMapVariable* a0 = item.nodes[si][0]; // due to symmetrie, this element is not necessarily a direct optimization variable
+                ShapeMapVariable* a1 = item.nodes[si][dim_ == 3 ? 2 : 1];
+                ShapeMapVariable* b0 = dim_ == 3 ? item.nodes[si][1] : NULL;
+                ShapeMapVariable* b1 = dim_ == 3 ? item.nodes[si][3] : NULL;
 
                 if(node_grad)
                 {
@@ -2155,10 +2105,10 @@ void ShapeMapDesign::WriteGradientFile()
   Function* c = opt_->objectives.data[0];
   for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
   {
-    ShapeParamElement* spe = opt_shape_param_[e].elem;
+    ShapeParamElement* spe = opt_shape_param_[e];
     ShapeParam* shape = GetShape(spe);
     out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << shape->idx << " \t";
-    out << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + opt_shape_param_[e].sym->GetPlainSymGradient(c)) << " \t";
+    out << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + dynamic_cast<ShapeMapVariable*>(opt_shape_param_[e])->sym->GetPlainSymGradient(c)) << " \t";
 
     for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
       if(opt_->constraints.all[g]->HasDenseJacobian())
@@ -2223,7 +2173,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
   coord_.Resize(dim, -1.0);
 
   // calc h which we need only for shapeFunc == LINEAR
-  if(smd->GetShapeFunc() == LINEAR)
+  if(smd->GetBoundary() == LINEAR)
   {
     Matrix<double> box = domain->GetGrid()->CalcGridBoundingBox(NULL, true); // force 3d (0 size for z)
     Vector<unsigned int> n = smd->GetDiscretization();
@@ -2241,7 +2191,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
   }
 }
 
-inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
+inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeMapVariable*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
 {
   assert(smd_ != NULL);
 
@@ -2252,13 +2202,13 @@ inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeParamElement*
 
 }
 
-inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
+inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeMapVariable*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
 {
   assert(dim == 2); // there is also a 3D version of Eval
   assert(nodes.GetSize() == 2);
   // this stuff is 3D stuff
-  const ShapeParamElement* s1 = nodes[0];
-  const ShapeParamElement* s2 = nodes[1];
+  const ShapeMapVariable* s1 = nodes[0];
+  const ShapeMapVariable* s2 = nodes[1];
   assert(s1->dof_ == s2->dof_);
   assert(s1->GetType() == BaseDesignElement::NODE && s2->GetType() == BaseDesignElement::NODE);
 
@@ -2288,7 +2238,7 @@ inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeParamElemen
   a  = a1 + t * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
   w  = w1 + t * (w2-w1);
 
-  if(smd_->shapeFunc_ == TANH) {
+  if(smd_->boundary_ == TANH) {
     assert(beta > 0);
     this->beta = beta;
     exapw = exp(beta*(x-a+w));
@@ -2303,7 +2253,7 @@ inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeParamElemen
 }
 
 
-inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
+inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeMapVariable*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
 {
   assert(smd_ != NULL);
   assert(dim == 3);
@@ -2311,10 +2261,10 @@ inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElemen
   assert(ip.GetSize() == 3);
   assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1 && ip[2] >= 0 && ip[2] <= 1);
 
-  const ShapeParamElement* sa1 = nodes[0];
-  const ShapeParamElement* sb1 = nodes[1];
-  const ShapeParamElement* sa2 = nodes[2];
-  const ShapeParamElement* sb2 = nodes[3];
+  const ShapeMapVariable* sa1 = nodes[0];
+  const ShapeMapVariable* sb1 = nodes[1];
+  const ShapeMapVariable* sa2 = nodes[2];
+  const ShapeMapVariable* sb2 = nodes[3];
 
   LOG_DBG3(SMD) << "EAI:S3 sa1=" << sa1->ToString();
 
@@ -2357,7 +2307,7 @@ inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElemen
 
   r = sqrt((a-x)*(a-x)+(b-y)*(b-y)); // note that r can be 0!! Important for gradients!!
 
-  if(smd_->GetShapeFunc() == TANH) // for 3D LINEAR we just need r
+  if(smd_->GetBoundary() == TANH) // for 3D LINEAR we just need r
   {
     this->beta = beta;
     erw = exp(beta * (r-w));
@@ -2371,7 +2321,7 @@ inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElemen
 
 inline double ShapeMapDesign::EvalAtIp::ShapeFunc() const
 {
-  if(smd_->GetShapeFunc() == TANH)
+  if(smd_->GetBoundary() == TANH)
     return dim == 2 ? EvalTanh2d() : EvalTanh3d();
   else
     return dim == 2 ? EvalLinear2d() : EvalLinear3d();
@@ -2379,7 +2329,7 @@ inline double ShapeMapDesign::EvalAtIp::ShapeFunc() const
 
 inline double ShapeMapDesign::EvalAtIp::GradShapeFunc(bool grad_a, bool grad_b, bool grad_w) const
 {
-  if(smd_->GetShapeFunc() == TANH)
+  if(smd_->GetBoundary() == TANH)
     return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
   else
     return dim == 2 ? EvalLinearGrad2d(grad_a, grad_w) : EvalLinearGrad3d(grad_a, grad_b, grad_w);
@@ -2784,9 +2734,9 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamEle
 
   // add element to shape_param_
   assert(shape_param_.GetCapacity() > shape_param_.GetSize());
-  ShapeParamElement* temp = new ShapeParamElement(Convert(data->type), shape_param_.GetSize());
+  ShapeMapVariable* temp = new ShapeMapVariable(Convert(data->type), shape_param_.GetSize());
   shape_param_.Push_back(temp);
-  ShapeParamElement* spe = shape_param_.Last();
+  ShapeMapVariable* spe = dynamic_cast<ShapeMapVariable*>(shape_param_.Last());
 
   MathParser* mp = domain->GetMathParser();
   MathParser::HandleType handle = mp->GetNewHandle();
@@ -2849,31 +2799,11 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamEle
 
 void ShapeMapDesign::PostInit(int objectives, int constraints)
 {
-  if(domain->GetOptimization() != NULL)
-  {
-    opt_ = domain->GetOptimization();
-    CheckPlausibility(); // throws exception
-  }
-
-  // full_data is only used for internal optimizers to have a consecutive design array
-  full_data.Clear(false); // release memory
-  full_data.Reserve(GetNumberOfVariables()); // shape param + aux
-  full_data.Resize(opt_shape_param_.GetSize()); // was set in DesignSpace and will be released
-  for(unsigned int i = 0; i < opt_shape_param_.GetSize(); i++)
-    full_data[i] = opt_shape_param_[i].elem;
-
   // add aux_design to full_data
   FeaturedDesign::PostInit(objectives, constraints);
 
-  assert(objectives > 0);
-
-  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++) {
-    opt_shape_param_[i].elem->PostInit(objectives, constraints);
-    opt_shape_param_[i].sym->PostInit(objectives, constraints);
-    assert((int) opt_shape_param_[i].elem->costGradient.GetSize() == objectives);
-    LOG_DBG2(SMD) << "PI i=" << i << " idx=" << opt_shape_param_[i].elem->GetIndex() << " #o=" << objectives << " #c=" << constraints << " -> " << opt_shape_param_[i].sym->ToString();
-  }
-
+  for(ShapeParamElement* opt : opt_shape_param_)
+    dynamic_cast<ShapeMapVariable*>(opt)->sym->PostInit(objectives, constraints);
 }
 
 StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, ShapeParamElement::Dof dof)
@@ -2885,7 +2815,7 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, Shap
   return res;
 }
 
-ShapeParamElement* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, ShapeParamElement* test)
+ShapeMapDesign::ShapeMapVariable* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, ShapeMapVariable* test)
 {
   assert(shape->IsCenterShape());
   assert(shape->type == NODE);
@@ -2894,7 +2824,7 @@ ShapeParamElement* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, S
 
   // we assume that test is a first center node
   if(shape->IsFirstCenterNode() && shape->IsPart(test))
-    return shape_param_[shape->GetSecondCenterNode()->start_param + test_idx - shape->start_param];
+    return dynamic_cast<ShapeMapVariable*>(shape_param_[shape->GetSecondCenterNode()->start_param + test_idx - shape->start_param]);
 
   // obviously test is already a second center node
   assert(shape->GetSecondCenterNode()->IsPart(test));
@@ -2902,7 +2832,7 @@ ShapeParamElement* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, S
 }
 
 
-inline const ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node) const
+inline const ShapeMapDesign::ShapeMapVariable* ShapeMapDesign::GetProfile(const ShapeMapVariable* node) const
 {
   const ShapeParam* shape = GetShape(node);
   assert(node->GetType() == ShapeParamElement::NODE && shape->type == NODE);
@@ -2911,17 +2841,17 @@ inline const ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamEleme
   assert(shape->partner != NULL);
   assert(shape->partner->start_param >= shape->start_param);
 
-  return shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param];
+  return dynamic_cast<ShapeMapVariable*>(shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param]);
 }
 
-inline ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node)
+inline ShapeMapDesign::ShapeMapVariable* ShapeMapDesign::GetProfile(const ShapeMapVariable* node)
 {
   const ShapeParam* shape = GetShape(node);
-  return shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param];
+  return dynamic_cast<ShapeMapVariable*>(shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param]);
 }
 
 
-ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe)
+ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeMapVariable* spe)
 {
   for(unsigned int s = 0; s < shape_.GetSize(); s++) {
     assert(shape_[s].end_param > 0);
@@ -2971,7 +2901,6 @@ StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > 
 
   return result;
 }
-
 
 void ShapeMapDesign::ShapeParam::ParseSymmetry(ShapeParam* target, const PtrParamNode& pn)
 {
@@ -3311,6 +3240,13 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
   in->Get("induced")->SetValue(IsInduced() ? (induce.reciprocal ? "reciprocal" : "yes") : "no"); // we have this shape only as a result of a shape inducing symmetry
 }
 
+ShapeMapDesign::ShapeMapVariable::ShapeMapVariable(Type type, unsigned int index)
+ : ShapeParamElement(type, index)
+{
+  coord.Resize(domain->GetGrid()->GetDim(), -1.0);
+  idx.Resize(domain->GetGrid()->GetDim(), -1);
+}
+
 
 ShapeMapDesign::TanhSum::TanhSum()
 {
@@ -3370,24 +3306,12 @@ inline double ShapeMapDesign::TanhSum::d_map(double x, double dx)
   // return scale * std::pow(exp(beta*(x-0.5))+1, -2) * exp(beta*(x-0.5)) * beta * dx;
 }
 
-void ShapeMapDesign::OptVar::Init(ShapeParamElement* elem)
-{
-  this->elem = elem;
-  this->sym = new ShapeMapDesign::ElementSymmetry(elem);
-}
-
-ShapeMapDesign::OptVar::~OptVar()
-{
-  // we don't own elem
-  if(sym != NULL) { delete sym; sym = NULL; } // for standard constructor case
-}
-
-ShapeMapDesign::ElementSymmetry::ElementSymmetry(ShapeParamElement* base)
+ShapeMapDesign::ElementSymmetry::ElementSymmetry(ShapeMapVariable* base)
 {
   this->base = base;
 }
 
-void ShapeMapDesign::ElementSymmetry::AddSymmetryReference(ShapeParamElement* elem, ShapeParam* shape, bool reciprocal)
+void ShapeMapDesign::ElementSymmetry::AddSymmetryReference(ShapeMapVariable* elem, ShapeParam* shape, bool reciprocal)
 {
   Virtual virt;
   virt.elem = elem;

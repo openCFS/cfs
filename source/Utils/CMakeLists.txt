@@ -13,8 +13,7 @@ SET(UTILS_SRCS
   SmoothSpline.cc
   Timer.cc
   tools.cc
-  TriLinInterpolate.cc
-  )
+  TriLinInterpolate.cc)
 
 ADD_LIBRARY(utils STATIC ${UTILS_SRCS})
 

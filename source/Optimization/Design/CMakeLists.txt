@@ -1,4 +1,4 @@
-SET(DESIGN_SRCS
+set(DESIGN_SRCS
   AuxDesign.cc
   DensityFile.cc
   DesignElement.cc
@@ -10,12 +10,10 @@ SET(DESIGN_SRCS
   LocalElementCache.cc
   ShapeDesign.cc
   ShapeMapDesign.cc
-  SplineBoxDesign.cc
-)
+  SplineBoxDesign.cc)
+  # for SpahettiDesign.cc see below 
 
-ADD_LIBRARY(design STATIC ${DESIGN_SRCS})
-
-SET(TARGET_LL
+set(TARGET_LL
   optimization
   cfsgeneral
   datainout
@@ -25,11 +23,22 @@ SET(TARGET_LL
   optimizer
   paramh
   pde
-  utils
-)
+  utils)
 
-IF(USE_SGPP)
-  SET(TARGET_LL ${TARGET_LL} ${SGPP_LIBRARY})
-ENDIF(USE_SGPP)
+# Currently SpaggettiDesign.cc works only with Python. 
+# The Python part shall be split later as optional part
+if(USE_EMBEDDED_PYTHON)
+  # see FindPrograms.cmake on how the PYTHON_ stuff is set
+  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
+  # already in FindCFSDEPS.cmake: include_directories(${PYTHON_INCLUDE_DIR})
+  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  set(DESIGN_SRCS ${DESIGN_SRCS} SpaghettiDesign.cc)
+endif()
 
-TARGET_LINK_LIBRARIES(design ${TARGET_LL})
+add_library(design STATIC ${DESIGN_SRCS})
+
+if(USE_SGPP)
+  set(TARGET_LL ${TARGET_LL} ${SGPP_LIBRARY})
+endif()
+
+target_link_libraries(design ${TARGET_LL})

@@ -258,7 +258,8 @@ template<typename T> class ElemStoreSol;
      * @param increment second = start + increment, ... */
     void Fill(const T& start, const T& increment);
 
-    /** Resize and fill the object with a numpy array (dim=1) object */
+    /** Resize and fill the object with a numpy array (dim=1) object
+     * @see Export() */
     void Fill(PyObject* obj, bool decref = true);
 
     //@}
@@ -545,7 +546,8 @@ template<typename T> class ElemStoreSol;
     //! \f$a_k\f$.
     virtual void Export(const std::string& fname, BaseMatrix::OutputFormat format ) const;
 
-    /** writes the content of the vector to a numpy array which needs to have proper size and type */
+    /** writes the content of the vector to a numpy array which needs to have proper size and type.
+     * @see Fill() */
     void Export(PyObject* obj);
 
     //@}

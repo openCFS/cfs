@@ -120,6 +120,15 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name, bool cerr_warni
   }
 }
 
+/** Set ParamaNodes as child nodes. Works recursively */
+void ParamNode::SetValue(ParamNodeList nodes)
+{
+  for(auto add : nodes) {
+    PtrParamNode pn = Get(add->GetName(), APPEND);
+    pn->SetValue(add);
+  }
+}
+
 void ParamNode::SetComment(const std::string& comment)
 {
   // check if we already have the commend

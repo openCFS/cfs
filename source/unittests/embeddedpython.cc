@@ -149,6 +149,9 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     Py_XDECREF(arg); // I guess val1 and val1 are decremented here?!
     if(!ret)
       PyErr_Print();
+    Py_XDECREF(arg);
+    Py_XDECREF(mv);
+    Py_XDECREF(ret);
     BOOST_TEST_REQUIRE(ret);
     BOOST_TEST_REQUIRE(PyTuple_Size(ret) == 2);
 
@@ -183,6 +186,29 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     Py_XDECREF(arg);
     Py_XDECREF(pValue);
     Py_XDECREF(pFunc);
+
+
+    // call python function with a tuple (not numpy), and empty tuple and a number
+    PyObject* gv = PyObject_GetAttrString(pModule, "get_vec");
+    assert(gv && PyCallable_Check(gv));
+    PyObject* gva = PyTuple_New(3); // gvl + gve + 2
+    PyObject* gvl = PyTuple_New(2); // the list object as first attribute
+    PyTuple_SetItem(gvl, 0, PyFloat_FromDouble(0.1));
+    PyTuple_SetItem(gvl, 1, PyFloat_FromDouble(0.2));
+
+    PyObject* gve = PyTuple_New(0); // empty tuple
+
+    PyTuple_SetItem(gva, 0, gvl);
+    PyTuple_SetItem(gva, 1, gve);
+    PyTuple_SetItem(gva, 2, PyLong_FromLong(2)); // gvl size
+
+    PyObject* gvr = PyObject_CallObject(gv, gva);
+
+    if(!gvr) PyErr_Print();
+    Py_XDECREF(gvr); // I guess val1 and val1 are decremented here?!
+    Py_XDECREF(gve);
+    Py_XDECREF(gva); // do NOT Py_XDECREF(gvl); -> segfault when looping
+    Py_XDECREF(gv);
 
 
 

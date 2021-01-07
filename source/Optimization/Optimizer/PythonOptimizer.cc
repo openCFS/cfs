@@ -5,6 +5,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Optimization/Optimizer/PythonOptimizer.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/PythonTools.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/tools.hh"
 
@@ -114,58 +115,18 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   assert(this_opt_pn_ != NULL);
 
   givenname = this_opt_pn_->Get("file")->As<string>();
-  if(!boost::filesystem::exists(givenname))
-    throw Exception("cannot find python file '" + givenname.string() + "' for python optimizer");
-  absolute = boost::filesystem::absolute(givenname.parent_path());
+
+  string version;
+  module = InitializePythonModule(givenname.string(), PyInit_cfs, &version);
 
   pyinf_->Get(ParamNode::HEADER)->Get("givenname")->SetValue(givenname.string());
-  pyinf_->Get(ParamNode::HEADER)->Get("path")->SetValue(absolute.string());
+  pyinf_->Get(ParamNode::HEADER)->Get("python")->SetValue(version);
 
   // the options are given to the python functions setup() and solve() for their usage
   ParamNodeList lst = this_opt_pn_->GetList("option");
-  options.Reserve(lst.GetSize());
-  for(auto opt : lst)
-    options.Push_back(make_pair(opt->Get("key")->As<string>(),opt->Get("value")->As<string>()));
+  options = ParseOptions(lst);
 
-  PtrParamNode oh = pyinf_->Get(ParamNode::HEADER)->Get("options");
-  for(auto o : options) {
-    PtrParamNode op = oh->Get("option", ParamNode::APPEND);
-    op->Get("key")->SetValue(o.first);
-    op->Get("value")->SetValue(o.second);
-  }
-
-
-  // needs to be done before Py_Initialize
-  PyImport_AppendInittab("cfs", &PyInit_cfs);
-
-  Py_Initialize();
-
-  PyObject* version = PySys_GetObject("version");
-  if(!version) {
-    PyErr_Print();
-    throw Exception("embedded python not working");
-  }
-  const char* c_str = PyUnicode_AsUTF8(version);
-  assert(c_str);
-  string str(c_str);
-  boost::replace_all(str, "\n"," ");
-  pyinf_->Get(ParamNode::HEADER)->Get("python")->SetValue(str);
-  Py_XDECREF(version);
-
-  // add to PYTHONPATH to make it more realistic to load the module :)
-  PyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append
-  PyList_Append(sysPath, PyUnicode_FromString(absolute.string().c_str()));
-
-
-  // now load the module
-  boost::filesystem::path name = boost::filesystem::change_extension(givenname.filename(), "");
-  module = PyImport_ImportModule(name.string().c_str());
-
-  if(!module)
-  {
-    PyErr_Print();
-    throw Exception("Cannot load python optimizer '" + givenname.string() + "' as embbeded python module.");
-  }
+  pyinf_->Get(ParamNode::HEADER)->Get("options")->SetValue(lst);
 
   // call optional setup(n,m,options)
   std::string val;
@@ -174,7 +135,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
     PyObject* arg = PyTuple_New(3);
     PyTuple_SetItem(arg, 0, PyLong_FromLong(n));
     PyTuple_SetItem(arg, 1, PyLong_FromLong(m));
-    PyTuple_SetItem(arg, 2, GetOptions());
+    PyTuple_SetItem(arg, 2, CreatePythonDict(options));
     PyObject* ret = PyObject_CallObject(setup, arg);
     val = ret != NULL ? to_string(PyLong_AsLong(ret)) : "NULL";
     Py_XDECREF(ret);
@@ -207,27 +168,13 @@ void PythonOptimizer::SolveProblem()
   PyTuple_SetItem(arg, 0, PyLong_FromLong(n));
   PyTuple_SetItem(arg, 1, PyLong_FromLong(m));
   PyTuple_SetItem(arg, 2, PyLong_FromLong(optimization->GetMaxIterations()));
-  PyTuple_SetItem(arg, 3, GetOptions());
+  PyTuple_SetItem(arg, 3, CreatePythonDict(options));
   PyObject* ret = PyObject_CallObject(solve, arg);
-  if(!ret) {
-    PyErr_Print();
-    throw Exception("error calling solve(n,m,maxiter,options) in python module " + givenname.string());
-  }
+  CheckPythonReturn(ret);
   pyinf_->Get(ParamNode::SUMMARY)->Get("solve()")->SetValue(PyLong_AsLong(ret));
   Py_DECREF(ret);
   Py_XDECREF(arg);
   Py_DECREF(solve);
-}
-
-
-PyObject* PythonOptimizer::GetOptions() const
-{
-  // test dictionary
-  PyObject* dict = PyDict_New();
-  for(auto opt : options)
-    PyDict_SetItemString(dict, opt.first.c_str(), PyUnicode_FromString(opt.second.c_str()));
-
-  return dict;
 }
 
 

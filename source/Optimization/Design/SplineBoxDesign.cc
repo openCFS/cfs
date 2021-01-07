@@ -239,19 +239,7 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn)
     fixed_boundary_ = pn->Get("fixedBoundary")->As<bool>();
   }
 
-  //set physical design, i.e. density field
-  map_.Resize(data.GetSize());
-  StdVector<Elem*> designElems;
-  domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
-  assert(map_.GetSize() == designElems.GetSize());
-
-  for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
-  {
-    map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
-    map_[i].min_corner_value.Resize(1);
-    map_[i].max_corner_value.Resize(1);
-  }
-
+  SetupMapping();
 }
 
 void SplineBoxDesign::SetupOptParam()
@@ -286,42 +274,14 @@ void SplineBoxDesign::SetupOptParam()
 
 void SplineBoxDesign::PostInit(int objectives, int constraints)
 {
-  if(domain->GetOptimization() != NULL)
-  {
-    opt_ = domain->GetOptimization();
-    CheckPlausibility();
-  }
-
   FeaturedDesign::PostInit(objectives, constraints);
-
-  assert(objectives > 0);
-
-  for(unsigned int i = 0; i < shape_param_.GetSize(); ++i) {
-    shape_param_[i]->PostInit(objectives, constraints);
-  }
 
   Write();
 }
 
-bool SplineBoxDesign::CompareDesign(const double* space_in)
-{
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    double v = space_in[i] * scaling_;
-    if(v != opt_shape_param_[i]->GetPlainDesignValue())
-      return false;
-  }
-
-  // no change here, let aux_design decide
-  return AuxDesign::CompareDesign(space_in);
-}
-
 void SplineBoxDesign::CheckPlausibility()
 {
-  assert(opt_ != NULL);
-  if(  (opt_->constraints.Has(Function::VOLUME) && opt_->constraints.Get(Function::VOLUME)->IsLinear())
-    || (opt_->objectives.Has(Function::VOLUME) && opt_->objectives.Get(Function::VOLUME)->IsLinear()))
-      throw Exception("Set 'volume' function to non-linear with splinebox design");
+  FeaturedDesign::CheckPlausibility();
 
   if(num_cp_[0] < degree_)
     throw Exception("Number of control points has to be at least degree+1");
@@ -333,31 +293,11 @@ void SplineBoxDesign::CheckPlausibility()
 
 int SplineBoxDesign::ReadDesignFromExtern(const double* space_in)
 {
-  assert(!std::isnan(scaling_));
   int old_design = design_id;
 
-  // write aux design variables (slack and alpha if any) last
-  assert(export_fe_design_ == false); // we do shape map
-  assert(DesignSpace::GetNumberOfVariables() > 0); // we need this variables but they are hidden!
+  FeaturedDesign::ReadDesignFromExtern(space_in);
 
-  bool new_design = false;
-
-  for(unsigned int i = 0; i < opt_shape_param_.GetSize(); ++i) {
-    double v = space_in[i] * scaling_;
-    assert(!std::isnan(v));
-    if(!new_design && v != opt_shape_param_[i]->GetPlainDesignValue()) {
-      new_design = true;
-    }
-
-    opt_shape_param_[i]->SetDesign(v);
-
-    LOG_DBG3(SBD) << "RDFE: i=" << i << ", " << opt_shape_param_[i]->ToString() << " -> " << v;
-  }
-
-  // append aux design, might also change design_id
-  AuxDesign::ReadDesignFromExtern(space_in);
-
-  if(new_design && design_id <= old_design) {
+  if(design_id != old_design) {
     StdVector<Point> offset(total_num_cp_);
     unsigned int k = 0;
     for(unsigned int i = 0; i < offset.GetSize(); ++i) {
@@ -372,13 +312,10 @@ int SplineBoxDesign::ReadDesignFromExtern(const double* space_in)
       EvalAll(new_coords);
       UpdateFEMesh(new_coords); // changes FE mesh
     }
-
-    ++design_id;
   }
 
-  if(!forward_ && mapped_design_ != design_id) {
+  if(!forward_ && mapped_design_ != design_id)
     MapFeatureToDensity();
-  }
 
   Write();
 
@@ -1608,65 +1545,6 @@ Matrix<double> SplineBoxDesign::GetInjectivityMatrix()
   return mtx;
 }
 
-void SplineBoxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
-{
-  assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::CP);
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    opt_shape_param_[i]->Reset(vs);
-//    assert(!opt_shape_param_[i].costGradient.IsEmpty());
-  }
-
-  AuxDesign::Reset(vs, design);
-}
-
-void SplineBoxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
-{
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
-  {
-    x_l[i] = opt_shape_param_[i]->GetLowerBound() / scaling_;
-    x_u[i] = opt_shape_param_[i]->GetUpperBound() / scaling_;
-    LOG_DBG3(SBD) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
-  }
-
-  AuxDesign::WriteBoundsToExtern(x_l, x_u);
-}
-
-inline unsigned int SplineBoxDesign::GetNumberOfVariables() const
-{
-  return aux_design_.GetSize() + opt_shape_param_.GetSize();
-}
-
-
-int SplineBoxDesign::FindDesign(DesignElement::Type dt, bool throw_exception) const
-{
-  // check for DENSITY, ...
-  int idx = DesignSpace::FindDesign(dt, false);
-  if(idx >= 0)
-    return idx;
-
-  assert(dt == DesignElement::CP || dt == DesignElement::SPLINE_BOX);
-
-  if(dt == DesignElement::SPLINE_BOX)
-    dt = DesignElement::CP; // return the node index
-
-  for(unsigned int i = 0; i < shape_param_.GetSize(); i++)
-    if(shape_param_[i]->GetType() == dt)
-      return i;
-
-  if(throw_exception)
-    EXCEPTION("Design " << DesignElement::type.ToString(dt) << " no FEM based and no shape mapping design.");
-  return -1;
-}
-
-inline BaseDesignElement* SplineBoxDesign::GetDesignElement(unsigned int idx)
-{
-  if(idx < opt_shape_param_.GetSize())
-    return opt_shape_param_[idx];
-  else
-    return AuxDesign::GetDesignElement(idx); // handles its offset properly
-}
-
 void SplineBoxDesign::ToInfo(ErsatzMaterial* em)
 {
   AuxDesign::ToInfo(em);
@@ -1751,90 +1629,6 @@ void SplineBoxDesign::Write()
     out << "3\n";
   }
   out.close();
-}
-
-
-int SplineBoxDesign::WriteDesignToExtern(double* space_out, bool scaling) const
-{
-  double rscaling = scaling ? 1.0 / scaling_ : 1.0;
-
-  for(unsigned int i=0; i < opt_shape_param_.GetSize(); ++i) {
-    space_out[i] = opt_shape_param_[i]->GetPlainDesignValue() * rscaling;
-    LOG_DBG3(SBD) << "WDTE: out[" << i << "]=" << space_out[i];
-  }
-
-  AuxDesign::WriteDesignToExtern(space_out, scaling);
-
-  LOG_DBG(SBD) << "WDTE: di -> " << design_id;
-  return design_id;
-}
-
-void SplineBoxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
-{
-  LOG_DBG2(SBD) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << shape_param_.GetSize()
-      << " out=" << out.GetSize() << " outwindowstart=" << out.window.GetStart() << " outwindowsz=" << out.window.GetSize();
-  assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
-
-  // MapFeatureGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
-  // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
-  if(f->IsObjective() || !Function::IsLocal(f->GetType())) // don't map local functions
-    MapFeatureGradient(f); // see comment above for what is necessary to cache the stuff
-
-  assert(f != NULL);
-  assert(opt_->objectives.data.GetSize() == 1); // implement multi objective and be careful!
-  assert(!(vs == DesignElement::COST_GRADIENT && !f->IsObjective()));
-  assert(vs == DesignElement::COST_GRADIENT || vs == DesignElement::CONSTRAINT_GRADIENT);
-  assert(!opt_->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for feature map. In DesignSpace we do f->GetExcitation()->Apply()
-  assert(design.GetSize() == 1); // only pseudo density, nothing else implemented yet
-  assert(regions.GetSize() == 1); // needs to be as design shall be 1
-
-  assert(out.window.Initialized());
-  unsigned int base = out.window.GetStart();
-  // out contains the Jacobian for possibly many functions. Snopt combines cost function (first) and then the constraints derivatives
-  // Here we assume that out has a window set where to write to for the given function.
-  if(f->HasDenseJacobian())
-  {
-    unsigned int end_opt = opt_shape_param_.GetSize();
-    LOG_DBG(SBD) << "WGTE: end_opt=" << end_opt << " ad=" << aux_design_.GetSize() << " w=" << out.window.GetSize();
-    assert(end_opt + aux_design_.GetSize() == out.window.GetSize());
-    for(unsigned int s = 0; s < end_opt; ++s)
-    {
-      assert(out.InWindow(base + s));
-
-      double opt = opt_shape_param_[s]->GetPlainGradient(f);
-
-      LOG_DBG3(SBD) << "WGTE de=" << opt_shape_param_[s]->ToString();
-      assert(!std::isnan(opt));
-
-      out[base + s] = opt * scaling;
-
-      LOG_DBG3(SBD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " opt=" << opt << " -> " << out[base + s];
-    }
-    // add slack stuff. No need to cheat window size
-    AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
-  }
-  else
-  {
-    assert(f->GetDesignType() == BaseDesignElement::CP || f->GetDesignType() == BaseDesignElement::SPLINE_BOX);
-    // uses opt_index_!
-    StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
-    LOG_DBG2(SBD) << "WGTE f=" << f->ToString() << " sparsity=" << sparsity.ToString();
-    assert(out.window.GetSize() == sparsity.GetSize());
-    for(unsigned int i = 0; i < sparsity.GetSize(); i++)
-    {
-      unsigned int s = sparsity[i];
-      assert(s < opt_shape_param_.GetSize());
-      LOG_DBG3(SBD) << "WGTE i=" << i << " s=" << s << " base=" << base << " b+s=" << (base+s);
-
-      assert(out.InWindow(base + i));
-      double scale = scaling ? scaling_ : 1.0;
-      assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
-
-      double opt = opt_shape_param_[s]->GetPlainGradient(f);
-
-      out[base + i] = opt * scale;
-    }
-  }
 }
 
 void SplineBoxDesign::SetControlPoint(int idx, Point coords, bool add)
