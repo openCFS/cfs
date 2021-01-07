@@ -12,13 +12,13 @@
 # Function to read MKL version from header file mkl.h or mkl_version.h
 #-----------------------------------------------------------------------------
 function(MKL_VERSION_FROM_HEADER)
-  IF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
-    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl_version.h" MKL_HEADER)
-  ELSEIF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
-    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
-  ELSE(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
-    MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
-  ENDIF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+  if(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+    file(STRINGS "${MKL_ROOT_DIR}/include/mkl_version.h" MKL_HEADER)
+  elseif(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
+    file(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
+  else()
+    message(FATAL_ERROR "MKL header could not be found for MKL_ROOT_DIR=${MKL_ROOT_DIR} at include/mkl_version.h or include/mkl.h")
+  endif()
 
   foreach(line IN LISTS MKL_HEADER)
     IF(line MATCHES "#define __INTEL_MKL")
