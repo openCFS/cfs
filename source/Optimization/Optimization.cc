@@ -718,7 +718,7 @@ Optimization* Optimization::CreateInstance()
 void Optimization::SolveProblem()
 {
   // one driver is one multisequence step. We do this stuff here
-  // and call the driver->StoreResults() multiple times f
+  // and call the driver->StoreResults() multiple times
 
   ResultHandler* rh = NULL;
 

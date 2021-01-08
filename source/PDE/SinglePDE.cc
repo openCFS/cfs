@@ -878,8 +878,10 @@ namespace CoupledField {
 		  // ========== Look for defineType 'REGION' ==========
 		  // if no node was found, continue with next result
 		  if( !actResultNode) {
-		    LOG_DBG(singlepde) << pdename_ << ":   out here";
+		    LOG_DBG(singlepde) << pdename_ << ":   not found";
 			  return false;
+		  } else {
+		    LOG_DBG(singlepde) << pdename_ << ": ------- FOUND -------";
 		  }
 
 		  // determine complexFormat

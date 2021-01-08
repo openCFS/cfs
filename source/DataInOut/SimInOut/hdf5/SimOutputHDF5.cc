@@ -447,9 +447,7 @@ namespace CoupledField {
       subGroup = regionGroup.createGroup( entityString );
     } H5_CATCH( "Could not create subgroup " << entityString
                 << " for result " << resultName << " on region "
-                << regionName << ". Maybe the group already exists.\n"
-                << "This happens e.g. if you optimize a multisequence "
-                << "problem with same storeResults in different steps.");
+                << regionName << ". Maybe the group already exists.");
 
     if( sol->GetEntryType() == BaseMatrix::DOUBLE ) {
 

@@ -54,6 +54,8 @@ namespace CoupledField {
     //! Set number of multisequence steps
     void SetNumMultiSequenceSteps( UInt numSteps );
     
+    void SetSequenceStep( UInt sequenceStep ) { sequenceStep_ = sequenceStep; };
+
     // =======================================================================
     // METHODS FOR OUTPUT FUNCTIONALITY
     // =======================================================================

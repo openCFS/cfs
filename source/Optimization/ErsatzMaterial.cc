@@ -423,6 +423,8 @@ void ErsatzMaterial::StoreResults(double step_val)
       // excitation switch is necessary for eigenvalues, where we write the mode of the current excitation to the pde
       ex.Apply(true);
 
+      context->GetDriver()->SetResultHandlerSequenceStep();
+
       // In case of eigenvalues we have for each excitation many modes and the correct one will be
       // written to the pde in EigenFrequencyDriver::StoreResults or BucklingDriver::StoreResults.
       // Else we use the default -1.
@@ -583,7 +585,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
   }
 
-  // now add the min/max for the ev such we can analyse possible nonsmoothneses. However the gap is the information to search manually
+  // now add the min/max for the ev such we can analyse possible nonsmoothness. However the gap is the information to search manually
   std::map<unsigned int, bool> ev_done; // what we did
   for(unsigned int c = 0; c < ev.GetSize(); c++)
   {

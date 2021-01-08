@@ -4,6 +4,7 @@
 #include "PDE/BasePDE.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ResultHandler.hh"
 #include "Driver/AnalysisID.hh"
 
 namespace CoupledField
@@ -57,6 +58,11 @@ namespace CoupledField
     
     //! Return current (multi)sequenceStep
     virtual UInt GetActSequenceStep();
+
+    void SetResultHandlerSequenceStep() {
+      handler_->SetSequenceStep(sequenceStep_);
+    };
+
     
     //! Return current time / frequency step of simulation
     virtual UInt GetActStep ( const std::string& pdename ) = 0;

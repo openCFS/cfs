@@ -257,7 +257,10 @@ namespace CoupledField {
       // store context
       ResultContext & actContext = *(resultContexts_[*it]);
       BaseResult & actResult  = *(actContext.result);
-                   
+
+      if(actContext.sequenceStep != sequenceStep_)
+        continue;
+
       LOG_DBG(resHandler) << "Checking result '"<< actResult.GetResultInfo()->resultName
                           << "' on '" << actResult.GetEntityList()->GetName() << "' for writing out";
 
