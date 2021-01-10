@@ -221,6 +221,9 @@ namespace CoupledField {
       exit(EXIT_SUCCESS);
     }
 
+    // obtain schema path once
+    schemaPath_ = FindSchemaPath();
+
     /*
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 )
@@ -232,7 +235,8 @@ namespace CoupledField {
     */
   }
 
-  string ProgramOptions::EnvironmentNameMapper(const string& var )  {
+  string ProgramOptions::EnvironmentNameMapper(const string& var )
+  {
     string ret;
 
     if(var == "CFS_SCHEMA_ROOT") ret = "schemaRoot";
@@ -331,50 +335,52 @@ namespace CoupledField {
       return "";
   }
 
-  fs::path ProgramOptions::GetSchemaPath() const
+  fs::path ProgramOptions::FindSchemaPath() const
   {
     string schema;
-    fs::path schemaPath;
 
-    // If the user specified a path on the command line use it instead.
-    if( varMap_.count( "schemaRoot" ) ) {
-      schema = varMap_[ "schemaRoot" ].as<string>();
+    // If the user specified a path on the command line or the CFS_SCHEMA_ROOT variable, use it instead.
+    if(varMap_.count("schemaRoot"))
+    {
+      schema = varMap_["schemaRoot"].as<string>();
 #if defined(WIN32)
       // watch out for leading and closing " in schema string
-      boost::trim_if( schema, boost::is_any_of(" \t\"\'") );
-
-      // std::cout << "schema = " << schema << std::endl;
+      boost::trim_if(schema, boost::is_any_of(" \t\"\'"));
 #endif      
-    } else {
+    }
+    else
+    {
+      // from CMakeLists.txt with ${CFS_SOURCE_DIR}/share/xml as default
+      // is invalid if the binaries are copied to another location (e.g. binary distribution)
       schema = XMLSCHEMA;
     }
 
-    //      fs::path fn = fs::system_complete(progOpts->exe_);
-    //      fn.normalize();
+    // make a normalized schemaPath - works also in the non-existing case
+    fs::path schemaPath = fs::system_complete(schema); // if it did not start with root inserts current working directory, which is clearly nonsense but does not throw an error
+    schemaPath.normalize(); // resolves stuff like bla/../fasel. Is depreciated and should work without
 
-    try
-    {
-      schemaPath = fs::system_complete(schema);
-      schemaPath.normalize();
-    } catch (fs::filesystem_error& ex)
-    {
-      EXCEPTION(ex.what());
+    // try to obtain the schema root from argv[0]. Use it only if schema is invalid
+    // This is the full path for Windows but on Linux and macOS this is either the full path or the pure link name (e.g. "cfs_rel")
+    // For the full path we are in .../<cfs_root>/bin/cfsbin or .../<cfs_root>/bin/MACOSX_11.1_X86_64/cfsbin
+    // for the link case, parent_path() is ".." and parent_path().parent_path() is "", all expection save
+    fs::path exe_schema_root;
+    if(fs::path(exe_).parent_path().filename() == "bin")
+      exe_schema_root = fs::path(exe_).parent_path().parent_path();
+    else if(fs::path(exe_).parent_path().parent_path().filename() == "bin") // remove when getting rid of CFS_ARCH_STR folders
+      exe_schema_root = fs::path(exe_).parent_path().parent_path().parent_path();
+    exe_schema_root.normalize(); // shall be save to remove when the depreciaton hurts
+    exe_schema_root = exe_schema_root.string() + "/share/xml"; // shall work also on Windows
+
+    if(fs::exists(schemaPath))
+      return schemaPath;
+    if(fs::exists(exe_schema_root)) {
+      std::cout << "Warning: given xml schema path '" + schemaPath.string() + "' is invalid, use extraction from executable.\n"; // given in .info.xml
+      return exe_schema_root;
     }
 
-    // If none of the above paths exists, raise exception
-    if(!fs::exists(schemaPath)) {
-      EXCEPTION( "Schema path '" << schemaPath << "' does not exist!" );
-    }
-
-    return schemaPath;
+    EXCEPTION( "Schema path " << schemaPath << " does not exist. Use -s or environment variable CFS_SCHEMA_ROOT." );
   }
 
-  string ProgramOptions::GetSchemaPathStr() const
-  {
-    fs::path schemaPath = GetSchemaPath();
-
-    return schemaPath.string();
-  }
 
   fs::path ProgramOptions::GetMeshFile() const
   {

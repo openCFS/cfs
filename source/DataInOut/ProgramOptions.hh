@@ -94,8 +94,8 @@ namespace CoupledField
     //!   file itself. This must be called CFS.xsd!
     //! - This path is also used to locate the default XML-file that is
     //!   currently still needed by the XMLParamHandler.
-    fs::path GetSchemaPath() const;
-    std::string GetSchemaPathStr() const;
+    fs::path GetSchemaPath() const { return schemaPath_; }
+    std::string GetSchemaPathStr() const { return schemaPath_.string(); }
 
     //! Return name of mesh file (including path)
 
@@ -185,10 +185,25 @@ namespace CoupledField
     // @}
 
   protected:
+
+
+    /** obtain root path to the schema directory.
+     * This is "<base>/share/xml" such that stuff like "/CFS-Simulation/CFS.xsd" can be added.
+     *
+     * This are the rules to obtain the path:
+     * 1) use program option -s or --schemaRoot
+     * 2) use the environment variable CFS_SCHEMA_ROOT
+     * 3) use the compile time information XMLSCHEMA (advanced cmake option)
+     * 4) if this all fails, try to obtain from runtime location (Linux, Windows, does not work on macOS)  */
+    fs::path FindSchemaPath() const;
+
+    /** schema root path obtained by FindSchemaPath */
+    fs::path schemaPath_;
+
     //! Command line arguments as vector
     std::vector<std::string> args_;
 
-    //! Path to executable
+    //! Path to executable. This might include the path (Linux, Windows) but does not for macOS
     std::string exe_;
 
     //! Help message as string
