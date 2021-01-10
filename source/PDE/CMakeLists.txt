@@ -19,6 +19,7 @@ SET(PDE_SRCS
   AcousticSplitPDE.cc
   AcousticMixedPDE.cc
   ElecCurrentPDE.cc
+  ElecQuasiStaticPDE.cc
   WaterWavePDE.cc
   FlowPDE.cc
   LinFlowPDE.cc

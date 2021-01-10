@@ -67,6 +67,10 @@ namespace CoupledField {
     //! \param material Material object to be filled with data
     void ReadElectrostatic(BaseMaterial *material, PtrParamNode pn); 
 
+    //! Reads electro-quasistatic material.
+    //! \param material Material object to be filled with data
+    void ReadElecQuasistatic(BaseMaterial *material, PtrParamNode pn);
+
     //! Reads magnetic material.
     //! \param material Material object to be filled with data
     void ReadMagnetic(BaseMaterial *material, PtrParamNode pn);

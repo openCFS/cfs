@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an quais-static electric field
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for quasi-static electric PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatElecQuasistatic">
+    <xsd:sequence>
+      <xsd:element name="permittivity" type="DT_ElecPermittivityQuasi"/>
+      <xsd:element name="electricConductivity" type="DT_ElecConductivityQuasi" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric permittivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ElecPermittivityQuasi">
+    <xsd:sequence>
+       <xsd:element name="linear" type="DT_Square3TensorType" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric conductivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ElecConductivityQuasi">
+    <xsd:sequence>
+       <xsd:element name="linear" type="DT_Square3TensorType" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+    
+
+</xsd:schema>

@@ -744,6 +744,9 @@ namespace CoupledField {
       case ELECTRICCONDUCTION:
         out = "elecConduction";
         break;
+      case ELECQUASISTATIC:
+        out = "elecQuasistatic";
+        break;
       case ACOUSTIC:
         out = "acoustic";
         break;
@@ -789,6 +792,9 @@ namespace CoupledField {
     }
     else if ( in == "elecConduction" ) {
       out = ELECTRICCONDUCTION;
+    }
+    else if ( in == "elecQuasistatic" ) {
+          out = ELECQUASISTATIC;
     }
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;

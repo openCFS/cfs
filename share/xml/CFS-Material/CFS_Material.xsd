@@ -30,6 +30,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MATthermoelastic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmagStrict.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATelecConduction.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATelecQuasistatic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MAThysteresis.xsd"/>
   
   <!-- ******************************************************************* -->
@@ -55,6 +56,8 @@
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="elecConduction" type="DT_MatElecConduction"
                 minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="elecQuasistatic" type="DT_MatElecQuasistatic"
+                minOccurs="0" maxOccurs="1"/>                
               <xsd:element name="magnetic" type="DT_MatMagnetic"
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="magnetoStrictive" type="DT_MatMagStrict"

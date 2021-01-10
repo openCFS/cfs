@@ -32,6 +32,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMechLin.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEelectricConduction.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEelecQuasistatic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEwaterWave.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEtest.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDELatticeBoltzmann.xsd"/>

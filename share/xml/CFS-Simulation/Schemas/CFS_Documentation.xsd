@@ -149,6 +149,9 @@
       <!-- electric conduction -->
       <xsd:enumeration value="electricConduction"/>
 
+      <!-- quasistatic electric field -->
+      <xsd:enumeration value="elecQuasistatic"/>
+      
       <!-- Electrostatic -->
       <xsd:enumeration value="electrostatic"/>
       

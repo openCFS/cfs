@@ -10,6 +10,7 @@
 // header for materials
 #include "Materials/ElectroMagneticMaterial.hh"
 #include "Materials/ElectroStaticMaterial.hh"
+#include "Materials/ElecQuasistaticMaterial.hh"
 #include "Materials/HeatMaterial.hh"
 #include "Materials/AcousticMaterial.hh"
 #include "Materials/MechanicMaterial.hh"
@@ -106,6 +107,10 @@ namespace CoupledField {
       else if ( matClass == ELECTROSTATIC ) {
         material = new ElectroStaticMaterial(mp, cs);
         ReadElectrostatic( material, pn );
+      }
+      else if ( matClass == ELECQUASISTATIC ) {
+        material = new ElecQuasistaticMaterial(mp, cs);
+        ReadElecQuasistatic( material, pn );
       }
       else if ( matClass == THERMIC ) {
         material = new HeatMaterial(mp, cs);
@@ -617,6 +622,52 @@ namespace CoupledField {
     }
   }
   
+
+  //**********************************************************************
+  //*************  READ ELECTRO-QUASISTATICS ************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadElecQuasistatic(BaseMaterial *material, PtrParamNode elec)
+  {
+    // read electric conductivity
+    if (elec->Has("electricConductivity")) {
+      PtrParamNode cond = elec->Get("electricConductivity");
+
+      if (cond->Has("linear")) {
+        MaterialType orthoProps[3] = {
+            ELEC_CONDUCTIVITY_1, ELEC_CONDUCTIVITY_2, ELEC_CONDUCTIVITY_3
+        };
+        ReadSquare3x3Tensor(cond->Get("linear"), material, ELEC_CONDUCTIVITY_SCALAR,
+            orthoProps, ELEC_CONDUCTIVITY_TENSOR, Global::COMPLEX);
+      }
+
+      // we know only nonlinear isotropic material
+      if (cond->Has("nonlinear") && cond->Get("nonlinear")->Has("isotropic")) {
+        PtrParamNode iso = cond->Get("nonlinear")->Get("isotropic");
+        BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
+        material->SetNonLinMatIso(ELEC_CONDUCTIVITY_SCALAR, info);
+      } // nonlinear isotropic material
+    }
+
+    // check for permittivity
+    PtrParamNode permit = elec->Get("permittivity", ParamNode::PASS);
+    if (permit) {
+      if (permit->Has("linear")) {
+        MaterialType orthoProp[3] = {
+            ELEC_PERMITTIVITY_1, ELEC_PERMITTIVITY_2, ELEC_PERMITTIVITY_3
+        };
+        ReadSquare3x3Tensor(permit->Get("linear"), material, ELEC_PERMITTIVITY_SCALAR,
+                            orthoProp, ELEC_PERMITTIVITY_TENSOR, Global::COMPLEX);
+      }
+
+      if (permit->Has("nonlinear") && permit->Get("nonlinear")->Has("isotropic")) {
+        BaseMaterial::MatDescriptorNl nlInfo =
+            ReadNonlinDescriptor(permit->Get("nonlinear")->Get("isotropic"), material);
+        material->SetNonLinMatIso(ELEC_PERMITTIVITY_SCALAR, nlInfo);
+      }
+    } // end of permittivity
+  }
+
+
   //**********************************************************************
   //*************  READ MAGNETIC *****************************************
   //**********************************************************************

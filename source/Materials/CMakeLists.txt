@@ -3,6 +3,7 @@ SET(MATERIALS_SRCS
   BaseMaterial.cc
   ElectroMagneticMaterial.cc 
   ElectroStaticMaterial.cc 
+  ElecQuasistaticMaterial.cc
   HeatMaterial.cc
   MechanicMaterial.cc
   FlowMaterial.cc 

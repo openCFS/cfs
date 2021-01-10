@@ -57,6 +57,7 @@
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
+#include "PDE/ElecQuasiStaticPDE.hh"
 #include "PDE/WaterWavePDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 
@@ -787,6 +788,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
     else if (actPdeName == "elecConduction") {
         ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
+    else if (actPdeName == "elecQuasistatic") {
+        ptSinglePde_[i] = new ElecQuasistaticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "waterWave") {
       ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
