@@ -27,7 +27,12 @@ SET(MD5_SUM ${IPOPT_MD5})
 # the encrypted ipopt_hsl.zip is so small and for everyone available on the web if you register, we provide it
 # in the cfs/cfsdeps/ipopt itself. You just need the key.
 if(NOT CFS_KEY_IPOPT_HSL)
-  message(FATAL_ERROR "Key for encrypted ipopt_hsl.zip required in CFS_KEY_IPOPT_HSL. E.g. set in your ~/.cfs_platform_defaults.cmake")
+  # check if key was set via environment variable
+  if (DEFINED ENV{CFS_KEY_IPOPT_HSL})
+    SET(CFS_KEY_SNOPT ENV{CFS_KEY_IPOPT_HSL})
+  else()
+    message(FATAL_ERROR "Key for encrypted ipopt_hsl.zip required in CFS_KEY_IPOPT_HSL. E.g. set in your ~/.cfs_platform_defaults.cmake")
+  endif()  
 endif() 
 # The patch triggers downloading netlib blas and lapack such that ipopt compiles with blas support.
 # However netlib blas will be removed after installation and the cfs stuff will be used

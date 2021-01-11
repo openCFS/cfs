@@ -30,7 +30,12 @@ if(NOT EXISTS "${LOCAL_FILE}")
 endif()
 
 if(SGPP_ZIP AND NOT CFS_KEY_SGPP)
-  message(FATAL_ERROR "Key for encrypted ${SGPP_ZIP} required in CFS_KEY_SGPP. Set e.g. in your ~/.cfs_platform_defaults.cmake")
+  # check if key was set via environment variable
+  if (DEFINED ENV{CFS_KEY_SGPP})
+    SET(CFS_KEY_SGPP ENV{CFS_KEY_SGPP})
+  else()
+    message(FATAL_ERROR "Key for encrypted ${SGPP_ZIP} required in CFS_KEY_SGPP. Set e.g. in your ~/.cfs_platform_defaults.cmake")
+  endif()  
 endif()    
 
 #-------------------------------------------------------------------------------

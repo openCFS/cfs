@@ -35,7 +35,12 @@ SET(LOCAL_FILE1 "${CFS_DEPS_CACHE_DIR}/sources/snopt/${SNOPT_ZIP}") # needs to b
 # we don't check the md5 here
 
 if(NOT CFS_KEY_SNOPT)
-  message(FATAL_ERROR "Key for encrypted ${SNOPT_ZIP} required in CFS_KEY_SNOPT. Set e.g. in your ~/.cfs_platform_defaults.cmake")
+  # check if key was set via environment variable
+  if (DEFINED ENV{CFS_KEY_SNOPT})
+    SET(CFS_KEY_SNOPT ENV{CFS_KEY_SNOPT})
+  else()  
+    message(FATAL_ERROR "Key for encrypted ${SNOPT_ZIP} required in CFS_KEY_SNOPT. Set e.g. in your ~/.cfs_platform_defaults.cmake")
+  endif()  
 endif()    
 
 #-------------------------------------------------------------------------------

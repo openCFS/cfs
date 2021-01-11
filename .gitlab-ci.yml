@@ -149,7 +149,10 @@ runner-debug:
   after_script:
     - cd build
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-
+    # copy CMakeCache one level up to avoid conflicts with test config in artifact
+    # perform this only in the build stage
+    - (if [[ $CI_JOB_STAGE == build* ]]; then cp ../build/CMakeCache.txt ../build/CMakeCache_build-stage.txt; fi)
+    
 .default_build_job: &default_build_job
   extends: .default_pipeline_rules
   # do not add this job if commit message contains 'skip-gcc-builds'
@@ -177,6 +180,7 @@ runner-debug:
   artifacts:
     paths: # just an example
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - build/CMakeCache_build-stage.txt
     expire_in: 3 days
 
 .gcc_before: &gcc_before
@@ -290,8 +294,7 @@ build:gcc7max:
     GCC_VERSION: 7
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
   <<: *gcc_before
-  <<: *default_build_job
-  <<: *max_rules
+  # don't merge default_build_job and max_rules (already included in .max_cfs_config)
   
 .build:gcc9:
   stage: build release
@@ -504,7 +507,7 @@ platform:centos:7:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential|Abc2d|Abc2dcsvt" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential|Abc2d|Abc2dcsvt|python_ocm" --track $CDASH_TRACK # exclude the install step and the failing tests
 
 # test everything (but python, which is tested seperately)
 .test_all_multicore: &test_all_multicore

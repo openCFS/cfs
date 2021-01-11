@@ -951,7 +951,7 @@ void SplineBoxDesign::MapFeatureToDensity()
 
   Grid* grid = domain->GetGrid();
 
-  #pragma omp parallel
+  #pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
     StdVector<double> local_ip(dim_); // the current ip within the element
 
