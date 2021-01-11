@@ -1,5 +1,4 @@
 SET(PARAMH_SRCS
-  XMLSkeletonConf.cc
   ParamNode.cc
   XMLMaterialHandler.cc
   XmlReader.cc

@@ -20,7 +20,6 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Driver/FormsContexts.hh"
 #include "General/Environment.hh"
-#include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -208,12 +207,6 @@ int CFS::Run()
 {
   try
   {
-    if(progOpts->GetWriteSkeleton())
-    {
-      WriteXMLSkeleton();
-      return 0;
-    }
-
     if(!progOpts->IsQuiet())
     {
       cout << "Simulation run started at " << start_time_;
@@ -329,28 +322,6 @@ void CFS::SolveProblem()
  if(!progOpts->IsQuiet())
    cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
 }
-
-
-void CFS::WriteXMLSkeleton()
-{
-  // This block is used for writing a skeleton XML-File to make life easier
-  // for the user. This also will import some information from the mesh-file.
-  // Since normally all opening of files is handled in definefiles
-  // the debug and trace file are opened separately here. Definefiles cannot
-  // be used, since it would try to open other files also, that need not be
-  // present????
-  // Hardcoded: Read mesh file
-  string meshFile = progOpts->GetMeshFileStr();
-  string simName = progOpts->GetSimName();
-  if(meshFile == "")
-    meshFile = simName + ".mesh";
-  SimInputMESH input(meshFile, PtrParamNode(), infoNode);
-  input.InitModule();
-  // class writing log-information
-  SkeletonConf skeleton(dynamic_cast<SimInput*>(&input));
-  skeleton.WriteConf();
-}
-
 
 void CFS::ReadXMLFile()
 {
