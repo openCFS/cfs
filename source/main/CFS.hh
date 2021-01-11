@@ -34,9 +34,6 @@ namespace CoupledField
     ~CFS();
   private:
 
-    /** Write the skeleton file only */
-    void WriteXMLSkeleton();
-
     /** Read XML file */
     void ReadXMLFile();
 

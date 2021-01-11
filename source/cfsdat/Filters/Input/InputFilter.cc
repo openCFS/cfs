@@ -20,9 +20,6 @@
 #include <Domain/Mesh/GridCFS/GridCFS.hh>
 
 #include "DataInOut/DefineInOutFiles.hh"
-#include "DataInOut/ParamHandling/SkeletonConf.hh"
-
-
 
 namespace CFSDat{
 
