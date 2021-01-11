@@ -54,7 +54,6 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     if(globallyConvergent)
       rho_init = this_opt_pn_->Get("globally_convergent/rho")->As<double>();
 
-
     // asymptotes specification
     if(this_opt_pn_->Has("asymptotes"))
     {
@@ -104,8 +103,6 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
   sps_timer_->SetSub();
 
-
-
   PostInitScale(1.0);
 }
 
@@ -132,7 +129,7 @@ void MMA::ToInfo(PtrParamNode pn)
 
 void MMA::PostInit()
 {
-  assert(optimization->objectives.data.GetSize() == 1); // trivial case only
+//  assert(optimization->objectives.data.GetSize() == 1); // trivial case only
   ConditionContainer& cc = optimization->constraints;
   // Physics relted initilization
   n = optimization->GetDesign()->GetNumberOfVariables();
@@ -146,9 +143,10 @@ void MMA::PostInit()
   xmin.Replace(std_xmin.GetSize(), std_xmin.GetPointer(), false);
   xmax.Replace(std_xmax.GetSize(), std_xmax.GetPointer(), false);
 
-  grad_compliance.Resize(n,0.0);
-  constrains.Resize(m,0.0);
-  grad_constrains.Resize(n*m,0.0);
+  grad_objective.Resize(n,0.0);
+  constraints.Resize(m,0.0);
+  grad_constraints.Resize(n*m,0.0);
+
   //MMA related initilization
   low.Resize(n,0.0); //cdev important to set it to zero
   upp.Resize(n,0.0); //cdev important to set it to zero
@@ -170,10 +168,10 @@ void MMA::PostInit()
   change.Resize(n);
   p_0j.Resize(n); // for the objective function
   q_0j.Resize(n); // for the objective function
-  p_ij.Resize(m, n); // for all the constrain function
-  q_ij.Resize(m, n); // for all the constrain function
-  b.Resize(m); // rhs of constrain inequality in subproblem.
-  lamda.Resize(m); // Lagrange multiplier
+  p_ij.Resize(m, n); // for all the constraints
+  q_ij.Resize(m, n); // for all the constraints
+  b.Resize(m); // rhs of constraint inequality in subproblem.
+  lambda.Resize(m); // Lagrange multiplier
   mu.Resize(m); // Lagrange multiplier
   y.Resize(m); // elastic variable
   z = 0.0; // elastic variable
@@ -197,80 +195,68 @@ void MMA::PostInit()
 
 void MMA::ComputeObjectiveConstraintsSensitivities()
 {
-  // To viaualize the gradients
+  // To visualize the gradients
   DesignSpace* space = optimization->GetDesign();
 
   // evaluate properties of initial design
-  compliance = EvalObjective(n, xval.GetPointer(), false);
-  EvalGradObjective(n, xval.GetPointer(), false, grad_compliance);
-  EvalConstraints(n, xval.GetPointer(), m, false, constrains.GetPointer(), true);
-//  con[0] = con[0] - 0.5;
+  obj_val = EvalObjective(n, xval.GetPointer(), false);
+  EvalGradObjective(n, xval.GetPointer(), false, grad_objective);
+  EvalConstraints(n, xval.GetPointer(), m, false, constraints.GetPointer(), true);
 
-  EvalGradConstraints(n, xval.GetPointer(), m, n*m, false, false, grad_constrains);
+  EvalGradConstraints(n, xval.GetPointer(), m, n*m, false, false, grad_constraints);
 
-  /*
-  if(optimization->GetCurrentIteration() == 0)
-  {
-    obj_scale = 10.0/compliance;
-  }
-  */
-  compliance = compliance*obj_scale;
+  obj_val = obj_val*obj_scale;
   // this is based on topopt implementation, since i have used the same parameters for a,c, asyminit as them, we have to scale similarly
   int res_idx_grad_0 = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_OBJ_GRADIANT);
   for(unsigned int ni=0; ni<n; ++ni){
-    //grad_compliance[ni] = grad_compliance[ni]*obj_scale;
+    //grad_objective[ni] = grad_objective[ni]*obj_scale;
 
-    if(res_idx_grad_0 >= 0 )
+    if(res_idx_grad_0 >= 0)
     {
       // in a DesignElement we can store special results, but e.g. a slack variable is only a BaseDesignElement
       DesignElement* de = dynamic_cast<DesignElement*>(space->GetDesignElement(ni));
       if(de != NULL && res_idx_grad_0 >= 0)
-        de->specialResult[res_idx_grad_0 ] = grad_compliance[ni];
+        de->specialResult[res_idx_grad_0] = grad_objective[ni];
     }
   }
-
-
 
   int res_idx_grad_1 = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_CON_GRADIANT_1);
   int res_idx_grad_2 = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_CON_GRADIANT_2);
   for(unsigned int ni =0; ni<n; ++ni)
   {
-    if(res_idx_grad_1 >= 0 )
-      {
-        // in a DesignElement we can store special results, but e.g. a slack variable is only a BaseDesignElement
-        DesignElement* de = dynamic_cast<DesignElement*>(space->GetDesignElement(ni));
-        if(de != NULL && res_idx_grad_1 >= 0)
-          de->specialResult[res_idx_grad_1 ] = grad_constrains[ni];
-      }
+    if(res_idx_grad_1 >= 0)
+    {
+      // in a DesignElement we can store special results, but e.g. a slack variable is only a BaseDesignElement
+      DesignElement* de = dynamic_cast<DesignElement*>(space->GetDesignElement(ni));
+      if(de != NULL && res_idx_grad_1 >= 0)
+        de->specialResult[res_idx_grad_1] = grad_constraints[ni];
+    }
     if(res_idx_grad_2 >= 0 && m > 1)
-      {
-        // in a DesignElement we can store special results, but e.g. a slack variable is only a BaseDesignElement
-        DesignElement* de = dynamic_cast<DesignElement*>(space->GetDesignElement(ni));
-        if(de != NULL && res_idx_grad_2  >= 0)
-          de->specialResult[res_idx_grad_2 ] = grad_constrains[ni+n];
-      }
+    {
+      // in a DesignElement we can store special results, but e.g. a slack variable is only a BaseDesignElement
+      DesignElement* de = dynamic_cast<DesignElement*>(space->GetDesignElement(ni));
+      if(de != NULL && res_idx_grad_2  >= 0)
+        de->specialResult[res_idx_grad_2] = grad_constraints[ni+n];
+    }
   }
 
-  LOG_DBG3(mmaTopOpt) << "COCS: compliance=" << compliance;
+  LOG_DBG3(mmaTopOpt) << "COCS: obj_val=" << obj_val;
   LOG_DBG3(mmaTopOpt) << "COCS: obj_scale=" << obj_scale;
-  LOG_DBG3(mmaTopOpt) << "COCS: grad_compliance=" << grad_compliance.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "COCS: constrains=" << constrains.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "COCS: grad_constrains=" << grad_constrains.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "COCS: grad_objective=" << grad_objective.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "COCS: constraints=" << constraints.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "COCS: grad_constraints=" << grad_constraints.ToString(0);
 
-  }
+}
 
 void MMA::SolveProblem()
 {
-//  std::cout << std::setprecision(16);
   if(testing)
     FunctionTest();
   else
   {
     if(optimization->GetMaxIterations() == 0)
-    {
       throw Exception("maximum number of iterations is 0 ");
-      return;
-    }
+
     ComputeObjectiveConstraintsSensitivities();
 
     assert(optimization->GetCurrentIteration() == 0);
@@ -349,7 +335,7 @@ bool MMA::SolveMMA()
     xold1 = xval;
   }
 
-  LOG_DBG3(mmaTopOpt) << "S_MMA before: lamda=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "S_MMA before: lambda=" << lambda.ToString(0);
   LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString(0);
 
   // Solve the MMA subproblem dual with interior point method
@@ -363,7 +349,7 @@ bool MMA::SolveMMA()
     ok = false;
   sps_timer_->Stop();
 
-  LOG_DBG3(mmaTopOpt) << "S_MMA after: lamda=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "S_MMA after: lambda=" << lambda.ToString(0);
   LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString(0);
 
   return ok;
@@ -403,58 +389,56 @@ void MMA::GenerateSubProblem()
       }
       objective_approx -= objective_r;
 
-      if(objective_approx < compliance)
+      if(objective_approx < obj_val)
         rho_0 = 2.0*rho_0;
 
-      StdVector<double> constrain_approx(m); // This is compute the constrain approximation @xnew
+      StdVector<double> constraints_approx(m); // This is compute the constraints approximation @xnew
       /** Deal with the constraint*/
 // #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for(unsigned int j =0; j<m; ++j)
       {
-        constrain_approx[j] = 0.0;
+        constraints_approx[j] = 0.0;
         for(unsigned int ni =0; ni<n; ++ni)
         {
           double asym = p_ij[j][ni] /(upp[ni] - xval[ni]) + q_ij[j][ni] / (xval[ni] - low[ni]);
-          constrain_approx[j] += asym;
+          constraints_approx[j] += asym;
         }
       }
       for(unsigned int mj=0; mj<m;++mj)
-          constrain_approx[mj] += -b[mj];
+        constraints_approx[mj] += -b[mj];
 
       for(unsigned int mj =0; mj<m; ++mj)
-        if(constrain_approx[mj] < constrains[mj])
+        if(constraints_approx[mj] < constraints[mj])
           rho[mj] = 2.0*rho[mj];
 
       /** Decide if the low and upp should be updated. Description povided in K.Svanberg's DCAMM lecture notes section 6
        * We decide to update only if all the function_approximation evaluated at xnew is greater then function evaluated at xnew */
       bool shouldUpdate = true;
-      if(!(objective_approx >= compliance))
+      if(!(objective_approx >= obj_val))
         shouldUpdate = false;
 
-      if(shouldUpdate )
+      if(shouldUpdate)
+      {
         for(unsigned int mj=0; mj<m;++mj)
         {
-          if( !(constrain_approx[mj] >= constrains[mj]))
+          if( !(constraints_approx[mj] >= constraints[mj]))
           {
             shouldUpdate = false;
             break;
           }
         }
-
-
-      if(shouldUpdate)
-      {
         for(unsigned int ni =0; ni< n; ++ni)
         {
           low[ni] = xval[ni] - (xold1[ni] - low[ni]);
           upp[ni] = xval[ni] + (xold1[ni] - upp[ni]);
         }
       }
+
       LOG_DBG3(mmaTopOpt) << "GSP:GC shouldUpdate= " << shouldUpdate;
       LOG_DBG3(mmaTopOpt) << "GSP:GC objective_approx(xnew)= " << objective_approx;
-      LOG_DBG3(mmaTopOpt) << "GSP:GC objective(xnew)= " << compliance;
-      LOG_DBG3(mmaTopOpt) << "GSP:GC constraint_approx(xnew)= " << constrain_approx.ToString(0);
-      LOG_DBG3(mmaTopOpt) << "GSP:GC constraint(xnew)= " << constrains.ToString(0);
+      LOG_DBG3(mmaTopOpt) << "GSP:GC objective(xnew)= " << obj_val;
+      LOG_DBG3(mmaTopOpt) << "GSP:GC constraints_approx(xnew)= " << constraints_approx.ToString(0);
+      LOG_DBG3(mmaTopOpt) << "GSP:GC constraints(xnew)= " << constraints.ToString(0);
       LOG_DBG3(mmaTopOpt) << "GSP:GC rho_0= " << rho_0;
       LOG_DBG3(mmaTopOpt) << "GSP:GC rho= " << rho.ToString(0);
     }
@@ -463,92 +447,92 @@ void MMA::GenerateSubProblem()
   else
   {
     if(optimization->GetCurrentIteration() < 3)
+    {
+      // We have to define the low and upp only once for fixed asymptotes.
+      if(asymUpdate_ == FIXED){
+        for(unsigned int in =0; in < n; ++in)
+        {
+          BaseDesignElement* de = space->GetDesignElement(in);
+          if(lowerMultiplier)
+          {
+            low[in] = asym_fixed_lower*xmin[in];
+            low[in] = min(xmin[in], low[in]);
+          }
+          else
+          {
+            low[in] = asym_fixed_lower;
+            low[in] = min(de->GetLowerBound(), low[in]);
+          }
+          if(upperMultiplier)
+          {
+            upp[in] = asym_fixed_upper*xmax[in];
+            upp[in] = max(xmax[in], upp[in]);
+          }
+          else
+          {
+            upp[in] = asym_fixed_upper;
+            upp[in] = max(de->GetUpperBound(), upp[in]);
+          }
+        }
+      }
+      else
       {
-        // We have to define the low and upp only once for fixed asymptotes.
-        if(asymUpdate_ == FIXED){
           for(unsigned int in =0; in < n; ++in)
           {
-            BaseDesignElement* de = space->GetDesignElement(in);
-            if(lowerMultiplier)
-            {
-              low[in] = asym_fixed_lower*xmin[in];
-              low[in] = min(xmin[in], low[in]);
-            }
-            else
-            {
-              low[in] = asym_fixed_lower;
-              low[in] = min(de->GetLowerBound(), low[in]);
-            }
-            if(upperMultiplier)
-            {
-              upp[in] = asym_fixed_upper*xmax[in];
-              upp[in] = max(xmax[in], upp[in]);
-            }
-            else
-            {
-              upp[in] = asym_fixed_upper;
-              upp[in] = max(de->GetUpperBound(), upp[in]);
-            }
+            low[in] += xval[in] -  asyminit*(xmax[in] - xmin[in]);
+            upp[in] += xval[in] +  asyminit*(xmax[in] - xmin[in]);
           }
-        }
-        else
-        {
-            for(unsigned int in =0; in < n; ++in)
-            {
-              low[in] += xval[in] -  asyminit*(xmax[in] - xmin[in]);
-              upp[in] += xval[in] +  asyminit*(xmax[in] - xmin[in]);
-            }
-        }
       }
-      if(optimization->GetCurrentIteration() > 2 && (!(asymUpdate_ == FIXED)))
+    }
+    if(optimization->GetCurrentIteration() > 2 && (!(asymUpdate_ == FIXED)))
+    {
+      for(unsigned int i =0; i< n; ++i)
       {
-          for(unsigned int i =0; i< n; ++i)
+        sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+        if(sign_change < 0.0)
+          gamma = asymdec; // if there is oscillation decrease the asymptotes, convergence will be slower
+        else if (sign_change > 0.0)
+          gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+        else
+          gamma = 1.0; // there is no design change
+        low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+        upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+        double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
+
+        /** implementation of robust asymptote based on TopOpt code
+         * refer function GenSub(...) in MMA.cc for the case RobustAsymptotesType == 1*/
+        if (asymUpdate_ == TOPOPT_ROBUST_SHORT)
+        {
+          low[i] = max(low[i], xval[i]-10.0*x_max_min);
+          low[i] = min(low[i], xval[i]-0.01*x_max_min);
+          upp[i] = max(upp[i], xval[i]+0.01*x_max_min);
+          upp[i] = min(upp[i], xval[i]+10.0*x_max_min);
+        }
+        /** implementation of robust asymptote based on TopOpt code
+         * refer function GenSub(...) in MMA.c */
+        else if(asymUpdate_ == TOPOPT_ROBUST_LONG)
+        {
+          //Robust Asymptotes
+          low[i] = max(low[i], xval[i]-100.0*x_max_min);
+          low[i] = min(low[i], xval[i]-1.0e-4*x_max_min);
+          upp[i] = max(upp[i], xval[i]+1.0e-4*x_max_min);
+          upp[i] = min(upp[i], xval[i]+100.0*x_max_min);
+
+          x_max_min = xmin[i] - 1.0e-5;
+          double x_max_max = xmax[i] + 1.0e-5;
+          if(xval[i] < x_max_min)
           {
-            sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-            if(sign_change < 0.0)
-              gamma = asymdec; // if there is oscillation decrease the asymptotes, convergence will be slower
-            else if (sign_change > 0.0)
-              gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-            else
-              gamma = 1.0; // there is no design change
-            low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-            upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-            double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
-
-            /** implementation of robust asymptote based on TopOpt code
-             * refer function GenSub(...) in MMA.cc for the case RobustAsymptotesType == 1*/
-            if (asymUpdate_ == TOPOPT_ROBUST_SHORT)
-            {
-              low[i]=max(low[i],xval[i]-10.0*x_max_min);
-              low[i]=min(low[i],xval[i]-0.01*x_max_min);
-              upp[i]=max(upp[i],xval[i]+0.01*x_max_min);
-              upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
-            }
-            /** implementation of robust asymptote based on TopOpt code
-             * refer function GenSub(...) in MMA.c */
-            else if(asymUpdate_ == TOPOPT_ROBUST_LONG)
-            {
-              //Robust Asymptotes
-              low[i]=max(low[i],xval[i]-100.0*x_max_min);
-              low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
-              upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
-              upp[i]=min(upp[i],xval[i]+100.0*x_max_min);
-
-              x_max_min = xmin[i] - 1.0e-5;
-              double x_max_max = xmax[i] + 1.0e-5;
-              if(xval[i] < x_max_min)
-              {
-                low[i] = xval[i] - (x_max_max - xval[i])/0.9;
-                upp[i] = xval[i] + (x_max_max - xval[i])/0.9;
-              }
-              if(xval[i] > x_max_max)
-              {
-                low[i] = xval[i] - (xval[i] - x_max_min)/0.9;
-                upp[i] = xval[i] + (xval[i] - x_max_min)/0.9;
-              }
-            }
+            low[i] = xval[i] - (x_max_max - xval[i])/0.9;
+            upp[i] = xval[i] + (x_max_max - xval[i])/0.9;
           }
+          if(xval[i] > x_max_max)
+          {
+            low[i] = xval[i] - (xval[i] - x_max_min)/0.9;
+            upp[i] = xval[i] + (xval[i] - x_max_min)/0.9;
+          }
+        }
       }
+    }
   }
 
   // Formation of pij and qij
@@ -557,47 +541,45 @@ void MMA::GenerateSubProblem()
   {
     objective_r = 0.0;
     for(unsigned int ni=0; ni < n; ++ni)
+    {
+      /** explained in K.Svanberg's paper section 3. equation 8.
+       * this is chosen to avoid division by zero in subproblem*/
+      alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
+      beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
+
+      dfdx_pos = max(0.0, grad_objective[ni]);
+      dfdx_neg = max(0.0, -1.0*grad_objective[ni]);
+
+      extra = rho_0*(upp[ni] - low[ni])*0.5;
+      p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
+      q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
+
+
+      objective_r += p_0j[ni] /(upp[ni] - xval[ni]) + q_0j[ni] / (xval[ni] - low[ni]);
+
+      for(unsigned int mj =0; mj<m; ++mj)
       {
-        /** explained in K.Svanberg's paper section 3. equation 8.
-         * this is chosen to avoid division by zero in subproblem*/
-        alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
-        beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
+        dfdx_pos = max(0.0, grad_constraints[mj*n + ni]);
+        dfdx_neg = max(0.0, -1*grad_constraints[mj*n + ni]);
 
-        dfdx_pos = max(0.0, grad_compliance[ni]);
-        dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
-
-        extra = rho_0*(upp[ni] - low[ni])*0.5;
-        p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
-        q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
-
-
-        objective_r += p_0j[ni] /(upp[ni] - xval[ni]) + q_0j[ni] / (xval[ni] - low[ni]);
-
-        for(unsigned int mj =0; mj<m ; ++mj)
-        {
-          dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
-          dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
-
-          extra = rho[mj]*(upp[ni] - low[ni])*0.5;
-          p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
-          q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra) ;
-        }
+        extra = rho[mj]*(upp[ni] - low[ni])*0.5;
+        p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
+        q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
       }
-      // Calculation of RHS of the constrains in subproblem
-      for(unsigned int j =0; j<m; ++j)
+    }
+    // Calculation of RHS of the constraints in subproblem
+    for(unsigned int j =0; j<m; ++j)
+    {
+      b[j] = 0.0;
+      for(unsigned int ni =0; ni<n; ++ni)
       {
-        b[j] = 0.0;
-        for(unsigned int ni =0; ni<n; ++ni)
-        {
-          double asym = p_ij[j][ni] /(upp[ni] - xval[ni]) + q_ij[j][ni] / (xval[ni] - low[ni]);
-          b[j] += asym;
-        }
+        double asym = p_ij[j][ni] /(upp[ni] - xval[ni]) + q_ij[j][ni] / (xval[ni] - low[ni]);
+        b[j] += asym;
       }
-      objective_r += -compliance;
-      for(unsigned int mj=0; mj<m;++mj)
-      {
-        b[mj] += -constrains[mj];
-      }
+    }
+    objective_r += -obj_val;
+    for(unsigned int j=0; j<m; ++j)
+      b[j] += -constraints[j];
   }
   else
   {
@@ -609,37 +591,33 @@ void MMA::GenerateSubProblem()
         alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
         beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
 
-        dfdx_pos = max(0.0, grad_compliance[ni]);
-        dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
+        dfdx_pos = max(0.0, grad_objective[ni]);
+        dfdx_neg = max(0.0, -1.0*grad_objective[ni]);
         if(kappa)
-          extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
+          extra = 0.001*Abs(grad_objective[ni]) + 0.5*feps/(upp[ni] - low[ni]);
         else
           extra = 0.0;
 
         p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
         q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
 
-        for(unsigned int mj =0; mj<m ; ++mj)
+        for(unsigned int mj=0; mj<m; ++mj)
         {
-          dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
-          dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
-          /** when constraintModification = true p_ij and q_ij are formed according to
-           * description povided in K.Svanberg's DCAMM lecture notes section 4*/
+          dfdx_pos = max(0.0, grad_constraints[mj*n + ni]);
+          dfdx_neg = max(0.0, -1*grad_constraints[mj*n + ni]);
+
           if(kappa)
-          {
-            extra = 0.001*Abs(grad_constrains[mj*n + ni]) + 0.5*feps/(upp[ni] - low[ni]);
-            p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
-            q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra) ;
-          }
-          /** When constraintModification = false p_ij and q_ij are formed according to original K.Svanberg's paper*/
+            /** when constraintModification = true p_ij and q_ij are formed according to
+             * description povided in K.Svanberg's DCAMM lecture notes section 4*/
+            extra = 0.001*Abs(grad_constraints[mj*n + ni]) + 0.5*feps/(upp[ni] - low[ni]);
           else
-          {
-            p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * dfdx_pos ;
-            q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * dfdx_neg ;
-          }
+            /** When constraintModification = false p_ij and q_ij are formed according to original K.Svanberg's paper*/
+            extra = 0.0;
+          p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
+          q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
         }
       }
-      // Calculation of RHS of the constrains in subproblem
+      // Calculation of RHS of the constraints in subproblem
       for(unsigned int j =0; j<m; ++j)
       {
         b[j] = 0.0;
@@ -649,10 +627,8 @@ void MMA::GenerateSubProblem()
           b[j] += asym;
         }
       }
-      for(unsigned int j=0; j<m;++j)
-      {
-        b[j] += -constrains[j];
-      }
+      for(unsigned int j=0; j<m; ++j)
+        b[j] += -constraints[j];
   }
 
   LOG_DBG3(mmaTopOpt) << "GSP:Sub low=" << low.ToString(0);
@@ -670,13 +646,13 @@ bool MMA::BFGSSubProblemSolver()
 
   bfgs_->SolveBFGS(lam_v, up_lam, lo_lam);
 
-  // Copy the lamda values back
+  // Copy the lambda values back
   for(unsigned int im=0; im<m; ++im)
-    lamda[im] = bfgs_->x[im];
+    lambda[im] = bfgs_->x[im];
 
   PrimalVarFromDualVar();
 
-  LOG_DBG3(mmaTopOpt) << "B_SSP: lamda=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "B_SSP: lambda=" << lambda.ToString(0);
   LOG_DBG3(mmaTopOpt) << "B_SSP: xval=" << xval.ToString(0);
   LOG_DBG3(mmaTopOpt) << "B_SSP: y=" << y.ToString(0);
   LOG_DBG3(mmaTopOpt) << "B_SSP: z=" << z;
@@ -687,7 +663,7 @@ bool MMA::BFGSSubProblemSolver()
 
 double MMA::EvalDualFucntion(Vector<double> &lam)
 {
-  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
+  assert(lam.GetSize() == m && "Size of lam is not equal to number of constraints");
   ++no_sub_prb_eval;
   // To store the primal values
   Vector<double> x_d(n);
@@ -698,20 +674,18 @@ double MMA::EvalDualFucntion(Vector<double> &lam)
   double val=0;
   for(unsigned int jn=0; jn < n; ++jn)
   {
-    double pj_x_lamda = 0.0;
-    double qj_x_lamda = 0.0;
+    double pj_x_lambda = 0.0;
+    double qj_x_lambda = 0.0;
     for(unsigned int im=0; im < m; ++im)
     {
-      pj_x_lamda += p_ij[im][jn]*lam[im];
-      qj_x_lamda += q_ij[im][jn]*lam[im];
+      pj_x_lambda += p_ij[im][jn]*lam[im];
+      qj_x_lambda += q_ij[im][jn]*lam[im];
     }
-    val += ((p_0j[jn] + pj_x_lamda)/(upp[jn] - x_d[jn])) + ((q_0j[jn] + qj_x_lamda)/(x_d[jn] - low[jn]));
+    val += ((p_0j[jn] + pj_x_lambda)/(upp[jn] - x_d[jn])) + ((q_0j[jn] + qj_x_lambda)/(x_d[jn] - low[jn]));
   }
 
   for(unsigned int im=0; im<m; ++im)
-  {
     val += -b[im]*lam[im] + y_d[im]*c[im] + 0.5*y_d[im]*y_d[im] - y_d[im]*lam[im] - lam[im]*a[im]*z_d;
-  }
 
   val += z_d + 0.5*z_d*z_d;
 
@@ -726,7 +700,7 @@ double MMA::EvalDualFucntion(Vector<double> &lam)
 
 Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
 {
-  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
+  assert(lam.GetSize() == m && "Size of lam is not equal to number of constraints");
 
   // To store the primal values
   Vector<double> x_d(n);
@@ -746,16 +720,12 @@ Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
     grad[jm] += -b[jm];
   }
   for(unsigned int jm=0; jm<m; ++jm)
-  {
     grad[jm] += - a[jm]*z_d - y_d[jm];
-  }
 
   // since this value will be used to maximize the lagrang multiplier,
   // we send the negative value to minimizer
   for(unsigned int jm=0; jm<m; ++jm)
-  {
     grad[jm] = - grad[jm];
-  }
 
   LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
   LOG_DBG3(mmaTopOpt) << "BFGS: evalGrad=" << grad.ToString(0);
@@ -774,7 +744,7 @@ bool MMA::IPSubProblemSolver()
   subiters.Resize(0);
   for(unsigned int j=0; j < m; ++j)
   {
-    lamda[j] = c[j] * 0.5;
+    lambda[j] = c[j] * 0.5;
     mu[j] = 1.0;
   }
   double tol = sub_solve_tol * sqrt(m+n);
@@ -795,11 +765,8 @@ bool MMA::IPSubProblemSolver()
 
       GradientOfDual();
 
-
       for(unsigned int j =0; j<m ; ++j)
-      {
-        dual_gradient[j] = -1.0*dual_gradient[j] - epsi/lamda[j];
-      }
+        dual_gradient[j] = -1.0*dual_gradient[j] - epsi/lambda[j];
 
       HessianOfDual();
 
@@ -807,24 +774,23 @@ bool MMA::IPSubProblemSolver()
 
       Solve(dual_hessian, dual_gradient,m);
 
-      for (unsigned int j=0;j<m;j++){
-        s[j]=dual_gradient[j];
-      }
-      for (unsigned int i=0;i<m;i++){
-        s[m+i]= -mu[i]+epsi/lamda[i]-s[i]*mu[i]/lamda[i];
-      }
+      for (unsigned int j=0;j<m;j++)
+        s[j] = dual_gradient[j];
 
-      DualLineSearch(); // New value of lamda and mu will be updated
+      for (unsigned int i=0;i<m;i++)
+        s[m+i] = -mu[i]+epsi/lambda[i]-s[i]*mu[i]/lambda[i];
+
+      DualLineSearch(); // New value of lambda and mu will be updated
 
       PrimalVarFromDualVar();
 
-      err = DualResidual( epsi);
+      err = DualResidual(epsi);
 
       // keep for verbose output in info xml
       if(progOpts->DoDetailedInfo())
       {
         subiters.Push_back(SubInfo());
-        subiters.Last().lambda = lamda;
+        subiters.Last().lambda = lambda;
         subiters.Last().mu = mu;
         subiters.Last().s = s;
         subiters.Last().err = err;
@@ -839,13 +805,13 @@ bool MMA::IPSubProblemSolver()
       else
       {
         std::stringstream ss;
-        ss << "MMA subproblem cannot be solved in " << loop << " sub-iters. err=" << err << " epsilon=" << epsi << " tol=" << tol;
+        ss << "MMA subproblem cannot be solved in " << loop << " sub-iterations. err=" << err << " epsilon=" << epsi << " tol=" << tol;
         mma_error_ = ss.str();
         alreadyRelaxed = false;
         return false;
       }
     }
-    epsi=epsi*0.1;
+    epsi = epsi * 0.1;
   }
   return true;
 }
@@ -853,31 +819,31 @@ bool MMA::IPSubProblemSolver()
 
 void MMA::PrimalVarFromDualVar(Vector<double> &lam, Vector<double> &x_d, Vector<double> &y_d, double &z_d )
 {
-  double lamda_x_a = 0.0;
+  double lambda_x_a = 0.0;
 
   for(unsigned int mj=0; mj < m; ++mj)
   {
     if(lam[mj] < 0.0) lam[mj] = 0.0;
     y_d[mj] = max(0.0, lam[mj] - c[mj]);
-    lamda_x_a += lam[mj]*a[mj];
+    lambda_x_a += lam[mj]*a[mj];
   }
-  z_d = max(0.0, 10.0*(lamda_x_a - 1.0));
+  z_d = max(0.0, 10.0*(lambda_x_a - 1.0));
 
   /** update of xval[] according to K.Svanberg's paper section 4. equation 17-19.*/
-  double pj_x_lamda = 0.0;
-  double qj_x_lamda = 0.0;
+  double pj_x_lambda = 0.0;
+  double qj_x_lambda = 0.0;
 
-  #pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lamda,qj_x_lamda)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lambda,qj_x_lambda)
   for(unsigned int i = 0; i < n; ++i)
   {
-    pj_x_lamda = p_0j[i];
-    qj_x_lamda = q_0j[i];
+    pj_x_lambda = p_0j[i];
+    qj_x_lambda = q_0j[i];
     for(unsigned int j=0; j < m; ++j)
     {
-      pj_x_lamda += p_ij[j][i]*lam[j];
-      qj_x_lamda += q_ij[j][i]*lam[j];
+      pj_x_lambda += p_ij[j][i]*lam[j];
+      qj_x_lambda += q_ij[j][i]*lam[j];
     }
-    x_d[i] = (sqrt(pj_x_lamda)*low[i] + sqrt(qj_x_lamda)*upp[i]) / (sqrt(pj_x_lamda) + sqrt(qj_x_lamda));
+    x_d[i] = (sqrt(pj_x_lambda)*low[i] + sqrt(qj_x_lambda)*upp[i]) / (sqrt(pj_x_lambda) + sqrt(qj_x_lambda));
 
     if(x_d[i] < alpha[i])
       x_d[i] = alpha[i];
@@ -890,31 +856,40 @@ void MMA::PrimalVarFromDualVar(Vector<double> &lam, Vector<double> &x_d, Vector<
 void MMA::PrimalVarFromDualVar()
 {
 
-  double lamda_x_a = 0.0;
+  double lambda_x_a = 0.0;
   for(unsigned int mj=0; mj < m; ++mj)
   {
-    if(lamda[mj] < 0.0) lamda[mj] = 0.0;
-    y[mj] = max(0.0, lamda[mj] - c[mj]);
-    lamda_x_a += lamda[mj]*a[mj];
+    if(lambda[mj] < 0.0)
+      lambda[mj] = 0.0;
+    y[mj] = max(0.0, lambda[mj] - c[mj]);
+    lambda_x_a += lambda[mj]*a[mj];
   }
-  z = max(0.0, 10.0*(lamda_x_a - 1.0));
+  z = max(0.0, 10.0*(lambda_x_a - 1.0));
 
   /** update of xval[] according to K.Svanberg's paper section 4. equation 17-19.*/
-  double pj_x_lamda = 0.0;
-  double qj_x_lamda = 0.0;
-#pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lamda,qj_x_lamda)
-  for(unsigned int i = 0; i < n; ++i)
+  double pj_x_lambda = 0.0;
+  double qj_x_lambda = 0.0;
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lambda,qj_x_lambda)
+  for(unsigned int j = 0; j < n; ++j)
   {
-    pj_x_lamda = p_0j[i];
-    qj_x_lamda = q_0j[i];
-    for(unsigned int j=0; j < m; ++j)
+    pj_x_lambda = p_0j[j];
+    qj_x_lambda = q_0j[j];
+    for(unsigned int i=0; i < m; ++i)
     {
-      pj_x_lamda += p_ij[j][i]*lamda[j];
-      qj_x_lamda += q_ij[j][i]*lamda[j];
+      pj_x_lambda += p_ij[i][j]*lambda[i];
+      qj_x_lambda += q_ij[i][j]*lambda[i];
     }
-    xval[i] = (sqrt(pj_x_lamda)*low[i] + sqrt(qj_x_lamda)*upp[i]) / (sqrt(pj_x_lamda) + sqrt(qj_x_lamda));
-    if(xval[i] < alpha[i]) xval[i] = alpha[i];
-    if(xval[i] > beta[i]) xval[i] = beta[i];
+    if(pj_x_lambda < 1e-20)
+      for(unsigned int i=0; i < m; ++i)
+        std::cout << p_ij[i][j] << std::endl;
+
+    xval[j] = (sqrt(pj_x_lambda)*low[j] + sqrt(qj_x_lambda)*upp[j]) / (sqrt(pj_x_lambda) + sqrt(qj_x_lambda));
+    assert(!std::isnan(xval[j]));
+
+    if(xval[j] < alpha[j])
+      xval[j] = alpha[j];
+    if(xval[j] > beta[j])
+      xval[j] = beta[j];
   }
 }
 
@@ -925,37 +900,37 @@ void MMA::GradientOfDual()
   {
     dual_gradient[jm] = 0.0;
     for(unsigned int in =0; in<n; ++in)
-    {
       dual_gradient[jm] += p_ij[jm][in] / (upp[in] - xval[in]) + q_ij[jm][in] / (xval[in] - low[in]);
-    }
   }
+
   for(unsigned int jm=0; jm<m; ++jm)
-  {
     dual_gradient[jm] += -b[jm] - a[jm]*z - y[jm];
-  }
 }
+
 /** according to N.Aage paper section 3.3*/
 void MMA::HessianOfDual()
 {
   StdVector<double> pij_qij(n*m); // ( Pij/(Uj - xj)^2 + Qij/(xj - Lj)^2 )
   StdVector<double> grad_funcA(n); // Gradinet of MMA approximation of objective
-  double pj_x_lamda = 0.0;
-  double qj_x_lamda = 0.0;
-#pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lamda,qj_x_lamda)
+  double pj_x_lambda = 0.0;
+  double qj_x_lambda = 0.0;
+#pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lambda,qj_x_lambda)
   for(unsigned int i=0; i<n; ++i)
   {
-    pj_x_lamda = p_0j[i];
-    qj_x_lamda = q_0j[i];
+    pj_x_lambda = p_0j[i];
+    qj_x_lambda = q_0j[i];
     for(unsigned int j = 0; j<m; ++j)
     {
-      pj_x_lamda += p_ij[j][i]*lamda[j];
-      qj_x_lamda += q_ij[j][i]*lamda[j];
+      pj_x_lambda += p_ij[j][i]*lambda[j];
+      qj_x_lambda += q_ij[j][i]*lambda[j];
       pij_qij[i*m + j] = p_ij[j][i] / pow(upp[i] - xval[i], 2.0) - q_ij[j][i]/pow(xval[i] - low[i], 2.0);
     }
-    grad_funcA[i] = -1.0 / (2.0 * pj_x_lamda / pow(upp[i] - xval[i], 3.0) + 2.0*qj_x_lamda / pow(xval[i] - low[i], 3.0));
-    double tmp = (sqrt(pj_x_lamda)*low[i] + sqrt(qj_x_lamda)*upp[i]) / (sqrt(pj_x_lamda) + sqrt(qj_x_lamda));
-    if(tmp < alpha[i]) {grad_funcA[i] = 0.0;}
-    if(tmp > beta[i]) {grad_funcA[i] = 0.0;}
+    grad_funcA[i] = -1.0 / (2.0 * pj_x_lambda / pow(upp[i] - xval[i], 3.0) + 2.0*qj_x_lambda / pow(xval[i] - low[i], 3.0));
+    double tmp = (sqrt(pj_x_lambda)*low[i] + sqrt(qj_x_lambda)*upp[i]) / (sqrt(pj_x_lambda) + sqrt(qj_x_lambda));
+    if(tmp < alpha[i])
+      grad_funcA[i] = 0.0;
+    if(tmp > beta[i])
+      grad_funcA[i] = 0.0;
   }
 
   StdVector<double> tmp(n*m);
@@ -975,22 +950,22 @@ void MMA::HessianOfDual()
     {
       dual_hessian[i*m + j] = 0.0;
       for(unsigned int k=0; k<n; ++k)
-      {
         dual_hessian[i * m + j] += tmp[i * n + k] * pij_qij[k * m + j];
-      }
     }
   }
 
-  double lamda_x_a=0.0;
+  double lambda_x_a=0.0;
   for(unsigned int j=0; j<m; ++j)
   {
-    if(lamda[j] < 0.0) { lamda[j] = 0.0; }
-    lamda_x_a += lamda[j]*a[j];
-    if(lamda[j] > c[j]) { dual_hessian[j*m+j] += -1.0; }
-    dual_hessian[j*m+j] += -mu[j]/lamda[j];
+    if(lambda[j] < 0.0)
+      lambda[j] = 0.0;
+    lambda_x_a += lambda[j]*a[j];
+    if(lambda[j] > c[j])
+      dual_hessian[j*m+j] += -1.0;
+    dual_hessian[j*m+j] += -mu[j]/lambda[j];
   }
 
-  if(lamda_x_a > 0.0)
+  if(lambda_x_a > 0.0)
   {
     for(unsigned int j=0; j<m; ++j)
     {
@@ -1011,10 +986,13 @@ void MMA::HessianOfDual()
 
 void MMA::Factorize(StdVector<double> &K, const unsigned int nn)
 {
-  for (unsigned int  ss=0;ss<nn-1;ss++){
-    for (unsigned int  i=ss+1;i<nn;i++){
+  for (unsigned int  ss=0;ss<nn-1;ss++)
+  {
+    for (unsigned int  i=ss+1;i<nn;i++)
+    {
       K[i*nn+ss] = K[i*nn+ss] / K[ss*nn+ss];
-      for (unsigned int  j=ss+1;j<nn;j++){
+      for (unsigned int  j=ss+1;j<nn;j++)
+      {
         K[i*nn+j] = K[i*nn+j] - K[i*nn+ss]*K[ss*nn+j];
       }
     }
@@ -1023,17 +1001,21 @@ void MMA::Factorize(StdVector<double> &K, const unsigned int nn)
 
 void MMA::Solve(StdVector<double> &K, StdVector<double> &x, const int nn)
 {
-  for (int i=1;i<nn;i++){
+  for (int i=1;i<nn;i++)
+  {
     double a = 0.0;
-    for (int j=0;j<i;j++){
+    for (int j=0;j<i;j++)
+    {
       a = a - K[i*nn+j]*x[j];
     }
     x[i] = x[i] + a;
   }
   x[nn-1] = x[nn-1]/K[(nn-1)*nn+(nn-1)];
-  for (int i=nn-2;i>=0;i--){
+  for (int i=nn-2;i>=0;i--)
+  {
     double a=x[i];
-    for (int j=i+1;j<nn;j++){
+    for (int j=i+1;j<nn;j++)
+    {
       a = a - K[i*nn+j]*x[j];
     }
     x[i] = a/K[i*nn+i];
@@ -1044,17 +1026,17 @@ void MMA::DualLineSearch()
 {
   double theta=1.005;
 
-  for (unsigned int i=0;i<m;i++){
-    if (theta < -1.01*s[i]/lamda[i]){
-      theta = -1.01*s[i]/lamda[i];
-    }
-    if (theta < -1.01*s[i+m]/mu[i]){
+  for (unsigned int i=0;i<m;i++)
+  {
+    if (theta < -1.01*s[i]/lambda[i])
+      theta = -1.01*s[i]/lambda[i];
+    if (theta < -1.01*s[i+m]/mu[i])
       theta = -1.01*s[i+m]/mu[i];
-    }
   }
   theta = 1.0/theta;
-  for (unsigned int i=0;i<m;i++){
-    lamda[i] = lamda[i] + theta*s[i];
+  for (unsigned int i=0;i<m;i++)
+  {
+    lambda[i] = lambda[i] + theta*s[i];
     mu[i] = mu[i] + theta*s[i+m];
   }
   LOG_DBG3(mmaTopOpt) << "SSP: theta=" << theta;
@@ -1068,25 +1050,24 @@ double MMA::DualResidual(double epsi)
     res[j]=0.0;
     res[j+m]=0.0;
     for(unsigned int i=0; i<n; ++i)
-    {
       res[j] += p_ij[j][i]/(upp[i] - xval[i]) + q_ij[j][i]/(xval[i] - low[i]);
-    }
   }
   for(unsigned int j=0; j<m; ++j)
   {
     res[j] += -b[j] - a[j]*z - y[j] + mu[j];
-    res[j+m] += mu[j]*lamda[j] - epsi;
+    res[j+m] += mu[j]*lambda[j] - epsi;
   }
 
   double result = 0.0;
   for(unsigned int i=0; i<2*m; ++i)
-    if(result < Abs(res[i])) {result = Abs(res[i]);}
+    if(result < Abs(res[i]))
+      result = Abs(res[i]);
   return result;
 }
 
-void MMA::EvalMmaConstrains(StdVector<double> & eval, StdVector<double> & xc)
+void MMA::EvalMMAconstraints(StdVector<double> & eval, StdVector<double> & xc)
 {
-  assert(eval.GetCapacity() == m && "Size of eval should be equal to number of constrains");
+  assert(eval.GetCapacity() == m && "Size of eval should be equal to number of constraints");
   for(unsigned int im=0; im < m; ++im)
   {
     eval[im]=0.0;
@@ -1156,8 +1137,8 @@ void MMA::IPLogFileLine(std::ofstream* out, PtrParamNode iteration)
     if(!g->IsLocalCondition())
     {
       if(out)
-        *out << " \t" << lamda[i];
-      iteration->Get("lamba_" + g->ToString())->SetValue(lamda[i]);
+        *out << " \t" << lambda[i];
+      iteration->Get("lamba_" + g->ToString())->SetValue(lambda[i]);
     }
   }
 
@@ -1193,15 +1174,15 @@ void MMA::IPLogFileLine(std::ofstream* out, PtrParamNode iteration)
 // Used for debugging, Helper function to read files used in InitilizeFromFile()
 bool MMA::is_number(const std::string& s)
 {
-    try
-    {
-        std::stod(s);
-    }
-    catch(...)
-    {
-        return false;
-    }
-    return true;
+  try
+  {
+    std::stod(s);
+  }
+  catch(...)
+  {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -1210,17 +1191,19 @@ bool MMA::is_number(const std::string& s)
 
 void MMA::InitilizeFromFile(std::string filename, double *dp){
   std::ifstream input(filename);
-    if (input) {
-        std::string eachline;
-        int i=0;
-        while (std::getline(input, eachline)) {
-            if(is_number(eachline))
-            {
-                std::istringstream iss(eachline);
-                dp[i]=  std::stod(eachline);
-                ++i;
-            }
-        }
+  if (input)
+  {
+    std::string eachline;
+    int i=0;
+    while (std::getline(input, eachline))
+    {
+      if(is_number(eachline))
+      {
+        std::istringstream iss(eachline);
+        dp[i]=  std::stod(eachline);
+        ++i;
+      }
+    }
   }
 }
 
@@ -1262,7 +1245,7 @@ void MMA::FunctionTest()
   p_0j.Resize(n); InitilizeFromFile("in_p0_3.txt", p_0j.GetPointer());
   q_0j.Resize(n); InitilizeFromFile("in_q0_3.txt", q_0j.GetPointer());
 
-  lamda.Resize(m);
+  lambda.Resize(m);
   mu.Resize(m); mu[0] = 1.0;
   a.Resize(m); a[0] = 0.0;
   b.Resize(m); b[0] = 0.1509128; // This is entered manually from petsc.
@@ -1286,7 +1269,7 @@ void MMA::FunctionTest()
   LOG_DBG3(mmaTopOpt) << "FT: xdif[]=" << xval_TopOpt.ToString(0);
   LOG_DBG3(mmaTopOpt) << "FT: y[]=" << y.ToString(0);
   LOG_DBG3(mmaTopOpt) << "FT: z=" << z;
-  LOG_DBG3(mmaTopOpt) << "FT: lamda[]=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "FT: lambda[]=" << lambda.ToString(0);
   LOG_DBG3(mmaTopOpt) << "FT: mu[]=" << mu.ToString(0);
   LOG_DBG3(mmaTopOpt) << "FT: Function Test SolveSubProblem : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ " ;
 
@@ -1374,10 +1357,10 @@ void MMA::FunctionTest()
 //  change.Resize(n);
 //  p_0j.Resize(n); // for the objective function
 //  q_0j.Resize(n); // for the objective function
-//  p_ij.Resize(m, n); // for all the constrain function
-//  q_ij.Resize(m, n); // for all the constrain function
-//  conA.Resize(m); // MMA approximation of constrain functions
-//  lamda.Resize(m); // Lagrange multiplier
+//  p_ij.Resize(m, n); // for all the constraints
+//  q_ij.Resize(m, n); // for all the constraints
+//  conA.Resize(m); // MMA approximation of constraints
+//  lambda.Resize(m); // Lagrange multiplier
 //  mu.Resize(m); // Lagrange multiplier
 //  y.Resize(m); // elastic variable
 //  z = 0.0; // elastic variable

@@ -207,8 +207,9 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       return CalcGlobalVonMisesStress<Complex>(excite, f, derivative);
     else
       return CalcGlobalVonMisesStress<double>(excite, f, derivative);
-  if(f->GetType() == Function::LOCAL_STRESS)
-    return CalcLocalVonMisesStress(excite, f, derivative);
+  // microscopic load factor is interpolated value divided by local stress
+  if(f->GetType() == Function::LOCAL_STRESS || f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+    return CalcLocalVonMisesStressOrLoadFactor(excite, f, derivative);
 
   if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
@@ -343,37 +344,60 @@ double SIMP::CalcGlobalVonMisesStress(Excitation& excite, Function* f, bool grad
 }
 
 
-double SIMP::CalcLocalVonMisesStress(Excitation& excite, Function* f, bool gradient)
+double SIMP::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, Function* f, bool gradient)
 {
   // we share a lot of code between gradient and local function value, hence share the code
   // local stress constraints are expensive and are not efficiently implemented. They are meant for a proof of concept, not for real use
+
   assert(excite.sequence == f->ctxt->sequence);
+  assert(f->IsLocal());
+  assert(f->GetCurrentRelativePosition() >= 0); // we are in a virtual loop
+  assert(f->GetLocal()->virtual_elem_map.GetSize() == f->elements.GetSize());
+  if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+  {
+    if(context->ToApp() != App::MECH || f->ctxt->ToApp() != App::MECH)
+      EXCEPTION("stresses are not read from static sequence step");
+  }
+  else
+    assert(f->GetType() == Function::LOCAL_STRESS && !f->IsObjective());
 
   TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
 
   // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
   // away from the other local gradient computations.
-
-  assert(f->GetType() == Function::LOCAL_STRESS && f->IsLocal() && !f->IsObjective());
-  assert(f->GetCurrentRelativePosition() >= 0); // we are in a virtual loop
-  assert(f->GetLocal()->virtual_elem_map.GetSize() == f->elements.GetSize());
   LocalCondition* lc = dynamic_cast<LocalCondition*>(f);
   Function::Local::Identifier& id = lc->GetCurrentVirtualContext();
 
   DesignElement* de = dynamic_cast<DesignElement*>(id.element);
   assert(de != NULL);
 
-  // the gradient is lambda^T * ( K' * u - f')  + 2 * stress^T * M * (rho^p)' * E_0 * B * u
-  // f' is usually 0,
-  // 2 * stress^T * M * (rho^p)' * E_0 * B * u is the dJ/drho_e part and applies only for element e
-
   assert(!f->ctxt->IsComplex()); // otherwise use template for StressConstraint
 
   StressConstraint<double> sc(&excite, f, this, &forward);
 
+  // this is the squared norm of local stress (vonMises for vM stress, Euclidean for load factor)
+  double val = sc.CalcElementStress(de);
+
+  // stresses access smart, so we have to do it as well
+  double vol = de->GetDesign(DesignElement::SMART);
+
+  double ev_interpolated = GetMicroLoadFactor(vol);
+
   if(!gradient)
   {
-    double val = sc.CalcElementStress(de);
+    if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+    {
+      double tmp_for_dbg = ev_interpolated / std::sqrt(val);
+      // LOG_DBG3(simp) << "CLVMS: de=" << de->elem->elemNum << " rho=" << vol << " stress=" << std::sqrt(val) << " ev=" << ev_interpolated << " -> val=" << val2;
+      val = tmp_for_dbg;
+      int res_idx = this->GetDesign()->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::LOCAL_LOAD_FACTOR, DesignElement::NONE, DesignElement::PLAIN, excite.label);
+      // output local load factor? Note, that this is excitation specific! Only for STRESS
+      if(res_idx != -1)
+      {
+        de->specialResult[res_idx] = val;
+        // LOG_DBG3(simp) << "CLVMS: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << val << " " << de->specialResult[res_idx];
+      }
+    }
     lc->SetValue(val); // for CalcMaxValue() used in Function::Local::Identifier::EvalFunction()
     LOG_DBG2(simp) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " val=" << val << " values=" << f->GetLocal()->local_values.ToString();
     return val;
@@ -382,9 +406,13 @@ double SIMP::CalcLocalVonMisesStress(Excitation& excite, Function* f, bool gradi
   {
     // the BaseDesignElement::constraintGradient space is not for virtual functions
     // we reuse the same space and it is written before we calculate the next function
-    // this is the only case we use Reset for all for a specific function
+    // this is the only case we use Reset for a specific function
     for(DesignElement& t : design->data)
       t.Reset(DesignElement::CONSTRAINT_GRADIENT, f);
+
+    // the stress gradient is lambda^T * ( K' * u - f')  + 2 * stress^T * M * (rho^p)' * E_0 * B * u
+    // f' is usually 0,
+    // 2 * stress^T * M * (rho^p)' * E_0 * B * u is the dJ/drho_e part and applies only for element e
 
     // rhs is from the legacy copy and usually empty
     DesignDependentRHS rhs(App::STRESS);
@@ -394,16 +422,80 @@ double SIMP::CalcLocalVonMisesStress(Excitation& excite, Function* f, bool gradi
 
     // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
     int idx =lc->GetCurrentRelativePosition();
-
     StdVector<SingleVector*>& u1 = adjoint.Get(excite, f, idx)->elem[App::MECH];
     CalcU1KU2(tf, u1, App::MECH, u2, &rhs, 1.0, STANDARD, f);
 
+    // calc 2 * stress^T * M * (rho^p)' * E_0 * B * u
     double appendix = sc.CalcGradElementStress(de);
+
+    // this is the derivative of local stress
     de->AddGradient(f, appendix); // de is called for all f->elements, hence there is no a),b),c) case as for the global stress gradient
+
+    // for the local load factor, we have to apply chain rule
+    // we take the stress gradient, which was stored in de, apply the chain rule,
+    // delete the gradient in all elements and write the new one
+    if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+    {
+      double dev_interpolated = GetMicroLoadFactor(vol, true);
+
+      for(unsigned int e = 0; e < design->GetNumberOfElements(); e++)
+      {
+        DesignElement* de2 = &design->data[e];
+        double dval = de2->GetPlainGradient(f); // stress gradient
+
+        // d/dx ev/sqrt(s) = (s * ev' - s' * ev * 1/2 ) / sqrt(s) / s
+        // ev is local, i.e. dev/drho is a diagonal matrix
+        // however, the stress gradient is a full matrix
+        double firstTerm = de->elem->elemNum == de2->elem->elemNum ? val * dev_interpolated : 0;
+        appendix = (firstTerm - dval * ev_interpolated * 0.5) / std::sqrt(val) / val;
+
+        LOG_DBG(simp) << "CLVMS: de2=" << de2->elem->elemNum << " val=" << val << " dev=" << dev_interpolated
+            << " dval=" << dval << " ev=" << ev_interpolated << " -> df=" << appendix;
+
+        de2->Reset(DesignElement::CONSTRAINT_GRADIENT, f);
+        de2->AddGradient(f, appendix);
+      }
+    }
+
     LOG_DBG2(simp) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " idx=" << idx << " appendix=" << appendix;
     return 0;
   }
 }
+
+double SIMP::GetMicroLoadFactor(double vol, bool derivative)
+{
+  // the tangent-function has been fitted for a triangular lattice
+  // for design = 1, we have a singularity (ev -> infinity)
+  // thus we cut at x0 = 0.9 and extrapolate smoothly with a quadratic function
+  // TODO put function in xml and parse with mathparser
+//  double factor = 1.677;
+//  double exponent = 3.656;
+  double factor = 1.28309;
+  double exponent = 3.5642;
+
+  // do a quadratic extrapolation
+  double x0 = 0.9;
+  double argument = M_PI/2 * std::pow(x0, exponent);
+  double f0 = factor * std::tan(argument);
+  double df0 = factor * M_PI/2 * exponent * std::pow(x0, exponent-1) / std::pow(std::cos(argument),2);
+  double sum = (exponent-1) * std::pow(x0, exponent-2) + M_PI * exponent * std::pow(x0, 2*(exponent-1)) * std::tan(argument);
+  double ddf0 = factor * M_PI/2 * exponent * sum / std::pow(std::cos(argument),2);
+
+  double ev = -1;
+  if(!derivative)
+    if(vol < x0)
+      ev = factor * std::tan(M_PI/2 * std::pow(vol, exponent));
+    else
+      ev = ddf0/2 * std::pow(vol-x0, 2) + df0 * (vol-x0) + f0;
+  else
+    if(vol < x0)
+      ev = factor * M_PI/2 * exponent * std::pow(vol, exponent-1) / std::pow(std::cos(M_PI/2 * std::pow(vol, exponent)),2);
+    else
+      ev = ddf0 * (vol-x0) + df0;
+
+  return ev;
+}
+
 
 
 DesignDependentRHS::DesignDependentRHS(App::Type my_app)

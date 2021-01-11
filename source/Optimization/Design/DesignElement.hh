@@ -144,6 +144,7 @@ public:
     MAX_OSCILLATION, /* the max value per element */
     MAX_JUMP, /* weak greyness constraint formulation */
     QUADRATIC_VM_STRESS, /* element wise <Bu, M Bu> with transfer function for stress. Note that the stess constraints are evaluated at the integration points an the cfs pde results at the center only */
+    LOCAL_LOAD_FACTOR, /* local buckling load factor (e.g. for two scale structures) */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     HEAT_NODAL_TRACK_VAL, /* for each node: (stateSol - trackVal)^2 */
     TEMP_AT_INTERFACE, /* temperature at interface between solid and void */
@@ -293,7 +294,8 @@ public:
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints)
   {
-    // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero
+    // resize and init with 0.0 so constraint, which only act on one design variable,
+    // do not have to set all others explicitly to zero
     costGradient.Resize(objectives, 0.0);
     constraintGradient.Resize(constraints, 0.0);
   }
@@ -436,7 +438,8 @@ public:
       SM_NODE_B, /*!< for 3D shape map */
       SM_PROFILE,  /*!< for shape map */
       SP_CP, /*!< for spline box mapping */
-      BUCKLINGLOADFACTOR
+      BUCKLINGLOADFACTOR, /*!< macroscopic load factor */
+      LOCALBUCKLINGLOADFACTOR  /*!< microscopic load factor */
     } Detail;
 
     /** Gets the design element

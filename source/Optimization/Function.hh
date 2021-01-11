@@ -107,7 +107,8 @@ class Function
       PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       GLOBAL_STRESS,             /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
-      BUCKLING_LOAD_FACTOR,      /*!< with the attribute ev for the number of the load factor/ eigenvalue */
+      GLOBAL_BUCKLING_LOAD_FACTOR,/*!< with the attribute ev for the number of the load factor/ eigenvalue */
+      LOCAL_BUCKLING_LOAD_FACTOR,/*!< microscopic load factor/ eigenvalue for two scale optimization*/
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
@@ -747,7 +748,7 @@ class Function
     BaseDesignElement::Type GetDesignType() const {return design_; }
 
     /** This are the elements the Function is defined on. Either references to the
-     * elements within the design space to to dummy elements if the region is not within the design (stress)
+     * elements within the design space or to dummy elements if the region is not within the design (stress)
      * @param region as long as only the Condition has this stuff it is an parameter*/
     void SetElements(DesignSpace* space, RegionIdType region);
 

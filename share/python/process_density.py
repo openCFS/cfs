@@ -88,6 +88,8 @@ for input in args.input:
     else:
       print("greyness (orig): {:f}".format(numpy.sum(des*(1-des))/numpy.size(des)))
       print("greyness (phys): {:f}".format(numpy.sum(dens*(1-dens))/numpy.size(dens)))
+  elif args.show and dens.ndim == 2:
+    out = dens
   else:
     print("no action selected")
     sys.exit(0)    

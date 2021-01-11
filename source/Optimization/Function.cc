@@ -361,7 +361,7 @@ void Function::ToInfo(PtrParamNode info) {
   if(type_ == GLOBAL_STRESS  || type_ == LOCAL_STRESS)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(type_ == EIGENFREQUENCY || type_ == BUCKLING_LOAD_FACTOR)
+  if(type_ == EIGENFREQUENCY || type_ == GLOBAL_BUCKLING_LOAD_FACTOR || type_ == LOCAL_BUCKLING_LOAD_FACTOR)
     info->Get("ev")->SetValue(eigenvalue_id_);
 
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
@@ -549,7 +549,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
-  case BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
@@ -650,7 +651,8 @@ bool Function::IsAdjointBased() const {
   case SQR_MAG_FLUX_DENS_RZ:
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
-  case BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -752,6 +754,7 @@ bool Function::IsLocal(Type t) {
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
   case LOCAL_STRESS:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
     return true;
   default:
     return false;
@@ -832,7 +835,8 @@ bool Function::ForSensitivityFiltering() const {
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
   case EIGENFREQUENCY:
-  case BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
   case BANDGAP:
   case FILTERING_GAP:
     return true;
@@ -958,6 +962,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
       {
       case GLOBAL_STRESS:
       case LOCAL_STRESS:
+      case LOCAL_BUCKLING_LOAD_FACTOR:
       case SQR_MAG_FLUX_DENS_X:
       case SQR_MAG_FLUX_DENS_Y:
       case SQR_MAG_FLUX_DENS_RZ:
@@ -1063,6 +1068,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case MULTIMATERIAL_SUM:
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
   case SUM_MODULI:
   case SHAPE_INF:
 
@@ -1311,6 +1317,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
   case DESIGN:
   case GLOBAL_DESIGN:
     if (locality_ != ELEMENT && locality_ != DEFAULT)
@@ -2231,9 +2238,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
 
   switch (f->type_) {
 
-  case LOCAL_STRESS:
   case GLOBAL_STRESS:
-    fv = f->GetValue(); // from local_values, set in SIMP::Calc[Global/Local]VonMisesStress() or ErsatzMaterial::CalcGlobalFunction() for the global case, we might be objective function.
+  case LOCAL_STRESS:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
+    fv = f->GetValue(); // from local_values, set in SIMP::Calc[Global/Local]VonMisesStress[OrLoadFactor]() or ErsatzMaterial::CalcGlobalFunction() for the global case, we might be objective function.
     assert(fv != -1);
     break;
 
@@ -2492,7 +2500,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case GLOBAL_STRESS:
     case LOCAL_STRESS:
-      assert(false); // in SIMP::Calc[Local/Global]VonMisesStress() only!
+    case LOCAL_BUCKLING_LOAD_FACTOR:
+      assert(false); // in SIMP::Calc[Local/Global]VonMisesStress[OrLoadFactor]() only!
       break;
 
     case SUM_MODULI:

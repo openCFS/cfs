@@ -37,7 +37,7 @@ public:
   Vector<double> EvalDualGrads(Vector<double> &xin); //TODO implement for BFGS
   unsigned int GetNoDesign(){return n;} //TODO implement for BFGS
 
-  void EvalMmaConstrains(StdVector<double> & eval, StdVector<double> & xc);
+  void EvalMMAconstraints(StdVector<double> & eval, StdVector<double> & xc);
 
   inline void SetSubPrbItr(unsigned int it) {usedSubPrbItr = it;}
   inline void SetSubPrbEval(unsigned int noEval) {no_sub_prb_eval = noEval;}
@@ -87,13 +87,13 @@ private:
 
   /** General Optimization Problem
    *      min compliance(xval)
-   *   s.t:   constrains_i <= 0 ; i=[1 , m]
+   *   s.t:   constraints_i <= 0 ; i=[1 , m]
    *          xmin_i <= xval_i <= xmax_i ; i =[1, n]
    */
 
   /** n is the number of design variables - value assigned in MMA::PostInit() */
   unsigned int n = 0;
-  /** m is the number of  contrains - value assigned in MMA::PostInit() */
+  /** m is the number of  contraints - value assigned in MMA::PostInit() */
   unsigned int m = 0;
 
 
@@ -109,21 +109,21 @@ private:
   Vector<double> xmin;
   Vector<double> xmax;
 
-  /** compliance (objective) value at the current iteration point
+  /** objective value at the current iteration point
    * values updated in MMA::ComputeObjectiveConstraintsSensitivities() */
-  double compliance = -1.0;
+  double obj_val = -1.0;
 
-  /** gradient/sensitivity of compliance(objective) at the current iteration point
+  /** gradient/sensitivity of objective at the current iteration point
    * values updated in MMA::ComputeObjectiveConstraintsSensitivities() */
-  StdVector<double> grad_compliance;
+  StdVector<double> grad_objective;
 
-  /** constrains evaluated at the current iteration point
+  /** constraints evaluated at the current iteration point
   * values updated in MMA::ComputeObjectiveConstraintsSensitivities() */
-  StdVector<double> constrains;
+  StdVector<double> constraints;
 
-  /** gradient/sensitivity of constrains evaluated at the current iteration point
+  /** gradient/sensitivity of constraints evaluated at the current iteration point
   * values updated in MMA::ComputeObjectiveConstraintsSensitivities() */
-  StdVector<double> grad_constrains; // gradient of contrains, dimension m x n.
+  StdVector<double> grad_constraints; // gradient of contraints, dimension m x n.
 
   /** ToDO: Idea behind choosing value for scaling is not clear.
    * was copied from TopOpt implementation now NOT USED.
@@ -144,10 +144,10 @@ private:
    *      funcA_i = r_i + summation(p_ij/(upp_j - xval_j) + q_ij/(xval_j - low_j))
    */
 
-  StdVector<double> p_0j, q_0j; // objective approx
-  Matrix<double> p_ij, q_ij; // constraint approx
+  StdVector<double> p_0j, q_0j; // objective approximation
+  Matrix<double> p_ij, q_ij; // constraint approximation
   StdVector<double> b; // rhs of constrain inequality in subproblem.
-  double compliance_old=0; //used only in globally convergent version.
+  double obj_val_old=0; //used only in globally convergent version.
 
   /** MMA Sub Problem
    *      min funcA(xval) + z + 1/2 z^2 + summation(y_i*c_i + 1/2 y_i^2 ; i = [1, m])
@@ -240,7 +240,7 @@ private:
 
 
   // Lagrange multipliers
-  StdVector<double> lamda, mu; // vector size m
+  StdVector<double> lambda, mu; // vector size m
   StdVector<double> s; // vector size 2*m
 
   /** Defined in K.Svanberg's paper section 3.

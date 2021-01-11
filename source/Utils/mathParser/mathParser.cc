@@ -25,9 +25,10 @@ namespace CoupledField {
   std::list<Double> MathParser::dynamicPool_ = std::list<Double>();
 
   // Call method at muParser object with exception handling
-  // the difference between EXCEPTION and throw Exception is that the later does not report file and line which is for this case for the user not of impartance
-#define MATHPARSER_EXEC(CALL)                                                                \
-    try { CALL; } catch(mu::Parser::exception_type &e) {                                     \
+  // the difference between EXCEPTION and throw Exception is that the later does not report file and line
+  // which is for this case for the user not of importance
+#define MATHPARSER_EXEC(CALL)                                                                      \
+  try { CALL; } catch(mu::Parser::exception_type &e) {                                             \
     throw Exception( "MathParser reports '" + e.GetMsg() + "' in formula '" + e.GetExpr() + "'");  \
   }
   // further codes .GetToken() and (int) e.GetPos() already in e.GetMsg().
@@ -202,35 +203,35 @@ namespace CoupledField {
       poolsIt->second[varName] = val;
 
       /// register function with related parser object
-        myParser.DefineVar( varName,&( poolsIt->second[varName])  );
+      myParser.DefineVar( varName,&( poolsIt->second[varName])  );
 
-        // If handler is the GLOB_HANDLER, register variables also
-        // in all other parsers
-        if ( handler == GLOB_HANDLER ) {
+      // If handler is the GLOB_HANDLER, register variables also
+      // in all other parsers
+      if ( handler == GLOB_HANDLER ) {
 
+
+        // iterate over all local handler and define variable
+        ParserMap::iterator it = parsers_.begin();
+        it++;
+        for (; it != parsers_.end(); it++ ) {
           
-          // iterate over all local handler and define variable
-          ParserMap::iterator it = parsers_.begin();
-          it++;
-          for (; it != parsers_.end(); it++ ) {
-            
-            HandleType actHandle = it->first;
-            MATHPARSER_EXEC(
-                it->second.DefineVar(  varName,&( poolsIt->second[varName]) );
-            )
+          HandleType actHandle = it->first;
+          MATHPARSER_EXEC(
+              it->second.DefineVar(  varName,&( poolsIt->second[varName]) );
+          )
 
-            // We consider the case, that we have in the 
-            // child parsers already a "default" value for this variable,
-            // i.e. the parser instance assumes that the variable is
-            // locally defined. In this case we have to register
-            // the variable also in the globVarsInUse_ map
-            if( varsInUse_[actHandle].find( varName) !=
-                varsInUse_[actHandle].end() ) {
-              globVarsInUse_[varName].insert(actHandle);
-              pools_[actHandle].erase( varName );
-            }
+          // We consider the case, that we have in the
+          // child parsers already a "default" value for this variable,
+          // i.e. the parser instance assumes that the variable is
+          // locally defined. In this case we have to register
+          // the variable also in the globVarsInUse_ map
+          if( varsInUse_[actHandle].find( varName) !=
+              varsInUse_[actHandle].end() ) {
+            globVarsInUse_[varName].insert(actHandle);
+            pools_[actHandle].erase( varName );
           }
         }
+      }
     }
   }
   

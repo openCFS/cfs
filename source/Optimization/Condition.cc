@@ -13,8 +13,9 @@
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
-#include "Driver/FormsContexts.hh"
+#include "Driver/BucklingDriver.hh"
 #include "Driver/EigenFrequencyDriver.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -757,7 +758,8 @@ string Condition::ToString() const
     if(type_ == GLOBAL_STRESS || type_ == LOCAL_STRESS)
       os << "_" << GetExcitation()->GetFullLabel(); // change to excite label
     else if(domain->GetOptimization()->GetMultipleExcitation()->DoMetaExcitation(GetExcitation()->sequence))
-      os << "_" << GetExcitation()->GetMetaLabel();  }
+      os << "_" << GetExcitation()->GetMetaLabel();
+  }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
@@ -770,7 +772,7 @@ string Condition::ToString() const
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
 
-  if(type_ == BUCKLING_LOAD_FACTOR)
+  if(type_ == GLOBAL_BUCKLING_LOAD_FACTOR or type_ == LOCAL_BUCKLING_LOAD_FACTOR)
     os << "_" << eigenvalue_id_;
 
   // add bound type if multiple unique conditions exist
@@ -914,7 +916,7 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
 {
   if(IsAdjointBased())
   {
-    assert(type_ == LOCAL_STRESS); // the only known case up to now
+    assert(type_ == LOCAL_STRESS || type_ == LOCAL_BUCKLING_LOAD_FACTOR); // the only known cases up to now
     assert(!jac_sparsity_.empty());
     return jac_sparsity_.GetSize();
   }
@@ -929,8 +931,8 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
   assert(IsLocal());
 
-  // up to now only LOCAL_STRESS has a full gradient
-  assert(!IsStateDependent() || type_ == LOCAL_STRESS);
+  // up to now only LOCAL_STRESS and LOCAL_BUCKLING_LOAD_FACTOR have a full gradient
+  assert(!IsStateDependent() || type_ == LOCAL_STRESS || type_ == LOCAL_BUCKLING_LOAD_FACTOR);
   if(IsStateDependent())
     return Function::GetSparsityPattern();
 
@@ -1115,10 +1117,14 @@ double LocalCondition::CalcMeanAbsValue() const
 double LocalCondition::CalcMinMaxAbsValue() const
 {
   assert(local->virtual_elem_map.GetSize() == local->local_values.GetSize());
-  double minmax = 0.0;
+  double minmax;
+  if(bound_ == LOWER_BOUND)
+    minmax = std::numeric_limits<double>::infinity();
+  else
+    minmax = 0.0;
   for(double val : local->local_values)
     if(bound_ == LOWER_BOUND)
-       minmax = std::min(minmax, std::abs(val));
+      minmax = std::min(minmax, std::abs(val));
     else
       minmax = std::max(minmax, std::abs(val));
   return minmax;
@@ -1313,6 +1319,12 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
       if(all[i]->GetType() == Function::EIGENFREQUENCY)
       {
         unsigned int id = all[i]->GetEigenValueID();
+        if(all[i]->ctxt->DoBuckling())
+        {
+          StdVector<unsigned int> order = all[i]->ctxt->GetBucklingDriver()->GetModeOrder();
+          id = order[id];
+        }
+
         assert(id > 0); // ensured by xml schema
         if(id > max)
           EXCEPTION("eigenvalue id 'ev'" << id << " larger than the " << max << " calculated eigenfrequencies");

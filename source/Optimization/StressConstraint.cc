@@ -42,7 +42,8 @@ template<typename T>
 StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateContainer* forward) :
     elemList(domain->GetGrid())
 {
-  assert(f->GetType() == f->GLOBAL_STRESS || f->GetType() == f->LOCAL_STRESS);
+  Function::Type type = f->GetType();
+  assert(type == Function::GLOBAL_STRESS || type == Function::LOCAL_STRESS || type == Function::LOCAL_BUCKLING_LOAD_FACTOR);
 
   this->excite = excite;
   this->f = f;
@@ -57,6 +58,17 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
 
   // global initializations
   M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
+
+  // for the local buckling load factor we need the Euclidean norm of the stress
+  if(type == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+  {
+    M = Matrix<double>();
+    M.Resize(3,3);
+    M.Init();
+    M[0][0] = 1.0;
+    M[1][1] = 1.0;
+    M[2][2] = 1.0;
+  }
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
     tf = TransferFunction(App::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());

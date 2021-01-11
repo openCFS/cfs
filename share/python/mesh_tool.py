@@ -90,7 +90,7 @@ def nodes_by_type(type):
   if type == WEDGE6:
     return 6
   if type == TRIA3:
-    return  3
+    return 3
   if type == LINE:
     return 2
   if type == TET4:
@@ -360,13 +360,13 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
           else:
             e.region = 'void'
         elif is_color:
-          if input_array[x, y][0] > 0 and input_array[x, y][1] == 0 and input_array[x, y][1] == input_array[x, y][2] == 0:
+          if input_array[x, y][0] > 0 and input_array[x, y][1] == 0 and input_array[x, y][2] == 0:
             e.region = 'red'
             colorful_count += 1
-          elif input_array[x, y][0] == 0 and input_array[x, y][1] > 0 and input_array[x, y][1] == input_array[x, y][2] == 0:
+          elif input_array[x, y][0] == 0 and input_array[x, y][1] > 0 and input_array[x, y][2] == 0:
             e.region = 'green'
             colorful_count += 1
-          elif input_array[x, y][0] == 0 and input_array[x, y][1] == 0 and input_array[x, y][1] == input_array[x, y][2] > 0:
+          elif input_array[x, y][0] == 0 and input_array[x, y][1] == 0 and input_array[x, y][2] > 0:
             e.region = 'blue'
             colorful_count += 1
           else:
@@ -548,10 +548,8 @@ def write_gid_mesh(mesh, filename, scale = 1):
 
   out.write('\n[Node BC]\n')
   out.write('#NodeNr Level\n')
-  for b in range(len(mesh.bc)):
-    bc = mesh.bc[b]
-    for n in range(len(bc[1])):
-      v = bc[1][n]
+  for bc in mesh.bc:
+    for v in bc[1]:
       if v >= len(mesh.nodes):
         print(bc[0], v, ' larger', len(mesh.nodes)-1)
       assert(v >= 0)
@@ -562,10 +560,9 @@ def write_gid_mesh(mesh, filename, scale = 1):
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
   out.write('#ElemNr Level\n')
-  for e in range(len(mesh.ne)):
-    ne = mesh.ne[e]
-    for n in range(len(ne[1])):
-      out.write(str(ne[1][n] + 1) + " " + ne[0] + "\n")
+  for ne in mesh.ne:
+    for n in ne[1]:
+      out.write(str(n + 1) + " " + ne[0] + "\n")
 
   out.write("\n \n")
   out.close()
@@ -652,7 +649,7 @@ def validate_periodicity(mesh):
 
 ## creates a 2D mesh of predefined geometry
    #create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
-def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None, pfem=False, numbering='row_major'):
+def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None, pfem=False, numbering='col_major'):
 
   assert(type == 'bulk2d' or type == 'cantilever2d' or  type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
@@ -666,7 +663,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
 
   # buld2d case
   ny = y_res if y_res != None else x_res
-  width = 1.0 if width is None else width
+  width = 1.0 if width is None else width if opt_height is None else opt_height*(float(nx)/ny)
   height = width*(float(ny)/nx) if opt_height is None else opt_height
 
   offx = 0.
@@ -759,7 +756,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
         ll = (ny+1) * x + y  # lowerleft
         e.nodes = ((ll, ll+ny+1, ll+1+ny+1, ll+1))
         # set region for appropriate load case
-        e.region = set_region(x,y,nx,ny,type,patch)
+        e.region = set_region(x+.5,y+.5,nx,ny,type,patch)
         mesh.elements.append(e)
 
   if pfem:
@@ -935,17 +932,23 @@ def create_regular3d_mesh(type, resolution):
 # data and threshold for sparse mesh from create_density. data is a numpy.array in 3D!
 # @param ext_mesh if given use it
 # @return a mesh, either ext_mesh or a newly created
-def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0,pfem=False):
+def create_3d_mesh(type, x_res, y_res = None, z_res = None, width = None, height = None, depth = None, \
+                   inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0, pfem=False):
+  
   assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz" or type == "box_lufo")
+  eps = 1e-6
 
   nx = x_res
-  eps = 1e-6
+  width = width if width != None else 1
+  height = height if height != None else 1
+  depth = depth if depth != None else 1
+
   if type == "bulk3d":
     ny = y_res if y_res != None else x_res
     nz = z_res if z_res != None else x_res
-    width = scale
-    height = scale*float(ny)/nx
-    depth = scale*float(nz)/nx
+    dx = scale * width / nx
+    dy = scale * height / ny
+    dz = scale * depth / nz
     if inclusion == "top_panel":
       height = 1.0
       depth  = 0.5
@@ -1121,15 +1124,15 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
 # data and threshold for sparse mesh from create_density. data is a numpy.array in 3D!
 # @param ext_mesh if given use it
 # @return a mesh, either ext_mesh or a newly created
-def create_3d_matlab_mesh(type, x_res, y_res = None, z_res = None, width_res = None, height_res = None, depth_res = None):
+def create_3d_matlab_mesh(type, x_res, y_res = None, z_res = None, width = None, height = None, depth = None):
   assert(type == "matlab3d")
 
   nx = x_res
   ny = y_res if y_res != None else x_res
   nz = z_res if z_res != None else x_res
-  width = width_res if width_res != None else 1
-  height = height_res if height_res != None else 1
-  depth = depth_res if depth_res != None else 1
+  width = width if width != None else 1
+  height = height if height != None else 1
+  depth = depth if depth != None else 1
 
   dx = width / nx
   dy = height / ny
@@ -1568,8 +1571,8 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   # assume that region[0] is design, region[1] is non-design or void
   reg_elements_region = []
-  for i in range(len(region)):
-    reg_elements_region.append(hdf5_file['/Mesh/Regions/' + region[i] + '/Elements'].value)
+  for reg in region:
+    reg_elements_region.append(hdf5_file['/Mesh/Regions/' + reg + '/Elements'].value)
 
   types = hdf5_file['/Mesh/Elements/Types'].value
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
@@ -1591,12 +1594,12 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
     mesh.bc.append((region_support, reg_support_nodes[:] - 1))
   else:
     #array of boundary regions must be given, e.g. ['support','load1','load2']
-    for i in range(len(bcregions)):
-      bc_nodes = hdf5_file['Mesh/Groups/' + str(bcregions[i]) + '/Nodes']
+    for bcreg in bcregions:
+      bc_nodes = hdf5_file['Mesh/Groups/' + str(bcreg) + '/Nodes']
       mesh.bc.append((bcregions[i], bc_nodes[:] - 1))
   # insert nodes
-  for i in range(len(all_nodes)):
-    mesh.nodes.append(all_nodes[i])
+  for node in all_nodes:
+    mesh.nodes.append(node)
 
   # counter for regions
   idx = list(range(len(region)))
@@ -1793,9 +1796,9 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   if regionnumbers != None:
     print("regionnumbers:",regionnumbers)
     for j in range(len(regionnumbers)):
-      for i in range(len(regions[j])):
+      for reg in regions[j]:
         e = Element()
-        e.nodes = (regions[j][i][1:])
+        e.nodes = (reg[1:])
         for k in range (len(e.nodes)):
           e.nodes[k] -= 1
         e.density = 1.
@@ -1808,9 +1811,9 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
           e.type = HEXA8
         mesh.elements.append(e)
   else: # workaround
-    for i in range(len(regions)):
+    for reg in regions:
       e = Element()
-      e.nodes = (regions[i][1:])
+      e.nodes = (reg[1:])
       for k in range (len(e.nodes)):
         e.nodes[k] -= 1
       e.density = 1.
@@ -1853,10 +1856,10 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   out.write(str(len(mesh.nodes))+' \n')
   dim = len(mesh.nodes[0])
   #write nodes
-  for i in range(len(mesh.nodes)):  # write one based!
-    out.write(str(i + 1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]))
+  for i, node in enumerate(mesh.nodes):  # write one based!
+    out.write(str(i + 1) + "  " + str(node[0]) + "  " + str(node[1]))
     if dim == 3:
-      out.write("  " + str(mesh.nodes[i][2]) + "\n")
+      out.write("  " + str(node[2]) + "\n")
     else:
       out.write("  0.0\n")
   #write elements
@@ -1865,8 +1868,7 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   out.write(str(len(mesh.elements)+len(mesh.bc[0][1]) + len(mesh.bc[1][1]) + len(mesh.bc[2][1]))+ '\n') #+ len(mesh.bc[3][1]) + len(mesh.bc[4][1]) + len(mesh.bc[5][1]) + len(mesh.bc[6][1]))+ '\n')
   # 1D boundary elements support, forces
   count = 0
-  for k in range(len(mesh.bc)):
-    bc = mesh.bc[k]
+  for bc in mesh.bc:
     if bc[0] == 'force1':
       id = 5
     elif bc[0] == 'force2':
@@ -1881,12 +1883,11 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
       id = 10
     else:
       print('Warning mesh.bc type not handled!')
-    for l in range(len(bc[1])):
-      out.write(str(count+1) + ' ' +str(15) + ' 2 0 ' + str(id) + ' ' + str(bc[1][l] + 1)+' \n')
+    for node in bc[1]:
+      out.write(str(count+1) + ' ' +str(15) + ' 2 0 ' + str(id) + ' ' + str(node + 1)+' \n')
       count +=1
   # write 3D elements
-  for i in range(len(mesh.elements)):  # write one based!
-    e = mesh.elements[i]
+  for e in mesh.elements:  # write one based!
     nodes = len(e.nodes)
     out.write(str(count + 1) + ' ' + str(5 if nodes_by_type(e.type) == 8 else 6) + ' 2 0 ' + str(2 if e.region == 'design' else 3))
     count +=1
@@ -1918,14 +1919,12 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
   out.write('  LOAD =       2\n')
   out.write('BEGIN BULK\n')
   # write nodes
-  for i in range(len(mesh.nodes)):
-    n = mesh.nodes[i]
+  for i, n in enumerate(mesh.nodes):
     out.write('GRID%12d%8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
     #out.write('GRID    ' + '%-8d%-8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
   # Hexaeder elements
-  for i in range(len(mesh.elements)):
-    e = mesh.elements[i]
-    n = mesh.elements[i].nodes
+  for i, e in enumerate(mesh.elements):
+    n = e.nodes
     if e.type == HEXA8 and e.region == 'design':
       out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       out.write('+       %8d%8d\n'%(n[6]+1,n[7]+1))
@@ -1937,9 +1936,8 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
       #out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
       #out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6]+1,n[7]+1))
   # Wedge elements
-  for i in range(len(mesh.elements)):
-    e = mesh.elements[i]
-    n = mesh.elements[i].nodes
+  for i, e in enumerate(mesh.elements):
+    n = e.nodes
     if e.type == WEDGE6 and e.region == 'design':
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
@@ -1947,25 +1945,25 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
   # write forces1
-  for i in range(len(mesh.bc[0][1])):
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])))
+  for n in mesh.bc[0][1]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,n+1,0,5000./len(mesh.bc[0][1])))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
     # write forces2
-  for i in range(len(mesh.bc[1][1])):
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])))
+  for n in mesh.bc[1][1]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,n+1,0,5000./len(mesh.bc[1][1])))
 
       # write forces3
-  for i in range(len(mesh.bc[2][1])):
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[2][1][i]+1,0,5000./len(mesh.bc[2][1])))
+  for n in mesh.bc[2][1]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,n+1,0,5000./len(mesh.bc[2][1])))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
-  for i in range(len(mesh.bc[3][1])):
-    out.write('SPC%13d%8d  13     \n'%(1,mesh.bc[3][1][i]+1))
-  for i in range(len(mesh.bc[4][1])):
-    out.write('SPC%13d%8d  2     \n'%(1,mesh.bc[4][1][i]+1))
-  for i in range(len(mesh.bc[5][1])):
-    out.write('SPC%13d%8d  2     \n'%(1,mesh.bc[5][1][i]+1))
+  for n in mesh.bc[3][1]:
+    out.write('SPC%13d%8d  13     \n'%(1,n+1))
+  for n in mesh.bc[4][1]:
+    out.write('SPC%13d%8d  2     \n'%(1,n+1))
+  for n in mesh.bc[5][1]:
+    out.write('SPC%13d%8d  2     \n'%(1,n+1))
     #out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
 
   #out.write('PSOLID         1       1\n')

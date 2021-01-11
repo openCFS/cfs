@@ -422,6 +422,7 @@
                 <xsd:enumeration value="eigenfrequency" />
                 <!-- buckling problem, where number of the mode is in attribute ev -->
                 <xsd:enumeration value="bucklingLoadFactor" />
+                <xsd:enumeration value="localBucklingLoadFactor" />
                 <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
                 <!-- heat energy -->
                 <xsd:enumeration value="heatEnergy" />
@@ -1828,6 +1829,8 @@
                       <!-- element (Bu,M Bu) for stress constraints with stress transfer function. vonMisesStress has mech transfer function and squares.
                       Note that the stess constraints are evaluated at the integration points an the cfs pde results at the center only -->
                       <xsd:enumeration value="quadraticVMStress" />
+                      <!-- local buckling load factor (e.g. for two scale structures) -->
+                      <xsd:enumeration value="localBucklingLoadFactor" />
                       <!-- This is (rho - rho^*)^2 (rho is physical) without 1/N -->
                       <xsd:enumeration value="designTracking" />
                       <!-- for shape mapping the max of dtanh_da for a rho element -->
@@ -2457,6 +2460,9 @@
       <!-- 3D center node b -->
       <xsd:enumeration value="node_b" />
       <xsd:enumeration value="profile" />
+      <xsd:enumeration value="controlpoint" />
+      <xsd:enumeration value="bucklingLoadFactor" />
+      <xsd:enumeration value="localBucklingLoadFactor" />
     </xsd:restriction>
   </xsd:simpleType>
 

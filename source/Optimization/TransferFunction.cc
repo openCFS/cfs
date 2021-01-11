@@ -348,13 +348,11 @@ double TransferFunction::Derivative(double value, bool lower_bimat) const
 
     case RAMP: 
     {
-      double p2 = param_ * param_;
-      double p = param_;
       double x = value;
       if(!lower_bimat)
-        return (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);
+        return (1.0 + param_) / std::pow(1 + param_ * (1.0 - x), 2);
       else
-        return -1.0/(p*x+1)-(p*(1-x))/pow(p*x+1,2);
+        return -1.0 / (param_*x+1)-(param_*(1-x)) / std::pow(param_*x+1,2);
     } 
 
     case HASHIN_SHTRIKMAN:

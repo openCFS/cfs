@@ -266,8 +266,10 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
                 << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
                 << " add=" << (f != NULL ? value * f->GetPenalty() : value)
                 << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetPenalty() : constraintGradient[g->GetIndex()] + value);
-  if(f != NULL) costGradient[f->GetIndex()] += value * f->GetPenalty();
-           else constraintGradient[g->GetIndex()] += value;
+  if(f != NULL)
+    costGradient[f->GetIndex()] += value * f->GetPenalty();
+  else
+    constraintGradient[g->GetIndex()] += value;
 }
 
 void BaseDesignElement::AddGradient(const Function* f, double value)
@@ -500,6 +502,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_MOLE
       || rd.value == MAX_JUMP
       || rd.value == QUADRATIC_VM_STRESS
+      || rd.value == LOCAL_LOAD_FACTOR
       || rd.value == DESIGN_TRACKING
       || rd.value == PROJECTION
       || rd.value == SHAPE_MAP_GRAD
@@ -625,6 +628,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
   case MAX_OSCILLATION:
   case MAX_JUMP:
   case QUADRATIC_VM_STRESS:
+  case LOCAL_LOAD_FACTOR:
     assert(false); // should be covered before by special result index
     break; // only for the compiler
 
@@ -882,6 +886,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(MAX_JUMP, "maxJump");
   valueSpecifier.Add(QUADRATIC_VM_STRESS, "quadraticVMStress");
+  valueSpecifier.Add(LOCAL_LOAD_FACTOR, "localBucklingLoadFactor");
   valueSpecifier.Add(DESIGN_TRACKING, "designTracking");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
@@ -950,6 +955,8 @@ void DesignElement::SetEnums()
   detail.Add(SM_NODE_B, "node_b");
   detail.Add(SM_PROFILE, "profile");
   detail.Add(SP_CP, "controlpoint");
+  detail.Add(BUCKLINGLOADFACTOR, "bucklingLoadFactor");
+  detail.Add(LOCALBUCKLINGLOADFACTOR, "localBucklingLoadFactor");
 }
 
 

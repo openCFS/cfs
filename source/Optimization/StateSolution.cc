@@ -64,8 +64,6 @@ Matrix<double> StateContainer::CollectBlochEigenfrequencies(Context* ctxt)
   return mat;
 }
 
-
-
 StateSolution* StateContainer::Get(const Excitation* ex, const Function* f, int timestep_mode_local, TimeDeriv derivative)
 {
   assert(ex != NULL);
@@ -77,7 +75,7 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
   LOG_DBG2(statesol) << "SC:G: ex=" << ex.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL")
                      << " ts=" << timestep_mode_local << " d=" << derivative << " size=" << data_.GetSize();
 
-  assert(timestep_mode_local == -1 || (f!= NULL && f->IsLocal()) || Optimization::manager.any().eigenvalue); // add transient
+  assert(timestep_mode_local == -1 || (f != NULL && f->IsLocal()) || Optimization::manager.any().eigenvalue); // add transient
 
   if(data_.GetCapacity() == 0)
   {

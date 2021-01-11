@@ -383,6 +383,11 @@ void ErsatzMaterial::PostInit()
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
     {
       int idx = constraints.all[i]->GetEigenValueID();
+      if(constraints.all[i]->ctxt->DoBuckling())
+      {
+        StdVector<unsigned int> order = constraints.all[i]->ctxt->GetBucklingDriver()->GetModeOrder();
+        idx = order[idx];
+      }
       if(idx > 0)
         log.AddToHeader("mode_" + boost::lexical_cast<std::string>(idx));
     }
@@ -1064,7 +1069,7 @@ void ErsatzMaterial::AddGeometricStiffnessToStiffness(Context* ctxt, const Trans
 
   // change name only
   Matrix<Complex>& S = K_in_S_out;
-  LOG_DBG2(em) << "AGSTS: 1. e=" << de->elem->elemNum << " K_in_S_out=" << S.ToString();
+  LOG_DBG3(em) << "AGSTS: 1. e=" << de->elem->elemNum << " K_in_S_out=" << S.ToString();
 
   // add geometric stiffness to stiffness
   int index = de->multimaterial != NULL ? de->multimaterial->index : -1; // multimaterial stuff
@@ -1072,11 +1077,11 @@ void ErsatzMaterial::AddGeometricStiffnessToStiffness(Context* ctxt, const Trans
   const Matrix<Double>& G = dynamic_cast<const Matrix<Double>&>(ctxt->mat->GeometricStiffness(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
   assert(S.GetNumRows() == G.GetNumRows() && S.GetNumCols() == G.GetNumCols());
   Add<Complex, Double>(S, Complex(factor, 0.0), G);
-  LOG_DBG2(em) << "AGSTS: 2. e=" << de->elem->elemNum << " G=" << G.ToString();
+  LOG_DBG3(em) << "AGSTS: 2. e=" << de->elem->elemNum << " G=" << G.ToString();
 
-  LOG_DBG2(em) << "AGSTS: d=" << de->elem->elemNum << " der=" << derivative
+  LOG_DBG3(em) << "AGSTS: d=" << de->elem->elemNum << " der=" << derivative
                << " bm=" << bimaterial << " mode="  << mode << " factor=" << factor;
-  LOG_DBG2(em) << "AGSTS: 3. e=" << de->elem->elemNum << " S=" << S.ToString();
+  LOG_DBG3(em) << "AGSTS: 3. e=" << de->elem->elemNum << " S=" << S.ToString();
 }
 
 
@@ -1323,6 +1328,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::GLOBAL_STRESS:
     case Function::LOCAL_STRESS:
+    case Function::LOCAL_BUCKLING_LOAD_FACTOR:
       assert(false); // implemented in SIMP
       break;
 
@@ -1475,7 +1481,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       break;
 
     case Function::EIGENFREQUENCY:
-    case Function::BUCKLING_LOAD_FACTOR:
+    case Function::GLOBAL_BUCKLING_LOAD_FACTOR:
       result = CalcEigenfrequency(excite, f, derivative);
       break;
 
@@ -2302,6 +2308,11 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
   Excitation* ex = NULL;
   if(f->IsObjective() || g->DoFullBloch())
   {
+    if(f->ctxt->DoBuckling())
+    {
+      StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
+      mode_idx = order[mode_idx];
+    }
     StdVector<double> efs = forward.CollectEigenfrequencies(org_excite);
     freq = efs[mode_idx];
     ex = &org_excite;
@@ -2384,6 +2395,11 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
   assert(context->DoBuckling() && f->ctxt->DoBuckling());
 
   unsigned int mode_idx = f->GetEigenValueID() - 1;
+  if(f->ctxt->DoBuckling())
+  {
+    StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
+    mode_idx = order[mode_idx];
+  }
   LOG_DBG2(em) << "mode: " << mode_idx << " f: " << f->ToString();
 
   TransferFunction* tf = design->GetTransferFunction(f->GetDesignType(), App::BUCKLING, true);
@@ -2411,7 +2427,6 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
 //    Double norm = Gmode.Inner(mode.GetPart(Global::REAL));
 //
 //    factor *= 1.0/norm;
-    factor *= ev;
     LOG_DBG2(em) << "factor: " << factor;
   }
 
@@ -3571,7 +3586,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
       // in the harmonic case the system matrix depends on the frequency. Hence we have to
       // use the current assembly and factorization to solve the adjoint problem.
-      if(f->IsAdjointBased() && DoSolveAdjointWithState() && f->ctxt == context) // the context is set properly
+      if(f->ctxt == context && f->IsAdjointBased() && DoSolveAdjointWithState()) // the context is set properly
         SolveAdjointProblem(&excite, f); // not called in a standard case
 
       // when we do multiple excitations with adjusted weights we calculate the objective here
@@ -3781,6 +3796,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 
   assert(excite != NULL);
   excite->Apply(false); // the context shall be already switched
+
   assert(excite->sequence == context->sequence);
   assert(context->pde != NULL);
   assert(f->ctxt == context);
@@ -3850,6 +3866,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     }
 
     case Function::LOCAL_STRESS:
+    case Function::LOCAL_BUCKLING_LOAD_FACTOR:
     {
       // similar to above but we need to solve the adjoints for the virtual local constraints
       SystemState state = PrepareAdjointSystem(*excite, f); // ConstructAdjointRHS() is ignored here
@@ -3887,7 +3904,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       break;
     }
 
-    case Function::BUCKLING_LOAD_FACTOR:
+    case Function::GLOBAL_BUCKLING_LOAD_FACTOR:
     {
       SystemState state = PrepareAdjointSystem(*excite, f);
 
@@ -3905,6 +3922,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       // export manually (automatic is confusing because we hijacked the lin ela excitation's system)
       StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(context->pde->GetSolveStep());
       PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
+      StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
       if(els)
       {
         BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
@@ -3914,7 +3932,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
         if(id.ToString(true) != "") // filename variant
           base += "_" + id.ToString(true);
 
-        base += "_" + std::to_string(f->GetEigenValueID());
+        unsigned int idx = order[f->GetEigenValueID()-1];
+        base += "_" + std::to_string(idx+1);
 
         if(els->Get("rhs")->As<bool>())
         {
@@ -3931,7 +3950,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       }
 
       // store the adjoint solution
-      StorePDESolution(adjoint, *excite, f, f->GetEigenValueID()-1, true, false, true, NO_DERIVTYPE, "adjoint");
+      unsigned int idx = order[f->GetEigenValueID()-1];
+      StorePDESolution(adjoint, *excite, f, idx, true, false, true, NO_DERIVTYPE, "adjoint");
 
       // restore system state
       RestoreStateSystem(state);
@@ -3984,8 +4004,9 @@ ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& exc
   fe->GetInHomDirichletBCs().Resize(0);
   fe->ApplyBC();
 
-  // set the adjoint rhs, ignored for LOCAL_STRESS
-  if(f->GetType() != Function::LOCAL_STRESS) // done explicitly in ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
+  // set the adjoint rhs, ignored for LOCAL_STRESS and LOCAL_BUCKLING_LOAD_FACTOR
+  // (for these done explicitly in ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f))
+  if(f->GetType() != Function::LOCAL_STRESS && f->GetType() != Function::LOCAL_BUCKLING_LOAD_FACTOR)
     ConstructAdjointRHS(excite, f);
 
   assert(context->GetDriver()->GetAnalysisId().adjoint == false);
@@ -4106,6 +4127,11 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   if(context->IsEigenvalue())
   {
     ts = f->GetEigenValueID()-1;
+    if(f->ctxt->DoBuckling())
+    {
+      StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
+      ts = order[ts];
+    }
     if (ts > (int) context->driver->GetNumSteps())
       EXCEPTION("Requested eigenvalue index in objective/constraint is larger than total number of eigenvalues");
   }
@@ -4115,7 +4141,6 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   Vector<Complex>& l = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::SEL_VECTOR);
   LOG_DBG2(em) << "ConstructComplexAdjointRHS: u = " << u.ToString();
   LOG_DBG2(em) << "ConstructComplexAdjointRHS: l = " << l.ToString();
-
 
   // create a OLAS vector
   Vector<Complex>& rhs = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::RHS_VECTOR);
@@ -4175,13 +4200,14 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
 
     case Function::GLOBAL_STRESS:
     case Function::LOCAL_STRESS:
+    case Function::LOCAL_BUCKLING_LOAD_FACTOR:
     {
       StressConstraint<Complex> sc(&excite, f, this, &forward);
       sc.CalcAdjointRHS(rhs);
       break;
     }
 
-    case Function::BUCKLING_LOAD_FACTOR:
+    case Function::GLOBAL_BUCKLING_LOAD_FACTOR:
     {
       ConstructAdjointRHSBuckling(f, u, rhs);
 
@@ -4207,7 +4233,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
     assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
   }
 
-  if (f->GetType() != Function::BUCKLING_LOAD_FACTOR)
+  if (f->GetType() != Function::GLOBAL_BUCKLING_LOAD_FACTOR)
   {
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
     // we cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
@@ -4335,8 +4361,9 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
 
     const EntityList* entities = linEla_blfc->GetFirstEntities().get();
 
-    // UInt en = domain->GetGrid()->GetNumElems();
-    UInt en = design->GetNumberOfElements();
+    StdVector<Elem*> elems;
+    domain->GetGrid()->GetElems(elems, mat.first);
+    UInt en = elems.GetSize();
 
 #pragma omp parallel firstprivate(buckl_ea, linEla_ea) num_threads(CFS_NUM_THREADS)
     {
@@ -4371,13 +4398,12 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
     // loop over elements
     for (UInt e = start; e < end; ++e)
     {
-      const DesignElement* de = f->elements[e];
-      LOG_DBG3(em) << "CARHSB: " << aThread+1 << " -> " << de->elem->elemNum << " (" << e << ")"
-                   << ", " << it.GetElem()->elemNum << " (" << it.GetPos() << ")";
-      assert(de->elem == it.GetElem());
+      LOG_DBG3(em) << "CARHSB: thread " << aThread+1 << " -> elem "
+          << it.GetElem()->elemNum << " (" << it.GetPos()+1 << " in region '"
+          << domain->GetGrid()->GetRegion().ToString(mat.first) << "')";
 
-      buckl_ea.SetElem(de->elem);
-      linEla_ea.SetElem(de->elem);
+      buckl_ea.SetElem(it.GetElem());
+      linEla_ea.SetElem(it.GetElem());
 
       // set an arbitrary integration point for GetTensor()
       linEla_ea.SetIP(0);
@@ -4394,11 +4420,11 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
       // get integration points and weights. linEla_bdb and buckl_bdb should have same integration!
       StdVector<LocPoint> intPoints;
       StdVector<Double> weights;
-      linEla_bdb->GetIntScheme()->GetIntPoints( Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
+      linEla_bdb->GetIntScheme()->GetIntPoints( Elem::GetShapeType(it.GetElem()->type), method, order, intPoints, weights );
 
       // get equation numbers of element
       StdVector<Integer> eqns;
-      feSpace->GetElemEqns(eqns, de->elem);
+      feSpace->GetElemEqns(eqns, it.GetElem());
 
       // create all needed vectors
       modeElem.Resize(eqns.GetSize());
@@ -4459,15 +4485,14 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
         derivativeElem += derivativeElemIP;
       } // end loop integration points
 
-      LOG_DBG2(em) << "eq: " << eqns.ToString();
-      LOG_DBG2(em) << "dE: " << derivativeElem.ToString();
+      LOG_DBG3(em) << "eq: " << eqns.ToString();
+      LOG_DBG3(em) << "dE: " << derivativeElem.ToString();
 
       // add local derivative to global rhs
       for(UInt eq = 0 ; eq < eqns.GetSize(); ++eq) {
         if( eqns[eq] != 0 )
           rhs[std::abs(eqns[eq])-1] += derivativeElem[eq];
       }
-      LOG_DBG(em) << "rhs: " << rhs.GetPart(Global::REAL).ToString();
 
       if (printProgressBar_)
       {
@@ -4481,6 +4506,7 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
     } // end omp parallel
   } // end loop regions
 
+  LOG_DBG2(em) << "rhs: " << rhs.GetPart(Global::REAL).ToString();
   assert(rhs.GetSize() == mode.GetSize());
   rhs_timer->Stop();
 }

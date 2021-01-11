@@ -222,7 +222,7 @@ void Optimization::PostInitSecond()
       log.AddToHeader((g->GetBound() != Condition::LOWER_BOUND ? "max_abs_" : "min_abs_") + g->ToString());
       if(progOpts->DoDetailedInfo())
         log.AddToHeader("mean_abs_" + g->ToString());
-      log.AddToHeader("infeas_" + g->ToString());
+      log.AddToHeader("infeas_count_" + g->ToString());
     }
     LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString() << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
   }
@@ -409,7 +409,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
-  Function::type.Add(Function::BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
+  Function::type.Add(Function::GLOBAL_BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
+  Function::type.Add(Function::LOCAL_BUCKLING_LOAD_FACTOR, "localBucklingLoadFactor");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SLACK_FNCT, "slackFunction");
@@ -849,7 +850,7 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
   {
     Function* f = ff[i];
     assert(f != NULL);
-    if(f->IsAdjointBased() && f->DoEvaluate(excite))
+    if(f->ctxt == context && f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
 }
@@ -1293,7 +1294,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       iteration->Get((g->GetBound() != g->LOWER_BOUND ? "max_abs_" : "min_abs_") + g->ToString())->SetValue(minmax);
       if(progOpts->DoDetailedInfo())
         iteration->Get("mean_abs_" + g->ToString())->SetValue(mean);
-      iteration->Get("infeas_" + g->ToString())->SetValue(inf_cnt);
+      iteration->Get("infeas_count_" + g->ToString())->SetValue(inf_cnt);
     }
 
     else

@@ -119,7 +119,8 @@ protected:
   double CalcGlobalVonMisesStress(Excitation& excite, Function* f, bool gradient);
 
   /** calculates local stress value or gradient. We do not go via LocalFunction here! */
-  double CalcLocalVonMisesStress(Excitation& excite, Function* f, bool gradient);
+  /** calculates local microscopic load factor */
+  double CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, Function* f, bool gradient);
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases include a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
@@ -138,6 +139,7 @@ private:
   template <class T1, class T2>
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 
+  double GetMicroLoadFactor(double vol, bool derivative = false);
 };
 
 

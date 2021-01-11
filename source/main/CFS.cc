@@ -250,7 +250,7 @@ int CFS::Run()
 
     return 0;
   }
-  catch(const mu::ParserError& e)
+  catch(const mu::Parser::exception_type& e)
   {
     cerr << endl << "mu::ParserError: " << e.GetMsg() << endl;
     return 1;

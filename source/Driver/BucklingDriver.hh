@@ -64,8 +64,9 @@ class BucklingDriver: public virtual SingleDriver {
       // Set current eigenvalue in the mathParser
       domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", stepVal);
       domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", stepNum);
-
     }
+
+    StdVector<unsigned int> GetModeOrder() { return modeOrder_; }
 
     SingleVector* eigenValues;
     SingleVector* errors;
@@ -127,7 +128,7 @@ class BucklingDriver: public virtual SingleDriver {
     UInt numEigenValues_;
 
     // order of the sorted modes
-    StdVector<int> modeOrder_;
+    StdVector<unsigned int> modeOrder_;
 
     //! input parameter, set method of Mode sizing
     BaseEigenSolver::ModeNormalization modeNormalization_;

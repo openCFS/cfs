@@ -123,9 +123,17 @@ def perform_2d(args, coords, design, scale, nondes = None):
   elif args.show == "hom_triangle":
     assert(args.hom_grad != 'none')
     if args.target_volume is None:
-      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, args.parameter, args.bc_bend)
+      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.parameter, args.bc_bend)
     else:
-      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, scale*args.parameter, args.bc_bend)
+      if args.parameter is not None:
+        viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, scale*args.parameter, args.bc_bend)
+      else:
+        design_backup = design['s1']
+        design['s1'] = scale * design['s1']
+        try:
+          viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.parameter, args.bc_bend)
+        finally:
+          design['s1'] = design_backup
   elif args.show == "stream":
       samples = args.hom_samples.split(',')
       design['angle'] = design['angle'][:,0]
@@ -306,16 +314,22 @@ def match_volume_bisec(target_volume, func, params, param_idx):
 #
 # @example  params = [coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, True, 0.0, args.bc_bend]
 #           viz = match_volume_bisec(args.parameter, show_triangle_grad, params, 8)
+    print("match volume {:.3f} by bisection".format(target_volume))
+
     tol = 1e-15
     # initial values
     param1 = 0.0
-    param2 = 1e10
+    param2 = pow(2,30)
     # func should raise a ValueError, if param does not fit to other function parameters
     # e.g. show_triangle_grad raises a ValueError, if param is too large for the choosen radius
     while True:
       try:
         params[param_idx] = param1
         viz1 = func(*params)
+        vol1 = 1 - numpy.average(numpy.array(viz1)) / 255 if type(viz1) is Image.Image else viz1
+        if(vol1 > target_volume):
+          param1 = param1 / 2
+          break
         break
       except ValueError:
         if param1 == 0.0:
@@ -326,28 +340,42 @@ def match_volume_bisec(target_volume, func, params, param_idx):
       try:
         params[param_idx] = param2
         viz2 = func(*params)
+        vol2 = 1 - numpy.average(numpy.array(viz2)) / 255 if type(viz2) is Image.Image else viz2
+        if(vol2 < target_volume):
+          param2 = param2 * 2
         break
       except ValueError:
-        param2 = np.max((param2 / 2, 1.0))
+        param2 = param2 / 2
     assert(param2 > param1)
 
     vol1 = 1 - numpy.average(numpy.array(viz1)) / 255 if type(viz1) is Image.Image else viz1
     vol2 = 1 - numpy.average(numpy.array(viz2)) / 255 if type(viz2) is Image.Image else viz2
+    print("bisection initial values: {}, {}".format(vol1, vol2))
     assert((vol1-target_volume)*(vol2-target_volume) < 0),'no root in initial interval [{},{}]'.format(param1,param2)
 
     # actual bisection
+    iter = 0
     while param2-param1 > tol:
-      param3 = (param1 + param2) / 2
-      params[param_idx] = param3
-      viz3 = func(*params)
-      vol3 = 1 - numpy.average(numpy.array(viz3)) / 255 if type(viz3) is Image.Image else viz3
-      #print((param1,param3,param2,vol1,vol3,vol2))
-      if (vol1 - target_volume)*(vol3 - target_volume) < 0:
-        param2 = param3
-        vol2 = vol3
-      else:
-        param1 = param3
-        vol1 = vol3
+      try:
+        param3 = (param1 + param2) / 2
+        params[param_idx] = param3
+        viz3 = func(*params)
+        vol3 = 1 - numpy.average(numpy.array(viz3)) / 255 if type(viz3) is Image.Image else viz3
+        # stop if there is no design change
+        if np.abs(vol3-vol1) < tol or np.abs(vol2-vol1) < tol:
+          break
+        #print((param1,param3,param2,vol1,vol3,vol2))
+        if (vol1 - target_volume)*(vol3 - target_volume) < 0:
+          param2 = param3
+          vol2 = vol3
+        else:
+          param1 = param3
+          vol1 = vol3
+        iter = iter + 1
+        if iter % 10 == 0:
+          print("bisection iter {:d}: {}, {}".format(iter, vol1, vol2))
+      except ValueError:
+        raise
     # check which volume is closer to the desired volume. we have to do this because we get rounding errors due to the discrete resolution of viz
     params[param_idx] = param1 if target_volume-vol1 < vol2-target_volume else param2
     viz = func(*params)
@@ -356,6 +384,8 @@ def match_volume_bisec(target_volume, func, params, param_idx):
     return viz
 
 def match_volume_raster(target_volume, func, params, param_idx):
+  print("match volume {:.3f} by rastering".format(target_volume))
+
   if args.scale > 0:
     raise Exception("Don't give --scale and --target_volume concurrently!")
 
@@ -451,12 +481,12 @@ parser.add_argument("--symmetries_max", help="maximum number of symmetries (defa
 parser.add_argument("--symmetries_threshold", help="threshold value for symmetries (default 9999)", default=9999)
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
 parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also show planes to normals (default 'false')", default="false")
-parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default="smart")
+parser.add_argument("--access", help="'plain' or 'smart' (default 'smart')", default="smart")
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'])
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'])
+parser.add_argument("--hom_samples", help="activates interpolation and the value gives samples in x,y,z direction")
 parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float)
 parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float)
-parser.add_argument("--hom_samples", help="activates interpolation and the value gives samples in x,y,z direction")
 parser.add_argument("--cell_size", help="cell size in [mm] in x,y,z direction", type=float)
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)

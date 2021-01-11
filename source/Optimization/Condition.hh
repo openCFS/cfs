@@ -67,7 +67,7 @@ namespace CoupledField
         * @see IsSlackBound() */
        double GetBoundValue() const { return HasGeneralSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
 
-       /** allows to compare with a special bound value as GetBoundValue() woul return 0
+       /** allows to compare with a special bound value as GetBoundValue() would return 0
         * @param compare SLACK_VALUE, ALPHA_VALUE ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
        double IsGeneralSlackBound(double compare) const { return boundValue_ == compare; }
 
@@ -108,7 +108,7 @@ namespace CoupledField
        /** Is the gradient dense or sparse. Almost all local conditions and slack obj are sparse.
         * The only dense local function is localStress which is state dependent
         * @see Function::HasDenseJacobian() */
-       bool HasDenseJacobian() const { return !IsLocalCondition() || type_ == LOCAL_STRESS; } // todo: what is with slack?
+       bool HasDenseJacobian() const { return !IsLocalCondition() || type_ == LOCAL_STRESS  || type_ == LOCAL_BUCKLING_LOAD_FACTOR; } // todo: what is with slack?
        
        /** Is it a constraint on the imaginary part? */
        bool IsImag() const { return imag_; }

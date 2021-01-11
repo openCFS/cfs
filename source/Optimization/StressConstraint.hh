@@ -46,8 +46,6 @@ public:
     return CalcElementStress(STRESS, res_idx, de);
   }
 
-
-
   /** The design gradient of the stress values for every f->elements */
   void CalcGradStresses(Vector<double>& out);
 
@@ -56,16 +54,13 @@ public:
     return CalcElementStress(GRAD_STRESS, -1, de);
   }
 
-
-
   /** globalizes rhs by Calling CalcElemAdjointRHS in a loop
    * @param out will be set, resized and filled */
   void CalcAdjointRHS(Vector<T>& out);
 
-  /** helper for the globalized function and for LOCAL_STRESS
+  /** helper for the globalized function and for LOCAL_STRESS and LOCAL_BUCKLING_LOAD_FACTOR
    * @param out_set needs to be a set output rhs where we add our stuff ad the dofs of de */
   void CalcElemAdjointRHS(DesignElement* de, double alpha, Vector<T>& out_set);
-
 
   /** is actually the max(0, stress-c)^2 applied per element. if the bound c is too large it is all zero */
   Vector<double> CalcGlobalizationFactor(const Vector<double>& stresses, bool gradient);

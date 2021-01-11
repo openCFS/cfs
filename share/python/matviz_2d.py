@@ -1,6 +1,6 @@
 from matviz_rot import *
 import platform
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
 # matplotlib.use('TkAgg')
@@ -15,7 +15,7 @@ import scipy.interpolate as ip
 import math
 
 
-# # create and prepare a matplot figure where patched might be "added" to
+# create and prepare a matplot figure where patched might be "added" to
 def create_figure(min, max, res, for_save):
   # we set the aspect ratio and also the resolution such that we can export as png
   # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
@@ -59,11 +59,11 @@ def create_image(min, max, res, color="white"):
   return im, draw, dim, dx, dy
 
 
-# # @return phi, r
+# @return phi, r
 def to_polar(x, y):
   return numpy.sqrt(x ** 2 + y ** 2), numpy.arctan2(y, x)
 
-# # polar coordiantes to cartesian
+# polar coordiantes to cartesian
 def to_cart(phi, r):
   return r * numpy.cos(phi), r * numpy.sin(-phi)
 
@@ -81,7 +81,7 @@ def color_code(color_map, value):
   return "rgb(" + str(int(255 * c[0])) + ", " + str(int(255 * c[1])) + "," + str(int(255 * c[2])) + ")"
 
 
-# # generate polygon vertices out of rotation data
+# generate polygon vertices out of rotation data
 # to be applied as draw.polygon(result, fill="green", outline="black")
 #
 # from paraview_fmo import *
@@ -107,7 +107,7 @@ def to_polygons(angle, data, x_offset, y_offset, scale, only_pos):
     tupl.append((x_offset + scale * x, y_offset + scale * y))
   return tupl
 
-# # give the corners to draw a rotated rectangle as polygon
+# give the corners to draw a rotated rectangle as polygon
 def to_rectangle_center(height, width, center, angle = 0.0):
 
   # print "h=" + str(height) + " w=" + str(width) + " a=" + str(angle) + " x=" + str(x_offset) + " y=" + str(y_offset)
@@ -168,7 +168,7 @@ def to_frustum_center(start, end, center, elem, scale, direction):
 
   return tupl
 
-# # give the corners to draw a rotated rectangle as polygon
+# give the corners to draw a rotated rectangle as polygon
 def to_rectangle_corner(lower, upper):
 
   # print "to_rectangle_corner " + str(lower) + " -> " + str(upper)
@@ -182,7 +182,7 @@ def to_rectangle_corner(lower, upper):
 
   return tupl
 
-# # helper for show_rot_frame_grad
+# helper
 def get_interpol_data(coords, data, fallback, x, eval=True):
   if not eval:
     return None, None
@@ -191,7 +191,7 @@ def get_interpol_data(coords, data, fallback, x, eval=True):
     v = fallback[x]
   return coords[x], v
 
-# # helper for get_interpolation and Fields
+# helper for get_interpolation and Fields
 # @return 2d locations and 2d data
 def convert_two_data_interpolation_input(centers, s1, s2, angle):
   # convert to 2D
@@ -210,7 +210,7 @@ def convert_two_data_interpolation_input(centers, s1, s2, angle):
 
 
 
-# # helper for get_interpolation and Fields
+# helper for get_interpolation and Fields
 # @return 2d locations and 2d data
 def convert_single_data_interpolation_input(centers, s1, angle):
   # convert to 2D
@@ -227,7 +227,7 @@ def convert_single_data_interpolation_input(centers, s1, angle):
   return c, v
 
 
-# # helper which returns an interpolated grid and one nearest neighbor interpolated grid
+# helper which returns an interpolated grid and one nearest neighbor interpolated grid
 def get_interpolation(coords, grad, sample, s1, s2, angle=None):
   assert(sample == 'elem_nodes' or sample == 'edge_centers' or sample == 'elem_centers')
 
@@ -282,7 +282,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
 
   return ip_data, ip_near, out, nx, ny
 
-# # visualize the orientational stiffness
+# visualize the orientational stiffness
 # @param grad is 'none' or 'linear'
 # @return the image
 def show_frame_grad(coords, design, grad, direction, nx):
@@ -361,7 +361,7 @@ def show_frame_grad(coords, design, grad, direction, nx):
 
   return im
 
-# # visualize the orientational stiffness
+# visualize the orientational stiffness
 # @return the image
 def show_rot_cross_grad(coords, design, grad, direction, nx, scale, color, do_save):
 
@@ -540,7 +540,7 @@ def show_modified_frame_old(coords, design, direction, nx, scale, color, do_save
     draw_circle(center, r-eps, sub, 'white')
   return (fig, sub)
 
-# # visualize the orientational stiffness
+# visualize the orientational stiffness
 # @param grad is 'none' or 'linear'
 # @return the image
 def show_frame(coords, design, nx, scale):
@@ -886,10 +886,98 @@ def show_framed_cross(coords, design, nx, scale, color, do_save):
   return (fig, sub)
 
 
-def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilateral=True, param=None, radius=None):
+def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, equilateral=True, param=None, radius=None):
+
+  def get_angles_for_chord(x, y, idx, angle, boundary):
+    mid_circ_angle = (90 - angle*180/np.pi / 2) * 2
+    # angles for arc
+    if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+      if idx == 0:
+        start, end = 90, 90 + mid_circ_angle
+      elif idx == 1:
+        start, end = 270 - mid_circ_angle/2, 270 + mid_circ_angle/2
+      elif idx == 2:
+        start, end = 90 - mid_circ_angle, 90
+    else:
+      if idx == 0:
+        start, end = 270 - mid_circ_angle, 270
+      elif idx == 1:
+        start, end = 90 - mid_circ_angle/2, 90 + mid_circ_angle/2
+      elif idx == 2:
+        start, end = 270, 270 + mid_circ_angle
+    if boundary:
+      if x == 0:
+        if y % 2 == 0:
+          start, end = 90 - mid_circ_angle, 90
+        else:
+          start, end = 270, mid_circ_angle - 90
+      else:
+        if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+          start, end = 270 - mid_circ_angle, 270
+        else:
+          start, end = 90, 90 + mid_circ_angle
+    return start, end
+  
+  def draw_chord(x, y, tupels, idx, point_on_bisec, radius, boundary=False):
+    p = tupels[idx]
+    p1 = tupels[(idx+1)%3]
+    p2 = tupels[(idx+2)%3]
+
+    v1 = np.array(p1) - np.array(p)
+    v2 = np.array(p2) - np.array(p)
+    assert(np.linalg.norm(v1))
+    assert(np.linalg.norm(v2))
+    # angle at corner of triangle
+    angle = np.arccos(np.dot(v1,v2)/np.linalg.norm(v1)/np.linalg.norm(v2))
+
+    # midpoint of arc
+    vec = np.array(point_on_bisec) - np.array(p)
+    mid_circ = np.array(p) + vec/np.linalg.norm(vec) * radius / np.sin(angle/2)
+    mid_circ = np.round(mid_circ)
+    #draw.point([mid_circ[0],mid_circ[1]], fill="yellow") #debug
+
+    # get bounding box of circle
+    cp_e = (mid_circ[0] + radius)
+    cp_n = (mid_circ[1] + radius)
+    cp_w = (mid_circ[0] - radius)
+    cp_s = (mid_circ[1] - radius)
+    bbox = [cp_w, cp_s, cp_e, cp_n]
+
+    start, end = get_angles_for_chord(x, y, idx, angle, boundary)
+
+    # output for meshing with triangles
+    #with open('matviz.out', 'a+') as f:
+    #  print('circ {}, {}, {}'.format(bbox, start, end), file=f)
+    
+    a1 = np.zeros((2,))
+    a2 = np.zeros((2,))
+    a1[0] = mid_circ[0] + radius * np.cos(start/180*np.pi)
+    a1[1] = mid_circ[1] - radius * np.sin(start/180*np.pi)
+    a2[0] = mid_circ[0] + radius * np.cos(end/180*np.pi)
+    a2[1] = mid_circ[1] - radius * np.sin(end/180*np.pi)
+    a1, a2 = np.round(a1), np.round(a2)
+
+    # we will flip the image later upside down, i.e. for plotting we have
+    # to go clockwise and switch start and end
+    start, end = -end, -start
+
+    # draw section of circle
+    draw.chord(bbox, start, end, fill="white")
+
+    return a1, a2
+
   s1 = design['s1']
 
-  centers, min, max, elem = coords
+  if np.max(s1) < 2.1:
+    s1 = np.minimum(s1,1)
+
+  # usually we read physical design, so we have to recalculate the non-penalized design
+  # this assumes RAMP with parameter 2.8
+  if param is None and access == "smart":
+    p = 2.8 # RAMP with p=2.8
+    s1 = (p+1)*s1 / (p*s1+1)
+
+  centers, mini, maxi, elem = coords
 
   # set size dx/dy/dz of one cell
   if samples is not None:
@@ -899,8 +987,8 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
     else:
       samples = [int(tmp[0]), int(tmp[1])]
 
-    dx = (max[0] - min[0]) / samples[0]
-    dy = (max[1] - min[1]) / samples[1]
+    dx = (maxi[0] - mini[0]) / samples[0]
+    dy = (maxi[1] - mini[1]) / samples[1]
     elem = np.array([dx, dy, 0])
 
   if equilateral:
@@ -909,20 +997,20 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
     # triangles form tesellation, i.e. their surrounding rectangles overlap and thus element width is baseline / 2
     elem = np.array([elem[0], elem[0] * np.sqrt(3), 0])
 
-  nx = int((max[0]-min[0]) / elem[0])
-  ny = int(np.round((max[1]-min[1]) / elem[1]))
+  nx = int((maxi[0]-mini[0]) / elem[0])
+  ny = int(np.round((maxi[1]-mini[1]) / elem[1]))
 
   if equilateral:
     if param is None:
       # recalculate elem size, such that we always draw complete triangles in y-direction
-      elem[1] = (max[1]-min[1]) / ny
+      elem[1] = (maxi[1]-mini[1]) / ny
     else:
       # if we generate base cells, we draw three triangles in x-direction and two in y-direction
       # after drawing, we crop the image to obtain a periodic base cell with an "X" and three horizontal bars
       nx = 3
       ny = 2
-      max[0] = nx*elem[0]
-      max[1] = ny*elem[1]
+      maxi[0] = nx*elem[0]
+      maxi[1] = ny*elem[1]
 
     # calculate new element centers
     centers_new = []
@@ -930,27 +1018,48 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       for x in range(nx):
         center = np.array([elem[0]/2.0 + x * elem[0], elem[1]/2.0 + y * elem[1]])
         centers_new.append(center)
+        if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+          #    2        4--2           2--5
+          #   / \       |   \         /   |
+          #  /   \      |    \       /    |
+          # 1-----3     1-----3     1-----3
+          centers_new.append(center + [-elem[0]/4.0, -elem[1]/4.0])
+          centers_new.append(center + [+elem[0]/4.0, -elem[1]/4.0])
+          centers_new.append(center + [         0.0, +elem[1]/4.0])
+        else:
+          # upside down
+          # 1-----3     1-----3     1-----3
+          #  \   /      |    /       \    |
+          #   \ /       |   /         \   |
+          #    2        4--2           2--5
+          centers_new.append(center + [-elem[0]/4.0, +elem[1]/4.0])
+          centers_new.append(center + [+elem[0]/4.0, +elem[1]/4.0])
+          centers_new.append(center + [         0.0, -elem[1]/4.0])
 
     # get image resolution
     res = (res, int(res * ny/nx * elem[1] / elem[0])) if param is None else [res, int(res * ny/nx * np.sqrt(3))]
 
-  im, draw, dim, dx, dy = create_image(min, max, res, "white")
+  im, draw, dim, dx, dy = create_image(mini, maxi, res, "white")
+
+  # output for meshing with triangles
+  #with open('matviz.out', 'a+') as f:
+  #  print('size {}'.format(dim), file=f)
 
   # if the parameter is zero, we do not have to draw anything and return a white image
   if param == 0.0:
-    # crop argument = (left, upper, right, lower)
     # remove half of an element on both sides (times dx for pixels)
-    im = im.crop((max[0]/nx*1/2*dx, min[1]*dy, max[0]/nx*(nx-1/2)*dx, max[1]*dy))
+    # crop argument = (left, upper, right, lower)
+    im = im.crop((maxi[0]/nx*1/2*dx, mini[1]*dy, maxi[0]/nx*(nx-1/2)*dx, maxi[1]*dy))
     return im
-
-  if radius:
-    assert(radius >= 0)
-    assert(radius <= 1)
-    radius = np.round(radius * dx/2/(2*np.sqrt(3))/2)
 
   # size of element in pixels
   height = elem[1] * dy
   length = elem[0] * dx
+
+  if radius:
+    assert(radius >= 0)
+    assert(radius <= 1)
+    radius = np.round(radius * length/(2*np.sqrt(3))/2)
 
   if equilateral:
     # interpolate original data at new centers
@@ -962,28 +1071,41 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
     ip_near = s1
     ip_data = s1
 
+
   for y in range(ny):
     for x in range(nx):
+      rad = radius
+
       # if the value is -1 we use the nearest interpolation
       # mid IS NOT THE MIDPOINT OF THE TRIANGLE BUT OF elem (=rectangle)
-      mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, y * nx + x)
+      mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+0)
+      mid1, v1 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+1)
+      mid2, v2 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+2)
+      mid3, v3 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+3)
+
+      # kind of integration -> should be removed and graded triangle bars should be used
+      v = (3*v + v1+v2+v3)/6
 
       if v < thres:
         v = 0.0
       #if v > thres:
       #  v = 1.0
 
+      # ensure param is in bounds
       if param is not None:
         v = np.min((1.0, np.max((0.0, param))))
 
       if isinstance(v,np.ndarray):
         v = v[0]
 
+      if v < -1e-12 or v > 1+1e-12:
+        raise ValueError("argument v={:.3f} out of bounds".format(v))
+
+      v = np.min((1.0, np.max((0.0, v))))
+
       # this will generate a linear param-volume realtionship
       # else it will be volume = -param^2 + 2*param
-      # we have to apply this if we performed optimization with volume as design variable
-      if param is None:
-        v = 1-np.sqrt(1-np.min((v,1)))
+      v = 1-np.sqrt(1-v)
 
       # midpoint of equilateral triangle is h/3. Thus v/2 should be in [0,1/3].
       v *= 2.0/3.0
@@ -1001,16 +1123,16 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
         #   / \       |   \         /   |
         #  /   \      |    \       /    |
         # 1-----3     1-----3     1-----3
-        n1y = dim[1] - mid[1] * dy + height * 0.5
-        n2y = dim[1] - mid[1] * dy - height * 0.5
+        n1y = mid[1] * dy - height * 0.5
+        n2y = mid[1] * dy + height * 0.5
       else:
         # upside down
         # 1-----3     1-----3     1-----3
         #  \   /      |    /       \    |
         #   \ /       |   /         \   |
         #    2        4--2           2--5
-        n1y = dim[1] - mid[1] * dy - height * 0.5
-        n2y = dim[1] - mid[1] * dy + height * 0.5
+        n1y = mid[1] * dy + height * 0.5
+        n2y = mid[1] * dy - height * 0.5
       n3y = n1y
       n4y = n2y
       n5y = n2y
@@ -1027,134 +1149,142 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, equilate
       #draw.polygon(tupels, fill=(0,0,int(np.random.rand(1)[0]*256))) #colored for debug
       draw.polygon(tupels, fill="black")
 
-      # white inner triangle
-      # intercept theorem: ox / length = v/2*height / height/3
-      offsetx = v * 0.5 * length * 3
-      offsetx = np.min((offsetx, length))
-      n1x = mid[0] * dx - length + offsetx
-      n2x = mid[0] * dx
-      n3x = mid[0] * dx + length - offsetx
-      offsety = np.sqrt(pow(offsetx,2) + pow(height*0.5*v,2))
+      # v = 2/3 is massive material, everything below is porous
+      # due to rounding we substract the size of half a pixel
+      if v < 2.0/3.0 - 1/res[0]/2:
+        # white inner triangle
+        # assumes equilateral triangle with 60° angle
+        # v/2*h / offsetx = tan(60°/2) = 1/sqrt(3)
+        offsetx = np.sqrt(3) * v * 0.5 * height
+        offsety = np.sqrt(pow(offsetx,2) + pow(v * 0.5 * height,2)) # assumes equilateral triangle
+        n1x = np.floor(mid[0] * dx) - np.ceil(length) + np.floor(offsetx)
+        n2x = np.floor(mid[0] * dx)
+        n3x = np.floor(mid[0] * dx) + np.ceil(length) - np.floor(offsetx)
 
-      # raise a ValueError, if the radius is too large for the parameter
-      # too large radius would result no longer in a triangle with round vertices
-      if radius > (n3x - n1x)/2/sqrt(3):
-        raise ValueError('Bending parameter to large')
-      height_tria = np.sqrt(3)/2 * (n3x - n1x)
-
-      if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
-        n1y = dim[1] - mid[1] * dy + height * 0.5 - height * 0.5 * v
-        n2y = dim[1] - mid[1] * dy - height * 0.5 + offsety
-        n3y = n1y
-        mid_tria = (n2x, n2y + 2/3 * height_tria)
-      else:
-        n1y = dim[1] - mid[1] * dy - height * 0.5 + height * 0.5 * v
-        n2y = dim[1] - mid[1] * dy + height * 0.5 - offsety
-        n3y = n1y
-        mid_tria = (n2x, n2y - 2/3 * height_tria)
-
-      tupels = []
-      tupels.append((n1x, n1y))
-      tupels.append((n2x, n2y))
-      tupels.append((n3x, n3y))
-
-      if radius is None:
-          #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0)) #colored for debug
-        draw.polygon(tupels, fill="white")
-      else:
-        new_tupels = []
-        for idx in range(3):
-          p = tupels[idx]
-          p1 = tupels[(idx+1)%3]
-          p2 = tupels[(idx+2)%3]
-
-          # midpoint of arc
-          vec = np.array(mid_tria) - np.array(p)
-          mid_circ = np.array(p) + vec/np.linalg.norm(vec) * radius / np.sin(np.pi/6)
-          mid_circ = np.round(mid_circ)
-
-          # get bounding box of circle
-          cp_e = (mid_circ[0] + radius)
-          cp_s = (mid_circ[1] + radius)
-          cp_w = (mid_circ[0] - radius)
-          cp_n = (mid_circ[1] - radius)
-          bbox = [cp_w, cp_n, cp_e, cp_s]
-
-          a1 = np.zeros((2,))
-          a2 = np.zeros((2,))
-          if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
-            # angles for arc
-            if idx == 0:
-              start, end = 90, 210
-            elif idx == 1:
-              start, end = 210, 330
-            elif idx == 2:
-              start, end = 330, 90
-            # endpoints of arc
-            a2[0] = mid_circ[0] + radius * np.cos(start/180*np.pi)
-            a2[1] = mid_circ[1] + radius * np.sin(start/180*np.pi)
-            a1[0] = mid_circ[0] + radius * np.cos(end/180*np.pi)
-            a1[1] = mid_circ[1] + radius * np.sin(end/180*np.pi)
+        # raise a ValueError, if the radius is too large for the parameter
+        # too large radius would result no longer in a triangle with round vertices
+        if rad > (n3x - n1x)/2/sqrt(3):
+          if param:
+            raise ValueError('Bending parameter to large')
           else:
-            # angles for arc
-            if idx == 0:
-              start, end = 150, 270
-            elif idx == 1:
-              start, end = 30, 150
-            elif idx == 2:
-              start, end = 270, 30
-            # endpoints of arc
-            a1[0] = mid_circ[0] + radius * np.cos(start/180*np.pi)
-            a1[1] = mid_circ[1] + radius * np.sin(start/180*np.pi)
-            a2[0] = mid_circ[0] + radius * np.cos(end/180*np.pi)
-            a2[1] = mid_circ[1] + radius * np.sin(end/180*np.pi)
-
-          # draw section of circle
-          draw.chord(bbox, start, end, fill="white")
-
-          # add end points of arc to form new white inner "triangle" (actually hexagon)
-          a1, a2 = np.round(a1), np.round(a2)
-          new_tupels.append((a2[0],a2[1]))
-          new_tupels.append((a1[0],a1[1]))
-        draw.polygon(new_tupels, fill="white")
-
-      # white triangle at boundary
-      if x == 0 or x == nx-1:
-        offsetx = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 0.5))
-        offsety = np.min((v / length * sqrt(pow(length,2) + pow(height,2)) * 0.5, 1 - v * 0.5))
-
-        fac = 1 if x == 0 else -1
-        n1x = mid[0] * dx - fac * length * 0.5
-        n2x = mid[0] * dx - fac * length * offsetx
-        n3x = n1x
+            continue
+            #rad = np.floor((n3x - n1x)/2/sqrt(3))
 
         if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
-          # 3
-          # |\
-          # | \
-          # 1--2
-          n1y = dim[1] - mid[1] * dy - height * 0.5
-          n2y = n1y
-          n3y = dim[1] - mid[1] * dy - height * offsety
+          n1y = mid[1] * dy - height * 0.5 + height * 0.5 * v
+          n2y = mid[1] * dy + height * 0.5 - offsety
+          n3y = n1y
+          height_tria = np.abs(n1y - n2y)
+          mid_tria = (n2x, n2y - 2/3 * height_tria)
         else:
-          # upside down
-          n1y = dim[1] - mid[1] * dy + height * 0.5
-          n2y = n1y
-          n3y = dim[1] - mid[1] * dy + height * offsety
+          n1y = mid[1] * dy + height * 0.5 - height * 0.5 * v
+          n2y = mid[1] * dy - height * 0.5 + offsety
+          n3y = n1y
+          height_tria = np.abs(n1y - n2y)
+          mid_tria = (n2x, n2y + 2/3 * height_tria)
 
         tupels = []
         tupels.append((n1x, n1y))
         tupels.append((n2x, n2y))
         tupels.append((n3x, n3y))
 
-        #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0)) #colored for debug
+        if v > 0 and rad is not None and rad > 0:
+          new_tupels = []
+          for idx in range(3):
+            # draw rounded corner
+            a1, a2 = draw_chord(x, y, tupels, idx, mid_tria, rad)
+            
+            # add end points of arc to form new white inner "triangle" (actually hexagon)
+            if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
+              # tupel goes counterclockwise -> switch a1 and a2
+              a1, a2 = a2, a1
+            new_tupels.append((a1[0],a1[1]))
+            new_tupels.append((a2[0],a2[1]))
+          tupels = new_tupels
+
+        # output for meshing with triangles
+        #with open('matviz.out', 'a+') as f:
+        #  print('tria {}'.format(tupels), file=f)
+
+        #draw.polygon(tupels, fill=(0,int(np.random.rand(1)[0]*256),0)) #colored for debug
         draw.polygon(tupels, fill="white")
+
+        # white triangle at boundary
+        if x == 0 or x == nx-1:
+          offsetx = np.sqrt(3) * v * 0.5 * height
+
+          fac = 1 if x == 0 else -1
+          n1x = mid[0] * dx - fac * length * 0.5
+          n2x = np.round(mid[0] * dx) - np.round(fac * offsetx)
+          n3x = n1x
+
+          # n1x has to be at the boundary
+          assert((x == 0 and np.round(n1x) == 0) or (x == nx-1 and np.round(n1x) == res[0]))
+
+          if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+            # 1--2    2--1
+            # | /      \ |
+            # |/        \|
+            # 3          3 
+            n1y = mid[1] * dy + height * 0.5 - height * 0.5 * v
+            n2y = n1y
+            n3y = np.floor(mid[1] * dy + height * v)
+          else:
+            # upside down
+            n1y = mid[1] * dy - height * 0.5 + height * 0.5 * v
+            n2y = n1y
+            n3y = np.ceil(mid[1] * dy - height * v)
+
+          # for some v the boundary triangle might actually not exist 
+          if n2x == n1x:
+            continue
+
+          tupels = []
+          tupels.append((n1x, n1y))
+          tupels.append((n2x, n2y))
+          tupels.append((n3x, n3y))
+
+          if v > 0 and rad is not None and rad > 0:
+            # we have to calculate a point on the angle bisector
+            vec1 = np.array(tupels[0]) - np.array(tupels[1])
+            vec2 = np.array(tupels[2]) - np.array(tupels[1])
+            vec1 = vec1
+            vec2 = vec2/np.linalg.norm(vec2) * np.linalg.norm(vec1)
+            p = tupels[1] + (vec1 + vec2) / 2
+
+            # draw rounded corner
+            a1, a2 = draw_chord(x, y, tupels, 1, p.tolist(), rad, True)
+
+            # tupel goes counterclockwise -> switch a1 and a2
+            if x == 0: #left boundary
+              if y % 2 == 0:
+                a1, a2 = a2, a1
+            else: #right boundary
+              if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
+                a1, a2 = a2, a1
+
+            new_tupels = []
+            new_tupels.append(tuple(np.round(tupels[0]).tolist()))
+            new_tupels.append(tuple(a1.tolist()))
+            new_tupels.append(tuple(a2.tolist()))
+            new_tupels.append(tuple(np.round(tupels[2]).tolist()))
+            tupels = new_tupels
+
+          #draw.polygon(tupels, fill=(int(np.random.rand(1)[0]*256),0,0)) #colored for debug
+          draw.polygon(tupels, fill="white")
+
+  # the coordinate system of the image is centered at the upper left corner
+  # with +x from left to right and +y from top to bottom
+  # however, our meshes are centered at the lower left corner
+  # with +x from left to right and +y from bottom to top
+  # thus we flip the image upside down
+  im = ImageOps.flip(im)
 
   if param is not None:
     # crop argument = (left, upper, right, lower)
     # remove half of an element on both sides (times dx for pixels)
     # +1 for periodicity
-    im = im.crop((max[0]/nx*1/2*dx, min[1]*dy, max[0]/nx*(nx-1/2)*dx+1, max[1]*dy+1))
+    im = im.crop((maxi[0]/nx*1/2*dx, mini[1]*dy, maxi[0]/nx*(nx-1/2)*dx+1, maxi[1]*dy+1))
 
   return im
 
@@ -1178,7 +1308,7 @@ def draw_thick_circle(draw, center, radius):
     draw.ellipse((center[0] - radius + o, center[1] - radius + o, center[0] + radius - o, center[1] + radius - o), fill=None, outline="black")
 
 
-# # visualize the orientational stiffness
+# visualize the orientational stiffness
 # @return the image
 def show_orientational_stiffness(coords, angle, data, nx, scale=-1.0, axes=False):
 

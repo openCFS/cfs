@@ -68,7 +68,7 @@ void AuxDesign::PostInit(int objectives, int constraints)
   {
     LOG_DBG(aux_des) << "PI: #objectives = " << objectives << ", #constraints = " << constraints;
     DesignElement::SetDesignSpace(this);
-    assert(objectives == 1);
+//    assert(objectives == 1);
     aux_design_[0].PostInit(objectives, constraints);
     if(alpha_ != NULL)
       aux_design_[1].PostInit(objectives, constraints);

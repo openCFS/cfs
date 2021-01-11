@@ -112,7 +112,7 @@ if args.density != None:
     for y in range(mesh.ny):
       # the image was transposed    
       data[y,x] = mesh.elements[x * mesh.ny + y].density
-  print("save dense density file '" + args.density + "'")  
+  print("save dense density file '" + args.density + "'")
   write_density_file(args.density, data)
    
 
