@@ -28,6 +28,7 @@ def dump_tensor(tensor, toString=False):
 
   return out
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
+## WARNING!!!! This rotates in clockwise direction and not counter-clockwise as in CFS!!!
 def get_rot_2x2(angle):
   R = numpy.zeros((2,2))
 

@@ -1692,7 +1692,7 @@ namespace CoupledField {
         } else if(pWeightInner->Has("muLorentzExtended")){
 //          Parameter for Lorentzian weight function as used and defined by
 //          Wolf in \n
-//          "Generalisiertes Preisach-Modell für die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
+//          "Generalisiertes Preisach-Modell f��r die Simulation und Kompensation der Hysterese piezokeramischer Wandler"
 //          Mu_Lorentzian(alpha,beta) = \n
 //           \t     A/(1 + ((alpha-h2)/(h2)*sigma2)*((alpha-h2)/(h2)*sigma2) ) * \n
 //           \t     A/(1 + ((beta+h1)/(h1)*sigma1)*((beta+h1)/(h1)*sigma1) );
@@ -2415,7 +2415,7 @@ namespace CoupledField {
   {
     PtrCoefFct elastCoef;
 
-    if (ptrNode->HasByVal("tensor", "dim1", "6")) {
+    if (ptrNode->HasByVal("tensor", "dim1", "6") || ptrNode->HasByVal("tensor", "dim1", "3")) {
       PtrParamNode elastTensor = ptrNode->Get("tensor");
       elastCoef = ReadTensor( elastTensor, type );
       coefMap[MECH_STIFFNESS_TENSOR] = elastCoef;

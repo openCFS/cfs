@@ -142,7 +142,6 @@ private:
   /** Parameter for filter */
   Contribution contribution_;
 
-
   /** actual filter space setting */
   FilterSpace filter_space_;
 

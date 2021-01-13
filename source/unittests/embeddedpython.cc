@@ -37,10 +37,14 @@ static PyObject* cfs_vec(PyObject *self, PyObject *args)
   PyArrayObject *vec1;
   PyArrayObject *vec2;
   long test;
+  // in python 'verify' is a bool. Here it must be of type 'int'
+  // e.g. see https://github.com/numpy/numpy/issues/12400
+  int verify;
   std::cout << "cfs_vec: args= " << PyTuple_GET_SIZE(args) << std::endl;
-  PyArg_ParseTuple(args, "O!|O!|n", &PyArray_Type, &vec1,&PyArray_Type, &vec2, &test);
+  PyArg_ParseTuple(args, "O!O!np", &PyArray_Type, &vec1, &PyArray_Type, &vec2, &test, &verify);
   BOOST_TEST(PyArray_NDIM(vec1) == 1);
   BOOST_TEST(PyArray_TYPE(vec1) == NPY_DOUBLE);
+  BOOST_TEST(verify);
   int n = PyArray_DIM(vec1,0);
   BOOST_TEST(n == test);
   //  BOOST_TEST(PyArray_DIM((PyArrayObject*) obj,0) == n);
@@ -48,10 +52,39 @@ static PyObject* cfs_vec(PyObject *self, PyObject *args)
   return PyLong_FromLong(n);
 }
 
+static PyObject* cfs_mod_mat(PyObject *self, PyObject *args){
+  // consider list of 2d arrays as and 3d array
+  PyArrayObject *list;
+  PyArg_ParseTuple(args, "O!", &PyArray_Type, &list);
+
+  if(!list)
+    PyErr_Print();
+
+  // number of matrices inside list
+  int n_mat = PyArray_DIM(list,0);
+  // assume all matrices have same dimensions
+  int rows = PyArray_DIM(list,1);
+  int cols = PyArray_DIM(list,2);
+
+  std::cout << "Got " << n_mat << " matrices with dim=(" << rows << "," << cols << ") from python" << std::endl;
+
+  // loop over matrices
+  for (int e = 0; e < n_mat; e++) {
+    for (int i = 0; i < rows; i++)
+      for (int j = 0; j < cols; j++){
+        (*((double*) PyArray_GETPTR3(list,e,i,j))) = 11 + e;
+      }
+  }
+  BOOST_TEST((*((double*) PyArray_GETPTR3(list,0,0,0))) == 11);
+  BOOST_TEST((*((double*) PyArray_GETPTR3(list,1,0,0))) == 12);
+  BOOST_TEST((*((double*) PyArray_GETPTR3(list,2,0,0))) == 13);
+  return PyLong_FromLong(1);
+}
 
 static PyMethodDef cfs_methods[] = {
     {"val", cfs_val, METH_VARARGS, "Shall return 5"},
     {"vec", cfs_vec, METH_VARARGS, "get array and size, return size+1"},
+    {"mod_mat", cfs_mod_mat, METH_VARARGS, "modify a numpy array of 2d matrices (numpy.array)"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -129,9 +162,10 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     std::cout << "dims: " << PyArray_NDIM(array) << ":" << PyArray_DIM(array,0) << "," << PyArray_DIM(array,1) << std::endl;
     BOOST_TEST(PyArray_NDIM(array) == 2);
     for(int i = 0; i < PyArray_DIM(array,0); i++)
-      for(int j = 0; j < PyArray_DIM(array,1); j++)
+      for(int j = 0; j < PyArray_DIM(array,1); j++) {
         (*((double*) PyArray_GETPTR2(array, i,j)))++;
-        // std::cout << i << ":" << j << " -> " << *((double*) PyArray_GETPTR2(array, i,j)) << std::endl;
+         std::cout << i << ":" << j << " -> " << *((double*) PyArray_GETPTR2(array, i,j)) << std::endl;
+      }
     Py_XDECREF(array);
 
     PyObject* pA = PyObject_GetAttrString(pModule, "print_A");
@@ -173,6 +207,9 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     // std::cout << "check a: " << PyArray_Check(a) << std::endl;
     Py_XDECREF(a);
 
+    // test parsing boolean
+    PyObject* derivative = PyObject_GetAttrString(pModule, "derivative");
+    BOOST_TEST(!PyObject_IsTrue(derivative));
 
     // test dictionary
     PyObject* dict = PyDict_New();
@@ -228,7 +265,3 @@ BOOST_AUTO_TEST_CASE(embedded_python)
 
   Py_Finalize();
 }
-
-
-
-

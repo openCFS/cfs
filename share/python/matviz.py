@@ -601,9 +601,9 @@ else:
     # similar to centers, but not centered
     centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region)
 
-    design_elems = None
-  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
-    if get_MPI_rank() == 0:
+  design_elems = None
+  if get_MPI_rank() == 0:
+    if args.h5_nondes != "None" or args.h5_nondes_void != "None":
       nondes_regs = args.h5_nondes
       # in case we have more than 1 non-design solid region
       if "," in args.h5_nondes:
@@ -622,8 +622,8 @@ else:
           nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
           nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
 
-      # take centered values and interpolate to edges
-      design_elems, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
+    # take centered values and interpolate to edges
+    design_elems, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
 
     print("args.h5_nondes_void:",args.h5_nondes_void)
     if args.h5_nondes_void != "None":
@@ -654,18 +654,24 @@ else:
         continue
     sys.exit()
 
-if args.h5_nondes != "None" or args.h5_nondes_void != "None":
-  nondes_void = None
-  nondes_solid = None
+# do we have to do 1D optimization? 
+if not args.target_volume:
   design = None
-  if get_MPI_rank() == 0:
-    if args.h5_nondes != "None":
-      nondes_solid = (nondes_elements, nondes_min, nondes_max)
-    if args.h5_nondes_void != "None":
-      nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
+  if get_MPI_rank() == 0:    
     design = (design_elems, design_elems_min, design_elems_max)
+    assert(len(design_elems) > 0)
+  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
+    nondes_void = None
+    nondes_solid = None
+    if get_MPI_rank() == 0:
+      if args.h5_nondes != "None":
+        nondes_solid = (nondes_elements, nondes_min, nondes_max)
+      if args.h5_nondes_void != "None":
+        nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
 
-  perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
+  else:
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(None,None,design),min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)  
 else:
   if max_bb is None:
     max_bb = [1.0, 1.0] if dim_2D else [1.0, 1.0, 1.0]

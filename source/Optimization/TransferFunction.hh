@@ -30,7 +30,7 @@ namespace CoupledField
      * </ul> */
     typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE, TANH, HASHIN_SHTRIKMAN } Type;
 
-      /** dummy function for StdVector */
+      /** dummy function for TransferFunction */
       TransferFunction();
     
       /** @param pn The pointer to a transfer function

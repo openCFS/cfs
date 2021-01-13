@@ -144,7 +144,9 @@ if args.inclusion_overlap:
 if args.patch:
   res_name += '_' + args.patch
 if args.type == 'convert_optistruct':
-  res_name = ""   
+  res_name = ""  
+if args.pfem:
+  res_name += "_pfem" 
 
 file = mesh_name + res_name + '.mesh' if args.file == None else args.file 
 

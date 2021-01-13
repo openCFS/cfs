@@ -309,21 +309,21 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   if (space->write_matrix_filt && sum_neighbours > 0) {
     // writes filter matrix to .mtx file for first filter radius > 1
-    DensityFilterMat filter_mat;
-    space->density_filter.Push_back(filter_mat);
-    int filter_index =space->density_filter.GetSize() - 1 ;
-    // This are the designs we deal with
-    unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
-    unsigned int end = start + space->GetNumberOfElements();
-    //std::vector<DesignElement>   sub(&data[start],&data[end]);
-    //StdVector<DesignElement> data_red(sub);
-    //std::vector<DesignElement>::const_iterator first = data.Begin() + start;
-    //std::vector<DesignElement>::const_iterator last = data.Begin() + end;
-    //std::vector<DesignElement> sub(data.Begin() + start, data.Begin() + end);
-    //DesignElement *arrayOfT = &data[0] + start;
-    //size_t arrayOfTLength = (end - start);
-    //StdVector<DesignElement> data_red(arrayOfT);
-    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index,start,end);
+//    DensityFilterMat filter_mat;
+//    space->density_filter.Push_back(filter_mat);
+//    int filter_index =space->density_filter.GetSize() - 1 ;
+//    // This are the designs we deal with
+//    unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
+//    unsigned int end = start + space->GetNumberOfElements();
+//    //std::vector<DesignElement>   sub(&data[start],&data[end]);
+//    //StdVector<DesignElement> data_red(sub);
+//    //std::vector<DesignElement>::const_iterator first = data.Begin() + start;
+//    //std::vector<DesignElement>::const_iterator last = data.Begin() + end;
+//    //std::vector<DesignElement> sub(data.Begin() + start, data.Begin() + end);
+//    //DesignElement *arrayOfT = &data[0] + start;
+//    //size_t arrayOfTLength = (end - start);
+//    //StdVector<DesignElement> data_red(arrayOfT);
+//    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index,start,end);
     space->density_filter.Last().ExportDensityFilterMatrix();
     // makes sure that matrix is only written once for first filter radius > 1
     space->write_matrix_filt = false;
@@ -627,13 +627,12 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
   return std::sqrt(preSqrt);
 }
 
-/** The is not performance tuned as for almost cases we have regular grids and then this method is
- * only called once. In the other cases - life with it */
+/** This is not performance tuned as for almost cases we have regular grids and then this method is
+ * only called once. In the other cases - live with it */
 double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, double value)
 {
   Matrix<double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );
-
 
   switch(space)
   {

@@ -17,13 +17,18 @@ import numpy
 
 V = numpy.ones((10), dtype=float) # makes c-double
 # assert cfs.vec(V, 10) == 11
-r = cfs.vec(V,V,len(V))
+r = cfs.vec(V,V,len(V),True)
 print('vec -> ', r)
 assert r == len(V)
 
-
-
 A = numpy.array([[1, 2, 3], [4, 5, 6]], dtype = float) # type is important here, otherwise it is int
+
+derivative = False
+
+# create a np array with 3 numpy (array) matrices of size 3x3
+a_size = (2,2)
+arrays = numpy.asarray([numpy.zeros(a_size),numpy.ones(a_size),numpy.zeros(a_size),numpy.ones(a_size)])
+ret = cfs.mod_mat(arrays)
 
 def print_A():
   print('embeddedpython.py: print_A() -> ', A)
@@ -40,5 +45,3 @@ def print_dict(data):
 def get_vec(vec, emptyvec, n):
   print('embeddedpython.py get_vec ->', vec,emptyvec, n)  
   assert len(vec) == n
-   
-  

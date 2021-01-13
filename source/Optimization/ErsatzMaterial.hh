@@ -95,9 +95,11 @@ public:
 
   Method GetMethod() { return method_; }
 
-  inline const DesignStructure& GetDesignStructure(){
+  StateContainer& GetForwardStates() { return forward; }
+
+  inline const DesignStructure* GetDesignStructure(){
     assert(structure_ != NULL);
-    return *structure_;
+    return structure_;
   }
 
   // calculates for given node res = interface * (stateSol - trackVal)^2

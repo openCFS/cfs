@@ -7,6 +7,7 @@
 
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
@@ -965,7 +966,7 @@ double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction) {
   }
 }
 
-void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation, bool core)
 {
   LOG_DBG2(dm) << "GetTransIsoMaterialTensor called with direction=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction)) << " and notation=" << notation;
   assert(type_ != DENSITY_TIMES_ROT_PA12 || subTensor == FULL);
@@ -1095,7 +1096,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double n3;
   double c;
   double dens = 1.0, factor = 1.0;
-  if((type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12) && notation != HILL_MANDEL_NO_DENSITY){
+  if(!core && ((type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12) && notation != HILL_MANDEL_NO_DENSITY)){
     dens = GetParameter(DesignElement::DENSITY);
     TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     factor = (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
@@ -1217,10 +1218,10 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }
     }
   }
+
   LOG_DBG2(dm) << "GetTransIsoMaterialTensor: tensor result is " << t.ToString();
   
 }
-  
  
 double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   double E = GetParameter(DesignElement::EMODULISO);
@@ -1370,9 +1371,7 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
       ZeroTensor(t, subTensor);
       return;
     } // switch direction
-      LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
       RotateTensor(t, direction, notation, CW, true, rotAngle);
-      LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
 
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
@@ -1386,7 +1385,7 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
     throw Exception("subTensor not implemented yet");
 }
 
-void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction)
+void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, bool core)
 {
   // DumpParams();
   double e11 = 0;
@@ -1402,11 +1401,14 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
     if (type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE) {
       e22 = GetParameter(DesignElement::MECH_22);
       e33 = 0.5 * (trace_ - e11 - e22);
-    } else if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
-      e22 = 15 - e11;
-      e11 += 1.0;
-      e33 = GetParameter(DesignElement::MECH_33);
-    } else {
+    }
+    // TODO: this was hard coded for
+    //bvu: commented out was it does not make sense for me!!!
+    // else if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
+    //      e22 = 15 - e11;
+    //      e11 += 1.0;
+    //      e33 = GetParameter(DesignElement::MECH_33);}
+    else{
       e22 = GetParameter(DesignElement::MECH_22);
       e33 = GetParameter(DesignElement::MECH_33);
     }
@@ -1449,7 +1451,8 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
     double rotAngle = GetParameter(DesignElement::ROTANGLE);
     LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
-    RotateTensor(t, direction,HILL_MANDEL,CW,true, rotAngle);
+    t.VoigtToHillMandel();
+    RotateTensor(t, direction, VOIGT, CCW, true, rotAngle);
     LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
 //    static int count(0);
 //    if (count % 10 == 0 && count/100 % 10 == 0){
@@ -1459,10 +1462,12 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
 //    count++;
   }
   double dens = GetParameter(DesignElement::DENSITY);
-  TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
-  t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
+  // standard (SIMP) case: we want product of core tensor and transformed pseudo-density
+  if (!core) {
+    TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+    t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
+  }
 }
-
 
 void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
@@ -3533,19 +3538,14 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
 void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles, double rx, double ry, double rz){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
-  // rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
+  // rotates the material by ROTANGLEFIRST around the first (z-)axis, by ROTANGLESECOND around the second (y-)axis and by ROTANGLETHIRD around the third (x-)axis in this given order or rz,ry,rx
   // direction of rotation around an axis is positive (ccw), i.e. right hand rule applies
   // this is identical to BaseMaterial::RotateTensorByRotationAngles
 
   // tranform temporarily to Voigt notation (assumes that all matrices are HILL_MANDEL in the Optimization
    t.HillMandelToVoigt();
 
-  int dim;
-  if (t.GetNumRows() > 3) {
-    dim = 3;
-  } else {
-    dim = 2;
-  }
+  int dim = t.GetNumRows() > 3 ? 3 : 2;
 
   double theta3 = 0.0, theta2 = 0.0, theta1 = 0.0;
   if(dim == 3){
@@ -3971,14 +3971,14 @@ double DesignMaterial::GetIsoMass(double D, double G) {
   return (GetTransIsoMass(D, G, D, G));
 }
 
-bool DesignMaterial::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
+bool DesignMaterial::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation, bool core)
 {
   switch(type)
   {
   case DesignElement::MECH_TRACE:
   case DesignElement::MECH_ALL:
   case DesignElement::ALL_DESIGNS:
-    return GetMechTensor(t, subTensor, elem, direction, notation);
+    return GetMechTensor(t, subTensor, elem, direction, notation, core);
     // return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
   case DesignElement::DIELEC_TRACE:
   case DesignElement::DIELEC_ALL:
@@ -3996,11 +3996,11 @@ bool DesignMaterial::GetTensor(Matrix<double>& t, DesignElement::Type type, SubT
   return false;
 }
 
-bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
+bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation, bool core)
 {
   // we assume we have no complex material (special form of damping)
   Matrix<double> dt;
-  if(!GetMechTensor(dt, subTensor, elem, direction, notation))
+  if(!GetMechTensor(dt, subTensor, elem, direction, notation, core))
     return false;
 
   ct.Resize(dt.GetNumRows(), dt.GetNumCols());
@@ -4009,7 +4009,7 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
   return true;
 }
 
-bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
+bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation, bool core)
 {
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1 && type_ != SGP_MATLAB  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
@@ -4039,13 +4039,15 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
   case DENSITY_TIMES_ROT_PA12:
-    GetTransIsoMaterialTensor(t, subTensor, direction, notation);
+    GetTransIsoMaterialTensor(t, subTensor, direction, notation, core);
     break;
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
-    GetDensityTimes2dTensorTensor(t, subTensor, direction);
+  {
+    GetDensityTimes2dTensorTensor(t, subTensor, direction, core);
     break;
+  }
   case LAMINATES:
   case D_LAMINATES:
     GetLaminatesTensor(t, subTensor, direction, notation);

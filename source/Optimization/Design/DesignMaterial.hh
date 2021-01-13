@@ -63,12 +63,14 @@ public:
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
 
-    /** the general material tensor function */
-    bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation);
+    /** the general material tensor function
+     * allow option to return core material tensor*/
+    bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation, bool core = false);
 
-    /** Calculate the derivative tensor from the given material parameters */
-    bool GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
-    bool GetMechTensor(Matrix<Complex>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
+    /** Calculate the derivative tensor from the given material parameters
+     * optional: core indicates core material tensor without multiplication with penalized pseudo-density */
+    bool GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT, bool core = false);
+    bool GetMechTensor(Matrix<Complex>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT, bool core = false);
 
     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 
@@ -209,7 +211,7 @@ private:
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Trans-Iso Tensor */
-    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
+    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation, bool core = false);
 
     /* general anisotropic FMO tensor */
     inline void GetElasticFMOTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
@@ -217,8 +219,9 @@ private:
     /** Calculate the orthotropic material tensor */
     inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
-    /** Calculate the Tensor for Density times Tensor */
-    inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    /** Calculate the Tensor for Density times Tensor
+     * bool core indicates if t should be the core material tensor (without multiplication with penalized pseudo-density)*/
+    inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, bool core = false);
 
     /** Calculate the tensor for Laminates */
     inline void GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);

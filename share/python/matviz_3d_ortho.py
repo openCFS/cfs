@@ -22,6 +22,8 @@ try:
 except:
   print("Warning: Could not load basecell and draw_profile_functions!")
 
+found_pymesh = False
+
 # similar to create_3d_cross_ip; # without rotation and shearing
 def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,design,scale,samples,grad,nondes=None):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ...
@@ -82,6 +84,14 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   s3 = comm.bcast(s3,root=0)
 
   my_mpi_grid = MPI_Grid(comm)
+  
+  if my_mpi_grid.rank == 0:
+    try:
+      import pymesh
+      global found_pymesh
+      found_pymesh = True
+    except:
+      print("pymesh not found!")
 
   ################# voxel world #########################################
   nondes_min = 99999
@@ -175,19 +185,32 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
 
   eps = 1e-6
 
-  if nondes:
-    hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
-    hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
-    hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
+  
+  hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
+  hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
+  hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
 
-    tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=int)
-    draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-    my_mpi_grid.grid.data *= tmp
+  tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=int)
+  draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+  my_mpi_grid.grid.data *= tmp
+  
+  netskin = compute_net_skin((my_mpi_grid.grid.nx,my_mpi_grid.grid.ny,my_mpi_grid.grid.nz), tmp, my_mpi_grid.grid.data)
+  
+  # debugging
+  x = np.arange(0,my_mpi_grid.grid.nx+1,1)
+  y = np.arange(0,my_mpi_grid.grid.ny+1,1)
+  z = np.arange(0,my_mpi_grid.grid.nz+1,1)
 
-    vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
-    if my_mpi_grid.rank == 0:
-      print("design volume:" + str(np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3)))
-
+  from pyevtk.hl import gridToVTK
+  gridToVTK("netskin",x,y,z,cellData={"netskin":netskin})
+  
+  my_mpi_grid.grid.data = np.clip(netskin+my_mpi_grid.grid.data,0,1)
+  
+  vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
+  if my_mpi_grid.rank == 0:
+    print("design volume:" + str(np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3)))
+      
+  if nondes:    
     design_elems = None
     if nondes_coords is not None:
       draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
@@ -266,14 +289,14 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   sys.stdout.flush()
   data = None
   if my_mpi_grid.rank == 0:
-    import pymesh
-    print("before reducing: len(verts):" + str(len(my_mpi_grid.vertices)) + " len(faces):" + str(len(my_mpi_grid.faces)))
-    sys.stdout.flush()
-
-    my_mpi_grid.vertices, my_mpi_grid.faces, info = pymesh.remove_duplicated_vertices_raw(np.asarray(my_mpi_grid.vertices),np.asarray(my_mpi_grid.faces),1e-4)
-    my_mpi_grid.vertices, my_mpi_grid.faces, info = pymesh.remove_duplicated_faces_raw(np.asarray(my_mpi_grid.vertices),np.asarray(my_mpi_grid.faces))
-    print("after reducing: len(verts):" + str(len(my_mpi_grid.vertices)) + " len(faces):" + str(len(my_mpi_grid.faces)))
-    sys.stdout.flush()
+#     if found_pymesh:
+#       print("before reducing: len(verts):" + str(len(my_mpi_grid.vertices)) + " len(faces):" + str(len(my_mpi_grid.faces)))
+#       sys.stdout.flush()
+#    
+#       my_mpi_grid.vertices, my_mpi_grid.faces, info = pymesh.remove_duplicated_vertices_raw(np.asarray(my_mpi_grid.vertices),np.asarray(my_mpi_grid.faces),1e-4)
+#       my_mpi_grid.vertices, my_mpi_grid.faces, info = pymesh.remove_duplicated_faces_raw(np.asarray(my_mpi_grid.vertices),np.asarray(my_mpi_grid.faces))
+#       print("after reducing: len(verts):" + str(len(my_mpi_grid.vertices)) + " len(faces):" + str(len(my_mpi_grid.faces)))
+#       sys.stdout.flush()
 
     # add vertex id to list of vertices, need it later on when scattering
     # data for smoothing
@@ -287,7 +310,6 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     sys.stdout.flush()
     vtpName = args.save+".vtp" if args.save is not None else "interpreted.vtp"
     matviz_vtk.show_write_vtk(pd, 10, vtpName)
-
 
 #     data = (verts,faces)
   if args.bc_smooth > 0:
@@ -459,12 +481,62 @@ def write_nondes_to_vtr_file(args,min_bb,max_bb,nondes):
   from pyevtk.hl import gridToVTK
   gridToVTK("nondesign",x,y,z,cellData={"nondes":nondes_grid})
 
+# @param shape: extents of 3d image
+# @param trimmer: domain used for trimming the design
+# @param trimmed: result of trimming operation
+def compute_net_skin(shape, trimmer, trimmed):
+  from scipy import ndimage
+  from skimage.segmentation import find_boundaries
+  assert(len(shape) == 3)
+  rows, cols, depth = shape
+  
+  import cv2
+  #erode solid part
+  kernel = np.ones((31,31),dtype=np.uint8)
+  eroded = cv2.erode(np.uint8(trimmer),kernel,iterations = 1)
+  #eroded = ndimage.binary_erosion(trimmer,structure=np.ones((int(0.5*rows), int(0.5*cols), int(0.5*depth))))
+  inv_eroded = (1 - eroded).astype(bool)
+  # throw away pixels that are not on boundary of trimmed structure
+  candidates = (trimmed * inv_eroded).astype(bool)
+  # boundaries of trimmer
+  perim = find_boundaries(trimmer)
+  
+  directions = [np.array([1,0,0]), np.array([-1,0,0]), np.array([0,1,0]), np.array([0,-1,0]), np.array([0,0,1]), np.array([0,0,-1])]
+  #directions = [np.array([1,0]), np.array([0,1])]
+  n_max = 10
+  
+  projected = []
+  for vec in directions:
+    for r in range(rows):
+      for c in range(cols):
+        for d in range(depth):
+          for n in range(1,n_max+1):
+            # project solid voxels along unit vectors
+            if candidates[r,c,d] == 1:
+              projected.append(np.array([r,c,d]) + n*vec)
+              #print("n,[r,c],vec,projected[-1]:",n,np.array([r,c]),vec,projected[-1])
+              #sys.exit()
+              
+  netskin = np.zeros(shape,dtype=np.uint8)
+  
+  for p in projected:
+    t = tuple(p)
+    if p[0] >= trimmed.shape[0] or p[1] >= trimmed.shape[1] or p[2] >= trimmed.shape[2]:
+      continue
+    if perim[t] == 1:
+      #print("trimmed[tuple(p)]:",trimmed[tuple(p)])
+      netskin[t] = 1
+      
+  return netskin       
+
+   
 # @param elems: list of lists, each entry contains 4 vertices (cartesian) of a tetra-/hexahedron
 # @param grid: where to draw
 # @param bounds: list of bounds of cartesian world
 # @param h: lattice spacings in 3 directions
 # @param solid or void non-design?
-def draw_non_design(elems,grid,bounds,h,solid=True):
+# @param toarray: return np array with non-design?
+def draw_non_design(elems,grid,bounds,h,solid=True,toarray=False):
   assert(len(bounds) >=3 and len(h) == 3)
   assert(elems is not None)
   ug = vtk.vtkUnstructuredGrid()
@@ -504,11 +576,19 @@ def draw_non_design(elems,grid,bounds,h,solid=True):
 
   prod = [p for i,p in enumerate(points) if fact[i]]
   assert(prod is not None)
+  res = np.zeros(grid.shape) if toarray else None
   for p in prod:
     # transfer to voxel world
     i,j,k = draw_profile_functions.cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],h[0],h[1],h[2])
     assert(not idx_out_of_bounds((i,j,k),grid.shape))
     grid[i,j,k] = solid
+    if toarray:
+      res[i,j,k] = solid 
+    
+  if toarray:
+    assert(res is not None)
+    return res  
+    
 
 # check if given tuple of indices lies within given array bounds
 # @param point (i,j,k)

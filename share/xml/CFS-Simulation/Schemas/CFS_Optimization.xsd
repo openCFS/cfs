@@ -447,7 +447,7 @@
           <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function" />
 
           <!-- The design is optional. If not given it is for all -->
-          <xsd:attribute name="design" use="optional" type="DT_Design" />
+          <xsd:attribute name="design" use="optional" type="DT_Design"/>
 
           <!-- A constraint value is either 'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional">
@@ -2995,6 +2995,7 @@
           <xsd:enumeration value="density-times-2dtensor" />
           <xsd:enumeration value="density-times-2dtensor-constant-trace" />
           <xsd:enumeration value="density-times-rotated-2dtensor" />
+          <xsd:enumeration value="density-times-rotated-const-tensor" />
           <xsd:enumeration value="density-times-transversal-isotropic" />
           <xsd:enumeration value="density-times-transversal-isotropic-boxed" />
           <xsd:enumeration value="density-times-rotated-transversal-isotropic" />

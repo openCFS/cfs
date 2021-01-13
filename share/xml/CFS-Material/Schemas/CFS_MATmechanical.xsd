@@ -137,11 +137,11 @@
       <xsd:element name="elasticityModulus_2" type="DT_ScalarType"/>
       <xsd:element name="elasticityModulus_3" type="DT_ScalarType"/>
       <xsd:element name="poissonNumber_12" type="DT_ScalarType"/>
-      <xsd:element name="poissonNumber_23" type="DT_ScalarType"/>
       <xsd:element name="poissonNumber_13" type="DT_ScalarType"/>
-      <xsd:element name="shearModulus_23" type="DT_ScalarType"/>
-      <xsd:element name="shearModulus_31" type="DT_ScalarType"/>
+      <xsd:element name="poissonNumber_23" type="DT_ScalarType"/>
       <xsd:element name="shearModulus_12" type="DT_ScalarType"/>
+      <xsd:element name="shearModulus_13" type="DT_ScalarType"/>
+      <xsd:element name="shearModulus_23" type="DT_ScalarType"/>
     </xsd:sequence>
   </xsd:complexType>
 

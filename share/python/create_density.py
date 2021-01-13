@@ -366,9 +366,9 @@ elif args.hashtag is not None:  # also capture 0.0
   data = hashtag(args.dim, args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
 elif args.channel:
-  if args.dim == 3:
-    print('can only create 2d channels')
-    sys.exit()
+#   if args.dim == 3:
+#     print('can only create 2d channels')
+#     sys.exit()
   data = channel(args.dim, args.res, args.vol, args.lower, args.invert)
   filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
 elif args.three_cylinders:

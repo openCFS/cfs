@@ -25,6 +25,9 @@ public:
   /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
   void GetBounds(PyObject* args);
 
+  /** returns 4 values: dim, nx, ny, nz */
+  PyObject* GetDims(PyObject* args);
+
   void GetInitialDesign(PyObject* args);
 
   /** Evaluate objective and expects 1Dim design as numpy array */
@@ -38,15 +41,23 @@ public:
 
   void EvalGradConstraints(PyObject* args);
 
-  /** this should be in PythonTools but somehow this gives a segfault which indicates that PyArg_ParseTuple is not defined?! */
+  /** this should be in PythonTools but somehow this gives a segfault which indicates that PyArg_ParseTuple is not defined?! 
+   * @param decref if false make sure to decref the objects via the return array
+   * @return you must not use the PyObjects when decref is true */
   static StdVector<PyObject*> ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
+
+  double GetSimpExponent();
+
+  /** Returns derivative of compliance w.r.t. material tensor */
+  void Get_dfdH(PyObject *args);
+
+  void GetCoreStiffness(PyObject *args);
 
 protected:
 
   /** Implements virtual function from BaseOptimizer */
   void SolveProblem();
 private:
-
 
   /** the options from the xml file */
   StdVector<std::pair<std::string, std::string> > options;
