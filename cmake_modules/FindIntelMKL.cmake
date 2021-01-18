@@ -281,9 +281,9 @@ SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
 # Status message of found MKL
 #-------------------------------------------------------------------------------
 IF(DEFINED MKL_UPDATE)
-  MESSAGE(STATUS "Using Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}.")
+  message(STATUS "Using Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}.")
 ELSE()
-  MESSAGE(STATUS "Using Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.")
+  message(STATUS "Using Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.")
 ENDIF()
 
-MESSAGE(VERBOSE "defining MKL link-line via MKL_BLAS_LIB=${MKL_BLAS_LIB}")
+message(STATUS "defining MKL link-line via MKL_BLAS_LIB=${MKL_BLAS_LIB}")# VERBOSE-TRACE are only supported from cmake 3.15

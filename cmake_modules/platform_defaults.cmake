@@ -86,9 +86,9 @@ IF(WIN32)
 ELSE()
   set(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOME}/.cfs_platform_defaults.cmake") 
 ENDIF(WIN32)
-message("local file is ${CMAKE_HOST_DEFAULTS_INC_HOME}")
+# message(DEBUG "local file is ${CMAKE_HOST_DEFAULTS_INC_HOME}") # VERBOSE-TRACE are only supported from cmake 3.15
 if(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME}")
-message("including ${CMAKE_HOST_DEFAULTS_INC_HOME}")
+  message(STATUS "including ${CMAKE_HOST_DEFAULTS_INC_HOME}")
   include("${CMAKE_HOST_DEFAULTS_INC_HOME}")
 endif()
 
