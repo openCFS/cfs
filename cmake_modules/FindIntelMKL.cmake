@@ -198,7 +198,7 @@ elseif(APPLE) # note tha APPLE is ALSO UNIX!
   mark_as_advanced(MKL_H)
   mark_as_advanced(MKL_ROOT_DIR)
 
-elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX und Linux. Note that APPLE is als UNIX
+elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linux. Note that APPLE is also UNIX
   if(NOT MKL_ROOT_DIR)
     set(MKL_POSSIBLE_ROOT_DIRS
        "/opt/intel/mkl"
@@ -232,7 +232,10 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX und Linu
   set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
 
   if(USE_OPENMP)
-    set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
+    set(MKL_OMP_LIB "${MKL_ROOT_DIR}/lib/intel64/libiomp5.so")
+    if(NOT EXISTS "${MKL_OMP_LIB}")
+        set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
+    endif()
     # copy over
     file(COPY ${MKL_OMP_LIB} DESTINATION ${LIBRARY_OUTPUT_PATH})
     set(MKL_OMP_LIB_LINE "-L${LIBRARY_OUTPUT_PATH} -liomp5")

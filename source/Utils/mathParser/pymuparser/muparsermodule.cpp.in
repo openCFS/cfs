@@ -79,6 +79,14 @@ static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
 
     if (expr != NULL) {
         std::string exprStr(expr);
+
+        // replace ' with " for compatibility with XML strings
+        for (int i = 0, l = exprStr.length(); i < l; ++i) {
+            if (expr[i] == '\'') {
+                expr[i] = '"';
+            }
+        }
+
         try {
             self->parser->SetExpr(exprStr);
         }
@@ -262,6 +270,13 @@ static int MuParser_setexpr(MuParserObject *self, PyObject *value, void *closure
     if (asciiBytes == NULL) return -1;
 
     std::string expr(PyBytes_AsString(asciiBytes));
+
+    // replace ' with " for compatibility with XML strings
+    for (int i = 0, l = expr.length(); i < l; ++i) {
+        if (expr[i] == '\'') {
+            expr[i] = '"';
+        }
+    }
 
     try {
         self->parser->SetExpr(expr);

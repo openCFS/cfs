@@ -1,6 +1,6 @@
 # Python binding for muParser
 
-option(BUILD_PYMUPARSER "Build and install Python binding for muParser" OFF)
+option(BUILD_PYMUPARSER "Build Python binding for muParser" OFF)
 mark_as_advanced(BUILD_PYMUPARSER)
 
 if(NOT PYTHON_EXECUTABLE)
@@ -9,7 +9,7 @@ endif(NOT PYTHON_EXECUTABLE)
 
 if(BUILD_PYMUPARSER AND PYTHON_EXECUTABLE)
 
-    set(PYMUPARSER_VERSION "0.1.2")
+    set(PYMUPARSER_VERSION "0.1.3")
     
     configure_file( setup.py.in
                     "${CMAKE_BINARY_DIR}/PyMuParser/setup.py"
@@ -18,11 +18,17 @@ if(BUILD_PYMUPARSER AND PYTHON_EXECUTABLE)
                     "${CMAKE_BINARY_DIR}/PyMuParser/muparsermodule.cpp"
                     @ONLY ) 
     
-    add_custom_target(PyMuParser ALL
+    add_custom_target(pymuparser ALL
                       ${PYTHON_EXECUTABLE} setup.py build_ext
                       COMMAND ${PYTHON_EXECUTABLE} setup.py bdist_wheel
                       DEPENDS muparser
                       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/PyMuParser"
                       COMMENT "Building PyMuParser wheel")
     
+    add_custom_target(install-pymuparser
+                      ${PYTHON_EXECUTABLE} -m pip install "dist/PyMuParser-${PYMUPARSER_VERSION}-*.whl"
+                      DEPENDS pymuparser
+                      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/PyMuParser"
+                      COMMENT "Installing PyMuParser wheel")
+
 endif(BUILD_PYMUPARSER AND PYTHON_EXECUTABLE)
