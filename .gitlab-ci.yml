@@ -283,7 +283,7 @@ build:gcc7max:
     - gcc7
     - release
     - license-keys
-    - python
+    - python3.6
   variables:
     BUILD_NAME: "GCC7 maximal"
     GCC_VERSION: 7
@@ -587,6 +587,7 @@ testsuite:gcc7min:linux:
 stable:gcc7max:linux:
   tags:
     - linux
+    - python3.6
   stage: test
   <<: *max_rules
   variables:
@@ -598,6 +599,7 @@ stable:gcc7max:linux:
 testsuite:gcc7max:linux:
   tags:
     - linux
+    - python3.6
   stage: test
   <<: *max_rules
   variables:
