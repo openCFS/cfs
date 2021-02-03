@@ -143,15 +143,6 @@ runner-debug:
 # BUILD STAGE
 #################################################
 # Here we define the build jobs, if one fails we do not need to test
-
-# this is run after every CTest step
-.ctest_after: &ctest_after
-  after_script:
-    - cd build
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # copy CMakeCache one level up to avoid conflicts with test config in artifact
-    # perform this only in the build stage
-    - (if [[ $CI_JOB_STAGE == build* ]]; then cp ../build/CMakeCache.txt ../build/CMakeCache_build-stage.txt; fi)
     
 .default_build_job: &default_build_job
   extends: .default_pipeline_rules
@@ -175,7 +166,11 @@ runner-debug:
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
     # check the coding_score
     - ../ctest_scripts/shared/coding_score.sh build.out
-  <<: *ctest_after
+  after_script:
+    - cd build
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
+    # copy CMakeCache one level up to avoid conflicts with test config in artifacts
+    - cp CMakeCache.txt CMakeCache_build-stage.txt
   coverage: '/coding_score=(\d+[.]\d+)/'
   artifacts:
     paths: # just an example
@@ -464,6 +459,21 @@ platform:centos:7:
 # Both _stable_ and _testsuite_ are run for all build configs (GCCx),
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
 
+# test for cmake or install it
+.cmake_test_or_install: &cmake_test_or_install
+  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.10/cmake-3.10.3-Linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.10.3-Linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
+  - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
+  - echo $PATH
+  - ctest --version
+  - cmake --version
+
+.after_cdash_submit: &after_cdash_submit
+  after_script:
+    - cd build
+    # optionally install cmake if not present
+    - *cmake_test_or_install
+    # CDash submit
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
@@ -480,17 +490,19 @@ platform:centos:7:
     - tar -xzvf "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" --strip-components=1 # extract to correct location
     # obtain the build config
     - ./bin/cfs --dependencies config.cmake
-    # get testsuite SHA
-    - export TESTSUITE_SHA=$(git submodule | grep Testsuite | awk '{print $1}')
-    - echo $TESTSUITE_SHA # debug
-  <<: *ctest_after
+    # optionally install cmake if not present
+    - *cmake_test_or_install
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
-  # no chache for testing necessary - binary comes from artifacts
-  cache: {}
-
+  # after-script
+  <<: *after_cdash_submit
+  # cache the local cmake install
+  cache:
+    key: cmake
+    paths:
+      - build/cmake
 
 # this is the config that has to pass (excludes PYTHON since they do not need to be tested for every GCCx)
 .test_stable: &test_stable
@@ -502,7 +514,7 @@ platform:centos:7:
       - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   script:
     # configure
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
     # start the testing
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
@@ -518,7 +530,7 @@ platform:centos:7:
       - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   script:    
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -529,6 +541,7 @@ platform:centos:7:
 stable:gcc5:linux:
   tags:
     - linux
+  image: opencfs/ubuntu20.04
   stage: test
   variables:
     BUILD_NAME: "GCC5"
@@ -551,6 +564,7 @@ testsuite:gcc5:linux:
 stable:gcc7min:linux:
   tags:
     - linux
+  image: opencfs/ubuntu20.04
   stage: test
   variables:
     BUILD_NAME: "GCC7 minimal"
@@ -664,12 +678,14 @@ python:stable:
   before_script:
     - mkdir -p build
     - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_PYTHON=ON ..
+    - *cmake_test_or_install # optionally install cmake if not present
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY=ON -DBUILD_TESTING=ON -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
+  <<: *after_cdash_submit
 
 python:all:
   extends: python:stable

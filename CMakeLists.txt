@@ -20,6 +20,11 @@ endif(COMMAND CMAKE_POLICY)
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
+if(PIPELINE_TEST_STAGE_CONFIG)
+  message(WARNING "No compiler check - this should only occur in the testing stage of the gitlab pipeline")
+  set(CMAKE_MAKE_PROGRAM "none")
+  project(CFS NONE)
+else(PIPELINE_TEST_STAGE_CONFIG)
 project(CFS C CXX Fortran)
 
 # Make sure that output of started programs is in English, so that we can
@@ -219,7 +224,6 @@ endif()
 
 if(BUILD_TESTING AND NOT EXISTS ${TESTSUITE_DIR}/TESTSUIT)
   message(WARNING "BUILD_TESTING is on but TESTSUITE_DIR seems invalid, deactivate BUILD_TESTING")
-  set(BUILD_TESTING OFF FORCE) # automatism is legaciy behavior
 endif()
 
 if(BUILD_TESTING AND NOT BUILD_CFSTOOL)
@@ -377,6 +381,7 @@ TODAY(CFS_CONF_DATE)
 # and other informations from working copy
 include("cmake_modules/DetermineWorkingCopyInfos.cmake")
 
+endif(PIPELINE_TEST_STAGE_CONFIG)
 # Configure Dart testing support.  This should be done before any
 # message(FATAL_ERROR ...) commands are invoked (???) and after the languages
 # for the project have been defined since CMake needs to know about the 
@@ -387,6 +392,7 @@ if(BUILD_TESTING)
   # check if TESTSUITE_DIR is correct (contains TESTSUIT)
     if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       add_subdirectory(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+      message(STATUS "including testsuite from ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
     else()
       set(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
       set(MSG "${MSG}Please specify a proper location!\n")
@@ -417,6 +423,7 @@ if(BUILD_TESTING)
   endif(GITLAB_TEST_TAG)
   enable_testing()
 endif(BUILD_TESTING)
+if(NOT PIPELINE_TEST_STAGE_CONFIG)
 # add a packing test
 if(BUILD_CPACK_BINARY)
   include(CTest)
@@ -554,6 +561,8 @@ endif()
 
 # Build the actual headers with defines from templates.
 include("cmake_modules/configure_def_headers.cmake")
+endif(NOT PIPELINE_TEST_STAGE_CONFIG)
+# all copy/configure only targets
 add_subdirectory(share/doc) #building documentation (see 'make help')
 add_subdirectory(share/scripts)
 add_subdirectory(share/mkmesh)
