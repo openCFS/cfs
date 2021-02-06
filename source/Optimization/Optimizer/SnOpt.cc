@@ -85,6 +85,8 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   BaseOptimizer::PostInitScale(1.0);
   
   Init();
+
+  optimizer_timer_->Stop();
 }
 
 SnOpt::~SnOpt()
@@ -224,7 +226,7 @@ void SnOpt::SolveProblem()
   
   InfoXMLOutput();
   
-  optimization->CommitIteration();
+  CommitIteration();
 }
 
 void SnOpt::InfoXMLOutput()
@@ -314,7 +316,7 @@ int SnOpt::Callback(integer* Status, const integer n,
   // the special cases are the first iteration if setupLinearConstraints() had a feasible design or on the last commit.
   if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x.GetPointer()))
   {
-    optimization->CommitIteration();
+    CommitIteration();
     perform_commit_iteration_ = false; // to be reset when enough functions evaluations have been done
   }
 
@@ -698,7 +700,6 @@ void SnOpt::setupLinearConstraints()
   // we have just evaluated the state problem, commit the (initial) iteration as snopt might
   // evaluate in its's callback already an updated  design
   perform_commit_iteration_ = true;
-  // optimization->CommitIteration();
 
   for(int i = 0; i < nA; i++)
   {

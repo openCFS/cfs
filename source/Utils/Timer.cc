@@ -1,36 +1,35 @@
 #include "Utils/Timer.hh"
 #include "General/Exception.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include <sstream>
 
 using namespace CoupledField;
 using std::string;
 
-Timer::Timer(const std::string& name, bool sub, bool start_immediately) :
-  calls_(0),
-  running(false),
-  start_clock(0),
-  sum_clock(0),
-  label_(name),
-  sub_(sub)
+Timer::Timer(const std::string& name, bool sub, bool start_immediately)
 {
+  label_ = name;
+  sub_ = sub;
+  nesting = true; // false means very clean code. Set global or local to true to be more robust
   if(start_immediately)
     Start();
 }
 
 
-bool Timer::Start(bool validate)
+bool Timer::Start()
 {
-  if(validate && running)
-    throw Exception("attempt to start already running timer");
-
-  // Return immediately if the timer is already running
-  if(running)
-    return false;
+  if(IsRunning() && !nesting)
+    throw Exception("attempt to start already running timer with nesting off");
 
   calls_++;
 
   // Set timer status to running and set the start time
-  running = true;
+  running++;
+  max_nesting_ = std::max(running, max_nesting_);
+
+  if(running > 1)
+    return false;
+
   start_clock = clock();
 
   // https://stackoverflow.com/questions/6734375/get-current-time-in-milliseconds-using-c-and-boost
@@ -42,8 +41,8 @@ bool Timer::Start(bool validate)
 bool Timer::ResetStart()
 {
   // Set timer status to running, reset accumulated time, and set start time
-  bool was_running = running;
-  running = true;
+  bool was_running = IsRunning();
+  running = 1;
 
   start_clock = clock();
   sum_clock   = 0;
@@ -55,20 +54,25 @@ bool Timer::ResetStart()
   return !was_running;
 }
 
-bool Timer::Stop(bool validate)
+bool Timer::Stop()
 {
-  if(validate && !running)
-    throw Exception("attempt to stop not running timer");
+  if(!IsRunning() && !nesting)
+    throw Exception("attempt to stop not running timer with nesting off");
 
-  if(!running)
+  if(running > 0) // don't make negative
+    running--;
+
+  // if nesting is still to high, we don't stop
+  if(IsRunning())
     return false;
+
   // Compute accumulated running time and set timer status to not running
   sum_clock += clock() - start_clock;
 
   boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
   boost::posix_time::time_duration delta_t = now - start_time_;
   sum_time_ += delta_t.total_milliseconds() / 1000.0;
-  running = false;
+
   return true;
 }
 
@@ -101,6 +105,8 @@ string Timer::ToXMLFormat(const string& name) const
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";
+  if(progOpts->DoDetailedInfo())
+    os << " max_nesting=\"" << max_nesting_ << "\"";
   if (sub_)
     os << " sub=\"true\"";
   os << "/>";

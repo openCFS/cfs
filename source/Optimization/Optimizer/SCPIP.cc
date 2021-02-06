@@ -25,8 +25,10 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 
+  optimizer_timer_->Stop();
   // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
   PostInitScale(1.0); // does autoscale
+  optimizer_timer_->Start();
 
   if(objective->scaling.value != 0.0 && objective->target != 0.0)
     std::cout << "objective scaling: " << objective->ToString() << std::endl;
@@ -60,6 +62,7 @@ SCPIP::~SCPIP()
 void SCPIP::PostInit()
 {
   Initialize();
+  optimizer_timer_->Stop();
 }
 
 void SCPIP::ToInfo(PtrParamNode pn)
@@ -79,7 +82,10 @@ void SCPIP::SolveProblem()
 {
   // if we did autoscale, we can easily commit a calculated initial (iter-0) configuration
   // otherwise we also try to make this
-  if(objective->DoAutoscale()) optimization->CommitIteration();
+  assert(optimizer_timer_->IsRunning());
+
+  if(objective->DoAutoscale())
+     CommitIteration();
   
   do
   {
@@ -267,6 +273,7 @@ bool SCPIP::eval_f(int n, const double* x_org, double& obj_value)
 
 bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
 {
+  assert(optimizer_timer_->IsRunning());
   StdVector<double> x_srt;
   x_srt.Import(x_org, n);
   
@@ -274,10 +281,12 @@ bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
   assert(grad_f == df.GetPointer());
   bool result = EvalGradObjective(n, x_srt.GetPointer(), true, df);
 
+  assert(optimizer_timer_->IsRunning());
+
   // do we have to write the initial iteration in the non-autoscale case?
   // SCPIP first does eval_f and then eval_grad_f
-  if(optimization->GetCurrentIteration() == 0) optimization->CommitIteration();
-  
+  if(optimization->GetCurrentIteration() == 0)
+    CommitIteration();
   return result;
 }
 
@@ -316,8 +325,9 @@ void SCPIP::finalize_solution(int status, int n, const double* x, const double* 
                     << StandardDeviation(z_L, n) << " z_u_avg = " << Average(z_L, n) << " z_u_std_dev = "
                     << StandardDeviation(z_U, n) << "restart_requested = " << restart_requested;
 
+  assert(optimizer_timer_->IsRunning());
   // save this iteration, otherwise it might be lost
-  optimization->CommitIteration();  
+  CommitIteration();
   
   if(restart_requested) return;
   
@@ -334,8 +344,7 @@ bool SCPIP::intermediate_callback(int iter, bool next_iter)
 {
   if(iter == 0 || !next_iter) return true;
 
-  optimization->CommitIteration();
-
+  CommitIteration();
 
   // break the optimization - e.g. if our relative change is smaller than given in xml
   // or we have to do a restart

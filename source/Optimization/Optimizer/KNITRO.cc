@@ -180,7 +180,7 @@ void KNITRO::SolveProblem()
       int curr_iter = KTR_get_number_iters(kc);
       if(curr_iter != iter)
       {
-        optimization->CommitIteration();
+        CommitIteration();
         iter = curr_iter;
       }
       break;
@@ -216,7 +216,7 @@ void KNITRO::SolveProblem()
   in->Get("status")->SetValue(status);
 
 
-  optimization->CommitIteration();
+  CommitIteration();
 
   if(status == 0)
   {

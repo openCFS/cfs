@@ -201,6 +201,8 @@ void SGP::PostInit()
   cc.view->Done();
 
   ToInfo();
+
+  optimizer_timer_->Stop();
 }
 
 void SGP::InnerVariable::Read(PtrParamNode pn, DesignSpace* space) {
@@ -265,7 +267,7 @@ void SGP::SolveProblem()
     std::cout<<"derivative = "<<deriv<<std::endl;
     std::cout<<"max derivative error = "<<max_error<<std::endl;
   }
-  optimization->CommitIteration();
+  CommitIteration();
 
   // outer optimization loop
   while(!optimization->DoStopOptimization() && iter <= max_iter && !converged)

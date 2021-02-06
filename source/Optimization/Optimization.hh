@@ -285,7 +285,7 @@ namespace CoupledField
            bool gradNorm;
 
            /** optional log the iterations and cost value to a file to gnuplot it */
-           std::ofstream* file;
+           std::ofstream* file = NULL;
         private:
 
            /** counter for AddToHeader() */
@@ -306,7 +306,7 @@ namespace CoupledField
          * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have
          * only one MultipleExcitaiton object. However some of the information is stored in the corresponding context
          * @see Optimization::contextManager */
-        MultipleExcitation* me;
+        MultipleExcitation* me = NULL;
 
         /** the reason we did a user break in DoStopIteration() */
         std::string user_break_reason;
@@ -374,7 +374,7 @@ namespace CoupledField
 
         /** Here we contain our design space. The domain gets a reference to it to perform
          * the ersatz material ansatz */
-        DesignSpace* design;
+        DesignSpace* design = NULL;
 
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
@@ -386,10 +386,10 @@ namespace CoupledField
         double otherStepWeight;
 
         /** shortcut to domain->GetGrid() */
-        Grid* grid;
+        Grid* grid = NULL;
 
         /** This holds our optimizer instance. */
-        BaseOptimizer* baseOptimizer_;
+        BaseOptimizer* baseOptimizer_ = NULL;
 
       private:
         /** CommitIteration() does not necessary store the results when we have a stride

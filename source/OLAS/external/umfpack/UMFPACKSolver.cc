@@ -503,8 +503,6 @@ namespace CoupledField {
     if(firstCall_ == true)
       EXCEPTION( "The matrix has not yet been factorised by UMFPACK! " << "Call Setup() first" );
 
-    solveTimer_->Start();
-
     // Check that we have the correct vector types and
     // obtain data pointers
     const T *rhsArray;
@@ -554,7 +552,6 @@ namespace CoupledField {
 
     }
 
-    solveTimer_->Stop();
   }
 
 // Explicit template instantiation

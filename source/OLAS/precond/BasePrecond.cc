@@ -57,12 +57,13 @@ namespace CoupledField {
   void BasePrecond::PostInit() {
     // assert, that info node is present
     assert(infoNode_);
-    
-    PtrParamNode base = infoNode_; 
-    setupTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
-    precondTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
+
+    std::string name = precondType.ToString(GetPrecondType());
+
+    PtrParamNode b = infoNode_->Get(ParamNode::SUMMARY);
+
+    setupTimer_   = b->Get("precond_" + name + "_setup/timer")->AsTimer();
+    precondTimer_ = b->Get("precond_" + name + "_run/timer")->AsTimer();
   }
   
   void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {

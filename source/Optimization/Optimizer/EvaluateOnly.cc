@@ -29,6 +29,7 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
     eval_grad = pn->Get("objective_gradient")->As<bool>();
   }
 
+  optimizer_timer_->Stop();
   PostInitScale(1.0, true);
 }
 
@@ -128,7 +129,8 @@ void EvaluateOnly::SolveProblem()
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global
 
+
     // multiple excitations in evaluate only are identified as increasing "iterations".
-    optimization->CommitIteration();
+    CommitIteration();
   }
 }

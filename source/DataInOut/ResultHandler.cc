@@ -199,7 +199,8 @@ namespace CoupledField {
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
 
-    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("update_results/timer")->AsTimer();
+
+    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
     timer->Start();
 
     LOG_DBG(resHandler) << "UR: " << sol->GetResultInfo()->ToString();
@@ -247,7 +248,8 @@ namespace CoupledField {
     // -----------------------
     UpdateResults();
     
-    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("finish_step/timer")->AsTimer();
+    // shared amongst e.g. WriteResults, UpdateResults, FinishStep
+    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
     timer->Start();
 
     // === Primary results ===

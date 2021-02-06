@@ -18,6 +18,8 @@ DEFINE_LOG(pasta, "pasta")
 SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNode empn, ErsatzMaterial::Method method)
 : FeaturedDesign(regionIds, empn, method)
 {
+  setup_timer_->Start();
+
   tip.SetName("SpaghettiDesign::Tip");
   tip.Add(START, "start");
   tip.Add(END, "end");
@@ -48,12 +50,16 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
     throw Exception("Up to now Spaghetti expects identity transfer function"); // extend!
 
   py_timer = info_->Get("spaghetti/python/timer")->AsTimer();
+  py_timer->SetSub(); // we are in design_setup and in the eval timers
 
   if(pn->Has("python"))
     PythonInit(pn->Get("python"));
 
   assert(mapped_design_ != design_id);
+
   MapFeatureToDensity(); // only so late because of python -> calls PythonUpdateSpaghetti()
+
+  setup_timer_->Stop(); // python and map are subtimers, so count them here
 }
 
 SpaghettiDesign::~SpaghettiDesign()
@@ -181,6 +187,7 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
 
 void SpaghettiDesign::MapFeatureToDensity()
 {
+  mapping_timer_->Start();
   // this is the pure python implementation
   assert(python);
 
@@ -214,10 +221,13 @@ void SpaghettiDesign::MapFeatureToDensity()
   mapped_design_ = design_id;
 
   py_timer->Stop();
+  mapping_timer_->Stop();
 }
 
 void SpaghettiDesign::MapFeatureGradient(const Function* f)
 {
+  gradient_timer_->Start();
+
   assert(python);
 
   assert(mapped_design_ == design_id);
@@ -275,6 +285,7 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   Py_XDECREF(afunc);
 
   py_timer->Stop();
+  gradient_timer_->Stop();
 }
 
 

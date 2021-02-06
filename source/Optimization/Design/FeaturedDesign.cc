@@ -12,6 +12,8 @@ unsigned int FeaturedDesign::dim_ = 99;
 FeaturedDesign::FeaturedDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
 : AuxDesign(regionIds, pn, method)
 {
+  setup_timer_->Start();
+
   SetEnums();
 
   this->dim_ = domain->GetGrid()->GetDim();
@@ -24,6 +26,8 @@ FeaturedDesign::FeaturedDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->gradient_timer_ = info_->Get("features/gradient/timer")->AsTimer();
   this->gradient_timer_->SetLabel("features_grad");
   this->gradient_timer_->SetSub(); // already in eval_*
+
+  setup_timer_->Stop();
 }
 
 void FeaturedDesign::SetEnums()
@@ -47,6 +51,8 @@ void FeaturedDesign::PostInit(int objectives, int constraints)
 {
   AuxDesign::PostInit(objectives, constraints);
 
+  setup_timer_->Start();
+
   if(domain->GetOptimization() != NULL)
     opt_ = domain->GetOptimization();
 
@@ -59,6 +65,8 @@ void FeaturedDesign::PostInit(int objectives, int constraints)
   for(unsigned int i = 0; i < shape_param_.GetSize(); ++i) {
     shape_param_[i]->PostInit(objectives, constraints);
   }
+
+  setup_timer_->Stop();
 };
 
 int FeaturedDesign::ReadDesignFromExtern(const double* space_in)

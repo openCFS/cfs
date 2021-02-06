@@ -20,13 +20,13 @@ namespace CoupledField {
   void BaseEigenSolver::PostInit()
   {
     // Assert that info Node is set
-    assert( info_ );
+    assert(info_);
 
-    setupTimer_ = boost::shared_ptr<Timer>(new Timer("setup_" + eigenSolverType.ToString(eigenSolverName_)));
-    info_->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue(setupTimer_);
+    std::string name = eigenSolverType.ToString(eigenSolverName_);
 
-    solveTimer_ = boost::shared_ptr<Timer>(new Timer("solve_" + eigenSolverType.ToString(eigenSolverName_)));
-    info_->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue(solveTimer_);
+    setupTimer_ = info_->Get(ParamNode::SUMMARY)->Get("setup_" + name + "/timer")->AsTimer();
+
+    solveTimer_ = info_->Get(ParamNode::SUMMARY)->Get("solve_" + name + "/timer")->AsTimer();
   }
 
 }

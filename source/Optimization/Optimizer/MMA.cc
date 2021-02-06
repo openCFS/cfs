@@ -192,6 +192,7 @@ void MMA::PostInit()
     lo_lam.Resize(m, dual_low);
   }
 
+  optimizer_timer_->Stop();
 }
 
 void MMA::ComputeObjectiveConstraintsSensitivities()
@@ -286,7 +287,7 @@ void MMA::SolveProblem()
       ok = SolveMMA();
 
       // new design is stored, also the correspoding function values. Increments iteration
-      optimization->CommitIteration();
+      CommitIteration();
       if(ok)
         ComputeObjectiveConstraintsSensitivities();
     }

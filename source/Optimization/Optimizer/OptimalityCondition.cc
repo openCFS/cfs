@@ -125,6 +125,8 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
   std::cout << type_;
   
+  optimizer_timer_->Stop();
+
   PostInitScale(1.0, true);
 }
 
@@ -170,7 +172,7 @@ void OptimalityCondition::SolveProblem()
       eval_obj_timer_->Stop();
       // the gradients are (here only! )pointing to the next design vector, 
       // hence the gradients for iteration "0" and 1 are identical
-      optimization->CommitIteration(); 
+      optimization->CommitIteration(); // don't assert we are running
       iter++;
       continue; // redo gradients and start optimization
     }
@@ -212,7 +214,7 @@ void OptimalityCondition::SolveProblem()
     
     // every state problem is an iteration 
     // The gradients "point" to this design vector. 
-    optimization->CommitIteration();
+    optimization->CommitIteration(); // don't assert we are running
     iter++;
   }
   

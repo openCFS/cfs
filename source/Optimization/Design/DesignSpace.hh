@@ -251,15 +251,10 @@ namespace CoupledField
       * @param out if it has a window writes to the window of the vector! */
      virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
      {
-       // this contains the density filtered gradient or the shape mapping gradient calculation
-       write_gradient_timer_->Start();
-
        if(f == NULL || f->HasDenseJacobian())
          WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!
        else
          WriteSparseGradientToExtern(out, vs, access, f, scaling);
-
-       write_gradient_timer_->Stop();
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
@@ -581,6 +576,9 @@ namespace CoupledField
      /** This is the design space info node */
      PtrParamNode info_;
 
+     /** the timer for design setup for Constructor and PostInit(). */
+     shared_ptr<Timer> setup_timer_;
+
   private:
 
      /** Helper for the constructor.
@@ -663,9 +661,6 @@ namespace CoupledField
 
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;
-
-     /** this contains applying density filtered gradient or chain rule for shape mapping */
-     boost::shared_ptr<Timer> write_gradient_timer_;
 
      ErsatzMaterial::Method method_;
   };

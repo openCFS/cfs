@@ -5,6 +5,8 @@
 #include <set>
 #include <algorithm>
 
+#include "Utils/Timer.hh"
+
 // use boost accumulators to gather usage statistics of the graph
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
@@ -26,8 +28,11 @@ extern "C"{
 }
 #endif
 
+
+#include "Domain/Domain.hh"
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/Sloan.hh"
+
 
 namespace CoupledField {
   DEFINE_LOG(graphLogger, "graph")
@@ -557,7 +562,13 @@ namespace CoupledField {
   // *************************
   //   Compute a re-ordering
   // *************************
-  void BaseGraph::Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order ) {
+  void BaseGraph::Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order )
+  {
+    std::string name = BaseOrdering::reorderingType.ToString(newOrder);
+    PtrParamNode pn = domain->GetInfoRoot()->GetList("sequenceStep").Last();
+    shared_ptr<Timer> timer = pn->Get("OLAS")->Get("reorder_"  + name + "/timer")->AsTimer();
+    timer->SetSub();
+    timer->Start();
 
     UInt i;
     
@@ -705,6 +716,8 @@ namespace CoupledField {
     // now we are re-ordered
     amReordered_ = true;
 
+    timer->Stop();
+
   }
 
 
@@ -827,7 +840,7 @@ namespace CoupledField {
     if(!setToElemDone_){
   #pragma omp parallel for schedule(static,10) num_threads(CFS_NUM_THREADS)
       for(int i=0;i< (int) numNodes_;i++){
-        element_[i].resize(setElements_[i].size());
+        element_[i].resize(setElements_[i].size()); // TODO: This touches every element - combine with copy.
         std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
         setElements_[i].clear();
       }

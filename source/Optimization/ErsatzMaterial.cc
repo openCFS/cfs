@@ -556,6 +556,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
 PtrParamNode ErsatzMaterial::CommitIteration()
 {
+  assert(baseOptimizer_->ValidateTimers());
 
   // do this before CommitIteration such that we can store the info in log.bloch_info. Later we use it to add it to the ParamNode.
   // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
@@ -3484,6 +3485,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative)
 
 void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 {
+  assert(!baseOptimizer_ || baseOptimizer_->ValidateTimers());
   // if ev_only_excite is set we use the given excitation
   // -> it shall not coincide
   assert(!(ev_only_excite != NULL && me->IsEnabled()));
@@ -3592,6 +3594,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
 void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
 {
+  assert(!baseOptimizer_ || baseOptimizer_->ValidateTimers());
   // solve all adjoints needed for gradient calculation
   assert(!(ev_only_excite != NULL && me->IsEnabled()));
 
@@ -3612,6 +3615,7 @@ void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
 
 void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& excite, Function* f, int timestep_mode_local, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment)
 {
+  assert(baseOptimizer_->ValidateTimers());
   assert(context->pde != NULL);
   assert(context->sequence == excite.sequence);
   assert(f == NULL || f != NULL); // f is NULL for forward problem
@@ -3769,7 +3773,6 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 template<class T>
 void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 {
-  assert(baseOptimizer_ != NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
   boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();

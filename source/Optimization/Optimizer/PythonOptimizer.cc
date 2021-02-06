@@ -145,6 +145,8 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   else
     val = "not callable";
   pyinf_->Get(ParamNode::HEADER)->Get("setup()")->SetValue(val);
+
+  optimizer_timer_->Stop();
 }
 
 PythonOptimizer::~PythonOptimizer()
@@ -281,7 +283,7 @@ void PythonOptimizer::EvalGradObjective(PyObject *args)
   grad.Export(obj[1]);
 
   // could be moved to an (optional) python callback
-  optimization->CommitIteration(); // return paramnode ignored
+  CommitIteration(); // return paramnode ignored
 }
 
 

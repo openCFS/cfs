@@ -16,6 +16,8 @@ DEFINE_LOG(aux_des, "auxDesign")
 AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, int naux)
   : DesignSpace(regions, pn, method)
 {
+  setup_timer_->Start();
+
   export_fe_design_ = true; // can be different in ShapeDesign
   tailing_aux_design_ = true; // set false for shape optimization
   scaling_ = 1.0;
@@ -50,11 +52,14 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
     aux_design_.Push_back(de);
   }
 
+  setup_timer_->Stop();
 }
 
 void AuxDesign::PostInit(int objectives, int constraints)
 {
   DesignSpace::PostInit(objectives, constraints);
+
+  setup_timer_->Start();
 
   assert((slack_ != NULL && (aux_design_.GetSize() == 1 || aux_design_.GetSize() == 2)) || slack_ == NULL);
   assert((alpha_ != NULL && aux_design_.GetSize() == 2 && slack_ != NULL) || alpha_ == NULL);
@@ -74,6 +79,8 @@ void AuxDesign::PostInit(int objectives, int constraints)
   full_data.Resize(offset + aux_design_.GetSize());
   for(unsigned int i = 0; i < aux_design_.GetSize(); i++)
     full_data[offset + i] = &(aux_design_[i]);
+
+  setup_timer_->Stop();
 }
 
 void AuxDesign::ToInfo(ErsatzMaterial* em)

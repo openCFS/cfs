@@ -1327,13 +1327,12 @@ namespace CoupledField {
     return stt;
   }
 
-  void SinglePDE::WriteResultsInFile( const UInt kstep,
-                                      const Double actTimeFreq ) {
-    LOG_DBG(singlepde) << pdename_ 
-        << ": WriteResultsInFile() kstep: " <<  kstep
-        << " actTimeFreq: " << actTimeFreq;
+  void SinglePDE::WriteResultsInFile(const UInt kstep, const Double actTimeFreq)
+  {
+    LOG_DBG(singlepde) << pdename_  << ": WriteResultsInFile() kstep: " <<  kstep << " actTimeFreq: " << actTimeFreq;
     
-    shared_ptr<Timer> timer = infoNode_->Get(ParamNode::SUMMARY)->Get("writeResults/timer")->AsTimer();
+    // shared amongst e.g. WriteResults, UpdateResults, FinishStep
+    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
     timer->Start();
 
     // ===================================================

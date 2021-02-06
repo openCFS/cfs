@@ -42,8 +42,6 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
    autoscale_(false),
    base_(base)
 {
-
-
   // the vectors are zero size by default!
   if(autoscale != NULL && !no_autoscale)
   {
@@ -208,11 +206,22 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   LOG_DBG(optimizer) << "BO: gen_opt_pn_=" << gen_opt_pn_->GetName();
   LOG_DBG(optimizer) << "BO: this_opt_pn_=" << (this_opt_pn_ != NULL ? this_opt_pn_->GetName() : "null") ;
 
-  optimizer_timer_ = info_->Get(ParamNode::SUMMARY)->Get(Optimization::optimizer.ToString(type))->Get("timer")->AsTimer();
+  // evaluate  timer makes no sense and is also not implemented in a clean way
+  if(type == Optimization::EVALUATE_INITIAL_DESIGN)
+    optimizer_timer_ = boost::shared_ptr<Timer>(new Timer());
+  else
+    optimizer_timer_ = info_->Get(ParamNode::SUMMARY)->Get(Optimization::optimizer.ToString(type))->Get("timer")->AsTimer();
+
+  optimizer_timer_->SetNesting(false);
+  optimizer_timer_->Start(); // stop after specialized constrctor or in PostInit implementation
+
   eval_obj_timer_        = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_objective/timer")->AsTimer();
   eval_const_timer_      = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_constraints/timer")->AsTimer();
   eval_grad_obj_timer_   = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_grad_objective/timer")->AsTimer();
   eval_grad_const_timer_ = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_grad_constraints/timer")->AsTimer();
+
+  assert(!GetRunningEvalTimer());
+  assert(GetRunningEvalTimer() == NULL);
 }
 
 BaseOptimizer::~BaseOptimizer()
@@ -242,6 +251,26 @@ boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
   return boost::shared_ptr<Timer>(); // http://stackoverflow.com/questions/16229401/initialize-a-boostshared-ptr-to-null
 }
 
+bool BaseOptimizer::ValidateTimers()
+{
+  assert(!optimizer_timer_->IsRunning());
+  assert(!eval_obj_timer_->IsRunning());
+  assert(!eval_const_timer_->IsRunning());
+  assert(!eval_grad_obj_timer_->IsRunning());
+  assert(!eval_grad_const_timer_->IsRunning());
+  return true;
+}
+
+void  BaseOptimizer::CommitIteration()
+{
+  bool restart = optimizer_timer_->IsRunning();
+  if(restart)
+    optimizer_timer_->Stop();
+  assert(ValidateTimers());
+  optimization->CommitIteration();
+  if(restart)
+    optimizer_timer_->Start();
+}
 
 void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 {
@@ -252,10 +281,10 @@ void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 
 void BaseOptimizer::SolveOptimizationProblem()
 {
-  optimizer_timer_->Start();
+  optimizer_timer_->Start(); // we already might have spent time in the optimzer in Init()
   SolveProblem();
-
-  optimizer_timer_->Stop();
+  if(optimizer_timer_->IsRunning())
+    optimizer_timer_->Stop();
 }
 
 void BaseOptimizer::LogFileHeader(Optimization::Log& log)
@@ -323,7 +352,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
   // we might come from another eval, then the optimizer is already stopped and we must not restart it
   bool restart_timer = optimizer_timer_->IsRunning();
-  optimizer_timer_->Stop();
+  if(restart_timer)
+    optimizer_timer_->Stop();
 
   assert(!GetRunningEvalTimer()); // no currently running timer!
 
@@ -347,7 +377,10 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
       optimization->manager.context[c].pde->GetAssemble()->SetAllReassemble();
 
     // does a lot of work.
+    eval_obj_timer_->Stop();
     optimization->SolveStateProblem();
+    eval_obj_timer_->Start();
+
 
     // take the fruit of the work
     design_.value = optimization->CalcObjective();
@@ -406,7 +439,9 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
 
 bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
 {
-  optimizer_timer_->Stop();
+  bool opt_run = optimizer_timer_->IsRunning(); // in the scale case we have to optimization_timer
+  if(opt_run)
+    optimizer_timer_->Stop();
 
   // might trigger EvalObjective so start timer afterwards
   bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
@@ -449,7 +484,8 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
                      << " need_eval=" << need_eval << " -> grad.scale=" << objective->scaling.value
                      << " grad.opt_scaling=" << objective->opt_scaling.value;
 
-  optimizer_timer_->Start();
+  if(opt_run)
+    optimizer_timer_->Start();
   eval_grad_obj_timer_->Stop();
   
   return !restart_requested;
@@ -497,6 +533,8 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
     optimizer_timer_->Stop();
     eval_const_timer_->Start();
   }
+  assert(!optimizer_timer_->IsRunning());
+
 
   // do a complicated detection of local conditions handle the Local::active counter for logging
   double manual_scaling = 1.0;

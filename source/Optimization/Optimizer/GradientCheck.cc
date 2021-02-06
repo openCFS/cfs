@@ -33,6 +33,8 @@ GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
   assert(ctxt->GetExcitation() != NULL);
   ctxt->GetExcitation()->reassemble = true;
 
+  optimizer_timer_->Stop(); // we don't spend time here
+
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK),
       ParamNode::PASS);
@@ -72,7 +74,9 @@ void GradientCheck::SolveProblem()
   optimization->SolveStateProblem();
   double curr_obj = optimization->CalcObjective();
   optimization->SolveAdjointProblems();
+  eval_grad_obj_timer_->Start();
   optimization->CalcObjectiveGradient(NULL);
+  eval_grad_obj_timer_->Stop();
   optimizer_timer_->Start();
 
   // store here the finite difference value
@@ -121,7 +125,7 @@ void GradientCheck::SolveProblem()
   }
 
   // write the stuff -> The PDE solution is slighly wrong!
-  optimization->CommitIteration();
+  CommitIteration();
 
   // finish comparison
   double l2 = error.NormL2() / error.GetSize();

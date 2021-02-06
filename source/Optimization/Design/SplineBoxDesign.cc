@@ -21,6 +21,8 @@ Enum<SplineBoxDesign::AnalyticFunc> SplineBoxDesign::analyticFunc;
 SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
 : FeaturedDesign(regionIds, pn, method)
 {
+  setup_timer_->Start();
+
   interpolation.SetName("SplineBoxDesign::Interpolation");
   interpolation.Add(NONE, "none");
   interpolation.Add(CUBIC, "cubic");
@@ -167,6 +169,8 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   } else {
     MapFeatureToDensity();
   }
+
+  setup_timer_->Stop();
 }
 
 /* <splinebox degree="3" cpx="4" cpy="5" cpz="3" fixed_boundary="true">
@@ -276,7 +280,11 @@ void SplineBoxDesign::PostInit(int objectives, int constraints)
 {
   FeaturedDesign::PostInit(objectives, constraints);
 
+  setup_timer_->Start();
+
   Write();
+
+  setup_timer_->Stop();
 }
 
 void SplineBoxDesign::CheckPlausibility()

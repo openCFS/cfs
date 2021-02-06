@@ -262,7 +262,7 @@ void FeasPP::SolveProblem()
 
   // evaluate initial iteration
   UpdateToCurrentStep();
-  optimization->CommitIteration();
+  CommitIteration();
 
   PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
 
@@ -354,7 +354,7 @@ void FeasPP::SolveProblem()
     if(!early_kkt_eval_)
       EvalKKT(x_outer, in);
 
-    optimization->CommitIteration();
+    CommitIteration();
     iter = optimization->GetCurrentIteration();
   }
 

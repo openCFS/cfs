@@ -73,8 +73,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
 
-  write_gradient_timer_ = boost::shared_ptr<Timer>(new Timer("gradient_chain_rule", true)); // sub-timer
-  info_->Get("gradient_chain_rule/timer")->SetValue(write_gradient_timer_);
+  setup_timer_ = info_->Get("setup_design/timer")->AsTimer();
+  setup_timer_->Start();
 
   // check not only for pn->Has("designSpace") to hande the load_ersatzmatrial case
   non_design_vicinity_ = pn->Has("designSpace/non_design_vicinity") ? pn->Get("designSpace/non_design_vicinity")->As<bool>() : false;
@@ -116,9 +116,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
-
-
-
 
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
@@ -408,6 +405,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
    write_matrix_filt = false;
    if(pn->Has("filters/write_mat_filt"))
      write_matrix_filt = pn->Get("filters/write_mat_filt")->As<bool>();
+
+   setup_timer_->Stop();
 }
 
 DesignSpace::~DesignSpace(){
@@ -502,6 +501,8 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
 
 void DesignSpace::PostInit(int objectives, int constraints)
 {
+  setup_timer_->Start();
+
   if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
     assert(Optimization::manager.IsInitialized());
@@ -536,6 +537,8 @@ void DesignSpace::PostInit(int objectives, int constraints)
     // this is a virtual Function.
     SetupLocalElementCache();
   }
+
+  setup_timer_->Stop();
 }
 
 void DesignSpace::SetupLocalElementCache()
@@ -2376,11 +2379,7 @@ void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_ve
 void DensityFilterMat::ExportDensityFilterMatrix(){
 
   this->filter_mat.ExportMatrixMarket("filter_matrix.mtx","filter_matrix");
-
 }
-
-
-
 
 
 // explicit template instantiation for GCC compiler

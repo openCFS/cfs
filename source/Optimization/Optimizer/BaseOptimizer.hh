@@ -32,14 +32,15 @@ namespace CoupledField
     typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
 
 
-    /** cass PostInit() afterwards!
+    /** call PostInit() afterwards!
+     * Child classes shall optimizer_timer_  either in the constructor or after PostInit().
      * @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
     BaseOptimizer(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type);
 
     virtual ~BaseOptimizer();
 
-    /** call this after the constructor */
+    /** call this after the constructor. Make sure optimizer_timer_ is stopped here and if you don't implement it, stop it in the constructor */
     virtual void PostInit() {};
 
     /** This solves the complete Optimization problem by using
@@ -99,12 +100,17 @@ namespace CoupledField
 
     Optimization* optimization;
 
-    /** standard optimizers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
-     * the optimizer_timer_ is paused. Special optimizers like EvaluateOnly are more direct and need to pause themselves */
-    boost::shared_ptr<Timer> GetOptimizerTimer() { return optimizer_timer_; }
-
     /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
     boost::shared_ptr<Timer> GetRunningEvalTimer();
+
+    /** validate that no main timer within optimization is running. Make virtual to add optimizer local timers.
+     * Has internal asserts().
+     * To be called by assert in Optimization, ErsatzMaterial, Design, ... */
+    bool ValidateTimers();
+
+    /** this is a helper to call Optimization::CommitIteration() which switches of the optimizer_timer and does timer validation.
+     * This shall be protected but we need it for IPOPT */
+    void CommitIteration();
 
   protected:
 
@@ -113,7 +119,6 @@ namespace CoupledField
 
     /** Call this in the optimizer constructor when you have manual_scaling. */
     void PostInitScale(double manual_scaling, bool no_autoscale = false);
-
 
     /** Provide Upper and Lower bounds to the optimizer.
      * Note that snopt is able to do sparse linear abs functions like slope constraints by setting upper and lower bounds */

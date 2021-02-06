@@ -109,7 +109,7 @@ namespace CoupledField {
   template<class TYPE>
   void PhistEigenSolver::Setup(const BaseMatrix& A, const BaseMatrix& B, bool isHermitian)
   {
-    shared_ptr<Timer> timer = info_->Get(ParamNode::SUMMARY)->Get("phist_setup/timer")->AsTimer();
+    shared_ptr<Timer> timer = info_->Get(ParamNode::SUMMARY)->Get("setup_phist/timer")->AsTimer();
     timer->Start();
 
     // TODO one of both shall be enough!
@@ -140,7 +140,7 @@ namespace CoupledField {
   template<class TYPE>
   void PhistEigenSolver::CalcEigenValues(BaseVector &sol, BaseVector &err, unsigned int numFreq, double freqShift)
   {
-    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
+    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("solve_phist/timer")->AsTimer();
     solve->Start();
 
     // for include stuff issues, A_ and B_ attributes are not of full type

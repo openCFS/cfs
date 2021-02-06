@@ -25,6 +25,8 @@ StdVector<Vector<double> > ShapeMapDesign::newtonCotes = GetNewtonCotes();
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
 : FeaturedDesign(regionIds, pn, method)
 {
+  setup_timer_->Start();
+
   intStrategy_.Add(TAILORED, "tailored");
 
   this->combine_ = combine.Parse(pn->Get("shapeMap/overlap")->As<string>());
@@ -72,6 +74,8 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 
   // now with possibly induced shapes we may map to the design to be ready for initial evaluation
   MapFeatureToDensity();
+
+  setup_timer_->Stop();
 
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
 }

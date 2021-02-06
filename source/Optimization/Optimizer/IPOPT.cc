@@ -334,7 +334,7 @@ bool IPOPT::intermediate_callback(AlgorithmMode mode,Index iter, Number obj_valu
   LOG_TRACE2(ipopt) << "intermediate_callback: mode = " << mode << "; iter = " << iter 
                     << " obj_value = " << obj_value << "; ls_trials = " << ls_trials;
 
-  optimization_->CommitIteration();
+  base_->CommitIteration();
   // break the ipopt calculations - e.g. if our relative change is smaller than given in xml
   return optimization_->DoStopOptimization() ? false : true;
 }     

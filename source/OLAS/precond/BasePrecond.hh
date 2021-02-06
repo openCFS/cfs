@@ -143,6 +143,7 @@ namespace CoupledField {
 
     //! Pointer to timer object for application of preconditioner
     shared_ptr<Timer> precondTimer_;
+
   };
 
 
