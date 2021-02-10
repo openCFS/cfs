@@ -996,6 +996,8 @@ namespace CoupledField {
        out = NLELEC_TRIPOLE;
     } else if( in == "elecTriPoleTempDep") {
        out = NLELEC_TRIPOLE_TEMP_DEP;
+    } else if( in == "elecPermittivity") {
+       out = NLELEC_PERMITTIVITY;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );
@@ -1064,7 +1066,9 @@ namespace CoupledField {
       case NLHEAT_CAPACITY:
         out = "heatCapacity";
         break;
-
+      case NLELEC_PERMITTIVITY:
+        out = "elecPermittivity";
+        break;
       default:
         EXCEPTION( "No conversion found for 'NonLinType' " << in );
     }

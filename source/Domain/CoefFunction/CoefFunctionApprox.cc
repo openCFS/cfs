@@ -70,6 +70,11 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar, const LocPointMapped& lpm
     Double fieldAbs = sol->NormL2();
     coefScalar = fieldAbs == 0 ? coefScalar_ : nLinFnc_->EvaluateFunc(fieldAbs);
   }
+  else if( nLinFnc_->GetMatType() == ELEC_PERMITTIVITY_SCALAR){
+	//here i must somehow access the current ElecFieldIntensity
+	Double fieldAbs = sol->NormL2();
+    coefScalar = nLinFnc_->EvaluateFunc(fieldAbs);
+  }
   else {
     // case for functions depending on the vector, specialize as needed
     assert(!dependCoef_->IsComplex());

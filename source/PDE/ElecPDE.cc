@@ -231,6 +231,7 @@ namespace CoupledField {
   
   void ElecPDE::DefineIntegrators() {
     
+    LOG_DBG(elecpde) << "Define Integrators";
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
@@ -311,6 +312,7 @@ namespace CoupledField {
       PtrCoefFct coefMAPScal, coefMAPVec;
       bool isMapping = false;
       
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
       if (dampingList_[actRegion] == PML)
       {
         if (analysistype_ == HARMONIC)
@@ -376,10 +378,34 @@ namespace CoupledField {
           // Infinte mapping case
           stiffInt = GetStiffIntegratorInfMap(actSDMat, tensorType, actRegion, coefMAPScal);
           stiffInt->SetBCoefFunctionOpA(coefMAPVec);
-        }else{
+        } else if (nonLinTypes.Find(NLELEC_PERMITTIVITY) != -1){
+
+          PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
+          PtrCoefFct epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
+          if( dim_ == 2 ) {
+            stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), epsilonNL, 1.0, updatedGeo_);
+          } else {
+            stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), epsilonNL, 1.0, updatedGeo_);
+          }
+
+        } else{
           stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
         }
       }
+      if (nonLinTypes.Find(NLELEC_PERMITTIVITY) != -1){
+      stiffInt->SetName("NonLinElecIntegrator");
+
+      BiLinFormContext* stiffIntDescr =
+      new BiLinFormContext(stiffInt, STIFFNESS);
+
+      stiffIntDescr->SetEntities( actSDList, actSDList );
+      stiffIntDescr->SetFeFunctions( myFct, myFct);
+      stiffInt->SetFeSpace( myFct->GetFeSpace());
+
+      assemble_->AddBiLinearForm( stiffIntDescr );
+      bdbInts_[actRegion] = stiffInt;
+
+      } else{
       stiffInt->SetName("LinElecIntegrator");
       BiLinFormContext * stiffIntDescr =
               new BiLinFormContext(stiffInt, STIFFNESS );
@@ -396,6 +422,7 @@ namespace CoupledField {
       // for calculation of postprocessing results
       bdbInts_[actRegion] = stiffInt;
       
+      }
     }
     
     // Define integrators for composite materials
@@ -1158,12 +1185,13 @@ namespace CoupledField {
     }
     else {
       if( dim_ == 2 ) {
-        if (subType_ == "2.5d")
+        if (subType_ == "2.5d"){
           integ = new BDBInt<>(new GradientOperator2p5D<FeH1>(), curCoef, factor, updatedGeo_);
-        else
+        }else{
           integ = new BDBInt<>(new GradientOperator<FeH1,2> (),
                   curCoef, factor, updatedGeo_ );
-      } else {
+        }
+      } else{
         integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
                 curCoef, factor, updatedGeo_ );
       }
