@@ -11,10 +11,12 @@
 
 # this is here for TU-Wien, if it does not apply, it has no effect
 # look for anaconda in mdmt environment
-find_program(PYTHON_EXECUTABLE NAMES python PATHS "/share/programs/anaconda/latest/bin" "/share/programs/anaconda/3/latest/bin"  NO_DEFAULT_PATH)
+find_program(PYTHON_EXECUTABLE NAMES python python3 PATHS "/share/programs/anaconda3/2020.02/bin" "/share/programs/anaconda/latest/bin" "/share/programs/bin"  NO_DEFAULT_PATH)
+message(STATUS "find_program found PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} (CFS config)")
 
 # identifies default "python" and sets PYTHON_EXECUTABLE. You can change this via -DPYTHON_EXECUTABLE=...
 find_package(PythonInterp)
+find_package(PythonInterp 3)
 
 # sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, can both the set via -DPYTHON_...
 find_package(PythonLibs)
