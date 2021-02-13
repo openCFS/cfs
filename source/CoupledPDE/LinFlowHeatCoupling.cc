@@ -118,10 +118,10 @@ namespace CoupledField {
     	BiLinearForm *heatToFlow = NULL;
     	if( dim_ == 2 ) {
     		heatToFlow = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(),
-    				         coefFct, 1.0 );
+    				         coefFct, -1.0 );
     	} else {
     		heatToFlow = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(),
-    						 coefFct, 1.0 );
+    						 coefFct, -1.0 );
     	}
     	heatToFlow->SetName("HeatToLinFlowCoupling");
 
