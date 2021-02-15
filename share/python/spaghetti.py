@@ -4,6 +4,8 @@
 import numpy as np
 from numpy.linalg import norm 
 import os
+from pyevtk.hl import gridToVTK
+from itertools import product
 
 # for automatic differentiation
 import autograd
@@ -15,7 +17,7 @@ if __name__ == '__main__':
   import matplotlib
   # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
   #matplotlib.use('Agg')
-  #matplotlib.use('tkagg')
+#  matplotlib.use('tkagg')
   import matplotlib.pyplot as plt
   import matplotlib.colors as colors
   import matplotlib.cm as cmx
@@ -30,16 +32,44 @@ class Global:
   def __init__(self):
     self.shapes = []         # array of Spaghetti 
     self.rhomin = 1e-6     
-    self.radius = .05        # up to now constant for all spaghetti for arc
-    self.boundary = 'poly'   # up to now only 'poly'
-    self.transition = 0.015  # paramter for boundary: 2*h
+    self.radius = 0.25       # up to now constant for all spaghetti for arc
+    self.boundary = 'poly'   # up to now only 'poly' and 'linear'
+    self.transition = 0.05   # paramter for boundary: 2*h
     self.combine= 'max'      # up to now only 'max'
-    self.n = [30,30,1]        # [nx, ny, nz]
+    self.n = [10,10,1]       # [nx, ny, nz]
     self.opts = {} # there is an optional dictionary in xml in the python element
     
-    # this a arrays of size (nx+1,ny+1) with 
+    # from opts
+    self.silent = False # suppress command line output
+    self.order = 6
+    
+    # these are arrays of size (nx+1,ny+1) with 
     self.idx_field = None # entries are int vectors of size shapes. -2 far outside, -1 far inside, >= 0 nearest part by shape 
     self.dist_field = None # entries are nodal closest distance by shape
+    
+    # this is an array of size (nx,ny,sum([len(s.var())) with the shape gradients at each element
+    self.grad_field = None
+    
+    # this are fields of field elements of n-size with data to given to cfs via <result>.
+    # this are gradient information but also arbitrary data can be added to this dictionary
+    # the string key is reported to cfs via cfs_info_field_keys
+    self.info_field = {}
+    
+  # step size as numpy array
+  def dx(self):
+    return 1/np.array(self.n) # not 1/n+1 !
+  
+  # total number of variables (not cached)
+  def total(self):
+    return sum([len(s.var()) for s in self.shapes])  
+  
+  # give optimzation variables of all spaghetti as defined array such that we can easily differentiate
+  # @return p_x,p_y,q_x,q_y,p,a_1,...a_n-1,p_x,p_y,q_x,q_y,p,a_1,...a_n-1,...
+  def var_all(self):
+    vars = []
+    for i in range(len(self.shapes)):
+      vars.extend(self.shapes[i].var())
+    return vars
     
 glob = Global()    
     
@@ -47,9 +77,9 @@ glob = Global()
 
 # called from SpaghettiDesign.cc constructor
 # @radius a constant in meter, e.g. .15
-# @boundary only 'poly'
+# @boundary 'poly' or 'linear'
 # @transition transition zone which is 2*h
-# @combine how to combine? currently only 'max'
+# @combine how to combine? 'max', 'KS' (Kreisselmeier-Steinhauser), 'p-norm'
 # @nx, ny, nz are for rho. Currently nx == ny and nz == 1
 def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dict):
   glob.rhomin = rhomin
@@ -60,7 +90,24 @@ def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dict):
   assert nx == ny and nz == 1   
   glob.n = [nx, ny, 1]
   glob.opts = dict
-  print('cfs_init called: ', glob.n, dict) 
+  
+  if not 'silent' in dict:
+    raise("expect 'silent' in dict")
+  glob.silent = dict['silent'] == '1' 
+  if not 'order' in dict:
+    raise("expect 'order' in dict")
+  glob.order = int(dict['order']) 
+  glob.gradvtk = False
+  if 'gradvtk' in dict:
+    if str(dict['gradvtk']) != 'false' and str(dict['gradvtk']) != '0':
+      glob.gradvtk = True
+  if 'p' in dict:
+    glob.p = float(dict['p'])
+  else:
+    glob.p = 8
+  
+  if not glob.silent:
+    print('cfs_init called: ', glob.n, dict) 
   
   
 ## set spaghetti. Initially create it, otherwise update
@@ -75,58 +122,127 @@ def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):
     base = sum([len(s.var()) for s in glob.shapes])
     # def __init__(self,id,base,radius,P,Q,a,p):
     glob.shapes.append(Spaghetti(id, base, glob.radius, P, Q, a_list, p))
-    print('cfs_set_spaghetti: create ', glob.shapes[-1])
+    if not glob.silent:
+      print('cfs_set_spaghetti: create ', glob.shapes[-1])
   else:
     glob.shapes[id].set(P, Q, a_list, p)
-    print('cfs_set_spaghetti: update ', glob.shapes[id])
+    if not glob.silent:
+      print('cfs_set_spaghetti: update ', glob.shapes[id])
   
 ## give back the density as 1D numpy arry with the current spaghetti setting
 def cfs_map_to_density():
-  print('cfs_map_to_density: called')
+  if not glob.silent:
+    print('cfs_map_to_density: called')
   
   assert glob.n[0] == glob.n[1]
   nx = glob.n[0]
   
   if glob.idx_field is None or glob.dist_field is None:
-    glob.idx_field, glob.dist_field = create_idx_field() 
+    glob.idx_field, glob.dist_field, glob.idx_field_shapes_only = create_idx_field() 
 
-  var = glob.shapes[0].var()
+  var = glob.var_all()
 
-  rho = np.ones((nx, nx))  
+  rho = np.ones((nx, nx))
   for j in range(nx):
     for i in range(nx):
-      rho[i,j] = integrate_rho(var,i, j, ad=False) 
+      rho[i, j] = combine_rho(var, i, j, ad=False)
 
   return rho.reshape(np.prod(glob.n), order='F')
   
-# as we cannot create a numpy array in C (it should work but fails in reality) we get it here.
-# it shall have the size of rho as a 1D array  
-def cfs_get_drho_vector():  
-  print('cfs_get_drho_vector: returns zero vector of size ', np.prod(glob.n))
-  assert np.prod(glob.n) >= 1
-
-  return np.zeros((np.prod(glob.n)))
   
 ## get the gradient of a density based function w.r.t. all shape variables.
-# we calculate it for all and don't skip fixed variables
-# @param drho is a 1D np.array with d func/d rho - this is to be handled via chainrule. 
+# we calculate it for all and don't skip fixed variables.
+# The element wise drho_vec * d_shape can be queried via cfs_get_field_info
+# @param drho is a 1D np.array with d func/d rho - this is to be handled via chainrule.
+# @param label the name of the current drho_vec's function to allow for cfs_get_field_info  
 # @return d func/ d shape  
-def cfs_get_gradient(drho):
+def cfs_get_gradient(drho_vec, label):
   n  = glob.n
   nx = n[0]
   # see density() for comment on layout
-  assert len(drho) == np.prod(n)
+  assert len(drho_vec) == np.prod(n)
 
+  # prepare data, reset in Spaghetti.set()
   if glob.idx_field is None or glob.dist_field is None:
-    glob.idx_field, glob.dist_field = create_idx_field() 
+    glob.idx_field, glob.dist_field, glob.idx_field_shapes_only = create_idx_field()
+  
 
 
+  var = glob.var_all()
+  
+  # prepare gradient, reset in Spaghetti.set()
+  if glob.grad_field is None:
+    glob.grad_field = np.empty((nx,nx,glob.total()))
+    # d_rho / d_shape
+    df =  autograd.grad(combine_rho, argnum=0)
+    for i in range(nx):
+      for j in range(nx):
+        tt = df(var,i, j,ad=True) # autograd gives no nice vector
+        glob.grad_field[i,j] = np.array([tt[k][()] for k in range(len(tt))]) # make a handleable vector
+        # the components of t are nonzero only where the boundary is gray
 
-  print('cfs_get_gradient: return trivial vector only - Implement it!')
+  sens = np.zeros(len(var))   # return vector 
+  # drho_vec represents a 2D matrix, glob.grad_field is three dimensional with the last dimension the variable
+  for snum, s in enumerate(glob.shapes):
+    var = glob.shapes[snum].var()
+    varnames = glob.shapes[snum].varnames()   
+    for i in range(len(var)):
+       ds = glob.grad_field[:,:,s.base+i].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
+       # sens_field = element wise the sensitivity of the function times the shape variables.
+       # for optmization we need only the sum, we store it here for optional debug output via cfs
+       sens_field = drho_vec * ds   
+       # '/' is no valid name for the cfs hdf5 writer but it works with gridToVTK?!
+       glob.info_field['d_' + label + '_by_d_s' + str(snum) + '_' + varnames[i]] = sens_field 
+       sens[s.base+i] = sens_field.sum() # eqals for i in range(nx): for j in range(nx): sens +=  drho[i,j] * glob.grad_field[i,j]
 
-  total = sum([len(s.var()) for s in glob.shapes])
-  return np.ones(total)    
-      
+  # make a field
+  if glob.gradvtk:
+    from pyevtk.hl import gridToVTK
+    drho = drho_vec.reshape((n[0],n[1]),order='F') # see density()
+    total = glob.total()
+    shapes = glob.shapes
+    drho_ad = np.zeros((total,nx,nx,1))
+    d_c_d_shapes_loc = np.zeros((total,nx,nx,1))
+    drho_ar = np.expand_dims(drho,axis=2)
+    pd={"d_c / d_rho": drho_ar}
+    for i in range(nx):
+      for j in range(nx):
+        drho_ad[:,i,j,0] =  glob.grad_field[i,j]
+        d_c_d_shapes_loc[:,i,j,0] =  drho[i,j] * glob.grad_field[i,j]
+    for s in shapes:
+      for e, n in enumerate(s.varnames()):
+        pd["d_rho / d_s" + str(s.id) + '_' + n] = drho_ad[s.base+e]
+        pd["d_c / d_s" + str(s.id) + '_' + n] = d_c_d_shapes_loc[s.base+e]
+    x_ls = np.linspace(0,1,nx+1)
+    name = str(glob.n[0]) + 'x' + str(glob.n[1]) + '-' + glob.boundary + '-tr_' + str(glob.transition) + '-rm_' + str(glob.rhomin) + '-order_' + str(glob.order)
+    gridToVTK(name, x_ls,x_ls,np.zeros(1) , cellData=pd)
+    if not glob.silent:
+      print("# wrote '" + name + ".vtr'")
+
+  if not glob.silent:
+    print('cfs_get_gradient',label,'->',sens)
+
+  return sens
+
+# as we cannot create a numpy array in C (it should work but fails in reality) we get it here.
+# it shall have the size of rho as a 1D array  
+def cfs_get_drho_vector():
+  if not glob.silent:  
+    print('cfs_get_drho_vector: returns zero vector of size ', np.prod(glob.n))
+  assert np.prod(glob.n) >= 1
+
+  return np.zeros((np.prod(glob.n)))
+
+# give all keys in glob.info_field as list of strings
+def cfs_info_field_keys():
+  return list(glob.info_field.keys())
+  
+# get info filed data by key. Return a numpy.array
+def cfs_get_info_field(key):
+  if not key in glob.info_field:
+    print("requested key '" + key + "' by cfs_get_info_field not valid list ", cfs_info_field_keys)
+  return glob.info_field[key]
+  
 # own autograd compatible norm as agnp.linalg.norm seems not to work
 def agnorm(X):
   sum = 0
@@ -192,15 +308,17 @@ class Spaghetti:
     self.radius = radius  
     self.set(P,Q,a,p)
 
-    # derivate of fast_dist_ad by automatic differentiation
+    # derivate of fast_dist_ad by automatic differentiation, used for output, not for cfs
     self.grad_fast_dist = autograd.grad(self.fast_dist_ad,argnum=0)
 
   
-  # does not only se the variables but also computes the internal helpers (C, ...) and deletes glob index fields
+  # does not only set the variables but also computes the internal helpers (C, ...) and deletes glob index fields
   def set(self, P,Q,a,p):
     
     glob.idx_field = None
+    glob.idx_field_shapes_only = None
     glob.dist_field = None
+    glob.grad_field = None
     
     assert len(P) == 2 and len(Q) == 2  
     self.P = np.array(P) # start coordinate
@@ -263,24 +381,23 @@ class Spaghetti:
       v2 = self.T[i+1]    # from H to end of second segment
       M1 = self.M[i]   # normal of first segment
       M2 = self.M[i+1] # normal of second segment  
-      # get angle between two segments, standard form for angle between two vectors
-      # cos(alpha) = v1*v2/ (||v1|| * ||v2||)
-      cosa = np.dot(v1,v2)/(norm(v1) * norm(v2))
-      # If v1 and v2 are aligned, it might happen that numerically abs(cosa)>1.
-      # Eloise did rounding for 12 digits, however this kills AD with wrong results w.o. warning!
-      cosa = 1 if cosa > 1 else cosa
-      cosa = -1 if cosa < -1 else cosa
-
-      alpha = np.arccos(cosa)
       B = (M1 + M2)/2
       B0 = B/norm(B)
       
       # curvature is negative. center is right of spline in direction p2-p1 -> C = H - r/np.sin(alpha/2) * B0, K1=C + r*M1
       # curvature is positive. center is left of spline in direction p2-p1 -> C = H + r/np.sin(alpha/2) * B0, K1=C - r*M1
       nc = -1.0 if np.dot(M1, v2) < 0 else 1.0
+
+      # get angle between two segments, standard form for angle between two vectors
+      # cos(alpha) = v1*v2/ (||v1|| * ||v2||)
+      # If a=0 -> alpha = 0 and numerics goes crazy for the AD case -> see solution there
+      cosa = agnp.dot(v1,v2)/(agnorm(v1) * agnorm(v2))
+      cosa = np.clip(cosa,-1,1)
+      alpha = agnp.arccos(cosa)
+      scaling = r/agnp.sin(alpha/2) # would be r/sin(0)      
       
       # from function of hypotenuse of a right-angled triangle
-      C = H + nc*(r/np.sin(alpha/2) * B0)
+      C = H + nc*(scaling * B0)
       K1 = C - nc*(r*M1)
       K2 = C - nc*(r*M2)
     
@@ -318,8 +435,9 @@ class Spaghetti:
 
   # search closest distance to all segments and circs from point X
   # @where if 's' only segments, if 'c' only end points and arcs, None for all
-  # @return distance or None when where = 's' and outside, second value part index: 0..n-1 = segment. n...2*n-2=arc, 2n-1=P,2n=Q, -1 = None value 
-  def dist(self, X, where = None):
+  # @return distance or None when where = 's' and outside, second value part index: 0..n-1 = segment. n...2*n-2=arc, 2n-1=P,2n=Q, -1 = None value
+  # @what 'all' for normal use, 'distance' only returns distance and 'index' only returns index 
+  def dist(self, X, where = None, what = 'all'):
 
     w = self.w # profile, we are negative inside and 0 at the boundary
     n = self.n # number of segments, one arc less
@@ -337,7 +455,7 @@ class Spaghetti:
           # (X-g) @ M is distance to segment. Positive on M side, negative on the other side
           minimal = idx_min(minimal, (abs((X-g) @ M) - w,i)) # don't forget abs!
     
-    # end points and arcs
+    # arcs
     if not where or where == 'c':
       # n-1 arcs n ... 2n-2
       r = self.radius
@@ -347,8 +465,17 @@ class Spaghetti:
         v2 = -self.T[i+1]
         XC = X - C
     
-        if v1 @ XC >= 0 and v2 @ XC >=0: # we are in the code  
-          d = abs(norm(XC) - r) - w
+        if v1 @ XC >= 0 and v2 @ XC >=0: # we are in the cone
+          
+          assert len(self.E) == len(self.C)
+          E = self.E[i]  
+          #d = abs(norm(XC) - r) - w
+          # if X is on the same side of E as C is and if X is furhter away from E than C is
+          if norm((X-C) + (X-E)) > norm(X-E) and norm(X-E) > norm(X-C):
+            d = abs(norm(XC)+r) - w
+          else:
+            d = abs(norm(XC)-r) - w
+          #print('dist cone', X,C,XC,norm(XC),abs(norm(XC) - r),d)
           minimal = idx_min(minimal, (d, n+i))
       
       assert minimal[1] <= 2*n-2
@@ -357,8 +484,37 @@ class Spaghetti:
       minimal = idx_min(minimal,(norm(X-self.P)-w,2*n-1)) 
       # distance to end point
       minimal = idx_min(minimal, (norm(X-self.Q)-w,2*n)) # faster would be root after min() 
+    
+    if what == 'index':
+      return minimal[1]
+    elif what == 'distance':
+      return minimal[0]
+    elif what == 'all':
+      return minimal
+    else:
+      assert(False) 
 
-    return minimal 
+
+  # for debug purpose, the part idx human reable printed
+  # the parts are 1-based!
+  def nice_idx(self, idx):
+    n = self.n
+    i = idx
+    assert i >= -2 and i <= n + n-1 + 2 # n segments, n-1 arcs, P, Q
+    if i == -2:
+      return "outside"
+    if i == -1:
+      return "inside"
+    if i < n:
+      return "seg_" + str(i+1)
+    if i < n + n-1:
+      return "arc_" + str(i - n + 1)
+    if i == n + n-1:
+      return "P"
+    if i == n + n-1 + 1:
+      return "Q"
+    assert False  
+
 
   # gives the closest distance by part idx - see fast_dist_ad for documentation
   # this version tries to be fast by using cached data
@@ -366,7 +522,7 @@ class Spaghetti:
   # @return +/-1 3*glob.transition if far inside or far outside
   def fast_dist(self,X,idx):
 
-    # this comes from create_idx_field which is -1/-2 if poly() does not need to be applied    
+    # this comes from create_idx_field which is -1/-2 if boundary() does not need to be applied    
     if idx == -1:
       return -3 * glob.transition
     if idx == -2:
@@ -405,7 +561,7 @@ class Spaghetti:
   # is meant as basis for automatic differentiation, not fast as it used no precompiled
   # param var the variables which are p_x,p_y,q_x,q_y,a_1,...a_n-1,w -> var()
   # param X the coordinate as array, 
-  # param idx  0..n-1 = segment. n...2*n-2=arc, 2n-1=P,2n=Q,
+  # param idx  0..n-1 = segment. n...2*n-2=arc, 2n-1=P,2n=Q -> see nice_idx()
   # only the distance itself 
   def fast_dist_ad(self,var,X,idx):
     # main changes for autograd
@@ -463,19 +619,22 @@ class Spaghetti:
     v2 = H_f - H_c
     M1 = M
     M2 = agnp.array([-v2[1],v2[0]]) / agnorm(v2)
-    
-    cosa = agnp.dot(v1,v2)/(agnorm(v1) * agnorm(v2))
-    cosa =  1 if cosa >  1 else cosa
-    cosa = -1 if cosa < -1 else cosa
-
-    alpha = agnp.arccos(cosa)
 
     B = (M1 + M2)/2
     B0 = B/agnorm(B)
       
     nc = -1.0 if agnp.dot(M1, v2) < 0 else 1.0
-      
-    C = H_c + nc*(r/agnp.sin(alpha/2) * B0)
+
+    # the scaling is based on the angle between the M, If a=0 -> alpha = 0 and numerics goes crazy
+    scaling = r # this is the case when the M and B are aligned
+    if agnorm(M1-M2) > 1e-10: 
+      cosa = agnp.dot(v1,v2)/(agnorm(v1) * agnorm(v2))
+      assert cosa >= -.9999999999 and cosa <= .9999999999
+      #cosa = agnp.clip(cosa,-1,1) 
+      alpha = agnp.arccos(cosa)
+      scaling = r/agnp.sin(alpha/2)
+
+    C = H_c + nc*(scaling * B0)
    
     # arcs: abs(norm(XC) - r) - w
     return abs(agnorm(X-C) - r) - w
@@ -504,22 +663,27 @@ class Spaghetti:
   def to_string(self, idx):
     return "shape=" + str(self.id) + " color=" + str(self.color) + " idx=" + str(idx) + " a=" + str(self.a[idx])
    
-
    
    
-# returns the polynomial boundary modelling. 
+# returns the boundary modelling. 
 # @param dist positive inside, negative outside, boundary at 0
 # @param transition is 2*h in feature mapping paper
 # @return if outside |transition| -> rhomin or 1 
-def poly(dist):   
-   phi = -dist # positive inside, negative outside
-   h = glob.transition/2.0
-   rm = glob.rhomin
-   if phi <= -h:
-     return rm
-   if phi >= h:
-     return 1.0
-   return 3.0/4.0*(1.0 - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (1+rm)   
+def boundary(dist):   
+  phi = -dist # positive inside, negative outside
+  h = glob.transition/2.0
+  rm = glob.rhomin
+  if phi <= -h:
+    return rm
+  if phi >= h:
+    return 1.0
+  if glob.boundary == 'linear':
+    return .5*((1-rm)*phi/h+1+rm)
+  elif glob.boundary == 'poly':
+    return 3.0/4.0*(1.0 - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (1+rm)
+  else:
+    print("Error: boundary type '" + glob.boundary + "' not implemented!")
+    os.sys.exit()
    
 # returns the nodal density value, is ad_differentiable
 # the fast is not for performant calculation (it is NOT) but for having the idx given
@@ -530,13 +694,13 @@ def fast_rho_ad(var, X, idx):
   s = glob.shapes[0]
   
   val = s.fast_dist_ad(var,X,idx)
-  return poly(val)
+  return boundary(val)
    
 def fast_rho(X, idx):   
   s = glob.shapes[0]
   
   val = s.fast_dist(X,idx)
-  return poly(val)
+  return boundary(val)
 
 
 # differentiate fast_rho_ad w.r.t. to the var vector -> gives a vector
@@ -554,20 +718,22 @@ def drho(var, X, idx):
    
    
 # create a idx field for fast access where >= 0 for closest part, -1 for inside and -2 for too far outside
-# uses glob   
+# uses glob
+# @param discretization is by default glob.n[0]+1     
 # @return fields of size (n+1)^dim, to capture the nodes of the density elements. 
 #         The first field contains index vectors (len(shapes)), the second a vector of rhos (len(shapes)) 
-def create_idx_field():
+def create_idx_field(discretization = None):
   
   shapes = glob.shapes
-  n = glob.n[0]
-  N = n+1
+  N = discretization if discretization else glob.n[0]+1
+  
   
   h = glob.transition *.55 # is save to add a little buffer
   
   x_ls = np.linspace(0,1,N)
   
   idx = np.ones((N,N,len(shapes)),dtype=int) 
+  idx_shapes_only = np.ones((N,N,len(shapes)),dtype=int) 
   dist  = np.ones((N,N,len(shapes)))
 
   for j, y in enumerate(x_ls):
@@ -576,50 +742,80 @@ def create_idx_field():
       for si, s in enumerate(shapes):
         d, k = s.dist(X)
         dist[i,j,si] = d
-        idx[i,j,si]  = k if d > -h and d < h else (-1 if d < h else -2)   
+        idx_shapes_only[i,j,si] = k
+        idx[i,j,si]  = k if d > -h and d < h else (-1 if d < h else -2)
+        # print('cif: i,j,X,d,k',i,j,X,d,k)   
 
-  return idx, dist
+  return idx, dist, idx_shapes_only
       
 
 # integrate a rho for element with indices i and j (however the ordering is)
-# uses glob.idx_field
+# uses glob.idx_field and glob.idx_field_shapes_only
 # @param if ad fast_dist_ad evaluated, otherwise glob.dist_field is used 
-def integrate_rho(var, i, j, ad = False):   
-  rho = -1.0
-      
+def integrate_rho(var_all, shape, i, j, ad = False):
+  shape_num = shape.id
+  var = var_all[shape.base:shape.base+len(shape.var())]
   idx_field = glob.idx_field
-  s = glob.shapes[0]
+  order = glob.order
   
-  # we take the indices as we need them for higher order integration 
-  idx1 = idx_field[i,j][0]
-  idx2 = idx_field[i+1,j][0]
-  idx3 = idx_field[i,j+1][0]
-  idx4 = idx_field[i+1,j+1][0]
+  # we take the indices 
+  idx1 = idx_field[i,j][shape_num]
+  idx2 = idx_field[i+1,j][shape_num]
+  idx3 = idx_field[i,j+1][shape_num]
+  idx4 = idx_field[i+1,j+1][shape_num]
  
-  dx = 1/(glob.n[0]+1)
- 
+  # we quickly deal with elements inside of or far away from single shapes
   if idx1 == idx2 == idx3 == idx4 == -1:
-    rho = 1.0
+    return agnp.ones((order*order))
   elif idx1 == idx2 == idx3 == idx4 == -2:
-    rho = glob.rhomin              
-  else:
+    return glob.rhomin*agnp.ones((order*order))
+  
+  # we take non-cropped indices as we need them for higher order integration 
+  idx_field = glob.idx_field_shapes_only
+  idx1 = idx_field[i,j][shape_num]
+  idx2 = idx_field[i+1,j][shape_num]
+  idx3 = idx_field[i,j+1][shape_num]
+  idx4 = idx_field[i+1,j+1][shape_num]
+ 
+  dx = glob.dx()[0]
+  deta = dx/(order-1)
+  x = i * dx
+  y = j * dx
+  
+  if idx1 == idx2 == idx3 == idx4:
+    XX = [[x+k[0]*deta,y+k[1]*deta] for k in product(range(order),repeat=2)]
     if ad:
-      x = i * dx
-      y = j * dx
-
-      rho = .25 * (poly(s.fast_dist_ad(var,[x,y], idx1)) 
-                 + poly(s.fast_dist_ad(var,[x+dx,y], idx2))       
-                 + poly(s.fast_dist_ad(var,[x,y+dx], idx3))
-                 + poly(s.fast_dist_ad(var,[x+dx,y+dx], idx4)))
+      rho = agnp.array([boundary(shape.fast_dist_ad(var,X,idx1)) for X in XX])
     else:
-      dist_field = glob.dist_field    
-     
-      rho = .25 * (poly(dist_field[i,j]) 
-                 + poly(dist_field[i+1,j])
-                 + poly(dist_field[i,j+1]) 
-                 + poly(dist_field[i+1,j+1]))    
-
+      rho = agnp.array([boundary(shape.fast_dist(X,idx1)) for X in XX])
+  else:
+    XX = [[x+k[0]*deta,y+k[1]*deta] for k in product(range(order),range(order))]
+    #vi = [shape.dist(X) for X in XX]
+    #print(vi)
+    if ad:
+      rho = agnp.array([boundary(shape.fast_dist_ad(var,X,shape.dist(X, None, 'index'))) for X in XX])
+    else:
+      rho = agnp.array([boundary(shape.dist(X, None, 'distance')) for X in XX])
+    
   return rho
+
+
+# integrate rho for element with indices i and j (however the ordering is) for all shapes and take (smooth) maximum
+# uses glob.idx_field
+# @param if ad fast_dist_ad evaluated
+def combine_rho(var, i, j, ad):
+  num_shapes = len(glob.shapes)
+  p = glob.p
+  order = glob.order
+  # var needs to be passed for autograd to work 
+  rho_shapes = agnp.array([integrate_rho(var, s, i, j, ad) for s in glob.shapes])
+  if glob.combine == 'p-norm':
+    rho_ip = agnp.sum(agnp.power(agnp.sum(agnp.power(rho_shapes,p),0),(1/p)))/(order*order)
+  elif glob.combine == 'KS':
+    rho_ip = agnp.sum(agnp.log(agnp.sum(agnp.exp(p*rho_shapes),0)))/(p*order*order)
+  else:
+    rho_ip = agnp.max(rho_shapes)
+  return rho_ip
 
  
 # generates a density map for a unit square. 
@@ -627,37 +823,43 @@ def integrate_rho(var, i, j, ad = False):
 def density(nx):
   if len(glob.shapes) != 1: 
     print("Warnung: density(nx) only implemented for first shape")    
+  assert nx == glob.n[0]
 
   s = glob.shapes[0]
-     
-  # the serial element list in cfs is row wise orderd with lower left first and upper right last
   
-  # when we operate with optimization_tools with arrays of density, they are column wise ordered
-  # with first row in array is left column in image space from bottom  up
-  # wich is first colum in array is lower row in image space from left to right
-  # stupid enough a simple reshape() does not do the arrangement we want in optimization_tools
+  rho = cfs_map_to_density()
   
-  # however, a numpy.reorder(order='F') does the job and we need again Fortran reordering to 
-  # go back from linear to matrix. 
-  #
-  # That's simply because optimization_tools was written without deeper thinking in the beginning :(   
-     
-  nodal_val = np.ones((nx+1,nx+1))
-  nodal_idx = np.ones((nx+1,nx+1),dtype=int) * -1
-  
-  for i,x in enumerate(np.linspace(0,1,nx+1)):
-    for j,y in enumerate(np.linspace(0,1,nx+1)): 
-      X = [x,y]
-      val,idx = s.dist(X)
-      nodal_val[i,j] = poly(val)
-      nodal_idx[i,j] = idx
-      
-  rho = np.ones((nx,nx))     
-  for i in range(0,nx):
-    for j in range(0,nx): 
-      rho[i,j] = .25 * (nodal_val[i,j] + nodal_val[i+1,j] + nodal_val[i,j+1] + nodal_val[i+1,j+1]) 
-  
-  return rho    
+  return rho.reshape((nx,nx),order='F')
+#      
+#   # the serial element list in cfs is row wise orderd with lower left first and upper right last
+#   
+#   # when we operate with optimization_tools with arrays of density, they are column wise ordered
+#   # with first row in array is left column in image space from bottom  up
+#   # wich is first colum in array is lower row in image space from left to right
+#   # stupid enough a simple reshape() does not do the arrangement we want in optimization_tools
+#   
+#   # however, a numpy.reorder(order='F') does the job and we need again Fortran reordering to 
+#   # go back from linear to matrix. 
+#   #
+#   # That's simply because optimization_tools was written without deeper thinking in the beginning 
+#   # and orientet itself ot the 99 lines Matlab code (as Matlab has a columnwise ordering)   
+#      
+#   nodal_val = np.ones((nx+1,nx+1))
+#   nodal_idx = np.ones((nx+1,nx+1),dtype=int) * -1
+#   
+#   for i,x in enumerate(np.linspace(0,1,nx+1)):
+#     for j,y in enumerate(np.linspace(0,1,nx+1)): 
+#       X = [x,y]
+#       val,idx = s.dist(X)
+#       nodal_val[i,j] = boundary(val)
+#       nodal_idx[i,j] = idx
+#       
+#   rho = np.ones((nx,nx))     
+#   for i in range(0,nx):
+#     for j in range(0,nx): 
+#       rho[i,j] = .25 * (nodal_val[i,j] + nodal_val[i+1,j] + nodal_val[i,j+1] + nodal_val[i+1,j+1]) 
+#   
+#   return rho    
       
 # reads 2D and returns list of Shaghettis
 # @param radius if given overwrites the value from the xml header
@@ -802,6 +1004,7 @@ def write_vtk(name,N, detailed, derivative):
   
   x_ls = np.linspace(0,1,N)
   
+  # this is generally not optimized but for understanding and validation
   dist_segs    = np.ones((N,N,1)) * none_distance # can be None
   dist_circ    = np.zeros((N,N,1)) # defined everywhere
   dist_idx     = np.zeros((N,N,1),dtype=int) # part indices 
@@ -809,6 +1012,12 @@ def write_vtk(name,N, detailed, derivative):
   dist         = np.zeros((N,N,1))
   rho          = np.zeros((N,N,1)) # nodal application of boundary function
   rho_ad       = np.zeros((N,N,1)) # use rho_ad() for differentiable nodal density function
+  
+  # this is using optimized code meant for cfs usage
+  assert len(glob.shapes) == 1
+  field_idx, t    = create_idx_field(N) # has many shapes!
+
+  field_dist_ad = np.zeros((N,N,1))
   
   total = sum([len(s.var()) for s in shapes])
   assert total == shapes[-1].base + len(shapes[-1].var()) 
@@ -823,9 +1032,10 @@ def write_vtk(name,N, detailed, derivative):
         val, idx = s.dist([x,y])
         dist[i,j,0]     = val
         dist_idx[i,j,0] = idx
-        rho[i,j,0]      = poly(val)
+        rho[i,j,0]      = boundary(val)
         if detailed:
-          dist_fast_ad[i,j,0] = s.fast_dist_ad(var,X,idx)
+          dist_fast_ad[i,j,0]  = s.fast_dist_ad(var,X,idx)
+          field_dist_ad[i,j,0] = s.fast_dist_ad(var,X,field_idx[i,j,0])
           segs = s.dist(X, 's')[0]
           if(segs): # can be None
             dist_segs[i,j,0] = segs 
@@ -849,16 +1059,17 @@ def write_vtk(name,N, detailed, derivative):
     pd["dist_segs"] = dist_segs
     pd["dist_circ"] = dist_circ
     pd["rho_ad"] = rho_ad
+    pd["field_idx"] = field_idx
+    pd["field_dist"] = field_dist_ad
   if derivative:
     for s in shapes:
       for e, n in enumerate(s.varnames()):
-        pd["d_rho / d_s_" + str(s.id) + '_' + n] = drho_ad[s.base+e]
+        pd["d_rho / d_s" + str(s.id) + '_' + n] = drho_ad[s.base+e]
 
   if derivative and detailed:
     for s in shapes:
       for e, n in enumerate(s.varnames()):
-        pd["d_dist(s_" + str(s.id) + ") / d_" + n] = ddist[s.base+e]
-
+        pd["d_dist(s" + str(s.id) + ") / d_" + n] = ddist[s.base+e]
 
   gridToVTK(name, x_ls,x_ls,np.zeros(1) , pointData=pd)
   print("# wrote '" + name + ".vtr'") 
@@ -867,7 +1078,8 @@ def write_vtk(name,N, detailed, derivative):
 def lineplot(res):
   s = glob.shapes[0]
   assert len(s.H_int) >= 1 
-  y = s.H_int[0][1]
+  #y = s.H_int[0][1]
+  x = .5
   h = 1./(res-1)
   
   dis = np.ones(res) # dist
@@ -875,12 +1087,14 @@ def lineplot(res):
   idx = np.ones(res,dtype=int)
   ad = np.ones(res)
   var = np.copy(s.var())
-  for i, x in enumerate(np.linspace(0,1,res)):
+  for i, y in enumerate(np.linspace(0,1,res)):
     X = [x,y]
     v,k = s.dist(X) 
     dis[i] = v
     fdisad[i] = s.fast_dist_ad(var,X,k)
     idx[i] = k
+    t = s.ddist(var,X,k)
+    #print(X,s.nice_idx(k),t)
     ad[i] = s.ddist(var,X,k)[5]
     
   # finite difference for a  
@@ -927,10 +1141,13 @@ if __name__ == '__main__':
   parser.add_argument('--hide', help="suppress technical details for spaghetti", action='store_true')
   parser.add_argument('--rhomin', help="void outside the feature", type=float, default=1e-6)
   parser.add_argument('--transition', help="size of the transition zone (2*h)", type=float, default=.1)
+  parser.add_argument('--boundary', help="type of boundary modelling ('poly' or 'linear')", choices=['poly', 'linear'], default='poly')
+  parser.add_argument('--combine', help="type of (smooth) maximum function for combination of shapes", choices=['max', 'KS', 'p-norm'], default='max')
+  parser.add_argument('--order', help="number of integration points per direction", type=int, default=2)
   parser.add_argument('--density', help="write a density.xml to the given filename with density_res")
   parser.add_argument('--density_res', help="resolution for density",type=int, default=60)
   parser.add_argument('--vtk', help="write vtk file for given name (w/o extenstion)")
-  parser.add_argument('--vtk_res', help="resolution for vtk export", type=int, default=300)
+  parser.add_argument('--vtk_res', help="resolution for vtk export", type=int, default=200)
   parser.add_argument('--vtk_detailed', help="additional vtk output", action='store_true')
   parser.add_argument('--vtk_sens', help="additional sensitvity output via vtk", action='store_true')
   parser.add_argument('--lineplot', help="plots the distance value for the horizontal line crossing H1 in the given res", type=int)
@@ -947,6 +1164,10 @@ if __name__ == '__main__':
   glob.shapes = shapes
   glob.rhomin = args.rhomin
   glob.transition = args.transition
+  glob.boundary = args.boundary
+  glob.combine = args.combine
+  glob.order = args.order
+  glob.n = [args.density_res, args.density_res, 1]
 
   if args.lineplot:
     if not args.noshow:
@@ -972,13 +1193,10 @@ if __name__ == '__main__':
 else:
   # either a manual import shapghetti in python or a call from openCFS via SpaghettiDesign.cc
   # in the later case the cfs_init(), ... functions need to be provided
-  
+  #import optimization_tools as ot
   f = 'line.density.xml'
   X = [0.5,0.6]
-  #shapes = read_xml(f)
-  #s = shapes[0]
-  #print(s.dist([0.1,0.4]))
-  #print(s.dist([0.3,0.4]))
-  #var = s.var()
   
-  #print(s.dist(X),s.ddist(var,X,2))
+  #glob.shapes = read_xml(f)
+  #s = glob.shapes[0]
+

@@ -3,7 +3,9 @@
 
 #include "Optimization/Design/SpaghettiDesign.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Optimization/PythonTools.hh"
+#include "Optimization/Function.hh"
 #include "Optimization/TransferFunction.hh"
 
 using std::string;
@@ -32,6 +34,9 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   transition = pn->Get("transition")->As<double>(); // make optional
   radius = pn->Get("radius")->As<double>();
 
+  if(pn->Get("gradplot")->As<bool>()) // todo: move to FeaturedDesign
+   gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
+
   // n_ and nx_, ny_, nz_
   SetupMeshStructure();
 
@@ -45,9 +50,6 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   assert(!data.IsEmpty());
   const DesignElement& de = data.First();
   rhomin = de.GetLowerBound(); // at least in python use for all
-  const TransferFunction* tf = GetTransferFunction(&de);
-  if(tf->GetType() != TransferFunction::IDENTITY)
-    throw Exception("Up to now Spaghetti expects identity transfer function"); // extend!
 
   py_timer = info_->Get("spaghetti/python/timer")->AsTimer();
   py_timer->SetSub(); // we are in design_setup and in the eval timers
@@ -73,16 +75,17 @@ void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
 {
   AuxDesign::ToInfo(em);
 
-  PtrParamNode sm = info_->Get("spaghetti");
+  sp_info_ = info_->Get("spaghetti");
 
-  sm->Get("combine")->SetValue(combine.ToString(combine_));
-  sm->Get("radius")->SetValue(radius);
-  sm->Get("boundary/type")->SetValue(boundary.ToString(boundary_));
-  sm->Get("boundary/transition")->SetValue(transition);
+  sp_info_->Get("combine")->SetValue(combine.ToString(combine_));
+  sp_info_->Get("radius")->SetValue(radius);
+  sp_info_->Get("boundary/type")->SetValue(boundary.ToString(boundary_));
+  sp_info_->Get("boundary/transition")->SetValue(transition);
 
-  PtrParamNode py = sm->Get("python");
+  PtrParamNode py = sp_info_->Get("python");
   if(python) {
-    py->Get("value")->SetValue(pythonfile);
+    py->Get("file")->SetValue(file_);
+    py->Get("version")->SetValue(version_);
     for(auto& opt : pyopts) {
       PtrParamNode o = py->Get("option", ParamNode::APPEND);
       o->Get("key")->SetValue(opt.first);
@@ -92,8 +95,14 @@ void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
     py->SetValue(false);
   }
 
-  PtrParamNode msh = sm->Get("mesh");
+  PtrParamNode msh = sp_info_->Get("mesh");
   msh->Get("n")->SetValue(n_.ToString());
+
+  // get keys of python glob.info_field -> to be repeated e.g. in MapFeatureGradient() as we have initially not much info
+  StdVector<string> keys = PythonGetInfoFieldKeys();
+  sp_info_->Get("info_field/genericElem")->SetValue(keys.ToString()); // TODO use nice Vector::ToString()
+
+  // the stuff below will not be written to spaghetti
   PtrParamNode base = info_->Get("designVariables");
   for(Noodle& s : spaghetti)
     s.ToInfo(base->Get("noodle", ParamNode::APPEND));
@@ -110,17 +119,43 @@ void SpaghettiDesign::PythonDestructor()
   py_timer->Stop();
 }
 
+StdVector<string> SpaghettiDesign::PythonGetInfoFieldKeys()
+{
+  // get keys of python glob.info_field
+  // no need to time the stuff
+  PyObject* afunc = PyObject_GetAttrString(python, "cfs_info_field_keys");
+  CheckPythonFunction(afunc, "cfs_info_field_keys");
+
+  PyObject* py_list = PyObject_CallObject(afunc, NULL);
+  CheckPythonReturn(py_list);
+
+  if(!PyList_Check(py_list))
+    EXCEPTION("python function cfs_info_field_keys did not return a list")
+
+  StdVector<string> res(PyList_Size(py_list));
+
+  for(unsigned int i = 0; i < res.GetSize(); i++)
+  {
+    PyObject* item = PyList_GetItem(py_list,i);
+    const char* c_str = PyUnicode_AsUTF8(item);
+    assert(c_str != NULL);
+    res[i] = string(c_str);
+    // we must not Py_XDECREF(item), it segfaults in the second run!
+  }
+  Py_XDECREF(py_list);
+  Py_XDECREF(afunc);
+
+  return res;
+}
+
 
 void SpaghettiDesign::PythonInit(PtrParamNode pn)
 {
   py_timer->Start();
 
-  pythonfile = pn->Get("file")->As<string>();
-
   pyopts = ParseOptions(pn->GetList("option"));
 
-  string version;
-  python = InitializePythonModule(pythonfile, nullptr, &version);
+  python = InitializePythonModule(pn->Get("file")->As<string>(), pn->Get("path")->As<string>(), nullptr, &file_, &version_);
 
   // def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz):
   PyObject* func = PyObject_GetAttrString(python, "cfs_init");
@@ -257,9 +292,10 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   PyObject* gfunc = PyObject_GetAttrString(python, "cfs_get_gradient");
   CheckPythonFunction(gfunc, "cfs_get_gradient");
 
-  PyObject* arg = PyTuple_New(1);
+  PyObject* arg = PyTuple_New(2);
   Py_INCREF(np_rho); // this is important, as PyTuple_SetItem() steals the reference: https://docs.python.org/3/c-api/intro.html
   PyTuple_SetItem(arg, 0, np_rho);
+  PyTuple_SetItem(arg, 1, PyUnicode_FromString(f->ToString().c_str()));
 
   PyObject* np_grad = PyObject_CallObject(gfunc, arg);
   CheckPythonReturn(np_grad);
@@ -286,6 +322,38 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
 
   py_timer->Stop();
   gradient_timer_->Stop();
+
+  // on each iteration we might have new data to be reported
+  StdVector<string> keys = PythonGetInfoFieldKeys();
+  sp_info_->Get("info_field/genericElem")->SetValue(keys.ToString());
+}
+
+
+void SpaghettiDesign::PrepareSpecialResults()
+{
+  StdVector<const ResultDescription*> res = GetGenericResults();
+  for(const ResultDescription* rs : res)
+  {
+    PyObject* afunc = PyObject_GetAttrString(python, "cfs_get_info_field");
+    CheckPythonFunction(afunc, "cfs_get_info_field");
+
+    PyObject* arg = PyTuple_New(1);
+    PyTuple_SetItem(arg, 0, PyUnicode_FromString(rs->generic.c_str()));
+
+    PyObject* np = PyObject_CallObject(afunc, arg);
+    CheckPythonReturn(np);
+
+    Vector<double> sr(np, true); // decref
+    assert(sr.GetSize() == data.GetSize()); // will fail once we have angle!!
+
+    int ri = DesignElement::GetOptResultIndex(rs->solutionType);
+
+    for(unsigned int i = 0; i < sr.GetSize(); i++)
+      data[i].specialResult[ri] = sr[i];
+
+    Py_XDECREF(arg); // np_grad is already decref
+    Py_XDECREF(afunc);
+  }
 }
 
 
@@ -304,6 +372,95 @@ void SpaghettiDesign::AddVariable(Variable* var)
     opt_shape_param_.Push_back(var);
   }
 }
+
+
+void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
+{
+
+  assert(f != NULL);
+  assert(f->IsLocal(f->GetType()));
+  // we shall be called by Local::PostInit() therefore local shall exist
+  assert(f->GetLocal() != NULL);
+  assert(f->GetType() == Function::DISTANCE || f->GetType() == Function::BENDING);
+
+  // we assume fixed only for profile if at all
+  assert(locality == Function::Local::FUNCTION_SPECIFIC);
+
+  vem.Reserve(spaghetti.GetSize()); // assume nothing fixec
+
+  assert(dim_ == 2);
+  StdVector<BaseDesignElement*> nodes;
+
+  for(Noodle& s : spaghetti)
+  {
+    nodes.Clear();
+    // assume nothing fixed
+    if(s.px.fixed || s.py.fixed || s.qx.fixed || s.qy.fixed)
+      throw Exception("distance constraints currently only for non-fixed nodes");
+
+    // px is element, then py, then qx then qy
+    nodes.Push_back(&s.py);
+    nodes.Push_back(&s.qx);
+    nodes.Push_back(&s.qy);
+
+    if(f->GetType() == Function::DISTANCE)
+    {
+      if(f->GetDesignType() != BaseDesignElement::NODE)
+        throw Exception("Configuration error: distance needs to be defined for node.");
+
+      vem.Push_back(Function::Local::Identifier(&s.px, nodes));
+      LOG_DBG(pasta) << "SVSEM: f=" << f->ToString() << " s=" << s.idx << " id=" << vem.Last().ToString();
+    }
+    else // Bending
+    {
+      // with  many segments, the typical case would be ai-1,ai,ai+1 (N N N)
+      // but we have the cases for only two segments (0 N 0)
+      // or for start ( 0 N N) or end ( N N 0)
+
+      for(unsigned ai = 0; ai < s.a_var.GetSize(); ai++)
+      {
+        StdVector<BaseDesignElement*> buddies(nodes);
+        assert(buddies.GetSize() == nodes.GetSize());
+        assert(buddies[0] == nodes[0]); // no empty nodes for bending
+
+        if(s.a_var.GetSize() == 1)
+        {
+          buddies.Push_back(&s.a_var[0]);
+          vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+          vem.Last().bending = Function::Local::Identifier::ZNZ;
+        }
+        else
+        {
+          if(ai == 0)
+          {
+            buddies.Push_back(&s.a_var[0]);
+            buddies.Push_back(&s.a_var[1]);
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+            vem.Last().bending = Function::Local::Identifier::ZNN;
+          }
+          else if(ai == s.a_var.GetSize()-1)
+          {
+            buddies.Push_back(&s.a_var[ai-1]);
+            buddies.Push_back(&s.a_var[ai]);
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+            vem.Last().bending = Function::Local::Identifier::NNZ;
+          }
+          else
+          {
+            assert(ai > 0 && ai < s.a_var.GetSize()-1);
+            buddies.Push_back(&s.a_var[ai-1]);
+            buddies.Push_back(&s.a_var[ai]);
+            buddies.Push_back(&s.a_var[ai+1]);
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+            vem.Last().bending = Function::Local::Identifier::NNN;
+          }
+        }
+        LOG_DBG(pasta) << "SVSEM: f=" << f->ToString() << " s=" << s.idx << " id=" << vem.Last().ToString();
+      } // end ai
+    } // end bending
+  } // end noodle
+}
+
 
 int SpaghettiDesign::ReadDesignFromExtern(const double* space_in)
 {
@@ -405,14 +562,11 @@ void SpaghettiDesign::SetupDesign(PtrParamNode base)
     AddVariable(&(noodle.py));
     AddVariable(&(noodle.qx));
     AddVariable(&(noodle.qy));
-  }
-
-  for(Noodle& noodle : spaghetti)
     AddVariable(&(noodle.p_var));
-
-  for(Noodle& noodle : spaghetti)
     for(Variable& var : noodle.a_var)
       AddVariable(&var);
+  }
+
 
   // we did exact space "estimation"
   assert(shape_param_.GetCapacity() == shape_param_.GetSize());
@@ -590,6 +744,40 @@ void SpaghettiDesign::Variable::ToInfo(PtrParamNode in) const
    in->Get("upper")->SetValue(upper_);
   }
 }
+
+
+std::string SpaghettiDesign::Variable::GetLabel() const
+{
+  std::stringstream ss;
+  ss << "s" << noodle << "_"; // 0-based
+  switch(type_)
+  {
+  case NODE:
+    ss << (tip == START ? "p" : "q");
+    ss << dof.ToString(dof_);
+    break;
+  case PROFILE:
+    ss << "p";
+    break;
+  case NORMAL: {
+    ss << "a";
+    assert(domain->GetOptimization() != NULL);
+    SpaghettiDesign* sd = dynamic_cast<SpaghettiDesign*>(domain->GetOptimization()->GetDesign());
+    const Noodle& n = sd->spaghetti[noodle];
+    assert(!n.a_var.IsEmpty()); // we are in GetLable() and shall have it
+    unsigned int pos = GetIndex() - n.a_var.First().GetIndex();
+    ss << (pos + 1); // 1-based
+    break;
+  }
+  default:
+    assert(false);
+    break;
+  }
+
+  return ss.str();
+
+}
+
 
 } // end of namespace
 

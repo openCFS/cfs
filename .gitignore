@@ -8,3 +8,4 @@ build/
 .cproject
 .patch
 .settings
+*.pyc

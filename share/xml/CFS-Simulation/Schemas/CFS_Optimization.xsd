@@ -368,6 +368,11 @@
                 <xsd:enumeration value="overhang_hor" />
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic" />
+                <!-- distance of start and end node of a noodlee (shaphetti design) -->
+                <xsd:enumeration value="distance" />
+                <!-- curvature divided by distance of start and end node of a noodlee (shaphetti design) -->
+                <xsd:enumeration value="bending" />
+                <!-- spline box stuff  -->                
                 <xsd:enumeration value="cones" />
                 <!-- the global perimeter constraint -->
                 <xsd:enumeration value="perimeter" />
@@ -934,7 +939,10 @@
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
+                <!-- can be the full path if attribute path is not used -->
                 <xsd:attribute name="file" type="xsd:string" use="required" />
+                <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+                <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
               </xsd:complexType>
             </xsd:element>
             <!-- the parameters of the shape optimizer can be set <shapeOpt enableTopgrad="true" /> -->
@@ -1399,6 +1407,9 @@
                   </xsd:simpleType>
                 </xsd:attribute>
 
+                <!-- write design and gradient to .grad.dat file -->
+                <xsd:attribute name="gradplot" type="xsd:boolean" default="false" use="optional"/>
+
               </xsd:complexType>
             </xsd:element>
 
@@ -1418,7 +1429,10 @@
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>
+                      <!-- can be the full path if attribute path is not used -->
                       <xsd:attribute name="file" type="xsd:string" use="required" />
+                      <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+                      <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
                     </xsd:complexType>
                   </xsd:element>
                   <xsd:element name="noodle" minOccurs="1" maxOccurs="unbounded">
@@ -1480,6 +1494,8 @@
                     <xsd:restriction base="xsd:token">
                       <!-- the polynomial is almost cos and requires transition -->
                       <xsd:enumeration value="poly" />
+                      <!-- simple linear interpolation, also requires transition -->
+                      <xsd:enumeration value="linear" />
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1494,11 +1510,21 @@
                 <xsd:attribute name="combine" use="optional" default="max">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
-                      <!-- non differentiable easy approach -->
+                      <!-- non differentiable maximum of shapes -->
+                      <!-- max_i(rho_i) -->
                       <xsd:enumeration value="max" />
+                      <!-- Kreisselmeier-Steinhauser function -->
+                      <!-- 1/p*ln(sum_i(exp(p*rho_i))) -->
+                      <xsd:enumeration value="KS" />
+                      <!-- p-norm -->
+                      <!-- (sum_i(rho_i^p))^(1/p) -->
+                      <xsd:enumeration value="p-norm" />
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                
+                <!-- write design and gradient to .grad.plot file -->
+                <xsd:attribute name="gradplot" type="xsd:boolean" default="false" use="optional"/>
               </xsd:complexType>
             </xsd:element>
 
@@ -1851,6 +1877,8 @@
                       <!-- tracking values at all nodes : (stateSol - trackVal)^2 -->
                       <xsd:enumeration value="heatNodalTrackValue" />
                       <xsd:enumeration value="tempAtInterface" />
+                      <!-- for attribute generic where possible content is found within the .info.xml -->
+                       <xsd:enumeration value="genericElem" />
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1870,6 +1898,10 @@
 
                 <!-- optional excitation parameter, can be used for penalized stress which is excitation dep. Uses the index, not the label -->
                 <xsd:attribute name="excitation" use="optional" type="xsd:nonNegativeInteger" />
+
+                <!-- for value=generic only for element results. -->
+                <xsd:attribute name="generic" use="optional" type="xsd:token" />
+
               </xsd:complexType>
             </xsd:element>
 
@@ -2077,6 +2109,8 @@
       <xsd:enumeration value="mech_trace" />
       <!-- summarized the shape mapping variables node and profile -->
       <xsd:enumeration value="shape_map" />
+      <!-- spaghetti variables (node, profile,normal) -->
+      <xsd:enumeration value="spaghetti" />
       <!-- summarized the spline box variables -->
       <xsd:enumeration value="spline_box" />
       <!-- all elasticity tensor coefficients for elast FMO -->

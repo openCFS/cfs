@@ -19,7 +19,9 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
-#include "Optimization/Design/SpaghettiDesign.hh"
+#ifdef USE_EMBEDDED_PYTHON // currently only the python version
+  #include "Optimization/Design/SpaghettiDesign.hh"
+#endif
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/ErsatzMaterial.hh"
@@ -430,6 +432,8 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   // spaghetti.py can visualize the noodles
   if(space_->GetMethod() == ErsatzMaterial::Method::SPAGHETTI)
   {
+#ifdef USE_EMBEDDED_PYTHON // currently only the python version
+
     FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space_);
     // skip the aux variables slack and alpha -> they are written to the info.xml
     for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
@@ -449,6 +453,9 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       ss << "\"/>";
       block[base + i] = ss.str();
     }
+#else
+  EXCEPTION("compile with USE_EMBEDDED_PYTHON");
+#endif
   }
 
   // add shape map design if we have it.

@@ -385,6 +385,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
   Function::type.Add(Function::OVERHANG_VERT, "overhang_vert");
   Function::type.Add(Function::OVERHANG_HOR, "overhang_hor");
+  Function::type.Add(Function::DISTANCE, "distance");
+  Function::type.Add(Function::BENDING, "bending");
   Function::type.Add(Function::CONES, "cones");
   Function::type.Add(Function::DESIGN, "design");
   Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
@@ -453,6 +455,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT, "multiple_designs_prev_next");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE, "multiple_designs_prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::SHAPE, "shape");
+  Function::Local::locality.Add(Function::Local::FUNCTION_SPECIFIC, "function_specific");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -1058,11 +1061,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
 
   // copies from the design element gradient data to a memory array for external optimizers
   if(grad_out != NULL)
-  {
     design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
-    if(progOpts->DoDetailedInfo())
-      design->WriteGradientFile(); // might overwrite function stuff for this iteration which is goood
-  }
 
   // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
   if(g->special_result_idx != -1)
@@ -1144,6 +1143,10 @@ PtrParamNode Optimization::CommitIteration()
   baseOptimizer_->LogFileLine(log.file, iteration);
   if(log.file)
     *log.file << endl;
+
+  // option gradplot for some FeaturedDesign, other (e.g. SIMP) ignore
+  design->WriteGradientFile();
+
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   // keep "commitStride == 1 || " for readability!

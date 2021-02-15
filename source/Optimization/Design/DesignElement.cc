@@ -29,9 +29,10 @@
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/lexical_cast.hpp"
 
-using namespace std;
+
 using namespace CoupledField;
 
+using std::string;
 using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
 using boost::posix_time::microsec_clock;
@@ -53,7 +54,7 @@ Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
 
-std::string BaseDesignElement::ToString() const
+string BaseDesignElement::ToString() const
 {
   std::stringstream ss;
   ss << "idx=" << index_ << " t=" << type.ToString(type_);
@@ -228,7 +229,7 @@ BaseDesignElement::BaseDesignElement(Type t) {
   upper_          = 0.0;
   lower_          = 0.0;
   type_           = t;
-  index_          = numeric_limits<unsigned int>::max();
+  index_          = std::numeric_limits<unsigned int>::max();
 }
 
 
@@ -261,7 +262,7 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
   assert(f == NULL || g == NULL);
   LOG_DBG3(desel) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
-                << " penalty=" << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
+                << " penalty=" << (f != NULL ? boost::lexical_cast<string>(f->GetPenalty()) : "-")
                 << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
                 << " add=" << (f != NULL ? value * f->GetPenalty() : value)
                 << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetPenalty() : constraintGradient[g->GetIndex()] + value);
@@ -311,7 +312,7 @@ double BaseDesignElement::SumObjectiveGradient() const
   return result;
 }
 
-std::string BaseDesignElement::ToString(const StdVector<BaseDesignElement*>& vec, bool print_type)
+string BaseDesignElement::ToString(const StdVector<BaseDesignElement*>& vec, bool print_type)
 {
   std::stringstream ss;
   ss << "[";
@@ -340,13 +341,17 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
   index_ = index;
 }
 
-std::string ShapeParamElement::ToString() const
+string ShapeParamElement::ToString() const
 {
   std::stringstream ss;
   ss << "(idx=" << index_ << " opt_idx=" << ((int) opt_index_) << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
   return ss.str();
 }
 
+string ShapeParamElement::GetLabel() const
+{
+  return type.ToString(type_) +  "_" + dof.ToString(dof_) + "_" + std::to_string(opt_index_);
+}
 
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
@@ -478,77 +483,10 @@ unsigned int DesignElement::GetElementSolutionIndex() const
 
 int DesignElement::GetOptResultIndex(SolutionType st)
 {
-  switch(st)
-  {
-  case OPT_RESULT_1: return 0;
-  case OPT_RESULT_2: return 1;
-  case OPT_RESULT_3: return 2;
-  case OPT_RESULT_4: return 3;
-  case OPT_RESULT_5: return 4;
-  case OPT_RESULT_6: return 5;
-  case OPT_RESULT_7: return 6;
-  case OPT_RESULT_8: return 7;
-  case OPT_RESULT_9: return 8;
-  case OPT_RESULT_10: return 9;
-  case OPT_RESULT_11: return 10;
-  case OPT_RESULT_12: return 11;
-  case OPT_RESULT_13: return 12;
-  case OPT_RESULT_14: return 13;
-  case OPT_RESULT_15: return 14;
-  case OPT_RESULT_16: return 15;
-  case OPT_RESULT_17: return 16;
-  case OPT_RESULT_18: return 17;
-  case OPT_RESULT_19: return 18;
-  case OPT_RESULT_20: return 19;
-  case OPT_RESULT_21: return 20;
-  case OPT_RESULT_22: return 21;
-  case OPT_RESULT_23: return 22;
-  case OPT_RESULT_24: return 23;
-  case OPT_RESULT_25: return 24;
-  case OPT_RESULT_26: return 25;
-  case OPT_RESULT_27: return 26;
-  case OPT_RESULT_28: return 27;
-  case OPT_RESULT_29: return 28;
-  case OPT_RESULT_30: return 29;
-  case OPT_RESULT_31: return 30;
-  case OPT_RESULT_32: return 31;
-  case OPT_RESULT_33: return 32;
-  case OPT_RESULT_34: return 33;
-  case OPT_RESULT_35: return 34;
-  case OPT_RESULT_36: return 35;
-  case OPT_RESULT_37: return 36;
-  case OPT_RESULT_38: return 37;
-  case OPT_RESULT_39: return 38;
-  case OPT_RESULT_40: return 39;
-  case OPT_RESULT_41: return 40;
-  case OPT_RESULT_42: return 41;
-  case OPT_RESULT_43: return 42;
-  case OPT_RESULT_44: return 43;
-  case OPT_RESULT_45: return 44;
-  case OPT_RESULT_46: return 45;
-  case OPT_RESULT_47: return 46;
-  case OPT_RESULT_48: return 47;
-  case OPT_RESULT_49: return 48;
-  case OPT_RESULT_50: return 49;
-  case OPT_RESULT_51: return 50;
-  case OPT_RESULT_52: return 51;
-  case OPT_RESULT_53: return 52;
-  case OPT_RESULT_54: return 53;
-  case OPT_RESULT_55: return 54;
-  case OPT_RESULT_56: return 55;
-  case OPT_RESULT_57: return 56;
-  case OPT_RESULT_58: return 57;
-  case OPT_RESULT_59: return 58;
-  case OPT_RESULT_60: return 59;
-  case OPT_RESULT_61: return 60;
-  case OPT_RESULT_62: return 61;
-  case OPT_RESULT_63: return 62;
-  case OPT_RESULT_64: return 63;
-  case OPT_RESULT_65: return 64;
-  case OPT_RESULT_66: return 65;
-  default:
+  if(st < OPT_RESULT_1 || st > OPT_RESULT_66)
     return -1;
-  }
+  else
+    return static_cast<int>(st)-static_cast<int>(OPT_RESULT_1); // OPT_RESULT_1 -> 0
 }
 
 void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
@@ -577,7 +515,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == SPLINE_BOX_GRAD_Y
       || rd.value == SPLINE_BOX_GRAD_Z
       || rd.value == SPLINE_BOX_INT_ORDER
-      || rd.value == SPLINE_BOX_INT_CORNER)
+      || rd.value == SPLINE_BOX_INT_CORNER
+      || rd.value == GENERIC_ELEM)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -766,7 +705,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   }
 }
 
-std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
+string DesignElement::ToString(const DesignElement* de, bool barycenter)
 {
   if(de == NULL) return "null";
 
@@ -778,7 +717,7 @@ std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
   }
   else
   {
-    ss << "e=" << boost::lexical_cast<std::string>(de->elem->elemNum);
+    ss << "e=" << boost::lexical_cast<string>(de->elem->elemNum);
     if(barycenter)
       ss << " bc=" << de->elem->extended->barycenter.ToString();
     else
@@ -788,7 +727,7 @@ std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
   return ss.str();
 }
 
-std::string DesignElement::ToString(const StdVector<DesignElement*>& vec, bool print_type)
+string DesignElement::ToString(const StdVector<DesignElement*>& vec, bool print_type)
 {
   std::stringstream ss;
   ss << "[";
@@ -803,7 +742,7 @@ std::string DesignElement::ToString(const StdVector<DesignElement*>& vec, bool p
   return ss.str();
 }
 
-std::string DesignElement::ToString(const StdVector<DesignElement>& vec, bool print_val, bool print_type)
+string DesignElement::ToString(const StdVector<DesignElement>& vec, bool print_val, bool print_type)
 {
   std::stringstream ss;
   ss << "[";
@@ -975,6 +914,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MMA_OBJ_GRADIANT, "mmaGradiant_0");
   valueSpecifier.Add(MMA_CON_GRADIANT_1, "mmaGradiant_1");
   valueSpecifier.Add(MMA_CON_GRADIANT_2, "mmaGradiant_2");
+  valueSpecifier.Add(GENERIC_ELEM, "genericElem");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -1274,7 +1214,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   return sum;
 }
 
-std::string SIMPElement::ToString(int level) const
+string SIMPElement::ToString(int level) const
 {
   std::stringstream ss;
   const Filter& f = filter[DetermineFilterIndex()];
@@ -1524,7 +1464,7 @@ int VicinityElement::GetNumberOfEntries() const
 
 string VicinityElement::ToString() const
 {
-  stringstream ss;
+  std::stringstream ss;
   ss << "(";
   unsigned int max = domain->GetGrid()->GetDim() == 2 ? 4 : 6;
   for(unsigned int i = 0; i < max; i++)
@@ -1556,29 +1496,36 @@ ResultDescription::ResultDescription()
 
 ResultDescription::ResultDescription(PtrParamNode pn)
 {
-  solutionType = SolutionTypeEnum.Parse(pn->Get("id")->As<std::string>());
+  solutionType = SolutionTypeEnum.Parse(pn->Get("id")->As<string>());
 
-  design = pn->Has("design") ? DesignElement::type.Parse(pn->Get("design")->As<std::string>()) : DesignElement::DEFAULT;
+  design = pn->Has("design") ? DesignElement::type.Parse(pn->Get("design")->As<string>()) : DesignElement::DEFAULT;
 
-  access = DesignElement::access.Parse(pn->Get("access")->As<std::string>());
+  access = DesignElement::access.Parse(pn->Get("access")->As<string>());
 
-  value = DesignElement::valueSpecifier.Parse(pn->Get("value")->As<std::string>());
+  value = DesignElement::valueSpecifier.Parse(pn->Get("value")->As<string>());
 
-  detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
+  detail = DesignElement::detail.Parse(pn->Get("detail")->As<string>());
 
   excitation = pn->Has("excitation") ? pn->Get("excitation")->As<int>() : -1;
+
+  if(pn->Has("generic"))
+    generic = pn->Get("generic")->As<string>(); // otherwise default
+
+  if(value == DesignElement::GENERIC_ELEM && generic.size() == 0)
+    throw Exception("a result 'generic' needs the 'generic' attribute set");
 
   LOG_DBG(desel) << "RD:RD " << ToString();
 }
 
 
-std::string ResultDescription::ToString()
+string ResultDescription::ToString()
 {
   std::stringstream ss;
   ss << "RD: design=" << DesignElement::type.ToString(design)
      << " access=" << DesignElement::access.ToString(access)
      << " value=" << DesignElement::valueSpecifier.ToString(value)
-     // << " detail=" << DesignElement::detail.ToString(detail)
+     //<< " detail=" << DesignElement::detail.ToString(detail)
+     << " generic=" << generic
      << " ex=" << excitation;
   return ss.str();
 }

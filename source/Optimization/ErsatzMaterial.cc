@@ -1348,6 +1348,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::CURVATURE:
     case Function::OVERHANG_VERT:
     case Function::OVERHANG_HOR:
+    case Function::DISTANCE:
+    case Function::BENDING:
     case Function::CONES:
     case Function::PERIODIC:
     case Function::SUM_MODULI:

@@ -290,7 +290,7 @@ def symmetrize(shapes):
       s.profile[i] = s.profile[-(i+1)] = .5*(lp+rp) 
      
 
-# @param file withe grad.plot or density.xml. 2D or 3D!
+# @param file withe grad.dat or density.xml. 2D or 3D!
 # @param profile use if not in file
 def read_file(filename, set, profile):
   shapes = None
@@ -985,7 +985,7 @@ def create_3d_vtk_shape(shape, res):
 # __name__ is 'shape_map' if imported or '__main__' if run as commandline tool
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument("input", help="a .density.xml or .grad.plot file or a image")
+  parser.add_argument("input", help="a .density.xml or .grad.dat file or a image")
   parser.add_argument("--set", help="set nr within a .density.file", type=int)
   parser.add_argument("--profile", help="give the profile if it is not in input or to overwrite", type=float)
   parser.add_argument("--scale_profile", help="legacay files have a doubled profile value. Scale them by .5", type=float)

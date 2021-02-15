@@ -372,13 +372,12 @@ namespace CoupledField
 
   void Xerces::EventHandler::error(const SAXParseException &event)
   {
-    EXCEPTION("Error parsing the xml file '" << 
-              (xerces_->file_ == "" ? "<no-file>" : xerces_->file_)
-              << "' in line " << event.getLineNumber() << ", column "
-              << event.getColumnNumber() << std::endl << " - '"
-              << Xerces::Transcode(event.getMessage()) << "'"
-              << std::endl << " schema: '"
-              << (!xerces_->schema_.empty() ? xerces_->schema_ : ":no-schema:") << "'");
+    std::stringstream ss;
+    ss << "XML parsing error: '" << Xerces::Transcode(event.getMessage()) << "'"
+       << std::endl << "file: '" << (xerces_->file_ == "" ? "no-file" : xerces_->file_) << "'"
+       << " line: " << event.getLineNumber() << " column: " << event.getColumnNumber()
+       << std::endl << "schema: '" << (!xerces_->schema_.empty() ? xerces_->schema_ : "no-schema") << "'";
+    throw Exception(ss.str()); // the macro EXCEPTION adds this file number which is too much information for the user in this case
 
   }
 

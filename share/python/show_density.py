@@ -30,7 +30,7 @@ def density_to_image(filename, set, design, fillval=0.0):
 
   if not design and not test_density_xml_attribute(filename, 'physical', set):
     print("the 'physical' design is not present, use non-physical 'design'")
-    design = 'desgin'
+    design = 'design'
   
   dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=fillval)
 
@@ -89,6 +89,7 @@ def get_image(input, set, design, fill=0.0):
 parser = argparse.ArgumentParser()
 parser.add_argument("input", nargs='*', help="the density.xml file to visualize or the files(s) for --saveall")
 parser.add_argument('--save', help="optional filename to write image")
+parser.add_argument('--gifs', help="write animated gif for all sets")
 parser.add_argument('--saveall', help="saves all input files as png", action='store_true')
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
@@ -125,14 +126,40 @@ if args.info:
   
     print_design_info(file, 'design', args.set)
     print_design_info(file, 'physical', args.set)
-  os.sys.exit()  
 
-if args.saveall:
+elif args.saveall:
   for f in input:
     img, den = get_image(f, args.set, args.design)
     base = f[:-12] if f.endswith('.density.xml') else f
     print("save '" + base + ".png'")
     img.save(base + '.png')
+    
+elif args.gifs:
+  images = []
+   
+  if len(input) > 1:
+    # read from separate files
+    for file in input:
+      img, den = get_image(file, args.set, args.design, args.fill)
+      images.append(img)
+  else:
+    # read sets: TODO - read XML only once!
+    xml = open_xml(input[0])
+    sets = []
+    for set in xml.xpath('//set'):
+      sets.append(int(set.attrib['id']))
+      #print(etree.tostring(set.xpath('//[@id]')))
+    print('read', len(sets),'sets from',input[0] + ': ',end='') # only python3
+    for i in sets:
+      print(i,' ',end='' if i < sets[-1] else '\n',flush=True)
+      img, den = get_image(input[0], str(i), args.design, args.fill)
+      images.append(img)  
+  # https://note.nkmk.me/en/python-pillow-gif/
+  # loop = 0 for endleess, duration in ms per image
+  images[0].save(args.gifs, save_all=True, append_images=images[1:], optimize=True, duration=375, loop=1)
+  print("wrote animated gif '" + args.gifs + "' with " + str(len(input)) + " images")   
+  
+      
 else:
   for file in input:
     img, den = get_image(file, args.set, args.design, args.fill)

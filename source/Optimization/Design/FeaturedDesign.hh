@@ -32,6 +32,9 @@ public:
    * Sparse and dense! */
   virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) override;
 
+  /** write a line with all variables and all gradients to a single line. Called for each iteration */
+  void WriteGradientFile() override;
+
   /** same as in DesignSpace, setting elements to zero, but also aux elements */
   virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT) override;
 
@@ -65,7 +68,19 @@ public:
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
    * @param locality just given to assert() it is PREV_AND_NEXT */
-  virtual void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) = 0;
+  virtual void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) {
+    throw Exception("FeatureMapping does not define SetupVirtualShapeElementMap for " + f->ToString());
+  }
+
+  /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
+  virtual  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) {
+    throw Exception("FeatureMapping does not define SetupVirtualMultiShapeElementMap for " + f->ToString());
+  }
+
+  /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
+  virtual void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) {
+    throw Exception("FeatureMapping does not define SetupCyclicVirtualShapeElementMap for " + f->ToString());
+  }
 
   /** The integration strategy applied forItem::GetOrder() */
   typedef enum { CONSTANT_FULL, FULL_OR_NOTHING, TAILORED } IntStrategy;
@@ -160,7 +175,7 @@ protected:
    * TANH_SUM limits via tanh_l( sum(tanh(shape) ) where tanh_l maps to 0..1 with own beta and the beta within sum(tanh(shape)) is halfed.
    *
    * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
-  typedef enum {NO_COMBINE, MAX, TANH_SUM } Combine;
+  typedef enum {NO_COMBINE, MAX, TANH_SUM, KS, P_NORM } Combine;
 
   /** this describes the continuation of a structure in 1D. See feature mapping review.
    * Not every class uses all boundary functions, this is handled in the schema file */

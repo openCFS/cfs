@@ -181,6 +181,9 @@ namespace CoupledField {
 
     po::notify( varMap_ );
 
+    // obtain schema path once and prior --version prints the information
+    schemaPath_ = FindSchemaPath();
+
     // Check if colored output should be switched off
     if( varMap_.count("noColor") != 0) {
       ColoredConsole::suppressed = true;
@@ -217,19 +220,6 @@ namespace CoupledField {
       cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
-
-    // obtain schema path once
-    schemaPath_ = FindSchemaPath();
-
-    /*
-    // If no argument was given, print additional information
-    if( varMap_.count("simName") == 0 )
-    {
-      GetHeaderString(cout);
-      cout << "cfs: no input files. Please run with --help for help\n";
-      exit(EXIT_SUCCESS);
-    }
-    */
   }
 
   string ProgramOptions::EnvironmentNameMapper(const string& var )

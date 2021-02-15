@@ -34,16 +34,6 @@ def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
   i,j,k = cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz)
   array[i,j,k] = val
 
-# calculates barycenter of element e
-def calc_barycenter(mesh,e):
-  center = numpy.array([0.0, 0.0, 0.0])
-  len_nod = len(e.nodes)
-  for n in range(len_nod):
-    center += mesh.nodes[e.nodes[n]]
-  center *= 1.0 / len_nod
-
-  return center
-
 # node1/2: coordinates of respective node
 def calc_edge_length(mesh,node1,node2):
   return numpy.linalg.norm(numpy.array(node1)-numpy.array(node2))
@@ -148,7 +138,6 @@ class Element:
     self.rotZ = 0
     self.type = -1
 
-
   def dump(self):
     print(self.nodes)
     print(self.region)
@@ -172,6 +161,15 @@ class Mesh:
     assert(self.nx > 0 and self.ny > 0)
     return self.elements[i * self.nx + j]
 
+  # compute the barycenter of the given element 
+  def calc_barycenter(self,e):
+    center = numpy.zeros(len(self.nodes[0]))
+    for n in e.nodes:
+      center += numpy.array(self.nodes[n])
+    center /= len(e.nodes)
+
+    return center
+      
 # adds same number of boundary nodes on adjacent sides to assure periodic b.c
 # @ min_diam
 def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=1e-3):
@@ -315,7 +313,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   for y in range(ny + 1):
     for x in range(nx + 1):
       if angle == 0.0:
-        mesh.nodes.append((x * dx, y * dy))
+        mesh.nodes.append((round(x * dx,15), round(y * dy,16)))
       else:
         x_Coord = round(x * dx - y * dy * math.tan(angle), 8)
         if abs(x_Coord) < 1e-8:
@@ -696,11 +694,11 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   if numbering == 'row_major':
     for y in range(ny + 1):
       for x in range(nx + 1):
-        mesh.nodes.append((offx + x * dx, offy + y * dy))
+        mesh.nodes.append((round(offx + x * dx,15), round(offy + y * dy,15)))
   else:
     for x in range(nx + 1):
       for y in range(ny + 1):
-        mesh.nodes.append((offx + x * dx, offy + y * dy))
+        mesh.nodes.append((round(offx + x * dx,15), round(offy + y * dy,15)))
 
   scale = 2 if type == 'triangle_msfem' else 1
 
@@ -2330,7 +2328,7 @@ def voxelize_mesh_from_optistruct(filename,res):
 #     array[i,j,k] = 1
 
   for e in elems:
-    barycenter = calc_barycenter(mesh,e)
+    barycenter = mesh.calc_barycenter(e)
     set_array_point(array,barycenter, hx, hy, hz, minx, miny, minz, 1)
 
     # calc longest side of triangle
@@ -2679,7 +2677,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           if (node[1] >= -0.33403 - ((0.5*dy)/dy_f) and node[1] < -0.33303 + ((0.5*dy)/dy_f)) or (node[1] <= -0.35203 + ((0.5*dy)/dy_f) and node[1] > -0.35303 - ((0.5*dy)/dy_f)):
             count +=1
         # calculate center of element
-        center = calc_barycenter(mesh, e)
+        center = mesh.calc_barycenter(e)
 
         if count >= 5:
           # test if is in convex hull of non-design nodes
@@ -2797,7 +2795,7 @@ def add_bc_for_box_varel(mesh,bounds,pfem=None):
   else:
     assert(pfem)
     for e in mesh.elements:
-      bac = calc_barycenter(mesh,e)
+      bac = mesh.calc_barycenter(e)
       # define support surfaces
       if bac[1] < 1e-3:
         for b in [bac[0],bac[2]]:
@@ -2944,7 +2942,7 @@ def add_surf_elems_on_bb_faces(mesh,bounds):
   xmin,ymin,zmin,xmax,ymax,zmax = bounds
 
   for e in elems:
-    baryc = calc_barycenter(mesh, e)
+    baryc = mesh.calc_barycenter(e)
     surf = Element()
     reg = None
 #     if numpy.isclose(baryc[0],xmin,1e-4):

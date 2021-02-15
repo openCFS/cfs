@@ -30,10 +30,8 @@ public:
    * @param lower_violation the maximal violation */
   void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation) override;
 
-  /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
-   * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
-   * @param locality just given to assert() it is PREV_AND_NEXT */
-  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override {}
+  /** Set's up distance neighborhood (all nodes of a shape) */
+  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override;
 
   /** sets radius for spaghetti.py to visualize the stuff */
   void AddToDensityHeader(PtrParamNode pn) override;
@@ -50,11 +48,13 @@ public:
   public:
     void Parse(PtrParamNode pn, int noodle);
 
-    /** all other BaseDesignElement childs do this in the constructor.
+    /** all other BaseDesignElement children do this in the constructor.
      * @see SetOptIndex() */
     void SetIndex(int idx) { index_ = idx; }
 
     void ToInfo(PtrParamNode in) const;
+
+    std::string GetLabel() const override;
 
     /** does not apply for all */
     Tip tip = NO_TIP;
@@ -81,6 +81,12 @@ private:
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
   void MapFeatureGradient(const Function* f) override;
+
+  /** get generic special results from python.
+   * MapFeatureGradient() is called for every function and the generic design might be for the next call only. */
+  void PrepareSpecialResults() override;
+
+
 
   struct Noodle
   {
@@ -114,8 +120,6 @@ private:
     double         p = -1; // profile is doubled width
     StdVector<double> a; // list normals
 
-
-
     /** shape index */
     int idx = -1;
   private:
@@ -134,6 +138,9 @@ private:
   /** create/update all spaghetti data in python */
   void PythonUpdateSpaghetti();
 
+  /** gives the result of the python function cfs_info_field_keys */
+  StdVector<std::string> PythonGetInfoFieldKeys();
+
   /** structured access to the full design space. Note that spaghetti is a plural of noodle.
    * Within the noodles are all Variables referenced in FeaturedDesign::shape_param_ and FeaturedDesign::opt_shape_param_
    * @See SetupDesign(), also for ordering within (opt_)shape_param_ */
@@ -148,8 +155,12 @@ private:
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;
 
-  /** in the 'python' element, the 'file' attribute */
-  std::string pythonfile;
+  /** used python script. Based on 'file' and optional 'path' in the 'python' element */
+  std::string file_;
+
+  /** the python version */
+  std::string version_;
+
 
   /** in the 'python' element, the 'option' elements. See PythonTools::CreatePythonDict */
   StdVector<std::pair<std::string, std::string> > pyopts;
@@ -157,7 +168,7 @@ private:
   /** this contains the (later optional) Python module */
   PyObject* python = NULL;
 
-
+  PtrParamNode sp_info_; // our own info
 
   /** created in ToInfo() */
   boost::shared_ptr<Timer> py_timer;

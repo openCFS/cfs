@@ -449,6 +449,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case DISTANCE:
+  case BENDING:
   case CONES:
   case DESIGN:
   case GLOBAL_DESIGN:
@@ -704,6 +706,7 @@ bool Function::CouldDoubleBounded(Type type)
 
   case SLOPE:
   case CURVATURE:
+  case BENDING:
     return true;
 
   default:
@@ -729,6 +732,8 @@ bool Function::IsLocal(Type t) {
   case CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case DISTANCE:
+  case BENDING:
   case CONES:
   case PERIODIC:
   case DESIGN:
@@ -852,6 +857,8 @@ bool Function::ForSensitivityFiltering() const {
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case DISTANCE:
+  case BENDING:
   case CONES:
   case DESIGN:
   case GLOBAL_DESIGN:
@@ -1031,6 +1038,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_CURVATURE:
   case OVERHANG_VERT:
   case OVERHANG_HOR:
+  case DISTANCE:
+  case BENDING:
   case CONES:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
@@ -1078,6 +1087,12 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
 
   if(slackFnct_ != NO_FUNCTION && (!space->HasSlackVariable() || !space->HasAlphaVariable()))
     throw Exception("for slackFunction '" + slackFnct.ToString(slackFnct_) + "' designs 'slack' and 'alpha' are required");
+
+  if(type_ == DISTANCE && design_ != DesignElement::NODE)
+    throw Exception("for constraint 'distance' use design 'node'");
+
+  if(type_ == BENDING && design_ != DesignElement::SPAGHETTI)
+    throw Exception("for constraint 'bending' use design 'spaghetti'");
 
   // don't define the elements here, it is specific for objective and conditions
 }
@@ -1226,6 +1241,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
     break;
 
+  case DISTANCE:
+  case BENDING:
+    if(locality_ != FUNCTION_SPECIFIC && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = FUNCTION_SPECIFIC;
+    break;
+
   case CONES:
     if(locality_ != MULT_DESIGNS_PREV_NEXT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
@@ -1345,8 +1367,7 @@ void Function::Local::PostInit()
   string fname = Function::type.ToString(ftype);
 
   // this is actually pure constructor work, just extracted to handle function size
-  ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
-  SplineBoxDesign* sbd = dynamic_cast<SplineBoxDesign*>(space);
+  FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space); // only not null if we do not shape mapping or other feature mapping
   assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfFeatureMappingVariables() == 0));
 
   switch (locality_)
@@ -1379,10 +1400,8 @@ void Function::Local::PostInit()
   case MULT_DESIGNS_PREV_NEXT:
   case MULT_DESIGNS_NEXT_AND_REVERSE:
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
-    if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
-      smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
-    else if(BaseDesignElement::IsSplineBoxType(func_->GetDesignType()))
-      sbd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
+    if(BaseDesignElement::IsFeatureMappingType(func_->GetDesignType()))
+      fd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupMultDesignsVirtualElementMap(func_);
     break;
@@ -1396,18 +1415,16 @@ void Function::Local::PostInit()
 
   case CYCLIC:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
-      smd->SetupCyclicVirtualShapeElementMap(func_, virtual_elem_map, locality_);
+      fd->SetupCyclicVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
       throw Exception("the local function '" + func_->ToString() + "' is only mapping");
    break;
 
 
   default:
-    if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
-      smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
-    else if(BaseDesignElement::IsSplineBoxType(func_->GetDesignType()))
-      sbd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
-    else
+    if(BaseDesignElement::IsFeatureMappingType(func_->GetDesignType()))
+      fd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
+   else
       SetupVirtualElementMap(phase_);
     break;
   }
@@ -2267,6 +2284,14 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     fv = CalcOverhang(f->type_, local->eps_); // not GetEps() as we don't need it for VERT
     break;
 
+  case DISTANCE:
+    fv = CalcDistance(-1, false);
+    break;
+
+  case BENDING:
+    fv = CalcBending(-1, false);
+    break;
+
   case CONES:
     fv = CalcCones(local);
     break;
@@ -2451,6 +2476,14 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case OVERHANG_VERT:
     case OVERHANG_HOR:
       gv = CalcOverhangGradient(n, g->type_, local->eps_); // no GetEps()!
+      break;
+
+    case DISTANCE:
+      gv = CalcDistance(n, true);
+      break;
+
+    case BENDING:
+      gv = CalcBending(n, true);
       break;
 
     case CONES:
@@ -3257,6 +3290,112 @@ double Function::Local::Identifier::CalcCurvatureGradient(int neigh_idx) const
   return s * (neigh_idx == -1 ? -2 : 1);
 }
 
+
+double Function::Local::Identifier::CalcDistance(int neigh_idx, bool grad) const
+{
+  assert(neighbor.GetSize() >= 3); // to be also used by CalcBending()
+  double px = GetElement(-1)->GetPlainDesignValue();
+  double py = GetElement(0)->GetPlainDesignValue();
+  double qx = GetElement(1)->GetPlainDesignValue();
+  double qy = GetElement(2)->GetPlainDesignValue();
+
+  double dist = std::sqrt((qx-px)*(qx-px) + (qy-py)*(qy-py));
+
+  LOG_DBG(func) << "F:L:I:CD grad=" << grad << " ni=" << neigh_idx << " px=" << px << " py=" << py << " qx=" << qx << " qy=" << qy;
+
+  if(grad)
+    switch(neigh_idx)
+    {
+    case -1: // px
+      return -(qx-px)/dist;
+    case 0: // qy
+      return -(qy-py)/dist;
+    case 1: // qx
+      return (qx-px)/dist;
+    case 2: // qy
+      return (qy-py)/dist;
+    default:
+      return 0; // when used by bending, this is the right answer
+    }
+  else
+    return dist;
+}
+
+double Function::Local::Identifier::CalcBending(int neigh_idx, bool grad) const
+{
+  // see SpaghettiDesign::SetupVirtualShapeElementMap()
+  double prev = 0, mine = 0, next = 0;
+
+  int base = 3; // the first index for normals, distance is before. More complex for 3D and fixed for nodes
+  switch(bending)
+  {
+  case ZNZ:
+    mine = GetElement(base+0)->GetPlainDesignValue();
+    break;
+  case ZNN:
+    mine = GetElement(base+0)->GetPlainDesignValue();
+    next = GetElement(base+1)->GetPlainDesignValue();
+    break;
+  case NNN:
+    prev = GetElement(base+0)->GetPlainDesignValue();
+    mine = GetElement(base+1)->GetPlainDesignValue();
+    next = GetElement(base+2)->GetPlainDesignValue();
+    break;
+  case NNZ:
+    prev = GetElement(base+0)->GetPlainDesignValue();
+    mine = GetElement(base+1)->GetPlainDesignValue();
+    break;
+  case NO_BENDING:
+    assert(false);
+    break;
+  }
+
+  // see CalcCurvature(Gradient)
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+  double curv = s * (prev - 2 * mine + next);
+  double dist = CalcDistance(-1, false);
+  assert(dist > 0);
+
+  double res = -42;
+  if(grad) {
+    double d_curv = 0; // true for neigh_idx within distance nodes
+    if(neigh_idx >= base)
+    {
+      switch(bending)
+      {
+      case ZNZ:
+        assert(neigh_idx == base);
+        d_curv = s * -2;
+        break;
+      case ZNN:
+        assert(neigh_idx <= base+1);
+        d_curv = s * (neigh_idx == base ? -2 : 1);
+        break;
+      case NNZ:
+        assert(neigh_idx <= base+1);
+        d_curv = s * (neigh_idx == base+1 ? -2 : 1);
+        break;
+      case NNN:
+        d_curv = s * (neigh_idx == base+1 ? -2 : 1);
+        break;
+      case NO_BENDING:
+        assert(false);
+        break;
+      }
+    }
+
+    double d_dist = CalcDistance(neigh_idx, true);
+
+    res = (d_curv * dist - curv * d_dist) / (dist * dist);
+    LOG_DBG2(func) << "F:L:CD(" << neigh_idx << ") gr=" << grad << " curv=" << curv << " d_curv=" << d_curv
+                   << " dist=" << dist << " d_dist=" << d_dist << " -> " << res;
+  }
+  else
+    res = curv / dist;
+
+  return res;
+}
 
 
 double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
@@ -4096,18 +4235,30 @@ double Function::Local::Identifier::CalcDesignBound(Function* f, const Local* l,
   return -1.0; // please compiler
 }
   
-  double Function::Local::Identifier::CalcShape(Function* f, const Local* l) const {
-    assert(f->type_ == SHAPE_INF);
-    int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
-    ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
-    // note that if neighbor[0] should not be given, it points to the first design element and c.factor[1] is 0.0
-    double ret = this->element->GetDesign() * c.factor[0] - this->neighbor[0]->GetDesign() * c.factor[1];
-    return(ret);
-  }
+double Function::Local::Identifier::CalcShape(Function* f, const Local* l) const {
+  assert(f->type_ == SHAPE_INF);
+  int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
+  ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
+  // note that if neighbor[0] should not be given, it points to the first design element and c.factor[1] is 0.0
+  double ret = this->element->GetDesign() * c.factor[0] - this->neighbor[0]->GetDesign() * c.factor[1];
+  return(ret);
+}
 
-  double Function::Local::Identifier::CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const {
-    assert(f->type_ == SHAPE_INF);
-    int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
-    ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
-    return(neigh_idx == -1 ? c.factor[0] : -c.factor[1]); // if no neighbor given c.factor[0][1] is 0.0
-  }
+double Function::Local::Identifier::CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const {
+  assert(f->type_ == SHAPE_INF);
+  int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
+  ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
+  return(neigh_idx == -1 ? c.factor[0] : -c.factor[1]); // if no neighbor given c.factor[0][1] is 0.0
+}
+
+string Function::Local::Identifier::ToString() const
+{
+  std::stringstream ss;
+  ss << "s=" << sign << " sv=" << signs.ToString() << " b=" << bending;
+  ss << "e=" << element->ToString() << " n=";
+  for(const auto e : neighbor)
+    ss << e->ToString();
+
+  return ss.str();
+}
+

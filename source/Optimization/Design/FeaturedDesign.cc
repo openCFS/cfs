@@ -39,6 +39,8 @@ void FeaturedDesign::SetEnums()
   combine.SetName("FeaturedDesign::Combine");
   combine.Add(MAX, "max");
   combine.Add(TANH_SUM, "tanh_sum");
+  combine.Add(KS, "KS");
+  combine.Add(P_NORM, "p-norm");
 
   boundary.SetName("FeaturedDesign::Boundary");
   boundary.Add(TANH, "tanh");
@@ -196,6 +198,44 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   }
 }
 
+void FeaturedDesign::WriteGradientFile()
+{
+  if(!gradplot_.is_open())
+    return; // obviously the option was not set
+
+  gradplot_.precision(5);
+  gradplot_.flags(std::ios::scientific);
+
+  int iter = opt_->GetCurrentIteration();
+
+  int cnt = 0;
+  if(iter == 0)
+  {
+    gradplot_ << "# " << ++cnt << ": iter \t";
+    for(const ShapeParamElement* spe : opt_shape_param_)
+      gradplot_ << ++cnt << ": " << spe->GetLabel() << " \t";
+
+    for(const Function* f : opt_->GetFunctions(false))
+      if(!f->IsLocal())
+        for(const ShapeParamElement* spe : opt_shape_param_)
+          gradplot_ << ++cnt << ": d_" << f->ToString() << " / d_" << spe->GetLabel() << " \t";
+
+    gradplot_ << std::endl;
+  }
+  gradplot_ << iter << " \t";
+  for(const ShapeParamElement* spe : opt_shape_param_)
+    gradplot_ << spe->GetPlainDesignValue() << " \t";
+
+  for(const Function* f : opt_->GetFunctions(false))
+    if(!f->IsLocal())
+      for(const ShapeParamElement* spe : opt_shape_param_)
+        gradplot_ << spe->GetPlainGradient(f) << " \t";
+
+  gradplot_ << std::endl;
+  // trust on the destructor to close the file
+}
+
+
 void FeaturedDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
   assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::CP);
@@ -269,14 +309,13 @@ int FeaturedDesign::FindDesign(DesignElement::Type dt, bool throw_exception) con
   if(idx >= 0)
     return idx;
 
-  assert(dt != DesignElement::SPAGHETTI); // don't know yet how to handle
-
-  assert(dt == DesignElement::CP || dt == DesignElement::NODE
-      || dt == DesignElement::NODE || dt == DesignElement::PROFILE
-      || dt == DesignElement::SPLINE_BOX);
+  assert(dt == DesignElement::CP || dt == DesignElement::SPLINE_BOX || dt == DesignElement::SPAGHETTI
+      || dt == DesignElement::NODE || dt == DesignElement::PROFILE || dt == DesignElement::NORMAL);
 
   if(dt == DesignElement::SPLINE_BOX)
     dt = DesignElement::CP; // return the node index
+  if(dt == DesignElement::SPAGHETTI)
+    dt = DesignElement::NODE; // extremely ugly!! but to make bending work easily
 
   for(unsigned int i = 0; i < shape_param_.GetSize(); i++)
     if(shape_param_[i]->GetType() == dt)

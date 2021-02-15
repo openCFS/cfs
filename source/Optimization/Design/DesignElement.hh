@@ -162,7 +162,8 @@ public:
     SPLINE_BOX_GRAD_Y, /* gradient (sum over all ip w.r.t. control point movement in y direction) for a rho element for spline box mapping */
     SPLINE_BOX_GRAD_Z, /* gradient (sum over all ip w.r.t. control point movement in z direction) for a rho element for spline box mapping */
     SPLINE_BOX_INT_ORDER, /* the number of integration points for this element */
-    SPLINE_BOX_INT_CORNER /* the difference between the minimal and maximal corner values*/
+    SPLINE_BOX_INT_CORNER, /* the difference between the minimal and maximal corner values*/
+    GENERIC_ELEM /** with attribute generic with content from .info.xml, e.g. for Python spaghetti */
   } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
@@ -215,15 +216,19 @@ public:
    * @see ShapeMapDesign::Convert() */
   static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE || type == SHAPE_MAP; }
 
+  static bool IsSpaghettiType(Type type) { return type == NODE || type == PROFILE || type == NORMAL || type == SPAGHETTI; }
+
+  /** checks if the type is a splinebox feature mapping type. */
+  static bool IsSplineBoxType(Type type) { return type == SPLINE_BOX || type == CP; }
+
+  static bool IsFeatureMappingType(Type type) { return IsShapeMapType(type) || IsSpaghettiType(type) || IsSplineBoxType(type); }
+
   /** maps from SolutionType to DesignElement::Type. In the PHYSICAL_* case to the standard case */
   static Type MapSolutionType(SolutionType soltype, bool throw_exception = true);
 
   /** checks if this is a physical solution type where we filter and penalize */
   static bool IsPhysical(SolutionType soltype);
 
-  /** checks if the type is a splinebox feature mapping type.
-   * @see ShapeMapDesign::Convert() */
-  static bool IsSplineBoxType(Type type) { return type == SPLINE_BOX || type == CP; }
 
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
@@ -363,6 +368,9 @@ public:
 
   /** overwrite to add opt_idx */
   virtual std::string ToString() const;
+
+  /** gives a human readable label without values, e.g. for WriteGradFile() */
+  virtual std::string GetLabel() const;
 
   /** The dof for shape elements. This is the design variable, the other coordinates are implicitly given be the mesh.*/
   typedef enum { NOT_SET = -1, X=0, Y=1, Z=2 } Dof; // X=0 to Z=2 must not be changed, it is index to ShapeMapDesign::n_
@@ -692,6 +700,9 @@ public:
 
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
   DesignElement::Detail detail;
+
+  /** for value = generic only */
+  std::string generic;
 
   /** An optional excitation index. Negative for not set*/
   int excitation;

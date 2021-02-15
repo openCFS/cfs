@@ -787,7 +787,10 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
   // no space and brackets to have no problems with info.xml and no problems with the paraview calculator
-  ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
+  if(rd.value == DesignElement::GENERIC_ELEM)
+    ri->resultName = rd.generic;
+  else
+    ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + "_"
                    + DesignElement::access.ToString(rd.access)
@@ -820,6 +823,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   // let the caller or a shared pointer delete it finally
   return ri;
 }
+
 int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                        DesignElement::Detail detail, DesignElement::Access access, const std::string& excitation)
 {
@@ -845,6 +849,30 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
   }
   return -1; // the specified triple was not specified such in xml
 }
+
+int DesignSpace::GetSpecialResultIndex(DesignElement::ValueSpecifier value, const std::string& generic)
+{
+  assert(value == DesignElement::GENERIC_ELEM);
+
+  for(const ResultDescription& rd : resultDescriptions)
+    if(rd.value == value && rd.generic == generic)
+      return rd.solutionType - OPT_RESULT_1;
+
+  return -1;
+}
+
+StdVector<const ResultDescription*> DesignSpace::GetGenericResults() const
+{
+  StdVector<const ResultDescription*> res;
+
+  for(const ResultDescription& rd : resultDescriptions)
+    if(rd.value == DesignElement::GENERIC_ELEM)
+      res.Push_back(&rd);
+
+  return res;
+}
+
+
 void DesignSpace::AssertOneDesignOnly()
 {
   if(design.GetSize() != 1)
@@ -1915,6 +1943,8 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   assert(Optimization::context);
   Optimization::context->Update();
 
+  // only for rare generic cases
+  PrepareSpecialResults();
 
   // our results are up to now scalar!
   Result<T>& result = dynamic_cast<Result<T> &>(*base_result);

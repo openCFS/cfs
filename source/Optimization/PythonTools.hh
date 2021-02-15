@@ -17,11 +17,13 @@ namespace CoupledField
 {
   /** Initialize the embedded Python interpreter via the modules form cfs_init to be available in
    * Python via "import cfs".
-   * @param file the python module to be loaded
+   * @param file the python module to be loaded. Can include a full path if attribute path is empty
+   * @param path optional path (leave empty if not given). "cfs:share:python" is a special key which uses ProgramOption->GetSchemaPath() + "../python"
    * @param init_cfs static function like PythonOptimizer::PyInit_cfs to contain the C-Functions to be exported. Can be NULL
+   * @param file_out the actually used file
    * @param version_out gets the the python version set
    * @return module which needs to be destroyed as in PythonOptimizer::~PythonOptimizer() */
-  PyObject* InitializePythonModule(const std::string& file, PyObject* (*init_cfs)(), std::string* version_out = NULL);
+  PyObject* InitializePythonModule(const std::string& file, const std::string& path, PyObject* (*init_cfs)(), std::string* file_out = NULL, std::string* version_out = NULL);
 
   /** DOES NOT WORK! SHALL REPLACE PythonOptimizer::ParseArrays() BUT SEGAULTS ?!
    * Helper which processes a PyTupleObject which needs to consist only of 1dim numpy arrays

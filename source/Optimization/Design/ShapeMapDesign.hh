@@ -59,7 +59,8 @@ public:
 
   void ToInfo(ErsatzMaterial* em) override;
 
-  /** creates a gnuplot file for the current iteration with the design value and derivatives */
+  /** creates a gnuplot file for the current iteration with the design value and derivatives.
+   * Overwrites the file for each iteration */
   void WriteGradientFile() override;
 
   /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
@@ -73,10 +74,10 @@ public:
   void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override;
 
   /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
-  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
+  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override;
 
   /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
-  void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
+  void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override;
 
   /** this maps the mesh to a regular lexicographic design representation. For the moment it assumes the mesh to be already
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!

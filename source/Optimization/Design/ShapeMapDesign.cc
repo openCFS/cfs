@@ -43,6 +43,9 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
   this->export_leveset_ = pn->Has("shapeMap/export") ? pn->Get("shapeMap/export/enable")->As<bool>() : false;
 
+  if(pn->Get("shapeMap/gradplot")->As<bool>())
+    gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
+
   // set shape_, shape_param_ and map_, does not apply the mapping yet
   SetupDesign(pn->Get("shapeMap"));
 
@@ -2087,40 +2090,44 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
 void ShapeMapDesign::WriteGradientFile()
 {
   // plot the stuff like this:
-  // plot "shape_map_mech.grad.plot" u 1:6 every ::0::40 w lp, "shape_map_mech.grad.plot" u ($1-41):6 every ::41::82 w lp
+  // plot "shape_map_mech.grad.dat" u 1:6 every ::0::40 w lp, "shape_map_mech.grad.dat" u ($1-41):6 every ::41::82 w lp
 
-  std::ofstream out;
-  string name = progOpts->GetSimName() + ".grad.plot";
-  out.open(name.c_str());
-  out.precision(8);
-  out.flags(std::ios::scientific);
+  if(!gradplot_.is_open())
+    return; // obviously the option was not set
+
+  // for shape map only the state of a single iteration makes sense, hence we overwrite for every iteration
+  gradplot_.seekp(0);
+
+  gradplot_.precision(8);
+  gradplot_.flags(std::ios::scientific);
 
   assert(opt_->objectives.data.GetSize() == 1);
-  out << "#gnuplot: plot \"" << progOpts->GetSimName() << ".grad.plot\"  u 1:6 every ::0::" << (shape_[0].end_opt-1) << " w lp";
-  out << ", \"" + progOpts->GetSimName() << ".grad.plot\"  u ($1-" << shape_[0].end_opt << "):6 every ::"
+  gradplot_ << "# iteration: " << opt_->GetCurrentIteration() << std::endl;
+  gradplot_ << "# gnuplot: plot \"" << progOpts->GetSimName() << ".grad.dat\"  u 1:6 every ::0::" << (shape_[0].end_opt-1) << " w lp";
+  gradplot_ << ", \"" + progOpts->GetSimName() << ".grad.dat\"  u ($1-" << shape_[0].end_opt << "):6 every ::"
       << shape_[0].end_opt << "::" << (2*shape_[0].end_opt) << " w lp" << std::endl;
-  out << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " << opt_->objectives.data[0]->ToString();
+  gradplot_ << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " << opt_->objectives.data[0]->ToString();
 
   int cnt = 6; // will be preincremented
   for(unsigned int g = 0; g < opt_->constraints.all.GetSize(); g++)
     if(opt_->constraints.all[g]->HasDenseJacobian())
-      out << " ("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + "\t";
-  out << std::endl;
+      gradplot_ << " ("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + "\t";
+  gradplot_ << std::endl;
 
   Function* c = opt_->objectives.data[0];
   for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
   {
     ShapeParamElement* spe = opt_shape_param_[e];
     ShapeParam* shape = GetShape(spe);
-    out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << shape->idx << " \t";
-    out << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + dynamic_cast<ShapeMapVariable*>(opt_shape_param_[e])->sym->GetPlainSymGradient(c)) << " \t";
+    gradplot_ << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << shape->idx << " \t";
+    gradplot_ << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + dynamic_cast<ShapeMapVariable*>(opt_shape_param_[e])->sym->GetPlainSymGradient(c)) << " \t";
 
     for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
       if(opt_->constraints.all[g]->HasDenseJacobian())
-        out << spe->constraintGradient[g] << " \t";
-    out << std::endl;
+        gradplot_ << spe->constraintGradient[g] << " \t";
+    gradplot_ << std::endl;
   }
-  out.close();
+  // trust on the destructor to close the file
 }
 
 

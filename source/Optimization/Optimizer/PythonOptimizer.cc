@@ -114,13 +114,11 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 
   assert(this_opt_pn_ != NULL);
 
-  givenname = this_opt_pn_->Get("file")->As<string>();
-
   string version;
-  module = InitializePythonModule(givenname.string(), PyInit_cfs, &version);
+  module = InitializePythonModule(this_opt_pn_->Get("file")->As<string>(), this_opt_pn_->Get("path")->As<string>(), PyInit_cfs, &givenname,&version);
 
-  pyinf_->Get(ParamNode::HEADER)->Get("givenname")->SetValue(givenname.string());
-  pyinf_->Get(ParamNode::HEADER)->Get("python")->SetValue(version);
+  pyinf_->Get(ParamNode::HEADER)->Get("file")->SetValue(givenname);
+  pyinf_->Get(ParamNode::HEADER)->Get("version")->SetValue(version);
 
   // the options are given to the python functions setup() and solve() for their usage
   ParamNodeList lst = this_opt_pn_->GetList("option");
@@ -164,7 +162,7 @@ void PythonOptimizer::SolveProblem()
   std::string val;
   PyObject* solve = PyObject_GetAttrString(module, "solve");
   if(!solve || !PyCallable_Check(solve))
-    throw Exception("no solve() in python module " + givenname.string());
+    throw Exception("no solve() in python module " + givenname);
 
   PyObject* arg = PyTuple_New(4);
   PyTuple_SetItem(arg, 0, PyLong_FromLong(n));

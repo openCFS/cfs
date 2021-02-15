@@ -129,6 +129,8 @@ class Function
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
       OVERHANG_VERT,             /*!< Overhang constraint for vertical (dof=x) shape mapping structures for additive manufacturing.  */
       OVERHANG_HOR,              /*!< Overhang constraint for horizontal (dof=y) shape mapping structures for additive manufacturing */
+      DISTANCE,                  /*!< distance between start and end nodes of a noode (spaghetti design) */
+      BENDING,                   /*!< noodle curvature divided by distance between start and end nodes (spaghetti design) */
       CONES,                     /*!< Cone constraints for injectivity of spline box in feature mapping */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
@@ -373,21 +375,22 @@ class Function
       typedef enum {
         DEFAULT,                 /*!< Function::PostProc() finds proper value */
         NEXT,                    /*!< x_i and x_i+1 */              /* x, x+, y+ and xy +*/
-        NEXT_AND_REVERSE,  /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
         NEXT_DIAG,
         PREV_NEXT,
         PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
-        CYCLIC,                /*!< The periodic element for the the periodic constraint */
+        CYCLIC,                  /*!< The periodic element for the the periodic constraint */
         ELEMENT,                 /*!< For stress there is no neighborhood, only the element itself */
         MULT_DESIGNS_ELEMENT,    /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
-        SHAPE,                    /*!< SHAPE, the sparsity pattern is read from file */
+        SHAPE,                   /*!< SHAPE, the sparsity pattern is read from file */
         MULT_DESIGNS_NEXT,                    /*!< x_i and x_i+1 */
         MULT_DESIGNS_NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
         MULT_DESIGNS_PREV_NEXT,
-        MULT_DESIGNS_PREV_NEXT_AND_REVERSE /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
+        MULT_DESIGNS_PREV_NEXT_AND_REVERSE,  /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
+        FUNCTION_SPECIFIC        /*!< tuned for single complex functions: distance, bending */
       } Locality;
 
       static Enum<Locality> locality;
@@ -462,7 +465,7 @@ class Function
         /** Identifier when we have a neighborhood defined by a radius - eg mole */
         Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si = NO_SIGN);
 
-        /** Identifier when we have a neighborhood defined by a radius - eg mole */
+        /** spline box specific variant (cones) */
         Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, StdVector<BaseDesignElement*> sb_buddies, int si = NO_SIGN);
 
         /** Returns the element
@@ -505,6 +508,12 @@ class Function
         /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
         double CalcOverhang(Function::Type ft, double eps) const;
         double CalcOverhangGradient(int neigh_idx, Function::Type ft, double eps) const;
+
+        /** distance of start and end nodes of a noodle for spaghetti optimization */
+        double CalcDistance(int neigh_idx, bool grad) const;
+
+        /** noodle curvature divided by distance of start and end node for spaghetti optimization */
+        double CalcBending(int neigh_idx, bool grad) const;
 
         /** calculate the cone constraint for spline box variables */
         double CalcCones(const Local* local) const;
@@ -606,6 +615,9 @@ class Function
         double CalcShape(Function* f, const Local* l) const;
         double CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const;
 
+        /** debug output */
+        std::string ToString() const;
+
         BaseDesignElement* element; // this represents DesignSpace::data[element_idx]
 
         /** this are all design elements for the local function. For slopes a spatial neighborhood, for
@@ -613,6 +625,7 @@ class Function
          * @see GetElement() */
         StdVector<BaseDesignElement*> neighbor;
 
+        /** a spline box neighbor - specific for cones */
         StdVector<BaseDesignElement*> sb_neighbor;
 
         /** sign is only needed if we treat slope constraints as two separate constraints.
@@ -622,6 +635,12 @@ class Function
         int sign;
 
         StdVector<int> signs;
+
+        /** specific to bending for spaghetti with variable Normal: 0 N 0, 0 N N, N N 0, N N N */
+        typedef enum { NO_BENDING, ZNZ, ZNN, NNZ, NNN } BendingType;
+
+        BendingType bending = NO_BENDING;
+
       private:
         /** to be reused */
         static StdVector<double> tmp1;

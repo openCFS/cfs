@@ -51,8 +51,8 @@ private:
   /** the options from the xml file */
   StdVector<std::pair<std::string, std::string> > options;
 
-  /** given filename */
-  boost::filesystem::path givenname;
+  /** given filename. Possibly via file and path which path = cfs:share:python key */
+  std::string givenname;
 
   /** the module givenname opened as embedded python environment */
   PyObject* module = NULL;

@@ -2,6 +2,7 @@
 #include <numpy/core/include/numpy/arrayobject.h>
 
 #include "Optimization/PythonTools.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "General/Exception.hh"
 
 
@@ -15,10 +16,18 @@ using std::to_string;
 using std::pair;
 
 
-PyObject* InitializePythonModule(const string& file, PyObject* (*init_cfs)(), string* version_out)
+PyObject* InitializePythonModule(const string& file, const string& opt_path, PyObject* (*init_cfs)(), string* file_out, string* version_out)
 {
-  boost::filesystem::path givenname(file);
-
+  boost::filesystem::path givenname(file); // default
+  if(opt_path != "")
+  {
+    if(opt_path == "cfs:share:python")
+      givenname = progOpts->GetSchemaPath().parent_path().append("python").append(file);
+    else
+      givenname = boost::filesystem::path(opt_path).append(file);
+  }
+  if(file_out)
+    *file_out = givenname.string();
 
   if(!boost::filesystem::exists(givenname))
     throw Exception("cannot find python file '" + givenname.string() + "' for python optimizer");

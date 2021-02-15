@@ -267,7 +267,9 @@ namespace CoupledField
       * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
 
-     /** creates a gnuplot file for the current iteration. To be triggered by cfs -d and only implemented in shape map design */
+     /** creates a gnuplot file for the current iteration. To be triggered by gradplot for FeaturedDesign stuff and only implemented shapeMap and spaghetti.
+      * Called for every iteration
+      * @see gradplot_ */
      virtual void WriteGradientFile() {} ;
 
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
@@ -435,6 +437,14 @@ namespace CoupledField
                                   DesignElement::Access access = DesignElement::PLAIN,
                                   const std::string& excitation = "");
 
+     /** results of special type generic where the specification generic is created dynamically and written somewhere to .info.xml.
+      * E.g. for Python spaghetti
+      * @param value shall be GENERIC_ELEM */
+     int GetSpecialResultIndex(DesignElement::ValueSpecifier value, const std::string& generic);
+
+     /** collect all generic results. GENERIC_ELEM and possibly late the nodes also */
+     StdVector<const ResultDescription*> GetGenericResults() const;
+
      /** Dumps the design space
       * @param level 0 many data, 1 only design values */
      std::string ToString(int level = 0);
@@ -555,7 +565,7 @@ namespace CoupledField
      // this internal bool is set to false in default mode
      bool write_matrix_filt;
 
-    protected:
+  protected:
 
 
      /** handles design and region reordering */
@@ -569,6 +579,11 @@ namespace CoupledField
      /** Initialized the LocalElementCache. Called by PostInit() */
      void SetupLocalElementCache();
 
+     /** very few special results don't write there content to DesignElement at once, e.g. generic results for spaghetti.
+      * Then there is the option to implement this function and provide the data.
+      * Called right at the beginning of ExtractResults() */
+     virtual void PrepareSpecialResults() {}
+
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */
      int design_id;
@@ -578,6 +593,9 @@ namespace CoupledField
 
      /** the timer for design setup for Constructor and PostInit(). */
      shared_ptr<Timer> setup_timer_;
+
+     /** file for WriteGradientFile() */
+     std::ofstream gradplot_;
 
   private:
 
