@@ -111,3 +111,5 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DiffScheme.xsd ${DST_DIR}/Schemas/CFSDat_DiffScheme.xsd
   COMMENT "Updating XML schemata for CFS-Dat..."
 )
+
+install(DIRECTORY "${CFS_BINARY_DIR}/share/xml" DESTINATION "share/" USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE PATTERN "*.cmake" EXCLUDE)

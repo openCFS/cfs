@@ -584,10 +584,14 @@ if(UNIX)
   # tailing / in source leads to rename to destionation
   #install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
   install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS)
-  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
+  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS
+	  PATTERN "*.a" EXCLUDE
+	  PATTERN "*.la" EXCLUDE
+	  PATTERN "*.pc" EXCLUDE
+          PATTERN "pkgconfig" EXCLUDE
+	  ) # lib64 only works for 64bit ...
 else(UNIX)
   message("Install currently restricted to UNIX")
 endif(UNIX)
-install(DIRECTORY "${CFS_BINARY_DIR}/share/" DESTINATION "share" USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE)
 
 include(CPack)

@@ -120,7 +120,7 @@ ADD_CUSTOM_TARGET(distro_script ALL
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${DISTRO_SCRIPT}
   COMMENT "Copying \"${DISTRO_SCRIPT}\" script to ${CFS_BINARY_DIR}/share/scripts folder..."
   )
-install(PROGRAMS ${DISTRO_SCRIPT} DESTINATION bin)
+install(PROGRAMS ${DISTRO_SCRIPT} DESTINATION share/scripts)
 
 # THIS IS A PROTOTYPE FOR NSIS INSTALLER --> not yet included/supported
 #----------------------------------------------------------------------------------
