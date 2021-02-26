@@ -27,8 +27,9 @@
 #include "MatVec/Vector.hh"
 #include "Utils/StdVector.hh"
 
+
 #include <def_use_cgal.hh>
-#ifdef USE_CGAL 
+#ifdef USE_CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/basic.h>
 #include <CGAL/Search_traits_3.h>

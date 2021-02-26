@@ -184,9 +184,9 @@ if(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
   message(FATAL_ERROR "Either USE_ILUPACK or USE_ILUPACK_PARALLEL. Both cannot be swithed on together")
 endif()
 
-if(BUILD_CFSDAT AND NOT USE_CGAL)
-  message(FATAL_ERROR "BUILD_CFSDAT requires USE_CGAL, correct your configuration.")
-endif()
+#if(BUILD_CFSDAT AND NOT USE_CGAL)
+#  message(FATAL_ERROR "BUILD_CFSDAT requires USE_CGAL, correct your configuration.")
+#endif()
 
 if(USE_CGAL AND USE_LIBFBI)
   message(FATAL_ERROR "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")

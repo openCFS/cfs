@@ -85,7 +85,7 @@ void GridIntersectionFilter::PrepareCalculation(){
 
   StdVector<ElemIntersect::VolCenterInfo> intersectInfo;
 
-
+#ifdef USE_CGAL
   //first we create the cell intersector
   //YET MISSING make sanity check if all region have same dimension
   UInt intersetionDim = 1;
@@ -106,7 +106,9 @@ void GridIntersectionFilter::PrepareCalculation(){
   }else{
     EXCEPTION("Unsupported dimension of intersection region")
   }
-
+#else
+    EXCEPTION("Intersection needs to be compiled with USE_CGAL=ON!");
+#endif
 
 
 

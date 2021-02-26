@@ -18,12 +18,14 @@
 #include <algorithm>
 #include <vector>
 
+#ifdef USE_CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/basic.h>
 #include <CGAL/Search_traits_3.h>
 #include <CGAL/Search_traits_adapter.h>
 #include <CGAL/point_generators_3.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
+#endif
 #include <boost/iterator/zip_iterator.hpp>
 #include <utility>
 
@@ -34,7 +36,7 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
 :AeroacousticBase(numWorkers,config,resMan){
 
 #ifndef USE_CGAL
-  EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
+  EXCEPTION("Lighthill needs to be compiled with USE_CGAL=ON!");
 #endif
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -115,7 +117,7 @@ Lighthill::~Lighthill(){
 
 }
 
-
+#ifdef USE_CGAL
 bool Lighthill::UpdateResults(std::set<uuids::uuid>& upResults) {
   /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
@@ -280,7 +282,6 @@ void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorFor
   /**************** Div(Term 1 + Term 2) *****************************/
   CalcDivergence(tempRetVec, LightVecN, numEquPerEnt_, sourceMDiv, targetSourceFactorDiv, maxNumTrgEntities);
 }
-
 
 
 // cgal copy and paste stuff for association of points to CF::UInt from
@@ -737,6 +738,18 @@ std::cout<<"AdaptFilterResults Form_ = "<<Form_<<std::endl;
   //validate own result
   resultManager_->SetValid(filterResIds[0]);
 }
+
+#else
+
+ResultIdList Lighthill::SetUpstreamResults(){
+  return SetDefaultUpstreamResults();
+}
+bool Lighthill::UpdateResults(std::set<uuids::uuid>& upResults) {
+	return true;
+}
+void Lighthill::PrepareCalculation(){}
+void Lighthill::AdaptFilterResults(){}
+#endif
 
 
 }

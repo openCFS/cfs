@@ -71,6 +71,7 @@ protected:
 
 private:
 
+#ifdef USE_CGAL
   void LambVector(Vector<Double>& tempRetVec);
 
   void LighthillTensor(Vector<Double>& tempRetVec);
@@ -78,7 +79,7 @@ private:
   void LighthillSourceVector(Vector<Double>& tempRetVec);
 
   void LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorForm);
-
+#endif
 
   Grid* inGrid_;
 

@@ -147,6 +147,9 @@ void CFSDatProgramOptions::ParseData(){
       std::cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
+
+    // obtain schema path once
+    schemaPath_ = FindSchemaPath();
 }
 
 CoupledField::UInt CFSDatProgramOptions::GetNumThreads() const

@@ -18,6 +18,7 @@
 #include "DataInOut/SimInput.hh"
 //#include <cfsdat/Utils/Point.hh>
 #include <Filters/MeshFilter.hh>
+#include <def_use_cgal.hh>
 
 
 namespace CFSDat{
@@ -43,8 +44,8 @@ public:
 
   virtual ~RBFInterpolator();
 
-
 protected:
+
 
   virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
@@ -52,13 +53,15 @@ protected:
 
   virtual ResultIdList SetUpstreamResults();
 
+  virtual void AdaptFilterResults();
+
+#ifdef USE_CGAL
   Double DistanceEUCLID(CF::Vector<Double> p1, CF::Vector<Double> p2);
 
   void PreparePATCH();
 
   void PrepareCGAL();
-
-  virtual void AdaptFilterResults();
+#endif
 
 private:
 

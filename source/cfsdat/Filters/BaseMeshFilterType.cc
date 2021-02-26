@@ -36,6 +36,9 @@
 #include "Filters/Interpolators/L2norm.hh"
 
 
+#include <def_use_cgal.hh>
+
+
 
 namespace CFSDat{
 

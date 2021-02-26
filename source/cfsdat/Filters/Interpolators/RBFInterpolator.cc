@@ -20,12 +20,15 @@
 #include <algorithm>
 #include <vector>
 
+#ifdef USE_CGAL
+#include <def_use_cgal.hh>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/basic.h>
 #include <CGAL/Search_traits_3.h>
 #include <CGAL/Search_traits_adapter.h>
 #include <CGAL/point_generators_3.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
+#endif
 #include <boost/iterator/zip_iterator.hpp>
 #include <utility>
 
@@ -66,6 +69,8 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
 RBFInterpolator::~RBFInterpolator(){
 
 }
+
+#ifdef USE_CGAL
 
 bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
   /// this is the vector, which will be filled with the result
@@ -705,5 +710,16 @@ void RBFInterpolator::AdaptFilterResults(){
   resultManager_->SetValid(filterResIds[0]);
 }
 
+#else
+
+ResultIdList RBFInterpolator::SetUpstreamResults(){
+  return SetDefaultUpstreamResults();
+}
+bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
+	return true;
+}
+void RBFInterpolator::PrepareCalculation(){}
+void RBFInterpolator::AdaptFilterResults(){}
+#endif
 
 }

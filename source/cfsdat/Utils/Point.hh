@@ -18,9 +18,11 @@
 #include "cfsdat/Utils/Defines.hh"
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
+#ifdef USE_CGAL
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Search_traits.h>
+#endif
 #include <list>
 #include <cmath>
 
@@ -72,7 +74,7 @@ struct Point {
   bool  operator!=(const Point& p) const { return ! (*this == p); }
 }; //end of class
 
-
+#ifdef USE_CGAL
 template <>
 struct Kernel_traits<CGAL::Point> {
   struct Kernel {
@@ -80,9 +82,10 @@ struct Kernel_traits<CGAL::Point> {
     typedef double RT;
   };
 };
+#endif
 } // end of namespace CGAL
 
-
+#ifdef USE_CGAL
 struct Construct_coord_iterator {
   typedef  const double* result_type;
   const double* operator()(const CGAL::Point& p) const
@@ -91,8 +94,9 @@ struct Construct_coord_iterator {
   const double* operator()(const CGAL::Point& p, int)  const
   { return static_cast<const double*>(p.vec+3); }
 };
+#endif
 
-
+#ifdef USE_CGAL
 struct Distance {
   typedef CGAL::Point Query_item;
   typedef double FT;
@@ -146,11 +150,12 @@ struct Distance {
   double inverse_of_transformed_distance(double d) { return std::sqrt(d); }
 
 }; // end of struct Distance
+#endif
 
-
-
+#ifdef USE_CGAL
 typedef CGAL::Search_traits<double, CGAL::Point, const double*, Construct_coord_iterator> Traits;
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
 typedef K_neighbor_search::Tree Tree;
+#endif
 
 
