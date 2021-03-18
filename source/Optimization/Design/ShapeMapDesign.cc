@@ -1743,7 +1743,8 @@ void ShapeMapDesign::MapFeatureToDensity()
     EvalAtIp eval(this);
 
      // the integration effort is not evenly distributed
-     #pragma omp for schedule(dynamic) reduction(+:cells_cnt,cells_order_sum)
+     // dynamic scheduling fails for gcc9 and is 4 times slower!!!
+     #pragma omp for schedule(static) reduction(+:cells_cnt,cells_order_sum)
      for(int r = 0; r < (int) map_.GetSize(); r++)
      {
        Item& item = map_[r];
@@ -1908,7 +1909,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
       eval[i].Init(this);
 
 
-     #pragma omp for schedule(dynamic)
+     #pragma omp for schedule(static) // dynamic fails for gcc9 and is much slower!
      for(Integer r = 0; r < (Integer) map_.GetSize(); r++) // traverse all rho design elements
      {
        Item& item = map_[r];

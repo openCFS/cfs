@@ -1022,8 +1022,7 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
 
     Vector<int> order(map_[0].min_corner_value.GetSize());
 
-    // loop over FE grid elements
-    //#pragma omp for schedule(dynamic)
+    // loop over FE grid elements -> why not parallel?!
     for(unsigned int r = 0; r < map_.GetSize(); r++)
     {
       Item& item = map_[r];

@@ -837,8 +837,11 @@ namespace CoupledField {
 
   void BaseGraph::MapSetToVector(){
     //convert set to vector
-    if(!setToElemDone_){
-  #pragma omp parallel for schedule(static,10) num_threads(CFS_NUM_THREADS)
+    if(!setToElemDone_)
+    {
+      // dynamic scheduling fails for gcc9.
+      // it was static,10 before but a quit test showed slight advantages without the option
+      #pragma omp parallel for schedule(static) num_threads(CFS_NUM_THREADS)
       for(int i=0;i< (int) numNodes_;i++){
         element_[i].resize(setElements_[i].size()); // TODO: This touches every element - combine with copy.
         std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
