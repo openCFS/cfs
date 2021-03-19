@@ -430,7 +430,7 @@ void Topology<T>::CalcGalerkinGraphs( DependencyGraph<T>& graph_AHT,
         }
         // Ni = N(i), nNi = |N(i)|
         // (by the way: (j in N(i)) <==> (A_ij != 0) AND i != j)
-        const Integer* const  Ni = NhEdges_ + NhStartIndex_[i] + 1;
+        const unsigned int*  const  Ni = NhEdges_ + NhStartIndex_[i] + 1;
         const Integer        nNi = NhStartIndex_[i+1] - NhStartIndex_[i] - 1;
         // k in N(i), ( <==> A_ik != 0 )
         for( Integer ik = 0; ik < nNi; ik++ ) {
@@ -500,7 +500,7 @@ void Topology<T>::CalcGalerkinGraphs( DependencyGraph<T>& graph_AHT,
 template <typename T>
 inline Integer Topology<T>::GetNumFineNeighbours( const Integer i ) const
 {
-    const Integer* const Neighbourhood   = NhEdges_ + NhStartIndex_[i];
+    const unsigned int* const Neighbourhood   = NhEdges_ + NhStartIndex_[i];
     const Integer        nNeighbours     = NhStartIndex_[i+1] -
                                            NhStartIndex_[i];
     Integer              nFineNeighbours = 0;
@@ -683,7 +683,7 @@ WriteCoarseNeighbours( const Integer        p,
 {
           Integer        nCN = 0;
     const Integer        nN  = NhStartIndex_[p+1] - NhStartIndex_[p];
-    const Integer* const  N  = NhEdges_ + NhStartIndex_[p];
+    const unsigned int* const  N  = NhEdges_ + NhStartIndex_[p];
 
     for( Integer i = 1; i < nN; i++ ) {
         if( CoarseIndex_[N[i]] >= COARSE ) {
@@ -703,7 +703,7 @@ WriteFineNeighbours( const Integer        p,
 {
           Integer        nFN = 0;
     const Integer        nN  = NhStartIndex_[p+1] - NhStartIndex_[p];
-    const Integer* const  N  = NhEdges_ + NhStartIndex_[p];
+    const unsigned int* const  N  = NhEdges_ + NhStartIndex_[p];
 
     for( Integer i = 1; i < nN; i++ ) {
         if( CoarseIndex_[N[i]] == FINE ) {
