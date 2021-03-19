@@ -1,0 +1,267 @@
+#!/usr/bin/env python
+import argparse
+from cfs_utils import *
+
+# the purposee of this script is to assist in running cfs benchmarks. It contains the probems.
+# The resulting .info.xml shall be analysed with performance,py
+
+matstr = """\
+<?xml version="1.0" encoding="utf-8"?>  
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+<material name="99lines">
+  <mechanical>
+    <density>
+      <linear>
+        <real>1e-8</real>
+     </linear>
+   </density>
+     <elasticity>
+       <linear>
+         <isotropic>
+           <elasticityModulus>
+             <real>1</real>
+           </elasticityModulus>
+           <poissonNumber>
+             <real>0.3</real>
+           </poissonNumber>
+         </isotropic>
+       </linear>
+     </elasticity>
+  </mechanical>
+</material>
+</cfsMaterialDataBase>
+"""
+
+mech3dstr = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <fileFormats>
+    <output>
+      <hdf5 directory="."/>
+      <info/>
+    </output>
+    <materialData file="bench_mat.xml" format="xml" />
+  </fileFormats>
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+              <comp dof="z"/>
+           </fix>
+           <force name="bottom_right">
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+   <linearSystems>
+      <system>
+        <solverList>
+          <cholmod/>
+        </solverList>
+      </system>
+    </linearSystems> 
+  </sequenceStep> 
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="10" value="0.001" type="relativeCostChange"/>
+    </costFunction>
+    <constraint type="volume" value=".3" bound="upperBound" linear="true" mode="constraint" />
+    <optimizer type="optimalityCondition" maxIterations="5"/>
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.3" />
+      </filters>
+      <design name="density" initial=".3" physical_lower="1e-9" upper="1.0" />
+      <transferFunction type="simp" application="mech" param="3"/>
+      <export save="last" write="iteration"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="999"/>
+  </optimization>
+</cfsSimulation>
+"""
+shapemapstr = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <fileFormats>
+    <output>
+      <hdf5 directory="."/>
+      <info/>
+    </output>
+    <materialData file="bench_mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0.5" z="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+              <comp dof="z"/>
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+         <cg>
+         <!-- intentionally this cannot solve the system -->
+          <maxIter>10</maxIter>
+         </cg>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  <optimization>
+    <costFunction type="compliance" sequence="1" linear="false">
+      <stopping queue="55" value="0.0001" type="relativeCostChange" maxHours="48"/>
+    </costFunction>
+    <constraint type="volume" bound="upperBound" value="0.4" design="density" linear="false"/>
+    <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
+    <constraint type="slope" bound="upperBound" value="1.1/nx" design="profile" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="profile" linear="true"/>
+    <optimizer type="evaluate" maxIterations="1"/>
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <shapeMap beta="20" overlap="tanh_sum" enforce_bounds="false" integration_order="11" shape="tanh" integration_strategy="tailored">
+       <center bottom_up_sym="mirror"  front_back_sym="mirror" left_right_sym="mirror"  diagonal_sym="mirror" >
+         <node lower="0" upper="1" initial=".25" dof="y" />
+         <node slave="true" dof="z"/>
+       </center> 
+       <profile lower=".05" upper=".3" initial=".1"/>
+      </shapeMap>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+      <transferFunction type="identity" application="mech"/>
+      <export save="last" write="iteration" density="true"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>
+"""
+
+parser = argparse.ArgumentParser(description="Run cfs benchmarks with permutations of CFS/OMP/MKL_THREADS for different problems. Use --dry to learn")
+parser.add_argument("input", nargs='+', help="cfs binary and optional second value the comment of the binary (e.g. cfs_rel gcc_mkl)")
+parser.add_argument("--res", help="edge resolution of bulk3d_<res>.mesh to scale problem size", default='30')
+parser.add_argument("--threads", nargs='+', help="space separated list of CFS/OMP/MKL_THREADS to be tested, see --permutate", default=['1','4'])
+parser.add_argument("--permutate", help="perform selected permuation of threads", action='store_true')
+parser.add_argument("--dry", help="don't execute but print what shall be run", action='store_true')
+parser.add_argument("--hostname", help="overwrite hostname detection")
+parser.add_argument("--skip_cholmod", help="skip the simp linear elasticity OMP/BLAS benchmark", action='store_true')
+parser.add_argument("--skip_shapemap", help="skip the shape map non-blas benchmark", action='store_true')
+
+
+args = parser.parse_args()
+
+if len(args.input) > 2:
+  print('Error: usage is benchmark.py <executable> [<comment>] [--<...>]')
+  sys.exit(1)
+
+comment = 'default' if len(args.input) == 1 else args.input[1]  
+
+mat = open("bench_mat.xml","w")
+mat.write(matstr)
+mat.close()
+
+# prepare files
+mesh = 'bulk3d_' + args.res + '.mesh'
+if not os.path.exists(mesh):
+  # if this fails (e.g. create_mesh.py not in path, provide manually
+  execute('create_mesh.py --type bulk3d --res ' + args.res,output=True)
+   
+host = args.hostname if args.hostname else os.uname().nodename.split('.')[0]   
+    
+tests = []    
+if not args.skip_cholmod:
+  f = open("bench_cholmod.xml","w")
+  f.write(mech3dstr)
+  f.close()
+  tests.append('cholmod')
+if not args.skip_shapemap:
+  f = open("bench_shapemap.xml","w")
+  f.write(shapemapstr)
+  f.close()
+  tests.append('shapemap')
+  
+# the threads we run with. 0=CFS_NUM_THREADS, 1=OMP_NUM_THREADS, 2=MKL_NUM_THREADS
+threads = [] 
+t0 = args.threads[0] # there is at least one entry due to nargs='+'
+for i, t in enumerate(args.threads):
+  if i > 0 and args.permutate:
+    threads.append([t0,t0,t]) # only MKL high
+    threads.append([t0,t,t0]) # only OMP high
+    threads.append([t0,t,t])  # only OMP and MKL high
+    threads.append([t,t0,t0]) # CFS and MKL high
+  threads.append([t,t,t])
+
+for tst in tests:      
+  for t in threads:
+    if tst == 'shapemap' and t[2] != t0 and not (t[0] == t[1] == t[2]): # skip playing with mkl, we don't need it
+      continue 
+
+    problem = 'bench_' + host + '-' + comment + '-' + tst + '-res_' + args.res + '-cfs_' + t[0] + '-omp_' + t[1] + '-mkl_' + t[2]
+    cmd = 'CFS_NUM_THREADS=' + str(t[0]) + ' OMP_NUM_THREADS=' + str(t[1]) + ' MKL_NUM_THREADS=' + str(t[2]) + ' '
+    cmd += args.input[0] + ' -q -m ' + mesh + ' -p bench_' + tst + '.xml ' + problem 
+    if args.dry:
+      print(cmd)
+    else:
+      execute(cmd,output=True)
+      xml = open_xml(problem + '.info.xml')
+      wall = xpath(xml, '//cfsInfo/summary/timer/@wall')
+      cpu = xpath(xml, '//cfsInfo/summary/timer/@cpu')
+      print('wall', wall, 'cpu', cpu, problem)
+      print()
+    
+  
+  
+  
+    

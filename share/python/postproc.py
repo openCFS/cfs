@@ -29,6 +29,19 @@ def read_general_info(xml, dic):
   add_key(xml, dic, '//cfsInfo/header/progOpts/@problem')
   add_key(xml, dic, '//cfsInfo/header/@id')
 
+def read_perf(xml, dic, extend):
+  add_key(xml, dic, '//cfsInfo/summary/timer/@wall')
+  add_key(xml, dic, '//cfsInfo/summary/timer/@cpu')
+  add_key(xml, dic, '//openmp/@CFS_NUM_THREADS','cfs')
+  add_key(xml, dic, '//openmp/@OMP_NUM_THREADS','omp')
+  add_key(xml, dic, '//openmp/@MKL_NUM_THREADS','mkl')
+  if extend:
+    add_key(xml, dic, '//cfsInfo/summary/memory/@peak', 'mem')
+    add_key(xml, dic, '//grid/@elements') 
+    add_key(xml, dic, '//feFunctions/@totalNumEqns') # fails for more than one PDE! 
+  add_key(xml, dic, '//cfsInfo/header/progOpts/@problem')
+
+
 def read_opt_issue(xml, dic):
   add_key(xml, dic, '//optimization/summary/@problem', 'opt_issue')
 
@@ -73,7 +86,8 @@ def handle_exception(args, problem, exception, message):
 parser = argparse.ArgumentParser(description='General tool to analyze a bunch of .info.xml files')
 parser.add_argument("input", nargs='*', help="selection of the info.xml files to process (with wildcards), default is all")
 parser.add_argument("--query", help="xpath query, e.g. //transferFunction/@param where the attribute becomes the key")
-parser.add_argument("--alliter", help="read all attributes from iteration", action='store_true')
+parser.add_argument("--perf", help="selected data for benchmarking/ performance analysis", action='store_true')
+parser.add_argument("--extend", help="add more information for opt or perf", action='store_true')
 parser.add_argument("--issue", help="print reason for terminating optimization", action='store_true')
 parser.add_argument("--sort", help="sort for the key")
 parser.add_argument("--revsort", help="sort reversly for the key")
@@ -98,15 +112,17 @@ for f in input:
     if args.query:
       add_key(xml, dic, args.query, quiet = False)
      
-    if args.alliter: 
-      read_all_opt(xml, dic)
-    else:
-      read_selected_opt(xml, dic)
-      
-    if args.issue:
-       read_opt_issue(xml, dic)
-             
-    read_general_info(xml, dic)
+    if args.perf:
+      read_perf(xml,dic,args.extend)
+    else:   
+      if args.extend: 
+        read_all_opt(xml, dic)
+      else:
+        read_selected_opt(xml, dic)
+      if args.issue:
+        read_opt_issue(xml, dic)
+      read_general_info(xml, dic)
+ 
     res.append(dic)
   except KeyboardInterrupt:
     os.sys.exit(1)
