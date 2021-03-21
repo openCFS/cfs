@@ -41,7 +41,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "21")
-set(CFS_VERSION_MONTH "01")
+set(CFS_VERSION_MONTH "03")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -102,6 +102,7 @@ set_property(CACHE CFS_PARDISO PROPERTY STRINGS MKL SCHENK)
 # Switch on/off usage of cfsdepscache
 option(CFS_DEPS_PRECOMPILED "Use (create) precompiled cfsdeps packages" ${CFS_DEPS_PRECOMPILED_DEFAULT})
 option(DEBUG "Build debug version of the code which allows debugging, logging and has asserts - up to 10 times slower." ${DEBUG_DEFAULT})
+option(CFS_NATIVE "Compile for native CPU for speed, might not be transferable" ${CFS_NATIVE_DEFAULT})
 option(CFS_PROFILING "Set profiling compiler options for Release for vtune and valgrind (-g)." OFF)
 option(CFS_COVERAGE "Turn on coverage compiler options (gcc, clang) to be analyzed by gcov." OFF)
 option(CFS_FSANITIZE "Use -fsanitize to check for memory leaks and general errors. Very costly during runtime!" OFF)

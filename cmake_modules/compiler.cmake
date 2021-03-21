@@ -121,9 +121,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
-  # we assue C++11 for CFS for any compiler
-  set(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
-  set(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
+  # we assue C++14 for CFS for any compiler (including icc below)
+  set(CFS_CXX_FLAGS "-std=c++14 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   set(CFS_C_FLAGS "-std=c11")
 
   IF(CFS_FSANITIZE)
@@ -146,7 +145,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # -frounding-math: is needed for CGAL library
     IF(USE_CGAL)
       SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
-      SET(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
     ENDIF(USE_CGAL)
 
     SET(CHECK_MEM_ALLOC 1)
@@ -155,9 +153,22 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
-    IF(CFS_ARCH STREQUAL "X86_64")
-      SET(CFS_OPT_FLAGS "-m64 -march=k8 -msse2")
-    ENDIF()
+    # the CFS_OPT_FLAGS are also used in FindCFSDEPS.cmake for CFSDEPS_*_FLAGS
+    if(CFS_NATIVE)
+      # -m64 -> 32 bit int and 64 bit pointers and long
+      # further candidates: https://developer.amd.com/wordpress/media/2020/04/Compiler%20Options%20Quick%20Ref%20Guide%20for%20AMD%20EPYC%207xx2%20Series%20Processors.pdf
+      # -march=native - has up to 20% boost against nonsense k8 and slight different results on some tests
+      # -Ofast Maximize performance - almost no additional effect
+      # -funroll-all-loops Enable unrolling - almost no additional effect
+      # -flto Link time optimization - extremely slow linking on gcc with almost no effect
+      # -param prefetch-latency=300 - Generate memory preload in structions - negative effect
+      # some more for AMD Clang in the link above
+      set(CFS_OPT_FLAGS "-m64 -march=native -Ofast ") 
+
+    else()
+      # AMD K8 is a years old legacy that worked, who know's a better portable id?
+      set(CFS_OPT_FLAGS "-m64 -march=k8")
+    endif()
 
   ENDIF() # end debug/release
 
@@ -240,7 +251,7 @@ main ()
   ENDIF()
 
 
-  IF(USE_CGAL)
+  IF(USE_CGAL) # does CGAL really use C?
     SET(CFS_C_FLAGS "-frounding-math ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-frounding-math ${CFS_CXX_FLAGS}")
   ENDIF()
@@ -289,17 +300,12 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   IF(UNIX)
     IF(DEBUG)
       SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
-      # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
-      # however it works without a flag, mabye the intel compiler checks the stdlib.
-      # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
-      # It's anoying that intel depends on the system stdlib :(
       SET(CFS_CXX_FLAGS "-std=c++14 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -g ${CFSDEPS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -g ${CFSDEPS_CXX_FLAGS}") # TODO move this to FindCFSDEPS.cmake
       SET(CHECK_MEM_ALLOC 1)
     ELSE()
       # release case
       SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
-      # see above with -std=c++11
       SET(CFS_CXX_FLAGS "-std=c++14 -w0 -Werror ${CFS_CXX_FLAGS}")
       SET(CFSDEPS_CXX_FLAGS "-std=c++14 -w0 ${CFSDEPS_CXX_FLAGS}")
       SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")

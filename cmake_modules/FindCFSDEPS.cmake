@@ -35,11 +35,27 @@ SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 # We do not want to see warnings from external projects, since they would
 # show up on CDash.
 #-----------------------------------------------------------------------------
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CFSDEPS_C_FLAGS "-w")
-  set(CFSDEPS_CXX_FLAGS "-w")
-  set(CFSDEPS_Fortran_FLAGS "-w")
+if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+  if(NOT CFS_OPT_FLAGS)
+    message(STATUS "CFS_OPT_FLAGS not set, check order with compile.cmake")
+  endif()
+  set(CFSDEPS_C_FLAGS "${CFS_OPT_FLAGS} -w")
+  set(CFSDEPS_CXX_FLAGS "${CFS_OPT_FLAGS} -w ${CFSDEPS_CXX_FLAGS}")
+  if(USE_CGAL) # remove when we use header only CGAL
+    set(CFSDEPS_C_FLAGS "-frounding-math ${CFSDEPS_C_FLAGS}")
+    set(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
+  endif()
 endif()
+if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "FLANG")
+  set(CFSDEPS_Fortran_FLAGS "{CFS_OPT_FLAGS} -w")
+endif()  
+
+# TODO: Intel is missing but there is a lot CFSDEPS_ stuff for intel in compiler.cmake
+#message(STATUS "CFS_OPT_FLAGS = ${CFS_OPT_FLAGS}")
+#message(STATUS "CMAKE_COMPILER_IS_GNUCXX = ${CMAKE_COMPILER_IS_GNUCXX}")
+#message(STATUS "CFS_CXX_COMPILER_NAME = ${CFS_CXX_COMPILER_NAME}")
+#message(STATUS "CFS_FORTRAN_COMPILER_NAME = ${CFS_FORTRAN_COMPILER_NAME}")
+#message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
 
 # handle gfortran >= 10.
 if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (NOT ${FC_VERSION} VERSION_LESS 10))

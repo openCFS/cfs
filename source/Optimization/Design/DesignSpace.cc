@@ -324,7 +324,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                 }
               }
 
-              de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
+              de.SetDesign(random ? (((float) rand()/(float) RAND_MAX) * (upper - lower) + lower) : initial);
 
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());

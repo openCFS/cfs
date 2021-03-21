@@ -194,9 +194,10 @@ void SGP::PostInit()
       filtering_gap_grad.Resize(obj->outer_grad.GetSize());
       filtering_gaps_bound += constr[i]->GetBoundValue();
     }
-    if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL || constr[i]->GetType() == Condition::GLOBAL_TENSOR_TRACE)
+    if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL || constr[i]->GetType() == Condition::GLOBAL_TENSOR_TRACE) {
       volume_bound = constr[i]->GetBoundValue();
-      volume_grad.Resize(obj->outer_grad.GetSize());
+      volume_grad.Resize(obj->outer_grad.GetSize()); // originally this was w/o bracket but indent - probably a bug?!
+    }
   }
   cc.view->Done();
 

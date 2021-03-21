@@ -242,8 +242,9 @@ namespace CoupledField
      		CoefFunction::CoefInverseType type = ptCoef->GetInverseType();
      		if ( type == CoefFunction::INVSOURCE ) {
      			rhsSource_ = ptCoef;
-     		    if ( approxSourceWithDeltaFnc_ )
-     		    	rhsSource_->SetInverseSourceApproxType(CoefFunction::DELTA);
+   		    if ( approxSourceWithDeltaFnc_ ) {
+   		    	rhsSource_->SetInverseSourceApproxType(CoefFunction::DELTA);
+   		    }
      			isRHSsource = true;
      			num++;
      		}

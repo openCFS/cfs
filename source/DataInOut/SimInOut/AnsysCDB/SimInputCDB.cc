@@ -2208,8 +2208,6 @@ namespace CoupledField {
     std::string regnam,regtype;
     std::vector< std::string > tokens(32);
 
-    std::vector<std::string>::const_iterator it, end;
-
     UInt numdata;
     int *dataVal;
 
@@ -2276,8 +2274,6 @@ namespace CoupledField {
     std::string line;
     std::string regnam,regtype;
 
-    std::vector<std::string>::const_iterator it, end;
-
     for (UInt ib=0; ib<linePtsCMCmnds_.size(); ib++) {
 
       if (!GetLine(line,linePtsCMCmnds_[ib])) {
@@ -2316,8 +2312,6 @@ namespace CoupledField {
     std::ostringstream errMsg;
     std::string line;
     std::string regnam,regtype;
-
-    std::vector<std::string>::const_iterator it, end;
 
     UInt ansElemNum;
     StdVector<UInt> elemNumbers;
@@ -2379,8 +2373,6 @@ namespace CoupledField {
     std::ostringstream errMsg;
     std::string line;
     std::string regnam,regtype;
-
-    std::vector<std::string>::const_iterator it, end;
 
     UInt sfeElemNum;
     StdVector<UInt> elemNumbers;
@@ -2636,8 +2628,6 @@ namespace CoupledField {
     std::ostringstream errMsg;
     std::string line;
 
-    std::vector<std::string>::const_iterator it, end;
-
     UInt matNum;
     UInt numdata;
     StdVector<UInt> dataVal;
@@ -2754,8 +2744,6 @@ namespace CoupledField {
     std::stringstream sstr;
     std::ostringstream errMsg;
     std::string line;
-
-    std::vector<std::string>::const_iterator it, end;
 
     UInt numdata;
     StdVector<UInt> dataVal;

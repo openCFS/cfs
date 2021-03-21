@@ -368,8 +368,6 @@ namespace CoupledField {
       inFile_ >> elemNum >> str;
       inFile_.ignore(100,'\n');
       
-      std::vector<std::string>::iterator it, end;
-                
       if ( elemNames.Find(str) == -1 ) {
         elemNames.Push_back(str);
       } 

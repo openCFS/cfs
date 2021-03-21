@@ -1377,7 +1377,7 @@ StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignEl
     if(access != Function::NO_ACCESS && g->GetAccess() != access)
       continue;
 
-      result.Push_back(g);
+    result.Push_back(g);
   }
   return result;
 }

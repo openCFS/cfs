@@ -314,11 +314,11 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       for(UInt i=0;i<aIsoOrder.GetSize();i++)
         order1 = (aIsoOrder[i]>order1)? aIsoOrder[i] : order1;
 
-        if(order1 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL){
-          // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
-          // but here we set it to first, otherwise we divide by zero
-          order1 = 1;
-        }
+      if(order1 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL){
+        // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
+        // but here we set it to first, otherwise we divide by zero
+        order1 = 1;
+      }
     }
     MAT_DATA_TYPE surface1(min/(Double)order1);
 
