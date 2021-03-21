@@ -74,6 +74,9 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/zlib/license/" DESTINATION "${CFS_BINARY_DIR}/license/zlib" )
+
+
 # After the installation we copy to zconf.h to zlib src
 set(PI "${zlib_prefix}/zlib-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-post_install.cmake.in" "${PI}" @ONLY) 

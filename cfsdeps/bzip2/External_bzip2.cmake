@@ -74,6 +74,11 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/bzip2/license/" DESTINATION "${CFS_BINARY_DIR}/license/bzip2" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "bzip2" "${BZIP2_VER}") 
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

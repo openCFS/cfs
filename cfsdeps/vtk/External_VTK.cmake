@@ -58,6 +58,11 @@ SET(MD5_SUM ${VTK_MD5})
 SET(DLFN "${vtk_prefix}/vtk-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY) 
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/vtk/license/" DESTINATION "${CFS_BINARY_DIR}/license/vtk" )
+
+
+
 PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "vtk" "${VTK_VERSION}") 
 
 # This should be either PREFIX_DIR (install manifest is used for zipping)

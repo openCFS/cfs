@@ -93,6 +93,11 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/cgns/license/" DESTINATION "${CFS_BINARY_DIR}/license/cgns" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "cgns" "${CGNS_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

@@ -92,6 +92,11 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/flann/license/" DESTINATION "${CFS_BINARY_DIR}/license/flann" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "flann" "${FLANN_VER}") 
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

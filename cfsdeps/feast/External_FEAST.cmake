@@ -67,6 +67,11 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/feast-post_install.cmake.in")
 SET(PI "${feast_prefix}/feast-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/feast/license/" DESTINATION "${CFS_BINARY_DIR}/license/feast" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "feast" "${FEAST_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

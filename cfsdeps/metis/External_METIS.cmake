@@ -67,6 +67,11 @@ CONFIGURE_FILE(
   "${DLFN}"
   @ONLY)
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/metis/license/" DESTINATION "${CFS_BINARY_DIR}/license/metis" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "metis" "${METIS_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

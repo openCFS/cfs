@@ -590,6 +590,9 @@ if(UNIX)
 	  PATTERN "*.pc" EXCLUDE
           PATTERN "pkgconfig" EXCLUDE
 	  ) # lib64 only works for 64bit ...
+  # license install
+  file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
+  install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)
 else(UNIX)
   message("Install currently restricted to UNIX")
 endif(UNIX)

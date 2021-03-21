@@ -94,6 +94,11 @@ CONFIGURE_FILE(
   @ONLY
 ) 
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/suitesparse/license/" DESTINATION "${CFS_BINARY_DIR}/license/suitesparse" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "suitesparse" "${SUITESPARSE_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

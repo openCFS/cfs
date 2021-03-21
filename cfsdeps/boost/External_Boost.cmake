@@ -50,6 +50,11 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 set(PI "${BOOST_prefix}/boost-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/boost/boost-post_install.cmake.in" "${PI}" @ONLY) 
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/boost/license/" DESTINATION "${CFS_BINARY_DIR}/license/boost" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "boost" "${BOOST_VER}")
  
 set(TMP_DIR "${BOOST_install}")

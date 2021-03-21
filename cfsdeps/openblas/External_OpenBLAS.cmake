@@ -26,6 +26,11 @@ SET(MD5_SUM ${OPENBLAS_MD5})
 SET(DLFN "${openblas_prefix}/openblas-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/openblas/license/" DESTINATION "${CFS_BINARY_DIR}/license/openblas" )
+
+
+
 # do make a difference between debug and release build since we are using cmake now 
 PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}")
 

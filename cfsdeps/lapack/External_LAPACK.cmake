@@ -49,6 +49,11 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 SET(PI "${lapack_prefix}/lapack-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/lapack/lapack-post_install.cmake.in" "${PI}" @ONLY) 
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/lapack/license/" DESTINATION "${CFS_BINARY_DIR}/license/lapack" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "lapack" "${LAPACK_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

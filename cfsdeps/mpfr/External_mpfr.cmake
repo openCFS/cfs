@@ -44,6 +44,12 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/mpfr/mpfr-post_install.cmake.in")
 SET(PI "${mpfr_prefix}/mpfr-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
+
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/mpfr/license/" DESTINATION "${CFS_BINARY_DIR}/license/mpfr" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "mpfr" "${MPFR_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

@@ -97,6 +97,11 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/hdf5/license/" DESTINATION "${CFS_BINARY_DIR}/license/hdf5" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "hdf5" "${HDF5_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

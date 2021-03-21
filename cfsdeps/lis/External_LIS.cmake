@@ -88,6 +88,11 @@ SET(MD5_SUM ${LIS_MD5})
 SET(DLFN "${lis_prefix}/lis-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/lis/license/" DESTINATION "${CFS_BINARY_DIR}/license/lis" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "lis" "${LIS_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

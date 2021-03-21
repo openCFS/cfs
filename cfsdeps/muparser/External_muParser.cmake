@@ -26,6 +26,11 @@ SET(MD5_SUM ${MUPARSER_MD5})
 SET(DLFN "${muparser_prefix}/muparser-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/muparser/license/" DESTINATION "${CFS_BINARY_DIR}/license/muparser" )
+
+
+
 # do make a difference between debug and release build since we are using cmake now 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "muparser" "${MUPARSER_VER}")
 

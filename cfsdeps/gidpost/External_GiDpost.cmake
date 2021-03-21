@@ -84,6 +84,11 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/gidpost/license/" DESTINATION "${CFS_BINARY_DIR}/license/gidpost" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "gidpost" "${GIDPOST_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

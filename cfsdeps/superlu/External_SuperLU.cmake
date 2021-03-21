@@ -91,6 +91,11 @@ CONFIGURE_FILE(
   @ONLY
 )
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/superlu/license/" DESTINATION "${CFS_BINARY_DIR}/license/superlu" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "superlu" "${SUPERLU_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)

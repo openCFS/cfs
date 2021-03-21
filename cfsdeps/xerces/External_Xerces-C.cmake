@@ -67,6 +67,11 @@ SET(MD5_SUM ${XERCES_MD5})
 SET(DLFN "${xerces_prefix}/xerces-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
+#copy license
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/xerces/license/" DESTINATION "${CFS_BINARY_DIR}/license/xerces" )
+
+
+
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "xerces" "${XERCES_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
