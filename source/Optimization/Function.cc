@@ -116,7 +116,9 @@ Function::Function(PtrParamNode pn) {
     EXCEPTION("too high sequence number " << sequence << " for function " << type.ToString(type_));
   this->ctxt = &(Optimization::manager.context[sequence - 1]);
 
-  notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
+  notation_ = VOIGT;
+  if(pn->Has("notation"))
+    notation_ = tensorNotation.Parse(pn->Get("notation")->As<string>());
 
   bool tensor_ok = ReadTensor(ctxt, pn, this->tensor_); // is save and sets default
 
@@ -3826,8 +3828,9 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const L
   double v = g->GetParameter();
   double eps = 1.0 * g->GetBoundValue();
 
-  Matrix<double> E;
-  bool ok = Optimization::context->dm->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  MaterialTensor<double> tens(HILL_MANDEL);
+  bool ok = Optimization::context->dm->GetTensor(tens, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, HILL_MANDEL);
+  Matrix<double>& E = tens.GetMatrix(HILL_MANDEL);
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
   assert(ok);
@@ -3975,7 +3978,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
   assert(false);
-  // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, HILL_MANDEL);
 
   LOG_DBG3(func) << "L::I::CBV e_num=" << element->GetIndex() << " v=" << v << " E=" << E.ToString(0, false);
 
@@ -4139,23 +4142,26 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
 
 double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
 {
-  Matrix<double> E;
+
   Function* f= local->func_;
-  DesignMaterial::Notation notation = f->notation_;
+  MaterialTensorNotation notation = f->notation_;
   SubTensorType stt = f->ctxt->stt;
   Elem* elem = dynamic_cast<DesignElement*>(element)->elem;
   const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
   DesignElement::Type der = derivative ? de->GetType() : DesignElement::NO_DERIVATIVE;
 
-  bool ok = Optimization::context->dm->GetTensor(E, f->GetDesignType(), stt, elem, der, notation); // the sub-tensor-type DOES matter)
+  MaterialTensor<double> tens(notation);
+  bool ok = Optimization::context->dm->GetTensor(tens, f->GetDesignType(), stt, elem, der, notation); // the sub-tensor-type DOES matter)
   assert(ok);
+
+  Matrix<double>& E = tens.GetMatrix(notation);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
   LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
   assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
-  assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && de->GetType() == DesignElement::MECH_33 && ret != 1.0));
-  assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::MECH_33 && ret != 0.5));
+  assert(!(derivative && notation == HILL_MANDEL && de->GetType() == DesignElement::MECH_33 && ret != 1.0));
+  assert(!(derivative && notation == VOIGT && de->GetType() == DesignElement::MECH_33 && ret != 0.5));
 
   LOG_DBG3(func)<< "L::I::CTT e_num=" << de->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
@@ -4163,12 +4169,13 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* 
 
 double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const
 {
-  Matrix<double> E;
   const BaseDesignElement* de = GetElement(neigh_idx);
   assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
+  MaterialTensor<double> tens(NO_NOTATION);
   // as we square we do not need the linear derivative
-  Optimization::context->dm->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
+  Optimization::context->dm->GetPiezoCouplingTensor(tens, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
 
+  Matrix<double>& E = tens.GetMatrix(NO_NOTATION);
   LOG_DBG3(func) << "L::I::CTN e_num=" << element->GetIndex() << " E=" << E.ToString(0, false);
 
   double ret = 0.0;

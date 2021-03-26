@@ -590,11 +590,11 @@ namespace CoupledField
     template <class TYPE2>
     Vector<PROMOTE(TYPE,TYPE2)> operator* ( const Vector<TYPE2> &y ) const;
 
-    //! Create new matrix by Matrix- matrix multiplication (type promotion)
+    //! Create new matrix by matrix-matrix multiplication (type promotion)
     template <class TYPE2>
     Matrix<PROMOTE(TYPE,TYPE2)> operator*( const Matrix<TYPE2> &y ) const;
 
-    //! Divide matrix  by a scalar value
+    //! Divide matrix by a scalar value
     Matrix<TYPE>  & operator/=( const TYPE y );
 
     //@}
@@ -711,14 +711,7 @@ namespace CoupledField
      * 3*3 -> 11 22 33 23 13 12 */
     void ConvertToVec_UpperTriangular( SingleVector& vec ) const;
 
-    /** Convert from Voigt to Hill Mandel */
-    void VoigtToHillMandel();
-
-    /** Convert from Hill-Mandel to Voigt Notation */
-    void HillMandelToVoigt();
-
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
-    typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
     //! Only for testing the switching state of Preisach planes
     void matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel = NULL);
@@ -756,10 +749,6 @@ namespace CoupledField
     //! content, as defined by the rotation matrix rotMatrix.
     //! \note This method will only work with matrices of size 2,3, and 6.
     void PerformRotation( const Matrix<Double>& rotMatrix,  Matrix<TYPE>& matMatrix ) const;
-
-    //! This method generates a copy of this matrix, which contains the rotated in HILL_MANDEL notation
-        //! content, as defined by the rotation matrix rotMatrix.
-    void PerformHMRotation(Double rotAngle,  Matrix<Double>& matMatrix, std::string notation) const;
 
     //@}
 

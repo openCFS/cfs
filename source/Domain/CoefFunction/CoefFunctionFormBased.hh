@@ -420,7 +420,7 @@ template<class TYPE, App::Type APP>
 class CoefFunctionHomogenization : public CoefFunctionFormBased
 {
 public:
-  CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation = DesignMaterial::NO_TYPE);
+  CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, MaterialTensorNotation notation = NO_NOTATION);
 
   virtual ~CoefFunctionHomogenization();
 
@@ -443,7 +443,7 @@ private:
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;
 
-  DesignMaterial::Notation notation_;
+  MaterialTensorNotation notation_;
 
 };
 

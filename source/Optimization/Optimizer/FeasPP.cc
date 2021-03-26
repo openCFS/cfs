@@ -894,7 +894,7 @@ void FeasPP::DumpFMPTensors()
   for(unsigned int i = 0; i < optimization->GetDesign()->elements; i++)
   {
     Matrix<double> E;
-    optimization->GetDesign()->GetErsatzMaterialTensor(E, PLANE_STRAIN, optimization->GetDesign()->data[i].elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+    optimization->GetDesign()->GetErsatzMaterialTensor(E, PLANE_STRAIN, optimization->GetDesign()->data[i].elem, DesignElement::NO_DERIVATIVE, HILL_MANDEL);
     LOG_DBG2(feasPP) << "SP sps i=" << i << " -> " << E.ToString(2);
     std::cout  << "SP sps i=" << i << " -> " << E.ToString(2) << std::endl;
   }*/

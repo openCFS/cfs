@@ -528,11 +528,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         in->Get("norm_L2")->SetValue(ht.NormL2());
         in->Get("trace")->SetValue(ht.Trace());
         StdVector<Function*> funcs = GetFunctions(false);
-        DesignMaterial::Notation notation = DesignMaterial::NO_TYPE;
+        MaterialTensorNotation notation = NO_NOTATION;
         for(unsigned int fi = 0; fi < funcs.GetSize(); ++fi)
           if(funcs[fi]->GetType() == Function::HOM_TENSOR)
             notation = funcs[fi]->GetNotation();
-        in->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation));
+
+        in->Get("notation")->SetValue(tensorNotation.ToString(notation));
 
         //FIXME Only for linear elasticity
         if (ctxt->ToApp() == App::MECH)
@@ -1247,8 +1248,7 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
       return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
     else
     {
-      std::cout << "Homogenized Tensor (" << DesignMaterial::notation.ToString(f->GetNotation())
-          << "): " << std::endl << hom_tensor.ToString(0, true);
+      std::cout << "Homogenized Tensor (" << tensorNotation.ToString(f->GetNotation()) << "): " << std::endl << hom_tensor.ToString(0, true);
 
       if (f->ctxt->ToApp() == App::MECH)
       {
@@ -1617,13 +1617,14 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               double val = 0.0;
               if(calculateTensorTrace)
               {
-                Matrix<double> material;
-                context->dm->GetTensor(material, dtype, stt, de->elem, de->GetType(), f->GetNotation());
+                MaterialTensor<double> tens(f->GetNotation());
+                context->dm->GetTensor(tens, dtype, stt, de->elem, de->GetType(), f->GetNotation());
+                Matrix<double>& material = tens.GetMatrix(f->GetNotation());
                 val = material.Trace();
                 if(exponent != 1.0)
                 {
                   // chain rule, original, non derived tensor
-                  context->dm->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                  context->dm->GetTensor(tens, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                   double des = material.Trace();
                   val *= exponent * std::pow(des, exponent - 1.0);
                   LOG_DBG(em) << " material = "<< material.ToString();
@@ -1656,8 +1657,9 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               double des;
               if(calculateTensorTrace)
               { // use the trace of the stiffness Tensor as "volume"
-                Matrix<double> material;
-                context->dm->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                MaterialTensor<double> tens(f->GetNotation());
+                context->dm->GetTensor(tens, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                Matrix<double>& material = tens.GetMatrix(f->GetNotation());
                 des = material.Trace();
               }
               else

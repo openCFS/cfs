@@ -178,7 +178,7 @@ public:
                    MECH_TRACE, // MECH_11, MECH_22, MECH_33
                    MECH_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL,
                    // special types
-                   MULTIMATERIAL,NO_MULTIMATERIAL, INTERPOLATION,
+                   MULTIMATERIAL, NO_MULTIMATERIAL, INTERPOLATION,
                    NO_DERIVATIVE = -3, DEFAULT = -2, NO_TYPE = -1,
                    // real design types
                    DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,

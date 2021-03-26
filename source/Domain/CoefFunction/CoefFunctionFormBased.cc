@@ -688,7 +688,7 @@ template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
 
 //----------- Material TENSOR -----------
 
-template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
+template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, MaterialTensorNotation notation) : CoefFunctionFormBased()
 {
   std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
 
@@ -699,7 +699,7 @@ template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFu
   isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   if (APP == App::MECH)
-    assert( notation != DesignMaterial::NO_TYPE);
+    assert( notation != NO_NOTATION);
 
   notation_ = notation;
 
@@ -741,8 +741,12 @@ template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::G
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   Matrix<TYPE> tensor;
   form->GetCoef()->GetTensor(tensor, lpm);
-  if(notation_ == DesignMaterial::HILL_MANDEL)
-    tensor.VoigtToHillMandel();
+
+  if(notation_ == HILL_MANDEL) {
+    MaterialTensor<TYPE> mt(VOIGT, &tensor, false);
+    mt.ToHillMandel();
+    tensor = mt.GetMatrix(HILL_MANDEL);
+  }
 
   tensor.ConvertToVec_UpperTriangular(vec);
   LOG_DBG3(cff) << "CFH:GV tensor=" << tensor.ToString(2);
@@ -779,8 +783,13 @@ template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::G
 
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   form->GetCoef()->GetTensor(tensor, lpm);
-  if(notation_ == DesignMaterial::HILL_MANDEL && APP == App::MECH)
-    tensor.VoigtToHillMandel();
+
+  if(notation_ == HILL_MANDEL && APP == App::MECH) {
+    MaterialTensor<TYPE> mt(VOIGT, &tensor, false);
+    mt.ToHillMandel();
+    tensor = mt.GetMatrix(HILL_MANDEL);
+  }
+
   LOG_DBG2(cff) << "CFH:GT -> " << tensor.ToString(2);
 }
 

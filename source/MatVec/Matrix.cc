@@ -141,62 +141,6 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  void Matrix<TYPE>::VoigtToHillMandel()
-  {
-    // based on mativ_rot.py
-    assert(IsQuadratic());
-    assert(size_row_ == 3 || size_row_ == 6);
-    if (size_row_ == 3) {
-      for(unsigned int i = 0; i < size_row_-1; i++)
-      {
-        data_[i][size_row_-1] *= sqrt(2);
-        data_[size_row_-1][i] *= sqrt(2);
-      }
-      data_[size_row_-1][ size_row_-1] *= 2.0;
-    } else {
-      for(unsigned int i = 0; i < size_row_; i++) {
-        for (unsigned int j = i; j < size_col_; j++) {
-          if (i > 2 || j > 2) {
-            data_[i][j] *= sqrt(2);
-            data_[j][i] *= sqrt(2);
-          } else if (i == j && i > 2) {
-            data_[i][ j] *= 2.0;
-          }
-        }
-      }
-    }
-  }
-
-    /** Convert from Hill-Mandel to Voigt Notation */
-  template<class TYPE>
-  void Matrix<TYPE>::HillMandelToVoigt()
-  {
-    // based on mativ_rot.py
-    assert(IsQuadratic());
-    assert(size_row_ == 3 || size_row_ == 6);
-    if (size_row_ == 3) {
-      for(unsigned int i = 0; i < size_row_-1; i++)
-      {
-        data_[i][size_row_-1] *= 1/sqrt(2);
-        data_[size_row_-1][i] *= 1/sqrt(2);
-      }
-
-      data_[size_row_-1][size_row_-1] *= 0.5;
-    } else {
-      for(unsigned int i = 0; i < size_row_; i++) {
-        for (unsigned int j = i; j < size_col_; j++) {
-          if (i > 2 || j > 2) {
-            data_[i][j] *= 1/sqrt(2);
-            data_[j][i] *= 1/sqrt(2);
-          } else if (i == j && i > 2) {
-            data_[i][ j] *= 0.5;
-          }
-        }
-      }
-    }
-  }
-
-  template<class TYPE>
   std::string Matrix<TYPE>::ToString(const int level, const bool newline) const
   {
     std::ostringstream os;
@@ -1946,27 +1890,6 @@ namespace CoupledField
     EXCEPTION("Rotation only defined for double- and complex valued matrixes");
   }
   
-  template<>
-  void Matrix<Double>::PerformHMRotation(Double a,  Matrix<Double>& retMat, std::string notation ) const {
-    if (notation == "HILL_MANDEL") {
-      Matrix<Double> theta(3,3);
-      Matrix<Double> help(3,3);
-      theta[0][0] = pow(cos(a),2);
-      theta[0][1] = pow(sin(a),2);
-      theta[0][2] = -sqrt(2)/2*sin(2.*a);
-      theta[1][0] = theta[0][1];
-      theta[1][1] = theta[0][0];
-      theta[1][2] = -theta[0][2];
-      theta[2][0] = theta[1][2];
-      theta[2][1] = theta[0][2];
-      theta[2][2] = cos(2.*a);
-      this->Mult(theta, help);
-      theta.MultT(help, retMat);
-    } else {
-      EXCEPTION("Material tensor should be Hill-Mandel!")
-    }
-  }
-
   template<>
   void Matrix<bool>::PerformRotation( const Matrix<Double>& R,  Matrix<bool>& retMat ) const {
     EXCEPTION("Rotation only defined for double- and complex valued matrixes");

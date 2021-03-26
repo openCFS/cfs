@@ -333,7 +333,7 @@ class Function
     StressType GetStressType() { return stressType_; }
 
     /** for volume to check the notation in the FMO case with tensor_trace design. */
-    DesignMaterial::Notation GetNotation() const { return notation_; }
+    MaterialTensorNotation GetNotation() const { return notation_; }
 
     /** for the bandgap function. Could clearly be a general gap between two functions. This could then handle
      * the old gap function from Michael (volume - penalized volume) */
@@ -854,7 +854,7 @@ class Function
     Matrix<unsigned int> hess_sparsity_;
 
     /** only for tensor trace and volume */
-    DesignMaterial::Notation notation_;
+    MaterialTensorNotation notation_;
 
   private:
     /** special value for excite_ value.

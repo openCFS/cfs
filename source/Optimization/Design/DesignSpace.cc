@@ -37,6 +37,7 @@
 #endif
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DensityFile.hh"
+#include "Optimization/Design/MaterialTensor.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -992,12 +993,15 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     if(DoMSFEM())
     {
       assert(IsRegular());
-      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast<Matrix<Double>&>(retMat),lpm->ptEl,coef->GetMaterialDerivative());
+      return Optimization::context->dm->GetErsatzElementMatrixMSFEM(dynamic_cast<Matrix<double>& >(retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
 
     // if we do prestressing (e.g. in buckling analysis), the tensor is never constructed but instead generated from stresses
     if(coef->GetForm()->GetName() != "PreStressInt")
-      return Optimization::context->dm->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+    {
+      MaterialTensor<T> retTensor(VOIGT, &retMat, false);
+      return Optimization::context->dm->GetMechTensor(retTensor, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative());
+    }
 
     if(coef->GetMaterialDerivative() != DesignElement::NO_DERIVATIVE)
     {

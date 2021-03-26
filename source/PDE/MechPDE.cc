@@ -3086,9 +3086,9 @@ namespace CoupledField {
     mech_tensor_hm->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionFormBased> stiff_coef_hm;
     if(isComplex_) // does not really handle the case where only some regions have complex material
-      stiff_coef_hm.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, DesignMaterial::HILL_MANDEL));
+      stiff_coef_hm.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, HILL_MANDEL));
     else
-      stiff_coef_hm.reset(new CoefFunctionHomogenization<double, App::MECH>(feFct, DesignMaterial::HILL_MANDEL));
+      stiff_coef_hm.reset(new CoefFunctionHomogenization<double, App::MECH>(feFct, HILL_MANDEL));
     DefineFieldResult(stiff_coef_hm, mech_tensor_hm);
     stiffFormCoefs_.insert(stiff_coef_hm); // will define the forms
     
@@ -3101,9 +3101,9 @@ namespace CoupledField {
     mech_tensor->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionFormBased> stiff_coef;
     if(isComplex_) // does not really handle the case where only some regions have complex material
-      stiff_coef.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, DesignMaterial::VOIGT));
+      stiff_coef.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, VOIGT));
     else
-      stiff_coef.reset(new CoefFunctionHomogenization<double, App::MECH>(feFct, DesignMaterial::VOIGT));
+      stiff_coef.reset(new CoefFunctionHomogenization<double, App::MECH>(feFct, VOIGT));
     DefineFieldResult(stiff_coef, mech_tensor);
     stiffFormCoefs_.insert(stiff_coef); // will define the forms
     

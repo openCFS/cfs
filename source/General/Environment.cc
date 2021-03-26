@@ -829,6 +829,7 @@ namespace CoupledField {
     }
   }
 
+
   template<>
   void String2Enum<Directions>( const std::string &in, Directions &out ) {
 
@@ -2123,6 +2124,12 @@ namespace CoupledField {
     MaterialClassEnum.Add(MAGNETOSTRICTIVE, "magnetostrictive");
     MaterialClassEnum.Add(ELECTRICCONDUCTION, "conductive");
 
+    // ==== Initialization of Material tensor notations ====
+    tensorNotation.SetName("MaterialTensorNotation");
+    tensorNotation.Add(NO_NOTATION, "no-notation");
+    tensorNotation.Add(HILL_MANDEL, "hill_mandel");
+    tensorNotation.Add(VOIGT, "voigt");
+
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "none" );
     feMatrixType.Add( SYSTEM, "system" );
@@ -2186,6 +2193,7 @@ namespace CoupledField {
   Enum<SolutionType> SolutionTypeEnum;
   Enum<MaterialType> MaterialTypeEnum;
   Enum<MaterialClass> MaterialClassEnum;
+  Enum<MaterialTensorNotation> tensorNotation;
   Enum<ApproxCurveType> ApproxCurveTypeEnum;
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<FEMatrixType> feMatrixType;

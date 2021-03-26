@@ -487,6 +487,10 @@ namespace CoupledField {
   } MaterialClass;
   extern Enum<MaterialClass> MaterialClassEnum;
 
+  //! material tensor notation
+  typedef enum { NO_NOTATION, VOIGT, HILL_MANDEL } MaterialTensorNotation;
+  extern Enum<MaterialTensorNotation> tensorNotation;
+
   // type of approximation / interpolation
   typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, BILIN_INTERPOLATE, TRILIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES, ANALYTIC } ApproxCurveType;
   extern Enum<ApproxCurveType> ApproxCurveTypeEnum;

@@ -7,6 +7,7 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/MaterialTensor.hh"
 #include "General/Enum.hh"
 #include "General/Environment.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -38,7 +39,7 @@ public:
     DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
     DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
     DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
-    D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES,
+    D_INTERP_IN718_TENSOR, D_INTERP_IN718_TENSOR_ROT, LAMINATES, D_LAMINATES,
     HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, HEAT} Type;
 
     /* posibilities for the isotropic plane in transversal isotropy
@@ -47,8 +48,8 @@ public:
      * GMODUL is G_io where i is in the isotropic plane o not (note G_io = G_jo) */
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
 
-    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
-    typedef enum {  NO_TYPE=-1, VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+//    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt */
+//    typedef enum {  NO_TYPE=-1, VOIGT, HILL_MANDEL } Notation;
 
     /** Rotation  direction. Clockwise (CW) or Counter-clockwise (CCW) */
     typedef enum { CW, CCW } Clock;
@@ -63,22 +64,21 @@ public:
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
 
-    /** the general material tensor function
-     * allow option to return core material tensor*/
-    bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation, bool core = false);
+    bool GetTensor(MaterialTensor<double>& mt, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, MaterialTensorNotation notation, bool pure = false);
 
     /** Calculate the derivative tensor from the given material parameters
-     * optional: core indicates core material tensor without multiplication with penalized pseudo-density */
-    bool GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT, bool core = false);
-    bool GetMechTensor(Matrix<Complex>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT, bool core = false);
+     * Sets the Tensor in VOIGT notation.
+     * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
+    bool GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool pure = false);
+    bool GetMechTensor(MaterialTensor<Complex>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool pure = false);
 
-    bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+    bool GetPiezoCouplingTensor(MaterialTensor<double>& mt, const Elem* elem, DesignElement::Type direction);
 
     /** Calculates MSFEM element matrix for a regular grid from material catalogue*/
-    bool GetErsatzElementMatrixMSFEM(Matrix<double>& A,const Elem* elem, DesignElement::Type direction);
+    bool GetErsatzElementMatrixMSFEM(Matrix<double>& mt,const Elem* elem, DesignElement::Type direction);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
-    bool GetElecTensor(Matrix<double>& t,  const Elem* elem, DesignElement::Type direction);
+    bool GetElecTensor(MaterialTensor<double>& mt,  const Elem* elem, DesignElement::Type direction);
 
     /** retrieve rel. mass of element (tensor trace) or direct design variable */
     double GetMechMass(const Elem* elem, DesignElement::Type direction);
@@ -110,7 +110,7 @@ public:
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
-    static Enum<Notation> notation;
+//    static Enum<Notation> notation;
 
     const Elem* current_elem;
 
@@ -121,24 +121,23 @@ public:
     /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
      *  in 3d: rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
      *  in 2d: rotates the material by ROTANGLE or rx
-     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+     * @param mt Material Tensor which is rotated in place (or the derivative is calculated in place)
      * @param direction if one of ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
-     * @param notation can be HILL_MANDEL or VOIGT notation
      * @param clock can be CCW (counter-clockwise) or CW (clockwise)
      * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
      */
-    void RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
+    void RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
 
     /** Calculate the Isotropic tensor */
-    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    inline void GetIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
+    void ApplyHomC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void ApplyHomIsoC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
 protected:
 
@@ -208,57 +207,59 @@ private:
     /* note that most of these functions are called really often, so inlining is used */
 
     /** Calculate the Lame Tensor */
-    inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    inline void GetLameMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
-    /** Calculate the Trans-Iso Tensor */
-    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation, bool core = false);
+    /** Calculate the Trans-Iso Tensor
+     * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
+    inline void GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
 
     /* general anisotropic FMO tensor */
-    inline void GetElasticFMOTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
+    inline void GetElasticFMOTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
-    /** Calculate the orthotropic material tensor */
-    inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
+    /** Calculate tensor for free orthotropic material formulation
+     *                    |e11 e12 0 |^2
+     * E(e11,e22,e33,e12)=|e12 e22 0 |  + diag(lowerEigenvalueBound)
+     *                    | 0   0 e33|
+     *  */
+    inline void GetOrthotropicMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Tensor for Density times Tensor
-     * bool core indicates if t should be the core material tensor (without multiplication with penalized pseudo-density)*/
-    inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, bool core = false);
+     * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
+    inline void GetDensityTimes2dTensorTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
 
     /** Calculate the tensor for Laminates */
-    inline void GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
+    inline void GetLaminatesTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
-    void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
+    void ApplyHomRectTensor(MaterialTensor<double>& mt, const Vector<double>& shape) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetInterpolatedHomTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
+    inline void GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction);
 
-    /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetInterpolatedTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
+    /** Gives the elasticity tensor of the Nickel basis alloy IN718 with interpolation between different crystalline microstructures */
+    inline void GetIN718Tensor(MaterialTensor<double>& mt, SubTensorType subTensor,  DesignElement::Type direction);
 
     /** does only perform orientational optimization
      * @param mc MECHANIC, PIEZO, ELECTROSTATIC */
     inline void GetRotatedTensor(Matrix<double>& t, MaterialClass mc, DesignElement::Type direction);
 
-    /** initialize the tensor with zeros */
-    inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
+    inline void ZeroMatrix(Matrix<double>& t, SubTensorType subTensor);
 
-    /** put values from Voigt vector to correct positions in tensor */
-    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
+    /** set values in 2 matrix "t" in Voigt notation order */
+    inline void Set2dMatrix(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
 
-    /** put values from Voigt vector to correct positions in tensor (doesn't assume symmetry) */
-    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
+    /** set values in 2 matrix "t" in Voigt notation order (doesn't assume symmetry) */
+    inline void Set2dMatrix(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
 
-    /** put the entries of the 3D tensor at the right places */
-    inline void Set3dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double);
+    /** put the entries of the 3D matrix at the right places (Voigt notation order - whatever that is in 3d???) */
+    inline void Set3dMatrix(Matrix<double>& t, SubTensorType subTensor, double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double);
 
-    /** put the entries of the transversal_isotropic tensor at the right places */
-    inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
+    /** put the entries of the transversal_isotropic matrix at the "right" places */
+    inline void SetTransIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
 
-    /** put the entries of the isotropic tensor at the right places */
-    inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
-
-    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = HILL_MANDEL);
+    /** put the entries of the isotropic matrix at the "right" places */
+    inline void SetIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
 
     // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis (default x)
     void SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis = 0, bool derivative = false);
@@ -276,7 +277,7 @@ private:
     /** This exists only in Voigt notation! */
     void RotatePiezoCouplingTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
 
-    void RotateElecTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
+    void RotateElecTensor(MaterialTensor<double>& mt, double angle, DesignElement::Type direction);
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    
@@ -329,7 +330,7 @@ private:
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void ApplyHomRectFullBsplineTensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     void EvaluateFullGrid();
 

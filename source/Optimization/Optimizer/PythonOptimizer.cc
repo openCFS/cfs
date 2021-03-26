@@ -540,7 +540,7 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
         // B*u*u^T*B^T
         bMat *= uuTBT;
 
-        res[e] -= weights[ip] * lp.jacDet * bMat;
+        res[e] -= bMat * weights[ip] * lp.jacDet;
 
   //      std::cout << "elem" <<  elem->elemNum << " ip=" << ip << " weight=" << weights[ip] << " jac det=" << lp.jacDet << std::endl;
 
@@ -578,18 +578,20 @@ void PythonOptimizer::GetCoreStiffness(PyObject *args)
   assert(rows == cols);
   assert(rows == 6 || rows == 3 );
 
-  Matrix<double> tens;
+  MaterialTensor<double> tens(VOIGT);
   DesignMaterial* dm = Optimization::context->dm;
   assert(dm != NULL);
   // take first element in domain
   const Elem* elem = domain->GetGrid()->GetElem(1);
 
-  // we want pure core stiffness tensor without density rho et.c -> provide external identity transfer function to design material
-  dm->GetTensor(tens, DesignElement::ALL_DESIGNS, Optimization::context->stt, elem, DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, true);
+  // we want pure stiffness tensor without density rho etc -> provide external identity transfer function to design material
+  dm->GetTensor(tens, DesignElement::ALL_DESIGNS, Optimization::context->stt, elem, DesignElement::NO_DERIVATIVE, VOIGT, true);
+  Matrix<double>& material = tens.GetMatrix(VOIGT);
+
   // fill numpy array
   for (unsigned int r = 0; r < rows; r++)
     for (unsigned int c = 0; c < cols; c++) {
-      *((double*) PyArray_GETPTR2(arr,r,c) ) = tens[r][c] ;
+      *((double*) PyArray_GETPTR2(arr,r,c) ) = material[r][c] ;
     }
 
 }

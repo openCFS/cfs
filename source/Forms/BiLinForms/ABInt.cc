@@ -87,15 +87,12 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     this->coefScalar_->GetScalar(fac, lp);
     fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
-
 #ifdef NDEBUG
     aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
 #else
     elemMat += Transpose(aMat_) * this->bMat_ * this->factor_*fac;
 #endif
-
   }
-
 }
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>

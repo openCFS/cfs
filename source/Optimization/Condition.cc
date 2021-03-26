@@ -883,7 +883,7 @@ void Condition::ToInfo(PtrParamNode in)
     info_->SetWarning("a physical volume constraint should make no sense");
 
   if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
-    info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
+    info_->Get("notation")->SetValue(tensorNotation.ToString(notation_));
 
   // the bounds are essential as we have to flip sign!
   if(type_ == OVERHANG_HOR && bound_ != LOWER_BOUND)
@@ -1070,7 +1070,7 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 
     //Function::Local::Identifier& id = GetCurrentVirtualContext();
     assert(false);
-    // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
+    // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, HILL_MANDEL); // the sub-tensor-type does'nt matter
     double e11 = E[0][0]; // 1
     double e12 = E[0][1]; // 2
     double e22 = E[1][1]; // 3
