@@ -202,6 +202,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   if(NOT MKL_ROOT_DIR)
     set(MKL_POSSIBLE_ROOT_DIRS
        "/opt/intel/mkl"
+       "/opt/intel/oneapi/mkl/latest"
        "/share/programs/intel-mkl/latest/mkl"
        $ENV{MKLROOT}) # set by compilervars.sh intel64
 
@@ -236,6 +237,10 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
     if(NOT EXISTS "${MKL_OMP_LIB}")
         set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
     endif()
+    # path for oneAPI 2020.2
+    if(NOT EXISTS "${MKL_OMP_LIB}")
+        set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../../compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so")
+    endif()
     # copy over
     file(COPY ${MKL_OMP_LIB} DESTINATION ${LIBRARY_OUTPUT_PATH})
     set(MKL_OMP_LIB_LINE "-L${LIBRARY_OUTPUT_PATH} -liomp5")
@@ -246,11 +251,18 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
 
   # set the link line, essentailly from
   # see https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
-  # regarting the correct Fortratn infterface library (libmkl_gf_lp64):
+  # regarting the correct Fortran interface library (libmkl_gf_lp64):
   # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
-  set(MKL_BLAS_LIB 
+  set(MKL_FORTRAN_INTERFACE_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_gf_lp64.a")
+  if(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+    message(STATUS "Unsing intel Fortran compiler: use libmkl_intel_lp64.a")
+    set(MKL_FORTRAN_INTERFACE_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_intel_lp64.a")
+  endif()
+  set(MKL_BLAS_LIB
+     ${MKL_ROOT_DIR}/lib/intel64/libmkl_blas95_lp64.a
+     ${MKL_ROOT_DIR}/lib/intel64/libmkl_lapack95_lp64.a 
      -Wl,--start-group
-     ${MKL_ROOT_DIR}/lib/intel64/libmkl_gf_lp64.a
+     ${MKL_FORTRAN_INTERFACE_LIB}
      ${MKL_THREADING_LIB}
      ${MKL_ROOT_DIR}/lib/intel64/libmkl_core.a
      -Wl,--end-group
@@ -258,7 +270,6 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
      -lpthread
      -lm
      -ldl)
-
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 else() # end UNIX
   message(FATAL_ERROR "unhandled system type")

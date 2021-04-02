@@ -148,9 +148,7 @@ IF(UNIX)
   IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     # Simon made it without toolset and it shall work.
     set(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux )
-    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\" )
-#  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux)
-#  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\")
+    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS})
   ENDIF()
 ENDIF(UNIX)
 

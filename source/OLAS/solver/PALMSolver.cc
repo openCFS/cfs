@@ -633,7 +633,7 @@ namespace CoupledField{
     bool *iselect = new bool[ ncv ]; // Internal working space.
     LOG_DBG(palm) << "CalcEigenValues: Mark 4";
     /* Call ARPACK routine for the Ritz values and/or Ritz vectors. */
-    zneupd_( &rvec, &HowMny, iselect, EigVal, EigVec, &nl, &sigma, &workv[1],
+    zneupd( &rvec, &HowMny, iselect, EigVal, EigVec, &nl, &sigma, &workv[1],
         &bmat, &nl, which.c_str(), &nev, &artol, resid, &ncv,
         &V[1], &nl, &iparam[1], &ipntr[1], &workd[1], &workl[1],
         &lworkl, &rwork[1], &info);

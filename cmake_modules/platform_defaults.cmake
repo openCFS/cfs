@@ -39,9 +39,6 @@ set(CFS_PARDISO_DEFAULT "MKL")
 # the established one, libxml2 is lighter
 set(USE_XML_READER_DEFAULT "xerces")
 
-# this is required on Linux using the intel C++ compiler only
-set(CFS_ICC_GCC_VERSION_DEFAULT 9)
-
 set(USE_PARDISO_DEFAULT ON)
 set(USE_ARPACK_DEFAULT ON)
 set(USE_EMBEDDED_PYTHON_DEFAULT OFF)

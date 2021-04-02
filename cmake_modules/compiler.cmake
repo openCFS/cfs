@@ -338,16 +338,6 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 	  #    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /Za -wd2358")
   #  ENDIF()
 
-  IF(UNIX)
-    # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
-    # If we have newest intel compiler we assume that we have newest gcc as well
-    #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
-      SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
-      SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
-    #ENDIF()
-  ENDIF()
-  
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
   # unknown pragmas (openmp, etc.) and multiline comments.
