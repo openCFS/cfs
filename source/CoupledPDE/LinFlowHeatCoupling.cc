@@ -110,18 +110,16 @@ namespace CoupledField {
 
         PtrCoefFct hlp2  = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,compressionModulus,refTemp,CoefXpr::OP_MULT));
 
-        PtrCoefFct coefFct  = CoefFunction::Generate( mp, Global::REAL,
+        PtrCoefFct coefThermalExpansion  = CoefFunction::Generate( mp, Global::REAL,
             CoefXprUnaryOp(mp,
                 CoefXprBinOp(mp,hlp1 , hlp2, CoefXpr::OP_DIV),
                 CoefXpr::OP_SQRT));
 
     	BiLinearForm *heatToFlow = NULL;
     	if( dim_ == 2 ) {
-    		heatToFlow = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(),
-    				         coefFct, -1.0 );
+    		heatToFlow = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefThermalExpansion, -1.0 );
     	} else {
-    		heatToFlow = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(),
-    						 coefFct, -1.0 );
+    		heatToFlow = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefThermalExpansion, -1.0 );
     	}
     	heatToFlow->SetName("HeatToLinFlowCoupling");
 
@@ -134,19 +132,19 @@ namespace CoupledField {
 
 		assemble_->AddBiLinearForm( heatToFlowDescr );
 
-    	//bilinear form for coupling from flow to heat
+    	// bilinear form for coupling from flow to heat: coefThermalExpansion*refTemp \frac{\partial p_\ra}{\partial t}
+    	// The coefficient "ThermalExpansion*refTemp" is necessary for a general fluid.
+		// For an ideal gas: ThermalExpansion*refTemp = 1
+        PtrCoefFct coefThermalExpansionT  = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
     	BiLinearForm *flowToHeat = NULL;
     	if( dim_ == 2 ) {
-    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(),
-    				     constMinusOne, 1.0 );
+    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefThermalExpansionT, -1.0 );
     	} else {
-    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(),
-    					 constMinusOne, 1.0 );
+    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefThermalExpansionT, -1.0 );
     	}
     	heatToFlow->SetName("LinFlowToHeatCoupling");
 
-    	BiLinFormContext * flowToHeatDescr =
-				new BiLinFormContext(flowToHeat, DAMPING );
+    	BiLinFormContext * flowToHeatDescr = new BiLinFormContext(flowToHeat, DAMPING );
 
     	flowToHeatDescr->SetEntities( actSDList, actSDList );
     	flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
