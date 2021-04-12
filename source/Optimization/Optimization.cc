@@ -53,7 +53,6 @@
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
 #include "def_use_embedded_python.hh"
-#include "Optimization/Optimizer/SGP.hh"
 #include "Optimization/Optimizer/MMA.hh"
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
@@ -283,10 +282,6 @@ void Optimization::PostInitSecond()
          #endif
          break;
 
-    case SGP_SOLVER:
-         baseOptimizer_ = new SGP(this, opt);
-         break;
-
     case OPTIMALITY_CONDITION:
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
@@ -489,7 +484,6 @@ void Optimization::SetEnums()
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(MMA_SOLVER, "mma");
-  optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(PYTHON_SOLVER, "python");

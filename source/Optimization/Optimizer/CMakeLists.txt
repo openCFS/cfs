@@ -4,7 +4,6 @@ set(OPTIMIZER_SRCS
   OptimalityCondition.cc
   EvaluateOnly.cc
   GradientCheck.cc
-  SGP.cc
   MMA.cc
   BFGS.cc)
 

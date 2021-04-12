@@ -763,81 +763,6 @@
             </xsd:complexType>
            </xsd:element>
 
-            <xsd:element name="sgp" minOccurs="0" >
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="subsolver" minOccurs="1" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="var" minOccurs="0" maxOccurs="11">
-                          <xsd:complexType>
-                            <xsd:attribute name="design" use="required">
-                              <xsd:simpleType>
-                                <xsd:restriction base="xsd:token">
-                                  <xsd:enumeration value="rotAngle"/>
-                                  <xsd:enumeration value="density"/>
-                                  <xsd:enumeration value="stiff1"/>
-                                  <xsd:enumeration value="stiff2"/>
-                                  <xsd:enumeration value="stiff3"/>
-                                  <xsd:enumeration value="mech_11"/>
-                                  <xsd:enumeration value="mech_12"/>
-                                  <xsd:enumeration value="mech_13"/>
-                                  <xsd:enumeration value="mech_14"/>
-                                  <xsd:enumeration value="mech_15"/>
-                                  <xsd:enumeration value="mech_16"/>                                 
-                                  <xsd:enumeration value="mech_22"/>
-                                  <xsd:enumeration value="mech_23"/>
-                                  <xsd:enumeration value="mech_24"/>
-                                  <xsd:enumeration value="mech_25"/>
-                                  <xsd:enumeration value="mech_26"/>                                                                                                      
-                                  <xsd:enumeration value="mech_33"/>
-                                  <xsd:enumeration value="mech_34"/>
-                                  <xsd:enumeration value="mech_35"/>
-                                  <xsd:enumeration value="mech_36"/>
-                                  <xsd:enumeration value="mech_44"/>
-                                  <xsd:enumeration value="mech_45"/>
-                                  <xsd:enumeration value="mech_46"/>
-                                  <xsd:enumeration value="mech_55"/>
-                                  <xsd:enumeration value="mech_56"/>
-                                  <xsd:enumeration value="mech_66"/>
-                                </xsd:restriction>
-                              </xsd:simpleType>
-                            </xsd:attribute>
-                            <xsd:attribute name="steps" type="xsd:float" use="required" />
-                          </xsd:complexType>
-                        </xsd:element>
-                        <xsd:element name="designMaterial" type="DT_DesignMat" minOccurs="0" maxOccurs="1" />
-                      </xsd:sequence>
-                      <xsd:attribute name="mode" use="required">
-                        <xsd:simpleType>
-                          <xsd:restriction base="xsd:token">
-                            <xsd:enumeration value="brute_force" />
-                            <!-- <xsd:enumeration value="integer"/> -->
-                            <!-- <xsd:enumeration value="real"/> -->
-                          </xsd:restriction>
-                        </xsd:simpleType>
-                      </xsd:attribute>
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>
-                <!-- penalty parameter bounds -->
-                <xsd:attribute name="pmin_vol" type="xsd:float" default="0.05" use="optional" />
-                <xsd:attribute name="pmax_vol" type="xsd:float" default="0.05" use="optional" />
-                <xsd:attribute name="pmin_filt" type="xsd:float" default="0.05" use="optional" />
-                <xsd:attribute name="pmax_filt" type="xsd:float" default="0.05" use="optional" />
-                <!-- convergence tolerance for sgp algorithm -->
-                <xsd:attribute name="tolerance" default="1e-6" type="xsd:float" use="optional" />
-                <xsd:attribute name="volume_tolerance" default="1e-3" type="xsd:float" use="optional" />
-                <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional" />
-                <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional" />
-                <xsd:attribute name="upper_tau" default="0." type="xsd:float" use="optional" />
-                <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional" />
-                <xsd:attribute name="derivative_check" default="false" type="xsd:boolean" use="optional" />
-
-              </xsd:complexType>
-            </xsd:element>
-
-
             <!-- we made snopt the look like ipopt -->
             <xsd:element name="snopt" minOccurs="0">
               <xsd:complexType>
@@ -1112,7 +1037,6 @@
                 <xsd:enumeration value="feasPP"/>
                 <!-- this is a new MMA implemenation  -->
                 <xsd:enumeration value="mma"/>
-                <xsd:enumeration value="sgp"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
                 <!-- this is for own implementation of BFGS optimization method presented by Tim Kelly https://ctk.math.ncsu.edu/matlab_darts.html -->
@@ -3018,7 +2942,6 @@
           <!-- samples for homogenizes a-b rectangulars for C1-interpolation. -->
           <xsd:enumeration value="hom-rect-C1" />
           <xsd:enumeration value="hom-iso-C1" />
-          <xsd:enumeration value="sgp-matlab" />
           <!-- msfem material catalog for C1-interpolation. -->
           <xsd:enumeration value="msfem-C1" />
         </xsd:restriction>

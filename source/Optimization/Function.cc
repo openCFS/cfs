@@ -1141,7 +1141,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     assert(dm_node != NULL);
     std::string material_type = "";
     DesignMaterial::Type dtype = space->GetDesignMaterialType();
-    if (dtype == DesignMaterial::HOM_RECT_C1 || dtype == DesignMaterial::SGP_MATLAB)
+    if (dtype == DesignMaterial::HOM_RECT_C1)
       material_type = "homRectC1";
     if (dtype == DesignMaterial::HOM_ISO_C1)
       material_type = "homIsoC1";

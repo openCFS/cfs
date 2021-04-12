@@ -121,11 +121,11 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 
   std::string interpolation_str;
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == SGP_MATLAB || type_ == HEAT) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == HEAT) {
     if (type_ == HEAT && dim !=3)
       EXCEPTION("DesignMaterial Heat only implemented and tested for 3d!");
     string p_node = "";
-    if (type_ == HOM_RECT_C1 || type_ == SGP_MATLAB)
+    if (type_ == HOM_RECT_C1)
       p_node = "homRectC1";
     if (type_ == HOM_ISO_C1)
       p_node = "homIsoC1";
@@ -594,12 +594,6 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
       return r + (material == OptimizationMaterial::MECH ? 6 : 15);
     else
       return r + (material == OptimizationMaterial::MECH ? 21 : 15);
-  case SGP_MATLAB:
-    assert(material == OptimizationMaterial::MECH || material == OptimizationMaterial::PIEZOCOUPLING);
-    if (dim == 2)
-      return r + (material == OptimizationMaterial::MECH ? 9 : 15);
-    else
-      return r + (material == OptimizationMaterial::MECH ? 25 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r + 2;
@@ -669,37 +663,6 @@ bool DesignMaterial::CheckRequiredDesigns(
 
   switch (type_) {
   case FMO:
-  case SGP_MATLAB:
-    if (dim == 2) {
-      return (design.Find(DesignElement::MECH_11) >= 0
-          && design.Find(DesignElement::MECH_22) >= 0
-          && design.Find(DesignElement::MECH_33) >= 0
-          && design.Find(DesignElement::MECH_23) >= 0
-          && design.Find(DesignElement::MECH_13) >= 0
-          && design.Find(DesignElement::MECH_12) >= 0);
-    } else {
-      return (design.Find(DesignElement::MECH_11) >= 0
-          && design.Find(DesignElement::MECH_12) >= 0
-          && design.Find(DesignElement::MECH_13) >= 0
-          && design.Find(DesignElement::MECH_14) >= 0
-          && design.Find(DesignElement::MECH_15) >= 0
-          && design.Find(DesignElement::MECH_16) >= 0
-          && design.Find(DesignElement::MECH_22) >= 0
-          && design.Find(DesignElement::MECH_23) >= 0
-          && design.Find(DesignElement::MECH_24) >= 0
-          && design.Find(DesignElement::MECH_25) >= 0
-          && design.Find(DesignElement::MECH_26) >= 0
-          && design.Find(DesignElement::MECH_33) >= 0
-          && design.Find(DesignElement::MECH_34) >= 0
-          && design.Find(DesignElement::MECH_35) >= 0
-          && design.Find(DesignElement::MECH_36) >= 0
-          && design.Find(DesignElement::MECH_44) >= 0
-          && design.Find(DesignElement::MECH_45) >= 0
-          && design.Find(DesignElement::MECH_46) >= 0
-          && design.Find(DesignElement::MECH_55) >= 0
-          && design.Find(DesignElement::MECH_56) >= 0
-          && design.Find(DesignElement::MECH_66) >= 0);
-    }
   case ISOTROPIC:
     return (design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0);
@@ -4011,7 +3974,7 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
 
 bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation, bool core)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1 && type_ != SGP_MATLAB  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
   // make the code save and remove the lock in calling DesingSpace!
   if(!CollectMaterialParametersForElement(space_, elem))
@@ -4019,7 +3982,6 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 
   switch (type_) {
   case FMO:
-  case SGP_MATLAB:
       GetElasticFMOTensor(t, subTensor, direction, notation);
       break;
   case ORTHOTROPIC:
@@ -4273,7 +4235,6 @@ void DesignMaterial::SetEnums() {
   type.Add(HOM_RECT_C1, "hom-rect-C1");
   type.Add(HOM_ISO_C1, "hom-iso-C1");
   type.Add(MSFEM_C1, "msfem-C1");
-  type.Add(SGP_MATLAB, "sgp-matlab");
   type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
   type.Add(D_INTERP_TENSOR_ROT, "density-times-rotated-interpolated-tensor");
   type.Add(HEAT, "heat");
