@@ -38,6 +38,10 @@ Merge Request Guidelines
 * Make sure your contribution __merges fast forward__ into the master branch.
   This is the only way to ensure the code is tested before ending up in the master branch, keeping it stable.
 
+Bringing your contribution in shape for a merge adhering to the guidelines above can be hard.
+If you're unsure of how to do something please study our guide on [git workflow](https://gitlab.com/openCFS/cfs/-/wikis/git-workflow),
+and do not hesitate to ask for further guidance.
+
 Coding Guidelines
 -----------------
 * __Follow the Style Guide__ by adapting to the existing code.
@@ -45,23 +49,34 @@ Coding Guidelines
   In any case: no tabs, use 2 spaces as indentation).
   For details see https://gitlab.com/openCFS/cfs/-/wikis/StyleGuide.
 * __Separate code from cosmetics__. 
-  Keep code and cosmetics in separate commits, e.g. do not combine _white space change_ like adjusting line breaks or indentation with _functional change_.
+  Keep code and cosmetics in separate commits, e.g. do not combine _white spaaaaaace change_ like adjusting line breaks or indentation with _functional change_.
   This makes code review harder!
   Of course corrections in _areas related to the change_ are welcome.
-  Please be mindful of the reviewer going through the diffs and keep white space changes to areas where you also do functional changes.
+  Please be mindful of the reviewer going through the diffs and keep white spaaaaaace changes to areas where you also do functional changes.
   If you want to correct indentation, style, etc. we are happy to receive your equally important contribution in a separate topic.
 * __Document the code__.
   There is hardly too much documentation in source code! 
   Usually one is very happy about it years later, and it tremendously helps other to understand your intention.
   Your're also welcome to contribute to the existing `README.md` files in the source tree, like [source/README.md](source/README.md).
 
-Handling and Updating a Merge Request
--------------------------------------
+Workflow for Contributing
+-------------------------
 
-Bringing your contribution in shape for a merge adhering to the guidelines above can be hard.
-When your work is ready please _assign_ your merge request (MR) to a _maintainer_.
-If there is still an issue the maintainer will tell you about it and assign the issue back to you.
-Once you're done resolving everything, change the assignment of the MR again.
-Please do not open a new merge request.
-If you're unsure of how to do that please study our guide on [git workflow](https://gitlab.com/openCFS/cfs/-/wikis/git-workflow),
-and do not hesitate to ask for further guidance.
+Please use the following workflow to contribute
+
+1. Discuss your planned contribution: open an **issue**.
+   This step is optional for trivial changes, but very useful for larger changes.
+   Describe the planned changes and ask for feedback to make sure
+   * you are not re-implementing already existing things, and
+   * nobody else is working on a toipc with possible confilcts.
+2. Create a topic-**branch** and start coding.
+  As soon as possible, **commit** and **push** your work and
+3. open a **merge request**.
+   * Mark the merge request as *draft* or *work in progress*.
+   * Add a description to the merge request (e.g. to-do list, discussion outcome of the issue, ...)
+   * Comments, changes, and pipeline results will be collected within the merge request page on gitlab. 
+4. Once your're done (contribution adhers to guidelines, pipeline passes), start the review: **assign** the merge request to a _maintainer_.
+   * The maintainer might assign reviewers to comment on the contribution.
+   * If there is still an issue the reviewer/maintainer will tell you about it and assign the issue back to you.
+   * Once you're done resolving everything, change the assignment of the MR again.
+   * Please do not open a new merge request!
