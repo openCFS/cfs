@@ -168,7 +168,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
         RegionIdType volSlaveId = nitscheIf->GetSlaveVolRegion();
 
         //we set here the penalty factor
-        Double beta = ncList[i]->Get("nitscheFactor")->As<std::double_t>();
+        Double beta = ncList[i]->Get("nitscheFactor")->As<Double>();
         // create new entity list
         shared_ptr<ElemList> actNCSDList = ncIf->GetElemList();
         // in case of mechanical PDE, we need the material tensor

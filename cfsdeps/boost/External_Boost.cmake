@@ -148,22 +148,28 @@ IF(UNIX)
   IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     # Simon made it without toolset and it shall work.
     set(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux )
-    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\" )
-#  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux)
-#  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\")
+    set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS})
   ENDIF()
 ENDIF(UNIX)
 
 IF(WIN32)
 
   SET(BOOST_BOOTSTRAP_PARAMS "--without-libraries=python" "--prefix=${BOOST_install}" "--target-os=windows" "--architecture=x86" "--address-model=64" "--with-filesystem")
-  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--target-os=windows" "--architecture=x86" "--address-model=64" "--build-type=complete" "--prefix=${BOOST_install}")
+  SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "target-os=windows" "architecture=x86" "address-model=64" "--prefix=${BOOST_install}")
   SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "variant=debug,release" "threading=multi" "link=static,shared" "runtime-link=shared")
 
   IF(BOOST_MSVC_VERSION VERSION_GREATER_EQUAL 16.0)
     IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-      SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-19.1-vc14.2")
-      SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-19.1-vc14.2")
+      IF(CFS_CXX_COMPILER_VER GREATER_EQUAL 20.2)
+        SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-2021.2-vc14.2")
+        SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-2021.2-vc14.2")
+      ELSEIF(CFS_CXX_COMPILER_VER GREATER_EQUAL 20.1)
+        SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-2021.1-vc14.2")
+        SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-2021.1-vc14.2")
+      ELSE()
+        SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-19.1-vc14.2")
+        SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-19.1-vc14.2")
+      ENDIF()
     ELSE()
       SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=msvc-14.2")
       SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=msvc-14.2")
@@ -263,13 +269,15 @@ ELSE()
   #-------------------------------------------------------------------------------
   # Add custom patch step
   #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(boost winpatch
-    COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    DEPENDERS install
-    DEPENDEES build
-    DEPENDS "${PFN}"
-    WORKING_DIRECTORY ${BOOST_source}
-  )
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    ExternalProject_Add_Step(boost winpatch
+      COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+      DEPENDERS build
+      DEPENDEES download
+      DEPENDS "${PFN}"
+      WORKING_DIRECTORY ${BOOST_source}
+    )
+  ENDIF()
 
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors

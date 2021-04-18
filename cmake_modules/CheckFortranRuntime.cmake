@@ -20,8 +20,8 @@ SET(CFS_FORTRAN_LIBS "")
 # Lets find the runtime libraries of gfortran. This branch should be taken
 # on most Linuxes and MacOS.
 #-----------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
-
+if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+  message(STATUS "GNU Fortran")
   #---------------------------------------------------------------------------
   # On Unix we may encounter the situation, that we have Intel as Fortran
   # compiler but some system libs depend on GFortran. Therefore, we assume,
@@ -124,16 +124,16 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     message(WARNING "no static Fortran library found - this build will not run on systems missing compatible Fortran runtime libs!")
     LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}" "-lquadmath")
   endif()
-  message(STATUS "setting CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
-
-ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
+endif(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
 
 #-----------------------------------------------------------------------------
 # Lets find the runtime libraries of the Intel Fortran compiler.
 #-----------------------------------------------------------------------------
 IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+  message(STATUS "Intel Fortran compiler")
   #---------------------------------------------------------------------------
   # Search explicitely for implicitely defined Fortran libs
+  # CMake-magic: https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_IMPLICIT_LINK_LIBRARIES.html
   #---------------------------------------------------------------------------
   foreach(lib IN LISTS CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)
     FIND_LIBRARY(IFORT_${lib}_LIBRARY
@@ -145,15 +145,29 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
       NO_SYSTEM_ENVIRONMENT_PATH
       NO_CMAKE_SYSTEM_PATH 
       )
-    
     MARK_AS_ADVANCED(IFORT_${lib}_LIBRARY)
-
-    # Obviously, the irc_s lib from Intel Fortran is not necessary
-    # and even can cause problems in conjunction with mkl_core.
-    IF(NOT lib STREQUAL "irc_s")
-      LIST(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
-    ENDIF()
-
+    #message(STATUS "${lib}")
+    # copy over intel shared libs
+    if("${lib}" MATCHES "(ifport)|(ifcoremt)|(imf)|(svml)|(irc)$")
+      # the dynamic version is usually in the same dir as the static one
+      get_filename_component(inteldir "${IFORT_${lib}_LIBRARY}" DIRECTORY)
+      FIND_LIBRARY(IFORT_${lib}_LIBRARY_STATIC
+        NAMES lib${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}
+        PATHS ${inteldir}
+        NO_DEFAULT_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_PATH NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH
+      	)
+      mark_as_advanced(IFORT_${lib}_LIBRARY_STATIC)
+      if("${IFORT_${lib}_LIBRARY_STATIC}" MATCHES "NOTFOUND")
+	message(WARNING "no static version of ${IFORT_${lib}_LIBRARY} found in ${inteldir} using dynamic version.\n
+	It will be installed by cpack, but not copied over into the build directory.")
+        #one can't simply copy over because cmake will complain about "Cannot generate a safe linker search path ..."
+        install(FILES "${IFORT_${lib}_LIBRARY}" DESTINATION "lib64/LINUX_${CFS_ARCH}")
+        list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
+      else()
+	message(STATUS "  found static lib: ${IFORT_${lib}_LIBRARY_STATIC} and using it.")
+	list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY_STATIC}")
+      endif()
+    endif()
   endforeach()
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
@@ -169,6 +183,8 @@ ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 # Fortran for C/C++ developers made easier with CMake:
 # http://www.kitware.com/blog/home/post/231
 #==============================================================================
+
+message(STATUS "setting CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
 
 include(FortranCInterface)
 

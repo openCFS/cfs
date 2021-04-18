@@ -110,9 +110,6 @@ option(CFS_FSANITIZE "Use -fsanitize to check for memory leaks and general error
 option(EXPLICIT_TEMPLATE_INSTANTIATION "Use explicit template instantiation." ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 # Do we want to use expression templates
 option(USE_EXPRESSION_TEMPLATES "Use expression templates for matrix and vector operators." ON)
-# ICC needs a gcc to get header from. Newest ICC might not be fully compatible with gcc 8.* yet
-# will be set as advanced in non-intel case
-set(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version where ICC takes the headers from")
 # Set a sane default value for the openCFS schema path
 set(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING "Path where the XML schema for the input files is located.")
 # this is by default the submodule
@@ -315,9 +312,6 @@ mark_as_advanced(USE_ILUPACK_PARALLEL)
 mark_as_advanced(USE_PHIST_CG)
 mark_as_advanced(USE_FEAST_COMMUNITY)
 mark_as_advanced(USE_FEAST_COMMUNITY_PRECOMPILED)
-if(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  mark_as_advanced(CFS_ICC_GCC_VERSION) # shall be seen in intel case
-endif()
 
 #-----------------------------------------------------------------------------
 # Prepare further build

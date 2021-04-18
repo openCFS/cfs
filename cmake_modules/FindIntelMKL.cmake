@@ -82,7 +82,11 @@ IF(MSVC)
   MKL_VERSION_FROM_HEADER()
   SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
   
-  SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win")
+  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win")
+  ELSE()
+    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64")
+  ENDIF()
 
   # mkl_solver* libs are deprecated as of v10
   # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
@@ -91,8 +95,18 @@ IF(MSVC)
     ${MKL_LIB_DIR}/mkl_intel_lp64_dll.lib
     ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
     ${MKL_LIB_DIR}/mkl_core_dll.lib
-    ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
   )
+  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+    SET(MKL_BLAS_LIB 
+      ${MKL_BLAS_LIB}
+      ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
+    )
+  ELSE()
+    SET(MKL_BLAS_LIB 
+      ${MKL_BLAS_LIB}
+      ${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win/libiomp5md.lib
+    )
+  ENDIF()
 
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
@@ -101,8 +115,18 @@ IF(MSVC)
     ${MKL_LIB_DIR}/mkl_intel_thread.lib
     ${MKL_LIB_DIR}/mkl_core.lib
     ${MKL_LIB_DIR}/mkl_sequential.lib
-    ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
   )
+  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+    SET(DEPS_SEQUENTIAL
+      ${DEPS_SEQUENTIAL}
+      ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
+    )
+  ELSE()
+    SET(DEPS_SEQUENTIAL
+      ${DEPS_SEQUENTIAL}
+      ${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win/libiomp5md.lib
+    )
+  ENDIF()
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
 
@@ -112,7 +136,11 @@ IF(MSVC)
   SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
   
   # redistributable directory
-  SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+    SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+  ELSE()
+    SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/redist/intel64/")
+  ENDIF()
   
   # copy all dlls to binary dir
   MESSAGE(STATUS "Copying MKL redistributable files from ${MKL_REDIST_DIR} to ${LIB_DEST_DIR}")
@@ -202,6 +230,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   if(NOT MKL_ROOT_DIR)
     set(MKL_POSSIBLE_ROOT_DIRS
        "/opt/intel/mkl"
+       "/opt/intel/oneapi/mkl/latest"
        "/share/programs/intel-mkl/latest/mkl"
        $ENV{MKLROOT}) # set by compilervars.sh intel64
 
@@ -236,6 +265,10 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
     if(NOT EXISTS "${MKL_OMP_LIB}")
         set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
     endif()
+    # path for oneAPI 2020.2
+    if(NOT EXISTS "${MKL_OMP_LIB}")
+        set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../../compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so")
+    endif()
     # copy over
     file(COPY ${MKL_OMP_LIB} DESTINATION ${LIBRARY_OUTPUT_PATH})
     set(MKL_OMP_LIB_LINE "-L${LIBRARY_OUTPUT_PATH} -liomp5")
@@ -246,11 +279,18 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
 
   # set the link line, essentailly from
   # see https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
-  # regarting the correct Fortratn infterface library (libmkl_gf_lp64):
+  # regarting the correct Fortran interface library (libmkl_gf_lp64):
   # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
-  set(MKL_BLAS_LIB 
+  set(MKL_FORTRAN_INTERFACE_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_gf_lp64.a")
+  if(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+    message(STATUS "Unsing intel Fortran compiler: use libmkl_intel_lp64.a")
+    set(MKL_FORTRAN_INTERFACE_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_intel_lp64.a")
+  endif()
+  set(MKL_BLAS_LIB
+     ${MKL_ROOT_DIR}/lib/intel64/libmkl_blas95_lp64.a
+     ${MKL_ROOT_DIR}/lib/intel64/libmkl_lapack95_lp64.a 
      -Wl,--start-group
-     ${MKL_ROOT_DIR}/lib/intel64/libmkl_gf_lp64.a
+     ${MKL_FORTRAN_INTERFACE_LIB}
      ${MKL_THREADING_LIB}
      ${MKL_ROOT_DIR}/lib/intel64/libmkl_core.a
      -Wl,--end-group
@@ -258,7 +298,6 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
      -lpthread
      -lm
      -ldl)
-
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 else() # end UNIX
   message(FATAL_ERROR "unhandled system type")
