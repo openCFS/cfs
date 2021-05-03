@@ -700,6 +700,7 @@ testsuite:gcc10:linux:
 stable:intel:linux:
   tags:
     - linux
+  image: opencfs/ubuntu20.04
   stage: test
   variables:
     BUILD_NAME: Intel
