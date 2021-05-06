@@ -78,14 +78,13 @@ bool GridIntersectionFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
 void GridIntersectionFilter::PrepareCalculation(){
   std::cout << "\t ---> GridIntersection preparing for interpolation" << std::endl;
 
-  //in this filter we only have one upstream result
-  uuids::uuid upRes = upResIds[0];
-
-  Grid* inGrid   = resultManager_->GetExtInfo(upRes)->ptGrid;
 
   StdVector<ElemIntersect::VolCenterInfo> intersectInfo;
 
 #ifdef USE_CGAL
+  //in this filter we only have one upstream result
+  Grid* inGrid   = resultManager_->GetExtInfo(upResIds[0])->ptGrid;
+
   //first we create the cell intersector
   //YET MISSING make sanity check if all region have same dimension
   UInt intersetionDim = 1;
