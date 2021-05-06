@@ -886,7 +886,10 @@ def show_framed_cross(coords, design, nx, scale, color, do_save):
   return (fig, sub)
 
 
-def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, equilateral=True, param=None, radius=None):
+def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, equilateral=True, radius=None, param=None, repetitions=1):
+
+  # hourglass or diamond
+  type = 'diamond'
 
   def get_angles_for_chord(x, y, idx, angle, boundary):
     mid_circ_angle = (90 - angle*180/np.pi / 2) * 2
@@ -916,7 +919,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
           start, end = 270 - mid_circ_angle, 270
         else:
           start, end = 90, 90 + mid_circ_angle
-    return start, end
+    return int(np.round(start)), int(np.round(end))
   
   def draw_chord(x, y, tupels, idx, point_on_bisec, radius, boundary=False):
     p = tupels[idx]
@@ -932,6 +935,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
 
     # midpoint of arc
     vec = np.array(point_on_bisec) - np.array(p)
+    assert(np.linalg.norm(vec) > 1e-8)
     mid_circ = np.array(p) + vec/np.linalg.norm(vec) * radius / np.sin(angle/2)
     mid_circ = np.round(mid_circ)
     #draw.point([mid_circ[0],mid_circ[1]], fill="yellow") #debug
@@ -972,9 +976,9 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
     s1 = np.minimum(s1,1)
 
   # usually we read physical design, so we have to recalculate the non-penalized design
-  # this assumes RAMP with parameter 2.8
+  # this assumes RAMP with parameter 2.2
   if param is None and access == "smart":
-    p = 2.8 # RAMP with p=2.8
+    p = 2.2 # RAMP with p=2.2
     s1 = (p+1)*s1 / (p*s1+1)
 
   centers, mini, maxi, elem = coords
@@ -1005,10 +1009,16 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
       # recalculate elem size, such that we always draw complete triangles in y-direction
       elem[1] = (maxi[1]-mini[1]) / ny
     else:
-      # if we generate base cells, we draw three triangles in x-direction and two in y-direction
+      # if we generate base cells, we draw multiple triangles in x- and y-direction
       # after drawing, we crop the image to obtain a periodic base cell with an "X" and three horizontal bars
-      nx = 3
-      ny = 2
+      if type == 'hourglass':
+        nx = 2*repetitions+1
+        ny = repetitions
+      elif type == 'diamond':
+        nx = 4*repetitions
+        ny = repetitions
+      else:
+        raise Exception('Type not implemented')
       maxi[0] = nx*elem[0]
       maxi[1] = ny*elem[1]
 
@@ -1018,6 +1028,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
       for x in range(nx):
         center = np.array([elem[0]/2.0 + x * elem[0], elem[1]/2.0 + y * elem[1]])
         centers_new.append(center)
+        # kind of integration points -> should be removed and graded triangle bars should be used
         if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
           #    2        4--2           2--5
           #   / \       |   \         /   |
@@ -1058,7 +1069,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
 
   if radius:
     assert(radius >= 0)
-    assert(radius <= 1)
+    #assert(radius <= 1)
     radius = np.round(radius * length/(2*np.sqrt(3))/2)
 
   if equilateral:
@@ -1070,7 +1081,6 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
   else:
     ip_near = s1
     ip_data = s1
-
 
   for y in range(ny):
     for x in range(nx):
@@ -1102,7 +1112,6 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
         raise ValueError("argument v={:.3f} out of bounds".format(v))
 
       v = np.min((1.0, np.max((0.0, v))))
-
       # this will generate a linear param-volume realtionship
       # else it will be volume = -param^2 + 2*param
       v = 1-np.sqrt(1-v)
@@ -1236,7 +1245,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
             n3y = np.ceil(mid[1] * dy - height * v)
 
           # for some v the boundary triangle might actually not exist 
-          if n2x == n1x:
+          if (x == 0 and n2x-n1x < 1e-10) or (x == nx-1 and n1x-n2x < 1e-10):
             continue
 
           tupels = []
@@ -1283,9 +1292,14 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
   if param is not None:
     # crop argument = (left, upper, right, lower)
     # remove half of an element on both sides (times dx for pixels)
-    # +1 for periodicity
-    im = im.crop((maxi[0]/nx*1/2*dx, mini[1]*dy, maxi[0]/nx*(nx-1/2)*dx+1, maxi[1]*dy+1))
-
+    # +1 for periodicity:
+    # will add one row of black pixels in y direction (cut happens outside of image region)
+    # but not in x direction (cut happens inside of image region)
+    if type == 'hourglass':
+      im = im.crop((maxi[0]/nx*1/2*dx, mini[1]*dy, maxi[0]/nx*(nx-1/2)*dx+1, maxi[1]*dy+1))
+    elif type == 'diamond':
+      im = im.crop((maxi[0]/nx*1/2*dx, mini[1]*dy, maxi[0]/nx*(nx-1/2-(repetitions-1))*dx, maxi[1]*dy))
+    
   return im
 
 def draw_verts(verts, axsubplot, color):

@@ -121,15 +121,19 @@ namespace CoupledField {
     ToInfo();
   }
 
-  void ArpackEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian ) {
+  void ArpackEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian) {
+    Setup(A, B, ArpackMatInterface::ComputeMode::SHIFT_INVERT, isHermitian);
+  }
+
+  void ArpackEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, ArpackMatInterface::ComputeMode computeMode, bool isHermitian) {
     isQuadratic_ = false;
     isGeneralized_ = true;
     sort_ = false;
 
     this->SetProblemType(A,isHermitian);
 
-    // NOTE: Hard coded!!!
-    computeMode_ = ArpackMatInterface::ComputeMode::SHIFT_INVERT;
+    computeMode_ = computeMode;
+    assert(computeMode_ == ArpackMatInterface::ComputeMode::SHIFT_INVERT || computeMode_ == ArpackMatInterface::ComputeMode::BUCKLING);
 
     if(scale_B_)
     {
@@ -167,12 +171,7 @@ namespace CoupledField {
     else
       matrixB_ = & dynamic_cast<const StdMatrix&>(B);
 
-
     UInt size = matrixA_->GetNumRows();
-
-    if (computeMode_ == ArpackMatInterface::ComputeMode::REGULAR) {
-      computeMode_ = ArpackMatInterface::ComputeMode::SHIFT_INVERT;
-    }
 
     // Create matrix interface for arpack, it might already exist in the bloch mode case
     if(interface_ == NULL)

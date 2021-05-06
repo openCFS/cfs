@@ -94,7 +94,7 @@ if not '.h5' in args.input and not args.noshow:
   show_dense_mesh_image(mesh, dimensions, args.showbinary, args.showsize)
   
 if args.densemesh:
-  write_gid_mesh(mesh, args.densemesh)  
+  write_gid_mesh(mesh, args.densemesh)
   print("save dense mesh: " + args.densemesh)
 
 if args.sparsemesh:

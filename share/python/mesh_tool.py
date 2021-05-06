@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import platform
 # from PIL import Image # load only in the function we need it!
-import sys, os, numpy, math
-from copy import deepcopy
+import sys, os, numpy, math, pickle
 try:
   from hdf5_tools import *
 except:
-  print("failed to import hdf5_tools in mesh_tools_py, hopefully we don't need it")
+  print("failed to import hdf5_tools in mesh_tool.py, hopefully we don't need it")
 import scipy.interpolate as ip
 from numpy import ceil
 import scipy.spatial
@@ -66,8 +65,7 @@ def calc_min_max_coords(mesh):
   ma_z = -100000.
   mi_z = 100000.
 
-  for i in range(len(mesh.nodes)):
-    coord = mesh.nodes[i]
+  for coord in mesh.nodes:
     ma_x = ma_x if ma_x > coord[0] else coord[0]
     mi_x = mi_x if mi_x < coord[0] else coord[0]
     ma_y = ma_y if ma_y > coord[1] else coord[1]
@@ -190,18 +188,18 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
   mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
 
   # count number of boundary nodes per region
-  for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta:
+  for node in mesh.nodes:
+    if abs(node[0] - mi_x) < min_diam_x + delta:
       left_c += 1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta:
+    elif abs(node[0] - ma_x) < min_diam_x + delta:
       right_c += 1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta:
+    elif abs(node[1] - mi_y) < min_diam_y + delta:
       bottom_c += 1
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta:
+    elif abs(node[1] - ma_y) < min_diam_y + delta:
       top_c += 1
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta:
+    elif abs(node[2] - mi_z) < min_diam_z + delta:
       back_c += 1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta:
+    elif abs(node[2] - ma_z) < min_diam_z + delta:
       front_c += 1
 
   lr_counter = min(left_c,right_c)
@@ -217,23 +215,23 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
   back_c = 0
   front_c = 0
 
-  for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta and left_c < lr_counter:
+  for i,node in enumerate(mesh.nodes):
+    if abs(node[0] - mi_x) < min_diam_x + delta and left_c < lr_counter:
       left.append(i)
       left_c +=1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta and right_c < lr_counter:
+    elif abs(node[0] - ma_x) < min_diam_x + delta and right_c < lr_counter:
       right.append(i)
       right_c +=1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta and bottom_c < bt_counter:
+    elif abs(node[1] - mi_y) < min_diam_y + delta and bottom_c < bt_counter:
       bottom.append(i)
       bottom_c +=1
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta and top_c < bt_counter:
+    elif abs(node[1] - ma_y) < min_diam_y + delta and top_c < bt_counter:
       top.append(i)
       top_c +=1
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta and back_c < bf_counter:
+    elif abs(node[2] - mi_z) < min_diam_z + delta and back_c < bf_counter:
       back.append(i)
       back_c +=1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta and front_c < bf_counter:
+    elif abs(node[2] - ma_z) < min_diam_z + delta and front_c < bf_counter:
       front.append(i)
       front_c +=1
 
@@ -410,45 +408,42 @@ def convert_to_sparse_mesh(dense):
   nns = set()
 
   # copy element, the indices of the nodes will be replaced later
-  for i in range(len(dense.elements)):
-    e = dense.elements[i]
+  for e in dense.elements:
     if e.region != 'void':
-      sparse.elements.append(deepcopy(e))
-      for n in range(len(e.nodes)):
-        nns.add(e.nodes[n])
+      sparse.elements.append(pickle.loads(pickle.dumps(e))) # sending through pickle is faster than deepcopy
+      for node in e.nodes:
+        nns.add(node)
 
   # nns contains the required nodes uniquely and ordered
   # convert to nnl to access the indices
   nnl = list(nns)
   sparse.nodes = []
-  for i in range(len(nnl)):
-    sparse.nodes.append(dense.nodes[nnl[i]])
+  for i in nnl:
+    sparse.nodes.append(dense.nodes[i])
 
   # next we need to correct the element node indices
   # the map is indexed by the dense numbering and contains the sparse indices or -1
   map = len(dense.nodes) * [-1]
-  for i in range(len(nnl)):
-    map[nnl[i]] = i
+  for i,idx in enumerate(nnl):
+    map[idx] = i
 
   # now correct the element nodes
-  for e in range(len(sparse.elements)):
-     el = sparse.elements[e]
+  for el in sparse.elements:
      newnodes = []  # el.nodes is a tuple, values cannot be replaces
-     for n in range(len(el.nodes)):
-       newnodes.append(map[el.nodes[n]])
-       assert(el.nodes[n] != -1)
+     for node in el.nodes:
+       newnodes.append(map[node])
+       assert(node != -1)
      el.nodes = newnodes
 
   # finally handle the boundary conditions
   sparse.bc = []
-  for b in range(len(dense.bc)):
-    bc = dense.bc[b]
+  for bc in dense.bc:
     dnn = bc[1]  # dense nodes
     nodes = []
-    for n in range(len(dnn)):
+    for n in dnn:
 #       print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
-      if map[dnn[n]] != -1:
-        nodes.append(map[dnn[n]])
+      if map[n] != -1:
+        nodes.append(map[n])
     sparse.bc.append((bc[0], nodes))
   return sparse
 
@@ -460,8 +455,7 @@ def count_elements(elements, type):
   return count
 
 def write_gid_elements(out, elements, dim):
-  for i in range(len(elements)):  # write one based!
-    e = elements[i]
+  for i,e in enumerate(elements):  # write one based!
     if elem_dim(e.type) == dim:
       nodes = len(e.nodes)
       out.write(str(i + 1) + ' ' + str(e.type) + ' ' + str(nodes_by_type(e.type)) + ' ' + e.region + "\n")
@@ -497,12 +491,12 @@ def write_gid_mesh(mesh, filename, scale = 1):
   out.write('Num2DElements ' + str(num_2d) + '\n')
   out.write('Num1DElements ' + str(num_1d) + '\n')
   bcn = 0
-  for i in range(len(mesh.bc)):
-    bcn += len(mesh.bc[i][1])
+  for bc in mesh.bc:
+    bcn += len(bc[1])
   out.write('NumNodeBC ' + str(bcn) + '\n')
   nen = 0
-  for i in range(len(mesh.ne)):
-    nen += len(mesh.ne[i][1])
+  for ne in mesh.ne:
+    nen += len(ne[1])
   out.write('NumSaveNodes 0\n')
   out.write('NumSaveElements ' + str(nen) + '\n')
   out.write('Num 2d-line      : ' + str(num_1d) + '\n')
@@ -524,10 +518,10 @@ def write_gid_mesh(mesh, filename, scale = 1):
 
   out.write('\n[Nodes]\n')
   out.write('#NodeNr x-coord y-coord z-coord\n')
-  for i in range(len(mesh.nodes)):  # write one based!
-    out.write(str(i + 1) + "  " + str(mesh.nodes[i][0]/scale) + "  " + str(mesh.nodes[i][1]/scale))
+  for i,node in enumerate(mesh.nodes):  # write one based!
+    out.write(str(i + 1) + "  " + str(node[0]/scale) + "  " + str(node[1]/scale))
     if dim == 3:
-      out.write("  " + str(mesh.nodes[i][2]/scale) + "\n")
+      out.write("  " + str(node[2]/scale) + "\n")
     else:
       out.write("  0.0\n")
 
@@ -1602,21 +1596,19 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
     mesh.nodes.append(node)
 
   # counter for regions
-  idx = list(range(len(region)))
-  for i in range(len(region)):
-    idx[i] = 0
-  for i in range(len(all_elements[:, 0])):
+  idx = np.zeros(len(region))
+  for el in all_elements:
     e = Element()
-    e.nodes = (all_elements[i, :] - 1)
+    e.nodes = el - 1
     #e.density = design_var[i]
-    for j in range(len(region)):
-      if idx[j] < len(reg_elements_region[j]):
-        if i + 1 == reg_elements_region[j][idx[j]]:
+    for j, regcount in idx:
+      if regcount < len(reg_elements_region[j]):
+        if i + 1 == reg_elements_region[j][regcount]:
           #if e.density >= threshold:
           e.region = region[j]
           #else:
           #  e.region = 'void'
-          idx[j] += 1
+          regcount += 1
     e.type = mesh_type_from_hdf5(types[i])
     mesh.elements.append(e)
   return mesh
@@ -1633,11 +1625,11 @@ def create_mesh_from_tetgen(meshfile, region):
 
   # Create mesh 3D Tetrahedron
   mesh = Mesh()
-  for i in range(len(all_nodes)):
-    mesh.nodes.append(all_nodes[i, 1:])
-  for i in range(len(all_elements[:, 0])):
+  for nodes in all_nodes:
+    mesh.nodes.append(nodes[1:])
+  for el in all_elements:
     e = Element()
-    e.nodes = (all_elements[i, 1:] - 1)
+    e.nodes = el[1:] - 1
     e.density = 1.
     e.region = region
     if len(e.nodes) == 4:
@@ -1767,19 +1759,19 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
         el.append(int(item[i]))
       # read 2D surface triangles (WARNING: unreliable, check results)
       if int(item[1]) == 2:
-        for bcnum in range(len(surfaceBCnumbers)):
+        for idx, bcnum in surfaceBCnumbers:
           for tag in range(int(item[2])):
-            if int(item[3+tag]) == surfaceBCnumbers[bcnum]:
+            if int(item[3+tag]) == bcnum:
               for j in range(1,len(el)):
-                bcs[bcnum].append(el[j])
+                bcs[idx].append(el[j])
               break
       # read 3D elements
       if int(item[1]) != 2:
         if regionnumbers != None:
-          for region in range(len(regionnumbers)):
+          for idx, region in enumerate(regionnumbers):
             for tag in range(int(item[2])):
-              if int(item[3+tag]) == regionnumbers[region]:
-                regions[region].append(el)
+              if int(item[3+tag]) == region:
+                regions[idx].append(el)
                 break
         else:
           regions.append(el)
@@ -1795,14 +1787,14 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   # seems not to work if no region was specified
   if regionnumbers != None:
     print("regionnumbers:",regionnumbers)
-    for j in range(len(regionnumbers)):
+    for j, region in enumerate(regionnumbers):
       for reg in regions[j]:
         e = Element()
         e.nodes = (reg[1:])
-        for k in range (len(e.nodes)):
-          e.nodes[k] -= 1
+        for node in e.nodes:
+          node -= 1
         e.density = 1.
-        e.region = str(regionnumbers[j])
+        e.region = str(region)
         if len(e.nodes) == 4:
           e.type = TET4
         elif len(e.nodes) == 6:
@@ -1814,8 +1806,8 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
     for reg in regions:
       e = Element()
       e.nodes = (reg[1:])
-      for k in range (len(e.nodes)):
-        e.nodes[k] -= 1
+      for node in e.nodes:
+        node -= 1
       e.density = 1.
       e.region = "mech"
       if len(e.nodes) == 4:
@@ -1825,8 +1817,8 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
       elif len(e.nodes) == 8:
         e.type = HEXA8
       mesh.elements.append(e)
-  for bcnum in range(len(surfaceBCnumbers)):
-    mesh.bc.append((str(surfaceBCnumbers[bcnum]), list(set(bcs[bcnum]))))
+  for idx, bcnum in enumerate(surfaceBCnumbers):
+    mesh.bc.append((str(bcnum), list(set(bcs[idx]))))
 
 ## Manually add simple boundary conditions
   load = []
@@ -2033,8 +2025,7 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   out.write('$$  GRID Data\n')
   out.write('$$\n')
   # write nodes
-  for i in range(len(mesh.nodes)):
-    n = mesh.nodes[i]
+  for n in mesh.nodes:
     out.write('GRID%12d        '% (i+1) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
     #out.write('GRID    ' + '%-8d%-8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
   # Hexaeder elements
@@ -2044,9 +2035,8 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   out.write('$\n')
   out.write('$  CHEXA Elements: First Order\n')
   out.write('$\n')
-  for i in range(len(mesh.elements)):
-    e = mesh.elements[i]
-    n = mesh.elements[i].nodes
+  for e in mesh.elements:
+    n = e.nodes
     if e.type == HEXA8 and e.region == 'design':
       out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       out.write('+       %8d%8d\n'%(n[6]+1,n[7]+1))
@@ -2064,9 +2054,8 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   out.write('$  CPENTA Elements 6-noded\n')
   out.write('$\n')
   # Wedge elements
-  for i in range(len(mesh.elements)):
-    e = mesh.elements[i]
-    n = mesh.elements[i].nodes
+  for e in mesh.elements:
+    n = e.nodes
     if e.type == WEDGE6 and e.region == 'design':
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
@@ -2076,25 +2065,25 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,3,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
   # write forces1
-  for i in range(len(mesh.bc[0][1])):
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])))
+  for bc in mesh.bc[0][1]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,bc[i]+1,0,5000./len(bc)))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
-    # write forces2
-  for i in range(len(mesh.bc[1][1])):
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])))
+  # write forces2
+  for bc in mesh.bc[1][1]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,bc[i]+1,0,5000./len(bc)))
 
-      # write forces3
-  for i in range(len(mesh.bc[2][1])):
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[2][1][i]+1,0,5000./len(mesh.bc[2][1])))
+  # write forces3
+  for bc in mesh.bc[2][1]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,bc[i]+1,0,5000./len(bc)))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
-  for i in range(len(mesh.bc[3][1])):
-    out.write('SPC%13d%8d  13     \n'%(1,mesh.bc[3][1][i]+1))
-  for i in range(len(mesh.bc[4][1])):
-    out.write('SPC%13d%8d  2     \n'%(1,mesh.bc[4][1][i]+1))
-  for i in range(len(mesh.bc[5][1])):
-    out.write('SPC%13d%8d  2     \n'%(1,mesh.bc[5][1][i]+1))
+  for bc in mesh.bc[3][1]:
+    out.write('SPC%13d%8d  13     \n'%(1,bc[i]+1))
+  for bc in mesh.bc[4][1]:
+    out.write('SPC%13d%8d  2     \n'%(1,bc[i]+1))
+  for bc in mesh.bc[5][1]:
+    out.write('SPC%13d%8d  2     \n'%(1,bc[i]+1))
     #out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
 
   out.write('$$------------------------------------------------------------------------------$\n')
@@ -2154,9 +2143,9 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 0):
 
   last_node_id = 0
 
-  for i in range(len(inp)):
-    if inp[i][0:8].strip() == 'GRID':
-      last_node_id = int(inp[i][8:16].strip())
+  for i in inp:
+    if i[0:8].strip() == 'GRID':
+      last_node_id = int(i[8:16].strip())
 
   nodes = [None] * (last_node_id+1)
 
@@ -2165,17 +2154,17 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 0):
 
   nodes_last_idx = 0 # count current last index of list 'nodes'
 
-  for i in range(len(inp)):
+  for i in inp:
     #item = str.split(inp[i])
     #if i < len(inp)-1:
     #  item_n = str.split(inp[i+1])
 
-    if len(inp[i]) == 0:
+    if len(i) == 0:
       continue
     # read and check header
-    if inp[i][0:8].strip() == 'GRID':
+    if i[0:8].strip() == 'GRID':
       if offset == -1: # set offset automatically
-        offset = int(inp[i][8:16].strip())
+        offset = int(i[8:16].strip())
       assert(offset >= 0)
       #add nodes
       #x_str = 0
@@ -2434,13 +2423,13 @@ def create_mesh_for_aux_cells(all_nodes = [], elements = [],offset = 0.):
   min_diam_y = 1000000.
   min_diam_z = 1000000.
   # insert elements
-  for i in range(len(elements)):
+  for el in elements:
       e = Element()
-      e.nodes = (elements[i][2:])
-      for k in range(len(e.nodes)):
-        e.nodes[k] -= offset
+      e.nodes = el[2:]
+      for node in e.nodes:
+        node -= offset
       count = 0
-      for k in range (len(e.nodes)):
+      for _ in e.nodes:
         # determine the min_diam and max_diam of an element
         if count + 1 >= len(e.nodes):
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))
@@ -2669,8 +2658,8 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))
         condition = True #if type == "robot" else ((x < tx) or (y < ty) or (z < tz) or (x >= nx+tx) or (y >= ny+ty) or (z >= nz+tz))
         count = 0
-        for i in range(len(e.nodes)):
-          node = mesh.nodes[e.nodes[i]]
+        for n in e.nodes:
+          node = mesh.nodes[n]
           # test if element is above or below design region, bounds are given by non-design region
           if (node[1] >= -0.33403 - ((0.5*dy)/dy_f) and node[1] < -0.33303 + ((0.5*dy)/dy_f)) or (node[1] <= -0.35203 + ((0.5*dy)/dy_f) and node[1] > -0.35303 - ((0.5*dy)/dy_f)):
             count +=1
@@ -2768,21 +2757,21 @@ def add_bc_for_box_varel(mesh,bounds,pfem=None):
   nodes = mesh.nodes
   eps = 1e-4
   if not pfem:
-    for i in range(len(nodes)):
+    for i, node in enumerate(nodes):
       # load on top panel y=1
-      if numpy.isclose(nodes[i][1],1.0,1e-5):
+      if numpy.isclose(node[1],1.0,1e-5):
       #if numpy.isclose(nodes[i][1],0.0):
       #if nodes[i][1] < 0.0001:
         load.append(i)
         continue
       # support edges
       #if numpy.isclose(nodes[i][1],0.0,1e-3):
-      if nodes[i][1] < 1e-3:
+      if node[1] < 1e-3:
       #if numpy.isclose(nodes[i][1],1.0):
       #if nodes[i][1] > 0.9999:
-        if nodes[i][0] <= 1/20 + eps:
+        if node[0] <= 1/20 + eps:
           support.append(i)
-        elif nodes[i][2] <= 1/20 + eps:
+        elif node[2] <= 1/20 + eps:
           support.append(i)
 
     print("load:",len(load))
@@ -2835,23 +2824,23 @@ def add_bc_for_ppbox(mesh,bounds):
       load.extend(bcnames[1])
 
   nodes = mesh.nodes
-  for i in range(len(nodes)):
+  for i, node in enumerate(nodes):
     # all nodes on big cylinder
-    if big_cylinder[0]-eps < nodes[i][0] < big_cylinder[3] and big_cylinder[1]-eps < nodes[i][1] < big_cylinder[4] and big_cylinder[2]-eps < nodes[i][2] < big_cylinder[5]:
+    if big_cylinder[0]-eps < node[0] < big_cylinder[3] and big_cylinder[1]-eps < node[1] < big_cylinder[4] and big_cylinder[2]-eps < node[2] < big_cylinder[5]:
       load_bc.append(i)
       continue
     # all nodes on small cylinder
-    if small_clinder[0]-eps < nodes[i][0] < small_clinder[3] and small_clinder[1]-eps < nodes[i][1] < small_clinder[4] and small_clinder[2]-eps < nodes[i][2] < small_clinder[5]:
+    if small_clinder[0]-eps < node[0] < small_clinder[3] and small_clinder[1]-eps < node[1] < small_clinder[4] and small_clinder[2]-eps < node[2] < small_clinder[5]:
       load_sc.append(i)
       continue
 
-    if 27.27 <= nodes[i][2] <= zmin+eps:
+    if 27.27 <= node[2] <= zmin+eps:
       # support only on the edges of skin
-      if  72.3458-eps <= nodes[i][0] <= 72.75+eps or -72.75-eps <= nodes[i][0] <= -72.3458+eps:
+      if  72.3458-eps <= node[0] <= 72.75+eps or -72.75-eps <= node[0] <= -72.3458+eps:
 #       if numpy.isclose(nodes[i][0],xmin,1e-3) or numpy.isclose(nodes[i][0],xmax,1e-3):
         support.append(i)
         continue
-      if 40.609-eps <= nodes[i][1] <= 41.0+eps or -41.0-eps <= nodes[i][1] <= -40.609+eps:
+      if 40.609-eps <= node[1] <= 41.0+eps or -41.0-eps <= node[1] <= -40.609+eps:
 #       if numpy.isclose(nodes[i][1],ymin,1e-3) or numpy.isclose(nodes[i][1],ymax,1e-3):
         support.append(i)
         continue
@@ -2876,22 +2865,20 @@ def calc_bounding_box(mesh):
   zmin = 999999
   zmax = -999999
 
-  nodes = mesh.nodes
-
-  for i in range(len(nodes)):
+  for node in mesh.nodes:
     # for all nodes on bottom, get xmin,xmax,ymin,ymax
-    if nodes[i][0] < xmin:
-      xmin = nodes[i][0]
-    if nodes[i][0] > xmax:
-      xmax = nodes[i][0]
-    if nodes[i][1] < ymin:
-      ymin = nodes[i][1]
-    if nodes[i][1] > ymax:
-      ymax = nodes[i][1]
-    if nodes[i][2] < zmin:
-      zmin = nodes[i][2]
-    if nodes[i][2] > zmax:
-      zmax = nodes[i][2]
+    if node[0] < xmin:
+      xmin = node[0]
+    if node[0] > xmax:
+      xmax = node[0]
+    if node[1] < ymin:
+      ymin = node[1]
+    if node[1] > ymax:
+      ymax = node[1]
+    if node[2] < zmin:
+      zmin = node[2]
+    if node[2] > zmax:
+      zmax = node[2]
 
   assert(xmax > xmin)
   assert(ymax > ymin)
@@ -2909,18 +2896,18 @@ def name_bb_faces(mesh,bounds):
   back = []
   front = []
   xmin,ymin,zmin,xmax,ymax,zmax = bounds
-  for i in range(len(nodes)):
-    if numpy.isclose(nodes[i][0],xmin,1e-4):
+  for i, node in enumerate(nodes):
+    if numpy.isclose(node[0],xmin,1e-4):
       left.append(i)
-    elif numpy.isclose(nodes[i][0],xmax,1e-4):
+    elif numpy.isclose(node[0],xmax,1e-4):
       right.append(i)
-    elif numpy.isclose(nodes[i][1],ymin,1e-4):
+    elif numpy.isclose(node[1],ymin,1e-4):
       front.append(i)
-    elif numpy.isclose(nodes[i][1],ymax,1e-4):
+    elif numpy.isclose(node[1],ymax,1e-4):
       back.append(i)
-    elif numpy.isclose(nodes[i][2],zmin,1e-4):
+    elif numpy.isclose(node[2],zmin,1e-4):
       bottom.append(i)
-    elif numpy.isclose(nodes[i][2],zmax,1e-4):
+    elif numpy.isclose(node[2],zmax,1e-4):
       top.append(i)
 
   mesh.bc.append(("top",top))

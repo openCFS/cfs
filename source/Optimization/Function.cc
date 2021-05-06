@@ -1136,15 +1136,15 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
     std::string file = dm_node->Get(material_type)->Get("file")->As<std::string>();
     PtrParamNode root = XmlReader::ParseFile(file);
-    int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
-    int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
-    int dim3 = root->Get("a/matrix/dim1")->As<int>();
-    int dim4 = root->Get("b/matrix/dim1")->As<int>();
-    int dim5 = root->Get("c/matrix/dim1")->As<int>();
-    ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, this->vol_a_);
-    ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
-    ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
-    ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
+    int dim1 = root->Get("coeffvol/matrix/dim1")->As<int>();
+    int dim2 = root->Get("coeffvol/matrix/dim2")->As<int>();
+    int dim3 = root->Get("param1/matrix/dim1")->As<int>();
+    int dim4 = root->Get("param2/matrix/dim1")->As<int>();
+    int dim5 = root->Get("param3/matrix/dim1")->As<int>();
+    ParamTools::AsTensor<double>(root->Get("param1/matrix/real"), dim3, 1, this->vol_a_);
+    ParamTools::AsTensor<double>(root->Get("param2/matrix/real"), dim4, 1, this->vol_b_);
+    ParamTools::AsTensor<double>(root->Get("param3/matrix/real"), dim5, 1, this->vol_c_);
+    ParamTools::AsTensor<double>(root->Get("coeffvol/matrix/real"), dim1, dim2, this->vol_coeff_);
   }
 
   //total volume in the non-regular case is needed for the volume calculations
@@ -3742,6 +3742,8 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
 
   if (!derivative) {
     if (dim == 2) {
+      // this is the volume formula for a cross or frame structure
+      // but it also works for DesignMaterial with only one parameter (stiff1), if stiff2 = 0
       return svol * (stiff1 + stiff2 - stiff1 * stiff2);
     } else {
       return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);

@@ -299,6 +299,10 @@ protected:
 
   void CalcEigenvalueDerivativeBuckling(Excitation& excite, Function* f, StateSolution* sol, Double ev);
 
+  /** calculates local stress value or local microscopic load factor or gradient for any of those two.
+   * We do not go via LocalFunction here! */
+  double CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, Function* f, bool gradient);
+
   /** bandgap is the difference between two eigenfrequency problems in the bloch mode.
    * It would make sense to have a generic gap function between two independent functions */
   double CalcBandGap(Excitation& excite, Function* f, bool derivative);
@@ -562,6 +566,14 @@ private:
    * Get the prescribed macro stress from the xml for buckling homogenization.
    */
   Vector<Double> GetMacroStress();
+
+  /** Calculates a local load factor for normalized stress by evaluating
+   * tan(factor * x ^ exponent)
+   * which has been fitted. Also does a quadratic extrapolation to avoid too
+   * large values for vol -> 1.
+   * Parameters are hardcoded!
+   *  */
+  double GetMicroLoadFactor(double vol, bool derivative = false);
 
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_;

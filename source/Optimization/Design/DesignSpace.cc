@@ -1020,12 +1020,16 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
       // In OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
       // and we do it here for the inner one (resulting in D')
       // Only then, `coef->orgMat->GetTensor(retMat, *lpm)` will use the correct tensor D' for retMat = stress
+      assert(coef->GetForm()->GetName() == "PreStressInt");
       CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(coef->orgMat.get());
       assert(stressTens != NULL);
+
       std::map<std::string, PtrCoefFct>& map = stressTens->GetCoefFcts();
       assert(map.find("a") != map.end());
+
       CoefFunctionFlux<Complex>* stressVec = dynamic_cast<CoefFunctionFlux<Complex>*>(map["a"].get());
       assert(stressVec != NULL);
+
       std::map<RegionIdType, BaseBDBInt* > forms = stressVec->GetForms();
       BaseBDBInt* bdb = forms[lpm->ptEl->regionId];
       assert(bdb != NULL);

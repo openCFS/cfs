@@ -5,6 +5,7 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElementAccess.hh"
@@ -59,7 +60,7 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
   // global initializations
   M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
 
-  // for the local buckling load factor we need the Euclidean norm of the stress
+  // for the local buckling load factor we need the norm of the stress
   if(type == Function::LOCAL_BUCKLING_LOAD_FACTOR)
   {
     M = Matrix<double>();
@@ -67,7 +68,7 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
     M.Init();
     M[0][0] = 1.0;
     M[1][1] = 1.0;
-    M[2][2] = 1.0;
+    M[2][2] = 2.0;
   }
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
@@ -188,7 +189,12 @@ double StressConstraint<T>::CalcElementStress(Mode mode, int res_idx, DesignElem
     ElementAccess ea(em->context->GetBiLinFormContext(f->elements[0]->elem->regionId, app.first, app.second, true));
 
     ea.SetElem(de->elem);
-    SetupElement(&ea, de, app.first, mode);
+    if (mode == STRESS)
+      SetupElement(&ea, de, app.first, mode);
+    else {
+      assert(mode == GRAD_STRESS);
+      SetupElement(&ea, de, app.first, mode, de->GetType());
+    }
     double elem_vol = ea.esm->CalcVolume(); // see ::CalcStresses()
 
 
@@ -356,7 +362,7 @@ Vector<double> StressConstraint<T>::CalcGlobalizationFactor(const Vector<double>
 }
 
 template<typename T>
-void StressConstraint<T>::SetupElement(ElementAccess* ea, DesignElement* de, App::Type app, Mode mode)
+void StressConstraint<T>::SetupElement(ElementAccess* ea, DesignElement* de, App::Type app, Mode mode, DesignElement::Type direction)
 {
   assert(app != App::PIEZO_COUPLING); // code deleted. See in pre-FE-Space
   OptimizationMaterial* mat = em->context->mat;
@@ -370,18 +376,36 @@ void StressConstraint<T>::SetupElement(ElementAccess* ea, DesignElement* de, App
   Vector<T>& u1_elem = *u1_elem_ptr;
   Vector<T>& u2_elem = *u2_elem_ptr;
 
-  LOG_DBG3(sc) << "S: de=" << de->elem->elemNum << " a=" << app << " m=" << mode << " u1=" << u1_elem.ToString() << " u2=" << u2_elem.ToString();
+  LOG_DBG3(sc) << "SE: de=" << de->elem->elemNum << " a=" << app << " m=" << mode << " u1=" << u1_elem.ToString() << " u2=" << u2_elem.ToString();
 
   // set the element matrices
-  ea->SetIP(0); // set an arbitrary integration point for ToTensor()
-  mat->GetOrgMatCoef(form)->GetTensor(E1, ea->lpm);
-  E2 = E1; // TODO on the coupling case this comes from form2
-  E1 *= tf.Transform(de, DesignElement::SMART);
+  ea->SetIP(0); // set an arbitrary integration point
+  if (em->GetMethod() == ErsatzMaterial::SIMP_METHOD) {
+    mat->GetOrgMatCoef(form)->GetTensor(E1, ea->lpm);
+    E2 = E1; // TODO on the coupling case this comes from form2
+    E1 *= tf.Transform(de, DesignElement::SMART);
 
-  if(mode == GRAD_STRESS)
-    E2 *= tf.Derivative(de, DesignElement::SMART);
-  else
-    E2 *= tf.Transform(de, DesignElement::SMART);
+    if(mode == GRAD_STRESS)
+      E2 *= tf.Derivative(de, DesignElement::SMART);
+    else
+      E2 *= tf.Transform(de, DesignElement::SMART);
+  } else {
+    CoefFunctionOpt* coef = mat->GetMatCoef(blfc);
+
+    assert(coef->GetMaterialDerivative() == DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL);
+
+    coef->GetTensor(E1, ea->lpm);
+
+    E2 = E1;
+
+    if(mode == GRAD_STRESS) {
+      coef->SetToMaterialDerivative(direction);
+      coef->GetTensor(E2, ea->lpm);
+      coef->SetToOptimization();
+    }
+  }
+
+  LOG_DBG3(sc) << "SE: de=" << de->elem->elemNum << " E1=" << E1.ToString(2);
 }
 
 

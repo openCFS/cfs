@@ -102,6 +102,7 @@ namespace CoupledField {
 
     //! Setup for a generalised EVP
     virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false) =0;
+
     //! Setup for a quadratic EVP
     virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M) =0;
 

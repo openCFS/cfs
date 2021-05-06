@@ -37,6 +37,8 @@ namespace CoupledField {
     //! Setup for a generalised EVP
     void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
 
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, ArpackMatInterface::ComputeMode computeMode, bool isHermitian=false);
+
     //! Setup for a quadratic EVP
     void Setup(const BaseMatrix & A, const BaseMatrix & B, const BaseMatrix & C);
 
@@ -72,11 +74,6 @@ namespace CoupledField {
     //!        is used
     void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
                UInt numFreq, double freqShift, bool sort );
-
-    //! Sets the computational mode for solving the problem.
-    //! Must be called before Setup() to have an effect!
-    //! \param mode Computational mode
-    void SetComputeMode(ArpackMatInterface::ComputeMode mode) { this->computeMode_ = mode; }
 
     //! Solve the linear generalized eigenvalue problem
     

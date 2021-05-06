@@ -123,15 +123,15 @@ def perform_2d(args, coords, design, scale, nondes = None):
   elif args.show == "hom_triangle":
     assert(args.hom_grad != 'none')
     if args.target_volume is None:
-      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.parameter, args.bc_bend)
+      viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.bc_bend, args.parameter, args.repetitions)
     else:
       if args.parameter is not None:
-        viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, scale*args.parameter, args.bc_bend)
+        viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.bc_bend, scale*args.parameter, args.repetitions)
       else:
         design_backup = design['s1']
         design['s1'] = scale * design['s1']
         try:
-          viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.parameter, args.bc_bend)
+          viz = show_triangle_grad(coords, design, args.hom_grad, args.hom_samples, args.res, args.thres, args.save, args.access, True, args.bc_bend, args.parameter, args.repetitions)
         finally:
           design['s1'] = design_backup
   elif args.show == "stream":
@@ -516,6 +516,7 @@ parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=fl
 parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int, default=0)
 parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
 parser.add_argument("--parameter", help="parameter for different usage", type=float, default=None)
+parser.add_argument("--repetitions", help="number of repetitions of basecell", type=int, default=1)
 # print sys.argv
 
 args = parser.parse_args()
@@ -571,6 +572,7 @@ design_elems_max = None
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
 
   h5_read = False
+  infoXml_read = True
   dim_2D = None
   input = None
 
@@ -684,12 +686,18 @@ else:
         continue
     sys.exit()
 
-# do we have to do 1D optimization? 
+if max_bb is None:
+  max_bb = [1.0, 1.0] if dim_2D else [1.0, 1.0, 1.0]
+if min_bb is None:
+  min_bb = [0.0, 0.0] if dim_2D else [0.0, 0.0, 0.0]
+
+# do we have to do 1D optimization?
 if not args.target_volume:
   design = None
-  if get_MPI_rank() == 0:    
+  if get_MPI_rank() == 0:
     design = (design_elems, design_elems_min, design_elems_max)
-    assert(len(design_elems) > 0)
+    if not infoXml_read:
+      assert(len(design_elems) > 0)
   if args.h5_nondes != "None" or args.h5_nondes_void != "None":
     nondes_void = None
     nondes_solid = None
@@ -698,17 +706,11 @@ if not args.target_volume:
         nondes_solid = (nondes_elements, nondes_min, nondes_max)
       if args.h5_nondes_void != "None":
         nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
-
     perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(None,None,design),min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)  
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(None,None,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
 else:
-  if max_bb is None:
-    max_bb = [1.0, 1.0] if dim_2D else [1.0, 1.0, 1.0]
-  if min_bb is None:
-    min_bb = [0.0, 0.0] if dim_2D else [0.0, 0.0, 0.0]
   perform(args, h5_read, dim_2D, tensor, centers, aux_code, min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
-
 
 if args.info:
   matviz_io.write_info_xml(args.info)

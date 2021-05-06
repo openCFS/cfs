@@ -133,11 +133,11 @@ public:
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
+    void GetHomC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomIsoC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void GetHomIsoC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
 protected:
 
@@ -232,7 +232,7 @@ private:
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
-    void ApplyHomRectTensor(MaterialTensor<double>& mt, const Vector<double>& shape) const;
+    void GetHomRectTensor(MaterialTensor<double>& mt, const Vector<double>& shape) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction);
@@ -305,20 +305,27 @@ private:
     /** fills the coefficient data structure for the bicubic interpolation*/
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
 
-    /** evaluates the C1 interpolation polynomial at point p[0],p[1] and returns function value as double */
+    /** evaluates the one dimensional C1 interpolation polynomial at point p and returns function value as double */
+    double EvaluateC1Interpolation(double p, const Matrix<double>& coeff, double& da, int& j) const;
+
+    double EvaluateC1Interpolation_Deriv(double p, const Matrix<double> & coeff, double & da, int & j, DesignElement::Type direction) const;
+
+    /** evaluates the twodimensional C1 interpolation polynomial at point p and returns function value as double */
     double EvaluateC1Interpolation(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, int& j, int& k, int& m, int& n) const;
 
-    /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
+    /** evaluates the derivative of the C1 interpolation polynomial at point p in direction 0 or 1 and returns function value as double */
     double EvaluateC1Interpolation_Deriv(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, int& j, int& k, int& m, int& n, DesignElement::Type direction) const;
 
+    /** evaluates the threedimensional C1 interpolation polynomial at point p and returns function value as double */
     double EvaluateC1Interpolation_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, double& dc, int& j, int& k,int& l, int& m, int& n, int& o) const;
 
     /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1],p[2] in direction 0 or 1 and returns function value as double */
     double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db,double& dc, int& j, int& k, int& l, int& m, int& n, int& o, DesignElement::Type direction) const;
     //double EvaluateC1Interpolation(Matrix<double>& E,  Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
 
-    /** Get the index of the local interpolation interval*/
-    int GetInterpolationIndex(Matrix<double> interval, double& point) const;
+    /** Get the index of the local interpolation interval
+     * if point is outside of interval, it is set to interval's bounds*/
+    int GetInterpolationIndex(const Matrix<double>& interval, double& point) const;
 
     /** Read detailed stats from file*/
     bool ReadDetailedStats(const char * filename, Matrix<double>& ret);
@@ -326,11 +333,11 @@ private:
 #ifdef USE_SGPP
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
+    void GetHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param vector p has the values of the design variable */
-    void ApplyHomRectFullBsplineTensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void GetHomRectFullBsplineTensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     void EvaluateFullGrid();
 

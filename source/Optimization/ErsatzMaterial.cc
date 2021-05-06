@@ -1328,8 +1328,11 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::GLOBAL_STRESS:
     case Function::LOCAL_STRESS:
-    case Function::LOCAL_BUCKLING_LOAD_FACTOR:
       assert(false); // implemented in SIMP
+      break;
+
+    case Function::LOCAL_BUCKLING_LOAD_FACTOR:
+      result = CalcLocalVonMisesStressOrLoadFactor(excite, f, derivative);
       break;
 
     case Function::GLOBAL_SLOPE:
@@ -1431,7 +1434,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
           // c' = l K' u
           TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true); // excpetion and use_single
           double weight = excite.GetWeightedFactor(f);
-//          LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
+//          LOG_DBG(em) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
           CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
           return 0.0;
         }
@@ -1786,8 +1789,6 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   }
   return derivative ? -1.0 : sum;
 }
-
-
 
 double ErsatzMaterial::CalcDesignTracking(Condition* g, bool derivative)
 {
@@ -2447,6 +2448,8 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
   LOG_DBG2(em) << "mech_displ: " << mech_displ->GetRealVector(StateSolution::RAW_VECTOR).ToString();
 
   assert(adj->elem[App::MECH].GetSize() == mech_displ->elem[App::MECH].GetSize());
+  if(adj->elem[App::MECH].GetSize() == 0)
+    throw Exception("Buckling derivative is adjoint based, but no adjoint has been calculated.");
 
   // convert elementwise solutions from real to complex
   StdVector<SingleVector*> complex_elem_adjoints;
@@ -2470,6 +2473,162 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
 
   LOG_DBG2(em) << "CE: ev = " << ev << ", sum dev = " << sumFirstTerm << " + " << sumSecTerm;
 }
+
+double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, Function* f, bool gradient)
+{
+  // calculation of gradient and local function value is very similar, hence share the code
+  // local stress constraints are expensive and are not efficiently implemented.
+  // They are meant for a proof of concept, not for real use.
+
+  assert(excite.sequence == f->ctxt->sequence);
+  assert(f->IsLocal());
+  assert(f->GetCurrentRelativePosition() >= 0); // we are in a virtual loop
+  assert(f->GetLocal()->virtual_elem_map.GetSize() == f->elements.GetSize());
+  if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+  {
+    if(context->ToApp() != App::MECH || f->ctxt->ToApp() != App::MECH)
+      EXCEPTION("stresses are not read from static sequence step");
+  }
+  else
+    assert(f->GetType() == Function::LOCAL_STRESS && !f->IsObjective());
+
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
+
+  // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
+  // away from the other local gradient computations.
+  LocalCondition* lc = dynamic_cast<LocalCondition*>(f);
+  Function::Local::Identifier& id = lc->GetCurrentVirtualContext();
+
+  DesignElement* de = dynamic_cast<DesignElement*>(id.element);
+  assert(de != NULL);
+
+  assert(!f->ctxt->IsComplex()); // otherwise use template for StressConstraint
+
+  StressConstraint<double> sc(&excite, f, this, &forward);
+
+  // this is the squared norm of local stress (vonMises for vM stress, Euclidean for load factor)
+  double val = sc.CalcElementStress(de);
+
+  // stresses access smart, so we have to do it as well
+  double vol = de->GetDesign(DesignElement::SMART);
+
+  double ev_interpolated = GetMicroLoadFactor(vol);
+
+  if(!gradient)
+  {
+    if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+    {
+      double tmp_for_dbg = ev_interpolated / std::sqrt(val);
+      LOG_TRACE(em) << "CLVMS: de=" << de->elem->elemNum << " rho=" << vol << " stress=" << std::sqrt(val) << " ev=" << ev_interpolated << " -> val=" << tmp_for_dbg;
+      val = tmp_for_dbg;
+      int res_idx = this->GetDesign()->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::LOCAL_LOAD_FACTOR, DesignElement::NONE, DesignElement::PLAIN, excite.label);
+      // output local load factor? Note, that this is excitation specific!
+      if(res_idx != -1)
+      {
+        de->specialResult[res_idx] = val;
+        LOG_TRACE(em) << "CLVMS: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << val << " " << de->specialResult[res_idx];
+      }
+    }
+    lc->SetValue(val); // for CalcMaxValue() used in Function::Local::Identifier::EvalFunction()
+    LOG_DBG2(em) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " val=" << val << " values=" << f->GetLocal()->local_values.ToString();
+    return val;
+  }
+  else
+  {
+    // the BaseDesignElement::constraintGradient space is not for virtual functions
+    // we reuse the same space and it is written before we calculate the next function
+    // this is the only case we use Reset for a specific function
+    for(DesignElement& t : design->data)
+      t.Reset(DesignElement::CONSTRAINT_GRADIENT, f);
+
+    // the stress gradient is lambda^T * ( K' * u - f')  + 2 * stress^T * M * (rho^p)' * E_0 * B * u
+    // f' is usually 0,
+    // 2 * stress^T * M * (rho^p)' * E_0 * B * u is the dJ/drho_e part and applies only for element e
+
+    // rhs is from the legacy copy and usually empty
+    DesignDependentRHS* rhs = NULL;
+    rhs = new DesignDependentRHS(App::STRESS);
+    rhs->Init<double>(excite.label);
+
+    StdVector<SingleVector*>& u2 = forward.Get(excite)->elem[App::MECH];
+
+    // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
+    int idx = lc->GetCurrentRelativePosition();
+    StdVector<SingleVector*>& u1 = adjoint.Get(excite, f, idx)->elem[App::MECH];
+    CalcU1KU2(tf, u1, App::MECH, u2, rhs, 1.0, STANDARD, f);
+
+    // calc 2 * stress^T * M * (rho^p)' * E_0 * B * u
+    double appendix = sc.CalcGradElementStress(de);
+
+    // this is the derivative of local stress
+    de->AddGradient(f, appendix); // de is called for all f->elements, hence there is no a),b),c) case as for the global stress gradient
+
+    // for the local load factor, we have to apply chain rule
+    // we take the stress gradient, which was stored in de, apply the chain rule,
+    // delete the gradient in all elements and write the new one
+    if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+    {
+      double dev_interpolated = GetMicroLoadFactor(vol, true);
+
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
+      for(unsigned int e = 0; e < design->GetNumberOfElements(); e++)
+      {
+        DesignElement* de2 = &design->data[e];
+        double dval = de2->GetPlainGradient(f); // stress gradient
+
+        // d/dx ev/sqrt(s) = (s * ev' - s' * ev * 1/2 ) / sqrt(s) / s
+        // ev is local, i.e. dev/drho is a diagonal matrix
+        // however, the stress gradient is a full matrix
+        double firstTerm = de->elem->elemNum == de2->elem->elemNum ? val * dev_interpolated : 0;
+        appendix = (firstTerm - dval * ev_interpolated * 0.5) / std::sqrt(val) / val;
+
+        LOG_DBG(em) << "CLVMS: de2=" << de2->elem->elemNum << " val=" << val << " dev=" << dev_interpolated
+            << " dval=" << dval << " ev=" << ev_interpolated << " -> df=" << appendix;
+
+        de2->Reset(DesignElement::CONSTRAINT_GRADIENT, f);
+        de2->AddGradient(f, appendix);
+      }
+    }
+
+    LOG_DBG2(em) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " idx=" << idx << " appendix=" << appendix;
+    return 0;
+  }
+}
+
+double ErsatzMaterial::GetMicroLoadFactor(double vol, bool derivative)
+{
+  // the tangent-function has been fitted for a triangular lattice
+  // tan(factor * x ^ exponent)
+  // for design = 1, we have a singularity (ev -> infinity)
+  // thus we cut at x0 = 0.9 and extrapolate smoothly with a quadratic function
+  // TODO put function in xml and parse with mathparser
+  double factor = 1.17731;
+  double exponent = 3.53506;
+
+  // do a quadratic extrapolation
+  double x0 = 0.9;
+
+  double argument = M_PI/2 * std::pow(x0, exponent);
+  double f0 = factor * std::tan(argument);
+  double df0 = factor * M_PI/2 * exponent * std::pow(x0, exponent-1) / std::pow(std::cos(argument),2);
+  double sum = (exponent-1) * std::pow(x0, exponent-2) + M_PI * exponent * std::pow(x0, 2*(exponent-1)) * std::tan(argument);
+  double ddf0 = factor * M_PI/2 * exponent * sum / std::pow(std::cos(argument),2);
+
+  double ev = -1;
+  if(!derivative)
+    if(vol < x0)
+      ev = factor * std::tan(M_PI/2 * std::pow(vol, exponent));
+    else
+      ev = ddf0/2 * std::pow(vol-x0, 2) + df0 * (vol-x0) + f0;
+  else
+    if(vol < x0)
+      ev = factor * M_PI/2 * exponent * std::pow(vol, exponent-1) / std::pow(std::cos(M_PI/2 * std::pow(vol, exponent)),2);
+    else
+      ev = ddf0 * (vol-x0) + df0;
+
+  return ev;
+}
+
 
 
 /** is a lot of copy and paste from CalcEigenfrquency :( */
@@ -4520,12 +4679,15 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
    * Computer Methods in Applied Mechanics and Engineering 339 (2018): 115-136.
    * */
 
-  assert(me->DoHomogenization());
-
   // get stuff from linear elasticity
   Excitation* excite = context->GetExcitation();
-  unsigned int linElaExIndex = excite->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
-  assert(context->DoBuckling() ? manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC : true);
+  unsigned int linElaExIndex = excite->index - me->GetNumberHomogenization(context->ToApp());
+
+  assert(me->DoHomogenization());
+  assert(context->DoBuckling() && context->context_idx > 0);
+  assert(excite->index > 0);
+  assert(manager.GetContext(&(me->excitations[linElaExIndex])).pde->GetAnalysisType() == BasePDE::STATIC);
+
   Context* linEla_ctxt = &(manager.GetContext(&(me->excitations[linElaExIndex])));
   BiLinFormContext* linEla_blfc = linEla_ctxt->GetBiLinFormContext(lpm->ptEl->regionId, App::MECH, App::NO_APP, true);
   BDBInt<double,double>* linEla_bdb = dynamic_cast<BDBInt<double,double>*>(linEla_blfc->GetIntegrator());
@@ -4544,13 +4706,15 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
 
   // get the local displacement from the linear elasticity homogenization
   Matrix<double> U = Matrix<double>(B.GetNumCols(), num_hom);
+  unsigned int idx = design->Find(lpm->ptEl, true);
   for(unsigned int i=0; i < num_hom; ++i)
   {
-    const SingleVector* u = forward.Get(me->excitations[i])->elem[App::MECH][lpm->ptEl->elemNum-1]; // 0-based
+    const SingleVector* u = forward.Get(me->excitations[i])->elem[App::MECH][idx]; // 0-based
     for(unsigned int j=0; j < U.GetNumRows(); ++j)
       U[j][i] = (*dynamic_cast<const Vector<double>*>(u))[j];
   }
-  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " U=" << U.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " U=" << U.ToString(2);
+
 
   Vector<double> sigma_bar = GetMacroStress();
 
@@ -4562,11 +4726,11 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
   Matrix<double> DBU;
   DBU.Resize(num_hom, num_hom);
   D.Mult_Blas(BU, DBU, false, false, 1.0, 0);
-  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
 
   // D = D - D B U
   D.Add(-1.0, DBU);
-  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
 
   // homogenized material tensor was calculated in ErsatzMaterial::SolveStateProblem
   // voigt notation! -> macro stress has to be voigt
@@ -4574,15 +4738,47 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
   // hom_tensor is only 3x3 or 6x6 so we can afford the inverse
   homogenizedTensor[0].Invert(hom_tensor_inv);
 
-  // \f$\bar{epsilon} = D_h^{-1} \bar{\sigma}\f$
-  Vector<double> eps_bar = Vector<double>(num_hom);
-  hom_tensor_inv.Mult(sigma_bar, eps_bar);
-  LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " epsBar=" << eps_bar.ToString(2);
+  // P = (D - D B U) D_h^{-1}
+  Matrix<double> amplifier;
+  amplifier.Resize(num_hom, num_hom);
+  D.Mult_Blas(hom_tensor_inv, amplifier, false, false, 1.0, 0);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " P=" amplifier.ToString(2);
+
+  // for stress constraints one needs the global amplifier, i.e. the integral over all squared local amplifiers.
+  // this is here just for reference for whoever implements it into 2scale stress constraints
+  // Matrix<double> global_amplifier;
+  // global_amplifier = std::pow(amplifier * lpm->jacDet * lpm->weight, 2);
 
   // local stress
+  // \f$\sigma = P \bar{\sigma}\f$
   Vector<double> sigma = Vector<double>(num_hom);
-  D.Mult(eps_bar, sigma);
-  LOG_DBG2(em) << "elem: " << lpm->ptEl->elemNum << " ip: " << lpm->lp.number << " sigma= " << sigma.ToString(2);
+  amplifier.Mult(sigma_bar, sigma);
+  //LOG_DBG2(em) << "elem: " << lpm->ptEl->elemNum << " ip: " << lpm->lp.number << " sigma= " << sigma.ToString(2);
+
+  StdVector<std::string> stressComponents;
+  switch(context->stt)
+  {
+  case FULL:
+    stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+    break;
+  case PLANE_STRAIN:
+  case PLANE_STRESS:
+    stressComponents = "xx", "yy", "xy";
+    break;
+  default:
+    stressComponents = "";
+  }
+
+  for(unsigned int j=0; j<stressComponents.GetSize(); ++j) {
+    int res_idx = design->GetSpecialResultIndex(DesignElement::GENERIC_ELEM, "buckling_homogenization_stress_" + stressComponents[j]);
+    if(res_idx != -1)
+    {
+      DesignElement* de = design->Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
+      assert(de->specialResult[res_idx] == 0);
+      de->specialResult[res_idx] += sigma[j] / B.GetNumCols() * dim;
+      //LOG_DBG3(em) << "CSFBH: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << sigma[j] << " " << de->specialResult[res_idx];
+    }
+  }
 
   // this is in accordance with Voigt notation
   // @see MechPDE::MakeBigPreStressVector
@@ -4632,8 +4828,6 @@ Vector<double> ErsatzMaterial::GetMacroStress() {
     stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
     break;
   case PLANE_STRAIN:
-    stressComponents = "xx", "yy", "xy";
-    break;
   case PLANE_STRESS:
     stressComponents = "xx", "yy", "xy";
     break;

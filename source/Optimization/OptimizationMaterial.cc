@@ -110,7 +110,7 @@ CoefFunction* OptimizationMaterial::GetOrgMatCoef(BaseBDBInt* bdb)
     return bdb->GetCoef().get();
 }
 
-inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* context)
+CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* context)
 {
   assert(context != NULL);
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());

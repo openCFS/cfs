@@ -71,7 +71,7 @@ private:
 
   /** Set up element data which is integration point independent (E1) */
   /** Set up the data for the general formula (E1 ... stress2). E2 is mode dependent, but not u1 */
-  void SetupElement(ElementAccess* ea, DesignElement* de, App::Type app1, Mode mode);
+  void SetupElement(ElementAccess* ea, DesignElement* de, App::Type app1, Mode mode, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Set up integration point dependent element data after SetupElement is called!
    * calculates: strain1, B1, B2, ...

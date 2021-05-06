@@ -203,7 +203,7 @@ namespace CoupledField {
     //! Inverse of Jacobian matrix in local point @ref lp
     Matrix<Double> jacInv;
 
-    //! Jacobian determinant in in local point @ref lp
+    //! Jacobian determinant in local point @ref lp
     //! @note: If the underlying geometry is axi-symmetric, the Jacobian 
     //! determinant is scaled by \f$ 2\pi r \f$ with r being the 
     //! global x coordinate of the local integration point @ref lp.

@@ -1,4 +1,5 @@
 import vtk
+import pickle
 #from vtk.util.colors import *
 from numpy import *
 from matviz_rot import *
@@ -32,7 +33,7 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
   nz = ip_nz
 
   # non-design region points are added to design region points in order to create a structured mesh
-  centers_full = copy.deepcopy(centers)
+  centers_full = pickle.loads(pickle.dumps(centers)) # pickle is faster than deepcopy
   for i in range(len(nondes_centers)):
     centers_full.append((nondes_centers[i]))
   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
@@ -341,7 +342,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
   nz = ip_nz
 
   # non-design region points are added to design region points in order to create a structured mesh
-  centers_full = copy.deepcopy(centers)
+  centers_full = pickle.loads(pickle.dumps(centers)) # pickle is faster than deepcopy
   for i in range(len(nondes_centers)):
     centers_full.append((nondes_centers[i]))
   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
@@ -413,7 +414,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #   nz = ip_nz
 #
 #   # non-design region points are added to design region points in order to create a structured mesh
-#   centers_full = copy.deepcopy(centers)
+#   centers_full = pickle.loads(pickle.dumps(centers)) # pickle is faster than deepcopy
 #   for i in range(len(nondes_centers)):
 #     centers_full.append((nondes_centers[i]))
 #   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))
@@ -635,7 +636,7 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
 #   ny = ip_ny
 #   nz = ip_nz
 #     # non-design region points are added to design region points in order to create a structured mesh
-#   centers_full = copy.deepcopy(centers)
+#   centers_full = pickle.loads(pickle.dumps(centers)) # pickle is faster than deepcopy
 #   for i in range(len(nondes_centers)):
 #     centers_full.append((nondes_centers[i]))
 #   coords_full = (centers_full, (numpy.min((min[0], nondes_min[0])), numpy.min((min[1], nondes_min[1])), numpy.min((min[2], nondes_min[2]))), (numpy.max((max[0], nondes_max[0])), numpy.max((max[1], nondes_max[1])), numpy.max((max[2], nondes_max[2]))))

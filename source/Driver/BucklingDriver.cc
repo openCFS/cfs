@@ -1,20 +1,22 @@
 #include "BucklingDriver.hh"
 
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-#include <boost/filesystem.hpp>
+#include <def_use_arpack.hh>
 
-#include "Driver/SolveSteps/StdSolveStep.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/SimState.hh"
-#include "DataInOut/ResultHandler.hh"
-#include "DataInOut/ProgramOptions.hh"
+#include <boost/filesystem.hpp>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/ResultHandler.hh"
+#include "DataInOut/SimState.hh"
 #include "Domain/Domain.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
 #include "MatVec/SBM_Matrix.hh"
-#include "OLAS/solver/BaseEigenSolver.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
@@ -24,7 +26,6 @@
 #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
 
-using std::cout;
 using std::setw;
 using std::string;
 
@@ -265,21 +266,18 @@ void BucklingDriver::SetupSolver() {
   if (isInverseProblem_)
     solver->Setup(*(geoStiffMat->GetPointer(0, 0)), *(stiffMat->GetPointer(0, 0)), false);
   else
-    solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), false);
+#ifdef USE_ARPACK
+    if (!isInverseProblem_ && solver->GetEigenSolverName() == BaseEigenSolver::ARPACK)
+      // this is necessary for the original problem, but might lead to wrong results
+      // for the reformulated problem due to wrong ordering of the eigenvalues
+      dynamic_cast<ArpackEigenSolver*>(solver)->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), ArpackMatInterface::ComputeMode::BUCKLING, false);
+    else
+#endif
+      solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), false);
 
   if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
     assert(solverType_ == BaseEigenSolver::ARPACK);
     isStoredSymmetric_ = true;
-
-    // this is necessary for the original problem, but might lead to wrong results
-    // for the reformulated problem due to wrong ordering of the eigenvalues
-    if (!isInverseProblem_)
-    {
-#ifdef USE_ARPACK
-      // to be done after Setup
-      dynamic_cast<ArpackEigenSolver*>(solver)->SetComputeMode(ArpackMatInterface::BUCKLING);
-#endif
-    }
   }
 }
 
@@ -300,7 +298,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     EXCEPTION( "Did not find any eigenvalue!" );
   }
 
-  LOG_DBG2(buckD) << "CV: eigenvalues = " << eigenValues->ToString(2);
+  LOG_DBG3(buckD) << "CV: eigenvalues = " << eigenValues->ToString(2);
 
   Vector<Double> eigenValuesRealPart = GetRealPartOfVector(eigenValues);
 
@@ -369,7 +367,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
   LOG_DBG(buckD) << "CV: loadFactors = " << loadFactors_->ToString(2);
 
   if(!domain->GetOptimization())
-    cout << "\n++ Finished solving eigenvalue Problem." << std::endl;
+    std::cout << "\n++ Finished solving eigenvalue Problem." << std::endl;
 }
 
 void BucklingDriver::StoreMode(unsigned int index) {
@@ -402,14 +400,14 @@ void BucklingDriver::PrintResult() {
   // console output
   if(!domain->GetOptimization() || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN)
   {
-    cout << "\n";
-    cout << " Mode | ";
-    cout << setw(fieldwidth) << "Load Factor" << " | ";
-    cout << setw(fieldwidth) << "Error" << " | ";
+    std::cout << "\n";
+    std::cout << " Mode | ";
+    std::cout << setw(fieldwidth) << "Load Factor" << " | ";
+    std::cout << setw(fieldwidth) << "Error" << " | ";
     if (!isStoredSymmetric_) {
-      cout << setw(fieldwidth) << "Imaginary Part" << " | ";
+      std::cout << setw(fieldwidth) << "Imaginary Part" << " | ";
     }
-    cout << "\n";
+    std::cout << "\n";
   }
 
   // also log via info node.
@@ -440,16 +438,16 @@ void BucklingDriver::PrintResult() {
     // command line output only when not optimizing
     if(!domain->GetOptimization() || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN)
     {
-      cout << setw(5) << i + 1 << " | ";
+      std::cout << setw(5) << i + 1 << " | ";
       if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
-        cout << setw(fieldwidth) << std::setprecision(10) << loadFactors_->GetDoubleEntry(modeOrder_[i]) << " | ";
-        cout << setw(fieldwidth) << errors->GetDoubleEntry(modeOrder_[i]) << " | " << "\n";
+        std::cout << setw(fieldwidth) << std::setprecision(10) << loadFactors_->GetDoubleEntry(modeOrder_[i]) << " | ";
+        std::cout << setw(fieldwidth) << errors->GetDoubleEntry(modeOrder_[i]) << " | " << "\n";
       }
       else {
         Complex ev = loadFactors_->GetComplexEntry(modeOrder_[i]);
-        cout << setw(fieldwidth) << ev.real() << " | ";
-        cout << setw(fieldwidth) << errors->GetComplexEntry(modeOrder_[i]).real() << " | ";
-        cout << setw(fieldwidth) << ev.imag() << " | " << "\n";
+        std::cout << setw(fieldwidth) << ev.real() << " | ";
+        std::cout << setw(fieldwidth) << errors->GetComplexEntry(modeOrder_[i]).real() << " | ";
+        std::cout << setw(fieldwidth) << ev.imag() << " | " << "\n";
       }
     }
 
@@ -479,7 +477,7 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
     // check if negative Eigenvalues are present
     for (unsigned int ev = 0; ev < numEigenValues_; ev++) {
       if (loadFactorsRealPart[modeOrder_[ev]] < 0) {
-        cout << "\n++ WARNING negative proportionality factor will be displayed as positiv in Paraview: " << loadFactorsRealPart[modeOrder_[ev]] << "\n";
+        std::cout << "\n++ WARNING negative proportionality factor will be displayed as positiv in Paraview: " << loadFactorsRealPart[modeOrder_[ev]] << "\n";
       }
     }
 
@@ -527,7 +525,7 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
         stepNum++;
     }
     if(!domain->GetOptimization())
-      cout << "\n++ Finished calculating and storing buckling modes." << std::endl;
+      std::cout << "\n++ Finished calculating and storing buckling modes." << std::endl;
   }
 
   if (!GetResultHandler()->streamOnly)
