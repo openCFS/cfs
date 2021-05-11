@@ -37,8 +37,9 @@ SET(ZIPTOCACHE "${BOOST_prefix}/boost-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 SET(MIRRORS
-  "https://dl.bintray.com/boostorg/release/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/source/${BOOST_GZ}"
-  "${CFS_DS_SOURCES_DIR}/boost/${BOOST_ZIP}"
+  "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/source/${BOOST_GZ}"
+  "https://sourceforge.net/projects/boost/files/boost/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/${BOOST_GZ}/download"
+  "${CFS_DS_SOURCES_DIR}/boost/${BOOST_GZ}"
 )
 
 SET(MD5_SUM ${BOOST_MD5})
