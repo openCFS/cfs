@@ -89,7 +89,6 @@ ELSE()
       -DBUILD_TESTING:BOOL=OFF
       -DENABLE_OPENMP:BOOL=OFF # makes problems when precompiled is parallel and cfs is serial
       -DENABLE_SAMPLES:BOOL=OFF
-      -E
   )
   
   #-------------------------------------------------------------------------------
