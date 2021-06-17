@@ -302,9 +302,23 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
             LOG_DBG(graphMan) << "Finalize off-diagonal IDBC-graph ("
                               << sbmRow << ", " << sbmCol << ")";
             graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[sbmRow] );
+
+            BaseGraph * rowDiagGraph = graphIDBC_[idxRow];
+            BaseGraph * colDiagGraph = graphIDBC_[idxCol];
+            graphIDBC_[idx]->SetRowColDiagGraphs( rowDiagGraph, colDiagGraph );
           }
 
+          //Now we also set the lower off diagonals...
+          UInt idx2= ComputeIndex( sbmCol, sbmRow );
+          if ( graphIDBC_[idx2] != NULL ) {
+            LOG_DBG(graphMan) << "Finalize off-diagonal IDBC-graph ("
+                              << sbmRow << ", " << sbmCol << ")";
+            graphIDBC_[idx2]->FinaliseAssembly( &newOrdering_[sbmRow] );
 
+            BaseGraph * rowDiagGraph = graphIDBC_[idxRow];
+            BaseGraph * colDiagGraph = graphIDBC_[idxCol];
+            graphIDBC_[idx2]->SetRowColDiagGraphs( rowDiagGraph, colDiagGraph );
+          }
         }
       }
     }
@@ -453,17 +467,15 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
 
     // Just some logging for debugging
     LOG_TRACE(graphMan) << "Setting element connectivity";
-    //if( IS_LOG_ENABLED(graphMan, dbg3) ) {
-      LOG_DBG3(graphMan) << "setCounterPart: " << (setCounterPart ? "yes" : "no");
-      LOG_DBG3(graphMan) << "\t(rowBlock, rowNum)";
-      for( UInt i = 0; i < rowBlocks.GetSize(); ++i ) {
-        LOG_DBG3(graphMan) << "\t(" << rowBlocks[i] << ", " << rowNums[i] << ")"; 
-      }
-      LOG_DBG3(graphMan) << "\t(colBlock, colNum)";
-      for( UInt i = 0; i < colBlocks.GetSize(); ++i ) {
-        LOG_DBG3(graphMan) << "\t(" << colBlocks[i] << ", " << colNums[i] << ")"; 
-      }
-    //}
+    LOG_DBG3(graphMan) << "setCounterPart: " << (setCounterPart ? "yes" : "no");
+    LOG_DBG3(graphMan) << "\t(rowBlock, rowNum)";
+    for( UInt i = 0; i < rowBlocks.GetSize(); ++i ) {
+      LOG_DBG3(graphMan) << "\t(" << rowBlocks[i] << ", " << rowNums[i] << ")";
+    }
+    LOG_DBG3(graphMan) << "\t(colBlock, colNum)";
+    for( UInt i = 0; i < colBlocks.GetSize(); ++i ) {
+      LOG_DBG3(graphMan) << "\t(" << colBlocks[i] << ", " << colNums[i] << ")";
+    }
     
     // Clear the arrays
     UInt nB = ( isMultHarm_ )? numBlocks_ * numBlocks_ : numBlocks_;
@@ -604,6 +616,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
 
             // Insert information into graph for fixed dofs
             graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList2_[0] );
+            LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmRow << ", " << sbmCol << ")" << std::endl;
 
             if ( setCounterPart == true ) {
 
@@ -677,7 +690,9 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
           if ( setCounterPart == true ) {
 
             idx = ComputeIndex( col, row );
-            LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
+            LOG_DBG3(graphMan) << "Transposed IDBC/Graph insertion for block ("
+                << row << ", " << col << ")";
+            // LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
 
             // Insert information into (transpose) graph for real dofs
             graph_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList1_[row]);
@@ -967,7 +982,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
         // log message
         LOG_DBG(graphMan) << " GraphManager: Generated IDBC sub-graph "
             << "for index pair (" << rowNum << " , " << colNum
-            << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
+            << ") and a " << blockInfoMH_->numLastFreeIndex
             << " x " << fixedDofs << " matrix";
       }
 

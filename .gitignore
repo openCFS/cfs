@@ -9,3 +9,4 @@ build/
 .patch
 .settings
 *.pyc
+Testing/

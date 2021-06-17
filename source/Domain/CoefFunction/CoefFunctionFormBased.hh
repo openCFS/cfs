@@ -433,6 +433,8 @@ public:
 
   void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
 
+  void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
+
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
 

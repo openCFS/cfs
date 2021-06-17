@@ -23,6 +23,12 @@ namespace CoupledField {
                               GraphManager *graphManager, StdVector<UInt>& numIDBC,
                               const BaseMatrix::EntryType eType );
 
+  //! Function for generating an IDBC_Handler object for elimination approach in Multiharmonic
+  BaseIDBC_Handler*
+  GenerateIDBC_HandlerObjectMH( const std::set<FEMatrixType> usedFEMatrices,
+                              GraphManager *graphManager, StdVector<UInt>& numIDBC,
+                              const BaseMatrix::EntryType eType, UInt M,UInt a);
+
   //! Function for generating an IDBC_HandlerPenalty object for SBM_Matrices
   BaseIDBC_Handler*
   GenerateIDBC_HandlerObjectPenalty( StdVector<UInt>& numIDBC,

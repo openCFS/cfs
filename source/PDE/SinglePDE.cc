@@ -2227,12 +2227,15 @@ namespace CoupledField {
         std::set<UInt> definedDofs;
         PtrCoefFct coef;
         bool updatedGeo;
+        //only needed for MultiHarm IDBC
+        PtrCoefFct harm;
         ResultInfo::EntryType entryType = ResultInfo::VECTOR;
         if(dofNames.GetSize() == 0 || dofNames.GetSize() == 1 ) {
           entryType = ResultInfo::SCALAR;
         }
+
         ReadUserFieldValues( actList, idbcNodes[i], dofNames, entryType,
-                             isComplex_, coef, definedDofs, updatedGeo );
+                               isComplex_, coef, definedDofs, updatedGeo, harm );
         
         // ensure, that only the default coordinate system is used
         if( coef->GetCoordinateSystem() ) {
@@ -2249,10 +2252,11 @@ namespace CoupledField {
 		  } else {
 		    actBc->dofs = definedDofs;        
 		  }
-		  
+
 		  actBc->value = coef;
 		  actBc->updatedGeo = updatedGeo;
 		  actBc->timeDerivOrder = timeDeriv;
+		  actBc->harm = harm;
 
 		  // add definition to feFunction
 		  actFeFunction->AddInhomDirichletBc(actBc);
@@ -2815,13 +2819,26 @@ namespace CoupledField {
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
+                            PtrParamNode valueNode,
+                            const StdVector<std::string>& compNames,
+                            ResultInfo::EntryType type,
+                            bool isComplex,
+                            PtrCoefFct & coef,
+                            std::set<UInt>& definedDofs,
+                            bool& updateGeo){
+    PtrCoefFct harm;
+    ReadUserFieldValues(list, valueNode, compNames, type, isComplex, coef, definedDofs, updateGeo, harm);
+  }
+
+  void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
                                        PtrParamNode valueNode,
                                        const StdVector<std::string>& compNames,
                                        ResultInfo::EntryType type,
                                        bool isComplex,
                                        PtrCoefFct & coef,
                                        std::set<UInt>& definedDofs,
-                                       bool& updateGeo){
+                                       bool& updateGeo,
+                                       PtrCoefFct & harm){
 
     UInt numComp = compNames.GetSize();
     StdVector<std::string> vals(numComp), phases(numComp);
@@ -3097,9 +3114,12 @@ namespace CoupledField {
         definedDofs.insert(0);
         std::string val = "0.0";
         std::string phase = "0.0";
+        std::string harmonic = "0";
         // allow for optional value / phase attributes 
         valueNode->GetValue("value", val, ParamNode::PASS );
         valueNode->GetValue("phase", phase, ParamNode::PASS );
+        //for multiharmonic case
+        valueNode->GetValue("harmonic", harmonic, ParamNode::PASS);
         std::string real = AmplPhaseToReal(val, phase );
       
         if( type == ResultInfo::SCALAR) {
@@ -3109,6 +3129,7 @@ namespace CoupledField {
           } else {
             std::string imag = AmplPhaseToImag(val, phase );
             coef = CoefFunction::Generate(mp_, Global::COMPLEX, real, imag);
+            harm = CoefFunction::Generate(mp_, Global::INTEGER, harmonic);
           }
         }else {
           // -- VECTOR case --

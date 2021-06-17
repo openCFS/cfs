@@ -179,7 +179,21 @@ namespace CoupledField
     
     //! Tensor type
     //    SubTensorType tensorType_;
-    
+
+
+  public:
+    // =======================================================================
+    // Nonlinear ElecPDE Section
+    // =======================================================================
+    /*
+     * Common variables for elecPDE
+     */
+    //stores the material parameter
+    shared_ptr<CoefFunctionMulti> epsilon_;
+
+    //! Coefficient function for the multiharmonic material adaptions
+    shared_ptr<CoefFunction> multiHarmCoef_;
+
   };
   
 #ifdef DOXYGEN_DETAILED_DOC

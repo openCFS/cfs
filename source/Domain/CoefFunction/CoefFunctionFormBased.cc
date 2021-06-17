@@ -686,7 +686,7 @@ template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
   return out.str();
 }
 
-//----------- HOMOGENIZED TENSOR -----------
+//----------- Material TENSOR -----------
 
 template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
 {
@@ -704,7 +704,11 @@ template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFu
   notation_ = notation;
 
   // set inherited attributes
+  if (APP == App::ELEC){
+  this->dimType_ = CoefFunction::SCALAR;
+  }else{
   this->dimType_ = CoefFunction::TENSOR;
+  }
 }
 
 template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::~CoefFunctionHomogenization() { }
@@ -780,7 +784,13 @@ template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::G
   LOG_DBG2(cff) << "CFH:GT -> " << tensor.ToString(2);
 }
 
+template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
+{
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  BaseBDBInt* form = forms[lpm.ptEl->regionId];
 
+  form->GetCoef()->GetScalar(coefScal, lpm);
+}
 
 template class CoefFunctionBdBKernel<double>;
 template class CoefFunctionBdBKernel<Complex>;
@@ -794,6 +804,9 @@ template class CoefFunctionQuadSol<Complex>;
 template class CoefFunctionHomogenization<double, App::MECH>;
 template class CoefFunctionHomogenization<Complex, App::MECH>;
 template class CoefFunctionHomogenization<double, App::HEAT>;
+
+template class CoefFunctionHomogenization<Complex, App::ELEC>;
+template class CoefFunctionHomogenization<double, App::ELEC>;
 
 template class CoefFunctionLBM<double>;
 

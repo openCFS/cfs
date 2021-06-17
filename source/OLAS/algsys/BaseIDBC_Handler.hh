@@ -295,6 +295,9 @@ namespace CoupledField {
     //! condition that fixes the respective degrre of freedom.
     virtual void SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC = false ) = 0;
 
+    //Just to print the IDBCvec
+    virtual void PrintIDBCvec(){};
+
   };
 
 }

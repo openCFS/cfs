@@ -177,6 +177,10 @@ namespace CoupledField {
     }
     //@}
 
+    void PrintIDBCvec(){
+      EXCEPTION("Not implemented here");
+    }
+
 
   private:
     //! Keep for every SBM-block the eqn numbers

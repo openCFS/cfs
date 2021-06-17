@@ -333,10 +333,23 @@ namespace CoupledField {
                                              entryType );
     }
     else {
+      LOG_DBG3(algSys) << "GenerateIDBC_HandlerObject"<< std::endl;
+      LOG_DBG3(algSys) << "numDirichletValuesPerBlock_= "<< numDirichletValuesPerBlock_ <<std::endl;
+
+      if (isMultHarm_){
+        //For each entry in the multiharmonic matrix a IDBC-graph gets generated
+        UInt M = solStrat_->GetNumHarmM();
+        UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+
+        idbcHandler_ = GenerateIDBC_HandlerObjectMH( matrixTypes_, graphManager_,
+                                              numDirichletValuesPerBlock_,
+                                              entryType, M, a );
+      }else {
       idbcHandler_ =
           GenerateIDBC_HandlerObject( matrixTypes_, graphManager_,
                                       numDirichletValuesPerBlock_,
                                       entryType );
+      }
     }
 
     // ------------------------------
@@ -2406,8 +2419,8 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
     LOG_DBG2(algSys) << "EqnVec1: (" << eqnNrs1.GetSize() << "): " << eqnNrs1.ToString();
     LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
-    LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << "):\n " << elemMat;
-    LOG_DBG3(algSys) << "noStaticCond is:\n " << noStaticCond;
+    LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << ")"; //:\n " << elemMat;
+    LOG_DBG3(algSys) << "noStaticCond is: " << noStaticCond;
     LOG_DBG2(algSys) << "isDiagonal: " << (isDiagonal ? "yes" : "no");
 
     // Security check: check if we have as many equations as numRows/Cols
@@ -2664,6 +2677,7 @@ namespace CoupledField {
     // the corresponding graph / IDBC graph
     LOG_DBG3(algSys) << "setting matrix entries";
     for( UInt sbmRow = 0; sbmRow < numBlocks_; ++sbmRow ) {
+     LOG_DBG3(algSys) << "sbmInd/sbmIndices : " << sbmRow +1 << "/[" << numBlocks_ << "]" ;
 
       // Maybe we have to switch here depending on transpose
       for( UInt sbmCol = 0; sbmCol < numBlocks_; ++sbmCol ) {
@@ -2929,6 +2943,7 @@ namespace CoupledField {
 
     // now loop over every sbm-block specified in sbmIndices parameter
     for(auto sbmInd : sbmIndices){
+      LOG_DBG3(algSys) << "sbmInd/sbmIndices : " << sbmInd << "/[" << sbmIndices.ToString()<< "]" ;
       UInt sbmRow = DeflattenIndex(sbmInd)[0];
       UInt sbmCol = DeflattenIndex(sbmInd)[1];
       LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow
@@ -3064,6 +3079,8 @@ namespace CoupledField {
         }else EXCEPTION("This error when filling the multiharm rhs should not happen");
 
         LOG_DBG3(algSys) << "SER: rhs is:\n " << (*rhs_).ToString();
+        LOG_DBG3(algSys) << "vecP: \n " << vecP.ToString();
+        LOG_DBG3(algSys) << "vecN: \n " << vecP.ToString();
 
       } else{
         SingleVector &vec = (*rhs_)(rowBlock);
@@ -3494,6 +3511,32 @@ namespace CoupledField {
     idbcHandler_->SetIDBC( blockNr, index,  val );
   }
 
+  template<typename T>
+  void AlgebraicSys::SetDirichletMH( const FeFctIdType fctId,
+                                   Integer eqnNr, const T& val , UInt& harmInt) {
+
+    LOG_DBG(algSys) << "Setting Dirichlet value " << val << " for eqn " << eqnNr
+                    << " of fctId " << fctId;
+
+    if(eqnNr == 0)
+      return;
+
+    UInt blockNr, index;
+    MapFctIdEqnToIndex( fctId, eqnNr, blockNr, index );
+
+    Complex halfVal;
+
+    if (harmInt ==0){
+      halfVal = val;
+    }else{
+      halfVal = val / 2.0;
+    }
+    UInt N = domain->GetDriver()->GetNumFreq()/2;
+    // Delegate work to IDBC handler
+    idbcHandler_->SetIDBC( N+harmInt, index,  halfVal );
+    idbcHandler_->SetIDBC( N-harmInt, index,  std::conj(halfVal) );
+  }
+
   void AlgebraicSys::BuildInDirichlet() {
 
     LOG_DBG(algSys) << "Incorporating Dirichlet values into system matrix";
@@ -3638,6 +3681,8 @@ namespace CoupledField {
 
     LOG_TRACE(algSys) << "Getting multiharmonic solution values ";
 
+    //idbcHandler_->PrintIDBCvec();
+
     StdVector<UInt> blockNums, indices;
 
     MapCompleteFctIdToIndex( 0, blockNums, indices);
@@ -3654,10 +3699,11 @@ namespace CoupledField {
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
         if( indices[i] > blockInfo_[0]->numLastFreeIndex ) {
-          if ( setIDBC)
-            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
-          else
+          if ( setIDBC){
+            idbcHandler_->GetIDBC(block,  indices[i], entry, deltaIDBC);
+          }else{
             entry = 0.0;
+          }
         } else {
           sol_->GetPointer(block)->GetEntry(indices[i]-1,entry);
         }
@@ -3871,6 +3917,8 @@ namespace CoupledField {
                 << ", " << sbmCol+1 << ") is "
                 << BaseMatrix::storageType.ToString(sT);
             retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, sT, nrows, ncols, graph->GetNNE() );
+            LOG_DBG(algSys)<< "Inserting a SubMatrix at: " << "[" << sbmRow << "," << sbmCol << "]";
+            LOG_DBG(algSys)<< "SubMatrix has size of: " << "[" <<nrows<< "," << ncols << "]";
 
             // check, if matrix pattern can be shared and
             // obtain matrix graph
@@ -3940,6 +3988,7 @@ namespace CoupledField {
         // Determine number of matrix rows and columns
         UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
         UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
+        LOG_DBG(algSys) << "The shape of following matrix is: " << "[" << nrows << "," << ncols <<"]";
 
         // Check for necessity of generation
         if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
@@ -5244,5 +5293,10 @@ namespace CoupledField {
    SetDirichlet( const FeFctIdType, Integer, const Double& );
    template void AlgebraicSys::
    SetDirichlet( const FeFctIdType, Integer, const Complex& );
+
+   template void AlgebraicSys::
+   SetDirichletMH( const FeFctIdType, Integer, const Double& , UInt&);
+   template void AlgebraicSys::
+   SetDirichletMH( const FeFctIdType, Integer, const Complex&, UInt&);
 
 }// end of Namespace

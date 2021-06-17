@@ -142,11 +142,56 @@ template<class T>
                      const std::string& name,
                      const bool nonLin,
                      shared_ptr<ElemList> actSDList){
-    if( name != "Reluctivity"){
+    if( name != "Reluctivity" && name!="Permittivity"){
       EXCEPTION("CoefFunctionHarmBalance::GenerateMatCoefFnc unrecognized"
                 "name of expected quantity:"<<name)
     }
 
+    if(name == "Permittivity"){
+      RegionIdType actRegion;
+          BaseMaterial * actMat = NULL;
+
+          HBRegionHelper & regStruc = hbRegion_[iRegion];
+
+          actRegion = regStruc.region;
+          actMat    = regStruc.material;
+
+          // Register the elements
+          this->RegisterElemsInRegion(actSDList, iRegion, regStruc);
+
+          PtrCoefFct ret = NULL;
+
+
+            // Also set the correct nonlinear materialparameter evaluation CoefFunctions here
+            // Only for the regions which are really nonlinear!
+            if( nonLin ){
+              LOG_DBG(coeffctharmbalance) << "Generating nonlinear multiharmonic "
+                  "material coefficient function for region"<< actRegion <<" with material "<< actMat;
+              regStruc.isNonLin = true;
+
+              // we need the real part of this CoefFunction GetVector because the
+              // GetScalCoefFncNonLin method can only handle real values
+              // We dont need "Bfield" in electrostatics because we already give the elecFieldCoef
+              // shared_ptr<CoefFunction> BField = NULL;
+              // BField.reset(new CoefFunctionHarmBalanceEval<Double>(magFluxCoef_, ptGrid_));
+              // regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, BField);
+              // it seems like i get the same result...
+
+              regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, magFluxCoef_);
+              // for the initial solution we also need the linear nu
+              regStruc.linNuCoefMap = actMat->GetScalCoefFnc( ELEC_PERMITTIVITY_SCALAR, Global::REAL);
+
+              dimType_ = SCALAR;
+              ret = (PtrCoefFct)this;
+            }else{
+              regStruc.isNonLin = false;
+              regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR,Global::REAL );
+              //TODO Clean this up, it's the same as nonLinNuCoefMap for the linear material
+              regStruc.linNuCoefMap = actMat->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR,Global::REAL );
+              ret = (PtrCoefFct)this;
+            }
+            return ret;
+    }else{
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
 
@@ -189,6 +234,7 @@ template<class T>
         ret = (PtrCoefFct)this;
       }
     return ret;
+    }
   }
 
 

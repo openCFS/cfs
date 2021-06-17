@@ -402,6 +402,7 @@
         <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
         <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
         <xsd:attribute name="isComplex" type="xsd:boolean" use="optional" default="false"/>
+        <xsd:attribute name="harmonic" type="xsd:token" use="optional" default="1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

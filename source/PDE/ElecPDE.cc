@@ -48,6 +48,11 @@
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
 
+// multiharmonic stuff
+#include "Driver/MultiHarmonicDriver.hh"
+#include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
+
 
 namespace CoupledField {
 
@@ -78,6 +83,9 @@ namespace CoupledField {
     regionApproxSet_ = false;
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
+
+    // for multiharmonic
+    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>());
   }
   
   void ElecPDE::InitNonLin() {
@@ -235,6 +243,23 @@ namespace CoupledField {
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
+
+    // CopyPasta from MagEdgePDE and hope this works:
+
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[ELEC_POTENTIAL];
+    shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
+
+    PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
+    // Create new harmonic balance coefficient function and register the regions and material
+    UInt baseFreq=0, N, M, nFFT;
+    if(analysistype_ == MULTIHARMONIC){
+      baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
+      N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
+      M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
+      nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
+      multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT );
+    }
+
     // bool upLagrangeForm = true;
     
     //transform the type
@@ -267,12 +292,12 @@ namespace CoupledField {
     
     //flag indicating frequency PML formulation
     bool harmonicPML = false;
-    
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      
-      // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+
+    // Changed iteration for the loop, like in magnetics, so i can use
+    // copy-pasta code
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
+      actRegion = regions_[iRegion];
+      actSDMat    = materials_[actRegion];
       
       // Get current region name
       shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
@@ -368,6 +393,7 @@ namespace CoupledField {
       
       // ----- standard real-valued stiffness integrator
       BaseBDBInt* stiffInt = NULL;
+      PtrCoefFct epsilonNL = NULL;
       if (harmonicPML)
       {
         stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion, coefPMLScal);
@@ -381,11 +407,23 @@ namespace CoupledField {
         } else if (nonLinTypes.Find(NLELEC_PERMITTIVITY) != -1){
 
           PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
-          PtrCoefFct epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
-          if( dim_ == 2 ) {
-            stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), epsilonNL, 1.0, updatedGeo_);
-          } else {
-            stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), epsilonNL, 1.0, updatedGeo_);
+          if (analysistype_==MULTIHARMONIC){ //if nonlinear and Multiharmonic do this:
+            // register element list of region
+            bool nL = (nonLinTypes.GetSize() > 0)? true : false;
+            epsilonNL = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Permittivity", nL, actSDList);
+            if( dim_== 2){
+              EXCEPTION("Not implemented yet, but try simply CopyPasta the 3Dim Case.");
+            }
+            stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(),epsilonNL, (Complex)1.0, updatedGeo_);
+          }
+          else{ //only nonlinear
+            PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
+            epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
+            if( dim_ == 2 ) {
+              stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), epsilonNL, 1.0, updatedGeo_);
+            } else {
+              stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), epsilonNL, 1.0, updatedGeo_);
+            }
           }
 
         } else{
@@ -958,6 +996,18 @@ namespace CoupledField {
                 factor, coef[i], coefUpdateGeo);
       }
       lin->SetName("ChargeDensityInt");
+      if(analysistype_ == MULTIHARMONIC){
+        //ToDo Maybe can do it in a more generic way, like for the BC
+        // So the framework is already there, if we want to implement for other pdes
+        // but havent looked into this...
+        ParamNodeList chargeDensitylist = myParam_->Get("bcsAndLoads", ParamNode::PASS)->GetList("chargeDensity");
+        UInt harm = chargeDensitylist[i]->Get("harmonic")->As<UInt>();
+        UInt harm_max=dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
+        if(harm > harm_max ){
+          EXCEPTION("RHS harmonic is bigger than the highest harmonic of the system.")
+        }
+        lin->SetHarm(harm);
+      }
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
@@ -1560,6 +1610,22 @@ namespace CoupledField {
       //	before the call to DefineIntegrators
       InitHystCoefs();
     }
+    //=== PERMITIVITY ==
+    //TODO Maybe there is a more elegant way to do this. But for now it works
+    shared_ptr<ResultInfo> perm (new ResultInfo);
+    perm->resultType = ELEC_ELEM_PERMITTIVITY;
+    perm->dofNames = "";
+    perm->unit="(As)/(Vm)";
+    perm->definedOn = ResultInfo::ELEMENT;
+    perm->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionFormBased> perm_coef;
+    if(analysistype_== MULTIHARMONIC){
+      perm_coef.reset(new CoefFunctionHomogenization<Complex, App::ELEC>(feFct));
+    } else {
+      perm_coef.reset(new CoefFunctionHomogenization<double, App::ELEC>(feFct));
+    }
+    DefineFieldResult(perm_coef , perm);
+    stiffFormCoefs_.insert(perm_coef);
     
     // === ELECTRIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );

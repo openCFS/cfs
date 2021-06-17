@@ -318,6 +318,7 @@
       <xsd:enumeration value="elecFluxDensity"/>
       <xsd:enumeration value="elecEnergyDensity"/>
       <xsd:enumeration value="elecPolarization"/>
+      <xsd:enumeration value="elecElemPermittivity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

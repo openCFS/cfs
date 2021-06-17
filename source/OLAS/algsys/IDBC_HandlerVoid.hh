@@ -110,6 +110,11 @@ namespace CoupledField {
                                UInt rowInd,
                                UInt colInd,
                                Complex & val )  {};
+
+    void PrintIDBCvec(){
+      EXCEPTION("Not implemented here");
+    }
+
   };
 
 }

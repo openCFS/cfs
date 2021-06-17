@@ -201,6 +201,7 @@ class BaseFieldFunctor;
     //!             vector-valued quantity.
     //! \param[out] updateGeo Flag indicating, if coefficient function is defined
     //!                  on an updated geometry (e.g. due to iterative coupling).
+    //! \param[out] harm Only for MultiharmonicCase: specifies in which harmonic what value
     void ReadUserFieldValues( shared_ptr<EntityList> list,
                               PtrParamNode valueNode,
                               const StdVector<std::string>& compNames,
@@ -208,7 +209,9 @@ class BaseFieldFunctor;
                               bool isComplex,
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
-                              bool& updateGeo);
+                              bool& updateGeo,
+                              PtrCoefFct & harm);
+
     //! as ReadUserFieldValues but determine isComplex from xml-input
     void ReadUserFieldValues( shared_ptr<EntityList> list,
                                   PtrParamNode valueNode,
@@ -218,6 +221,14 @@ class BaseFieldFunctor;
                                   std::set<UInt>& definedDofs,
                                   bool& updateGeo);
 
+    void ReadUserFieldValues( shared_ptr<EntityList> list,
+                              PtrParamNode valueNode,
+                              const StdVector<std::string>& compNames,
+                              ResultInfo::EntryType type,
+                              bool isComplex,
+                              PtrCoefFct & coef,
+                              std::set<UInt>& definedDofs,
+                              bool& updateGeo);
     //! Read history result
     template<typename T>
     void ReadUserHistValues(  PtrParamNode valueNode,

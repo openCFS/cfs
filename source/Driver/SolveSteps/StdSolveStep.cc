@@ -1282,7 +1282,7 @@ namespace CoupledField {
     
     // store rhs vector back to PDE
     algsys_->GetRHSVal( rhsVec_ );
-    
+
     // Where should we get the matrix factors from in a harmonic case?
     // In my opinion this method
     //if( assemble_->IsMatrixUpdated() ) {
@@ -1305,7 +1305,7 @@ namespace CoupledField {
     // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
-    
+
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
@@ -1378,9 +1378,12 @@ namespace CoupledField {
              in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
              Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
              comparing different matrix parts, that's why it's still here
+
+       NOTE2: uncommented because we have to set IDBCs
+       (Afterwards a different mechanism handles the IDBC)
     */
-    //std::map<FEMatrixType,Double> empty;
-    //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+    std::map<FEMatrixType,Double> empty;
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
 
     // Incorporate Boundary conditions and
@@ -1396,7 +1399,7 @@ namespace CoupledField {
 
     // Get the solution of the initial (linear) multiharmonic system.
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
-    algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
+    algsys_->GetFullMultiHarmSolutionVal( solVecMH_, true); //was false, but now we have IDBCs
 
     if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION OF LINEAR SYSTEM"<<solVecMH_.ToString()<<std::endl;
 
@@ -1509,8 +1512,9 @@ namespace CoupledField {
 
       // Solve the deflect system K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
       // for the deflect-vector \Delta u^{k+1}
-      // TODO DO WE NEED TO CALL IT WITH SETIDBC?
-      algsys_->Solve();
+      // DO WE NEED TO CALL IT WITH SETIDBC? No only in the linear iteration.
+      // Now its handled in updateRHS_MultHarm()
+      algsys_->Solve(false);
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
@@ -1584,6 +1588,7 @@ namespace CoupledField {
       }
 
       // boolean variable, holds condition if another iteration step is necessary
+      std::cout << "========= Iterationstep = "<<iterationCounter << std::endl;
       performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
       std::cout<<"========= incrementalErr = "<<incrementalErr<<std::endl;
       std::cout<<"========= residualErr = "<<residualErr<<std::endl;
@@ -1645,7 +1650,7 @@ namespace CoupledField {
   void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
     // loop over every frequency and assemble the correct SBM blocks
 
-    std::cout << "  - Calculating BiLinearForms for multiharmonic analysis" <<std::endl;
+//    std::cout << "  - Calculating BiLinearForms for multiharmonic analysis" <<std::endl;
 
     // Init all matrices, which have to be reassembled
     // Usually this is done in Assemble::AssembleMatrices_Std but we don't
@@ -1830,8 +1835,9 @@ namespace CoupledField {
     // If extForcesL2Norm is 0, no residual norm can be calculated
     if (!RhsLinL2Norm) {
       // Note: there are PDEs, such as elecconduction, which always have rhs=0. Those should not emit this warning. SE.
-      if (pdename_ != "elecConduction")
+      if (pdename_ != "elecConduction" && pdename_ != "electrostatic"){
         WARN("Zero external force vector!! ");
+      }
     }
     
     return RhsLinL2Norm;

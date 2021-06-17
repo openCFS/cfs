@@ -782,6 +782,8 @@ namespace CoupledField {
     void SetDirichlet( const FeFctIdType fctId,
                        Integer eqnNr, const T &val );
 
+    template<typename T>
+    void SetDirichletMH( const FeFctIdType fctId, Integer eqnNr, const T &val , UInt &harmInt);
 
     //! Assemble the previously defined Dirichlet values into the algsys
 

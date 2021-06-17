@@ -853,9 +853,9 @@ namespace CoupledField {
           if( this->GetTimeScheme() ) {
             this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
           }
-          
+
             */
-          
+
           algsys_->SetDirichlet(  fctId_, eqnNr, val);
         }  // loop coefs 
 
@@ -875,6 +875,8 @@ namespace CoupledField {
         
         // Evaluate coefficient function (general vector valued case)
         Vector<T> dummyVec;
+        Complex harm;
+        UInt harmInt;
         LocPointMapped lpm;
         StdVector<Integer> eqns;
         if( actBc.value->GetDimType() == CoefFunction::SCALAR ) {
@@ -882,6 +884,10 @@ namespace CoupledField {
           actBc.value->GetScalar(dummyVec[0], lpm);
         } else {
           actBc.value->GetVector( dummyVec, lpm);
+        }
+        if(algsys_->IsMultHarm()){
+          actBc.harm->GetScalar(harm, lpm);
+          harmInt = harm.real();
         }
         // loop over all dofs
         std::set<UInt>::const_iterator it = actBc.dofs.begin();
@@ -905,7 +911,11 @@ namespace CoupledField {
               this->GetTimeScheme()->AdaptBC(val,val,0,eqns[i]);
             }
             */
-            algsys_->SetDirichlet(  fctId_, eqns[i], val);
+        if(!algsys_->IsMultHarm()){
+          algsys_->SetDirichlet(  fctId_, eqns[i], val);
+        } else {
+          algsys_->SetDirichletMH(  fctId_, eqns[i], val, harmInt);
+		}
           } // loop: eqns
         } // loop: dofs
       } // if: not defined on elements

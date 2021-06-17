@@ -62,6 +62,9 @@ namespace CoupledField {
     
     //! Integer prescribing the timederivation order 
     UInt timeDerivOrder;
+
+    //! Harmonic for Multiharmonic IDBC
+    PtrCoefFct harm;
   };
 
   // -------------------------------------------------------------------------

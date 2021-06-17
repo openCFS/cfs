@@ -63,6 +63,9 @@ namespace CoupledField {
     IDBC_Handler( const std::set<FEMatrixType> &usedFEMatrices,
                   GraphManager *graphManager, UInt numBlocks);
 
+    //MH-Constructor
+    IDBC_Handler( const std::set<FEMatrixType> &usedFEMatrices,
+                  GraphManager *graphManager, UInt numBlocks, UInt sbmRow, UInt sbmCol);
     //! Destructor
     ~IDBC_Handler();
 
@@ -113,6 +116,9 @@ namespace CoupledField {
     
     //! @copydoc BaseIDBC_Handler::GetIDBC()
     void GetIDBC( UInt blockNum, UInt index, T &val, bool deltaIDBC=false );
+
+    // Prints the IDBC-Vector
+    void PrintIDBCvec();
 
     //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
     void AddWeightFixedToFree( FEMatrixType matID,
