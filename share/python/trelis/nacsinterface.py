@@ -72,7 +72,7 @@ if useGUI:
     import PyQt4
     from PyQt4.QtGui import QFileDialog, QMessageBox
     pyqtVersion = 4
-  except Exception, e:
+  except Exception as e:
     print('PyQt4 module could not be loaded!\nError message:\n%s\n\n' % str(e))
     print('Now trying to load NACS PyQt4')
   
@@ -82,7 +82,7 @@ if useGUI:
       initNacsEnv()
       from nacs.widgets.qt import QFileDialog, QMessageBox
       pyqtVersion = 4
-    except Exception, e:
+    except Exception as e:
       print('NACS PyQt4 module could not be loaded!\nError message:\n%s\n\n' % str(e))
       print('Now trying to load NACS PyQt5')
     
@@ -90,7 +90,7 @@ if useGUI:
     try:  
       import PyQt5
       from PyQt5.QtWidgets import QFileDialog, QMessageBox
-    except Exception, e:
+    except Exception as e:
       print('PyQt5 module could not be loaded!\nError message:\n%s\n\n' % str(e))
       print('Now trying to load PyQt5')
   
@@ -105,18 +105,18 @@ else:
 try:
   # functionality of cubit interface (geo/mesh)
   import cubit
-except Exception, e:
+except Exception as e:
   print('Error loading cubit module\n%s' % str(e))
 # framework parts that allow to register in the cubit framework
 try:
   # framework part that allow to register in the cubit framework
   import emclaro
-except Exception, e:
+except Exception as e:
   print('Error loading emclaro module\n%s' % str(e))
 try:
   # framework part that allow to register in the cubit framework
   import broker
-except Exception, e:
+except Exception as e:
   print('Error loading broker module\n%s' % str(e))
 
 from datetime import datetime 
@@ -214,12 +214,12 @@ def getNacsElemDefinition():
   elemDef['tet4'] =  np.array(range(4))
   elemDef['tet10'] = np.array(range(10))
   elemDef['hex8'] =  np.array(range(8))
-  elemDef['hex20'] = np.array(range(12)+range(16,20)+range(12,16))
+  elemDef['hex20'] = np.array(list(range(12))+list(range(16,20))+list(range(12,16)))
   elemDef['hex27'] = np.array(range(27))
   elemDef['pyramid5'] = np.array(range(5))
   elemDef['pyramid13'] = np.array(range(13))
   elemDef['wedge6'] = np.array(range(6))
-  elemDef['wedge15'] = np.array(range(9)+range(12,15)+range(9,12))
+  elemDef['wedge15'] = np.array(list(range(9))+list(range(12,15))+list(range(9,12)))
   return elemDef
 
 def writeNacsMeshFile(nmfFilePath=None, scaleFactor=1.0, 
@@ -370,7 +370,7 @@ def writeNacsMeshFile(nmfFilePath=None, scaleFactor=1.0,
 
     try:
       elemType[elemNr-1,0]=elemMap[elemStr]
-    except Exception, e:
+    except Exception as e:
       print('%s\nelemNr:\t%.0f\nnElemConn:\t%.0f\nelemConn:\t%s' % (str(e), 
                                                                     elemNr, 
                                                                     nElemNodes, 

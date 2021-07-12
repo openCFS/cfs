@@ -1089,9 +1089,9 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
       # if the value is -1 we use the nearest interpolation
       # mid IS NOT THE MIDPOINT OF THE TRIANGLE BUT OF elem (=rectangle)
       mid, v = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+0)
-      mid1, v1 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+1)
-      mid2, v2 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+2)
-      mid3, v3 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+3)
+      _, v1 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+1)
+      _, v2 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+2)
+      _, v3 = get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+3)
 
       # kind of integration -> should be removed and graded triangle bars should be used
       v = (3*v + v1+v2+v3)/6
