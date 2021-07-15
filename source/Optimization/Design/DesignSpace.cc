@@ -285,6 +285,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             TransferFunction* tf = GetTransferFunction(dt, App::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
             double lower = DetermineLowerBound(curr_design_pn, tf);
 
+            // this is strange stuff from Bastian, nobody else is using
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
               dr.scale_design = (upper - lower);
               dr.translate_design = lower;
@@ -389,9 +390,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
    // which give out design vector needs to be modified for making mat vec based filtering work for constant region
    StdVector<DesignRegion>& cur_des = regions.Last();
    // Assume if one design element has the attribute constant_on_all_region , all other design element should have this.
-   if (cur_des.Last().constant == VARIABLE && design.GetSize() == 1 )
+   if(cur_des.Last().constant == VARIABLE && design.GetSize() == 1)
      is_mat_possible = true;
-
+   // won't work with non-indentiy mat_filter transfer function -> is also checked in DesginStructure::SetFilter()
+   if(pn->Has("filters/filter/density/type") && pn->Get("filters/filter/density/type")->As<string>() == "material")
+     is_mat_possible = false;
    // Check if matrix filtering is enabled by the user, there is no default value in the schema file
    // we cannot use the matrix yet for multiple design types, yet this is easy to extend!
    is_matrix_filt = is_mat_possible;
@@ -442,18 +445,24 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   {
   case TransferFunction::SIMP_TYPE:
     return std::pow(physical, 1.0/tf->GetParam());
+
   case TransferFunction::RAMP:
     return (physical + tf->GetParam() * physical ) / (1 + tf->GetParam() * physical);
+
   case TransferFunction::HASHIN_SHTRIKMAN:
     return 3.0 / (1/physical + 5);
+
   case TransferFunction::NO_TYPE:
   case TransferFunction::FULL:
   case TransferFunction::FIXED:
     throw Exception("Invalid transfer function type for physical lower bound in design.");
+
   case TransferFunction::IDENTITY:
     return physical;
+
   case TransferFunction::HEAVISIDE:
   case TransferFunction::TANH:
+  case TransferFunction::EXPRESSION:
   {
     // disable scaling
     tf->SetScaling(1.0);
@@ -891,7 +900,8 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   // search where in data we are
   int base = -1;
   for(unsigned int i = 0; i < design.GetSize(); i++)
-    if(design[i].design == dt) base = i;
+    if(design[i].design == dt)
+      base = i;
   if(base == -1 && throw_exception)
     EXCEPTION("Design " << DesignElement::type.ToString(dt) << " not within " << design.GetSize() << " actual designs.");
   return base;
@@ -2166,6 +2176,17 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MaterialClass
   return NULL;
 }
 
+StdVector<DesignSpace::DesignRegion*> DesignSpace::GetRegions(DesignElement::Type dt)
+{
+  StdVector<DesignRegion*> res;
+  res.Reserve(regions.GetSize() * regions[0].GetSize());
+  for(StdVector<DesignRegion>& des : regions)
+    if(dt == DesignElement::ALL_DESIGNS || des[0].design == dt)
+      for(DesignRegion& reg : des)
+        res.Push_back(&reg);
+
+  return res;
+}
 
 
 DesignSpace::DesignRegion::DesignRegion()
@@ -2403,15 +2424,13 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
 
 
 
-void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_vec){
-
+void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_vec)
+{
   this->filter_mat.Mult(design_vec,this->filtered_vec);
-
-
 }
 
-void DensityFilterMat::ExportDensityFilterMatrix(){
-
+void DensityFilterMat::ExportDensityFilterMatrix()
+{
   this->filter_mat.ExportMatrixMarket("filter_matrix.mtx","filter_matrix");
 }
 

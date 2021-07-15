@@ -64,13 +64,12 @@ Function::Function()
   Init();
 }
 
-Function::Function(PtrParamNode pn) {
+Function::Function(PtrParamNode pn)
+{
   Init();
 
   this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
   this->pn = pn;
-
-  this->access_ = pn->Has("access") ? access.Parse(pn->Get("access")->As<string>()) : Function::DEFAULT;
 
   if (pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
     this->design_ = BaseDesignElement::type.Parse(
@@ -86,6 +85,16 @@ Function::Function(PtrParamNode pn) {
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
   this->type_ = type.Parse(pn->Get("type")->As<string>());
+
+  // we know the filter type only very late in some post init spaghetti.
+  // so guess now and confirm in PostProc() when we have the design space
+  this->filter_ = DesignStructure::GuessFilterType();
+  this->access_ = access.Parse(pn->Get("access")->As<string>()); // default in xml
+  if(access_ == DEFAULT) {
+    LOG_DBG(func) << "F:F t=" << type.ToString(type_) << " access -> " << access.ToString(DefaultAccess(type_));
+    access_ = DefaultAccess(type_);
+  }
+  assert(access_ != DEFAULT);
 
   slackFnct_ = slackFnct.Parse(pn->Get("function")->As<string>());
 
@@ -222,16 +231,9 @@ Function::Function(PtrParamNode pn) {
     break;
   }
 
-  //  snopt only makes a difference between linear and nonlinear constraints!
+  // snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
-
-  if(IsPhysical() && !(type_ == VOLUME || type_ == GREYNESS))
-    throw Exception("'physical' is no option for 'access' in function '" + type.ToString(type_) + "'");
-
-  if(GetAccess() == FILTERED && !(type_ == GLOBAL_TWO_SCALE_VOL || type_ == DESIGN))
-    throw Exception("'filtered' is no option for 'access' in function '" + type.ToString(type_) + "'");
-
 }
 
 Function::~Function()
@@ -245,7 +247,8 @@ Function::~Function()
   output_forms.Clear();
 }
 
-void Function::Init() {
+void Function::Init()
+{
   this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
@@ -264,10 +267,10 @@ void Function::Init() {
   this->index_ = -1;
 }
 
-Function* Function::Cast(Objective* c, Condition* g) {
+Function* Function::Cast(Objective* c, Condition* g)
+{
   assert((c != NULL && g == NULL) || (c == NULL && g != NULL));
-  assert(
-      (c != NULL && dynamic_cast<Function*>(c) != NULL) || (g != NULL && dynamic_cast<Function*>(g) != NULL));
+  assert((c != NULL && dynamic_cast<Function*>(c) != NULL) || (g != NULL && dynamic_cast<Function*>(g) != NULL));
   return c != NULL ? static_cast<Function*>(c) : static_cast<Function*>(g);
 }
 
@@ -369,7 +372,10 @@ void Function::ToInfo(PtrParamNode info) {
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
     info->Get("linear")->SetValue(linear_);
 
-  info->Get("filtered")->SetValue(ForDensityFiltering() || ForSensitivityFiltering());
+  // only a small fraction of functions as volume and grayness really handles this information.
+  // when set to default in xml (default setting) we take the setting from Function::DefaultAccess()
+  // when not default, the function name <access>_<type>
+  info->Get("access")->SetValue(access.ToString(GetAccess()));
 
   if(region != ALL_REGIONS)
     info->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
@@ -402,10 +408,126 @@ string Function::ToString() const
   if(local != NULL && local->GetPhase() != Local::BOTH)
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
 
-  if(IsPhysical())
-    return "physical_" + type.ToString(type_);
+  if(IsDefaultAccess())
+    return type.ToString(type_);
+  else
+    return access.ToString(access_) + "_" + type.ToString(type_);
+}
 
-  return type.ToString(type_);
+Function::Access Function::DefaultAccess(Function::Type type) const
+{
+  // filter_ needs to be set!!!
+
+  // we ignore that filter might be NO_FILTERING. This is rarely, the neighborhood is zero and overhead small
+  switch(type)
+  {
+  // PLAIN for density and sensitivity
+  case SLACK:
+  case SLACK_FNCT:
+  case GLOBAL_SLOPE:
+  case GLOBAL_MOLE:
+  case GLOBAL_OSCILLATION:
+  case GLOBAL_JUMP:
+  case GLOBAL_CURVATURE:
+  case GLOBAL_DESIGN:
+  case DESIGN:
+  case SLOPE:
+  case MOLE:
+  case OSCILLATION:
+  case JUMP:
+  case BUMP:
+  case CURVATURE:
+  case PERIODIC:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
+  case DISTANCE:
+  case BENDING:
+  case CONES:
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+  case TENSOR_TRACE:
+  case TENSOR_NORM:
+  case GLOBAL_TENSOR_TRACE:
+  case PARAM_PS_POS_DEF:
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
+  case MULTIMATERIAL_SUM:
+  case SHAPE_INF:
+  case EXPRESSION:
+    return PLAIN;
+
+  // filtered stuff different for sensitivity filtering
+  // we do sensitivity almost never, so extend if you really need it for other stuff
+  // one can check DesignSpace::GetFilterType() for background
+  case VOLUME:
+  case GREYNESS:
+    if(filter_ == Filter::SENSITIVITY)
+      return PLAIN;
+    else
+      return FILTERED;
+
+  // filtered stuff, meant for density filtering
+  case PENALIZED_VOLUME:
+  case GAP:
+  case TYCHONOFF: // not sure about it! Fabian
+  case FILTERING_GAP:
+  case TWO_SCALE_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
+  case PERIMETER:
+  case REALVOLUME:
+  case LOCAL_STRESS: // not plain filtered but not the physical transfer function but own stress transfer function
+    return FILTERED;
+
+  // pyhsical is penalized and filtered for density filtering.
+  // In the sensitivity filter case, the design is never filtered, only the gradient
+  case BANDGAP:
+  case OUTPUT:
+  case SQUARED_OUTPUT:
+  case DYNAMIC_OUTPUT:
+  case ABS_OUTPUT:
+  case CONJUGATE_COMPLIANCE:
+  case GLOBAL_DYNAMIC_COMPLIANCE:
+  case ELEC_ENERGY:
+  case ENERGY_FLUX:
+  case COMPLIANCE:
+  case TRACKING:
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
+  case POISSONS_RATIO:
+  case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
+  case TEMPERATURE:
+  case HEAT_ENERGY:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
+  case MAG_COUPLING:
+  case TEMP_TRACKING_AT_INTERFACE:
+  case GLOBAL_STRESS:
+  case EIGENFREQUENCY:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case LOCAL_BUCKLING_LOAD_FACTOR:
+  case PRESSURE_DROP:
+  case ISOTROPY:
+  case ISO_ORTHOTROPY:
+  case ORTHOTROPY:
+  case DESIGN_TRACKING: // according to comment against physcial design
+    return PHYSICAL;
+
+  case MULTI_OBJECTIVE:
+    assert(false);
+    break;
+  }
+  return NO_ACCESS;
 }
 
 Function* Function::GetFunction(Objective* f, Condition* g) {
@@ -763,148 +885,6 @@ bool Function::IsLocal(Type t) {
   }
 }
 
-bool Function::ForDensityFiltering() const {
-  switch(access_)
-  {
-  case PLAIN:// no filtering
-    return false;
-
-  case FILTERED: // filtering true
-  case PHYSICAL:
-    return true;
-
-  case DEFAULT: // no "filtered=" entry in constraint given. Use default values:
-    switch (type_)
-    {
-    case SLACK:
-    case SLACK_FNCT:
-    case SHAPE_INF:
-    case MULTIMATERIAL_SUM:
-    case SUM_MODULI:
-    case GLOBAL_SUM_MODULI:
-    case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-    case ORTHOTROPIC_TENSOR_TRACE:
-    case DESIGN: // design checks access and knows plain and filtered, physical tbd.
-    case GLOBAL_DESIGN:
-    case TWO_SCALE_VOL:
-    case EXPRESSION:
-    case FILTERING_GAP:
-      return false;
-
-    case MULTI_OBJECTIVE:
-      EXCEPTION("Invalid query: " << type.ToString(type_));
-      return false;
-
-    default:
-      return true; // actually true for almost all!
-    }
-    break;
-  default:
-    EXCEPTION("Invalid query: " << access.ToString(access_));
-  }
-
-}
-
-bool Function::ForSensitivityFiltering() const {
-  switch (type_) {
-  // pure objective
-  case OUTPUT:
-  case SQUARED_OUTPUT:
-  case DYNAMIC_OUTPUT:
-  case CONJUGATE_COMPLIANCE:
-  case GLOBAL_DYNAMIC_COMPLIANCE:
-  case ELEC_ENERGY:
-  case ENERGY_FLUX:
-    // objective and constraint
-  case COMPLIANCE:
-  case TRACKING:
-  case HOM_TENSOR:
-  case HOM_TRACKING:
-  case HOM_FROBENIUS_PRODUCT:
-  case POISSONS_RATIO:
-  case YOUNGS_MODULUS:
-  case YOUNGS_MODULUS_E1:
-  case YOUNGS_MODULUS_E2:
-  case TEMPERATURE:
-  case ABS_OUTPUT:
-  case GLOBAL_STRESS:
-  case LOCAL_STRESS:
-  case PRESSURE_DROP:
-  case HEAT_ENERGY:
-  case SQR_MAG_FLUX_DENS_Y:
-  case SQR_MAG_FLUX_DENS_X:
-  case SQR_MAG_FLUX_DENS_RZ:
-  case LOSS_MAG_FLUX_RZ:
-  case MAG_COUPLING:
-  case EIGENFREQUENCY:
-  case GLOBAL_BUCKLING_LOAD_FACTOR:
-  case LOCAL_BUCKLING_LOAD_FACTOR:
-  case BANDGAP:
-  case FILTERING_GAP:
-    return true;
-
-  case VOLUME:
-  case PENALIZED_VOLUME:
-  case GAP:
-  case TYCHONOFF:
-  case GREYNESS:
-  case REALVOLUME:
-  case SLOPE:
-  case GLOBAL_SLOPE:
-  case PERIMETER:
-  case MOLE:
-  case GLOBAL_MOLE:
-  case OSCILLATION:
-  case GLOBAL_OSCILLATION:
-  case JUMP:
-  case GLOBAL_JUMP:
-  case BUMP:
-  case CURVATURE:
-  case GLOBAL_CURVATURE:
-  case OVERHANG_VERT:
-  case OVERHANG_HOR:
-  case DISTANCE:
-  case BENDING:
-  case CONES:
-  case DESIGN:
-  case GLOBAL_DESIGN:
-  case PERIODIC:
-  case DESIGN_TRACKING:
-  case ORTHOTROPIC_TENSOR_TRACE:
-  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-  case TENSOR_TRACE:
-  case TENSOR_NORM:
-  case GLOBAL_TENSOR_TRACE:
-  case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:
-  case TWO_SCALE_VOL:
-  case GLOBAL_TWO_SCALE_VOL:
-  case PARAM_PS_POS_DEF:
-  case POS_DEF_DET_MINOR_1:
-  case POS_DEF_DET_MINOR_2:
-  case POS_DEF_DET_MINOR_3:
-  case BENSON_VANDERBEI_1:
-  case BENSON_VANDERBEI_2:
-  case BENSON_VANDERBEI_3:
-  case MULTIMATERIAL_SUM:
-  case SLACK:
-  case TEMP_TRACKING_AT_INTERFACE:
-  case SLACK_FNCT:
-  case EXPRESSION:
-  case SHAPE_INF:
-    return false;
-
-  case ISOTROPY:
-  case ISO_ORTHOTROPY:
-  case ORTHOTROPY:
-  case MULTI_OBJECTIVE:
-    EXCEPTION("Invalid query: " << type.ToString(type_));
-    break;
-  }
-
-  EXCEPTION("can never reach! Stupid C++");
-  return false;
-}
 
 void Function::SetElements(DesignSpace* space, RegionIdType region)
 {
@@ -1021,6 +1001,10 @@ void Function::CalcHessian(StdVector<double>& out, double factor) {
 
 void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
+  // in the constructor we had to guess the filter type, now confirm
+  LOG_DBG(func) << "PP: f_=" << Filter::type.ToString(filter_) << " sft=" << Filter::type.ToString(space->GetFilterType());
+  assert(filter_ == space->GetFilterType());
+
   if(BaseDesignElement::IsShapeMapType(design_))
   {
     if(space->GetNumberOfFeatureMappingVariables() == 0)
@@ -2108,7 +2092,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
   DesignElement& de = local->space->data[0];
 
   value = pn->Get("neighbor_value")->As<double>();
-  fs = DesignStructure::filterSpace.Parse(
+  fs = Filter::filterSpace.Parse(
       pn->Get("neighbor_type")->As<string>());
   radius = DesignStructure::FindFilterRadius(fs, &de, value);
 
@@ -2147,7 +2131,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
 }
 
 void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in) {
-  in->Get("type")->SetValue(DesignStructure::filterSpace.ToString(fs));
+  in->Get("type")->SetValue(Filter::filterSpace.ToString(fs));
   in->Get("value")->SetValue(value);
   in->Get("radius")->SetValue(radius);
 
@@ -2229,7 +2213,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   // function value
   double fv = 0.0;
   Function* f = local->func_;
-  DesignElement::Access access = f->ForDensityFiltering() ? DesignElement::SMART : DesignElement::PLAIN;
+  DesignElement::Access access = f->isFiltered() ? DesignElement::SMART : DesignElement::PLAIN;
 
   // short cut for the gradient in the 1-norm
   if (grad_glob && local->power_ == 1.0) {
@@ -2420,7 +2404,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   Function::Type ft = funct->type_;
   Condition* g = dynamic_cast<Condition*>(funct);
   Objective* f = dynamic_cast<Objective*>(funct);
-  DesignElement::Access access = funct->ForDensityFiltering() ? DesignElement::SMART : DesignElement::PLAIN;
+  DesignElement::Access access = funct->isFiltered() ? DesignElement::SMART : DesignElement::PLAIN;
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
@@ -2600,7 +2584,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
       bde->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-      if(g->ForDensityFiltering())
+      if(g->isFiltered())
       {
         DesignElement* de = dynamic_cast<DesignElement*>(bde);
         if(de != NULL && !de->simp->filter.IsEmpty())

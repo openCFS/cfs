@@ -40,8 +40,6 @@ using namespace CoupledField;
 
 DEFINE_LOG(ds, "designStructure")
 
-Enum<DesignStructure::FilterSpace> DesignStructure::filterSpace;
-
 DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& regions)
 {
   this->space = space;
@@ -63,6 +61,7 @@ void DesignStructure::Constructor()
 {
   initialized_ = false;
   num_robust_  = 0;
+  timer = shared_ptr<Timer>(new Timer());
 
   this->grid = domain->GetGrid();
   this->gridcfs = dynamic_cast<GridCFS*>(domain->GetGrid());
@@ -74,9 +73,11 @@ void DesignStructure::Constructor()
       domain->GetParamRoot()->Get("optimization/ersatzMaterial/filters/periodic")->As<bool>() : true;
   periodic_ = enable & domain->HasPerdiodicBC();
 
-  filter_space_ = NO_FILTER;
-
-  value  = -1.0;
+  assert(space);
+  assert(space->filter.IsEmpty());
+  // we only store pointers, so we can serve a lot!
+  // space->region fails for constant_region test case
+  space->filter.Reserve(domain->GetGrid()->regionData.GetSize() * space->design.GetSize() * 4); // hope 4 robust excitations are sufficient
 }
 
 
@@ -110,17 +111,16 @@ void DesignStructure::Initialize()
   initialized_ = true;
 }
 
-void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
+void DesignStructure::SetFilter(PtrParamNode pn)
 {
   if(!initialized_)
     Initialize();
 
-  StdVector<DesignElement>& data = space->data;
+  StdVector<DesignElement>& data   = space->data;
+  StdVector<GlobalFilter>&  filter = space->filter;
 
-  if(pn->Has("design"))
-    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
-  else
-    design = DesignElement::ALL_DESIGNS;
+  // might be ALL_DESIGNS, in GlobalFilter, we set the real design
+  DesignElement::Type design = pn->Has("design") ? DesignElement::type.Parse(pn->Get("design")->As<std::string>()) : DesignElement::ALL_DESIGNS;
 
   // This are the designs we deal with
   unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
@@ -128,86 +128,19 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   LOG_DBG(ds) << "SF: design=" << DesignElement::type.ToString(design) << " start=" << start << " end=" << end << " total=" << space->data.GetSize() << " nel=" << space->GetNumberOfElements();
 
-  // Here we store our reference filter or more, if we do robust.
-  // If SetFilters() was already called for this design (element) we must be robust!
-  DesignElement& ref_de = data[start];
+  assert(filter.GetCapacity() > filter.GetSize()); // e.g. in the robust case we might already have a filter
 
-  StdVector<Filter>& filter = ref_de.simp->filter;
-  unsigned int rex = 0;
-  if(pn->Has("robust_excitation"))
-  {
-    rex = pn->Get("robust_excitation")->As<unsigned int>();
-    if(rex != filter.GetSize())
-      EXCEPTION("'robust_excitation' in 'filter' is " << rex << " but " << filter.GetSize() << " is expected");
-  }
-  else
-  {
-    if(!filter.IsEmpty())
-      throw Exception("expect 'robust_excitation' for 'filter' as more than one filter is defined for the design");
-  }
-
-  // Filter ref is something heavy we copy for each element where the meta data data is copied.
-  Filter ref;
-
-  ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
-  ref.region = space->GetRegionIds()[0];
-
-  filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
-  contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
-  value  = pn->Get("value")->As<double>();
-
-  // for unstructured grids only "radius" filter makes sense
-  if (!regular && filter_space_ != RADIUS)
-    throw Exception("For non-regular grids filter has to be set with neighborhood='radius'.");
-
-  if(value <= 0.0)
-    ref.SetType(Filter::NO_FILTERING);
-
-  if(ref.GetType() == Filter::SENSITIVITY && pn->Has("sensitivity"))
-    ref.sensitivity_ = Filter::sensitivity.Parse(pn->Get("sensitivity/type")->As<std::string>());
-
-  if(ref.GetType() == Filter::DENSITY && pn->Has("density"))
-    ref.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
-
-  if(ref.density_ != Filter::STANDARD)
-  {
-    if(!pn->Has("density/beta"))
-      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(ref.density_) + "' density filtering");
-    ref.beta = pn->Get("density/beta")->As<double>();
-
-    if(pn->Has("density/force_lower_bound"))
-      ref.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
-
-    assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
-
-    if(ref.density_ == Filter::TANH)
-    {
-      if(!pn->Has("density/eta"))
-        throw Exception("Attribute 'eta' required for 'tanh' density filtering");
-      ref.eta = pn->Get("density/eta")->As<double>();
-    }
-
-    // for any projection filter
-    ref.SetNonLinCorrection(&data[space->FindDesign(design) * space->GetNumberOfElements()], 0); // further robust filter might already be set
-  }
-
-
-  info->Get(ParamNode::HEADER)->Get("filters/periodic")->SetValue(periodic_);
-  PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters")->Get("filter", ParamNode::APPEND);
+  filter.Push_back(Parse(pn, &data[start]));
+  // while meeting other regions or designs we create new global filters based on this one.
+  GlobalFilter* global = &filter.Last();
+  LOG_DBG(ds) << "SF: initial global=" << global->ToString();
 
   // do we have to do something?
-  if(ref.GetType() == Filter::NO_FILTERING)
+  if(global->type == Filter::NO_FILTERING)
     return;
 
   // the initialization was separated!
-  shared_ptr<Timer> timer = in->Get("timer")->AsTimer();
   timer->Start();
-
-  double sum_radius = 0;
-  double sum_neighbours = 0;
-
-  // avoids multiple filter radius warning
-  bool done = true;
 
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
@@ -222,92 +155,134 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   }
   assert(!(design == DesignElement::DEFAULT && space->design.GetSize() > 1));
 
-  LOG_DBG(ds) << "SF: design=" << DesignElement::type.ToString(design) << " start=" << start << " end=" << end << " total=" << space->data.GetSize() << " nel=" << space->GetNumberOfElements() << " rex=" << rex;
+  LOG_DBG(ds) << "SF: design=" << DesignElement::type.ToString(design) << " start=" << start << " end=" << end << " total=" << space->data.GetSize() << " nel=" << space->GetNumberOfElements() << " rex=" << global->robust;
 
-  DesignElement::Type ref_design = data[start].GetType();
+  const DesignElement* initial_ref_de = &data[start]; // we later use a parallelized de
+  global->design = initial_ref_de->GetType(); // no ALL_DESIGNS but be specific
+  global->region = initial_ref_de->elem->regionId;
+  global->SetNonLinCorrection(initial_ref_de);
 
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
-  double radius = FindFilterRadius(filter_space_, &data[start], value);
+  double radius = FindFilterRadius(global->filterspace, initial_ref_de, global->value);
 
-  // we modify ref, therefore we need firstprivate
-  #pragma omp parallel firstprivate(ref) num_threads(CFS_NUM_THREADS)
+  int total_sum_neigbors = 0; // for the filter matrix
+
+  // we call this function by filter element in xml but we might cross several regions or possibly designs
+  // each region might have own bound, therefore each region needs a own GlobalFilter with own nonlinear filter scaling
+  const StdVector<DesignSpace::DesignRegion*> units = space->GetRegions(design);
+  for(unsigned int u = 0; u < units.GetSize(); u++)
   {
-    // don't do it in for-loop, thread local vector
-    StdVector<Filter::NeighbourElement> neighbors;
+    const DesignSpace::DesignRegion* unit = units[u];
+    assert(unit->base >= start && unit->base < end);
 
-    #pragma omp for reduction(+:sum_radius,sum_neighbours)
-    for(Integer e = (Integer) start; e < (Integer) end; e++)
+    double sum_radius = 0;
+    double sum_neighbours = 0;
+
+    if(u > 0) // we come along another GlobalFilter
     {
-      DesignElement* de = &data[e];
+      assert(global->region != unit->regionId || global->design != unit->design); // there shall be a reason for change
 
-      // did we came across a new design or a new region? Then update ref
-      if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+      // append a new GlobalFilter which is a copy of the current one.
+      if(filter.GetCapacity() <= filter.GetSize()) // resizing would destroy all pointer references
+        throw Exception("DesignSpace::filter capacity too small: " + std::to_string(filter.GetCapacity()));
+      filter.Push_back(*global); // copy constructor magic
+      global = &(filter.Last());
+      global->region = unit->regionId; // we need the region as one way to validate the change
+      global->design = unit->design;
+      global->SetNonLinCorrection(&(space->data[unit->base]));
+    }
+    // MSVC want's ints for parallel loops ?!
+    int unit_start = (int) unit->base;
+    int unit_end   = u < units.GetSize()-1 ? units[u+1]->base : end;
+
+    LOG_DBG(ds) << "SF: unit=" << u << "/" << units.GetSize() << " us=" << unit_start << " ue=" << unit_end << " g=" << global->ToString();
+
+    #pragma omp parallel num_threads(CFS_NUM_THREADS)
+    {
+      // don't do it in for-loop, thread local vector
+      StdVector<Filter::NeighbourElement> neighbors;
+
+      #pragma omp for reduction(+:sum_radius,sum_neighbours)
+      for(int e = unit_start; e < unit_end; e++)
       {
-        ref.region = de->elem->regionId;
-        ref.SetNonLinCorrection(de,rex);
-        ref_design = de->GetType();
-      }
-      de->simp->filter.Push_back(ref); // copy the reference data
+        DesignElement* de = &data[e];
 
-      /* what does this assert do? deactivating for now */
-      //assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
-      // for unstructured grids only "radius" filter makes sense
-      assert(regular || filter_space_ == RADIUS);
+        assert(de->GetType() == global->design && de->elem->regionId == global->region);
 
-      // set the filter neighborhood which is determined by radius
-      // recursively via element neighbors.
-      neighbors.Resize(0); // keeps capacity
+        de->simp->filter.Push_back(Filter());
+        Filter& elem_filter = de->simp->filter.Last();
+        elem_filter.global = global;
 
-      // LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
-      if(regular)
-        FindRegularNeighborhood(de, radius, edges, neighbors);
-      else
-        FindUnstructuredNeighborhood(de, radius, neighbors);
+        /* what does this assert do? deactivating for now */
+        //assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
+        // for unstructured grids only "radius" filter makes sense
+        assert(regular || global->filterspace == Filter::RADIUS);
 
-      // set own weight
-      assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-      de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
+        // set the filter neighborhood which is determined by radius
+        // recursively via element neighbors.
+        neighbors.Resize(0); // keeps capacity
 
-      // this is actually the re-implementation of a bug as it appeared to be not bad :)
-      if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
-      {
-        // normalize with a 'bug'
-        double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
-        // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
-        de->simp->filter.Last().weight = 1.0 / weight_sum;
-        for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
-          neighbors[j].weight /= weight_sum;
-      }
+        // LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
+        if(regular)
+          FindRegularNeighborhood(global, de, radius, edges, neighbors);
+        else
+          FindUnstructuredNeighborhood(global, de, radius, neighbors);
 
-      // save neighborhood by copy constructor
-      de->simp->filter.Last().neighborhood = neighbors;
+        // set own weight
+        assert(global->contribution == Filter::LINEAR || global->contribution == Filter::CONSTANT);
+        elem_filter.weight = global->contribution == Filter::CONSTANT ? 1.0 : radius;
 
-      sum_radius += radius;
-      sum_neighbours += neighbors.GetSize();
-      if(done && neighbors.GetSize() > 1000) {
-        //#pragma omp critical
-        in->SetWarning("Filter radius too large. Neighborhood for some elements is bigger than 1000!");
-        done = false;
-      }
-      LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
-    } // end for loop
-  }
+        // this is actually the re-implementation of a bug as it appeared to be not bad :)
+        if(global->sensitivity == Filter::SHARP_SIGMUND || global->sensitivity == Filter::SHARP_PLAIN)
+        {
+          // normalize with a 'bug'
+          double weight_sum = elem_filter.CalcWeightSum(false) + 1.0;
+          // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
+          elem_filter.weight = 1.0 / weight_sum;
+          for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
+            neighbors[j].weight /= weight_sum;
+        }
 
-  WriteFilterInfo(pn, in, ref, sum_radius, sum_neighbours, rex == 0); // goes into the appended filters/filter
+        // save neighborhood by copy constructor
+        elem_filter.neighborhood = neighbors;
 
+        sum_radius += radius;
+        sum_neighbours += neighbors.GetSize();
+        if(neighbors.GetSize() > 1000) {
+          too_large_filter_++;
+        }
 
+        // have weight_sum ready for density filters
+        elem_filter.weight_sum = elem_filter.CalcWeightSum(true);
+
+        assert(elem_filter.global != NULL);
+
+        LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
+      } // end for parallel element loop within unit
+    } // end parallel bloc
+    global->elements = unit_end - unit_start;
+    assert(global->elements > 0);
+    global->avg_radius = sum_radius / global->elements;
+    global->avg_neigbor = sum_neighbours / global->elements;
+    total_sum_neigbors += sum_neighbours;
+
+  } // end loop units
 
   timer->Stop();
 
-  if (space->is_matrix_filt){
+  if (space->is_matrix_filt)
+  {
+    if(filter.Last().density == Filter::MATERIAL)
+      throw Exception("Disable use_mat_filt with material filter - it would only work in special cases");
     DensityFilterMat filter_mat;
     space->density_filter.Push_back(filter_mat);
     int filter_index =space->density_filter.GetSize() - 1 ;
-    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index);
+    space->density_filter.Last().AssembleFilterMatrix(data,total_sum_neigbors,filter_index);
   }
 
-  if (space->write_matrix_filt && sum_neighbours > 0) {
+  if (space->write_matrix_filt && total_sum_neigbors > 0)
+  {
     // writes filter matrix to .mtx file for first filter radius > 1
 //    DensityFilterMat filter_mat;
 //    space->density_filter.Push_back(filter_mat);
@@ -331,58 +306,123 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 }
 
 
-void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first)
+GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de)
 {
-  in->Get("type")->SetValue(filterSpace.ToString(filter_space_));
+  GlobalFilter global;
 
-  in->Get("value")->SetValue(value);
-  in->Get("contribution")->SetValue(contribution_ == LINEAR ? "linear" : "constant");
+  // valid values in xml are 0,1,2
 
-  if(ref.GetType() == Filter::SENSITIVITY)
-    in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(ref.sensitivity_));
+  assert(ref_de != NULL && ref_de->simp != NULL);
+  assert(global.robust == -1);
 
-  if(first && ref.GetType() == Filter::DENSITY)  {
-    // in->Get("density")->SetValue(Filter::density.ToString(ref.density_));
-    if(ref.density_ != Filter::STANDARD && em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
-      in->SetWarning("'volume' constraint shall be non-linear due to non-linear filter");
-  }
-
-  if(periodic_)
-   in->Get("periodic")->SetValue(periodic_);
-
-  in->Get("design")->SetValue(DesignElement::type.ToString(design));
-
-  if(pn->Has("robust_excitation")) // here we trust that we did good checks in SetFilter()
-    in->Get("robust_excitation")->SetValue(pn->Get("robust_excitation")->As<int>());
-
-  if(ref.GetType() == Filter::DENSITY && ref.density_ != Filter::STANDARD)
+  if(pn->Has("robust_excitation"))
   {
-    PtrParamNode in_ = in->Get(ref.density.ToString(ref.density_));
+    global.robust = pn->Get("robust_excitation")->As<unsigned int>();
+    if(global.robust != (int) ref_de->simp->filter.GetSize())
+      EXCEPTION("'robust_excitation' in 'filter' is " << global.robust << " but " << ref_de->simp->filter.GetSize() << " is expected");
+  }
+  else
+  {
+    if(!ref_de->simp->filter.IsEmpty())
+      throw Exception("expect 'robust_excitation' for 'filter' as more than one filter is defined for the design");
+  }
+  // we don't set design as it might be allDesigns but set it by filling it in SetFilter()
+  global.type = Filter::type.Parse(pn->Get("type")->As<std::string>());
+  global.region = ref_de->elem->regionId; // was space->GetRegionIds()[0];
 
-    in_->Get("beta")->SetValue(ref.beta);
+  // for unstructured grids only "radius" filter makes sense
+  global.filterspace = Filter::filterSpace.Parse(pn->Get("neighborhood")->As<string>());
+  if (!regular && global.filterspace != Filter::RADIUS)
+    throw Exception("For non-regular grids filter has to be set with neighborhood='radius'.");
 
-    if(ref.density_ == Filter::TANH)
-      in_->Get("eta")->SetValue(ref.eta);
+  global.contribution = pn->Get("contribution")->As<string>() == "linear" ? Filter::LINEAR : Filter::CONSTANT;
 
-    in_->Get("scaling")->SetValue(ref.non_lin_scale);
-    in_->Get("offset")->SetValue(ref.non_lin_offset);
+  global.value  = pn->Get("value")->As<double>();
+  if(global.value <= 0.0)
+    global.type = Filter::NO_FILTERING;
 
-    if(pn->Has("density/force_lower_bound"))
-      in_->Get("force_lower_bound")->SetValue(ref.GetLowerBound(NULL));
+  if(global.type == Filter::SENSITIVITY && pn->Has("sensitivity"))
+    global.sensitivity = Filter::sensitivity.Parse(pn->Get("sensitivity/type")->As<std::string>());
+
+  if(global.type == Filter::DENSITY && pn->Has("density"))
+    global.density = Filter::density.Parse(pn->Get("density/type")->As<string>());
+
+  if(global.density == Filter::MATERIAL)
+  {
+    if(!pn->Has("density/material"))
+      throw Exception("density filter 'material' needs 'material' child element");
+    global.mat_filter = TransferFunction(pn->Get("density/material/filter"));
+    global.mat_scale  = TransferFunction(pn->Get("density/material/scale"));
+    global.mat_phase  = TransferFunction(pn->Get("density/material/phase"));
   }
 
-  double normalized_avg_radius = avg_radius / (space->data.GetSize()/space->design.GetSize());
-  double normalized_avg_neighbours = avg_neighbours / (space->data.GetSize()/space->design.GetSize());
+  if(global.density != Filter::STANDARD && global.density != Filter::MATERIAL)
+  {
+    if(!pn->Has("density/beta"))
+      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(global.density) + "' density filtering");
+    global.beta = pn->Get("density/beta")->As<double>();
 
-  in->Get("avg_radius")->SetValue(normalized_avg_radius);
-  in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
+    assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
 
-  std::cout << "Filter " << DesignElement::type.ToString(design) << ": avg radius=" << normalized_avg_radius
-            << " avg neighbourhood=" << normalized_avg_neighbours << std::endl;
+    if(global.density == Filter::TANH)
+    {
+      if(!pn->Has("density/eta"))
+        throw Exception("Attribute 'eta' required for 'tanh' density filtering");
+      global.eta = pn->Get("density/eta")->As<double>();
+    }
+  }
 
+  return global;
 }
 
-void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors)
+
+void DesignStructure::WriteFilterInfo(PtrParamNode in)
+{
+  PtrParamNode root = in->Get("filters");
+  if(periodic_)
+    root->Get("periodic")->SetValue(periodic_);
+
+  int nlf = 0; // nonlinar filters?
+  int mf = 0; // material filter?
+  double ar = 0; // average radius
+  double an = 0; // average neighbors
+  int te = 0; // total elements
+
+  for(GlobalFilter& gf : space->filter)
+  {
+    gf.ToInfo(root->Get("filter",ParamNode::APPEND));
+    switch(gf.density)
+    {
+    case Filter::MATERIAL:
+      mf++;
+    case Filter::VOID_HEAVISIDE:
+    case Filter::SOLID_HEAVISIDE:
+    case Filter::TANH:
+      nlf++;
+      break;
+    default:
+      break;
+    }
+    ar += gf.avg_radius * gf.elements;
+    an += gf.avg_neigbor * gf.elements;
+    te += gf.elements;
+  }
+
+  if(em != NULL && em->constraints.Has(Function::VOLUME))
+  {
+    if(nlf && em->constraints.Get(Function::VOLUME)->IsLinear())
+      root->SetWarning("'volume' constraint shall be non-linear due to non-linear filter");
+    if(mf && em->constraints.Get(Function::VOLUME)->GetAccess() != Function::PLAIN)
+      root->SetWarning("'volume' constraint for material filter shall have plain access");
+  }
+  if(too_large_filter_ > 0)
+    root->SetWarning("filter radius probably too large");
+
+  root->Get("timer")->SetValue(timer);
+  std::cout << "Filter: avg radius=" << (ar/te) << " avg neighbourhood=" << (an/te) << std::endl;
+}
+
+void DesignStructure::FindRegularNeighborhood(const GlobalFilter* global, DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors)
 {
   assert(regular);
   // from the radius define a square/cube and check for every element. The corners are sorted out by distance
@@ -392,8 +432,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
 
-  Filter& filter = base->simp->filter[0];
-  double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+  double val_rad = global->sensitivity == Filter::SHARP_PLAIN || global->sensitivity == Filter::SHARP_SIGMUND ? global->value : radius;
 
   int x = static_cast<int>(ceil(radius / edges[0]));
   int y = static_cast<int>(ceil(radius / edges[1]));
@@ -423,8 +462,8 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
             ne.neighbour = other;
 
             // linear or constant weighting. will be normalized in the calling method!
-            assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-            ne.weight = contribution_ == LINEAR ? val_rad  - distance : 1;
+            assert(global->contribution == Filter::LINEAR || global->contribution == Filter::CONSTANT);
+            ne.weight = global->contribution == Filter::LINEAR ? val_rad  - distance : 1;
             ne.distance  = distance;
             neighbors.Push_back(ne); // cheap
           }
@@ -432,6 +471,32 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
       }
     }
   }
+}
+
+
+Filter::Type DesignStructure::GetCommonFilterType() const
+{
+  for(unsigned int i = 1; i < space->filter.GetSize(); i++)
+    if(space->filter[i].type != space->filter[i-1].type)
+      throw Exception("inconsistent filter types");
+
+  return space->filter.IsEmpty() ? Filter::NO_FILTERING : space->filter.First().type;
+}
+
+Filter::Type DesignStructure::GuessFilterType()
+{
+  PtrParamNode pn = domain->GetParamRoot();
+  if(!pn->Has("optimization/ersatzMaterial/filters"))
+    return Filter::NO_FILTERING;
+
+  ParamNodeList list = pn->Get("optimization/ersatzMaterial/filters")->GetList("filter");
+  if(list.IsEmpty())
+    return Filter::NO_FILTERING;
+
+  assert(Filter::type.map.size() > 0);
+  // later GetCommonFilterType() will be called and compared with this guess
+  // it would be cooler to move some filter attributes to the common filters element
+  return Filter::type.Parse(list.First()->Get("type")->As<string>());
 }
 
 DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, int i_steps, int j_steps, int k_steps)
@@ -467,8 +532,7 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 }
 
 
-void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                                                   StdVector<Filter::NeighbourElement>& neighbors)
+void DesignStructure::FindUnstructuredNeighborhood(const GlobalFilter* global, DesignElement* base, double radius, StdVector<Filter::NeighbourElement>& neighbors)
 {
   // for 3D ist shall be significantly faster (O(N)) to make a discrete grid (e.g. of size radius) and sort
   // the elements to this grid. Then we can linearly test all relevant grid cells for an element. It will help for
@@ -480,8 +544,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   // radius - distance but value - distance. To keep the legacy results we reproduce
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
-  Filter& filter = base->simp->filter[0];
-  double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+  double val_rad = global->sensitivity == Filter::SHARP_PLAIN || global->sensitivity == Filter::SHARP_SIGMUND ? global->value : radius;
 
   assert(!periodic_); // only regular may be periodic!!
 
@@ -547,8 +610,8 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
       assert(ne.neighbour->elem->elemNum == test->elemNum);
 
       // linear or constant weighting. will be normalized in the calling method!
-      assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-      ne.weight = contribution_ == LINEAR ? val_rad  - distance : 1;
+      assert(global->contribution == Filter::LINEAR || global->contribution == Filter::CONSTANT);
+      ne.weight = global->contribution == Filter::LINEAR ? val_rad  - distance : 1;
       ne.distance  = distance;
 
       #ifndef NDEBUG
@@ -629,17 +692,17 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
 
 /** This is not performance tuned as for almost cases we have regular grids and then this method is
  * only called once. In the other cases - live with it */
-double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, double value)
+double DesignStructure::FindFilterRadius(Filter::FilterSpace space, const DesignElement* de, double value)
 {
   Matrix<double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );
 
   switch(space)
   {
-    case RADIUS:
+    case Filter::RADIUS:
       return value;
 
-    case VOLUME_RADIUS:
+    case Filter::VOLUME_RADIUS:
     {
       // TODO really check for axis symmetry off
       double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
@@ -650,7 +713,7 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
       return radius;
     }
 
-    case MAX_EDGE:
+    case Filter::MAX_EDGE:
     {
       double max, tmp;
       LagrangeElemShapeMap sm(domain->GetGrid());

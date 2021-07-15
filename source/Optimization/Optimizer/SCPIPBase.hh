@@ -224,6 +224,9 @@
 
       /** shortcut to and redundant with grad_j_size */
       int nnz;
+
+      /** for debugging purpose */
+      std::string ToString() const;
     };
 
     /** Generates an message out of the last status (ierr). */

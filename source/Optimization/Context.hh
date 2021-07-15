@@ -4,11 +4,11 @@
 //include <cstddef>
 #include "Utils/StdVector.hh"
 #include "PDE/BasePDE.hh"
-#include "Design/DesignMaterial.hh"
 
 namespace CoupledField
 {
 class ContextManager;
+class DesignMaterial;
 class Excitation;
 class SingleDriver;
 class SinglePDE;

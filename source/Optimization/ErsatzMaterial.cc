@@ -98,7 +98,6 @@ ErsatzMaterial::ErsatzMaterial() :
 {
   /** We store here the solution */
   volumeFraction_ = 0.0;
-  structure_ = NULL;
   densityFile = NULL;
   bitensor_ = false;
   trackingFunc_ = NULL;
@@ -205,12 +204,13 @@ void ErsatzMaterial::PostInit()
     // reserve the density filter mat here since the struct doesn't have explicit copy constructor and push back will lead to error.
     design->density_filter.Reserve(list.GetSize());
     // this is save for design=polarization
-    for(unsigned int i = 0; i < list.GetSize(); i++)
-    {
-      if(structure_ == NULL)
-        structure_ = new DesignStructure(this);
-      structure_->SetFilter(list[i], this->optInfoNode);
-    }
+    assert(structure_ == NULL);
+    structure_ = new DesignStructure(this);
+    for(auto pn : list)
+      structure_->SetFilter(pn);
+    structure_->WriteFilterInfo(this->optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
+    design->SetFilterType(structure_->GetCommonFilterType());
+    LOG_DBG(em) << "PI dft=" << Filter::type.ToString(design->GetFilterType());
   }
 
   // check for multiple load cases (might be frequencies)
@@ -1776,7 +1776,7 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   {
     DesignElement* de = f->elements[i];
 
-    double val = f->IsPhysical() ? tf->Transform(de, DesignElement::SMART) : de->GetDesign(DesignElement::SMART);
+    double val = de->GetDesign(f, tf); // PLAIN, FILTERED or PHYSICAL
     double vol = (regular ? 1.0 : de->CalcVolume())/total_vol;
     sum += vol * val;
     if(derivative)
@@ -3319,13 +3319,12 @@ double ErsatzMaterial::CalcFilteringGap(Condition* g, bool derivative) {
       //assert(de == DesignElement::COST_GRADIENT || de == DesignElement::CONSTRAINT_GRADIENT);
       //assert((g == NULL || (g->IsObjective() && de == DesignElement::COST_GRADIENT)) || (g == NULL || (!g->IsObjective() && de == DesignElement::CONSTRAINT_GRADIENT)) || (g == NULL || (g->IsObjective())));
       // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
-      //assert(g == NULL || g->ForDensityFiltering());
 
       // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
       // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
       // note, that the stored value is already v = d f/d P_i
       grad = 0.0;
-      if(f.density_ == Filter::STANDARD)
+      if(f.global->density == Filter::STANDARD)
       {
         for(int j = -1, nj = (int) f.neighborhood.GetSize(); j < nj; j++)
         {
@@ -3380,7 +3379,7 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
       {
         lb = de->GetLowerBound();
         ub = de->GetUpperBound();
-        org_value = de->GetDesign(DesignElement::PLAIN);
+        org_value = de->GetDesign(g); // PLAIN or FILTERED
       }
 
       span = ub-lb;

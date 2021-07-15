@@ -39,10 +39,21 @@ public:
   DesignStructure(DesignSpace* space, StdVector<RegionIdType>& regions);
 
   /** This is the actual, expensive action. It sets the filters for all
-   * relevant design elements of simp->design.data
-   * @param pn our parameter section of the filer, includes design name
-   * @param info where to write (in HEADER) the information */
-  void SetFilter(PtrParamNode pn, PtrParamNode info);
+   * relevant design elements of simp->design.data.
+   * Might be called multiple times for multiple filter definitions.
+   * @param pn our parameter section of the filer, includes design name (might be allDesigns) */
+  void SetFilter(PtrParamNode pn);
+
+  /** Service function to be called after the SetFilter() calls.
+   * Searches common type in DesignSpace::filter */
+  Filter::Type GetCommonFilterType() const;
+
+  /** for ugly post init ordering chaos we need to know the filter type very early in the
+   * Function constructors. Read this manually from param. To be confirmed later in Function::PostProc() */
+  static Filter::Type GuessFilterType();
+
+  /** Is a ToInfo() which creates a filters element but also prints avg data on command line */
+  void WriteFilterInfo(PtrParamNode in);
 
   /** Do we have periodic BC. */
   bool IsPeriodic() const { return periodic_; }
@@ -55,27 +66,16 @@ public:
    * @return false means not periodic and and neighbors is 0 size */
   bool ExtendPeriodicNeighborhood(Elem* elem, int min_common, StdVector<std::pair<Elem*, int> >& neighbors);
 
-  /** Filter types we have
-   * <ul>
-   *   <li>RADIUS: this is the implementation following Sigmund in the 99lines paper.
-   *               The drawback is the discretization dependency.</li>
-   *   <li>VOLUME_RADIUS: The radius is *value* times square/cube edge length where the
-   *               square/cube has the volume of the element</li>
-   *   <li>MAX_EDGE: The largest edge size, discretization independent and preferable</li>
-   * </ul>
-   * This does not tell if we have design or sensitivity filtering! */
-  typedef enum { NO_FILTER = -1, RADIUS, VOLUME_RADIUS, MAX_EDGE } FilterSpace;
-
-  /** Also to be used in Function::Local */
-  static Enum<FilterSpace> filterSpace;
 
   /** Helper for DesignStructure::InitFilter() and Function::Local::SetupStarLocalityElementMap.
    * Call only once if regular as it is not performance tunes! */
-  static double FindFilterRadius(FilterSpace filter, DesignElement* de, double value);
+  static double FindFilterRadius(Filter::FilterSpace filter, const DesignElement* de, double value);
 
   static std::string ToString(const StdVector<std::pair<Elem*, int> >& data);
 
   static std::string ToString(const StdVector<Filter::NeighbourElement>& data);
+
+
 
 private:
 
@@ -87,10 +87,17 @@ private:
    * @see initialized_ */
   void Initialize();
 
+  /** parses s single filter element. Service for SetFilter()
+   * The return value is created and there shall be no copy operation necessary */
+  GlobalFilter Parse(PtrParamNode pn, const DesignElement* ref_de);
+
   /** finds quite efficiently the neighborhood with an regular grid.
    * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
    * @param neighbors to be reused */
-  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors);
+  void FindRegularNeighborhood(const GlobalFilter* global, DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors);
+
+  /** A helper for InitFilter() with a recursive like implementation. See implementation. */
+  void FindUnstructuredNeighborhood(const GlobalFilter* global, DesignElement* base, double radius, StdVector<Filter::NeighbourElement>& neighbors);
 
   /** Helper for FindRegularNeighborhood().
    * Defines an element by the number of (+/-) steps in the main axes
@@ -100,10 +107,6 @@ private:
   /** Helper for the other GetNeighborElement().
    * Is able to cross periodic boundaries */
   DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
-
-  /** A helper for InitFilter() with a recursive like implementation. See implementation. */
-  void FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                          StdVector<Filter::NeighbourElement>& neighbors);
 
   /** calc the distance between two points for the periodic case,
    * where periodic boundaries are considered.
@@ -132,30 +135,11 @@ private:
                        int min_common,
                        StdVector<std::pair<Elem*, int> >& out);
 
-
-  /** helper for SetFilter() */
-  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first);
-
-  /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
-  enum Contribution { LINEAR, CONSTANT };
-
-  /** Parameter for filter */
-  Contribution contribution_;
-
-  /** actual filter space setting */
-  FilterSpace filter_space_;
-
-  /** the filter value */
-  double value;
-
   /** do we have periodic boundary conditions? */
-  bool periodic_;
+  bool periodic_ = false;
 
   /** is the grid regular? */
-  bool regular;
-
-  /** The filtered design (for multiple designs only) */
-  DesignElement::Type design;
+  bool regular = false;
 
   /** This maps the periodic boundaries.
    * Nodes which are not part of a periodic b.c. have an empty vector.
@@ -175,22 +159,26 @@ private:
   Point dimension;
 
   /** shortcut to the grid dimension */
-  unsigned int dim;
-
+  unsigned int dim = 0;
 
   Grid* grid = NULL;
   /** shortcut to grid cfs to save virtual table lookup for GetElem() */
   GridCFS* gridcfs = NULL;
 
-  ErsatzMaterial* em;
+  ErsatzMaterial* em = NULL;
 
   /** is Initialize() called yet? */
-  bool initialized_;
+  bool initialized_ = false;
 
-  unsigned int num_robust_;
+  unsigned int num_robust_ = 0;
 
-  DesignSpace* space;
+  DesignSpace* space = NULL;
   StdVector<RegionIdType> regions;
+
+  /** for warnings */
+  int too_large_filter_ = 0;
+
+  shared_ptr<Timer> timer;
 };
 
 

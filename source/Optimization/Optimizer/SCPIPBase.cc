@@ -352,17 +352,18 @@ void SCPIPBase::PrepareConstraintPattern(bool initial_call)
 
   ieleng = 0;
   int ie_cnt = 0;
-  for(unsigned int i = 0; i < shift.GetSize(); i++)
+  for(const ConstraintShift& cs : shift)
   {
-    if(!shift[i].equal)
+    if(!cs.equal)
     {
       assert(active[ie_cnt] == 0 || active[ie_cnt] == 1);
 
       if(active[ie_cnt] == 1)
-        ieleng += shift[i].nnz;
+        ieleng += cs.nnz;
 
       ie_cnt++;
     }
+    LOG_DBG(scpip_base) << "PCP cs " << cs.ToString() << " iec=" << ie_cnt << " ieleng=" << ieleng;
   }
 }
 
@@ -483,7 +484,7 @@ void SCPIPBase::AllocateProblem()
       meq++;
       eqleng += cs->nnz;
       cs->shift = cs->lower;
-      LOG_TRACE2(scpip_base) << "constraint " << i << " becomes equality constraint " << meq << " with shift " << cs->shift;
+      LOG_DBG(scpip_base) << "AP: i=" << i << " -> equality : meq=" << meq << " s=" << cs->shift << " nnz=" << cs->nnz << " eqleng=" << eqleng;
     }
     else
     {
@@ -501,7 +502,7 @@ void SCPIPBase::AllocateProblem()
       {
         cs->shift = abs(cs->upper);
       }
-      LOG_TRACE2(scpip_base) << "constraint " << i << " becomes inequality constraint " << meq << " with shift " << cs->shift << " and factor " << cs->factor;
+      LOG_DBG(scpip_base) << "AP: i=" << i << " -> inequality : meq=" << meq << " s=" << cs->shift << " nnz=" << cs->nnz << " ieleng=" << ieleng;
     }
   }
   assert(meq + mie == m);
@@ -784,7 +785,12 @@ void SCPIPBase::CallFinalizeSolution()
 }
 
 
-
+std::string SCPIPBase::ConstraintShift::ToString() const
+{
+  std::ostringstream os;
+  os << "n=" << number << " s=" << shift << "nnz=" << nnz;
+  return os.str();
+}
 
 std::string SCPIPBase::ToString(int ierr)
 {

@@ -104,10 +104,15 @@ DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNod
   DesignSpace* space = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
   space->PostInit(0, 0); // no objectives, no constraints
   // is cheap - for density filtering
-  DesignStructure filter(space, space->GetRegionIds());
+  DesignStructure ds(space, space->GetRegionIds());
   PtrParamNode reg = xml->Get("header/filters/filter", ParamNode::PASS);
-  if (reg)
-    filter.SetFilter(reg, info->Get("ersatzMaterial"));
+  if(reg)
+  {
+    ds.SetFilter(reg);
+    ds.WriteFilterInfo(info->Get("ersatzMaterial"));
+    space->SetFilterType(ds.GetCommonFilterType());
+  }
+
   space->ToInfo(NULL);
   return space;
 }

@@ -167,6 +167,9 @@ namespace CoupledField {
      * It would be nice to have a noexept but an icc bug forbids it :( https://software.intel.com/en-us/node/629136 */
     StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const; // icc bug prevents noexcept
 
+    /** for debug purpose: comma separated list of GetRegisteredValues() content */
+    std::string ToString(HandleType handle) const;
+
     /** creates a comma separated list of registered variables */
     std::string GetRegisteredVariables(HandleType handle) const; // icc bug prevents noexcept
 

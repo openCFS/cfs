@@ -64,6 +64,8 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+using std::string;
+
 namespace CoupledField
 {
 
@@ -89,21 +91,21 @@ namespace CoupledField
 // ==============================
 void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
                                            PtrParamNode infoNode,
-                                           std::map<std::string, shared_ptr<
-    SimInput> >& inFiles, std::map<std::string,
+                                           std::map<string, shared_ptr<
+    SimInput> >& inFiles, std::map<string,
     StdVector<shared_ptr<SimInput> > >& gridInputs)
 {
-
-  std::string meshFile = progOpts->GetMeshFileStr();
-  std::string simName = progOpts->GetSimName();
-  std::string fileName = "default";
-  std::string actId, actGridId;
+  fs::path mfp = progOpts->GetMeshFile();
+  string meshFile = mfp.string();
+  string simName = progOpts->GetSimName();
+  string fileName = "default";
+  string actId, actGridId;
 
   // resest map
   inFiles.clear();
   gridInputs.clear();
 
-  std::string informat = "mesh";
+  string informat = "mesh";
   StdVector<PtrParamNode> inputOptionNodes;
   PtrParamNode inputNode = rootNode->Get("fileFormats") ->Get("input",ParamNode::INSERT);
   inputOptionNodes = inputNode->GetChildren();
@@ -120,11 +122,15 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
     meshNode->GetValue("id", actId, ParamNode::INSERT);
     meshNode->GetValue("gridId", actGridId, ParamNode::INSERT);
     
-    if ( meshFile.find(".h5", meshFile.length()-4) != std::string::npos ) {
-      inFiles[actId] = shared_ptr<SimInput>( new SimInputHDF5(meshFile, PtrParamNode(new ParamNode()), infoNode) );
-    } else {
-      inFiles[actId] = shared_ptr<SimInput>( new SimInputMESH(meshFile, PtrParamNode(), infoNode) );
-    }
+    // we assume inFiles was not set before
+    string extension = mfp.extension().string();
+    if(extension == ".h5" || extension == ".cfs")
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputHDF5(meshFile, PtrParamNode(new ParamNode()), infoNode));
+    else if(extension == ".cdb")
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputCDB(meshFile, PtrParamNode(new ParamNode()), infoNode));
+    else // even if this is not .mesh, we need a SimInput, otherwise it fails later - is rather stupid :(
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputMESH(meshFile, PtrParamNode(), infoNode));
+
     gridInputs[actGridId].Push_back(inFiles[actId]);
     return;
   }
@@ -135,7 +141,7 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
     // fetch format and id of output class
     PtrParamNode actNode = inputOptionNodes[i];
     informat = actNode->GetName();
-    actId = actNode->Get("id")->As<std::string>();
+    actId = actNode->Get("id")->As<string>();
     actNode->GetValue("fileName", fileName, ParamNode::PASS);
     actNode->GetValue("gridId", actGridId, ParamNode::EX);
 
@@ -169,14 +175,14 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
 void DefineInOutFiles::
 CreateSimOutputFiles(PtrParamNode rootNode,
                      PtrParamNode infoNode,
-                     std::map<std::string, shared_ptr<SimOutput> >& out,
-                     std::map<std::string, std::string> & gridIds )
+                     std::map<string, shared_ptr<SimOutput> >& out,
+                     std::map<string, string> & gridIds )
 {
 
   // resest map
   out.clear();
 
-  std::string simName = progOpts->GetSimName();
+  string simName = progOpts->GetSimName();
   
   // check for restart
   bool restart = progOpts->GetRestart();
@@ -192,15 +198,15 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 
   // Check if only  one reader per format has been defined  and that the given
   // ids are unique.
-  std::set<std::string> formatSet;
-  std::set<std::string> idSet;
-  std::string actFormat, actId, hdf5Id;
+  std::set<string> formatSet;
+  std::set<string> idSet;
+  string actFormat, actId, hdf5Id;
   for (UInt i = 0; i < formatNodes.GetSize(); i++)
   {
     // fetch format and id of output class
     PtrParamNode actNode = formatNodes[i];
     actFormat = actNode->GetName();
-    actId = actNode->Get("id")->As<std::string>();
+    actId = actNode->Get("id")->As<string>();
 
     // Note: In general, we should ensure, that output writers exist only once
     // (especially hdf5, gmv ,etc.). But for text-writers, it makes intentionally
@@ -243,10 +249,10 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     // fetch format and id of output class
     PtrParamNode actNode = formatNodes[i];
     actFormat = actNode->GetName();
-    actId = actNode->Get("id")->As<std::string>();
+    actId = actNode->Get("id")->As<string>();
 
     // Read in the gridId
-    std::string gridId = "default";
+    string gridId = "default";
     actNode->GetValue( "gridId", gridId, ParamNode::PASS );
     gridIds[actId] = gridId;
     
@@ -264,8 +270,8 @@ MaterialHandler *
 DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 {
 
-  std::string fileName = "mat.dat";
-  std::string format = "dat";
+  string fileName = "mat.dat";
+  string format = "dat";
 
   // Determine filename and format
   PtrParamNode matNode = 
@@ -297,13 +303,13 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 
 }
 
-shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string fName,
-                                                                    std::string simName,
+shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(string fName,
+                                                                    string simName,
                                                                     PtrParamNode configNode,
                                                                     PtrParamNode infoNode){
   shared_ptr<SimInput> aInput;
 
-  std::string fFormat = configNode->GetName();
+  string fFormat = configNode->GetName();
 
   if (fFormat == "mesh")
   {
@@ -405,12 +411,12 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
 
 }
 
-shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string fName,
+shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fName,
                                                                      PtrParamNode configNode,
                                                                      PtrParamNode infoNode,
                                                                      bool isRestart){
   shared_ptr<SimOutput> aOutput;
-  std::string fFormat = configNode->GetName();
+  string fFormat = configNode->GetName();
   if (fFormat == "unv")
   {
     aOutput = shared_ptr<SimOutput> (new SimOutputUnv(fName, configNode, infoNode, isRestart));

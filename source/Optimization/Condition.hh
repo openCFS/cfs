@@ -320,6 +320,7 @@ namespace CoupledField
 
      /** This is the local context currently requested by the optimizer */
      Function::Local::Identifier& GetCurrentVirtualContext();
+     const Function::Local::Identifier& GetCurrentVirtualContext() const;
 
      /** Calculates the mean |value| based on local_values */
      double CalcMeanAbsValue() const;

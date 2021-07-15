@@ -20,7 +20,6 @@
 #include "Utils/StdVector.hh"
 #include "MatVec/CRS_Matrix.hh"
 
-
 namespace CoupledField
 {
   template <class TYPE> class Matrix;
@@ -296,18 +295,8 @@ namespace CoupledField
       * @param mm_index multmaterial index. -1 for none*/
      DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false, int mm_index = -1);
 
-     /** Searches for the element idx.
-      * @param elem checks region of elem or region of vol elemens if elem is a SurfElem
-      * @param throw_region_exception if no region matches returns -1 or throws exception
-      * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
-      * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
-     //int Find(const Elem* elem, bool throw_region_exception);
-
      /** finds the index of the design element in design.data for the element.
       * Is very fast O(1) */
-     //int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
-
-
      int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false)
      {
        // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
@@ -320,6 +309,11 @@ namespace CoupledField
        return idx;
      }
 
+     /** Searches for the element idx.
+      * @param elem checks region of elem or region of vol elemens if elem is a SurfElem
+      * @param throw_region_exception if no region matches returns -1 or throws exception
+      * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
+      * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
      int Find(const Elem* elem, bool throw_exception)
      {
        // no extensions for pseudo designs implemented, yet!
@@ -405,11 +399,16 @@ namespace CoupledField
      /** Here we store result descriptions as defined in DesignElement.hh */
      StdVector<ResultDescription> resultDescriptions;
 
+     /** Here we store the GlobalFilter part of the element Filter data.
+      * By region/design/excitation */
+     StdVector<GlobalFilter> filter;
 
-     /**Here we store the value of the mechanical tensor of the material and its derivative with respect to the design variables**/
-     //StdVector<TensorElement> tensor_data;
+     /** What is the filter type we have? We do not support mixing density and sensitivity filter.
+      * Note that a filter can have too small radius which means no effect.
+      * @Return Filter::NO_FILTERING, Filter::DENSITY, Filter::SENSITIVITY */
+     Filter::Type GetFilterType() const { return filter_type_; }
 
-
+     void SetFilterType(Filter::Type ft) { filter_type_ = ft; }
 
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const
@@ -511,7 +510,11 @@ namespace CoupledField
 
      DesignRegion* GetRegion(RegionIdType id, MaterialClass mc, MaterialType mt, bool throw_exception = true);
 
-     /** This now is a vector of design and region regions[design][region].
+     /** flattens the content of regions which means ordered by designs all regions.
+      * Always creates the data, so don't call it too often */
+     StdVector<DesignRegion*> GetRegions(DesignElement::Type dt = DesignElement::ALL_DESIGNS);
+
+     /** This is a vector of design and nested regions: regions[design][region].
       Design is here the unique design. */
      StdVector<StdVector<DesignRegion> > regions;
 
@@ -681,6 +684,9 @@ namespace CoupledField
      PtrParamNode pn_;
 
      ErsatzMaterial::Method method_;
+
+     /** shortcut for filter type. Determined by DesignStructure::GetCommonFilterType() */
+     Filter::Type filter_type_ = Filter::NO_FILTERING;
   };
 
 

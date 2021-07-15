@@ -678,6 +678,15 @@ namespace CoupledField {
     return res;
   }
 
+  std::string MathParser::ToString(HandleType handle) const
+  {
+    std::stringstream ss;
+
+    for(const auto& pair : GetRegisteredValues(handle))
+      ss << pair.first << ":" << pair.second << ", ";
+    return ss.str();
+  }
+
   std::string MathParser::GetRegisteredVariables(HandleType handle) const
   {
     std::stringstream ss;

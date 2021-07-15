@@ -2,6 +2,7 @@
 #include <cmath>
 #include <limits>
 #include <ostream>
+#include <sstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -13,75 +14,6 @@
 using namespace CoupledField;
 
 EXTERN_LOG(ds)
-
-Filter::Filter()
-{
-  type_          = NO_FILTERING;
-  sensitivity_   = SIGMUND;
-  density_       = STANDARD;
-  beta           = -1.0;
-  eta            = -1.0;
-  non_lin_scale  = -1.0;
-  non_lin_offset = -1.0;
-  explicit_lower_bound_ = std::numeric_limits<double>::min();
-  region         = NO_REGION_ID;
-  weight         = 1.0;
-  weight_sum     = -1.0;
-}
-
-
-double Filter::GetLowerBound(const DesignElement* de) const
-{
-  if(explicit_lower_bound_ != std::numeric_limits<double>::min())
-    return explicit_lower_bound_;
-  else
-    return de->GetLowerBound();
-}
-
-
-void Filter::SetNonLinCorrection(const DesignElement* ref, unsigned int fix)
-{
-  if(type_ != DENSITY || !(density_ == SOLID_HEAVISIDE || density_ == VOID_HEAVISIDE || density_ == TANH))
-    return;
-
-  assert(beta >= 0);
-  assert(density_ != TANH || eta >= 0);
-
-  // we ignore the bimat case - the we still have the tahn problem for small beta
-
-  DesignElement de = DesignElement();
-  de.simp = new SIMPElement(&de);
-  de.simp->filter = *this; // only copy data, changes don't distribute back
-  de.elem = ref->elem; // otherwise the logings segfault
-
-  double ub = ref->GetUpperBound();
-  double lb = ref->GetLowerBound();
-
-  // calc the pure values
-  de.simp->filter[fix].non_lin_scale = 1.0;
-  de.simp->filter[fix].non_lin_offset = 0;
-
-  double org_u = density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix);
-  double org_l = density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix);
-
-  LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " fix=" << fix << " f=" << density.ToString(density_) << " ub=" << ub << " -> " << org_u << " lb=" << lb << " -> " << org_l;
-
-  assert((org_u-org_l) >= 0.1);
-  assert((org_u-org_l) <= 1.0);
-  assert(org_u > org_l);
-
-  // F ist the filter. We scale with scale*F + offset
-  // scale such that F(u)-F(l) == ub-lb
-  this->non_lin_scale  = (ub-lb) / (org_u - org_l);
-  this->non_lin_offset = lb - non_lin_scale * org_l;
-  de.simp->filter = *this; // copy again for the asserts checking the results
-
-  LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " f=" << density.ToString(density_) << " d==" << (ub-lb) << " od=" << (org_u-org_l) << " -> s=" << non_lin_scale << " o=" << non_lin_offset;
-
-  assert(close(density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix), lb));
-  assert(close(density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix), ub));
-}
-
 
 void Filter::Dump() const
 {
@@ -100,3 +32,112 @@ void Filter::Dump() const
               << neighborhood[i].neighbour->GetLocation()->ToString()
               << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
+
+void GlobalFilter::SetNonLinCorrection(const DesignElement* ref)
+{
+  non_lin_scale = 1.0;
+  non_lin_offset = 0;
+  LOG_DBG(ds) << "GF:SNLC de=" << ref->ToString() << " this=" << ToString();
+
+  if(type != Filter::DENSITY || density == Filter::STANDARD)
+    return;
+
+  assert(density != Filter::MATERIAL_PART);
+  assert(density == Filter::MATERIAL || beta >= 0);
+  assert(density != Filter::TANH || eta >= 0);
+
+  // we ignore the bimat case - there we still have the tanh problem for small beta
+
+  // we create a temporary global filter
+  GlobalFilter tmp = *this;
+
+  double ub = ref->GetUpperBound();
+  double lb = ref->GetLowerBound();
+
+  // in the material filter case we have three transfer functions involved and this is the filtered lower bound
+  // in all other cases the filtered lower bound is simply the lower bound
+  double flb = density == Filter::MATERIAL ? mat_filter.Transform(lb) : lb;
+
+  // calc the pure values
+  tmp.non_lin_scale = 1.0;
+  tmp.non_lin_offset = 0;
+
+  double org_u = SIMPElement::CalcNonLinFilter(ub, &tmp,ub);
+  double org_l = SIMPElement::CalcNonLinFilter(flb, &tmp,lb);
+
+  LOG_DBG(ds) << "GF:SNLC de=" << ref->ToString() << " ub=" << ub << " -> " << org_u << " lb=" << lb << " flb=" << flb << " -> " << org_l << " f=" << ToString();
+
+  assert((org_u-org_l) >= 0.1);
+  assert((org_u-org_l) <= 1.0);
+  assert(org_u > org_l);
+
+  // F ist the filter. We scale with scale*F + offset
+  // scale such that F(u)-F(l) == ub-lb
+  non_lin_scale  = (ub-lb) / (org_u - org_l);
+  non_lin_offset = lb - non_lin_scale * org_l;
+
+  LOG_DBG(ds) << "GF:SNLC de=" << ref->ToString() << " f=" << Filter::density.ToString(density) << " d==" << (ub-lb) << " od=" << (org_u-org_l) << " -> s=" << non_lin_scale << " o=" << non_lin_offset;
+
+  assert(close(SIMPElement::CalcNonLinFilter(ub, this, ub), ub));
+  assert(close(SIMPElement::CalcNonLinFilter(flb, this, lb), lb));
+}
+
+std::string GlobalFilter::ToString() const
+{
+  std::stringstream ss;
+  ss << "dt=" << DesignElement::type.ToString(design);
+  ss << " reg=" << region << " rob=" << robust;
+  ss << " t=" << Filter::type.ToString(type);
+  if(type == Filter::DENSITY)
+    ss << " df=" << Filter::density.ToString(density);
+  else
+    ss << " ss=" << Filter::sensitivity.ToString(sensitivity);
+   ss << " v=" << value;
+  return ss.str();
+}
+
+void GlobalFilter::ToInfo(PtrParamNode in)
+{
+  in->Get("type")->SetValue(Filter::filterSpace.ToString(filterspace));
+
+  in->Get("value")->SetValue(value);
+  in->Get("contribution")->SetValue(contribution == Filter::LINEAR ? "linear" : "constant");
+
+  in->Get("design")->SetValue(DesignElement::type.ToString(design));
+
+  if(type == Filter::SENSITIVITY)
+    in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(sensitivity));
+
+  if(type == Filter::DENSITY && density != Filter::STANDARD)
+  {
+    PtrParamNode in_ = in->Get(Filter::density.ToString(density));
+
+    switch(density)
+    {
+    case Filter::TANH:
+      in_->Get("eta")->SetValue(eta);
+    case Filter::VOID_HEAVISIDE:
+    case Filter::SOLID_HEAVISIDE:
+      in_->Get("beta")->SetValue(beta);
+      break;
+    case Filter::MATERIAL:
+      mat_filter.ToInfo(in_->Get("filter"),true); // skip design and app
+      mat_scale.ToInfo(in_->Get("scale"),true);
+      mat_phase.ToInfo(in_->Get("phase"),true);
+      break;
+    case Filter::STANDARD:
+    case Filter::MATERIAL_PART:
+      break;
+    }
+    in_->Get("scaling")->SetValue(non_lin_scale);
+    in_->Get("offset")->SetValue(non_lin_offset);
+  }
+  if(robust >= 0)
+    in->Get("robust_excitation")->SetValue(robust);
+
+  in->Get("elems")->SetValue(elements);
+  in->Get("avg_radius")->SetValue(avg_radius);
+  in->Get("avg_neighbors")->SetValue(avg_neigbor);
+}
+
+

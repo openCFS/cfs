@@ -43,6 +43,7 @@ DEFINE_LOG(desel, "designElement")
 Enum<Filter::Type>                  Filter::type;
 Enum<Filter::Density>               Filter::density;
 Enum<Filter::Sensitivity>           Filter::sensitivity;
+Enum<Filter::FilterSpace>           Filter::filterSpace;
 Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
@@ -549,6 +550,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   return;
 }
 
+
 double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) const
 {
   // pessimistic assumption :)
@@ -565,16 +567,16 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
       if(vs == DesignElement::DESIGN)
         design_filter = true;
       if(vs == DesignElement::COST_GRADIENT)
-        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
+        design_filter_grad = f != NULL ? f->isFiltered() : true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
-        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
+        design_filter_grad = f != NULL ? f->isFiltered() : true;
     }
     else
     {
       if(vs == DesignElement::COST_GRADIENT)// TODO also check for separate costs! not only sum!
         sens_filter = true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
-        sens_filter = f != NULL ? f->ForSensitivityFiltering() : false;
+        sens_filter = f != NULL ? f->isFiltered() : false;
     }
   }
 
@@ -583,7 +585,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
   if(sens_filter)
     val = simp->GetSensitivityFilteredValue(vs, f);
   if(design_filter)
-    val = simp->GetDensityFilteredValue(vs, simp->filter[fix].density_);
+    val = simp->GetDensityFilteredValue(vs, simp->filter[fix].global->density);
   if(design_filter_grad)
     val = simp->GetDensityFilteredGradient(vs, f);
   if(!sens_filter && !design_filter && !design_filter_grad)
@@ -594,6 +596,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
                 << ") sf=" << sens_filter << " df=" << design_filter << " dfg=" << design_filter_grad << " -> " << val;
   return val;
 }
+
 
 
 #ifdef _WIN32
@@ -623,23 +626,18 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
     assert(g != NULL);
     return constraintGradient[g->GetIndex()];
 
-  case MAX_SLOPE:
-  case MAX_MOLE:
-  case MAX_OSCILLATION:
-  case MAX_JUMP:
-  case QUADRATIC_VM_STRESS:
-  case LOCAL_LOAD_FACTOR:
-    assert(false); // should be covered before by special result index
-    break; // only for the compiler
-
   case TOPGRAD_VALUE:
-    if(tge == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to TopGrad");
+    if(tge == NULL)
+      throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to TopGrad");
     return tge->value;
 
   case SHAPEGRAD_VALUE:
-    if(lse_ == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
+    if(lse_ == NULL)
+      throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
     return lse_->shapeGradValue;
-  default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value");
+
+  default:
+    throw Exception(valueSpecifier.ToString(sp) + " shall either be special result index or is no scalar value");
   }
   return -1.0; // cannot happen due to default in switch but to please the compiler :(
 }
@@ -671,6 +669,24 @@ double DesignElement::GetDesign(Access access) const
   return GetValue(DESIGN, access);
 }
 
+double DesignElement::GetDesign(const Function* f, const TransferFunction* tf) const
+{
+  assert(f != NULL);
+  assert(f->GetAccess() == Function::PHYSICAL || f->GetAccess() == Function::FILTERED || f->GetAccess() == Function::PLAIN);
+
+  if(f->GetAccess() == Function::PHYSICAL && tf == NULL)
+    return GetPhysicalDesign();
+
+  // smart means that we filter when  filter is activated. Desired for PYHYSICAL and FILTERED
+  DesignElement::Access dac = f->GetAccess() == Function::PLAIN ? DesignElement::PLAIN : DesignElement::SMART;
+
+  double v = GetValue(DESIGN, dac);
+  if(f->GetAccess() != Function::PHYSICAL)
+    return v;
+  assert(tf != NULL);
+  return tf->Transform(v);
+}
+
 double DesignElement::GetDesign() const
 {
   EXCEPTION("use DesignElement::GetDesign(Access)");
@@ -684,7 +700,7 @@ double DesignElement::GetPhysicalDesign(const Context* ctxt) const
   // when we have a transformation we want the physical value for the source design
   DesignElement* trans = space_->ApplyTransformations(this, NULL, NULL);
 
-  return tf->Transform(trans != NULL ? trans : this, SMART, false); // if there is a transformation return the transformed stuff
+  return tf->Transform((trans != NULL ? trans : this), SMART, false); // if there is a transformation return the transformed stuff
 }
 
 
@@ -778,12 +794,17 @@ void DesignElement::SetEnums()
   Filter::sensitivity.Add(Filter::SHARP_SIGMUND, "sharp_sigmund");
   Filter::sensitivity.Add(Filter::BORRVALL, "borrvall");
 
-
   Filter::density.SetName("Filter::Density");
   Filter::density.Add(Filter::STANDARD, "standard");
   Filter::density.Add(Filter::SOLID_HEAVISIDE, "solid_heaviside");
   Filter::density.Add(Filter::VOID_HEAVISIDE, "void_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
+  Filter::density.Add(Filter::MATERIAL, "material");
+
+  Filter::filterSpace.SetName("Filter::FilterSpace");
+  Filter::filterSpace.Add(Filter::RADIUS, "radius");
+  Filter::filterSpace.Add(Filter::VOLUME_RADIUS, "volumeRadius");
+  Filter::filterSpace.Add(Filter::MAX_EDGE, "maxEdge");
 
   ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
   ShapeMapDesign::type.Add(ShapeMapDesign::CENTER, "center");
@@ -969,9 +990,12 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
+  assert(this == de_->simp);
   assert(de_->simp->filter.GetSize() == 1); // no robustness for sensitivity filtering worth implementing
 
   const Filter& f = filter[DetermineFilterIndex()];
+  const GlobalFilter* gf = f.global;
+
   assert(f.GetType() == Filter::SENSITIVITY);
 
   // See Filter::Sensitivity: w = weight, p is density, f' is cost gradient
@@ -985,20 +1009,20 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   // sharp plain = plain, just the filter is setup with normalized weights with a "bug"
 
   // factor design in numerator (SIGMUND and BORRVALL) for densitiy filtering the value is any in
-  bool numerator_design = f.sensitivity_ != Filter::PLAIN && f.sensitivity_ != Filter::SHARP_PLAIN;
+  bool numerator_design = gf->sensitivity != Filter::PLAIN && gf->sensitivity != Filter::SHARP_PLAIN;
   // factor design in denominator sum (BORRVALL)
-  bool denominator_design = (f.sensitivity_ == Filter::BORRVALL);
+  bool denominator_design = (gf->sensitivity == Filter::BORRVALL);
   // weight the denominator by this design (SIGMUND)
-  bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SHARP_SIGMUND;
+  bool sigmund_denominator = gf->sensitivity == Filter::SIGMUND || gf->sensitivity == Filter::SHARP_SIGMUND;
   // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
-  bool cheat_this_weight = f.sensitivity_ == Filter::SHARP_SIGMUND || f.sensitivity_ == Filter::SHARP_PLAIN;
+  bool cheat_this_weight = gf->sensitivity == Filter::SHARP_SIGMUND || gf->sensitivity == Filter::SHARP_PLAIN;
   // weight the denominator by trace (SIGMUND_TRACE)
-  bool sigmund_trace = f.sensitivity_ == Filter::SIGMUND_TRACE;
+  bool sigmund_trace = gf->sensitivity == Filter::SIGMUND_TRACE;
 
   LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum
                 << " t=" << de_->ToString()
                 << " sp=" << DesignElement::valueSpecifier.ToString(sp)
-                << " dens=" << Filter::density.ToString(f.density_)
+                << " dens=" << Filter::density.ToString(gf->density)
                 << " numerator_design=" << numerator_design
                 << " denominator_design=" << denominator_design
                 << " sigmund_denominator=" << sigmund_denominator
@@ -1041,7 +1065,18 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   return (fabs(denominator) < std::numeric_limits<float>::epsilon()) ? de_->GetPlainValue(sp, dynamic_cast<Condition*>(g)) : (numerator / denominator);
 }
 
+double SIMPElement::CalcNonLinFilter(double filtered_value, const GlobalFilter* global, double plain_value)
+{
+  assert(global->density == Filter::TANH || global->density == Filter::SOLID_HEAVISIDE
+      || global->density == Filter::VOID_HEAVISIDE || global->density == Filter::MATERIAL);
 
+  if(global->density == Filter::TANH)
+    return CalcTanh(filtered_value, global);
+  if(global->density == Filter::MATERIAL)
+    return CalcMaterial(filtered_value, plain_value, global);
+  else
+    return CalcHeaviside(filtered_value, global);
+}
 
 
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
@@ -1052,8 +1087,9 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   assert(de_->simp != NULL);
 
   unsigned int fix = DetermineFilterIndex();
-
-
+  const Filter& f = DetermineFilter();
+  const GlobalFilter* gf=f.global;
+  DesignSpace * space = de_->GetDesignSpace();
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
@@ -1062,20 +1098,22 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // we initialize numerator and denominator with the values obtained from this element
 
   double p_filt = 0.0;
-  int elem_num = de_->GetIndex();
-  DesignSpace * space = de_->GetDesignSpace();
-  if (space->is_matrix_filt){
+
+  if (space->is_matrix_filt)
+  {
+    int elem_num = de_->GetIndex();
     p_filt =  space->density_filter[fix].filtered_vec[elem_num];
     LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
   }
-
-  else{
-    const Filter& f = filter[fix];
-    double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-     double denominator = f.weight;
-     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                      << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
-                      << " num=" << numerator << " den=" << denominator << " fix=" << fix;
+  else
+  {
+    double rho_e = this->de_->GetPlainValue(DesignElement::DESIGN);
+    if(fd == Filter::MATERIAL || fd == Filter::MATERIAL_PART)
+      rho_e = gf->mat_filter.Transform(rho_e);
+    double numerator = f.weight * rho_e;
+    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                      << " w= " << f.weight << " rho_e=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                      << " num=" << numerator << " fix=" << fix;
 
     for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
     {
@@ -1083,47 +1121,69 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
       const DesignElement* de = ne->neighbour;
 
       double w = ne->weight;
-      double x = de->GetPlainDesignValue();
-
-      numerator   += w * x;
-      denominator += w;
-      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+      double rho_i = de->GetPlainDesignValue();
+      if(fd == Filter::MATERIAL || fd == Filter::MATERIAL_PART)
+        rho_i = gf->mat_filter.Transform(rho_i);
+      numerator   += w * rho_i;
+      // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " rho_i=" << rho_i
+      //                 << " num=" << numerator << " -> " << (numerator / f.weight_sum);
     }
-    p_filt = numerator / denominator;
+    p_filt = numerator / f.weight_sum; // includes the element de
   }
 
+  assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH || fd == Filter::MATERIAL || fd == Filter::MATERIAL_PART);
 
-
-
-  assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
-
-  // do we need to post proc?
-  if(fd != Filter::STANDARD)
+  // all the Calc*() apply scaling scaling to correct nonlinear filters
+  switch(fd)
   {
-    assert(fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE  || fd == Filter::TANH);
-
-    if(fd == Filter::TANH)
-      p_filt = CalcTanh(p_filt, fix);
-    else
-      p_filt = CalcHeaviside(p_filt, fix);
-
-    assert(p_filt <= 1.000001 * this->de_->GetUpperBound());
-    assert(p_filt >= 0.7 * this->de_->simp->filter[fix].GetLowerBound(this->de_)); // relax the assert a little, cause of heaviside correction
+  case Filter::TANH:
+    p_filt = CalcTanh(p_filt, gf);
+    break;
+  case Filter::SOLID_HEAVISIDE:
+  case Filter::VOID_HEAVISIDE:
+    p_filt = CalcHeaviside(p_filt, gf);
+    break;
+  case Filter::MATERIAL:
+  {
+    double plain = de_->GetPlainDesignValue();
+    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " MATERIAL ms(" << p_filt << ")=" << gf->mat_scale.Transform(p_filt) << " *mp(" << plain<< ")=" << gf->mat_phase.Transform(plain)
+                    << " offset=" << gf->non_lin_offset << " scale=" << gf->non_lin_scale;
+    p_filt = CalcMaterial(p_filt, plain, gf);
+    break;
+  }
+  case Filter::STANDARD:
+  case Filter::MATERIAL_PART: // special case where we are almost like standard
+    break; // nothing to do
   }
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter[fix].density_)
-                   << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filter_matrix=" << space->is_matrix_filt
+                  << " design=" << Filter::density.ToString(gf->density)
+                  << ": plain " << this->de_->GetPlainValue(DesignElement::DESIGN) << " offset=" << gf->non_lin_offset << " scale=" << gf->non_lin_scale << " -> "<< p_filt;
+  assert(p_filt <= 1.000001 * this->de_->GetUpperBound());
+  if(fd != Filter::STANDARD && fd != Filter::MATERIAL_PART)
+  {
+    if(p_filt < 0.7 * this->de_->GetLowerBound()) {
+      LOG_DBG(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(gf->density)
+                      << ": plain " << this->de_->GetPlainValue(DesignElement::DESIGN) << " p_filt" << p_filt << " lb=" << this->de_->GetLowerBound() << " ub=" << this->de_->GetUpperBound();
+    }
+    assert(p_filt <= 1.000001 * this->de_->GetUpperBound());
+    // standard is save and we might often have the case with too small loaded initial designs and enforce_bounds not set
+    assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // in the < 07.2021 times there was a check of filter[fix].GetLowerBound(this->de_))
+  }
   return p_filt;
 
 }
+
 
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
+  assert(this == de_->simp);
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
+  const GlobalFilter* gf = f.global;
 
   Condition* g = dynamic_cast<Condition*>(func);
 
@@ -1131,95 +1191,130 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
   assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)) || (func == NULL || (func->IsObjective())));
   // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
-  assert(func == NULL || func->ForDensityFiltering());
+  assert(func == NULL || func->isFiltered());
 
 
   // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
-  // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
+  // p is rho and P is rho filtered!
+  // d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
   // note, that the stored value is already v = d f/d P_i
 
-  //LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum
-                //<< " sp=" << DesignElement::valueSpecifier.ToString(sp)
-                //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
+  // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << " sp=" << DesignElement::valueSpecifier.ToString(sp) << " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
 
-  if(f.density_ == Filter::STANDARD)
+  // used there in every loop
+  double rho_e = gf->density == Filter::MATERIAL ? this->de_->GetPlainDesignValue() : -1.0; // plain rho_e
+
+  for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
   {
-    for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
+    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+    // note, that de might be another region than this!
+
+    // d f/d P_i
+    double df = de->GetPlainValue(sp, g);
+
+    double w = i == -1 ? f.weight : ne->weight;
+    assert(de->simp->filter[fix].weight_sum >= 0.0); // set in DesignStructure
+
+    // d filtered_density_i/ d_rho_e: using not the weight sum of de_i but of de_e fails in gradient check and math, see Ole's morphology paper
+    double dP = w / de->simp->filter[fix].weight_sum;
+
+    // all non-standard filters have a scaling to match rho_min
+    // when putting scale out off loop, make sure not to change it
+    double nlf_scale = gf->non_lin_scale;  // for not-standard filters this a factor for the derivative
+
+    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " i=" << i
+                          << " df=" << df << " w=" << w << " Ew=" << de->simp->filter[fix].weight_sum << " dP=" << dP
+                          << " nlf_scale=" << nlf_scale;
+
+    double summand = 0.0;
+
+    switch(gf->density)
     {
-      const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
-      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
-
-      double v = de->GetPlainValue(sp, g); // d f/d P_i
-
-      double w = i == -1 ? f.weight : ne->weight;
-
-      if (de->simp->filter[fix].weight_sum < 0.0)
-        de->simp->filter[fix].weight_sum = de->simp->filter[fix].CalcWeightSum(true);
-
-      double summand = v * w / de->simp->filter[fix].weight_sum;
-      sum += summand;
-
-      // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-      //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-      //                << " summand=" << summand << " sum=" << sum;
-    }
-  }
-  else // the non Filter::STANDARD case
-  {
-    // mathematically the neighborhood includes this element, but this is not in the structure
-    for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    case Filter::STANDARD:
+      assert(nlf_scale == 1.0);
+      assert(gf->non_lin_offset == 0.0);
+      summand = df * dP;
+      break;
+    case Filter::MATERIAL_PART:
+      assert(false); // shall not be called
+      break;
+    case Filter::MATERIAL:
     {
-      const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
-      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+      // the material filter is in principal rho_e * filtered_rho_e,
+      // the derivative is product rule instead of chain rule
+      // we have a slight complication by transfer functions mphase,mscale,mfilter
+      //
+      // F_t(rho)_e = mphase(rho_e)*mscale(P(mfilter(rho)))
 
-      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
-      double h = de->simp->filter[fix].non_lin_scale; // for not-standard filters this is the additional derivative
-      double x_n = 0.0;
+      // F_t'= mphase'(rho_e) * mscale(P(mfilter(rho)))
+      //     + mphase(rho_e)*mscale'*F(mfilter(rho))*F'(mfilter(rho))*mfilter'(rho)
 
-      double b = f.beta;
+      double mphase = gf->mat_phase.Transform(rho_e);
+      double dmphase = i == -1 ? gf->mat_phase.Derivative(rho_e) : 0.0;
 
-      // we need the filtered density -> but the real filtered value!!
-      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
+      // our filtered design is subject mat_filter, therefore we cannot use P_i and calling with MATERIAL would use phase and scale
+      double mfilt_i = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::MATERIAL_PART);
+      double mscale =  i == -1 ? gf->mat_scale.Transform(mfilt_i) : 0.0; // not of interest when i != e
+      double dmscale = gf->mat_scale.Derivative(mfilt_i);
 
-      if(f.density_ == Filter::SOLID_HEAVISIDE)
-      {
-       // F = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b)
-       // H = scale * F + offset
-        h *= (b * exp(-b * x_n) + exp(-b));
-      }
-      if(f.density_ == Filter::VOID_HEAVISIDE)
-      {
-        // general scaling
-        h *= (b * exp(b*(x_n-1.0)) + exp(-1.0*b));
-      }
-      if(f.density_ == Filter::TANH)
-      {
-        // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
-        // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
-        double eta = f.eta;
-        double e = std::exp(2.0 * b * ( x_n - eta));
+      double rho_i = de->GetPlainDesignValue();
+      double dmfilter = gf->mat_filter.Derivative(rho_i);
 
-        h *= (1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e);
-      }
+      // df = sum_i^N_e df/drho_i * (d_rho_e/d_rho_i  * rho_filt_e + rho_e * dP)
+      summand = df * nlf_scale * (dmphase * mscale + mphase * dmscale * dP * dmfilter);
 
-      double w = i == -1 ? f.weight : ne->weight;
-
-      if (de->simp->filter[fix].weight_sum < 0.0)
-        de->simp->filter[fix].weight_sum = de->simp->filter[fix].CalcWeightSum(true);
-
-      double summand = v * h * w / de->simp->filter[fix].weight_sum;
-      sum += summand;
-
-      // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-      //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-      //                << " summand=" << summand << " sum=" << sum;
+      LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " i=" << i << " MATERIAL "
+                      << " rho_e=" << rho_e << " rho_i=" << rho_i << " dmphase=" << dmphase << " mscale=" << mscale
+                      << " mphase=" << mphase << " dmscale=" << dmscale << " dmfilter=" << dmfilter << " -> " << summand;
+      break;
     }
-  }
+    case Filter::SOLID_HEAVISIDE:
+    {
+      // F = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b)
+      // H = scale * F + offset
+      double P_i = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
+      double b = gf->beta;
+      nlf_scale *= (b * exp(-b * P_i) + exp(-b));
+      summand = df * nlf_scale* dP;
+      break;
+    }
+    case Filter::VOID_HEAVISIDE:
+    {
+      // general scaling
+      double P_i = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
+      double b = gf->beta;
+      nlf_scale *= (b * exp(b*(P_i-1.0)) + exp(-1.0*b));
+      summand = df * nlf_scale* dP;
+      break;
+    }
+    case Filter::TANH:
+    {
+      // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
+      // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
+      double P_i = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
+      double b = gf->beta;
+      double eta = gf->eta;
+      double e = exp(2.0 * b * (P_i - eta));
+      nlf_scale *= (1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e);
+      summand = df * nlf_scale* dP;
+      break;
+    }
+    } // end of switch
+
+    sum += summand;
+    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " t=" << f.type.ToString(f.GetType())
+                    << " f=" << (func ? func->ToString() : "-") << " df=" << df
+                    << " w=" << w << " Ew=" << de->simp->filter[fix].weight_sum << " dP=" << dP
+                    << " summand=" << summand << " sum=" << sum;
+
+  } // end of i-loop
 
   return sum;
 }
+
 
 string SIMPElement::ToString(int level) const
 {
@@ -1249,7 +1344,7 @@ unsigned int SIMPElement::DetermineFilterIndexNonInlined() const
   return Optimization::context->GetExcitation()->robust_filter_idx;
 }
 
-inline Filter& SIMPElement::DetermineFilter()
+inline const Filter& SIMPElement::DetermineFilter() const
 {
   return filter[DetermineFilterIndex()];
 }

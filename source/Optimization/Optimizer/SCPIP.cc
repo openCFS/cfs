@@ -204,9 +204,12 @@ void SCPIP::SetConstraintSparsityPattern()
       eq++;
       eq_idx.Push_back(c);
     }
+    LOG_DBG(scpip) << "SCSP g=" << g->ToString() << " ie=" << ie_nnz << " eq=" << eq_nnz;
   }
 
   optimization->constraints.view->Done(); // mandatory after traversing the view
+
+  LOG_DBG(scpip) << "SCSP ie=" << ie_nnz << " eq=" << eq_nnz << " ieleng=" << ieleng << " eqleng=" << eqleng;
 
   assert(ie_nnz + eq_nnz == ieleng + eqleng);
   assert(mactiv == ie_active + eq);
@@ -238,7 +241,7 @@ int SCPIP::get_sparsity_pattern_size(int m, int* jac_g_dim)
     int local = g->GetSparsityPatternSize();
     jac_g_dim[i] = local;
     nnz += local;
-    LOG_DBG3(scpip) << "gsps: i=" << i << " g=" << g->ToString() << " sps=" << local << " nnz=" << nnz;
+    LOG_DBG(scpip) << "gsps: i=" << i << " g=" << g->ToString() << " sps=" << local << " nnz=" << nnz;
   }
   optimization->constraints.view->Done(); // mandatory after traversing the view
 

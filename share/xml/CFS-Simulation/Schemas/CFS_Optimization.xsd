@@ -71,16 +71,7 @@
                       <xsd:attribute name="parameter" use="optional" type="xsd:float" />
                       <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
                       <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
-                      <xsd:attribute name="access" use="optional" default="default">
-                        <xsd:simpleType>
-                          <xsd:restriction base="xsd:token">
-                            <xsd:enumeration value="plain" />
-                            <xsd:enumeration value="filtered" />
-                            <xsd:enumeration value="physical" />
-                            <xsd:enumeration value="default" />
-                          </xsd:restriction>
-                        </xsd:simpleType>
-                      </xsd:attribute>
+                      <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
                       <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
                     </xsd:complexType>
                   </xsd:element>
@@ -290,7 +281,7 @@
           <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
           <!-- for multiple exciations, tells in which excitations the cost function should be evaluated, same as for constraints -->
           <xsd:attribute name="excitation" use="optional" default="all" type="DT_Excitation" />
-
+          <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
         </xsd:complexType>
       </xsd:element>
 
@@ -485,22 +476,7 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
-          <!-- Access of the design variable in local constraints: -->
-          <!-- * PLAIN: design variable -->
-          <!-- * FILTERED: filtered design variable -->
-          <!-- * PHYSICAL: filtered and penalized design variable -->
-          <!-- * DEFAULT: as given in usual implementation -->
-          <!-- WARNING: This is not consistently used yet -->
-          <xsd:attribute name="access" use="optional" default="default">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="plain" />
-                <xsd:enumeration value="filtered" />
-                <xsd:enumeration value="physical" />
-                <xsd:enumeration value="default" />
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
+          <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
           <!-- constraints are integrated via penalty/lagrange multipliers in the level set method. Note the difference to penalizedVolume which has a parameter! -->
           <xsd:attribute name="penalty" use="optional" default="0.0" type="xsd:float" />
           <xsd:attribute name="region" use="optional" default="all" type="xsd:token" />
@@ -1646,6 +1622,8 @@
 
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false" />
                 <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false" />
+                
+                <!-- an (obscure?) option from Bastian. It scales the variable to [0,1] what makes it fail in FEM?! -->
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false" />
 
               </xsd:complexType>
@@ -1975,6 +1953,15 @@
     ersatzMaterial element outside optimization
     <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
   <xsd:complexType name="DT_TransferFunction" >
+    <xsd:sequence>
+      <xsd:element name="expression" minOccurs="0" maxOccurs="1">
+         <xsd:complexType>
+           <!-- the interpolation function with rho as input, param a p and beta as b in muParser syntax, e.g. rho^p  -->
+           <xsd:attribute name="function" use="required" type="xsd:token"/>
+           <xsd:attribute name="derivative" use="required" type="xsd:token"/>
+         </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
     <xsd:attribute name="type" use="required">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -1993,6 +1980,8 @@
           <xsd:enumeration value="tanh" />  
           <!-- f(rho) = x/(3-2*x) as in (7) in Bendsoe, Sigmund; Material interpolation schemes ... Upper Hashin-Shtrikman bound for 2D with Poisson's ratio 0.3 -->
           <xsd:enumeration value="hashin_shtrikman" />
+          <!-- enables child element expression for muParser expression with input rho, param as p and beta as b -->
+          <xsd:enumeration value="expression"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -2489,6 +2478,21 @@
       <!-- optional sub element for target design filter -->
       <xsd:element name="density" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
+          <xsd:sequence>
+            <!-- mandatory element when we have type material filter -->
+            <xsd:element name="material" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <!-- transfer function to scale within the density filter -->
+                  <xsd:element name="filter" minOccurs="1" maxOccurs="1" type="DT_TransferFunction"/>
+                  <!-- transfer function to scale the filtered density for physical correction -->
+                  <xsd:element name="scale" minOccurs="1" maxOccurs="1" type="DT_TransferFunction"/>
+                  <!-- transfer function as funcion of plain rho be multiplied with scaled filter -->
+                  <xsd:element name="phase" minOccurs="1" maxOccurs="1" type="DT_TransferFunction"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
           <xsd:attribute name="type" use="optional" default="standard">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
@@ -2500,6 +2504,9 @@
                 <xsd:enumeration value="void_heaviside" />
                 <!-- Black and white filter (Xu) w/o real feature size. Continuation by beta. Switch at eta -->
                 <xsd:enumeration value="tanh" />
+                <!-- Material filter by Lukas is a density filter times rho(x). Select propert transfer function!
+                     Designed for additive manufacturing, reflecting lower stiffness for small structures. -->
+                <xsd:enumeration value="material" />
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -2509,9 +2516,6 @@
 
           <!-- Switching position for tanh. -->
           <xsd:attribute name="eta" type="xsd:float" use="optional" />
-
-          <!-- Overwerites design lower bound for mixed design scenarios. For heaviside and tanh -->
-          <xsd:attribute name="force_lower_bound" type="xsd:float" use="optional" />
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
@@ -2794,6 +2798,23 @@
       <xsd:enumeration value="a-s" />
     </xsd:restriction>
   </xsd:simpleType>
+
+  <!-- function access type -->
+  <!-- Access of the design variable in local constraints: -->
+  <!-- * PLAIN: design variable -->
+  <!-- * FILTERED: filtered design variable -->
+  <!-- * PHYSICAL: filtered and penalized design variable -->
+  <!-- * DEFAULT: replaced by code specific default during runtime -->
+  <!-- WARNING: This is not consistently used yet -->
+  <xsd:simpleType name="DT_Access">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="plain" />
+      <xsd:enumeration value="filtered" />
+      <xsd:enumeration value="physical" />
+      <xsd:enumeration value="default" />
+    </xsd:restriction>
+  </xsd:simpleType>
+
 
   <xsd:complexType name="DT_DesignMat">
     <xsd:choice maxOccurs="unbounded">

@@ -76,7 +76,7 @@ class Function
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */
       ENERGY_FLUX,               /*!< Re{j*w*u^T L grad_n u^*} */
       COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
-      VOLUME,                    /*!< normalized sum of original design elements */
+      VOLUME,                    /*!< normalized sum of original (but filtered) design elements */
       PENALIZED_VOLUME,          /*!< normalized sum of design elements penalized by parameter */
       GAP,                       /*!< The stingl constraint: volume - penalized volume */
       TRACKING,
@@ -198,22 +198,31 @@ class Function
     /** overloaded in LocalCondition */
     virtual void SetValue(double val) { value_ = val; }
 
-    /** Access of the design variable in local constraints:
+    /** Access of the design variable in (local) functions. Both sensitivity and density.
+     * There is no filtered sensitivity value, only gradient.
      * PLAIN: design variable, FILTERED: filtered design variable, PHYSICAL: filtered and penalized design variable
-     * DEFAULT: as given in usual implementation
-     * FIXME: This is not used consistently. Current state: local constraints in Function use PLAIN, FILTERED/PHYSICAL is the same and DEFAULT is set in ForDensityFiltering(), ErsatzMaterial::CalcVolume uses PHYSICAL or FILTERED  */
+     * DEFAULT: set in DefaultAccess() and shall not be default at runtime.
+     * FIXME: Usage is only for very few functions checked for consistent usage. Eeasily the gradient does handling but not the function */
     typedef enum { NO_ACCESS = -1, PLAIN, FILTERED, PHYSICAL, DEFAULT } Access;
 
     /** to convert string/enum for this type */
     static Enum<Access> access;
 
+    /** This shall actually not be default but replaced by DefaultAccess() */
     Access GetAccess() const { return access_; }
+
+    /** Is the access the programmatic default access (Function::DefaultAccess()) or manually changed in xml?
+     * good hint for labeling output. (volume -> plain_volume, grayness -> physical_graness, ...) */
+    bool IsDefaultAccess() const { return access_ == DefaultAccess(type_); }
 
     /** Some functions can have a physical counterpart. Which means e.g. for volume or greyness
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
      * One could call this penalized but physical is more exact and includes also density filtering.
      * The label becomes the appendix physical and the calculations are by interpolated values. */
     bool IsPhysical() const { return (access_ == PHYSICAL); }
+
+    /** Is filtered but not necessary a filter is activated. Check filter_ for sensitivity/density if interested */
+    bool isFiltered() const { return access_ == FILTERED || access_ == PHYSICAL; }
 
     /** Shall harmonic optimization multiply with omega^2.
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
@@ -302,15 +311,6 @@ class Function
     static bool CouldDoubleBounded(Type type);
 
 
-    /** Is this function sensitive for density filtering?
-     * This implies the gradient with post differentiation.
-     * The function does *NOT* know if design filtering is enabled!
-     * Volume is always sensitive - physical is for penalization! */
-    bool ForDensityFiltering() const;
-
-    /** If we would do sensitivity filtering, do it also for this function?
-     * @see ForDensityFiltering() */
-    bool ForSensitivityFiltering() const;
 
     /** the tensor exists only in the homogenization constraint case */
     Matrix<double>& GetTensor() { return tensor_; }
@@ -663,6 +663,7 @@ class Function
       StdVector<double> local_values;
 
     private:
+
       /** Service method for the constructor
        * @param phase see SetupStarLocalityElementMap() */
       void SetupVirtualElementMap(Phase phase = BOTH);
@@ -708,7 +709,7 @@ class Function
       private:
         double radius;
         double value;
-        DesignStructure::FilterSpace fs;
+        Filter::FilterSpace fs;
       }; // end of struct NeighborhoodStructure
 
       NeighborhoodStructure* structure_;
@@ -857,6 +858,9 @@ class Function
     MaterialTensorNotation notation_;
 
   private:
+    /** to replace default access in xml with a real value */
+    Access DefaultAccess(Type ft) const;
+
     /** special value for excite_ value.
     * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
     * -2 is for unset!
@@ -867,6 +871,10 @@ class Function
      * Note that the index is unique over all sequences!
      * >= 0 for the actual excitation, ExciteIndex for other cases */
     int excite_;
+
+    /** We need this as argument for DefaultAccess() when called by IsDefaultAccess()
+     * as we usually have no space and don't want to store it (whyever). */
+    Filter::Type filter_ = Filter::NO_FILTERING;
 };
 
 

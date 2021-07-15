@@ -123,7 +123,6 @@ Optimization::Optimization()
   objectives.Read(optParamNode->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
   // theoretically we might have multiple multipleExcitation in the xml file for multi sequence cases.
@@ -472,11 +471,6 @@ void Optimization::SetEnums()
   ObjectiveContainer::StoppingRule::type.SetName("ObjectiveContainer::StoppingRule::Type");
   ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::DESIGN_CHANGE, "designChange");
   ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::REL_COST_CHANGE, "relativeCostChange");
-
-  DesignStructure::filterSpace.SetName("DesignStructure::FilterSpace");
-  DesignStructure::filterSpace.Add(DesignStructure::RADIUS, "radius");
-  DesignStructure::filterSpace.Add(DesignStructure::VOLUME_RADIUS, "volumeRadius");
-  DesignStructure::filterSpace.Add(DesignStructure::MAX_EDGE, "maxEdge");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");

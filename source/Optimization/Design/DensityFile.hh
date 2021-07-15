@@ -53,6 +53,8 @@ private:
 
   /** create a DesignSpace in case we load ersatz material for a pure simulation. Does not work for shape mapping, ...*/
   static DesignSpace* CreateDesignSpace(bool force_region, const PtrParamNode& pn, const ParamNodeList& elems, const PtrParamNode& xml);
+
+  /** uses enforce_bounds of the design definition */
   static bool ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool force_region, DesignSpace* space,
       double& lower_violation, double& upper_violation);
 

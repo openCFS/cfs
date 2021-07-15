@@ -2,21 +2,24 @@
 #define FILTER_HH_
 
 #include "General/Enum.hh"
+#include "Optimization/TransferFunction.hh"
+#include "Optimization/Design/BaseDesignElement.hh"
 
 namespace CoupledField
 {
 
 class DesignSpace;
 class DesignElement;
+struct GlobalFilter;
 
 /** This is an information container for the Filter which is stored in the DesignElemen!.
+ * The Filter information is split between local element data and a connected GlobalFilter.
+ * Some "global" functions are just forwarded to global filter.
  * It is used by DesignStructure to initialize the element filters.
  * Set in DesignStructure, stored in DesignElement */
 struct Filter
 {
 public:
-  Filter();
-
   /** type of of filter */
   typedef enum { NO_FILTERING, SENSITIVITY, DENSITY } Type;
 
@@ -35,30 +38,40 @@ public:
    * See Sigmund; Morphology based black and white filters for topology optimization; 2007
    * Standard: the plain filter
    * modified heaviside, Sigmund (29), postproc stanard to 1 or max
-   * tanh: Variant of the Xu-Filter as in Wang,Lazarow,Sigmund; On projection methods, ...;2010 but simpler implementation!*/
-  typedef enum { STANDARD, SOLID_HEAVISIDE, VOID_HEAVISIDE, TANH } Density;
+   * tanh: Variant of the Xu-Filter as in Wang,Lazarow,Sigmund; On projection methods, ...;2010 but simpler implementation!
+   * material: from Lukas: rho_material(x)=mp(rho(x)) * ms(density_filter(mf(x))) with material filter transfer functions phase, scale, and filter
+   * material_part: for computational use only: only density_filter(mf(x)) without transfer functions phase and scale */
+  typedef enum { STANDARD, SOLID_HEAVISIDE, VOID_HEAVISIDE, TANH, MATERIAL, MATERIAL_PART } Density;
+
+  /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
+  typedef enum { NO_CONTRIBUTION, LINEAR, CONSTANT } Contribution;
+
+  /** Filter types we have
+   * <ul>
+   *   <li>RADIUS: this is the implementation following Sigmund in the 99lines paper.
+   *               The drawback is the discretization dependency.</li>
+   *   <li>VOLUME_RADIUS: The radius is *value* times square/cube edge length where the
+   *               square/cube has the volume of the element</li>
+   *   <li>MAX_EDGE: The largest edge size, discretization independent and preferable</li>
+   * </ul>
+   * This does not tell if we have design or sensitivity filtering! */
+  typedef enum { NO_FILTER = -1, RADIUS, VOLUME_RADIUS, MAX_EDGE } FilterSpace;
+
+  /** Also to be used in Function::Local */
+  static Enum<FilterSpace> filterSpace;
 
   /** Handled in DesignElement.cc */
   static Enum<Type>        type;
   static Enum<Sensitivity> sensitivity;
   static Enum<Density>     density;
 
-  bool Enabled() const { return type_ != NO_FILTERING; }
+  bool Enabled() const;
 
-  /** Convenience function. Gives a lower bound. The explicit filter bound if given, otherwise
-   * from the design element */
-  double GetLowerBound(const DesignElement* de) const;
+  Type GetType() const;
 
-  /** Set an explicit lower bound to overwrite the design's lower bound */
-  void SetLowerBound(double value) { explicit_lower_bound_ = value; }
+  double GetBeta() const;
 
-  /** Set non_lin_scale and non_lin_offset. considers explicit_lower_bound_
-   * @peram de reference design element for bounds */
-  void SetNonLinCorrection(const DesignElement* de, unsigned int filter_idx);
-
-  void SetType(Type t) { type_ = t; }
-
-  Type GetType() const { return type_; }
+  double GetEta() const;
 
   /** Sums up the weights of the neighbors and optionally the own element */
   double CalcWeightSum(bool include_this) const
@@ -81,7 +94,7 @@ public:
   {
   public:
     /** read the variable */
-    DesignElement* neighbour;
+    DesignElement* neighbour = NULL;
 
     /** pre-calculated weight: radius - distanance and >= 0 */
     double        weight;
@@ -90,48 +103,119 @@ public:
     double        distance;
   };
 
-
-  /** pre-calculated weight sum */
-  double weight_sum;
+  /** pre-calculated weight sum including this-weight. Set in DesignStructure and always available */
+  double weight_sum = -1.0;
 
   /** The weight of THIS element which is radius */
-  double weight;
+  double weight = 1.0;
 
   /** The neighbors if filter otherwise empty.
    * The element itself is NOT part of the neighborhood!
    * @see DesignStructure::DesignStructure() */
   StdVector<NeighbourElement> neighborhood;
 
-  Sensitivity sensitivity_;
-  Density     density_;
+  /** here we story common data for a region/design/excitation unit.
+   * Object is in DesignSpace */
+  GlobalFilter* global = NULL;
+};
+
+
+/** a global filter unit is per region/design/excitation and stored in DesignSpace */
+struct GlobalFilter
+{
+public:
+  bool Enabled() const { return type != Filter::NO_FILTERING; }
+
+  /** Convenience function. Gives a lower bound. The explicit filter bound if given, otherwise
+   * from the design element */
+  double GetLowerBound(const DesignElement* de) const;
+
+  /** Set non_lin_scale and non_lin_offset. Harmless for not nonlinear filters
+  * @param de reference design element for bounds */
+  void SetNonLinCorrection(const DesignElement* ref);
+
+  Filter::Type GetType() const { return type; }
+
+  /** some debug information */
+  std::string ToString() const;
+
+  /** write data of the filter to the given info node */
+  void ToInfo(PtrParamNode info);
+
+  Filter::Type type = Filter::NO_FILTERING;
+
+  /** this is the beta parameter for the heaviside filters or tanh design filter. */
+  double beta = -1.0;
+
+  /** switching parameter for tanh */
+  double eta = -1.0;
+
+  /** the filter value */
+  double value = -1.0;
+
+  /** to check where we belong to */
+  RegionIdType region = NO_REGION_ID;
+
+  BaseDesignElement::Type design = BaseDesignElement::NO_TYPE;
+
+  /** robust excitation index */
+  int robust = -1;
+
+  /** Parameter for filter */
+  Filter::Contribution contribution = Filter::NO_CONTRIBUTION;
+
+  Filter::FilterSpace filterspace = Filter::NO_FILTER;
+
+  Filter::Sensitivity sensitivity = Filter::PLAIN;
+  Filter::Density     density = Filter::STANDARD;
+
+  /** number of elements */
+  int elements = 0;
+
+  /** average radius */
+  double avg_radius = 0.0;
+
+  /** average neigbor size */
+  double avg_neigbor = 0.0;
 
   /** to have F(rho_max) = rho_max and F(rho_min) = rho_min we need a scaling and a offset.
    * This applies for Heaviside and tanh.
    * With solid_heaviside for a large beta F(x > 0) -> 1
    * With tanh for a small beta F(0) >> 0 and F(1) << 1. With eta != 0.5 this is unsymmetric */
-  double non_lin_scale;
-  double non_lin_offset;
+  double non_lin_scale = 1.0;
+  double non_lin_offset = 0.0;
 
-  /** this is the beta parameter for the heaviside filters or tanh design filter. */
-  double     beta;
+  /** Material transfer function to scale the rho within the density filter */
+  TransferFunction mat_filter;
 
-  /** switching parameter for tanh */
-  double eta;
+  /** transfer function to scale the filtered density for physical correction */
+  TransferFunction mat_scale;
 
-  /** to check where we belong to */
-  RegionIdType region;
-
-private:
-
-  Type type_;
-
-  /** Holds the optional "force_lower_bound" attribute to overwrite the design lower bound
-   * for Heaviside and tanh type filters. Necessary for mixed design scenarios where one has
-   * a fixed design with equal lower and upper bound. */
-   double explicit_lower_bound_;
-
+  /** transfer function as function of plain rho be multiplied with scaled filter */
+  TransferFunction mat_phase;
 };
 
+/** needs to be here due to forward declaration :( */
+inline bool Filter::Enabled() const
+{
+  return global->GetType() != NO_FILTERING;
 }
+
+inline Filter::Type Filter::GetType() const
+{
+  return global->GetType();
+}
+
+inline double Filter::GetBeta() const
+{
+  return global->beta;
+}
+
+inline double Filter::GetEta() const
+{
+  return global->eta;
+}
+
+} // end of namespace
 
 #endif /* FILTER_HH_ */

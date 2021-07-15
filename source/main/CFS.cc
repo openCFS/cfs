@@ -252,7 +252,7 @@ int CFS::Run()
   }
   catch(const mu::Parser::exception_type& e)
   {
-    cerr << endl << "mu::ParserError: " << e.GetMsg() << endl;
+    cerr << endl << "mu::ParserError: '" << e.GetMsg() << "'"; // for expression '" << e.GetExpr() << "'" << endl;
     return 1;
   }
   catch(exception& ex)

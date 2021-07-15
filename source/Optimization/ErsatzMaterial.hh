@@ -412,7 +412,7 @@ protected:
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
-  DesignStructure* structure_;
+  DesignStructure* structure_ = NULL;
 
   /** This is just a shortcut for the actual dimensions (2 or 3) */
   const unsigned int dim;

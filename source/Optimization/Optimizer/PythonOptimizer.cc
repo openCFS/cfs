@@ -62,7 +62,7 @@ static PyObject* cfs_evalobj(PyObject *self, PyObject *args)
 /** cfs.cfs_commitIteration() commits iteration to cfs */
 static PyObject* cfs_commitIteration(PyObject *self, PyObject *args)
 {
-  static_pyopt->optimization->CommitIteration(); // return paramnode ignored;
+  static_pyopt->CommitIteration(); // return paramnode ignored;
 
   Py_RETURN_NONE;
 }

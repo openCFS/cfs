@@ -912,6 +912,15 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
   return local->virtual_elem_map[idx];
 }
 
+const Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext() const
+{
+  assert(IsLocal());
+
+  unsigned int idx = current_view_index_ - virtual_base_index_;
+  return local->virtual_elem_map[idx];
+}
+
+
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
   if(IsAdjointBased())
@@ -921,10 +930,13 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
     return jac_sparsity_.GetSize();
   }
 
-  if(!this->ForDensityFiltering())
-    return local->virtual_elem_map[0].neighbor.GetSize() + 1; // the element itself is not a neighbor of itself, therefore +1
-  else
+  if(this->isFiltered())
     return ((Condition*) this)->GetSparsityPattern().GetSize();
+  else {
+    // some local constraints have non-uniform neighbor size, e.g. curvature in shape mapping
+    const Function::Local::Identifier& id = GetCurrentVirtualContext();
+    return id.neighbor.GetSize() +1; // the element itself is not a neighbor of itself, therefore +1
+  }
 }
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
@@ -949,7 +961,7 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
     int other_idx = bde->GetOptIndex();
     indices.push_back(other_idx);
 
-    if(this->ForDensityFiltering())
+    if(this->isFiltered())
     {
       DesignElement* de = dynamic_cast<DesignElement*>(bde);
       if(de != NULL && !de->simp->filter.IsEmpty())
@@ -967,7 +979,8 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   for(std::list<unsigned int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
     jac_sparsity_.Push_back(*it);
 
-  LOG_DBG3(conditions) << "LC:GSP: current_view_index_=" << current_view_index_ << " -> " << jac_sparsity_.ToString();
+  LOG_DBG2(conditions) << "LC:GSP: " << ToString() << " a=" << access.ToString(this->GetAccess()) << " f=" << isFiltered()
+                       << " nnz=" << jac_sparsity_.GetSize() << " -> " << jac_sparsity_.ToString();
   return jac_sparsity_;
 }
 
