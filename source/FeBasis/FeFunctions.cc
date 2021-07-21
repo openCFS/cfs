@@ -824,39 +824,49 @@ namespace CoupledField {
       if( actBc.entities->GetType() == EntityList::ELEM_LIST ||
           actBc.entities->GetType() == EntityList::SURF_ELEM_LIST ) {
 
-        // -------------------------
-        // 1) Element Based Mapping
-        // -------------------------
-        
-        // Map coefficient function onto the actual FeSpace
-        std::map<Integer, T> coefs;
-        StdVector<shared_ptr<EntityList> > list(1);
-        list[0] = actBc.entities;
-        feSpace_->MapCoefFctToSpace( list, actBc.value, shared_from_this(), coefs, 
-                                      true, actBc.dofs );
+          // -------------------------
+          // 1) Element Based Mapping
+          // -------------------------
 
-        // Loop over all entries and set them
-        typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
-        for( ; coefIt != coefs.end(); ++coefIt ) {
-          Integer eqnNr = coefIt->first; 
-          T val = coefIt->second;
+          // Map coefficient function onto the actual FeSpace
+          std::map<Integer, T> coefs;
+          StdVector<shared_ptr<EntityList> > list(1);
+          list[0] = actBc.entities;
+          feSpace_->MapCoefFctToSpace( list, actBc.value, shared_from_this(), coefs,
+                                        true, actBc.dofs );
+
+          Complex harm;
+          UInt harmInt;
+          LocPointMapped lpm;
           
-		// if the solution order and the bc order do not match, adaptBC
-		// (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
-		//  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )  
-		if( this->GetTimeScheme() ) {
-			this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqnNr);
-		} 
-		/*
-          // In case of effective mass-formulation, 
-          // the bcs have to be adjusted
+          // Loop over all entries and set them
+          typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+          for( ; coefIt != coefs.end(); ++coefIt ) {
+            Integer eqnNr = coefIt->first;
+            T val = coefIt->second;
+
+          // if the solution order and the bc order do not match, adaptBC
+          // (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
+          //  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )
           if( this->GetTimeScheme() ) {
-            this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
+              this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqnNr);
           }
+          /*
+            // In case of effective mass-formulation,
+            // the bcs have to be adjusted
+            if( this->GetTimeScheme() ) {
+              this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
+            }
 
-            */
+              */
 
-          algsys_->SetDirichlet(  fctId_, eqnNr, val);
+          if(!algsys_->IsMultHarm()){
+            algsys_->SetDirichlet(  fctId_, eqnNr, val);
+          } else {
+            actBc.harm->GetScalar(harm, lpm);
+            harmInt = harm.real();
+            algsys_->SetDirichletMH(  fctId_, eqnNr, val, harmInt);
+          }
         }  // loop coefs 
 
       } else {
