@@ -934,9 +934,12 @@
                       <!-- better not too small. It is fast to reduce for the first time but if too small we exceed max_lambda iter which is more expensice -->
                       <xsd:attribute name="upper" type="xsd:float" default="100000" />
                       <xsd:attribute name="lower" type="xsd:float" default="0" />
+                      <!-- shall the next interation start with larger bounds? -->
+                      <xsd:attribute name="alwaysEnlarge" type="xsd:boolean" default="true" />
                       <xsd:attribute name="enlargeUpper" type="xsd:float" default="2" />
                       <xsd:attribute name="enlargeLower" type="xsd:float" default="0.5" />
-                      <xsd:attribute name="alwaysEnlarge" type="xsd:boolean" default="true" />
+                      <!-- shall we check for stalled err - e.g. when move_limit is too slow. But might give false positive -->
+                      <xsd:attribute name="checkErr" type="xsd:boolean" default="true" />
                     </xsd:complexType>
                   </xsd:element>
                   <!-- <fumble start="10" step="1" contract="0.49" expand="1.9" /> -->

@@ -1225,9 +1225,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     // when putting scale out off loop, make sure not to change it
     double nlf_scale = gf->non_lin_scale;  // for not-standard filters this a factor for the derivative
 
-    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " i=" << i
-                          << " df=" << df << " w=" << w << " Ew=" << de->simp->filter[fix].weight_sum << " dP=" << dP
-                          << " nlf_scale=" << nlf_scale;
+    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " i=" << i
+    //                      << " df=" << df << " w=" << w << " Ew=" << de->simp->filter[fix].weight_sum << " dP=" << dP
+    //                      << " nlf_scale=" << nlf_scale;
 
     double summand = 0.0;
 
@@ -1266,9 +1266,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       // df = sum_i^N_e df/drho_i * (d_rho_e/d_rho_i  * rho_filt_e + rho_e * dP)
       summand = df * nlf_scale * (dmphase * mscale + mphase * dmscale * dP * dmfilter);
 
-      LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " i=" << i << " MATERIAL "
-                      << " rho_e=" << rho_e << " rho_i=" << rho_i << " dmphase=" << dmphase << " mscale=" << mscale
-                      << " mphase=" << mphase << " dmscale=" << dmscale << " dmfilter=" << dmfilter << " -> " << summand;
+      // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " i=" << i << " MATERIAL "
+      //                << " rho_e=" << rho_e << " rho_i=" << rho_i << " dmphase=" << dmphase << " mscale=" << mscale
+      //                << " mphase=" << mphase << " dmscale=" << dmscale << " dmfilter=" << dmfilter << " -> " << summand;
       break;
     }
     case Filter::SOLID_HEAVISIDE:
@@ -1305,10 +1305,10 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     } // end of switch
 
     sum += summand;
-    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " t=" << f.type.ToString(f.GetType())
-                    << " f=" << (func ? func->ToString() : "-") << " df=" << df
-                    << " w=" << w << " Ew=" << de->simp->filter[fix].weight_sum << " dP=" << dP
-                    << " summand=" << summand << " sum=" << sum;
+    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum << " t=" << f.type.ToString(f.GetType())
+    //                << " f=" << (func ? func->ToString() : "-") << " df=" << df
+    //                << " w=" << w << " Ew=" << de->simp->filter[fix].weight_sum << " dP=" << dP
+    //                << " summand=" << summand << " sum=" << sum;
 
   } // end of i-loop
 

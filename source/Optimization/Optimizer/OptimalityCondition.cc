@@ -74,10 +74,10 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   if(pn != NULL)
   {
     type_       = type.Parse(pn->Get("type")->As<std::string>());
-    move_limit_ = pn->Get("move_limit")->As<Double>();
-    oc_damping_ = pn->Get("damping")->As<Double>();
-    lambda_min_ = pn->Get("lambda_min")->As<Double>();
-    feasibility_    = pn->Get("feasibility")->As<Double>();
+    move_limit_ = pn->Get("move_limit")->As<double>();
+    oc_damping_ = pn->Get("damping")->As<double>();
+    lambda_min_ = pn->Get("lambda_min")->As<double>();
+    feasibility_    = pn->Get("feasibility")->As<double>();
     max_lambda_iters_ = pn->Get("max_lambda_iters")->As<int>();
 
     // it doesn't harm to read the parameters for all types!
@@ -85,11 +85,12 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
     {
       PtrParamNode t = pn->Get(type.ToString(FRAMED));
       // there are defaults in XML
-      always_enlarge_ = t->Get("alwaysEnlarge")->As<bool>();
-      start_lower_    = t->Get("lower")->As<Double>();
-      start_upper_    = t->Get("upper")->As<Double>();
-      enlarge_lower_  = t->Get("enlargeLower")->As<Double>();
-      enlarge_upper_  = t->Get("enlargeUpper")->As<Double>();
+      always_enlarge_   = t->Get("alwaysEnlarge")->As<bool>();
+      start_lower_      = t->Get("lower")->As<double>();
+      start_upper_      = t->Get("upper")->As<double>();
+      enlarge_lower_    = t->Get("enlargeLower")->As<double>();
+      enlarge_upper_    = t->Get("enlargeUpper")->As<double>();
+      check_stalled_err_= t->Get("checkErr")->As<bool>();
 
       if(start_lower_ < 0)
         throw Exception("no negative lower bound frame allowed in current implementation");
@@ -102,9 +103,9 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
     {
       PtrParamNode t = pn->Get(type.ToString(FUMBLE));
       
-      step_     = t->Get("step")->As<Double>();
-      contract_ = t->Get("contract")->As<Double>();
-      expand_   = t->Get("expand")->As<Double>();
+      step_     = t->Get("step")->As<double>();
+      contract_ = t->Get("contract")->As<double>();
+      expand_   = t->Get("expand")->As<double>();
       
       if(expand_ <= 1.0)
         throw Exception("expand shall be > 1.0, e.g. 1.99");
@@ -123,7 +124,6 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
-  std::cout << type_;
   
   optimizer_timer_->Stop();
 
@@ -142,7 +142,8 @@ void OptimalityCondition::SolveProblem()
   // start with iteration 0 which is the initial design
   int iter = 0;
   int max_iter = optimization->GetMaxIterations();
-  
+  bool stalled_err = false; // framed only
+
   while(!optimization->DoStopOptimization() && iter <= max_iter)
   {
     // calc gradients to store the results in data[element]...
@@ -181,7 +182,7 @@ void OptimalityCondition::SolveProblem()
     // do a SIMP Optimality Condition step -> calc new design vector
     switch(type_)
     {
-    case FRAMED:     CalcNextFramedIteration();
+    case FRAMED:     stalled_err = CalcNextFramedIteration(stalled_err);
                      break;
 
     case FUMBLE:     CalcNextFumbleIteration();
@@ -230,36 +231,37 @@ void OptimalityCondition::SolveProblem()
 } 
 
 
-void OptimalityCondition::CalcNextFramedIteration()
+bool OptimalityCondition::CalcNextFramedIteration(bool last_was_stalled_err)
 {
   // we store the current densities in the temp variable. Otherwise we cannot
   // find the proper lambda
   optimization->GetDesign()->WriteDesignToExtern(vault_.GetPointer());
 
   // set the frame borders, first iteration when lower_ == upper_
-  lower_ = lower_ == upper_ ? start_lower_ : lambda_ * (always_enlarge_ ? enlarge_lower_ : 1.0);
-  upper_ = lower_ == upper_ ? start_upper_ : lambda_ * (always_enlarge_ ? enlarge_upper_ : 1.0);
+  if(lower_ == upper_) {
+    lower_ = start_lower_;
+    upper_ = start_upper_;
+  } else if(last_was_stalled_err) {
+    // when the move limit was wrong, lambda can be arbitrary nonsense
+    // But we also may not start from start_*_ as then we repeat the situation
+    // this heuristic is not really cool - better start feasible or adjust the move_limit
+    lower_ = lambda_ * 1e-4;
+    upper_ = std::min(2*start_upper_, lambda_ * 1e4);
+  } else {
+    lower_ = lambda_ * (always_enlarge_ ? enlarge_lower_ : 1.0);
+    upper_ = lambda_ * (always_enlarge_ ? enlarge_upper_ : 1.0);
+  }
   
+  LOG_DBG2(oc) << "CNFI: w_s=" << last_was_stalled_err << " l=" << lower_ << " u=" << upper_;
+
   // we count lambda iterations to handle the problem of coming too close to a boundary
   lambda_iters_ = 0;
-  int count = 0;
-  double err;
+  double err = -1;
+  double last_err = -2;   // when move limit is a bound, stop, when err is not changing
+  bool stalled_err = false; // when | err - last_err | is zero plus other conditions
    
   do
   {
-    // check if we have to enlarge
-    if(++count > max_lambda_iters_)
-    {
-      // enlarge only where we need to 
-      if(abs(upper_ - lambda_) < abs(lambda_ - lower_))
-        upper_ = lower_ == upper_ ? start_upper_ : lambda_ * enlarge_upper_;
-      else
-        lower_ = lower_ == upper_ ? start_lower_ : lambda_ * enlarge_lower_;
-      
-      LOG_DBG(oc) << "enlarge after " << count << " iterations: lower=" << lower_ << " upper=" << upper_;
-      count = 0;
-    }
-
     // calc next lambda
     lambda_ = 0.5 * (upper_ + lower_);
 
@@ -268,20 +270,32 @@ void OptimalityCondition::CalcNextFramedIteration()
     // on the same base but with different lambda
     optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
 
+    last_err = err;
     err = Evaluate(lambda_);
+
+    // when delta err does not change, but err exits
+    // and also not to early, as initially err might stay constant in a valid setting (-> Technical/mech_2d has twice err=.2)
+    stalled_err = check_stalled_err_ && lambda_iters_ > 5 && abs(err) > feasibility_ && abs(err - last_err) < .5 * feasibility_;
     // move frames according to new lambda
     if(err > 0) upper_ = lambda_; // = center
            else lower_ = lambda_;
     
     lambda_iters_++;
 
-    LOG_DBG2(oc) << "lambda_iter/lambda/err/lower/upper = " <<  lambda_iters_ << "\t" 
-                 << lambda_ << "\t" << err << "\t" << lower_ << "\t" << upper_; 
+    LOG_DBG2(oc) << "CNFI: li=" << lambda_iters_ << " l=" << lambda_ << " e=" << err << " lo=" << lower_ << " up=" << upper_ << " de=" << abs(err - last_err);
    }
-   while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_);
-  
+   while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_ && !stalled_err && abs(lambda_) > abs(lambda_min_));
+
+   if(abs(lambda_) < abs(lambda_min_))
+     std::cout << "Iteration fails due to too small lambda, check feasibility, move_limit or other optimalityCondition@type than 'framed'" << std::endl;
+
+   if(stalled_err) {
+     std::cout << "Iteration fails due to too stalled error: enlarge move_limit (" << move_limit_ << ") or disable optimalityCondition/framed@checkErr" << std::endl;
+   }
    if(lambda_iters_ >= max_lambda_iters_)
-     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check bounds in 'optimalityCondition/framed/upper'\n";
+     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check move_limit or bounds in 'optimalityCondition/framed'\n";
+
+   return stalled_err;
 }
 
 void OptimalityCondition::CalcNextFumbleIteration()
@@ -353,7 +367,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
   while(abs(min_err) > feasibility_ && lambda_iters_ < max_lambda_iters_);
 
   if(lambda_iters_ >= max_lambda_iters_)
-    std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << min_err << std::endl;
+    std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << min_err << std::endl;
 }
 
 
@@ -409,7 +423,7 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
   }
   
   if(lambda_iters_ >= max_lambda_iters_)
-    std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << err << std::endl;
+    std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << std::endl;
 }
 
 void OptimalityCondition::CalcNextExtremizeIteration()
@@ -524,6 +538,9 @@ double OptimalityCondition::Evaluate(double lambda)
    optimizer_timer_->Start();
 
    double err = g->GetBoundValue() - vol;
+
+   LOG_DBG2(oc) << "E: lambda=" << lambda << " v=" << vol << " e=" << err;
+
    return err;
 }
 

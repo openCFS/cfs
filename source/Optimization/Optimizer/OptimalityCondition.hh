@@ -44,11 +44,12 @@ namespace CoupledField
        * most likely not unique */
       typedef enum { FRAMED, FUMBLE, TRAJECTORY, EXTREMIZE } Type;
       
-      /** Determins the next rho by finding the proper lambda with the framed bisection */
-      void CalcNextFramedIteration();
+      /** Determines the next rho by finding the proper lambda with the framed bisection.
+       * @return if delta_err was too small (and checked) - indicates too small move limit and corrects bound in that case  */
+      bool CalcNextFramedIteration(bool last_was_stalled_err);
 
       /** This shall be a quite stable but expensive bisection variant. It is based on a lambda
-       * and a step. We further hace a contract factor (e.g. 0.49) and an expand factor (e.g. 1.99).
+       * and a step. We further have a contract factor (e.g. 0.49) and an expand factor (e.g. 1.99).
        * The we check the error for the four variants of lambda +/- [contract/expand] * step.
        * The least error determines the new step variable. This shall help for optimizations 
        * where lambda might move around the 0. The odd values for the contract and expand factors
@@ -112,12 +113,15 @@ namespace CoupledField
       double enlarge_lower_;
       double enlarge_upper_;
 
+      /** For the framed type this means if we enlarge the borders in every iteration */
+      bool always_enlarge_;
+
       /** this are the borders for the framed bisection */
       double lower_;
       double upper_;
 
-      /** For the framed type this means if we enlarge the borders in every iteration */
-      bool always_enlarge_;
+      /** triggers framed check for stalled errors */
+      bool check_stalled_err_ = true;
       
       /** For fumble this is the current step */
       double step_;

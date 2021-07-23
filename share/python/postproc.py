@@ -56,7 +56,7 @@ def read_perf(xml, dic, extend):
 def read_opt_issue(xml, dic):
   add_key(xml, dic, '//optimization/summary/@problem', 'opt_issue')
 
-def read_selected_opt(xml, dic,first):
+def read_selected_opt(xml, dic,first=False):
   iter = xml.xpath('//optimization/process/iteration')
   if len(iter) == 0:
     return
@@ -109,7 +109,8 @@ def read_xml_input(args, input,first):
       dic = collections.OrderedDict()
 
       if args.query:
-        add_key(xml, dic, args.query, quiet = False)
+        for query in args.query:
+          add_key(xml, dic, query, quiet = False)
         
       if args.perf:
         read_perf(xml,dic,args.extend)
@@ -117,7 +118,7 @@ def read_xml_input(args, input,first):
         if args.extend: 
           read_all_opt(xml, dic)
         else:
-          read_selected_opt(xml, dic)
+          read_selected_opt(xml, dic,args.first)
         if args.issue:
           read_opt_issue(xml, dic)
         read_general_info(xml, dic)
@@ -195,14 +196,14 @@ def label(query):
 
 parser = argparse.ArgumentParser(description='General tool to analyze a bunch of .info.xml files')
 parser.add_argument("input", nargs='+', help="selection of .info.xml or .plot.dat files to process (with wildcards)")
-parser.add_argument("--query", help="xpath query, e.g. //transferFunction/@param where the attribute becomes the key")
+parser.add_argument("--query", nargs='+', help="xpath queries, e.g. //transferFunction/@param where the attribute becomes the key")
 parser.add_argument("--perf", help="selected data for benchmarking/ performance analysis", action='store_true')
 parser.add_argument("--extend", help="add more information for opt or perf", action='store_true')
 parser.add_argument("--issue", help="print reason for terminating optimization", action='store_true')
 parser.add_argument("--sort", help="sort for the key")
 parser.add_argument("--revsort", help="sort reversly for the key")
 parser.add_argument("--extract", help="extract only a single column. With sort, two columns are written")
-parser.add_argument("--first", help="extracr first iteration data instead of default last", action='store_true')
+parser.add_argument("--first", help="extract first iteration data instead of default last", action='store_true')
 parser.add_argument('--failsafe', help="continue on errors", action='store_true')
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
 args = parser.parse_args()
@@ -246,11 +247,12 @@ if args.extract:
     print('#' + args.extract)
 else:    
   if args.query:
-    print('#query:',args.query,'->',label(args.query))
+    for query in args.query:
+      print('#query:',query)
+
   print('#',end='')
   for idx, k in enumerate(keys):
     s = '{:>' + str(size[k]) + '}'
-
     print(s.format('(' + str(idx+1) + ')') + ' ',end='')
   print()
   print('#',end='')
