@@ -328,8 +328,6 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
   } // apps
 }
 
-
-
 template<typename T>
 Vector<double> StressConstraint<T>::CalcGlobalizationFactor(const Vector<double>& stress, bool gradient)
 {
@@ -485,11 +483,17 @@ StdVector<pair<App::Type, App::Type> >  StressConstraint<T>::GetApplications()
 
 }
 
+template<typename T>
+typename StressConstraint<T>::DKuCache& StressConstraint<T>::GetdKuCache() {
+  return dKuCache;
+}
+
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class StressConstraint<double> ;
 template class StressConstraint<complex<double> > ;
+template<class T> typename StressConstraint<T>::DKuCache StressConstraint<T>::dKuCache;
 #endif
 
 

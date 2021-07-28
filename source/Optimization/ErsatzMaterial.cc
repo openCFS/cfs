@@ -45,6 +45,7 @@
 #include "MatVec/SBM_Matrix.hh"
 #include "Materials/MechanicMaterial.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Context.hh"
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -60,7 +61,6 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/StressConstraint.hh"
 #include "Optimization/TransferFunction.hh"
-#include "Optimization/Context.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/BasePDE.hh"
@@ -846,7 +846,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   assert(f != NULL); // for context or relax
 
   double sum = 0.0;
-  // mat will be filled by SetElementK where also the derivative form most cases is built in
+  // mat will be filled by SetElementK where also the derivative for most cases is built in
   // the dimensions of our matrix is determined by u1_vec and u2_vec.
   Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
   Vector<T> mat_vec(u1[0]->GetSize());
@@ -862,7 +862,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   assert(!(design_dependend && tf->GetDesign() == DesignElement::DEFAULT));
   int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
   int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
-  LOG_DBG(em) << "CalcU1KU2: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+  LOG_DBG2(em) << "CalcU1KU2: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
 
   // create an element list to gain the iterator in the loop
   ElemList elemList(grid);
@@ -944,7 +944,6 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
     calc_u1ku2_timer_->Stop();
   return sum;
 }
-
 
 void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode, double ev)
 {
@@ -2494,8 +2493,9 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
 
   TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
 
-  // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
-  // away from the other local gradient computations.
+  // For the function we pack the stuff in Function::Local, for the gradient we do it here as
+  // the computation is too far away from the other local gradient computations.
+
   LocalCondition* lc = dynamic_cast<LocalCondition*>(f);
   Function::Local::Identifier& id = lc->GetCurrentVirtualContext();
 
@@ -2506,7 +2506,8 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
 
   StressConstraint<double> sc(&excite, f, this, &forward);
 
-  // this is the squared norm of local stress (vonMises for vM stress, Euclidean for load factor)
+  // this is the squared norm of local stress
+  // (vonMises for vM stress, Euclidean for load factor under consideration of Voigt notation)
   double val = sc.CalcElementStress(de);
 
   // stresses access smart, so we have to do it as well
@@ -2519,8 +2520,9 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
     {
       double tmp_for_dbg = ev_interpolated / std::sqrt(val);
-      LOG_TRACE(em) << "CLVMS: de=" << de->elem->elemNum << " rho=" << vol << " stress=" << std::sqrt(val) << " ev=" << ev_interpolated << " -> val=" << tmp_for_dbg;
+      // LOG_DBG3(em) << "CLVMS: de=" << de->elem->elemNum << " rho=" << vol << " stress=" << std::sqrt(val) << " ev=" << ev_interpolated << " -> val=" << tmp_for_dbg;
       val = tmp_for_dbg;
+
       int res_idx = this->GetDesign()->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::LOCAL_LOAD_FACTOR, DesignElement::NONE, DesignElement::PLAIN, excite.label);
       // output local load factor? Note, that this is excitation specific!
       if(res_idx != -1)
@@ -2537,7 +2539,7 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
   {
     // the BaseDesignElement::constraintGradient space is not for virtual functions
     // we reuse the same space and it is written before we calculate the next function
-    // this is the only case we use Reset for a specific function
+    // this is the only case we use Reset for all design elements for a specific function
     for(DesignElement& t : design->data)
       t.Reset(DesignElement::CONSTRAINT_GRADIENT, f);
 
@@ -2545,17 +2547,96 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     // f' is usually 0,
     // 2 * stress^T * M * (rho^p)' * E_0 * B * u is the dJ/drho_e part and applies only for element e
 
-    // rhs is from the legacy copy and usually empty
-    DesignDependentRHS* rhs = NULL;
-    rhs = new DesignDependentRHS(App::STRESS);
-    rhs->Init<double>(excite.label);
-
+    // calc lambda^T *  K' * u
+    int idx =lc->GetCurrentRelativePosition();
+    StdVector<SingleVector*>& u1 = adjoint.Get(excite, f, idx)->elem[App::MECH];
     StdVector<SingleVector*>& u2 = forward.Get(excite)->elem[App::MECH];
 
-    // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
-    int idx = lc->GetCurrentRelativePosition();
-    StdVector<SingleVector*>& u1 = adjoint.Get(excite, f, idx)->elem[App::MECH];
-    CalcU1KU2(tf, u1, App::MECH, u2, rhs, 1.0, STANDARD, f);
+    // we use a cache to store K' * u
+    StressConstraint<double>::DKuCache& dKuCache = sc.GetdKuCache();
+
+    // the following block is CalcU1KU2 with caching of K' * u
+    // only lambda^T, i.e. u1, changes for each element, while K' and u are constant over one iteration
+    // It is a lot of copy paste from CalcU1KU2. However, afaik caching is only needed
+    // for local stress constraints and we do not want to make CalcU1KU2 more complicated.
+    {
+      // mat will be filled by SetElementK where also the derivative for most cases is built in
+      // the dimensions of our matrix is determined by u1_vec and u2_vec.
+      Matrix<double> mat(u1[0]->GetSize(), u2[0]->GetSize());
+      Vector<double> mat_vec(u1[0]->GetSize());
+
+      // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
+      Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
+
+      // traverse over our elements
+      // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
+      // for the multi-design case, e.g. for coil opt in magnetics, we have the designs, we have the transfer function for.
+      int elements = design->GetNumberOfElements();
+      bool design_dependend = context->dm == NULL && !design->HasMultiMaterial();
+      assert(!(design_dependend && tf->GetDesign() == DesignElement::DEFAULT));
+      int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
+      int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
+      LOG_DBG3(em) << "CLVMS: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+
+      // create an element list to gain the iterator in the loop
+      ElemList elemList(grid);
+
+      dKuCache.dKu.Resize(elements * int((base_upper - base_lower)/elements));
+
+      // for ParamMat we need the derivative w.r.t. every design variable, else the base loop is only run once
+      for(int base = base_lower; base < base_upper; base += elements)
+      {
+        for(int e = 0; e < elements; e++)
+        {
+          Vector<double>& u1_vec = dynamic_cast<Vector<double>& >(*u1[e]);
+          DesignElement* org = &design->data[e + base];
+          DesignElement* de = design->ApplyTransformations(org, org, trans); // fallback to design if there is no transformation
+
+          if (dKuCache.currentIteration != domain->GetOptimization()->GetCurrentIteration())
+          {
+            // if we do transformation, the physical u is calculated based on transformed elements
+            Vector<double> u2_vec = dynamic_cast<Vector<double>& >(*u2[e]);
+
+            LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e=" << de->elem->elemNum;
+            LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
+            LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
+
+            // u1^T (K' u2 - f') -> find "K'"
+            SetElementK(f, de, tf, App::MECH, dynamic_cast<DenseMatrix*>(&mat), true); // derivative = true
+
+            LOG_DBG3(em) << "CLVMS: mat=" << mat.ToString(2) << "; u2_vec=" << u2_vec.ToString(2);
+
+            // We generally solve u1^T (K' u2 - f')
+            // u1^T (K' u2 - f') -> calc "K' u2"
+            mat_vec = mat * u2_vec;
+            LOG_DBG3(em) << "CLVMS: mat * u2: " << mat_vec.ToString();
+
+            dKuCache.dKu[e + base] = mat_vec;
+          }
+          else
+            mat_vec = dKuCache.dKu[e + base];
+
+          // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *>
+          // the difference is the conjugate complex in the harmonic inner product case!
+          double sp = mat_vec * u1_vec;
+
+          // when doing complex Jensen 22.07.07 shows that we always have 2 * Re(lamda * grad S * u)
+          // the factor gives the negative sign
+          // in real case it is simple value = factor * sp.
+          double this_value = 1.0;
+          if(f->ctxt->IsHarmonic())
+            this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+          else
+            this_value *= ((complex<double>) sp).real();
+
+          de->AddGradient(f, this_value);
+          LOG_DBG3(em) << "CLVMS: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
+        }
+      }
+
+      if (dKuCache.currentIteration != domain->GetOptimization()->GetCurrentIteration())
+        dKuCache.currentIteration = domain->GetOptimization()->GetCurrentIteration();
+    }
 
     // calc 2 * stress^T * M * (rho^p)' * E_0 * B * u
     double appendix = sc.CalcGradElementStress(de);
@@ -2570,23 +2651,21 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     {
       double dev_interpolated = GetMicroLoadFactor(vol, true);
 
-#pragma omp parallel num_threads(CFS_NUM_THREADS)
-      for(unsigned int e = 0; e < design->GetNumberOfElements(); e++)
+      for(DesignElement& de2 : design->data)
       {
-        DesignElement* de2 = &design->data[e];
-        double dval = de2->GetPlainGradient(f); // stress gradient
+        double dval = de2.GetPlainGradient(f); // stress gradient
 
         // d/dx ev/sqrt(s) = (s * ev' - s' * ev * 1/2 ) / sqrt(s) / s
         // ev is local, i.e. dev/drho is a diagonal matrix
         // however, the stress gradient is a full matrix
-        double firstTerm = de->elem->elemNum == de2->elem->elemNum ? val * dev_interpolated : 0;
+        double firstTerm = de->elem->elemNum == de2.elem->elemNum ? val * dev_interpolated : 0;
         appendix = (firstTerm - dval * ev_interpolated * 0.5) / std::sqrt(val) / val;
 
-        LOG_DBG(em) << "CLVMS: de2=" << de2->elem->elemNum << " val=" << val << " dev=" << dev_interpolated
+        LOG_DBG3(em) << "CLVMS: de2=" << de2.elem->elemNum << " val=" << val << " dev=" << dev_interpolated
             << " dval=" << dval << " ev=" << ev_interpolated << " -> df=" << appendix;
 
-        de2->Reset(DesignElement::CONSTRAINT_GRADIENT, f);
-        de2->AddGradient(f, appendix);
+        de2.Reset(DesignElement::CONSTRAINT_GRADIENT, f);
+        de2.AddGradient(f, appendix);
       }
     }
 
@@ -2594,6 +2673,7 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     return 0;
   }
 }
+
 
 double ErsatzMaterial::GetMicroLoadFactor(double vol, bool derivative)
 {

@@ -206,6 +206,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
   else // 'standard' SIMP case
   {
+    // seed initialization for random design
+    srand(time(NULL));
+
     // set our own structure with is element times design parameters
     data.Reserve(elements * design.GetSize());
     totalElements_.Reserve(elements  * design.GetSize()); // the quick access copy which also combines pseudo design elements

@@ -65,6 +65,17 @@ public:
   /** is actually the max(0, stress-c)^2 applied per element. if the bound c is too large it is all zero */
   Vector<double> CalcGlobalizationFactor(const Vector<double>& stresses, bool gradient);
 
+  /** this is a cache for K' * u on element level
+   *  for the local stress gradients we have to calculate lambda^T * K' * u,
+   *  where only lamda changes for each element */
+  struct DKuCache {
+    int currentIteration = -100;
+    StdVector<Vector<T>> dKu;
+  };
+
+  /** return the cache for K' * u */
+  DKuCache& GetdKuCache();
+
 private:
   /** This are the three modes of operation */
   typedef enum { STRESS, GRAD_STRESS, ADJOINT_RHS } Mode;
@@ -84,10 +95,12 @@ private:
   /** Element extraction from CalcStresses() */
   double CalcElementStress(Mode mode, int res_idx, DesignElement* de);
 
-
   /** Determines if we have mech stress or piezoelectric stress.
    * @return mech/mech or mech/mech, piezo/mech, piezo/piezo, mech/piezo */
   StdVector<std::pair<App::Type, App::Type> > GetApplications();
+
+  /** this is a cache for K' * u, which is used in ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor */
+  static DKuCache dKuCache;
 
   /** This is the general formula (E1*B1*u1)^T*M*(E2*B2*u2).
    * In the adjoint case u1 = u1^* and u2 is omitted, in the grad case E2 = grad_E2 */
@@ -131,7 +144,6 @@ private:
   DesignSpace* space = NULL; // shortcut
   StateContainer* forward = NULL;
 };
-
 
 } // end of namespace
 

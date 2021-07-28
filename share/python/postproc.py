@@ -56,7 +56,7 @@ def read_perf(xml, dic, extend):
 def read_opt_issue(xml, dic):
   add_key(xml, dic, '//optimization/summary/@problem', 'opt_issue')
 
-def read_selected_opt(xml, dic,first=False):
+def read_selected_opt(xml, dic, first=False):
   iter = xml.xpath('//optimization/process/iteration')
   if len(iter) == 0:
     return
@@ -81,7 +81,7 @@ def read_selected_opt(xml, dic,first=False):
     if name:
       add_key(iter[idx], dic, '@' + name)
 
-def read_all_opt(xml, dic,first):
+def read_all_opt(xml, dic, first=False):
   iter = xml.xpath('//optimization/process/iteration')
   if len(iter) == 0:
     return
@@ -98,12 +98,12 @@ def handle_exception(args, problem, exception, message):
     os.sys.exit(1)
     
 # read a bunch of .info.xml files    
-def read_xml_input(args, input,first): 
+def read_xml_input(args, input): 
   res = []   
   for f in input:
     problem = f[0:-len(".info.xml")]
     if not f.endswith(".info.xml"):
-      handle_exception(args,problem,'wrong filetype','')
+      handle_exception(args, problem, 'wrong filetype', '')
     try:
       xml = open_xml(f)
       dic = collections.OrderedDict()
@@ -113,12 +113,12 @@ def read_xml_input(args, input,first):
           add_key(xml, dic, query, quiet = False)
         
       if args.perf:
-        read_perf(xml,dic,args.extend)
+        read_perf(xml, dic, args.extend)
       else:   
         if args.extend: 
-          read_all_opt(xml, dic)
+          read_all_opt(xml, dic, args.first)
         else:
-          read_selected_opt(xml, dic,args.first)
+          read_selected_opt(xml, dic, args.first)
         if args.issue:
           read_opt_issue(xml, dic)
         read_general_info(xml, dic)
@@ -137,7 +137,7 @@ def read_xml_input(args, input,first):
 
 # read .dat files, e.g. plot.dat or grad.dat
 # using plotviz might not be the fastest but who cares :)
-def read_dat_input(args,input,first):
+def read_dat_input(args, input):
   import plotviz
   res = []   
   for f in input:
@@ -146,7 +146,7 @@ def read_dat_input(args,input,first):
     
     assert len(meta) == len(data[0])  
     for i, m in enumerate(meta):
-      dic[m] = data[0 if first else -1][i] # already no more string if possible
+      dic[m] = data[0 if args.first else -1][i] # already no more string if possible
     problem = f
     if problem.endswith('.plot.dat'):
       problem = problem[:-len('.plot.dat')]  
@@ -213,9 +213,9 @@ input = args.input
 
 res = []
 if input[0].endswith('.info.xml'):
-  res = read_xml_input(args, input,args.first)
+  res = read_xml_input(args, input)
 else:
-  res = read_dat_input(args,input,args.first)  
+  res = read_dat_input(args, input)  
 
 do_sort = True if args.sort or args.revsort else False 
 sort_key = None if not do_sort else (args.sort if args.sort else args.revsort)
