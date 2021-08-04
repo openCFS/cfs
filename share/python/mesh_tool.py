@@ -657,7 +657,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
 
   # buld2d case
   ny = y_res if y_res != None else x_res
-  width = 1.0 if width is None else width if opt_height is None else opt_height*(float(nx)/ny)
+  width = 1.0 if width is None else width #if opt_height is None else opt_height*(float(nx)/ny)
   height = width*(float(ny)/nx) if opt_height is None else opt_height
 
   offx = 0.

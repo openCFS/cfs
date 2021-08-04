@@ -305,7 +305,8 @@ private:
     /** fills the coefficient data structure for the bicubic interpolation*/
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
 
-    /** evaluates the one dimensional C1 interpolation polynomial at point p and returns function value as double */
+    /** evaluates the one dimensional C1 interpolation polynomial at point p and returns function value as double
+     * f(x) = a0 + a1*p + a2*p**2 + a3*p**3 */
     double EvaluateC1Interpolation(double p, const Matrix<double>& coeff, double& da, int& j) const;
 
     double EvaluateC1Interpolation_Deriv(double p, const Matrix<double> & coeff, double & da, int & j, DesignElement::Type direction) const;

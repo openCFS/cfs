@@ -2496,8 +2496,6 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       break;
 
     case TWO_SCALE_VOL:
-      gv = CalcTwoScaleVolume(local, access, n, true);
-      break;
     case GLOBAL_TWO_SCALE_VOL:
       gv = CalcTwoScaleVolume(local, access, n, true);
       break;

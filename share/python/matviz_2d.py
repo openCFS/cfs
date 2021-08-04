@@ -986,10 +986,8 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
   # set size dx/dy/dz of one cell
   if samples is not None:
     tmp = samples.split(',')
-    if len(tmp) == 1:
-      samples = [int(tmp[0]), int(tmp[0])]
-    else:
-      samples = [int(tmp[0]), int(tmp[1])]
+    samples = [int(tmp[0]), int(tmp[0])] if len(tmp) == 1 else [int(tmp[0]), int(tmp[1])]
+      
 
     dx = (maxi[0] - mini[0]) / samples[0]
     dy = (maxi[1] - mini[1]) / samples[1]
@@ -1070,7 +1068,7 @@ def show_triangle_grad(coords, design, grad, samples, res, thres, save, access, 
   if radius:
     assert(radius >= 0)
     #assert(radius <= 1)
-    radius = np.round(radius * length/(2*np.sqrt(3))/2)
+    radius = np.round(radius * length/np.sqrt(3)/4)
 
   if equilateral:
     # interpolate original data at new centers
