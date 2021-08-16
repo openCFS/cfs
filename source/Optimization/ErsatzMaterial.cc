@@ -393,14 +393,13 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-  if(pn->Has("filters")&& design->is_matrix_filt){
-      // read the design variables and calculate the density filtered values using the filter mat and cache it.
-      // This operations are not in design space post init because the design changes if we read it from a external file
-      for(unsigned int i = 0; i < list.GetSize(); i++){
-        Vector<double> design_vec;
-        design->WriteDesignToExtern(design_vec,false);
-        design->density_filter[i].CacheDensityFilteredValue(design_vec);
-      }
+  if(pn->Has("filters") && design->is_matrix_filt) {
+    // read the design variables and calculate the density filtered values using the filter mat and cache it.
+    // This operations are not in design space post init because the design changes if we read it from a external file
+    Vector<double> design_vec;
+    design->WriteDesignToExtern(design_vec, false);
+    for(DensityFilterMat& filt : design->density_filter)
+      filt.CacheDensityFilteredValue(design_vec);
   }
 
   // make basic logging

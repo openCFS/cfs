@@ -1548,21 +1548,22 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
   if(new_design)
     design_id++;
 
+  // filter the current design
+  // this has to be done before we write to the density file
+  if (pn_->Has("filters") && is_matrix_filt) {
+    Vector<double> des_vec;
+    des_vec.Replace(DesignSpace::GetNumberOfVariables(), const_cast<double*>(space), false);
+    for(DensityFilterMat& filt : density_filter)
+      filt.CacheDensityFilteredValue(des_vec);
+  }
+
   // for cases where computation of an iteration fails (e.g. Bloch) we have the design which causes the error.
-  // the desig will again be written in Optimization::CommitIteration()
+  // the design will again be written in Optimization::CommitIteration()
   if(new_design && domain->GetOptimization())
   {
     DensityFile* df = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->GetDensityFile();
     if(df)
       df->SetAndWriteCurrent(domain->GetOptimization()->GetCurrentIteration());
-  }
-  Vector<double> des_vec;
-  des_vec.Replace(DesignSpace::GetNumberOfVariables(),const_cast<double*>(space),false);
-  if (pn_->Has("filters") && is_matrix_filt){
-     ParamNodeList list = pn_->Get("filters")->GetList("filter");
-     for(unsigned int i = 0; i < list.GetSize(); i++){
-       density_filter[i].CacheDensityFilteredValue(des_vec);
-     }
   }
   return design_id;
 }
@@ -2049,15 +2050,15 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   assert(dofs >= 1 && dofs <= 3);
   StdVector<double> result_value(dofs);
   // loop over elements from result. We have to do it this way as the the connection
-  // of design element and result element is the element(->elemeNum) but we cannot
+  // of design element and result element is the element(->elemNum) but we cannot
   // search in the result for an element.
   EntityIterator it = result.GetEntityList()->GetIterator();
   // set the result as we need it
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
-  // the default value is 0.0 but 1 for densities
   SolutionType st = result.GetResultInfo()->resultType;
 
   // the value when we are not in a design domain
+  // the default value is 0.0 but 1 for densities
   double none = 0.0;
   switch(st)
   {
@@ -2079,7 +2080,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
 
   for (it.Begin(); !it.IsEnd(); it++)
   {
-    // for elements not in the design region we set to to the default value
+    // for elements not in the design region we set to the default value
     for(unsigned int i = 0; i < dofs; i++)
       result_value[i] = none;
     if(base >= 0 && FindRegion(it.GetElem()->regionId) >= 0)
@@ -2433,7 +2434,7 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
 
 void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_vec)
 {
-  this->filter_mat.Mult(design_vec,this->filtered_vec);
+  this->filter_mat.Mult(design_vec, this->filtered_vec);
 }
 
 void DensityFilterMat::ExportDensityFilterMatrix()
