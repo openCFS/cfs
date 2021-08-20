@@ -715,7 +715,9 @@ namespace CoupledField {
       SBM_Vector stageSol;
       stageSol.Resize(feFunctions_.size());
       for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+        FeFctIdType fncId = fncIt->second->GetFctId();
+
+        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fncId);
         fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
@@ -760,7 +762,8 @@ namespace CoupledField {
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+              FeFctIdType fncId = fncIt->second->GetFctId();
+              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fncId));
             }
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
@@ -842,7 +845,8 @@ namespace CoupledField {
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+              FeFctIdType fncId = fncIt->second->GetFctId();
+              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fncId));
             }
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
@@ -916,9 +920,10 @@ namespace CoupledField {
     limitFeFctIt = feFunctions_.find(solutionLimit_);
     if (limitFeFctIt != feFunctions_.end() ) {
       for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        FeFctIdType fncId = fncIt->second->GetFctId();
         if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
           //const SingleVector * subv = solVec_.GetPointer(pos);
-          Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(pos)));
+          Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(fncId)));
           for (UInt j=0; j < dsubVec.GetSize(); j++) {
             if (dsubVec[j] >= maxValidValue_) {
               EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ << 
