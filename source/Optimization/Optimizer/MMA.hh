@@ -5,6 +5,7 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -16,74 +17,223 @@ namespace CoupledField
 class MMA;
 class BFGS;
 
-template <class TYPE> class SCRS_Matrix;
+/** Here we collect the data for the BFGS subsolver. It holds
+ * the rather self contained BFGS and keeps other dual data out of
+ * MMA. Due to the self contained stuff, it is not the most efficient approach */
+class BFGSHolder
+{
+public:
+  BFGSHolder() {};
 
+  ~BFGSHolder();
+
+  /** activate the BFGS engine */
+  void Init(MMA* mma);
+
+  /** to be repeatedly called */
+  int BFGSSubProblemSolver();
+
+  // To store the primal values for BFGS
+
+  unsigned int nsmax=10;
+  double dual_low = 0.0;
+  double dual_upp = 1.0e9;
+  double dual_init = 0.1;
+
+  /** copy of BFGS::x to serve as interface */
+  Vector<double> lambda;
+
+  BFGS* bfgs = NULL;
+
+private:
+  Vector<double> lam_v;
+  Vector<double> up_lam;
+  Vector<double> lo_lam;
+
+  Vector<double> primal_x;
+  Vector<double> primal_y;
+
+  // set by Init() in cas
+  MMA*  mma = NULL;
+
+};
+
+/** In contrast to BFGSHolder which keeps a general purpose self BFGS solver,
+ * we have here Hessian based dual solvers specific for MMA.
+ * This is a little bit of copy and paste from BFGSHolder/BFGS but this is
+ * the way Chaitanya did the stuff originally.
+ * This serves for the interior point solver (from Chaitanya) and a Hessian
+ * solver with steepest descent based on mma.py (Fabian, based on Kelley) */
+class DualSolver
+{
+public:
+  virtual ~DualSolver() {};
+
+  virtual void Init(MMA* mma);
+
+  /** projected [0,inf] solver with Hessian and steepest decent fallback.
+   * The reference implementation is in mma.py.
+   * Based on the projected steepest descent solver from Kelley */
+  int FallbackHessianSolver();
+
+  // Lagrange multipliers
+  Vector<double> lambda, mu; // vector size m
+
+  /** shall we correct the Hessian trace? Only for IP-Solver */
+  bool hess_corr = false;
+
+protected:
+
+  /** projects 0 >= a + beta * b <= 1e20 */
+  static void Project(const Vector<double>& a, double beta, const Vector<double>& b, Vector<double>& out);
+  static Vector<double> Project(const Vector<double>& a, double beta, const Vector<double>& b);
+
+  /** size primal variables */
+  unsigned int n = 0;
+
+  /** primal inequality constraints */
+  unsigned int m = 0;
+
+  unsigned int sub_prob_iter = 0;
+
+  // primal variables
+  Vector<double> x;
+  Vector<double> y; // we don't use it here
+
+  MMA* mma = NULL;
+
+private:
+
+  void LogHessianMinor(int minor, double pgc, const Vector<double>& lmbda, double delta_lmbda, const Vector<double>& old_dir, bool do_hess, int ls_steps, double step);
+
+  Vector<double> y0; // to ignore the y-part
+
+};
+
+/** the IP-Solver from Aage is a primal dual solver */
+class PrimalDualSolver : public DualSolver
+{
+public:
+
+  void Init(MMA* mma) override;
+
+  /** interior point solver implemented by Chaitanya
+   * @return number if sub-problem-iterations */
+  int IPSubProblemSolver();
+
+  void IPLogFileLine(PtrParamNode iteration);
+
+private:
+
+  void DualLineSearch();
+
+  Vector<double> s; // vector size 2*m
+
+  // we have more SubInfo than subproblem iteration as the iterations of the interior point method are also output
+  struct SubInfo {
+    Vector<double> lambda; // Lagrange multipler for all constraints
+    Vector<double> mu;
+    Vector<double> s; // slack variables for all constraints + 1 for IP slack
+    double err;
+    double epsi; // for the fixed number of subproblems to be solved
+    int iter; // for the sub problem IP iteration count
+  };
+
+  StdVector<SubInfo> subiters;
+
+};
+
+
+/** the MMA (method of moving asymptotes) implementation originates from Chaitanya Dev as a
+ * hiwi job around 2018.
+ *
+ * Used papers are:
+ * Svanberg, "The method of moving asymptotes—a new method for structural optimization." International journal for numerical methods in engineering 24.2 (1987): 359-373.
+ * Svanberg, DCAMM Lecture Notes 1998
+ * Aage, Lazarov. "Parallel framework for topology optimization using the method of moving asymptotes." Structural and multidisciplinary optimization 47.4 (2013): 493-505
+ */
 class MMA : public BaseOptimizer
 {
 public:
   MMA(Optimization* optimization, PtrParamNode pn);
 
-  virtual ~MMA();
-
-  void PostInit();
+  void PostInit() override;
 
   /** @see BaseOptimizer::ToInfo() */
-  void ToInfo(PtrParamNode pn);
+  void ToInfo(PtrParamNode pn) override;
 
   /** @see BaseOptimizer */
-  void SolveProblem();
-
-  double EvalDualFucntion(Vector<double> &xin); //TODO implement for BFGS
-  Vector<double> EvalDualGrads(Vector<double> &xin); //TODO implement for BFGS
-  unsigned int GetNoDesign(){return n;} //TODO implement for BFGS
-
-  void EvalMMAconstraints(StdVector<double> & eval, StdVector<double> & xc);
-
-  inline void SetSubPrbItr(unsigned int it) {usedSubPrbItr = it;}
-  inline void SetSubPrbEval(unsigned int noEval) {no_sub_prb_eval = noEval;}
+  void SolveProblem() override;
 
   /** see BaseOptimizer::LogFileLine() */
-  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+  void LogFileLine(std::ofstream* out, PtrParamNode iteration) override;
+
+  /** inefficiently evaluations dual function, as the primal variables are generated and thrown away */
+  double EvalDualFunction(Vector<double> &xin);
+
+  /** inefficiently evaluates gradient of dual function. Better use Gradient of Dual */
+  Vector<double> EvalDualGrad(Vector<double> &xin);
+
+  /** set primal variables with the solution from the subproblem */
+  void SetPrimalVariables(const Vector<double>& x_in, const Vector<double>& y_in);
+
+    // We skip here final double &z_out from Aage min-max handling
+  void PrimalVarFromDualVar(const Vector<double>& lambda_in, Vector<double>& x_out, Vector<double> &y_out) const;
+
+  double FunctionOfDual(const Vector<double> &lambda_in, const Vector<double>& x_in, const Vector<double>& y_in) const;
+
+  void GradientOfDual(const Vector<double>& x_in, const Vector<double>& y_in, Vector<double>& dual_grad_out) const;
+
+  /** from Aage, Lazarov, 2013 for the primal dual solver in section 3.2 and 3.3 */
+  void HessianOfDual(const Vector<double>& lambda_in, const Vector<double>& mu_in, const Vector<double>& x_in, Matrix<double>& hess_out) const;
+
+  /** pure dual based on mma.py.
+   * does -1 for maximization */
+  void HessianOfDual(const Vector<double>& lambda_in, const Vector<double>& x_in, Matrix<double>& hess_out) const;
+
+  /** could actually move to PrimalDualSolver ?! */
+  double DualResidual(const Vector<double>& lambda_in, const Vector<double>& mu_in, const Vector<double>& x_in, const Vector<double>& y_in, double epsi) const;
 
   typedef enum { SVANBERG, TOPOPT_ROBUST_SHORT, TOPOPT_ROBUST_LONG , FIXED } AsymUpdate;
 
-  typedef enum { IP_OPT, BFGS_OPT} SubSolverType;
+  typedef enum { NEWTON_SOLV, IP_SOLV, BFGS_SOLV} SubSolverType;
 
   Enum<AsymUpdate> asymUpdate;
   Enum<SubSolverType> subSolverType;
 
-  struct BFGS_Details{
-    Vector<double> xc; // arg values
-    double fc; // function values
-    double norm_pgc; // norm of gradients
-    Vector<double> pgc; // arg values
-    unsigned int iter; // for the sub probelm IP interation count
-    unsigned int nactive; // number of active constraints
-  };
+  /** n is the number of primal design variables - value assigned in MMA::PostInit() */
+  unsigned int n = 0;
+  /** m is the number of  constraints - value assigned in MMA::PostInit() */
+  unsigned int m = 0;
+  unsigned int max_sub_iter = 20; // maximum iteration for subproblem solver
+  double sub_solve_tol = 1.0e-4; // tolerance for subproblem solver
 
+  /** output dual variables per iteration */
+  bool verbose_dual_vars = false;
+
+  // In Aage the parameter for the min-max variable z
+  // Vector<double> a;
+  Vector<double> c; // penalty parameter for the subproblem
+
+  /** when the subproblem fails, the error message set */
+  std::string mma_error;
 
 private:
 
   /** @see BaseOptimier */
-  void LogFileHeader(Optimization::Log& log);
+  void LogFileHeader(Optimization::Log& log) override;
 
-  void IPLogFileLine(std::ofstream* out, PtrParamNode iteration);
+  bool SolveSubProblem();
 
-  void AdjustMoveLimits();
+  void SetupSubProblem();
 
-  bool SolveMMA();
-
-  void GenerateSubProblem();
+  void UpdateGCAsymptotes();
+  void UpdateNonGCAsymptotes();
 
   void ComputeObjectiveConstraintsSensitivities();
 
-
-  /*
-  void StupidTest();
-  void InitilizeFromFile(std::string filename, double * vec);
-  bool is_number(const std::string& s);
-  */
-
+  /** allows access to the subsolvers stuff */
+  const Vector<double>& GetSubSolverLambda() const;
 
   /** General Optimization Problem
    *      min compliance(xval)
@@ -91,14 +241,7 @@ private:
    *          xmin_i <= xval_i <= xmax_i ; i =[1, n]
    */
 
-  /** n is the number of design variables - value assigned in MMA::PostInit() */
-  unsigned int n = 0;
-  /** m is the number of  contraints - value assigned in MMA::PostInit() */
-  unsigned int m = 0;
 
-
-  /** Design variable, min bound and max bound */
-  StdVector<double> xval;
 
   /** this is what is called the asymptotes in MMA and low/upp in Svanberg's mmasub.m.\
    * The std_xmin case holds the data for WriteBoundsToExtern. */
@@ -125,13 +268,6 @@ private:
   * values updated in MMA::ComputeObjectiveConstraintsSensitivities() */
   StdVector<double> grad_constraints; // gradient of contraints, dimension m x n.
 
-  /** ToDO: Idea behind choosing value for scaling is not clear.
-   * was copied from TopOpt implementation now NOT USED.
-   * was used in MMA::ComputeObjectiveConstraintsSensitivities()
-   * I removed it and it still worked */
-  double obj_scale = 0;
-
-
   /** MMA approximation
    *      p_ij = (upp_j - xval_j)^2 * (d.f_i/d.xval_j)      if (d.f_i/d.xval_j) > 0
    *          = 0                                           if (d.f_i/d.xval_j) <= 0
@@ -144,10 +280,9 @@ private:
    *      funcA_i = r_i + summation(p_ij/(upp_j - xval_j) + q_ij/(xval_j - low_j))
    */
 
-  StdVector<double> p_0j, q_0j; // objective approximation
+  Vector<double> p_0j, q_0j; // objective approximation
   Matrix<double> p_ij, q_ij; // constraint approximation
-  StdVector<double> b; // rhs of constrain inequality in subproblem.
-  double obj_val_old=0; //used only in globally convergent version.
+  Vector<double> b; // rhs of inequality constraints  in subproblem.
 
   /** MMA Sub Problem
    *      min funcA(xval) + z + 1/2 z^2 + summation(y_i*c_i + 1/2 y_i^2 ; i = [1, m])
@@ -157,70 +292,41 @@ private:
    *          z >= 0
    */
 
-  AsymUpdate asymUpdate_ = FIXED; // TOPOPT_ROBUST_SHORT, TOPOPT_ROBUST_LONG, SVANBERG, FIXED
-  SubSolverType subSolverType_ = IP_OPT; //IP , BFGS
+  AsymUpdate asymUpdate_ = SVANBERG; // TOPOPT_ROBUST_SHORT, TOPOPT_ROBUST_LONG, SVANBERG, FIXED
+  SubSolverType subSolverType_ = NEWTON_SOLV; //IP , BFGS
 
   /** Determines how aggresively the asymptotes are moved
    * asymptotes initialization and increase/decrease
    * these values are used in MMA::GenreteSubProblem() to update low and upp
    * can be initiated from xml. See the constructor */
   double asyminit = 0.9;
-  double asymdec = 0.9;
-  double asyminc = 1.1;
-
-  /** controls the seed at which outer limits are update
-   * used in MMA::AdjustMoveLimits() */
-  double move = 0.2;
-  bool moveLimits = true;
+  double asymdec = 0.7;
+  double asyminc = 1.43;
 
   /** for fixed asymptotes only
   * according to K.Svanberg's paper section 3. equation 10.
-  * according to paer the resonable choice for asym_fixed_lower is 0 and for asym_fixed_upper is 10
+  * according to the paper the reasonable choice for asym_fixed_lower is 0 and for asym_fixed_upper is 10
   * updated in
   * used in MMA::GenreteSubProblem()*/
-  double asym_fixed_lower = -1;
-  double asym_fixed_upper = -1;
+  double asym_fixed_lower = 0;
+  double asym_fixed_upper = 10;
 
-  unsigned int usedSubPrbItr = 0; // used by plot. to store the iterations used by sub problem solver
-  unsigned int no_sub_prb_eval = 0; // to know the number of sub problem evaluations
-  unsigned int max_sub_iter = 10; // maximum iteration for subproblem solver
-  double sub_solve_tol = 1.0e-4; // tolerance for subproblem solver
-
-
-  StdVector<double> a, c, d; // penalty parameter for the subproblem
   double penalty_c = 1000.0;
-
-//  BFGS bfgs;
-  /* To store the primal values for BFGS*/
-//  Vector<double> x_d;
-//  Vector<double> y_d;
-//  double z_d=0;
-  unsigned int nsmax=10;
-  double dual_low = 0.0;
-  double dual_upp = 1.0e9;
-  double dual_init = 0.1;
-  Vector<double> lam_v;
-  Vector<double> up_lam;
-  Vector<double> lo_lam;
 
   /** sub problem move limits
    * according to K.Svanberg's DCAMM lecture notes section 4.
    * this is chosen to avoid division by zero in sub problem, refer K.Svanberg's paper section 3. equation 8
    * values updated in MMA::GenreteSubProblem()
    * values used in MMA::PrimalVarFromDualVar()*/
-  StdVector<double> alpha, beta;
+  Vector<double> alpha, beta;
 
-  /** The idea for y and z is provided in K.Svanberg's DCAMM lecture notes section 2.
-   * Further, the values are used based on TopOpt implementation,
-   * the decription for which is N.Aage's paper in section 3.1
-   * values updated in MMA::PrimalVarFromDualVar()
-   * values used in MMA::GradientOfDual() ; MMA::DualResidual(); */
-  StdVector<double> y; //elastic variable to make the problem always fesible
-  double z=0.0; // elastic variable to solve non smooth problems like min-max
 
-  /** For fixed asymptotes in MMA::GenreteSubProblem()
+  // elastic variable to solve non smooth problems like min-max in Agge - not used
+  // double z=0.0;
+
+  /** For fixed asymptotes in MMA::GenerateSubProblem()
    * the upper asymptotes can be set by multiplying a constant(asym_fixed_upper) to the current design value
-   * or can just be a costant number, this is controlled by this bool, if true we are multplying by a constant  */
+   * or can just be a constant number, this is controlled by this bool, if true we are multiplying by a constant  */
   bool upperMultiplier = true;
   bool lowerMultiplier = true;
 
@@ -230,75 +336,47 @@ private:
    * K.Svanberg's orginal paper*/
   bool kappa = false;
 
-  /** Globally convergent version refer K.Svanberg's DCAMM lecture notes section 6
-   * ToDo: NOT IMPLEMENTED*/
-   bool globallyConvergent = false;
-   double rho_init = 0.0001; // set in xml in globalyCongergent/rho
-   StdVector<double> rho;
-   double rho_0=0;
-   double objective_r = 0.0; // The r_i in the function approx
+  /** Globally convergent version refer K.Svanberg's DCAMM lecture notes section 6 */
+  bool globallyConvergent = false;
+  double rho_init = 0.0001; // set in xml in globalyCongergent/rho
+  StdVector<double> rho;
+  double rho_0=0;
+  double objective_r = 0.0; // The r_i in the function approx
 
+  /** Primal Design variable, min bound and max bound */
+  Vector<double> xval;
 
-  // Lagrange multipliers
-  StdVector<double> lambda, mu; // vector size m
-  StdVector<double> s; // vector size 2*m
+  /** The idea for y and z is provided in K.Svanberg's DCAMM lecture notes section 2.
+   * Further, the values are used based on TopOpt implementation,
+   * the description for which is N.Aage's paper in section 3.1
+   * values updated in MMA::PrimalVarFromDualVar()
+   * values used in MMA::GradientOfDual() ; MMA::DualResidual(); */
+  Vector<double> y; //elastic variable to make the problem always feasible
 
   /** Defined in K.Svanberg's paper section 3.
    * values updated in MMA::GenreteSubProblem()
    * and then used in same function to compute p_0j, q_0j, p_ij and q_ij
    * then to compute primal values in MMA::PrimalVarFromDualVar() */
-  StdVector<double> low, upp; // Asymptotes bound
+  Vector<double> low, upp; // Asymptotes bound
 
   /** Used for heuristic to update the asymptotes
    * values update in MMA::SolveMMA()
    * values used in MMA::GenreteSubProblem()*/
-  StdVector<double> xold1, xold2;
-  StdVector<double> change; // Design change
+  Vector<double> xold1, xold2;
+  Vector<double> change; // Design change
 
-  /** used in MMA::SolveSubProblem() */
-  double tol = 0.0001;
+  /** becomes active only when we call Init() */
+  BFGSHolder bfgs;
 
-  StdVector<double> dual_gradient, dual_hessian;
+  /** robust fallback Newton solver */
+  DualSolver dual_solver;
+  /** IP-Solver from Aage */
+  PrimalDualSolver primal_dual_solver;
 
-  // we have more SubInfo than subproblem iteration as the iterations of the interior point method are also output
-  struct SubInfo {
-    StdVector<double> lambda; // Lagrange multipler for all constraints
-    StdVector<double> mu;
-    StdVector<double> s; // slack variables for all contraints + 1 for IP slack
-    double err;
-    double epsi; // for the fixed number of subproblems to be solved
-    int iter; // for the sub probelm IP interation count
-  };
+  int sub_prob_iter = 0;
 
-  StdVector<SubInfo> subiters;
-
-  bool testing = false;
-
-private:
-
-  bool IPSubProblemSolver();
-
-  bool BFGSSubProblemSolver();
-
-  void PrimalVarFromDualVar();
-  void PrimalVarFromDualVar(Vector<double> &lam, Vector<double> &x_d, Vector<double> &y_d, double &z_d ); // For BFGS
-
-  void GradientOfDual();
-
-  void HessianOfDual();
-
-  void BGFSHessianOfDual();
-
-  void Factorize(StdVector<double> & , const unsigned int );
-
-  void Solve(StdVector<double> & , StdVector<double> &, const int );
-
-  void DualLineSearch();
-
-  double DualResidual(double);
-
-  /** stayes null in the interior point case */
-  BFGS* bfgs_ = NULL;
+  /** shortcut to either &dual_solver (default for bfgs case) or &primal_dual_solver */
+  DualSolver* dual = NULL;
 
   /** generate sub problem */
   Timer* gsp_timer_ = NULL;
@@ -306,13 +384,6 @@ private:
   /** generate sub problem */
   Timer* sps_timer_ = NULL;
 
-  /** when the subproblem failes, the error message set */
-  std::string mma_error_;
-
-  /** for testing */
-  void FunctionTest();
-  void InitilizeFromFile(std::string filename, double *dp);
-  bool is_number(const std::string& s);
 };
 
 

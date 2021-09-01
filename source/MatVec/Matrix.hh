@@ -358,6 +358,8 @@ namespace CoupledField
     //! Perform a matrix-vector multiplication rvec = this*mvec
     void Mult( const SingleVector & mvec, SingleVector & rvec ) const;
 
+    /** scale the matrix by the scalar*/
+    void Mult(TYPE scale);
 
 //    //! Perform generalized matrix-vector multiplication using BLAS
 //    
@@ -658,9 +660,17 @@ namespace CoupledField
     //! using LU - decomposition (without pivoting!)
     //! \param x (output) solution vector      
     //! \param b (input) right-hand-side vector
+    //! \param throw_exception throws an exception if we need to invert zero
+    //! \return false only when not throw_exception and same issue
     //! \note The Matrix A=LU contains afterwards the the values of L 
     //! in the lower triangular, and the values of U in the upper part.
-    void DirectSolve( SingleVector & x, const SingleVector & b ) const;
+    bool DirectSolve(SingleVector& x, const SingleVector& b, bool throw_exception = true);
+
+    /** variant of DirectSolve() which uses Lapack, based on cholesky decomposition, therefore only for S.P.D. matrices.
+     * computes this * x = b
+     * @param chol  will get the Cholesky decomposition (lower triangle) but the upper part not zeroed (see it as working array)
+     * @param b rhs vector, could easily be extended for multiple rhs as the lapack kernel provides this */
+    bool CholeskySolveLapack(Matrix<TYPE>& chol, Vector<TYPE>& x, const Vector<TYPE>& b, bool throw_exception = true);
 
     //! scales the diagonal elements of a  matrix by a factor
     inline void ScaleDiagElems(const TYPE factor);
@@ -719,7 +729,7 @@ namespace CoupledField
     void matrix2Bmp_v3(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY);
 
     /** Dumps for developers or internal use
-     * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
+     * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form, 3=full data in Python format */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
 
     /** Creates a xml string of the following form.

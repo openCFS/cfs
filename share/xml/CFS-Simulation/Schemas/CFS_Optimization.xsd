@@ -694,16 +694,18 @@
                         <xsd:restriction base="xsd:token">
                           <xsd:enumeration value="svanberg"/>
                           <xsd:enumeration value="fixed"/>
-                          <!-- Formulation presenten in DTU's PETSc TopOpt parallem MMA implementation.
+                          <!-- Formulation presenten in DTU's PETSc TopOpt parallel MMA implementation.
                                Variant 32  -->
                           <xsd:enumeration value="topopt_robust_short"/>
                           <xsd:enumeration value="topopt_robust_long"/>
                         </xsd:restriction>
                       </xsd:simpleType>
                     </xsd:attribute>
+                    <!-- the initial asymptotes are this value times upper-lower bound from initial design away. Smaller is more conservative -->
                     <xsd:attribute name="initial" default="0.9" use="optional" type="xsd:float"/>
                     <xsd:attribute name="dec" default="0.7" use="optional" type="xsd:float"/>
-                    <xsd:attribute name="inc" default="1.2" use="optional" type="xsd:float"/>
+                    <!-- 1/.7 -->
+                    <xsd:attribute name="inc" default="1.43" use="optional" type="xsd:float"/>
                   </xsd:complexType>
                 </xsd:element>
                 <xsd:element name="bfgs_setting" minOccurs="0" maxOccurs="1">
@@ -715,26 +717,34 @@
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
-              <xsd:attribute name="sub_solver_type" default="int_point" use="optional">
+              <xsd:attribute name="sub_solver_type" default="newton" use="optional">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
+                    <!-- primal dual solver from Aage, Parallel framework for topology optimization using the method of moving asymptotes, 2013 -->
                     <xsd:enumeration value="int_point"/>
+                    <!-- dual solver with approximated Hessian -->
                     <xsd:enumeration value="bfgs"/>
+                    <!-- newton solver with robust fallback to steepest descent, as in mma.py -->  
+                    <xsd:enumeration value="newton"/>
                   </xsd:restriction>
                 </xsd:simpleType>
               </xsd:attribute>
               
               <xsd:attribute name="sub_solve_tol" default="1e-4" use="optional" type="xsd:float" />
-              <xsd:attribute name="max_sub_iter" default="10" use="optional" type="xsd:integer"/>
-              <!-- move_limit is to ensure xmin and xmax are close to xval, if false they are not varied -->
-              <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
+              <!-- int_point sub solver fails when exceeding, other sub solvers silently ignore -->
+              <xsd:attribute name="max_sub_iter" default="20" use="optional" type="xsd:integer"/>
               <!-- Penalty to make problems feasible (y_i in (1.1) in Svanbergs MMA Modelling aspects 1998  -->
               <xsd:attribute name="constraint_penalty_c" default="1000.0" use="optional" type="xsd:float"/>
               <!-- Unnamed kappa for whatever in Sec 4.1 in (1.1) in Svanbergs MMA Modelling aspects 1998 and in TopOpt code 
                    as constraint modification -->  
               <xsd:attribute name="svanbergs_kappa" default="false" use="optional" type="xsd:boolean" />
-              <!-- cdev: for testing -->
-              <xsd:attribute name="testing_functions" default="false" use="optional" type="xsd:boolean" />
+              
+              <!-- shall the dual Hessian trace be corrected? Not for BFGS and hessian -->
+              <xsd:attribute name="hessian_corr" use="optional" type="xsd:boolean" />
+              
+              <!-- outout the content of the dual variables (constraints weights) -->
+              <xsd:attribute name="verbose_dual_vars" use="optional" default="false" type="xsd:boolean"/>
+              
             </xsd:complexType>
            </xsd:element>
 

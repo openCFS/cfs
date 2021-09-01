@@ -98,6 +98,8 @@ namespace CoupledField
     /** Return the infinity value (here for ipopt) */
     virtual double GetInfBound() const { return 1e19; }
 
+    PtrParamNode GetInfoNode() { return info_; }
+
     Optimization* optimization;
 
     /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */

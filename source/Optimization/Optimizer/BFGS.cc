@@ -6,29 +6,17 @@
 
 DEFINE_LOG(bfgs_LOG, "bfgs_log")
 
-
 using namespace CoupledField;
-using std::pow;
 using std::max;
 using std::min;
-using std::abs;
-using std::string;
 
-BFGS::BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem)
-          : prob(problem), n(n_), tol(tol_), maxit(maxit_), nsmax(nsmax_)
+BFGS::BFGS(unsigned int n, double tol, unsigned int maxit, unsigned int nsmax, MMA *problem)
 {
-  x0.Resize(n);
-  low.Resize(n);
-  upp.Resize(n);
-}
-
-void BFGS::Initilize(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem)
-{
-  prob= problem;
-  n=n_;
-  tol=tol_;
-  maxit=maxit_;
-  nsmax=nsmax_;
+  this->prob= problem;
+  this->n=n;
+  this->tol=tol;
+  this->maxit=maxit;
+  this->nsmax=nsmax;
 
   x0.Resize(n);
   low.Resize(n);
@@ -36,11 +24,8 @@ void BFGS::Initilize(unsigned int n_, double tol_, unsigned int maxit_, unsigned
 }
 
 
-BFGS::~BFGS() {}
-
-void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
+int BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
 {
-
   bfgs_details.Resize(0); // prepare for logging
 
   LOG_DBG3(bfgs_LOG) << "SolB: initial xc=" << xc.ToString(0);
@@ -67,8 +52,8 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   unsigned int itc = 0;
   double fc;
   Vector<double> gc(n);
-  fc = prob->EvalDualFucntion(xc);
-  gc = prob->EvalDualGrads(xc);
+  fc = prob->EvalDualFunction(xc);
+  gc = prob->EvalDualGrad(xc);
 
   unsigned int iarm=0;
 
@@ -128,7 +113,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
     Vector<double> xt = kk_proj(xc_lam_dsd, up , lo);
 
     double ft=0.0;
-    ft = prob->EvalDualFucntion(xt);
+    ft = prob->EvalDualFunction(xt);
 
     ++itc;
     iarm =0;
@@ -156,7 +141,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
       xc_lam_dsd += xc;
       xt = kk_proj(xc_lam_dsd, up, lo);
       pl = xc -xt;
-      ft = prob->EvalDualFucntion(xt);
+      ft = prob->EvalDualFunction(xt);
 
       if(iarm > 10)
       {
@@ -171,18 +156,18 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
           bfgs_details.Last().pgc = pgc;
           bfgs_details.Last().xc = xc;
         }
-        return;
+        return itc;
       }
       fgoal = gc.Inner(pl);
       fgoal = fgoal*alp;
       fgoal = fc - fgoal;
 
     }
-    fc = prob->EvalDualFucntion(xt);
+    fc = prob->EvalDualFunction(xt);
 
     Vector<double> gp;
 
-    gp = prob->EvalDualGrads(xt);
+    gp = prob->EvalDualGrad(xt);
 
     Vector<double> y(n);
     y = gp - gc;
@@ -255,9 +240,8 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   } // end of iteration loop
   LOG_DBG3(bfgs_LOG) <<"SolB: Sub prob iterations: " <<itc <<" Sol= "<<xc.ToString();
 
-  prob->SetSubPrbItr(itc);
   x = xc;
-
+  return itc;
 }
 
 
@@ -340,7 +324,7 @@ Vector<double> BFGS::bfgsrp( Matrix<double> &ystore,  Matrix<double> &sstore, co
   return dnewt;
 }
 
-void BFGS::LogFileLine(std::ofstream* out, PtrParamNode iteration)
+void BFGS::LogFileLine(PtrParamNode iteration)
 {
 
   if(progOpts->DoDetailedInfo())
@@ -358,9 +342,7 @@ void BFGS::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       ipn->Get("active_con")->SetValue(bi.nactive);
       ipn->Get("grad")->SetValue(bi.pgc);
     }
-
   }
-
 }
 
 

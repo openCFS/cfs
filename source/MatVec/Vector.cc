@@ -880,7 +880,7 @@ namespace CoupledField {
   {
     std::ostringstream os;
 
-    if(level == 0 || level == 1 || level > 2)
+    if(level == 0 || level == 1 || level > 3)
     {
       int nnz = 0;
       for(unsigned int i = 0; i < size_; ++i)
@@ -900,8 +900,10 @@ namespace CoupledField {
       if(level == 1)
         os << " size=" << size_ << " nnz=" << nnz;
     }
-    if(level == 2)
+    else
     {
+      string sep = level == 2 ? " " : ",";
+
       os << std::scientific << std::setprecision(7);
       os << "[";
       for(unsigned int i = 0; i < size_; ++i)
@@ -913,7 +915,7 @@ namespace CoupledField {
         }
         else
           os << data_[i];
-        os << (i < size_-1 ? "; " : "");
+        os << (i < size_-1 ? sep : "");
       }
       os << "]";
     }

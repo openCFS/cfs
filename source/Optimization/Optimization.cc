@@ -732,11 +732,10 @@ void Optimization::SolveProblem()
   Exception* e = NULL;
   try
   {
-    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get(optimizer.ToString(optimizer_));
-    baseOptimizer_->ToInfo(in);
+    baseOptimizer_->ToInfo(baseOptimizer_->GetInfoNode()->Get(optimizer.ToString(optimizer_)));
     baseOptimizer_->SolveOptimizationProblem();
     assert(baseOptimizer_->ValidateTimers());
-    baseOptimizer_->ToInfo(in);
+    baseOptimizer_->ToInfo(baseOptimizer_->GetInfoNode()->Get(optimizer.ToString(optimizer_)));
   }
   catch(Exception& ex)
   {
@@ -1052,13 +1051,23 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   if(grad_out != NULL)
     design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
 
-  // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
-  if(g->special_result_idx != -1)
+  // check if we have constraint gradient as output
+  // <result value="constraintGradient" detail="volume" access="plain" id="optResult_1"/>
+  int res_idx = -1;
+  // ALL_DESIGN becomes all
+  int n    = design->FindDesign(g->GetDesignType(), false) == -1 ? design->data.GetSize() : design->GetNumberOfElements();
+  int base = std::max(design->FindDesign(g->GetDesignType(), false), 0); // shift -1 to 0 for ALL_DESIGN
+  if(DesignElement::detail.IsValid(g->type.ToString(g->GetType()))) // is current condition defined in the schema as detail
   {
-    int base = design->FindDesign(g->GetDesignType());
-    int n    = design->GetNumberOfElements();
-    for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
-      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(g);
+    DesignElement::Detail detail = DesignElement::detail.Parse(g->type.ToString(g->GetType()));
+    res_idx = design->GetSpecialResultIndex(g->GetDesignType(), DesignElement::CONSTRAINT_GRADIENT, detail, DesignElement::PLAIN); // TODO: excitation?
+    if(res_idx > -1)
+      for(int i = n * base; i < n * (base + 1); i++)
+        design->data[i].specialResult[res_idx] = design->data[i].GetPlainGradient(g);
+    res_idx = design->GetSpecialResultIndex(g->GetDesignType(), DesignElement::CONSTRAINT_GRADIENT, detail, DesignElement::SMART);
+    if(res_idx > -1)
+      for(int i = n * base; i < n * (base + 1); i++)
+        design->data[i].specialResult[res_idx] = design->data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
   }
 }
 

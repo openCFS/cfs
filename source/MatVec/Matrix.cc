@@ -223,7 +223,21 @@ namespace CoupledField
         }
         os << "]";
         break;
-        //      std::cout << "dMat: \n " << dMat << std::endl;
+
+      case 3:
+        os << "[";
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          os << "[";
+          for(UInt i = 0; i < size_col_; i++)
+          {
+            os << data_[j][i];
+            os << (i < size_col_-1 ? "," : "");
+          }
+          os << "]" << (j < size_row_-1 ? "," : "");
+        }
+        os << "]";
+        break;
       default:
         os << "size_row=" << size_row_ << " size_col=" << size_col_;
         if(size_row_ > 0 && size_col_ > 0)
@@ -2533,6 +2547,15 @@ namespace CoupledField
         rvec1[k] += data_[k][kk]*mvec1[kk];
   }
 
+
+  template<class TYPE>
+  void Matrix<TYPE>::Mult(TYPE scale)
+  {
+    for(unsigned int i = 0; i < size_row_ * size_col_; i++)
+      data_[0][i] *= scale;
+  }
+
+
   template<class TYPE>
   TYPE Matrix<TYPE>::ScalarProduct(const Matrix<TYPE>& other_mat) const
   {
@@ -2744,11 +2767,14 @@ namespace CoupledField
 
 
   template<class TYPE>
-  void Matrix<TYPE>::DirectSolve( SingleVector & x1, const SingleVector & b1 ) const
+  bool Matrix<TYPE>::DirectSolve(SingleVector& x1, const SingleVector& b1, bool throw_exception)
   {
+    assert(!ContainsInf() && !ContainsNaN());
 
     Vector<TYPE> & x = dynamic_cast<Vector<TYPE>& >(x1);
     const Vector<TYPE> & b = dynamic_cast<const Vector<TYPE>& >(b1);
+
+    x.Resize(size_row_);
 
     Integer nmat = size_row_-1;
     Integer i, j, k, k1;
@@ -2767,22 +2793,24 @@ namespace CoupledField
         }
         else
         {
-          std::cerr<<"\n Matrix::DirectSolve Step " << k <<std::endl;
-          std::cerr<<"\n The element at position ("<< k << "," << k << ") of the matrix is zero. "<<std::endl;
-          //                std::exit(0);
+          if(throw_exception)
+            throw Exception("Cannot invert zero element at step " + std::to_string(k));
+          else
+            return false;
         }
       }
     }
 
-    // solve Ly = b by forward substitution 
+    // TODO: shall work w/o temporary vector. See e.g. petsc toptop implementation from Niels Aage
+    // solve Ly = b by forward substitution
     Vector<TYPE> y(b.GetSize());
 
     for (i=0; i<=nmat; ++i)
-      { 
-        y[i] = b[i];
-        for(j = 0; j < i; ++j)
-          y[i] -= data_[i][j] * y[j];
-      }
+    {
+      y[i] = b[i];
+      for(j = 0; j < i; ++j)
+        y[i] -= data_[i][j] * y[j];
+    }
 
     // solve Ux = y backward substitution
     
@@ -2793,6 +2821,8 @@ namespace CoupledField
         x[i] -= data_[i][j] * x[j];
       x[i] /= data_[i][i];
     }
+
+    return true;
   }
 
 
@@ -3281,6 +3311,37 @@ namespace CoupledField
 
   }
 
+  template<class TYPE>
+  bool Matrix<TYPE>::CholeskySolveLapack(Matrix<TYPE>& chol, Vector<TYPE>& x, const Vector<TYPE>& b, bool throw_exception)
+  {
+    throw Exception("CholeskySolveLapack is only implemented for double");
+  }
+
+
+  template<>
+  bool Matrix<double>::CholeskySolveLapack(Matrix<double>& chol, Vector<double>& x, const Vector<double>& b, bool throw_exception)
+  {
+    char uplo = 'L';
+    int n = size_row_;
+    int nrhs = 1; // we could easily add more right hand sides!
+    int info = 42;
+
+    chol = *this; // will also resize and that stuff
+    x = b; // need to copy content, as it will be overwritten
+
+    // calculates Choleksy decomposition, stores lower part in chol and solves for x (overwritten
+    dposv(&uplo, &n, &nrhs, chol.data_[0], &n, x.GetPointer(), &n, &info);
+
+    // std::cout << "M:CSL b=" << b.ToString(3) << " x=" << x.ToString(3) << std::endl;
+    // std::cout << "M:CSL info=" << info << " A=" << ToString(3) << std::endl;
+
+    if(info == 0)
+      return true;
+
+    if(throw_exception)
+      throw Exception("CholeskySolveLapack: dposv failed as matrix seems not to be positive definite, info=" + std::to_string(info));
+    return false;
+  }
 
   template<class TYPE>
   TYPE Matrix<TYPE>::Adjunct (UInt i, UInt j) const

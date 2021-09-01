@@ -8,6 +8,7 @@
 #include <boost/mpl/list.hpp>
 
 #include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
 
 /* Example unit tests for CFS.
  *
@@ -276,3 +277,75 @@ BOOST_AUTO_TEST_CASE(desctructor_call)
   BOOST_TEST(cnt == 1); // destructor is called
 }
 
+BOOST_AUTO_TEST_CASE(small_direct_solver)
+{
+  // original matrix
+  Matrix<double> O(3,3);
+  O[0][0] = -484.829;
+  O[0][1] = -484.336;
+  O[0][2] = 0.13088;
+  O[1][0] = -484.336;
+  O[1][1] = -484.829;
+  O[1][2] = 0.13088;
+  O[2][0] = 0.13088;
+  O[2][1] = 0.13088;
+  O[2][2] = -0.0399633;
+
+  Vector<double> b(3);
+  b[0] = 0.00182783;
+  b[1] = 0.00182783;
+  b[2] = 0.0324977;
+
+  Matrix<double> A(O);
+  Vector<double> x; // automatic resize
+  A.DirectSolve(x,b);
+  std::cout << "A=" << A.ToString() << std::endl;
+  std::cout << "x=" << x.ToString() << std::endl;
+  BOOST_TEST(x.GetSize() == 3);
+}
+
+BOOST_AUTO_TEST_CASE(choleksy_lapack_solver)
+{
+  Matrix<double> A(2,2);
+  A[0][0] = 1;
+  A[0][1] = 2;
+  A[1][0] = 2;
+  A[1][1] = 100;
+
+  Vector<double> b(2, 1.0); // all ones
+
+  Matrix<double> chol;
+  Vector<double> x;
+
+  A.CholeskySolveLapack(chol,x,b,true);
+  BOOST_TEST(x.GetSize() == 2);
+
+  A[0][0] = -1;
+  bool ok = A.CholeskySolveLapack(chol,x,b,false);
+  BOOST_TEST(!ok);
+
+  Matrix<double> H(3,3);
+  H[0][0] = 3.2709520e+01;
+  H[0][1] = 2.9368747e+01;
+  H[0][2] = -8.4678084e-01;
+  H[1][0] = 2.9368747e+01;
+  H[1][1] = 3.2709520e+01;
+  H[1][2] = -8.4678084e-01;
+  H[2][0] = -8.4678084e-01;
+  H[2][1] = -8.4678084e-01;
+  H[2][2] = 2.3101089e-02;
+
+  Vector<double> grad(3);
+  grad[0]=1.2132635e+00;
+  grad[1]=1.2132635e+00;
+  grad[2]=-2.3976500e-01;
+  std::cout << "grad=" << grad.ToString(3) << std::endl;
+  ok = H.CholeskySolveLapack(chol,x,grad,false);
+  std::cout << "H=" << H.ToString(3) << std::endl;
+  std::cout << "grad=" << grad.ToString(3) << std::endl;
+  std::cout << "ok=" << ok << " x=" << x.ToString(3) << std::endl;
+
+
+  BOOST_TEST(!ok);
+
+}

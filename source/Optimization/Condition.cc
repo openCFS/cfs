@@ -46,11 +46,9 @@ double Condition::ALPHA_PLUS_SLACK_VALUE = -45217859;
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
   volume_fraction = 0.0;
-  special_result_idx = -1;
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   virtual_base_index_ = -1;
-  special_result_idx = -1;
 
   observation_ = pn->Get("mode")->As<string>() == "observation";
 
@@ -1299,20 +1297,6 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   for(unsigned int i = 0; i < all.GetSize(); i++)
     if(all[i]->HasDenseJacobian())
       all[i]->SetDenseSparsityPattern(space);
-
-  // check for special result index if there was a <result> for value=constraintGradient
-  for(unsigned int i = 0; i < all.GetSize(); i++)
-  {
-    Condition* g = all[i];
-
-    // the strings for Function::Type are (partially) repeated as DesignElement::Detail
-    string constr_str = g->type.ToString(g->type_); // our type as string
-    if(DesignElement::detail.IsValid(constr_str)) // is it defined for output?
-    {
-      DesignElement::Detail detail = DesignElement::detail.Parse(constr_str);
-      g->special_result_idx = space->GetSpecialResultIndex(g->design_, DesignElement::CONSTRAINT_GRADIENT, detail);
-    } // -1 for else by default in constructor
-  }
 
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {

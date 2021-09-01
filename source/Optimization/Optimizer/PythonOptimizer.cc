@@ -356,7 +356,7 @@ void PythonOptimizer::EvalGradObjective(PyObject *args)
   StdVector<PyObject*> obj = ParseArrays(args, 2, data, false);
 
   const Vector<double>& x = data[0];
-  Vector<double>& grad = data[0];
+  Vector<double>& grad = data[1];
 
   assert(x.GetSize() == n && grad.GetSize() == n);
 
@@ -399,7 +399,9 @@ void PythonOptimizer::EvalGradConstraints(PyObject *args)
   StdVector<PyObject*> obj = ParseArrays(args, 2, data, false);
 
   const Vector<double>& x = data[0];
-  Vector<double>& grad = data[0];
+  Vector<double>& grad = data[1];
+
+  LOG_DBG(pyopt) << "EGC: #x=" << x.GetSize() << " #g=" << grad.GetSize() << " n=" << n << " m=" << m;
 
   assert(x.GetSize() == n && grad.GetSize() == m*n);
 

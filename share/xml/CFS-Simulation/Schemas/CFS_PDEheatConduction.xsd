@@ -271,6 +271,7 @@
       <xsd:enumeration value="heatTemperatureD1"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="heatRhsLoad"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
       <xsd:enumeration value="optResult_1"/>
       <xsd:enumeration value="optResult_2"/>
       <xsd:enumeration value="optResult_3"/>

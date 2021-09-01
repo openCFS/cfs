@@ -139,11 +139,6 @@ namespace CoupledField
        /** Used for caching 1.0 / complete_volume per region */
        double volume_fraction;
 
-       /** If there is a <result id="optResult_1" value="constraintGradient" detail="volume" />
-        * this is the special result index where the constraint gradient is also stored in
-        * DesignElement::specialResult[]. -1 for no index */
-       int special_result_idx;
-
        /** For the homogenization tensor constraint this gives the actual position within the matrix_.
         * The first entry is for homogenization always set.
         * In the case of a "smart" isotropy constraint also E11-E22 = 0 and

@@ -154,6 +154,14 @@ namespace CoupledField {
       return (T(0) < val) - (val < T(0));
   }
 
+  // shortcuts for pow with int base - strange this is not in boost?!
+  inline double Pow2(double x) { return x * x; }
+  inline int Pow2(int x) { return x * x; }
+  inline unsigned int Pow2(unsigned int x) { return x * x; }
+  inline double Pow3(double x) { return x * x * x; }
+  inline int Pow3(int x) { return x * x * x; }
+  inline unsigned int Pow3(unsigned int x) { return x * x * x; }
+
 
   //! calculate distance between two points embedded in matrix
 
