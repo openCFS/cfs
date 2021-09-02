@@ -296,7 +296,8 @@ namespace CoupledField {
     // ===============
     ELEC_PERMITTIVITY_TENSOR, ELEC_PERMITTIVITY_SCALAR,
     ELEC_PERMITTIVITY_1, ELEC_PERMITTIVITY_2, ELEC_PERMITTIVITY_3,
-
+    //Parameter for Hysteresis Model
+    ELEC_PS_JILES, ELEC_ALPHA_JILES, ELEC_A_JILES, ELEC_K_JILES, ELEC_C_JILES,
     // =====================
     //  ELECTRIC CONDUCTION
     // =====================

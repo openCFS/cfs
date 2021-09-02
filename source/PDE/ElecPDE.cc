@@ -52,6 +52,10 @@
 #include "Driver/MultiHarmonicDriver.hh"
 #include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
+
+
+
 
 
 namespace CoupledField {
@@ -84,8 +88,11 @@ namespace CoupledField {
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
 
+    //this is the default value
+    modelName_ = "nonlinearCurve";
     // for multiharmonic
     multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>());
+    matModelCoef_.reset( new CoefFunctionMaterialModel<Complex>());
   }
   
   void ElecPDE::InitNonLin() {
@@ -228,6 +235,7 @@ namespace CoupledField {
           PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
                   elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY_TENSOR,mySpace));
 
+
           hysteresisCoefs_->AddRegion( actRegion, hystPol);
 
         }
@@ -243,23 +251,28 @@ namespace CoupledField {
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
-
     // CopyPasta from MagEdgePDE and hope this works:
 
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[ELEC_POTENTIAL];
     shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
 
     PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
-    // Create new harmonic balance coefficient function and register the regions and material
-    UInt baseFreq=0, N, M, nFFT;
-    if(analysistype_ == MULTIHARMONIC){
-      baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
-      N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
-      M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
-      nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
-      multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT );
-    }
 
+    UInt baseFreq=0, N, M, nFFT;
+
+    // Init material model for transient analysis
+    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve")){
+        matModelCoef_->Init( elecFieldCoef, modelName_);
+    }
+    // Create new harmonic balance coefficient function and register the regions and material
+    if(analysistype_ == MULTIHARMONIC){
+        baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
+        N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
+        M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
+        nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
+        multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT);
+    }
+    // now the handle for the mathparser should be in place, and ready to unlock!
     // bool upLagrangeForm = true;
     
     //transform the type
@@ -298,7 +311,7 @@ namespace CoupledField {
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       actRegion = regions_[iRegion];
       actSDMat    = materials_[actRegion];
-      
+
       // Get current region name
       shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -338,6 +351,7 @@ namespace CoupledField {
       bool isMapping = false;
       
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+
       if (dampingList_[actRegion] == PML)
       {
         if (analysistype_ == HARMONIC)
@@ -390,7 +404,7 @@ namespace CoupledField {
           harmonicPML = false;
         }
       }
-      
+
       // ----- standard real-valued stiffness integrator
       BaseBDBInt* stiffInt = NULL;
       PtrCoefFct epsilonNL = NULL;
@@ -404,21 +418,36 @@ namespace CoupledField {
           // Infinte mapping case
           stiffInt = GetStiffIntegratorInfMap(actSDMat, tensorType, actRegion, coefMAPScal);
           stiffInt->SetBCoefFunctionOpA(coefMAPVec);
+
         } else if (nonLinTypes.Find(NLELEC_PERMITTIVITY) != -1){
 
           PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
+
           if (analysistype_==MULTIHARMONIC){ //if nonlinear and Multiharmonic do this:
-            // register element list of region
-            bool nL = (nonLinTypes.GetSize() > 0)? true : false;
-            epsilonNL = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Permittivity", nL, actSDList);
-            if( dim_== 2){
-              EXCEPTION("Not implemented yet, but try simply CopyPasta the 3Dim Case.");
-            }
-            stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(),epsilonNL, (Complex)1.0, updatedGeo_);
-          }
-          else{ //only nonlinear
+               bool nL = (nonLinTypes.GetSize() > 0)? true : false;
+               epsilonNL = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Permittivity", nL, actSDList);
+               if( dim_== 2){
+                 EXCEPTION("Not implemented yet, but try simply CopyPasta the 3Dim Case.");
+               }
+               stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(),epsilonNL, (Complex)1.0, updatedGeo_);
+          } else{ //transient - nonlinear or hysteretic
             PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
-            epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
+
+            if(modelName_ == "JilesAthertonModel" ){
+              std::map<std::string, double> ParameterMap;
+
+              actSDMat->GetScalar(ParameterMap["Ps"], ELEC_PS_JILES, Global::REAL );
+              actSDMat->GetScalar(ParameterMap["alpha"], ELEC_ALPHA_JILES, Global::REAL );
+              actSDMat->GetScalar(ParameterMap["a"], ELEC_A_JILES, Global::REAL );
+              actSDMat->GetScalar(ParameterMap["k"], ELEC_K_JILES, Global::REAL );
+              actSDMat->GetScalar(ParameterMap["c"], ELEC_C_JILES, Global::REAL );
+
+              matModelCoef_->InitModel( ParameterMap, ptGrid_->GetNumElems(iRegion));
+              epsilonNL = actSDMat->GetScalCoefFncModel( matModelCoef_ );
+            }else{
+              PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
+              epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
+            }
             if( dim_ == 2 ) {
               stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), epsilonNL, 1.0, updatedGeo_);
             } else {
@@ -431,34 +460,34 @@ namespace CoupledField {
         }
       }
       if (nonLinTypes.Find(NLELEC_PERMITTIVITY) != -1){
-      stiffInt->SetName("NonLinElecIntegrator");
+        stiffInt->SetName("NonLinElecIntegrator");
 
-      BiLinFormContext* stiffIntDescr =
-      new BiLinFormContext(stiffInt, STIFFNESS);
+        BiLinFormContext* stiffIntDescr =
+        new BiLinFormContext(stiffInt, STIFFNESS);
 
-      stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( myFct, myFct);
-      stiffInt->SetFeSpace( myFct->GetFeSpace());
+        stiffIntDescr->SetEntities( actSDList, actSDList );
+        stiffIntDescr->SetFeFunctions( myFct, myFct);
+        stiffInt->SetFeSpace( myFct->GetFeSpace());
 
-      assemble_->AddBiLinearForm( stiffIntDescr );
-      bdbInts_[actRegion] = stiffInt;
+        assemble_->AddBiLinearForm( stiffIntDescr );
+        bdbInts_[actRegion] = stiffInt;
 
       } else{
-      stiffInt->SetName("LinElecIntegrator");
-      BiLinFormContext * stiffIntDescr =
-              new BiLinFormContext(stiffInt, STIFFNESS );
-      
-      //myFct->AddEntityList( actSDList );
-      
-      //stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( myFct, myFct);
-      stiffInt->SetFeSpace( myFct->GetFeSpace());
-      
-      assemble_->AddBiLinearForm( stiffIntDescr );
-      // Important: Add bdb-integrator to global list, as we need them later
-      // for calculation of postprocessing results
-      bdbInts_[actRegion] = stiffInt;
+        stiffInt->SetName("LinElecIntegrator");
+        BiLinFormContext * stiffIntDescr =
+                new BiLinFormContext(stiffInt, STIFFNESS );
+
+        //myFct->AddEntityList( actSDList );
+
+        //stiffIntDescr->SetPtPdes(this, this);
+        stiffIntDescr->SetEntities( actSDList, actSDList );
+        stiffIntDescr->SetFeFunctions( myFct, myFct);
+        stiffInt->SetFeSpace( myFct->GetFeSpace());
+
+        assemble_->AddBiLinearForm( stiffIntDescr );
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        bdbInts_[actRegion] = stiffInt;
       
       }
     }
@@ -1560,8 +1589,10 @@ namespace CoupledField {
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> eFunc;
+
     if( isComplex_ ) {
       eFunc.reset(new CoefFunctionBOp<Complex>(feFct, ef, -1.0));
+
     } else {
       eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
     }

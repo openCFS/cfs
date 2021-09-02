@@ -347,6 +347,8 @@ namespace CoupledField {
     bool isHysteresis_;
     bool nonLinNonHyst_;
     
+    std::string modelName_;
+
     bool matDepend_;        //!< flag for material dependencies
     
     //! map for each region the type of nonlinearity

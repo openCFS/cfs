@@ -160,6 +160,9 @@ namespace CoupledField {
                                                Global::ComplexPart matDataType,
                                                PtrCoefFct dependency );
     
+    //! Return scalar-valued coefficient function for a matrial model
+    virtual PtrCoefFct GetScalCoefFncModel(shared_ptr<CoefFunction> matModel);
+
     //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,

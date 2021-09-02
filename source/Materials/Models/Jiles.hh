@@ -1,58 +1,77 @@
 #ifndef FILE_JILES_2004
 #define FILE_JILES_2004
 
-#include "Hysteresis.hh"
-
 #include <list>
 
+#include <boost/utility.hpp>
+
 #include "MatVec/Vector.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Domain/Domain.hh"
+#include "Model.hh"
 
 
 namespace CoupledField {
 
-  class Jiles : public Hysteresis
-  {
-  public:
-    Jiles(Integer numElem, Double ysat, Double a, Double alpha, 
-          Double k, Double c);
+class Jiles : public Model {
 
-    //!
-    virtual ~Jiles();
+public:
+  //! Constructor
+  Jiles();
 
-    //!
-    Double computeValue(Double xVal, Integer idxElem);
+  //! Destructor
+  virtual ~Jiles();
 
-    //!
-    void updateMinMaxList(Double newX, Integer idxElem);
+  void Init(std::map<std::string, double> ParameterMap, UInt numElems);
 
-    //! 
-    void SetTimeStepVal(Double dt) 
-    {dt_ = dt; };
+  Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum);
 
-  protected:
+  Double Evaluate(Double E, Integer idx);
 
-  private:
+  void RampUp(Integer Nt, Double E, Integer idx);
 
-    Double Ysaturated_;
-    Double a_;
-    Double alpha_;
-    Double k_;
-    Double c_;
+  void saveValues(bool InstantSave);
 
-    Double dt_;
+private:
+  //==============
 
-    Vector<Double> Xold_;
-    Vector<Double> YirrOld_;
-    Vector<Double> YirrNew_;
-    Vector<Double> YirrPrev_;
+  Vector<UInt> ElemNum2Idx_;
 
-    Double iterMax_;
-    Double err_;
-  };
+  UInt numElems_;
+  Double MaxE_;
 
+  //current index
+  UInt idx_;
 
+  Double Ps_;
+  Double a_;
+  Double alpha_;
+  Double k_;
+  Double c_;
+
+  Vector<Double> E0_;
+  Vector<Double> E1_;
+
+  Vector<Double> P0_;
+  Vector<Double> P1_;
+
+  Vector<Double> Pi0_;
+  Vector<Double> Pi1_;
+  Vector<Double> Pa0_;
+  Vector<Double> Pa1_;
+
+  //! Pointer to math parser instance
+  MathParser* mp_;
+
+  Vector<Integer> isFirstTime_;
+  bool isFirstTimeFinished_;
+
+  UInt timeStep_;
+
+  Vector<Double> currentDirection_;
+  std::map<UInt,Vector<Double>> initialDirection_;
+};
 } //end of namespace
-
 
 #endif
 

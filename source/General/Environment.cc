@@ -235,7 +235,7 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY:
         return "V/m";
         break;
-        
+
       case ELEC_FIELD_INTENSITY_SURF:
         return "V/m";
         break;
@@ -1807,6 +1807,12 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY_1, "Electric_Permittivity_1" );
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY_2, "Electric_Permittivity_2" );
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY_3, "Electric_Permittivity_3" );
+    // -- Electrostatic Jiles Hysterese
+    MaterialTypeEnum.Add( ELEC_PS_JILES, "elec_Ps_Jiles" );
+    MaterialTypeEnum.Add( ELEC_ALPHA_JILES, "elec_alpha_Jiles" );
+    MaterialTypeEnum.Add( ELEC_A_JILES, "elec_a_Jiles" );
+    MaterialTypeEnum.Add( ELEC_K_JILES, "elec_k_Jiles" );
+    MaterialTypeEnum.Add( ELEC_C_JILES, "elec_c_Jiles" );
 
     // -- Electric Conduction --
     MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_TENSOR, "Electric_Conductivity_Tensor" );

@@ -2,143 +2,233 @@
 #include <fstream>
 #include <cmath>
 
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "Jiles.hh"
+#include "Model.hh"
 
-namespace CoupledField
-{ 
+#include "MatVec/Vector.hh"
 
-  Jiles::Jiles(Integer numElem, Double ysat, Double a, 
-                 Double alpha, Double k, Double c)
-    : Hysteresis(numElem)
-  {
+#include "Utils/mathParser/mathParser.hh"
+#include "Domain/Domain.hh"
 
-    Ysaturated_  = ysat;
-    a_           = a;
-    alpha_       = alpha;
-    k_           = k;
-    c_           = c;
+namespace CoupledField {
 
-    Xold_.Resize(numElem);
-    Xold_.Init(0);
-    YirrOld_.Resize(numElem);
-    YirrOld_.Init(0);
-    YirrNew_.Resize(numElem);
-    YirrNew_.Init(0);
+DEFINE_LOG(ja, "Jiles")
 
-    YirrPrev_.Resize(numElem);
-    YirrPrev_.Init(0);
+Jiles::Jiles(): Model() {
+}
 
-    iterMax_ = 100;
-    err_     = 1e-10;
+Jiles::~Jiles() {
+}
+
+void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems) {
+
+  numElems_ = numElems;
+
+  ElemNum2Idx_.Resize(numElems);
+  ElemNum2Idx_.Init(0);
+  for(UInt i = 0; i < numElems;i++){
+    ElemNum2Idx_[i]=i;
   }
 
-  Jiles::~Jiles()
-  {
+  if (ParameterMap.size() != 5) {
+    EXCEPTION("The model needs 5 parameter!");
   }
+  Ps_ = ParameterMap["Ps"];
+  alpha_ = ParameterMap["alpha"];
+  a_ = ParameterMap["a"];
+  k_ = ParameterMap["k"];
+  c_ = ParameterMap["c"];
 
-  Double Jiles::computeValue(Double Xin, Integer idxElem) 
-  {
+  MaxE_ = 0;
 
-    Integer idx = idxElem - 1;
-  
-    Double err, dX, YirrOld, YirrNew, Xe, Yan, delta;
-    Double a1, b1, c1, nlfunc, dnlfunc, Ynew;
-    Integer iter;
+  E0_.Resize(numElems_);
+  E0_.Init(0);
 
-    iter = 0;
-    err = 1e15;
+  E1_.Resize(numElems_);
+  E1_.Init(0);
 
+  Pi0_.Resize(numElems_);
+  Pi0_.Init(0);
 
-    //  std::cout << "ComputeValue, Xin=" << Xin << " Xold=" << Xold_[idx] << std::endl;
+  Pi1_.Resize(numElems_);
+  Pi1_.Init(0);
 
-    //Starting balue
-    YirrNew = YirrNew_[idx];
+  Pa0_.Resize(numElems_);
+  Pa0_.Init(0);
 
-    //YirrNew = YirrOld_[idx];
+  Pa1_.Resize(numElems_);
+  Pa1_.Init(0);
 
-    dX      = (Xin - Xold_[idx] ) / dt_;
+  P0_.Resize(numElems_);
+  P0_.Init(0);
 
-    //  std::cout << "Ystart=" << YirrNew << " dE=" << dX << std::endl;
-
-    iter = 0;
-    a1   = alpha_ / dt_;
-    do {
-      iter++;
-      YirrOld = YirrNew;
-
-      Xe = Xin + alpha_*YirrOld;
-
-      //    std::cout << "iter=" << iter << " Xe=" << Xe << std::endl;
-
-      if ( abs(Xe/a_) < 0.1 ) {
-        Yan = Ysaturated_ * Xe/(3.0*a_);
-      }
-      else {
-        Yan = Ysaturated_ * ( cosh(Xe/a_) / sinh(Xe/a_) - a_/Xe );
-      }
-
-      if (dX >= 0.0 ) {
-        delta = 1.0;
-      }
-      else {
-        delta = -1.0;
-      }
-
-      b1 = (1.0/dt_) * ( k_*delta - alpha_ * ( Yan + YirrOld_[idx] ) ) + dX;
-      c1 = (1.0/dt_) * ( alpha_*YirrOld_[idx]*Yan - YirrOld_[idx]*k_*delta ) - dX*Yan;
-
-      nlfunc  = a1*YirrOld*YirrOld + b1*YirrOld + c1;
-      dnlfunc = 2*a1*YirrOld + b1;
-
-      if ( abs(dnlfunc) > 0 ) {
-        YirrNew = YirrOld - nlfunc / dnlfunc;
-      }
-      else {
-        YirrNew = 0;
-      }
-
-      //    std::cout << "nlfunc=" << nlfunc << " dnlfunc=" << dnlfunc << std::endl;
-      //    std::cout << "YirrNew = " << YirrNew << std::endl;
-
-      if ( abs(YirrNew) > 0 ) {
-        err = ( YirrNew - YirrOld ) / YirrNew;
-      }
-      else {
-        err = YirrNew - YirrOld;     
-      }
-
-    } while ( (iter < iterMax_) && (err > err_) );
+  P1_.Resize(numElems_);
+  P1_.Init(0);
 
 
-    if (iter >= iterMax_ ) {
-      EXCEPTION( "No convergence with Jiles hysteresis model in "
-               << iterMax_ << " steps" );
-    }
+  isFirstTime_.Resize(numElems_);
+  isFirstTime_.Init(1);
 
-    YirrNew_[idx]  = YirrNew;
-    YirrPrev_[idx] = YirrNew;
+  isFirstTimeFinished_ = false;
 
-    //  Xold_[idx]     = Xin; 
+  currentDirection_.Resize(3);
+  currentDirection_.Init(0);
 
-    Ynew = (1.0 - c_)*YirrNew + c_*Yan;
+  initialDirection_.clear();
 
-    //  std::cout << "YirrSol=" << YirrNew << std::endl;
+  timeStep_ = 1;
 
-    return Ynew;
-  }
-
-
-  void Jiles::updateMinMaxList(Double Xin, Integer nrEl)
-  {
-
-    Integer idx = nrEl-1;
-
-
-    //YirrOld_[idx] = computeValue(Xin, nrEl);
-
-    YirrOld_[idx] = YirrNew_[idx];
-    Xold_[idx]    = Xin; 
-  }
-
+  mp_ = domain->GetMathParser();
 
 }
+
+Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNum) {
+
+  idx_=ElemNum2Idx_[ElemNum-1];
+
+  saveValues(false);
+
+  Double E, P;
+
+  E = EVec.NormL2();
+  if(E == 0){
+    return 4.028353e-07;
+  }
+
+  currentDirection_ = EVec;
+  currentDirection_.ScalarDiv(E);
+
+  if (!isFirstTimeFinished_ && (isFirstTime_[idx_])) {
+
+    //Register intial direction
+    initialDirection_[idx_]=currentDirection_;
+
+    //Evaluate the anhysteretic curve to give a better starting point for P
+    P0_[idx_] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
+
+    //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
+    RampUp(512, E, idx_);
+
+    //Set first time for element to false
+    isFirstTime_[idx_] = 0;
+
+    if (idx_==numElems_-1){
+
+      // Double checking if each element is initalized once. eg each element has its index.
+      for(UInt i = 0; i < isFirstTime_.GetSize();i++){
+        if(isFirstTime_[i]){
+          EXCEPTION("This should not happen!");
+        }
+      }
+      isFirstTimeFinished_=true;
+    }
+  }
+
+  //Check if direction has changed
+//  double innerProduct = 0;
+//  innerProduct = currentDirection_.Inner(initialDirection_[idx_]);
+//  if (abs(innerProduct)<0.95){
+//    EXCEPTION("Dependend Vector rotates to much. This should not occur. This is a scalar hysteresis model.");
+//  }
+
+  P = Evaluate(E, idx_);
+
+  Double epsilon, epsilon0;
+  epsilon0 = 8.854187e-12;
+
+  if(E == 0 ){
+    epsilon = 4.028353e-07;
+  } else{
+    epsilon = epsilon0 + P / E;
+  }
+
+  if(isinf(epsilon) || isnan(epsilon)){
+    std::cout << "E0: "<< E0_[idx_] << std::endl;
+    std::cout << "E1: "<< E1_[idx_]<< std::endl;
+    std::cout << "P0: "<< P0_[idx_] << std::endl;
+    std::cout << "P1: "<< P1_[idx_]<< std::endl;
+    std::cout << "Pa0: "<< Pa0_[idx_] << std::endl;
+    std::cout << "Pa1: "<< Pa1_[idx_]<< std::endl;
+    std::cout << "Pi0: "<< Pi0_[idx_] << std::endl;
+    std::cout << "Pi1: "<< Pi1_[idx_]<< std::endl;
+
+    EXCEPTION("Epsilon is inifite or NaN...")
+  }
+
+  return epsilon;
+}
+
+void Jiles::RampUp(Integer Nt, Double E, Integer idx) {
+//  LOG_DBG(ja) << "Computing Ramp Up-Polarization for element " << idxElem ;
+
+  Double tmp_E;
+  tmp_E = E / Nt;
+  for (int i = 1; i < Nt-1; i++) {
+    Evaluate(tmp_E * i, idx);
+    saveValues(true);
+  }
+}
+double Jiles::Evaluate(Double E, Integer idx) {
+
+  // Currently only forward integration...
+  double Pa, Ee, P, Pi, dE, delta;    //, delta2, dPPa;
+
+  dE = E - E0_[idx];
+
+//  std::cout << "E1 = " << E << std::endl;
+//  std::cout << "E0 = " << E0_[idx] << std::endl;
+  if(dE == E){
+    dE = E - 0.99*E;
+  }
+
+  if(dE==0){
+    delta = 1;
+  }else{
+    delta = dE / std::abs(dE);
+  }
+  //dPPa = P0_[idx] - Pa0_[idx];
+
+  //Effective electric field
+  Ee = E + alpha_ * P0_[idx];
+
+  //anhysteretic polarisation
+  Pa = Ps_ * (cosh(Ee / a_) / sinh(Ee / a_) - a_ / Ee);
+
+
+  //irreversible polarisation
+  Pi = Pi0_[idx] + (Pa - Pi0_[idx]) * dE / (delta * k_ - alpha_ * (Pa - Pi0_[idx]));
+
+  // total polarization
+  P = c_ * Pa + (1 - c_) * Pi;
+
+  // this are the latest values...
+  Pa1_[idx] = Pa;
+  Pi1_[idx] = Pi;
+  P1_[idx] = P;
+  E1_[idx] = E;
+
+
+  return P;
+}
+
+void Jiles::saveValues(bool InstantSave){
+  if((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "step")) || InstantSave){
+    Pa0_=Pa1_;
+    Pi0_=Pi1_;
+    P0_=P1_;
+    E0_=E1_;
+
+    Pa1_.Init(0);
+    Pi1_.Init(0);
+    P1_.Init(0);
+    E1_.Init(0);
+
+    timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "step");
+  }
+
+}
+
+}
+

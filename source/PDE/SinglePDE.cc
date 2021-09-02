@@ -502,6 +502,8 @@ namespace CoupledField {
         std::string actTypeString = nonLinNodes[i]->GetName();
         std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
+        modelName_ = nonLinNodes[i]->Get("model")->As<std::string>();
+
         //std::cout << "actTypeString " << actTypeString << std::endl;
         //std::cout << "actId " << actId << std::endl;
         
@@ -519,7 +521,7 @@ namespace CoupledField {
         myParam_->Get("regionList")->GetChildren();
       
       RegionIdType actRegionId;
-      std::string actRegionName, actNonLinId;
+      std::string actRegionName, actNonLinId;//, actHysteresis;
       
 //           if( regionNodes.GetSize() > 0 ) {
 //             Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
@@ -531,6 +533,8 @@ namespace CoupledField {
         // get data
         regionNodes[i]->GetValue( "name", actRegionName );
         regionNodes[i]->GetValue( "nonLinIds", actNonLinId );
+        //regionNodes[i]->GetValue("hysteresis", actHysteresis);
+
         
         //std::cout << "actRegionName " << actRegionName << std::endl;
         //std::cout << "actNonLinId " << actNonLinId << std::endl;
@@ -565,8 +569,10 @@ namespace CoupledField {
           //if one nonlinearity is set, then the whole PDE is set to nonlinear
           nonLin_ = true;
 
-          if ( nonLinTypes_[nonLinId] == HYSTERESIS ){
-            isHysteresis_ = true;
+          //Here i have to do something. O
+          //Original Code:
+           if ( nonLinTypes_[nonLinId] == HYSTERESIS ){
+             isHysteresis_ = true;
             //or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )// enum removed
             //fixpoint iteration can be selected via evaluationParameter flag
             // > see stdSolveStep for more details

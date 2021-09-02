@@ -3,6 +3,7 @@
 
 #include "SinglePDE.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 namespace CoupledField
 {
@@ -194,6 +195,8 @@ namespace CoupledField
     //! Coefficient function for the multiharmonic material adaptions
     shared_ptr<CoefFunction> multiHarmCoef_;
 
+    // Coefficient function for material model
+    shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
   };
   
 #ifdef DOXYGEN_DETAILED_DOC

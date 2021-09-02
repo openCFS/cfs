@@ -251,6 +251,6 @@
       <xsd:enumeration value="analytic"/>
     </xsd:restriction>
   </xsd:simpleType>
-
+  
 </xsd:schema>
 

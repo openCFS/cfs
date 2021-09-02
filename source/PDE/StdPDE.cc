@@ -40,7 +40,7 @@ namespace CoupledField {
     nonLinMaterial_(false),
     nonLinTotalFormulation_(false),
     isHysteresis_(false),
-    nonLinNonHyst_(false),
+    modelName_("nonlinearCurve"),
     matDepend_(false),
     nonLinMethod_(FIXEDPOINT),
     pdematerialclass_(NO_CLASS),

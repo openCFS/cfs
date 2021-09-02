@@ -17,6 +17,7 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
+
 #include "Domain/CoefFunction/CoefXpr.hh"
 
 #include "Utils/SmoothSpline.hh"
@@ -1513,6 +1514,14 @@ namespace CoupledField
        StdVector<RegionIdType> & regs)
    {
      EXCEPTION("not implemented in base class");
+   }
+
+
+   PtrCoefFct BaseMaterial::GetScalCoefFncModel(shared_ptr<CoefFunction> coefObj){
+
+   shared_ptr<CoefFunction> coef;
+   coef = coefObj;
+   return coef;
    }
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,

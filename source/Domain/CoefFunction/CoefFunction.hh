@@ -800,6 +800,11 @@ public:
 	  neighborRegionId_[surfId] = volId;
   }
 
+  //! To initialze the material model
+  virtual void InitModel(std::map<std::string, double> ParameterMap , UInt numElems){
+    EXCEPTION( "Not implemented in base class");
+  }
+
   //! return volume regionId being the correct neighbor of a surface region id
   virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
 	  return neighborRegionId_[surfId];

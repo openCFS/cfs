@@ -1,0 +1,94 @@
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "General/Environment.hh"
+#include <cmath>
+
+#include <boost/bind/bind.hpp>
+#include <boost/lexical_cast.hpp>
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
+
+//Include the new Models here
+#include "Materials/Models/Jiles.hh"
+#include "Materials/Models/Model.hh"
+
+#include <list>
+
+#include "MatVec/Vector.hh"
+
+namespace CoupledField {
+
+DEFINE_LOG(cfjc, "CoefFunctionMaterialModel")
+
+// ==========================================================================
+//  COEFFICIENT FUNCTION CACHE
+// ==========================================================================
+// Example for using Coefficient Function Cache:
+// See MechPDE::DefinePostProcResults() MechStress, MechPrincipalStress
+template<class TYPE> CoefFunctionMaterialModel<TYPE>::CoefFunctionMaterialModel() :
+    CoefFunction() {
+  dependType_ = SOLUTION;
+
+  isAnalytic_ = false;
+  isComplex_ = false;
+}
+
+template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depCoef, std::string modelName){
+
+  LOG_DBG(cfjc)
+  << "Init CoefFunctionMaterialModel" << std::endl;
+
+  depCoef_ = depCoef;
+
+  modelName_ = modelName;
+
+  if (modelName_ == "JilesAthertonModel") {
+    dimType_ = SCALAR;
+
+    static Jiles JilesModel;
+    matModel_ = &JilesModel;
+
+    std::cout << "Initialized Model: " << modelName_ << std::endl;
+  } else {
+    EXCEPTION("Model not implemented! ("<< modelName_<<")")
+  }
+}
+
+template<class TYPE> CoefFunctionMaterialModel<TYPE>::~CoefFunctionMaterialModel() {
+}
+
+template<class T> void CoefFunctionMaterialModel<T>::InitModel(
+    std::map<std::string, double> ParameterMap, UInt numElems) {
+
+  matModel_->Init(ParameterMap, numElems);
+
+}
+
+template<class T> void CoefFunctionMaterialModel<T>::GetScalar(
+    Double &coefScalar, const LocPointMapped &lpm) {
+  Vector<Complex> DependentVec;
+
+  depCoef_->GetVector(DependentVec, lpm);
+
+  //Can i do this in less codelines? Complex vector to Real Vector??
+  Vector<Double> RealDependentVec;
+
+  RealDependentVec.Resize(3);
+  RealDependentVec.Init(0);
+
+  RealDependentVec[0] = std::real(DependentVec[0]);
+  RealDependentVec[1] = std::real(DependentVec[1]);
+  RealDependentVec[2] = std::real(DependentVec[2]);
+
+  coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+
+  LOG_DBG(cfjc)
+  << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
+  LOG_DBG(cfjc)
+  << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
+  LOG_DBG(cfjc)
+  << "Epsilon = :" << coefScalar << std::endl;
+}
+
+template class CoefFunctionMaterialModel<Double> ;
+template class CoefFunctionMaterialModel<Complex> ;
+
+} // end of namespace

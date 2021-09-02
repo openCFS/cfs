@@ -13,6 +13,7 @@ SET(MATERIALS_SRCS
   TestMaterial.cc
   Models/Hysteresis.cc
   Models/Jiles.cc
+  Models/Model.cc
   Models/PiezoMicroModelBK.cc
   Models/PiezoMicroModelHF.cc
   Models/VectorPreisachSutor.cc
@@ -26,4 +27,5 @@ ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
 TARGET_LINK_LIBRARIES(materials
   utils
   odesolver
+  coeffunction
 )

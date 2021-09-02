@@ -648,6 +648,7 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="id" type="xsd:token" use="required"/>
+        <xsd:attribute name="model" type="xsd:token" default="nonlinearCurve" use="optional"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

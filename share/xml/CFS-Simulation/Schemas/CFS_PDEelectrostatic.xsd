@@ -76,7 +76,12 @@
                 </xsd:element>
                 <xsd:element name="elecPermittivity" type="DT_ElecNonLinMat">
                   <xsd:annotation>
-                    <xsd:documentation>Permittivity nonlinear</xsd:documentation>
+                    <xsd:documentation>
+                    Nonlinear Permittivity;
+                    Either nonlinear materialcurve (default) or model.
+                    Implemented hysteresis models:
+                    JilesAthertonModel (explizit);
+                    </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
               </xsd:choice>

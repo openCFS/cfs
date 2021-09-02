@@ -836,14 +836,36 @@
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
     </xsd:all>
   </xsd:complexType>
-
+  
  <xsd:complexType name="DT_JilesAthertonModelElec">
+     <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for JA-Model;
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:all>
-      <xsd:element name="jiles_test" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="Ps" type="DT_FloatUnitInterval" minOccurs="1"/>
+      <xsd:element name="a" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="alpha" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="k" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="c" type="DT_FloatUnitInterval" minOccurs="1"/>
     </xsd:all>
-  </xsd:complexType>
+  </xsd:complexType>  
+  
+  <xsd:complexType name="DT_JilesAthertonModel">
+     <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameter for JA-Model;
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="Ps" type="DT_FloatUnitInterval" minOccurs="1"/>
+      <xsd:element name="a" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="alpha" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="k" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="c" type="DT_FloatUnitInterval" minOccurs="1"/>
+    </xsd:all>
+  </xsd:complexType>  
 
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">
     <xsd:sequence>

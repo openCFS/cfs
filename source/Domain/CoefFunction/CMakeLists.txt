@@ -27,6 +27,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionHarmBalance.cc
   CoefFunctionComplexToReal.cc
   CoefFunctionDiagTensorFromScalar.cc
+  CoefFunctionMaterialModel.cc
   CoefFunctionConversion.hh
 )
 
@@ -38,6 +39,7 @@ ENDIF()
 
 SET(TARGET_LL 
   scattereddatainout
+  materials
   ${MUPARSER_LIBRARY} 
   ${LAPACK_LIBRARY} )
 

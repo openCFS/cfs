@@ -597,6 +597,8 @@ namespace CoupledField {
   {
     // check for permittivity
     PtrParamNode permit = elec->Get("permittivity", ParamNode::PASS);
+    PtrParamNode model;
+
     if (permit) {
       if (permit->Has("linear")) {
         MaterialType orthoProp[3] = {
@@ -610,6 +612,20 @@ namespace CoupledField {
         BaseMaterial::MatDescriptorNl nlInfo =
             ReadNonlinDescriptor(permit->Get("nonlinear")->Get("isotropic"), material);
         material->SetNonLinMatIso(ELEC_PERMITTIVITY_SCALAR, nlInfo);
+      }
+
+      if (permit->Has("model") && permit->Get("model")->Has("isotropic")){
+        if (permit->Get("model")->Get("isotropic")->Has("JilesAthertonModel")){
+
+          model = permit->Get("model")->Get("isotropic")->Get("JilesAthertonModel");
+
+          material->SetScalar(model->Get("Ps")->As<Double>(), MaterialType(ELEC_PS_JILES), Global::REAL );
+          material->SetScalar(model->Get("a")->As<Double>(), MaterialType(ELEC_A_JILES), Global::REAL );
+          material->SetScalar(model->Get("alpha")->As<Double>(), MaterialType(ELEC_ALPHA_JILES), Global::REAL );
+          material->SetScalar(model->Get("k")->As<Double>(), MaterialType(ELEC_K_JILES), Global::REAL );
+          material->SetScalar(model->Get("c")->As<Double>(), MaterialType(ELEC_C_JILES), Global::REAL );
+
+        }
       }
     } // end of permittivity
     
@@ -1335,10 +1351,6 @@ namespace CoupledField {
       if (model->Has("jiles_test")){
         material->SetScalar(model->Get("jiles_test")->As<Double>(), MaterialType(JILES_TEST), Global::REAL );
       }
-
-      // read input/output saturation of Preisach hysterese model
-      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
-      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
     }
     else if (operatorNode->Has("vectorPreisach_Sutor")){
 //      std::cout << "vectorPreisach_Sutor" << std::endl;

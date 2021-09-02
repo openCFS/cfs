@@ -77,10 +77,11 @@ namespace CoupledField
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
     isAllowed_.insert( Y_REMANENCE );
-    isAllowed_.insert( A_JILES );
-    isAllowed_.insert( ALPHA_JILES );
-    isAllowed_.insert( K_JILES );
-    isAllowed_.insert( C_JILES );
+    isAllowed_.insert( ELEC_PS_JILES );
+    isAllowed_.insert( ELEC_A_JILES );
+    isAllowed_.insert( ELEC_ALPHA_JILES );
+    isAllowed_.insert( ELEC_K_JILES );
+    isAllowed_.insert( ELEC_C_JILES );
     isAllowed_.insert( JILES_TEST );
     isAllowed_.insert( P_DIRECTION );
     isAllowed_.insert( P_DIRECTION_X );
