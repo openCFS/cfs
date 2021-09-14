@@ -28,9 +28,9 @@ int BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
 {
   bfgs_details.Resize(0); // prepare for logging
 
-  LOG_DBG3(bfgs_LOG) << "SolB: initial xc=" << xc.ToString(0);
-  LOG_DBG3(bfgs_LOG) << "SolB: initial up=" << up.ToString(0);
-  LOG_DBG3(bfgs_LOG) << "SolB: initial lo=" << lo.ToString(0);
+  LOG_DBG3(bfgs_LOG) << "SolB: initial xc=" << xc.ToString();
+  LOG_DBG3(bfgs_LOG) << "SolB: initial up=" << up.ToString();
+  LOG_DBG3(bfgs_LOG) << "SolB: initial lo=" << lo.ToString();
 
   /** Sanity check for the dimension */
   assert(n== xc.GetSize() && n== up.GetSize() && n== lo.GetSize());

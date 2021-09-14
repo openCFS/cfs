@@ -392,7 +392,7 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
   Vector<double> d(n);
   d = std_x_new - x_old;
 
-  LOG_DBG2(feasPP) << "FP:B dx_org=" << d.ToString(0, ' ');
+  LOG_DBG2(feasPP) << "FP:B dx_org=" << d.ToString();
   LSR result;
   result.org_dx = d.NormL2();
 
@@ -416,12 +416,12 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
     t *= 0.5;
     x_new = d * t; // temporary only!
     result.curr_dx = x_new.NormL2();
-    LOG_DBG2(feasPP) << "FP:B dx_new=" << x_new.ToString(0, ' ');
+    LOG_DBG2(feasPP) << "FP:B dx_new=" << x_new.ToString();
     x_new += x_old;
-    LOG_DBG2(feasPP) << "FP:B x_new=" << x_new.ToString(0, ' ');
+    LOG_DBG2(feasPP) << "FP:B x_new=" << x_new.ToString();
     optimization->GetDesign()->ReadDesignFromExtern(x_new.GetPointer());
     ov = EvalObjective(n, x_new.GetPointer(), true);
-    LOG_DBG2(feasPP) << "FP:B e=" << result.steps << " t=" << t << " ov=" << ov << " old_ov=" << obj->outer_val << " x=" << x_new.ToString(0, ' ');
+    LOG_DBG2(feasPP) << "FP:B e=" << result.steps << " t=" << t << " ov=" << ov << " old_ov=" << obj->outer_val << " x=" << x_new.ToString();
   }
   assert(!(!obj->approximate && result.steps > 1)); // see comment above
 
@@ -434,10 +434,10 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
 
 FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, Vector<double>& v, PtrParamNode in)
 {
-  LOG_DBG3(feasPP) << "ALLS x=[" << x.ToString(0, ' ') << "]";
-  LOG_DBG3(feasPP) << "ALLS z=[" << z.ToString(0, ' ') << "]";
-  LOG_DBG3(feasPP) << "ALLS y=[" << y.ToString(0, ' ') << "]";
-  LOG_DBG3(feasPP) << "ALLS v=[" << v.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS x=[" << x.ToString() << "]";
+  LOG_DBG3(feasPP) << "ALLS z=[" << z.ToString() << "]";
+  LOG_DBG3(feasPP) << "ALLS y=[" << y.ToString() << "]";
+  LOG_DBG3(feasPP) << "ALLS v=[" << v.ToString() << "]";
   // the upper part of d
   Vector<double> dx(n);
   dx = z - x;
@@ -447,11 +447,11 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
   // Algorithm 1 in the paper
   Vector<double> d(dx, dy);
-  LOG_DBG3(feasPP) << "ALLS d=[" << d.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS d=[" << d.ToString() << "]";
 
   Vector<double> grad_phi(n + m);
   CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
-  LOG_DBG3(feasPP) << "ALLS grad_phi=[" << grad_phi.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS grad_phi=[" << grad_phi.ToString() << "]";
 
   double grad_phi_d = grad_phi  * d;
   double phi = CalcAugmentedLagrangian(x, y, rho);
@@ -509,8 +509,8 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   }
   optimization->GetDesign()->ReadDesignFromExtern(x_next.GetPointer());
   LOG_DBG2(feasPP) << "FP:ALLS sigma_phi=" << sigma_phi << " < phi=" << phi << " dec=" << decrease_ << " sig=" << sigma << " sp=" << grad_phi_d << " (" << (phi + decrease_ * sigma * grad_phi_d) << ")";
-  LOG_DBG3(feasPP) << "ALLS x_k+1=[" << x_next.ToString(0, ' ') << "]";
-  LOG_DBG3(feasPP) << "ALLS y_k+1=[" << y_next.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS x_k+1=[" << x_next.ToString() << "]";
+  LOG_DBG3(feasPP) << "ALLS y_k+1=[" << y_next.ToString() << "]";
 
   // save new line search. The new_x is communicated via design
   v = y_next;
@@ -576,8 +576,8 @@ void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec
 
 double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho)
 {
-  LOG_DBG3(feasPP) << "FP:CAL x=" << x.ToString(0, ' ');
-  LOG_DBG3(feasPP) << "FP:CAL y=" << y.ToString(0, ' ');
+  LOG_DBG3(feasPP) << "FP:CAL x=" << x.ToString();
+  LOG_DBG3(feasPP) << "FP:CAL y=" << y.ToString();
 
   assert(x.GetSize() == n);
   assert(y.GetSize() == m && rho.GetSize() == m);
@@ -614,8 +614,8 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
 
 void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y_vec, const Vector<double>& rho_vec, Vector<double>& grad)
 {
-  LOG_DBG3(feasPP) << "FP:CGAL x=" << x.ToString(0, ' ');
-  LOG_DBG3(feasPP) << "FP:CGAL y=" << y_vec.ToString(0, ' ');
+  LOG_DBG3(feasPP) << "FP:CGAL x=" << x.ToString();
+  LOG_DBG3(feasPP) << "FP:CGAL y=" << y_vec.ToString();
   LOG_DBG3(feasPP) << "FP:CGAL rho=" << rho_vec.ToString();
 
   // dPhi/dxi = df/dxi + sum_c (y * dc/dixi + rho*c*dc/dxi)
@@ -895,8 +895,8 @@ void FeasPP::DumpFMPTensors()
   {
     Matrix<double> E;
     optimization->GetDesign()->GetErsatzMaterialTensor(E, PLANE_STRAIN, optimization->GetDesign()->data[i].elem, DesignElement::NO_DERIVATIVE, HILL_MANDEL);
-    LOG_DBG2(feasPP) << "SP sps i=" << i << " -> " << E.ToString(2);
-    std::cout  << "SP sps i=" << i << " -> " << E.ToString(2) << std::endl;
+    LOG_DBG2(feasPP) << "SP sps i=" << i << " -> " << E.ToString();
+    std::cout  << "SP sps i=" << i << " -> " << E.ToString() << std::endl;
   }*/
 }
 
@@ -1136,7 +1136,7 @@ void MMAApproximation::AddHessianPattern(compressed_matrix<double>& hessian)
   for(unsigned int i = 0; i < hess_pattern.GetNumRows(); i++)
     hessian(hess_pattern(i, 0), hess_pattern(i, 1)) = 1.0;
 
-  LOG_DBG3(feasPP) << "A:AHP f=" << ToString() << " -> " << hess_pattern.ToString(0, false);
+  LOG_DBG3(feasPP) << "A:AHP f=" << ToString() << " -> " << hess_pattern.ToString();
 }
 
 unsigned int MMAApproximation::FindGradIndex(unsigned int design) const

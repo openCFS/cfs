@@ -46,7 +46,7 @@ std::string AnalysisID::ToString(bool filename) const
   // can be empty in the non-optimization case
   if(ss.str().size() == 0)
     if(domain->GetSingleDriver() != NULL && domain->GetSingleDriver()->DoBlochModeEigenfrequency())
-      ss << "wv_(" << dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver())->GetCurrentWaveVector().ToString(0,',') << ")";
+      ss << "wv_(" << dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver())->GetCurrentWaveVector().ToString(TS_PLAIN,",") << ")";
 
   return ss.str();
 }

@@ -2272,7 +2272,7 @@ namespace CoupledField {
 
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
       *(rhs_) = newRHS;
-      LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+      LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString();
       return;
     }
 
@@ -3787,7 +3787,7 @@ namespace CoupledField {
         }
         retVec[i] = entry;
       }
-      LOG_DBG(algSys) << "retVec " << retVec.ToString(2);
+      LOG_DBG(algSys) << "retVec " << retVec.ToString();
     }
   }
 

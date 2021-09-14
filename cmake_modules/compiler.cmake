@@ -206,6 +206,11 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-stringop-truncation ")
   endif()
 
+  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "10.0")
+    # to prevent boost error with gcc 11:  ‘this’ pointer is null [-Werror=nonnull]
+    # try to remove when boost ist updated beyond 1.73
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-nonnull ")
+  endif()
 
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")

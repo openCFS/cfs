@@ -246,7 +246,7 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
   assert(f->ctxt == this);
   assert(base < excitations.GetSize());
   if(!me_->DoMetaExcitation(f->ctxt)){
-    LOG_DBG3(context) << "C::GE  base=" << base << " excitation=" << excitations[base]->test_strain.ToString(2);
+    LOG_DBG3(context) << "C::GE  base=" << base << " excitation=" << excitations[base]->test_strain.ToString();
     return excitations[base];
   }
   else

@@ -275,7 +275,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex();
     assert(vec != NULL);
     const Vector<double>& a = *vec; // a = the vector potential in the element
-    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2) << " -> " << result;
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString() << " -> " << result;
 
     // prepare to get the curl operator
     el.SetElement(de->elem);
@@ -290,7 +290,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
     vol = esm->CalcVolume();
 
-    LOG_DBG2(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
+    LOG_DBG2(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString() << " v=" << vol;
     // add element volume to volume of whole domain
     volume += vol;
     LOG_DBG3(ms) << "CMFD accumulated volume =" << volume;
@@ -307,7 +307,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       bdb->GetBOp()->CalcOpMat(M, lp, ptFe);
       assert(M.GetNumCols() == a.GetSize());
       assert(M.GetNumRows() == domain->GetGrid()->GetDim());
-      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/(" << intPoints[ip].coord.ToString() << ") w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
+      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/(" << intPoints[ip].coord.ToString() << ") w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString();
 
       // flux_denx = M * a
       flux_dens.Resize(dim);
@@ -328,7 +328,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
         el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens) * 2; // * 2 because of edge element?
       }
 
-      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
+      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString() << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
     } // end ip
 
     result += el_val;
@@ -656,11 +656,11 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
     // M = B^T S B as in BDBInt::CalcElementMatrix, just S from above instead of D with material and density
     bdb->CalcElementMatrix(M, it, it);
-    LOG_DBG3(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
+    LOG_DBG3(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString() << " M=" << M.ToString();
 
     // now the part -2 * M * A
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
-    LOG_DBG3(ms) << "CMFAR e=" << e << " esi=" << de->GetElementSolutionIndex() << " nodal values=" << vec->ToString(2);
+    LOG_DBG3(ms) << "CMFAR e=" << e << " esi=" << de->GetElementSolutionIndex() << " nodal values=" << vec->ToString();
     assert(vec != NULL);
     Vector<double>& a = *vec; // a = the vector potential in the element
     if(dim == 3)
@@ -672,10 +672,10 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     M.Mult(a, rhs_el);
     rhs_el *= -2;
 
-    LOG_DBG3(ms) << "CMFAR e=" << e << " a=" << a.ToString(2) << " -> -2 M*a: r=" << rhs_el.ToString(2);
+    LOG_DBG3(ms) << "CMFAR e=" << e << " a=" << a.ToString() << " -> -2 M*a: r=" << rhs_el.ToString();
 
     c->GetIntegrator()->GetFeSpace1()->GetElemEqns(eqn, de->elem);
-    LOG_DBG3(ms) << "CMFAR e=" << e << " eqn=" << eqn.ToString(2);
+    LOG_DBG3(ms) << "CMFAR e=" << e << " eqn=" << eqn.ToString();
     assert(rhs_el.GetSize() == eqn.GetSize());
 
     // add element volume to volume of whole domain
@@ -757,8 +757,8 @@ void MagSIMP::CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<dou
 
   CalcN(form_A, N1);
   CalcN(form_B, N2);
-  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
-  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
+  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString();
+  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString();
 
   double sp_N1_Aa = Inner(N1, A_a);
   double sp_N1_Ab = Inner(N1, A_b);
@@ -828,8 +828,8 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
 
   CalcN(form_A, N1);
   CalcN(form_B, N2);
-  LOG_DBG3(ms) << "CCAR: N1 = " << N1.ToString(2);
-  LOG_DBG3(ms) << "CCAR: N2 = " << N2.ToString(2);
+  LOG_DBG3(ms) << "CCAR: N1 = " << N1.ToString();
+  LOG_DBG3(ms) << "CCAR: N2 = " << N2.ToString();
 
   // N1_AB = <N1, sqrt(real(AB).^2 + imag(AB).^2)>
   double N1_AA = InnerHelper(N1, A_a);
@@ -931,7 +931,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
     // Overwrite again with the stuff from StateSolution.cc line 353 and 445
 
-    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
+    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString();
 
     double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
@@ -947,7 +947,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
     Assign(out, stiffness, alpha); // out = alpha * stiffness
 
-    //LOG_DBG3(ms) << "out=" << out.ToString(2);
+    //LOG_DBG3(ms) << "out=" << out.ToString();
     break;
   }
 
@@ -975,7 +975,7 @@ void MagSIMP::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignEle
 
   out += in_out;
 
-  LOG_DBG3(ms) << "SCUKU: de=" << de->ToString() << " tf=" << tf->ToString() << " d_rho= " << d_rho << " in_out=" << in_out.ToString(2) << " mat_vec= " << mat_vec->ToString();
+  LOG_DBG3(ms) << "SCUKU: de=" << de->ToString() << " tf=" << tf->ToString() << " d_rho= " << d_rho << " in_out=" << in_out.ToString() << " mat_vec= " << mat_vec->ToString();
 
 }
 

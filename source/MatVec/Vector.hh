@@ -530,11 +530,11 @@ template<typename T> class ElemStoreSol;
 
     //! \name Methods for I/O operations
 
-    //@{
-    /** Prints the content for Logging
-     * @param level 0 is all content, 1 is only non zero, 2 is all content in MATLAB format
-     * @param separator character  */
-    std::string ToString(const int level = 0, const char separator = ' ') const;
+    /** print content for logging or nice output
+     * @param format one TS_PLAIN (no brackets), TS_MATLAB, TS_PYTHON, TS_INFO (summary only)
+     * @param sep separator string, when empty meaningful default is used
+     * @param digits when given enforces format */
+    std::string ToString(ToStringFormat format = TS_PYTHON, const std::string& sep="", int digits=-1) const;
 
     //! Export vector to file
 
@@ -550,7 +550,6 @@ template<typename T> class ElemStoreSol;
      * @see Fill() */
     void Export(PyObject* obj);
 
-    //@}
 
     // =======================================================================
     // OBTAIN / MANIPULATE MATRIX ENTRIES

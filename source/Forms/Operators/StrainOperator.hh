@@ -939,7 +939,7 @@ namespace CoupledField{
        bMat[2][pos+0] = Complex(real[2][pos+0], shape[iFunc] * wv[1]);  // N_a,y + j k_y N_a
        bMat[2][pos+1] = Complex(real[2][pos+1], shape[iFunc] * wv[0]);  // N_a,x + j k_x N_a
      }
-     // std::cout << "SOB2D::COM e=" << lpm.ptEl->elemNum << " wv=" << wv.ToString() << " sF[0]=" << shape[0] << " bMat -> " << bMat.ToString(2) << std::endl;
+     // std::cout << "SOB2D::COM e=" << lpm.ptEl->elemNum << " wv=" << wv.ToString() << " sF[0]=" << shape[0] << " bMat -> " << bMat.ToString() << std::endl;
    }
 
    template<class FE, class TYPE>

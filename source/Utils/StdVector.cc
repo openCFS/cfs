@@ -430,43 +430,38 @@ namespace CoupledField {
 
   
   template<class TYPE>
-  std::string StdVector<TYPE>::ToString(int size, const TYPE* data, int level, int stride)
+  std::string StdVector<TYPE>::ToString(int size, const TYPE* data, ToStringFormat format, const std::string& sep_in)
   {
     std::ostringstream os;
 
-    switch(level)
-    {
-    case 0:
+    std::string sep = sep_in != "" ? sep_in : (format == TS_PYTHON ? ", " : " ");
 
-      for(int i = 0; i < size; i += stride)
+    switch(format)
+    {
+    case TS_INFO:
+      os << " size=" << size;
+      break;
+
+    case TS_MATLAB:
+    case TS_PYTHON:
+      os << "[";
+      // intentionally no break;
+    case TS_PLAIN:
+      for(int i = 0; i < size; i++)
       {
         os << data[i];
-        if(i < size-1) os << ", ";
+
+        if(i < size-1)
+          os << sep;
       }
+      if(format != TS_PLAIN)
+        os << "]";
       break;
-
-    default:
       
-      os << "size=" << size;
-      if(size > 0)
-      {
-        // todo: We have no min/max in the complex case!
-
-        /*
-        TYPE min = data[0];
-        TYPE max = data[0];
-
-        for(int i = 0; i < size; i++)
-        {
-          min = std::min(min, data[i]);
-          max = std::max(max, data[i]);
-        }
-        os << " min=" << min << " max=" << max;
-        */        
-      }
+    case TS_NONZEROS:
+      throw Exception("TS_NONZEROS is no valid format for StdVector::ToString()");
       break;
     }
-
     return os.str();
   }
 
@@ -528,17 +523,17 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  std::string StdVector<TYPE>::ToString(int level, int stride, bool in_window) const
+  std::string StdVector<TYPE>::ToString(ToStringFormat format, const std::string& sep, bool in_window) const
   {
     if(!in_window)
-      return StdVector<TYPE>::ToString(size_, data_, level, stride);
+      return StdVector<TYPE>::ToString(size_, data_, format, sep);
     else
     {
       #ifdef CHECK_INDEX
         if(window.GetStart() + window.GetSize() > size_)
           EXCEPTION("Vector: window bounds violated." );
       #endif
-      return StdVector<TYPE>::ToString(window.GetSize(), data_ + window.GetStart(), level, stride);
+      return StdVector<TYPE>::ToString(window.GetSize(), data_ + window.GetStart(), format, sep);
     }
   }
   

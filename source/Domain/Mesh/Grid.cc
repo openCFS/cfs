@@ -94,7 +94,7 @@ namespace CoupledField
           CalcBoundingBoxOfRegion(regs[r], tmp, sys);
 
           LOG_DBG(grid) << "CGBB: tmp rows= " << tmp.GetNumRows() << " cols = " << tmp.GetNumCols();
-          LOG_DBG(grid) << "CGBB: " << r << " regs[r]reg=" << regs[r] << " = " << region_.ToString(regs[r]) << " bb=" << tmp.ToString(0, false);
+          LOG_DBG(grid) << "CGBB: " << r << " regs[r]reg=" << regs[r] << " = " << region_.ToString(regs[r]) << " bb=" << tmp.ToString();
           if(r == 0) // the first region is the first guess
             box = tmp;
           else

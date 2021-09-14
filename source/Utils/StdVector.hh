@@ -4,6 +4,7 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <vector>
 #include "General/Exception.hh"
+#include "General/EnvironmentTypes.hh"
 #include <def_build_type_options.hh>
 #include <limits>
 
@@ -410,26 +411,30 @@ namespace CoupledField {
     //! Return vector as separated string
     std::string Serialize( char separator = ',') const;
 
-   
-    /** Default output but you can choose to select the window */
-    std::string ToString(bool in_window) const {
-      return ToString(0, 1, in_window);
-    }
+     /** print content for logging or nice output.
+      * See unittests.cc Matrix_ToString for test cases
+      * TS_PLAIN is space separated
+      * TS_MATLAB is with brackets, no comma between elements
+      * TS_PYTHON is with brackets, commas between elements
+      * TS_INFO gives summary
+      * TS_NONZEROS invalid option
+      * @param sep separator string, when empty meaningful default is used
+      * @param in_window only for window. what requires the window to be set */
+     std::string ToString(ToStringFormat format = TS_PLAIN, const std::string& sep="", bool in_window = false) const;
 
-     /** Lists the content comma seperated.
-      * @param level 0=all data, 1 is summary, the higher, the less 
-      * @param stride on level=0 every element(1), every second (2), ...
-      * @param in_window only for window. what requres the window to be set*/
-     std::string ToString(int level=0, int stride=1, bool in_window = false) const;
-     
+     /** comma separated output for window only  */
+     std::string ToString(bool in_window) const {
+       return ToString(TS_PLAIN, ", ", in_window);
+     }
+
      /** List the content or summary of an external source 
-      * @see ToString(int)*/
-     static std::string ToString(int size, const TYPE* data, int level=0, int stride=1);
+      * @see ToString() */
+     static std::string ToString(int size, const TYPE* data, ToStringFormat format = TS_PLAIN, const std::string& sep="");
 
      /** converts the content to a string vector */
      void ToString(StdVector<std::string>& out) const;
 
-     /** Reas the content from a string list */
+     /** Reads the content from a string list */
      void Parse(const StdVector<std::string>& in);
 
      /** This is a little helper to define a range within the data.

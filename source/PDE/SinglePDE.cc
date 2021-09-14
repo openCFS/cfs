@@ -1421,10 +1421,10 @@ namespace CoupledField {
       locCoordNames.Push_back("xi");
       locCoordNames.Push_back("eta");
       locCoordNames.Push_back("zeta");      
-      char delim = '\t';
+      std::string delim = "\t";
       if(fap.csv) 
       {
-        delim = fap.delim;
+        delim = std::string(1,fap.delim);
       }
       
       // print out information
@@ -1462,7 +1462,7 @@ namespace CoupledField {
           
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPointcSys.ToString(5, delim) << delim;
+          out << globPointcSys.ToString(TS_PLAIN, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j].real() << delim;
           }
@@ -1505,7 +1505,7 @@ namespace CoupledField {
           fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPointcSys.ToString(5, delim) << delim;
+          out << globPointcSys.ToString(TS_PLAIN, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j] << delim;
           }

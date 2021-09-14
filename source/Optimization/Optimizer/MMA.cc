@@ -266,9 +266,9 @@ void MMA::ComputeObjectiveConstraintsSensitivities()
   }
 
   LOG_DBG(mmaTopOpt) << "COCS: obj_val=" << obj_val;
-  LOG_DBG2(mmaTopOpt) << "COCS: grad_objective=" << grad_objective.ToString(0);
-  LOG_DBG(mmaTopOpt) << "COCS: constraints=" << constraints.ToString(0);
-  LOG_DBG2(mmaTopOpt) << "COCS: grad_constraints=" << grad_constraints.ToString(0);
+  LOG_DBG2(mmaTopOpt) << "COCS: grad_objective=" << grad_objective.ToString();
+  LOG_DBG(mmaTopOpt) << "COCS: constraints=" << constraints.ToString();
+  LOG_DBG2(mmaTopOpt) << "COCS: grad_constraints=" << grad_constraints.ToString();
 
 }
 
@@ -327,7 +327,7 @@ bool MMA::SolveSubProblem()
     xold1 = xval;
   }
 
-  LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString();
 
   // Solve the MMA subproblem dual with interior point method
   sps_timer_->Start();
@@ -345,7 +345,7 @@ bool MMA::SolveSubProblem()
   }
   sps_timer_->Stop();
 
-  LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString();
 
   return sub_prob_iter >= 0; // nothing encoded in a negative iteration number
 }
@@ -363,7 +363,7 @@ void MMA::UpdateGCAsymptotes()
       upp[in] = max(xmax[in] + 1e-3, upp[in]);
     }
     LOG_DBG3(mmaTopOpt) << "GSP:GC rho_0= " << rho_0;
-    LOG_DBG3(mmaTopOpt) << "GSP:GC rho= " << rho.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "GSP:GC rho= " << rho.ToString();
   }
   else
   {
@@ -424,10 +424,10 @@ void MMA::UpdateGCAsymptotes()
     LOG_DBG2(mmaTopOpt) << "GSP:GC shouldUpdate= " << shouldUpdate;
     LOG_DBG2(mmaTopOpt) << "GSP:GC objective_approx(xnew)= " << objective_approx;
     LOG_DBG2(mmaTopOpt) << "GSP:GC objective(xnew)= " << obj_val;
-    LOG_DBG2(mmaTopOpt) << "GSP:GC constraints_approx(xnew)= " << constraints_approx.ToString(0);
-    LOG_DBG2(mmaTopOpt) << "GSP:GC constraints(xnew)= " << constraints.ToString(0);
+    LOG_DBG2(mmaTopOpt) << "GSP:GC constraints_approx(xnew)= " << constraints_approx.ToString();
+    LOG_DBG2(mmaTopOpt) << "GSP:GC constraints(xnew)= " << constraints.ToString();
     LOG_DBG2(mmaTopOpt) << "GSP:GC rho_0= " << rho_0;
-    LOG_DBG2(mmaTopOpt) << "GSP:GC rho= " << rho.ToString(0);
+    LOG_DBG2(mmaTopOpt) << "GSP:GC rho= " << rho.ToString();
   }
 }
 
@@ -514,11 +514,11 @@ void MMA::UpdateNonGCAsymptotes()
       }
     }
   } // end iter >= 2
-  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " xmin=" << xmin.ToString(3);
-  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " xmax=" << xmax.ToString(3);
-  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " xval=" << xval.ToString(3);
-  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " L=" << low.ToString(3);
-  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " U=" << upp.ToString(3);
+  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " xmin=" << xmin.ToString();
+  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " xmax=" << xmax.ToString();
+  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " xval=" << xval.ToString();
+  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " L=" << low.ToString();
+  LOG_DBG2(mmaTopOpt) << "UNGCA: iter=" << optimization->GetCurrentIteration() << " U=" << upp.ToString();
 
 }
 
@@ -546,8 +546,8 @@ void MMA::SetupSubProblem()
     if(de != NULL && res_idx_u >= 0)
       de->specialResult[res_idx_u] = upp[i];
   }
-  LOG_DBG2(mmaTopOpt) << "SSP: low=" << low.ToString(0);
-  LOG_DBG2(mmaTopOpt) << "SSP: upp=" << upp.ToString(0);
+  LOG_DBG2(mmaTopOpt) << "SSP: low=" << low.ToString();
+  LOG_DBG2(mmaTopOpt) << "SSP: upp=" << upp.ToString();
 
   // Formation of pij and qij
   assert(!(globallyConvergent && kappa)); // not both together
@@ -602,10 +602,10 @@ void MMA::SetupSubProblem()
       b[j] += p_ij[j][ni] /(upp[ni] - xval[ni]) + q_ij[j][ni] / (xval[ni] - low[ni]);
   }
 
-  LOG_DBG2(mmaTopOpt) << "SSP: b=" << b.ToString(0);
+  LOG_DBG2(mmaTopOpt) << "SSP: b=" << b.ToString();
   LOG_DBG2(mmaTopOpt) << "SSP: objective_r=" << objective_r << " obj_val=" << obj_val;
-  LOG_DBG2(mmaTopOpt) << "SSP: alpha=" << alpha.ToString(0);
-  LOG_DBG2(mmaTopOpt) << "SSP: beta=" << beta.ToString(0);
+  LOG_DBG2(mmaTopOpt) << "SSP: alpha=" << alpha.ToString();
+  LOG_DBG2(mmaTopOpt) << "SSP: beta=" << beta.ToString();
 }
 
 double MMA::EvalDualFunction(Vector<double> &lam)
@@ -648,8 +648,8 @@ Vector<double> MMA::EvalDualGrad(Vector<double> &lam)
   for(unsigned int jm=0; jm<m; ++jm)
     grad[jm] = - grad[jm];
 
-  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "BFGS: evalGrad=" << grad.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString();
+  LOG_DBG3(mmaTopOpt) << "BFGS: evalGrad=" << grad.ToString();
 
   return grad;
 }
@@ -662,9 +662,9 @@ void MMA::PrimalVarFromDualVar(const Vector<double>& lambda_in, Vector<double>& 
   assert(lambda_in.GetSize() == m);
   assert(x_out.GetSize() == n);
   assert(y_out.GetSize() == m);
-  LOG_DBG3(mmaTopOpt) << "PVFDV: lam=" << lambda_in.ToString(3);
-  LOG_DBG3(mmaTopOpt) << "PVFDV: p_0j=" << p_0j.ToString(3);
-  LOG_DBG3(mmaTopOpt) << "PVFDV: q_0j=" << q_0j.ToString(3);
+  LOG_DBG3(mmaTopOpt) << "PVFDV: lam=" << lambda_in.ToString();
+  LOG_DBG3(mmaTopOpt) << "PVFDV: p_0j=" << p_0j.ToString();
+  LOG_DBG3(mmaTopOpt) << "PVFDV: q_0j=" << q_0j.ToString();
 
   // double lambda_x_a = 0.0; Aage min-max handling
   for(unsigned int mj=0; mj < m; ++mj)
@@ -725,8 +725,8 @@ double MMA::FunctionOfDual(const Vector<double> &lam, const Vector<double>& x_in
   double val = -objective_r + sum + lagrange; // + z_d + 0.5*z_d*z_d; Aage min-max handing
   //double val = sum + lagrange; // + z_d + 0.5*z_d*z_d; Aage min-max handing
 
-  LOG_DBG3(mmaTopOpt) << "FOD: b=" << b.ToString(3) << " y=" << y_in.ToString(3) << " r0=" << objective_r
-                      << " lam=" << lam.ToString(3) << " sum=" << sum << " l=" << lagrange << " -> val " << val;
+  LOG_DBG3(mmaTopOpt) << "FOD: b=" << b.ToString() << " y=" << y_in.ToString() << " r0=" << objective_r
+                      << " lam=" << lam.ToString() << " sum=" << sum << " l=" << lagrange << " -> val " << val;
 
 
   // since this value will be used to maximize the Lagrange multiplier,
@@ -756,7 +756,7 @@ void MMA::HessianOfDual(const Vector<double>& lambda_in, const Vector<double>& m
   double pj_x_lambda = 0.0;
   double qj_x_lambda = 0.0;
 
-  LOG_DBG3(mmaTopOpt) << "HOD: l=" << lambda_in.ToString(3) << " mu=" << mu_in.ToString(3);
+  LOG_DBG3(mmaTopOpt) << "HOD: l=" << lambda_in.ToString() << " mu=" << mu_in.ToString();
 
 
   #pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lambda,qj_x_lambda)
@@ -860,12 +860,12 @@ void MMA::HessianOfDual(const Vector<double>& lambda_in, const Vector<double>& x
 
   hess_out = dh * dLi_dhT; // skip -1 as we would need to add it at the end again for maximization
 
-  LOG_DBG3(mmaTopOpt) << "HOD: l=" << lambda_in.ToString(3) << " x_in=" << x_in.ToString(3);
-  LOG_DBG3(mmaTopOpt) << "HOD: dh=" << dh.ToString(3);
-  LOG_DBG3(mmaTopOpt) << "HOD: dLi=" << dLi.ToString(3);
-  LOG_DBG3(mmaTopOpt) << "HOD: dLi_dhT=" << dLi_dhT.ToString(3);
+  LOG_DBG3(mmaTopOpt) << "HOD: l=" << lambda_in.ToString() << " x_in=" << x_in.ToString();
+  LOG_DBG3(mmaTopOpt) << "HOD: dh=" << dh.ToString();
+  LOG_DBG3(mmaTopOpt) << "HOD: dLi=" << dLi.ToString();
+  LOG_DBG3(mmaTopOpt) << "HOD: dLi_dhT=" << dLi_dhT.ToString();
 
-  LOG_DBG3(mmaTopOpt) << "HOD: hess_out=" << hess_out.ToString(3);
+  LOG_DBG3(mmaTopOpt) << "HOD: hess_out=" << hess_out.ToString();
 
   assert(!hess_out.ContainsInf());
   assert(!hess_out.ContainsNaN());
@@ -1042,7 +1042,7 @@ void DualSolver::Project(const Vector<double>& a, double beta, const Vector<doub
   for(unsigned int i = 0; i < a.GetSize(); i++)
     out[i] = std::max(0.0, std::min(a[i] + beta * b[i], 1e20));
 
-  LOG_DBG3(mmaTopOpt) << "DS:P a=" << a.ToString(3) << " beta=" << beta << " b=" << b.ToString(3) << " out=" << out.ToString(3);
+  LOG_DBG3(mmaTopOpt) << "DS:P a=" << a.ToString() << " beta=" << beta << " b=" << b.ToString() << " out=" << out.ToString();
 }
 
 Vector<double> DualSolver::Project(const Vector<double>& a, double beta, const Vector<double>& b)
@@ -1053,7 +1053,7 @@ Vector<double> DualSolver::Project(const Vector<double>& a, double beta, const V
   for(unsigned int i = 0; i < a.GetSize(); i++)
     out[i] = std::max(0.0, std::min(a[i] + beta * b[i], 1e20));
 
-  LOG_DBG3(mmaTopOpt) << "DS:P a=" << a.ToString(3) << " beta=" << beta << " b=" << b.ToString(3) << " -> " << out.ToString(3);
+  LOG_DBG3(mmaTopOpt) << "DS:P a=" << a.ToString() << " beta=" << beta << " b=" << b.ToString() << " -> " << out.ToString();
 
   return out;
 }
@@ -1064,12 +1064,12 @@ void DualSolver::LogHessianMinor(int minor, double pgc_norm, const Vector<double
 {
   std::cout << "minor " << minor << " pgc " << pgc_norm << " lmbda ";
   if(mma->verbose_dual_vars)
-    std::cout << lmbda.ToString(3);
+    std::cout << lmbda.ToString();
   else
     std::cout << lmbda.NormL2();
   std::cout << " delta " << delta << " dir ";
   if(mma->verbose_dual_vars)
-    std::cout << dir.ToString(3);
+    std::cout << dir.ToString();
   else
     std::cout << dir.NormL2();
   std::cout << " hess " << do_hess << " ls_steps " << ls_steps << " step " << step << std::endl;
@@ -1091,19 +1091,19 @@ int DualSolver::FallbackHessianSolver()
 
   mma->PrimalVarFromDualVar(lambda, x, y);
   double fc = mma->FunctionOfDual(lambda, x,y0);
-  LOG_DBG2(mmaTopOpt) << "DS:FHS y=" << y.ToString(3) << " x="  << x.ToString(3);
-  LOG_DBG2(mmaTopOpt) << "DS:FHS l=" << lambda.ToString(3) << " fc=" << fc;
+  LOG_DBG2(mmaTopOpt) << "DS:FHS y=" << y.ToString() << " x="  << x.ToString();
+  LOG_DBG2(mmaTopOpt) << "DS:FHS l=" << lambda.ToString() << " fc=" << fc;
 
   mma->GradientOfDual(x, y0, grad);
   grad *= -1;
   mma->HessianOfDual(lambda, x, H);
 
-  LOG_DBG2(mmaTopOpt) << "DS:FHS l=" << lambda.ToString(3) << " mu=" << mu.ToString(3) << " H=" << H.ToString(3) << " grad=" << grad.ToString(3);
+  LOG_DBG2(mmaTopOpt) << "DS:FHS l=" << lambda.ToString() << " mu=" << mu.ToString() << " H=" << H.ToString() << " grad=" << grad.ToString();
   // we may not completely trust the cholesky check. Result might still be crap
   bool do_hess = H.CholeskySolveLapack(chol, dir, grad, false); // no excpetion on invalid matrix
   if(!do_hess)
     dir = grad; // when Hessian does not work, use steepest descent
-  LOG_DBG2(mmaTopOpt) << "DS:FHS dh=" << do_hess << " dir=" << dir.ToString(3);
+  LOG_DBG2(mmaTopOpt) << "DS:FHS dh=" << do_hess << " dir=" << dir.ToString();
 
   // set lt
   Project(lambda, -1.0, dir, lt); // lt = self.project(xc - dc, low, up)
@@ -1124,14 +1124,14 @@ int DualSolver::FallbackHessianSolver()
     int ls_steps = 0;
     // we have a valid Project(lambda,-1*step,dir, lt);
     Project(lambda,-1*step,dir, lt); // lt = self.project(lambda - step*dir, low, up)
-    LOG_DBG2(mmaTopOpt) << "lt=" << lt.ToString(3) << " dir=" << dir.ToString(3) << " step=" << step << " lambda=" << lambda.ToString(3);
+    LOG_DBG2(mmaTopOpt) << "lt=" << lt.ToString() << " dir=" << dir.ToString() << " step=" << step << " lambda=" << lambda.ToString();
     mma->PrimalVarFromDualVar(lt, x, y);
     double ft = mma->FunctionOfDual(lt, x, y0);
     double fgoal = fc - pow(lambda.NormL2(lt),2) * (alpha/step); // fgoal = fc - np.sum((xc - xt)**2) * (alpha/step)
     double fg_cp = fgoal; // fgoal_checkpoint in case we cancel non-trustworthy Hessian
 
-    LOG_DBG2(mmaTopOpt) << "DS:FHS minor=" << sub_prob_iter << " pgc=" << pgc << " lt=" << lt.ToString(3)
-                        << " s=" << step << " lc=" << lambda.ToString(3) << " dc=" << dir.ToString(3) << " ft=" << ft
+    LOG_DBG2(mmaTopOpt) << "DS:FHS minor=" << sub_prob_iter << " pgc=" << pgc << " lt=" << lt.ToString()
+                        << " s=" << step << " lc=" << lambda.ToString() << " dc=" << dir.ToString() << " ft=" << ft
                         << " fgoal=" << fgoal << " need_ls=" << (ft > fgoal + mma->sub_solve_tol/100);
     while(ft > fgoal + mma->sub_solve_tol/100)
     {
@@ -1164,11 +1164,11 @@ int DualSolver::FallbackHessianSolver()
 
     fc = ft;
     mma->PrimalVarFromDualVar(lt, x, y);
-    LOG_DBG2(mmaTopOpt) << "DS:FHS after ls: lt=" << lt.ToString(3) << " primal=" << x.ToString(3);
+    LOG_DBG2(mmaTopOpt) << "DS:FHS after ls: lt=" << lt.ToString() << " primal=" << x.ToString();
     mma->GradientOfDual(x, y0, grad);
     grad *= -1;
     mma->HessianOfDual(lt, x, H);
-    LOG_DBG2(mmaTopOpt) << "DS:FHS after ls: H=" << H.ToString(3) << " grad=" << grad.ToString(3);
+    LOG_DBG2(mmaTopOpt) << "DS:FHS after ls: H=" << H.ToString() << " grad=" << grad.ToString();
 
     // In Python we check the Hessian by (ev > 1e-8).all() but EV is too expensive and pos. def. is not sufficient (ev can be very small)
     // So in case the cholesky factorization succeeeds, we still go back, if the projection
@@ -1178,7 +1178,7 @@ int DualSolver::FallbackHessianSolver()
     if(!do_hess)
       dir = grad;
 
-    LOG_DBG2(mmaTopOpt) << "DS:FHS cholesky solve -> dh" << do_hess << " dir=" << dir.ToString(3) << " grad=" << grad.ToString(3) << " H=" << H.ToString(3);
+    LOG_DBG2(mmaTopOpt) << "DS:FHS cholesky solve -> dh" << do_hess << " dir=" << dir.ToString() << " grad=" << grad.ToString() << " H=" << H.ToString();
 
     double old_pgc = pgc;
     Vector<double> tmp = Project(lt,-1.0,dir);
@@ -1186,7 +1186,7 @@ int DualSolver::FallbackHessianSolver()
 
     if(do_hess && (tmp.NormL2() < 1e-4 || pgc > 10*old_pgc))
     {
-      LOG_DBG2(mmaTopOpt) << "DS:FHS abandon Hessian: proj=" << tmp.NormL2() << " pgc=" << pgc << " dir=" << dir.ToString(3) << " tmp=" << tmp.ToString(3);
+      LOG_DBG2(mmaTopOpt) << "DS:FHS abandon Hessian: proj=" << tmp.NormL2() << " pgc=" << pgc << " dir=" << dir.ToString() << " tmp=" << tmp.ToString();
       do_hess = false;
       dir = grad;
       Project(lt,-1.0,dir,tmp);
@@ -1255,9 +1255,9 @@ int PrimalDualSolver::IPSubProblemSolver()
         grad[j] = -1.0*grad[j] - epsi/lambda[j];
 
       mma->HessianOfDual(lambda,mu,x,hess);
-      LOG_DBG2(mmaTopOpt) << "DS:IPSPS hess=" << hess.ToString(3);
+      LOG_DBG2(mmaTopOpt) << "DS:IPSPS hess=" << hess.ToString();
       hess.DirectSolve(dir,grad);
-      LOG_DBG2(mmaTopOpt) << "DS:IPSPS hess dir=" << dir.ToString(3);
+      LOG_DBG2(mmaTopOpt) << "DS:IPSPS hess dir=" << dir.ToString();
 
       // copy dir to the first half of s
       for(unsigned int j=0;j<m;j++)

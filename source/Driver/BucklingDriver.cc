@@ -298,7 +298,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     EXCEPTION( "Did not find any eigenvalue!" );
   }
 
-  LOG_DBG3(buckD) << "CV: eigenvalues = " << eigenValues->ToString(2);
+  LOG_DBG3(buckD) << "CV: eigenvalues = " << eigenValues->ToString();
 
   Vector<Double> eigenValuesRealPart = GetRealPartOfVector(eigenValues);
 
@@ -324,7 +324,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     modeOrder_ = tmp2;
     numEigenValues_ = eigenValues->GetSize();
 
-    LOG_DBG3(buckD) << "CV: eigenValues = " << eigenValues->ToString(2);
+    LOG_DBG3(buckD) << "CV: eigenValues = " << eigenValues->ToString();
     LOG_DBG3(buckD) << "CV: modeOrder_ = " << modeOrder_.ToString();
 
     // if all eigenvalues were negative, search for more
@@ -364,7 +364,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     }
   }
 
-  LOG_DBG(buckD) << "CV: loadFactors = " << loadFactors_->ToString(2);
+  LOG_DBG(buckD) << "CV: loadFactors = " << loadFactors_->ToString();
 
   if(!domain->GetOptimization())
     std::cout << "\n++ Finished solving eigenvalue Problem." << std::endl;
@@ -589,7 +589,7 @@ void BucklingDriver::SortModes(bool inAbs) {
 Vector<Double> BucklingDriver::GetRealPartOfVector(SingleVector* vec) {
   Vector<Double> realPart;
 
-  LOG_DBG3(buckD) << "GRPOV: vec = " << vec->ToString(2);
+  LOG_DBG3(buckD) << "GRPOV: vec = " << vec->ToString();
 
   unsigned int sz = vec->GetSize();
   realPart.Resize(sz);
@@ -602,7 +602,7 @@ Vector<Double> BucklingDriver::GetRealPartOfVector(SingleVector* vec) {
   else
     realPart = dynamic_cast<Vector<Double>&>(*vec);
 
-  LOG_DBG3(buckD) << "GRPOV: realPart = " << realPart.ToString(2);
+  LOG_DBG3(buckD) << "GRPOV: realPart = " << realPart.ToString();
   return realPart;
 }
 

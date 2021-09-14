@@ -876,50 +876,58 @@ namespace CoupledField {
   }
 
   template<typename T>
-  std::string Vector<T>::ToString(const int level, const char separator) const
+
+  std::string Vector<T>::ToString(ToStringFormat format, const std::string& sep_in, int digits) const
   {
     std::ostringstream os;
 
-    if(level == 0 || level == 1 || level > 3)
+    std::string sep = sep_in != "" ? sep_in : (format == TS_PLAIN ? " " : ", ");
+
+    // ignored for int case, we cannot fill ints easily as it makes no sense for neg and >= not possible for complex
+    if(digits > 0)
+      os << std::scientific << std::setprecision(digits);
+
+    char cplx = format == TS_PYTHON ? 'j' : 'i';
+
+    switch(format)
     {
-      int nnz = 0;
+    case TS_INFO: {
+      int nnz=0;
       for(unsigned int i = 0; i < size_; ++i)
-      {
-        if(level == 1 && Abs(data_[i]) == 0)
-          continue;
-        if(level == 1)
-          os << " " << i << ":";
-
-        os << data_[i];
-
-        if(i < size_-1)
-          os << separator;
-        nnz++;
+        if(Abs(data_[i]) != 0)
+          nnz++;
+      os << "size=" << size_ << " nnz=" << nnz;
       }
+      break;
 
-      if(level == 1)
-        os << " size=" << size_ << " nnz=" << nnz;
-    }
-    else
-    {
-      string sep = level == 2 ? " " : ",";
-
-      os << std::scientific << std::setprecision(7);
+    case TS_MATLAB:
+    case TS_PYTHON:
       os << "[";
-      for(unsigned int i = 0; i < size_; ++i)
+      // intentionally no break;
+    case TS_PLAIN: {
+      for(unsigned int i = 0; i < size_; i++)
       {
         if(boost::is_complex<T>::value)
         {
           Complex cval = (Complex) data_[i];
-          os << cval.real() << "+" << cval.imag() << "i";
+          os << cval.real() << "+" << cval.imag() << cplx;
         }
         else
           os << data_[i];
-        os << (i < size_-1 ? sep : "");
+        if(i < size_-1)
+          os << sep;
       }
-      os << "]";
+      if(format != TS_PLAIN)
+        os << "]";
     }
+    break;
 
+    case TS_NONZEROS:
+      for(unsigned int i = 0; i < size_; ++i)
+        if(Abs(data_[i]) != 0)
+          os << i << ":" << data_[i] << (i < size_-1 ? sep : "");
+      break;
+    } // end switch
     return os.str();
   }
   
@@ -928,8 +936,7 @@ namespace CoupledField {
   //   Export vector
   // *****************
   template<typename T>
-  void Vector<T>::Export(const std::string& fname,
-                         BaseMatrix::OutputFormat format) const
+  void Vector<T>::Export(const std::string& fname, BaseMatrix::OutputFormat format) const
   {
     std::stringstream sstr;
     BaseMatrix::EntryType eType = GetEntryType();
@@ -1422,12 +1429,10 @@ namespace CoupledField {
    template<typename T>
    std::ostream & operator<<(std::ostream &out, const Vector<T> &vc)
    {
-     out << vc.ToString(0, '\n' );
+     out << vc.ToString();
      return out;
    }
 
-   
-   
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class Vector<Double>;

@@ -504,9 +504,9 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
 
       umat *= umatT;
 
-      LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " u_e=" << u_e.ToString(2);
-      LOG_DBG3(pyopt) << " mat u_e^T=" << umatT.ToString(2,true);
-      LOG_DBG3(pyopt) << " u_e*u_e^T=" << umat.ToString(2,true);
+      LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " u_e=" << u_e.ToString();
+      LOG_DBG3(pyopt) << " mat u_e^T=" << umatT.ToString();
+      LOG_DBG3(pyopt) << " u_e*u_e^T=" << umat.ToString();
 
       // prepare to get the curl operator
       el.SetElement(elem);
@@ -532,13 +532,13 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
         bdb->GetBOp()->CalcOpMat(bMat, lp, ptFe);
         bMat.Transpose(bMatT);
 
-        LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " ip=" << ip << " bMat=" << bMat.ToString(2,true);
+        LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " ip=" << ip << " bMat=" << bMat.ToString();
         // multiplications for derivative of compliance w. r. t. material tensor: B*u*u^T*B^T
         Matrix<double> uuTBT;
         uuTBT.Resize(u_e.GetSize(),rows);
         // u*u^T*B^T
         umat.Mult(bMatT,uuTBT);
-        LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " ip=" << ip << " u*u^T*B^T=" << uuTBT.ToString(2, true);
+        LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " ip=" << ip << " u*u^T*B^T=" << uuTBT.ToString();
         // B*u*u^T*B^T
         bMat *= uuTBT;
 
@@ -546,10 +546,10 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
 
   //      std::cout << "elem" <<  elem->elemNum << " ip=" << ip << " weight=" << weights[ip] << " jac det=" << lp.jacDet << std::endl;
 
-        LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " ip=" << ip << " B*u*u^T*B^T=" << bMat.ToString(2, true);
-        LOG_DBG3(pyopt) << " tmp=" << res[e].ToString(2,true);
+        LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " ip=" << ip << " B*u*u^T*B^T=" << bMat.ToString();
+        LOG_DBG3(pyopt) << " tmp=" << res[e].ToString();
       } // integration points
-      LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " dfdH=" << res[e].ToString(2,true);
+      LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " dfdH=" << res[e].ToString();
     } // elements
   } // excitation
 
@@ -563,7 +563,7 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
       }
     // elemNum is 1-based
     const Elem* elem = domain->GetGrid()->GetElem(e+1);
-    LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " dfdH=" << dfdH_e.ToString(2,true);
+    LOG_DBG3(pyopt) << "GdfDH: elem=" << elem->elemNum << " dfdH=" << dfdH_e.ToString();
   }
 }
 

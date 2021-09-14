@@ -110,7 +110,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
          lp.Set( intPoints[i], esm, weights[i] );
        }
 
-//       std::cout << "integration point: " << lp.lp.coord.ToString(2) << std::endl;
+//       std::cout << "integration point: " << lp.lp.coord.ToString() << std::endl;
 
        // obtain d matrix
        this->dCoef_->GetTensor( dMat, lp );
@@ -143,10 +143,10 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 
        rhsCoefs_->GetVector(cVec,lp);
        //elemVec += bMat * cVec * fac;
-//       std::cout << " cVec:" << cVec.ToString(2) << std::endl;
+//       std::cout << " cVec:" << cVec.ToString() << std::endl;
 
        elemVec += bdMat * cVec;
-//       std::cout << " elemVec:" << elemVec.ToString(2) << std::endl;
+//       std::cout << " elemVec:" << elemVec.ToString() << std::endl;
      }
 
   }

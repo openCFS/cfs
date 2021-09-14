@@ -2425,13 +2425,13 @@ namespace CoupledField
         deltaY.Add(1.0,hystVal);
         deltaY.Add(-1.0,yVal);
         convergenceStream << "Iteration/maxNumIterations = " << i << "/" << maxIter << std::endl;
-        convergenceStream << "deltaY: " << deltaY.ToString(8,',') << std::endl;
+        convergenceStream << "deltaY: " << deltaY.ToString(TS_PLAIN) << std::endl;
         convergenceStream << "deltaY NormL2: " << deltaY.NormL2() << std::endl;
         // test 27.10.2020 > should we add this before returing xVal or afterwards
         xVal.Add(-1.0/muFP,deltaY);
-        convergenceStream << "xVal: " << xVal.ToString(8,',') << std::endl;
-        convergenceStream << "hystVal: " << hystVal.ToString(8,',') << std::endl;
-        convergenceStream << "yVal: " << yVal.ToString(8,',') << std::endl;
+        convergenceStream << "xVal: " << xVal.ToString(TS_PLAIN,", ", 8) << std::endl;
+        convergenceStream << "hystVal: " << hystVal.ToString(TS_PLAIN,", ", 8) << std::endl;
+        convergenceStream << "yVal: " << yVal.ToString(TS_PLAIN,", ", 8) << std::endl;
         if(deltaY.NormL2()/abs(mu.GetMax()) < tolH){
           successFlag = 7;
           return xVal;

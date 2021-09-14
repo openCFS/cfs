@@ -2,6 +2,7 @@
 #define FILE_DENSEMATRIX_HH
  
 #include <string>
+#include "General/EnvironmentTypes.hh"
 
 namespace CoupledField
 {
@@ -22,7 +23,8 @@ namespace CoupledField
     virtual ~DenseMatrix() {};
 
     /** @see Matrix::ToString() */
-    virtual std::string ToString(const int level, const bool newline) const = 0;
+    virtual std::string ToString(ToStringFormat format = TS_PYTHON, const std::string& linesep="", int digits=-1) const = 0;
+
     
     /** @see Matrix::ToXML() */
     virtual std::string ToXMLFormat(const std::string& name, const int offset) const = 0;

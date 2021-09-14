@@ -2494,7 +2494,7 @@ namespace CoupledField {
       grid[1] = (m[1][1]-m[1][0]) / (edges[1]*.99999);
       grid[2] = GetDim() == 3 ? (m[2][1]-m[2][0]) / (edges[2]*.99999) : 1;
 
-      LOG_DBG(gridcfs) << "GRGD: e=" << edges.ToString() << " bb=" << m.ToString(2,false) << " -> " << grid.ToString();
+      LOG_DBG(gridcfs) << "GRGD: e=" << edges.ToString() << " bb=" << m.ToString() << " -> " << grid.ToString();
     }
 
     return grid;
@@ -3128,7 +3128,7 @@ namespace CoupledField {
       PtrParamNode pn = list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND);
       pn->Get("count")->SetValue(namedNodes_[i].GetSize());
       if(namedNodes_[i].GetSize() == 1)
-       pn->Get("coord")->SetValue("(" + coords_[namedNodes_[i][0]-1].ToString(0,',') + ")");
+       pn->Get("coord")->SetValue("(" + coords_[namedNodes_[i][0]-1].ToString(TS_PLAIN,",") + ")");
     }
 
     list = in->Get("namedElements");

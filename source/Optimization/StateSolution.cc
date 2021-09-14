@@ -461,10 +461,10 @@ void StateSolution::Write(SinglePDE* pde)
 
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
-    LOG_DBG3(statesol) << "SS:W raw = " << raw->ToString(2);
-    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString(2);
+    LOG_DBG3(statesol) << "SS:W raw = " << raw->ToString();
+    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString();
     *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
-    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString(2);
+    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString();
   }
   else
     LOG_DBG2(statesol) << "SS:W raw not written as it was not set";
@@ -473,7 +473,7 @@ void StateSolution::Write(SinglePDE* pde)
 
 void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 {
-  LOG_DBG2(statesol) << "SS:W pde=" << pde->GetName() << " vec=" << vec->ToString(1);
+  LOG_DBG2(statesol) << "SS:W pde=" << pde->GetName() << " vec=" << vec->ToString();
 
   // get the coefficients from the fefunction
   SingleVector* sys = pde->GetFeFunction(pde->GetNativeSolutionType())->GetSingleVector();
@@ -482,7 +482,7 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
   // let the assignment operator do the job
   *sys = *vec;
 
-  LOG_DBG3(statesol) << "SS:W sys -> " << sys->ToString(0);
+  LOG_DBG3(statesol) << "SS:W sys -> " << sys->ToString();
 }
 
 

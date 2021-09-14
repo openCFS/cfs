@@ -144,7 +144,7 @@ namespace CoupledField {
 
     /** Return vector as separated string
      * @see Vector::ToString() */
-    std::string ToString(const Integer level = 0, const char separator = ',') const;
+    std::string ToString(ToStringFormat format = TS_PYTHON, const std::string& sep="", int digits=-1) const;
 
     //! Export vector to file
 

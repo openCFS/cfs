@@ -720,14 +720,14 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 //    double setup_wall = timer.GetWallTime();
 //    double setup_cpu = timer.GetCPUTime();
 
-    LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
+    LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString();
     SBM_Vector rhs(BaseMatrix::DOUBLE);
     rhs.Resize(1);
     rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
     rhs.AddToSubVector(b,0);
 
     LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
-    LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
+    LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString();
 
     algsys_->InitRHS(rhs);
     algsys_->SetupSolver();
@@ -1168,7 +1168,7 @@ Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){
   for (unsigned int i = 0; i < n_q_; i++) {
     solVec[i] = GetPdf(idx,i);
   }
-  LOG_DBG3(lbm_pde) << "ED: " << " idx=" << idx << " pdfs=" << solVec.ToString(0,',');
+  LOG_DBG3(lbm_pde) << "ED: " << " idx=" << idx << " pdfs=" << solVec.ToString();
   return solVec;
 }
 
@@ -1380,7 +1380,7 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
   }
   obst.close();
 
-  LOG_DBG2(lbm_pde) << "EMF: obst matrix (!= obst.dat):\n" << obst_m.ToString(0, true);
+  LOG_DBG2(lbm_pde) << "EMF: obst matrix (!= obst.dat):\n" << obst_m.ToString();
 
   std::ofstream ns("non_sing.dat");
   // add one to be one based

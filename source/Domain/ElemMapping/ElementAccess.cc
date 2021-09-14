@@ -90,14 +90,14 @@ std::string ElementAccess::ToString(int level) const
     break;
 
   case 2:
-    ss << "EA: e=" << (curr_elem != NULL? curr_elem->elemNum : -1) << " << method=" << method << " order=" << order.ToString() << " ips=" << intPoints.ToString(2)
-       << " eqn_idx=" << elem_eqn_idx.ToString(2);
+    ss << "EA: e=" << (curr_elem != NULL? curr_elem->elemNum : -1) << " << method=" << method << " order=" << order.ToString() << " ips=" << intPoints.ToString()
+       << " eqn_idx=" << elem_eqn_idx.ToString();
     break;
 
   case 3:
     ss <<  "EA e=" << (curr_elem != NULL? curr_elem->elemNum : -1) << " ip=";
     if(curr_ip != NULL)
-      ss << curr_ip->number << "/" << curr_ip->coord.ToString(2);
+      ss << curr_ip->number << "/" << curr_ip->coord.ToString();
     else
       ss << "NULL";
     ss << " jacDet=" << lpm.jacDet;

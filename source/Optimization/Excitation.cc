@@ -229,7 +229,7 @@ void MultipleExcitation::SetBlochWaves(Context* ctxt, unsigned int base, int num
     Excitation& ex = excitations[base + i];
     ex.weight = i < num_wave - 1 ? 0 : 1; // we assume the slack variable as objective!
     ex.wave_vector = wv[i];
-    ex.label = "(" + ex.wave_vector.ToString(0, ',') + ")";
+    ex.label = "(" + ex.wave_vector.ToString(TS_PLAIN,",") + ")";
   }
 }
 
@@ -537,7 +537,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
       ex.weight = i < cases-1 ? 0.0 : 1.0;
       LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
     }
-    LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString(2);
+    LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString();
   }
 
   return cases;
@@ -1186,7 +1186,7 @@ void Excitation::ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts)
   test_strain.Resize(6, 0.0); // always full dimensions
   test_strain[ts] = 1.0;
 
-  LOG_DBG3(exlog) << test_strain.ToString(2);
+  LOG_DBG3(exlog) << test_strain.ToString();
 }
 
 std::string Excitation::GetMetaLabel() const

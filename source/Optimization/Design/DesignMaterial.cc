@@ -1109,9 +1109,9 @@ void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTe
 
     if (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) {
       double rotAngle = GetParameter(DesignElement::ROTANGLE);
-      LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: E before rotation = " << t.ToString(2);
+      LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: E before rotation = " << t.ToString();
       RotateTensor(mt, direction, CW, true, rotAngle);
-      LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: E after rotation = " << t.ToString(2);
+      LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: E after rotation = " << t.ToString();
 
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
@@ -1238,7 +1238,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTe
     // for all rotated types, rotate the material tensor
     LOG_DBG2(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
     RotateTensor(mt, direction, CCW);
-    LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString();
   }
   LOG_DBG2(dm) << "GetTransIsoMaterialTensor: tensor result is " << t.ToString();
 }
@@ -1394,11 +1394,11 @@ void DesignMaterial::GetOrthotropicMaterialTensor(MaterialTensor<double>& mt, Su
       return;
     } // switch direction
 
-    LOG_DBG2(dm)<< "GetOrthotropicMaterialTensor: E before rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetOrthotropicMaterialTensor: E before rotation = " << t.ToString();
     // transform to Voigt notation for rotation
     mt.ToVoigt();
     RotateTensor(mt, direction, CW, true, rotAngle);
-    LOG_DBG2(dm)<< "GetOrthotropicMaterialTensor: E after rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetOrthotropicMaterialTensor: E after rotation = " << t.ToString();
 
     return;
   } // PLANE_STRESS
@@ -1474,9 +1474,9 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(MaterialTensor<double>& mt, S
 
   if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
     double rotAngle = GetParameter(DesignElement::ROTANGLE);
-    LOG_DBG2(dm)<< "GetDensityTimes2dTensorTensor: E before rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetDensityTimes2dTensorTensor: E before rotation = " << t.ToString();
     RotateTensor(mt, direction, CCW, true, rotAngle);
-    LOG_DBG2(dm)<< "GetDensityTimes2dTensorTensor: E after rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetDensityTimes2dTensorTensor: E after rotation = " << t.ToString();
 //    static int count(0);
 //    if (count % 10 == 0 && count/100 % 10 == 0){
 ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1659,7 +1659,7 @@ void DesignMaterial::GetElasticFMOTensor(MaterialTensor<double>& mt, SubTensorTy
 
   mt.ToVoigt();
 
-  LOG_DBG2(dm) << "GEFMOT: E  =  " << E.ToString(2);
+  LOG_DBG2(dm) << "GEFMOT: E  =  " << E.ToString();
 }
 
 void DesignMaterial::GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction)
@@ -1744,7 +1744,7 @@ void DesignMaterial::GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTen
     case DesignElement::SHEAR1:
       if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
         Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
-        LOG_DBG3(dm) << "GetInterpolatedHomTensor: jac=" << jac.ToString(2);
+        LOG_DBG3(dm) << "GetInterpolatedHomTensor: jac=" << jac.ToString();
         Vector<double> d_shape;
         jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1);// a or by
         GetHomRectTensor(mt, d_shape);
@@ -1773,13 +1773,13 @@ void DesignMaterial::GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTen
   }
 
   if (type_ != HEAT) {
-    LOG_DBG2(dm)<< "GetInterpolatedHomTensor: E before rotation = " << E.ToString(2);
+    LOG_DBG2(dm)<< "GetInterpolatedHomTensor: E before rotation = " << E.ToString();
     if (subTensor == FULL) {
       RotateTensor(mt, direction, CCW);
     } else {
       RotateTensor(mt, direction, CW, true, rotAngle);
     }
-    LOG_DBG2(dm)<< "GetInterpolatedHomTensor: E after rotation =  " << E.ToString(2);
+    LOG_DBG2(dm)<< "GetInterpolatedHomTensor: E after rotation =  " << E.ToString();
   }
 
   if (type_ == D_HOM_RECT)
@@ -3255,10 +3255,10 @@ void DesignMaterial::GetIN718Tensor(MaterialTensor<double>& mt, SubTensorType su
   if(type_ == D_INTERP_IN718_TENSOR_ROT){
     // for all rotated types, rotate the material tensor
     LOG_DBG3(dm) << "GetIN718Tensor: tensor before rotation=" << t.ToString();
-    LOG_DBG2(dm)<< "GetIN718Tensor: E before rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetIN718Tensor: E before rotation = " << t.ToString();
     // RotateTensor needs Hill Mandel matrix
     RotateTensor(mt, direction, CCW);
-    LOG_DBG2(dm)<< "GetIN718Tensor: E after rotation = " << t.ToString(2);
+    LOG_DBG2(dm)<< "GetIN718Tensor: E after rotation = " << t.ToString();
   }
 }
 
@@ -3383,9 +3383,9 @@ void DesignMaterial::GetLaminatesTensor(MaterialTensor<double>& mt, SubTensorTyp
   }
 
   double rotAngle = GetParameter(map, DesignElement::ROTANGLE);
-  LOG_DBG2(dm)<< "GetLaminatesTensor: E before rotation = " << t.ToString(2);
+  LOG_DBG2(dm)<< "GetLaminatesTensor: E before rotation = " << t.ToString();
   RotateTensor(mt, direction, CW, true, rotAngle);
-  LOG_DBG2(dm)<< "GetLaminatesTensor: E after rotation = " << t.ToString(2);
+  LOG_DBG2(dm)<< "GetLaminatesTensor: E after rotation = " << t.ToString();
   return;
 }
 
@@ -3395,7 +3395,7 @@ void DesignMaterial::ZeroMatrix(Matrix<double>& t, SubTensorType subTensor) {
   switch (subTensor) {
   case FULL:
     t.Resize(6, 6);
-    LOG_DBG(dm)<<"Zero Tensor: "<<t.ToString(2);
+    LOG_DBG(dm)<<"Zero Tensor: "<<t.ToString();
     break;
   case PLANE_STRAIN:
   case PLANE_STRESS:
@@ -3911,7 +3911,7 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, De
   {
     R.Mult(help, E); // E = R * (E * Q^T)
 
-    LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString(2) << " QT=" << QT.ToString(2);
+    LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString() << " QT=" << QT.ToString();
     return;
   }
   else
@@ -3944,7 +3944,7 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, De
     Matrix<double> right(2,3);
     R.Mult(help, right); // right = R * (help) = R * (E * dQ^T)
     E = left + right;
-    LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString(2) << " dR=" << dR.ToString(2) << " QT=" << QT.ToString(2) << " dQT=" << dQT.ToString(2);
+    LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString() << " dR=" << dR.ToString() << " QT=" << QT.ToString() << " dQT=" << dQT.ToString();
     return;
   }
 }
@@ -4170,9 +4170,9 @@ bool DesignMaterial::GetElecTensor(MaterialTensor<double>& mt, const Elem* elem,
     break;
   }
 
-  LOG_DBG2(dm) << "GET: E before rotation = " << E.ToString(2);
+  LOG_DBG2(dm) << "GET: E before rotation = " << E.ToString();
   RotateElecTensor(mt, rotAngle, direction);
-  LOG_DBG2(dm) << "GET: E after rotation =  " << E.ToString(2);
+  LOG_DBG2(dm) << "GET: E after rotation =  " << E.ToString();
 
   return true;
 }
@@ -4230,9 +4230,9 @@ bool DesignMaterial::GetPiezoCouplingTensor(MaterialTensor<double>& mt, const El
     break;
   }
 
-  LOG_DBG2(dm) << "GPCT: E before rotation = " << E.ToString(2) << " ra=" << rotAngle << " d=" << DesignElement::type.ToString(direction);
+  LOG_DBG2(dm) << "GPCT: E before rotation = " << E.ToString() << " ra=" << rotAngle << " d=" << DesignElement::type.ToString(direction);
   RotatePiezoCouplingTensor(E, rotAngle, direction);
-  LOG_DBG2(dm) << "GPCT: E after rotation =  " << E.ToString(2);
+  LOG_DBG2(dm) << "GPCT: E after rotation =  " << E.ToString();
 
   return true;
 }

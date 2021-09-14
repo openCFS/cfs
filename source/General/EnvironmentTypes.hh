@@ -30,6 +30,11 @@ namespace CoupledField {
   //! number of threads for parallel CFS loops
   extern unsigned int CFS_NUM_THREADS;
 
+  /** options for StdVector/Vector/Matrix::ToString().
+   * TS_MATLAB and TS_PYTHON allow copy and paste to matlab/python
+   * See the ::ToString() for behavior for the format */
+  typedef enum {TS_PLAIN, TS_MATLAB, TS_PYTHON, TS_INFO, TS_NONZEROS} ToStringFormat;
+
   //! specifications of Lapack routines for different types of system matrices in
   //! matrix.solveWithLapack
   //! Z - Complex valued matrix

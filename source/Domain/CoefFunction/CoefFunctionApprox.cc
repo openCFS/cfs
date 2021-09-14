@@ -53,7 +53,7 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar, const LocPointMapped& lpm
     sol = &double_sol;
   }
 
-  LOG_DBG(coeffctapprox) << "elemSol = " << sol->ToString(2);
+  LOG_DBG(coeffctapprox) << "elemSol = " << sol->ToString();
 
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY_SCALAR ) {
     // in case of permeability (reluctivity) the function depends on the norm of the field

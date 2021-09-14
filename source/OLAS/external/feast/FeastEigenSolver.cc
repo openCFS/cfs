@@ -220,7 +220,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
           aDouble[2*i+1] = a->GetDataPointer()[i].imag();
         }
         LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
-        LOG_DBG3(fes) << "CEF a: " << StdVector<Complex>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
+        LOG_DBG3(fes) << "CEF a: " << StdVector<Complex>::ToString(a->GetNumEntries(), a->GetDataPointer());
         LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
         LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
         // output parameters
@@ -248,7 +248,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
           assert((int) ib_.GetSize() == n_ + 1);
           assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
           LOG_DBG3(fes) << "CEF b_size: " << b->GetNumEntries();
-          LOG_DBG3(fes) << "CEF b: " << StdVector<Complex>::ToString(b->GetNumEntries(), b->GetDataPointer(), 0);
+          LOG_DBG3(fes) << "CEF b: " << StdVector<Complex>::ToString(b->GetNumEntries(), b->GetDataPointer());
           LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
           LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
           zfeast_scsrgv(&uplo, &n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(), bDouble.GetPointer(), ib_.GetPointer(), jb_.GetPointer(),
@@ -356,7 +356,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             aDouble[2*i+1] = a->GetDataPointer()[i].imag();
         }
         LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
-        LOG_DBG3(fes) << "CEF a: " << StdVector<Complex>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
+        LOG_DBG3(fes) << "CEF a: " << StdVector<Complex>::ToString(a->GetNumEntries(), a->GetDataPointer());
         LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
         LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
         // output parameters
@@ -388,7 +388,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             assert((int) ib_.GetSize() == n_ + 1);
             assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
             LOG_DBG3(fes) << "CEF b_size: " << b->GetNumEntries();
-            LOG_DBG3(fes) << "CEF b: " << StdVector<Complex>::ToString(b->GetNumEntries(), b->GetDataPointer(), 0);
+            LOG_DBG3(fes) << "CEF b: " << StdVector<Complex>::ToString(b->GetNumEntries(), b->GetDataPointer());
             LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
             LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
             zfeast_hcsrgv(&uplo, &n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(), bDouble.GetPointer(), ib_.GetPointer(), jb_.GetPointer(),
@@ -412,7 +412,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         const SCRS_Matrix<double>* a_const = dynamic_cast<const SCRS_Matrix<double>*>(a_);
         SCRS_Matrix<double>* a = const_cast<SCRS_Matrix<double>*>(a_const);
         LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
-        LOG_DBG3(fes) << "CEF a: " << StdVector<double>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
+        LOG_DBG3(fes) << "CEF a: " << StdVector<double>::ToString(a->GetNumEntries(), a->GetDataPointer());
         LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
         LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
 
@@ -439,7 +439,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             assert((int) ib_.GetSize() == n_ + 1);
             assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
             LOG_DBG3(fes) << "CEF b_size: " << b->GetNumEntries();
-            LOG_DBG3(fes) << "CEF b: " << StdVector<double>::ToString(b->GetNumEntries(), b->GetDataPointer(), 0);
+            LOG_DBG3(fes) << "CEF b: " << StdVector<double>::ToString(b->GetNumEntries(), b->GetDataPointer());
             LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
             LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
             dfeast_scsrgv(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(), b->GetDataPointer(), ib_.GetPointer(), jb_.GetPointer(),

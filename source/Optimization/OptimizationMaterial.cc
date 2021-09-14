@@ -586,7 +586,7 @@ Vector<double> HeatMat::CalcElementTemperature(Context* ctxt, const Elem* elem, 
   const Matrix<double>& Ke = dynamic_cast<const Matrix<double>&>(Stiffness(elem));
 
   LOG_DBG3(om) << "\nCET: Get elem temp for region : " << domain->GetGrid()->GetRegionName(regionId) << " testStrain:" << testStrain;
-  LOG_DBG3(om) << "region= " << domain->GetGrid()->GetRegionName(regionId) << "  ORG Element stiffness matrix: \n" << Ke.ToString(2);
+  LOG_DBG3(om) << "region= " << domain->GetGrid()->GetRegionName(regionId) << "  ORG Element stiffness matrix: \n" << Ke.ToString();
 
   // don't compute multiple times
   if (elem_temp.size() > 0 && elem_temp[regionId].GetSize() > 0){
@@ -622,7 +622,7 @@ Vector<double> HeatMat::CalcElementTemperature(Context* ctxt, const Elem* elem, 
     assert(rhs.GetSize() > 0);
 
 
-    LOG_DBG3(om) << "elem " << elem->elemNum << " test strain:" << testStrain << " rhs: " << rhs.ToString(2);
+    LOG_DBG3(om) << "elem " << elem->elemNum << " test strain:" << testStrain << " rhs: " << rhs.ToString();
     UInt dim_sol = rhs.GetSize();
 
     // as Ke is singular, we fix last row and column and solve only for reduced system
@@ -634,18 +634,18 @@ Vector<double> HeatMat::CalcElementTemperature(Context* ctxt, const Elem* elem, 
     for (UInt i = 1; i < dim_sol; i++)
       f_tmp.Push_back(rhs[i]);
 
-    //    LOG_DBG3(om) << "sub rhs:\n" << f_tmp.ToString(2);
+    //    LOG_DBG3(om) << "sub rhs:\n" << f_tmp.ToString();
 
     Vector<double> sol_tmp(dim_sol-1);
     K_tmp.DirectSolve(sol_tmp,f_tmp);
-    //    LOG_DBG3(om) << "sub of chi_0:\n" << sol_tmp.ToString(2);
+    //    LOG_DBG3(om) << "sub of chi_0:\n" << sol_tmp.ToString();
 
     temp_on_reg[ex].Resize(dim_sol);
     temp_on_reg[ex].Init();
     for (UInt i = 1; i < dim_sol; i++)
       temp_on_reg[ex][i] = sol_tmp[i-1];
 
-    LOG_DBG3(om) << "Test strain:" << testStrain << " chi_0:" << temp_on_reg[ex].ToString(2);
+    LOG_DBG3(om) << "Test strain:" << testStrain << " chi_0:" << temp_on_reg[ex].ToString();
   }
 
   return elem_temp[elem->regionId][testStrain];

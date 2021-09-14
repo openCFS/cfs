@@ -317,9 +317,9 @@ namespace CoupledField
     ComputeSubTensor(hom, stt, full_hom);
 
     LOG_DBG(mat) << "MM::CIE E=" << E << " v=" << v << " err=" << hom.DiffNormL1(tensor);
-    LOG_DBG2(mat) << "MM::CIE tensor=" << tensor.ToString(0,1);
-    LOG_DBG2(mat) << "MM::CIE full_hom=" << full_hom.ToString(0,1);
-    LOG_DBG2(mat) << "MM::CIE hom=" << hom.ToString(0,1);
+    LOG_DBG2(mat) << "MM::CIE tensor=" << tensor.ToString();
+    LOG_DBG2(mat) << "MM::CIE full_hom=" << full_hom.ToString();
+    LOG_DBG2(mat) << "MM::CIE hom=" << hom.ToString();
 
     return hom.DiffNormL1(tensor);
   }

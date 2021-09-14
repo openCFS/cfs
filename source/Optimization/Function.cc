@@ -3964,7 +3964,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
   assert(false);
   // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, HILL_MANDEL);
 
-  LOG_DBG3(func) << "L::I::CBV e_num=" << element->GetIndex() << " v=" << v << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CBV e_num=" << element->GetIndex() << " v=" << v << " E=" << E.ToString();
 
   double ret = -12345678.0;
 
@@ -4140,7 +4140,7 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* 
 
   Matrix<double>& E = tens.GetMatrix(notation);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
-  LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString();
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
   assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
@@ -4160,7 +4160,7 @@ double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* l
   Optimization::context->dm->GetPiezoCouplingTensor(tens, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
 
   Matrix<double>& E = tens.GetMatrix(NO_NOTATION);
-  LOG_DBG3(func) << "L::I::CTN e_num=" << element->GetIndex() << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CTN e_num=" << element->GetIndex() << " E=" << E.ToString();
 
   double ret = 0.0;
 

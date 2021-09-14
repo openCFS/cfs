@@ -162,7 +162,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
       myfile << "This is the GLM Vector" << std::endl;
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         myfile << "Index " << i << std::endl;
-        myfile << glmVector_[i]->ToString(1,'\n') << std::endl;
+        myfile << glmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
         myfile << "Finish GLM Vector" << std::endl;
       }
       myfile << std::endl;

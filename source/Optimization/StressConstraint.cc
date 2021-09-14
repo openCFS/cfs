@@ -313,7 +313,7 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
       rhs_transp *= factor * alpha;
 
       LOG_DBG3(sc) << "CEAR " << ea.ToString(3) << " alpha=" << alpha << " factor=" << factor;
-      LOG_DBG3(sc) << "CEAR idx=" << ea.elem_eqn_idx.ToString() << " rhs=" << rhs_transp.ToString(-1, false);
+      LOG_DBG3(sc) << "CEAR idx=" << ea.elem_eqn_idx.ToString() << " rhs=" << rhs_transp.ToString();
 
       for(unsigned int n = 0; n < ea.elem_eqn_idx.GetSize(); n++)
       {
@@ -403,7 +403,7 @@ void StressConstraint<T>::SetupElement(ElementAccess* ea, DesignElement* de, App
     }
   }
 
-  LOG_DBG3(sc) << "SE: de=" << de->elem->elemNum << " E1=" << E1.ToString(2);
+  LOG_DBG3(sc) << "SE: de=" << de->elem->elemNum << " E1=" << E1.ToString();
 }
 
 

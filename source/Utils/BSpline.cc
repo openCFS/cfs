@@ -94,7 +94,7 @@ Matrix<double> BSpline::BasisFuncDg0(StdVector<double>* t, StdVector<double> kno
     }
   }
 
-  LOG_DBG(BSpl) << "BFD0: bfun: \n" << bfun.ToString(2);
+  LOG_DBG(BSpl) << "BFD0: bfun: \n" << bfun.ToString();
   return bfun;
 }
 
@@ -130,7 +130,7 @@ Matrix<double> BSpline::BasisFuncDg(unsigned int degree, StdVector<double>* t, S
     bfun = BSpline::BasisFuncDg0(t, knots, numIntervals);
   }
 
-  LOG_DBG(BSpl) << "BFD: bfun: \n" << bfun.ToString(2);
+  LOG_DBG(BSpl) << "BFD: bfun: \n" << bfun.ToString();
   return bfun;
 }
 
@@ -180,7 +180,7 @@ Matrix<double> BSplineCurve::Eval(StdVector<double>* t) {
     }
   }
 
-  LOG_DBG(BSplC) << "Eval: curve corrdinates: \n" << curve_coors.ToString(2);
+  LOG_DBG(BSplC) << "Eval: curve corrdinates: \n" << curve_coors.ToString();
   return curve_coors;
 }
 

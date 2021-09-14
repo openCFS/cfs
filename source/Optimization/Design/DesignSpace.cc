@@ -982,7 +982,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   }
 
   LOG_DBG2(designSpace) << "APDEM el="  << elem->elemNum << " f=" << factor << " bf=" << bimat_factor;
-  LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString(2);
+  LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString();
   return true;
 }
 
@@ -1127,7 +1127,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   }
 
   LOG_DBG2(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
-  LOG_DBG3(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
+  LOG_DBG3(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString();
   return true;
 }
 
@@ -1221,12 +1221,12 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
       assert(retVec.GetSize() != 0);
       DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::RHS_DENSITY, false);
 
-      LOG_DBG3(designSpace) << "APD(V): elem=" << lpm->ptEl->elemNum << " de=" << (de != NULL ? de->ToString() : "NULL") << " org retVec= " << retVec.ToString(2);
+      LOG_DBG3(designSpace) << "APD(V): elem=" << lpm->ptEl->elemNum << " de=" << (de != NULL ? de->ToString() : "NULL") << " org retVec= " << retVec.ToString();
       if(de == NULL)
         return false;
       double factor = GetErsatzMaterialFactor(de, app, false); // Not the bimat case
       retVec *= factor;
-      LOG_DBG3(designSpace) << "APD(V): factor=" << factor << " -> retVec= " << retVec.ToString(2);
+      LOG_DBG3(designSpace) << "APD(V): factor=" << factor << " -> retVec= " << retVec.ToString();
     }
     else
       assert(false);

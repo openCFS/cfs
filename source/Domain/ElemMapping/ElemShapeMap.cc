@@ -2118,7 +2118,7 @@ std::string LagrangeElemShapeMap::ToString() const
 {
   std::stringstream ss;
   ss << ElemShapeMap::ToString();
-  ss << " co=" << coords_.ToString(2);
+  ss << " co=" << coords_.ToString();
   return ss.str();
 }
 

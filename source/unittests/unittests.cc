@@ -339,13 +339,45 @@ BOOST_AUTO_TEST_CASE(choleksy_lapack_solver)
   grad[0]=1.2132635e+00;
   grad[1]=1.2132635e+00;
   grad[2]=-2.3976500e-01;
-  std::cout << "grad=" << grad.ToString(3) << std::endl;
+  std::cout << "grad=" << grad.ToString(TS_PYTHON) << std::endl;
   ok = H.CholeskySolveLapack(chol,x,grad,false);
-  std::cout << "H=" << H.ToString(3) << std::endl;
-  std::cout << "grad=" << grad.ToString(3) << std::endl;
-  std::cout << "ok=" << ok << " x=" << x.ToString(3) << std::endl;
+  std::cout << "H=" << H.ToString(TS_PYTHON) << std::endl;
+  std::cout << "grad=" << grad.ToString(TS_PYTHON) << std::endl;
+  std::cout << "ok=" << ok << " x=" << x.ToString(TS_PYTHON) << std::endl;
 
 
   BOOST_TEST(!ok);
+}
 
+BOOST_AUTO_TEST_CASE(Vector_ToString)
+{
+  Vector<double> vd(2, 3.0);
+  BOOST_TEST(vd.ToString() == "[3, 3]");
+  BOOST_TEST(vd.ToString(TS_PLAIN) == "3 3");
+  BOOST_TEST(vd.ToString(TS_MATLAB) == "[3, 3]");
+  BOOST_TEST(vd.ToString(TS_NONZEROS) == "0:3, 1:3");
+  BOOST_TEST(vd.ToString(TS_PYTHON,", ",10) == "[3.0000000000e+00, 3.0000000000e+00]");
+
+  Vector<int> vi(2, -3);
+  BOOST_TEST(vd.ToString(TS_MATLAB, ", ",2) == "[3.00e+00, 3.00e+00]"); // digits are ignored in the int case
+
+  Vector<std::complex<double> > vc(2, -3);
+  BOOST_TEST(vc.ToString() == "[-3+0j, -3+0j]"); // Python style == e-tech style :)
+  BOOST_TEST(vc.ToString(TS_MATLAB) == "[-3+0i, -3+0i]");
+
+}
+
+
+BOOST_AUTO_TEST_CASE(Matrix_ToString)
+{
+  Matrix<double> mr(2,2);
+  mr.InitValue(2.0);
+  mr[0][0] = 0.0;
+
+  BOOST_TEST(mr.ToString(TS_PLAIN) == "0 2\n2 2");
+  BOOST_TEST(mr.ToString(TS_MATLAB) == "[0 2\n2 2]");
+  BOOST_TEST(mr.ToString(TS_MATLAB, "; ") == "[0 2; 2 2]");
+  BOOST_TEST(mr.ToString(TS_PYTHON) == "[[0, 2],[2, 2]]");
+  BOOST_TEST(mr.ToString(TS_INFO) == "rows=2 cols=2 nnz=3 min=0 max=2");
+  BOOST_TEST(mr.ToString(TS_NONZEROS, ", ") == "row=0 1:2, row=1 0:2 1:2");
 }

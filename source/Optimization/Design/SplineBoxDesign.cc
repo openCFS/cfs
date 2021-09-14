@@ -1207,7 +1207,7 @@ inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const
         double fval = bicubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1]);
         val = SmoothMin(SmoothMax(fval, lower, beta_), upper, beta_);
         if(val < -.02 || val > 1.02)
-          LOG_DBG2(SBD) << "EAC: point= " << point.ToString(0,',') << " fval= " << fval << " val= " << val << " beta= " << beta_;
+          LOG_DBG2(SBD) << "EAC: point= " << point.ToString() << " fval= " << fval << " val= " << val << " beta= " << beta_;
       } else {
         val = tricubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1], relative_coords[2]);
         val = SmoothMin(SmoothMax(val, lower, beta_), upper, beta_);
@@ -1733,7 +1733,7 @@ void SplineBoxDesign::ReadFeature(string file_in, string key)
       density_derivative_[d][e] *= 1/(bounding_box_[d][1]-bounding_box_[d][0]);
     }
   }
-  std::cout << " -> resolution: " << density_resolution_.ToString(0,'x') << "\n" << std::flush;
+  std::cout << " -> resolution: " << density_resolution_.ToString(TS_PLAIN,"x") << "\n" << std::flush;
 }
 
 void SplineBoxDesign::InterpolateFeature()
@@ -1889,7 +1889,7 @@ Matrix<double> SplineBoxDesign::GetBasisMatrix()
     mtx = mtx.EntryMult(mtx_temp);
   }
 
-  LOG_DBG3(SBD) << "GBM: basis matrix: \n" << mtx.ToString(2);
+  LOG_DBG3(SBD) << "GBM: basis matrix: \n" << mtx.ToString();
   return mtx;
 }
 

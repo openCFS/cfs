@@ -104,7 +104,7 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
     Exception("Only mech, buckling, heat and mass matrix are available for paramMat");
     break;
   }
-  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " out=" << mat_out->ToString(0, false);
+  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " out=" << mat_out->ToString();
 }
 
 

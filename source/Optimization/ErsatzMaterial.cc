@@ -893,7 +893,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       // u1^T (K' u2 - f') -> find "K'"
       SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
-      LOG_DBG3(em) << "CalcU1KU2: mat=" << mat.ToString(2) << "; u2_vec=" << u2_vec.ToString(2) << "; u1_vec= " << u1_vec.ToString(2);
+      LOG_DBG3(em) << "CalcU1KU2: mat=" << mat.ToString() << "; u2_vec=" << u2_vec.ToString() << "; u1_vec= " << u1_vec.ToString();
 
       // We generally solve u1^T (K' u2 - f')
       // u1^T (K' u2 - f') -> calc "K' u2"
@@ -1246,7 +1246,7 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
       return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
     else
     {
-      std::cout << "Homogenized Tensor (" << tensorNotation.ToString(f->GetNotation()) << "): " << std::endl << hom_tensor.ToString(0, true);
+      std::cout << "Homogenized Tensor (" << tensorNotation.ToString(f->GetNotation()) << "): " << std::endl << hom_tensor.ToString();
 
       if (f->ctxt->ToApp() == App::MECH)
       {
@@ -1961,8 +1961,8 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
   Vector<T> u_square(u.GetSize());
 
   assert(u.GetSize() == l.GetSize());
-  LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
-  LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
+  LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(TS_INFO);
+  LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString();
   double result = 0.0;
   switch(f->GetType())
   {
@@ -2207,12 +2207,12 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
     }
     */
   }
-  LOG_DBG2(em) << "SEFV: q_u_glob=" << q_u_glob.ToString(1);
-  LOG_DBG2(em) << "SEFV: count=" << count.ToString(1);
+  // LOG_DBG2(em) << "SEFV: q_u_glob=" << q_u_glob.ToString(TS_INFO);
+  // LOG_DBG2(em) << "SEFV: count=" << count.ToString(TS_INFO);
 // normalize Q*u^*
   for (unsigned int i = 0, in = q_u_glob.GetSize();i < in;i++)
-  if (count[i] != 0)
-  q_u_glob[i] /= (double)(count[i]);
+    if (count[i] != 0)
+      q_u_glob[i] /= (double)(count[i]);
 }
 
 void ErsatzMaterial::FindCommonNodes(const SurfElem* se, const Elem* vol, StdVector<unsigned int>& common_nodes) const
@@ -2327,7 +2327,7 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
     // when we are lower bounded we search for the minimum. Also set freq
     SearchMinMax(mat, mode_idx, g->GetBound() == Condition::LOWER_BOUND, &freq, &(g->bloch));
     ex = ctxt.excitations[g->bloch.col]; // freq set above
-    LOG_DBG2(em) << "CE: f=" << f->ToString() << " mat=" << mat.ToString(2);
+    LOG_DBG2(em) << "CE: f=" << f->ToString() << " mat=" << mat.ToString();
     LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " col_idx=" << g->bloch.col << " min=" << (g->GetBound() == Condition::LOWER_BOUND) << " f=" << freq;
   }
   LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " f=" << freq;
@@ -2421,7 +2421,7 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
     // Calculate mode^T * G * mode.
 //    Vector<Complex>& mode = forward.Get(excite, NULL, mode_idx)->GetComplexVector(StateSolution::RAW_VECTOR);
 //    const StdMatrix *geoStiffMat = sstep->GetAlgSys()->GetMatrix(GEOMETRIC_STIFFNESS)->GetPointer(0,0);
-//    LOG_DBG3(em) << "G=\n" << geoStiffMat->ToString() << "mode=" << mode.ToString(2);
+//    LOG_DBG3(em) << "G=\n" << geoStiffMat->ToString() << "mode=" << mode.ToString();
 //
 //    Vector<Double> Gmode(mode.GetSize());
 //    geoStiffMat->Mult(mode.GetPart(Global::REAL), Gmode);
@@ -2603,7 +2603,7 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
             // u1^T (K' u2 - f') -> find "K'"
             SetElementK(f, de, tf, App::MECH, dynamic_cast<DenseMatrix*>(&mat), true); // derivative = true
 
-            LOG_DBG3(em) << "CLVMS: mat=" << mat.ToString(2) << "; u2_vec=" << u2_vec.ToString(2);
+            LOG_DBG3(em) << "CLVMS: mat=" << mat.ToString() << "; u2_vec=" << u2_vec.ToString();
 
             // We generally solve u1^T (K' u2 - f')
             // u1^T (K' u2 - f') -> calc "K' u2"
@@ -3180,7 +3180,7 @@ void ErsatzMaterial::SetTestStrainMatrix(App::Type app, Matrix<double>& matrix, 
     }
   }
 
-  LOG_DBG3(em) << "EM STSM: test strain matrix " << matrix.ToString(0);
+  LOG_DBG3(em) << "EM STSM: test strain matrix " << matrix.ToString();
 }
 
 Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
@@ -3204,7 +3204,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
     // -> more than one rotation or robust
     StdVector<SingleVector*>& u1 = forward.Get(f->ctxt->GetExcitation(ij, f))->elem[app]; // equal to \chi^{ij}
     for (unsigned int i = 0; i < u1.size(); i++)
-      LOG_DBG3(em) << "CHT: u1(" << i << ")= " << (*u1[i]).ToString(2);
+      LOG_DBG3(em) << "CHT: u1(" << i << ")= " << (*u1[i]).ToString();
     for (unsigned int kl = 0;kl < ex_size;++kl)
     {
       if (ij > kl) // already computed this entry!
@@ -3215,7 +3215,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
         continue;
       }
 
-      LOG_DBG3(em) << "ij = " << ij << " kl = " << kl << " test strain: " << f->ctxt->GetExcitation(kl, meta)->test_strain.ToString(2);
+      LOG_DBG3(em) << "ij = " << ij << " kl = " << kl << " test strain: " << f->ctxt->GetExcitation(kl, meta)->test_strain.ToString();
 
       StdVector<SingleVector*>& u2 = forward.Get(f->ctxt->GetExcitation(kl, f))->elem[app]; // equal to \chi^{kl}
       for (unsigned int i = 0; i < u2.size(); i++)
@@ -3454,14 +3454,14 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
     // coordinates of "this" element
     // coordinates of current element
     domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
-    LOG_DBG3(em) << "CHEP: coords elem " << tmp_mat.ToString(2);
+    LOG_DBG3(em) << "CHEP: coords elem " << tmp_mat.ToString();
     Matrix<double> u1_tmp;
     u1_tmp = test_strain_matrix_ij * tmp_mat;
     Matrix<double> u2_tmp;
     u2_tmp = test_strain_matrix_kl * tmp_mat;
 
-    LOG_DBG3(em) << "CHEP: elem= " << de->elem->elemNum << " u1_tmp= " << u1_tmp.ToString(2);
-    LOG_DBG3(em) << "CHEP: elem= " << de->elem->elemNum << " u2_tmp= " << u2_tmp.ToString(2);
+    LOG_DBG3(em) << "CHEP: elem= " << de->elem->elemNum << " u1_tmp= " << u1_tmp.ToString();
+    LOG_DBG3(em) << "CHEP: elem= " << de->elem->elemNum << " u2_tmp= " << u2_tmp.ToString();
     assert(u1_tmp.GetNumCols() == u2_tmp.GetNumCols());
     assert(u1_tmp.GetNumRows() == u2_tmp.GetNumRows());
     assert(u1_tmp.GetNumRows() == dim);
@@ -3497,21 +3497,21 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
     u2_0 = mat->CalcElementTemperature(f->ctxt, de->elem, (HeatPDE::TestStrain) kl);
   }
 
-  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << ij << "  chi_0^i:" << u1_0.ToString(2);
-  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << kl << "  chi_0^j:" << u2_0.ToString(2);
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << ij << "  chi_0^i:" << u1_0.ToString();
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << kl << "  chi_0^j:" << u2_0.ToString();
 
   u1_0 -= u1_vec;
   u2_0 -= u2_vec;
 
-  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << ij << "  chi_0^i:" << u1_0.ToString(2);
-  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << kl << "  chi_0^j:" << u2_0.ToString(2);
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << ij << "  chi_0^i:" << u1_0.ToString();
+  LOG_DBG3(em) << "elem: " << de->elem->elemNum << " testStrain: " << kl << "  chi_0^j:" << u2_0.ToString();
 
   // reuse tmp_mat as elementK-Matrix
   // Matrix<double> k_mat;
   TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, app);
   obj->SetElementK(f, de, tf, app, &tmp_mat, derivative);
 
-  LOG_DBG3(em) << "CHEP: ElementK= " << tmp_mat.ToString(2);
+  LOG_DBG3(em) << "CHEP: ElementK= " << tmp_mat.ToString();
 
   assert(tmp_mat.GetNumRows() == tmp_mat.GetNumCols() && tmp_mat.GetNumCols() == u1_0.GetSize());
 
@@ -3519,9 +3519,9 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Functi
   Vector<double> mat_vec(u1_0.GetSize());
   tmp_mat.Mult(u1_0, mat_vec);
 
-  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " tmp_mat=" << tmp_mat.ToString(0);
-  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " mat_vec=" << mat_vec.ToString(2);
-  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " u2_0=" << u2_0.ToString(2);
+  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " tmp_mat=" << tmp_mat.ToString();
+  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " mat_vec=" << mat_vec.ToString();
+  LOG_DBG3(em) << "CHEP de=" << de->ToString() << " u2_0=" << u2_0.ToString();
 
   assert(mat_vec.GetSize() == u2_0.GetSize());
 
@@ -4310,7 +4310,7 @@ void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool al
     assemble->GetLinForms() = org_forms;
 
   LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
-      << " sel=" << adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)->ToString(1);
+      << " sel=" << adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)->ToString(TS_INFO);
 
 }
 void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
@@ -4352,7 +4352,7 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   fe->GetSystem()->InitRHS(fe->GetFctId());
   fe->GetSystem()->SetFncRHS(rhs, fe->GetFctId());
 
-  LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " obj=" << f->IsObjective() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
+  LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " obj=" << f->IsObjective() << " rhs before solving: " << rhs.ToString(TS_INFO) << " max_norm=" << rhs.NormMax();
   assert(rhs.NormMax() != 0.0);
 }
 
@@ -4479,7 +4479,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
     fe->GetSystem()->InitRHS(fe->GetFctId());
     fe->GetSystem()->SetFncRHS(rhs, fe->GetFctId());
     assert(!(rhs.NormMax() == 0.0 && f->GetLocal() != NULL)); // globalized stuff might have zero adjoint!
-    LOG_DBG2(em) << "CARHS<complex>: f=" << context->GetDriver()->GetActStep(context->pde->GetName()) << " rhs before solving: " << rhs.ToString(1);
+    LOG_DBG2(em) << "CARHS<complex>: f=" << context->GetDriver()->GetActStep(context->pde->GetName()) << " rhs before solving: " << rhs.ToString(TS_INFO);
   }
 }
 
@@ -4530,7 +4530,7 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
   // entries in stress vector
   UInt nstress = dim == 2 ? 3 : 6;
 
-  LOG_DBG2(em) << "mode= " << mode.GetPart(Global::REAL).ToString(2);
+  LOG_DBG2(em) << "mode= " << mode.GetPart(Global::REAL).ToString();
 
   // precalculation of Ei, such that
   // stresstensor = sum_i stressvector[i] * E[i]
@@ -4792,7 +4792,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
     for(unsigned int j=0; j < U.GetNumRows(); ++j)
       U[j][i] = (*dynamic_cast<const Vector<double>*>(u))[j];
   }
-  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " U=" << U.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " U=" << U.ToString();
 
 
   Vector<double> sigma_bar = GetMacroStress();
@@ -4805,11 +4805,11 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
   Matrix<double> DBU;
   DBU.Resize(num_hom, num_hom);
   D.Mult_Blas(BU, DBU, false, false, 1.0, 0);
-  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString();
 
   // D = D - D B U
   D.Add(-1.0, DBU);
-  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " D=" << D.ToString();
 
   // homogenized material tensor was calculated in ErsatzMaterial::SolveStateProblem
   // voigt notation! -> macro stress has to be voigt
@@ -4821,7 +4821,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
   Matrix<double> amplifier;
   amplifier.Resize(num_hom, num_hom);
   D.Mult_Blas(hom_tensor_inv, amplifier, false, false, 1.0, 0);
-  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " P=" amplifier.ToString(2);
+  //LOG_DBG3(em) << "elem: " << lpm->ptEl->elemNum << " P=" amplifier.ToString();
 
   // for stress constraints one needs the global amplifier, i.e. the integral over all squared local amplifiers.
   // this is here just for reference for whoever implements it into 2scale stress constraints
@@ -4832,7 +4832,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
   // \f$\sigma = P \bar{\sigma}\f$
   Vector<double> sigma = Vector<double>(num_hom);
   amplifier.Mult(sigma_bar, sigma);
-  //LOG_DBG2(em) << "elem: " << lpm->ptEl->elemNum << " ip: " << lpm->lp.number << " sigma= " << sigma.ToString(2);
+  //LOG_DBG2(em) << "elem: " << lpm->ptEl->elemNum << " ip: " << lpm->lp.number << " sigma= " << sigma.ToString();
 
   StdVector<std::string> stressComponents;
   switch(context->stt)
@@ -4934,7 +4934,7 @@ Vector<double> ErsatzMaterial::GetMacroStress() {
       EXCEPTION("Component " + dof + " not allowed for type " + subType);
     }
   }
-  LOG_DBG3(em) << "sigma= " << sigma.ToString(2);
+  LOG_DBG3(em) << "sigma= " << sigma.ToString();
 
   return sigma;
 }

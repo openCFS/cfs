@@ -612,12 +612,12 @@ namespace CoupledField
               // Calc element matrix
               if ( form->IsComplex() ){
                 form->CalcElementMatrix( elemMatrixC, it1, it2 );
-                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString(2);
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString();
               } else {
                 form->CalcElementMatrix( elemMatrix, it1, it2 );
                 if(it1.IsElemType())
                   LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
-                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString(2);
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString();
                 if(actContext.IsSetNegate()){
                   assert(!form->IsComplex());
                   elemMatrix*= (-1.0);
@@ -912,10 +912,10 @@ namespace CoupledField
             // Calc element matrix
             if ( form->IsComplex() ){
               form->CalcElementMatrix( elemMatrixC, it1, it2 );
-              LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString(2);
+              LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString();
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              LOG_DBG3(assemble) << "AM_Std: real CEM -> " << elemMatrix.ToString(2);
+              LOG_DBG3(assemble) << "AM_Std: real CEM -> " << elemMatrix.ToString();
               if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
@@ -985,7 +985,7 @@ namespace CoupledField
                   }
                   LOG_DBG3(assemble) << "AM_Std: real CEM MASS  in "
                       "SBM block with index "<<diagInd[0]<<" -> "
-                      << elemMatrix.ToString(2);
+                      << elemMatrix.ToString();
 
                   // Pass element matrix to algebraic system (primary matrix)
                   if ( form->IsComplex() ){
@@ -1629,7 +1629,7 @@ namespace CoupledField
             }
             
             LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
-            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString(2);
+            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
 
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);

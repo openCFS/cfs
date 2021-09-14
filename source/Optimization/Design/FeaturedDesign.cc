@@ -297,7 +297,7 @@ void FeaturedDesign::SetupMapping()
     item.max_corner_value.Resize(1);
 
     LOG_DBG3(FD) << "SM i=" << i << " elem=" << item.rho->elem->elemNum << " de_elem=" << designElems[i]->elemNum
-                 << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.rho->elem).ToString(1,false);
+                 << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.rho->elem).ToString();
   }
 }
 

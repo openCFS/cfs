@@ -94,8 +94,8 @@ namespace CoupledField{
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
        elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
-       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << fac << " bmat=" << bMat.ToString(2);
-       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " -> K_" << i << "=" << elemMat.ToString(2);
+       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << fac << " bmat=" << bMat.ToString();
+       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " -> K_" << i << "=" << elemMat.ToString();
 #endif
      }
    }

@@ -9,6 +9,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits/is_complex.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 
 #include "Utils/boost-serialization.hh"
@@ -141,120 +142,103 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  std::string Matrix<TYPE>::ToString(const int level, const bool newline) const
+  std::string Matrix<TYPE>::ToString(ToStringFormat format, const std::string& linesep_in, int digits) const
   {
+    char cplx = format == TS_PYTHON ? 'j' : 'i';
+
+    // element separator
+    std::string sep = format == TS_PYTHON ? ", " : " ";
+
+    // line separator
+    std::string linesep = linesep_in != "" ? linesep_in : (format == TS_PYTHON ? "," : "\n");
+
     std::ostringstream os;
 
-    os << std::scientific << std::setprecision(7);
-    bool IsComplex = false;
-    switch(level)
-    {
-      case -1:
-        //bool IsComplex = this->IsComplex();
-        // check if data_ is real or complex
-        for(UInt j = 0; j < size_row_; j++) {
-          for(UInt i = 0; i < size_col_; i++) {
-            Complex cval = (Complex) data_[j][i];
-            if (cval.imag() != 0) {
-              IsComplex = true;
-              break;
-            }
-          }
-        }
-        for(UInt j = 0; j < size_row_; j++) {
-          for(UInt i = 0; i < size_col_; i++)
-            if (IsComplex)
-              os << data_[j][i] << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
-            else {
-              Complex cval = (Complex) data_[j][i];
-              os << cval.real() << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
-            }
+    // ignored for int case, we cannot fill ints easily as it makes no sense for neg and >= not possible for complex
+    if(digits > 0)
+      os << std::scientific << std::setprecision(digits);
 
-          if(newline) os << std::endl;
-          else os << " ";
+    switch(format)
+    {
+    case TS_INFO: {
+      int nnz = 0;
+      double min = Abs(data_[0][0]);
+      double max = Abs(data_[0][0]);
+      for(unsigned int k = 0; k < size_row_ * size_col_; k++)
+      {
+        double v = Abs(data_[0][k]);
+        nnz = v != 0 ? nnz+1 : nnz;
+        min = std::min(min,v);
+        max = std::max(max,v);
+      }
+      os << "rows=" << size_row_ << " cols=" << size_col_ << " nnz=" << nnz << " min=" << min << " max=" << max;
+      break;
+    }
+    case TS_MATLAB:
+    case TS_PYTHON:
+      os << "[";
+      // intentionally no break;
+    case TS_PLAIN:
+      for(unsigned int i = 0; i < size_row_; i++)
+      {
+        if(format == TS_PYTHON)
+          os << "[";
+        for(unsigned int j = 0; j < size_col_; j++)
+        {
+          if(boost::is_complex<TYPE>::value)
+          {
+            Complex cval = (Complex) data_[i][j];
+            os << cval.real() << "+" << cval.imag() << cplx;
+          }
+          else
+            os << data_[i][j];
+
+          if(j < size_col_ - 1)
+            os << sep;
         }
+        if(i < size_row_ - 1)
+        {
+          if(format == TS_PYTHON)
+            os << "]";
+          os << linesep;
+        }
+      }
+      if(format == TS_PYTHON)
+        os << "]"; // Python closes with ]]
+      if(format != TS_PLAIN)
+        os << "]";
       break;
 
-      case 0:
-        for(UInt j = 0; j < size_row_; j++)
+    case TS_NONZEROS: {
+      for(unsigned int i = 0; i < size_row_; i++)
+      {
+        bool has_data = false;
+
+        for(unsigned int j = 0; j < size_col_; j++)
         {
-          os << j << " : [";
-
-          for(UInt i = 0; i < size_col_; i++)
-            os << data_[j][i] << (i < size_col_-1 ? " " : "");
-          
-          os << "]";
-          
-          if(newline) os << std::endl;
-          else os << " ";
-        }
-        break;
-        
-      case 1:
-        for(UInt j = 0; j < size_row_; j++)
-        {
-          //os << j << ":"
-          os << "[";
-
-          for(UInt i = 0; i < size_col_; i++)
-            os << data_[j][i] << (i < size_col_-1 ? " " : "");
-
-          os << "]\n";
-        }
-        break;
-
-      case 2:
-        os << "[";
-        for(UInt j = 0; j < size_row_; j++)
-        {
-          for(UInt i = 0; i < size_col_; i++)
+          if(Abs(data_[i][j]) != 0.0)
           {
+            if(!has_data)
+            {
+              os << "row=" << i;
+              has_data = true;
+            }
+            os << " " << j << ":";
             if(boost::is_complex<TYPE>::value)
             {
-              Complex cval = (Complex) data_[j][i];
-              os << cval.real() << "+" << cval.imag() << "i";
+              Complex cval = (Complex) data_[i][j];
+              os << cval.real() << "+" << cval.imag() << cplx;
             }
             else
-              os << data_[j][i];
-            os << (i < size_col_-1 ? " " : "");
-          }
-          if(j < size_row_-1)
-            os << "; ";
-        }
-        os << "]";
-        break;
-
-      case 3:
-        os << "[";
-        for(UInt j = 0; j < size_row_; j++)
-        {
-          os << "[";
-          for(UInt i = 0; i < size_col_; i++)
-          {
-            os << data_[j][i];
-            os << (i < size_col_-1 ? "," : "");
-          }
-          os << "]" << (j < size_row_-1 ? "," : "");
-        }
-        os << "]";
-        break;
-      default:
-        os << "size_row=" << size_row_ << " size_col=" << size_col_;
-        if(size_row_ > 0 && size_col_ > 0)
-        {
-          // the min/max for complex is the real part and we cannot compare complex numbers anyway
-          Double min = static_cast<Complex>(data_[0][0]).real();
-          Double max = static_cast<Complex>(data_[0][0]).real();
-
-          for(UInt j = 0; j < size_row_; j++)
-            for(UInt i = 0; i < size_col_; i++)
-            {
-              min = std::min(min, static_cast<Complex>(data_[j][i]).real());
-              max = std::max(max, static_cast<Complex>(data_[j][i]).real());
-            }
-          os << " min=" << min << " max=" << max;
-        }
+              os << data_[i][j];
+          } // end if Abs
+        } // end col loop
+        if(i < size_row_ - 1 && has_data)
+          os << linesep;
+      } // end row loop
+      break;
     }
+    } // end switch
 
     return os.str();
   }
@@ -1981,7 +1965,7 @@ namespace CoupledField
 
       //helpMat   = (*this) * QT;
       //retMat = Q * helpMat;
-//      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+//      std::cout<<"Q = "<<Q.ToString()<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {

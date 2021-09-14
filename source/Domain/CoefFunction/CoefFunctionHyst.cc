@@ -8639,7 +8639,7 @@ namespace CoupledField {
     hystStrainTMP = NULL;
     
     UInt precisionDigits = 12;//9
-    char separatorString = ' ';
+    string separatorString = " ";
     UInt minWidthOutputColumns = 10;
 
     std::string usedInversionMethod;
@@ -9150,9 +9150,9 @@ namespace CoupledField {
           yIn[j] += eps_mu_used[j][j]*xIn[j];
         }
         
-//		std::cerr << "Input xIn = " << xIn.ToString(precisionDigits,separatorString) << std::endl;
-//        std::cerr << "Computed hIn = " << hIn.ToString(precisionDigits,separatorString) << std::endl;
-//        std::cerr << "Computed yIn = " << yIn.ToString(precisionDigits,separatorString) << std::endl;
+//		std::cerr << "Input xIn = " << xIn.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
+//        std::cerr << "Computed hIn = " << hIn.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
+//        std::cerr << "Computed yIn = " << yIn.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
 
 				// 2. backward; do not overwrite
 				overwriteMemory = false;
@@ -9415,10 +9415,10 @@ namespace CoupledField {
       
       if(outputIrrStrains){
         Vector<Double> S_irr = ComputeIrreversibleStrains(hOutForStrains,xIn,hOutOldForStrains);
-        results_s << i+1 << separatorString << S_irr.ToString(precisionDigits,separatorString) << std::endl;
-        results_xps << i+1 << separatorString << xIn.ToString(precisionDigits,separatorString) << separatorString;
-        results_xps << hOutForStrains.ToString(precisionDigits,separatorString) << separatorString;
-        results_xps << S_irr.ToString(precisionDigits,separatorString) << std::endl;
+        results_s << i+1 << separatorString << S_irr.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
+        results_xps << i+1 << separatorString << xIn.ToString(TS_PLAIN,separatorString,precisionDigits) << separatorString;
+        results_xps << hOutForStrains.ToString(TS_PLAIN,separatorString,precisionDigits) << separatorString;
+        results_xps << S_irr.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
       }
       if(writeResultsToFile){
         
@@ -9440,8 +9440,8 @@ namespace CoupledField {
         
         //results_xp << i+1 << " " << std::setprecision(precisionDigits) << xIn.ToString() << " " << hOut.ToString() << std::endl;
         //        results_xp << i+1 << separatorString << std::setprecision(precisionDigits) << xIn[0] << " " << xIn[1] << " " << hOut[0] << " " << hOut[1] << std::endl;
-        results_xp << i+1 << separatorString << xIn.ToString(precisionDigits,separatorString) << separatorString;
-        results_xp << hOut.ToString(precisionDigits,separatorString) << std::endl;
+        results_xp << i+1 << separatorString << xIn.ToString(TS_PLAIN,separatorString,precisionDigits) << separatorString;
+        results_xp << hOut.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
         
         Double xAmpl = xIn.NormL2();
         Double phi = std::atan2(xIn[1],xIn[0])/M_PI*180;
@@ -9468,7 +9468,7 @@ namespace CoupledField {
           orientationTowardsExcitation_p << std::setprecision(precisionDigits) << separatorString << pParallel << separatorString << pPerpendicular << std::endl;
         } else {
           orientationTowardsExcitation_p << i+1 << separatorString << std::setprecision(precisionDigits) << xAmpl << separatorString << phi << separatorString << theta;
-          orientationTowardsExcitation_p << std::setprecision(precisionDigits) << separatorString << pParallel << separatorString << pPerpendicularVec.ToString(precisionDigits,separatorString) << std::endl;
+          orientationTowardsExcitation_p << std::setprecision(precisionDigits) << separatorString << pParallel << separatorString << pPerpendicularVec.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
         }
       }
       
@@ -9527,8 +9527,8 @@ namespace CoupledField {
 
 				if(testInversion){				
 					// input to hyst operator and retrieved input from inversion (xIn, xOut)
-          results_x << i+1 << separatorString << xInBak.ToString(precisionDigits,separatorString);
-          results_x << separatorString << xOut.ToString(precisionDigits,separatorString) << std::endl;
+          results_x << i+1 << separatorString << xInBak.ToString(TS_PLAIN,separatorString,precisionDigits);
+          results_x << separatorString << xOut.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
                   
           r_vec1 = xInBak.NormL2();
           phi_vec1 = atan2(xInBak[1],xInBak[0])*180.0/M_PI;
@@ -9553,8 +9553,8 @@ namespace CoupledField {
           angularResults_x << std::endl;
           
           // polarization given and computed (hIn, hOut)
-          results_p << i+1 << separatorString << hIn.ToString(precisionDigits,separatorString);
-          results_p << separatorString << hOut.ToString(precisionDigits,separatorString) << std::endl;
+          results_p << i+1 << separatorString << hIn.ToString(TS_PLAIN,separatorString,precisionDigits);
+          results_p << separatorString << hOut.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
                   
           r_vec1 = hIn.NormL2();
           phi_vec1 = atan2(hIn[1],hIn[0])*180.0/M_PI;
@@ -9579,8 +9579,8 @@ namespace CoupledField {
           angularResults_p << std::endl;
           
           // output given and computed (yIn, yOut)
-          results_y << i+1 << separatorString << yIn.ToString(precisionDigits,separatorString);
-          results_y << separatorString << yOut.ToString(precisionDigits,separatorString) << std::endl;
+          results_y << i+1 << separatorString << yIn.ToString(TS_PLAIN,separatorString,precisionDigits);
+          results_y << separatorString << yOut.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
                   
           r_vec1 = yIn.NormL2();
           phi_vec1 = atan2(yIn[1],yIn[0])*180.0/M_PI;
@@ -9606,7 +9606,7 @@ namespace CoupledField {
           
 				} else {
 					// input to hyst operator (xIn)
-          results_x << i+1 << separatorString << xInBak.ToString(precisionDigits,separatorString);
+          results_x << i+1 << separatorString << xInBak.ToString(TS_PLAIN,separatorString,precisionDigits);
           results_x << std::endl;
                   
           r_vec1 = xInBak.NormL2();
@@ -9623,7 +9623,7 @@ namespace CoupledField {
           
           // polarization computed (hOut)
           results_p << i+1;
-          results_p << separatorString << hOut.ToString(precisionDigits,separatorString) << std::endl;
+          results_p << separatorString << hOut.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
           
           angularResults_p << i+1 << std::setprecision(precisionDigits);
           r_vec2 = hOut.NormL2();
@@ -9639,7 +9639,7 @@ namespace CoupledField {
           
           // output computed (yOut)
           results_y << i+1;
-          results_y << separatorString << yOut.ToString(precisionDigits,separatorString) << std::endl;
+          results_y << separatorString << yOut.ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
                   
           angularResults_y << i+1 << std::setprecision(precisionDigits);        
           r_vec2 = yOut.NormL2();
@@ -9656,21 +9656,21 @@ namespace CoupledField {
 			}
 
 			LOG_TRACE(coeffunctionhyst_main) << "##### TARGET X-VECTOR #####";
-			LOG_TRACE(coeffunctionhyst_main) << xInBak.ToString(precisionDigits,separatorString);
+			LOG_TRACE(coeffunctionhyst_main) << xInBak.ToString(TS_PLAIN,separatorString,precisionDigits);
 			if(testInversion){
 				LOG_TRACE(coeffunctionhyst_main) << "##### RETRIEVED X-VECTOR #####";
-				LOG_TRACE(coeffunctionhyst_main) << xOut.ToString(precisionDigits,separatorString);
+				LOG_TRACE(coeffunctionhyst_main) << xOut.ToString(TS_PLAIN,separatorString,precisionDigits);
 
 				LOG_TRACE(coeffunctionhyst_main) << "##### ERROR VECTOR wrt X #####";
-				LOG_TRACE(coeffunctionhyst_main) << xErr.ToString(precisionDigits,separatorString);
+				LOG_TRACE(coeffunctionhyst_main) << xErr.ToString(TS_PLAIN,separatorString,precisionDigits);
 				LOG_TRACE(coeffunctionhyst_main) << "##### TARGET Y-VECTOR #####";
-				LOG_TRACE(coeffunctionhyst_main) << yIn.ToString(precisionDigits,separatorString);
+				LOG_TRACE(coeffunctionhyst_main) << yIn.ToString(TS_PLAIN,separatorString,precisionDigits);
 			}
 			LOG_TRACE(coeffunctionhyst_main) << "##### RETRIEVED Y-VECTOR #####";
-			LOG_TRACE(coeffunctionhyst_main) << yOut.ToString(precisionDigits,separatorString);
+			LOG_TRACE(coeffunctionhyst_main) << yOut.ToString(TS_PLAIN,separatorString,precisionDigits);
 			if(testInversion){
 				LOG_TRACE(coeffunctionhyst_main) << "##### ERROR VECTOR wrt Y #####";
-				LOG_TRACE(coeffunctionhyst_main) << yErr.ToString(precisionDigits,separatorString);
+				LOG_TRACE(coeffunctionhyst_main) << yErr.ToString(TS_PLAIN,separatorString,precisionDigits);
 			}
 			hOutOld = hOut;
       hOutOldForStrains = hOutForStrains;
@@ -9707,16 +9707,16 @@ namespace CoupledField {
 //          std::cout << "2" << std::endl;
 					bool xsolabovesat = failedTests_xIn[mapItX->first].NormL2()>POL_operatorParams_.inputSat_;
 					bool xretabovesat = failedTests_xOut[mapItX->first].NormL2()>POL_operatorParams_.inputSat_;
-					statistics << " > X_in: " << failedTests_xIn[mapItX->first].ToString(precisionDigits,separatorString)  << "; above sat? "<< xsolabovesat << std::endl;
-					statistics << " > X_out: " << failedTests_xOut[mapItX->first].ToString(precisionDigits,separatorString) << "; above sat? "<< xretabovesat << std::endl;
+					statistics << " > X_in: " << failedTests_xIn[mapItX->first].ToString(TS_PLAIN,separatorString,precisionDigits)  << "; above sat? "<< xsolabovesat << std::endl;
+					statistics << " > X_out: " << failedTests_xOut[mapItX->first].ToString(TS_PLAIN,separatorString,precisionDigits) << "; above sat? "<< xretabovesat << std::endl;
 					if(failX){
 						statistics << " > FAIL - remaining error wrt X  " << mapItX->second.second << std::endl;
 					} else {
 						statistics << " > SUCCESS - remaining error wrt X  " << mapItX->second.second << std::endl;
 					}
 //					std::cout << "3" << std::endl;
-					statistics << " > Y_in: " << failedTests_yIn[mapItX->first].ToString(precisionDigits,separatorString) << std::endl;
-					statistics << " > Y_out: " << failedTests_yOut[mapItX->first].ToString(precisionDigits,separatorString) << std::endl;
+					statistics << " > Y_in: " << failedTests_yIn[mapItX->first].ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
+					statistics << " > Y_out: " << failedTests_yOut[mapItX->first].ToString(TS_PLAIN,separatorString,precisionDigits) << std::endl;
 					if(failY){
 						statistics << " > FAIL - remaining error wrt Y  " << mapItY->second.second << std::endl;
 					} else {
@@ -12951,8 +12951,8 @@ namespace CoupledField {
                 tryAgain = true;
               } else {
                 Jacwarnmsg << "# Jump in Central-Differences-Jacobian detected at step "<<i<<"!" <<std::endl;
-                Jacwarnmsg << "# Current Jacobian: "<<tmp.ToString(0,false)<<std::endl;
-                Jacwarnmsg << "# Previous Jacobian: "<<Jacobians[i-1].ToString(0,false)<<std::endl;
+                Jacwarnmsg << "# Current Jacobian: "<<tmp.ToString()<<std::endl;
+                Jacwarnmsg << "# Previous Jacobian: "<<Jacobians[i-1].ToString()<<std::endl;
                 Jacwarnmsg << "# Skip current Jacobian and replace it with the Jacobian from position "<<i-1<<std::endl;
                 std::cout<<"Jump in Central-Differences-Jacobian detected at step "<<i<<"! Skip current Jacobian and replace it with the Jacobian from position "<<i-1<<std::endl;
                 useCentral = false;

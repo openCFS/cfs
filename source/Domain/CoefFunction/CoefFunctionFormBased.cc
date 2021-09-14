@@ -550,24 +550,24 @@ template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensor(Matrix<TYPE>
   // shared_ptr<FeSpace> mySpace = domain->GetStdPDE("mechanic")->GetFeFunction(MECH_DISPLACEMENT)->GetFeSpace();
   // BaseFE* ptFe = mySpace->GetFe( lpm.ptEl->elemNum);
   // form->GetBOp()->CalcOpMat(B, lpm, ptFe);
-  // LOG_DBG2(cff) << "CFDS:GT B=" << B.ToString(2);
+  // LOG_DBG2(cff) << "CFDS:GT B=" << B.ToString();
 
 
   // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
   Vector<TYPE>& elemSol = elemSol_.Mine();
   this->feFct_->GetElemSolution(elemSol, lpm.ptEl);
-  LOG_DBG2(cff) << "CFDS:GT u=" << elemSol.ToString(2);
+  LOG_DBG2(cff) << "CFDS:GT u=" << elemSol.ToString();
 
   Vector<TYPE> tmp;
   form->ApplyBMat(tmp, elemSol, lpm);
-  // LOG_DBG2(cff) << "CFDS:GT B*u=" << tmp.ToString(2);
+  // LOG_DBG2(cff) << "CFDS:GT B*u=" << tmp.ToString();
 
   // Vector<TYPE> manual;
   // manual = B * ;
-  // LOG_DBG2(cff) << "CFDS:GT manual=" << manual.ToString(2);
+  // LOG_DBG2(cff) << "CFDS:GT manual=" << manual.ToString();
 
   tensor.DyadicMult(tmp, tmp.Conj());
-  LOG_DBG2(cff) << "CFDS:GT -> " << tensor.ToString(2);
+  LOG_DBG2(cff) << "CFDS:GT -> " << tensor.ToString();
 }
 
 template<class TYPE> std::string CoefFunctionDyadicStrain<TYPE>::ToString() const
@@ -598,7 +598,7 @@ template<class TYPE> void CoefFunctionQuadSol<TYPE>::GetScalar(TYPE& coefScal, c
   Vector<TYPE>& elemSol = elemSol_.Mine();
   // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
   this->feFct_->GetElemSolution(elemSol, lpm.ptEl);
-  LOG_DBG2(cff) << "CFSQ:GS u=" << elemSol.ToString(2);
+  LOG_DBG2(cff) << "CFSQ:GS u=" << elemSol.ToString();
 
   coefScal = elemSol.Inner();
   LOG_DBG2(cff) << "CFSQ:GS -> " << coefScal;
@@ -749,8 +749,8 @@ template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::G
   }
 
   tensor.ConvertToVec_UpperTriangular(vec);
-  LOG_DBG3(cff) << "CFH:GV tensor=" << tensor.ToString(2);
-  LOG_DBG2(cff) << "CFH:GV -> " << vec.ToString(2);
+  LOG_DBG3(cff) << "CFH:GV tensor=" << tensor.ToString();
+  LOG_DBG2(cff) << "CFH:GV -> " << vec.ToString();
 
 }
 
@@ -790,7 +790,7 @@ template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::G
     tensor = mt.GetMatrix(HILL_MANDEL);
   }
 
-  LOG_DBG2(cff) << "CFH:GT -> " << tensor.ToString(2);
+  LOG_DBG2(cff) << "CFH:GT -> " << tensor.ToString();
 }
 
 template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
