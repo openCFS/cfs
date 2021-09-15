@@ -87,7 +87,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of CGAL libraries.
 #-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 SET(CGAL_LIBRARY
   "${LD}/libCGAL.a"
   CACHE FILEPATH "CGAL library.")
@@ -123,9 +123,9 @@ ELSE()
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
       ${CMAKE_ARGS}
-      -DCGAL_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
-      -DCGAL_INSTALL_CMAKE_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}/CGAL
-      -DCGAL_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
+      -DCGAL_INSTALL_BIN_DIR:PATH=bin
+      -DCGAL_INSTALL_CMAKE_DIR:PATH=${LIB_SUFFIX}/CGAL
+      -DCGAL_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}
       -DBUILD_SHARED_LIBS:BOOL=OFF
 #      -DBoost_INCLUDE_DIR:PATH=${cgal_install}/include
 #      -DBoost_LIBRARY_DIRS:PATH=${cgal_install}/${LIB_SUFFIX}/$ARCH_STR
@@ -142,7 +142,7 @@ ELSE()
       -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARY}
       -DGMP_INCLUDE_DIR:PATH=${GMP_INCLUDE_DIR}
       -DGMP_LIBRARIES:FILEPATH=${GMP_LIBRARY}
-      -DGMP_LIBRARIES_DIR:PATH=${cgal_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+      -DGMP_LIBRARIES_DIR:PATH=${cgal_install}/${LIB_SUFFIX}
       -DWITH_GMP:BOOL=ON
       -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
       -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}

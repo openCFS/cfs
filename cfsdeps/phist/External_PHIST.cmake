@@ -52,7 +52,7 @@ set(ZIPTOCACHE "${PHIST_PREFIX}/phist-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 # Determine paths of phist libraries.
-set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 set(PHIST_LIBRARY  "${LD}/libphist_kernels_ghost.a;${LD}/libphist_solvers.a;${LD}/libphist_core.a;${LD}/libphist_tools.a;${LD}/libphist_precon.a" CACHE FILEPATH "phist libraries.")
 set(PHIST_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

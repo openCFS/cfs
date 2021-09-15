@@ -113,7 +113,7 @@ SET(CFSDEPS ${CFSDEPS} libxml2)
 # There is no separation between BLAS and LAPACK, both are combined. While BLAS is optimized
 # only parts of LAPACK are optimized. libxml2 can be build without LAPACK in request.
 #-------------------------------------------------------------------------------
-SET(LIBXML2_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libxml2.a" CACHE FILEPATH "libxml2 library.")
+SET(LIBXML2_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libxml2.a" CACHE FILEPATH "libxml2 library.")
 
 MARK_AS_ADVANCED(LIBXML2_LIBRARY)
 

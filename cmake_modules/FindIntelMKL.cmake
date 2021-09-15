@@ -80,13 +80,13 @@ IF(MSVC)
   # Read mkl version from header files
   #---------------------------------------------------------------------------
   MKL_VERSION_FROM_HEADER()
-  SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include" CACHE PATH "mkl include dir")
   
-  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
-    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win")
-  ELSE()
-    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64")
-  ENDIF()
+  if(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win" CACHE PATH "here we assume the mkl libs")
+  else()
+    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64" CACHE PATH "here we assume the mkl libs")
+  endif()
 
   # mkl_solver* libs are deprecated as of v10
   # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
@@ -178,9 +178,9 @@ elseif(APPLE) # note tha APPLE is ALSO UNIX!
   # Read mkl version from header files
   #---------------------------------------------------------------------------
   MKL_VERSION_FROM_HEADER()
-  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include" CACHE PATH "mkl include directory")
   
-  set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib")
+  set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib" CACHE PATH "here we assume the mkl libs")
 
   # https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
   if(USE_OPENMP)
@@ -216,7 +216,7 @@ elseif(APPLE) # note tha APPLE is ALSO UNIX!
 
   # the path for libimp5 is not set by defeault: LD_LIBRARY_PATH=$MKLROOT/../compiler/lib/ works, 
   # but it is easier to copy the file to the lib-dir.
-  file(COPY ${MKL_ROOT_DIR}/../compiler/lib/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} DESTINATION "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  file(COPY ${MKL_ROOT_DIR}/../compiler/lib/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} DESTINATION "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
      
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
@@ -251,6 +251,12 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   endif()
   set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL.")
   mark_as_advanced(MKL_ROOT_DIR)
+  
+  if(NOT EXISTS ${MKL_ROOT_DIR}/lib/intel64/libmkl_core.a)
+    message(FATAL_ERROR "MKL_ROOT_DIR=${MKL_ROOT_DIR} but ${MKL_ROOT_DIR}/lib/intel64/libmkl_core.a is not found") 
+  endif()
+  set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64" CACHE PATH "here we assume the mkl libs")
+  message(STATUS "setting MKL_LIB_DIR=${MKL_LIB_DIR} (validated)")
 
   #---------------------------------------------------------------------------
   # Read mkl version from header files
@@ -261,38 +267,39 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
 
   if(USE_OPENMP)
-    set(MKL_OMP_LIB "${MKL_ROOT_DIR}/lib/intel64/libiomp5.so")
+    set(MKL_OMP_LIB "${MKL_LIB_DIR}/libiomp5.so")
+    # strange that we search here for alternative locations of libiomp5.so but not for the other libs later ...
     if(NOT EXISTS "${MKL_OMP_LIB}")
-        set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
+      set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../compiler/lib/intel64_lin/libiomp5.so")
     endif()
     # path for oneAPI 2020.2
     if(NOT EXISTS "${MKL_OMP_LIB}")
-        set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../../compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so")
+      set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../../compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so")
     endif()
     # copy over
     file(COPY ${MKL_OMP_LIB} DESTINATION ${LIBRARY_OUTPUT_PATH})
     set(MKL_OMP_LIB_LINE "-L${LIBRARY_OUTPUT_PATH} -liomp5")
-    set(MKL_THREADING_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_intel_thread.a")
+    set(MKL_THREADING_LIB "${MKL_LIB_DIR}/libmkl_intel_thread.a")
   else()
-    set(MKL_THREADING_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_sequential.a")
+    set(MKL_THREADING_LIB "${MKL_LIB_DIR}/libmkl_sequential.a")
   endif()
 
   # set the link line, essentailly from
   # see https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
   # regarting the correct Fortran interface library (libmkl_gf_lp64):
   # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
-  set(MKL_FORTRAN_INTERFACE_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_gf_lp64.a")
+  set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_gf_lp64.a")
   if(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
     message(STATUS "Unsing intel Fortran compiler: use libmkl_intel_lp64.a")
-    set(MKL_FORTRAN_INTERFACE_LIB "${MKL_ROOT_DIR}/lib/intel64/libmkl_intel_lp64.a")
+    set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_intel_lp64.a")
   endif()
   set(MKL_BLAS_LIB
-     ${MKL_ROOT_DIR}/lib/intel64/libmkl_blas95_lp64.a
-     ${MKL_ROOT_DIR}/lib/intel64/libmkl_lapack95_lp64.a 
+     ${MKL_LIB_DIR}/libmkl_blas95_lp64.a
+     ${MKL_LIB_DIR}/libmkl_lapack95_lp64.a 
      -Wl,--start-group
      ${MKL_FORTRAN_INTERFACE_LIB}
      ${MKL_THREADING_LIB}
-     ${MKL_ROOT_DIR}/lib/intel64/libmkl_core.a
+     ${MKL_LIB_DIR}/libmkl_core.a
      -Wl,--end-group
      ${MKL_OMP_LIB_LINE}
      -lpthread
@@ -311,21 +318,24 @@ endif()
 # see also External_OpenBLAS and External_LAPACK, where the setting is quite different:
 # e.g. BLAS_LIBRARY=-Wl,--start-group;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_intel_lp64.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_gnu_thread.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_core.a;-Wl,--end-group;-L/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/../compiler/lib/intel64;-liomp5;-lpthread;-lm;-ldl
 # e.g. LAPACK_LIBRARY=
-IF(USE_BLAS_LAPACK STREQUAL "MKL")
-  SET(BLAS_LIBRARY "${MKL_BLAS_LIB}")
-  IF(MKL_MAJOR_VERSION LESS 10)
-    SET(LAPACK_LIBRARY "${MKL_LAPACK_LIB}")
-  ENDIF(MKL_MAJOR_VERSION LESS 10)  
-ENDIF(USE_BLAS_LAPACK STREQUAL "MKL")
-SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
+if(USE_BLAS_LAPACK STREQUAL "MKL")
+  set(BLAS_LIBRARY "${MKL_BLAS_LIB}")
+  if(MKL_MAJOR_VERSION LESS 10)
+    set(LAPACK_LIBRARY "${MKL_LAPACK_LIB}")
+  endif(MKL_MAJOR_VERSION LESS 10)  
+endif()
+set(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
 
 #-------------------------------------------------------------------------------
 # Status message of found MKL
 #-------------------------------------------------------------------------------
-IF(DEFINED MKL_UPDATE)
+if(DEFINED MKL_UPDATE)
   message(STATUS "Using Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}.")
-ELSE()
+else()
   message(STATUS "Using Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.")
-ENDIF()
+endif()
 
 message(STATUS "defining MKL link-line via MKL_BLAS_LIB=${MKL_BLAS_LIB}")# VERBOSE-TRACE are only supported from cmake 3.15
+
+mark_as_advanced(MKL_LIB_DIR)
+mark_as_advanced(MKL_INCLUDE_DIR)

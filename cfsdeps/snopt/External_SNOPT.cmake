@@ -131,8 +131,8 @@ ELSE()
       # the zip file is encrypted!
       PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
       # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
-      # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
-      CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c F77=${CMAKE_Fortran_COMPILER} FFLAGS=-O3 
+      # the libs will be created in install/lib64 and we manually copy them to lib64
+      CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64 --disable-shared --enable-static --without-f2c F77=${CMAKE_Fortran_COMPILER} FFLAGS=-O3 
     )
   ELSE()
     ExternalProject_Add(snopt
@@ -199,7 +199,7 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 SET(CFSDEPS ${CFSDEPS} snopt)
 
 # Determine paths of SNOPT libraries. We have only libs and nothing to include
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 IF(UNIX)
   SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a" CACHE FILEPATH "SNOPT library.")
 ELSE()

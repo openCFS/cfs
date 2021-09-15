@@ -85,15 +85,15 @@ if(MINIZIP_BUILD_SHARED)
 endif()
 
 # Set the install path of the static library
-install(TARGETS minizip_static ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
+install(TARGETS minizip_static ARCHIVE DESTINATION ${LIB_SUFFIX})
 # Set the install path of the shared library
 if(MINIZIP_BUILD_SHARED)
   # for windows, need to install both minizipdll.dll and minizipdll.lib
   if(WIN32)
-    install(TARGETS minizip_shared ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
-    install(TARGETS minizip_shared RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+    install(TARGETS minizip_shared ARCHIVE DESTINATION ${LIB_SUFFIX})
+    install(TARGETS minizip_shared RUNTIME DESTINATION bin)
   else()
-    install(TARGETS minizip_shared LIBRARY DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
+    install(TARGETS minizip_shared LIBRARY DESTINATION ${LIB_SUFFIX})
   endif()
 endif(MINIZIP_BUILD_SHARED)
 

@@ -11,4 +11,4 @@ if [ ! -x "$COMMON_SH" ]; then
 fi
 . $COMMON_SH
 
-$CFS_BIN_DIR/$ARCH_STR/cfsdatbin $@
+$CFS_BIN_DIR/cfsdatbin $@

@@ -79,18 +79,26 @@ private:
   void LighthillSourceVector(Vector<Double>& tempRetVec);
 
   void LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorForm);
-#endif
 
   Grid* inGrid_;
+
+  //! number of euqations per entity
+  UInt numEquPerEnt_;
+
+  //! index in the static matrices vector to use
+  UInt matrixIndex_;
+
+  Integer stepIndex_;
+
+#endif
+
+
 
   //! Entity map used for source values
   str1::shared_ptr<EqnMapSimple> scrMap_;
 
   //! Entity map used for target values
   str1::shared_ptr<EqnMapSimple> trgMap_;
-
-  //! number of euqations per entity
-  UInt numEquPerEnt_;
 
   //! Number of neighbor points to include in differentiation.
   UInt numNeighbors_;
@@ -110,8 +118,6 @@ private:
   //! will be performed
   bool logEps_;
 
-  //! index in the static matrices vector to use
-  UInt matrixIndex_;
 
   //! contains pointers to every interpolator which created a matrix
   static CF::StdVector<Lighthill*> differentiators_;
@@ -132,8 +138,6 @@ private:
   bool externDensity_;
 
   bool checkSum_;
-  
-  Integer stepIndex_;
 
 };
 

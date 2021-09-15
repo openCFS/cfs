@@ -37,7 +37,6 @@ SET(CMAKE_ARGS
   -DZLIB_LIBRARIES:FILEPATH=${ZLIB_LIBRARY}
   -DHDF5:BOOL=OFF
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DBUILD_FORTRAN_EXAMPLES:BOOL=ON
   -DGID_FORTRAN_LIBS=${GID_FORTRAN_LIBS}
 )
@@ -106,17 +105,17 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 IF(WIN32)
   SET(GIDPOST_LIBRARY_DEBUG
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/gidpost.lib"
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/gidpost.lib"
     CACHE FILEPATH "GiDpost library" FORCE)
   SET(GIDPOST_LIBRARY_RELEASE
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/gidpost.lib"
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/gidpost.lib"
     CACHE FILEPATH "GiDpost library" FORCE)
 ELSE()
   SET(GIDPOST_LIBRARY_DEBUG
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libgidpost.a"
     CACHE FILEPATH "GiDpost library" FORCE)
   SET(GIDPOST_LIBRARY_RELEASE
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libgidpost.a"
     CACHE FILEPATH "GiDpost library" FORCE)
 ENDIF(WIN32)
 

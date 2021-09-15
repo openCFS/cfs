@@ -45,7 +45,6 @@ SET(CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCMAKE_LINKER:FILEPATH=${CMAKE_LINKER}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DCFS_FORTRAN_COMPILER_NAME=${CFS_FORTRAN_COMPILER_NAME}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
@@ -114,7 +113,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of CholMod libraries.
 #-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 
 SET(AMD_LIBS
   amd_dint

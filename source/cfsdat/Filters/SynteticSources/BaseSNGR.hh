@@ -112,14 +112,14 @@ protected:
   Double fa_;
   Double maxWN_;
   Double minWN_;
-  Double c_mu_ = 0.09; // constand of k-epsilon model
-  Double A_ = 1.452762;   // constand of SNGR
+  Double c_mu_ = 0.09; // constant of k-epsilon model
+  Double A_ = 1.452762;   // constant of SNGR
   Double C_k_ = 0.5;      // 'universal' Kolmogorov constant, not so universal as it may seem.
   Double deltaT_;
 
   UInt maxFreq_;
   UInt minFreq_;
-  UInt numModes_;
+  UInt numModes_ = 0;
   UInt ensemble_;
   UInt numSteps_;
   UInt numNodes_;
@@ -136,7 +136,7 @@ protected:
   Vector<UInt> numLargeScaleModes_;
   Vector<Double> timeScale_;
   Double aveTDR_;
-  Double numModesBackup_ = numModes_;
+  Double numModesBackup_ = numModes_; // strange stuff, as numModes_ is not meaningfully initialized here!
 
 //  UInt flg_=0; // counter for number of nodes the TKE-Criterion is met
   Vector<Double> idsNodesToProcess_;

@@ -25,7 +25,6 @@ SET(CMAKE_ARGS
    -DCMAKE_C_FLAGS:STRING=${metis_c_flags}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX})
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
@@ -87,7 +86,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of METIS libraries.
 #-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 IF(NOT USE_ILUPACK_PARALLEL)
 SET(METIS_LIBRARY
     "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX};"

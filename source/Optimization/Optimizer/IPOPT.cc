@@ -8,7 +8,7 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "coin/IpSolveStatistics.hpp"
+#include "coin-or/IpSolveStatistics.hpp"
 
 #include "boost/lexical_cast.hpp"
 

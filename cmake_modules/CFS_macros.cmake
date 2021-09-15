@@ -327,14 +327,14 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     message("ZIP_TO_CACHE: zip ${TMP_DIR} as manifest ${TMP_DIR}/src/*-build/install_manifest.txt was not found")
     # No manifests exists -> zip TMP_DIR
 
-    # standard make or configure does not known about lib64/CFS_ARCH_STR
-    IF(NOT EXISTS "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
-      FILE(MAKE_DIRECTORY "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+    # standard make or configure does not necessarily know about lib64
+    IF(NOT EXISTS "${TMP_DIR}/lib64")
+      FILE(MAKE_DIRECTORY "${TMP_DIR}/lib64")
     ENDIF()
 
-    # move any lib to lib64/CFS_ARCH_STR. Extend to lib64/files if necessary
+    # move any lib to lib64. Extend to lib64/files if necessary
     IF(EXISTS "${TMP_DIR}/lib")
-	    FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+	    FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64")
       FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
     ENDIF()
    

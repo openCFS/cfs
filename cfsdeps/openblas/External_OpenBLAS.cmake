@@ -78,7 +78,7 @@ ELSE()
       ${CMAKE_ARGS}
       -DCMAKE_SYSTEM_PROCESSOR:STRING=x86_64
       -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
-      -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/lib64/${CFS_ARCH_STR}
+      -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/lib64
       -DDYNAMIC_ARCH=1
       -E
   )
@@ -118,7 +118,7 @@ set(CFSDEPS ${CFSDEPS} openblas)
 # only parts of LAPACK are optimized. OpenBLAS can be build without LAPACK in request but then 
 # cfs does not link
 #-------------------------------------------------------------------------------
-SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libopenblas.a;-lpthread;-lm")
+SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libopenblas.a;-lpthread;-lm")
 SET(LAPACK_LIB "${BLAS_LIB}")
 
 set(OPENBLAS_LIBRARY ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")

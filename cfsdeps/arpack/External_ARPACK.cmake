@@ -16,13 +16,12 @@ set(ARPACK_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
-  -DCMAKE_INSTALL_LIBDIR:PATH=${ARPACK_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+  -DCMAKE_INSTALL_LIBDIR:PATH=${ARPACK_install}/${LIB_SUFFIX}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
   -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   # for our 3.7.0 patch only
   -DSYSTEM_BLAS:BOOL=OFF
@@ -63,6 +62,10 @@ SET(MD5_SUM ${ARPACK_MD5})
 SET(DLFN "${ARPACK_prefix}/arpack-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
+SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/arpack/arpack-post_install.cmake.in")
+SET(PI "${ARPACK_prefix}/arpack-post_install.cmake")
+CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
+
 #copy license
 file(COPY "${CFS_SOURCE_DIR}/cfsdeps/arpack/license/" DESTINATION "${CFS_BINARY_DIR}/license/arpack" )
 
@@ -83,7 +86,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of ARPACK libraries.
 #-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 IF(WIN32)
   SET(ARPACK_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/arpack.lib" CACHE FILEPATH "ARPACK library.")
 ELSE(WIN32)
@@ -131,6 +134,11 @@ ELSE()
     DEPENDERS download
     DEPENDS "${DLFN}"
     WORKING_DIRECTORY ${ARPACK_prefix}
+  )
+  
+  ExternalProject_Add_Step(arpack post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
   )
   
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")

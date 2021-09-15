@@ -86,7 +86,7 @@ then
 fi
 
 # Set path to CFS executable
-CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
+CFS_EXE=$CFS_ROOT_DIR/bin/cfsbin
 
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]

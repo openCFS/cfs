@@ -178,6 +178,10 @@ if(USE_FEAST AND NOT USE_BLAS_LAPACK STREQUAL "MKL" )
   message(FATAL_ERROR "USE_FEAST requires Intel MKL! Set USE_BLAS_LAPACK=MKL")
 endif()
 
+if(USE_IPOPT AND NOT USE_BLAS_LAPACK STREQUAL "MKL" )
+  message(FATAL_ERROR "USE_IPTOPT requires Intel MKL! Set USE_BLAS_LAPACK=MKL or implement usage of external solvers")
+endif()
+
 if(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
   message(FATAL_ERROR "Either USE_ILUPACK or USE_ILUPACK_PARALLEL. Both cannot be swithed on together")
 endif()
@@ -229,8 +233,8 @@ if(BUILD_TESTING AND NOT BUILD_CFSTOOL)
 endif()
 
 if(NOT USE_METIS)
-  if(USE_IPOPT OR USE_ILUPACK OR USE_SUITESPARSE)
-    message(FATAL_ERROR "USE_METIS required for IPOPT, ILUPACK and SUITESPARSE")
+  if(USE_ILUPACK OR USE_SUITESPARSE)
+    message(FATAL_ERROR "USE_METIS required for ILUPACK and SUITESPARSE")
   endif() 
 endif()
 
@@ -334,27 +338,14 @@ include("cmake_modules/ConfigureChecks.cmake")
 
 # Set path where shared/static libraries should go
 if(CFS_ARCH STREQUAL "X86_64")
-  set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64/${CFS_ARCH_STR} CACHE INTERNAL "Single output directory for building all libraries.")
+  set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64 CACHE INTERNAL "Single output directory for building all libraries.")
 else()
-  set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR} CACHE INTERNAL "Single output directory for building all libraries.")
+  message("CFS_ARCH=${CFS_ARCH} and not X86_64 shall fail, als lib64 is hard coded in some cfsdeps")
+  set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output directory for building all libraries.")
 endif()
 
 # Set path where executables should go
-set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}
-  CACHE INTERNAL "Single output directory for building all executables.")
-
-# Create symlinks to lib & bin dirs allowing the build to run on (newer) linux
-if(UNIX)
-  # lib dir
-  get_filename_component(wd ${LIBRARY_OUTPUT_PATH} DIRECTORY)
-  add_custom_target(symlink_lib_dir ALL
-     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
-     WORKING_DIRECTORY ${wd})
-  # bin dir
-  add_custom_target(symlink_bin_dir ALL
-     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
-     WORKING_DIRECTORY "${CFS_BINARY_DIR}/bin")
-endif(UNIX)
+set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
 
 # Create and set a path where temporaries should go
 set(CFS_TEMP_DIR "${CFS_BINARY_DIR}/tmp")
@@ -578,8 +569,8 @@ endif(CFS_WC_MODIFIED)
 if(UNIX)
   # tailing / in source leads to rename to destionation
   #install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
-  install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS)
-  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS
+  install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS)
+  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64" USE_SOURCE_PERMISSIONS
 	  PATTERN "*.a" EXCLUDE
 	  PATTERN "*.la" EXCLUDE
 	  PATTERN "*.pc" EXCLUDE

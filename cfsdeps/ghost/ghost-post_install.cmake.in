@@ -1,8 +1,8 @@
 # clean up ghost installation
 
 # copy the static lib
-# message("copy @GHOST_INSTALL@/lib/ghost/libghost.a to @GHOST_INSTALL@/lib64/@CFS_ARCH_STR@")
-FILE(COPY "@GHOST_INSTALL@/lib/ghost/libghost.a" DESTINATION "@GHOST_INSTALL@/lib64/@CFS_ARCH_STR@")
+# message("copy @GHOST_INSTALL@/lib/ghost/libghost.a to @GHOST_INSTALL@/lib64")
+FILE(COPY "@GHOST_INSTALL@/lib/ghost/libghost.a" DESTINATION "@GHOST_INSTALL@/lib64")
 
 # copy the ghost-config.stuff to share
 # ghost-config-version.cmake is required

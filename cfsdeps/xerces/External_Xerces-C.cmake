@@ -22,7 +22,6 @@ SET(CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DBUILD_SHARED_LIBS:BOOL=OFF
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   )
 
@@ -87,12 +86,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 # Determine paths of XERCES libraries.
 #-----------------------------------------------------------------------------
-IF(WIN32)
-  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-ELSE(WIN32)
-  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-ENDIF(WIN32)
-
+set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(XERCES_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}")

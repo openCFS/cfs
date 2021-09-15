@@ -28,7 +28,7 @@
 +target_link_libraries(amd amd_dint amd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS amd amd_dlong amd_dint
-+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++  ARCHIVE DESTINATION "${LIB_SUFFIX}")
 \ Kein Zeilenumbruch am Dateiende.
 --- CAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.159259937 +0100
 +++ CAMD/Lib/CMakeLists.txt	2012-12-17 15:15:11.000104074 +0100
@@ -60,7 +60,7 @@
 +target_link_libraries(camd camd_dint camd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS camd camd_dlong camd_dint
-+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++  ARCHIVE DESTINATION "${LIB_SUFFIX}")
 \ Kein Zeilenumbruch am Dateiende.
 --- CCOLAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
 +++ CCOLAMD/Lib/CMakeLists.txt	2012-12-17 15:16:19.313103919 +0100
@@ -88,7 +88,7 @@
 +target_link_libraries(ccolamd ccolamd_dint ccolamd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS ccolamd ccolamd_dlong ccolamd_dint
-+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++  ARCHIVE DESTINATION "${LIB_SUFFIX}")
 --- CHOLMOD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
 +++ CHOLMOD/Lib/CMakeLists.txt	2012-12-17 15:17:07.084135209 +0100
 @@ -4,9 +4,9 @@
@@ -214,7 +214,7 @@
 +add_dependencies(cholmod_dlong ${cholmod_templates})
 +
 +INSTALL(TARGETS cholmod_dlong cholmod_dint
-+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++  ARCHIVE DESTINATION "${LIB_SUFFIX}")
 +
 +#add_library(cholmod STATIC EXCLUDE_FROM_ALL
 +#    ${cholmod_headers} dummy.c)
@@ -247,7 +247,7 @@
 +target_link_libraries(colamd colamd_dint colamd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS colamd colamd_dlong colamd_dint
-+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++  ARCHIVE DESTINATION "${LIB_SUFFIX}")
 --- UMFPACK/Lib/CMakeLists.txt	2012-12-17 12:33:36.182111610 +0100
 +++ UMFPACK/Lib/CMakeLists.txt	2012-12-17 15:24:46.883103816 +0100
 @@ -6,7 +6,7 @@
@@ -314,7 +314,7 @@
 +    SuiteSparse_config amd camd colamd ccolamd cholmod)
 +
 +INSTALL(TARGETS umfpack umfpack_dlong umfpack_dint umfpack_zlong umfpack_zint
-+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++  ARCHIVE DESTINATION "${LIB_SUFFIX}")
 +
 --- CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
 +++ CMakeLists.txt	2012-12-17 14:31:14.294103946 +0100
@@ -357,4 +357,4 @@
  
  add_library(SuiteSparse_config STATIC SuiteSparse_config.h SuiteSparse_config.c)
 +
-+INSTALL(TARGETS SuiteSparse_config ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++INSTALL(TARGETS SuiteSparse_config ARCHIVE DESTINATION "${LIB_SUFFIX}")

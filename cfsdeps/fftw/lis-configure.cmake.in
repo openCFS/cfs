@@ -9,7 +9,6 @@
 #=============================================================================
 SET(lis_source "@lis_source@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(CFS_ARCH "@CFS_ARCH@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(DEBUG "@DEBUG@")
@@ -22,8 +21,8 @@ SET(CONFIGURE_CMD
   "sh"
   "./configure"
   "--prefix=${CFS_BINARY_DIR}"
-  "--bindir=${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
-  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--bindir=${CFS_BINARY_DIR}/bin"
+  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}"
   "--includedir=${CFS_BINARY_DIR}/include"
 )
 

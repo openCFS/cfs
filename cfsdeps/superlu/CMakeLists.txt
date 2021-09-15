@@ -8,15 +8,9 @@ ENDIF(COMMAND CMAKE_POLICY)
 # Set CMake project name
 PROJECT(SUPERLU C)
 
-set(INSTALL_BIN_DIR
-  "${CMAKE_INSTALL_PREFIX}/bin/${CFS_ARCH_STR}"
-  CACHE PATH "Installation directory for executables")
-set(INSTALL_LIB_DIR
-  "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
-  CACHE PATH "Installation directory for libraries")
-set(INSTALL_INC_DIR
-  "${CMAKE_INSTALL_PREFIX}/include"
-  CACHE PATH "Installation directory for headers")
+set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
+set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}" CACHE PATH "Installation directory for libraries")
+set(INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Installation directory for headers")
 
 # Identify CMake directory
 set(SUPERLU_CMAKE_DIR "${SUPERLU_SOURCE_DIR}/CMake")

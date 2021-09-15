@@ -528,7 +528,7 @@ SetANSYSParameters()
 
 
 
-    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/$ANSYS_REV/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB:$CFS_ROOT_DIR$LIB/$ANSYS_REV/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH
 }
 
@@ -594,12 +594,12 @@ then
 fi
 
 # Set path to CFS executable
-CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
+CFS_EXE=$CFS_ROOT_DIR/bin/cfsbin
 
 # Set paths to HDF5 executables
-H5IMPORT_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5import
-H5DUMP_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5dump
-H5TOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
+H5IMPORT_EXE=$CFS_ROOT_DIR/bin/h5import
+H5DUMP_EXE=$CFS_ROOT_DIR/bin/h5dump
+H5TOOL_EXE=$CFS_ROOT_DIR/bin/h5tool
 
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
@@ -615,7 +615,7 @@ esac
 
 # Check if we have the necessary libraries for the current arch.
 if [ "$BINARY_TREE" = "0" ]; then
-    if [ ! -d "$CFS_ROOT_DIR/$LIB/$ARCH_STR" ]
+    if [ ! -d "$CFS_ROOT_DIR/$LIB" ]
     then 
         echo "Cannot find CFS library path for architecture $ARCH_STR."
         exit 2

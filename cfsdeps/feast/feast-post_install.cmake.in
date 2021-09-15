@@ -3,7 +3,7 @@
 IF(WIN32)
 
   FILE(GLOB FEAST_LIBRARIES "@feast_install@/@LIB_SUFFIX@/*")
-  FILE(COPY ${FEAST_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@")
+  FILE(COPY ${FEAST_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@")
 
   FILE(GLOB FEAST_INCLUDES "@feast_install@/include/*")
   FILE(COPY ${FEAST_INCLUDES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
@@ -14,9 +14,10 @@ ELSE()
 
 # install libs
   FILE(GLOB_RECURSE FILES_TO_INSTALL "@FEAST_LIB_DIR@/*")
-  set(lib_dest "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@")                                     
+  set(lib_dest "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@")                                     
   FOREACH(IFILE ${FILES_TO_INSTALL})
     STRING(REPLACE "@FEAST_LIB_DIR@" "${lib_dest}" dest "${IFILE}")
+    message("IFILE=${IFILE} dest=${dest} lib_dest=${lib_dest}")
     FILE(INSTALL "${IFILE}" DESTINATION "${lib_dest}")
     FILE(APPEND "${manifest}" "${dest}\n")
   ENDFOREACH()

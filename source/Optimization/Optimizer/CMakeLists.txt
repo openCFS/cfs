@@ -54,7 +54,7 @@ if(USE_SNOPT)
 endif()
 
 if(USE_IPOPT)
-   set(TARGET_LL ${TARGET_LL}  ${IPOPT_LIBRARY} ${METIS_LIBRARY} ${DEPENDS})
+   set(TARGET_LL ${TARGET_LL}  ${IPOPT_LIBRARY} ${DEPENDS})
    include_directories(${IPOPT_INCLUDE_DIR})
    set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} IPOPT.cc FeasPP.cc FeasSubProblem.cc)
 endif()

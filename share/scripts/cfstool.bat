@@ -84,9 +84,9 @@ rem Set XML schema root path
 set CFS_SCHEMA_ROOT="%CFS_ROOT_DIR%\share\xml"
 
 rem Set path to CFS executable
-set CFSTOOL_EXE="%CFS_BIN_DIR%\%WINDOWS_ARCH_STR%\cfstoolbin.exe"
+set CFSTOOL_EXE="%CFS_BIN_DIR%\cfstoolbin.exe"
 
-set PATH=%CFS_ROOT_DIR%\%LIB%\%WINDOWS_ARCH_STR%;%CFS_ROOT_DIR%\%LIB%\%WINDOWS_ARCH_STR%\v110\winx64;%CFS_ROOT_DIR%\bin\%WINDOWS_ARCH_STR%;%PATH%
+set PATH=%CFS_ROOT_DIR%\%LIB%;%CFS_ROOT_DIR%\%LIB%\v110\winx64;%CFS_ROOT_DIR%\bin;%PATH%
 
 if defined CFS_SCRIPT_DEBUG (
     echo CFS_SCHEMA_ROOT: %CFS_SCHEMA_ROOT%

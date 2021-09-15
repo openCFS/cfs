@@ -1,7 +1,0 @@
- 
-# unpack ipopt_hsl.zip directly to the extracted ipopt source
-execute_process(COMMAND unzip -u -P @CFS_KEY_IPOPT_HSL@ @CFS_SOURCE_DIR@/cfsdeps/ipopt/ipopt_hsl.zip -d @IPOPT_SOURCE@/ThirdParty/HSLold)
-
-# use ipopt's feature to download netlib blas and lapack but don't use the netlib libs and throw them away after install
-execute_process(COMMAND ./get.Blas WORKING_DIRECTORY @IPOPT_SOURCE@/ThirdParty/Blas)
-execute_process(COMMAND ./get.Lapack WORKING_DIRECTORY @IPOPT_SOURCE@/ThirdParty/Lapack)

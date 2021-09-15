@@ -25,10 +25,10 @@ OPTION(LIS_BUILD_TEST "Build tests" OFF)
 # Install directories
 
 set(INSTALL_BIN_DIR
-  "${CMAKE_INSTALL_PREFIX}/bin/${CFS_ARCH_STR}"
+  "${CMAKE_INSTALL_PREFIX}/bin"
   CACHE PATH "Installation directory for executables")
 set(INSTALL_LIB_DIR
-  "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}"
   CACHE PATH "Installation directory for libraries")
 set(INSTALL_INC_DIR
   "${CMAKE_INSTALL_PREFIX}/include"

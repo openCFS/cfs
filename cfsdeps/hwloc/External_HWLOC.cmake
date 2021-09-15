@@ -53,7 +53,7 @@ endif()
 
 SET(HWLOC_SYSTEM_LIBS ${HWLOC_TMP} CACHE STRING "Set system libs for hwloc, e.g. '-lpciaccess;-ludev','-lpciaccess;-lnuma','-lnuma;-lOpenCL'")
 
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 SET(HWLOC_LIBRARY  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}hwloc.a;${HWLOC_SYSTEM_LIBS}" CACHE FILEPATH "hwloc library, see HWLOC_SYSTEM_LIBS" FORCE)
 
 SET(HWLOC_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
@@ -89,7 +89,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     BUILD_IN_SOURCE 1
     PATCH_COMMAND ""
     # disable some stuff we probably don't need  
-    CONFIGURE_COMMAND ${HWLOC_SOURCE}/configure --prefix=${HWLOC_INSTALL} --libdir=${HWLOC_INSTALL}/${LIB_SUFFIX}/${CFS_ARCH_STR} --enable-static --disable-libxml2 --disable-cairo
+    CONFIGURE_COMMAND ${HWLOC_SOURCE}/configure --prefix=${HWLOC_INSTALL} --libdir=${HWLOC_INSTALL}/${LIB_SUFFIX} --enable-static --disable-libxml2 --disable-cairo
     INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} -f Makefile install
     BUILD_BYPRODUCTS ${HWLOC_LIBRARY}
   )

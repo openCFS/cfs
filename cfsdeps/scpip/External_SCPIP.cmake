@@ -29,7 +29,6 @@ SET(CMAKE_ARGS
   -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
   -DCMAKE_Fortran_FLAGS:FILEPATH=-w
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
 )
 
@@ -86,7 +85,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 # Determine paths of SCPIP libraries.
 #-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 IF(UNIX)
   SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
 ELSE()

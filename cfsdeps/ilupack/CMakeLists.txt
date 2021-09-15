@@ -7,10 +7,10 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 set(INSTALL_BIN_DIR
-  "${CMAKE_INSTALL_PREFIX}/bin/${CFS_ARCH_STR}"
+  "${CMAKE_INSTALL_PREFIX}/bin"
   CACHE PATH "Installation directory for executables")
 set(INSTALL_LIB_DIR
-  "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}"
   CACHE PATH "Installation directory for libraries")
 set(INSTALL_INC_DIR
   "${CMAKE_INSTALL_PREFIX}/include"
@@ -789,14 +789,14 @@ INSTALL(FILES
   DESTINATION "${INSTALL_INC_DIR}")
 
 IF(BUILD_SAMPLES)
-  # MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  # MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}")
 
   # The libraries AMD, BLAS, LAPACK and Metis are built
   # as standalone libraries independently of ilupack.
   # Therefore they are searched for in a given directory
   # only if we need them to build the samples.
   FIND_LIBRARY(AMD_LIB amd
-    "${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+    "${PREFIX}/${LIB_SUFFIX}"
     NO_DEFAULT_PATH
     NO_CMAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH
@@ -804,7 +804,7 @@ IF(BUILD_SAMPLES)
     NO_CMAKE_SYSTEM_PATH)
   
   FIND_LIBRARY(BLAS_LIB blas
-    "${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+    "${PREFIX}/${LIB_SUFFIX}"
     NO_DEFAULT_PATH
     NO_CMAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH
@@ -812,7 +812,7 @@ IF(BUILD_SAMPLES)
     NO_CMAKE_SYSTEM_PATH)
   
   FIND_LIBRARY(LAPACK_LIB lapack
-    "${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+    "${PREFIX}/${LIB_SUFFIX}"
     NO_DEFAULT_PATH
     NO_CMAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH
@@ -820,7 +820,7 @@ IF(BUILD_SAMPLES)
     NO_CMAKE_SYSTEM_PATH)
   
   FIND_LIBRARY(METIS_LIB metis
-    "${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+    "${PREFIX}/${LIB_SUFFIX}"
     NO_DEFAULT_PATH
     NO_CAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH

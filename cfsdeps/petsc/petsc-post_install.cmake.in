@@ -1,6 +1,6 @@
 # we copy only include and lib
 
-FILE(COPY "@PETSC_INSTALL@/lib/" DESTINATION "@PETSC_INSTALL@/lib64/@CFS_ARCH_STR@")
+FILE(COPY "@PETSC_INSTALL@/lib/" DESTINATION "@PETSC_INSTALL@/lib64")
 
 # we can now delete lib with libpetsc.so, libpetsc.so.3.8, libpetsc.so.3.8.3 and dirs petsc and pkgconfig.
 FILE(REMOVE_RECURSE "@PETSC_INSTALL@/lib/")

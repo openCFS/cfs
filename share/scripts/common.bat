@@ -22,32 +22,10 @@ set WINVER_BAT="%CFS_ROOT_DIR%\share\scripts\winver.bat"
 call %WINVER_BAT% -u >> nul 2>&1
 if %EXITCODE% NEQ 0 goto end
 
-rem set WINDOWS_ARCH_STR=%WINDOWS_PLATFORM%_%WINDOWS_ARCH%
-rem set WINDOWS_ARCH_STR=
-rem if EXIST %CFS_BIN_DIR%\%WINDOWS_ARCH_STR% goto WINARCH_CHECK_FINISHED
-rem 
-rem set WINDOWS_ARCH_STR=%WINDOWS_PLATFORM%_I386
-rem if EXIST %CFS_BIN_DIR%\%WINDOWS_ARCH_STR% goto WINARCH_CHECK_FINISHED
-rem 
-rem set WINDOWS_ARCH_STR=MINGW_%WINDOWS_ARCH%
-rem if EXIST %CFS_BIN_DIR%\%WINDOWS_ARCH_STR% goto WINARCH_CHECK_FINISHED
-rem 
-rem set WINDOWS_ARCH_STR=MINGW_I386
 
-rem :WINARCH_CHECK_FINISHED
-
-
-rem Set lib path according to architecture
+rem we do not really have different architecture
 rem echo "_%WINDOWS_ARCH%_"
-if "_%WINDOWS_ARCH%_" == "_I386_" (
-   set LIB=lib
-)
-if "_%WINDOWS_ARCH%_" == "_X86_64_" (
-   set LIB=lib64
-)
-if "_%WINDOWS_ARCH%_" == "_IA64_" (
-   set LIB=lib
-)
+set LIB=lib64
 
 rem Set standard Windows (XP) system path
 set PATH=%SystemRoot%\System32;%SystemRoot%;%SystemRoot%\System32\Wbem

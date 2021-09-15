@@ -45,8 +45,8 @@ SET(ZIPTOCACHE "${PETSC_PREFIX}/petsc-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 # Determine paths of petsc libraries.
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(PETSC_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libpetsc.so" CACHE FILEPATH "petsc library")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
+SET(PETSC_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libpetsc.so" CACHE FILEPATH "petsc library")
 SET(PETSC_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 MARK_AS_ADVANCED(PETSC_LIBRARY)

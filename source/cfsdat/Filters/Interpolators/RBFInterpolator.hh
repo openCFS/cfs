@@ -61,6 +61,16 @@ protected:
   void PreparePATCH();
 
   void PrepareCGAL();
+
+  //! number of equations per entity
+  UInt numEquPerEnt_ = 0;
+
+  Grid* inGrid_ = NULL;
+
+  //! index in the static matrices vector to use
+  UInt matrixIndex_ = 0;
+
+  MathParser* mp_ = NULL;
 #endif
 
 private:
@@ -73,16 +83,12 @@ private:
     //! Global Factor for scaling the result
     Double globalFactor_;
 
-    //! number of euqations per entity
-    UInt numEquPerEnt_;
-
     //! Entity map used for source values
     str1::shared_ptr<EqnMapSimple> scrMap_;
 
     //! Entity map used for target values
     str1::shared_ptr<EqnMapSimple> trgMap_;
 
-    Grid* inGrid_;
 
     //! Coordinates of input data
     CF::StdVector< CF::Vector<double> > sourceCoords_;
@@ -107,8 +113,6 @@ private:
     //! if true, then element values are the interpolation target
     bool useElemAsTarget_;
 
-    //! index in the static matrices vector to use
-    UInt matrixIndex_;
 
     //! contains pointers to every interpolator which created a matrix
     static CF::StdVector<RBFInterpolator*> interpolators_;
@@ -117,8 +121,6 @@ private:
     static CF::StdVector<Matrix> matrices_;
 
     std::string expr_;
-
-    MathParser* mp_;
 };
 
 }

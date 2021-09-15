@@ -8,10 +8,10 @@ FILE(GLOB ALL_GMP_INCLUDES "@gmp_install@/include/*")
 FILE(COPY ${ALL_GMP_INCLUDES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
 MESSAGE("Copied gmp includes to @CMAKE_CURRENT_BINARY_DIR@/include")
 
-FILE(GLOB ALL_GMP_LIBRARIES "@gmp_install@/lib64/@CFS_ARCH_STR@/*")
-FILE(COPY ${ALL_GMP_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64/@CFS_ARCH_STR@")
+FILE(GLOB ALL_GMP_LIBRARIES "@gmp_install@/lib64/*")
+FILE(COPY ${ALL_GMP_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64")
 
-MESSAGE("Copied gmp libraries to @CMAKE_CURRENT_BINARY_DIR@/lib64/@CFS_ARCH_STR@")
+MESSAGE("Copied gmp libraries to @CMAKE_CURRENT_BINARY_DIR@/lib64")
 
 # we don't need the share folder with info stuff
 FILE(REMOVE_RECURSE "@gmp_install@/share")

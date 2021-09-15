@@ -15,7 +15,7 @@ set(lis_install  "${lis_prefix}/install")
 IF(UNIX)
   set(LIS_CONFIG_OPTIONS
      "--prefix=${lis_install}"
-     "--libdir=${lis_install}/lib64/${CFS_ARCH_STR}"
+     "--libdir=${lis_install}/lib64"
      "--includedir=${lis_install}/include"
      "--enable-saamg"
      # "--enable-quad" #          enable quadruple precision operations [[default=no]]
@@ -45,7 +45,6 @@ ELSE()
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
     -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
     -DBUILD_SHARED_LIBS:BOOL=OFF
-    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
     -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   )
   IF(CMAKE_TOOLCHAIN_FILE)
@@ -119,7 +118,7 @@ CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
 #-----------------------------------------------------------------------------
 # Determine paths of LIS libraries.
 #-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 SET(LIS_LIBRARY
   "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}lis${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "LIS library.")

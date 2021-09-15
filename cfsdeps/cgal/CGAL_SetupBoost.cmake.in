@@ -24,10 +24,7 @@ if ( NOT CGAL_Boost_Setup )
   include("${BOOST_CONFIG}")
 
   SET(Boost_LIBRARIES "@BOOST_THREAD_LIB@" CACHE FILEPATH "boost thread library" FORCE)
-#  SET(Boost_LIBRARY_DIRS "@CFS_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@" CACHE FILEPATH "boost library dirs" FORCE)
-
-#  SET(FRANZ_JOSEF "@CFS_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@" CACHE FILEPATH "boost library dirs" FORCE)
-#  message( FATAL_ERROR "FRANZ_JOSEF:     ${FRANZ_JOSEF}" )
+#  SET(Boost_LIBRARY_DIRS "@CFS_BINARY_DIR@/@LIB_SUFFIX@" CACHE FILEPATH "boost library dirs" FORCE)
 
   message( STATUS "Boost include:     ${Boost_INCLUDE_DIR}" )
   message( STATUS "Boost libraries:   ${Boost_LIBRARIES}" )

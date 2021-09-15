@@ -93,7 +93,7 @@ SET(TMP_DIR "${spacepart_prefix}")
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
       CMAKE_ARGS
         ${CMAKE_ARGS}
-        -DBoost_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+        -DBoost_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}
         -DBoost_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
         -DENABLE_BENCHMARK:BOOL=OFF
         -DENABLE_EXAMPLES:BOOL=OFF

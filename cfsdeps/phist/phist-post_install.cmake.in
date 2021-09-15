@@ -2,7 +2,7 @@
 
 # copy the static libs
 file(GLOB PHIST_STATIC_LIBS "@PHIST_INSTALL@/lib/*.a")
-file(COPY ${PHIST_STATIC_LIBS} DESTINATION "@PHIST_INSTALL@/lib64/@CFS_ARCH_STR@")
+file(COPY ${PHIST_STATIC_LIBS} DESTINATION "@PHIST_INSTALL@/lib64")
 
 # we may now remove the old lib directory
 file(REMOVE_RECURSE "@PHIST_INSTALL@/lib")

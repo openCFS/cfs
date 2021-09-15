@@ -62,7 +62,7 @@ set(ZIPTOCACHE "${GHOST_PREFIX}/ghost-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 # Determine paths of ghost libraries.
-set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 set(GHOST_LIBRARY  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}ghost${CMAKE_STATIC_LIBRARY_SUFFIX}" CACHE FILEPATH "ghost library.")
 set(GHOST_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

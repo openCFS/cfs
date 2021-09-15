@@ -46,8 +46,11 @@ private:
   //! Number of neighbor points to include in interpolation.
   UInt numNeighbors_;
 
+
+#ifdef USE_CGAL // clang otherwise complains about private field not used
   //! Global Factor for scaling the result
   Double globalFactor_;
+#endif
 
   //! Exponent for calculation of interpolation weight function.
   UInt p_;

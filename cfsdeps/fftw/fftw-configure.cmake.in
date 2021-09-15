@@ -9,7 +9,6 @@
 #=============================================================================
 SET(fftw_source "@fftw_source@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(OPENMP_FOUND "@OPENMP_FOUND@")
 SET(CMAKE_STATIC_LIBRARY_PREFIX "@CMAKE_STATIC_LIBRARY_PREFIX@")
@@ -29,8 +28,8 @@ SET(CONFIGURE_CMD "${SH}")
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
   "--prefix=${CFS_BINARY_DIR}"
-  "--bindir=${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
-  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--bindir=${CFS_BINARY_DIR}/bin"
+  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}"
   "--enable-sse2"
   "--enable-threads")
 

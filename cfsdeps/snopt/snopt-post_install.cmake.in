@@ -12,7 +12,7 @@
 
 # remove libblas.a, we have own blas in cfs
 IF(UNIX)
-  FILE(REMOVE "@SNOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libblas.a")
+  FILE(REMOVE "@SNOPT_INSTALL@/lib64/libblas.a")
 ENDIF()
 
 # copy data from install dir to the target.

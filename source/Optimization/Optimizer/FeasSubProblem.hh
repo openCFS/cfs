@@ -5,8 +5,8 @@
 #include "MatVec/Vector.hh"
 
 // references to the lib
-#include "coin/IpTNLP.hpp"
-#include "coin/IpIpoptApplication.hpp"
+#include "coin-or/IpTNLP.hpp"
+#include "coin-or/IpIpoptApplication.hpp"
 
 namespace CoupledField
 {

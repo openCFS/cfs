@@ -16,8 +16,10 @@ SET(feast_include "${feast_source}/${FEAST_VER}/include")
 # determine which feast library to copy over in the install step
 IF(UNIX)
   IF(USE_FEAST_COMMUNITY_PRECOMPILED)
+    # this precompiled stuff seems not to work with new mkl (dependency to _intel_fast_memcpy/set, check with nm)
     SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
   ELSE()
+    # separate target to make difference to precompiled. Will be copied to lib64 finally
     SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
   ENDIF()
 ELSE()
@@ -88,7 +90,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 # Determine paths of FEAST libraries.
 #-----------------------------------------------------------------------------
 IF(UNIX)
-  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
   SET(FEAST_LIBS "feast" "feast_sparse")
   foreach(LIB IN LISTS FEAST_LIBS)
     LIST(APPEND LIBS "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -142,28 +144,27 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  IF("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
     # FEAST does not use CMake but make only: We cannot use the CMake Ninja-generator,
     # we use make instead to build FEAST
     find_program(FEAST_MAKE_PROGRAM make)
-  ELSE("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-    SET(FEAST_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build FEAST")
-  ENDIF("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  else()
+    set(FEAST_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build FEAST")
+  endif()
   MARK_AS_ADVANCED(FEAST_MAKE_PROGRAM)
   # here we should decide if we need to build feast, or only copy the pre-compiled libs a below
   IF(USE_FEAST_COMMUNITY_PRECOMPILED)
-  # only copy over
-  ExternalProject_Add(feast
-    PREFIX "${feast_prefix}"
-    SOURCE_DIR "${feast_source}"
-    URL ${LOCAL_FILE}
-    URL_MD5 "${FEAST_MD5}"
-    BINARY_DIR "${feast_source}/${FEAST_VER}/src"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${FEAST_LIBRARY}
-  )
+    # only copy over
+    ExternalProject_Add(feast
+      PREFIX "${feast_prefix}"
+      SOURCE_DIR "${feast_source}"
+      URL ${LOCAL_FILE}
+      URL_MD5 "${FEAST_MD5}"
+      BINARY_DIR "${feast_source}/${FEAST_VER}/src"
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      BUILD_BYPRODUCTS ${FEAST_LIBRARY} )
   ELSE() # not USE_FEAST_COMMUNITY_PRECOMPILED
     # compile feast
     IF(UNIX)
@@ -174,6 +175,10 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
         URL_MD5 "${FEAST_MD5}"
         BINARY_DIR "${feast_source}/${FEAST_VER}/src"
         CONFIGURE_COMMAND ${CMAKE_COMMAND} -E copy "${CONF}" "${feast_source}/${FEAST_VER}/src" # copy over file
+        # according to https://arxiv.org/pdf/1203.4031.pdf FEAST Eigenvalue Solver v3.0 User Guide 2.3.1 -> 5. x64 is the only valid option for precompiled
+        # however, the precompiled has a dependency on _intel_fast_memcpy/set e.g. in libfeast_sparse.a which we cannot satisfy. 
+        # when we build it by ourselves, the libfeast*.a are much larger and don't have this depenceny (check with nm <lib> | grep intel)
+        # compare <build>/cfsdeps/feast/src/feast/3.0/lib -> x64 and <CFS_ARCH_STR>
         BUILD_COMMAND ${FEAST_MAKE_PROGRAM} "ARCH=${CFS_ARCH_STR}" "LIB=feast" "all"
         INSTALL_COMMAND ""
         BUILD_BYPRODUCTS ${FEAST_LIBRARY}
@@ -185,7 +190,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
         URL ${FEAST_URL}/${FEAST_GZ}
         URL_MD5 ${FEAST_MD5}
         PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-	SOURCE_DIR "${feast_source}"
+	      SOURCE_DIR "${feast_source}"
         CMAKE_ARGS ${CMAKE_ARGS}
         INSTALL_DIR ${feast_install}
         LOG_CONFIGURE 1
@@ -239,7 +244,4 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  feast
-)
+set(CFSDEPS ${CFSDEPS} feast)

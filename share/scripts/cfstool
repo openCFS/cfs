@@ -11,4 +11,4 @@ if [ ! -x "$COMMON_SH" ]; then
 fi
 . $COMMON_SH
 
-$CFS_BIN_DIR/LINUX_X86_64/cfstoolbin $@
+$CFS_BIN_DIR/cfstoolbin $@

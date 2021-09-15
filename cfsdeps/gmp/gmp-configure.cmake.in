@@ -10,7 +10,6 @@
 SET(gmp_source "@gmp_source@")
 SET(gmp_install "@gmp_install@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(CFS_ARCH "@CFS_ARCH@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CMAKE_TOOLCHAIN_FILE "@CMAKE_TOOLCHAIN_FILE@")
@@ -35,8 +34,8 @@ SET(CONFIGURE_CMD "${SH}")
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
   "--prefix=${gmp_install}"
-  "--bindir=${gmp_install}/bin/${CFS_ARCH_STR}"
-  "--libdir=${gmp_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--bindir=${gmp_install}/bin"
+  "--libdir=${gmp_install}/${LIB_SUFFIX}"
   "--includedir=${gmp_install}/include"
   "--enable-shared=no"
   "--enable-cxx"

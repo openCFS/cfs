@@ -235,15 +235,9 @@ ELSEIF(CFS_ARCH STREQUAL "IA64")
   SET(SYSTEM_BITS "64")
 ENDIF()
 
-SET(SYSTEM_BITS "${SYSTEM_BITS}"
-  CACHE INTERNAL "Determins if this is a '32' or '64' bit system.")
-SET(CFS_DISTRO "${CFS_DISTRO}"
-  CACHE INTERNAL "String specifying the distribution CFS is built on.")
-SET(CFS_DISTRO_VER "${CFS_DISTRO_VER}"
-  CACHE INTERNAL "Version of the distribution CFS is built on.")
-SET(CFS_ARCH "${CFS_ARCH}"
-  CACHE INTERNAL "Architecture CFS is built on.")
-SET(CFS_ARCH_STR "${CFS_ARCH_STR}"
-  CACHE INTERNAL "String specifying the architecture CFS is built on.")
-SET(CFS_SUBARCH "${CFS_SUBARCH}"
-  CACHE INTERNAL "Sub-Architecture CFS is built on.")
+SET(SYSTEM_BITS "${SYSTEM_BITS}" CACHE INTERNAL "Determins if this is a '32' or '64' bit system.")
+SET(CFS_DISTRO "${CFS_DISTRO}" CACHE INTERNAL "String specifying the distribution CFS is built on.")
+SET(CFS_DISTRO_VER "${CFS_DISTRO_VER}" CACHE INTERNAL "Version of the distribution CFS is built on.")
+SET(CFS_ARCH "${CFS_ARCH}" CACHE INTERNAL "Architecture CFS is built on.")
+SET(CFS_ARCH_STR "${CFS_ARCH_STR}" CACHE INTERNAL "String specifying the architecture CFS is built on.")
+SET(CFS_SUBARCH "${CFS_SUBARCH}" CACHE INTERNAL "Sub-Architecture CFS is built on.")

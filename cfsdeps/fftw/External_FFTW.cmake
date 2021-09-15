@@ -114,7 +114,7 @@ SET(FFTW_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 #-----------------------------------------------------------------------------
 # Determine paths of FFTW libraries.
 #-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 IF(WIN32)
   SET(FFTW_LIBRARY
     "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}fftw3${CMAKE_IMPORT_LIBRARY_SUFFIX}"

@@ -26,7 +26,6 @@ SET(CMAKE_ARGS
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DCGNS_ENABLE_HDF5:BOOL=ON
   -DCGNS_ENABLE_LEGACY:BOOL=ON
   -DENABLE_64BIT:BOOL=OFF
@@ -113,7 +112,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of CGNS libraries.
 #-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 SET(CGNS_LIBRARY
   "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "CGNS library.")

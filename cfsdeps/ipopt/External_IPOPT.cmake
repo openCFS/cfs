@@ -1,11 +1,11 @@
 #-------------------------------------------------------------------------------
 # IPOPT (interior point optimizer) is a general purpose open source optimizer
 #
-# IPOPT needs a solver. This can be HSL, which can be requested for academic purpose
-# for free or MKL-Pardiso.
-# * You cannot use the encypted ipopt_hsl.zip but need to get the sources yourself
-# * MKL pardiso is only recently possible for IPOPT and not used here. You might 
-#   change this file to use MKL pardiso!
+# IPOPT needs a linear solver, there are several options but almost all have
+# own license agreements to be fulfilled before they can be downloaded
+# https://coin-or.github.io/Ipopt/INSTALL.html
+# Therefore we restrict ourselves to use MKL pardiso, which was not possible in
+# (much) older version of ipopt
 #-------------------------------------------------------------------------------
 
 
@@ -17,29 +17,12 @@ set(IPOPT_INSTALL  "${IPOPT_PREFIX}/install")
 # ipopt is build by configure, therefore no cmake args needed
 
 SET(MIRRORS
-  "http://www.coin-or.org/download/source/Ipopt/${IPOPT_TGZ}"
-  "${CFS_DS_SOURCES_DIR}/ipopt/${IPOPT_TGZ}"
+  "http://www.coin-or.org/download/source/Ipopt/${IPOPT_ZIP}"
+  "${CFS_DS_SOURCES_DIR}/ipopt/${IPOPT_ZIP}"
 )
 
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ipopt/${IPOPT_TGZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ipopt/${IPOPT_ZIP}")
 SET(MD5_SUM ${IPOPT_MD5})
-
-# the encrypted ipopt_hsl.zip is so small and for everyone available on the web if you register, we provide it
-# in the cfs/cfsdeps/ipopt itself. You just need the key.
-if(NOT CFS_KEY_IPOPT_HSL)
-  # check if key was set via environment variable
-  if (DEFINED ENV{CFS_KEY_IPOPT_HSL})
-    SET(CFS_KEY_SNOPT ENV{CFS_KEY_IPOPT_HSL})
-  else()
-    message(FATAL_ERROR "Key for encrypted ipopt_hsl.zip required in CFS_KEY_IPOPT_HSL. E.g. set in your ~/.cfs_platform_defaults.cmake")
-  endif()  
-endif() 
-# The patch triggers downloading netlib blas and lapack such that ipopt compiles with blas support.
-# However netlib blas will be removed after installation and the cfs stuff will be used
-# Furthermore ipopt_hsl is extracted 
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-patch.cmake.in")
-SET(PFN "${IPOPT_PREFIX}/ipopt-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 # this handles the mirrors and cfsdepscache source stuff.  
 SET(DLFN "${IPOPT_PREFIX}/ipopt-download.cmake")
@@ -48,6 +31,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-post_install.cmake.in")
 SET(PI "${IPOPT_PREFIX}/ipopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
+
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/ipopt/license/" DESTINATION "${CFS_BINARY_DIR}/license/ipopt" )
 
 file(MAKE_DIRECTORY ${IPOPT_INSTALL})
 
@@ -64,12 +49,8 @@ SET(ZIPTOCACHE "${IPOPT_PREFIX}/ipopt-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 # Determine paths of IPOPT libraries. We have only libs include/coin
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-IF(USE_ILUPACK_PARALLEL)
-  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;" CACHE FILEPATH "IPOPT library.")
-ELSE()
-  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis.a" CACHE FILEPATH "IPOPT library.")
-ENDIF()
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
+SET(IPOPT_LIBRARY "${LD}/libipopt.a" CACHE FILEPATH "IPOPT library.")
 
 #-------------------------------------------------------------------------------
 # The IPOPT external project
@@ -98,13 +79,14 @@ ELSE()
     # the step cfsdeps_download ensures the file will be found in cfsdepscache
     URL ${LOCAL_FILE}
     URL_MD5 ${IPOPT_MD5}
-    # note that when unzipping the source, the Ipopt-3.11.9 directory is omitted
     BUILD_IN_SOURCE 1
-    # handle mirror
-    # Fill ThirdParty content (blas/ lapack/ HSLold)
-    PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
-    # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
-    CONFIGURE_COMMAND env "CFLAGS=${CFS_C_FLAGS}" "CXXFLAGS=${CFS_CXX_FLAGS}" ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3
+    
+    # if on mac it complains for missing stdio.h, do export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+    # https://stackoverflow.com/questions/51761599/cannot-find-stdio-h
+    
+    # ipopt 3.14.2 has a but ignoring --with-lapack-lflags and searching mkl by itself. This works only when mklvars.sh is sourced
+    # therefore we give LIBRARY_PATH manually, simulating sourcing mkl, what is not done on most gitlab runners
+    CONFIGURE_COMMAND env "CXXFLAGS=${CFS_CXX_FLAGS}" env "LIBRARY_PATH=${MKL_LIB_DIR}" ${IPOPT_SOURCE}/configure --with-lapack-lflags="-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm"  --prefix=${IPOPT_INSTALL} --exec-prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64 --enable-shared=no --enable-static --disable-java --disable-sipopt F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3
     BUILD_BYPRODUCTS ${IPOPT_LIBRARY}
   )
   
@@ -126,7 +108,7 @@ ELSE()
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(ipopt cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
+      DEPENDEES post_install
       DEPENDS "${ZIPTOCACHE}"
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )

@@ -100,7 +100,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     #PATCH_COMMAND tar -xzf ${SGPP_TGZ}
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
-    # the libs will be created in lib/sgpp and we manually copy them to lib64/CFS_ARCH_STR
+    # the libs will be created in lib/sgpp and we manually copy them to lib64
     BUILD_COMMAND scons -j 4 -s OMP=yes USE_UMFPACK=yes USE_EIGEN=yes USE_ARMADILLO=yes USE_GMMPP=no NO_UNIT_TESTS=yes
   )
   
@@ -141,7 +141,7 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 SET(CFSDEPS ${CFSDEPS} sgpp)
 
 # Determine paths of SGPP libraries.
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 # Old SGPP (SGpp)
 #SET(SGPP_LIBRARY
 #  ${LD}/libsgppopt.a;

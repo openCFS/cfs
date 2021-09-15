@@ -69,10 +69,10 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # Determine paths of BOOST libraries.
 #-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 
 IF(UNIX)
-  SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
+  SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}" CACHE PATH "Boost library dir.")
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 ELSE()

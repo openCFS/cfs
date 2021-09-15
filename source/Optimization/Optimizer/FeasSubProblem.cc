@@ -7,7 +7,7 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-#include "coin/IpSolveStatistics.hpp"
+#include "coin-or/IpSolveStatistics.hpp"
 
 #include <cstring>
 

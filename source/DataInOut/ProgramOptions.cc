@@ -348,13 +348,11 @@ namespace CoupledField {
 
     // try to obtain the schema root from argv[0]. Use it only if schema is invalid
     // This is the full path for Windows but on Linux and macOS this is either the full path or the pure link name (e.g. "cfs_rel")
-    // For the full path we are in .../<cfs_root>/bin/cfsbin or .../<cfs_root>/bin/MACOSX_11.1_X86_64/cfsbin
-    // for the link case, parent_path() is ".." and parent_path().parent_path() is "", all expection save
+    // For the full path we are in .../<cfs_root>/bin/cfsbin
+    // for the link case, parent_path() is ".." and .parent_path() is "", all exception save
     fs::path exe_schema_root;
     if(fs::path(exe_).parent_path().filename() == "bin")
       exe_schema_root = fs::path(exe_).parent_path().parent_path();
-    else if(fs::path(exe_).parent_path().parent_path().filename() == "bin") // remove when getting rid of CFS_ARCH_STR folders
-      exe_schema_root = fs::path(exe_).parent_path().parent_path().parent_path();
     exe_schema_root.normalize(); // shall be save to remove when the depreciaton hurts
     exe_schema_root = exe_schema_root.string() + "/share/xml"; // shall work also on Windows
 

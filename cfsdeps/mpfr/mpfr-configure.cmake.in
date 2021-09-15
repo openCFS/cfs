@@ -10,7 +10,6 @@
 SET(mpfr_source "@mpfr_source@")
 SET(mpfr_install "@mpfr_install@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CMAKE_STATIC_LIBRARY_PREFIX "@CMAKE_STATIC_LIBRARY_PREFIX@")
 SET(CMAKE_STATIC_LIBRARY_SUFFIX "@CMAKE_STATIC_LIBRARY_SUFFIX@")
@@ -33,11 +32,11 @@ SET(CONFIGURE_CMD "${SH}")
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
   "--prefix=${mpfr_install}"
-  "--bindir=${mpfr_install}/bin/${CFS_ARCH_STR}"
-  "--libdir=${mpfr_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--bindir=${mpfr_install}/bin"
+  "--libdir=${mpfr_install}/${LIB_SUFFIX}"
   "--includedir=${mpfr_install}/include"
   "--enable-shared=no"
-  "--with-gmp-lib=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--with-gmp-lib=${CFS_BINARY_DIR}/${LIB_SUFFIX}"
   "--with-gmp-include=${GMP_INCLUDE_DIR}"
 )
 
