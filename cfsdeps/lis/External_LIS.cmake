@@ -139,6 +139,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${LIS_LIBRARY}
   )
 ELSE()
   #-------------------------------------------------------------------------------
