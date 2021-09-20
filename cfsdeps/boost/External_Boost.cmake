@@ -233,6 +233,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS "${BOOST_DATE_TIME_LIB}"
+    LOG 1
   )
 ELSE()
   #-------------------------------------------------------------------------------
@@ -243,13 +244,17 @@ ELSE()
       PREFIX "${BOOST_prefix}"
       URL ${LOCAL_FILE}
       PATCH_COMMAND ${BOOST_PATCH_COMMAND}
-      CONFIGURE_COMMAND ""
       BINARY_DIR ${BOOST_source}
       # newer boost has system and signals head only.
       # full list via bootstrap.sh --show-libraries
       # 1.73.0: atomic,chrono,container,context,contract,coroutine,date_time,exception,fiber,filesystem,graph,graph_parallel,headers,iostreams,locale,log,math,mpi,nowide,program_options,random,regex,serialization,stacktrace,system,test,thread,timer,type_erasure,wave  
-      BUILD_COMMAND ./bootstrap.sh --with-libraries=date_time,filesystem,iostreams,log,program_options,regex,serialization,thread,chrono,test --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} 
-      INSTALL_COMMAND ./b2  ${BOOST_B2_PARAMS} define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX link=static threading=multi runtime-link=static install --no-cmake-config
+      CONFIGURE_COMMAND ./bootstrap.sh --with-libraries=date_time,filesystem,iostreams,log,program_options,regex,serialization,thread,chrono,test --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} 
+      BUILD_COMMAND ./b2  ${BOOST_B2_PARAMS} define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX link=static threading=multi runtime-link=static install --no-cmake-config
+      INSTALL_COMMAND ""
+      BUILD_BYPRODUCTS "${BOOST_DATE_TIME_LIB}"
+      # Wrap buil-step in script to log output, since it's super long and clutters the pipeline
+      # see https://cmake.org/cmake/help/v3.0/module/ExternalProject.html
+      LOG_BUILD 1
     )
   ELSE()
     # message("BOOST_install: ${BOOST_install}")
@@ -304,6 +309,7 @@ ELSE()
       DEPENDEES install
       DEPENDS "${ZIPTOCACHE}"
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
+      LOG 1
     )
   ENDIF()
 ENDIF()
