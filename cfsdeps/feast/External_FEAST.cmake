@@ -54,7 +54,7 @@ ENDIF()
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://www.ecs.umass.edu/~polizzi/feast/m3-0/feast_3.0.tgz"
-  "${FEAST_URL}/${FEAST_GZ}"
+  "${CFS_DS_SOURCES_DIR}/feast/${FEAST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/feast/${FEAST_GZ}")
 SET(MD5_SUM ${FEAST_MD5})
@@ -187,7 +187,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       ExternalProject_Add(feast
         PREFIX "${feast_prefix}"
         DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/feast
-        URL ${FEAST_URL}/${FEAST_GZ}
+        URL ${CFS_DS_SOURCES_DIR}/feast/${FEAST_GZ}
         URL_MD5 ${FEAST_MD5}
         PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
 	      SOURCE_DIR "${feast_source}"

@@ -88,7 +88,7 @@ SET(TMP_DIR "${spacepart_prefix}")
       DEPENDS boost
       PREFIX "${spacepart_prefix}"
       DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/spacepart
-      URL ${LIBFBI_URL}/${LIBFBI_GZ}
+      URL ${CFS_DS_SOURCES_DIR}/spacepart/${LIBFBI_GZ}
       URL_MD5 ${LIBFBI_MD5}
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
       CMAKE_ARGS

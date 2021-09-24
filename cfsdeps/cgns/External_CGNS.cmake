@@ -80,7 +80,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "https://github.com/CGNS/CGNS/archive/${CGNS_GZ}"
-  "${CGNS_URL}/${CGNS_GZ}"
+  "${CFS_DS_SOURCES_DIR}/cgns/${CGNS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
 SET(MD5_SUM ${CGNS_MD5})

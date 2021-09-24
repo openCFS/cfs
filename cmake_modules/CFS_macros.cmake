@@ -421,6 +421,13 @@ MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
 
 ENDMACRO()
 
+# overwrite a cmake variable by the content of a environment variable with same name
+macro(set_from_env VAR)
+  if(DEFINED ENV{${VAR}})
+    set(${VAR} $ENV{${VAR}})
+  endif()
+endmacro()    
+
 
 #------------------------------------------------------
 # Display all available variables

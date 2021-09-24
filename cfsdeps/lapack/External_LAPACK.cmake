@@ -36,7 +36,7 @@ endif()
 SET(MIRRORS
   "http://www.netlib.org/lapack/${LAPACK_GZ}"
   "https://github.com/Reference-LAPACK/lapack/archive/${LAPACK_GZ}"
-  "${LAPACK_URL}/${LAPACK_GZ}"
+  "${CFS_DS_SOURCES_DIR}/lapack/${LAPACK_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}")
 SET(MD5_SUM ${LAPACK_MD5})

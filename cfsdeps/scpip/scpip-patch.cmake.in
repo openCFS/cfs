@@ -8,26 +8,19 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 set(scpip_source  "@scpip_source@")
-SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_DISTRO "@CFS_DISTRO@")
+set(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+set(CFS_DISTRO "@CFS_DISTRO@")
+set(CFS_DEPS_CACHE_DIR "@CFS_DEPS_CACHE_DIR@")
+set(CFS_KEY_SCPIP "@CFS_KEY_SCPIP@")
+set(SCPIP_ZIP "@SCPIP_ZIP@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+include("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-  "${CFS_SOURCE_DIR}/cfsdeps/scpip/CMakeLists.txt"
-  "${scpip_source}/CMakeLists.txt"
-)
+execute_process(COMMAND unzip -o -P ${CFS_KEY_SCPIP} ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_ZIP})
 
-#=============================================================================
-# Apply some patches.
-#=============================================================================
-SET(patches
-    "scpip-gfortran.patch"
-    "scpip-dum2.patch"
-)
-
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/scpip")
+# patches fix F77 stuff
+set(patches "scpip-gfortran.patch" "scpip-dum2.patch")
+apply_patches("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/scpip")

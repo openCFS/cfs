@@ -223,7 +223,7 @@ runner-debug:
   extends: .default_build_job
   <<: *max_rules
   variables:
-    MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON"
+    MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_ILUPACK=ON -DUSE_EMBEDDED_PYTHON=ON"
 
       
 #################################################
@@ -243,7 +243,6 @@ build:gcc7max-debug:
   stage: build debug
   tags:
     - gcc7
-    - license-keys
     - python
   variables:
     BUILD_NAME: "GCC7 maximal debug"
@@ -301,7 +300,6 @@ build:gcc7max:
   tags:
     - gcc7
     - release
-    - license-keys
     - python3.6
   variables:
     BUILD_NAME: "GCC7 maximal"

@@ -58,7 +58,7 @@ SET(MIRRORS
   "http://archive.apache.org/dist/xerces/c/3/sources/${XERCES_GZ}"
   "http://xml.apache.org/dist/xerces-c/3/sources/${XERCES_GZ}"
   "http://archive.apache.org/dist/xerces/c/3/sources/${XERCES_GZ}"
-  "${XERCES_URL}/${XERCES_GZ}"
+  "${CFS_DS_SOURCES_DIR}/xerces/${XERCES_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/xerces/${XERCES_GZ}")
 SET(MD5_SUM ${XERCES_MD5})

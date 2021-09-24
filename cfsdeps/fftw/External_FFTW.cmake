@@ -29,7 +29,7 @@ CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
 SET(MIRRORS
   "http://www.fftw.org/${FFTW_GZ}"
   "ftp://ftp.fftw.org/pub/fftw/${FFTW_GZ}"
-  "${FFTW_URL}/${FFTW_GZ}"
+  "${CFS_DS_SOURCES_DIR}/fftw/${FFTW_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/fftw/${FFTW_GZ}")
 SET(MD5_SUM ${FFTW_MD5})

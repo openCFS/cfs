@@ -18,7 +18,7 @@ set(muparser_source  "${muparser_prefix}/src/muparser")
 # https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz
 SET(MIRRORS
   "https://github.com/beltoforion/muparser/archive/${MUPARSER_TGZ}"
-  "${MUPARSER_URL}/${MUPARSER_TGZ}"
+  "${CFS_DS_SOURCES_DIR}/muparser/${MUPARSER_TGZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/muparser/${MUPARSER_TGZ}")
 SET(MD5_SUM ${MUPARSER_MD5})

@@ -36,7 +36,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://ftpmirror.gnu.org/gnu/gmp/${GMP_BZ2}"
-  "${GMP_URL}/${GMP_BZ2}"
+  "${CFS_DS_SOURCES_DIR}/gmp/${GMP_BZ2}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gmp/${GMP_BZ2}")
 SET(MD5_SUM ${GMP_MD5})

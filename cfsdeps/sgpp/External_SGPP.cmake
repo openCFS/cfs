@@ -13,8 +13,7 @@
 set(SGPP_PREFIX  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/sgpp")
 set(SGPP_SOURCE  "${SGPP_PREFIX}/src/sgpp")
 # we use this as temporary install directory to alllow packing for precompiled cfsdeps
-set(SGPP_INSTALL  "${SGPP_SOURCE}/${SGPP_BASE}_${SGPP_VER}")
-#set(SGPP_INSTALL  "${SGPP_SOURCE}/${SGPP_BASE}")
+set(SGPP_INSTALL  "${SGPP_SOURCE}/sgopt_${SGPP_VER}")
 
 # sgpp is build by configure, therefore no cmake args needed
 
@@ -92,7 +91,6 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     PREFIX "${SGPP_PREFIX}"
     SOURCE_DIR "${SGPP_SOURCE}"
     BINARY_DIR "${SGPP_INSTALL}"
-    #BINARY_DIR "${SGPP_SOURCE}/${SGPP_BASE}"
     # don't dowload but simply copy w/o md5 check
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE} ${SGPP_SOURCE}
     # the zip file is encrypted!

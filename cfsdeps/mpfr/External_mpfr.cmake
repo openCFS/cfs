@@ -29,7 +29,7 @@ CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://ftpmirror.gnu.org/gnu/mpfr/${MPFR_BZ2}"
-  "${MPFR_URL}/${MPFR_BZ2}"
+  "${CFS_DS_SOURCES_DIR}/mpfr/${MPFR_BZ2}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/mpfr/${MPFR_BZ2}")
 SET(MD5_SUM ${MPFR_MD5})

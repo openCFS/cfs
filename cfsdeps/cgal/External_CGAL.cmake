@@ -60,7 +60,7 @@ CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY)
 SET(MIRRORS
   "http://archive.ubuntu.com/ubuntu/pool/universe/c/cgal/cgal_4.2.orig.tar.bz2"
   "https://gforge.inria.fr/frs/download.php/32361/${CGAL_BZ2}"
-  "${CGAL_URL}/${CGAL_BZ2}"
+  "${CFS_DS_SOURCES_DIR}/cgal/${CGAL_BZ2}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgal/${CGAL_BZ2}")
 SET(MD5_SUM ${CGAL_MD5})

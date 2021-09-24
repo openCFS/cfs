@@ -8,14 +8,20 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 set(ilupack_source  "@ilupack_source@")
-SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
-SET(CFS_DISTRO "@CFS_DISTRO@")
+set(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+set(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
+set(CFS_DISTRO "@CFS_DISTRO@")
+set(CFS_DEPS_CACHE_DIR "@CFS_DEPS_CACHE_DIR@")
+set(CFS_KEY_ILUPACK "@CFS_KEY_ILUPACK@")
+set(ILUPACK_ZIP "@ILUPACK_ZIP@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+# unpack the encrypted file
+execute_process(COMMAND unzip -o -P @CFS_KEY_ILUPACK@ @CFS_DEPS_CACHE_DIR@/sources/ilupack/@ILUPACK_ZIP@)
 
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different 
@@ -42,13 +48,10 @@ EXECUTE_PROCESS(
 SET(patches
   "ilupack-nomore-malloc-header.patch"
   "ilupack-sparspak-revrse.patch"
-  "ilupack-disable-saddle-point-stuff.patch"
-  )
+  "ilupack-disable-saddle-point-stuff.patch" )
 
 if(CFS_DISTRO STREQUAL "MACOSX") 
-  LIST(APPEND patches
-    "ilupack-globals.patch"
-    )
+  LIST(APPEND patches "ilupack-globals.patch" )
 endif(CFS_DISTRO STREQUAL "MACOSX") 
 
 LIST(APPEND patches
@@ -59,8 +62,6 @@ LIST(APPEND patches
   # Do not define USE_LAPACK_DRIVER in ilupack.h but rather from CMake.
   "ilupack-use-lapack-driver.patch"
 
-  "ilupack-mainsym3.patch"
-  )
-
+  "ilupack-mainsym3.patch" )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/ilupack")

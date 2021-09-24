@@ -71,7 +71,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "ftp://www.gidhome.com/pub/Tools/gidpost/old/${GIDPOST_ZIP}"
-  "${GIDPOST_URL}/${GIDPOST_ZIP}"
+  "${CFS_DS_SOURCES_DIR}/gidpost/${GIDPOST_ZIP}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")
 SET(MD5_SUM ${GIDPOST_MD5})

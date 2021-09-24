@@ -55,7 +55,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 SET(MIRRORS
   "ftp://ftp1.rrzn.uni-hannover.de/pub/mirror/bsd/FreeBSD/ports/distfiles/${METIS_GZ}"
   "http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/${METIS_GZ}"
-  "${METIS_URL}/${METIS_GZ}")
+  "${CFS_DS_SOURCES_DIR}/metis/${METIS_GZ}")
   
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/metis/${METIS_GZ}")
 SET(MD5_SUM ${METIS_MD5})

@@ -18,7 +18,7 @@ set(openblas_source  "${openblas_prefix}/src/openblas")
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "https://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_GZ}"
-  "${OPENBLAS_URL}/${OPENBLAS_GZ}"
+  "${CFS_DS_SOURCES_DIR}/openblas/${OPENBLAS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")
 SET(MD5_SUM ${OPENBLAS_MD5})

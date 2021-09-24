@@ -84,8 +84,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 SET(MIRRORS
   "http://distfiles.macports.org/hdf5-18/${HDF5_BZ2}"
   "http://pkgs.fedoraproject.org/repo/pkgs/hdf5/${HDF5_BZ2}/${HDF5_MD5}/${HDF5_BZ2}"
-  "http://www.hdfgroup.org/ftp/HDF5/releases/${HDF5_BASE}-${HDF5_VER}/src/${HDF5_BZ2}"
-  "${HDF5_URL}/${HDF5_BZ2}"
+  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-${HDF5_VER}/src/${HDF5_BZ2}"
+  "${CFS_DS_SOURCES_DIR}/hdf5/${HDF5_BZ2}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_BZ2}")
 SET(MD5_SUM ${HDF5_MD5})

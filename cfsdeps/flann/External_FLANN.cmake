@@ -79,7 +79,7 @@ SET(MIRRORS
   #"http://distfiles.macports.org/flann/${FLANN_ZIP}"
   #"http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_ZIP}/${FLANN_MD5}/${FLANN_ZIP}"
   #"http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_ZIP}"
-  "${FLANN_URL}/${FLANN_ZIP}"
+  "${CFS_DS_SOURCES_DIR}/flann/${FLANN_ZIP}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_ZIP}")
 SET(MD5_SUM ${FLANN_MD5})

@@ -50,7 +50,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://www.vtk.org/files/release/7.1/${VTK_TAR}"
-  "${VTK_URL}/${VTK_TAR}"
+  "${CFS_DS_SOURCES_DIR}/vtk/${VTK_TAR}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/vtk/${VTK_TAR}")
 SET(MD5_SUM ${VTK_MD5})
