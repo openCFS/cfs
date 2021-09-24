@@ -750,6 +750,7 @@ python:stable:
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
+  dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
 
 python:all:
