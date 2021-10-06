@@ -53,17 +53,26 @@ mark_as_advanced(PYGMENTIZE_EXECUTABLE)
 find_program(PATCH_EXECUTABLE patch)
 find_program(FIND_EXECUTABLE find)
 find_program(DIFF_EXECUTABLE diff)
+find_program(UNZIP_EXECUTABLE unzip)
 
 if(PATCH_EXECUTABLE MATCHES "NOTFOUND")
   message(WARNING "command patch not found, some cfsdeps will fail")
 endif()
+
 if(FIND_EXECUTABLE MATCHES "NOTFOUND")
   message(WARNING "command find not found, some cfsdeps (e.g. lis) will fail")
 endif()
+
 if(DIFF_EXECUTABLE MATCHES "NOTFOUND")
   message(WARNING "command diff not found, some cfsdeps (e.g. lis) will fail")
 endif()
 
+if(UNZIP_EXECUTABLE MATCHES "NOTFOUND" AND (USE_SNOPT OR USE_SCPIP OR USE_ILUPACK))
+  message(WARNING "command unzip not found, required for snopt, scpip and ilupack")
+endif()
+
+
 mark_as_advanced(PATCH_EXECUTABLE)
 mark_as_advanced(FIND_EXECUTABLE)
 mark_as_advanced(DIFF_EXECUTABLE)
+mark_as_advanced(UNZIP_EXECUTABLE)
