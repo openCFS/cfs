@@ -428,7 +428,6 @@ macro(set_from_env VAR)
   endif()
 endmacro()    
 
-
 #------------------------------------------------------
 # Display all available variables
 #------------------------------------------------------
@@ -438,6 +437,23 @@ macro(DUMP_VARIABLES)
     message("${_variableName}=${${_variableName}}")
   endforeach()
 endmacro()
+
+# extend DUMP_VARIABLES for a search key
+function(DUMP_SEL_VARIABLES KEY)
+  # https://stackoverflow.com/questions/9298278/cmake-print-out-all-accessible-variables-in-a-script
+  get_cmake_property(_variableNames VARIABLES)
+  list (SORT _variableNames)
+  foreach (_variableName ${_variableNames})
+    unset(MATCHED)
+    string(REGEX MATCH ${KEY} MATCHED ${_variableName})
+    if (NOT MATCHED)
+      continue()
+    endif()
+    message(STATUS "${_variableName}=${${_variableName}}")
+  endforeach()
+endfunction()
+
+
 
 # dump the content of the given directory
 macro(DUMP_DIR DIR)

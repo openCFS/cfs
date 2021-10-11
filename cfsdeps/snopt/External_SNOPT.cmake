@@ -37,6 +37,25 @@ set(PI "${SNOPT_PREFIX}/snopt-post_install.cmake")
 configure_file("${PI_TEMPL}" "${PI}" @ONLY) 
 
 PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "snopt" "${SNOPT_VER}")
+
+
+# only temporary - the output shall be masked
+set_from_env(HANS)
+set_from_env(CFS_KEY_SNOPT)
+set_from_env(CFS_DOWNLOAD_SNOPT)
+set_from_env(CFS_KEY_SCPIP)
+set_from_env(CFS_DOWNLOAD_SCPIP)
+set_from_env(CFS_KEY_ILUPACK)
+set_from_env(CFS_DOWNLOAD_ILUPACK)
+
+message(STATUS "cmake HANS=${HANS}")
+message(STATUS "cmake CFS_KEY_SNOPT=${CFS_KEY_SNOPT}")
+message(STATUS "cmake CFS_DOWNLOAD_SNOPT=${CFS_DOWNLOAD_SNOPT}")
+message(STATUS "cmake CFS_KEY_SCPIP=${CFS_KEY_SCPIP}")
+message(STATUS "cmake CFS_DOWNLOAD_SCPIP=${CFS_DOWNLOAD_SCPIP}")
+message(STATUS "cmake CFS_KEY_ILUPACK=${CFS_KEY_ILUPACK}")
+message(STATUS "cmake CFS_DOWNLOAD_ILUPACK=${CFS_DOWNLOAD_ILUPACK}")
+
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
