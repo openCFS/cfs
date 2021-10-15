@@ -203,11 +203,17 @@
 
           <!-- Determine time / frequency behavior-->
           <xsd:element name="timeFreqMapping">
+            <xsd:annotation>
+              <xsd:documentation>Determines how time/frequency steps from the sequence step are used.</xsd:documentation>
+            </xsd:annotation>
             <xsd:complexType>
               <xsd:choice>
 
                 <!-- a) fixed time / frequency step -->
                 <xsd:element name="constant">
+                  <xsd:annotation>
+                    <xsd:documentation>use a specific step.</xsd:documentation>
+                  </xsd:annotation>
                   <xsd:complexType>
                     <xsd:attribute name="step" type="xsd:nonNegativeInteger" use="optional"
                       default="1"/>
@@ -216,8 +222,14 @@
 
                 <!-- b) continuous mapping -->
                 <xsd:element name="continuous">
+                  <xsd:annotation>
+                    <xsd:documentation>adjust value depending on the current time/frequency value</xsd:documentation>
+                  </xsd:annotation>
                   <xsd:complexType>
                     <xsd:attribute name="interpolation" use="optional" default="linear">
+                      <xsd:annotation>
+                        <xsd:documentation>interpolate data from the steps of the sequenceStep</xsd:documentation>
+                      </xsd:annotation>
                       <xsd:simpleType>
                         <xsd:restriction base="xsd:token">
                           <xsd:enumeration value="nearestNeighbor"/>

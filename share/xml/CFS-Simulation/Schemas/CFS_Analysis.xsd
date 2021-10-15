@@ -61,7 +61,11 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
+          <xsd:annotation>
+            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -84,15 +88,21 @@
           <xsd:element name="numSteps" type="xsd:token"/>
           <xsd:element name="deltaT" type="xsd:token"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
+          <xsd:annotation>
+            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
         </xsd:sequence>
 
-        <!-- Specify behavior of time step varaible t. Accumulated denots that
-             the time is accumulated over several sequence steps.
-             Zero denotes that each MultiSequence step has its own local time, 
-             starting at 0 -->
         <xsd:attribute name="initialTime" default="accumulated">
           <xsd:simpleType>
+            <xsd:annotation>
+              <xsd:documentation>Specify behavior of time step varaible t. Accumulated denots that
+             the time is accumulated over several sequence steps.
+             Zero denotes that each MultiSequence step has its own local time, 
+             starting at 0</xsd:documentation>
+            </xsd:annotation>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="accumulated"/>
               <xsd:enumeration value="zero"/>
@@ -139,7 +149,11 @@
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
+          <xsd:annotation>
+            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -299,7 +313,11 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
+          <xsd:annotation>
+            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
         </xsd:sequence>
         <!-- Arpack sometimes presents unsorted evs. 
              By this option the evs are sorted by magnitude. For quadratic problems with real complex evs
@@ -335,7 +353,11 @@
           <xsd:element name="minMicDistant" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="logLevel" type="xsd:string" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
+          <xsd:annotation>
+            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
           <xsd:element name="scale2Val" type="xsd:token" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
@@ -425,7 +447,11 @@
                   </xsd:attribute>
             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
+          <xsd:annotation>
+            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
           <xsd:element name="problemType" minOccurs = "1" maxOccurs = "1">
           	<xsd:annotation>
 				<xsd:documentation>
