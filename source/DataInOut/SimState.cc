@@ -281,6 +281,8 @@ class MaterialHandler;
     for( ; stepIt != stepNumVals.end(); ++stepIt, ++pos ) {
       stepNums_[pos] = stepIt->first;
       stepVals_[pos] = stepIt->second;
+      LOG_DBG(simState) << "stepNums_["<<pos<<"] = " <<  stepNums_[pos] << "\n";
+      LOG_DBG(simState) << "stepVals_["<<pos<<"] = " <<  stepVals_[pos] << "\n";
     }
     
   }
@@ -464,6 +466,7 @@ class MaterialHandler;
 
     // get index of last element
     const UInt kend = stepVals_.GetSize() - 1;
+    LOG_TRACE(simState)  << "stepVals_ = " << stepVals_.ToString() << " kend = " << kend << "\n";
 
     // if coordinate is out of bounds or we have just one entry,
     // return boundary value (i.e.first or last) 

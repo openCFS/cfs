@@ -1483,8 +1483,10 @@ namespace CoupledField {
 
     // open group for current step
     std::string stepStr = lexical_cast<std::string>(stepNum);
-    stepGroup = fctGroup.openGroup(stepStr);
-    
+    try {
+        stepGroup = fctGroup.openGroup(stepStr);
+    } H5_CATCH("Could not find data of result '" << fctName << "' in step " << stepStr << "\nPerhaps you need to activate <allowPostProc>");
+
     // Now aquire coefficients for fefunction
     if( coefs->GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & rVec = dynamic_cast<Vector<Double>& >(*coefs);
