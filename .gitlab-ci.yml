@@ -5,6 +5,10 @@
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
 # * do not use a command `echo "warning: the : is not allowed in a string"`
 
+# short manual section about tags:
+# - python: python with several packages is installed for python tests an compare_info_xml.py based tests.
+# - docker: all is defined by the image, no other tags required (python, linux, ...)          
+
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
@@ -14,8 +18,7 @@ variables:
 # stages in the pipeline run in succession
 stages:
   - check
-  - build debug # build stages: debug and release
-  - build release # config and build combined
+  - build 
   - test # we may have several test configs for one build
   - deploy
 
@@ -30,7 +33,7 @@ stages:
       - schedules # For scheduled pipelines
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
-# use the ref-name, e.g. `master` as key -> same for sucessive builds
+# use the ref-name, e.g. `master` as key -> same for successive builds
 # it is stored as a zip archive and extracted before each stage - this takes time,
 # thus we combine the build and configure step
 # the key is used to define which chache is used for which job.
@@ -73,7 +76,7 @@ testsuite-revision:
   <<: *default_pipeline_rules
   <<: *except-skip-ckeck
 
-# this job is intended as a warning if the piepline has changed
+# this job is intended as a warning if the pipeline has changed
 # it is created only if there are changes, and will always fail (but is allowed to)
 pipeline-changes:
   extends: .default_pipeline_rules
@@ -92,7 +95,7 @@ pipeline-changes:
       - .gitlab-ci.yml
   <<: *except-skip-ckeck
 
-# this job is intended as a warning if the piepline has been skipped by commit messages
+# this job is intended as a warning if the pipeline has been skipped by commit messages
 #  
 pipeline-skip:
   extends: .default_pipeline_rules
@@ -227,38 +230,47 @@ runner-debug:
 
       
 #################################################
-# BUILD DEBUG STAGE
+# BUILD STAGE
 #################################################
-
-# skip the debug stage if 'skip-debug' is in the commit message
-.except-skip-debug: &except-skip-debug
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-debug/
-      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
 
 # maximal build using as many options as possible
 build:gcc7max-debug:
   extends: .max_cfs_config
-  stage: build debug
+  stage: build
+  image: opencfs/centos6-gcc7
   tags:
-    - gcc7
-    - python
+    - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     GCC_VERSION: 7
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
   <<: *gcc_before
-  <<: *except-skip-debug
-  allow_failure: false
-  when: on_success
+  <<: *except-skip-gcc
+# allow_failure: false
+# when: on_success
 
 #################################################
 # BUILD RELEASE STAGE
 #################################################
 
+# maximal build using as many options as possible
+build:gcc7max:
+  extends: .max_cfs_config
+  stage: build
+  image: opencfs/centos6-gcc7
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+    GCC_VERSION: 7
+    CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
+  <<: *gcc_before
+  # don't merge default_build_job and max_rules (already included in .max_cfs_config)
+  <<: *except-skip-gcc
+
+
 build:gcc5:
-  stage: build release
+  stage: build
   image: opencfs/centos6-gcc5
   tags:
     - docker
@@ -269,7 +281,7 @@ build:gcc5:
   <<: *default_build_job
 
 build:gcc7:
-  stage: build release
+  stage: build
   image: opencfs/centos6-gcc7
   tags:
     - docker
@@ -281,7 +293,7 @@ build:gcc7:
   <<: *except-skip-gcc
 
 build:gcc7min:
-  stage: build release
+  stage: build
   image: opencfs/centos6-gcc7
   tags:
     - docker
@@ -293,36 +305,9 @@ build:gcc7min:
   <<: *default_build_job
   <<: *except-skip-gcc
 
-# maximal build using as many options as possible
-build:gcc7max:
-  extends: .max_cfs_config
-  stage: build release
-  tags:
-    - gcc7
-    - release
-    - python3.6
-  variables:
-    BUILD_NAME: "GCC7 maximal"
-    GCC_VERSION: 7
-    CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
-  <<: *gcc_before
-  # don't merge default_build_job and max_rules (already included in .max_cfs_config)
-  <<: *except-skip-gcc
 
-.build:gcc9:
-  stage: build release
-  image: opencfs/centos6-gcc9
-  tags:
-    - docker
-  variables:
-    BUILD_NAME: "GCC9"
-    GCC_VERSION: 9
-  <<: *gcc_before
-  <<: *default_build_job
-  <<: *except-skip-gcc
-    
 build:gcc10:
-  stage: build release
+  stage: build
   image: opencfs/fedora32
   tags:
     - docker
@@ -335,7 +320,7 @@ build:gcc10:
 
 # intel compiler builds
 build:intel:
-  stage: build release
+  stage: build
   image: opencfs/centos7-intel
   tags:
     - docker
@@ -347,7 +332,7 @@ build:intel:
 
 # build with ninja
 build:gcc10:ninja:
-  stage: build release
+  stage: build
   image: opencfs/fedora32
   tags:
     - docker
@@ -375,7 +360,7 @@ build:gcc10:ninja:
 
 # Template for the platform builds
 .platform:image:
-  stage: build release
+  stage: build
   tags:
     - docker
   after_script: []
@@ -568,7 +553,7 @@ platform:centos:7:
     - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
   
 # now we define the actual tests, i.e. we decide which build we want to test
-# the build is taken from the dependecies
+# the build is taken from the dependencies
 stable:gcc5:linux:
   tags:
     - linux
@@ -617,9 +602,9 @@ testsuite:gcc7min:linux:
 
 stable:gcc7max:linux:
   tags:
-    - linux
-    - python3.6
+    - docker
   stage: test
+  image: opencfs/centos6-gcc7
   <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal"
@@ -629,9 +614,9 @@ stable:gcc7max:linux:
 
 testsuite:gcc7max:linux:
   tags:
-    - linux
-    - python3.6
+    - docker
   stage: test
+  image: opencfs/centos6-gcc7
   <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal"
@@ -644,6 +629,7 @@ testsuite:gcc7max:linux:
   tags:
     - linux
   stage: test
+  image: opencfs/centos6-gcc7
   <<: *max_rules
   variables:
     BUILD_NAME: "GCC7 maximal debug"
@@ -658,21 +644,9 @@ testsuite:gcc7max:linux:
   needs:
     - build:gcc7max-debug
 
-.stable:gcc9:linux:
-  tags:
-    - linux
-  stage: test
-  variables:
-    BUILD_NAME: GCC9
-  retry: 1
-  <<: *test_stable
-  dependencies:
-    - build:gcc9
-
 stable:gcc10:linux:
   image: opencfs/fedora32
   tags:
-    - linux
     - docker
   stage: test
   variables:
@@ -685,7 +659,6 @@ stable:gcc10:linux:
 testsuite:gcc10:linux:
   image: opencfs/fedora32
   tags:
-    - linux
     - docker
   stage: test
   variables:
