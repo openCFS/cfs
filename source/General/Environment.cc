@@ -1484,6 +1484,8 @@ namespace CoupledField {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
       out = NLHEAT_CAPACITY;
+    } else if( in == "density") {
+      out = NLHEAT_DENSITY;
     } else if( (in == "elecConductivity") || (in == "electricConductivity") ) {
        out = NLELEC_CONDUCTIVITY;
     } else if( in == "elecBiPole") {
@@ -1562,7 +1564,10 @@ namespace CoupledField {
         out = "heatConductivity";
         break;
       case NLHEAT_CAPACITY:
-        out = "heatCapacity";
+        out = "density";
+        break;
+      case NLHEAT_DENSITY:
+        out = "heat";
         break;
       case NLELEC_PERMITTIVITY:
         out = "elecPermittivity";

@@ -345,7 +345,15 @@ void HeatPDE::DefineIntegrators() {
       // ====================================================================
       // Factor for mass matrix: density * heatCapacity
       PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
-      PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct density = NULL;
+      if(nonLinTypes.Find(NLHEAT_DENSITY) != -1){
+    	  // nonlinear (temperature-dependent) mass density
+          density = actSDMat->GetScalCoefFncNonLin( DENSITY, Global::REAL, heatCoef );
+      }else{
+    	  // linear mass density
+          density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      }
+
       //BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct capNL = actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL, heatCoef );
       PtrCoefFct nlMassCoeff = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, capNL, density, CoefXpr::OP_MULT));

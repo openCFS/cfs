@@ -20,7 +20,7 @@
 
     <xsd:complexType name="DT_MatHeatConduction">
     <xsd:sequence>
-      <xsd:element name="density" type="DT_HeatScalarLinear"/>
+      <xsd:element name="density" type="DT_HeatScalar"/>
       <xsd:element name="heatCapacity" type="DT_HeatCapacity"/>
       <xsd:element name="heatConductivity" type="DT_HeatConductivity"/>
       <xsd:element name="refTemperature" minOccurs="0" type="DT_HeatScalarLinear">       
@@ -34,7 +34,17 @@
     </xsd:sequence>
   </xsd:complexType>
 
-
+  <!-- ******************************************************************* -->
+  <!--   Definition of mass density-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_HeatScalar">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_ScalarType"/>
+      <xsd:element name="nonlinear" type="DT_MatNonLinearity" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  
   <!-- ******************************************************************* -->
   <!--   Definition of heat conductivity-->
   <!-- ******************************************************************* -->

@@ -68,6 +68,11 @@
                     <xsd:documentation>heat conduction dependent on temperature</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="density" type="DT_HeatNonLin">
+                  <xsd:annotation>
+                    <xsd:documentation>mass density dependent on temperature</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
