@@ -1108,19 +1108,19 @@ void HeatPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<Linear
     shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, ptGrid_->GetRegionName(actRegion));
 
     std::multimap<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
-    BaseBDBInt* bdb;
+    BaseBDBInt* bdb = nullptr;
     if( bdbInts_.count(actRegion)==1 ) {
       for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
         RegionIdType region = stiffIt->first;
         if(region==actRegion) {
           bdb = stiffIt->second;
+          break;
         }
       }
     } else {
       EXCEPTION("Implementation error: Multiple bdbInts_ defined, can't return single coefFunction. You probably used bdbInts.insert() multiple times per region and did not use SetIntegratorName().")
     }
 
-    
     PtrCoefFct curCoef = bdb->GetCoef();
     PtrCoefFct ttg = CoefFunction::Generate(mp_, Global::REAL, tempGrad);
 

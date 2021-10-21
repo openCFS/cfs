@@ -140,6 +140,37 @@ public:
 
     void ToInfo(PtrParamNode in) const;
 
+    /** evaluates the one dimensional C1 interpolation polynomial at point p and returns function value as double
+     * f(x) = a0 + a1*p + a2*p**2 + a3*p**3 */
+    double EvaluateC1Interpolation1D(double p, const Matrix<double>& coeff, int& j) const;
+
+    /** evaluates the first derivative of the one dimensional C1 interpolation polynomial at point p
+     * f'(x) = a1 + 2*a2*p + 3*a3*p**2 */
+    double EvaluateC1Interpolation1D_Deriv(double p, const Matrix<double> & coeff, int & j, DesignElement::Type direction) const;
+
+    /** evaluates the second derivative of the one dimensional C1 interpolation polynomial at point p
+     * f'(x) = 2*a2 + 6*a3*p */
+    double EvaluateC1Interpolation1D_Deriv2(double p, const Matrix<double> & coeff, int & j, DesignElement::Type direction) const;
+
+    /** evaluates the twodimensional C1 interpolation polynomial at point p and returns function value as double */
+    double EvaluateC1Interpolation2D(Vector<double>& p, const Matrix<double>& coeff, int& j, int& k, int& m, int& n) const;
+
+    /** evaluates the derivative of the C1 interpolation polynomial at point p w.r.t. direction */
+    double EvaluateC1Interpolation2D_Deriv(Vector<double>& p, const Matrix<double>& coeff, int& j, int& k, int& m, int& n, DesignElement::Type direction) const;
+
+    /** evaluates the threedimensional C1 interpolation polynomial at point p and returns function value as double */
+    double EvaluateC1Interpolation3D(Vector<double>& p, const Matrix<double>& coeff, int& j, int& k,int& l, int& m, int& n, int& o) const;
+
+    /** evaluates the derivative of the C1 interpolation polynomial at point p w.r.t. direction */
+    double EvaluateC1Interpolation3D_Deriv(Vector<double>& p, const Matrix<double>& coeff, int& j, int& k, int& l, int& m, int& n, int& o, DesignElement::Type direction) const;
+
+    /** evaluates the derivative of an interpolator at point p w.r.t. direction*/
+    double EvaluateC1Interpolation_Deriv(Vector<double>& p, ApproxData* interpolator, DesignElement::Type direction) const;
+
+    /** Get the index of the local interpolation interval
+     * if point is outside of interval, it is set to interval's bounds*/
+    int GetInterpolationIndex(const Vector<double>& interval, double& point) const;
+
 protected:
 
     /** Set a parameter for the parametric material optimization.
@@ -307,30 +338,6 @@ private:
     /** fills the coefficient data structure for the bicubic interpolation*/
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
 
-    /** evaluates the one dimensional C1 interpolation polynomial at point p and returns function value as double
-     * f(x) = a0 + a1*p + a2*p**2 + a3*p**3 */
-    double EvaluateC1Interpolation(double p, const Matrix<double>& coeff, int& j) const;
-
-    double EvaluateC1Interpolation_Deriv(double p, const Matrix<double> & coeff, double & da, int & j, DesignElement::Type direction) const;
-
-    /** evaluates the twodimensional C1 interpolation polynomial at point p and returns function value as double */
-    double EvaluateC1Interpolation(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, int& j, int& k, int& m, int& n) const;
-
-    /** evaluates the derivative of the C1 interpolation polynomial at point p in direction 0 or 1 and returns function value as double */
-    double EvaluateC1Interpolation_Deriv(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, int& j, int& k, int& m, int& n, DesignElement::Type direction) const;
-
-    /** evaluates the threedimensional C1 interpolation polynomial at point p and returns function value as double */
-    double EvaluateC1Interpolation_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, double& dc, int& j, int& k,int& l, int& m, int& n, int& o) const;
-
-    /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1],p[2] in direction 0 or 1 and returns function value as double */
-    double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db,double& dc, int& j, int& k, int& l, int& m, int& n, int& o, DesignElement::Type direction) const;
-
-    double EvaluateC1Interpolation_Deriv(Vector<double>& p, ApproxData* interpolator, DesignElement::Type direction) const;
-
-    /** Get the index of the local interpolation interval
-     * if point is outside of interval, it is set to interval's bounds*/
-    int GetInterpolationIndex(const Vector<double>& interval, double& point) const;
-
     /** Read detailed stats from file*/
     bool ReadDetailedStats(const char * filename, Matrix<double>& ret);
 
@@ -393,7 +400,7 @@ private:
     /** MSFEM element matrix coefficients of the bi-/tricubic interpolation polynomial from material catalogue; number of sample elements rows and 64 columns */
     Vector<double> msfem_a_;
     Vector<double> msfem_b_;
-    Vector<double> msfem_rot_;
+    Vector<double> msfem_c_;
     StdVector<Matrix<double> > msfem_coeff_;
 
     DesignSpace* space_ = NULL;

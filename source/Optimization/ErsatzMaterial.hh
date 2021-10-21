@@ -577,12 +577,15 @@ private:
   Vector<Double> GetMacroStress();
 
   /** Calculates a local load factor for normalized stress by evaluating
-   * tan(factor * x ^ exponent)
-   * which has been fitted. Also does a quadratic extrapolation to avoid too
-   * large values for vol -> 1.
-   * Parameters are hardcoded!
-   *  */
+   * an interpolated function (stored in the material catalogue file).
+   * Also does a quadratic extrapolation to avoid too
+   * large values for vol -> 1. Threshold is hardcoded!
+   */
   double GetMicroLoadFactor(double vol, bool derivative = false);
+
+  /** coefficients of polynomials from Hermite interpolation for micro loadfactor*/
+  Vector<double> mlf_a_;
+  Matrix<double> mlf_coeff_;
 
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_;

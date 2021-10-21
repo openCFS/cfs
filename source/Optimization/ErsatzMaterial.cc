@@ -8,6 +8,8 @@
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Domain.hh"
@@ -72,7 +74,6 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
 #include "Utils/Timer.hh"
-#include "Domain/Mesh/Grid.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -2520,12 +2521,11 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
   // stresses access smart, so we have to do it as well
   double vol = de->GetDesign(DesignElement::SMART);
 
-  double ev_interpolated = GetMicroLoadFactor(vol);
-
   if(!gradient)
   {
     if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
     {
+      double ev_interpolated = GetMicroLoadFactor(vol);
       double tmp_for_dbg = ev_interpolated / std::sqrt(val);
       // LOG_DBG3(em) << "CLVMS: de=" << de->elem->elemNum << " rho=" << vol << " stress=" << std::sqrt(val) << " ev=" << ev_interpolated << " -> val=" << tmp_for_dbg;
       val = tmp_for_dbg;
@@ -2656,6 +2656,7 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     // delete the gradient in all elements and write the new one
     if(f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)
     {
+      double ev_interpolated = GetMicroLoadFactor(vol);
       double dev_interpolated = GetMicroLoadFactor(vol, true);
 
       for(DesignElement& de2 : design->data)
@@ -2684,34 +2685,43 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
 
 double ErsatzMaterial::GetMicroLoadFactor(double vol, bool derivative)
 {
-  // the tangent-function has been fitted for a triangular lattice
-  // tan(factor * x ^ exponent)
-  // for design = 1, we have a singularity (ev -> infinity)
-  // thus we cut at x0 = 0.9 and extrapolate smoothly with a quadratic function
-  // TODO put function in xml and parse with mathparser
-  double factor = 1.17731;
-  double exponent = 3.53506;
+  if(mlf_coeff_.GetNumCols() == 0) {
+    ParamNodeList list = this->pn->Get("paramMat/designMaterials")->GetListByVal("designMaterial", "sequence", context->sequence);
+    std::string file = list[0]->Get("homRectC1")->Get("file")->As<std::string>();
+    PtrParamNode root = XmlReader::ParseFile(file);
 
-  // do a quadratic extrapolation
+    // read samples
+    ParamTools::AsVector<double>(root->Get("param1/matrix/real"), mlf_a_);
+
+    // read coefficients
+    int num_intervals = root->Get("coeff11/matrix/dim1")->As<int>();
+    int num_interp_coeffs = root->Get("coeff11/matrix/dim2")->As<int>();
+
+    if (root->Has("microloadfactor"))
+      ParamTools::AsTensor<double>(root->Get("microloadfactor/matrix/real"), num_intervals, num_interp_coeffs, mlf_coeff_);
+    else
+      throw Exception("Please define coefficients for microloadfactor in catalogue.");
+  }
+
+  // do a quadratic extrapolation for all x > x0
   double x0 = 0.9;
-
-  double argument = M_PI/2 * std::pow(x0, exponent);
-  double f0 = factor * std::tan(argument);
-  double df0 = factor * M_PI/2 * exponent * std::pow(x0, exponent-1) / std::pow(std::cos(argument),2);
-  double sum = (exponent-1) * std::pow(x0, exponent-2) + M_PI * exponent * std::pow(x0, 2*(exponent-1)) * std::tan(argument);
-  double ddf0 = factor * M_PI/2 * exponent * sum / std::pow(std::cos(argument),2);
+  int j = Optimization::context->dm->GetInterpolationIndex(mlf_a_, x0);
+  double ev0 = Optimization::context->dm->EvaluateC1Interpolation1D(x0, mlf_coeff_, j);
+  double dev0 = Optimization::context->dm->EvaluateC1Interpolation1D_Deriv(x0, mlf_coeff_, j, DesignElement::DENSITY);
+  double ddev0 = Optimization::context->dm->EvaluateC1Interpolation1D_Deriv2(x0, mlf_coeff_, j, DesignElement::DENSITY);
 
   double ev = -1;
+  j = Optimization::context->dm->GetInterpolationIndex(mlf_a_, vol);
   if(!derivative)
     if(vol < x0)
-      ev = factor * std::tan(M_PI/2 * std::pow(vol, exponent));
+      ev = Optimization::context->dm->EvaluateC1Interpolation1D(vol, mlf_coeff_, j);
     else
-      ev = ddf0/2 * std::pow(vol-x0, 2) + df0 * (vol-x0) + f0;
+      ev = ddev0/2 * std::pow(vol-x0, 2) + dev0 * (vol-x0) + ev0;
   else
     if(vol < x0)
-      ev = factor * M_PI/2 * exponent * std::pow(vol, exponent-1) / std::pow(std::cos(M_PI/2 * std::pow(vol, exponent)),2);
+      ev = Optimization::context->dm->EvaluateC1Interpolation1D_Deriv(vol, mlf_coeff_, j, DesignElement::DENSITY);
     else
-      ev = ddf0 * (vol-x0) + df0;
+      ev = ddev0 * (vol-x0) + dev0;
 
   return ev;
 }
@@ -4883,7 +4893,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
     SVec[15] = sigma[1];
     S.Assign(SVec,4,4,false);
   } else if (dim ==3) {
-    S.Resize(81);
+    SVec.Resize(81);
     SVec.Init();
     for(UInt i=0;i<3;i++){
       SVec[i*30+0] = sigma[0];

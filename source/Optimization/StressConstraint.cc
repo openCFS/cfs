@@ -197,7 +197,6 @@ double StressConstraint<T>::CalcElementStress(Mode mode, int res_idx, DesignElem
     }
     double elem_vol = ea.esm->CalcVolume(); // see ::CalcStresses()
 
-
     // we integrate over the element by averages summation and then multiplying with the volume
     for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
     {

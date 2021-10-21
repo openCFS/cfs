@@ -42,11 +42,11 @@ namespace CoupledField {
 class BaseBDBInt : public BiLinearForm {
 public:
 
-    //! Constructor
-    BaseBDBInt( bool coordUpate = false) :
-      BiLinearForm(coordUpate) {
-      
-    }
+  //! Constructor
+  BaseBDBInt( bool coordUpate = false) :
+    BiLinearForm(coordUpate) {
+
+  }
 
   //! Copy constructor
   BaseBDBInt(const BaseBDBInt& right) :

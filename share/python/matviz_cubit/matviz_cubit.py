@@ -1,12 +1,32 @@
 #!/usr/bin/env python3
 
+# This is a collection of functions to create unit cells (e.g. 2D triangles or 3D crosses)
+# or dehomogenize macroscopic results with Coreform Cubit and mesh these geometries.
+# The file provides similar functionality as matviz_2d.py.
+# However, the functions have to be called from Cubit's Python command line.
+# For examples, see dehomogenize_triangle.py and dehomogenize_cross_3d.py.
+
+
 import cubit
 import time
 import numpy as np
 import matviz_2d
 
+# if param is given, create a parallelogram with two triangular holes and repeat in each dimension
+# or dehomogenize a macroscopic result
+# @param coords - (elem centers, min_bb, max_bb, elem_dim)
+# @param design - design to dehomogenize else None
+# @param grad - interpolation method (linear|nearest)
+# @param samples - number of samples in each dimension for dehomogenization
+# @param thres - threshold for design, currently not implemented
+# @param equilateral - if triangles should be equilateral (base 1, height sqrt(3)/2 or isosceles (base 1, height 1)
+# @param radius - radius for rounded corners (can be None)
+# @param savefile - name of file to save geometry to
+# @param param - volume for generation of unit cell (None for dehomogenization)
+# @param repetitions - number of repetitions of unit cell
 def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, radius=None, savefile=None, param=None, repetitions=1):
 
+  # gives the angles to draw a circle segment
   def get_angles_for_chord(x, y, idx, angle, boundary):
     mid_circ_angle = (90 - angle*180/np.pi / 2) * 2
     # angles for arc
@@ -37,7 +57,7 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
           start, end = 90, 90 + mid_circ_angle
     return start, end
 
-
+  # draws circle segments
   def draw_chords(x, y, tupels, tupel_ids, radius, innerTriangle):
     triaIds = np.zeros((3,))
     circIds = np.zeros((3,))
@@ -81,7 +101,10 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
 
     return cubit.get_last_id("surface")
 
+
   start = time.time()
+  
+  assert(param is not None or design is not None)
 
   # not tested otherwise
   assert(equilateral == True)
@@ -214,6 +237,7 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
         _, area3 = matviz_2d.get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+3)
         # kind of integration -> should be removed and graded triangle bars should be used
         area = (3*area + area1+area2+area3)/6
+        area = area[0]
 
       area *= np.sqrt(3)/4*length**2
 
@@ -251,22 +275,41 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
             nodes[1,1] = mid[1] - np.sqrt(3)/4*length + 2*p
           nodes[2,1] = nodes[0,1]
 
-          # draw inner triangle
-          node_ids = np.zeros((3,))
-          cubit.silent_cmd('create vertex {} {} 0'.format( *nodes[0] ))
-          node_ids[0] = cubit.get_last_id("vertex")
-          cubit.silent_cmd('create vertex {} {} 0'.format( *nodes[1] ))
-          node_ids[1] = cubit.get_last_id("vertex")
-          cubit.silent_cmd('create vertex {} {} 0'.format( *nodes[2] ))
-          node_ids[2] = cubit.get_last_id("vertex")
-          cubit.silent_cmd('create surface vertex {} {} {}'.format(node_ids[0], node_ids[1], node_ids[2]))
-          innerTriangle = cubit.get_last_id("surface")
-
-          # draw rounded corners
-          if rad > 0:
-            innerCut = draw_chords(x+1, y, nodes, node_ids, rad, innerTriangle)
-          else:
-            innerCut = innerTriangle
+          # The triangle approach can lead to very short edges, if the rounded 
+          # corners almost form a circle. This causes problems when meshing.
+          # Thus, we draw a circle instead, if the area of the hole is smaller
+          # than 3.5 times the area of a circle with radius rad.
+          threshold = 3.5
+          if np.sqrt(3)/4*length**2 - area < np.pi*rad**2*threshold:
+            # midpoint of incircle of triangle
+            edgelengths = np.linalg.norm(nodes, axis=1)
+            incirc_mid = np.dot(np.transpose(nodes), edgelengths) / sum(edgelengths)
+            
+            # radius of incircle
+            incirc_rad = np.sqrt((np.sqrt(3)/4*length**2 - area) / np.pi)
+            
+            # draw circle and move to the correct position
+            cubit.silent_cmd('create surface circle radius {} zplane'.format(incirc_rad))
+            innerCut = cubit.get_last_id("surface")
+            cubit.silent_cmd('move Surface {} location {} {} 0 include_merged'.format(innerCut, *incirc_mid))
+  
+          else: # draw a triangle with rounded corners
+            # draw inner triangle
+            node_ids = np.zeros((3,))
+            cubit.silent_cmd('create vertex {} {} 0'.format( *nodes[0] ))
+            node_ids[0] = cubit.get_last_id("vertex")
+            cubit.silent_cmd('create vertex {} {} 0'.format( *nodes[1] ))
+            node_ids[1] = cubit.get_last_id("vertex")
+            cubit.silent_cmd('create vertex {} {} 0'.format( *nodes[2] ))
+            node_ids[2] = cubit.get_last_id("vertex")
+            cubit.silent_cmd('create surface vertex {} {} {}'.format(node_ids[0], node_ids[1], node_ids[2]))
+            innerTriangle = cubit.get_last_id("surface")
+  
+            # draw rounded corners
+            if rad > 0:
+              innerCut = draw_chords(x+1, y, nodes, node_ids, rad, innerTriangle)
+            else:
+              innerCut = innerTriangle
 
           triangles[triangleidx] = innerCut
           triangleidx += 1
@@ -291,11 +334,10 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
   mystring = ''
   for idx in triangles:
     if idx > 0:
-      mystring += '{} '.format(idx)
+      mystring += '{:.0f} '.format(idx)
 
   # cut inner triangles from outerShape
-  if area < np.sqrt(3)/4*length**2 - np.pi*rad**2:
-    cubit.silent_cmd('subtract surface {} from surface {} imprint '.format(mystring, outerShape))
+  cubit.silent_cmd('subtract surface {} from surface {} imprint '.format(mystring, outerShape))
 
   if savefile is not None:
     cubit.cmd('save cub5 "{}.cub5" overwrite journal'.format(savefile))
@@ -310,6 +352,9 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
   return shape
 
 
+# names regions and nodes of a geometry
+# @param shape - id of geometry
+# @param param - if None, macroscopic naming is applied, if not None, unit cell will be named
 def name_regions_and_nodes(shape, param):
   # name region
   cubit.silent_cmd('block 1 add surface {} '.format(shape))
@@ -364,7 +409,7 @@ def name_regions_and_nodes(shape, param):
   cubit.silent_cmd('nodeset 2 name "southy"')
   cubit.silent_cmd('nodeset 3 name "easty"')
   cubit.silent_cmd('nodeset 4 name "northy"')
-  
+
   cubit.silent_cmd('nodeset 5 add vertex 1')
   cubit.silent_cmd('nodeset 5 name "north_east"')
   cubit.silent_cmd('nodeset 6 add vertex 2')
@@ -375,6 +420,10 @@ def name_regions_and_nodes(shape, param):
   cubit.silent_cmd('nodeset 8 name "south_east"')
 
 
+# mesh a given geometry
+# @param shape - id of geometry
+# @param meshsize - approximate size of FE
+# @param filename - filename of meshfile
 def mesh_shape(shape, meshsize, filename):
   start = time.time()
 
@@ -404,5 +453,10 @@ def mesh_shape(shape, meshsize, filename):
     print('Relative Meshed Area: {} ({} triangles)\n'.format(rel_meshed_volume, cubit.get_tri_count()), file=fid)
     print('Time for meshing: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))), file=fid)
 
+    print('Number of nodes in westy:  {}'.format(cubit.get_nodeset_node_count(1)), file=fid)
+    print('Number of nodes in southy: {}'.format(cubit.get_nodeset_node_count(2)), file=fid)
+    print('Number of nodes in easty:  {}'.format(cubit.get_nodeset_node_count(3)), file=fid)
+    print('Number of nodes in northy: {}'.format(cubit.get_nodeset_node_count(4)), file=fid)
+
 if __name__ == "__main__":
-  print('Hi!')
+  print('Hello!')

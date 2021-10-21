@@ -495,7 +495,7 @@ PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
   int idx = PyLong_AsLong(PyTuple_GetItem(args,0));
   DesignElement::Access ac = PyTuple_Size(args) == 2 ? (DesignElement::Access) PyLong_AsLong(PyTuple_GetItem(args,1)) : DesignElement::PLAIN;
 
-  if(idx < 0 || idx >= space->GetNumberOfVariables())
+  if(idx < 0 || idx >= (int)space->GetNumberOfVariables())
     EXCEPTION("invalid design index " << idx);
 
   return PyFloat_FromDouble(space->GetDesignElement(idx)->GetDesign(ac));
