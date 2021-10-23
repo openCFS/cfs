@@ -169,6 +169,8 @@
       <xsd:enumeration value="coil"/>
       <xsd:enumeration value="magnet"/>
       <xsd:enumeration value="magForceMaxwell"/>
+      <xsd:enumeration value="darwin approximation"/>
+      <xsd:enumeration value="capacitor"/>
       
       <!-- Mechanic -->
       <xsd:enumeration value="mechanic"/>

@@ -13,7 +13,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    ElectroMagneticMaterial(MathParser* mp, CoordSystem * defaultCoosy);
+    ElectroMagneticMaterial(MathParser* mp, CoordSystem * defaultCoosy, bool isDarwin = false);
+
 
     //! Destructor
     ~ElectroMagneticMaterial();
@@ -98,6 +99,7 @@ namespace CoupledField {
     //! used to calculate an approximation of the derivative with respect to the angle
     shared_ptr<CoefFunctionApproxAniso> baseCoefAniso_;
 
+    bool isDarwin_;
   };
 
 } // end of namespace

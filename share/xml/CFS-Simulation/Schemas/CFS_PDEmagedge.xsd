@@ -60,8 +60,10 @@
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="lagrangeMultPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
@@ -151,6 +153,12 @@
                   </xsd:annotation>
                 </xsd:element>
                 
+                <xsd:element name="lagrangeMultiplier" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Lagrange multiplier</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
                 <xsd:element name="voltOnEfield" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>hard to explain</xsd:documentation>
@@ -189,6 +197,7 @@
               <xsd:enumeration value="A"/>
               <xsd:enumeration value="A-V"/>
               <xsd:enumeration value="specialA-V"/>
+              <xsd:enumeration value="Darwin"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
@@ -313,6 +322,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
       <xsd:enumeration value="elecPotential"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -324,6 +334,9 @@
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecFieldIntensityTransversal"/>
+      <xsd:enumeration value="elecFieldIntensityLongitudinal"/>
+      <xsd:enumeration value="displacementCurrentDensity"/>
       <xsd:enumeration value="gradElecPotential"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
@@ -379,6 +392,7 @@
       <xsd:enumeration value="magEddyCurrent"/>
       <xsd:enumeration value="magEddyCurrent1"/>
       <xsd:enumeration value="magEddyCurrent2"/>
+      <xsd:enumeration value="displacementCurrent"/>
       <xsd:enumeration value="magFlux"/>
       <xsd:enumeration value="magForceVWP"/>
       <xsd:enumeration value="magForceMaxwell"/>

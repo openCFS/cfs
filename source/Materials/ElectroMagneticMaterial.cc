@@ -16,15 +16,23 @@ namespace CoupledField
   //   Default Constructor
   // ***********************
   ElectroMagneticMaterial::ElectroMagneticMaterial(MathParser* mp,
-                                                   CoordSystem * defaultCoosy)
+                                                   CoordSystem * defaultCoosy,
+                                                   bool isDarwin)
   : BaseMaterial(ELECTROMAGNETIC, mp, defaultCoosy)
   {
+    this->isDarwin_ = isDarwin;
+
     //set the allowed material parameters
     isAllowed_.insert( MAG_PERMEABILITY_TENSOR );
     isAllowed_.insert( MAG_PERMEABILITY_SCALAR );
     isAllowed_.insert( MAG_PERMEABILITY_1 );
     isAllowed_.insert( MAG_PERMEABILITY_2 );
     isAllowed_.insert( MAG_PERMEABILITY_3 );
+    isAllowed_.insert( MAG_PERMITTIVITY_TENSOR );
+    isAllowed_.insert( MAG_PERMITTIVITY_SCALAR );
+    isAllowed_.insert( MAG_PERMITTIVITY_1 );
+    isAllowed_.insert( MAG_PERMITTIVITY_2 );
+    isAllowed_.insert( MAG_PERMITTIVITY_3 );
     isAllowed_.insert( MAG_RELUCTIVITY_TENSOR );
     isAllowed_.insert( MAG_RELUCTIVITY_SCALAR );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV );
@@ -221,6 +229,7 @@ namespace CoupledField
     isAllowed_.insert( TRACE_JAC_RESOLUTION );
   }
 
+
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
   }
   
@@ -233,6 +242,15 @@ namespace CoupledField
         MAG_CONDUCTIVITY_3
     };
     CalcFull3x3Tensor(MAG_CONDUCTIVITY_SCALAR, orthoProps, MAG_CONDUCTIVITY_TENSOR);
+
+    if(isDarwin_){
+      MaterialType orthoProps2[3] = {
+          MAG_PERMITTIVITY_1,
+          MAG_PERMITTIVITY_2,
+          MAG_PERMITTIVITY_3
+      };
+    CalcFull3x3Tensor(MAG_PERMITTIVITY_SCALAR, orthoProps2, MAG_PERMITTIVITY_TENSOR);
+    }
   }
 
   // Calculate full permeability and reluctivity tensors from scalar values

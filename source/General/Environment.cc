@@ -110,6 +110,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
+    SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_TRANSVERSAL, "elecFieldIntensityTransversal");
+    SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_LONGITUDINAL, "elecFieldIntensityLongitudinal");
+    SolutionTypeEnum.Add(DISPLACEMENTCURRENT_FIELD_INTENSITY, "displacementCurrentDensity");
+    SolutionTypeEnum.Add(DISPLACEMENTCURRENT_SURF, "displacementCurrent");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
     SolutionTypeEnum.Add(ELEC_GRAD_V_INT, "elecGradVInt");
@@ -406,6 +410,11 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_Reluctivity_Derivative" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_TENSOR, "Magnetic_Conductivity_Tensor" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_SCALAR, "Magnetic_Conductivity_Scalar" );
+    MaterialTypeEnum.Add( MAG_PERMITTIVITY_SCALAR, "Magnetic_Permittivity_Scalar" );
+    MaterialTypeEnum.Add( MAG_PERMITTIVITY_TENSOR, "Magnetic_Permittivity_Tensor" );
+    MaterialTypeEnum.Add( MAG_PERMITTIVITY_1, "Magnetic_Permittivity_1" );
+    MaterialTypeEnum.Add( MAG_PERMITTIVITY_2, "Magnetic_Permittivity_2" );
+    MaterialTypeEnum.Add( MAG_PERMITTIVITY_3, "Magnetic_Permittivity_3" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_1, "Magnetic_Conductivity_1" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_2, "Magnetic_Conductivity_2" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_3, "Magnetic_Conductivity_3" );
@@ -699,6 +708,7 @@ namespace CoupledField {
     feMatrixType.Add( SYSTEM, "system" );
     feMatrixType.Add( STIFFNESS, "stiffness");
     feMatrixType.Add( DAMPING, "damping" );
+    feMatrixType.Add( DAMPING_AUX, "damping_aux" );
     feMatrixType.Add( CONVECTION, "convection");
     feMatrixType.Add( MASS, "mass" );
     feMatrixType.Add( AUXILIARY, "auxiliary" );
@@ -1235,6 +1245,9 @@ namespace CoupledField {
       case ELECTROMAGNETIC:
         out = "magnetic";
         break;
+      case ELECTROMAGNETIC_DARWIN:
+        out = "magnetic";
+        break;
       case ELECTROSTATIC:
         out = "electric";
         break;
@@ -1287,6 +1300,9 @@ namespace CoupledField {
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
     }
+    else if ( in == "electromagnetic_darwin" ) {
+	  out = ELECTROMAGNETIC_DARWIN;
+	}
     else if ( in == "elecConduction" ) {
       out = ELECTRICCONDUCTION;
     }
@@ -1743,6 +1759,9 @@ namespace CoupledField {
         break;
       case DAMPING:
         out = "damping";
+        break;
+      case DAMPING_AUX:
+        out = "damping_aux";
         break;
       case CONVECTION:
         out = "convection";

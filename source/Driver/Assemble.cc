@@ -101,6 +101,7 @@ namespace CoupledField
     matReassemble_[STIFFNESS] = true;
     matReassemble_[GEOMETRIC_STIFFNESS] = true;
     matReassemble_[DAMPING] = true;
+    matReassemble_[DAMPING_AUX] = true;
     matReassemble_[MASS] = true;
     matReassemble_[STIFFNESS_UPDATE] = true;
     matReassemble_[DAMPING_UPDATE] = true;
@@ -1888,6 +1889,10 @@ namespace CoupledField
         derivOrder = 1;
         factor = omega;
         break;
+      case DAMPING_AUX:
+        derivOrder = 1;
+        factor = 1.0 / omega;
+        break;
       case DAMPING_UPDATE:
         derivOrder = 1;
         factor = omega;
@@ -1944,6 +1949,9 @@ namespace CoupledField
     case DAMPING:
       factor = Complex(0.0, omega);
       break;
+    case DAMPING_AUX:
+          factor = Complex(0.0, 1.0 / omega);
+          break;
     case DAMPING_UPDATE:
       factor = Complex(0.0, omega);
       break;
@@ -1998,6 +2006,7 @@ namespace CoupledField
       matrixMap_[SYSTEM]    = SYSTEM;
       matrixMap_[STIFFNESS] = SYSTEM;
       matrixMap_[DAMPING]   = SYSTEM;
+      matrixMap_[DAMPING_AUX]   = SYSTEM;
       matrixMap_[MASS]      = SYSTEM;
       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
       matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
