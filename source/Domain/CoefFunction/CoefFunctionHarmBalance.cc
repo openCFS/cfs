@@ -15,6 +15,7 @@
 #include "FeBasis/FeSpace.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 namespace CoupledField
 {
@@ -39,7 +40,9 @@ template<class T>
                                                       const UInt& N,
                                                       const UInt& M,
                                                       const Double& baseFreq,
-                                                      const UInt& nFFT){
+                                                      const UInt& nFFT,
+                                                      std::string modelName,
+                                                      PtrCoefFct matModelCoef){
 
     // Initialize the hbRegion_ vector. Therefore loop over every region
     // and assign material...and roughly init the remaining in the struct
@@ -122,6 +125,9 @@ template<class T>
     isComplex_ = true;
     // take care, it's changed throughout the class!!
     dimType_ = CoefFunction::SCALAR;
+
+    modelName_=modelName;
+    matModelCoef_= matModelCoef;
   }
 
   template<class T>
@@ -164,7 +170,7 @@ template<class T>
 
             // Also set the correct nonlinear materialparameter evaluation CoefFunctions here
             // Only for the regions which are really nonlinear!
-            if( nonLin ){
+            if( nonLin && (modelName_ == "nonlinearCurve" )){
               LOG_DBG(coeffctharmbalance) << "Generating nonlinear multiharmonic "
                   "material coefficient function for region"<< actRegion <<" with material "<< actMat;
               regStruc.isNonLin = true;
@@ -183,6 +189,31 @@ template<class T>
 
               dimType_ = SCALAR;
               ret = (PtrCoefFct)this;
+            } else if(nonLin && (modelName_ != "nonlinearCurve" )){
+              LOG_DBG(coeffctharmbalance) << "Generating hysteresis multiharmonic "
+                  "material coefficient function for region"<< actRegion <<" with material "<< actMat;
+              regStruc.isNonLin = true;
+
+              if(modelName_ == "JilesAthertonModel" ){
+                std::map<std::string, double> ParameterMap;
+
+                actMat->GetScalar(ParameterMap["Ps"], ELEC_PS_JILES, Global::REAL );
+                actMat->GetScalar(ParameterMap["alpha"], ELEC_ALPHA_JILES, Global::REAL );
+                actMat->GetScalar(ParameterMap["a"], ELEC_A_JILES, Global::REAL );
+                actMat->GetScalar(ParameterMap["k"], ELEC_K_JILES, Global::REAL );
+                actMat->GetScalar(ParameterMap["c"], ELEC_C_JILES, Global::REAL );
+                ParameterMap["isMH"] = 1.0;
+
+                matModelCoef_->InitModel( ParameterMap, ptGrid_->GetNumElems(iRegion));
+              }
+
+              regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncModel(matModelCoef_);
+              // for the initial solution we also need the linear nu
+              regStruc.linNuCoefMap = actMat->GetScalCoefFnc( ELEC_PERMITTIVITY_SCALAR, Global::REAL);
+
+              dimType_ = SCALAR;
+              ret = (PtrCoefFct)this;
+
             }else{
               regStruc.isNonLin = false;
               regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR,Global::REAL );
@@ -360,32 +391,35 @@ template<class T>
     // This is the first call of this method, therefore we
     // store some stuff, we need frequently in the following iterations
     if( this->mp_->Eval(solHandle_) >= 0 ){
-      // Loop over every region
-      for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
-        HBRegionHelper& regStruc = hbRegion_[i];
+          // Loop over every region
+          for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
+            HBRegionHelper& regStruc = hbRegion_[i];
 
-        // obtain the iterator to loop over the elements of the region
-        it = regStruc.elemListPerRegion->GetIterator();
+            // obtain the iterator to loop over the elements of the region
+            it = regStruc.elemListPerRegion->GetIterator();
 
-        // Loop over every element in that region
-        for(it.Begin(); !it.IsEnd(); it++){
-          const Elem * el = it.GetElem();
-          esm = it.GetGrid()->GetElemShapeMap(el, true);
-          // Where do we evaluate the magnetic flux density?
-          // Element or integration point -> see UPDATE from above
-          lp = Elem::shapes[el->type].midPointCoord;
-          lpm.Set(lp, esm, 0.0);
+            // Loop over every element in that region
+            for(it.Begin(); !it.IsEnd(); it++){
+              const Elem * el = it.GetElem();
+              esm = it.GetGrid()->GetElemShapeMap(el, true);
+              // Where do we evaluate the magnetic flux density?
+              // Element or integration point -> see UPDATE from above
+              lp = Elem::shapes[el->type].midPointCoord;
+              lpm.Set(lp, esm, 0.0);
 
-          // Evaluate the nu(B)
-          regStruc.nonLinNuCoefMap->GetScalar(nuOfB, lpm);
+              // Evaluate the nu(B)
+              regStruc.nonLinNuCoefMap->GetScalar(nuOfB, lpm);
 
-          // now cache it for the element
-          nuFreqTmp_[ elemIterator ] = nuOfB;
-          ++elemIterator;
-        }
-        LOG_DBG(coeffctharmbalance) << "nu of virtual timestep "
-            <<this->mp_->Eval(solHandle_)<<" : "<<nuFreqTmp_.ToString();
-      } // loop over every region
+              // now cache it for the element
+              nuFreqTmp_[ elemIterator ] = nuOfB;
+//              std::cout << "----CashResult----" << std::endl;
+//              std::cout << "ElemIter = " << elemIterator << std::endl;
+//              std::cout << "Epsilon = " << nuOfB << std::endl;
+              ++elemIterator;
+            }
+            LOG_DBG(coeffctharmbalance) << "nu of virtual timestep "
+                <<this->mp_->Eval(solHandle_)<<" : "<<nuFreqTmp_.ToString();
+          } // loop over every region
 
 
       // Now fill the appropriate time result in MHTimeFreqResult

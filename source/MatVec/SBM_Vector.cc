@@ -541,6 +541,34 @@ namespace CoupledField {
     }
   }
 
+  void SBM_Vector::Add( Complex alpha, const BaseVector& y,
+            Complex beta, const BaseVector& z , UInt h) {
+
+    try {
+
+      // The dynamic cast will only work if vec really is an SBM_Vector
+      const SBM_Vector& sbm_y = dynamic_cast<const SBM_Vector&>(y);
+      const SBM_Vector& sbm_z = dynamic_cast<const SBM_Vector&>(z);
+
+      // Let's hope both vectors have the same size
+      for ( UInt i = 0; i < size_; i++ ){
+        if ( subVec_[i] != NULL && sbm_y.subVec_[i] != NULL &&
+             sbm_z.subVec_[i] != NULL ) {
+          if ( i == h){
+            subVec_[i]->Add( alpha, sbm_y(i), beta, sbm_z(i) );
+          }
+        }
+        else {
+          EXCEPTION( "Gosh, this will be tricky to implement, or not?" );
+        }
+      }
+    }
+
+    // Treat downcast failure
+    catch(std::bad_alloc &e) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+  }
 
   // ************************************************
   //   Compute Euclidean norm of this vector object

@@ -51,14 +51,19 @@ private:
 
   Vector<Double> E0_;
   Vector<Double> E1_;
+  Vector<Double> E0it_;
 
   Vector<Double> P0_;
   Vector<Double> P1_;
+  Vector<Double> P0it_;
 
   Vector<Double> Pi0_;
   Vector<Double> Pi1_;
+  Vector<Double> Pi0it_;
+
   Vector<Double> Pa0_;
   Vector<Double> Pa1_;
+  Vector<Double> Pa0it_;
 
   //! Pointer to math parser instance
   MathParser* mp_;
@@ -67,6 +72,12 @@ private:
   bool isFirstTimeFinished_;
 
   UInt timeStep_;
+
+  UInt globalIter_;
+  UInt count_=0;
+  double isMH_;
+
+  std::string varHandle_;
 
   Vector<Double> currentDirection_;
   std::map<UInt,Vector<Double>> initialDirection_;

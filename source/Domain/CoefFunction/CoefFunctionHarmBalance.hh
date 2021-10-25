@@ -51,7 +51,10 @@ public:
           const UInt& N,
           const UInt& M,
           const Double& baseFreq,
-          const UInt& nFFT);
+          const UInt& nFFT,
+          std::string modelName,
+          PtrCoefFct matModelCoef);
+
 
 
   //! \copydoc CoefFunction::GetScalar
@@ -184,6 +187,10 @@ protected:
 
   //! Map for getting the position of a certain elemNum in the freqTimeRes_ construct
   boost::unordered_map<UInt, UInt> positionOfElem_;
+
+  std::string modelName_;
+
+  PtrCoefFct matModelCoef_;
 };
 
 

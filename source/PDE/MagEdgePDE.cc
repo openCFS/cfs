@@ -123,7 +123,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
       M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
       nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
-      multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef, N, M, baseFreq, nFFT );
+      multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef, N, M, baseFreq, nFFT, modelName_ , magFluxCoef);
     }
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){

@@ -29,6 +29,9 @@ template<class TYPE> CoefFunctionMaterialModel<TYPE>::CoefFunctionMaterialModel(
 
   isAnalytic_ = false;
   isComplex_ = false;
+  //this should change, depending on the model
+  dimType_ = SCALAR;
+
 }
 
 template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depCoef, std::string modelName){
@@ -41,6 +44,7 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
   modelName_ = modelName;
 
   if (modelName_ == "JilesAthertonModel") {
+
     dimType_ = SCALAR;
 
     static Jiles JilesModel;

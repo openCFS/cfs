@@ -32,8 +32,20 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems) {
     ElemNum2Idx_[i]=i;
   }
 
-  if (ParameterMap.size() != 5) {
-    EXCEPTION("The model needs 5 parameter!");
+  if (ParameterMap.size() < 5) {
+    EXCEPTION("The model needs 5 or more parameter!");
+  }
+  Ps_ = ParameterMap["Ps"];
+  alpha_ = ParameterMap["alpha"];
+  a_ = ParameterMap["a"];
+  k_ = ParameterMap["k"];
+  c_ = ParameterMap["c"];
+
+  isMH_ = ParameterMap["isMH"];
+  if(isMH_ == 1.0){
+    varHandle_="cacheResult";
+  } else {
+    varHandle_="step";
   }
   Ps_ = ParameterMap["Ps"];
   alpha_ = ParameterMap["alpha"];
@@ -46,11 +58,17 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems) {
   E0_.Resize(numElems_);
   E0_.Init(0);
 
+  E0it_.Resize(numElems_);
+  E0it_.Init(0);
+
   E1_.Resize(numElems_);
   E1_.Init(0);
 
   Pi0_.Resize(numElems_);
   Pi0_.Init(0);
+
+  Pi0it_.Resize(numElems_);
+  Pi0it_.Init(0);
 
   Pi1_.Resize(numElems_);
   Pi1_.Init(0);
@@ -58,11 +76,17 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems) {
   Pa0_.Resize(numElems_);
   Pa0_.Init(0);
 
+  Pa0it_.Resize(numElems_);
+  Pa0it_.Init(0);
+
   Pa1_.Resize(numElems_);
   Pa1_.Init(0);
 
   P0_.Resize(numElems_);
   P0_.Init(0);
+
+  P0it_.Resize(numElems_);
+  P0it_.Init(0);
 
   P1_.Resize(numElems_);
   P1_.Init(0);
@@ -81,10 +105,23 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems) {
   timeStep_ = 1;
 
   mp_ = domain->GetMathParser();
-
+  globalIter_ = 0;
 }
 
 Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNum) {
+
+  if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+    //if there is a new iteration, save the values from the previous iteration
+    LOG_DBG3(ja) << "Trigger new iteration"<< std::endl;
+    for(UInt i = 0; i <numElems_; i++){
+      LOG_DBG3(ja) << "Overwritting for idx_: " << i << std::endl;
+      E0it_[i]=E1_[i];
+      P0it_[i]=P1_[i];
+      Pi0it_[i]=Pi1_[i];
+      Pa0it_[i]=Pa1_[i];
+    }
+  }
 
   idx_=ElemNum2Idx_[ElemNum-1];
 
@@ -133,20 +170,26 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
 //    EXCEPTION("Dependend Vector rotates to much. This should not occur. This is a scalar hysteresis model.");
 //  }
 
-  P = Evaluate(E, idx_);
 
+  //if timestep == 0 -> new iteration, reset the values
+  if(timeStep_==0){
+    E0_[idx_]=E0it_[idx_];
+    P0_[idx_]=P0it_[idx_];
+    Pi0_[idx_]=Pi0it_[idx_];
+    Pa0_[idx_]=Pa0it_[idx_];
+  }
+
+  P = Evaluate(E, idx_);
+//  std::cout << "P = " << P << std::endl;
   Double epsilon, epsilon0;
   epsilon0 = 8.854187e-12;
 
-  if(E == 0 ){
-    epsilon = 4.028353e-07;
-  } else{
-    epsilon = epsilon0 + P / E;
-  }
+  epsilon = epsilon0 + P / E;
 
-  if(isinf(epsilon) || isnan(epsilon)){
+  if(isinf(epsilon) || isnan(epsilon) ){
     std::cout << "E0: "<< E0_[idx_] << std::endl;
     std::cout << "E1: "<< E1_[idx_]<< std::endl;
+    std::cout << "dE: " <<  E1_[idx_] - E0_[idx_] << std::endl;
     std::cout << "P0: "<< P0_[idx_] << std::endl;
     std::cout << "P1: "<< P1_[idx_]<< std::endl;
     std::cout << "Pa0: "<< Pa0_[idx_] << std::endl;
@@ -157,11 +200,22 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
     EXCEPTION("Epsilon is inifite or NaN...")
   }
 
+//  if(idx_==0 && (timeStep_==0 || timeStep_== 127)){
+//    LOG_DBG3(ja) << "Iteration: " << globalIter_ << std::endl;
+//    LOG_DBG3(ja) << "Timestep = " << timeStep_ << std::endl;
+//    LOG_DBG3(ja) << "For element with intern idx_: " << idx_ << std::endl;
+//    LOG_DBG3(ja) << "Last Polarization (prev. It)      = " << P0_[idx_] << std::endl;
+//    LOG_DBG3(ja)<< "Current Polarization (curr. It)   = " << P1_[idx_] << std::endl;
+//    LOG_DBG3(ja) << "Last elecField (prev. It)         = " << E0_[idx_] << std::endl;
+//    LOG_DBG3(ja) << "Current elecField (curr. It)      = " << E1_[idx_] << std::endl;
+//    LOG_DBG3(ja) << "------------------------------------" << std::endl;
+//  }
   return epsilon;
 }
 
 void Jiles::RampUp(Integer Nt, Double E, Integer idx) {
-//  LOG_DBG(ja) << "Computing Ramp Up-Polarization for element " << idxElem ;
+
+  LOG_DBG(ja) << "Computing Ramp Up-Polarization for element " << idx << std::endl ;
 
   Double tmp_E;
   tmp_E = E / Nt;
@@ -214,21 +268,21 @@ double Jiles::Evaluate(Double E, Integer idx) {
 }
 
 void Jiles::saveValues(bool InstantSave){
-  if((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "step")) || InstantSave){
+
+  if((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)) || InstantSave){
     Pa0_=Pa1_;
     Pi0_=Pi1_;
     P0_=P1_;
     E0_=E1_;
 
-    Pa1_.Init(0);
-    Pi1_.Init(0);
-    P1_.Init(0);
-    E1_.Init(0);
+//    Pa1_.Init(0);
+//    Pi1_.Init(0);
+//    P1_.Init(0);
+//    E1_.Init(0);
 
-    timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "step");
+    timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
   }
-
+}
 }
 
-}
 

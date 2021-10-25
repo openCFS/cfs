@@ -197,6 +197,9 @@ namespace CoupledField {
 	      Double beta, const BaseVector& z );
     void Add( Complex alpha, const BaseVector& y,
 	      Complex beta, const BaseVector& z );
+    //! This should add only something for the N-th entry
+    void Add( Complex alpha, const BaseVector& y,
+          Complex beta, const BaseVector& z , UInt h);
     //@}
 
     //! Compute the Euclidean norm of this vector object

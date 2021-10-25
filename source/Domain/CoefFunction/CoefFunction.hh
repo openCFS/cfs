@@ -349,7 +349,9 @@ public:
             const UInt& N,
             const UInt& M,
             const Double& baseFreq,
-            const UInt& nFFT){
+            const UInt& nFFT,
+            std::string modelName,
+            PtrCoefFct matCoef){
     EXCEPTION("Not implemented here in base class");
     return;
   }

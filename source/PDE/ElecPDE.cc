@@ -266,11 +266,17 @@ namespace CoupledField {
     }
     // Create new harmonic balance coefficient function and register the regions and material
     if(analysistype_ == MULTIHARMONIC){
+        if(modelName_ != "nonlinearCurve"){
+          matModelCoef_->Init( elecFieldCoef, modelName_);
+        }
+
         baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
         N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
         M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
         nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
-        multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT);
+
+        multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT, modelName_,matModelCoef_);
+
     }
     // now the handle for the mathparser should be in place, and ready to unlock!
     // bool upLagrangeForm = true;
@@ -441,6 +447,8 @@ namespace CoupledField {
               actSDMat->GetScalar(ParameterMap["a"], ELEC_A_JILES, Global::REAL );
               actSDMat->GetScalar(ParameterMap["k"], ELEC_K_JILES, Global::REAL );
               actSDMat->GetScalar(ParameterMap["c"], ELEC_C_JILES, Global::REAL );
+
+              ParameterMap["isMH"]=0;
 
               matModelCoef_->InitModel( ParameterMap, ptGrid_->GetNumElems(iRegion));
               epsilonNL = actSDMat->GetScalCoefFncModel( matModelCoef_ );

@@ -232,6 +232,9 @@ namespace CoupledField
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
+    Double lastError_; // So it stops if residum gets bigger!
+    UInt consideredH_=1; // So it stops if residum gets bigger!
+
     Double minValidValue_;     //! stopping if any value in the region exceeds value
     Double maxValidValue_;     //! stopping if any value in the region exceeds value
     SolutionType solutionLimit_; //! solution type for which a limit is set

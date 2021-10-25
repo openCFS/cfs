@@ -717,6 +717,9 @@ namespace CoupledField {
      *
      */
     
+    mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
+
     LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLin";
     bool performOneMoreStep;
     bool isNewton = false;
@@ -777,7 +780,8 @@ namespace CoupledField {
       
       do {
         iterationCounter++;
-        
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+
         if ( lineSearch_ != "none" || iterationCounter == 1) {
           //add linear right hand side
           algsys_->InitRHS(RhsLinVal_);
@@ -1381,6 +1385,10 @@ namespace CoupledField {
       EXCEPTION("Please provide a numFFT xml attribute, which is even!");
     }
 
+    //setting the iterationCounter so one can easy check which iteration it is
+    mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
+
     bool performOneMoreStep = true;
     // =================================================================================
     //  1) Solve the initial multiharmonic ''linear'' system
@@ -1496,8 +1504,11 @@ namespace CoupledField {
     // ===============================================================
     //  2.1) Nonlinear loop
     // ===============================================================
+    lastError_=10000;
     do {
       iterationCounter++;
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+
       // if the RHS depends on the nonlinearity, we have to re-assemble it
       if( assemble_->IsRhsSolDependent() ) {
         EXCEPTION("StdSolveStep::StepHarmonicNonLin() cannot handle solution-dependent"
@@ -1629,7 +1640,11 @@ namespace CoupledField {
 
       // boolean variable, holds condition if another iteration step is necessary
       std::cout << "========= Iterationstep = "<<iterationCounter << std::endl;
-      performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+      performOneMoreStep = ((incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_)) && (residualErr <= lastError_);
+      if(residualErr >= lastError_){
+        std::cout<<"Stopped due to divergence at iteration "<< iterationCounter << std::endl;
+      }
+      lastError_ = residualErr;
       std::cout<<"========= incrementalErr = "<<incrementalErr<<std::endl;
       std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
@@ -1672,6 +1687,7 @@ namespace CoupledField {
 
     // Loop over time steps
     for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
+//      std::cout << "=========== Timestep " << i << " =========" << std::endl;
       // TODO this should be double
       Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
       solVec_(0) = (Vector<Complex>)timeStepVec;
@@ -1723,6 +1739,7 @@ namespace CoupledField {
 //           if( h%2 != 0 && h!=0 ){
 //             continue;
 //           }
+
 
         }else{
           // Ok, now it gets confusing because in the performance-optimized
@@ -2015,23 +2032,40 @@ namespace CoupledField {
     SBM_Vector solOld(BaseMatrix::COMPLEX);
     solOld = actSol;
 
-
+    UInt h;
+    h = solStrat_->GetNumHarmN();
 
     const UInt nrEtas = 4;
-    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+    const Double eta[nrEtas] = {0.1, 0.5, 1, 2}; //, 0.5, 0.25, 0.125, 0.1};
 
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
+    //ToDo : Insert switch here for advLinesearch here
+    bool isMHAdvLineSearch = true;
+
     for( UInt i=0; i<nrEtas; i++) {
+
       LOG_DBG(stdsolvestep) <<" LineSearchMultHarm: Testing eta = " << eta[i];
 
       if(actSol.GetEntryType() == BaseMatrix::DOUBLE){
         EXCEPTION("StdSolveStep::LineSearchMultHarm Solution vector is real valued in multiharmonic analysis!");
-      }else{
-        // Actually it's this actSol = solOld + eta[i] * solIncrement;
-        actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
+      }
+
+      if(isMHAdvLineSearch){ //this is the adv linesearch - this doesnt improve the speed but the quality of the result
+        // add only the considered harmonics while linesearching
+        for(UInt x=0; x<=consideredH_;x++){
+          if(x==0){
+            actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement,h);
+          }else{
+            actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement,h+x);
+            actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement,h-x);
+          }
+        }
+      } else { // standard linesearch
+          // Actually it's this actSol = solOld + eta[i] * solIncrement;
+          actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
       }
 
       // We need to do this in order to evaluate at the correct result vector
@@ -2081,15 +2115,46 @@ namespace CoupledField {
         continue;
         //TODO Proof Theory that  the first lokal minimum is the global minimum of all residuals as well.
       }
+    } // eta-loop
 
-    }
-    
-    //std::cout << "Optimal eta = " << etaOpt << std::endl;
+//    std::cout << "Optimal eta = " << etaOpt << std::endl;
     etaLineSearch = etaOpt;
 
-    // Set new solution
-    actSol.Add( (Complex)1.0, solOld, etaOpt, solIncrement );
-    
+//    std::cout << "Considered Harmonics: " << consideredH_ << std::endl;
+//    std::cout << eta[0] << " - " << etaError[0] << std::endl;
+//    std::cout << eta[1] << " - " << etaError[1] << std::endl;
+//    std::cout << eta[2] << " - " << etaError[2] << std::endl;
+//    std::cout << eta[3] << " - " << etaError[3] << std::endl;
+
+    // Set new solution for optimal eta
+    if(isMHAdvLineSearch){
+      if(residualL2NormOpt > lastError_){
+        //if error is bigger than error from last time,
+        // increase the considered harmonics
+        // And do not change the residuum -> set etaOpt to zero
+        if(consideredH_ < h){
+          consideredH_++;
+        }
+        etaOpt = 0;
+        //update error
+        residualL2NormOpt = lastError_;
+        //we do not have to update the solution
+        return residualL2NormOpt;
+      } else {
+        etaLineSearch = etaOpt;
+        for(UInt x=0; x<=consideredH_ ;x++){
+          if(x==0){
+            actSol.Add( (Complex) 1.0, solOld, (Complex) etaOpt, solIncrement,h);
+          }else{
+            actSol.Add( (Complex) 1.0, solOld, (Complex) etaOpt, solIncrement,h+x);
+            actSol.Add( (Complex) 1.0, solOld, (Complex) etaOpt, solIncrement,h-x);
+          }
+        }
+      }
+    } else{ //standard linesearch
+      etaLineSearch = etaOpt;
+      actSol.Add( (Complex)1.0, solOld, etaOpt, solIncrement );
+    }
     return residualL2NormOpt;
   }
   
