@@ -21,7 +21,9 @@ endif(COMMAND CMAKE_POLICY)
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
 if(PIPELINE_TEST_STAGE_CONFIG)
-  message(WARNING "No compiler check - this should only occur in the testing stage of the gitlab pipeline")
+  if(NOT DEFINED ENV{CI_SERVER}) # only issue a warning if we're not on a CI server
+    message(WARNING "No compiler check - this should only occur in the testing stage of the gitlab pipeline")
+  endif()
   set(CMAKE_MAKE_PROGRAM "none")
   project(CFS NONE)
 else(PIPELINE_TEST_STAGE_CONFIG)
@@ -224,7 +226,7 @@ if(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   endif()
 endif()
 
-if(BUILD_TESTING AND NOT EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+if(BUILD_TESTING AND NOT EXISTS ${TESTSUITE_DIR}/TESTSUIT AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
   message(WARNING "BUILD_TESTING is on but TESTSUITE_DIR seems invalid, deactivate BUILD_TESTING")
 endif()
 
@@ -374,8 +376,9 @@ endif(PIPELINE_TEST_STAGE_CONFIG)
 # language-specific build tools.
 # Switch support for testing ON if the default testsuite dir is used, i.e.
 # the git submodule 'Testing'
-if(BUILD_TESTING)
+if(BUILD_TESTING OR BUILD_CPACK_BINARY)
   # check if TESTSUITE_DIR is correct (contains TESTSUIT)
+  if(BUILD_TESTING AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
     if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       add_subdirectory(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
       message(STATUS "including testsuite from ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
@@ -388,6 +391,7 @@ if(BUILD_TESTING)
       set(MSG "${MSG}   'git pull --recurse-submodules'\n")
       message(FATAL_ERROR "${MSG}")
     endif()
+  endif()
   # set a build name
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
   mark_as_advanced(BUILDNAME)
@@ -408,13 +412,23 @@ if(BUILD_TESTING)
     endif()
   endif(GITLAB_TEST_TAG)
   enable_testing()
-endif(BUILD_TESTING)
+endif(BUILD_TESTING OR BUILD_CPACK_BINARY)
 if(NOT PIPELINE_TEST_STAGE_CONFIG)
 # add a packing test
 if(BUILD_CPACK_BINARY)
   include(CTest)
   add_test(Install_Pack_Linux_TGZ cpack -G TGZ --verbose)
   enable_testing()
+  # we need this options if we do not clone and include the testsuite, 
+  # but still want to submit the build resutls to cdash
+  set(DROP_SITE "movm.mi.uni-erlangen.de" CACHE STRING "URL of the CDash dashboard to submit test results")
+  mark_as_advanced(DROP_SITE)
+  set(DROP_LOCATION "/cdash/submit.php?project=CFS")
+  set(DROP_METHOD "http")
+  set(NIGHTLY_START_TIME "00:00:00 CET")
+  set(SUBMIT_URL "${DROP_METHOD}://${DROP_SITE}${DROP_LOCATION}") # for recent cmake versions
+  message(STATUS "submitting tests to: ${SUBMIT_URL}")
+  include(Dart) # to actually write DartConfiguration.tcl
 endif()
 
 if(NOT BUILD_CPACK_BINARY AND NOT BUILD_TESTING)

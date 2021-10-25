@@ -5,58 +5,53 @@
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
 # * do not use a command `echo "warning: the : is not allowed in a string"`
 
-# short manual section about tags:
-# - python: python with several packages is installed for python tests an compare_info_xml.py based tests.
-# - docker: all is defined by the image, no other tags required (python, linux, ...)          
+# short manual section about tags (define which jobs can be run by which runners):
+# - docker: runners using docker, all is defined by the image, no other tags required (python, linux, ...)
+# - linux: generic linux
+# - mdmt: runners who can deploy to the TU Wien infrastructure
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
   GIT_SUBMODULE_STRATEGY: recursive
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
+  # build options for the maximal config
+  MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_ILUPACK=ON -DUSE_EMBEDDED_PYTHON=ON"
 
 # stages in the pipeline run in succession
 stages:
   - check
-  - build 
+  - platform
+  - cfsdeps
+  - build
   - test # we may have several test configs for one build
   - deploy
 
-# determines when the pipeline runs
-.default_pipeline_rules: &default_pipeline_rules
-  only:
-    refs:
-      - master # for the master branch
-      - /^test.*$/ # for branches/tags called "test*"
-      - /^.*-test$/ # for branches/tags called "*-test"
-      - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
-      - schedules # For scheduled pipelines
-
-# cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
-# use the ref-name, e.g. `master` as key -> same for successive builds
-# it is stored as a zip archive and extracted before each stage - this takes time,
-# thus we combine the build and configure step
-# the key is used to define which chache is used for which job.
-cache:
-  key: ${CI_COMMIT_REF_NAME}
-  paths:
-    - build/cfsdeps/cache
+# determine when pipelines are created
+# https://docs.gitlab.com/ee/ci/yaml/#workflowrules
+# https://docs.gitlab.com/ee/ci/jobs/job_control.html#common-if-clauses-for-rules
+# we create pipelines for merge requests, schedules, and the web-ui
+workflow:
+  rules:
+  - if: $CI_MERGE_REQUEST_IID
+  - if: $CI_COMMIT_TAG
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  - if: '$CI_PIPELINE_SOURCE == "web"'
+  - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
 #################################################
 # Check STAGE
 #################################################
-
-# skip the check stage if 'skip-check' is in the commit message
-.except-skip-ckeck: &except-skip-ckeck
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-check/
+# the jobs in this stage are purely informational at the moment
+# some only get created in certain cases (pipeline-changes) and then fail 
+# to generate a warning (they are allowd to fail)
 
 # Check the revision of the testsuite submodule
 testsuite-revision:
   stage: check
   tags:
-    - linux
+    - docker
+  image: opencfs/fedora32
   variables:
     # we clone to make sure we have everyting (including current names of the SHAs)
     GIT_STRATEGY: clone
@@ -73,57 +68,31 @@ testsuite-revision:
     - pwd # debug
   cache: {} # disable
   allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
-  <<: *default_pipeline_rules
-  <<: *except-skip-ckeck
 
 # this job is intended as a warning if the pipeline has changed
 # it is created only if there are changes, and will always fail (but is allowed to)
 pipeline-changes:
-  extends: .default_pipeline_rules
   stage: check
   tags:
     - linux
+  # switch off cloning the Testsuite submodule
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
   before_script:
     - git diff HEAD~1 -- .gitlab-ci.yml
   script:
     - /the/pipeline/has/changed
-  after_script: []
   allow_failure: true
   cache: {} # disable
-  only:
-    changes:
-      - .gitlab-ci.yml
-  <<: *except-skip-ckeck
-
-# this job is intended as a warning if the pipeline has been skipped by commit messages
-#  
-pipeline-skip:
-  extends: .default_pipeline_rules
-  stage: check
-  tags:
-    - linux
-  before_script:
-    - echo "$CI_COMMIT_MESSAGE" > message
-    - cat message
-    - sed -z 's/\n/ /g' message > message-oneline
-  script:
-    # print files without match (-L) and check for "message", i.e. "skip-XXX" is not in commit message 
-    - grep -v skip-platform-builds message-oneline
-    - grep -v skip-stable-tests message-oneline
-    - grep -v skip-debug message-oneline
-    - grep -v skip-testsuite-tests message-oneline
-    - grep -v skip-gcc-builds message-oneline
-    - grep -v skip-python-tests message-oneline
-  after_script: []
-  allow_failure: true
-  cache: {} # disable 
 
 runner-debug:
-  extends: .default_pipeline_rules
   stage: check
   tags:
     - linux
-  before_script: []
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
   script:
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
@@ -134,25 +103,267 @@ runner-debug:
     - echo $CI_PROJECT_NAMESPACE
     - echo $CI_PIPELINE_URL
     - echo $CI_PAGES_URL
-    - echo $CI_MERGE_REQUEST_ID
+    - echo $CI_MERGE_REQUEST_IID
     - echo $CI_JOB_URL
-  after_script: []
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_COMMIT_REF_NAME
+    - echo $CI_PIPELINE_SOURCE
   when: manual
   allow_failure: true
   cache: {} # disable
-  <<: *except-skip-ckeck
 
-#################################################
-# BUILD STAGE
-#################################################
+# this job is created when there is a skip-build in the commit message
+skip-build:
+  stage: check
+  tags:
+    - linux
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/'
+      when: always
+      allow_failure: true
+  script:
+    - /commit/message/contained/skip-build
+
+mr-with-code-changes:
+  stage: check
+  tags:
+    - linux
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+  rules:
+    # this job should match and ensure we build
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - "CMakeLists.txt"
+        - "*.cmake"
+        - "*.cmake.in"
+        - source/**/*.{hh,cc,h,c}
+      when: always
+      allow_failure: true
+  script:
+    - /merge/request/ and /the/code/has/canged
+
+#######################################################################
+# PLATFORM STAGE
+#######################################################################
+# here we test the build dependency installation instructions (from share/doc/developer/build-dependencies)
+# and the build instructions (from README.md)
+# all jobs in the stage have no needs, and are manual (one can start them by the play-button)
+
+# Template for the platform builds
+.platform:image:
+  stage: platform
+  tags:
+    - docker
+  after_script: []
+  rules:
+    # set variable PLATFORM to activate the job
+    - if: $PLATFORM
+      when: on_success
+    - if: $CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_IID # this should match always, setting the job to manual
+      when: manual
+      allow_failure: true # maybe we need this to not stop the pipeline if the manual job is not triggerd
+  # disable artifacts and cache
+  artifacts: {}
+  cache: {}
+  # switch off cloning the Testsuite submodule
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  # install dependecies in the docker image
+  before_script:
+    # ensure build does not exist
+    - rm -rf build
+    # debug output
+    - echo "IMAGE=$IMAGE"
+    - echo "TAG=$TAG"
+    - echo "PLATFORM=$PLATFORM"
+    - cat /etc/*release
+    # run the setup instructions for this IMAGE
+    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e -x
+  # run the README which contains build instructions
+  script:
+    - ./share/scripts/mdsh --eval 'README.md' | bash -e -x
+  # run this job immediately, since it has not needs
+  needs: []
+
+# add all platforms we can build on.
+# the IMAGE variable should be set according to the 'image' (docker runner option) and requires
+# a correctly named instruction in share/doc/developer/build-dependencies
+fedora:latest:
+  extends: .platform:image
+  image:
+    name: fedora
+    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+  variables:
+    IMAGE: "fedora"
+    TAG: "latest"
+
+# the latest LTS release
+ubuntu:latest:
+  extends: .platform:image
+  image: ubuntu
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "latest"
+
+# the latest stable release, regardless of LTS status
+ubuntu:rolling:
+  extends: .platform:image
+  image:
+    name: ubuntu:rolling
+    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "rolling"
+
+# older ubuntu versions
+ubuntu:16.04:
+  extends: .platform:image
+  image: ubuntu:16.04
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "16.04"
+
+ubuntu:18.04:
+  extends: .platform:image
+  image: ubuntu:18.04
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "18.04"
+
+debian:latest:
+  extends: .platform:image
+  image: debian
+  variables:
+    IMAGE: "debian"
+    TAG: "latest"
+
+centos:latest:
+  extends: .platform:image
+  image: centos
+  variables:
+    IMAGE: "centos"
+    TAG: "latest"
+
+centos:7:
+  extends: .platform:image
+  image: centos:7
+  variables:
+    IMAGE: "centos"
+    TAG: "7"
+
+#######################################################################
+# cfsdeps stage
+#######################################################################
+# here we build the cfsdeps and store them and
+# store the precompiled ones as artifacts
+# we need to precompile for all GCC versions independently
+
+# cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
+# use the ref-name, e.g. `master` as key -> same for successive builds
+# it is stored as a zip archive and extracted before each stage - this takes time,
+# thus we combine the build and configure step
+# the key is used to define which chache is used for which job.
+.cache_cfsdeps: &cache_cfsdeps
+  cache:
+    key: ${CI_COMMIT_REF_NAME}
+    paths:
+      - build/cfsdeps/cache
+
+.before-script-build: &before-script-build
+  # make sure the Testsuite submodule is OK
+  - git status # debug
+  - git diff -- Testsuite # debug
+  - git diff --exit-code -- Testsuite || git submodule update --force --checkout --depth 1 -- Testsuite
+  - git status # debug
+  # report disk space
+  - df -h # disk space debug
+  - du -h --max-depth=1 . # repos space debug
+  # setup build directory
+  - mkdir -p build # create if it does not exist
+  - cd build # descend in build
+  - rm -f CMakeCache.txt # clear old cache
+  # show the contents of the cfsdeps cache
+  - ls -l cfsdeps/cache/precompiled || ls #debug
+  - ls -l cfsdeps/cache/sources || ls # debug
+
+.build_rules: &build_rules
+  rules:
+    # activate builds in schedule (nightly builds)
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    # skip builds by commit message
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/'
+      when: manual
+      allow_failure: true
+    # this job should match and ensure we build
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - "CMakeLists.txt"
+        - "*.cmake"
+        - "*.cmake.in"
+        - source/**/*.{hh,cc,h,c}
+      when: on_success
+      allow_failure: false
+    # set build jobs to manual if we do not have changes in source files
+    - when: manual
+      allow_failure: true
+
+.cfsdeps:default: &cfsdeps_default
+  stage: cfsdeps
+  tags:
+    - docker
+  # switch off cloning the Testsuite submodule
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+  before_script:
+    - pwd # debug
+    - *before-script-build
+  script:
+    - cmake ..
+    - cmake .
+    - make cfsdeps
+  after_script:
+    - ls -l build/cfsdeps/cache/precompiled || ls # debug
+  needs: []
+  <<: *cache_cfsdeps
+  <<: *build_rules
+
+cfsdeps:gcc7:
+  image: opencfs/centos6-gcc7
+  <<: *cfsdeps_default
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*GNU_7*.zip
+    expire_in: 6 hours
+
+cfsdeps:gcc10:
+  image: opencfs/fedora32
+  <<: *cfsdeps_default
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*GNU_10*.zip
+    expire_in: 6 hours
+
+#######################################################################
+# BUILD STAGE definitions
+#######################################################################
 # Here we define the build jobs, if one fails we do not need to test
-    
+
 .default_build_job: &default_build_job
-  extends: .default_pipeline_rules
+  variables:
+    GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
+    CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DBUILD_CPACK_BINARY=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_CPACK_BINARY=ON -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -166,20 +377,26 @@ runner-debug:
     # install test to create arifacts
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
-    # check the coding_score
-    - ../ctest_scripts/shared/coding_score.sh build.out
   after_script:
+    - git status # debug
+    - ls -la # debug
+    - df -h # debug
+    - du -h --max-depth=1 . # debug
     - cd build
+    - du -h --max-depth=1 . # debug
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # copy CMakeCache one level up to avoid conflicts with test config in artifacts
+    # rename CMakeCache to avoid conflicts
     - cp CMakeCache.txt CMakeCache_build-stage.txt
-  coverage: '/coding_score=(\d+[.]\d+)/'
+    # clean up a bit to free disk space for cache-creation, leave artifacts and cache
+    - rm -rf _CPack_Packages vtk include source bin lib64
+    - df -h # debug
   artifacts:
     paths: # just an example
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
     expire_in: 3 days
   dependencies: []
+  <<: *cache_cfsdeps
 
 .except-skip-gcc: &except-skip-gcc
   # do not add this job if commit message contains 'skip-gcc-builds'
@@ -193,18 +410,10 @@ runner-debug:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
 
-.before-script-build: &before-script-build
-  - mkdir -p build # create if it does not exist
-  - cd build # descend in build
-  - rm -f CMakeCache.txt # clear old cache
-
 .gcc_before: &gcc_before
   before_script:
     # debug output
-    - echo "GCC_VERSION=$GCC_VERSION"
     - gcc --version
-    # check gcc version via grep
-    - gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
     # general build before script
     - *before-script-build
 
@@ -214,124 +423,129 @@ runner-debug:
     - icc -v
     - icpc -v
     - ifort -v
+    # ensure the testsuite is not there (to save space)
+    - git status # debug
+    - rm -rf Testsuite
+    - git checkout Testsuite
     # general build before script
     - *before-script-build
 
+# ensure maximal build is tested only internally
+.max_never_external_rule: &rule_max_never_external_rule
+  rules:
+    - if: '$CI_SERVER_HOST != "cfs-dev.mdmt.tuwien.ac.at"'
+      when: never
+
 .max_rules: &max_rules
-  only:
-    variables:
-      - $CI_SERVER_HOST == "cfs-dev.mdmt.tuwien.ac.at"
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - !reference [.build_rules, rules]
 
-.max_cfs_config: &max_cfs_config
-  extends: .default_build_job
-  <<: *max_rules
-  variables:
-    MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_ILUPACK=ON -DUSE_EMBEDDED_PYTHON=ON"
-
-      
-#################################################
+#######################################################################
 # BUILD STAGE
-#################################################
+#######################################################################
 
 # maximal build using as many options as possible
-build:gcc7max-debug:
-  extends: .max_cfs_config
+linux:gcc7max-debug:
+  extends: .default_build_job
   stage: build
   image: opencfs/centos6-gcc7
   tags:
     - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
-    GCC_VERSION: 7
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
+  <<: *max_rules
   <<: *gcc_before
-  <<: *except-skip-gcc
-# allow_failure: false
-# when: on_success
-
-#################################################
-# BUILD RELEASE STAGE
-#################################################
+  needs: []
 
 # maximal build using as many options as possible
-build:gcc7max:
-  extends: .max_cfs_config
+linux:gcc7max:
+  extends: .default_build_job
   stage: build
   image: opencfs/centos6-gcc7
   tags:
     - docker
   variables:
     BUILD_NAME: "GCC7 maximal"
-    GCC_VERSION: 7
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
+  <<: *max_rules
   <<: *gcc_before
-  # don't merge default_build_job and max_rules (already included in .max_cfs_config)
-  <<: *except-skip-gcc
+  needs: ["cfsdeps:gcc7"]
 
-
-build:gcc5:
+linux:gcc5:
+  extends: .default_build_job
   stage: build
   image: opencfs/centos6-gcc5
   tags:
     - docker
   variables:
     BUILD_NAME: "GCC5"
-    GCC_VERSION: 5
+  rules:
+    # always activate this job for the default branch (or the test branch)
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: on_success
+      allow_failure: false
+    - !reference [.build_rules, rules]
   <<: *gcc_before
-  <<: *default_build_job
+  needs: []
 
-build:gcc7:
+linux:gcc7:
+  extends: .default_build_job
   stage: build
   image: opencfs/centos6-gcc7
   tags:
     - docker
   variables:
     BUILD_NAME: "GCC7"
-    GCC_VERSION: 7
+  <<: *build_rules
   <<: *gcc_before
-  <<: *default_build_job
-  <<: *except-skip-gcc
+  needs: ["cfsdeps:gcc7"]
 
-build:gcc7min:
+linux:gcc7min:
+  extends: .default_build_job
   stage: build
   image: opencfs/centos6-gcc7
   tags:
     - docker
   variables:
     BUILD_NAME: "GCC7 minimal"
-    GCC_VERSION: 7
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCFS_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_GMSH=OFF -DUSE_GMV=OFF -DUSE_ILUPACK=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF"
+  <<: *build_rules
   <<: *gcc_before
-  <<: *default_build_job
-  <<: *except-skip-gcc
+  needs: ["cfsdeps:gcc7"]
 
-
-build:gcc10:
+linux:gcc10:
+  extends: .default_build_job
   stage: build
   image: opencfs/fedora32
   tags:
     - docker
   variables:
     BUILD_NAME: "GCC10"
-    GCC_VERSION: 10
+  <<: *build_rules
   <<: *gcc_before
-  <<: *default_build_job
-  <<: *except-skip-gcc
+  needs: ["cfsdeps:gcc10"]
 
 # intel compiler builds
-build:intel:
+linux:intel:
+  extends: .default_build_job
   stage: build
   image: opencfs/centos7-intel
   tags:
     - docker
   variables:
     BUILD_NAME: "Intel2021"
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
+      when: manual
+      allow_failure: true
+    - !reference [.build_rules, rules]
   <<: *intel_before
-  <<: *default_build_job
-  <<: *except-skip-intel
+  needs: []
 
 # build with ninja
-build:gcc10:ninja:
+linux:gcc10:ninja:
   stage: build
   image: opencfs/fedora32
   tags:
@@ -349,129 +563,26 @@ build:gcc10:ninja:
     - cpack -G TGZ
   after_script:
     - ls -la
-  <<: *default_pipeline_rules
   when: manual
   artifacts:
     paths:
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
     expire_in: 1 days
-  dependencies: []
+  needs: ["cfsdeps:gcc10"]
 
-
-# Template for the platform builds
-.platform:image:
-  stage: build
-  tags:
-    - docker
-  after_script: []
-  # include the default pipeline rules
-  extends: .default_pipeline_rules
-  # add an additional rule:
-  # we only run this 
-  #  1) if the variable $PLATFORM is present, and
-  #  2) the variable $IMAGE (defined in jobs) matches the pattern in $PLATFORM
-  # e.g. set PLATFORM=/(centos)|(ubuntu)/ to test centos and ubuntu
-  # for further details see https://docs.gitlab.com/ee/ci/variables/README.html#environment-variables-expressions
-  only:
-    variables:
-      - $PLATFORM && $IMAGE =~ $PLATFORM
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-platform-builds/
-  # disable artifacts and cache
-  artifacts: {}
-  cache: {}
-  # switch off cloning the Testsuite submodule
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-  # install dependecies in the docker image
-  before_script:
-    # ensure build does not exist
-    - rm -rf build
-    # debug output
-    - echo "IMAGE=$IMAGE"
-    - echo "IMAGE=$TAG"
-    - echo "PLATFORM=$PLATFORM"
-    - cat /etc/*release
-    # run the setup instructions for this IMAGE
-    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e -x
-  # run the README which contains build instructions
-  script:
-    - ./share/scripts/mdsh --eval 'README.md' | bash -e -x
-
-# add all platforms we can build on. In order to actually activate them set PLATFORM accordlingly (see above)
-# the IMAGE variable should be set according to the 'image' (docker runner option) and requires
-# a correctly named instruction in share/doc/developer/build-dependencies
-platform:fedora:
-  extends: .platform:image
-  image: fedora
-  variables:
-    IMAGE: "fedora"
-    TAG: "latest"
-
-# the latest LTS release
-platform:ubuntu:
-  extends: .platform:image
-  image: ubuntu
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "latest"
-
-# the latest stable release, regardless of LTS status
-platform:ubuntu:rolling:
-  extends: .platform:image
-  image: ubuntu:rolling
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "rolling"
-
-# older ubuntu versions
-platform:ubuntu:16.04:
-  extends: .platform:image
-  image: ubuntu:16.04
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "16.04"
-
-platform:ubuntu:18.04:
-  extends: .platform:image
-  image: ubuntu:18.04
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "18.04"
-
-platform:debian:
-  extends: .platform:image
-  image: debian
-  variables:
-    IMAGE: "debian"
-    TAG: "latest"
-
-platform:centos:
-  extends: .platform:image
-  image: centos
-  variables:
-    IMAGE: "centos"
-    TAG: "latest"
-    CMAKE_CXX_FLAGS: "-lrt"
-
-platform:centos:7:
-  extends: .platform:image
-  image: centos:7
-  variables:
-    IMAGE: "centos"
-    TAG: "7"
-
-#################################################
+#######################################################################
 # TEST STAGE
-#################################################
+#######################################################################
 # the test stage might run on a different runner than the build, thus
 # the binaries are shared via the gitlab server (artifacts/dependencies)
 #
 # We have the following different test configurations
 # * stable - runs the Testsuite on a single thread and disabling some unstable tests (and python tests)
 # * testsuite - runs the Testsuite on all available cores (disabling python tests)
-# * python - runs the Python-Tests of the testsuite
+# * debug - tests for debug-builds, run in parallel: 
+#           we use TYPE to select them with -R
+#           running for the the complete testsuite, i.e. all_multicore
+# * python - runs the Python-Tests of the testsuite, independent of the c++ build
 # Both _stable_ and _testsuite_ are run for all build configs (GCCx),
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
 
@@ -493,11 +604,6 @@ platform:centos:7:
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
-  extends: .default_pipeline_rules
-  # disable if a) we have no gcc builds
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
   before_script:
     - mkdir -p build
     - cd build # descend in build
@@ -524,13 +630,9 @@ platform:centos:7:
 .test_stable: &test_stable
   <<: *ctest_default
   # disable also if 'skip-stable-tests' is contained in commit message
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   script:
     # configure
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / stable" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
     # start the testing
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
@@ -541,17 +643,13 @@ platform:centos:7:
 .test_all_multicore: &test_all_multicore
   <<: *ctest_default
   # disable also if 'skip-testsuite-tests' is contained in commit message
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
-  script:    
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME} / all_multicore" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
+  script:
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
-  
+    - ctest -D ExperimentalTest -E Install -R $TYPE. --track $CDASH_TRACK # exclude the install step
+
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
 stable:gcc5:linux:
@@ -560,22 +658,22 @@ stable:gcc5:linux:
   image: opencfs/ubuntu20.04
   stage: test
   variables:
-    BUILD_NAME: "GCC5"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC5 / stable"
   retry: 1
   <<: *test_stable
-  dependencies:
-    - build:gcc5
+  needs:
+    - linux:gcc5
 
 testsuite:gcc5:linux:
   tags:
     - linux
   stage: test
   variables:
-    BUILD_NAME: "GCC5"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC5 / all_multicore"
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc5
+  needs:
+    - linux:gcc5
 
 stable:gcc7min:linux:
   tags:
@@ -583,66 +681,72 @@ stable:gcc7min:linux:
   image: opencfs/ubuntu20.04
   stage: test
   variables:
-    BUILD_NAME: "GCC7 minimal"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 minimal / stable"
   retry: 1
   <<: *test_stable
-  dependencies:
-    - build:gcc7min
+  needs:
+    - linux:gcc7min
 
 testsuite:gcc7min:linux:
   tags:
     - linux
   stage: test
   variables:
-    BUILD_NAME: "GCC7 minimal"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 minimal / all_multicore"
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc7min
+  needs:
+    - linux:gcc7min
 
 stable:gcc7max:linux:
   tags:
     - docker
   stage: test
   image: opencfs/centos6-gcc7
-  <<: *max_rules
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
   variables:
-    BUILD_NAME: "GCC7 maximal"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 maximal / stable"
   <<: *test_stable
-  dependencies:
-    - build:gcc7max
+  needs:
+    - linux:gcc7max
 
 testsuite:gcc7max:linux:
   tags:
     - docker
   stage: test
   image: opencfs/centos6-gcc7
-  <<: *max_rules
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
+      allow_failure: true # job level definition is ignored when rules are used
   variables:
-    BUILD_NAME: "GCC7 maximal"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 maximal / all_multicore"
   <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc7max
+  needs:
+    - linux:gcc7max
 
-.stable:gcc7max-debug:linux:
+debug:gcc7max:linux:
   tags:
-    - linux
+    - docker
   stage: test
   image: opencfs/centos6-gcc7
-  <<: *max_rules
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
+      allow_failure: true # job level definition is ignored when rules are used
+  # run a matrix of parallel jobs, with variable TYPE defiend (used to include a specific set of tests)
+  # see https://docs.gitlab.com/ee/ci/jobs/job_control.html#run-a-one-dimensional-matrix-of-parallel-jobs
+  parallel:
+    matrix:
+      - TYPE: [Solver, Singlefield, Coupledfield, Optimization, CFSdat]
   variables:
-    BUILD_NAME: "GCC7 maximal debug"
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 maximal debug / all_multicore / $TYPE"
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_TIMEOUT=1500"
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
-      - $CI_COMMIT_MESSAGE =~ /skip-debug/
-  retry: 1
-  <<: *test_stable
+  <<: *test_all_multicore
   needs:
-    - build:gcc7max-debug
+    - linux:gcc7max-debug
 
 stable:gcc10:linux:
   image: opencfs/fedora32
@@ -650,11 +754,11 @@ stable:gcc10:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: GCC10
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC10 / stable"
   retry: 1
   <<: *test_stable
-  dependencies:
-    - build:gcc10
+  needs:
+    - linux:gcc10
 
 testsuite:gcc10:linux:
   image: opencfs/fedora32
@@ -665,8 +769,8 @@ testsuite:gcc10:linux:
     BUILD_NAME: GCC10
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc10
+  needs:
+    - linux:gcc10
 
 stable:intel:linux:
   tags:
@@ -674,14 +778,14 @@ stable:intel:linux:
   image: opencfs/ubuntu20.04
   stage: test
   variables:
-    BUILD_NAME: Intel
+    BUILD_NAME: "$CI_COMMIT_REF_SLUG / Intel / stable"
   <<: *test_stable
   except:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
-  dependencies:
-    - build:intel
+  needs:
+    - linux:intel
 
 testsuite:intel:linux:
   tags:
@@ -695,8 +799,8 @@ testsuite:intel:linux:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
       - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
-  dependencies:
-    - build:intel
+  needs:
+    - linux:intel
 
 python:stable:
   image: opencfs/centos6
@@ -730,17 +834,17 @@ python:all:
     TEST_NAME: "all"
     EXCLUDE: ""
   allow_failure: true
-  
-#################################################
+
+#######################################################################
 # DEPLOY STAGES
-#################################################
+#######################################################################
 
 .deploy_rules: &deploy_rules
   only:
     refs:
       - master # only for refs pushed to master
     variables:
-      # use variables to limit deply jobs for mdmt to pipelines from the corresponding namespace
+      # use variables to limit deploy jobs for mdmt to pipelines from the corresponding namespace
       # see the default variales https://docs.gitlab.com/ee/ci/variables/#predefined-variables-environment-variables
       - $CI_PROJECT_NAMESPACE == "cfs"
   tags:
@@ -750,13 +854,21 @@ python:all:
   cache: {}
   after_script: []
   before_script: []
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
 
 pages:
   stage: deploy
   tags:
     - linux
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
   dependencies:
-    - build:gcc5
+    - linux:gcc5
   script:
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mkdir -p public
@@ -777,7 +889,7 @@ pages:
 
 copy_to_draco:
   dependencies:
-    - build:gcc5
+    - linux:gcc5
   script:
     # copy over via scp
     - scp "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
@@ -788,8 +900,6 @@ copy_to_draco:
 install_on_draco:
   dependencies: []
   script:
-    # wait for the copy to finish, timeout after 180s, if timeout try to list file
-    - ssh draco "inotifywait -t180 -e close_write /opt/programs/cfs_master" || ssh draco "ls /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
     # extract on draco by ssh
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
     # set the new symlink and replace the old one in one atomic operation
@@ -799,3 +909,4 @@ install_on_draco:
   environment:
     name: share_programs
   <<: *deploy_rules
+  needs: ["copy_to_draco"]
