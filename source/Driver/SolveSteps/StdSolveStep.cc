@@ -1684,9 +1684,10 @@ namespace CoupledField {
 
           // the matrix entries for odd harmonics are zero, therefore we don't
           // have to assemble them
-          if( h%2 != 0 && h!=0 ){
-            continue;
-          }
+          // Have to assemble them in certain cases...
+           if( h%2 != 0 && h!=0 ){
+             continue;
+           }
 
         }else{
           // Ok, now it gets confusing because in the performance-optimized

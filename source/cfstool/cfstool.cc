@@ -1405,9 +1405,43 @@ int main(int argc, char** argv)
             exit(EXIT_SUCCESS);
         } else {
             std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
+            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
             exit(EXIT_FAILURE);
         }
+    } else if (param_mode == "absL2diff"){
+      Double tolerance = param->Get("eps")->As<Double>();
+      if (num_files != 2)
+      {
+          EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
+                          << " file1='" << file1 << "' file2='" << file2 << "'");
+      }
+      std::cout << "#####################################################\n";
+      std::cout << "#                   Mode = absL2diff                #\n";
+      std::cout << "#####################################################\n";
+      std::cout << "Checking for mesh results:\n"
+      << "==========================\n";
+      Double maxDiffMesh,maxDiffMeshRel;
+      CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName);
+      std::cout << "Maximum L2 norm = " << maxDiffMesh << " @ "<< maxDiffResultName << "\n";
+      std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
+      std::cout << "Checking for history results:\n"
+      << "==========================\n";
+      Double maxDiffHist,maxDiffHistRel;
+      CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName);
+      std::cout << "Maximum L2 norm = " << maxDiffHist << " @ "<< maxDiffResultName <<"\n";
+      std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
+      Double err = std::max(maxDiffMesh,maxDiffHist);
+      std::cout << "\n";
+      std::cout << "<DartMeasurement name=\"absL2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
+      if ( err < tolerance ) {
+          std::cout << "========================================================\n";
+          std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
+          exit(EXIT_SUCCESS);
+      } else {
+          std::cout << "========================================================\n";
+          std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
+          exit(EXIT_FAILURE);
+      }
     } else if (param_mode == "relL2diff") {
         Double tolerance = param->Get("eps")->As<Double>();
         if (num_files != 2)
@@ -1443,7 +1477,7 @@ int main(int argc, char** argv)
             exit(EXIT_SUCCESS);
         } else {
             std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
+            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
             exit(EXIT_FAILURE);
         }
     } else if (param_mode == "meshdiff") {
