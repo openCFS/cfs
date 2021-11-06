@@ -15,7 +15,7 @@ yum install -y cmake
 
 For the typical build config we need
 ```shell
-yum install -y make gcc gcc-c++ gcc-gfortran patch m4
+yum install -y make gcc gcc-c++ gcc-gfortran patch m4 file which findutils diffutils
 ```
 
 Intel MKL can be installed using [Intel's YUM repositories](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-yum-repo).

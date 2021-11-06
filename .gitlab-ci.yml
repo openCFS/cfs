@@ -193,7 +193,7 @@ mr-with-code-changes:
     - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e -x
   # run the README which contains build instructions
   script:
-    - ./share/scripts/mdsh --eval 'README.md' | bash -e -x
+    - ./share/scripts/mdsh --eval 'README.md' | bash -l -e -x
   # store possible error logs as artifacts for debugging
   artifacts:     
     paths:       

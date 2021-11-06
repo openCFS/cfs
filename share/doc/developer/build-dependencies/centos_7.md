@@ -6,14 +6,22 @@ This sould also work (with slight adaptions) on derivates like
 * Centos
 * Scientific Linux
 
-For the minimal build config we need
+For the minimal build config we need some tools
 ```shell
-yum install -y make gcc gcc-c++ gcc-gfortran patch m4
+yum install -y make patch m4 file which findutils diffutils
 ```
-
-For statically linking the Fortran libs (optional) install
+Furthermore, we need a c++14 ready compiler,
+we enable the [software-collections repo](https://wiki.centos.org/AdditionalResources/Repositories/SCL)
+and install GCC7 compilers from devtoolset-7
 ```shell
-yum install -y libgfortran-static libquadmath-static
+yum install -y centos-release-scl
+yum install -y devtoolset-7-gcc devtoolset-7-gcc-c++ devtoolset-7-gcc-gfortran
+```
+One needs to activate the use of devtoolset-7 before building by running 
+`scl enable devtoolset-7 bash`
+or to make it persistent when using bash
+```shell
+echo "source /opt/rh/devtoolset-7/enable" >> ~/.bashrc
 ```
 
 To configure we need CMake 3 available via the EPEL repository
