@@ -1,0 +1,11 @@
+{
+    // you should disable this in your user-settings
+    "telemetry.enableTelemetry": false,
+    "cmake.generator": "Ninja",
+    "cmake.ctest.parallelJobs": 1,
+    "cmake.buildDirectory": "${workspaceFolder}/.vscode/build-dir-link",
+    "cmake.configureArgs": ["-DBUILD_TESTING=ON","-DDEBUG=ON"],
+    "cmake.ctestArgs": ["-E Install"],
+    "cmake.configureOnOpen": false,
+    "window.zoomLevel": 1
+}

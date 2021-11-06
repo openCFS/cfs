@@ -10,3 +10,4 @@ build/
 .settings
 *.pyc
 Testing/
+.vscode
