@@ -12,5 +12,5 @@ file(REMOVE_RECURSE "@IPOPT_INSTALL@/share")
 # copy data from install dir to the target.
 # this is the point where the cfsdeps_precompiled stuff will come in
 # avoid copying to @CMAKE_CURRENT_BINARY_DIR@ directly due to rare permission issues on some runners
-file(COPY "@IPOPT_INSTALL@/include" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
-file(COPY "@IPOPT_INSTALL@/lib64" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64")
+file(COPY "@IPOPT_INSTALL@/include/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
+file(COPY "@IPOPT_INSTALL@/lib64/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64")
