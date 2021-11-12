@@ -180,7 +180,10 @@
       <!-- Flow -->
       <xsd:enumeration value="flow"/>
       <xsd:enumeration value="CFD"/>
-      <xsd:enumeration value="FluidMechPerturbedPDE"/>      
+      <xsd:enumeration value="FluidMechPerturbedPDE"/>   
+      
+      <!-- Smooth -->
+      <xsd:enumeration value="smooth"/>    
       
       <!-- ========================================================== -->
       <!--  Coupling Related Keywords                                 -->

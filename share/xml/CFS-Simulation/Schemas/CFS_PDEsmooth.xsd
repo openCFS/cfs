@@ -40,6 +40,8 @@
               <xsd:sequence>
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="nonLinId" type="xsd:token"
                     use="optional" default=""/>
@@ -71,7 +73,7 @@
                 <xsd:element name="dirichletFileInhom" type="DT_SmoothIdFile"/>
                 <xsd:element name="neumannInhom"   type="DT_SmoothIN"      />
                 <xsd:element name="load"           type="DT_SmoothLoad"    />
-                <xsd:element name="pressure"       type="DT_SmoothPressure"/>
+                <xsd:element name="pressure"       type="DT_BcInhomScalar"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -81,6 +83,12 @@
             minOccurs="0" maxOccurs="1"/>
 
         </xsd:sequence>
+
+        <xsd:attribute name="timeStepAlpha" use="optional" default="0.0" type="xsd:double">
+          <xsd:annotation>
+            <xsd:documentation>Allows to use and define alpha-time stepping method (HHT); extension of Newmark; here you define the alpha-value!</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
 
         <!-- Subtype of PDE -->
         <xsd:attribute name="subType" type="xsd:token" use="optional"
@@ -217,6 +225,8 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothDisplacement"/>
       <xsd:enumeration value="smoothVelocity"/>
+      <xsd:enumeration value="smoothAcceleration"/>
+      <xsd:enumeration value="smoothZeroStress"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -138,7 +138,8 @@ namespace CoupledField {
     //smoothing PDE
     SolutionTypeEnum.Add(SMOOTH_DISPLACEMENT, "smoothDisplacement");
     SolutionTypeEnum.Add(SMOOTH_VELOCITY, "smoothVelocity");
-    SolutionTypeEnum.Add(GRID_VELOCITY, "gridVelocity");
+    SolutionTypeEnum.Add(SMOOTH_ACCELERATION, "smoothAcceleration");
+    SolutionTypeEnum.Add(SMOOTH_ZERO_PRESSURE, "smoothZeroStress");
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
@@ -811,6 +812,7 @@ namespace CoupledField {
         break;
 
       case MECH_ACCELERATION:
+      case SMOOTH_ACCELERATION:
         return "m/s^2";
         break;
 
@@ -841,6 +843,7 @@ namespace CoupledField {
       case FLUIDMECH_STRESS:
       case FLUIDMECH_PRESSURE:
       case WATER_PRESSURE:
+      case SMOOTH_ZERO_PRESSURE:
         return "Pa";
         break;
 

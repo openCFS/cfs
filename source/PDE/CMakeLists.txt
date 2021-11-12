@@ -14,6 +14,7 @@ SET(PDE_SRCS
   MagneticPDE.cc
   DarwinPDE.cc
   MechPDE.cc
+  SmoothPDE.cc
   SinglePDE.cc
   StdPDE.cc
   AcousticPDE.cc

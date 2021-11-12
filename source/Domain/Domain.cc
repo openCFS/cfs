@@ -56,6 +56,7 @@
 #include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/DarwinPDE.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/SmoothPDE.hh"
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
 #include "PDE/ElecQuasiStaticPDE.hh"
@@ -301,6 +302,7 @@ void Domain::ReadGrid(const std::string & gridId,
   // Initialize non-conforming interfaces
   if (gridId == "default")
     actGrid->InitNcInterfacesFromXML();
+
 
   // check the grid on regularity
   bool regular = false;
@@ -813,6 +815,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
     else if (actPdeName == "LatticeBoltzmann") {
         ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
+    else if (actPdeName == "smooth") {
+        ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else
     {
