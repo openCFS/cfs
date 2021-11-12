@@ -337,12 +337,22 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
 	    FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64")
       FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
     ENDIF()
-   
+
+    file(GLOB_RECURSE files_to_zip RELATIVE "${TMP_DIR}" "${TMP_DIR}/*")
+    # message(STATUS "found ${files_to_zip}")
+    string(REPLACE ";" "\n" files_to_zip "${files_to_zip}")
+    # message(STATUS "packing ${files_to_zip}")
+    file(WRITE "${TMP_DIR}/files_to_zip.txt" ${files_to_zip})
     # create the zip
     EXECUTE_PROCESS(
-      COMMAND zip -g -r ${ZIP_FILE} "."
+      COMMAND ${CMAKE_COMMAND} -E tar cvf ${ZIP_FILE} --files-from=${TMP_DIR}/files_to_zip.txt --format=zip
       WORKING_DIRECTORY "${TMP_DIR}"
-      RESULT_VARIABLE rv)
+      RESULT_VARIABLE rv
+      OUTPUT_VARIABLE ov
+      ERROR_VARIABLE ev
+    )
+    # remove the file again
+    file(REMOVE "${TMP_DIR}/files_to_zip.txt")
       
     # copy data from TMP_DIR install dir to the target where cfs needs it and where the zip would be extracted.
     # Install only the contents of TMP_DIR since trying to copy . too leads to permission error
@@ -355,17 +365,32 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     ENDFOREACH()
   ELSE()
     # Manifests exists -> zip files listed therein
+    file(WRITE "${TMP_DIR}/files_to_zip.txt" "")
     FOREACH(manifest ${MANIFESTS})
-      EXECUTE_PROCESS(
-        COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
-        COMMAND zip -@ -g ${ZIP_FILE}
-        # OUTPUT_QUIET
-        RESULT_VARIABLE rv )
+      file(READ ${manifest} manifest_string)
+      # remove the leading path, i.e. make relative
+      string(REPLACE "${CMAKE_CURRENT_BINARY_DIR}/" "" manifest_string "${manifest_string}")
+      # change to semicolon-seperated list
+      string(REPLACE "\n" ";" manifest_string "${manifest_string}")
+      foreach(file ${manifest_string})
+        #message("file=${file}")
+        file(APPEND "${TMP_DIR}/files_to_zip.txt" "${file}\n")
+        #message("files_to_zip=${files_to_zip}")
+      endforeach()
     ENDFOREACH()
-    
+    #message("files_to_zip=${files_to_zip}")
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND} -E tar "cf" ${ZIP_FILE} --files-from=${TMP_DIR}/files_to_zip.txt --format=zip
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      # OUTPUT_QUIET
+      RESULT_VARIABLE rv
+      OUTPUT_VARIABLE ov
+      ERROR_VARIABLE ev
+    )
   ENDIF()
+  # ckeck if it went well
   if(NOT "${rv}" STREQUAL "0")
-    MESSAGE(WARNING "Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
+    MESSAGE(WARNING "Could not create ${ZIP_NAME} at ${TARGET_DIR}:\nout=${ov}\nerr=${ev}")
   endif()
  
 ENDMACRO()
