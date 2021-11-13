@@ -40,14 +40,15 @@ endif()
 # Find LaTeX.
 find_package(LATEX)
 if(NOT LATEX_COMPILER)
-  set(MSG "LaTex could not be found! Note that you cannot build")
-  set(MSG "${MSG} documentation!")
-  message(WARNING "${MSG}")
+  message(STATUS "LaTex could not be found! Note that you cannot build documentation!")
 endif()
 
 # Find Pygmentize syntax highlighter.
 find_program(PYGMENTIZE_EXECUTABLE NAMES pygmentize.cmd pygmentize)
 mark_as_advanced(PYGMENTIZE_EXECUTABLE)
+if(PYGMENTIZE_EXECUTABLE MATCHES "NOTFOUND")
+  message(STATUS "command pygmentize not found, make doc might fail!")
+endif()
 
 # check if we have relevant tools installed
 find_program(PATCH_EXECUTABLE patch)

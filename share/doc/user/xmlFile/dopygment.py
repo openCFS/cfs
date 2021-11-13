@@ -65,7 +65,7 @@ def codeReplaceHtml( txt ):
 
   # substitute special characters which the tex-subsystem
   # would replace otherwise
-  for k, s in htmlSubst.iteritems():
+  for k, s in htmlSubst.items():
     result = result.replace(k,  s)
   ret =""
   
@@ -125,7 +125,7 @@ elif parserType == "html" :
   callback = codeReplaceHtml
   formatFile = "style.css"
 else:
-  print "Valid options for 'format' are 'tex' and 'html' "
+  print("Valid options for 'format' are 'tex' and 'html' ")
 
 # load file and omit all comments
 f = open(fileName)

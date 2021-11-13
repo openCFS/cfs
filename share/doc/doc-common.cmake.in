@@ -8,6 +8,10 @@ SET(PYG "@PYGMENTIZE_EXECUTABLE@")
 SET(STYLE tango)
 SET(WIN32 "@WIN32@")
 
+if(PYG MATCHES "NOTFOUND")
+  message(ERROR "command pygmentize not found!")
+endif()
+
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(LTX_AUX_DIR "${CFS_BINARY_DIR}/share/doc/auxilliaries/LaTeX")
@@ -88,7 +92,7 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
 #  MESSAGE(STATUS "Cleaning up LaTeX files in ${DIR}...")
 
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape -interaction=nonstopmode "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
@@ -96,15 +100,15 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape -interaction=nonstopmode "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape -interaction=nonstopmode "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape -interaction=nonstopmode "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
@@ -112,7 +116,7 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape -interaction=nonstopmode "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
     
