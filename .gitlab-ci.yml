@@ -280,7 +280,7 @@ centos:7:
   # make sure the Testsuite submodule is OK
   - git status # debug
   - git diff -- Testsuite # debug
-  - git diff --exit-code -- Testsuite || git submodule update --force --checkout --depth 1 -- Testsuite
+  - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
   - git status # debug
   # report disk space
   - df -h # disk space debug
@@ -292,6 +292,11 @@ centos:7:
   # show the contents of the cfsdeps cache
   - ls -l cfsdeps/cache/precompiled || ls #debug
   - ls -l cfsdeps/cache/sources || ls # debug
+
+# if testsuite_ignore is there, restore it
+.restore_Testsuite_ignore: &restore_Testsuite_ignore
+  - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
+  - git status # debug
 
 .build_rules: &build_rules
   rules:
@@ -331,6 +336,7 @@ centos:7:
     - make cfsdeps
   after_script:
     - ls -l build/cfsdeps/cache/precompiled || ls # debug
+    - *restore_Testsuite_ignore
   needs: []
   <<: *cache_cfsdeps
   <<: *build_rules
@@ -389,6 +395,8 @@ cfsdeps:gcc10:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # rename CMakeCache to avoid conflicts
     - cp CMakeCache.txt CMakeCache_build-stage.txt
+    # restore testsuite
+    - *restore_Testsuite_ignore
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
     - rm -rf _CPack_Packages vtk include source bin lib64
     - df -h # debug
