@@ -128,6 +128,16 @@ skip-build:
   script:
     - /commit/message/contained/skip-build
 
+.require-rebuild-changes: &require-rebuild-changes
+  # changes that require the c++ builds to run
+  # works like only/except changes
+  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
+  changes:
+    - "**/CMakeLists.txt"
+    - "**/*.cmake"
+    - "**/*.cmake.in"
+    - source/**/*.{hh,cc,h,c}
+
 mr-with-code-changes:
   stage: check
   tags:
@@ -139,15 +149,11 @@ mr-with-code-changes:
   rules:
     # this job should match and ensure we build
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - "CMakeLists.txt"
-        - "*.cmake"
-        - "*.cmake.in"
-        - source/**/*.{hh,cc,h,c}
+      <<: *require-rebuild-changes
       when: always
       allow_failure: true
   script:
-    - /merge/request/ and /the/code/has/canged
+    - /merge/request/ and /the/code/has/changed
 
 #######################################################################
 # PLATFORM STAGE
@@ -168,14 +174,14 @@ mr-with-code-changes:
       when: on_success
     - if: $CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_IID # this should match always, setting the job to manual
       when: manual
-      allow_failure: true # maybe we need this to not stop the pipeline if the manual job is not triggerd
+      allow_failure: true # maybe we need this to not stop the pipeline if the manual job is not triggered
   # disable artifacts and cache
   artifacts: {}
   cache: {}
   # switch off cloning the Testsuite submodule
   variables:
     GIT_SUBMODULE_STRATEGY: none
-  # install dependecies in the docker image
+  # install dependencies in the docker image
   before_script:
     # ensure build does not exist
     - rm -rf build
@@ -269,7 +275,7 @@ centos:7:
 # use the ref-name, e.g. `master` as key -> same for successive builds
 # it is stored as a zip archive and extracted before each stage - this takes time,
 # thus we combine the build and configure step
-# the key is used to define which chache is used for which job.
+# the key is used to define which cache is used for which job.
 .cache_cfsdeps: &cache_cfsdeps
   cache:
     key: ${CI_COMMIT_REF_NAME}
@@ -308,11 +314,7 @@ centos:7:
       allow_failure: true
     # this job should match and ensure we build
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - "CMakeLists.txt"
-        - "*.cmake"
-        - "*.cmake.in"
-        - source/**/*.{hh,cc,h,c}
+      <<: *require-rebuild-changes
       when: on_success
       allow_failure: false
     # set build jobs to manual if we do not have changes in source files
