@@ -395,6 +395,8 @@ cfsdeps:gcc10:
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
     - git status # debug
+    # restore testsuite
+    - *restore_Testsuite_ignore
     - ls -la # debug
     - df -h # debug
     - du -h --max-depth=1 . # debug
@@ -403,8 +405,6 @@ cfsdeps:gcc10:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # rename CMakeCache to avoid conflicts
     - cp CMakeCache.txt CMakeCache_build-stage.txt
-    # restore testsuite
-    - *restore_Testsuite_ignore
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
     - rm -rf _CPack_Packages vtk include source bin lib64
     - df -h # debug
@@ -414,7 +414,6 @@ cfsdeps:gcc10:
       - build/CMakeCache_build-stage.txt
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 1.2 days
-  dependencies: []
   <<: *cache_cfsdeps
 
 .except-skip-gcc: &except-skip-gcc
