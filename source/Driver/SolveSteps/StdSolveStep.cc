@@ -1376,6 +1376,7 @@ namespace CoupledField {
 
   void StdSolveStep::StepHarmonicNonLin() {
 
+    LOG_TRACE(stdsolvestep) << "LineSearch used: " << lineSearch_ << std::endl;
     // Set some variables
     UInt N = solStrat_->GetNumHarmN();
     UInt M = solStrat_->GetNumHarmM();
@@ -2036,24 +2037,23 @@ namespace CoupledField {
     h = solStrat_->GetNumHarmN();
 
     const UInt nrEtas = 4;
-    const Double eta[nrEtas] = {0.1, 0.5, 1, 2}; //, 0.5, 0.25, 0.125, 0.1};
+    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1}; //, 0.5, 0.25, 0.125, 0.1};
 
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
-    //ToDo : Insert switch here for advLinesearch here
-    bool isMHAdvLineSearch = true;
-
     for( UInt i=0; i<nrEtas; i++) {
 
       LOG_DBG(stdsolvestep) <<" LineSearchMultHarm: Testing eta = " << eta[i];
+
 
       if(actSol.GetEntryType() == BaseMatrix::DOUBLE){
         EXCEPTION("StdSolveStep::LineSearchMultHarm Solution vector is real valued in multiharmonic analysis!");
       }
 
-      if(isMHAdvLineSearch){ //this is the adv linesearch - this doesnt improve the speed but the quality of the result
+      if(lineSearch_ == "multiharmonicIncreasing"){
+        //this is the adv linesearch - this doesnt improve the speed but the quality of the result
         // add only the considered harmonics while linesearching
         for(UInt x=0; x<=consideredH_;x++){
           if(x==0){
@@ -2127,7 +2127,7 @@ namespace CoupledField {
 //    std::cout << eta[3] << " - " << etaError[3] << std::endl;
 
     // Set new solution for optimal eta
-    if(isMHAdvLineSearch){
+    if(lineSearch_ == "multiharmonicIncreasing"){
       if(residualL2NormOpt > lastError_){
         //if error is bigger than error from last time,
         // increase the considered harmonics

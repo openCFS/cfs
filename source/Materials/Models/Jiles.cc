@@ -16,8 +16,13 @@ namespace CoupledField {
 
 DEFINE_LOG(ja, "Jiles")
 
-Jiles::Jiles(): Model() {
-}
+Jiles::Jiles() : Model(),
+numElems_{0}, MaxE_{0},  idx_{0},
+Ps_{0}, a_{0}, alpha_{0}, k_{0},c_{0},
+mp_{nullptr}, isFirstTimeFinished_{0},
+timeStep_{0}, globalIter_{0},
+isMH_{false}
+{}
 
 Jiles::~Jiles() {
 }
@@ -151,8 +156,8 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
     //Set first time for element to false
     isFirstTime_[idx_] = 0;
 
+    // if last idx_ is reached, do a double check control
     if (idx_==numElems_-1){
-
       // Double checking if each element is initalized once. eg each element has its index.
       for(UInt i = 0; i < isFirstTime_.GetSize();i++){
         if(isFirstTime_[i]){
@@ -171,7 +176,8 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
 //  }
 
 
-  //if timestep == 0 -> new iteration, reset the values
+  //if timestep == 0 -> new iteration, reset the values, only for multiharmonic
+
   if(timeStep_==0){
     E0_[idx_]=E0it_[idx_];
     P0_[idx_]=P0it_[idx_];
@@ -184,9 +190,14 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
   Double epsilon, epsilon0;
   epsilon0 = 8.854187e-12;
 
+//  if(E == 0 ){
+//    epsilon = 4.028353e-07;
+//  } else{
+//    epsilon = epsilon0 + P / E;
+//  }
   epsilon = epsilon0 + P / E;
 
-  if(isinf(epsilon) || isnan(epsilon) ){
+  if(std::isinf(epsilon) || std::isnan(epsilon) ){
     std::cout << "E0: "<< E0_[idx_] << std::endl;
     std::cout << "E1: "<< E1_[idx_]<< std::endl;
     std::cout << "dE: " <<  E1_[idx_] - E0_[idx_] << std::endl;
@@ -269,16 +280,17 @@ double Jiles::Evaluate(Double E, Integer idx) {
 
 void Jiles::saveValues(bool InstantSave){
 
+  //varHandle_ is different for transient/mh analysis
   if((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)) || InstantSave){
     Pa0_=Pa1_;
     Pi0_=Pi1_;
     P0_=P1_;
     E0_=E1_;
 
-//    Pa1_.Init(0);
-//    Pi1_.Init(0);
-//    P1_.Init(0);
-//    E1_.Init(0);
+    Pa1_.Init(0);
+    Pi1_.Init(0);
+    P1_.Init(0);
+    E1_.Init(0);
 
     timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
   }

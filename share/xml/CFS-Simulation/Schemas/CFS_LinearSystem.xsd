@@ -224,6 +224,16 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="none"/>
           <xsd:enumeration value="minEnergy"/>
+          <xsd:enumeration value="multiharmonicIncreasing">
+            <xsd:annotation>
+              <xsd:documentation>
+                Advanced linesearch: Improves quality, not neccessary speed. Only available for multiharmonic
+                Analysis.
+                
+                Linesearch first consideres only first harmonics, and will increase considered harmonics if error doest decrease.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
