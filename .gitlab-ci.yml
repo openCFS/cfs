@@ -108,6 +108,7 @@ runner-debug:
     - echo $CI_COMMIT_BRANCH
     - echo $CI_COMMIT_REF_NAME
     - echo $CI_PIPELINE_SOURCE
+    - echo $CI_PIPELINE_IID
   when: manual
   allow_failure: true
   cache: {} # disable
@@ -372,6 +373,16 @@ cfsdeps:gcc10:
 #######################################################################
 # Here we define the build jobs, if one fails we do not need to test
 
+# set environment for URL on CDash
+# see https://docs.gitlab.com/ee/ci/environments/index.html#set-dynamic-environment-urls-after-a-job-finishes
+.save_cdash_buildid: &save_cdash_buildid
+  - ls -R Testing # debug
+  - cat Testing/*/Done.xml # debug
+  - grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml # debug
+  - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
+  - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
+  - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
+
 .default_build_job: &default_build_job
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
@@ -408,12 +419,14 @@ cfsdeps:gcc10:
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
     - rm -rf _CPack_Packages vtk include source bin lib64
     - df -h # debug
+    # save buildid for environment
+    - *save_cdash_buildid
   artifacts:
     paths: # just an example
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 1.2 days
+    expire_in: 1.2 days            
   <<: *cache_cfsdeps
 
 .except-skip-gcc: &except-skip-gcc
@@ -607,7 +620,7 @@ linux:gcc10:ninja:
 
 # test for cmake or install it
 .cmake_test_or_install: &cmake_test_or_install
-  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.10/cmake-3.10.3-Linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.10.3-Linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
+  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.15/cmake-3.15.7-Linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.15.7-Linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
@@ -620,6 +633,8 @@ linux:gcc10:ninja:
     - *cmake_test_or_install
     # CDash submit
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
+    # save buidid
+    - *save_cdash_buildid
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
@@ -644,6 +659,7 @@ linux:gcc10:ninja:
     key: cmake
     paths:
       - build/cmake
+  artifacts: {}
 
 # this is the config that has to pass (excludes PYTHON since they do not need to be tested for every GCCx)
 .test_stable: &test_stable
@@ -651,7 +667,7 @@ linux:gcc10:ninja:
   # disable also if 'skip-stable-tests' is contained in commit message
   script:
     # configure
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
     # start the testing
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
@@ -663,7 +679,7 @@ linux:gcc10:ninja:
   <<: *ctest_default
   # disable also if 'skip-testsuite-tests' is contained in commit message
   script:
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -677,7 +693,7 @@ stable:gcc5:linux:
   image: opencfs/ubuntu20.04
   stage: test
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC5 / stable"
+    BUILD_NAME: GCC5 / stable
   retry: 1
   <<: *test_stable
   needs:
@@ -688,7 +704,7 @@ testsuite:gcc5:linux:
     - linux
   stage: test
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC5 / all_multicore"
+    BUILD_NAME: GCC5 / all_multicore
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
@@ -700,7 +716,7 @@ stable:gcc7min:linux:
   image: opencfs/ubuntu20.04
   stage: test
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 minimal / stable"
+    BUILD_NAME: GCC7 minimal / stable
   retry: 1
   <<: *test_stable
   needs:
@@ -711,7 +727,7 @@ testsuite:gcc7min:linux:
     - linux
   stage: test
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 minimal / all_multicore"
+    BUILD_NAME: GCC7 minimal / all_multicore
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
@@ -726,7 +742,7 @@ stable:gcc7max:linux:
     - !reference [.max_never_external_rule, rules]
     - when: on_success
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 maximal / stable"
+    BUILD_NAME: GCC7 maximal / stable
   <<: *test_stable
   needs:
     - linux:gcc7max
@@ -741,7 +757,7 @@ testsuite:gcc7max:linux:
     - when: on_success
       allow_failure: true # job level definition is ignored when rules are used
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 maximal / all_multicore"
+    BUILD_NAME: GCC7 maximal / all_multicore
   <<: *test_all_multicore
   needs:
     - linux:gcc7max
@@ -761,7 +777,7 @@ debug:gcc7max:linux:
     matrix:
       - TYPE: [Solver, Singlefield, Coupledfield, Optimization, CFSdat]
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC7 maximal debug / all_multicore / $TYPE"
+    BUILD_NAME: GCC7 maximal debug / all_multicore / $TYPE
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_TIMEOUT=1500"
   <<: *test_all_multicore
   needs:
@@ -773,7 +789,7 @@ stable:gcc10:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / GCC10 / stable"
+    BUILD_NAME: GCC10 / stable
   retry: 1
   <<: *test_stable
   needs:
@@ -785,7 +801,7 @@ testsuite:gcc10:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: GCC10
+    BUILD_NAME: GCC10 / all_multicore
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
@@ -797,7 +813,7 @@ stable:intel:linux:
   image: opencfs/ubuntu20.04
   stage: test
   variables:
-    BUILD_NAME: "$CI_COMMIT_REF_SLUG / Intel / stable"
+    BUILD_NAME: Intel2021 / stable
   <<: *test_stable
   except:
     variables:
@@ -811,7 +827,7 @@ testsuite:intel:linux:
     - linux
   stage: test
   variables:
-    BUILD_NAME: Intel
+    BUILD_NAME: Intel2021 / all_multicore
   <<: *test_all_multicore
   allow_failure: true
   except:
@@ -846,6 +862,7 @@ python:stable:
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
+  artifacts: {}
 
 python:all:
   extends: python:stable
@@ -857,6 +874,23 @@ python:all:
 #######################################################################
 # DEPLOY STAGES
 #######################################################################
+
+cdash:report:
+  stage: deploy
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+  cache: {}
+  after_script: []
+  before_script: []
+  script:
+    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
+  environment:
+    name: CDash/$CI_COMMIT_REF_SLUG
+    url: http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
+    auto_stop_in: 1 week
+  dependencies: [] 
 
 .deploy_rules: &deploy_rules
   only:
