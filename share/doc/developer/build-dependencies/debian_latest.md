@@ -7,27 +7,25 @@ apt-get update
 apt-get install -y gcc g++ gfortran cmake patch m4
 ```
 
-Intel MKL can be installed from [Intel's APT repos](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo).
-First make sure we have the dependecies for the instructions
+Intel MKL can be installed via the official [intel oenAPI repository](https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/apt.html).
+
+First make sure we have the dependencies for the instructions
 ```shell
 apt-get install -y wget gnupg apt-transport-https ca-certificates
 ```
-
-Then get the GPG-key and add it
+Then get the PGP-key and add it
 ```shell
-wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
 ```
 Add the repo and update
 ```shell
-sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
 apt-get update
 ```
-
-Determine the latest version of the virtual package `intel-mkl-64bit` and install it
+Install the latest MKL version
 ```shell
-LATEST_MKL=$(apt-cache search intel-mkl-64bit | tail -n 1 | awk '{print $1}')
-apt-get install -y $LATEST_MKL
+apt-get install -y intel-oneapi-mkl-devel
 ```
 
 Additionally, every developer should have git installed
