@@ -460,8 +460,9 @@ namespace CoupledField {
     bool effectiveMatrixUpdated = false;
     
     bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 ); 
+    bool storeInitialIterGlmVec = couplingIter_ == 0;
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
-      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor,storeInitialIterGlmVec);
     }
     
     for(UInt i=0;i<numStages;i++){
@@ -554,18 +555,21 @@ namespace CoupledField {
         
       }
       
-      //now compute the effective right hand side
+      // TODO: check if this can be skipped after the first sub iteration in order to save time
+//      if( PDE_.IsIterCoupled() == false || couplingIter_ == 0) {
+//        //now compute the effective right hand side
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
         if(matIt->second < 0)
           continue;
-        
-        
+
+
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
           FeFctIdType fctId = fncIt->second->GetFctId();
           fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fctId));
         }
         algsys_->UpdateRHS(matIt->first,stageRHS_,effectiveMatrixUpdated);
       }
+//      }
       
       // Check if the AMG-framework is used (if so, we have
       // to gather some geometry information at this point)
@@ -587,6 +591,37 @@ namespace CoupledField {
         algsys_->SetupSolver();
       }
       
+      // write out the current glmVec for debugging purposes
+//      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
+//        fncIt->second->GetTimeScheme()->ExportGLM(fncIt->second->GetPDE()->GetName(),fncIt->second->GetFctId(),this->actStep_,this->couplingIter_);
+//      }
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)){
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
+          LOG_DBG(stdsolvestep) <<"PDE name: " << fncIt->second->GetPDE()->GetName() << std::endl;
+          LOG_DBG(stdsolvestep) <<"feFctId: " << fncIt->second->GetFctId() << std::endl;
+          LOG_DBG(stdsolvestep) <<"actStep: " << this->actStep_ << std::endl;
+          LOG_DBG(stdsolvestep) <<"couplingIter: " << this->couplingIter_ << std::endl;
+          LOG_DBG(stdsolvestep) <<"GLM vector: " << std::endl;
+
+          for(UInt i=0;i<fncIt->second->GetTimeScheme()->GetSizeGLMVector();i++){
+            SingleVector* glmVector = fncIt->second->GetTimeScheme()->GetInitialIterGLMVector(i);
+            LOG_DBG(stdsolvestep) << "Index " << i << std::endl;
+            LOG_DBG(stdsolvestep) << glmVector->ToString(TS_NONZEROS,"\n") << std::endl;
+            LOG_DBG(stdsolvestep) << "Finish GLM Vector" << std::endl;
+          }
+          LOG_DBG(stdsolvestep) << std::endl;
+
+          LOG_DBG(stdsolvestep) << "This is the initial GLM Vector of this time step" << std::endl;
+          for(UInt i=0;i<fncIt->second->GetTimeScheme()->GetSizeGLMVector();i++){
+            SingleVector* initialIterGlmVector = fncIt->second->GetTimeScheme()->GetInitialIterGLMVector(i);
+            LOG_DBG(stdsolvestep) << "Index " << i << std::endl;
+            LOG_DBG(stdsolvestep) << initialIterGlmVector->ToString(TS_NONZEROS,"\n") << std::endl;
+            LOG_DBG(stdsolvestep) << "Finish initial GLM Vector" << std::endl;
+          }
+          LOG_DBG(stdsolvestep) << std::endl;
+        }
+      }
+
       algsys_->Solve();
       
      // Since the entries of solVec_ are pointers to the SingleVector

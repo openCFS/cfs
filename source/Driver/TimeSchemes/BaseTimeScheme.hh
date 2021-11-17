@@ -45,7 +45,7 @@ class BaseTimeScheme{
      * \param[in] updatePredictor  Flag, if predictor values get re-calculated. In case of
      *                             nonlinear solution, this has to be set to false
      */
-    virtual void BeginStep(bool updatePredictor = true)=0;
+    virtual void BeginStep(bool updatePredictor = true, bool storeInitialIterGlmVector=false)=0;
 
     /*!
      *   Computes the effective RHS based on the GLM vector and preceeding stage solutions
@@ -61,6 +61,9 @@ class BaseTimeScheme{
     
     /// Update function called at the end of the solvestep
     virtual void FinishStep()=0;
+
+    // Update function that processes the glmVector in the case of a GLM-scheme
+    virtual void ProcessGlmVec(bool converged=false)=0;
 
     /*! Change the formulation of the scheme e.g. from effective mass to effective stiffness
      *  \param[in] order The order of time derivative of the systems solution
@@ -82,6 +85,15 @@ class BaseTimeScheme{
 
     /// Obtain reference to current stage vector to avoid copying of elements
     virtual SingleVector * GetStageVector(UInt stage)=0;
+
+    //! Obtain reference to current GLM vector to avoid copying of elements
+    virtual SingleVector* GetGLMVector(UInt numSol)=0;
+
+    //! Obtain reference to current GLM vector to avoid copying of elements
+    virtual SingleVector* GetInitialIterGLMVector(UInt numSol)=0;
+
+    //! Obtain the size of the GLM vector
+    virtual UInt GetSizeGLMVector()=0;
 
     /*! Transforms a given boundary condition value according to the given scheme
      *   \param[out] transVal the output value
@@ -118,6 +130,8 @@ class BaseTimeScheme{
     virtual bool isIncremental()=0;
 
     virtual void forceIncremental()=0;
+
+    virtual void ExportGLM(string pdeName, int feFctId, int curStep, int coupleIter)=0;
     
   protected:
 

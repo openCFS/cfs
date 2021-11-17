@@ -59,7 +59,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual void Init(SingleVector* solVec,Double dt);
     
     //! \copydoc BaseTimeScheme::BeginStep(bool)
-    virtual void BeginStep(bool updatePredictor=true);
+    virtual void BeginStep(bool updatePredictor=true, bool storeInitialIterGlmVector=false);
 
     //This function is pretty messy right now and we need to reconsider
     // mainly because of the many if clauses to realize a optional predictor scheme...
@@ -71,6 +71,10 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     /// Update the GLM Vectors according to new solution
     virtual void FinishStep( );
+
+    // In the case that we did not converge, we have to reset the glmVec (and the last solution stored to the feFunction in order to start with the correct values in the next sub-iteration
+    // If the iteration did converge, we simply free some memory by deleting the old glmVec
+    virtual void ProcessGlmVec(bool converged=false);
 
     //! \copydoc BaseTimeScheme::SetSolutionTimeDerivOrder(UInt,Double)
     virtual void SetSolutionTimeDerivOrder(UInt order,Double timeStepSize){
@@ -87,6 +91,21 @@ class TimeSchemeGLM : public BaseTimeScheme{
     SingleVector * GetStageVector(UInt stage){
       assert(stage < curScheme_->numStages_);
       return stageVector_[stage];
+    }
+
+    //! Obtain reference to current GLM vector to avoid copying of elements
+    SingleVector* GetGLMVector(UInt numSol){
+      return glmVector_[numSol];
+    }
+
+    //! Obtain reference to initial GLM vector to avoid copying of elements
+    SingleVector*  GetInitialIterGLMVector(UInt numSol){
+      return initialIterGlmVector_[numSol];
+    }
+
+    //! Obtain the size of the GLM vector
+    UInt GetSizeGLMVector(){
+      return curScheme_->sizeGLMVec_;
     }
 
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
@@ -136,6 +155,12 @@ class TimeSchemeGLM : public BaseTimeScheme{
     //!in combination with the GLM scheme used namely the parameters numOldSol_ numsolDerivs_ etc.
     StdVector< SingleVector* > glmVector_;
 
+    // This is just a copy of the initial glmVector from the sub-iteration which is needed for the transition between iterations
+    // More detailed description: The finishStep function overwrites the feFunction with the current (usually not converged) solution in order to calculate the norms.
+    // In the next time step, this solution is used for the time scheme, although e.g. a standard linear iteration should use the same vectors/matrices as before and only update the RHS from a linear form.
+    // In order to avoid this, we store the old glmVec seperately and "undo" the last part of finishStep by resetting the glmVec
+    StdVector< SingleVector* > initialIterGlmVector_;
+
     ///Stores for each stage, for each time derivative the stage values
     StdVector< SingleVector* > stageVector_;
 
@@ -157,13 +182,22 @@ class TimeSchemeGLM : public BaseTimeScheme{
   private:
 
     ///just export the scheme to a file
-    void ExportGLM(){
-      std::fstream myfile("glmExport.txt",  std::ios::out);
+    void ExportGLM(string pdeName, int feFctId, int curStep, int coupleIter){
+      std::string fname = "glmExport_" + pdeName + "_feFctId" + std::to_string(feFctId) +  "_step" + std::to_string(curStep) + "_coupleIter" + std::to_string(coupleIter) + ".txt";
+      std::fstream myfile(fname,  std::ios::out);
       myfile << "This is the GLM Vector" << std::endl;
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         myfile << "Index " << i << std::endl;
         myfile << glmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
         myfile << "Finish GLM Vector" << std::endl;
+      }
+      myfile << std::endl;
+
+      myfile << "This is the initial GLM Vector of this time step" << std::endl;
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        myfile << "Index " << i << std::endl;
+        myfile << initialIterGlmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
+        myfile << "Finish initial GLM Vector" << std::endl;
       }
       myfile << std::endl;
       myfile.close();

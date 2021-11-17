@@ -66,6 +66,13 @@ namespace CoupledField{
     }
     glmVector_.Clear();
 
+    for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
+       if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())
+         if( i < initialIterGlmVector_.GetSize())
+           delete initialIterGlmVector_[i];
+    }
+    initialIterGlmVector_.Clear();
+
     for(UInt i=1;i<curScheme_->numStages_;i++){
       if((Integer)i!=avoidUpdateIdx_){
         if( i < stageVector_.GetSize())
@@ -111,6 +118,14 @@ namespace CoupledField{
       glmVector_[i]->Init();
     }
 
+    // now we do the same for the initial copy of the glmVec
+    initialIterGlmVector_.Resize(curScheme_->sizeGLMVec_);
+    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+      initialIterGlmVector_[i] = new Vector<Double>();
+      initialIterGlmVector_[i]->Resize(solVec->GetSize());
+      initialIterGlmVector_[i]->Init();
+    }
+
     //now we go for the stage vector
     //if the scheme has the lastStageIsSolution_ flag set,
     //the corresponding stage vector points directly to the
@@ -151,7 +166,7 @@ namespace CoupledField{
     }
   }
   
-  void TimeSchemeGLM::BeginStep( bool updatePredictor ) {
+  void TimeSchemeGLM::BeginStep( bool updatePredictor, bool storeInitialIterGlmVector ) {
     //update for old solutions
     if(curScheme_->usePredictors_){
       if( updatePredictor ) {
@@ -159,6 +174,31 @@ namespace CoupledField{
           predictors_[i]->Init();
           predictorCalculated_[i] = false;
         }
+      }
+    }
+
+    if (storeInitialIterGlmVector) {
+      // if we have the first iteration we store a copy of the initial glmVec for this iteration in order to be able to reset it later
+      initialIterGlmVector_.Resize(curScheme_->sizeGLMVec_);
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+
+        StdVector< SingleVector* > tmpGLM;
+        tmpGLM.Resize(curScheme_->sizeGLMVec_);
+        for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+          tmpGLM[i] = new Vector<Double>();
+          tmpGLM[i]->Resize(glmVector_[i]->GetSize());
+          tmpGLM[i]->Init();
+        }
+        for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+          SingleVector * curSVec = glmVector_[i];
+          tmpGLM[i]->Add(1,*curSVec);
+          curSVec = NULL;
+          initialIterGlmVector_[i]->operator =((*tmpGLM[i]));
+          //free memory
+          delete tmpGLM[i];
+        }
+        tmpGLM.Clear();
+        //free the memory
       }
     }
   }
@@ -286,7 +326,6 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::FinishStep(){
-
     //just hack for flow and BDF2
     //bool usePredictorsOK = true;
     //if (curType_ == GLMScheme::BDF2 && nLinType_ == INCREMENTAL)
@@ -355,6 +394,15 @@ namespace CoupledField{
       tmpGLM.Clear();
       //free the memory
 
+    }
+  }
+
+  void TimeSchemeGLM::ProcessGlmVec(bool converged){
+    if (!converged) {
+      // we did not converge and have to reset the glmVec
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        glmVector_[i]->operator =((*initialIterGlmVector_[i]));
+      }
     }
   }
 
