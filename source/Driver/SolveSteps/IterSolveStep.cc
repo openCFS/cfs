@@ -9,6 +9,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 namespace CoupledField
 {
 
@@ -360,6 +361,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // for mechPDE if only the norm shall converge, but no geometry change shall be executed
     justNorm_ = false;
     
+
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
     solutionMap_[MAG_FORCE_MAXWELL_DENSITY] = MAG_FORCE_MAXWELL;
@@ -862,6 +864,15 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               << std::endl;
 
           //std::cout << "Quantity " << quantityName << " :" << norm << std::endl;
+        }
+      }
+      // reset the glmVec to the initial copy if we did not converge
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+        std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions;
+        feFunctions = rPDE_.PDEs_[i]->GetFeFunctions();
+        std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+        for(fncIt = feFunctions.begin();fncIt != feFunctions.end(); ++fncIt){
+          fncIt->second->GetTimeScheme()->ProcessGlmVec(normsReached);
         }
       }
       iter++;
