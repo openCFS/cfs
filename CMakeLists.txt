@@ -15,6 +15,11 @@ endif(COMMAND CMAKE_POLICY)
 # is likely when the USE_* option is set, e.g. in .cfs_platform_defaults.cmake
 # then the variable is preused before option() - better set USE_*_DEFAULT!
 
+# output some information if we are on a CI server
+if(DEFINED ENV{CI_SERVER})
+  message("GitLab CI pipeline: $ENV{CI_PIPELINE_URL}")
+  message("GitLab CI job: $ENV{CI_JOB_URL}")
+endif()
 
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
