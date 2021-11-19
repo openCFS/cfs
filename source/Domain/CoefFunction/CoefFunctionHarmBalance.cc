@@ -203,8 +203,7 @@ template<class T>
                 actMat->GetScalar(ParameterMap["k"], ELEC_K_JILES, Global::REAL );
                 actMat->GetScalar(ParameterMap["c"], ELEC_C_JILES, Global::REAL );
                 ParameterMap["isMH"] = 1.0;
-
-                matModelCoef_->InitModel( ParameterMap, ptGrid_->GetNumElems(iRegion));
+                matModelCoef_->InitModel( ParameterMap, actSDList->GetSize());
               }
 
               regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncModel(matModelCoef_);

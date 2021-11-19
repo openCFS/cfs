@@ -450,7 +450,7 @@ namespace CoupledField {
 
               ParameterMap["isMH"]=0;
 
-              matModelCoef_->InitModel( ParameterMap, ptGrid_->GetNumElems(iRegion));
+              matModelCoef_->InitModel( ParameterMap,actSDList->GetSize());
               epsilonNL = actSDMat->GetScalCoefFncModel( matModelCoef_ );
             }else{
               PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
