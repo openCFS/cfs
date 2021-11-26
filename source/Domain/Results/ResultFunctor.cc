@@ -26,6 +26,7 @@ template<class TYPE> FieldCoefFunctor<TYPE>::~FieldCoefFunctor() {
 template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseResult> res )
 {
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
+  bool updatedGeo = true; //TODO: let the PDE set this flag
   // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
   if(res->GetResultInfo()->fromOptimization)
   {
@@ -65,7 +66,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       const Elem * el = it.GetElem();
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
-      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updatedGeo);
       lpm.Set(lp, esm, 0.0);
       this->GetVector(tempField, lpm );
       // loop over dofs
@@ -86,14 +87,14 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         UInt node = it.GetNode();
 
-        it.GetGrid()->GetNodeCoordinate(coord, node, true );
+        it.GetGrid()->GetNodeCoordinate(coord, node, updatedGeo );
         
         globCoords.Push_back(coord);
       }
       StdVector<shared_ptr<EntityList> > lists(1);
       lists[0] = res->GetEntityList();
       it.GetGrid()->GetElemsAtGlobalCoords(globCoords, localCoords, 
-                                           elems, lists);
+                                           elems, lists, 1e-3, 1e-2, true, updatedGeo);
 
       UInt numElems = elems.GetSize();
 
@@ -109,7 +110,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
         shared_ptr<ElemShapeMap> esm =
-          it.GetGrid()->GetElemShapeMap( el, true );
+          it.GetGrid()->GetElemShapeMap( el, updatedGeo );
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
         // loop over dofs

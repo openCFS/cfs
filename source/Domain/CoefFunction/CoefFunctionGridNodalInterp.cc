@@ -739,7 +739,8 @@ template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< Vector<DATA_TYPE> >& values,
                                                                       Grid* ptGrid,
-                                                                      const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                                      const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                                      bool updatedGeo )
 {
   if(!this->stdInterpReady_){
     std::cout << "Preparing for interpolation of external data...";

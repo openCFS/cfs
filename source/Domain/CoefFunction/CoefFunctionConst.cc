@@ -165,7 +165,8 @@ void CoefFunctionConst<T>:: GetScalarValuesAtCoords( const StdVector<Vector<Doub
 template<typename T>
 void CoefFunctionConst<T>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                            StdVector<Vector<T> >  & vals, Grid* ptGrid,
-                                           const StdVector<shared_ptr<EntityList> >& srcEntities){
+                                           const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                           bool updatedGeo){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 

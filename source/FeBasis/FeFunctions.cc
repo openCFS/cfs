@@ -833,7 +833,7 @@ namespace CoupledField {
           StdVector<shared_ptr<EntityList> > list(1);
           list[0] = actBc.entities;
           feSpace_->MapCoefFctToSpace( list, actBc.value, shared_from_this(), coefs,
-                                        true, actBc.dofs );
+                                        true, actBc.dofs, actBc.updatedGeo );
 
           Complex harm;
           UInt harmInt;

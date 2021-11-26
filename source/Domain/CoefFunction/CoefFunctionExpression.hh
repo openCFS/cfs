@@ -99,7 +99,8 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
                                           StdVector<Vector< Double> >  & vals, 
                                           Grid* ptGrid,
                                           const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                          StdVector<shared_ptr<EntityList> >() );
+                                          StdVector<shared_ptr<EntityList> >(),
+                                          bool updatedGeo = false);
     
     virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Matrix<Double> >  & vals,
@@ -206,13 +207,15 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
                                           StdVector< Complex >  & vals, 
                                           Grid* ptGrid,
                                           const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                              StdVector<shared_ptr<EntityList> >()  );
+                                              StdVector<shared_ptr<EntityList> >(),
+                                              bool updatedGeo = false);
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Vector< Complex> >  & vals, 
                                           Grid* ptGrid,
                                           const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                              StdVector<shared_ptr<EntityList> >()  );
+                                              StdVector<shared_ptr<EntityList> >(),
+                                              bool updatedGeo = false);
 
     virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Matrix<Complex> >  & vals,

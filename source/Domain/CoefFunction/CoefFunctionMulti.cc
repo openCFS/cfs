@@ -172,7 +172,8 @@ std::string CoefFunctionMulti::ToString() const {
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Double >  & vals,
                                                   Grid* ptGrid,
-                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                  bool updatedGeo ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 
 }
@@ -180,7 +181,8 @@ void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double>
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Vector<Double> >  & vals,
                                                   Grid* ptGrid,
-                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                  bool updatedGeo ){
   EXCEPTION("CoefFunctionMulti::GetScalarValuesAtPoints: not implemented")
 }
 
@@ -188,14 +190,16 @@ void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double>
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Complex >  & vals, 
                                                   Grid* ptGrid,
-                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                  bool updatedGeo ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Vector<Complex> >  & vals,
                                                   Grid* ptGrid,
-                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                  bool updatedGeo ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 

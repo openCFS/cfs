@@ -63,7 +63,8 @@ void FeSpaceHi ::MapCoefFctToSpace( StdVector<shared_ptr<EntityList> > support,
                         shared_ptr<CoefFunction> coefFct,
                         shared_ptr<BaseFeFunction> feFct,
                         std::map<Integer, Double>& vals, bool cache,
-                        const std::set<UInt>& comp ) {
+                        const std::set<UInt>& comp,
+                        bool updatedGeo) {
   MapCoefFctToSpacePriv<Double>( support, coefFct, feFct, vals, cache, comp );
 }
 
@@ -72,7 +73,8 @@ void FeSpaceHi ::MapCoefFctToSpace( StdVector<shared_ptr<EntityList> > support,
                         shared_ptr<CoefFunction> coefFct,
                         shared_ptr<BaseFeFunction> feFct,
                         std::map<Integer, Complex>& vals, bool cache,
-                        const std::set<UInt>& comp) {
+                        const std::set<UInt>& comp,
+                        bool updatedGeo) {
   MapCoefFctToSpacePriv<Complex>( support, coefFct, feFct, vals, cache, comp );
 }
 

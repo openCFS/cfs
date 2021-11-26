@@ -387,14 +387,15 @@ namespace CoupledField
   const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                          LocPoint& locCoord,
                                          const StdVector<shared_ptr<EntityList> >& srcEntities,
-                                         bool printWarnings) {
+                                         bool printWarnings,
+                                         bool updatedGeo) {
     
     StdVector<Vector<Double> > globCoords(1);
     StdVector<LocPoint> lps;
     StdVector<const Elem*> elems;
     globCoords[0] = globCoord;
     globCoords[0].Resize(GetDim());
-    GetElemsAtGlobalCoords( globCoords, lps, elems, srcEntities);
+    GetElemsAtGlobalCoords( globCoords, lps, elems, srcEntities, 1e-3, 1e-2, true, updatedGeo);
     if( elems.GetSize() == 0 && printWarnings ) {
       WARN( "Could not find element at global position " << globCoord.ToString() );
     }
@@ -407,7 +408,8 @@ namespace CoupledField
                                      StdVector< const Elem* > & elems,
                                      const StdVector<shared_ptr<EntityList> >& srcEntities,
                                      Double globalTol, Double localTol,
-                                     bool printWarnings) {
+                                     bool printWarnings,
+                                     bool updatedGeo) {
 
     // 1) first, determine element candidates for each point, determined by
     //    intersection of bounding-boxes. The algorithm used depends on the
@@ -418,7 +420,7 @@ namespace CoupledField
      matches[i].globCoord = globCoords[i];
     }
     
-    MapPointsToBoundingBoxes( matches, srcEntities, globalTol );
+    MapPointsToBoundingBoxes( matches, srcEntities, globalTol, updatedGeo );
 
     // Debug information about found macthes
 //    std::cerr << "Found the following matches:\n";
@@ -433,7 +435,7 @@ namespace CoupledField
 //    }// loop over all matches
     
     // 2) Afterwards loop over all candidates 
-    MapGlobPointsToLoc( matches, elems, localCoords, localTol, printWarnings );
+    MapGlobPointsToLoc( matches, elems, localCoords, localTol, printWarnings, updatedGeo );
   }
   
   const Elem* Grid::GetElemAtNode( UInt nodeNum,
@@ -688,8 +690,8 @@ namespace CoupledField
       (*it)->UpdateInterface();
     }
   }
-  
-  
+
+
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {
     std::set<Integer> ifaceNodes;
@@ -817,6 +819,9 @@ namespace CoupledField
 
     return true;
   }
+
+
+
 
   void Grid::SurfRegionFromVolRegions(
     const std::string& surfRegionName,
@@ -1073,7 +1078,8 @@ namespace CoupledField
                                  StdVector<const Elem*>& elems,
                                  StdVector<LocPoint>& lps,
                                  Double tol,
-                                 bool printWarnings) {
+                                 bool printWarnings,
+                                 bool updatedGeo) {
     
     
     UInt numMatches = matches.GetSize(); 
@@ -1096,7 +1102,7 @@ namespace CoupledField
       for( it = mElems.begin(); it != mElems.end(); ++it ) {
 
         // check, if global point can be mapped to the element
-        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it);
+        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it, updatedGeo);
 
         esm->Global2Local(locCoord, matches[iM].globCoord );
         if( esm->CoordIsInsideElem(locCoord, 0.0) ) {
@@ -1876,20 +1882,22 @@ namespace CoupledField {
   // as internal replacement in case we want to use valgrind and can not use CGAL.
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                        const StdVector<shared_ptr<EntityList> >& srcEntities,
-                                       Double tol ) {
+                                       Double tol,
+                                       bool updatedGeo) {
 
     // obtain all volume elements from grid
     StdVector<Elem*> elems;
     GetElems(elems, ALL_REGIONS);
     
-    // check, if element boxes are already initialized
-    if( elemBoxes_.size() == 0 ) {
+    // check, if element boxes are already initialized or if we have to reinitialize them due to the updated geometry
+    if( elemBoxes_.size() == 0 || updatedGeo == 1) {
 
       Vector<Double> p(3);
       
       // Loop over dimensions
       for( UInt dim = 1; dim <= GetDim(); ++dim ) {
         StdVector<BoxType> & boxes = elemBoxes_[dim];
+        boxes.Clear(); // for the case of two updated PDEs we need to clear the vector since continuously appending will lead to wrong bounding boxes
         boxes.Reserve(GetNumElemOfDim(dim));
 
         // loop over all elements
@@ -1905,13 +1913,13 @@ namespace CoupledField {
           //   0     1      2     3     4     5
           boost::array<Double,6> bbox;
 
-          CreateBBoxFromElement(elems[i], tol, &bbox[0]);
+          CreateBBoxFromElement(elems[i], tol, &bbox[0], updatedGeo);
           
           // assemble tuple of (bounding box, element number)
           boxes.Push_back(BoxType(bbox, elems[i]->elemNum));
           
 //          std::cerr << "created box for elem #" << elems[i]->elemNum << " with \n\t"
-//              << bbox[0] << ", " 
+//              << bbox[0] << ", "
 //              << bbox[1] << ", "
 //              << bbox[2] << ", "
 //              << bbox[3] << ", "
@@ -1955,12 +1963,12 @@ namespace CoupledField {
         const boost::array<Double,6> & eb = actBox.first;
         UInt elemNum = actBox.second;
 //        const Elem* ptEl = GetElem(elemNum);
-//        std::cerr << "checking elem #" << ptEl->elemNum 
-//            << " with bbox \n\t " 
+//        std::cerr << "checking elem #" << ptEl->elemNum
+//            << " with bbox \n\t "
 //            << "x: [" << eb[0] << ", " << eb[3] << "] "
 //            << "y: [" << eb[1] << ", " << eb[4] << "] "
 //            << "y: [" << eb[2] << ", " << eb[5] << "] "
-//            << "\n----------------------------\n"; 
+//            << "\n----------------------------\n";
 
         // Loop over all points and check bounding box
         for( UInt iPt = 0; iPt < numPts; ++iPt ) {

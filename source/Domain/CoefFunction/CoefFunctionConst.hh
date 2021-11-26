@@ -236,7 +236,8 @@ public:
                                         StdVector<Vector<T> >  & vals,
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                        StdVector<shared_ptr<EntityList> >()  );
+                                        StdVector<shared_ptr<EntityList> >(),
+                                        bool updatedGeo = false);
 
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<T> >  & vals,

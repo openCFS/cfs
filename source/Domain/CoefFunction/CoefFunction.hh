@@ -559,12 +559,14 @@ public:
                                         StdVector< Vector<Double> >& values,
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                        StdVector<shared_ptr<EntityList> >() );
+                                        StdVector<shared_ptr<EntityList> >(),
+                                        bool updatedGeo = false);
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<Complex> >& values, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                        StdVector<shared_ptr<EntityList> >() );
+                                        StdVector<shared_ptr<EntityList> >(),
+                                        bool updatedGeo = false);
   //@}
 
   //@{

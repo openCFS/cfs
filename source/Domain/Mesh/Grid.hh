@@ -384,7 +384,8 @@ namespace CoupledField
                                      LocPoint& locCoord,
                                      const StdVector<shared_ptr<EntityList> >& srcEntities =
                                      StdVector<shared_ptr<EntityList> >(),
-                                     bool printWarnings = true );
+                                     bool printWarnings = true,
+                                     bool updatedGeo = false);
     
     //! Return a list of elements and local coordinate for global coordinates
     void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
@@ -394,7 +395,8 @@ namespace CoupledField
                                 StdVector<shared_ptr<EntityList> >(),
                                 Double globalTol = 1e-3, 
                                 Double localTol = 1e-2,
-                                bool printWarnings = true);
+                                bool printWarnings = true,
+                                bool updatedGeo = false);
     
     //! Return for a given node number the element and a local coordinate
     
@@ -917,7 +919,8 @@ namespace CoupledField
 
     //! Triggers calculation of node offsets for moving interfaces
     void MoveNcInterfaces();
-    
+
+
   protected:
     
     //! Add a node to the grid
@@ -968,6 +971,8 @@ namespace CoupledField
     std::map< std::string, NcInterfaceId > nciNameMap_;
     
     
+
+
     // =======================================================================
     // Integration Scheme
     // =======================================================================
@@ -1148,7 +1153,8 @@ namespace CoupledField
                              StdVector<const Elem*>& elems,
                              StdVector<LocPoint>& lps,
                              Double tol = 1e-2,
-                             bool printWarnings = true);
+                             bool printWarnings = true,
+                             bool updatedGeo = false);
 
   public:
     //! Create a bounding box from a given element. Mapping LIBFBI 
@@ -1211,7 +1217,8 @@ namespace CoupledField
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
                                    StdVector<shared_ptr<EntityList> >(),
-                                   Double tol = 1e-3 );
+                                   Double tol = 1e-3,
+                                   bool updatedGeo = false);
     
     //! Define type for bounding boxes
     typedef std::pair<boost::array<Double,6>, UInt> BoxType;

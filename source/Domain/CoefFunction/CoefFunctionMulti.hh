@@ -81,26 +81,30 @@ public:
                                         StdVector<Double >  & vals,
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >()  );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Double> >  & vals, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >()  );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
 
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Complex >  & vals, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >()  );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Complex> >  & vals, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >()  );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
   //! Return coefficient function for a given region
   inline PtrCoefFct GetRegionCoef( RegionIdType region ) {
     std::map<RegionIdType,PtrCoefFct >::const_iterator it =

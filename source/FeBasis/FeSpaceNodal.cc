@@ -2,7 +2,6 @@
 // vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "FeSpaceNodal.hh"
 
 #include <def_expl_templ_inst.hh>
@@ -11,6 +10,8 @@
 #include "H1/H1ElemsLagVar.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+
+#include "PDE/SinglePDE.hh"
 
 namespace CoupledField {
 
@@ -35,7 +36,8 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
                                          shared_ptr<BaseFeFunction> feFct,
                                          std::map <Integer, T>& vals,
                                          bool cache,
-                                         const std::set<UInt>& comp ) {
+                                         const std::set<UInt>& comp,
+                                         bool updatedGeo) {
 
   
   // Perform some checks at first:
@@ -120,20 +122,45 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
     StdVector< Vector<Double> > globalCoords;
     StdVector< Vector<T> > valuesAtCoords;
 
+    bool updateGeo;
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
+    assert(feFct);
+    SinglePDE * curPDE = feFct->GetPDE();
+    if (curPDE != NULL) {
+      // the PDE exists, retrieve the updateGeometry-flag
+      updateGeo = feFct->GetPDE()->IsUpdatedGeo();
+    } else {
+      // the PDE does not exist (can be the case if external data is applied), set the flag to false
+      updateGeo = false;
+    }
+    bool realUpdatedGeo;
+    if (updateGeo != updatedGeo) {
+      WARN("Geometry update of FeFunction (" << updateGeo << ") and CoefFunction (" << updatedGeo
+          << ") not consistent, falling back to non-updated geometry");
+      realUpdatedGeo = false; // fall back plan
+    } else {
+      realUpdatedGeo = updatedGeo;
+    }
+
     // loop over all lists 
     for( UInt i = 0; i < entityLists.GetSize(); ++i ) {
       shared_ptr<EntityList> actList = entityLists[i];
  
+      // check if the coefFct lives on the upadted geometry and retrieve the coordinates accordingly
+      //coefFct->feFunctions_;
       // get all coordinates of the nodes and their equation numbers
-      this->GetCoordinateRepresentation(actList,idxMap,globalCoords);
+      this->GetCoordinateRepresentation(actList,idxMap,globalCoords,realUpdatedGeo);
 
       StdVector<shared_ptr<EntityList> > lists(1);
       lists[0] = actList; 
 
       // Only search for coordinates in elements belonging to the
       // regions where the current FeSpace is defined.
+      //LOG_DBG2(feSpaceNodal) << "Requesting values at globalCoords\n" << globalCoords.ToString();
       coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords,
-                                       ptGrid_, lists);
+                                       ptGrid_, lists, realUpdatedGeo);
+      //LOG_DBG2(feSpaceNodal) << "GetVectorValuesAtCoords for updatedGeo = " << updateGeo << ":\n" << valuesAtCoords.ToString();
+
       for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
         StdVector<UInt> curEqs = idxMap[aNode];
         // loop over all dofs
@@ -158,14 +185,15 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
 
 void FeSpaceNodal::GetCoordinateRepresentation( shared_ptr<EntityList>   eList,
                                                    StdVector< StdVector<UInt> > & idxMap,
-                                                   StdVector< Vector<Double> > & coords){
+                                                   StdVector< Vector<Double> > & coords,
+                                                   bool updatedGeo){
 
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
 
 
    StdVector<UInt> nodeVec;
    //StdVector<Vector<Double> > coordinateVec;
-   GetNodalCoords(coords,nodeVec,eList);
+   GetNodalCoords(coords,nodeVec,eList,updatedGeo);
 
    idxMap.Resize(nodeVec.GetSize());
    idxMap.Init(StdVector<UInt>(feFct->GetResultInfo()->dofNames.GetSize()));
@@ -184,7 +212,8 @@ void FeSpaceNodal::GetCoordinateRepresentation( shared_ptr<EntityList>   eList,
 
 void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
                                   StdVector<UInt> & vNodeNums,
-                                  const shared_ptr<EntityList> & entities){
+                                  const shared_ptr<EntityList> & entities,
+                                  bool updatedGeo){
   LOG_TRACE(feSpaceNodal) << "Getting Nodal Coords ...."; 
   
   //cover the special case of nodal mapping in which we can directly access the node coordinates
@@ -196,6 +225,17 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
    LOG_DBG(feSpaceNodal) << "Getting nodes of entities";
 
 
+//   bool updateGeo;
+//   shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
+//   assert(feFct);
+//   updateGeo = feFct->GetPDE()->IsUpdatedGeo();
+
+   if ( updatedGeo ) {
+     LOG_DBG(feSpaceNodal) << "Using updated geometry";
+   } else {
+     LOG_DBG(feSpaceNodal) << "Using initial geometry (not updated)";
+   }
+
    if(mapType_ == GRID){
      StdVector<UInt> nodes;
      this->ptGrid_->GetNodesByName(nodes, entities->GetName());
@@ -205,7 +245,8 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
      coords.Resize(size,Vector<Double>(dim));
      for(UInt i=0;i<size;i++){
        vNodeNums[i] = this->gridToVirtualNodes_[nodes[i]][0];
-       this->ptGrid_->GetNodeCoordinate(coords[i],nodes[i],true);
+       //this->ptGrid_->GetNodeCoordinate(coords[i],nodes[i],true);
+       this->ptGrid_->GetNodeCoordinate(coords[i],nodes[i],updatedGeo);
      }
      LOG_DBG(feSpaceNodal) << "USED GIRD REPRESENTATION";
    }else{
@@ -220,7 +261,8 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
        //get elem virtual nodes
        this->GetNodesOfElement(curENodes,entIt.GetElem(),BaseFE::ALL);
        //get shape map
-       esm = this->ptGrid_->GetElemShapeMap( entIt.GetElem(), true );
+       //esm = this->ptGrid_->GetElemShapeMap( entIt.GetElem(), true );
+       esm = this->ptGrid_->GetElemShapeMap( entIt.GetElem(), updatedGeo );
 
 
        Matrix<Double> nCoord;
@@ -272,14 +314,16 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template void FeSpaceNodal::
 MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
-                               shared_ptr<CoefFunction>, 
+                               shared_ptr<CoefFunction>,
                                shared_ptr<BaseFeFunction> feFct,
                                std::map <Integer, Double>&,
-                               bool,const std::set<UInt>&);
+                               bool,const std::set<UInt>&,
+                               bool updatedGeo);
 template void FeSpaceNodal::
 MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
-                                shared_ptr<CoefFunction>, 
+                                shared_ptr<CoefFunction>,
                                 shared_ptr<BaseFeFunction> feFct,
                                 std::map <Integer, Complex>&,
-                                bool,const std::set<UInt>&);
+                                bool,const std::set<UInt>&,
+                                bool updatedGeo);
 #endif

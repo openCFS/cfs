@@ -475,19 +475,22 @@ public:
   //! \param comp Set containing the components, which should get mapped.
   //!             If empty, all components of the (vector-valued) function
   //!             get mapped
+  //! \param updatedGeo Flag, if the coefFct lives on the updated geometry
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
                                  shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Double>& vals,
                                  bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() )=0;
+                                 const std::set<UInt>& comp = std::set<UInt>(),
+                                 bool updatedGeo = true)=0;
 
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
                                  shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() )=0;
+                                 const std::set<UInt>& comp = std::set<UInt>(),
+                                 bool updatedGeo = true)=0;
   
   //! Check if entity approximation is the same in other space
   

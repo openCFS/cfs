@@ -159,7 +159,8 @@ void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                      shared_ptr<BaseFeFunction> feFct,
                                      std::map<Integer, Double>& vals,
                                      bool cache,
-                                     const std::set<UInt>& comp ){
+                                     const std::set<UInt>& comp,
+                                     bool updatedGeo){
 
   EXCEPTION("This FeSpace does not approximate space.");
 
@@ -170,7 +171,8 @@ void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                      shared_ptr<BaseFeFunction> feFct,
                                      std::map<Integer, Complex>& vals,
                                      bool cache,
-                                     const std::set<UInt>& comp ){
+                                     const std::set<UInt>& comp,
+                                     bool updatedGeo){
 
   EXCEPTION("This FeSpace does not approximate space.");
 

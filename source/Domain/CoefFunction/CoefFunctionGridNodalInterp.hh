@@ -105,7 +105,8 @@ public:
                                         StdVector< Vector<DATA_TYPE> >& values, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                        StdVector<shared_ptr<EntityList> >() );
+                                        StdVector<shared_ptr<EntityList> >(),
+                                        bool updatedGeo = false);
 
   //! Give Values at global coordinate locations
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,

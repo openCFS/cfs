@@ -127,13 +127,15 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
                                         StdVector<Double >  & vals, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >() );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Double> >  & vals,
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >()  );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<Double> >  & vals,
                                         Grid* ptGrid,
@@ -301,13 +303,15 @@ public:
                                         StdVector<Complex >  & vals, 
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >() );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Complex> >  & vals,
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                            StdVector<shared_ptr<EntityList> >() );
+                                            StdVector<shared_ptr<EntityList> >(),
+                                            bool updatedGeo = false);
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<Complex> >  & vals,
                                         Grid* ptGrid,

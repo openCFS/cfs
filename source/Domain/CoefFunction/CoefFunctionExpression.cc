@@ -488,7 +488,8 @@ void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Ve
 void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Vector<Double> >  & vals,
                                                               Grid* ptGrid,
-                                                              const StdVector<shared_ptr<EntityList> >& srcEntities)
+                                                              const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                              bool updatedGeo )
 {
   Vector<Double> locVector;
   if( this->dimType_ == SCALAR ) {
@@ -536,7 +537,8 @@ void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Ve
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Complex >  & vals,
                                                                Grid* ptGrid,
-                                                               const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                               const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                               bool updatedGeo )
 {
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
@@ -556,7 +558,8 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Vector<Complex> >  & vals,
                                                                Grid* ptGrid,
-                                                               const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                               const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                               bool updatedGeo )
 {
   assert(this->dimType_ == CoefFunction::VECTOR || this->dimType_ == SCALAR);
   Vector<Double> temp;

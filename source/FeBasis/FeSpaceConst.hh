@@ -82,7 +82,8 @@ public:
                                  shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Double>& vals,
                                  bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() );
+                                 const std::set<UInt>& comp = std::set<UInt>(),
+                                 bool updatedGeo = true);
 
   //! This FeSpace does not approximate space.
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
@@ -90,7 +91,8 @@ public:
                                  shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() );
+                                 const std::set<UInt>& comp = std::set<UInt>(),
+                                 bool updatedGeo = true);
 
   //! \copydoc FeSpace::IsSameEntityApproximation
   virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,

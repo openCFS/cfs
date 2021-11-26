@@ -38,8 +38,9 @@ public:
                                 shared_ptr<BaseFeFunction> feFct,
                                 std::map<Integer, Double>& vals,
                                 bool cache,
-                                const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Double>(support,coefFct,feFct,vals,cache,comp);
+                                const std::set<UInt>& comp = std::set<UInt>(),
+                                bool updatedGeo = true){
+    MapCoefFctToSpacePriv<Double>(support,coefFct,feFct,vals,cache,comp,updatedGeo);
   }
 
   //! \copydoc FeSpace::MapCoefFctToSpace
@@ -48,8 +49,9 @@ public:
                                  shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Complex>(support,coefFct,feFct,vals,cache,comp);
+                                 const std::set<UInt>& comp = std::set<UInt>(),
+                                 bool updatedGeo = true){
+    MapCoefFctToSpacePriv<Complex>(support,coefFct,feFct,vals,cache,comp,updatedGeo);
   }
 
 protected:
@@ -57,12 +59,14 @@ protected:
   ///In a nodal space we can gather the coordinates of the DOFs explicitly
   void GetCoordinateRepresentation( shared_ptr<EntityList>   eList,
                                         StdVector< StdVector<UInt> > & idxMap,
-                                        StdVector< Vector<Double> > & coords);
+                                        StdVector< Vector<Double> > & coords,
+                                        bool updatedGeo);
 
   ///Get actual coordinates
   void GetNodalCoords(StdVector<Vector<Double> > & coords,
                         StdVector<UInt> & vNodeNums,
-                        const shared_ptr<EntityList> & entities);
+                        const shared_ptr<EntityList> & entities,
+                        bool updatedGeo);
 
 
   //! get a nodal equation number
@@ -77,7 +81,8 @@ private:
                              shared_ptr<BaseFeFunction> feFct,
                              std::map<Integer, T>& vals,
                              bool cache,
-                             const std::set<UInt>& comp = std::set<UInt>() );
+                             const std::set<UInt>& comp = std::set<UInt>(),
+                             bool updatedGeo = true);
 
 };
 }

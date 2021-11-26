@@ -638,7 +638,8 @@ void CoefFunction::GenTensorCompNames( StdVector<std::string>& realVar,
 void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                             StdVector< Vector<Double> >& values, 
                                             Grid* ptGrid,
-                                            const StdVector<shared_ptr<EntityList> >& srcEntities) {
+                                            const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                            bool updatedGeo) {
 
   // loop over all coordinates
   UInt numEntries = globCoord.GetSize();
@@ -647,9 +648,9 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
   StdVector< const Elem* >  elems;
 
   // Get mapping
-  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
+  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities, 1e-3, 1e-2, true, updatedGeo );
 
-  
+
   LocPointMapped lpm;
   for( UInt i = 0; i < numEntries; ++i ) {
     if (elems[i] == NULL ) {
@@ -667,7 +668,8 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
 void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                             StdVector< Vector<Complex> >& values, 
                                             Grid* ptGrid,
-                                            const StdVector<shared_ptr<EntityList> >& srcEntities) {
+                                            const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                            bool updatedGeo) {
   // loop over all coordinates
   UInt numEntries = globCoord.GetSize();
   values.Resize( numEntries );
@@ -675,7 +677,7 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
   StdVector< const Elem* >  elems;
 
   // Get mapping
-  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
+  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities, 1e-3, 1e-2, true, updatedGeo );
 
   LocPointMapped lpm;
   for( UInt i = 0; i < numEntries; ++i ) {

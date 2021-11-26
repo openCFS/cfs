@@ -460,7 +460,8 @@ Recalculate() {
 void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                             StdVector<Double >  & vals,
                                                             Grid* ptGrid,
-                                                            const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                            const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                            bool updatedGeo )
 {
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
@@ -473,7 +474,8 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                             StdVector<Vector<Double> >  & vals,
                                                             Grid* ptGrid,
-                                                            const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                            const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                            bool updatedGeo )
 {
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
@@ -522,7 +524,8 @@ void CoefFunctionTimeFreq<Double>::GetTensorValuesAtCoords( const StdVector<Vect
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                              StdVector<Complex >  & vals,
                                                              Grid* ptGrid,
-                                                             const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                             const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                             bool updatedGeo )
 {
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
@@ -535,7 +538,8 @@ void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vec
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                              StdVector<Vector<Complex> >  & vals,
                                                              Grid* ptGrid,
-                                                             const StdVector<shared_ptr<EntityList> >& srcEntities )
+                                                             const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                                             bool updatedGeo )
 {
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
