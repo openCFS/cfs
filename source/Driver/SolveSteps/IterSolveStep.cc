@@ -10,6 +10,8 @@
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
+#include "Driver/AnalysisID.hh"
+#include "Driver/BaseDriver.hh"
 namespace CoupledField
 {
 
@@ -193,6 +195,16 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     disp_ = disp;
   }
   
+  void ConvCriterionDisplacement::SetVelFct( shared_ptr<FeFunction<Double> > vel) {
+    assert(vel);
+    vel_ = vel;
+  }
+
+  void ConvCriterionDisplacement::SetAccFct( shared_ptr<FeFunction<Double> > acc) {
+    assert(acc);
+    acc_ = acc;
+  }
+
   void ConvCriterionDisplacement::SetNormFlag( bool justNorm) {
     justNorm_ = justNorm;
   }  
@@ -225,24 +237,27 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 */	    
       Grid * ptGrid = disp_->GetGrid();
       const UInt dim = ptGrid->GetDim();
+      // Grid for vel and acc
+      //Grid * ptGridVel = vel_->GetGrid();
+      //Grid * ptGridAcc = acc_->GetGrid();
       // Loop over all regions of FeFunction
       shared_ptr<EntityList> nodes;
       std::set<RegionIdType> dispRegions = disp_->GetRegions();
       std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
       for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
-        
+
         std::string regionName = ptGrid->GetRegion().ToString(*regionIt);
-        
+
         // check if this region is contained in the displacement function as well
         if( dispRegions.find(*regionIt) == dispRegions.end() ) {
           WARN( "Can not perform geometry update on region"
               << regionName << ", as there are no displacement defined on it!");
         }
-        
+
         nodes = ptGrid->GetEntityList(EntityList::NODE_LIST, regionName);
         EntityIterator nodeIt = nodes->GetIterator();
-        
+
         // Loop over all nodes
         Vector<Double> offset(dim), totalOffset(nodes->GetSize() * dim );
         StdVector<UInt> nodeNums(nodes->GetSize());
@@ -252,19 +267,24 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           nodeNums[pos] = nodeIt.GetNode();
           // aquire nodal solution
           disp_->GetEntitySolution(offset, nodeIt);
-          
+
           UInt offsetPos = pos*dim;
           for( UInt iDim = 0; iDim < dim; ++iDim ) {
             totalOffset[offsetPos+iDim] = offset[iDim];
           }
 
-        } 
+        }
         // Pass total array
         ptGrid->SetNodeOffset(nodeNums, totalOffset);
+        // We do the same for the velocity and acceleration since they have their own FeFunction
+        //ptGridVel->SetNodeOffset(nodeNums, totalOffset);
+        //ptGridAcc->SetNodeOffset(nodeNums, totalOffset);
 
       }
       // update nc interfaces if existing
       ptGrid->MoveNcInterfaces();
+      //ptGridVel->MoveNcInterfaces();
+      //ptGridAcc->MoveNcInterfaces();
   }
   
   void ConvCriterionDisplacement::StopSampling() {
@@ -361,6 +381,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // for mechPDE if only the norm shall converge, but no geometry change shall be executed
     justNorm_ = false;
     
+    // use user defined PDE order
+    customReorderPDE_  = false;
 
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
@@ -411,6 +433,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     } 
     convNode_->Get("justNorm")->SetValue(justNorm_);
 
+    // check for custom PDE order
+    if( param_ ) {
+      // use the prescribed order of the PDEs
+      PDEorder_ = param_->Get("PDEorder")->As<std::string>();
+      if ( !PDEorder_.empty() ) {
+        customReorderPDE_ = true;
+      }
+    }
 
     // 1) Check for general convergence criterions
     if( convParamNode && convParamNode->Has("quantity") ) {
@@ -432,6 +462,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         if( solType == MECH_DISPLACEMENT ) {
           LOG_DBG3(itersolvestep) << "\t=> Creating special displacement convergence criterion";
+          shared_ptr<ConvCriterionDisplacement> accu (new ConvCriterionDisplacement(type, norm));
+          accu->SetNormFlag(justNorm_);
+          crit  = accu;
+        } else if( solType == SMOOTH_DISPLACEMENT ) {
+          LOG_DBG3(itersolvestep) << "\t=> Creating special displacement convergence criterion (smoothPDE)";
           shared_ptr<ConvCriterionDisplacement> accu (new ConvCriterionDisplacement(type, norm));
           accu->SetNormFlag(justNorm_);
           crit  = accu;
@@ -457,40 +492,123 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         // check for presence of mechanical PDE
         shared_ptr<FeFunction<Double> > disp;
+        //shared_ptr<FeFunction<Double> > vel;
+        //shared_ptr<FeFunction<Double> > acc;
+        // check for presence of smooth PDE
+        shared_ptr<FeFunction<Double> > dispSmooth;
+        //shared_ptr<FeFunction<Double> > velSmooth;
         UInt numSinglePDEs = rPDE_.singlePDEs_.GetSize();
         for( UInt i = 0; i < numSinglePDEs; ++i ) {
+          // since we have to differentiate between mech- and smooth displacement, we include it in the lopp
+          // furthermore, we have to distinguish which region uses which criterion
           SinglePDE * ptPde = rPDE_.singlePDEs_[i]; 
           if( ptPde->GetName() == "mechanic" ) {
             disp = dynamic_pointer_cast<FeFunction<Double> >
             (ptPde->GetFeFunction(MECH_DISPLACEMENT));
             LOG_DBG(itersolvestep) << "=> Found MECH_DISPLACEMENT as coupling quantity";
-            break;
+//            vel = dynamic_pointer_cast<FeFunction<Double> >
+//                        (ptPde->GetFeFunction(MECH_VELOCITY));
+//            acc = dynamic_pointer_cast<FeFunction<Double> >
+//                        (ptPde->GetFeFunction(MECH_ACCELERATION));
+
+            // Check if convergence criterion for mechanic is present
+            shared_ptr<ConvCriterionDisplacement> convDisp;
+            if( criterions_.find(MECH_DISPLACEMENT) != criterions_.end()) {
+              convDisp =
+                  dynamic_pointer_cast<ConvCriterionDisplacement>(criterions_[MECH_DISPLACEMENT]);
+            } else {
+              convDisp.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
+            }
+
+            convDisp->SetDispFct( disp );
+            // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
+            //convDisp->SetVelFct( vel );
+            //convDisp->SetAccFct( acc );
+            Grid * ptGrid = disp->GetGrid();
+
+            LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
+            // Read in all regions, which have geometric update and check if they are present in the mechPDE
+            for( UInt i = 0; i < regionNodes.GetSize(); ++i ) {
+              std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
+              RegionIdType regionId = ptGrid->GetRegion().Parse(regionName);
+              StdVector<RegionIdType> regionsPde;
+              regionsPde = ptPde->GetRegions();
+              if( std::find(regionsPde.Begin(), regionsPde.End(), regionId )!= regionsPde.End() ) {
+                // the region is defined for this PDE, set the convergence criterion
+                convDisp->AddRegion( regionId );
+                LOG_DBG(itersolvestep) << "\t Region for mechPDE: "<< regionName;
+              }
+            }
+
+          } else if( ptPde->GetName() == "smooth" ) {
+            dispSmooth = dynamic_pointer_cast<FeFunction<Double> >
+            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            LOG_DBG(itersolvestep) << "=> Found SMOOTH_DISPLACEMENT as coupling quantity";
+//            velSmooth = dynamic_pointer_cast<FeFunction<Double> >
+//                        (ptPde->GetFeFunction(SMOOTH_VELOCITY));
+
+            // Check if convergence criterion for mechanic is present
+            shared_ptr<ConvCriterionDisplacement> convDispSmooth;
+            if( criterions_.find(SMOOTH_DISPLACEMENT) != criterions_.end()) {
+              convDispSmooth =
+                  dynamic_pointer_cast<ConvCriterionDisplacement>(criterions_[SMOOTH_DISPLACEMENT]);
+            } else {
+              convDispSmooth.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
+            }
+
+            convDispSmooth->SetDispFct( dispSmooth );
+            // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
+            //convDispSmooth->SetVelFct( velSmooth );
+            //convDisp->SetAccFct( acc );
+            Grid * ptGrid = dispSmooth->GetGrid();
+
+            LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
+            // Read in all regions, which have geometric update and check if they are present in the mechPDE
+            for( UInt i = 0; i < regionNodes.GetSize(); ++i ) {
+              std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
+              RegionIdType regionId = ptGrid->GetRegion().Parse(regionName);
+              StdVector<RegionIdType> regionsPde;
+              regionsPde = ptPde->GetRegions();
+              if( std::find(regionsPde.Begin(), regionsPde.End(), regionId )!= regionsPde.End() ) {
+                // the region is defined for this PDE, set the convergence criterion
+                convDispSmooth->AddRegion( regionId );
+                LOG_DBG(itersolvestep) << "\t Region for smoothPDE: "<< regionName;
+              }
+            }
+
           }
+
         }
-        if(!disp) {
+        if(!disp && !dispSmooth) {
           WARN( "No geometry updated will performed, as no mechanical "
               << "physic is defined");
         } else {
-          // Check if convergence criterion for mechanic is present
-          shared_ptr<ConvCriterionDisplacement> convDisp;
-          if( criterions_.find(MECH_DISPLACEMENT) != criterions_.end()) {
-            convDisp = 
-                dynamic_pointer_cast<ConvCriterionDisplacement>(criterions_[MECH_DISPLACEMENT]);
-          } else {
-            convDisp.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
-          }
-
-          convDisp->SetDispFct( disp );
-          Grid * ptGrid = disp->GetGrid();
-
-          LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
-          // Read in all regions, which have geometric update
-          for( UInt i = 0; i < regionNodes.GetSize(); ++i ) {
-            std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
-            RegionIdType regionId = ptGrid->GetRegion().Parse(regionName); 
-            convDisp->AddRegion( regionId );
-            LOG_DBG(itersolvestep) << "\t "<< regionName;
-          }
+//          // Check if convergence criterion for mechanic is present
+//          shared_ptr<ConvCriterionDisplacement> convDisp;
+//          if( criterions_.find(MECH_DISPLACEMENT) != criterions_.end()) {
+//            convDisp =
+//                dynamic_pointer_cast<ConvCriterionDisplacement>(criterions_[MECH_DISPLACEMENT]);
+//          } else if( criterions_.find(SMOOTH_DISPLACEMENT) != criterions_.end()) {
+//            convDisp =
+//                dynamic_pointer_cast<ConvCriterionDisplacement>(criterions_[SMOOTH_DISPLACEMENT]);
+//          } else {
+//            convDisp.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
+//          }
+//
+//          convDisp->SetDispFct( disp );
+//          // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
+//          convDisp->SetVelFct( vel );
+//          //convDisp->SetAccFct( acc );
+//          Grid * ptGrid = disp->GetGrid();
+//
+//          LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
+//          // Read in all regions, which have geometric update
+//          for( UInt i = 0; i < regionNodes.GetSize(); ++i ) {
+//            std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
+//            RegionIdType regionId = ptGrid->GetRegion().Parse(regionName);
+//            convDisp->AddRegion( regionId );
+//            LOG_DBG(itersolvestep) << "\t "<< regionName;
+//          }
         }
 
       }
@@ -532,30 +650,91 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     rPDE_.numPDEs_ = uncoupledPdes.size() + rPDE_.coupledPDEs_.GetSize();
 
     rPDE_.PDEs_.Reserve( rPDE_.numPDEs_ );
-    std::set<SinglePDE*>::iterator it = uncoupledPdes.begin();
-    // remember mechanic PDE if present
-    SinglePDE * mechPDE = NULL;
-    SinglePDE * heatPDE = NULL;
-    for( ; it != uncoupledPdes.end(); ++it ) {
-      if( (*it)->GetName() == "mechanic" ) {
-        mechPDE = *it;
-      }
-      else if ( (*it)->GetName() == "heatConduction" ) {
-        heatPDE = *it;
-      }
-      else {
-        rPDE_.PDEs_.Push_back( *it );
-      }
-    }
 
-    if ( heatPDE )
-      rPDE_.PDEs_.Push_back( heatPDE );
 
-    if( mechPDE )
-      rPDE_.PDEs_.Push_back(mechPDE);
-    
-    for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
-      rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+
+    if ( customReorderPDE_ ) {
+      // use the prescribed order of the PDEs
+      typedef boost::tokenizer<boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";| ");
+      Tok t(PDEorder_, sep);
+      Tok::iterator iter, end;
+      iter = t.begin();
+      end = t.end();
+
+      std::set<SinglePDE*>::iterator     it = uncoupledPdes.begin();
+      for( ; iter != end; iter++) {
+        // loop over all specified PDEs and append them
+        it = uncoupledPdes.begin();
+        for( ; it != uncoupledPdes.end(); ++it ) {
+          if( (*it)->GetName() == *iter ) {
+            // we found a match, append the PDE
+            rPDE_.PDEs_.Push_back( *it );
+            break;
+          } else {
+            if( iter==end ) {
+              // PDE does not exist or the name is wrong
+              EXCEPTION("PDE " << (*iter) << " does not exist." );
+            }
+          }
+        }
+      }
+      // now we loop over the PDEs and append those not contained in the specified PDE order
+      // re-init iterators
+      it = uncoupledPdes.begin();
+      bool skipPDE;
+      for( ; it != uncoupledPdes.end(); ++it ) {
+        skipPDE = 0;
+        iter = t.begin();
+        for( ; iter != end; iter++) {
+          if( (*it)->GetName() == *iter ) {
+            // we found the match again and have to skip it
+            skipPDE = 1;
+          }
+        }
+        if( !skipPDE ) {
+          rPDE_.PDEs_.Push_back( *it );
+        }
+      }
+
+      // append the coupled PDEs
+      for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+        rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+      }
+    } else {
+      // use the classical reordering scheme
+      std::set<SinglePDE*>::iterator it = uncoupledPdes.begin();
+      // remember mechanic PDE if present
+      SinglePDE * mechPDE = NULL;
+      SinglePDE * heatPDE = NULL;
+      SinglePDE * smoothPDE = NULL;
+      for( ; it != uncoupledPdes.end(); ++it ) {
+        if( (*it)->GetName() == "mechanic" ) {
+          mechPDE = *it;
+        }
+        else if ( (*it)->GetName() == "heatConduction" ) {
+          heatPDE = *it;
+        }
+        else if ( (*it)->GetName() == "smooth" ) {
+                 smoothPDE = *it;
+               }
+        else {
+          rPDE_.PDEs_.Push_back( *it );
+        }
+      }
+
+      if ( heatPDE )
+        rPDE_.PDEs_.Push_back( heatPDE );
+
+      if( mechPDE )
+        rPDE_.PDEs_.Push_back(mechPDE);
+
+      if( smoothPDE )
+        rPDE_.PDEs_.Push_back(smoothPDE);
+
+      for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+        rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+      }
     }
     
     // In the end print final ordering:
@@ -619,14 +798,21 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
      }
 
      // Check, if there was a convergence criterion defined for this quantity.
-     // In this case, we add it to the ConvergenceCriterion instance.
-     if( criterions_.find(mappedType) != criterions_.end() ) {
-	
-       LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
-       // add accumulated coefficient function to list
-       shared_ptr<ConvCriterionAccu> c 
-       = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
-       c->AddCoefFct( list, acc );
+     // In this case, we add it to the ConvergenceCriterion instance. If we use the displacement
+     // as Dirichlet BC, we have to skip it here since its already defined for the whole region
+     if ( SolutionTypeEnum.ToString(mappedType) == "mechDisplacement" ) {
+        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (mechDisplacement)";
+     } else if ( SolutionTypeEnum.ToString(mappedType) == "smoothDisplacement" ) {
+       LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (smoothDisplacement)";
+     } else {
+        if( criterions_.find(mappedType) != criterions_.end() ) {
+
+          LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
+          // add accumulated coefficient function to list
+          shared_ptr<ConvCriterionAccu> c
+          = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
+          c->AddCoefFct( list, acc );
+        }
      }
      
      return acc;
@@ -817,6 +1003,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         LOG_DBG(itersolvestep) << "Processing PDE '" << 
             rPDE_.PDEs_[i]->GetName() << "'";
 
+        // Set the iteration counter and the PDE name for the exportLinSys output-stream
+        Domain* domain = rPDE_.PDEs_[i]->GetDomain();
+        AnalysisID& id = domain->GetDriver()->GetAnalysisId();
+        id.coupleIter = iter;
+        id.pdeName = rPDE_.PDEs_[i]->GetName();
+
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
@@ -867,12 +1059,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         }
       }
       // reset the glmVec to the initial copy if we did not converge
+      // here we only trigger the event, the reset will happen later during the function call
+      // we do this so that other PDEs still see the newly calcualted values, only when the calculation of the new sub-step for the PDE is done, we reset the glmVector
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
         std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions;
         feFunctions = rPDE_.PDEs_[i]->GetFeFunctions();
         std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
         for(fncIt = feFunctions.begin();fncIt != feFunctions.end(); ++fncIt){
-          fncIt->second->GetTimeScheme()->ProcessGlmVec(normsReached);
+          fncIt->second->GetTimeScheme()->ResetGlmVector();
         }
       }
       iter++;

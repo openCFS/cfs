@@ -76,6 +76,11 @@ class TimeSchemeGLM : public BaseTimeScheme{
     // If the iteration did converge, we simply free some memory by deleting the old glmVec
     virtual void ProcessGlmVec(bool converged=false);
 
+    // Triggers the update of the glmVector
+    void ResetGlmVector() {
+      resetGlmVector_ = true;
+    }
+
     //! \copydoc BaseTimeScheme::SetSolutionTimeDerivOrder(UInt,Double)
     virtual void SetSolutionTimeDerivOrder(UInt order,Double timeStepSize){
       solOrder_ = order;
@@ -160,6 +165,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
     // In the next time step, this solution is used for the time scheme, although e.g. a standard linear iteration should use the same vectors/matrices as before and only update the RHS from a linear form.
     // In order to avoid this, we store the old glmVec seperately and "undo" the last part of finishStep by resetting the glmVec
     StdVector< SingleVector* > initialIterGlmVector_;
+
+    // Bool if we have to reset the glmVector
+    bool resetGlmVector_ = false;
 
     ///Stores for each stage, for each time derivative the stage values
     StdVector< SingleVector* > stageVector_;

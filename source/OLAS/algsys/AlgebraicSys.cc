@@ -3274,6 +3274,7 @@ namespace CoupledField {
             idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
               indices[j],rhs_,nRHS[j]);
           }
+          LOG_DBG2(algSys) << "func i= " << i << ", j= " << j << ", nRHS[j]= " << nRHS[j];
         }
 
       }
@@ -3290,6 +3291,7 @@ namespace CoupledField {
               idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
                       indices[j],rhs_,nRHS[j]);
             }
+            LOG_DBG2(algSys) << "func i= " << i << ", j= " << j << ", nRHS[j]= " << nRHS[j];
           }
 
       }

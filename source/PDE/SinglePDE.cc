@@ -3058,6 +3058,11 @@ namespace CoupledField {
       
       coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
       
+      // add the defined components
+      for( UInt i = 0; i < numComp; ++i ) {
+        definedDofs.insert(i);
+      }
+
     } else if( valueNode->Has("scatteredData") ) {
       PtrParamNode scatteredDataNode = valueNode->Get("scatteredData");
       if(type == ResultInfo::SCALAR){

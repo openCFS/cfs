@@ -460,7 +460,7 @@ namespace CoupledField {
     bool effectiveMatrixUpdated = false;
     
     bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 ); 
-    bool storeInitialIterGlmVec = couplingIter_ == 0;
+    bool storeInitialIterGlmVec = ( couplingIter_ == 0 );
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->BeginStep(updatePredictor,storeInitialIterGlmVec);
     }

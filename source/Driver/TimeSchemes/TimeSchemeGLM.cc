@@ -126,6 +126,9 @@ namespace CoupledField{
       initialIterGlmVector_[i]->Init();
     }
 
+    // first loop, we don't need to reset the glmVector just yet
+    resetGlmVector_ = false;
+
     //now we go for the stage vector
     //if the scheme has the lastStageIsSolution_ flag set,
     //the corresponding stage vector points directly to the
@@ -200,6 +203,12 @@ namespace CoupledField{
         tmpGLM.Clear();
         //free the memory
       }
+    }
+    if ( resetGlmVector_ ) {
+      // reset the glmVec to the initial copy if we did not converge
+      // if we get to this point, we are already in the next iteration, so it is save to assume that we did not converge
+      ProcessGlmVec(false);
+      resetGlmVector_ = false;
     }
   }
 

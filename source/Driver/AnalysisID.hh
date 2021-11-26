@@ -30,6 +30,12 @@ struct AnalysisID
   /** current step if applies. Otherwise -1 */
   int step;
 
+  /** current iteration for iterative coupled PDEs. Otherwise -1 */
+  int coupleIter;
+
+  /** current PDE for iterative coupled PDEs. Ohterwise "" */
+  std::string pdeName;
+
   /** current frequency if applies. Otherwise -1.0 */
   double freq;
 

@@ -146,6 +146,12 @@ namespace CoupledField
     //! Set FeFunction for displacement
     void SetDispFct( shared_ptr<FeFunction<Double> > disp);
     
+    //! Set FeFunction for velocity (needed for geometry update)
+    void SetVelFct( shared_ptr<FeFunction<Double> > vel);
+
+    //! Set FeFunction for displacement (needed for geometry update)
+    void SetAccFct( shared_ptr<FeFunction<Double> > acc);
+
     //! Add a new region to 
     void AddRegion(RegionIdType region );
     
@@ -172,7 +178,19 @@ namespace CoupledField
   protected:
     
     //! Pointer to displacement FeFunction
+    shared_ptr<FeFunction<Double> > disp_mech_;
+
+    //! Pointer to displacement FeFunction
+    shared_ptr<FeFunction<Double> > disp_smooth_;
+
+    //! Pointer to displacement FeFunction
     shared_ptr<FeFunction<Double> > disp_;
+
+    //! Pointer to velocity FeFunction
+    shared_ptr<FeFunction<Double> > vel_;
+
+    //! Pointer to acceleration FeFunction
+    shared_ptr<FeFunction<Double> > acc_;
    
     //! Set containing updated regions
     std::set<RegionIdType> updatedRegions_;
@@ -306,11 +324,16 @@ namespace CoupledField
     
     //! Density value (key) to integrated value (value)
     std::map<SolutionType, SolutionType> solutionMap_;
-    
+
     //! Flag, if object is finalized
     bool isFinalized_;
     
-    
+    // use user defined PDE order
+    bool customReorderPDE_;
+
+    // custom PDE order
+    std::string PDEorder_;
+
     // ----------------------------------------------------------------------
     //  Convergence related data
     // ----------------------------------------------------------------------

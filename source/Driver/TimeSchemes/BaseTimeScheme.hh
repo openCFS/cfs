@@ -65,6 +65,9 @@ class BaseTimeScheme{
     // Update function that processes the glmVector in the case of a GLM-scheme
     virtual void ProcessGlmVec(bool converged=false)=0;
 
+    // Triggers the update of the glmVector
+    virtual void ResetGlmVector()=0;
+
     /*! Change the formulation of the scheme e.g. from effective mass to effective stiffness
      *  \param[in] order The order of time derivative of the systems solution
      *  \param[in] timeStepSize the current time step size

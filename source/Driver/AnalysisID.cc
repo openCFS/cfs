@@ -13,6 +13,7 @@ AnalysisID::AnalysisID()
   time = -1.0;
   iteration = -1;
   step = -1;
+  coupleIter = -1;
   excite = "";
   adjoint = false;
 }
@@ -33,6 +34,12 @@ std::string AnalysisID::ToString(bool filename) const
   assert(!(step < 0 && freq >= 0.0));
   if(freq >= 0.0 && !filename) // we already have step
     ss << (ss.rdbuf()->in_avail() ? "_" : "")  <<  "freq" << assign << freq;
+
+  if(coupleIter >= 0)
+      ss << (ss.rdbuf()->in_avail() ? "_" : "")  << "coupleIter" << assign << coupleIter;
+
+  if(pdeName != "")
+     ss << (ss.rdbuf()->in_avail() ? "_" : "")  << assign << (filename ? ConvertToFilename(pdeName) : pdeName);
 
   if(iteration >= 0)
     ss << (ss.rdbuf()->in_avail() ? "_" : "")  << "iter" << assign << iteration;

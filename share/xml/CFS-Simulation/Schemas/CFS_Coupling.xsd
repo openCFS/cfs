@@ -86,6 +86,17 @@
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
+          <!-- Check if we use a different reordering strategy -->
+          <xsd:attribute name="PDEorder" type="xsd:token" use="optional" default="">
+			      <xsd:annotation>
+			        <xsd:documentation xml:lang="en">
+			          Manually defines the order of the iteratively coupled PDEs.
+			          Multiple PDEs can be specified - use ";" or " " for separation.
+			          Example: mechanic;smooth
+			          Default order: Uncoupled PDEs with heat, mechanic and smooth at the end followed by coupledPDEs
+			        </xsd:documentation>
+			      </xsd:annotation>
+			    </xsd:attribute>
         </xsd:extension>
       </xsd:complexContent>
     </xsd:complexType>
@@ -104,6 +115,8 @@
               <xsd:enumeration value="magFluxDensity"/>
               <xsd:enumeration value="magForceLorentz"/>
               <xsd:enumeration value="mechDisplacement"/>
+              <xsd:enumeration value="mechVelocity"/>
+              <xsd:enumeration value="mechVelocityElem"/>
               <xsd:enumeration value="mechStrain"/>
               <xsd:enumeration value="mechAcceleration"/>
               <xsd:enumeration value="elecPower"/>
@@ -111,6 +124,10 @@
               <xsd:enumeration value="magEnergy"/>
               <xsd:enumeration value="magJouleLossPowerDensity"/>
               <xsd:enumeration value="magElemPermeability"/>
+              <xsd:enumeration value="smoothDisplacement"/>
+              <xsd:enumeration value="smoothVelocity"/>
+              <xsd:enumeration value="fluidMechVelocity"/>
+              <xsd:enumeration value="fluidMechPressure"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
