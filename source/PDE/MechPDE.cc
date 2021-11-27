@@ -2373,7 +2373,21 @@ namespace CoupledField {
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
       //feFunctions_[MECH_VELOCITY] = vFct;
-      
+
+      // === MECHANIC VELOCITY ELEMRES===
+      shared_ptr<ResultInfo> velElem(new ResultInfo);
+      velElem->resultType = MECH_VELOCITY_ELEM;
+      velElem->dofNames = dispDofNames;
+      velElem->unit = "m/s";
+      velElem->entryType = ResultInfo::VECTOR;
+      velElem->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( velElem );
+      PtrCoefFct velFct= this->GetCoefFct( MECH_VELOCITY );
+      PtrCoefFct velFctCoef;
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+      velFctCoef  = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, velFct , CoefXpr::OP_ADD ) );
+      DefineFieldResult(velFctCoef, velElem);
+
       // === MECHANIC ACCELERATION ===
       shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = MECH_ACCELERATION;

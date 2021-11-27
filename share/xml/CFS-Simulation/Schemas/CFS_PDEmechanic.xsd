@@ -652,7 +652,10 @@
       <xsd:enumeration value="optResult_63"/>
       <xsd:enumeration value="optResult_64"/>
       <xsd:enumeration value="optResult_65"/>
-      <xsd:enumeration value="optResult_66"/>      
+      <xsd:enumeration value="optResult_66"/>
+      
+      <!-- mechVelocity but only defined on elements to be able to read it with ReadUserVariables() -->
+      <xsd:enumeration value="mechVelocityElem"/>
     </xsd:restriction>
   </xsd:simpleType>
 
