@@ -493,7 +493,7 @@ namespace CoupledField {
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
       eigenSolver_ =
-          GenerateEigenSolverObject( (*sysMat_[SYSTEM])(0,0), solStrat_,
+          GenerateEigenSolverObject(  solStrat_,
                                      esNode, sNode, pNode,
                                      myInfo_->Get("solve_eigen") );
     } else {
@@ -666,7 +666,7 @@ namespace CoupledField {
       PtrParamNode sNode = myParam_->Get("solverList");
       PtrParamNode pNode = myParam_->Get("precondList");
 
-      BaseEigenSolver * evs = GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_,
+      BaseEigenSolver * evs = GenerateEigenSolverObject( solStrat_,
                                      esNode, sNode, pNode, myInfo_->Get("solve_eigen") );
       PtrParamNode in = myInfo_->Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
 

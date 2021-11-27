@@ -3,6 +3,7 @@ SET(SOLVER_SRCS
     BaseEigenSolver.cc
     generateEigensolver.cc    
     generatesolver.cc
+    QuadraticEigenSolver.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)

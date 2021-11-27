@@ -232,8 +232,17 @@
               <xsd:element name="valueShift" type="xsd:float" default="0.0"/>
             </xsd:choice>
             <xsd:choice minOccurs="0" maxOccurs="unbounded">
-              <xsd:element name="maxVal" type="xsd:token"/>
-              <xsd:element name="minVal" type="xsd:token" default="0"/>
+              <xsd:element name="maxVal" type="xsd:token">   <xsd:annotation>
+                <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its RIGHT intersection point with the real axis.</xsd:documentation>
+              </xsd:annotation> 
+              </xsd:element>
+              
+              <xsd:element name="minVal" type="xsd:token" default="0">
+                <xsd:annotation>
+                  <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its LEFT intersection point with the real axis.</xsd:documentation>
+                </xsd:annotation> 
+              </xsd:element>
+              
             </xsd:choice>
           </xsd:choice>
           <xsd:element name="calcModes" minOccurs="0">
@@ -266,10 +275,21 @@
               <xsd:element name="numModes" type="xsd:token"/>
               <xsd:element name="freqShift" type="DT_NonNegFloat"/>
             </xsd:choice>
+            
             <xsd:choice minOccurs="0" maxOccurs="unbounded">
-              <xsd:element name="minVal" type="xsd:token" default="0" minOccurs="0"/>
-              <xsd:element name="maxVal" type="xsd:token"/>
+              <xsd:element name="maxVal" type="xsd:token">   <xsd:annotation>
+                <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its RIGHT intersection point with the real axis.</xsd:documentation>
+              </xsd:annotation> 
+              </xsd:element>
+              
+              <xsd:element name="minVal" type="xsd:token" default="0">
+                <xsd:annotation>
+                  <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its LEFT intersection point with the real axis.</xsd:documentation>
+                </xsd:annotation> 
+              </xsd:element>
+              
             </xsd:choice>
+            
           </xsd:choice>
           <xsd:element name="writeModes">
             <xsd:complexType>

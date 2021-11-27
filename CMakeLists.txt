@@ -133,6 +133,7 @@ if(UNIX)
   option(BUILD_CPACK_BINARY "Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py" ${BUILD_CPACK_BINARY_DEFAULT})
 endif()
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
+option(BUILD_QUADEIGENSOLVER "Build the Quadratic Eigenvalue Solver to linearise the problem, requires another solver for the resulting generalised EVP" ${BUILD_QUADEIGENSOLVER_DEFAULT})
 
 # USE_* triggers more or less optional external dependencies.
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
@@ -245,6 +246,11 @@ if(NOT USE_METIS)
   endif() 
 endif()
 
+if(BUILD_QUADEIGENSOLVER AND NOT (USE_FEAST OR USE_ARPACK OR USE_PHIST ))
+  message(WARNING "BUILD_QUADEIGENSOLVER=ON but not solver for the resulting generalised EVP is present\n
+                   switch on FEAST (tested), ARPACK or PHIST (untested).")
+endif()
+
 #-----------------------------------------------------------------------------
 # Do conditional settings after sanity checks have passed
 #-----------------------------------------------------------------------------
@@ -316,6 +322,7 @@ mark_as_advanced(BUILD_HDFVIEW)
 mark_as_advanced(BUILD_H5TOOL)
 mark_as_advanced(BUILD_GHOST)
 mark_as_advanced(BUILD_HWLOC)
+mark_as_advanced(BUILD_QUADEIGENSOLVER)
 mark_as_advanced(XMLSCHEMA)
 mark_as_advanced(USE_XERCES)
 mark_as_advanced(USE_LIBXML2)

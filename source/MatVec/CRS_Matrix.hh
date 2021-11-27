@@ -432,6 +432,10 @@ namespace CoupledField {
     //!  v might be a Double, Complex or a tiny Matrix of either type
     void GetMatrixEntry( UInt i, UInt j, T &v ) const;
 
+    //! Returns the row, column and data vectors that define a CRS matrix, see https://de.wikipedia.org/wiki/Compressed_Row_Storage
+    void GetVectors( StdVector<UInt> *Vec_col, StdVector<UInt> *Vec_row, StdVector<T> *Vec_val ) const;
+
+
     //! Check if matrix has a certain entry
 
     //! This function returns a reference to the Matrix entry in

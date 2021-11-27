@@ -14,7 +14,6 @@ namespace CoupledField {
   // forward class declarations
   class BaseEigenSolver;
   class BaseMatrix;
-  
 
   //! Generate a basic solver object
 
@@ -26,13 +25,12 @@ namespace CoupledField {
   //! \param solverList Pointer to <solverList> element
   //! \param precondList Pointer to <precondList> element
   //! \param eigenInfo Output element in info-tree
-  BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
-                                               shared_ptr<SolStrategy> strat,
+  BaseEigenSolver* GenerateEigenSolverObject( shared_ptr<SolStrategy> strat,
                                                PtrParamNode eSolverList,
                                                PtrParamNode solverList,
                                                PtrParamNode precondList,
-                                               PtrParamNode eigenInfo );
-
+                                               PtrParamNode eigenInfo,
+                                               const std::string& opt_solver_string="");
 }
 
 #endif

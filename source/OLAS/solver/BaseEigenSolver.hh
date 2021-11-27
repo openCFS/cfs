@@ -33,7 +33,7 @@ namespace CoupledField {
   public:
     //! Type of EigenSolver
 
-    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST, FEAST, PALM} EigenSolverType;
+    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST, FEAST, PALM, QUADRATIC} EigenSolverType;
     //! This enumeration data type describes the type of eigensolver which is
     //! applied to solve a generalized eigenvalue problem. The enumeration
     //! contains the following:
@@ -42,6 +42,7 @@ namespace CoupledField {
     //! - PHIST
     //! - FEAST
     //! - PALM
+    //! - QUADRATIC
     static Enum<EigenSolverType> eigenSolverType;
 
     EigenSolverType eigenSolverType_;
@@ -89,6 +90,9 @@ namespace CoupledField {
 
     //! Get type of eigenvalue problem to be solved
     bool IsQuadratic() const {return isQuadratic_;}// ToDo: remove due to new structure
+
+    //TODO:For testing, remove
+    // BaseEigenSolver* Getirgendwas(){return NULL;}
 
     /** do we calculate in complex generalized EV mode */
     bool IsBloch() const { return isBloch_; }// ToDo: remove due to new structure

@@ -1507,6 +1507,47 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    QUADRATIC EIGENVALUE SOLVER                    == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  <xsd:element name="quadratic" type="DT_EigenSolverQuadratic" substitutionGroup="EigenSolverBasic"/>
+  
+  <xsd:complexType name="DT_EigenSolverQuadratic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_EigenSolverBasic">
+        <xsd:all>
+          <xsd:element name="generalisedEigenSolver" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Choose the generalise eigen solver to use by specifying id=...</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="id" type="xsd:token" use="required">
+              </xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="linearisation" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Choose which linearisation scheme to use</xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="firstCompanion"/>
+                <xsd:enumeration value="secondCompanion"/>
+              </xsd:restriction>
+           </xsd:simpleType> 
+          </xsd:element>            
+        </xsd:all> 
+      </xsd:extension>       
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  
+  
+  
+  
     <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                    PHIST Linear SOLVER                    == -->
@@ -1527,8 +1568,5 @@
   </xsd:complexType>
   
  
-  
- 
-  
-  
+
 </xsd:schema>

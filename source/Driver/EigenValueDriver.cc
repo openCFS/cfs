@@ -179,43 +179,33 @@ void EigenValueDriver::Init(bool restart) {
 		  param_->Get("problemType")->Get("Quadratic")->GetValue("constant", strMatrixC, ParamNode::INSERT);
 
 		  if(strMatrixA == "mass"){
-		  		  matrixA_ = MASS;
+		  	matrixA_ = MASS;
 		  }
 		  if(strMatrixA == "damping"){
-		  matrixA_ = DAMPING;
+		    matrixA_ = DAMPING;
 		  }
 		  if(strMatrixA == "stiffness"){
-		  matrixA_ = STIFFNESS;
+		    matrixA_ = STIFFNESS;
 		  }
 
 		  if(strMatrixB == "mass"){
-				  matrixB_ = MASS;
+				matrixB_ = MASS;
 		  }
 		  if(strMatrixB == "damping"){
-		  matrixB_ = DAMPING;
+		    matrixB_ = DAMPING;
 		  }
 		  if(strMatrixB == "stiffness"){
-		  matrixB_ = STIFFNESS;
-		  }
-
-		  if(strMatrixA == "mass"){
-		  		  matrixA_ = MASS;
-		  }
-		  if(strMatrixA == "damping"){
-		  matrixA_ = DAMPING;
-		  }
-		  if(strMatrixA == "stiffness"){
-		  matrixA_ = STIFFNESS;
+		    matrixB_ = STIFFNESS;
 		  }
 
 		  if(strMatrixC == "mass"){
-				  matrixC_ = MASS;
+				 matrixC_ = MASS;
 		  }
 		  if(strMatrixC == "damping"){
-		  matrixC_ = DAMPING;
+		    matrixC_ = DAMPING;
 		  }
 		  if(strMatrixC == "stiffness"){
-		  matrixC_ = STIFFNESS;
+		    matrixC_ = STIFFNESS;
 		  }
 	  }
   }
@@ -275,6 +265,21 @@ void EigenValueDriver::SolveProblem() {
 
   // actually solve problem
   CalcEigenValues();
+  // populate errBounds
+  if( errBounds_.GetSize() == 0 && errBoundsComplex_.GetSize() > 0 ) { // error bounds are complex, set the real ones to abs
+    errBounds_.Resize(errBoundsComplex_.GetSize());
+    for (unsigned int i = 0; i < errBoundsComplex_.GetSize(); i++) {
+      errBounds_[i] = std::abs(errBoundsComplex_[i]);
+    }
+  } else if ( errBounds_.GetSize() > 0 && errBoundsComplex_.GetSize() == 0 ) { // err bounds are real, set complex accordingly
+    errBoundsComplex_.Resize(errBounds_.GetSize());
+    for (unsigned int i = 0; i < errBounds_.GetSize(); i++) {
+      errBoundsComplex_[i] = Complex(errBounds_[i],0.0);
+    }
+  } else {
+    EXCEPTION("Both error bounds are empty? No Eigenvalues found?")
+  }
+
   numSteps_ = eigenValuesComplex_.GetSize();
   SortModes();
   PrintResult();
@@ -320,12 +325,10 @@ void EigenValueDriver::CalcEigenValues() {
         bool complexEV = solver->HasComplexEigenvalues();
         if (inputMethod_ == 1) { // we have an interval
           if (complexEV) {
-            Vector<Complex> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
           }
           else {
-            Vector<Double> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
           }
         }
         else{ if (inputMethod_ == 2) // inputMethod_ = numMode & valueShift
@@ -362,11 +365,9 @@ void EigenValueDriver::CalcEigenValues() {
         bool complexEV = solver->HasComplexEigenvalues();
         if (inputMethod_ == 1) { // we have an interval
           if (complexEV) {
-            Vector<Complex> evals,errs;
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
           }
           else {
-            Vector<Double> evals,errs;
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
           }
         }
@@ -404,15 +405,13 @@ void EigenValueDriver::CalcEigenValues() {
         assert(matrixC->GetNumCols() == matrixC->GetNumRows());
 
         if (inputMethod_ == 1) { // we have an interval
-        solver->Setup(*(matrixA->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixC->GetPointer(0, 0)));
+        solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
         bool complexEV = solver->HasComplexEigenvalues();
           if (complexEV) {
-            Vector<Complex> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
           }
           else {
-            Vector<Double> evals,errs;
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
           }
         }
         else{ if (inputMethod_ == 2) // inputMethod_ = numMode & valueShift
@@ -422,7 +421,7 @@ void EigenValueDriver::CalcEigenValues() {
           	      info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for EigenValue. Changed to 0.1.");
           	    }
 
-                solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)));
+                solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
                 //check storage type
 
           	    solver->CalcEigenValues(eigenValuesComplex_, errBounds_, numValue_, shiftPoint_);

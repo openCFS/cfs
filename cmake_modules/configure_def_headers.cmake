@@ -14,6 +14,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
+  "${CFS_BINARY_DIR}/include/def_build_quadeigensolver.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 
@@ -117,6 +120,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgns.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmsh.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
+  "${CFS_BINARY_DIR}/include/def_build_quadeigensolver.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmv.hh")

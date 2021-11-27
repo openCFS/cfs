@@ -574,15 +574,12 @@ namespace CoupledField {
   void CRS_Matrix<T>::SetSparsityPatternData( const StdVector<UInt>& rowP,
                                                const StdVector<UInt>& colI,
                                                const StdVector<T>& data){
-
     // Check that no pattern was allocated
     if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ||
         this->nrows_ != (rowP.GetSize() - 1) ) {
       EXCEPTION( "There seems to already be a sparsity pattern!" );
     }
-
     //if(this->nrows_ != (rowP.GetSize() - 1) ) EXCEPTION("CRS_Matrix: rowPointer-1 has other size than number of rows!!")
-
     this->nrows_ = rowP.GetSize() - 1;
     this->nnz_ = colI.GetSize();
 
@@ -596,11 +593,19 @@ namespace CoupledField {
 
     for (UInt i = 0; i < rowP.GetSize(); ++i ) {
       rowPtr_[i] = rowP[i];
-
     }
     for(UInt i = 0; i < colI.GetSize(); ++i ){
+//      std::cout << colI.GetPointer();
+//      std::cout << "\n";
+//      std::cout << data_;
+//      std::cout << "\n";
+    	//std::cout << *(colI.GetPointer()+i);//TODO: for debugging, remove after
+      //std::cout << "\n";
+    	//std::cout << colI[i];
+//      std::cout << "\n";
       colInd_[i] = colI[i];
       data_[i] = data[i];
+
       if(colI[i] > maxCol) maxCol = colI[i];
     }
 
@@ -1264,6 +1269,23 @@ namespace CoupledField {
       EXCEPTION( "GetMatrixEntry: Index pair = (" << i << " , "
                << j << ") not found\n" );
     }
+  }
+
+  // ***************************************************
+  //   Get the row, column and data vectors of a matrix
+  // ***************************************************
+  template<typename T>
+  void CRS_Matrix<T>::GetVectors(StdVector<UInt> *Vec_col, StdVector<UInt> *Vec_row, StdVector<T> *Vec_val ) const {
+  	UInt i,j=0, k;
+  	*(Vec_row->GetPointer()) =0;
+  	    for ( i = 0; i < this->nrows_; i++ ) {
+  	      for ( k = rowPtr_[i]; k < rowPtr_[i+1]; k++ ) {
+  	        *(Vec_row->GetPointer()+i+1) =j+1;
+  	        *(Vec_col->GetPointer()+j)=colInd_[k];
+  	        *(Vec_val->GetPointer()+j)=data_[k];
+  	        j++;
+  	      }
+  	    }
   }
 
 

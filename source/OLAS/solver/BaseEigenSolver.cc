@@ -11,6 +11,7 @@ namespace CoupledField {
     EnumTuple( BaseEigenSolver::PHIST, "phist"),
     EnumTuple( BaseEigenSolver::FEAST, "feast" ),
     EnumTuple( BaseEigenSolver::PALM, "palm" ),
+    EnumTuple( BaseEigenSolver::QUADRATIC, "quadratic" ),
   };
 
   // unbelievable how complicated easy stuff can be written :(

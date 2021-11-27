@@ -389,10 +389,14 @@ namespace CoupledField {
     // Start of FEAST section and layout for new, more flexible structure which does not rely on the intermediate
     // functions in algSys, StdSolveStep, ...
     BaseEigenSolver::EigenSolverType solverType = dynamic_cast<StdSolveStep*>(step)->GetAlgSys()->GetEigenSolver()->eigenSolverType_;
-    if (maxVal_>0 || solverType==BaseEigenSolver::PALM ) { // use only for feast and PALM -> TODO: remove this if
+
+
+
+      if (maxVal_>0 || solverType==BaseEigenSolver::PALM || solverType==BaseEigenSolver::QUADRATIC) { // use only for feast and PALM -> TODO: remove this if
       // here we should - do the necessary computation depending on the problem type
       StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
       BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
+
       // initialize AlgSys
       sstep->GetAlgSys()->InitSol();
       sstep->GetAlgSys()->InitMatrix();
@@ -450,7 +454,13 @@ namespace CoupledField {
               eigsRe_[i] = evals[i].real();
               eigsIm_[i] = evals[i].imag();
           }
-          Eig2FreqDamp(evals,frequency_,dampingRatio_);
+          if (isQuadratic_){
+            Vector<double> fd;
+            QuadEig2FreqDamp(eigsRe_,eigsIm_,fd,frequency_,dampingRatio_);
+          }
+          else {
+            Eig2FreqDamp(evals,frequency_,dampingRatio_);
+          }
         }
         else {
           Vector<Double> evals,errs;
@@ -459,17 +469,13 @@ namespace CoupledField {
           eigsRe_ = evals;
           eigsIm_.Resize(evals.GetSize(),0.0);
           Eig2Freq(evals,frequency_);
+          dampingRatio_.Resize(evals.GetSize(),0.0);
         }
-        Vector<Complex> ev(eigsRe_.GetSize());
-        for (int i=0;i<(int)eigsRe_.GetSize();i++) {
-          ev[i] = Complex( eigsRe_[i], eigsIm_[i] );
-        }
-        Eig2FreqDamp(ev,frequency_,dampingRatio_);
+
         // info output: ToDo: make this pretty
         std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
         std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
         std::cout << "Frequency = " << frequency_.ToString() << "\n";
-
         std::cout << "dampingRatio = " << dampingRatio_.ToString() << "\n";
         SortModes();
         int n = 15; // field width
@@ -521,14 +527,41 @@ namespace CoupledField {
         // check if the eigenvalues will be complex
         if(isQuadratic_)
         {
-          Vector<Complex> evals,errs;
-          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
-          eigsRe_.Resize(evals.GetSize());
-          eigsIm_.Resize(evals.GetSize());
-          for (int i=0;i<(int)evals.GetSize();i++) {
-            eigsRe_[i] = evals[i].real();
-            eigsIm_[i] = evals[i].imag();
-          }
+          if(solverType==BaseEigenSolver::PALM)
+            {
+              Vector<Complex> errs,evals;//PALM wants an complex errs vector, while arpack wants a double
+              sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
+              eigsRe_.Resize(evals.GetSize());
+              eigsIm_.Resize(evals.GetSize());
+              for (int i=0;i<(int)evals.GetSize();i++) {
+                eigsRe_[i] = evals[i].real();
+                eigsIm_[i] = evals[i].imag();
+            }}
+          else if(solverType==BaseEigenSolver::QUADRATIC)
+            {
+              Vector<Double> errs;
+              Vector<Double> evals;
+              sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
+              eigsRe_.Resize(evals.GetSize());
+              eigsIm_.Resize(evals.GetSize());
+              for (int i=0;i<(int)evals.GetSize();i++) {
+                eigsRe_[i] = evals[i]; //TODO:arpack expects only real valued solution, which does not correspond to the problem
+
+            }}
+          else
+            {
+              Vector<Double> errs;
+              Vector<Complex> evals;
+              sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues( evals, errs, numFreq_, 2*M_PI*freqShift_ );
+              eigsRe_.Resize(evals.GetSize());
+              eigsIm_.Resize(evals.GetSize());
+              for (int i=0;i<(int)evals.GetSize();i++) {
+                eigsRe_[i] = evals[i].real();
+                eigsIm_[i] = evals[i].imag();
+            }}
+
+
+
           Vector<Double> frequency_damped_;
           QuadEig2FreqDamp(eigsRe_, eigsIm_ ,frequency_, frequency_damped_,dampingRatio_);
 

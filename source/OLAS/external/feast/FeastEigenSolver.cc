@@ -293,8 +293,10 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
 
         // output parameters
         double epsout;
+        assert(sol.IsComplex()); // otherwise bad cast below ...
         Vector<Complex>& E_c = dynamic_cast<Vector<Complex>&>(sol); // eigenvalues
         Vector<double> E; E.Resize(2*m0_,0.0); // factor 2 for complex
+        assert(err.IsComplex()); // otherwise bad cast below ...
         Vector<Complex>& res_c = dynamic_cast<Vector<Complex>&>(err); // Relative residual
         Vector<double> res; res.Resize(2*m0_,0.0); // factor 2 for complex
         Vector<double> X; X.Resize(2*n_*m0_*2);// eigenvectors (if needed) //factor 2 for complex // factor 2 for L and R

@@ -355,6 +355,11 @@ namespace CoupledField {
     //!  v might be a Double, Complex or a tiny Matrix of either type
     void GetMatrixEntry( UInt i, UInt j, T &v ) const;
 
+    //! Returns the Indices of column, row and the data as a vector.
+    //! Should be the same result as in ExportMatrixMarket().
+
+    void GetVectors( StdVector<UInt> *Vec_col, StdVector<UInt> *Vec_row, StdVector<T> *Vec_val ) const;
+
     //! Set the diagonal entry of row i to the value of v
     virtual void SetDiagEntry( UInt i, const T &v ) {
       data_[rowPtr_[i]] = v;

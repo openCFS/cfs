@@ -2,6 +2,7 @@
 #include <def_use_phist_ev.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_feast.hh>
+#include <def_build_quadeigensolver.hh>
 #include <def_use_superlu.hh>
 
 #include "MatVec/BaseMatrix.hh"
@@ -30,6 +31,10 @@
   #include "PALMSolver.hh"
 #endif
 
+
+#include "QuadraticEigenSolver.hh"
+
+
 namespace CoupledField {
 
 DEFINE_LOG(genEigSolver, "genEigSolver")
@@ -37,18 +42,25 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
   // *********************************
   //   Generate a EigenSolver object
   // *********************************
-  BaseEigenSolver* GenerateEigenSolverObject( BaseMatrix &mat, 
-                                              shared_ptr<SolStrategy> strat,
+  BaseEigenSolver* GenerateEigenSolverObject( shared_ptr<SolStrategy> strat,
                                               PtrParamNode eSolverList,
                                               PtrParamNode solverList,
                                               PtrParamNode precondList,
-                                              PtrParamNode  eigenInfo ) {
+                                              PtrParamNode  eigenInfo,
+                                              const std::string& opt_solver_string) {
     
     BaseEigenSolver* retSolver = NULL;
 
+    // If an optional solver is given via string create it, otherwise create the one given in strat
+    std::string eSolverId="";
+    if(opt_solver_string.length()){
+      eSolverId = opt_solver_string;
+    }
+    else{
+      eSolverId = strat->GetEigenSolverId();
+    }
     // Obtain current eigensolver id from strategy object and try
     // to find eigenSolver in xml list.
-    std::string eSolverId = strat->GetEigenSolverId();
     ParamNodeList sNodes =  eSolverList->GetChildren();
     LOG_DBG(genEigSolver) << "GESO: id=" << eSolverId << " childs=" << sNodes.GetSize();
     PtrParamNode eSolverXML;
@@ -81,6 +93,13 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
     solver = BaseEigenSolver::eigenSolverType.Parse(solverStr);
 
     LOG_DBG(genEigSolver) << "GESO: solver -> " << solverStr;
+
+    // Failsafe if the optional solver given was QUADRATIC to avoid a recursion.
+    if(opt_solver_string.length()){
+      if(solver==BaseEigenSolver::QUADRATIC){
+        EXCEPTION("Use a different Solver for the GEVP, e.g. FEAST");
+      }
+    }
 
     // Branch depending on desired EigenSolver
     switch(solver)
@@ -117,6 +136,14 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
       #endif
         break;
 
+    case BaseEigenSolver::QUADRATIC:
+      #ifdef BUILD_QUADEIGENSOLVER
+        retSolver = new QuadraticEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo,eSolverList);
+      #else
+        EXCEPTION( "compiled without Quadratic Eigenvalue solver: set BUILD_QUADEIGENSOLVER=ON to use the Quadratic Eigenvalue solver" );
+      #endif
+        break;
+
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
     }
@@ -124,5 +151,4 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
     retSolver->eigenSolverType_ = solver;
     return retSolver;
   }
-
 }
