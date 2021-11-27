@@ -45,6 +45,7 @@
                     <xsd:attribute name="name" type="xsd:token" use="required"/>                    
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="movingMeshId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -84,6 +85,18 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="velocity" type="DT_BcInhomVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining moving grids -->
+          <xsd:element name="movingMeshList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines the grid velocity for the ALE-formulation</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="movingMesh" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -218,6 +231,7 @@
         <xsd:attribute name="presIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="velIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="factorC1" type="xsd:double" default="2.0"/>
         <xsd:attribute name="enableC2" type="xsd:boolean" default="false">
           <xsd:annotation>
             <xsd:documentation>Enables the second convective term in the balance of momentum:
@@ -230,6 +244,22 @@
           <xsd:annotation>
             <xsd:documentation>Enables the third convective term in the balance of momentum:
               v' . rho0/(gamma p0) v0.Grad(v0) p
+              Only active if formulation=compressible.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="enableGridVelC1" type="xsd:boolean" default="true">
+          <xsd:annotation>
+            <xsd:documentation>Enables the convective term caused by the grid velocity in the balance of mass:
+              \int_{Omega_f} v_g/K \phi \grad{p_a} d\Omega
+              Only active if formulation=compressible.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="enableGridVelC2" type="xsd:boolean" default="true">
+          <xsd:annotation>
+            <xsd:documentation>Enables the convective term caused by the grid velocity in the balance of momentum:
+              \int_{Omega_f} \rho v' (v_g \cdot \grad{v}) d\Omega
               Only active if formulation=compressible.
             </xsd:documentation>
           </xsd:annotation>
@@ -341,6 +371,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechVelocity"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
+      <xsd:enumeration value="fluidMechMeshVelocity"/>
       <xsd:enumeration value="fluidMechPressure"/>
       <xsd:enumeration value="acouRhsLoad"/>
     </xsd:restriction>

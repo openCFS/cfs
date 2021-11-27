@@ -78,6 +78,9 @@ namespace CoupledField
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
 
+//    //! Finalize before a time step is done
+//    void FinilizeBeforTimeStep();
+
     //! SubType (plane, axi, 3D)
     std::string subType_;
 
@@ -142,9 +145,27 @@ namespace CoupledField
     bool enableC2_;
     bool enableC3_;
 
+    //! actiavtes convective term in the conservation of mass caused by the grid velocity (ALE-stuff)
+    bool enableGridVelC1_;
+
+    //! actiavtes convective term in the conservation of momentum caused by the grid velocity (ALE-stuff)
+    bool enableGridVelC2_;
+
+    //! amplitude factor for first convective term in case of varying background flow
+    Double factorC1_;
+
     //! true, if coupled to Heat PDE
     bool isHeatCoupled_;
 
+  private:
+
+    //! Coefficient function for the moving mesh
+
+    //! This coefficient function describes the moving mesh for the ALE formulation. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> gridVelCoef_;
+    shared_ptr<CoefFunction> gridVelCoef_Scattered_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
