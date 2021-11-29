@@ -74,7 +74,6 @@ private:
   UInt timeStep_;
 
   UInt globalIter_;
-  UInt count_=0;
   double isMH_;
 
   std::string varHandle_;
