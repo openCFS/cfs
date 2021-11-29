@@ -580,7 +580,7 @@ def auto_threshold_filter(data, min, target, material_penalty):
     else:
       upper = mid
   
-  return threshold_filter(data, lower, min, 1), lower   
+  return threshold_filter(data, mid, min, 1), mid   
 
 # # interpolates a floating point coordinate within an numpy.array
 # @param data an numpy.array

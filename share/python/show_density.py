@@ -9,17 +9,6 @@ import glob
 # Image.fromarray(255* data.T).transpose(Image.FLIP_TOP_BOTTOM).show()
 # with data being an array
 
-def refine(vals, size):
-  new = numpy.zeros((2*size, 2*size), dtype="uint8")
-  for i in range(size):
-    for j in range(size):
-      val = vals[i,j]
-      new[2*i,2*j] = val 
-      new[2*i+1,2*j] = val 
-      new[2*i,2*j+1] = val 
-      new[2*i+1,2*j+1] = val
-  return new
-
 
 #@ return image, density_array
 def density_to_image(filename, set, design, fillval=0.0):
@@ -40,7 +29,6 @@ def density_to_image(filename, set, design, fillval=0.0):
     sys.exit("can handle only 2D data")
 
   # the image needs to be transposed, as the first index is y (row) and the second the column!
-
   ret = numpy.zeros((y, x), dtype="uint8")
   
   # copy data from linear list
@@ -80,7 +68,11 @@ def get_image(input, set, design, fill=0.0):
   
   if args.orgsize:
     args.resize = img.size
-  
+  else:
+    print(args.resize)
+    if len(args.resize) == 1: # default is [800]
+      args.resize = (args.resize[0], int(args.resize[0] * (img.size[1]/img.size[0])))          
+  print(args.resize)
   img = img.resize(args.resize, Image.NEAREST)
   
   return img, dens
@@ -102,12 +94,6 @@ parser.add_argument('--tileborder', help="show tile borders when repeating patch
 parser.add_argument('--fill', help="fill elements without density information with this pseudodensity value", type=float, default="0.0")
 
 args = parser.parse_args()
-
-# later overwritten if args.orgsize is set
-if len(args.resize) == 1:
-    args.resize = (args.resize[0], args.resize[0])
-elif len(args.resize) > 2:
-    args.resize = args.resize[0:2]
 
 input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
 if not args.saveall:
@@ -168,6 +154,9 @@ else:
       assert(img.size[0] == img.size[1]) # extend if you need
       if args.orgsize: # otherwise args.resize is set above
         args.resize = (img.size[0]*args.tile, img.size[1]*args.tile)
+      else:
+        if len(args.resize) == 1: # default is [800]
+          args.resize = (args.resize[0], int(args.resize[0] * (img.size[1]/img.size[0])))
       img = img.resize((int(args.resize[0]/args.tile), int(args.resize[1]/args.tile)), Image.NEAREST)
       nx, ny = img.size
       dat = numpy.array(img) 
