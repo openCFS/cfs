@@ -33,6 +33,8 @@
 #include <def_use_unv.hh>
 #include <def_use_xerces.hh>
 #include <def_xmlschema.hh>
+#include <def_xmlschema.hh>
+#include <def_config.hh>
 
 #ifdef USE_MKL
 #include <mkl_service.h>
@@ -504,7 +506,7 @@ void Dependencies::ReadSetting()
   data.Push_back(Dependency("bzip2", "", BZ2_bzlibVersion(), EASY));
 
   // https://github.com/beltoforion/muparser
-  data.Push_back(Dependency("muparser", "", MUP_VERSION, BSD, "", MUP_VERSION_DATE));
+  data.Push_back(Dependency("muparser", "", MUP_VERSION, BSD, ""));
 
   Dependency hdf5("hdf5", "", BSD);
   hdf5.SetVersion(H5_VERS_MAJOR,H5_VERS_MINOR,H5_VERS_RELEASE);

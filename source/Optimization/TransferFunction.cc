@@ -145,14 +145,10 @@ void TransferFunction::InitParser(const string& func_expr, const string& deriv_e
   parser_ = domain->GetMathParser();
   function_handle_  = parser_->GetNewHandle();
   derivative_handle_= parser_->GetNewHandle();
-  if(param_ != 1.0) {
-    parser_->SetValue(function_handle_, "p", param_);
-    parser_->SetValue(derivative_handle_, "p", param_);
-  }
-  if(beta_ != 1.0) {
-    parser_->SetValue(function_handle_, "b", beta_);
-    parser_->SetValue(derivative_handle_, "b", beta_);
-  }
+  parser_->SetValue(function_handle_, "p", param_);
+  parser_->SetValue(derivative_handle_, "p", param_);
+  parser_->SetValue(function_handle_, "b", beta_);
+  parser_->SetValue(derivative_handle_, "b", beta_);
   parser_->RegisterExternalVar(function_handle_, "rho", &expression_rho_);
   parser_->RegisterExternalVar(derivative_handle_, "rho", &expression_rho_);
   parser_->SetExpr(function_handle_, func_expr);

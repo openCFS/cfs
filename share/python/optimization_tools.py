@@ -2,6 +2,7 @@
 from cfs_utils import *
 
 import numpy
+import numpy as np
 import numpy.linalg
 import math
 import os
@@ -9,7 +10,7 @@ import sys
 import scipy.io
 from lxml import etree
 from PIL import Image
-
+from collections import OrderedDict
 
 # dump some information about a density file
 def print_design_info(filename, attribute, set = None, fill = None):
@@ -20,6 +21,18 @@ def print_design_info(filename, attribute, set = None, fill = None):
     print("failed to read '" + attribute + "'")
     #print  sys.exc_info()
 
+## test for a <element  /> attribute. Takes the first set
+# can be slow on large files!!
+def has_attribute(filename, attribute):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  
+  xml = open_xml(filename)
+  res = xml.xpath('//set/element')
+  if len(res) > 0 and attribute in res[0].attrib:
+    return True
+  else:
+    return False
 
 # # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
@@ -63,7 +76,6 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
           idx = int(x * y * k + x * j + i)
           # print "i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(idx)
           setNDArrayEntry(ret, i, j, k, vals[idx])
-
   
   if len(vals) < x * y * z:
     if fill == None:
@@ -1370,6 +1382,94 @@ def calc_grayness(filename):
   physGray = numpy.average(4*physDens*(1-physDens))
   
   return param, gray, physGray
+      
+## convert a a data array to a rgb image  
+# this is copy & paste & modify from mesh_tool.py show_dense_mesh_image()
+def data_to_image(data, show = False):
+  img = Image.new("RGB", data.shape, "white")
+  pix = img.load()
+
+  nx, ny = data.shape
+
+  for x in range(nx):
+    for y in range(ny):
+      val = 1 - data[x,y]  # black is 0 in the image but 1 as density
+      pix[x, ny - y - 1] = (int(val * 255), int(val * 255), int(val * 255))
+
+  if show:
+    x_res = 800
+    img = img.resize((x_res, int(ny * x_res / nx)), Image.NEAREST)
+    img.show()
+  return img
+
+
+# tol: tolerance to detect checkerboard (0,1]
+def checkerboard(data, image = True, tol = .1):
+  solid = np.zeros(data.shape)
+  void  = np.zeros(data.shape)  
+  
+  img = data_to_image(data) if image else None
+  pix = img.load() if image else None
+  
+  nx, ny = data.shape
+
+  sum_s = 0
+  sum_w = 0
+
+  for x in range(1,nx-1):
+    for y in range(1,ny-1):
+       v = data[x,y]
+       l = data[x-1,y]
+       r = data[x+1,y]
+       t = data[x,y+1]
+       b = data[x,y-1]
+       
+       # thesis Fabian Wein A.7 and A.8 
+       s = max(max(0,v - max(l,r)),max(0,v - max(t,b))) 
+       w = max(max(0,min(l,r) - v),max(0,min(t,b) - v))
+       #if s > 0 and w > 0:
+       #  print(s,w)
+       #assert not (s > 0 and w > 0)
+       if s > tol and s > w: # only in very rare cases we have s > 0 and w > 0
+         if image: 
+           pix[x,ny - y - 1] = (0,0,127+int(s*127))
+         sum_s += s
+       if w > tol and w >= s:
+         if image:
+           pix[x,ny - y - 1] = (127+int(w*127),0,0)
+         sum_w += w   
+       solid[x,y] = s
+       void[x,y]  = w
+  
+  cb = (sum_s + sum_w) / ((nx-2) * (ny-2)) # normalze checkerboard by inner area
+    
+  if image:
+    return cb, img
+  else:
+    return cb 
+      
+def extract_density_info(data):
+  dict = OrderedDict()
+  dict['min'] = np.amin(data)
+  dict['max'] = np.amax(data)
+  dict['vol'] = np.mean(data)
+  dict['grayness'] = np.sum(data*(1-data))/np.size(data)     
+  dict['checkerboard'] = checkerboard(data, image = False)
+  return dict    
+ 
+def extract_all_density_info(plain, physical, silent = False):
+  res = OrderedDict()
+  for t in [(plain, 'plain'), (physical, 'physcial')]:
+    o = t[0]
+    l = t[1]
+    if not o is None:
+      dict = extract_density_info(o)
+      for key in dict:
+        if not silent:
+          print('# ' + l + '_' + key + ': \t{:g}'.format(dict[key]))
+        res[l + '_' + key] = str(dict[key])
+        
+  return res        
       
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11

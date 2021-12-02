@@ -2,13 +2,14 @@
 import sys
 import argparse
 from cfs_utils import *
+import numpy as np
 
 ## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on
 # @param cnt counter of the calls (start with 0) for qsub only to define dependencies
 # @param short_problem the short name of the problem where the variation will be added
 # @param org_problem the name of the problem file including .xml 
-def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_problem, executable, show, failsafe = False, range_idx = -1, qsub = None, plot = None, maxIter = None):
+def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_problem, executable, show, failsafe = False, range_idx = -1, qsub = None, plot = None, maxIter = None, cmdonly = False):
 
   assert(range_idx < 26) # is 25 is z
   # to make use of range_idx. In the -1 case we don't use this below anyway
@@ -23,12 +24,8 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
   else:
     if type == 'curvature':
       var_name = '-curv_'
-    elif type == 'rel_profile_bound':
-      var_name = '-rpb_'
-    elif type == 'rel_node_bound':
-      var_name = '-rnb_'      
-    elif type == 'alphaSlackQuotient':
-      var_name = '-asq'
+    if type == 'penalty':
+      var_name = '-pen_'
     else:
       var_name = '-' + type + '_'  
 
@@ -38,9 +35,9 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
   # start is initial if given ofr old_var = -1 or nothing for the first run (old_var == -1)
   start = ""  
   if old_var == -1 and initial != None:
-    start = "-x " + initial
+    start = "-x " + initial + " "
   if old_var > -1:   
-    start = "-x " + old_problem + dens_ext
+    start = "-x " + old_problem + dens_ext + " "
 
   xml = open_xml(org_problem)     
 
@@ -54,14 +51,10 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
         raise RuntimeError("beta not found for filter/density/@beta and shapeMap/@beta")
   elif type != 'warmstart': # nothing to be done for continuation
     query = None
+    if type == 'penalty':     
+      query = '//cfs:transferFunction/@param'
     if type == 'curvature':     
       query = '//cfs:constraint[@type="curvature"]/@value'
-    if type == 'rel_profile_bound': 
-      query = '//cfs:shapeMap/@relative_profile_bound'
-    if type == 'rel_node_bound': 
-      query = '//cfs:shapeMap/@relative_node_bound'
-    if type == 'alphaSlackQuotient':
-      query = '//cfs:constraint[@type="alphaSlackQuotient"]/@value'
     assert(query != None)
 
     r = replace(xml, query, str(var), unique = False)
@@ -70,11 +63,11 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
   
   if maxIter is not None:
     rmi = replace(xml, "//cfs:optimizer/@maxIterations", str(maxIter))
-    if rdf == 0:
+    if rmi == 0:
       raise RuntimeError("maxIterations not found for optimizer")
   xml.write(var_problem + ".xml")
   
-  cmd = executable + " " + start + " -m " + mesh + " " + var_problem
+  cmd = executable + " " + start + "-m " + mesh + " " + var_problem
   if qsub:
     # see http://beige.ucs.indiana.edu/I590/node45.html
     generate_qsub_script(qsub, cmd, var_problem + '.sh', silent = True)
@@ -85,15 +78,18 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
       print(('CONT' + str(cnt) + '=$(qsub -W depend=afterok:$CONT' + str(cnt-1) + ' ' + var_problem + '.sh)'))
       print(('echo $CONT' + str(cnt)))
   else:
-    execute(cmd, output=True, silent = failsafe)
-    if plot:
-      if old_var == -1:
-        # add header line once
-        if os.path.exists(var_problem + '.plot.dat'): 
-          plot.write(first_line(var_problem + '.plot.dat', '\t var'))
-      if os.path.exists(var_problem + '.plot.dat'):
-        plot.write(last_line(var_problem + '.plot.dat', '\t' + str(var)))    
-  if show:
+    if cmdonly:
+      print(cmd)
+    else:     
+      execute(cmd, output=True, silent = failsafe)
+      if plot:
+        if old_var == -1:
+          # add header line once
+          if os.path.exists(var_problem + '.plot.dat'): 
+            plot.write(first_line(var_problem + '.plot.dat', '\t var'))
+        if os.path.exists(var_problem + '.plot.dat'):
+          plot.write(last_line(var_problem + '.plot.dat', '\t' + str(var)))    
+  if show and not cmdonly:
     execute("show_density.py " + var_problem + dens_ext + " --save " + var_problem + ".png")
 
   return var_problem
@@ -107,32 +103,36 @@ def compress(org_problem):
   else:
     return False
       
-parser = argparse.ArgumentParser(description='Make continuation, e.g. for Heaviside. In the simple case just replace cfs by continuation.py. See also warmstart.py')
-parser.add_argument('input', nargs='+', help="first arguement cfs executable, second argument problem name")
+      
+txt =  'Make continuation, e.g. for Heaviside. In the simple case just replace cfs by continuation.py. See also warmstart.py.\n'
+txt += 'example: continuation.py cfs_rel killme -p mech.xml -m bulk2d_10.mesh --var penalty --range 1 4  --cmdonly'
+parser = argparse.ArgumentParser(description=txt)
+parser.add_argument('exe', help="cfs executable")
+parser.add_argument('name', nargs='?', help="optional problem name")
 parser.add_argument('-m', '--mesh', help="the mesh file with extension", required=True)
 parser.add_argument('-x', '--initial', help="optional density.xml(.gz) for initial design (with extension)")
-parser.add_argument('-p', '--problem', help="optional problem.xml if different from second input argument")
-parser.add_argument('--var', help="on which variable continuation shall be perfomed on. beta for filter or shape map", choices=['beta', 'curvature', 'rel_profile_bound', 'rel_node_bound','alphaSlackQuotient', 'warmstart'], default='beta')
-parser.add_argument('--start', help="initial variable or --range", type=float, default=1)
-parser.add_argument('--end', help="last variable which will be calculated or --range", type=float)
-parser.add_argument('--inc', help="variable increment b += inc*b. inc=1 doubles or --range", type=float)
-parser.add_argument('--step', help="variable increment b += step. Alternative to inc", type=float)
-parser.add_argument('--range', help='alternative to start, end, inc/step; e.g. --range "0.01, 0.05, 0.1" or even "0.1, 0.1, 0.1"!')
+parser.add_argument('-p', '--problem', help="optional problem.xml")
+parser.add_argument('--var', help="on which variable continuation shall be performed on. Together with one of range/factor/list", choices=['beta', 'penalty'])
+parser.add_argument('--range', nargs='+', help='start stop [inc] for step + inc', type=float)
+parser.add_argument('--factor', nargs=3, help='start stop factor for step * factor',type=float)
+parser.add_argument('--list', nargs='+', help='val1 val2 val3 ...',type=float)
+parser.add_argument('--warmstart', nargs='*', help='instead of var and rang/factor/list run the problem from [start] to end', type=int)
 parser.add_argument('--show', help="call automatically show_density.py", action='store_true')
 parser.add_argument('--failsafe', help="ignore cfs exiting with error", action='store_true')
-parser.add_argument('--qsub', help="template file to generate depenend job scripts for RRZE HPC (e.g. 'qsub_template.sh'")
+parser.add_argument('--noplot', help="don't create a meta plot file", action='store_true')
+parser.add_argument('--cmdonly', help="command output, no execution", action='store_true')
+parser.add_argument('--qsub', help="template file to generate dependent job scripts for RRZE HPC (e.g. 'qsub_template.sh'")
 
 args = parser.parse_args()
 
-if not len(args.input) == 2:
-  print('Error: usage continuation.py <executabe> <problem> -m <mesh> [--start <start> --end <end> --inc/--step <value>] / [--range <range>]')
+if not args.name and not args.problem:
+  print('Error: give name and/or problem (-p/--problem)')
   sys.exit(-1)
 
-exe = args.input[0]
-short_problem = args.input[1]
+short_problem = args.name if args.name else args.problem[:-len('.xml')]
 org_problem = short_problem + '.xml' if not args.problem else args.problem   
 if not os.path.exists(org_problem):
-  print("Error: file '" + org_problem + "' not found")
+  print("Error: problem file '" + org_problem + "' not found")
   sys.exit(-1)
  
 # the density file extension
@@ -152,68 +152,58 @@ if args.qsub:
     print('Error: qsub template file not found ' + args.qsub)
     sys.exit(-1)
   print('#!/bin/bash')  
-else:
+elif not args.noplot and not args.cmdonly:
   plot = open(short_problem + ".dat", "w")
 
-if args.var == 'warmstart':
-  if args.range or args.inc or args.step:
-    print('Error: for --warmstart give no --range and no --inc/--step')
-    sys.exit(-1)
-  if not args.end:
-    print('Error: for --warmstart --end is mandatory')
+if args.warmstart and (args.var or args.range or args.list or args.factor):
+  print('Error: do not give warmstart with var and range/factor/list')
+  sys.exit(-1)
+
+if args.warmstart:
+  if len(args.warmstart) > 2:
+    print('Error: --warmstart [start] end has one or two arguments')
     sys.exit(-1)  
-  vals = list(range(int(args.start if args.start else 1), int(args.end+1)))
+  start = 1 if len(args.warmstart) == 1 else args.warmstart[0]
+  end   = args.warmstart[0] if len(args.warmstart) == 1 else args.warmstart[1]
+
+  vals = list(range(start, end+1))
   for idx, v in enumerate(vals):
     old_var = -1 if idx == 0 else v-1
-    continuation(args.initial, cnt = idx, type = args.var, old_var=old_var, var=v, range_idx = v, mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=exe, show=args.show, failsafe=args.failsafe, qsub=args.qsub, plot = plot)
-        
-elif args.range:
-  if args.start != 1 or args.end or args.inc or args.step:
-    print("Error: don't give --start, --end, --inc or --step together with --range")
-    sys.exit(-1)     
-  vals = eval(args.range)   
-  if len(vals) == 0 or len(vals) == 1:
-    print("Errr: given --range '" + args.range + "' evaluates to " + str(len(val)) + " values")
+    continuation(args.initial, cnt = idx, type = 'warmstart', old_var=old_var, var=v, range_idx = v, mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.exe, show=args.show, failsafe=args.failsafe, qsub=args.qsub, plot = plot, cmdonly = args.cmdonly)
+else:
+  # no warmtart
+  if not args.var:
+    print('Error: either --warmstart [S] N or --var *')     
     sys.exit(-1)
+  if (args.range and (args.factor or args.list)) or (args.list and(args.factor or args.range)) or (not args.range and not args.factor and not args.list):
+    print('Error: with var give exatly one of range, factor, list')
+    sys.exit(-1)       
+
+  vals = []
+  if args.list:
+    vals = args.list
+  else:
+   if args.range:
+     if len(args.range) < 2 and len(args.range) > 3:
+       print('Error: range has parameters <start> <end> [inc]')
+     # add eps to have end included  
+     vals = list(np.arange(args.range[0], args.range[1] + 1e-10, args.range[2] if len(args.range) > 2 else 1)) 
+   else:  
+      v, e, f = args.factor
+      while (v <= e) if f > 1 else (v >= e):
+        vals.append(v)
+        v *= f
+   # 1.9000000000000001 to 1.9       
+   vals = [round(v,10) for v in vals]
+   # test if we have integers only
+   if np.sum([abs(math.modf(v)[0]) for v in vals]) == 0:
+     vals = [int(v) for v in vals] 
+   if not vals or len(vals) == 0 or len(vals) == 1:
+     print("Error: value given by range/factor/list evaluations only to",vals)
+     sys.exit(-1)
+  #print(vals)  
   for i in range(len(vals)):
     ri = i if len(vals) != len(set(vals)) else -1
-    continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.executable, show=args.show, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub, plot = plot)  
-else:
-  if (args.inc and args.step) or (not args.inc and not args.step):
-    print("Error: when no --range is give, provide either --inc or --step and --start, --end.")
-    sys.exit(-1)
-  if not args.end:
-    print('Error: when no range is given, --end is required')
-    sys.exit(-1)  
-  old = -1  
-  var = args.start
-  i = 0
-  dig = 1 if args.var == 'beta' else 2
-  if args.var == 'alphaSlackQuotient':
-    # decrease initial value until end value is reached, restart with smaller inc step if optimizer didn't converge
-    success = args.initial
-    old = -1
-    dig = 6
-    while var >= args.end:
-      var_problem = continuation(success, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.executable, show=args.show, failsafe=args.failsafe, plot = plot)
-      infoXmlName = var_problem + ".info.xml"
-      if os.path.exists(infoXmlName):
-        doc_info = libxml2.parseFile(infoXmlName)
-        xml_info = doc_info.xpathNewContext()
-        conv  = xpath(xml_info, "//break/@converged")
-      else:
-        print(infoXmlName + " does not exist.")
-      success = var_problem + dens_ext
-      var -= args.inc
-  while var <= args.end:
-    maxIter = None if var == args.end else 20
-    continuation(args.initial, cnt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=exe, show=args.show, failsafe=args.failsafe, qsub=args.qsub, plot=plot,maxIter=maxIter)
-    old = digits(var, dig)
-    if args.inc:
-      var += var * args.inc
-    else:
-      var += args.step
-    i += 1
-
+    continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.exe, show=args.show, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub, plot = plot, cmdonly = args.cmdonly)  
 if plot:
   print("saving meta plot file '" + short_problem + ".dat'")

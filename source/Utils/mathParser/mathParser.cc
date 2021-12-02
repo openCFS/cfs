@@ -322,6 +322,8 @@ namespace CoupledField {
     std::string modExpr = expr;
     boost::algorithm::replace_all( modExpr, "'", "\"" );
     
+    LOG_DBG(math) << "SE expr=" << expr;
+    LOG_DBG(math) << "SE modExpr=" << modExpr;
 
     MATHPARSER_EXEC( myParser.SetExpr(modExpr) );
     

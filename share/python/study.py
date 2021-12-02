@@ -55,12 +55,16 @@ def label(query, given):
   
   return query  
       
-parser = argparse.ArgumentParser(description='perform easy parameter studies. Afterwards use postproc.py and plotviz.py')
+txt =  'perform easy parameter studies. Afterwards use postproc.py and plotviz.py.\n'      
+txt += 'example: study.py cfs_master_rel -m cantilever2d_100.mesh -p simp2d.xml -b var_power_law -v //cfs:transferFunction/@param -r 1 3.01 .2\n'
+txt += 'When you are happy, add --execute'
+parser = argparse.ArgumentParser(description=txt)
+
 parser.add_argument('executable', help="cfs executable")
 parser.add_argument('-m', '--mesh', help="the mesh file with extension")
 parser.add_argument('-x', '--initial', help="optional density.xml(.gz) for initial design (with extension)")
 parser.add_argument('-p', '--problem', help="the problem -xml file used for the study", required=True)
-parser.add_argument('-b', '--base', help="the problem -xml file used for the study", required=True)
+parser.add_argument('-b', '--base', help="the common base name for the study", required=True)
 
 parser.add_argument('-v', '--var', help='the query for the variable, e.g. //cfs:constraint[@type="volume"]/@value', required=True)
 parser.add_argument('-r', '--range', nargs='+', help='the range for the variable as <start> <end> [<step>] in Python style')

@@ -135,8 +135,17 @@ class Approximation:
     x_k = self.x_k
     df_k = self.df_k
     
-    self.alpha = np.maximum(.9 * self.L + .1 * x_k, glob.xl) # alpha = L + .1 * (x-L) 
-    self.beta  = np.minimum(.9 * self.U + .1 * x_k, glob.xu) # beta  = U - .1 * (U-x)
+    # the move limit is optional in options
+    ml = float(glob.options['move_limit']) if 'move_limit' in glob.options else np.inf
+    # the relative move limit is normed by upper-lower bound
+    mlr = float(glob.options['move_limit_rel']) if 'move_limit_rel' in glob.options else np.inf
+    mlr *= glob.xu - glob.xl 
+    assert ml > 0 and mlr.all() > 0
+    # alpha and beta are the bounds for the design within an iteration to make sure we do not divide by 0 when
+    # the asymptotes are within the global bounds. (8) in original Svanberg
+    # reduce allows to apply maximum to more than two arguments.
+    self.alpha = np.maximum.reduce([.9 * self.L + .1 * x_k, x_k - ml, x_k - mlr, glob.xl]) # alpha = L + .1 * (x-L) 
+    self.beta  = np.minimum.reduce([.9 * self.U + .1 * x_k, x_k + ml, x_k + mlr, glob.xu]) # beta  = U - .1 * (U-x)
     
     dU = self.U-x_k
     dL = x_k-self.L

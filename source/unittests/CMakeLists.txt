@@ -11,6 +11,7 @@ endif()
 # List of source codes for current target.
 set(UNIT_TESTS_SRC
   unittests.cc
+  muparsertests.cc
 #  bsplinetests.cc
 #  bicubicinttests.cc
 )

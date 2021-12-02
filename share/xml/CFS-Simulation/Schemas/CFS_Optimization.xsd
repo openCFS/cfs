@@ -1969,7 +1969,7 @@
     <xsd:sequence>
       <xsd:element name="expression" minOccurs="0" maxOccurs="1">
          <xsd:complexType>
-           <!-- the interpolation function with rho as input, param a p and beta as b in muParser syntax, e.g. rho^p  -->
+           <!-- the interpolation function with rho as input, param as p and beta as b in muParser syntax, e.g. rho^p  -->
            <xsd:attribute name="function" use="required" type="xsd:token"/>
            <xsd:attribute name="derivative" use="required" type="xsd:token"/>
          </xsd:complexType>

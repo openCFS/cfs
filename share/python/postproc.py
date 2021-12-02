@@ -4,7 +4,7 @@ import sys
 import argparse
 import collections
 import re
-from cfs_utils import *
+from optimization_tools import *
 from lxml.etree import LxmlSyntaxError
 
 
@@ -98,7 +98,7 @@ def handle_exception(args, problem, exception, message):
     os.sys.exit(1)
     
 # read a bunch of .info.xml files    
-def read_xml_input(args, input): 
+def read_info_xml_input(args, input): 
   res = []   
   for f in input:
     problem = f[0:-len(".info.xml")]
@@ -132,6 +132,25 @@ def read_xml_input(args, input):
      handle_exception(args, problem, 'XMLSyntaxError', str(se))    
   #  except:
   #   handle_exception(args, problem, 'exception', str(sys.exc_info()[0]))    
+  return res  
+
+def read_density_xml_input(args, input): 
+  res = []   
+  for f in input:
+    problem = f[0:-len(".density.xml")]
+    try:
+      plain    = None if not has_attribute(f, 'design') else read_density(f, 'design')
+      physical = None if not has_attribute(f, 'physical') else read_density(f, 'physical')
+      
+      dic = extract_all_density_info(plain, physical, silent = True)
+      dic['problem'] = problem
+      split_problem(dic, dic['problem']) # id shall be last
+         
+      res.append(dic)
+    except KeyboardInterrupt:
+      os.sys.exit(1)
+    except RuntimeError as re:
+      handle_exception(args, problem, 'RuntimeError', str(re)) 
   return res  
 
 
@@ -195,7 +214,7 @@ def label(query):
 
 
 parser = argparse.ArgumentParser(description='General tool to analyze a bunch of .info.xml files')
-parser.add_argument("input", nargs='+', help="selection of .info.xml or .plot.dat files to process (with wildcards)")
+parser.add_argument("input", nargs='+', help="selection of .info.xml, .density.xml or .plot.dat files to process (with wildcards)")
 parser.add_argument("--query", nargs='+', help="xpath queries, e.g. //transferFunction/@param where the attribute becomes the key")
 parser.add_argument("--perf", help="selected data for benchmarking/ performance analysis", action='store_true')
 parser.add_argument("--extend", help="add more information for opt or perf", action='store_true')
@@ -213,7 +232,9 @@ input = args.input
 
 res = []
 if input[0].endswith('.info.xml'):
-  res = read_xml_input(args, input)
+  res = read_info_xml_input(args, input)
+elif input[0].endswith('.density.xml'):
+  res = read_density_xml_input(args, input)  
 else:
   res = read_dat_input(args, input)  
 

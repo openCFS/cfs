@@ -69,10 +69,8 @@ def get_image(input, set, design, fill=0.0):
   if args.orgsize:
     args.resize = img.size
   else:
-    print(args.resize)
     if len(args.resize) == 1: # default is [800]
       args.resize = (args.resize[0], int(args.resize[0] * (img.size[1]/img.size[0])))          
-  print(args.resize)
   img = img.resize(args.resize, Image.NEAREST)
   
   return img, dens

@@ -3313,7 +3313,7 @@ namespace CoupledField {
         Double radicand = 0;
         UInt j = 2;
         UInt k = pointsToNamedNodesMap[i];
-        while( radicand < 1e-8 && j < namedNodes_[pointsToNamedNodesMap[i]].GetSize()-1 ) {
+        while( radicand < 1e-8 && j < namedNodes_[k].GetSize()-1 ) {
           p = points[3*i+1] - points[3*i];
           q = points[3*i+2] - points[3*i];
           // normal vector
@@ -3325,12 +3325,12 @@ namespace CoupledField {
 	  
           radicand = pow(n[0],2) + pow(n[1],2) + pow(n[2],2);
 
-          GetNodeCoordinate(points[3*i+1], namedNodes_[pointsToNamedNodesMap[i]][j], false);
+          GetNodeCoordinate(points[3*i+1], namedNodes_[k][j], false);
           j++;
         }
         if (radicand < 1e-8) {
           EXCEPTION("Could not calculate normal of bounding plane. The nodes of "
-                    << namedNodeNames_[pointsToNamedNodesMap[i]] << " seem to lie on a straight line "
+                    << namedNodeNames_[k] << " seem to lie on a straight line "
                     << "and thus do not define a plane.");
         }
         // Normalize normal

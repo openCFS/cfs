@@ -1,3 +1,6 @@
 // Do we have the GNU byte swap header?
 #cmakedefine HAVE_BYTESWAP_H @HAVE_BYTESWAP_H@
 
+// the muparser is always included
+// this define will only be needed starting with muparser 2.3.2
+// #define MUP_VERSION "@MUPARSER_VER@"

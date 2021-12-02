@@ -51,6 +51,7 @@ configure_file("${PFN_TEMPL}" "${PFN}" @ONLY)
 # SCPIP is closed source, the code and binary may only be used after 
 # signing an agreement with Ch. Zillober
 # CFS expects scpip.tar.bz2 in CFS_DEPS_CACHE_DIR/source/scpip
+
 set_from_env(CFS_DOWNLOAD_SCPIP)
 set(MIRRORS "${CFS_DS_SOURCES_DIR}/${CFS_DOWNLOAD_SCPIP}/${SCPIP_ZIP}")
 set(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_ZIP}")

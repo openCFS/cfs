@@ -13,6 +13,7 @@ if __name__ == '__main__':
   import argparse
   import matplotlib
   import matplotlib.pyplot as plt
+  from matplotlib.ticker import MaxNLocator
   import snopt # our snopt.py helper for process
 
 
@@ -85,9 +86,11 @@ def header(data, comments):
     # skip the loop, we've done it    
     break      
 
-  # for CO2 we combine the colums Date and Tine to one datetime -> leave only time
+  # for CO2 we combine the columns Date and Tine to one datetime -> leave only time
   if 'Time' in meta:
-    meta.remove('Date') 
+    meta.remove('Date')
+  if 'time' in meta and 'date' in meta: # fan_control.dat
+    meta.remove('date') 
   if 'Zeit' in meta:
     meta.remove('Zeit') 
 
@@ -159,21 +162,11 @@ def content(body):
 
   # check for datetime in the first columns and replace in case
   for c in range(min(len(data[0]),3)):
-    if check('%Y-%m-%d %H:%M:%S', data[0][c]):
-      for l in data:
-        l[c] = datetime.datetime.strptime(l[c], '%Y-%m-%d %H:%M:%S')
-    elif check('%d.%m.%Y %H:%M', data[0][c]):
-      for l in data:
-        l[c] = datetime.datetime.strptime(l[c], '%d.%m.%Y %H:%M')
-    elif check('%Y/%m/%d %H:%M:%S', data[0][c]):
-      for l in data:
-        l[c] = datetime.datetime.strptime(l[c], '%Y/%m/%d %H:%M:%S')
-    elif check('%d.%m.%y', data[0][c]): # 28.03.21
-      for l in data:
-        l[c] = datetime.datetime.strptime(l[c], '%d.%m.%y')
-    elif check('%d.%m.%Y', data[0][c]): # 28.03.2021
-      for l in data:
-        l[c] = datetime.datetime.strptime(l[c], '%d.%m.%Y')
+     # ..., 28.03.21,  28.03.2021, 2021-01-04
+    for frmt in ['%Y-%m-%d %H:%M:%S', '%d.%m.%Y %H:%M', '%Y/%m/%d %H:%M:%S','%d.%m.%y', '%d.%m.%Y', '%Y-%m-%d']:
+      if check(frmt, str(data[0][c])):
+        for l in data:
+          l[c] = datetime.datetime.strptime(l[c], frmt)
 
 
   # convert str to float
@@ -198,7 +191,7 @@ def check(format, test):
     return False
   
 # gives back the file index and the corresponding 0-based index.
-# @param ky if string, searche for uniqueness, if number, make double 0-based
+# @param ky if string, search for uniqueness, if number, make double 0-based
 # @return 0-based file index, 0-based column within file, label
 def find_index(meta, key):
   fi = -1  # file index
@@ -228,12 +221,37 @@ def find_index(meta, key):
   
   return fi, idx, meta[fi][idx]
 
+# transform list of list of keys to list of tuples (1-based-id, key)
+def flatten_meta(meta_list):
+  res = []
+  cnt = 1
+  for array in meta_list:
+    for key in array:
+      res.append((cnt, key))
+      cnt += 1
+ 
+  return res 
+
+# contrary to find_index. A label in arg (e.g. arg.x) is checked for multiple occurence in meta.
+# Only if so, the key in arg is replaced by all indices of meta. 
+def resolve_multiple(meta, args):
+  if args is None:
+    return None 
+  ret = []
+  flat = flatten_meta(meta)
+  for key in args:
+    ids = [str(e[0]) for e in flat if key == e[1]]
+    if len(ids) > 1:
+      ret.extend(ids)
+    else:
+      ret.append(key)    
+  return ret   
 
 # gets back the column by index descrition
 # file-index is 1-based when the key is Not Note (-x) and encodes bar
 # @param key if None return range, can be a list
 # @return arrays of file-index, data column, label
-def column(meta,data, key,bars):
+def column(meta, data, key,bars):
   if key == None:
     # for default if -x is not given. Shall not be callend for y2 is None
     n = len(data)
@@ -252,6 +270,32 @@ def column(meta,data, key,bars):
         dl.append(d)
         ll.append(l)
       return fl, dl, ll  
+
+# extract kwnown extension of filename
+def filename_base(filename):
+  if filename.endswith('.plot.dat'):
+    return filename[:-9]
+  name, _ = os.path.splitext(filename)
+  return name
+
+
+# modify multiple occurence of lables by augmenting them with the filename
+def fix_labels(labels, fileindices, filenames):
+  names = [fn for fn in filenames]
+  # reduce filenames by cutting common tailing parts
+  for _ in range(int(filenames[0].count('.'))):  
+    # tails of all filenames
+    tails = [f[f.rfind('.'):] for f in names] # .dat from killme_scpip.plot.dat
+    # reduce names if all extensions are the same. If not the case we repeat the for loop with with same data (no change)
+    if tails.count(tails[0]) == len(tails):
+      names = [f[:f.rfind('.')] for f in names] # killme_scpip.plot.dat -> killme_scpip.plot 
+  res = []
+  for fi, l in enumerate(labels):
+    if labels.count(l) == 1:
+      res.append(l)
+    else:
+      res.append(l + ' (' + names[fileindices[fi]-1] + ')') # fileindices are 1-based
+  return res    
         
 ## find idx within column for the given start and end value which can be datetime
 # @param x single column of datetime
@@ -306,7 +350,51 @@ def label(args, legends):
   if args:
     return args
   else:
-    return ', '.join(list(set(legends))) # set makes unique, list maks a list again, and join formats the stuff
+    # we make manually unique without list(set(legends)) to keep order
+    res = []
+    for l in legends:
+      if not l in res:
+        res.append(l)
+    
+    return ', '.join(res) 
+
+# create artificial data for the numerical smooth keys if any
+def append_smooth(input, meta, data, smooth, window, poly):
+  if smooth is not None and len(smooth) > 0:
+    # data is list of lines with all columns, convert first for our selected colums
+    fix, cols, labels = column(meta,data,smooth,[])
+    assert len(fix) == len(cols) == len(labels)
+    
+    import scipy.signal
+    for i, c in enumerate(cols):
+      w = min(window, 2*int(len(c)/2) +1) # window nees to be odd
+      print("generate 'smooth_" + labels[i] + "' Savitzky–Golay filtered data with poly", poly, "and window",w)
+      
+      
+      sc = scipy.signal.savgol_filter(c, w, poly)
+      meta[fix[i]-1].append('smooth_' + labels[i])
+      for vi, v in enumerate(sc):
+        data[fix[i]-1][vi].append(v)
+
+  return meta, data
+
+# create artificial data for the finite difference data keys if any
+# the gradient is are for inbetween data but mooved to the left and the last value is doubled
+def append_grad(input, meta, data, grad):
+  if grad is not None and len(grad) > 0:
+    fix, cols, labels = column(meta,data,grad,[])
+    assert len(fix) == len(cols) == len(labels)
+    for i, c in enumerate(cols):
+      dc = np.diff(c,n=1)
+      dc = np.append(dc,dc[-1]) # repeat last value
+      assert len(c) == len(dc)
+      meta[fix[i]-1].append('grad_' + labels[i])
+      for vi, v in enumerate(dc):
+        data[fix[i]-1][vi].append(v)
+
+  return meta, data
+
+
 
 # plotviz.py is imported by postproc.py, so guard argparse
 if __name__ == '__main__':
@@ -322,13 +410,18 @@ if __name__ == '__main__':
   parser.add_argument("--ylabel", help='optional label for the primary ordinate')
   parser.add_argument("--y2label", help='optional label for the secondary ordinate')
   parser.add_argument("--zlabel", help='optional label for the 3d data')
+  parser.add_argument("--marker", help='optional matplotlib marker: e.g. . , o v')
   parser.add_argument("--legend", nargs='*', help="(partially) overwrite labels in the legend as space separated list of strings")
-  parser.add_argument("--legend_loc", nargs='*', help="two values to locate legend as bbox_to_anchor attriute, e.g. 1.05 1", type=float)
+  parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc)")
   parser.add_argument("--title", help='optional title for the plot')
   parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
+  parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
+  parser.add_argument("--smooth_window", help="window size of Savitzky–Golay filter", type=int, default = 7)
+  parser.add_argument("--smooth_poly", help="polynomial order of Savitzky–Golay filter", type=int, default = 3)
+  parser.add_argument("--grad", nargs='*', help="give finite difference gradients, you might want to smooth first")
   parser.add_argument("--save", help='write to given filename using the extension')
   parser.add_argument("--noshow", help='supress popping up the image window', action='store_true')
     
@@ -353,12 +446,28 @@ if __name__ == '__main__':
       m, d = process(input)
     meta.append(m)
     data.append(d)  
+
+  # if one of the arguments is a multiple key in meta, it is replaced by multiple ids (argument becomes larger)
+  # we first do this for artificial data
+  args.smooth = resolve_multiple(meta, args.smooth)
+  meta, data = append_smooth(args.input, meta, data, args.smooth, args.smooth_window, args.smooth_poly)
   
+  args.smooth = resolve_multiple(meta, args.grad)
+  meta, data = append_grad(args.input, meta, data, args.grad)
+  
+  args.x = resolve_multiple(meta, args.x)
+  args.y = resolve_multiple(meta, args.y)
+  args.y2 = resolve_multiple(meta, args.y2)
+  args.z = resolve_multiple(meta, args.z)
+
+
+
   print_header(meta, data, args.input)
    
   if not args.y:
-    print('Error: provide at least -y and possibly -x and -y2. Key/label may be space separated list')
+    print('Usage: provide at least -y and possibly -x and -y2. Key/label may be space separated list')
     sys.exit()
+  
   
   if args.x != None and len(args.x) != len(args.input):
     print('Error: on multiple inputs either have no -x or -x with keys for all input files')
@@ -370,7 +479,7 @@ if __name__ == '__main__':
   
   # fiy is 1-base with positive idx for plot and negative for bar
   fiy,  y, ylabel = column(meta,data,args.y,args.bar)
-  
+
   # fiy2 is also 1-based and encodes bars
   fiy2, y2, y2lbl = column(meta,data,args.y2,args.bar) if args.y2 else ([],[],[])
   
@@ -398,7 +507,7 @@ if __name__ == '__main__':
   mil = min([len(t) for t in x]) 
   mal = max([len(t) for t in x])
   if (mil != mal) and args.x is None:
-    print('Error: data size for mupltile input files varies',mil,'...',mal,' and -x is not given')
+    print('Error: data size for mupltiple input files varies',mil,'...',mal,' and -x is not given')
     sys.exit() 
 
   # when -x is not given, x is range, otherwise it can be anything       
@@ -462,7 +571,7 @@ if __name__ == '__main__':
       # y is a list of data. if fiy we know the current file index and take the x with the proper file index for you y columns
       # fiy(2) is 1-based and encodes bar with a negative value
       if fiy[i] > 0: 
-        lines.append(ax.plot(x[fiy[i]-1],y[i], color=colors[i])[0]) # returns multiple results and we want only the first
+        lines.append(ax.plot(x[fiy[i]-1],y[i], color=colors[i], marker=args.marker)[0]) # returns multiple results and we want only the first
       else:
         lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=colors[i])) # has only one return
       
@@ -470,12 +579,12 @@ if __name__ == '__main__':
       ax2 = ax.twinx()
       for i in range(len(y2)):
         if fiy2[i] > 0:
-          lines.append(ax2.plot(x[fiy2[i]-1],y2[i],  color=colors[13+i])[0]) # start with gold
+          lines.append(ax2.plot(x[fiy2[i]-1],y2[i], color=colors[13+i], marker=args.marker)[0]) # start with gold
         else:
           #print(-fiy2[i]-1,x[-fiy2[i]-1],y2[i])
           lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i])))
 
-    labels = ylabel + y2lbl
+    labels = fix_labels(ylabel, fiy, args.input) + fix_labels(y2lbl, fiy2, args.input)
     if args.legend:
       if len(args.legend) > len(labels):
         print('Error: more entries given with --legend', len(args.legend), ' than lines', len(labels))
@@ -484,9 +593,9 @@ if __name__ == '__main__':
     if args.legend_loc:
       if not len(args.legend_loc) == 2:
         print('Error: --legend_loc requires two values (e.g. 1.05 1) to form the bbox_to_anchor attribute to plt.legend()')
-    plt.legend(lines, labels, bbox_to_anchor=args.legend_loc)
+    plt.legend(lines, labels, loc=args.legend_loc)
 
-  else:
+  else: # here comes the z-case
     # https://towardsdatascience.com/an-easy-introduction-to-3d-plotting-with-matplotlib-801561999725
     fig = plt.figure()
     ax = plt.axes(projection="3d")
@@ -538,9 +647,14 @@ if __name__ == '__main__':
   if args.y2:
     ax2.set_yscale(args.y2scale)
  
-  # when the timespan is too short, we skip the day informatioin squeezed in by matplotlib
-  if has_dt and delta.days < 2: 
-    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H:%M"))
+  # when the timespan is too short, we skip the day information squeezed in by matplotlib
+  if has_dt:
+    if delta.days < 2: 
+      ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H:%M"))
+  else:
+    # name integer format when we assue iterations or such
+    if abs(x[0][-1]-x[0][0]) > 5:
+      ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
   if args.xlabel:
     ax.set_xlabel(args.xlabel)
