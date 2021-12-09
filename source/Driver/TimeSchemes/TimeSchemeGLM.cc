@@ -168,6 +168,58 @@ namespace CoupledField{
       }
     }
   }
+
+  void TimeSchemeGLM::ModifyInit(bool extrapolateStatic){
+    extrapolateStatic_ = extrapolateStatic;
+
+//    std::string fname = "glmModifyInit_" + std::to_string(extrapolateStatic) + ".txt";
+//    std::fstream myfile(fname,  std::ios::out);
+//    myfile << "This is the GLM Vector before the update:" << std::endl;
+//    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+//      myfile << "Index " << i << std::endl;
+//      myfile << glmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
+//      myfile << "Finish GLM Vector" << std::endl;
+//    }
+//    myfile << std::endl;
+//
+//    myfile << "This is the initial GLM Vector of this time step before the update" << std::endl;
+//    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+//      myfile << "Index " << i << std::endl;
+//      myfile << initialIterGlmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
+//      myfile << "Finish initial GLM Vector" << std::endl;
+//    }
+
+    if ( extrapolateStatic_ ) {
+      // fill all primary values with the solVec
+      SingleVector * glmVec0 = glmVector_[0];
+      for(UInt i=1;i<curScheme_->numOldSols_;i++){
+        glmVector_[i]->Add(1.0,*glmVec0);
+        glmVec0 = NULL;
+      }
+    }
+
+//    myfile << std::endl;
+//    myfile << std::endl;
+//
+//    myfile << "This is the GLM Vector after the update:" << std::endl;
+//    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+//      myfile << "Index " << i << std::endl;
+//      myfile << glmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
+//      myfile << "Finish GLM Vector" << std::endl;
+//    }
+//    myfile << std::endl;
+//
+//    myfile << "This is the initial GLM Vector of this time step after the update" << std::endl;
+//    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+//      myfile << "Index " << i << std::endl;
+//      myfile << initialIterGlmVector_[i]->ToString(TS_NONZEROS,"\n") << std::endl;
+//      myfile << "Finish initial GLM Vector" << std::endl;
+//    }
+//    myfile << std::endl;
+//
+//    myfile << std::endl;
+//    myfile.close();
+  }
   
   void TimeSchemeGLM::BeginStep( bool updatePredictor, bool storeInitialIterGlmVector ) {
     //update for old solutions

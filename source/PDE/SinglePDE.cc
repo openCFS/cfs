@@ -1882,7 +1882,7 @@ namespace CoupledField {
       if( srcNode->GetName() == "sequenceStep" ) {
         UInt sequenceStep = srcNode->Get("index")->As<UInt>();
         Integer stepNum = srcNode->Get("step")->As<Integer>();
-        
+        bool extrapolateStatic = srcNode->Get("extrapolateStatic")->As<bool>();
         
         Domain * inDomain = NULL;
         // create SimState (for input)
@@ -1976,6 +1976,17 @@ namespace CoupledField {
               myFct->InitFromFeFunction( inFct );
             }
           } // if TRANSIENT
+
+          if( inPDE->GetAnalysisType() == STATIC && analysistype_ == TRANSIENT ) {
+            // Set the extrapolateStatic bool for each feFunction
+            LOG_DBG(singlepde) << pdename_  << ": Extrapolating old solutions based on the static solution";
+            fncIt= feFunctions_.begin();
+            while(fncIt != feFunctions_.end()){
+              shared_ptr<BaseFeFunction> actFct = fncIt->second;
+              actFct->GetTimeScheme()->ModifyInit(extrapolateStatic);
+              fncIt++;
+            }
+          }
 
           // Cleanup everything, so that temporary memory needed for domain gets freed
           in.reset();
