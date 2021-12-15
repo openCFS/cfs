@@ -73,7 +73,7 @@ namespace CoupledField
     }
 
     // compute extrapolation parameter
-    Double xEndPrime;
+    double xEndPrime;
     xEndPrime      = (xEnd_ - x_[numMeas_-2]) / (yEnd_ - y_[numMeas_-2]);
     extrapolAlpha_ = (xEnd_ - xEndPrime * yEnd_) / (xEnd_*yEnd_ - nuMax_*yEnd_*yEnd_);
     extrapolBeta_  = ( (xEnd_/yEnd_) - nuMax_ ) * std::exp(extrapolAlpha_*yEnd_);   
@@ -86,8 +86,8 @@ namespace CoupledField
     Integer i, j;
     bool monotone = true;
 
-    Double z,fac;
-    Double mu_old = 0.0;
+    double z,fac;
+    double mu_old = 0.0;
 
     //coarse tuning of discrepancy parameter mu, so that the computed
     //approximation is monoton 
@@ -122,7 +122,7 @@ namespace CoupledField
 
     // this is the main loop to get the discrepancy parameter mu;
     Integer  iter = 0;
-    Double res = 1e14;
+    double res = 1e14;
 
     monotone = true;
     while ( monotone == true && iter <= 1000) {
@@ -165,7 +165,7 @@ namespace CoupledField
   {
 
     Integer i,j,k;
-    Double x1,x2,x3,x4,x5,x6,x7,x8;
+    double x1,x2,x3,x4,x5,x6,x7,x8;
 
     for (i=0; i<size_*size_; i++)
       {
@@ -239,7 +239,7 @@ namespace CoupledField
     }
   }
 
-  void SmoothSpline::ConstructRHS(Vector<Double>& y)
+  void SmoothSpline::ConstructRHS(const Vector<double>& y)
   {
 
     Integer i,j;
@@ -255,7 +255,7 @@ namespace CoupledField
     }
 
     // incorporate initial conditions
-    Double x1,x2,x3,x4;
+    double x1,x2,x3,x4;
   
     x1 = 1/(h_[0]*h_[0]*h_[0]);
     x2 = 1/(h_[0]*h_[0]);
@@ -279,11 +279,11 @@ namespace CoupledField
   void SmoothSpline::CalcCoef()
   {
 
-    Vector<Double> y(size_+1);
-    Vector<Double> c(size_*size_+1);
+    Vector<double> y(size_+1);
+    Vector<double> c(size_*size_+1);
       
     Integer i,j,k;
-    Double h;
+    double h;
 
     // Solve the system by LU-factorization
       
@@ -337,12 +337,12 @@ namespace CoupledField
   }
 
 
-  Double SmoothSpline::EvaluateFunc(Double t)
+  double SmoothSpline::EvaluateFunc(double t) const
   {
 
     Integer i,j,k;
-    Double f0,f1,f2,f3,p0,p1,p2,p3;
-    Double z, val, p;
+    double f0,f1,f2,f3,p0,p1,p2,p3;
+    double z, val, p;
 
     i = GetInterval(t);
 
@@ -377,12 +377,12 @@ namespace CoupledField
   }
 
 
-  Double SmoothSpline::EvaluatePrime(Double t)
+  double SmoothSpline::EvaluateDeriv(double t) const
   {
 
     Integer i,j,k;
-    Double f0,f1,f2,f3,p0,p1,p2,p3;
-    Double z, val, p;
+    double f0,f1,f2,f3,p0,p1,p2,p3;
+    double z, val, p;
 
     i = GetInterval(t);
 
@@ -417,10 +417,10 @@ namespace CoupledField
   }
 
 
-  Double SmoothSpline::EvaluateFuncInv( Double f )
+  double SmoothSpline::EvaluateFuncInv( double f ) const
   {
 
-    Double z,k,d;
+    double z,k,d;
     Integer i;
 
     if ( f <= y_[numMeas_-1] ) {
@@ -437,35 +437,35 @@ namespace CoupledField
   }
 
 
-  Double SmoothSpline::EvaluatePrimeInv( Double f )
+  double SmoothSpline::EvaluatePrimeInv( double f ) const
   {
 
-    Double z,p;
+    double z,p;
     Integer i;
 
     i = Integer ( f / theta_);
     z = Newton( f,g_[i] );
-    p = 1.0 / EvaluatePrime( z );
+    p = 1.0 / EvaluateDeriv( z );
 
     return p;
   }
 
 
-  void SmoothSpline::EvaluateInv( Double v, Double& f, Double& p )
+  void SmoothSpline::EvaluateInv( double v, double& f, double& p ) const
   {
 
     Integer i;
   
     i = Integer ( v / theta_ );
     f = Newton( v, g_[i] );
-    p = 1.0 / EvaluatePrime( f ); 
+    p = 1.0 / EvaluateDeriv( f );
   }
 
 
-  Double SmoothSpline::HermiteFunc( Double t, Integer i )
+  double SmoothSpline::HermiteFunc( double t, Integer i ) const
   {
 
-    Double x = 0.0;
+    double x = 0.0;
 
     if ( i == 0 ) {
       x = (1-t)*(1-t)*(2*t+1);
@@ -484,10 +484,10 @@ namespace CoupledField
   }
 
 
-  Double SmoothSpline::HermitePrime( Double t, Integer i )
+  double SmoothSpline::HermitePrime( double t, Integer i ) const
   {
 
-    Double x = 0.0;
+    double x = 0.0;
 
     if ( i == 0 ) {
       x = -6*t+6*t*t;
@@ -506,11 +506,11 @@ namespace CoupledField
   }
 
 
-  Integer SmoothSpline::GetInterval( Double t )
+  Integer SmoothSpline::GetInterval( double t ) const
   {
 
     Integer i;
-    Double theta;
+    double theta;
 
     if (t < xStart_ || t > xEnd_) {
       std::cerr << "x-Value is too small -> no convergence!\n" << t;
@@ -534,10 +534,10 @@ namespace CoupledField
   }
 
 
-  Double SmoothSpline::Newton( Double f, Double start )
+  double SmoothSpline::Newton( double f, double start ) const
   {
 
-    Double za,zn,rel,eps;
+    double za,zn,rel,eps;
     Integer k;
 
     za  = start; // start value
@@ -554,7 +554,7 @@ namespace CoupledField
 
     while ( fabs((za-zn)/rel) > eps ) {
       zn  = za;
-      za -= (EvaluateFunc(za)-f)/EvaluatePrime(za);
+      za -= (EvaluateFunc(za)-f)/EvaluateDeriv(za);
       
       k++;
     }
@@ -567,7 +567,7 @@ namespace CoupledField
   {
 
     Integer i;
-    Double start = 0;
+    double start = 0;
 
     for (i=0; i<ind_; i++) {
       g_[i] = Newton( i*theta_, start );
@@ -583,9 +583,9 @@ namespace CoupledField
 
     Integer i,j;
     bool monotone = false;
-    Double f0,f1,f2,f3;
-    Double c1,c2,c3;
-    Double x1,x2,x3;
+    double f0,f1,f2,f3;
+    double c1,c2,c3;
+    double x1,x2,x3;
 
     for ( i=0; i<=node_; i++) {
       j  = 2*i;
@@ -649,7 +649,7 @@ namespace CoupledField
   {
 
     Integer i,j;
-    Double eps = 1e-6;
+    double eps = 1e-6;
 
     for (i=0; i<=node_; i++) {
       j  = 2*i;
@@ -697,7 +697,7 @@ namespace CoupledField
   }
 
 
-  void SmoothSpline::Print( )
+  void SmoothSpline::Print( ) const
   {
 
     MakeOutput( x_, y_ );
@@ -707,12 +707,12 @@ namespace CoupledField
 
   /////////////////////// private functions /////////////////////////////////////////
 
-  void SmoothSpline::MakeOutput( Vector<Double>& x, Vector<Double>& y )
+  void SmoothSpline::MakeOutput( const Vector<double>& x, const Vector<double>& y ) const
   {
 
     Integer i,j;
-    Double t,z,delta,val;
-    Double f0,f1,f2,f3,p0,p1,p2,p3;
+    double t,z,delta,val;
+    double f0,f1,f2,f3,p0,p1,p2,p3;
 
     std::ofstream out_orig;
     std::ofstream out_func;
@@ -796,11 +796,11 @@ namespace CoupledField
   }
 
 
-  void SmoothSpline::MakeOutputInv( Vector<Double>& x, Vector<Double>& y)
+  void SmoothSpline::MakeOutputInv(const Vector<double>& x, const Vector<double>& y) const
   {
 
     Integer i;
-    Double t,delta;
+    double t,delta;
     
     delta = ( yEnd_ - y_[0] ) / 500.;
     t     = y_[0];
@@ -819,7 +819,7 @@ namespace CoupledField
       out_orig << y_[i] << " " << x_[i] << std::endl;
     }
         
-    Double f,p;
+    double f,p;
     while (t <= yEnd_ + delta) {
       EvaluateInv(t,f,p);
       
@@ -836,17 +836,17 @@ namespace CoupledField
 
 
 
-  void SmoothSpline::MakeOutputNu()
+  void SmoothSpline::MakeOutputNu() const
   {
 
     std::ofstream out_nu;
     out_nu.open(std::string(nlFileName_+std::string(".nu_B.dat")).c_str());
 
     UInt numPoints = 500;
-    Double maxB = yEnd_ * 1.5;
-    Double dB = maxB / ( (Double)numPoints );
+    double maxB = yEnd_ * 1.5;
+    double dB = maxB / ( (double)numPoints );
 
-    Double actB = 0;
+    double actB = 0;
     // output of the data
     for ( UInt i=0; i<numPoints; i++) {
       out_nu << actB << "  " << EvaluateFuncNu(actB) << "  " << EvaluatePrimeNu(actB) << std::endl;

@@ -83,6 +83,8 @@ parser.add_argument('-l3', '--label3', help='optional most outer loop of var2/[r
 
 parser.add_argument('--execute', help='not just printing the commands but actually executing them', action='store_true')
 
+parser.add_argument('--redirect-output', help='redirect output to files', action='store_true')
+
 args = parser.parse_args()
 
 if (args.range and args.choice) or (args.range == None and args.choice == None):
@@ -116,7 +118,7 @@ try:
 
   l1 = label(args.var, args.label)
   r1 = make_range(args.range) if args.range else args.choice  
-  
+
   for v3 in r3:
     p3 = args.base
     if v3: # skip if not given
@@ -138,6 +140,9 @@ try:
         # setting the innermost variable as id allows easy sorting with postproc.py
         # if id is not set, we cannot simply replace(xml, ..) it
         c = cmd + problem + ' --id ' + v1    
+        
+        if args.redirect_output:
+          c = c + ' > ' + problem + '.out 2>&1'
         
         if args.execute:
           execute(c, output=True)

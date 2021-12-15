@@ -2,6 +2,7 @@
 #define FILE_TRICUBICINTERPOLATE
 
 #include "ApproxData.hh"
+#include "MatVec/Matrix.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -9,70 +10,62 @@ namespace CoupledField {
 class TriCubicInterpolate : public ApproxData
 {
 public:
-  TriCubicInterpolate(StdVector<double> data, StdVector<double> a, StdVector<double> b, StdVector<double> c, bool periodic = false);
+  //! constructor
+  // if periodic = true, values on all boundaries have to be given (and have to match pairwise)
+  TriCubicInterpolate(StdVector<double>& data, StdVector<double>& a, StdVector<double>& b, StdVector<double>& c,
+      bool periodic = false);
+
+  //! constructor
+  TriCubicInterpolate(StdVector<double>& data, StdVector<double>& a, StdVector<double>& b, StdVector<double>& c,
+      Matrix<double>& coeff, bool periodic = false);
 
   //! destructor
   virtual ~ TriCubicInterpolate() {};
 
-  //computes the approximation polynom
-  virtual void CalcApproximation(bool start=true);
+  //! computes the approximation polynom
+  virtual void CalcApproximation(const bool start=true) override;
 
-  virtual Double EvaluateFunc(double x, double y, double z);
+  //! returns f(x,y,z)
+  virtual double EvaluateFunc(const double x, const double y, const double z) const override;
 
-  //! returns grad f(x,y)
-  Vector<Double> EvaluatePrime(double x, double y, double z);
+  virtual double EvaluateFunc(const Vector<double>& p) const override { return EvaluateFunc(p[0], p[1], p[2]); };
 
-  ///
-  virtual void CalcBestParameter() {
-    EXCEPTION("not implemented");
-  }
+  //! returns d f(x,y,z) / d param
+  double EvaluateDeriv(const double x, const double y, const double z, const int dparam) const;
 
-  ///
-  virtual Double EvaluateFunc(Double x) {
-    EXCEPTION("EF: you need to provide x, y and z for tricubic interpolation");
-    return -1.0;
-  }
+  virtual double EvaluateDeriv(const Vector<double>& p, const int dparam) const override { return EvaluateDeriv(p[0], p[1], p[2], dparam); };
 
-  ///
-  virtual Double EvaluatePrime(Double x) {
-    EXCEPTION("EP: you need to provide x, y and z for tricubic interpolation");
-    return -1.0;
-  };
-
-  ///
-  virtual Double EvaluateFuncInv(Double t) {
-    EXCEPTION("not implemented");
-    return -1.0;
-  }
-
-  ///
-  virtual Double EvaluatePrimeInv(Double t) {
-    EXCEPTION("not implemented");
-    return -1.0;
-  }
+  //! returns grad f(x,y,z)
+  Vector<double> EvaluatePrime(const double x, const double y, const double z) const;
 
   ///
   int GetSize() {return numMeas_;};
 
 private:
 
-  typedef enum { NONE, X, Y, Z } Derivative;
+  typedef enum { NONE = -1, X, Y, Z } Derivative;
 
   // approximate partial derivatives by finite differences
-  void ApproxPartialDeriv(StdVector<double>& dFda, StdVector<double>& dFdb, StdVector<double>& dFdc, StdVector<double>& dFdadb, StdVector<double>& dFdadc, StdVector<double>& dFdbdc, StdVector<double>& dFdadbdc) const;
+  void ApproxPartialDeriv(StdVector<double>& dFda, StdVector<double>& dFdb, StdVector<double>& dFdc,
+      StdVector<double>& dFdadb, StdVector<double>& dFdadc, StdVector<double>& dFdbdc, StdVector<double>& dFdadbdc) const;
 
   // calculate coefficients of interpolating polynoms
-  void CalcCoeff(StdVector<double>& coeff, StdVector<double> F, StdVector<double> Fda, StdVector<double> Fdb, StdVector<double> Fdc, StdVector<double> Fdadb, StdVector<double> Fdadc, StdVector<double> Fdbdc, StdVector<double> Fdadbdc) const;
+  void CalcCoeff(StdVector<double>& coeff, const StdVector<double>& F,
+      const StdVector<double>& Fda, const StdVector<double>& Fdb, const StdVector<double>& Fdc,
+      const StdVector<double>& Fdadb, const StdVector<double>& Fdadc, const StdVector<double>& Fdbdc,
+      const StdVector<double>& Fdadbdc) const;
 
   // evaluation of the interpolation polynomial at point x,y
-  double EvaluatePolynom(unsigned int index, double x, double y, double z, Derivative deriv = Derivative::NONE) const;
+  double EvaluatePolynom(const unsigned int index, const double x, const double y, const double z, const Derivative deriv = Derivative::NONE) const;
 
   /** Calculate local x, y, i.e. relative to corresponding interpolation patch
    *  @return index of corresponding interpolation patch
    */
-  unsigned int GetLocalValues(double x, double y, double z, double& xloc, double& yloc, double& zloc);
+  unsigned int GetLocalValues(double x, double y, const double z,
+      double& xloc, double& yloc, double& zloc, double& dxloc, double& dyloc, double& dzloc) const;
 
-  unsigned int sub2ind(unsigned int ii, unsigned int jj, unsigned int kk) const;
+  // convert subscript to linear index
+  unsigned int sub2ind(const unsigned int ii, const unsigned int jj, const unsigned int kk) const;
 
   // sample points
   Vector<double> x_;

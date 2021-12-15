@@ -48,7 +48,7 @@ def replace(xml, path, value, unique = True):
       raise RuntimeError(path + " not found")
     if len(res) > 1:
       raise RuntimeError(path + " has " + str(len(res)) + " hits")
-  
+
   # in the attribute case we have to fake
   idx = path.rfind('/@')
   if idx > 0:

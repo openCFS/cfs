@@ -1,7 +1,8 @@
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
-#include <cmath>
-#include <algorithm>
+#include <random>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -160,6 +161,19 @@ namespace CoupledField {
   }
 
   // -----------------------------------------------------------------------
+
+  // generate vector with random numbers
+  StdVector<double> GenerateRandomVector(size_t size, double first, double last) {
+    // create random generator with uniform distribution
+    std::random_device rd;
+    std::mt19937 mersenne_engine(rd());
+    std::uniform_real_distribution<> dis(first, last);
+
+    // create vector and fill with random values
+    StdVector<double> vec(size);
+    std::generate(vec.Begin(), vec.End(), [&](){ return dis(mersenne_engine); });
+    return vec;
+  }
 
   Double dist_Mat(const Matrix<Double> &a) {
     Double preSqrt=0;
@@ -529,7 +543,7 @@ namespace CoupledField {
     if(beta == -1.0)
       return std::min(left, right);
 
-    // see comment in CalcMaxApproximation()
+    // see comment in SmoothMax(double, double, double)
     return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
   }
 

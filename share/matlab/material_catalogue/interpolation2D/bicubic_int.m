@@ -6,9 +6,9 @@ m = length(a);
 n = length(b);
 for i=1:m-1
     if a(i) <= x1 && x1 < a(i+1)
-       al = a(i);
-       au = a(i+1);
-       j=i;
+        al = a(i);
+        au = a(i+1);
+        j=i;
     elseif x1 == a(m)
         al = a(m-1);
         au = a(m);
@@ -33,20 +33,14 @@ for i=1:(n-1)
     end
 end
 ct = Coeff((n-1)*(j-1)+k,:);
-c = zeros(4,4);
-for i=1:4
-    for j=1:4
-       c(i,j) = ct((i-1)*4+j);
-    end 
-end
-da=au-al;
-db=bu-bl;
-t=(x1-al)/da;
-u=(x2-bl)/db;
+da = au-al;
+db = bu-bl;
+t = (x1-al)/da;
+u = (x2-bl)/db;
 res = 0;
 for i=0:3
     for j=0:3
-        res = res + ct(i*4+j+1) * t^i * u^j;
+        res = res + ct(i + 4*j + 1) * t^i * u^j;
     end
 end
 end

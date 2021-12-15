@@ -47,35 +47,42 @@ namespace CoupledField {
     virtual ~SmoothSpline();
 
     //computes the approximation polynom
-    virtual void CalcApproximation( bool start=true );
+    virtual void CalcApproximation( const bool start=true );
 
     //! computes the regularization parameter
-    virtual void CalcBestParameter();
+    void CalcBestParameter();
 
     //! set accuracy of measured data
-    virtual void SetAccuracy( Double val ) {
+    void SetAccuracy( double val ) {
       delta_ = val;
     };
 
     //! set maximal y-value
-    virtual void SetMaxY( Double val ) {
+    void SetMaxY( double val ) {
       yMax_ = val;
     };
 
-    //! returns y(x)
-    virtual Double EvaluateFunc( Double x );
+    //! returns f(x)
+    virtual double EvaluateFunc( double x ) const override;
 
-    //! returns  y'(x)  
-    virtual Double EvaluatePrime( Double x );
+    //! returns  f'(x)
+    virtual double EvaluateDeriv( double x ) const override;
+
+    //! returns grad f(x)
+    virtual Vector<double> EvaluatePrime(const Vector<double>& p) const override {
+      Vector<double> ret(1,0.0);
+      ret[0] = EvaluateDeriv(p[0]);
+      return ret;
+    }
 
     // returns inverse of y(x) 
-    virtual Double EvaluateFuncInv( Double t );
+    double EvaluateFuncInv( double t ) const;
 
     //! returns derivative of inverse of y(x)
-    virtual Double EvaluatePrimeInv( Double t );
+    double EvaluatePrimeInv( double t ) const;
 
     //! computes the magnetic reluctivity
-    Double EvaluateFuncNu(Double t) {
+    double EvaluateFuncNu(double t) const {
       if (t > yMax_ ) {
         t = yMax_;
       }
@@ -88,7 +95,7 @@ namespace CoupledField {
     }
 
     //! computes the derivative of magnetic reluctivity
-    Double EvaluatePrimeNu(Double t) {
+    double EvaluatePrimeNu(double t) const {
       if (t > yMax_ ) 
         t = yMax_;
       if ( t < yEnd_ ) {
@@ -100,16 +107,16 @@ namespace CoupledField {
     }
 
     //! returns number of sampled data
-    Integer GetSize() { return numMeas_; };
+    Integer GetSize() const { return numMeas_; };
 
     //! get original sampled y value
-    Double EvaluateOrigB( Integer i) { return y_[i]; };
+    double EvaluateOrigB( Integer i ) const { return y_[i]; };
 
     //! evalutes original sampled reluctivity
-    Double EvaluateOrigNu( Integer i ) { return x_[i]/y_[i]; };
+    double EvaluateOrigNu( Integer i ) const { return x_[i]/y_[i]; };
 
     //! prints out original and approximated function
-    void Print();
+    void Print() const;
 
   private:
 
@@ -118,25 +125,25 @@ namespace CoupledField {
     void ConstructMatrix();
 
     //! computes right hand side
-    void ConstructRHS( Vector<Double>& y );
+    void ConstructRHS( const Vector<double>& y );
 
     //! computes the coefficients of approximation polynom
     void CalcCoef();
 
     //! computes the invers of the approximated function
-    void EvaluateInv( Double v, Double& f, Double& p );
+    void EvaluateInv( double v, double& f, double& p ) const ;
 
     //! evalutes the Hermit functions
-    Double HermiteFunc( Double t, Integer i );
+    double HermiteFunc( double t, Integer i ) const;
 
     //! evalutes the derivative of Hermit functions
-    Double HermitePrime( Double t, Integer i );
+    double HermitePrime( double t, Integer i ) const;
 
     //! gets the interval, defined by two sampled points
-    Integer GetInterval( Double t );
+    Integer GetInterval( double t ) const;
 
     //! newton iteration for evaluation of iinverse function
-    Double Newton( Double f, Double start=1 );
+    double Newton( double f, double start=1 ) const;
 
     //! computes the starting values for Newton-iterations; stores it in g_
     void CalcStart();
@@ -152,25 +159,25 @@ namespace CoupledField {
 
     Integer ind_;   //!< number of evaluation points for approximated curve
 
-    Double mu_;             //!< discrepancy parameter
-    Vector<Double> mat_;    //!< system matrix
-    Vector<Double> coef_;   //!< array, containing the coefficients of the spline functions
-    Vector<Double> rhs_;    //!< right hand side of algebraic system
-    Vector<Double> h_;      //!< intervals: x[i+1] - x[i]
-    Vector<Double> g_;      //!< contains the starting values for the Newton-iteration
+    double mu_;             //!< discrepancy parameter
+    Vector<double> mat_;    //!< system matrix
+    Vector<double> coef_;   //!< array, containing the coefficients of the spline functions
+    Vector<double> rhs_;    //!< right hand side of algebraic system
+    Vector<double> h_;      //!< intervals: x[i+1] - x[i]
+    Vector<double> g_;      //!< contains the starting values for the Newton-iteration
 
 
-    Double xStart_;    //!< first measured x-value; should be zero
-    Double xEnd_;      //!< last measured x-value
-    Double yEnd_;      //!< kast measured y-value
-    Double theta_;     //!< increment for y; (y[0] - y[end]) / ind_
-    Double delta_;     //!< measurement error
+    double xStart_;    //!< first measured x-value; should be zero
+    double xEnd_;      //!< last measured x-value
+    double yEnd_;      //!< kast measured y-value
+    double theta_;     //!< increment for y; (y[0] - y[end]) / ind_
+    double delta_;     //!< measurement error
 
-    Double nuMax_;     //!< maximal value of reluctivity
-    Double yMax_;      //!< maximal value for y
+    double nuMax_;     //!< maximal value of reluctivity
+    double yMax_;      //!< maximal value for y
 
-    Double extrapolAlpha_;  //!< paramter for extrapolation of reluctivity
-    Double extrapolBeta_;   //!< paramter for extrapolation of reluctivity
+    double extrapolAlpha_;  //!< paramter for extrapolation of reluctivity
+    double extrapolBeta_;   //!< paramter for extrapolation of reluctivity
 
     //============================ just for testing
 
@@ -178,13 +185,13 @@ namespace CoupledField {
     void Read();
 
     //! prints out original and approximated functions 
-    void MakeOutput(Vector<Double>& x, Vector<Double>& y);
+    void MakeOutput(const Vector<double>& x, const Vector<double>& y) const;
 
-    //! prints out the inverse of the approximated fucntion
-    void MakeOutputInv(Vector<Double>& x, Vector<Double>& y);
+    //! prints out the inverse of the approximated function
+    void MakeOutputInv(const Vector<double>& x, const Vector<double>& y) const;
 
     //! prints out the reluctivity-flux curve
-    void MakeOutputNu();
+    void MakeOutputNu() const;
 
   };
 

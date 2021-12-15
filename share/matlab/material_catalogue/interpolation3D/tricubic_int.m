@@ -88,7 +88,7 @@ elem_vol = 0;
           E_out(4,4) = E_out(4,4) + coeff44((n-1)*(o-1)*j+(o-1)*k+l,ii+4*jj+16*kk+1)*u^ii*t^jj*v^kk;
           E_out(5,5) = E_out(5,5) + coeff55((n-1)*(o-1)*j+(o-1)*k+l,ii+4*jj+16*kk+1)*u^ii*t^jj*v^kk;
           E_out(6,6) = E_out(6,6) + coeff66((n-1)*(o-1)*j+(o-1)*k+l,ii+4*jj+16*kk+1)*u^ii*t^jj*v^kk;
-          elem_vol = elem_vol + coeffvol((n-1)*(o-1)*j+(o-1)*k+l,ii+4*jj+16*kk+1)*u^ii*t^jj*v^kk;
+          elem_vol = elem_vol + coeffvol((o-1)*(n-1)*j+(o-1)*k+l,ii+4*jj+16*kk+1)*u^ii*t^jj*v^kk;
       end
     end
  end

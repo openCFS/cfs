@@ -27,8 +27,8 @@ DEFINE_LOG(trilinappx, "trilinappx")
 
   }
 
-  Double TriLinInterpolate::EvaluateFunc( Double x0Entry , Double x1Entry, Double x2Entry) {
-    Double zValue = 0.0;
+  double TriLinInterpolate::EvaluateFunc( double x0Entry , double x1Entry, double x2Entry) const {
+    double zValue = 0.0;
     const UInt kx0end = x_.GetSize() - 1;
     UInt k0lo, k0hi;
     double diff0;
@@ -48,7 +48,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
     }
     // now we know which slices to ask for their bilinear interpolation
     
-    Double c0, c1;
+    double c0, c1;
     c0 = slices_[k0lo]->EvaluateFunc(x1Entry, x2Entry);
     c1 = slices_[k0hi]->EvaluateFunc(x1Entry, x2Entry);
 
@@ -57,39 +57,6 @@ DEFINE_LOG(trilinappx, "trilinappx")
       
     LOG_DBG(trilinappx) << "Eval trilinear interpolator at points (" << x0Entry << ", " << x1Entry << ", " << x2Entry << "): " << zValue*factor_;
     return zValue*factor_;
-  }
-
-  Double TriLinInterpolate::EvaluateFunc( Double x0Entry , Double x1Entry) {
-    Double zValue = 0.0;
-    EXCEPTION("you need to provide x, y and z for TriLinear interpolation");
-    return zValue;
-  }
-
-  Double TriLinInterpolate::EvaluateFunc( Double xEntry ) {
-
-    EXCEPTION("you need to provide x, y and z for TriLinear interpolation");
-    Double yValue = 0.0;
-    return yValue;
-  }
-
-
-  Double TriLinInterpolate::EvaluateFuncInv(double inVal)
-  {
-   
-     EXCEPTION("not implemented");
-     Double erg = -1.;
-    return erg;
- 
-  }
-
-
-  Double TriLinInterpolate::EvaluatePrimeInv(double inVal)
-  {
-  
-     EXCEPTION("not implemented");
-     Double erg = -1.;
-    return erg;
- 
   }
 
 }

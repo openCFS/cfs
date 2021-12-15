@@ -1,10 +1,10 @@
 #ifndef FILE_LININTERPOLATE
 #define FILE_LININTERPOLATE
 
-#include<string>
-#include "Utils/StdVector.hh"
-#include "General/Environment.hh"
+#include <string>
 #include "ApproxData.hh"
+#include "General/Environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -14,7 +14,7 @@ namespace CoupledField {
   class LinInterpolate : public ApproxData
   {
   public:
-    //! constructor getting x, y(x)
+    //! constructor getting x, f(x)
     LinInterpolate(std::string nlFncName, MaterialType matType );
 
     //! Copy Constructor
@@ -25,39 +25,36 @@ namespace CoupledField {
     virtual LinInterpolate* Clone(){
       return new LinInterpolate( *this );
     }
+
     //! destructor
     virtual ~ LinInterpolate();
 
     //computes the approximation polynom
-    virtual void CalcApproximation(bool start=true) {;};
+    virtual void CalcApproximation(const bool start=true) override {};
 
-    //! computes the regularization parameter
-    virtual void CalcBestParameter() {;};
+    //! returns f(x)
+    virtual double EvaluateFunc(const double x) const override;
 
-    //! returns y(x)
-    virtual double EvaluateFunc(double x);
-
-    //! returns  y'(x)  
-    virtual double EvaluatePrime(double x) { 
-      EXCEPTION(" LinInterpolate: EvaluatePrime not implemented");
-      return -1.0; 
+    //! returns f'(x)
+    virtual double EvaluateDeriv(const double x) const override {
+      EXCEPTION("LinInterpolate: EvaluateDeriv not implemented.");
+      return 0;
     };
 
     ///
-    virtual double EvaluateFuncInv(double t);
+    double EvaluateFuncInv(const double t) const;
 
     ///
-    virtual double EvaluatePrimeInv(double t);
-    //  { Error(" LinInterpolate:  EvaluatePrimeInv not implemented");};
+    double EvaluatePrimeInv(const double t) const;
 
     ///
-    int GetSize() {return numMeas_;};
+    int GetSize() const {return numMeas_;};
 
     ///
-    double EvaluateOrigB(int i) {return y_[i];};
+    double EvaluateOrigB(const int i) const {return y_[i];};
 
     ///
-    double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
+    double EvaluateOrigNu(const int i) const {return x_[i]/y_[i];};
 
 
   private:

@@ -4,6 +4,7 @@
 #include <string>
 #include "General/Environment.hh"
 #include "MatVec/Vector.hh"
+
 namespace CoupledField {
 
   //! Base class for approximation of sampled data
@@ -17,10 +18,10 @@ namespace CoupledField {
     ApproxData( std::string nlFncName, MaterialType matType , UInt numIndep = 1);
 
     //! destructor: nothing to do
-    virtual ~ApproxData() {;};
+    virtual ~ApproxData() {};
 
     //! Copy Constructor
-    ApproxData(const ApproxData& right){
+    ApproxData(const ApproxData& right) {
       //here we would also need to create a new operator
       this->factor_ = right.factor_;
       this->matType_ = right.matType_;
@@ -39,7 +40,7 @@ namespace CoupledField {
     void ReadNlinFuncThreeIndep( std::string fncName );
 
     //! return file name
-    std::string GetNlFileName() {
+    inline std::string GetNlFileName() {
       return nlFileName_;
     }
     
@@ -47,51 +48,62 @@ namespace CoupledField {
     void PerformChecksOnInputData( std::string fncName );
 
     //! performs the approximation
-    virtual void CalcApproximation( bool start=true ) = 0;
-
-    //! set accuracy of measured data
-    virtual void SetAccuracy( Double val ) {
-      EXCEPTION(" ApproxData: SetAccuracy not implemented");
-    };
-
-    //! set maximal y-value
-    virtual void SetMaxY( Double val ) {
-      EXCEPTION(" ApproxData: SetMaxY not implemented");
-    };
-
+    virtual void CalcApproximation( const bool start=true ) = 0;
 
     //! find lower \param klo, and higher \param khi index of the boundary values of \param x in a monotonically 
     //! increasing double dataset \param axis. 
     //! Also returns difference.
-    void findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff);
+    void findBracketIndices(const double &x, const Vector<double> & axis, UInt & klo, UInt & khi, double &diff) const;
 
     //! evaluates the functions
-    virtual Double EvaluateFunc( Double t ) = 0;
-    virtual Double EvaluateFunc(double x, double y) {EXCEPTION("only implemented in BiLinInterpolate and BiCubicInterpolate"); Double a=-1.; return a;} // bilinear
-    virtual Double EvaluateFunc(double x, double y, double z) {EXCEPTION("only implemented in TriLinInterpolate and TriCubicInterpolate"); Double a=-1.; return a;} //trilinear
+    virtual double EvaluateFunc(const double x) const {
+      EXCEPTION("only implemented in LinInterpolate");
+      return 0;
+    }
 
-    //! evaluates the derivative of the function
-    virtual Double EvaluatePrime( Double t ) = 0;
+    virtual double EvaluateFunc(const double x, const double y) const {
+      EXCEPTION("only implemented in BiLinInterpolate and BiCubicInterpolate");
+      return 0;
+    }
 
-    //! evaluates the inverse of the function
-    virtual Double EvaluateFuncInv( Double t ) = 0;
+    virtual double EvaluateFunc(const double x, const double y, const double z) const {
+      EXCEPTION("only implemented in TriLinInterpolate and TriCubicInterpolate");
+      return 0;
+    }
 
-    //! evaluates the inverse of the derivative of the function
-    virtual Double EvaluatePrimeInv( Double t ) = 0;
+    virtual double EvaluateFunc(const Vector<double>& p) const {
+      EXCEPTION("only implemented in derived classes");
+      return 0;
+    }
 
-    //! computes the best approximation
-    virtual void CalcBestParameter() = 0;
+    //! returns d f(x) / dx
+    virtual double EvaluateDeriv(const double x) const {
+      EXCEPTION("only implemented in LinInterpolate and CubicInterpolate");
+      return 0;
+    }
+
+    virtual double EvaluateDeriv(const Vector<double>& p, const int dparam) const {
+      EXCEPTION("only implemented in derived classes");
+      return 0;
+    }
+
+    //! evaluates the gradient of the function
+    virtual Vector<double> EvaluatePrime(const Vector<double>& p) const {
+      EXCEPTION("only implemented in derived classes");
+      Vector<double> ret(p.GetSize(),0);
+      return ret;
+    }
 
     //! computes the magnetic reluctivity
-    virtual Double EvaluateFuncNu(Double t) {     
+    virtual double EvaluateFuncNu(double t) const {
       EXCEPTION(" ApproxData: EvaluateFuncNu not implemented");
-      return -1.0; 
+      return -1.0;
     }
 
     //! computes the derivative of magnetic reluctivity
-    virtual Double EvaluatePrimeNu(Double t) {
+    virtual double EvaluatePrimeNu(double t) const {
       EXCEPTION(" ApproxData: EvaluatePrimeNu not implemented");
-      return -1.0; 
+      return -1.0;
     }
 
     //! return the material type
@@ -100,23 +112,24 @@ namespace CoupledField {
     }
 
     //! prints out original and approximated function
-    virtual void Print() {;};
+    virtual void Print() const {};
 
-    void SetFactor(Double f) { factor_=f;}
+    inline void SetFactor(double f) { factor_=f;}
 
   protected:
 
-    Vector<Double> x_;  //!< independent value
-    Vector<Double> x1_;  //!< independent value
-    Vector<Double> y_;  //!< function value
-    StdVector< Vector <Double> > z_; //! function value for two independent vars
-    UInt numMeas_;      //!< number of sampled points
-    UInt numIndepend_;  //!< number of independent values (default 1)
-    MaterialType matType_; //!< material parameter to be approximated
-    std::string nlFileName_; //!< name of file
-    StdVector< std::string > slicesFiles_; //! holding files containing 2d slices (needed for 3d data)
+    // we use type initialization by {} to suppress the constructor warnings about uninitialized members
+    Vector<double> x_{};  //!< independent value
+    Vector<double> x1_{};  //!< independent value
+    Vector<double> y_{};  //!< function value
+    StdVector< Vector <double> > z_{}; //! function value for two independent vars
+    UInt numMeas_{};      //!< number of sampled points
+    UInt numIndepend_{};  //!< number of independent values (default 1)
+    MaterialType matType_{}; //!< material parameter to be approximated
+    std::string nlFileName_{}; //!< name of file
+    StdVector< std::string > slicesFiles_{}; //! holding files containing 2d slices (needed for 3d data)
 
-    Double factor_; //! A factor (default 1.) which can be used to scale the value of the approxmated function
+    double factor_{}; //! A factor (default 1.) which can be used to scale the value of the approximated function
 
   };
 

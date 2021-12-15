@@ -36,6 +36,7 @@ using boost::posix_time::time_duration;
 
 using namespace CoupledField;
 
+//#define TOL boost::unit_test::tolerance( boost::test_tools::fpc::percent_tolerance(0.01) )
 
 // BOOST_AUTO_TEST_CASE declares a test case named first_test, which in turn
 // will run the content of first_test inside the controlled testing environment
@@ -193,6 +194,7 @@ BOOST_AUTO_TEST_CASE(loop_vs_copy)
 
    long values = (long) 1e7;
 
+   std::cout << "loop_vs_copy" << std::endl;
    std::cout << "#set logscale y; set xlabel \"datasize in doubles 10^p\"; set ylabel \"copy " << values << " doubles in s\"\n";
    std::cout << "# plot \"loop.dat\" u 1:4 t \"loop\" w lp, \"loop.dat\" u 1:5 t \"par (4) loop\" w lp, \"loop.dat\" u 1:6 t \"std::copy\" w lp, \"loop.dat\" u 1:7 t \"std::memcopy\" w lp\n";
    std::cout << "#(1) p \t(2) n \t(3) loops \t(4) loop \t(5) par_4_loop \t(6) std::copy \t(7) std::memcpy\n";
@@ -233,6 +235,7 @@ BOOST_AUTO_TEST_CASE(loop_vs_copy)
      std::cout << p << " \t" << n << " \t"  << loops << " \t" <<  std::setprecision(8) <<  loop.total_microseconds() / 1.0e6
                << " \t" << parl.total_microseconds() / 1.0e6 << " \t" << copy.total_microseconds() / 1.0e6
                << " \t" << memcpy.total_microseconds() / 1.0e6 << std::endl;
+     std::cout << std::endl;
    }
 }
 
@@ -299,8 +302,11 @@ BOOST_AUTO_TEST_CASE(small_direct_solver)
   Matrix<double> A(O);
   Vector<double> x; // automatic resize
   A.DirectSolve(x,b);
+  std::cout << "small_direct_solver" << std::endl;
   std::cout << "A=" << A.ToString() << std::endl;
+  std::cout << "b=" << b.ToString() << std::endl;
   std::cout << "x=" << x.ToString() << std::endl;
+  std::cout << std::endl;
   BOOST_TEST(x.GetSize() == 3);
 }
 
@@ -339,12 +345,16 @@ BOOST_AUTO_TEST_CASE(choleksy_lapack_solver)
   grad[0]=1.2132635e+00;
   grad[1]=1.2132635e+00;
   grad[2]=-2.3976500e-01;
-  std::cout << "grad=" << grad.ToString(TS_PYTHON) << std::endl;
   ok = H.CholeskySolveLapack(chol,x,grad,false);
+  std::cout << "choleksy_lapack_solver" << std::endl;
   std::cout << "H=" << H.ToString(TS_PYTHON) << std::endl;
   std::cout << "grad=" << grad.ToString(TS_PYTHON) << std::endl;
-  std::cout << "ok=" << ok << " x=" << x.ToString(TS_PYTHON) << std::endl;
-
+  std::cout << " x=" << x.ToString(TS_PYTHON);
+  if (ok)
+    std::cout << "-> ok" << std::endl;
+  else
+    std::cout << "-> not ok" << std::endl;
+  std::cout << std::endl;
 
   BOOST_TEST(!ok);
 }

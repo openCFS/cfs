@@ -19,9 +19,9 @@ namespace CoupledField
 
   }
 
-  Double LinInterpolate::EvaluateFunc( Double xEntry ) {
+  double LinInterpolate::EvaluateFunc( double xEntry ) const {
 
-    Double yValue = 0.0;
+    double yValue = 0.0;
 
     // get index of last element
     const UInt kend = x_.GetSize() - 1;
@@ -49,7 +49,7 @@ namespace CoupledField
       }
 
       // size of x interval
-      Double dxVal = x_[khi] - x_[klo];
+      double dxVal = x_[khi] - x_[klo];
 
       // The x-values must be distinct!
       if (dxVal == 0.0) {
@@ -57,8 +57,8 @@ namespace CoupledField
       }
 
       // relative distance of xEntry to x-Value bounds
-      Double a = ( x_[khi] - xEntry )/dxVal;
-      Double b = ( xEntry - x_[klo] )/dxVal;
+      double a = ( x_[khi] - xEntry )/dxVal;
+      double b = ( xEntry - x_[klo] )/dxVal;
 
       //linear interpolation
       yValue = a * y_[klo] + b * y_[khi];
@@ -68,7 +68,7 @@ namespace CoupledField
   }
 
 
-  Double LinInterpolate::EvaluateFuncInv(double inVal)
+  double LinInterpolate::EvaluateFuncInv(double inVal) const
   {
    
     if ( inVal < y_[0] )
@@ -80,7 +80,7 @@ namespace CoupledField
 
     //loop over array 
 		// initialize or receive compiler warning
-    Double yPrev = 0.0, yAfter = 0.0, xPrev = 0.0, xAfter = 0.0;
+    double yPrev = 0.0, yAfter = 0.0, xPrev = 0.0, xAfter = 0.0;
 
     yAfter = y_[0];
     for ( UInt k=1; k<numMeas_; k++ ) {
@@ -97,7 +97,7 @@ namespace CoupledField
     }
  
     // linear interpolation
-    Double deltay, deltax, erg;
+    double deltay, deltax, erg;
     deltay = yAfter - yPrev;
     deltax = xAfter - xPrev;
  
@@ -113,7 +113,7 @@ namespace CoupledField
   }
 
 
-  Double LinInterpolate::EvaluatePrimeInv(double inVal)
+  double LinInterpolate::EvaluatePrimeInv(double inVal) const
   {
   
     if ( inVal < y_[0] )
@@ -125,7 +125,7 @@ namespace CoupledField
 
     //loop over array 
 		// initialize or receive compiler warning
-    Double yPrev = 0.0, yAfter = 0.0, xPrev = 0.0, xAfter = 0.0;
+    double yPrev = 0.0, yAfter = 0.0, xPrev = 0.0, xAfter = 0.0;
 
     yAfter = y_[0];
     for ( UInt k=1; k<numMeas_; k++ ) {
@@ -142,7 +142,7 @@ namespace CoupledField
     }
  
     // linear interpolation
-    Double deltay, deltax, erg;
+    double deltay, deltax, erg;
     deltay = yAfter - yPrev;
     deltax = xAfter - xPrev;
  

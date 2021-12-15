@@ -286,12 +286,9 @@ void FeaturedDesign::SetupMapping()
   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
   assert(map_.GetSize() == designElems.GetSize());
 
-
-
   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
   {
     Item& item = map_[i];
-    // no idea what is going on there, even if I once coded it ?! - Fabian
     item.rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
     item.min_corner_value.Resize(1);
     item.max_corner_value.Resize(1);

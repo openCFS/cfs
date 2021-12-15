@@ -1,7 +1,9 @@
 function test(a,b,E)
 %Test bicubic interpolation if it interpolates data points
 %In addition the derivative ist checkt by finite differences
-[Coeff] = bicubic_offline(a,b,E,3);
+params{1} = a;
+params{2} = a;
+[Coeff] = bicubic_offline(params,E);
 for i=1:length(a)
     for j=1:length(b)
         [res1] = bicubic_int(Coeff,a,b,a(i),b(j));

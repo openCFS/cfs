@@ -33,9 +33,11 @@
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
+#include "Utils/CubicInterpolate.hh"
+#include "Utils/BiCubicInterpolate.hh"
+#include "Utils/TriCubicInterpolate.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/tools.hh"
-#include "MatVec/Matrix.hh"
 
 DEFINE_LOG(func, "opt_func")
 
@@ -1136,15 +1138,46 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
     std::string file = dm_node->Get(material_type)->Get("file")->As<std::string>();
     PtrParamNode root = XmlReader::ParseFile(file);
-    int dim1 = root->Get("coeffvol/matrix/dim1")->As<int>();
-    int dim2 = root->Get("coeffvol/matrix/dim2")->As<int>();
-    int dim3 = root->Get("param1/matrix/dim1")->As<int>();
-    int dim4 = root->Get("param2/matrix/dim1")->As<int>();
-    int dim5 = root->Get("param3/matrix/dim1")->As<int>();
-    ParamTools::AsTensor<double>(root->Get("param1/matrix/real"), dim3, 1, this->vol_a_);
-    ParamTools::AsTensor<double>(root->Get("param2/matrix/real"), dim4, 1, this->vol_b_);
-    ParamTools::AsTensor<double>(root->Get("param3/matrix/real"), dim5, 1, this->vol_c_);
-    ParamTools::AsTensor<double>(root->Get("coeffvol/matrix/real"), dim1, dim2, this->vol_coeff_);
+    ParamTools::AsVector<double>(root->Get("param1/matrix/real"), this->vol_a_);
+    if (root->Has("param2")) {
+      ParamTools::AsVector<double>(root->Get("param2/matrix/real"), this->vol_b_);
+    } else {
+      vol_b_.Resize(0);
+      vol_b_.Init();
+    }
+    if (root->Has("param3")) {
+      ParamTools::AsVector<double>(root->Get("param3/matrix/real"), this->vol_c_);
+    } else {
+      vol_c_.Resize(0);
+      vol_c_.Init();
+    }
+    if (root->Has("coeffvol")) {
+      int dim1 = root->Get("coeffvol/matrix/dim1")->As<int>();
+      int dim2 = root->Get("coeffvol/matrix/dim2")->As<int>();
+      ParamTools::AsTensor<double>(root->Get("coeffvol/matrix/real"), dim1, dim2, this->vol_coeff_);
+
+      // copy Vector to StdVector
+      StdVector<double> a(this->vol_a_.GetSize()), b(this->vol_b_.GetSize()), c(this->vol_c_.GetSize());
+      std::copy(this->vol_a_.GetPointer(), this->vol_a_.GetPointer() + this->vol_a_.GetSize(), a.Begin());
+      std::copy(this->vol_b_.GetPointer(), this->vol_b_.GetPointer() + this->vol_b_.GetSize(), b.Begin());
+      std::copy(this->vol_c_.GetPointer(), this->vol_c_.GetPointer() + this->vol_c_.GetSize(), c.Begin());
+
+      // create interpolator for volume
+      StdVector<double> dummy_data;
+      if (c.GetSize() > 0) {
+        assert(a.GetSize() > 0 && b.GetSize() > 0);
+        dummy_data.Resize(a.GetSize()*b.GetSize()*c.GetSize());
+        volumeInterpolator_ = new TriCubicInterpolate(dummy_data, a, b, c, this->vol_coeff_);
+      } else if (b.GetSize() > 0) {
+        assert(a.GetSize() > 0);
+        dummy_data.Resize(a.GetSize()*b.GetSize());
+        volumeInterpolator_ = new BiCubicInterpolate(dummy_data, a, b, this->vol_coeff_);
+      } else {
+        assert(a.GetSize() > 0);
+        dummy_data.Resize(a.GetSize());
+        volumeInterpolator_ = new CubicInterpolate(dummy_data, a, this->vol_coeff_);
+      }
+    }
   }
 
   //total volume in the non-regular case is needed for the volume calculations
@@ -2026,20 +2059,6 @@ void Function::Local::ToInfo(PtrParamNode in) {
 
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
-
-  // create volume output data for material catalog in info.xml file
-  int dim = domain->GetGrid()->GetDim();
-  if (func_->type_ == GLOBAL_TWO_SCALE_VOL && dim == 3) {
-    Vector<double> p(3,0);
-    double v0 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
-    p[0] = 1.;
-    p[1] = 1.;
-    p[2] = 1.;
-    double v1 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
-    PtrParamNode info_matCatalog = domain->GetInfoRoot()->Get("optimization/header/designSpace/materialCatalog",ParamNode::APPEND);
-    info_matCatalog->Get("vol_0")->SetValue(v0);
-    info_matCatalog->Get("vol_1")->SetValue(v1);
-  }
 }
 
 bool Function::Local::IsReverse(Locality loc)
@@ -3488,190 +3507,6 @@ double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* loca
     return 3.0*lowerEigBound+e11*e11+2.0*e12*e12+e22*e22+e33;
 }
 
-double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
-    const Matrix<double> & vol_a, const Matrix<double> & vol_b, const Matrix<double> & vol_c,
-    const Matrix<double> & vol_coeff, double direction) const {
-  // FIXME
-  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
-  double vol = 0.;
-  int m = vol_a.GetNumRows();
-  int n = vol_b.GetNumRows();
-  int o = vol_c.GetNumRows();
-  double da = vol_a[1][0] - vol_a[0][0];
-  double db = vol_b[1][0] - vol_b[0][0];
-  double dc = vol_c[1][0] - vol_c[0][0];
-  int j = GetInterpolationIndex(vol_a,p[0]);
-  int k = GetInterpolationIndex(vol_b,p[1]);
-  int l = GetInterpolationIndex(vol_c,p[2]);
-  if (direction == 0) {
-    vol = EvaluateC1Interpolation_3D(p, vol_a, vol_b, vol_c, vol_coeff, da, db,
-        dc, j, k, l, m, n, o);
-    LOG_DBG(func)<<"vol= "<<vol;
-  } else {
-    vol = EvaluateC1Interpolation_Deriv_3D(p, vol_a,vol_b,vol_c,vol_coeff, da,db,dc,j,k,l,m,n,o,direction);
-    LOG_DBG(func)<<"Derivative "<<((direction == 1)?"1":((direction == 2) ? "2":"3"))<<" vol= "<<vol;
-  }
-
-  return vol;
-}
-
-int Function::Local::Identifier::GetInterpolationIndex(Matrix<double> interval, double& val) const {
-  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
-  int sz = interval.GetNumRows();
-  double h = interval[1][0] - interval[0][0];
-  double eps = 1e-6;
-  assert(h > -eps);
-
-  int idx = -1;
-  if (interval[0][0] <= val + eps && val < interval[sz - 1][0] - eps) {
-    idx = (int) ( (val - interval[0][0]) / h);
-  } else if (close(val,interval[sz - 1][0])) {
-    idx = sz - 2;
-  } else if (val+eps > interval[sz - 1][0]) {
-    idx = sz - 2;
-    val = 1.;
-  } else if (val < eps) {
-    idx = 0;
-    val = 0.;
-  }
-  assert(idx > -1);
-  assert(idx < sz-1);
-  assert(val + eps > 0);
-  assert(val - eps < interval[sz - 1][0]);
-
-  return idx;
-}
-
-
-double Function::Local::Identifier::EvaluateC1Interpolation_3D(
-    Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b,
-    const Matrix<double> & vol_c, const Matrix<double> & vol_coeff, double & da,
-    double & db, double & dc, int & j, int & k, int & l, int & m, int & n,
-    int &o) const {
-  LOG_DBG(func)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
-  double t=(p[0]-vol_a[j][0])/da;
-  double u =(p[1]-vol_b[k][0])/db;
-  double v=(p[2]-vol_c[l][0])/dc;
-  LOG_DBG(func)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
-  double res = 0;
-  for (int ii = 0;ii<4;ii++) {
-    for (int jj=0;jj<4;jj++) {
-      for (int kk=0;kk<4;kk++) {
-        res += vol_coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*pow(t,ii)*pow(u,jj)*pow(v,kk);
-      }
-    }
-  }
-  LOG_DBG(func) << "Result =" << res;
-  return res;
-}
-
-double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
-    Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b,
-    const Matrix<double> & vol_c, const Matrix<double> & vol_coeff, double & da,
-    double & db, double & dc, int & j, int & k, int & l, int & m, int & n,
-    int & o, double direction) const {
-
-  double u = (p[0] - vol_a[j][0]) / (da);
-  double t = (p[1] - vol_b[k][0]) / (db);
-  double v = (p[2] - vol_c[l][0]) / dc;
-  LOG_DBG(func)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
-  LOG_DBG(func)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
-  double deriv = 0;
-  if (direction == 1) {
-    for (int ii = 1; ii < 4; ii++) {
-      for (int jj = 0; jj < 4; jj++) {
-        for (int kk = 0; kk < 4; kk++) {
-          deriv += vol_coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii
-              + 4 * jj + 16 * kk] * ii * pow(u, ii - 1) * pow(t, jj)
-              * pow(v, kk);
-        }
-      }
-    }
-    deriv /= da;
-  }
-  if (direction == 2) {
-    for (int ii = 0; ii < 4; ii++) {
-      for (int jj = 1; jj < 4; jj++) {
-        for (int kk = 0; kk < 4; kk++) {
-          deriv += vol_coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii
-              + 4 * jj + 16 * kk] * jj * pow(u, ii) * pow(t, jj - 1)
-              * pow(v, kk);
-        }
-      }
-    }
-    deriv /= db;
-  }
-  if (direction == 3) {
-    for (int ii = 0; ii < 4; ii++) {
-      for (int jj = 0; jj < 4; jj++) {
-        for (int kk = 1; kk < 4; kk++) {
-          deriv += vol_coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii
-              + 4 * jj + 16 * kk] * kk * pow(u, ii) * pow(t, jj)
-              * pow(v, kk - 1);
-        }
-      }
-    }
-    deriv /= dc;
-  }
-  LOG_DBG(func)<< "Deriv Result =" << deriv;
-  return deriv;
-}
-
-//double Function::Local::Indentifier::Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool derivative, double der) const {
-//  if (!derivative) {
-//    if (stiff1 >= stiff2 && stiff1 >= stiff3) {
-//      vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff1*stiff3*stiff3 - stiff1*stiff2*stiff2;
-//    } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
-//      vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff2*stiff3*stiff3 - stiff2*stiff1*stiff1;
-//    } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
-//      vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff3*stiff2*stiff2 - stiff3*stiff1*stiff1;
-//    } else {
-//      vol = 0.;
-//    }
-//    return vol;
-//  } else {
-//    switch(der)
-//    {
-//    case 1:
-//      if (stiff1 >= stiff2 && stiff1 >= stiff3) {
-//        vol = 2*stiff1 - stiff3*stiff3 - stiff2*stiff2;
-//      } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
-//        vol = 2*stiff1 - 2* stiff2*stiff1;
-//      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
-//        vol = 2*stiff1 - 2* stiff3*stiff1;
-//      } else {
-//        vol = 0.;
-//      }
-//      return vol;
-//    case 2:
-//      if (stiff1 >= stiff2 && stiff1 >= stiff3) {
-//        vol = 2*stiff2 - 2*stiff1*stiff2;
-//      } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
-//        vol = 2*stiff2 - stiff3*stiff3 - stiff1*stiff1;
-//      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
-//        vol = 2*stiff2 - 2*stiff3*stiff2;
-//      } else {
-//        vol = 0.;
-//      }
-//      return vol;
-//    case 3:
-//      if (stiff1 >= stiff2 && stiff1 >= stiff3) {
-//        vol = 2*stiff3 - 2*stiff1*stiff3;
-//      } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
-//        vol = 2*stiff3 - 2*stiff2*stiff3;
-//      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
-//        vol = 2*stiff3 - stiff2*stiff2 - stiff1*stiff1;
-//      } else {
-//        vol = 0.;
-//      }
-//      return vol;
-//    default:
-//      return 0.0;
-//    }
-//  }
-//}
-
-
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   // temporary data structure
   Vector<double> p(3);
@@ -3684,22 +3519,27 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
     p[1] = GetDesign(DesignElement::STIFF2, local, access, true);
     p[2] = GetDesign(DesignElement::STIFF3, local, access, true);
   }
-  double direction;
+
+  // this is the case, where the volume is our parameter
+  if (p[1] == 0 && p[2] == 0) {
+    if (!derivative)
+      return p[0];
+    else
+      return 1.0;
+  }
+
+  // this is the case, where the volume is interpolated with the values in the catalogue
+  assert(local->volumeInterpolator_ != NULL);
   if (!derivative) {
-    direction = 0.;
-    return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_,
-          local->vol_c_, local->vol_coeff_, direction);
+    return local->volumeInterpolator_->EvaluateFunc(p);
   } else {
     switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::STIFF1:
-      direction = 1;
-      return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
+      return local->volumeInterpolator_->EvaluateDeriv(p, 0);
     case DesignElement::STIFF2:
-      direction = 2;
-      return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
+      return local->volumeInterpolator_->EvaluateDeriv(p, 1);
     case DesignElement::STIFF3:
-      direction = 3;
-      return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
+      return local->volumeInterpolator_->EvaluateDeriv(p, 2);
     default:
       return 0.0;
     }
@@ -3711,18 +3551,21 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
 double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   DesignElement* de = dynamic_cast<DesignElement*>(element);
   int dim = domain->GetGrid()->GetDim();
+
   if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {
     throw Exception("CalcTwoScaleVolume is not implemented for dim = 2 and HOM_ISO_C1.");
   }
+
   double vol;
   bool regular = local->space->IsRegular();
   /** if grid is nonregular, the volume has to be scaled by element size */
   if (!regular) {
     assert(local->total_vol_ != 0);
   }
-  /**svol is a scaling factor for unstructured, nonregular grids. */
+  /** svol is a scaling factor for unstructured, nonregular grids. */
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
+
   if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 3) {
     return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
   }
@@ -3747,31 +3590,19 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
       return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
     }
   } else {
-    switch (GetElement(neigh_idx)->GetType()) {
-    case DesignElement::STIFF1:
-      if (dim == 2) {
+    if (dim == 2) {
+      switch (GetElement(neigh_idx)->GetType()) {
+      case DesignElement::STIFF1:
         return svol * (1.0 - stiff2);
-      } else {
-        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-        assert(vol!= -1);
-        return vol;
-      }
-    case DesignElement::STIFF2:
-      if (dim == 2) {
+      case DesignElement::STIFF2:
         return svol * (1.0 - stiff1);
-      } else {
-        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-        assert(vol!= -1);
-        return vol;
+      default:
+        return 0.0;
       }
-    case DesignElement::SHEAR1:
-      return 0.0;
-    case DesignElement::STIFF3:
+    } else {
       vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
       assert(vol!= -1);
       return vol;
-    default:
-      return 0.0;
     }
   }
   //should never be reached

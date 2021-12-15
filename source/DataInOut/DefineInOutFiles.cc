@@ -96,9 +96,8 @@ namespace CoupledField
 // ==============================
 void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
                                            PtrParamNode infoNode,
-                                           std::map<string, shared_ptr<
-    SimInput> >& inFiles, std::map<string,
-    StdVector<shared_ptr<SimInput> > >& gridInputs)
+                                           std::map<string, shared_ptr<SimInput> >& inFiles,
+                                           std::map<string, StdVector<shared_ptr<SimInput> > >& gridInputs)
 {
   fs::path mfp = progOpts->GetMeshFile();
   string meshFile = mfp.string();
@@ -115,7 +114,7 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
   PtrParamNode inputNode = rootNode->Get("fileFormats") ->Get("input",ParamNode::INSERT);
   inputOptionNodes = inputNode->GetChildren();
 
-  // if no reader is defined explictly, create implicit one
+  // if no reader is defined explicitly, create implicit one
   if (!inputOptionNodes.GetSize())
   {
     actId = "default";
@@ -328,8 +327,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(string fName
     if(fName.empty()){
       fName += simName + ".cdb";
     }
-    aInput = shared_ptr<SimInput> (
-        new SimInputCDB(fName, configNode, infoNode));
+    aInput = shared_ptr<SimInput> (new SimInputCDB(fName, configNode, infoNode));
   }
   else if (fFormat == "hdf5")
   {

@@ -42,10 +42,11 @@ public:
   Point GetInitialControlPoint(unsigned int index) { return this->initial_control_points_[index]; }
 
   /** Evaluates basis
-   *  @param Matrix<double> output of size num_nodes_inside x 3
+   *  @param Matrix<double> transformed nodes, size: num_nodes_inside x 3
    */
   void EvalAll(Matrix<double>& out);
 
+  /** Returns the transformed coordinates of point */
   Vector<double> Eval(Vector<double> point);
 
   /**
@@ -55,7 +56,7 @@ public:
   StdVector<Vector<double>> EvalDerivative(Vector<double> point);
 
   /** Write splinebox to VTK file */
-  void Write();
+  void WriteBoxToVTK();
 
   /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
    * @param set the set from the density.xml
@@ -104,12 +105,12 @@ private:
   /** Generate a matrix from the bspline basis, s.t. deformed_mesh = matrix * control_points
    *  Basis has to be set by calling GenerateBasis before.
    *  @return Matrix<double> of size nodes inside splinebox x total_num_cp */
-  Matrix<double> GetBasisMatrix();
+  Matrix<double> GetValuesOfBasisFunctions();
 
   /** Generate a matrix from the bspline basis, s.t. deformed_point = matrix * control_points
    *  Basis has to be set by calling GenerateBasis before.
    *  @return Matrix<double> of size 1 x total_num_cp */
-  Matrix<double> GetBasisMatrix(Vector<double> point);
+  Matrix<double> GetValuesOfBasisFunctions(Vector<double> point);
 
   /** Map (distorted) structure to rho (DesignSpace::data). Sets DesignSpace::data.
    *  Shall be called by ReadDesignFromExtern(). */
@@ -127,9 +128,9 @@ private:
 
   void EvalAllCornerValues();
 
-  double EvalAtCoord(Vector<double> point) const;
+  double GetDensityAtCoord(Vector<double> point) const;
 
-  Vector<double> EvalDerivativeAtCoord(Vector<double> point) const;
+  Vector<double> GetDensityDerivativeAtCoord(Vector<double> point) const;
 
   /** degree of splines */
   unsigned int degree_;

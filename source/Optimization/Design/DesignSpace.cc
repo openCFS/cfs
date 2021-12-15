@@ -427,6 +427,9 @@ DesignSpace::~DesignSpace(){
 
 double DesignSpace::DetermineBound(PtrParamNode pn, TransferFunction* tf, const string& bound)
 {
+  if(pn->Get("fixed")->As<bool>())
+    return pn->Get("initial")->As<double>();
+
   bool pl = pn->Has("physical_" + bound);
 
   // find the proper lower/upper value. We have a design lower/upper and a physical lower/upper. The user can decide what to set.

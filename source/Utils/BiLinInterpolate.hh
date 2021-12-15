@@ -1,10 +1,10 @@
 #ifndef FILE_BILININTERPOLATE
 #define FILE_BILININTERPOLATE
 
-#include<string>
-#include "Utils/StdVector.hh"
-#include "General/Environment.hh"
+#include <string>
 #include "ApproxData.hh"
+#include "General/Environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -30,38 +30,20 @@ namespace CoupledField {
     virtual ~ BiLinInterpolate();
 
     //computes the approximation polynom
-    virtual void CalcApproximation(bool start=true) {;};
+    virtual void CalcApproximation(const bool start=true) override {};
 
-    //! computes the regularization parameter
-    virtual void CalcBestParameter() {;};
+    //! returns f(x,y)
+    virtual double EvaluateFunc(const double x, const double y) const override;
 
-    //! returns y(x)
-    virtual double EvaluateFunc(double x);
-
-    virtual double EvaluateFunc(double x, double y);
-
-    //! returns  y'(x)  
-    virtual double EvaluatePrime(double x) { 
-      EXCEPTION(" BiLinInterpolate: EvaluatePrime not implemented");
-      return -1.0; 
-    };
-
-    ///
-    virtual double EvaluateFuncInv(double t);
-
-    ///
-    virtual double EvaluatePrimeInv(double t);
-    //  { Error(" BiLinInterpolate:  EvaluatePrimeInv not implemented");};
+    //! returns grad f(x,y)
+    Vector<double> EvaluatePrime(const double x, const double y) const {
+      EXCEPTION("BiLinInterpolate: EvaluatePrime not implemented");
+      Vector<double> ret(2,0);
+      return ret;
+    }
 
     ///
     int GetSize() {return numMeas_;};
-
-    ///
-    double EvaluateOrigB(int i) {return y_[i];};
-
-    ///
-    double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
-
 
   private:
 

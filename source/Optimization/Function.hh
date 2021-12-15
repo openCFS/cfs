@@ -6,15 +6,16 @@
 #include <utility>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Design/DesignElement.hh"
+#include "Design/DesignMaterial.hh"
+#include "Design/DesignStructure.hh"
 #include "Driver/FormsContexts.hh"
 #include "General/Enum.hh"
 #include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
+#include "Utils/ApproxData.hh"
 #include "Utils/StdVector.hh"
-#include "Design/DesignElement.hh"
-#include "Design/DesignMaterial.hh"
-#include "Design/DesignStructure.hh"
 
 namespace CoupledField {
 class ErsatzMaterial;
@@ -310,8 +311,6 @@ class Function
     /** is the local function intended for double bounded when the optimizer (snopt) supports it. Use with Local::IsReverse() */
     static bool CouldDoubleBounded(Type type);
 
-
-
     /** the tensor exists only in the homogenization constraint case */
     Matrix<double>& GetTensor() { return tensor_; }
     
@@ -348,6 +347,7 @@ class Function
     };
 
     BandGap bandgap;
+
 
     /** A function can be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
@@ -418,9 +418,11 @@ class Function
 
       /** Data structure for the interpolation coefficients for latticeVol3D*/
       Matrix<double> vol_coeff_;
-      Matrix<double> vol_a_;
-      Matrix<double> vol_b_;
-      Matrix<double> vol_c_;
+      Vector<double> vol_a_;
+      Vector<double> vol_b_;
+      Vector<double> vol_c_;
+
+      ApproxData* volumeInterpolator_;
 
       /** total volume for CalcLaminatesVol in the unregular grid case*/
       double total_vol_;
@@ -481,7 +483,6 @@ class Function
 
         /** identifies the element by the design type. Works only for special neighborhoods! */
         const BaseDesignElement* GetElementByType(BaseDesignElement::Type type) const;
-
 
         /** returns design value by the design type.
          * @param get_parameter == true works for ParamMat parameters. Works only for special neighborhoods! */
@@ -563,25 +564,6 @@ class Function
         /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
         double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
-        /** volume of material of the homogenized cross shaped structure in 3D including derivatives */
-        //double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool derivative, double der) const;
-
-        /** Function returns/interpolates the volume in 3D for cross shaped base cell*/
-        double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
-            double direction) const;
-
-        /** Get the index of the local interpolation interval*/
-        int GetInterpolationIndex(Matrix<double>, double&) const;
-
-        /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
-        double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,
-            double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const;
-
-        /** Function calculates the derivative of the interpolation polynomial with respect to stiffness number, specified by variable direction*/
-        double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b, const Matrix<double>& vol_c, const Matrix<double> & vol_coeff, double & da, double & db,
-            double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
-            double direction) const;
-
         /** volume of material (strong phase for plane strain) in laminate homogenization and two_scale formulas */
         double CalcTwoScaleVolume(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
@@ -648,6 +630,7 @@ class Function
         static StdVector<double> tmp2;
       }; // end of struct Identifier
 
+
       /** Elements with no full neighborhood are not stored. If they would be stored
        * we could easily calculate the virtual element number.
        * This vector maps from the relative virtual constraint number (0 based)
@@ -690,6 +673,7 @@ class Function
       /** Multiple designs on several elements for paramMat*/
       void SetupMultDesignsVirtualElementMap(const Function* f = NULL);
 
+
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
       struct NeighborhoodStructure
@@ -711,6 +695,7 @@ class Function
         double value;
         Filter::FilterSpace fs;
       }; // end of struct NeighborhoodStructure
+
 
       NeighborhoodStructure* structure_;
 
@@ -741,6 +726,7 @@ class Function
       /** @see GetElementDimension() */
       int element_dimension_;
     };
+
 
     /** Give the local information. Check for NULL */
     Local* GetLocal() { return local; }
@@ -858,6 +844,7 @@ class Function
     MaterialTensorNotation notation_;
 
   private:
+
     /** to replace default access in xml with a real value */
     Access DefaultAccess(Type ft) const;
 

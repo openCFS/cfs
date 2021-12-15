@@ -7,6 +7,7 @@ using namespace CoupledField;
 BOOST_AUTO_TEST_CASE(muparser_tests)
 {
 
+  std::cout << "muparser_tests" << std::endl;
   try
   {
     double var_rho = .5;
@@ -25,5 +26,6 @@ BOOST_AUTO_TEST_CASE(muparser_tests)
   {
     std::cout << e.GetMsg() << std::endl;
   }
+  std::cout << std::endl;
 }
 

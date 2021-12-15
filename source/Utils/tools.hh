@@ -123,6 +123,8 @@ namespace CoupledField {
   //     VARIOUS OTHER METHODS AND CLASSES
   // =========================================================================
 
+  // generate vector with random numbers
+  StdVector<double> GenerateRandomVector(size_t size, double first = 0.0, double last = 1.0);
 
   /** Compares if two doubles are close to each other */
   inline bool close(Double d1, Double d2) { return std::abs(d1-d2) < 1e-6; }
@@ -164,7 +166,6 @@ namespace CoupledField {
 
 
   //! calculate distance between two points embedded in matrix
-
   Double dist_Mat(const Matrix<Double> &a);
 
   // calculation area or volume of element
@@ -207,7 +208,7 @@ namespace CoupledField {
 //  void calcNormal2Surface_Mat(Vector<Double> & normal, const Matrix<Double> &ptCoord);
 
   /** Assigns the multiple of a matrix to another matrix. The target is resized.
-   * This is silly copy & pase code. And is for the non-mixed variants already
+   * This is silly copy & paste code. And is for the non-mixed variants already
    * in Matrix::Assign(). Anybody knows how to do the mixed variant in Matrix? */
   void Assign(Matrix<Double>& target,  const Matrix<Double>&  other, const Double factor);
   void Assign(Matrix<Complex>& target, const Matrix<Complex>& other, const Complex factor);

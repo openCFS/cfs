@@ -121,7 +121,7 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
         this->interpolation_ = interpolation.Parse(interpol);
         this->beta_ = pn->Get("splineBox/feature/file/interpolation/beta")->As<double>();
         assert(this->beta_ < 500);
-        LOG_DBG(SBD) << "SBD: interpolation= " << interpol << " beta= " << this->beta_;
+        LOG_DBG(SBD) << "SBD: interpolation = " << interpol << ", beta = " << this->beta_;
         InterpolateFeature();
       }
     } else {
@@ -150,9 +150,6 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   StdVector<Point> offset(total_num_cp_);
   for(unsigned int i = 0; i < offset.GetSize(); ++i) {
     for(unsigned int j = 0; j < dim_; ++j) {
-      ShapeParamElement* spe = shape_param_[0];
-      Point a;
-      a[0] = spe->GetDesign(BaseDesignElement::Access::PLAIN);
       offset[i][j] = shape_param_[i*dim_ + j]->GetDesign(BaseDesignElement::Access::PLAIN);
     }
   }
@@ -206,6 +203,7 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn)
     de->SetDesign(v);
     shape_param_.Push_back(de);
   }
+
   ParamNodeList cp = pn->GetList("controlpoint");
   if(!cp.IsEmpty()) {
     unsigned int ind;
@@ -221,7 +219,6 @@ void SplineBoxDesign::SetupDesign(PtrParamNode pn)
       if(cp[i]->Has("initial")) {
         v = cp[i]->Get("initial")->As<double>();
       }
-
 
       if(dof == "x") {
         ind = index*dim_;
@@ -258,7 +255,7 @@ void SplineBoxDesign::SetupOptParam()
     StdVector<int> sub(dim_);
     // intentional integer division to map dof -> cp_index -> cp_sub
     Ind2Sub(num_cp_, i/dim_, sub);
-    LOG_DBG(SBD) << "SOP: i= " << i << " sub= " << sub.ToString() << " i/dim= " << i/dim_;
+    LOG_DBG3(SBD) << "SOP: i= " << i << " sub= " << sub.ToString() << " i/dim= " << i/dim_;
     bool isOnBoundary = sub[0] == 0 || sub[1] == 0 || (dim_ == 3 ? sub[2] == 0 : false )
         || sub[0] == (int)num_cp_[0]-1 || sub[1] == (int)num_cp_[1]-1 || ((dim_ == 3) ? sub[2] == (int)num_cp_[2]-1 : false);
     if(!(fixed_boundary_ && isOnBoundary)) {
@@ -273,7 +270,7 @@ void SplineBoxDesign::SetupOptParam()
     opt_shape_param_[i]->SetOptIndex(i);
   }
 
-  LOG_DBG(SBD)<< "SOP: opt_d=" << opt_shape_param_.GetSize() << " d=" << shape_param_.GetSize() << " data=" << data.GetSize();
+  LOG_DBG2(SBD)<< "SOP: design variables =" << opt_shape_param_.GetSize() << ", variables =" << shape_param_.GetSize() << ", feature design variables =" << data.GetSize();
 }
 
 void SplineBoxDesign::PostInit(int objectives, int constraints)
@@ -282,7 +279,7 @@ void SplineBoxDesign::PostInit(int objectives, int constraints)
 
   setup_timer_->Start();
 
-  Write();
+  WriteBoxToVTK();
 
   setup_timer_->Stop();
 }
@@ -325,7 +322,7 @@ int SplineBoxDesign::ReadDesignFromExtern(const double* space_in)
   if(!forward_ && mapped_design_ != design_id)
     MapFeatureToDensity();
 
-  Write();
+  WriteBoxToVTK();
 
   LOG_DBG(SBD) << "RDFE: design_id -> " << design_id;
   return design_id;
@@ -333,7 +330,7 @@ int SplineBoxDesign::ReadDesignFromExtern(const double* space_in)
 
 void SplineBoxDesign::EvalAll(Matrix<double>& out)
 {
-  Matrix<double> box_mtx = GetBasisMatrix();
+  Matrix<double> box_mtx = GetValuesOfBasisFunctions();
 
   // "Casting" StdVector<Point> to Matrix<double>
   Matrix<double> cp;
@@ -346,6 +343,7 @@ void SplineBoxDesign::EvalAll(Matrix<double>& out)
     }
   }
 //  LOG_DBG3(SBD) << "EA: control points: \n" << cp.ToString(0);
+
   // matrix * curr_control_points = deformed nodes
   // dimensions: num_nodes_inside x total_num_cp_ * total_num_cp_ x dim
   out.Resize(box_mtx.GetNumRows(), dim_);
@@ -372,13 +370,14 @@ Vector<double> SplineBoxDesign::Eval(Vector<double> point)
   // dimensions: 1 x total_num_cp_ * total_num_cp_ x dim
   new_coords.Resize(1, dim_);
 
-  Matrix<double> mtx = GetBasisMatrix(point);
+  Matrix<double> mtx = GetValuesOfBasisFunctions(point);
   mtx.Mult(cp, new_coords);
-  LOG_DBG3(SBD) << "Eval: basis=\n" << mtx.ToString() << "cp=\n" << cp.ToString() << "new_coords=\n" << new_coords.ToString();
+  LOG_DBG3(SBD) << "Eval: basis=" << mtx.ToString() << "\ncp=" << cp.ToString() << "\nnew_coords=" << new_coords.ToString();
 
+  // convert Matrix<double> of size 1 x dim to Vector<double>
   Vector<double> out(dim_);
   new_coords.GetRow(out, 0);
-  LOG_DBG3(SBD) << "Eval: point= " << point.ToString() << "out= " << out.ToString();
+  LOG_DBG3(SBD) << "Eval: point= " << point.ToString() << " out= " << out.ToString();
   return out;
 }
 
@@ -386,7 +385,7 @@ StdVector<Vector<double>> SplineBoxDesign::EvalDerivative(Vector<double> point)
 {
   StdVector<Vector<double>> out(dim_);
 
-  Matrix<double> mtx = GetBasisMatrix(point);
+  Matrix<double> mtx = GetValuesOfBasisFunctions(point);
 
   for(unsigned int d = 0; d < dim_; ++d) {
     mtx.GetRow(out[d],0);
@@ -908,7 +907,7 @@ void SplineBoxDesign::MapFeatureToDensity()
       Vector<int> order(item.min_corner_value.GetSize());
 
       // check what we need to integrate. The order is the maximal order of all relevant shapes
-      // when we integrate we integrate all shapes shapes at the same integration points.
+      // when we integrate we integrate all shapes at the same integration points.
       // If this could be relaxed we might be able to save quite some time!!
       int max_order = item.GetOrder(order, numInt_); // sets order. 0, 1 or >= 2
 
@@ -923,7 +922,7 @@ void SplineBoxDesign::MapFeatureToDensity()
       if(max_order == 0)
         rho = 0.0;
 
-      LOG_DBG2(SBD) << "MFTD: de=" << de->elem->elemNum << " mo=" << max_order << " o=" << order.ToString() << " rho=" << rho;
+      LOG_DBG2(SBD) << "MFTD: de=" << de->elem->elemNum << ", max order=" << max_order << ", order=" << order.ToString() << ", rho=" << rho;
 
       // the number of integration points per dimension is actually max_order
       int num_ip = max_order;
@@ -947,18 +946,18 @@ void SplineBoxDesign::MapFeatureToDensity()
               // Get element edge length
               double sze, tmp;
               LagrangeElemShapeMap sm(domain->GetGrid());
-              sm.SetElem(de->elem,false);
+              sm.SetElem(de->elem, false);
               sm.GetMaxMinEdgeLength(sze, tmp);
 
-              // add local ip to global node. no casting available ...
+              // add local ip to global node.
               Vector<double> ip(dim_);
               for(unsigned int i = 0; i < dim_; ++i) {
                 ip[i] = coords[i][0] + local_ip[i] * sze;
               }
 
-              double ip_rho = EvalAtCoord( Eval(ip) ); // the final value for one integration point.
+              double ip_rho = GetDensityAtCoord( Eval(ip) ); // the final value for one integration point.
               assert(ip_rho >= 0.0 && ip_rho <= 1.0);
-              rho += weight * ip_rho; // apply weight only here at the and such that tanh_sum_.map() can be applied
+              rho += weight * ip_rho;
               LOG_DBG3(SBD) << "MFTD: de=" << de->GetIndex() << " p=" << de->GetLocation()->ToString()
                   << " local_ip=" << local_ip.ToString() << " ip=" << ip.ToString() << " Eval(ip)=" << Eval(ip).ToString()
                   << " ip_rho=" << ip_rho;
@@ -1008,7 +1007,7 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
 
   Grid* grid = domain->GetGrid();
 
-  //#pragma omp parallel
+  //#pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
     // this are thread private constructs to be reused over the for loop iterations
 
@@ -1040,7 +1039,7 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
         double de_plain_f_grad = de->GetPlainGradient(f);
         assert(!std::isnan(de_plain_f_grad));
 
-        // @see MapShapeToDensity()
+        // @see SplineBoxDesign::MapFeatureToDensity()
         int num_ip = max_order;
 
         for(int ip_x = 0; ip_x < num_ip; ++ip_x) {
@@ -1055,34 +1054,34 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
               grid->GetElemNodesCoord(coords, nodes, false);
 
               // Get element edge length
-              double max, tmp;
+              double sze, tmp;
               LagrangeElemShapeMap sm(domain->GetGrid());
               sm.SetElem(de->elem,false);
-              sm.GetMaxMinEdgeLength(max, tmp);
+              sm.GetMaxMinEdgeLength(sze, tmp);
 
               // add local ip to global node. no casting available ...
               Vector<double> ip(dim_);
               for(unsigned int i = 0; i < dim_; ++i) {
-                ip[i] = coords[i][0] + local_ip[i] * max;
+                ip[i] = coords[i][0] + local_ip[i] * sze;
               }
 
               // gradient of feature density w.r.t. integration point
-              Vector<double> dip_rho = EvalDerivativeAtCoord( Eval(ip) );
+              Vector<double> dip_rho = GetDensityDerivativeAtCoord( Eval(ip) );
               assert(!dip_rho.ContainsNaN() && !dip_rho.ContainsInf());
 
-              Vector<double> dip_rho_norm;
-              dip_rho_norm = dip_rho * (de->GetUpperBound() - de->GetLowerBound()) * weight;
-              log_dip_rho += dip_rho_norm;
+              Vector<double> dip_rho_normalized;
+              dip_rho_normalized = dip_rho * (de->GetUpperBound() - de->GetLowerBound()) * weight;
+              log_dip_rho += dip_rho_normalized;
 
               // derivative of integration point w.r.t. control point
               assert(shape_param_.GetSize() == total_num_cp_*dim_);
               Vector<double> dcp_rho(opt_shape_param_.GetSize());
-              Matrix<double> mtx = GetBasisMatrix(ip); // derivative of integration point w.r.t. control point
+              Matrix<double> mtx = GetValuesOfBasisFunctions(ip);
               unsigned int k = 0;
               for(unsigned int cp = 0; cp < total_num_cp_; ++cp) {
                 for(unsigned int d = 0; d < dim_; ++d) {
                   if(is_opt_[cp*dim_+d]) {
-                    dcp_rho[k++] = dip_rho_norm[d] * mtx[0][cp];
+                    dcp_rho[k++] = dip_rho_normalized[d] * mtx[0][cp];
                   }
                 }
               }
@@ -1131,16 +1130,13 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
 void SplineBoxDesign::EvalAllCornerValues()
 {
   // for a mesh we evaluate all points and set each value for all adjacent Item.
-  //Hence the value is repeated almost 4 times in 2D and 8 times in 3D
+  // Hence the value is repeated almost 4 times in 2D and 8 times in 3D
   Grid* grid = domain->GetGrid();
-
-  StdVector<double> ip(dim_); // integration location 0 ... 1
-  StdVector<int> idx(dim_);
 
   Vector<double> glob;
   glob.Resize(grid->GetNumNodes());
 
-  // get transformed mesh coordinates
+  // get transformed mesh coordinates (forward_) or control points respectively
   Matrix<double> new_coords;
   EvalAll(new_coords);
 
@@ -1158,7 +1154,7 @@ void SplineBoxDesign::EvalAllCornerValues()
       if(local_index_[nodes[i]-1] != -1.0) {
         Vector<double> p(dim_);
         new_coords.GetRow(p, local_index_[nodes[i]-1]);
-        vals[i] = EvalAtCoord(p);
+        vals[i] = GetDensityAtCoord(p);
       } else {
         // Todo
         vals[i] = 0.0;
@@ -1172,7 +1168,7 @@ void SplineBoxDesign::EvalAllCornerValues()
   }
 }
 
-inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const
+double SplineBoxDesign::GetDensityAtCoord(Vector<double> point) const
 {
   double val = 0.0;
 //  if(!IsInside(point)) {
@@ -1201,17 +1197,16 @@ inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const
       // SmoothMax(x, 0) ->   ln(.5)/beta_ < 0 for x -> -infinity
       // SmoothMin(x, 1) -> 1-ln(.5)/beta_ > 1 for x ->  infinity
       // We choose lower and upper such that the limit is 0 or 1, respectively.
+      // SmoothMax(x,   std::log(2)/beta_) ->   ln(1)/beta_ = 0 for x -> -infinity
+      // SmoothMin(x, 1-std::log(2)/beta_) -> 1-ln(1)/beta_ = 1 for x ->  infinity
       double lower = std::log(2)/beta_;
       double upper = 1-std::log(2)/beta_;
       if(dim_ == 2) {
-        double fval = bicubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1]);
-        val = SmoothMin(SmoothMax(fval, lower, beta_), upper, beta_);
-        if(val < -.02 || val > 1.02)
-          LOG_DBG2(SBD) << "EAC: point= " << point.ToString() << " fval= " << fval << " val= " << val << " beta= " << beta_;
+        val = bicubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1]);
       } else {
         val = tricubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1], relative_coords[2]);
-        val = SmoothMin(SmoothMax(val, lower, beta_), upper, beta_);
       }
+      val = SmoothMin(SmoothMax(val, lower, beta_), upper, beta_);
     } else {
       StdVector<int> sub(dim_);
       for(unsigned int d = 0; d < dim_; ++d) {
@@ -1253,10 +1248,11 @@ inline double SplineBoxDesign::EvalAtCoord(Vector<double> point) const
       throw Exception("Function not implemented");
     }
   }
+  LOG_DBG2(SBD) << "EAC: p=" << point.ToString() << " -> f=" << val;
   return val;
 }
 
-inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> point) const
+Vector<double> SplineBoxDesign::GetDensityDerivativeAtCoord(Vector<double> point) const
 {
   Vector<double> out(dim_, 0.0);
 
@@ -1267,7 +1263,7 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
   if(analyticFunc_ == AnalyticFunc::FILE) {
     StdVector<double> relative_coords(dim_);
     for(unsigned int d = 0; d < dim_; ++d) {
-      // @see EvalAtCoord
+      // @see GetDensityAtCoord
       relative_coords[d] = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
       if(periodic_) {
         while(relative_coords[d] < 0) {
@@ -1280,23 +1276,20 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
     }
     if(interpolation_ == Interpolation::CUBIC) {
       double val;
-      //@see EvalAtCoord
+      //@see GetDensityAtCoord
       double lower = std::log(2)/beta_;
       double upper = 1-std::log(2)/beta_;
       if(dim_ == 2) {
         out = bicubicInterpolator_->EvaluatePrime(relative_coords[0], relative_coords[1]);
         val = bicubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1]);
-        out *= DerivSmoothMin(SmoothMax(val, lower, beta_), upper, beta_, -1);
-        out *= DerivSmoothMax(val, lower, beta_, -1);
       } else {
         out = tricubicInterpolator_->EvaluatePrime(relative_coords[0], relative_coords[1], relative_coords[2]);
         val = tricubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1], relative_coords[2]);
-        out *= DerivSmoothMin(SmoothMax(val, lower, beta_), upper, beta_, -1);
-        out *= DerivSmoothMax(val, lower, beta_, -1);
       }
+      // chain rule
+      out *= DerivSmoothMax(val, lower, beta_, -1);
+      out *= DerivSmoothMin(SmoothMax(val, lower, beta_), upper, beta_, -1);
       for(unsigned int d = 0; d < dim_; ++d) {
-        // derivative normalized w.r.t. size of density
-        out[d] *= density_resolution_[d];
         // derivative normalized w.r.t. size of spline box
         out[d] *= 1/(bounding_box_[d][1]-bounding_box_[d][0]);
       }
@@ -1345,6 +1338,7 @@ inline Vector<double> SplineBoxDesign::EvalDerivativeAtCoord(Vector<double> poin
       out[d] *= std::cos(sub[d]) / (bounding_box_[d][1] - bounding_box_[d][0]) / feature_scale_ * M_PI;
     }
   }
+  LOG_DBG2(SBD) << "EAC: p=" << point.ToString() << " -> out=" << out.ToString();
   return out;
 }
 
@@ -1569,11 +1563,12 @@ void SplineBoxDesign::ToInfo(ErsatzMaterial* em)
   }
 }
 
-void SplineBoxDesign::Write()
+void SplineBoxDesign::WriteBoxToVTK()
 {
   unsigned int iteration = this->opt_->GetCurrentIteration();
   // add leading zeros
-  std::string iter = std::string(5 - std::to_string(iteration).length(), '0') + std::to_string(iteration);
+  double nzeros = std::ceil(std::log10(domain->GetOptimization()->GetMaxIterations())) - std::to_string(iteration).length();
+  std::string iter = std::string(nzeros, '0') + std::to_string(iteration);
   string filename = "results_hdf5/" + progOpts->GetSimName() + ".spb_" + iter + ".vtk";
 
   std::ofstream out;
@@ -1652,6 +1647,8 @@ void SplineBoxDesign::SetControlPoint(int idx, Point coords, bool add)
 void SplineBoxDesign::SetControlPoints(StdVector<Point> coords, bool add)
 {
   assert(coords.GetSize() == total_num_cp_);
+  for(auto p : coords)
+    LOG_DBG3(SBD) << "SCP: setting control point to " << p.ToString();
 
   if(add == false) {
     control_points_ = coords;
@@ -1714,7 +1711,7 @@ void SplineBoxDesign::ReadFeature(string file_in, string key)
   }
 
   density_derivative_.Resize(dim_);
-  // finite differenzen
+  // finite differences
   unsigned int h = 1; // in elements of density field discretization
   unsigned int num_density_elem = density_resolution_.Product();
   for(unsigned int d = 0; d < dim_; ++d) {
@@ -1728,6 +1725,7 @@ void SplineBoxDesign::ReadFeature(string file_in, string key)
       // derivative normalized w.r.t. density resolution
       density_derivative_[d][e] = (density_[left] - density_[right]) / h;
       // derivative normalized w.r.t. size of density
+      // TODO normalize w.r.t. cover_box_
       density_derivative_[d][e] *= density_resolution_[d];
       // derivative normalized w.r.t. size of FE mesh
       density_derivative_[d][e] *= 1/(bounding_box_[d][1]-bounding_box_[d][0]);
@@ -1752,6 +1750,9 @@ void SplineBoxDesign::InterpolateFeature()
     for(StdVector<double>::iterator it = y.Begin(); it != y.End(); ++it)
       *it /= (density_resolution_[0]-1);
 
+    LOG_DBG3(SBD) << "IF: x=" << x.ToString();
+    LOG_DBG3(SBD) << "IF: y=" << y.ToString();
+
     if(dim_ == 2) {
       bicubicInterpolator_ = new BiCubicInterpolate(density_, x, y, true);
       bicubicInterpolator_->CalcApproximation();
@@ -1760,6 +1761,8 @@ void SplineBoxDesign::InterpolateFeature()
       std::iota(z.begin(), z.end(), 0);
       for(StdVector<double>::iterator it = z.Begin(); it != z.End(); ++it)
         *it /= (density_resolution_[0]-1);
+
+      LOG_DBG3(SBD) << "IF: z=" << z.ToString();
 
       tricubicInterpolator_ = new TriCubicInterpolate(density_, x, y, z, true);
       tricubicInterpolator_->CalcApproximation();
@@ -1779,7 +1782,7 @@ StdVector<Vector<Double>> SplineBoxDesign::GetPointsForBasis()
   StdVector<Vector<Double>> points;
   points.Reserve(num_nodes);
 
-  // local_index is true if node is local_index box, else false
+  // local_index is true (i.e. > 0) if node is inside box, else false (i.e. = -1)
   local_index_.Resize(num_nodes);
   local_index_.Init(-1);
   unsigned int index = 0;
@@ -1818,11 +1821,10 @@ void SplineBoxDesign::GenerateBasis(StdVector<Vector<Double>> points)
     }
     // convert back to StdVector
     StdVector<double> unique_coordsd;
-    unique_coordsd.Reserve(num_points);
+    unique_coordsd.Reserve(set.size());
     for(std::unordered_set<double>::iterator it = set.begin(); it != set.end(); ++it) {
       unique_coordsd.Push_back(*it);
     }
-    unique_coordsd.Trim();
     std::sort(unique_coordsd.Begin(), unique_coordsd.End()); // might be unnecessary
     unique_coords_[d] = &unique_coordsd;
 
@@ -1856,7 +1858,7 @@ bool SplineBoxDesign::IsInside(Vector<double> point) const
   return inside;
 }
 
-Matrix<double> SplineBoxDesign::GetBasisMatrix()
+Matrix<double> SplineBoxDesign::GetValuesOfBasisFunctions()
 {
   assert(basis_.GetSize() > 0);
   assert(basis_[0].GetNumCols() > 0);
@@ -1882,28 +1884,31 @@ Matrix<double> SplineBoxDesign::GetBasisMatrix()
     for(unsigned int i = 0; i < num_nodes_inside; ++i) {
       for(unsigned int j = 0; j < total_num_cp_; ++j) {
         Ind2Sub(num_cp_, j, sub);
-        //LOG_DBG3(SBD) << "GBM: d: " << d << " u_i[d][i]: " << unique_inverse_[d][i] << " sub[d]: " << sub[d];
+//        LOG_DBG3(SBD) << "GBM: d: " << d << " u_i[d][i]: " << unique_inverse_[d][i] << " sub[d]: " << sub[d];
         mtx_temp[i][j] = basis_[d][unique_inverse_[d][i]][sub[d]];
       }
     }
     mtx = mtx.EntryMult(mtx_temp);
   }
 
-  LOG_DBG3(SBD) << "GBM: basis matrix: \n" << mtx.ToString();
+//  LOG_DBG3(SBD) << "GBM: basis matrix: \n" << mtx.ToString();
   return mtx;
 }
 
-Matrix<double> SplineBoxDesign::GetBasisMatrix(Vector<double> point)
+Matrix<double> SplineBoxDesign::GetValuesOfBasisFunctions(Vector<double> point)
 {
   StdVector<int> sub(dim_);
   Matrix<double> mtx;
   mtx.Resize(1, total_num_cp_);
   mtx.InitValue(1.0);
+
   for(unsigned int d = 0; d < dim_; ++d) {
     StdVector<double> t(1);
     t[0] = point[d];
+
     // values of all basis functions in dimension d at t
     Matrix<double> basis_t = bsplines_[d]->Eval(&t);
+
     // box is tensor product of 1D splines
     Matrix<double> mtx_temp;
     mtx_temp.Resize(1, total_num_cp_);

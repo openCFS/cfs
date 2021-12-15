@@ -149,7 +149,7 @@ namespace CoupledField {
 //       "Path to schema definitions of CFS++ installation")
 //      ;
 
-    // 4) Combine visible and invisble options to commandLine options
+    // 4) Combine visible and invisible options to commandLine options
     // -----------------------------------------
     po::options_description cmdLineOptions;
     cmdLineOptions.add(cmdVisible).add(cmdInvisible);

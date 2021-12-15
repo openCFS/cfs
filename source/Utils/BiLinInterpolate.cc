@@ -24,8 +24,8 @@ DEFINE_LOG(bilinappx, "bilinappx")
   }
 
 
-  Double BiLinInterpolate::EvaluateFunc( Double x0Entry , Double x1Entry) {
-    Double zValue = 0.0;
+  double BiLinInterpolate::EvaluateFunc( double x0Entry , double x1Entry) const {
+    double zValue = 0.0;
 
     // get index of last element
     const UInt kx0end = x_.GetSize() - 1;
@@ -49,11 +49,11 @@ DEFINE_LOG(bilinappx, "bilinappx")
     else if ( x0Entry > x_[kx0end] || x0Entry < x_[0] ) {
       // x is out of bound, interpolate x1
       UInt k1lo, k1hi;
-      Double diff1;
+      double diff1;
       findBracketIndices(x1Entry, x1_, k1lo, k1hi, diff1);
       // relative distance of xEntry to x-Value bounds
-      Double a = ( x1_[k1hi] - x1Entry )/diff1;
-      Double b = ( x1Entry - x1_[k1lo] )/diff1;
+      double a = ( x1_[k1hi] - x1Entry )/diff1;
+      double b = ( x1Entry - x1_[k1lo] )/diff1;
 
       UInt x0ind = (x0Entry < x_[0]) ? 0 : kx0end;
       //linear interpolation
@@ -62,11 +62,11 @@ DEFINE_LOG(bilinappx, "bilinappx")
     else if ( x1Entry > x1_[kx1end] || x1Entry < x1_[0] ) {
       // x is out of bound, interpolate x1
       UInt k0lo, k0hi;
-      Double diff0;
+      double diff0;
       findBracketIndices(x0Entry, x_, k0lo, k0hi, diff0);
       // relative distance of xEntry to x-Value bounds
-      Double a = ( x_[k0hi] - x0Entry )/diff0;
-      Double b = ( x0Entry - x_[k0lo] )/diff0;
+      double a = ( x_[k0hi] - x0Entry )/diff0;
+      double b = ( x0Entry - x_[k0lo] )/diff0;
 
       UInt x1ind = (x1Entry < x1_[0]) ? 0 : kx1end;
       //linear interpolation
@@ -75,7 +75,7 @@ DEFINE_LOG(bilinappx, "bilinappx")
     else {
 
       UInt k0lo, k0hi, k1lo, k1hi;
-      Double diff0, diff1;
+      double diff0, diff1;
       findBracketIndices(x0Entry, x_, k0lo, k0hi, diff0);
       findBracketIndices(x1Entry, x1_, k1lo, k1hi, diff1);
 
@@ -91,33 +91,6 @@ DEFINE_LOG(bilinappx, "bilinappx")
 
     LOG_DBG(bilinappx) << "Eval bilinear interpolator at points (" << x0Entry << ", " << x1Entry << "): " << zValue*factor_;
     return zValue*factor_;
-  }
-
-  Double BiLinInterpolate::EvaluateFunc( Double xEntry ) {
-
-    EXCEPTION("you need to provide x and y for BiLinear interpolation");
-    Double yValue = 0.0;
-    return yValue;
-  }
-
-
-  Double BiLinInterpolate::EvaluateFuncInv(double inVal)
-  {
-   
-     EXCEPTION("not implemented");
-     Double erg = -1.;
-    return erg;
- 
-  }
-
-
-  Double BiLinInterpolate::EvaluatePrimeInv(double inVal)
-  {
-  
-     EXCEPTION("not implemented");
-     Double erg = -1.;
-    return erg;
- 
   }
 
 }

@@ -1,11 +1,11 @@
 #ifndef FILE_TRILININTERPOLATE
 #define FILE_TRILININTERPOLATE
 
-#include<string>
-#include "Utils/StdVector.hh"
-#include "General/Environment.hh"
+#include <string>
 #include "ApproxData.hh"
 #include "BiLinInterpolate.hh"
+#include "General/Environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -31,41 +31,21 @@ namespace CoupledField {
     //! destructor
     virtual ~ TriLinInterpolate();
 
-    //computes the approximation polynom
-    virtual void CalcApproximation(bool start=true) {;};
+    //! computes the approximation polynom
+    virtual void CalcApproximation(const bool start=true) override {};
 
-    //! computes the regularization parameter
-    virtual void CalcBestParameter() {;};
+    //! returns f(x,y,z)
+    virtual double EvaluateFunc(const double x, const double y, const double z) const override;
 
-    //! returns y(x)
-    virtual double EvaluateFunc(double x);
-
-    virtual double EvaluateFunc(double x, double y);
-
-    virtual double EvaluateFunc(double x, double y, double z);
-
-    //! returns  y'(x)  
-    virtual double EvaluatePrime(double x) { 
-      EXCEPTION(" TriLinInterpolate: EvaluatePrime not implemented");
-      return -1.0; 
-    };
+    //! returns grad f(x,y,z)
+    Vector<double> EvaluatePrime(const double x, const double y, const double z) const {
+      EXCEPTION("TriLinInterpolate: EvaluatePrime not implemented");
+      Vector<double> ret(3,0);
+      return ret;
+    }
 
     ///
-    virtual double EvaluateFuncInv(double t);
-
-    ///
-    virtual double EvaluatePrimeInv(double t);
-    //  { Error(" TriLinInterpolate:  EvaluatePrimeInv not implemented");};
-
-    ///
-    int GetSize() {return numMeas_;};
-
-    ///
-    double EvaluateOrigB(int i) {return y_[i];};
-
-    ///
-    double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
-
+    int GetSize() const {return numMeas_;};
 
   private:
 

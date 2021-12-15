@@ -13,7 +13,7 @@ set(UNIT_TESTS_SRC
   unittests.cc
   muparsertests.cc
 #  bsplinetests.cc
-#  bicubicinttests.cc
+  cubicinttests.cc
 )
 
 set(TARGET_LL 
@@ -21,9 +21,9 @@ set(TARGET_LL
   design
   cfsgeneral
   utils
-  datainout
-  paramh
-  utils)
+  datainout)
+#  paramh
+#  utils)
 
 if(USE_EMBEDDED_PYTHON)
   # see FindPrograms.cmake on how the PYTHON_ stuff is set

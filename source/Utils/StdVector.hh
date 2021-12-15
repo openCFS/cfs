@@ -174,24 +174,24 @@ namespace CoupledField {
       return const_iterator(this, 0);
     }
 
-    //! Return iterator pointing to last element
+    //! Return iterator pointing to (undefined) element after last element
     iterator End() {
         return iterator(this, size_);
     }
     
-    //! Return iterator pointing to last element
+    //! Return iterator pointing to (undefined) element after last element
     const_iterator End() const {
         return const_iterator( this, size_ );
     }
     
 
-    //! Return iterator pointing to last element
+    //! Return iterator pointing to (undefined) element after last element
     //! otherwise we can't use C++11 auto
     iterator end() {
         return iterator(this, size_);
     }
 
-    //! Return iterator pointing to last element
+    //! Return iterator pointing to (undefined) element after last element
     //! otherwise we can't use C++11 auto
     const_iterator end() const {
         return const_iterator( this, size_ );
@@ -204,7 +204,7 @@ namespace CoupledField {
     //! Constructor
     StdVector();
 
-    //! Constructor with inital size.
+    //! Constructor with initial size.
     //! All entries are filled with zeroes
     explicit StdVector(size_type size);
 
@@ -234,7 +234,7 @@ namespace CoupledField {
 
     //! Initalizes the vector with a given entry
     /*!
-      \param entry (input) Entry vector gets inialized with
+      \param entry (input) Entry vector gets initialized with
     */
     //! \note this method does not change the size of the vector!
     void Init(const TYPE entry = TYPE());

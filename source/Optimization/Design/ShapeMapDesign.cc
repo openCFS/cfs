@@ -1756,7 +1756,7 @@ void ShapeMapDesign::MapFeatureToDensity()
       DensityIdx(r, idx);
 
       // check what we need to integrate. The order is the maximal order of all relevant shapes
-      // when we integrate we integrate all shapes shapes at the same integration points.
+      // when we integrate we integrate all shapes at the same integration points.
       // If this could be relaxed we might be able to save quite some time!!
       int max_order = item.GetOrder(order, numInt_); // sets order. 0, 1 or >= 2
 
@@ -1832,7 +1832,7 @@ void ShapeMapDesign::MapFeatureToDensity()
                 break;
               } // end of switch(combine_)
               assert(ip_rho >= 0 && ip_rho <= 1.02); // allow small overlap for TANH_SUM
-              rho += weight * ip_rho; // apply weight only here at the and such that tanh_sum_.map() can be applied
+              rho += weight * ip_rho; // apply weight only here at the end such that tanh_sum_.map() can be applied
               LOG_DBG3(SMD) << "MSTD: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " mo=" << max_order << " ni=" << num_ip << " w=" << weight << " ip_rho=" << ip_rho << " -> " << rho;
             } // end ip_z
           } // end ip_y

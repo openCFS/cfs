@@ -51,8 +51,8 @@ void ApproxData::ReadNlinFunc(std::string fncName)  {
 
   datafile.seekg(0,std::ios::beg); // start from the beginning
   std::string     buf;
-  Double          xval,yval;
-  std::vector<Double> xx, yy;
+  double          xval,yval;
+  std::vector<double> xx, yy;
 
   while(pos <= pos_end)
   {
@@ -107,9 +107,9 @@ void ApproxData::ReadNlinFuncThreeIndep(std::string fncName)  {
 
   datafile.seekg(0,std::ios::beg); // start from the beginning
   std::string     buf;
-  std::vector<Double> x;
+  std::vector<double> x;
   std::vector<std::string> filenames;
-  Double xt;
+  double xt;
   std::string iFilename;
   UInt nSlices = 0;
   while(pos <= pos_end)
@@ -158,7 +158,10 @@ void ApproxData::ReadNlinFuncThreeIndep(std::string fncName)  {
 
 }
 
-void ApproxData::findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff) {
+void ApproxData::findBracketIndices(const double &x, const Vector<double> & axis, UInt & klo, UInt & khi, double &diff) const {
+  // instead of findBracketIndices one can use
+  // khi = std::upper_bound(axis.GetPointer(), axis.GetPointer() + axis.GetSize() - 1, x) - axis.GetPointer();
+
   const UInt kend = axis.GetSize() - 1;
   UInt k;
   klo=0;
@@ -203,9 +206,9 @@ void ApproxData::ReadNlinFuncTwoIndep(std::string fncName)  {
 
   datafile.seekg(0,std::ios::beg); // start from the beginning
   std::string     buf;
-  Double          x0val,x1val, yval;
-  std::vector<Double> xx0, xx1;
-  std::vector<Double> yy;
+  double          x0val,x1val, yval;
+  std::vector<double> xx0, xx1;
+  std::vector<double> yy;
   std::vector<UInt> blockSizes;
   UInt nblocks;
   UInt nMeas = 0;
@@ -337,8 +340,8 @@ void ApproxData::PerformChecksOnInputData( std::string nlFileName ) {
       WARN("First measured point in BH curve read from file '"
           << nlFileName << "' is not zero. We will add such a point!");
 
-      Vector<Double> xx = x_;
-      Vector<Double> yy = y_;
+      Vector<double> xx = x_;
+      Vector<double> yy = y_;
       numMeas_ +=1;
 
       x_.Resize(numMeas_);
@@ -354,8 +357,8 @@ void ApproxData::PerformChecksOnInputData( std::string nlFileName ) {
 
     //now check, if we have monoton increasing x- and y-values
     for ( UInt k=0; k<numMeas_-1; k++ ) {
-      Double epsX = 1.0;
-      Double epsY = 1e-3;
+      double epsX = 1.0;
+      double epsY = 1e-3;
       if ( x_[k+1] - x_[k] < epsX ) {
         std::string str = "The H-values in file '" + nlFileName +
             "', are not monoton increasing (epsH = 1)! ";

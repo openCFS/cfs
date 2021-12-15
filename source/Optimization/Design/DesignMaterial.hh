@@ -6,12 +6,14 @@
 #include <cmath>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/MaterialTensor.hh"
 #include "General/Enum.hh"
 #include "General/Environment.hh"
-#include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/Matrix.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/MaterialTensor.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "Utils/ApproxData.hh"
+
 #include "def_use_sgpp.hh"
 
 #ifdef USE_SGPP
@@ -112,8 +114,6 @@ public:
      * The enum is necessary for the constraint parameter notation. */
 //    static Enum<Notation> notation;
 
-    const Elem* current_elem;
-
     double CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative);
 
     Interpolation GetInterpolationMethod() const { return interpolation_; };
@@ -129,13 +129,13 @@ public:
     void RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
 
     /** Calculate the Isotropic tensor */
-    inline void GetIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
+    void GetIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
-    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor().
      * @param vector p has the values of the design variable */
     void GetHomC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
-    /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
+    /** little helper for GetInterpolatedHomTensor().
      * @param vector p has the values of the design variable */
     void GetHomIsoC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
@@ -206,60 +206,61 @@ protected:
 private:
     /* note that most of these functions are called really often, so inlining is used */
 
+    void ReadCoeff(PtrParamNode pn, const string& name, int nRows, int nCols, Matrix<double>& coeff) const;
+
+    /** create a new interpolator (cubic|bicubic|tricubic) with coeff as polynomial coefficients */
+    ApproxData* CreateInterpolator(StdVector<double>& a, StdVector<double>& b, StdVector<double>& c, Matrix<double>& coeff);
+
     /** Calculate the Lame Tensor */
-    inline void GetLameMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
+    void GetLameMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Trans-Iso Tensor
      * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
-    inline void GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
+    void GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
 
     /* general anisotropic FMO tensor */
-    inline void GetElasticFMOTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
+    void GetElasticFMOTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate tensor for free orthotropic material formulation
      *                    |e11 e12 0 |^2
      * E(e11,e22,e33,e12)=|e12 e22 0 |  + diag(lowerEigenvalueBound)
      *                    | 0   0 e33|
      *  */
-    inline void GetOrthotropicMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
+    void GetOrthotropicMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Tensor for Density times Tensor
      * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
-    inline void GetDensityTimes2dTensorTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
+    void GetDensityTimes2dTensorTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
 
     /** Calculate the tensor for Laminates */
-    inline void GetLaminatesTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
+    void GetLaminatesTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** little helper for GetInterpolatedHomTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
     void GetHomRectTensor(MaterialTensor<double>& mt, const Vector<double>& shape) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction);
+    void GetInterpolatedHomTensor(MaterialTensor<double>& mt, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction);
 
     /** Gives the elasticity tensor of the Nickel basis alloy IN718 with interpolation between different crystalline microstructures */
-    inline void GetIN718Tensor(MaterialTensor<double>& mt, SubTensorType subTensor,  DesignElement::Type direction);
+    void GetIN718Tensor(MaterialTensor<double>& mt, SubTensorType subTensor,  DesignElement::Type direction);
 
-    /** does only perform orientational optimization
-     * @param mc MECHANIC, PIEZO, ELECTROSTATIC */
-    inline void GetRotatedTensor(Matrix<double>& t, MaterialClass mc, DesignElement::Type direction);
-
-    inline void ZeroMatrix(Matrix<double>& t, SubTensorType subTensor);
+    void ZeroMatrix(Matrix<double>& t, SubTensorType subTensor);
 
     /** set values in 2 matrix "t" in Voigt notation order */
-    inline void Set2dMatrix(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
+    void Set2dMatrix(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
 
     /** set values in 2 matrix "t" in Voigt notation order (doesn't assume symmetry) */
-    inline void Set2dMatrix(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
+    void Set2dMatrix(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
 
     /** put the entries of the 3D matrix at the right places (Voigt notation order - whatever that is in 3d???) */
-    inline void Set3dMatrix(Matrix<double>& t, SubTensorType subTensor, double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double);
+    void Set3dMatrix(Matrix<double>& t, SubTensorType subTensor, double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double);
 
     /** put the entries of the transversal_isotropic matrix at the "right" places */
-    inline void SetTransIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
+    void SetTransIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
 
     /** put the entries of the isotropic matrix at the "right" places */
-    inline void SetIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
+    void SetIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
 
     // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis (default x)
     void SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis = 0, bool derivative = false);
@@ -280,23 +281,23 @@ private:
     void RotateElecTensor(MaterialTensor<double>& mt, double angle, DesignElement::Type direction);
 
     /** Calculate the mass isotropic case */
-    inline double GetIsoMaterialMass(DesignElement::Type direction);    
+    double GetIsoMaterialMass(DesignElement::Type direction);
 
     /** Calculate the mass lame case */
-    inline double GetLameMaterialMass(DesignElement::Type direction);
+    double GetLameMaterialMass(DesignElement::Type direction);
 
     /** Calculate the mass trans-iso case */
-    inline double GetTransIsoMaterialMass(DesignElement::Type direction);
+    double GetTransIsoMaterialMass(DesignElement::Type direction);
 
     /** Calculate the mass density-times-tensor case
      * This returns the scaling factor (pseudo-density) for the normal mass matrix based on the materials actual density */
-    inline double GetDensityTimesTensorMass(DesignElement::Type direction);
+    double GetDensityTimesTensorMass(DesignElement::Type direction);
 
     /** Get the trans-iso mass (tensor trace) out of the corresponding tensor entries */
-    inline double GetTransIsoMass(double iD, double iG, double oD, double oG);
+    double GetTransIsoMass(double iD, double iG, double oD, double oG);
 
     /** Get the isotropic mass (tensor trace) out of the corresponding tensor entries */
-    inline double GetIsoMass(double D, double G);
+    double GetIsoMass(double D, double G);
 
     /** fills the row in hom_rect_samples_ */
     void FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const std::string& a, const std::string& b);
@@ -307,7 +308,7 @@ private:
 
     /** evaluates the one dimensional C1 interpolation polynomial at point p and returns function value as double
      * f(x) = a0 + a1*p + a2*p**2 + a3*p**3 */
-    double EvaluateC1Interpolation(double p, const Matrix<double>& coeff, double& da, int& j) const;
+    double EvaluateC1Interpolation(double p, const Matrix<double>& coeff, int& j) const;
 
     double EvaluateC1Interpolation_Deriv(double p, const Matrix<double> & coeff, double & da, int & j, DesignElement::Type direction) const;
 
@@ -322,11 +323,12 @@ private:
 
     /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1],p[2] in direction 0 or 1 and returns function value as double */
     double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db,double& dc, int& j, int& k, int& l, int& m, int& n, int& o, DesignElement::Type direction) const;
-    //double EvaluateC1Interpolation(Matrix<double>& E,  Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
+
+    double EvaluateC1Interpolation_Deriv(Vector<double>& p, ApproxData* interpolator, DesignElement::Type direction) const;
 
     /** Get the index of the local interpolation interval
      * if point is outside of interval, it is set to interval's bounds*/
-    int GetInterpolationIndex(const Matrix<double>& interval, double& point) const;
+    int GetInterpolationIndex(const Vector<double>& interval, double& point) const;
 
     /** Read detailed stats from file*/
     bool ReadDetailedStats(const char * filename, Matrix<double>& ret);
@@ -364,39 +366,61 @@ private:
     /** sampled values for coefficients of the bicubic interpolation polynomial; number of sample elements rows and 16 columns/64 columns (3D)*/
     Matrix<double> hom_rect_coeff11_;
     Matrix<double> hom_rect_coeff12_;
-    Matrix<double> hom_rect_coeff22_;
-    Matrix<double> hom_rect_coeff33_;
-    Matrix<double> hom_rect_coeff23_;
-    Matrix<double> hom_rect_coeff44_;
-    Matrix<double> hom_rect_coeff55_;
-    Matrix<double> hom_rect_coeff66_;
     Matrix<double> hom_rect_coeff13_;
     Matrix<double> hom_rect_coeff14_;
     Matrix<double> hom_rect_coeff15_;
     Matrix<double> hom_rect_coeff16_;
+    Matrix<double> hom_rect_coeff22_;
+    Matrix<double> hom_rect_coeff23_;
     Matrix<double> hom_rect_coeff24_;
     Matrix<double> hom_rect_coeff25_;
     Matrix<double> hom_rect_coeff26_;
+    Matrix<double> hom_rect_coeff33_;
     Matrix<double> hom_rect_coeff34_;
     Matrix<double> hom_rect_coeff35_;
     Matrix<double> hom_rect_coeff36_;
+    Matrix<double> hom_rect_coeff44_;
     Matrix<double> hom_rect_coeff45_;
     Matrix<double> hom_rect_coeff46_;
+    Matrix<double> hom_rect_coeff55_;
     Matrix<double> hom_rect_coeff56_;
-    Matrix<double> hom_rect_a_;
-    Matrix<double> hom_rect_b_;
-    Matrix<double> hom_rect_c_;
+    Matrix<double> hom_rect_coeff66_;
+    Vector<double> hom_rect_a_;
+    Vector<double> hom_rect_b_;
+    Vector<double> hom_rect_c_;
 
     /** MSFEM element matrix coefficients of the bi-/tricubic interpolation polynomial from material catalogue; number of sample elements rows and 64 columns */
-    Matrix<double> msfem_a_;
-    Matrix<double> msfem_b_;
-    Matrix<double> msfem_rot_;
+    Vector<double> msfem_a_;
+    Vector<double> msfem_b_;
+    Vector<double> msfem_rot_;
     StdVector<Matrix<double> > msfem_coeff_;
 
     DesignSpace* space_;
 
     Interpolation interpolation_;
     unsigned int level_;
+
+    ApproxData* interpolator11_;
+    ApproxData* interpolator12_;
+    ApproxData* interpolator13_;
+    ApproxData* interpolator14_;
+    ApproxData* interpolator15_;
+    ApproxData* interpolator16_;
+    ApproxData* interpolator22_;
+    ApproxData* interpolator23_;
+    ApproxData* interpolator24_;
+    ApproxData* interpolator25_;
+    ApproxData* interpolator26_;
+    ApproxData* interpolator33_;
+    ApproxData* interpolator34_;
+    ApproxData* interpolator35_;
+    ApproxData* interpolator36_;
+    ApproxData* interpolator44_;
+    ApproxData* interpolator45_;
+    ApproxData* interpolator46_;
+    ApproxData* interpolator55_;
+    ApproxData* interpolator56_;
+    ApproxData* interpolator66_;
 
 #ifdef USE_SGPP
     /** members for SGPP interpolation */
