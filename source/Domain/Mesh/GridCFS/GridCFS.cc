@@ -3233,11 +3233,16 @@ namespace CoupledField {
     StdVector<Vector<Double> > points, verts;
     points.Reserve(namedNodeNames_.GetSize() * dim_);
     verts.Reserve(pow(2,dim_) * dim_);
+    // This stores the indices of named nodes, which we take into account in the following
+    // calculations. E.g., if there are too little nodes in namedNodes[i], we skip these nodes.
+    StdVector<UInt> pointsToNamedNodesMap;
+    pointsToNamedNodesMap.Reserve(namedNodeNames_.GetSize());
     for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )
     {
       if( namedNodeNames_[i] == "center" ) continue;
       if( namedNodes_[i].GetSize() < dim_ ) continue;
 
+      pointsToNamedNodesMap.Push_back(i);
       const StdVector<UInt>& nodes = namedNodes_[i];
 
       if( dim_ == 2 )
@@ -3264,7 +3269,7 @@ namespace CoupledField {
 
     // Make sure we have enough points
     if( (dim_ == 2 && points.GetSize() < 4) || (dim_ == 3 && points.GetSize() < 9) ) {
-      return -1; // in case we are not doing homogenization
+      return -1;
     }
 
     // Calculate vertices
@@ -3307,7 +3312,8 @@ namespace CoupledField {
         // second point.
         Double radicand = 0;
         UInt j = 2;
-        while( radicand < 1e-8 && j < namedNodes_[i].GetSize()-1 ) {
+        UInt k = pointsToNamedNodesMap[i];
+        while( radicand < 1e-8 && j < namedNodes_[pointsToNamedNodesMap[i]].GetSize()-1 ) {
           p = points[3*i+1] - points[3*i];
           q = points[3*i+2] - points[3*i];
           // normal vector
@@ -3319,12 +3325,12 @@ namespace CoupledField {
 	  
           radicand = pow(n[0],2) + pow(n[1],2) + pow(n[2],2);
 
-          GetNodeCoordinate(points[3*i+1], namedNodes_[i][j], false);
+          GetNodeCoordinate(points[3*i+1], namedNodes_[pointsToNamedNodesMap[i]][j], false);
           j++;
         }
         if (radicand < 1e-8) {
           EXCEPTION("Could not calculate normal of bounding plane. The nodes of "
-                    << namedNodeNames_[i] << " seem to lie on a straight line "
+                    << namedNodeNames_[pointsToNamedNodesMap[i]] << " seem to lie on a straight line "
                     << "and thus do not define a plane.");
         }
         // Normalize normal
