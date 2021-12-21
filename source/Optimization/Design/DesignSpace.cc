@@ -283,10 +283,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.translate_design = 0.0;
             if(design_bim != "")
               dr.SetBiMaterial(design_bim);
-            double upper = curr_design_pn->Get("upper")->As<double>();
             // for tanh and heaviside scaling and offset is set in the physical case
             TransferFunction* tf = GetTransferFunction(dt, App::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
-            double lower = DetermineLowerBound(curr_design_pn, tf);
+            double lower = DetermineBound(curr_design_pn, tf, "lower");
+            double upper = DetermineBound(curr_design_pn, tf, "upper");
 
             // this is strange stuff from Bastian, nobody else is using
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
@@ -425,24 +425,24 @@ DesignSpace::~DesignSpace(){
   elementCache = NULL;
 }
 
-double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
+double DesignSpace::DetermineBound(PtrParamNode pn, TransferFunction* tf, const string& bound)
 {
-  bool pl = pn->Has("physical_lower");
+  bool pl = pn->Has("physical_" + bound);
 
-  // find the proper lower value. We have a design lower and a physical lower. The user can decide what to set
-  if(pn->Has("lower") && pl)
-    throw Exception("In 'design' the attributes 'lower' and 'physical_lower' must not be given concurrently");
+  // find the proper lower/upper value. We have a design lower/upper and a physical lower/upper. The user can decide what to set.
+  if(pn->Has(bound) && pl)
+    throw Exception("In 'design' the attributes '" + bound + "' and 'physical_" + bound + "' must not be given concurrently.");
   if(!pl)
   {
-    if(!pn->Has("lower"))
-      throw Exception("In 'design' give 'lower' or 'pyhical_lower'");
-    return pn->Get("lower")->As<double>();
+    if(!pn->Has(bound))
+      throw Exception("In 'design' give '" + bound + "' or 'physical_" + bound + "'.");
+    return pn->Get(bound)->As<double>();
   }
 
-  // we have to find the lower bound by the transfer function.
+  // we have to find the lower/upper bound by the transfer function.
   assert(tf != NULL);
 
-  double physical = pl ? pn->Get("physical_lower")->As<double>() : pn->Get("lower")->As<double>();
+  double physical = pl ? pn->Get("physical_" + bound)->As<double>() : pn->Get(bound)->As<double>();
 
   switch(tf->GetType())
   {
@@ -458,7 +458,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   case TransferFunction::NO_TYPE:
   case TransferFunction::FULL:
   case TransferFunction::FIXED:
-    throw Exception("Invalid transfer function type for physical lower bound in design.");
+    throw Exception("Invalid transfer function type for physical " + bound + " bound in design.");
 
   case TransferFunction::IDENTITY:
     return physical;
@@ -474,7 +474,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     // original func(1) = uv, func(lower) = lv
     // sc * lv + of = physical
     // sc * uv + of = 1
-    // lower is set to physical!
+    // lower/upper is set to physical!
     // example. For beta=5 and eta=0.5 tanh(>= 0) >= 0.0066. A negative design is not feasible!
     // therefore we have to set scaling and lower=physical
     double lv = tf->Transform(physical);
@@ -487,6 +487,8 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
+
+
 DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   switch(method)

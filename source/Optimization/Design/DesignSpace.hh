@@ -603,9 +603,9 @@ namespace CoupledField
   private:
 
      /** Helper for the constructor.
-      * @param tf for tanh and heaviside and in the physcical case!! scaling and offset in tf is set!!
-      * @return 'lower' or what is defined by the physical lower   */
-     double DetermineLowerBound(PtrParamNode pn, TransferFunction* tf);
+      * @param tf for tanh and heaviside and in the physical case! scaling and offset in tf is set!
+      * @return 'lower'/'upper' or what is defined by the physical lower/physical upper  */
+     double DetermineBound(PtrParamNode pn, TransferFunction* tf, const string& bound);
 
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);

@@ -1614,10 +1614,13 @@
                 </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float" />
-                <!-- Insteead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
+                <!-- Instead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
                 <xsd:attribute name="physical_lower" use="optional" type="xsd:float" />
                 <!-- The upper bound of the design variable -->
-                <xsd:attribute name="upper" use="optional" default="1.0" type="xsd:float" />
+                <xsd:attribute name="upper" use="optional" type="xsd:float" />
+                <!-- Instead of upper one can set physical_upper, then upper is determined by the transfer function. -->
+                <xsd:attribute name="physical_upper" use="optional" type="xsd:float" />
+
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all" />
 
                 <!-- for bimaterial optimization this is the material for the lower bound -->
