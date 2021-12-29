@@ -564,7 +564,6 @@ if __name__ == '__main__':
   ax = None
   if not args.z:
     fig, ax = plt.subplots() 
-  
     lines = [] 
      
     for i in range(len(y)):

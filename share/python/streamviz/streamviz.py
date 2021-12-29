@@ -29,8 +29,19 @@ from collections import deque
 import os
 import psutil
 
+import sys
+import argparse
+
 # for sending data to catalyst
-import send_data
+GLOBAL_USE_PARAVIEW = None
+try:
+  import paraview
+  import paraview.vtk
+  import send_data
+  GLOBAL_USE_PARAVIEW = True
+except ImportError as ie:
+  print('Tolerable import error (no paraview catalyst service):', ie)
+  GLOBAL_USE_PARAVIEW = False
 
 #for threading.lock
 import threading
@@ -41,8 +52,8 @@ app = Flask(__name__)
 
 MEMLOG_FILENAME = "streamviz_memlog_" + str(datetime.datetime.now()) + ".log"
 MEMLOG_LOCK = threading.Lock()
-with open(MEMLOG_FILENAME, "a") as myfile:
-  myfile.write("#key last_updated xml_size_in_byte(6) estimated_xml_size_in_byte(7) memory_before memory_after deleted_count\n")
+#with open(MEMLOG_FILENAME, "a") as myfile:
+#  myfile.write("#key last_updated xml_size_in_byte(6) estimated_xml_size_in_byte(7) memory_before memory_after deleted_count\n")
 
 MEMLOG_RECEIVELOG = []
 
@@ -71,10 +82,6 @@ UPDATE_EVENTS = {}
 # Make sure to have the real IP here
 # Don't use the X-Forward-For from the request
 PROXY_REAL_IP_HEADER = "X-Real-IP"
-
-# in bytes
-MAX_MEMORY = 2*1024*1024*1024 # = 2 GByte
-#MAX_MEMORY = 250*1024*1024 # = 250 MByte
 
 # ration <bytes used reported by os> divided by <sum of sizes of saved xml strings>
 MEMORY_BYTE_RATIO = -1
@@ -139,15 +146,15 @@ def values(key):
 def view(key):
   if request.method == 'GET':
     client_ip = request.remote_addr
-    if request.headers.has_key(PROXY_REAL_IP_HEADER):
+    if PROXY_REAL_IP_HEADER in request.headers:
       client_ip = request.headers.get(PROXY_REAL_IP_HEADER, "127.0.0.1")
-    return render_html.render_view(GLOBAL_RAW_DATA_DICT, key, client_ip)
+    return render_html.render_view(GLOBAL_RAW_DATA_DICT, GLOBAL_USE_PARAVIEW, key, client_ip)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
 @app.route(settings["api"]["plot_url"] + '/<path:key>', methods = ['GET', 'POST'])
 def plot(key):
-  return api_plot.plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, request.args.get('x'), \
+  return api_plot.plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, \
                        request.args.getlist('y1_it'), request.args.getlist('y2_it'), \
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
                        int(request.args.get('iteration_num')), \
@@ -231,14 +238,12 @@ def cfs_recieve(url_key = ""):
     while True:
       chunk = request.stream.read(chunk_size)
       if len(chunk) == 0:
-        print("new file")
+        print("received data")
         break
       
       data += chunk.decode("utf-8")
 
     xml = etree.fromstring(data)
-    
-    print("status: " + xml.xpath('//cfsInfo/@status')[0])
     
     key = xml.xpath('//environment/@host')[0] + '/' + xml.xpath('//progOpts/@problem')[0]
     
@@ -304,8 +309,8 @@ def cfs_recieve(url_key = ""):
     memory_in_bytes_after_adding = psutil.Process(os.getpid()).memory_info().rss
 
     with MEMLOG_LOCK:
-      with open(MEMLOG_FILENAME, "a") as myfile:
-        myfile.write(key + " " + GLOBAL_UPDATED_DICT[key] + " " + str(total_xml_size) + " " + str(MEMORY_BYTE_RATIO*total_xml_size) + " " + str(memory_in_bytes) + " " + str(memory_in_bytes_after_adding) + " " + str(deleted_count) + "\n")
+      #with open(MEMLOG_FILENAME, "a") as myfile:
+      #  myfile.write(key + " " + GLOBAL_UPDATED_DICT[key] + " " + str(total_xml_size) + " " + str(MEMORY_BYTE_RATIO*total_xml_size) + " " + str(memory_in_bytes) + " " + str(memory_in_bytes_after_adding) + " " + str(deleted_count) + "\n")
 
       log_entry = {}
       log_entry['key'] = key
@@ -319,8 +324,6 @@ def cfs_recieve(url_key = ""):
       MEMLOG_RECEIVELOG.append(log_entry)
 
     GLOBAL_STAT_VARS['total_iteration_count'] += 1
-
-    print("recieved data!\n")
     return 'data recieved!\n'
   else:
     return 'expected a POST'
@@ -328,7 +331,15 @@ def cfs_recieve(url_key = ""):
 
 
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser(description='streamviz web server')
+  parser.add_argument('host', nargs='?', help='host to assign the server', default='127.0.0.1')
+  parser.add_argument("-port", help='port to assign the server', type=int, default=5000)
+  parser.add_argument("-mem", help='maximal memory in giga bytes', type=float, default=2.0)
+  args = parser.parse_args()
+  # in bytes
+  MAX_MEMORY = args.mem*1024**3 # = 2 GByte
+    
   # need multithreading to server multiple clients.
   # Otherwise pushing xml while ajaxing it with the event
   # synchronization will not be possible
-  app.run(threaded=True, port=5000, host='127.0.0.1')
+  app.run(threaded=True, port=args.port, host=args.host)
