@@ -115,7 +115,9 @@ def print_header(meta,data,inputs):
   cnt = 1
   for mi, m in enumerate(meta):
     for li, l in enumerate(m):
-      print('{:3d}'.format(cnt) + ': ' + l.ljust(ml) + ' : ' + str(data[mi][0][li]).ljust(19) + ' : ' + inputs[mi])
+      # at time of printing we did not smooth or grad yet
+      val = '*' if 'grad_' in l or 'smooth_' in l else str(data[mi][0][li]) 
+      print('{:3d}'.format(cnt) + ': ' + l.ljust(ml) + ' : ' + str(val).ljust(19) + ' : ' + inputs[mi])
       cnt += 1
 
 
@@ -358,43 +360,72 @@ def label(args, legends):
     
     return ', '.join(res) 
 
-# create artificial data for the numerical smooth keys if any
-def append_smooth(input, meta, data, smooth, window, poly):
-  if smooth is not None and len(smooth) > 0:
+# reserve artificial data for smoothing or gradient if given in key
+# the real numerics can only be later when we have the x-key and the range, but 
+# for this we need the reservation first. The values are the original ones to be processed later
+# @param label smooth or grad
+def reserve_artificial(input, meta, keys, label):
+  if keys is not None and len(keys) > 0:
     # data is list of lines with all columns, convert first for our selected colums
-    fix, cols, labels = column(meta,data,smooth,[])
+    fix, cols, labels = column(meta,data,keys,[])
     assert len(fix) == len(cols) == len(labels)
     
+    for i, c in enumerate(cols):
+      meta[fix[i]-1].append(label + '_' + labels[i])
+      for j, v in enumerate(c):
+        data[fix[i]-1][j].append(v)
+        
+  return meta, data        
+  
+# apply smoothing for the already existing (original) data  
+def apply_smooth(data, labels, window, poly):
+  if sum('smooth_' in l for l in labels) > 0:
     import scipy.signal
-    for i, c in enumerate(cols):
+  for i, l in enumerate(labels):
+    if 'smooth_' in l: # label might be grad_smooth_compliance.
+      c = data[i]
       w = min(window, 2*int(len(c)/2) +1) # window nees to be odd
-      print("generate 'smooth_" + labels[i] + "' Savitzky–Golay filtered data with poly", poly, "and window",w)
-      
-      
+      if not 'grad_smooth_' in l: # we smooth data for grad but don't repeat the smooth_ output of the original data
+        print("smooth " + labels[i] + "' with Savitzky–Golay filter with poly", poly, "and window",w)
       sc = scipy.signal.savgol_filter(c, w, poly)
-      meta[fix[i]-1].append('smooth_' + labels[i])
-      for vi, v in enumerate(sc):
-        data[fix[i]-1][vi].append(v)
 
-  return meta, data
+      data[i] = sc # replace data by smoothed data
+  return data 
 
-# create artificial data for the finite difference data keys if any
-# the gradient is are for inbetween data but mooved to the left and the last value is doubled
-def append_grad(input, meta, data, grad):
-  if grad is not None and len(grad) > 0:
-    fix, cols, labels = column(meta,data,grad,[])
-    assert len(fix) == len(cols) == len(labels)
-    for i, c in enumerate(cols):
-      dc = np.diff(c,n=1)
-      dc = np.append(dc,dc[-1]) # repeat last value
-      assert len(c) == len(dc)
-      meta[fix[i]-1].append('grad_' + labels[i])
-      for vi, v in enumerate(dc):
-        data[fix[i]-1][vi].append(v)
+# helper which gives the difference val2 - val1- in hours if values are datetime
+def diff(val1, val2):
+  d = val2 - val1
+  if type(d) == datetime.timedelta:
+    return d.seconds * 3600.0
+  else:
+    return d
 
-  return meta, data
-
-
+# apply smoothing for the already existing (original) data  
+# @param fi file index is 1-based and negative if bar data
+def apply_grad(fi, data, labels, all_x):
+  for i, l in enumerate(labels):
+    if 'grad_' in l: # label might be grad_smooth_compliance.
+      #print(fi, i, abs(fi[i])-1)
+      x = all_x[abs(fi[i])-1]
+      c = data[i]
+      dc = np.zeros(len(c))
+      assert len(x) == len(c)
+      assert len(c) > 1
+      #print(c)
+      #print(x)
+      for vi, v in enumerate(c):
+        if vi == 0: # forward difference
+          vn = c[vi+1]
+          dc[vi] = (vn - v) / diff(x[vi], x[vi+1])
+        elif vi == len(c) -1: # backward difference
+          vp = c[vi-1]
+          dc[vi] = (v - vp) / diff(x[vi-1], x[vi])
+        else: # central difference
+          vn = c[vi+1]
+          vp = c[vi-1]
+          dc[vi] = (vn - vp) / diff(x[vi-1], x[vi+1])
+      data[i] = dc # replace data 
+  return data 
 
 # plotviz.py is imported by postproc.py, so guard argparse
 if __name__ == '__main__':
@@ -449,25 +480,26 @@ if __name__ == '__main__':
 
   # if one of the arguments is a multiple key in meta, it is replaced by multiple ids (argument becomes larger)
   # we first do this for artificial data
+  # for real smoothing we wait for the restrictions
   args.smooth = resolve_multiple(meta, args.smooth)
-  meta, data = append_smooth(args.input, meta, data, args.smooth, args.smooth_window, args.smooth_poly)
+  meta, data  = reserve_artificial(input, meta, args.smooth, 'smooth')
   
-  args.smooth = resolve_multiple(meta, args.grad)
-  meta, data = append_grad(args.input, meta, data, args.grad)
+  # for real grad we need the corresponding x and for that we need to wait for print
+  args.grad   = resolve_multiple(meta, args.grad)
+  meta, data  = reserve_artificial(input, meta, args.grad, 'grad')
   
   args.x = resolve_multiple(meta, args.x)
   args.y = resolve_multiple(meta, args.y)
   args.y2 = resolve_multiple(meta, args.y2)
   args.z = resolve_multiple(meta, args.z)
 
-
-
+  # after printing meta is fixed
   print_header(meta, data, args.input)
-   
+
+  # sanity checks   
   if not args.y:
     print('Usage: provide at least -y and possibly -x and -y2. Key/label may be space separated list')
     sys.exit()
-  
   
   if args.x != None and len(args.x) != len(args.input):
     print('Error: on multiple inputs either have no -x or -x with keys for all input files')
@@ -492,6 +524,7 @@ if __name__ == '__main__':
   
   has_dt = type(x[0][0]) == datetime.datetime # we validated common type for all x before
   
+  # now do restrictions
   # for restrictions, this is the start index and end index for the x array of columns
   # currently multiple input needs to be datetime
   start_idx = [0] * len(x)
@@ -556,8 +589,17 @@ if __name__ == '__main__':
 
   for i in range(len(y2)):
     idx = abs(fiy2[i])-1
-    y2[i] = y2[i][start_idx[idx]:end_idx[idx]]   
+    y2[i] = y2[i][start_idx[idx]:end_idx[idx]]
+  # finished with restrictions     
 
+  # now we can do smooth and grad, identified by the predix smooth_ and grad_ in the label
+  y  = apply_smooth(y, ylabel, args.smooth_window, args.smooth_poly) 
+  y2 = apply_smooth(y2, y2lbl, args.smooth_window, args.smooth_poly)
+  z  = apply_smooth(z, zlabel, args.smooth_window, args.smooth_poly) 
+  y  = apply_grad(fiy, y, ylabel, x)
+  y2 = apply_grad(fiy2, y2, y2lbl, x)
+  z  = apply_grad(fiz, z, zlabel, x)
+        
         
   # now plot the stuff on potentially in 1D by the y-axis or in 2D/3D (3d=warped)
   fig = None

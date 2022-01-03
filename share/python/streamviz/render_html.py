@@ -348,7 +348,7 @@ def render_view(GLOBAL_RAW_DATA_DICT, GLOBAL_USE_PARAVIEW, key, client_ip):
   
   if not key in GLOBAL_RAW_DATA_DICT:
     retdata = retdata.replace(settings['html_template']['key_content'], "simulation not found!")
-    return retdatagr
+    return retdata
   
   xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
