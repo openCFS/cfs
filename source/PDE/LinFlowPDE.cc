@@ -24,6 +24,7 @@
 #include "Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh"
 #include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
 #include "Domain/CoefFunction/CoefFunctionConversion.hh"
+#include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
 #include "Forms/Operators/IdentityOperatorInVector.hh"
 
 #include "Utils/StdVector.hh"
@@ -368,7 +369,7 @@ namespace CoupledField {
                 CoefXprBinOp(mp_,shearViscosityDouble,CoefFunction::Generate( mp_, Global::REAL, "3"),CoefXpr::OP_DIV),
             CoefXpr::OP_SUB ));
 
-        BiLinearForm * stiffIntDivDiv = NULL;
+        BaseBDBInt * stiffIntDivDiv = NULL;
         if( dim_ == 2 ) {
           stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, 1.0, updatedGeo_);
         } else {
@@ -381,6 +382,11 @@ namespace CoupledField {
         stiffContDivDiv->SetEntities( actSDList, actSDList );
         stiffContDivDiv->SetFeFunctions( velFct, velFct );
         assemble_->AddBiLinearForm( stiffContDivDiv );
+
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        bdbInts_[actRegion] = stiffIntDivDiv;
+        LOG_TRACE(linfluidmechpde) << "Add Lin BDB" << std::endl;
       }
 
 
@@ -571,43 +577,44 @@ namespace CoupledField {
       //======================================================================
       // ALE-section (check for grid-velocity)
       //======================================================================
-      if ( isCompressible_ ) {
-        std::string movingMeshId = curRegNode->Get("movingMeshId")->As<std::string>();
-        if(movingMeshId != ""){
-          if(flowId != ""){
-            EXCEPTION("Moving mesh with background flow is currently not supported!")
-          }
+      
+      std::string movingMeshId = curRegNode->Get("movingMeshId")->As<std::string>();
+      if(movingMeshId != ""){
+        if(flowId != ""){
+          EXCEPTION("Moving mesh with background flow is currently not supported!")
+        }
 
-          //if( useMovingMeshTerms_ ){
-          // Manually set this bool since the Mech-PDE sets the updatetGeo_ bool to false
-          // by default and this term only makes sense when the geometry is updated
-          bool updateGeoLF;
-          updateGeoLF = true; // this is just a dummy: if the mechPDE is not computed on the updated geometry, this will get set to false
+        //if( useMovingMeshTerms_ ){
+        // Manually set this bool since the Mech-PDE sets the updatetGeo_ bool to false
+        // by default and this term only makes sense when the geometry is updated
+        bool updateGeoLF;
+        updateGeoLF = true; // this is just a dummy: if the mechPDE is not computed on the updated geometry, this will get set to false
 
-          // Get result info object for flow
-          shared_ptr<ResultInfo> movingMeshInfo;
-          movingMeshInfo = GetResultInfo(FLUIDMECH_MESH_VELOCITY);
-          // Read ALE coefficient function for this region
-          PtrCoefFct regionMovingMesh;
-          std::set<UInt> definedDofs;
+        // Get result info object for flow
+        shared_ptr<ResultInfo> movingMeshInfo;
+        movingMeshInfo = GetResultInfo(FLUIDMECH_MESH_VELOCITY);
+        // Read ALE coefficient function for this region
+        PtrCoefFct regionMovingMesh;
+        std::set<UInt> definedDofs;
 
-          //Add the region information
-          PtrParamNode movingMeshNode =
-            myParam_->Get("movingMeshList")->GetByVal("movingMesh",
-                                                "name",
-                                                movingMeshId.c_str());
+        //Add the region information
+        PtrParamNode movingMeshNode =
+          myParam_->Get("movingMeshList")->GetByVal("movingMesh",
+                                              "name",
+                                              movingMeshId.c_str());
 
-          //TODO Test ReadRHSExcitation and let entList be defined by it (instead of actSDList which are elements)
-          StdVector<shared_ptr<EntityList> > ent;
-          StdVector<PtrCoefFct > tCoef;
-          //ReadRhsExcitation("velocity", movingMeshInfo->dofNames, ResultInfo::VECTOR, isComplex_, ent, tCoef, updateGeoLF, movingMeshNode);
-          ReadUserFieldValues( actSDList, movingMeshNode, movingMeshInfo->dofNames,
-                               movingMeshInfo->entryType, isComplex_, regionMovingMesh,
-                               definedDofs, updateGeoLF );
-          gridVelCoef_->AddRegion( actRegion, regionMovingMesh );
+        //TODO Test ReadRHSExcitation and let entList be defined by it (instead of actSDList which are elements)
+        StdVector<shared_ptr<EntityList> > ent;
+        StdVector<PtrCoefFct > tCoef;
+        //ReadRhsExcitation("velocity", movingMeshInfo->dofNames, ResultInfo::VECTOR, isComplex_, ent, tCoef, updateGeoLF, movingMeshNode);
+        ReadUserFieldValues( actSDList, movingMeshNode, movingMeshInfo->dofNames,
+                              movingMeshInfo->entryType, isComplex_, regionMovingMesh,
+                              definedDofs, updateGeoLF );
+        gridVelCoef_->AddRegion( actRegion, regionMovingMesh );
 
 
-          if ( enableGridVelC1_ ) {
+        if ( enableGridVelC1_ ) {
+          if ( isCompressible_ ) {
             //now create the integrators
             // ====================================================================
             // K_PP (MG): stiffness integrator, moving grid (grid velocity v_g)
@@ -627,8 +634,8 @@ namespace CoupledField {
                 if(isComplex_)
                 {
                   stiffIntMovingGridPP = new ABInt<Complex>( new MultiIdOp<FeH1,2>(),
-                                                     new ScaledGradientOperator<FeH1,2,Complex>(),
-                                                     fnc, -1.0, updatedGeo_ );
+                                                      new ScaledGradientOperator<FeH1,2,Complex>(),
+                                                      fnc, -1.0, updatedGeo_ );
                 }
                 else
                 {
@@ -640,8 +647,8 @@ namespace CoupledField {
                 if(isComplex_)
                 {
                   stiffIntMovingGridPP = new ABInt<Complex>( new MultiIdOp<FeH1,3>(),
-                                                     new ScaledGradientOperator<FeH1,3,Complex>(),
-                                                     fnc, -1.0, updatedGeo_ );
+                                                      new ScaledGradientOperator<FeH1,3,Complex>(),
+                                                      fnc, -1.0, updatedGeo_ );
                 }
                 else
                 {
@@ -663,57 +670,58 @@ namespace CoupledField {
             stiffIntMovingGridContextPP->SetEntities( actSDList, actSDList );
             stiffIntMovingGridContextPP->SetFeFunctions( presFct, presFct );
             assemble_->AddBiLinearForm( stiffIntMovingGridContextPP );
+          } else {
+            EXCEPTION("GridVel C1 term activated but formulation is incompressible!")
           }
+        }
 
+        if ( enableGridVelC2_ ) {
+          // ====================================================================
+          // K_VV (MG): stiffness integrator, moving grid (grid velocity v_g)
+          // \int_{Omega_f} \rho v' (v_g \cdot \grad{v}) d\Omega
+          // ====================================================================
+          BiLinearForm *stiffIntMovingGridVV = NULL;
 
-          if ( enableGridVelC2_ ) {
-            // ====================================================================
-            // K_VV (MG): stiffness integrator, moving grid (grid velocity v_g)
-            // \int_{Omega_f} \rho v' (v_g \cdot \grad{v}) d\Omega
-            // ====================================================================
-            BiLinearForm *stiffIntMovingGridVV = NULL;
-
-            if( dim_ == 2 ) {
-              if(isComplex_)
-              {
-                stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
-                                                   new ConvectiveOperator<FeH1,2,2,Complex>(),
-                                                   density, -1.0, updatedGeo_ );
-              }
-              else
-              {
-                stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(),
-                                                  new ConvectiveOperator<FeH1,2,2>(),
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
+                                                  new ConvectiveOperator<FeH1,2,2,Complex>(),
                                                   density, -1.0, updatedGeo_ );
-              }
-            } else {
-              if(isComplex_)
-              {
-                stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
-                                                   new ConvectiveOperator<FeH1,3,3,Complex>(),
-                                                   density, -1.0, updatedGeo_ );
-              }
-              else
-              {
-                stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(),
-                                                  new ConvectiveOperator<FeH1,3,3>(),
-                                                  density, -1.0, updatedGeo_ );
-              }
             }
-
-            stiffIntMovingGridVV->SetBCoefFunctionOpB(gridVelCoef_);
-            stiffIntMovingGridVV->SetSolDependent(true);
-
-            stiffIntMovingGridVV->SetName("LinFlowStiffIntMovingGridVV");
-
-            BiLinFormContext *stiffIntMovingGridContextVV = NULL;
-            stiffIntMovingGridContextVV = new BiLinFormContext(stiffIntMovingGridVV, STIFFNESS );
-
-            stiffIntMovingGridContextVV->SetEntities( actSDList, actSDList );
-            stiffIntMovingGridContextVV->SetFeFunctions( velFct, velFct );
-            assemble_->AddBiLinearForm( stiffIntMovingGridContextVV );
-            //}
+            else
+            {
+              stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(),
+                                                new ConvectiveOperator<FeH1,2,2>(),
+                                                density, -1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
+                                                  new ConvectiveOperator<FeH1,3,3,Complex>(),
+                                                  density, -1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(),
+                                                new ConvectiveOperator<FeH1,3,3>(),
+                                                density, -1.0, updatedGeo_ );
+            }
           }
+
+          stiffIntMovingGridVV->SetBCoefFunctionOpB(gridVelCoef_);
+          stiffIntMovingGridVV->SetSolDependent(true);
+
+          stiffIntMovingGridVV->SetName("LinFlowStiffIntMovingGridVV");
+
+          BiLinFormContext *stiffIntMovingGridContextVV = NULL;
+          stiffIntMovingGridContextVV = new BiLinFormContext(stiffIntMovingGridVV, STIFFNESS );
+
+          stiffIntMovingGridContextVV->SetEntities( actSDList, actSDList );
+          stiffIntMovingGridContextVV->SetFeFunctions( velFct, velFct );
+          assemble_->AddBiLinearForm( stiffIntMovingGridContextVV );
+          //}
         }
       }
     }
@@ -1166,6 +1174,7 @@ namespace CoupledField {
   
   void LinFlowPDE::DefinePostProcResults() {
 
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_PRESSURE];
 
       StdVector<std::string> stressComponents;
@@ -1195,22 +1204,6 @@ namespace CoupledField {
         sigmaFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stress));
       }
       DefineFieldResult( sigmaFunc, stress );
-
-      // === FLUID-MECHANIC TOTAL STRESS ===
-      shared_ptr<ResultInfo> stressTotal(new ResultInfo);
-      stressTotal->resultType = FLUIDMECH_TOTAL_STRESS;
-      stressTotal->dofNames = stressComponents;
-      stressTotal->unit = MapSolTypeToUnit(FLUIDMECH_TOTAL_STRESS);
-      stressTotal->entryType = ResultInfo::TENSOR;
-      stressTotal->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert( stressTotal );
-      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-      PtrCoefFct sigmaTotalCoef;
-//      sigmaTotalCoef =
-//              CoefFunction::Generate( mp_, part,
-//              CoefXprBinOp(mp_,sigmaFunc,thermalStress_,CoefXpr::OP_SUB));
-
-      DefineFieldResult( sigmaFunc, stressTotal );
 
       // === FLUID-MECHANIC ZERO PRESSURE ===
       // This is a dummy result in order to get the iterative coupling to recognize
@@ -1253,6 +1246,8 @@ namespace CoupledField {
       }
 
       // check if we have a grid velocity and define it
+      // note: at the moment we use element results since nodal results are extremely slow
+      // TODO: fix the nodal results and change the results to nodal ones
       if ( hasGridVel )  {
         // === FLUID-MECHANIC MESH VELOCITY ELEM ===
         shared_ptr<ResultInfo> meshVelocityElem(new ResultInfo);
@@ -1275,7 +1270,7 @@ namespace CoupledField {
         DefineFieldResult( gridVelCoef_, meshVelocity );
       }
 
-      // === FLUID-MECHANIC TOTAL VELOCITY ELEM ===
+      // === FLUID-MECHANIC TOTAL VELOCITY ELEM (for testing purposes) ===
       shared_ptr<ResultInfo> totalVelocityElem(new ResultInfo);
       totalVelocityElem->resultType = FLUIDMECH_TOTAL_VELOCITY_ELEM;
       totalVelocityElem->dofNames = dispDofNames;
@@ -1296,6 +1291,112 @@ namespace CoupledField {
         totalVelCoefElem = velocityFuncElem;
       }
       DefineFieldResult( totalVelCoefElem, totalVelocityElem );
+      
+
+      // === FLUID-MECHANIC STRESS (COMPRESSIBLE) ===
+      // (lambda - 2/3 mu) div(v) I
+      shared_ptr<ResultInfo> stressComp(new ResultInfo);
+      stressComp->resultType = FLUIDMECH_COMP_STRESS;
+      stressComp->dofNames = stressComponents;
+      stressComp->unit = MapSolTypeToUnit(FLUIDMECH_COMP_STRESS);
+      stressComp->entryType = ResultInfo::TENSOR;
+      stressComp->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( stressComp );
+      shared_ptr<CoefFunctionFormBased> stressCompFunc;
+      if( isComplex_ ) {
+        stressCompFunc.reset(new CoefFunctionFlux<Complex>(velFeFct, stressComp));
+      } else {
+        stressCompFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stressComp));
+      }
+      StdVector<PtrCoefFct> stressCompDiagValues = StdVector<PtrCoefFct>(dim_);
+      for(UInt i = 0; i < dim_; i++){
+        stressCompDiagValues[i] = stressCompFunc;
+      }
+      shared_ptr<CoefFunction> stressCompTensor (new CoefFunctionDiagTensorFromScalar(stressCompDiagValues,subType_));
+      DefineFieldResult( stressCompTensor, stressComp );
+      stiffFormCoefs_.insert(stressCompFunc);
+
+
+       // === FLUID-MECHANIC VISCOUS STRESS ===
+       // mu ( grad(v)+grad(v)^T ) + (lambda - 2/3 mu) div(v) I
+      shared_ptr<ResultInfo> stressVisc(new ResultInfo);
+      stressVisc->resultType = FLUIDMECH_VISC_STRESS;
+      stressVisc->dofNames = stressComponents;
+      stressVisc->unit = MapSolTypeToUnit(FLUIDMECH_VISC_STRESS);
+      stressVisc->entryType = ResultInfo::TENSOR;
+      stressVisc->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( stressVisc );
+      PtrCoefFct stressViscCoef;
+      stressViscCoef =
+              CoefFunction::Generate( mp_, part,
+              CoefXprBinOp(mp_,sigmaFunc,stressCompFunc,CoefXpr::OP_ADD));
+      DefineFieldResult( stressViscCoef, stressVisc );
+
+
+      // === FLUID-MECHANIC PRESSURE TENSOR (needed for further postprocessing) ===
+      // p I
+      shared_ptr<ResultInfo> presTens(new ResultInfo);
+      presTens->resultType = FLUIDMECH_PRES_TENS;
+      presTens->dofNames = stressComponents;
+      presTens->unit = MapSolTypeToUnit(FLUIDMECH_PRES_TENS);
+      presTens->entryType = ResultInfo::TENSOR;
+      presTens->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( stressComp );
+      PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
+      StdVector<PtrCoefFct> presTensDiagValues = StdVector<PtrCoefFct>(dim_);
+      for(UInt i = 0; i < dim_; i++){
+        presTensDiagValues[i] = presFnc;
+      }
+      shared_ptr<CoefFunction> presTensCoef (new CoefFunctionDiagTensorFromScalar(presTensDiagValues,subType_));
+      DefineFieldResult( presTensCoef, presTens );
+
+
+      // === FLUID-MECHANIC TOTAL STRESS ===
+      // -p I + mu ( grad(v)+grad(v)^T ) + (lambda - 2/3 mu) div(v) I
+      shared_ptr<ResultInfo> stressTotal(new ResultInfo);
+      stressTotal->resultType = FLUIDMECH_TOTAL_STRESS;
+      stressTotal->dofNames = stressComponents;
+      stressTotal->unit = MapSolTypeToUnit(FLUIDMECH_TOTAL_STRESS);
+      stressTotal->entryType = ResultInfo::TENSOR;
+      stressTotal->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( stressTotal );
+      PtrCoefFct stressTotalCoef;
+      stressTotalCoef =
+              CoefFunction::Generate( mp_, part,
+              CoefXprBinOp(mp_,stressViscCoef,presTensCoef,CoefXpr::OP_SUB));
+      DefineFieldResult( stressTotalCoef, stressTotal );
+
+
+      // === FLUID-MECHANIC NORMAL SURFACE STRESS ===
+      shared_ptr<ResultInfo> surfaceNormalStressInfo;
+      shared_ptr<CoefFunctionSurf> surfaceNormalStressFct;
+      surfaceNormalStressInfo.reset(new ResultInfo);
+      surfaceNormalStressInfo->resultType = FLUIDMECH_NORMAL_SURFACE_STRESS;
+      surfaceNormalStressInfo->dofNames = dispDofNames;
+      surfaceNormalStressInfo->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_SURFACE_STRESS);
+      surfaceNormalStressInfo->entryType = ResultInfo::VECTOR;
+      surfaceNormalStressInfo->definedOn = ResultInfo::SURF_ELEM;
+
+      surfaceNormalStressFct.reset(new CoefFunctionSurf(true, 1.0, surfaceNormalStressInfo));
+      DefineFieldResult(surfaceNormalStressFct, surfaceNormalStressInfo);
+      surfCoefFcts_[surfaceNormalStressFct] = stressTotalCoef;
+
+      // === FLUID-MECHANIC REACTION FORCE (= integral of surface traction, i.e. normal stress from above, over the surface region ) ===
+      shared_ptr<ResultInfo> reactionForceInfo;
+      reactionForceInfo.reset(new ResultInfo);
+      reactionForceInfo->resultType = FLUIDMECH_FORCE;
+      reactionForceInfo->dofNames = dispDofNames;
+      reactionForceInfo->unit = MapSolTypeToUnit(FLUIDMECH_FORCE);
+      reactionForceInfo->entryType = ResultInfo::VECTOR;
+      reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+      // Integrate surface traction
+      shared_ptr<ResultFunctor> reactionForceFct;
+      if(isComplex_)
+          reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceNormalStressFct, feFct, reactionForceInfo));
+      else
+          reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceNormalStressFct, feFct, reactionForceInfo));
+      resultFunctors_[FLUIDMECH_FORCE] = reactionForceFct;
+      availResults_.insert(reactionForceInfo);
 
   }
   

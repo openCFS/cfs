@@ -1776,22 +1776,48 @@ namespace CoupledField {
       if( elemDim != (dim_-1) ) {
         EXCEPTION("Surface traction can only be defined on surface elements");
       }
-      
+
+      // check if we are iteratively coupled to the LinFlow-PDE and adapt sign if necessary
+      std::string couplName;
+      // go through the paramNodes to get the name of the coupled quantity (if there is any)
+      PtrParamNode bcNode = myParam_->Get("bcsAndLoads",ParamNode::PASS);
+      if( bcNode ) {
+        PtrParamNode tracNode = bcNode->Get("traction",ParamNode::PASS);
+        if( tracNode ) {
+          PtrParamNode couplNode = tracNode->Get("coupling",ParamNode::PASS);
+          if( couplNode ) {
+            PtrParamNode quantNode = couplNode->Get("quantity",ParamNode::PASS);
+            if( quantNode ) {
+              quantNode->GetValue("name", couplName );
+            }
+          }
+        }
+      }
+      // for the fluidMechNormalSurfaceStress we have to multiply by -1 to be consistent with the normal vectors
+      Double tracFac;
+      if ( couplName == "fluidMechNormalSurfaceStress") {
+        tracFac = -1.0;
+      } else {
+        tracFac = 1.0;
+      }
+
+
+
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
-                  Complex(1.0), coef[i], coefUpdateGeo);
+                  Complex(tracFac), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
-                  1.0, coef[i],coefUpdateGeo);
+                  tracFac, coef[i],coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
-                  Complex(1.0), coef[i], coefUpdateGeo);
+                  Complex(tracFac), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
-                  1.0, coef[i], coefUpdateGeo);
+                  tracFac, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("TractionIntegrator");
