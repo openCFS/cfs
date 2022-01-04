@@ -313,11 +313,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="stabilParam"/>
       <xsd:enumeration value="fluidMechStress"/>
-      <xsd:enumeration value="fluidMechTotalStress"/>
-      <xsd:enumeration value="fluidMechZeroStress"/>
       <xsd:enumeration value="fluidMechStrainRate"/>
-      <xsd:enumeration value="fluidMechTotalVelocityElem"/>
-      <xsd:enumeration value="fluidMechMeshVelocityElem"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -20,7 +20,7 @@ class CoefFunctionDiagTensorFromScalar :
 public:
 
   //! Constructor
-  CoefFunctionDiagTensorFromScalar(const StdVector<PtrCoefFct>& scalVals);
+  CoefFunctionDiagTensorFromScalar(const StdVector<PtrCoefFct>& scalVals, std::string subType = "");
 
      //! Destructor
   virtual ~CoefFunctionDiagTensorFromScalar(){
@@ -50,6 +50,40 @@ public:
     }
   }
 
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& coefVec,
+                 const LocPointMapped& lpm ) {
+    if( subType_ == "3d" ) {
+      //Components: "xx", "yy", "zz", "yz", "xz", "xy"
+      coefVec.Resize(size_, 1);
+      coefVec.Init();
+      scalVals_[0]->GetScalar(coefVec[0], lpm);
+      scalVals_[1]->GetScalar(coefVec[1], lpm);
+      scalVals_[2]->GetScalar(coefVec[2], lpm);
+    } else if( subType_ == "plane" ) {
+      //Components: "xx", "yy", "xy"
+      coefVec.Resize(size_, 1);
+      coefVec.Init();
+      scalVals_[0]->GetScalar(coefVec[0], lpm);
+      scalVals_[1]->GetScalar(coefVec[1], lpm);
+    } else if( subType_ == "axi" ) {
+      //Components = "rr", "zz", "rz", "phiphi"
+      coefVec.Resize(size_, 1);
+      coefVec.Init();
+      scalVals_[0]->GetScalar(coefVec[0], lpm);
+      scalVals_[1]->GetScalar(coefVec[1], lpm);
+      scalVals_[3]->GetScalar(coefVec[3], lpm);
+    } else {
+      EXCEPTION("Unkown subtype, can't convert to voigt notation")
+    }
+  }
+
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const {
+    assert(this->dimType_ == VECTOR );
+    return size_;
+  }
+
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     assert(this->dimType_ == TENSOR );
@@ -71,6 +105,9 @@ protected:
 
   //! Vector with diagonal scalar values
   StdVector<PtrCoefFct> scalVals_;
+
+  //! Subtype of the solution
+  std::string subType_;
 };
 
 }

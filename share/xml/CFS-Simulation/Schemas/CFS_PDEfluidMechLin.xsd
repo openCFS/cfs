@@ -384,6 +384,26 @@
       <xsd:enumeration value="fluidMechStrainRate"/>
     </xsd:restriction>
   </xsd:simpleType-->
+    <!-- Definition of element result types of linearized fluid-mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechLinElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechStress"/>
+      <xsd:enumeration value="fluidMechStrainRate"/>
+      <xsd:enumeration value="fluidMechCompressibleStress"/>
+      <xsd:enumeration value="fluidMechViscousStress"/>
+      <xsd:enumeration value="fluidMechPressureTensor"/>
+      <xsd:enumeration value="fluidMechTotalStress"/>
+      <xsd:enumeration value="fluidMechTotalVelocityElem"/>
+      <xsd:enumeration value="fluidMechMeshVelocityElem"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of surface element result types of linearized fluid-mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechLinSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechNormalSurfaceStress"/> 
+    </xsd:restriction>
+  </xsd:simpleType>
 
  
   <!-- Definition of surface region result types of fluid-mechanic PDE -->
@@ -392,6 +412,13 @@
       <xsd:enumeration value="fluidMechEnergy"/>
     </xsd:restriction>
   </xsd:simpleType-->
+
+  <!-- Definition of region result types of linearized fluid-mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechLinSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechForce"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- Definition of field variables -->
   <!--xsd:simpleType name="DT_FluidMechSensorArrayResult">
@@ -420,7 +447,18 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_FluidMechElemResult"/>
+                <xsd:attribute name="type" type="DT_FluidMechLinElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_FluidMechLinSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -437,12 +475,13 @@
           </xsd:complexType>
         </xsd:element>
 
-        <!-- Surface element result definition -->
-        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
-              <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type" type="DT_FluidMechSurfElemResult" use="required"/>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_FluidMechLinSurfRegionResult" use="required"/>
+                <xsd:attribute name="dof" type="DT_FluidMechLinDOF"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

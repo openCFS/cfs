@@ -110,7 +110,7 @@
         <xsd:attribute name="name" use="required">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
-		  <xsd:enumeration value="magPotential"/>
+		          <xsd:enumeration value="magPotential"/>
               <xsd:enumeration value="magForceLorentzDensity"/>
               <xsd:enumeration value="magFluxDensity"/>
               <xsd:enumeration value="magForceLorentz"/>
@@ -128,6 +128,7 @@
               <xsd:enumeration value="smoothVelocity"/>
               <xsd:enumeration value="fluidMechVelocity"/>
               <xsd:enumeration value="fluidMechPressure"/>
+              <xsd:enumeration value="fluidMechNormalSurfaceStress"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
