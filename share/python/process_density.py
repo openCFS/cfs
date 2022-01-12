@@ -22,7 +22,7 @@ parser.add_argument("--lower", help="scale input range to new lower range", type
 parser.add_argument('--extrude', help="extrude 2d density to 3d. give number of slices", type=int)
 parser.add_argument('--swap', help="swap dimensions of density field. useful for trelis element numbering 'xzy'", choices=['yx', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'], type=str.lower)
 parser.add_argument('--coarser', help="coarsen the density X times. useful in combination with extrude", type=int, default=0)
-parser.add_argument('--hist', help="show density as histogram", action='store_true')
+parser.add_argument('--hist', help="show density as histogram with given bars", type=int)
 parser.add_argument('--checkerboard', help="visualize ceckerboard calculation", action='store_true')
 parser.add_argument('--show', help="show output as image", action='store_true')
 parser.add_argument('--nosave', help="do not write output file", action='store_true')
@@ -94,7 +94,7 @@ for input in args.input:
     out = data
   elif args.hist:
     import matplotlib.pyplot as plt
-    plt.hist(data.ravel(), bins = 10)
+    plt.hist(data.ravel(), bins = args.hist)
     plt.show()
   elif args.show and data.ndim == 2:
     out = data

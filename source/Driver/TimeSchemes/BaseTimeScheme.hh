@@ -40,11 +40,6 @@ class BaseTimeScheme{
      */
     virtual void Init(SingleVector* fncCoef,Double dt)=0;
 
-    /*! Modifies the initialization (for initialState usage)
-     * Here we can modify the behaviour before the actual initialization based on user configuration
-     */
-    virtual void ModifyInit(bool extrapolateStatic)=0;
-
     /*! Begin a new step
      * 
      * \param[in] updatePredictor  Flag, if predictor values get re-calculated. In case of

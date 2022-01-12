@@ -45,7 +45,6 @@
                     <xsd:attribute name="name" type="xsd:token" use="required"/>                    
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="movingMeshId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -85,18 +84,6 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="velocity" type="DT_BcInhomVector"/>
-              </xsd:choice>
-            </xsd:complexType>
-          </xsd:element>
-
-          <!-- List defining moving grids -->
-          <xsd:element name="movingMeshList" minOccurs="0" maxOccurs="1">
-            <xsd:annotation>
-              <xsd:documentation>Defines the grid velocity for the ALE-formulation</xsd:documentation>
-            </xsd:annotation>
-            <xsd:complexType>
-              <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="movingMesh" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -231,7 +218,6 @@
         <xsd:attribute name="presIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="velIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="factorC1" type="xsd:double" default="2.0"/>
         <xsd:attribute name="enableC2" type="xsd:boolean" default="false">
           <xsd:annotation>
             <xsd:documentation>Enables the second convective term in the balance of momentum:
@@ -244,22 +230,6 @@
           <xsd:annotation>
             <xsd:documentation>Enables the third convective term in the balance of momentum:
               v' . rho0/(gamma p0) v0.Grad(v0) p
-              Only active if formulation=compressible.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="enableGridVelC1" type="xsd:boolean" default="true">
-          <xsd:annotation>
-            <xsd:documentation>Enables the convective term caused by the grid velocity in the balance of mass:
-              \int_{Omega_f} v_g/K \phi \grad{p_a} d\Omega
-              Only active if formulation=compressible.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="enableGridVelC2" type="xsd:boolean" default="true">
-          <xsd:annotation>
-            <xsd:documentation>Enables the convective term caused by the grid velocity in the balance of momentum:
-              \int_{Omega_f} \rho v' (v_g \cdot \grad{v}) d\Omega
               Only active if formulation=compressible.
             </xsd:documentation>
           </xsd:annotation>
@@ -371,7 +341,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechVelocity"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
-      <xsd:enumeration value="fluidMechMeshVelocity"/>
       <xsd:enumeration value="fluidMechPressure"/>
       <xsd:enumeration value="acouRhsLoad"/>
     </xsd:restriction>
@@ -384,26 +353,6 @@
       <xsd:enumeration value="fluidMechStrainRate"/>
     </xsd:restriction>
   </xsd:simpleType-->
-    <!-- Definition of element result types of linearized fluid-mechanic PDE -->
-  <xsd:simpleType name="DT_FluidMechLinElemResult">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechStress"/>
-      <xsd:enumeration value="fluidMechStrainRate"/>
-      <xsd:enumeration value="fluidMechCompressibleStress"/>
-      <xsd:enumeration value="fluidMechViscousStress"/>
-      <xsd:enumeration value="fluidMechPressureTensor"/>
-      <xsd:enumeration value="fluidMechTotalStress"/>
-      <xsd:enumeration value="fluidMechTotalVelocityElem"/>
-      <xsd:enumeration value="fluidMechMeshVelocityElem"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <!-- Definition of surface element result types of linearized fluid-mechanic PDE -->
-  <xsd:simpleType name="DT_FluidMechLinSurfElemResult">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechNormalSurfaceStress"/> 
-    </xsd:restriction>
-  </xsd:simpleType>
 
  
   <!-- Definition of surface region result types of fluid-mechanic PDE -->
@@ -412,13 +361,6 @@
       <xsd:enumeration value="fluidMechEnergy"/>
     </xsd:restriction>
   </xsd:simpleType-->
-
-  <!-- Definition of region result types of linearized fluid-mechanic PDE -->
-  <xsd:simpleType name="DT_FluidMechLinSurfRegionResult">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechForce"/>
-    </xsd:restriction>
-  </xsd:simpleType>
 
   <!-- Definition of field variables -->
   <!--xsd:simpleType name="DT_FluidMechSensorArrayResult">
@@ -447,18 +389,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_FluidMechLinElemResult"/>
-              </xsd:extension>
-            </xsd:complexContent>
-          </xsd:complexType>
-        </xsd:element>
-
-        <!-- Surface element result definition -->
-        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
-          <xsd:complexType>
-            <xsd:complexContent>
-              <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type" type="DT_FluidMechLinSurfElemResult" use="required"/>
+                <xsd:attribute name="type" type="DT_FluidMechElemResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -475,13 +406,12 @@
           </xsd:complexType>
         </xsd:element>
 
-        <!-- Surface region result definition -->
-        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
-              <xsd:extension base="DT_SurfRegionResult">
-                <xsd:attribute name="type" type="DT_FluidMechLinSurfRegionResult" use="required"/>
-                <xsd:attribute name="dof" type="DT_FluidMechLinDOF"/>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_FluidMechSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

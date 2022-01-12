@@ -605,17 +605,6 @@ namespace CoupledField {
       DefineTimeDerivResult( SMOOTH_VELOCITY, 1, SMOOTH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[SMOOTH_VELOCITY];
       //feFunctions_[MECH_VELOCITY] = vFct;
-
-      // === GRID ACCELERATION ===
-      shared_ptr<ResultInfo> acc(new ResultInfo);
-      acc->resultType = SMOOTH_ACCELERATION;
-      acc->dofNames = dispDofNames;
-      acc->unit = "m^2/s";
-      acc->entryType = ResultInfo::VECTOR;
-      acc->definedOn = ResultInfo::NODE;
-      availResults_.insert( acc );
-      DefineTimeDerivResult( SMOOTH_ACCELERATION, 2, SMOOTH_DISPLACEMENT );
-      aFct = timeDerivFeFunctions_[SMOOTH_ACCELERATION];
     }
     
 //    // === SMOOTH ACCELERATION ===

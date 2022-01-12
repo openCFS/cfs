@@ -591,7 +591,7 @@ namespace CoupledField {
         algsys_->SetupSolver();
       }
       
-      //write out the current glmVec for debugging purposes
+      // write out the current glmVec for debugging purposes
 //      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
 //        fncIt->second->GetTimeScheme()->ExportGLM(fncIt->second->GetPDE()->GetName(),fncIt->second->GetFctId(),this->actStep_,this->couplingIter_);
 //      }

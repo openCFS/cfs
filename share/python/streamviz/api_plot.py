@@ -7,6 +7,7 @@ import threading
 import json
 import svgwrite
 import time
+import traceback
 from lxml import etree
 
 # get the latest values
@@ -17,11 +18,8 @@ def get_values(GLOBAL_RAW_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   
   # iteration_num is the latest iteration that was shown by the GUI
   # we will wait for a new data to arrive f 
-  latest_received_iteration = -1
-  try:
-    latest_received_iteration = int(xml.xpath('//process/iteration[last()]/@number')[0])
-  except Exception as e:
-    pass
+  xp = xml.xpath('//process/iteration[last()]/@number')
+  latest_received_iteration = int(xp[0]) if len(xp) > 0 else -1
   
   if latest_received_iteration > 0:
     if iteration_num >= latest_received_iteration: # wait 9 seconds to receive new xml
@@ -54,41 +52,142 @@ def get_values(GLOBAL_RAW_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   data['results'] = {}
 
   for result in xml.xpath('//calculation/process/sequence/result'):
-    name = result.xpath('@data')[0]
-    
-    data['results'][name] = name + ': ' + result.xpath('item[last()]')[0].xpath('@value')[0] + \
-                              ' ' + result.xpath('item[last()]')[0].xpath('@unit')[0]
+    dat = result.xpath('item[last()]')[0]
+    if 'value' in dat:
+      name = result.get('data') + '_' + result.get('location')
+      data['results'][name] = name + ': ' + dat.get('value') + dat.get('unit')
   
   data['iterations'] = {}
   
-  try:
+  xp = xml.xpath('//process/iteration[last()]')
+  if len(xp) > 0:
     value_map = xml.xpath('//process/iteration[last()]')[0]
-    for this_tuple in value_map.items():
-      name = this_tuple[0]
-      value = this_tuple[1]
-      
+    for name, value in value_map.items():
       data['iterations'][name] = name + ': ' + value
-  except Exception as e:
-    pass
   
   return json.dumps(data)
 
 
-# returns html with embedded svg OR error code 
-def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
-         iteration_num, logscale_y1, logscale_y2, result_view_arr, show_bloch):
+# helper for error string when lengths are not matching
+def length_error(values, name, ref_values):
+  return 'eror: ' + name + ' has ' + len(values) + ' values, but ' + len(ref_values) + ' are exected' 
+
+# helper for plot which plots only the 1d plots
+def plot1d(data, xml, y1_it_names, y2_it_names, y1_res_names, y2_res_names, logscale_y1, logscale_y2):
+  fig, ax1 = plt.subplots()
+  fig.set_size_inches(10,8)
   
+  # the x-data is either the iterations or the region result sequence steps
+  x = [int(v) for v in xml.xpath('//process/iteration/@number')]
+  ax1.set_xlabel("iteration")
+  if len(x) == 0:
+    x = [float(v) for v in xml.xpath('/cfsStreaming/cfsInfo/calculation/process/sequence/result[last()]/item/@step_val')]
+    ax1.set_xlabel("step_val")
+  
+  y1_label = ""
+  
+  # set the plot mode to lines or dottet lines when we are not larger 20 iterations
+  plot_mode = '-' if len(x) > 30 else '-o'
+  
+  for y1_it_name in y1_it_names:
+    y1_it = [float(i) for i in xml.xpath('//process/iteration/@' + y1_it_name)]
+  
+    if len(x) != len(y1_it):
+      data += length_error(y1_it, y1_it_name, x)
+      continue
+  
+    y1_label += y1_it_name + ', '
+    ax1.plot(x, y1_it, plot_mode, label=y1_it_name)
+    
+  for y1_res_name in y1_res_names:
+    name, region = y1_res_name.split(':')
+    # convert to list of floats
+    y1_res = [float(i) for i in xml.xpath('/cfsStreaming/cfsInfo/calculation/process/sequence/result[@data="' + name + '"][@location="' + region + '"]/item/@value')]
+  
+    if len(x) != len(y1_res):
+      data += length_error(y1_res, y1_res_name, x)
+      continue
+
+    y1_label += y1_res_name + ', '
+    ax1.plot(x, y1_res, plot_mode, label=y1_res_name)
+    
+  ax1.set_ylabel(y1_label[:-2]) # remove trailing ', '
+  
+  if logscale_y1:
+    ax1.set_yscale('log')
+  
+  ax1.legend(loc='lower left', bbox_to_anchor=(0, 1))
+  ax2 = ax1.twinx()
+
+  # "advance the colors" aka prevent color resetting when plotting for other axis
+  ax2._get_lines.prop_cycler = ax1._get_lines.prop_cycler
+
+  y2_label = ""
+  
+  for y2_it_name in y2_it_names:
+    y2_it = [float(i) for i in xml.xpath('//process/iteration/@' + y2_it_name)]
+  
+    if len(x) != len(y2_it):
+      data += length_error(y2_it, name, x)
+      continue
+  
+    y2_label += y2_it_name + ', '
+    ax2.plot(x, y2_it, plot_mode, label=y2_it_name)
+    
+  for y2_res_name in y2_res_names:
+    name, region = y2_res_name.split(':')
+    y2_res = [float(i) for i in xml.xpath('/cfsStreaming/cfsInfo/calculation/process/sequence/result[@data="' + name + '"][@location="' + region + '"]/item/@value')]
+
+    if len(x) != len(y2_res):
+      data += length_error(y2_res, y2_res_name, x)
+      continue
+
+    y2_label += y2_res_name + ', '
+    ax2.plot(x, y2_res, plot_mode, label=y2_res_name)
+    
+  ax2.set_ylabel(y2_label[:-2])
+  
+  if logscale_y2:
+    ax2.set_yscale('log')
+
+  ax2.legend(loc='lower right', bbox_to_anchor=(1, 1))
+  
+  fig.tight_layout()
+
+  imgdata = StringIO()
+  fig.savefig(imgdata,format = 'svg')
+  
+  # this 'all' might cause some probolems if this tool
+  # is used by multiple people at the same time
+  plt.close('all')
+  
+  imgdata.seek(0)  # rewind the data
+
+  svg_dta = imgdata.readlines()  # this is svg data
+
+  # just to be sure:
+  del imgdata
+
+  # transfer everything from svg_data to our "data" output variable
+  for l in svg_dta:
+    data += l
+  
+  del svg_dta
+
+  return data
+
+
+# returns html with embedded svg OR error code 
+def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
+         iteration_num, logscale_y1, logscale_y2, result_view_arr, show_bloch):
   data = ""
   
   xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
   # iteration_num is the latest iteration that was shown by the GUI
   # we will wait for a new data to arrive f
-  latest_received_iteration = -1
-  try:
-    latest_received_iteration = int(xml.xpath('//process/iteration[last()]/@number')[0])
-  except Exception as e:
-    pass
+  xp = xml.xpath('//process/iteration[last()]/@number')
+  latest_received_iteration = int(xp[0]) if len(xp) > 0 else -1
   
   if latest_received_iteration > 0:
     if iteration_num >= latest_received_iteration: # wait 9 seconds to receive new xml
@@ -119,6 +218,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_na
 
   xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
 
+  # bloch plot
   if show_bloch:
     
     x_axis_values = [] # 1D array with 1, 2, 3, <latest step>, <latest step +1>
@@ -177,6 +277,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_na
     del imgdata
     del svg_dta
   
+  # 2D plots
   if len(result_view_arr) > 0:
     domain_elem = xml.xpath('//header/domain')[0]
     
@@ -241,7 +342,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_na
         max_value = max(values)
         min_value = min(values)
         
-        value_factor = 255/(max_value-min_value)
+        value_factor = 255/((max_value-min_value) if max_value != min_value else 1.0)
         
         for this_poly_element in xml.xpath('//regionList/region[@name="' + result_elm.attrib['region'] + '"]/element'):
           node_count = int(this_poly_element.attrib['nodes'])
@@ -252,8 +353,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_na
             node_number = int(this_poly_element.attrib['node_'+str(node_id)])
             
             # we need to subtract one since the node start counting at 1, but we start counting at 0
-            coord_tuple = (x_node_coords[node_number-1], \
-                           y_node_coords[node_number-1] )
+            coord_tuple = (x_node_coords[node_number-1], y_node_coords[node_number-1])
             points.append(coord_tuple)
 
           color_value = (values[value_pos]-min_value) * value_factor
@@ -270,6 +370,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_na
           dwg.add(polygon)
           
           value_pos += 1
+          
         dwg.viewbox(min(x_node_coords), min(y_node_coords), max(x_node_coords), max(y_node_coords))
         dwg.write(fileobj=imgdata)
           
@@ -308,148 +409,14 @@ def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_na
   
   fig = plt.figure()
 
-  try:
-    x = xml.xpath('//process/iteration/@' + x_name)
-    
-    fig, ax1 = plt.subplots()
-    t = x
-    
-    y1_label = ""
-    
-    y1_min = []
-    y1_max = []
-    
-    plot_mode = '-' # aka line
-    
+  # 1D plot only if we have no 2D plots
+  if len(result_view_arr) == 0:
     try:
-      print(xml.xpath('(//process/iteration/@number)[last()]')[0])
-      if int(xml.xpath('(//process/iteration/@number)[last()]')[0]) <= 20:
-        plot_mode = '-o' # aka lines plus points
+      data = plot1d(data, xml, y1_it_names, y2_it_names, y1_res_names, y2_res_names, logscale_y1, logscale_y2)
     except Exception as e:
+      data += 'exception occured: ' + str(e) + '<br>'
+      print("".join(traceback.TracebackException.from_exception(e).format()))
       pass
-    
-    for y1_it_name in y1_it_names:
-      # convert to list of floats
-      y1_it = [float(i) for i in xml.xpath('//process/iteration/@' + y1_it_name)]
-    
-      if len(t) != len(y1_it):
-        data += 'error len(' + y1_it_name + ') != len(' + x_name + ')!<br>'
-        data += str(len(y1_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
-        continue
-    
-      y1_label += y1_it_name + ', '
-      ax1.plot(t, y1_it, plot_mode, label=y1_it_name)
-      
-      y1_min.append(min(y1_it))
-      y1_max.append(max(y1_it))
-  
-    for y1_res_name in y1_res_names:
-      # convert to list of floats
-      y1_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y1_res_name + '"]/item/@value')]
-    
-      if len(t) != len(y1_res):
-        data += 'error len(' + y1_res_names + ') != len(' + x_name + '):<br>'
-        data += str(len(y1_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
-        continue
-  
-      y1_label += y1_res_name + ', '
-      ax1.plot(t, y1_res, plot_mode, label=y1_res_name)
-      
-      y1_min.append(min(y1_res))
-      y1_max.append(max(y1_res))
-  
-    #if x_name == "name":
-    #  ax1.set_xlabel("iteration")
-    #else:
-    #  ax1.set_xlabel(x_name)
-    
-    ax1.set_xlabel("iteration")
-    
-    ax1.set_ylabel(y1_label[:-2])
-    
-    if logscale_y1:
-      ax1.set_yscale('log')
-      if y1_min:
-        ax1.set_ylim(min(y1_min), max(y1_max))
-    else:
-      ax1.autoscale(True, 'both')
-    
-    ax1.legend(loc='lower left', bbox_to_anchor=(0, 1))
-    ax2 = ax1.twinx()
-  
-    # "advance the colors" aka prevent color resetting when plotting for other axis
-    ax2._get_lines.prop_cycler = ax1._get_lines.prop_cycler
-  
-    y2_label = ""
-    
-    y2_min = []
-    y2_max = []
-    
-    for y2_it_name in y2_it_names:
-      # convert to list of floats
-      y2_it = [float(i) for i in xml.xpath('//process/iteration/@' + y2_it_name)]
-    
-      if len(t) != len(y2_it):
-        data += 'error len(' + y2_it_name + ') != len(' + x_name + ')!<br>'
-        data += str(len(y2_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
-        continue
-    
-      y2_label += y2_it_name + ', '
-      ax2.plot(t, y2_it, plot_mode, label=y2_it_name)
-      
-      y2_min.append(min(y2_it))
-      y2_max.append(max(y2_it))
-  
-    for y2_res_name in y2_res_names:
-      # convert to list of floats
-      y2_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y2_res_name + '"]/item/@value')]
-    
-      if len(t) != len(y2_res):
-        data += 'error len(' + y2_res_names + ') != len(' + x_name + ')!<br>'
-        data += str(len(y2_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
-        continue
-  
-      y2_label += y2_res_name + ', '
-      ax2.plot(t, y2_res, plot_mode, label=y2_res_name)
-      
-      y2_min.append(min(y2_res))
-      y2_max.append(max(y2_res))
-  
-    ax2.set_ylabel(y2_label[:-2])
-    
-    if logscale_y2:
-      ax2.set_yscale('log')
-      if y2_min:
-        ax2.set_ylim(min(y2_min), max(y2_max))
-    else:
-      ax2.autoscale(True, 'both')
-  
-    ax2.legend(loc='lower right', bbox_to_anchor=(1, 1))
-    
-    fig.tight_layout()
-    
-    imgdata = StringIO()
-    fig.savefig(imgdata, format = 'svg')
-    
-    # this 'all' might cause some probolems if this tool
-    # is used by multiple people at the same time
-    plt.close('all')
-    
-    imgdata.seek(0)  # rewind the data
-  
-    svg_dta = imgdata.readlines()  # this is svg data
-  
-    # just to be sure:
-    del imgdata
-
-    # transfer everything from svg_data to our "data" output variable
-    for l in svg_dta:
-      data += l
-    
-    del svg_dta
-  
-  except Exception as e:
-    pass
 
   # data iteration num is used by javascript to determine the latest updated version
   # this is transmitted when requesting new data

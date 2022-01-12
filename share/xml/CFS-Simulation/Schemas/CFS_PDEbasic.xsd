@@ -604,18 +604,9 @@
         <xsd:choice minOccurs="0">
           <!-- 1) Same simulation, different multisequence step -->
           <xsd:element name="sequenceStep" minOccurs="0">
-            <xsd:annotation>
-              <xsd:documentation>
-                Prescribe the values of a previous secquence step.
-                index: Index of the sequence step.
-                step: Step to be read in.
-                extrapolateStatic: If the previous step has been a static one and this bool is set, we assume that all previous steps needed for the timescheme are equal to the static one.
-              </xsd:documentation>
-            </xsd:annotation>
             <xsd:complexType>
               <xsd:attribute name="index" type="xsd:positiveInteger" use="required"/>
               <xsd:attribute name="step" type="xsd:integer" use="optional" default="-1"/>
-              <xsd:attribute name="extrapolateStatic" type="DT_CFSBool" use="optional" default="yes"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>

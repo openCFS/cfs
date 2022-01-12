@@ -1776,48 +1776,22 @@ namespace CoupledField {
       if( elemDim != (dim_-1) ) {
         EXCEPTION("Surface traction can only be defined on surface elements");
       }
-
-      // check if we are iteratively coupled to the LinFlow-PDE and adapt sign if necessary
-      std::string couplName;
-      // go through the paramNodes to get the name of the coupled quantity (if there is any)
-      PtrParamNode bcNode = myParam_->Get("bcsAndLoads",ParamNode::PASS);
-      if( bcNode ) {
-        PtrParamNode tracNode = bcNode->Get("traction",ParamNode::PASS);
-        if( tracNode ) {
-          PtrParamNode couplNode = tracNode->Get("coupling",ParamNode::PASS);
-          if( couplNode ) {
-            PtrParamNode quantNode = couplNode->Get("quantity",ParamNode::PASS);
-            if( quantNode ) {
-              quantNode->GetValue("name", couplName );
-            }
-          }
-        }
-      }
-      // for the fluidMechNormalSurfaceStress we have to multiply by -1 to be consistent with the normal vectors
-      Double tracFac;
-      if ( couplName == "fluidMechNormalSurfaceStress") {
-        tracFac = -1.0;
-      } else {
-        tracFac = 1.0;
-      }
-
-
-
+      
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
-                  Complex(tracFac), coef[i], coefUpdateGeo);
+                  Complex(1.0), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
-                  tracFac, coef[i],coefUpdateGeo);
+                  1.0, coef[i],coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
-                  Complex(tracFac), coef[i], coefUpdateGeo);
+                  Complex(1.0), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
-                  tracFac, coef[i], coefUpdateGeo);
+                  1.0, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("TractionIntegrator");
@@ -2399,21 +2373,7 @@ namespace CoupledField {
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
       //feFunctions_[MECH_VELOCITY] = vFct;
-
-      // === MECHANIC VELOCITY ELEMRES===
-      shared_ptr<ResultInfo> velElem(new ResultInfo);
-      velElem->resultType = MECH_VELOCITY_ELEM;
-      velElem->dofNames = dispDofNames;
-      velElem->unit = "m/s";
-      velElem->entryType = ResultInfo::VECTOR;
-      velElem->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert( velElem );
-      PtrCoefFct velFct= this->GetCoefFct( MECH_VELOCITY );
-      PtrCoefFct velFctCoef;
-      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "0.0");
-      velFctCoef  = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, velFct , CoefXpr::OP_ADD ) );
-      DefineFieldResult(velFctCoef, velElem);
-
+      
       // === MECHANIC ACCELERATION ===
       shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = MECH_ACCELERATION;

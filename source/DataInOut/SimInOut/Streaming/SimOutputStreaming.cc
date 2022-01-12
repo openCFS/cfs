@@ -35,6 +35,10 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode inf
   content_ = PtrParamNode(new ParamNode(ParamNode::INSERT));
   content_->SetName("cfsStreaming");
 
+  infoNode->Get("streaming/settings")->SetValue(outputNode, false);
+  if(!http_ && path_ == "/")
+    infoNode->Get("streaming")->SetWarning("with streaming file protocol, give an output filename in path");
+
   //wait_var = new std::condition_variable();
   current_client = NULL;
 

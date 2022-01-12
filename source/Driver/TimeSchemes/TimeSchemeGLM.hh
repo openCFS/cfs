@@ -57,10 +57,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     //! \copydoc BaseTimeScheme::Init(SingleVector*,Double)
     virtual void Init(SingleVector* solVec,Double dt);
-
-    //! \copydoc BaseTimeScheme::ModifyInit(bool)
-    virtual void ModifyInit(bool extrapolateStatic);
-
+    
     //! \copydoc BaseTimeScheme::BeginStep(bool)
     virtual void BeginStep(bool updatePredictor=true, bool storeInitialIterGlmVector=false);
 
@@ -168,10 +165,6 @@ class TimeSchemeGLM : public BaseTimeScheme{
     // In the next time step, this solution is used for the time scheme, although e.g. a standard linear iteration should use the same vectors/matrices as before and only update the RHS from a linear form.
     // In order to avoid this, we store the old glmVec seperately and "undo" the last part of finishStep by resetting the glmVec
     StdVector< SingleVector* > initialIterGlmVector_;
-
-    // Bool to change the behaviour when reading in an initialState from a previous sequence step
-    // If it is set to true, we assume that all primary values for all steps needed for the time scheme are equal to the static one.
-    bool extrapolateStatic_ = false;
 
     // Bool if we have to reset the glmVector
     bool resetGlmVector_ = false;

@@ -11,7 +11,7 @@ import psutil
 import objgraph
 import random, string
 import base64
-import cgi
+import html
 from lxml import etree
 
 #The html file with marker; see strings.py for all marker definitions 
@@ -132,7 +132,7 @@ def render_status(GLOBAL_RAW_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, 
   for tmp_key in GLOBAL_DATA_SIZE_DICT:
     body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td><td>' + get_human_readable_bytes(MEMORY_BYTE_RATIO*GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td>'
     if tmp_key in GLOBAL_RAW_DATA_DICT:
-      body_data += '<td><a href="/status?delete=' + cgi.escape(tmp_key) + '">x</a></td>'
+      body_data += '<td><a href="/status?delete=' + html.escape(tmp_key) + '">x</a></td>'
     else:
       body_data += '<td></td>'
     
@@ -303,11 +303,13 @@ def render_index(GLOBAL_METADATA_DICT, request):
     body_data += '<tr>'
     body_data += '<td><a href="/view/' + dataset['key'] + '">view</a></td>'
     for key in columns: # take columns and NOT dataset because of sorting
-      if not 'restrict_' + key in request.args:
+      if not 'restrict_' + key in request.args and key in ['host', 'status', 'problem']:
+        # we do a little value polishing
+        value = str(dataset[key]) if key != 'host' else dataset[key][:dataset[key].find('.')] 
         #keep all other restrictions!
         new_args = request.args.copy()
-        new_args['restrict_' + key] = str(dataset[key]) 
-        body_data += '<td><a href="?' + urllib.parse.urlencode(new_args) + '">' + str(dataset[key]) + '</a></td>'
+        new_args['restrict_' + key] = str(dataset[key])
+        body_data += '<td><a href="?' + urllib.parse.urlencode(new_args) + '">' + value + '</a></td>'
       else:
         body_data += '<td>' + str(dataset[key]) + '</td>'
     body_data += '</tr>\n'
@@ -340,7 +342,7 @@ def get_dd_hh_mm_ss_fromsecs(td):
     return ret_string
 
 #render view of one simulation
-def render_view(GLOBAL_RAW_DATA_DICT, key, client_ip):
+def render_view(GLOBAL_RAW_DATA_DICT, GLOBAL_USE_PARAVIEW, key, client_ip):
   retdata = html_raw_data
   retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'view'))
   
@@ -350,47 +352,88 @@ def render_view(GLOBAL_RAW_DATA_DICT, key, client_ip):
   
   xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
-  settings_data = '<div class="col-sm-4" id="settings"><h4></h4>'
+  settings_data = '<div class="col-sm-4 table-borderless" id="settings">'
   settings_data += '<div id="simulation_id">' + key + '</div>'
-  settings_data += '<ul class="list-group"><li class="list-group-item">'
+  settings_data += '<ul class="list-group"><li class="list-group-item  border border-white">'
   settings_data += '    <ul class="list-group">'
-  
-  settings_data += '        <li class="list-group-item">status: [' + xml.xpath('//cfsInfo/@status')[0] + ']</li>'
+
+  # status information  
+  settings_data += '        <li><h5>global information</h5></li>'
+  settings_data += '        <li class="list-group-item  border border-white">status: ' + xml.xpath('//cfsInfo/@status')[0] + '</li>'
   if xml.xpath('//cfsInfo/@status')[0] == 'finished':
     wall_in_secs = float(str(xml.xpath('//timer/@wall')[0]))
-    
     wall_td = datetime.timedelta(0, wall_in_secs)
-    
-    settings_data += '        <li class="list-group-item">wall: ' + get_dd_hh_mm_ss_fromsecs(wall_td) + '</li>'
-    
     cpu_in_secs = float(str(xml.xpath('//timer/@cpu')[0]))
-    
     cpu_td = datetime.timedelta(0, cpu_in_secs)
-    
-    settings_data += '        <li class="list-group-item">CPU time: ' + get_dd_hh_mm_ss_fromsecs(cpu_td) + '</li>'
-    settings_data += '        <li class="list-group-item">peak memory: ' + xml.xpath('//memory/@peak')[0] + ' MB</li>'
-  
+    settings_data += '        <li class="list-group-item border border-white">time: wall=' + get_dd_hh_mm_ss_fromsecs(wall_td) + ' cpu=' + get_dd_hh_mm_ss_fromsecs(cpu_td) + '</li>'
+    # not all systems have memory
+    mp = xml.xpath('//memory/@peak')
+    if len(mp) > 0:
+      settings_data += '        <li class="list-group-item border border-white">peak memory: ' + str(mp[0]) + ' MB</li>'  
   settings_data += '    </ul></li>'
   
-  settings_data += '    <li class="list-group-item">'
-  settings_data += '    send data to catalyst (v5.5*):<br/>'
-  settings_data += '    ip: <input type="text" id="catalyst_ip" value="' + client_ip + '"/> port: <input type="text" id="catalyst_port" value="22222"/><br/>'
-  settings_data += '    <button class="btn btn-primary" id="catalyst_send_button">send data</button>'
-  settings_data += '    auto update: <input type="checkbox" id="catalyst_send_auto_update"/>'
-  settings_data += '    </li>'
+  # when streamviz.py could not import paraview(.vtk) we switch catalyst off
+  if GLOBAL_USE_PARAVIEW:
+    settings_data += '    <li class="list-group-item border border-white">'
+    settings_data += '    send data to catalyst (v5.5*):<br/>'
+    settings_data += '    ip: <input type="text" id="catalyst_ip" value="' + client_ip + '"/> port: <input type="text" id="catalyst_port" value="22222"/><br/>'
+    settings_data += '    <button class="btn btn-primary" id="catalyst_send_button">send data</button>'
+    settings_data += '    auto update: <input type="checkbox" id="catalyst_send_auto_update"/>'
+    settings_data += '    </li>'
   
+  
+  # plot settings with log scale, regions results and optimization iter
+  settings_data += '    <li class="list-group-item border border-white"><h5>scalar results</h5>'
+  settings_data += '    <table class="table table-sm" id="iteration">'
+
+  settings_data += '        <thead><td>y1</td><td>y2</td></thead>'
+  settings_data += '        <tbody>'
+
+  # add the log scale selectors
+  settings_data += '         <tr><td><input type="checkbox" id="logscale_y1" />'
+  settings_data += '             <td><input type="checkbox" id="logscale_y2" />'
+  settings_data += '             <td>' + html.escape('<logarithmic scaling>') + '</td></tr>'
+  
+  # process region results (mechTotalEnergy, ...)
+  for result in xml.xpath('//calculation/process/sequence/result'):
+    dat = result.xpath('item[last()]')[0]
+    value = dat.get('value')     
+    if value is not None: # not every result has a value
+      name = result.get('data') + ':' + result.get('location')
+      settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_y1" value="' + name + '" /></td>'
+      settings_data +=             '<td><input class="form-control" type="checkbox" name="result_selector_y2" value="' + name + '" /></td>'
+      settings_data += '            <td id="td_seqres_container_' + name + '">' + name + ': ' + dat.get('value') + ' ' + dat.get('unit') + '</td></tr>'
+
+  # process optimzation iterations
+  last_iteration_elem = xml.xpath('//process/iteration[last()]')
+  if len(last_iteration_elem) > 0:
+    for value in last_iteration_elem[0].items():
+      if value[0] != 'name':
+        settings_data +=         '<tr><td><input class="form-control" type="checkbox" name="iteration_selector_y1" value="' + value[0] + '" /></td>'
+        settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y2" value="' + value[0] + '" /></td>'
+        settings_data +=             '<td id="td_seqit_container_' + value[0] + '">' + value[0] + '</td></tr>'
+  settings_data += '    </tbody></table></li>'
+  
+  
+  # offer plot for element 
   close_result_list = False
   
-  if int(xml.xpath('//grids/grid/@dimensions')[0]) == 2:
+  has_grid = len(xml.xpath('//grid/nodeList/node')) > 0
+  
+  if not has_grid:
+    settings_data += '    <li class="list-group-item border border-white"><h5>2D results</h5> not available, no mesh sent</li>'
+  
+  if int(xml.xpath('//grids/grid/@dimensions')[0]) == 2 and has_grid:
     close_result_list = True
     # we have a 2-Dimensional grid here. Therefore we offer to render it
-    settings_data += '    <li class="list-group-item">results: <button id="disable_results">disable all</button>'
+    settings_data += '    <li class="list-group-item  border border-white"><h5>2D results</h5> <button id="disable_results">hide 2d results</button>'
     settings_data += '    <table class="table table-sm" id="result">'
     settings_data += '        <tbody>'
     
     for result in xml.xpath('//results/result'):
+      # currently we only display 1D data as color image - could be extendend
+      # same is for nodal data, which would be needed to be interpreted
       if int(result.attrib['dofs']) == 1:
-        # we can only display 1D data as color image!
         name = result.attrib['name']
         
         settings_data += '        <tr><td><input class="form-control" type="radio" name="result_selector_view" value="' + name + '" /></td>'
@@ -398,7 +441,7 @@ def render_view(GLOBAL_RAW_DATA_DICT, key, client_ip):
   
   if len(xml.xpath("//eigenFrequency/result/wave_vector"))>0:
     if not close_result_list:
-      settings_data += '    <li class="list-group-item">results:'
+      settings_data += '    <li class="list-group-item border border-white">results:'
       settings_data += '    <table class="table table-sm" id="result">'
       settings_data += '        <thead><td>view</td><td></td></thead><tbody>'
     
@@ -408,46 +451,10 @@ def render_view(GLOBAL_RAW_DATA_DICT, key, client_ip):
   
   if close_result_list:
     settings_data += '    </tbody></table></li>'
-  
-  
-  settings_data += '    <li class="list-group-item">iterations and scalar results:'
-  settings_data += '    <table class="table table-sm" id="iteration">'
-  #hide the x selector for now
-  settings_data += '        <thead><td style="display: none">x</td><td>y1</td><td>y2</td></thead><tbody>'
-  
-  for result in xml.xpath('//calculation/process/sequence/result'):
-    name = result.xpath('@data')[0]
     
-    #hide the x selector for now
-    settings_data += '        <tr><td style="display: none"></td>'
-    settings_data +=             '<td><input class="form-control" type="checkbox" name="result_selector_y1" value="' + name + '" /></td>'
-    settings_data +=             '<td><input class="form-control" type="checkbox" name="result_selector_y2" value="' + name + '" /></td>'
-    settings_data += '            <td id="td_seqres_container_' + name + '">' + name + ': ' + result.xpath('item[last()]')[0].xpath('@value')[0]
-    settings_data += ' ' + result.xpath('item[last()]')[0].xpath('@unit')[0] + '</td></tr>'
-
-  last_iteration_elem = xml.xpath('//process/iteration[last()]')
-  if len(last_iteration_elem) > 0:
-    for value in last_iteration_elem[0].items():
-      #hide the x selector for now
-      if value[0] == 'number':
-        # don't show the number in y selection:
-        settings_data += '        <tr style="display:none">'
-      else:
-        settings_data += '        <tr>'
-      
-      settings_data += '<td style="display: none"><input class="form-control" type="radio" name="iteration_selector_x" value="' + value[0] + '" /></td>'
-      settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y1" value="' + value[0] + '" /></td>'
-      settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y2" value="' + value[0] + '" /></td>'
-      settings_data +=             '<td id="td_seqit_container_' + value[0] + '">' + value[0] + '</td></tr>'
-
-  settings_data += '    </tbody></table></li>'
-  settings_data += '    <li class="list-group-item">use logscale:<br />'
-  settings_data += '        y1: <input type="checkbox" id="logscale_y1" /><br />'
-  settings_data += '        y2: <input type="checkbox" id="logscale_y2" />'
-  settings_data += '    </li>'
   settings_data += '</ul></div>'
 
-  body_data  = '<div class="col-sm-8" id="content"><h5 class="card-title">' + key + ':</h5>'
+  body_data = '<div class="col-sm-8" id="content">' + key + '<br>'
   body_data += '<div id="iteration_plot"><div id="iteration_num">-1</div>'
   if len(xml.xpath('//objective/@type')) > 0:
     body_data += '<div id ="objective">' + xml.xpath('//objective/@type')[0] + '</div>'

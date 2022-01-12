@@ -104,8 +104,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
     SolutionTypeEnum.Add(MECH_TENSOR_HILL_MANDEL, "mechTensorHillMandel");
     SolutionTypeEnum.Add(MECH_ELEM_VOL, "mechElemVol");
-    
-    SolutionTypeEnum.Add(MECH_VELOCITY_ELEM, "mechVelocityElem");
 
 
     //electrostatics / elctric current conduction
@@ -269,12 +267,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(DIV_MEAN_FLUIDMECH_VELOCITY, "divMeanFluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_VORTICITY, "fluidMechVorticity");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
-    SolutionTypeEnum.Add(FLUIDMECH_MESH_VELOCITY, "fluidMechMeshVelocity");
-    SolutionTypeEnum.Add(FLUIDMECH_MESH_VELOCITY_NODE, "fluidMechMeshVelocityNode");
-    SolutionTypeEnum.Add(FLUIDMECH_MESH_VELOCITY_ELEM, "fluidMechMeshVelocityElem");
-    SolutionTypeEnum.Add(FLUIDMECH_TOTAL_VELOCITY_ELEM, "fluidMechTotalVelocityElem");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
-    SolutionTypeEnum.Add(FLUIDMECH_ZERO_PRESSURE, "fluidMechZeroPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
@@ -290,11 +283,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TDR, "fluidMechTDR");
     SolutionTypeEnum.Add(FLUIDMECH_TEF, "fluidMechTEF");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
-    SolutionTypeEnum.Add(FLUIDMECH_COMP_STRESS, "fluidMechCompressibleStress");
-    SolutionTypeEnum.Add(FLUIDMECH_VISC_STRESS, "fluidMechViscousStress");
-    SolutionTypeEnum.Add(FLUIDMECH_PRES_TENS, "fluidMechPressureTensor");
-    SolutionTypeEnum.Add(FLUIDMECH_TOTAL_STRESS, "fluidMechTotalStress");
-    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_SURFACE_STRESS, "fluidMechNormalSurfaceStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
     SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
     SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY, "fluidMechWVTDensity");
@@ -766,7 +754,6 @@ namespace CoupledField {
 
       case ACOU_FORCE:
       case FLUIDMECH_WVT_F:
-      case FLUIDMECH_FORCE:
       case MAG_FORCE_VWP:
       case MECH_RHS_LOAD:
         return "N";
@@ -818,12 +805,7 @@ namespace CoupledField {
       case FLUIDMECH_VELOCITY:
       case MEAN_FLUIDMECH_VELOCITY:
       case MEAN_FLUIDMECH_VELOCITY_NORMAL:
-      case FLUIDMECH_MESH_VELOCITY:
-      case FLUIDMECH_MESH_VELOCITY_NODE:
-      case FLUIDMECH_MESH_VELOCITY_ELEM:
-      case FLUIDMECH_TOTAL_VELOCITY_ELEM:
       case MECH_VELOCITY:
-      case MECH_VELOCITY_ELEM:
       case SMOOTH_VELOCITY:
       case SPLIT_VECTOR_VELOCITY:
       case SPLIT_SCALAR_VELOCITY:
@@ -861,12 +843,6 @@ namespace CoupledField {
       case ACOU_PRESSURE:
       case FLUIDMECH_STRESS:
       case FLUIDMECH_PRESSURE:
-      case FLUIDMECH_COMP_STRESS:
-      case FLUIDMECH_VISC_STRESS:
-      case FLUIDMECH_PRES_TENS:
-      case FLUIDMECH_TOTAL_STRESS:
-      case FLUIDMECH_NORMAL_SURFACE_STRESS:
-      case FLUIDMECH_ZERO_PRESSURE:
       case WATER_PRESSURE:
       case SMOOTH_ZERO_PRESSURE:
         return "Pa";
@@ -1997,7 +1973,6 @@ namespace CoupledField {
   }
 
 }
-
 
 
 
