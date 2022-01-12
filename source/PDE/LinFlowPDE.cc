@@ -779,6 +779,7 @@ namespace CoupledField {
     }
 
     PtrCoefFct shearViscosity = shearViscosityMaster;
+    PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
 
     // get feFunctions
@@ -786,9 +787,10 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
 
     //notation> assume the test function is called v, the velocity u and the pressure p
-    BiLinearForm *penalty_u1_v1 = NULL;
-    BiLinearForm *penalty_u1_v2 = NULL;
-    BiLinearForm *penalty_u2_v2 = NULL;
+    //the notation differs slightly to the one used in the SinglePDE since the integrators use the test-function for the first entry and the fe-function for the second (enhanced readability)
+    BiLinearForm *penalty_v1_u1 = NULL;
+    BiLinearForm *penalty_v1_u2 = NULL;
+    BiLinearForm *penalty_v2_u2 = NULL;
     //now bilinear forms related to the normal derivatives
     //du1 refers to the normal derivative directing from 1 to 2
     //for the flux part we have 3 individual terms which we have to take into account (main difference to standard stuff going on in the SinglePDE)
@@ -797,13 +799,13 @@ namespace CoupledField {
     BiLinearForm *flux1_v1_p2 = NULL;
     BiLinearForm *flux1_v2_p2 = NULL;
     // terms caused by mu ( grad(v)+grad(v)^T )
-    BiLinearForm *flux2_du1_v1 = NULL;
-    BiLinearForm *flux2_du1_v2 = NULL;
-    BiLinearForm *flux2_u1_dv1 = NULL;
+    BiLinearForm *flux2_dv1_u1 = NULL;
+    BiLinearForm *flux2_dv1_u2 = NULL;
+    BiLinearForm *flux2_v1_du1 = NULL;
     // terms caused by (lambda - 2/3 mu) div(v) I
-    BiLinearForm *flux3_du1_v1 = NULL;
-    BiLinearForm *flux3_du1_v2 = NULL;
-    BiLinearForm *flux3_u1_dv1 = NULL;
+    BiLinearForm *flux3_dv1_u1 = NULL;
+    BiLinearForm *flux3_dv1_u2 = NULL;
+    BiLinearForm *flux3_v1_du1 = NULL;
 
     BiLinearForm::CouplingDirection curcpl;
 
@@ -821,67 +823,112 @@ namespace CoupledField {
 
     // penalty term
     if ( isMaterialComplex_) {
-    	penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+    	penalty_v1_u1 = new SurfaceNitscheABInt<Complex,Complex>
         	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
         	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               shearViscosity, beta, curcpl, updatedGeo_, true, true);
     } else  {
-      penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+      penalty_v1_u1 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               shearViscosity, beta, curcpl, updatedGeo_, true, true);
     }
 
     // flux terms
+    // v1 p1
     if ( isMaterialComplex_) {
       flux1_v1_p1 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_, true);
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
     }
     else {
       flux1_v1_p1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_, true);
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
     }
-
 
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
+    // penalty term
     if ( isMaterialComplex_) {
-    	penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+    	penalty_v1_u2 = new SurfaceNitscheABInt<Complex,Complex>
         	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
         	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               shearViscosity, beta * -1.0, curcpl, updatedGeo_, true, true);
     } else  {
-      penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+      penalty_v1_u2 = new SurfaceNitscheABInt<Double,Double>
         ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             shearViscosity, beta * -1.0, curcpl, updatedGeo_, true, true);
     }
 
+    // flux terms
+    // v1 p2
+    if ( isMaterialComplex_) {
+      flux1_v1_p2 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, -1.0, curcpl, updatedGeo_, true);
+    }
+    else {
+      flux1_v1_p2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, -1.0, curcpl, updatedGeo_, true);
+    }
+
 
     curcpl = BiLinearForm::SLAVE_SLAVE;
 
+    // penalty term
     if ( isMaterialComplex_) {
-    	penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
+    	penalty_v2_u2 = new SurfaceNitscheABInt<Complex,Complex>
         	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
         	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               shearViscosity, beta, curcpl, updatedGeo_, true, true);
     } else  {
-      penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+      penalty_v2_u2 = new SurfaceNitscheABInt<Double,Double>
         ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             shearViscosity, beta, curcpl, updatedGeo_, true, true);
     }
 
+    // flux terms
+    // v2 p2
+    if ( isMaterialComplex_) {
+      flux1_v2_p2 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
+    }
+    else {
+      flux1_v2_p2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
+    }
+    
 
+    // penalty terms
+    SurfaceBiLinFormContext *penalty_v1_u1_Context = NULL;
+    SurfaceBiLinFormContext *penalty_v1_u2_Context = NULL;
+    SurfaceBiLinFormContext *penalty_v2_u2_Context = NULL;
+    // terms caused by -p I
+    SurfaceBiLinFormContext *flux1_v1_p1_Context = NULL;
+    SurfaceBiLinFormContext *flux1_v1_p2_Context = NULL;
+    SurfaceBiLinFormContext *flux1_v2_p2_Context = NULL;
+    // terms caused by mu ( grad(v)+grad(v)^T )
+    SurfaceBiLinFormContext *flux2_dv1_u1_Context = NULL;
+    SurfaceBiLinFormContext *flux2_dv1_u2_Context = NULL;
+    SurfaceBiLinFormContext *flux2_v1_du1_Context = NULL;
+    // terms caused by (lambda - 2/3 mu) div(v) I
+    SurfaceBiLinFormContext *flux3_dv1_u1_Context = NULL;
+    SurfaceBiLinFormContext *flux3_dv1_u2_Context = NULL;
+    SurfaceBiLinFormContext *flux3_v1_du1_Context = NULL;
 
-    SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
-    SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
-    SurfaceBiLinFormContext *penalty_u2_v2_Context = NULL;
 
     FEMatrixType targetMatrix = STIFFNESS;
     if(isMoving){
@@ -889,34 +936,66 @@ namespace CoupledField {
     }
 
     curcpl = BiLinearForm::MASTER_MASTER;
-    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, targetMatrix, curcpl);
+    penalty_v1_u1_Context = new SurfaceBiLinFormContext(penalty_v1_u1, targetMatrix, curcpl);
+    flux1_v1_p1_Context = new SurfaceBiLinFormContext(flux1_v1_p1, targetMatrix, curcpl);
 
 
     curcpl = BiLinearForm::MASTER_SLAVE;
-    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, targetMatrix, curcpl);
+    penalty_v1_u2_Context = new SurfaceBiLinFormContext(penalty_v1_u2, targetMatrix, curcpl);
+    flux1_v1_p2_Context = new SurfaceBiLinFormContext(flux1_v1_p2, targetMatrix, curcpl);
+
 
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, targetMatrix, curcpl);
+    penalty_v2_u2_Context = new SurfaceBiLinFormContext(penalty_v2_u2, targetMatrix, curcpl);
+    flux1_v2_p2_Context = new SurfaceBiLinFormContext(flux1_v2_p2, targetMatrix, curcpl);
 
-    penalty_u1_v1->SetName("penalty_u1_v1");
-    penalty_u1_v2->SetName("penalty_u1_v2");
-    penalty_u2_v2->SetName("penalty_u2_v2");
 
-    penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
-    penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
-    penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
+    // for moving meshes we need to update the motion of the interface
+    if (isMoving) {
+      penalty_v1_u1_Context->SetMotion(true);
+      penalty_v1_u2_Context->SetMotion(true);
+      penalty_v2_u2_Context->SetMotion(true);
 
-    penalty_u1_v1_Context->SetFeFunctions( velFct, velFct );
-    penalty_u1_v2_Context->SetFeFunctions( velFct, velFct );
-    penalty_u2_v2_Context->SetFeFunctions( velFct, velFct );
+      flux1_v1_p1_Context->SetMotion(true);
+      flux1_v1_p2_Context->SetMotion(true);
+      flux1_v2_p2_Context->SetMotion(true);
 
-    assemble_->AddBiLinearForm( penalty_u1_v1_Context );
-    assemble_->AddBiLinearForm( penalty_u1_v2_Context );
-    assemble_->AddBiLinearForm( penalty_u2_v2_Context );
+      flux2_dv1_u1_Context->SetMotion(true);
+      flux2_dv1_u2_Context->SetMotion(true);
+      flux2_v1_du1_Context->SetMotion(true);
 
-    ncIf->RegisterIntegrator( penalty_u1_v1_Context );
-    ncIf->RegisterIntegrator( penalty_u1_v2_Context );
-    ncIf->RegisterIntegrator( penalty_u2_v2_Context );
+      flux3_dv1_u1_Context->SetMotion(true);
+      flux3_dv1_u2_Context->SetMotion(true);
+      flux3_v1_du1_Context->SetMotion(true);
+    }
+
+    // set names
+    penalty_v1_u1->SetName("penalty_v1_u1");
+    penalty_v1_u2->SetName("penalty_v1_u2");
+    penalty_v2_u2->SetName("penalty_v2_u2");
+
+    // set entities
+    penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
+    penalty_v1_u2_Context->SetEntities(actSDList,actSDList);
+    penalty_v2_u2_Context->SetEntities(actSDList,actSDList);
+
+    // set feFunctions
+    penalty_v1_u1_Context->SetFeFunctions( velFct, velFct );
+    penalty_v1_u2_Context->SetFeFunctions( velFct, velFct );
+    penalty_v2_u2_Context->SetFeFunctions( velFct, velFct );
+
+    // add counter part (for symmetry)
+    penalty_v1_u2_Context->SetCounterPart(true);
+    flux1_v1_p2_Context->SetCounterPart(true);
+
+    // add to assemble
+    assemble_->AddBiLinearForm( penalty_v1_u1_Context );
+    assemble_->AddBiLinearForm( penalty_v1_u2_Context );
+    assemble_->AddBiLinearForm( penalty_v2_u2_Context );
+
+    ncIf->RegisterIntegrator( penalty_v1_u1_Context );
+    ncIf->RegisterIntegrator( penalty_v1_u2_Context );
+    ncIf->RegisterIntegrator( penalty_v2_u2_Context );
 
   }
 
