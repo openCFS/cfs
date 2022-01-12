@@ -1209,6 +1209,300 @@ namespace CoupledField {
 
   }
 
+  void LinFlowPDE::DefineNcIntegrators() {
+//	if ( complexFluidFormulation_ )
+//		EXCEPTION("Complex fluid and NC-interfaces currently not allowed");
+
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        if (dim_ == 2)
+          EXCEPTION("Mortar ncInterface not implemented")
+        else
+          EXCEPTION("Mortar ncInterface not implemented")
+        break;
+      case NC_NITSCHE:
+        if (dim_ == 2)
+          DefineNitscheCoupling<2,2,1>(*ncIt );
+        else
+          DefineNitscheCoupling<3,3,1>(*ncIt );
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+
+  template<UInt DIM, UInt D_DOF, UInt P_DOF>
+  void LinFlowPDE::DefineNitscheCoupling( NcInterfaceInfo &iface,
+                                         shared_ptr<CoefFunctionMulti> additionalCoef )
+  {
+    shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(iface.interfaceId);
+    MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
+    assert(nitscheIf);
+    
+    //in case of Nitsche coupling edge/face information is required
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
+
+    // currently we have a moving formulation only for acoustics
+    updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
+    bool isMoving = updatedGeo_;
+
+    // create new entity list
+    shared_ptr<ElemList> actSDList = ncIf->GetElemList();
+
+    // we set here the penalty factor
+    Double beta = iface.nitscheFactor;
+
+    // material parameter and adaption of penalty term
+    // check if both interfaces use the same material of type CONSTANT, othewise throw an exception
+    PtrCoefFct shearViscosityMaster = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
+    PtrCoefFct shearViscositySlave = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
+    
+    PtrCoefFct bulkViscosityMaster = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
+    PtrCoefFct bulkViscositySlave = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
+  
+    if( shearViscosityMaster->GetDependency() == CoefFunction::CONSTANT || shearViscositySlave->GetDependency() == CoefFunction::CONSTANT ) {
+      double shearViscosityMasterVal, shearViscositySlaveVal, bulkViscosityMasterVal, bulkViscositySlaveVal;
+      
+      materials_[nitscheIf->GetMasterVolRegion()]->GetScalar(shearViscosityMasterVal,FLUID_DYNAMIC_VISCOSITY, Global::REAL);
+      materials_[nitscheIf->GetSlaveVolRegion()]->GetScalar(shearViscositySlaveVal,FLUID_DYNAMIC_VISCOSITY, Global::REAL);
+      
+      materials_[nitscheIf->GetMasterVolRegion()]->GetScalar(bulkViscosityMasterVal,FLUID_BULK_VISCOSITY, Global::REAL);
+      materials_[nitscheIf->GetSlaveVolRegion()]->GetScalar(bulkViscositySlaveVal,FLUID_BULK_VISCOSITY, Global::REAL);
+
+      if( abs(shearViscosityMasterVal-shearViscositySlaveVal)>1e-14 || abs(bulkViscosityMasterVal-bulkViscositySlaveVal)>1e-14 ) {
+        EXCEPTION("LinFlow ncInterfaces do not support different materials for master/slave region at the moment!")
+      }
+    } else {
+      EXCEPTION("LinFlow ncInterfaces only support constant material parameters at the moment!")
+    }
+
+    PtrCoefFct shearViscosity = shearViscosityMaster;
+    PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+
+    // get feFunctions
+    shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
+    shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
+
+    //notation> assume the test function is called v, the velocity u and the pressure p
+    //the notation differs slightly to the one used in the SinglePDE since the integrators use the test-function for the first entry and the fe-function for the second (enhanced readability)
+    BiLinearForm *penalty_v1_u1 = NULL;
+    BiLinearForm *penalty_v1_u2 = NULL;
+    BiLinearForm *penalty_v2_u2 = NULL;
+    //now bilinear forms related to the normal derivatives
+    //du1 refers to the normal derivative directing from 1 to 2
+    //for the flux part we have 3 individual terms which we have to take into account (main difference to standard stuff going on in the SinglePDE)
+    // terms caused by -p I
+    BiLinearForm *flux1_v1_p1 = NULL;
+    BiLinearForm *flux1_v1_p2 = NULL;
+    BiLinearForm *flux1_v2_p2 = NULL;
+    // terms caused by mu ( grad(v)+grad(v)^T )
+    BiLinearForm *flux2_dv1_u1 = NULL;
+    BiLinearForm *flux2_dv1_u2 = NULL;
+    BiLinearForm *flux2_v1_du1 = NULL;
+    // terms caused by (lambda - 2/3 mu) div(v) I
+    BiLinearForm *flux3_dv1_u1 = NULL;
+    BiLinearForm *flux3_dv1_u2 = NULL;
+    BiLinearForm *flux3_v1_du1 = NULL;
+
+    BiLinearForm::CouplingDirection curcpl;
+
+    curcpl = BiLinearForm::MASTER_MASTER;
+
+    // NOTE: the algebraic system sets the system matrix to
+    // nonSym  if any bilinear form with the same fctID1 and fctID2 is nonSym.
+    // We set here the symmetric flag to true in the constructor
+    // of the SurfaceNitscheABInt even though the bilinear form itself is
+    // not symmetric. Nitsche formulation is basically sym due to the
+    // set counterpart directive for the context.
+    
+    // NOTE: Since the LinFlowPDE is non-sym per definition, the symmetrization might be unnecessary
+    // TODO: Test this and if there is no difference, ommit the additional terms
+
+    // penalty term
+    if ( isMaterialComplex_) {
+    	penalty_v1_u1 = new SurfaceNitscheABInt<Complex,Complex>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              shearViscosity, beta, curcpl, updatedGeo_, true, true);
+    } else  {
+      penalty_v1_u1 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              shearViscosity, beta, curcpl, updatedGeo_, true, true);
+    }
+
+    // flux terms
+    // v1 p1
+    if ( isMaterialComplex_) {
+      flux1_v1_p1 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
+    }
+    else {
+      flux1_v1_p1 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
+    }
+
+
+    curcpl = BiLinearForm::MASTER_SLAVE;
+
+    // penalty term
+    if ( isMaterialComplex_) {
+    	penalty_v1_u2 = new SurfaceNitscheABInt<Complex,Complex>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              shearViscosity, beta * -1.0, curcpl, updatedGeo_, true, true);
+    } else  {
+      penalty_v1_u2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            shearViscosity, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
+
+    // flux terms
+    // v1 p2
+    if ( isMaterialComplex_) {
+      flux1_v1_p2 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, -1.0, curcpl, updatedGeo_, true);
+    }
+    else {
+      flux1_v1_p2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, -1.0, curcpl, updatedGeo_, true);
+    }
+
+
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+
+    // penalty term
+    if ( isMaterialComplex_) {
+    	penalty_v2_u2 = new SurfaceNitscheABInt<Complex,Complex>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              shearViscosity, beta, curcpl, updatedGeo_, true, true);
+    } else  {
+      penalty_v2_u2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            shearViscosity, beta, curcpl, updatedGeo_, true, true);
+    }
+
+    // flux terms
+    // v2 p2
+    if ( isMaterialComplex_) {
+      flux1_v2_p2 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
+    }
+    else {
+      flux1_v2_p2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            constOne, 1.0, curcpl, updatedGeo_, true);
+    }
+    
+
+    // penalty terms
+    SurfaceBiLinFormContext *penalty_v1_u1_Context = NULL;
+    SurfaceBiLinFormContext *penalty_v1_u2_Context = NULL;
+    SurfaceBiLinFormContext *penalty_v2_u2_Context = NULL;
+    // terms caused by -p I
+    SurfaceBiLinFormContext *flux1_v1_p1_Context = NULL;
+    SurfaceBiLinFormContext *flux1_v1_p2_Context = NULL;
+    SurfaceBiLinFormContext *flux1_v2_p2_Context = NULL;
+    // terms caused by mu ( grad(v)+grad(v)^T )
+    SurfaceBiLinFormContext *flux2_dv1_u1_Context = NULL;
+    SurfaceBiLinFormContext *flux2_dv1_u2_Context = NULL;
+    SurfaceBiLinFormContext *flux2_v1_du1_Context = NULL;
+    // terms caused by (lambda - 2/3 mu) div(v) I
+    SurfaceBiLinFormContext *flux3_dv1_u1_Context = NULL;
+    SurfaceBiLinFormContext *flux3_dv1_u2_Context = NULL;
+    SurfaceBiLinFormContext *flux3_v1_du1_Context = NULL;
+
+
+    FEMatrixType targetMatrix = STIFFNESS;
+    if(isMoving){
+    	targetMatrix = STIFFNESS_UPDATE;
+    }
+
+    curcpl = BiLinearForm::MASTER_MASTER;
+    penalty_v1_u1_Context = new SurfaceBiLinFormContext(penalty_v1_u1, targetMatrix, curcpl);
+    flux1_v1_p1_Context = new SurfaceBiLinFormContext(flux1_v1_p1, targetMatrix, curcpl);
+
+
+    curcpl = BiLinearForm::MASTER_SLAVE;
+    penalty_v1_u2_Context = new SurfaceBiLinFormContext(penalty_v1_u2, targetMatrix, curcpl);
+    flux1_v1_p2_Context = new SurfaceBiLinFormContext(flux1_v1_p2, targetMatrix, curcpl);
+
+
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+    penalty_v2_u2_Context = new SurfaceBiLinFormContext(penalty_v2_u2, targetMatrix, curcpl);
+    flux1_v2_p2_Context = new SurfaceBiLinFormContext(flux1_v2_p2, targetMatrix, curcpl);
+
+
+    // for moving meshes we need to update the motion of the interface
+    if (isMoving) {
+      penalty_v1_u1_Context->SetMotion(true);
+      penalty_v1_u2_Context->SetMotion(true);
+      penalty_v2_u2_Context->SetMotion(true);
+
+      flux1_v1_p1_Context->SetMotion(true);
+      flux1_v1_p2_Context->SetMotion(true);
+      flux1_v2_p2_Context->SetMotion(true);
+
+      flux2_dv1_u1_Context->SetMotion(true);
+      flux2_dv1_u2_Context->SetMotion(true);
+      flux2_v1_du1_Context->SetMotion(true);
+
+      flux3_dv1_u1_Context->SetMotion(true);
+      flux3_dv1_u2_Context->SetMotion(true);
+      flux3_v1_du1_Context->SetMotion(true);
+    }
+
+    // set names
+    penalty_v1_u1->SetName("penalty_v1_u1");
+    penalty_v1_u2->SetName("penalty_v1_u2");
+    penalty_v2_u2->SetName("penalty_v2_u2");
+
+    // set entities
+    penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
+    penalty_v1_u2_Context->SetEntities(actSDList,actSDList);
+    penalty_v2_u2_Context->SetEntities(actSDList,actSDList);
+
+    // set feFunctions
+    penalty_v1_u1_Context->SetFeFunctions( velFct, velFct );
+    penalty_v1_u2_Context->SetFeFunctions( velFct, velFct );
+    penalty_v2_u2_Context->SetFeFunctions( velFct, velFct );
+
+    // add counter part (for symmetry)
+    penalty_v1_u2_Context->SetCounterPart(true);
+    flux1_v1_p2_Context->SetCounterPart(true);
+
+    // add to assemble
+    assemble_->AddBiLinearForm( penalty_v1_u1_Context );
+    assemble_->AddBiLinearForm( penalty_v1_u2_Context );
+    assemble_->AddBiLinearForm( penalty_v2_u2_Context );
+
+    ncIf->RegisterIntegrator( penalty_v1_u1_Context );
+    ncIf->RegisterIntegrator( penalty_v1_u2_Context );
+    ncIf->RegisterIntegrator( penalty_v2_u2_Context );
+
+  }
+
   void LinFlowPDE::DefineSurfaceIntegrators(){
     // Get FESpace and FeFunction of fluid velocity
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];

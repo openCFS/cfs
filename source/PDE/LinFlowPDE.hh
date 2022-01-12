@@ -56,9 +56,13 @@ namespace CoupledField
     void DefineIntegrators( );
 
     //! Defines the integrators needed for ncInterfaces
-    void DefineNcIntegrators() {
-      EXCEPTION("ncInterfaces are not implemented for LinFlowPDE");
-    }
+    void DefineNcIntegrators();
+
+    //! Defines integrators for Nitsche coupling of an unknown on one specific
+    //! interface.
+    template<UInt DIM, UInt D_DOF, UInt P_DOF>
+    void DefineNitscheCoupling( NcInterfaceInfo &iface,
+                                shared_ptr<CoefFunctionMulti> additionalCoef = NULL);
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators();
