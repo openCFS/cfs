@@ -554,6 +554,7 @@ void SurfaceNormalDivOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
     for( UInt i = 0; i < numFncs; ++i ) {
       bMat[iDim][i*DIM_SPACE + iDim] += xiDx[i][iDim] * lp.normal[iDim];
       bMat[DIM_SPACE-1-iDim][i*DIM_SPACE + iDim] += xiDx[i][iDim] * lp.normal[DIM_SPACE-1-iDim];
+      // LinFlow_NCI_Devel version: bMat[iDim][i*DIM_SPACE + iDim] = xiDx[i][iDim] * lp.normal[iDim];
     }
     normalSum += lp.normal[iDim];
   }
@@ -567,11 +568,13 @@ template<class FE,  UInt D, class TYPE>
 void SurfaceNormalDivOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                         const LocPointMapped& lp,
                                                         BaseFE* ptFe ){
+  //check if lp is surface and ptFe is volume
+  assert(lp.isSurface);
+  assert(D == ptFe->shape_.dim);
   Matrix<Double> tmpMat;
   this->CalcOpMat(tmpMat,lp,ptFe);
   bMat = Transpose(tmpMat);
 }
-
 
 template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
 class SurfaceIdentityOperatorScaledBySurface : public BaseBOperator{

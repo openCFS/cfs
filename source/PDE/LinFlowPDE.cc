@@ -1294,9 +1294,36 @@ namespace CoupledField {
     }
 
     PtrCoefFct shearViscosity = shearViscosityMaster;
+    PtrCoefFct bulkViscosity = bulkViscosityMaster;
     PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
     PtrCoefFct constTwo = CoefFunction::Generate( mp_, Global::REAL, "2.0");
 
+    PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
+        CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
+    PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
+    BiLinearForm * stiffIntLaplace = NULL;
+    StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? 9 : 36);
+    tensorComponents.Init(coefZero);
+    if( dim_ == 2 ) {
+      tensorComponents[0] = shearViscosityDouble;
+      tensorComponents[4] = shearViscosityDouble;
+      tensorComponents[8] = shearViscosity;
+      PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+    } else {
+      tensorComponents[0] = shearViscosityDouble;
+      tensorComponents[7] = shearViscosityDouble;
+      tensorComponents[14] = shearViscosityDouble;
+      tensorComponents[21] = shearViscosity;
+      tensorComponents[28] = shearViscosity;
+      tensorComponents[35] = shearViscosity;
+      PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
+    }
+
+    PtrCoefFct coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
+      CoefXprBinOp(mp_,
+          bulkViscosity,
+          CoefXprBinOp(mp_,shearViscosityDouble,CoefFunction::Generate( mp_, Global::REAL, "3"),CoefXpr::OP_DIV),
+      CoefXpr::OP_SUB ));
 
     // get feFunctions
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
@@ -1364,34 +1391,34 @@ namespace CoupledField {
             constTwo, 1.0, curcpl, updatedGeo_, true);
     }
 
-    // mu ( grad(v1)+grad(v1)^T ) \cdot u1
+    // -mu ( grad(v1)+grad(v1)^T ) \cdot u1
     if ( isMaterialComplex_ ) {
       flux2_dv1_u1 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, -1.0, curcpl, updatedGeo_, true);
-      flux2_dv1_u1->SetBCoefFunctionOpA(shearViscosity);
+      flux2_dv1_u1->SetBCoefFunctionOpA(coefBB);
     } else {
       flux2_dv1_u1 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, -1.0, curcpl, updatedGeo_, true);
-      flux2_dv1_u1->SetBCoefFunctionOpA(shearViscosity);
+      flux2_dv1_u1->SetBCoefFunctionOpA(coefBB);
     }
 
-        // mu ( grad(u1)+grad(u1)^T ) \cdot v1
+    // -mu ( grad(u1)+grad(u1)^T ) \cdot v1
     if ( isMaterialComplex_ ) {
       flux2_v1_du1 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
               constOne, -1.0, curcpl, updatedGeo_, true);
-      flux2_v1_du1->SetBCoefFunctionOpB(shearViscosity);
+      flux2_v1_du1->SetBCoefFunctionOpB(coefBB);
     } else {
       flux2_v1_du1 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
               constOne, -1.0, curcpl, updatedGeo_, true);
-      flux2_v1_du1->SetBCoefFunctionOpB(shearViscosity);
+      flux2_v1_du1->SetBCoefFunctionOpB(coefBB);
     }
 
 
@@ -1430,14 +1457,14 @@ namespace CoupledField {
       flux2_dv1_u2 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              constOne, -1.0, curcpl, updatedGeo_, true);
-      flux2_dv1_u2->SetBCoefFunctionOpA(shearViscosity);
+              constOne, 1.0, curcpl, updatedGeo_, true);
+      flux2_dv1_u2->SetBCoefFunctionOpA(coefBB);
     } else {
       flux2_dv1_u2 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              constOne, -1.0, curcpl, updatedGeo_, true);
-      flux2_dv1_u2->SetBCoefFunctionOpA(shearViscosity);
+              constOne, 1.0, curcpl, updatedGeo_, true);
+      flux2_dv1_u2->SetBCoefFunctionOpA(coefBB);
     }
 
 
