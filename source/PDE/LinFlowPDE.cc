@@ -1301,14 +1301,14 @@ namespace CoupledField {
     PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
         CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
     PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
-    BiLinearForm * stiffIntLaplace = NULL;
     StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? 9 : 36);
     tensorComponents.Init(coefZero);
+    PtrCoefFct coefBB;
     if( dim_ == 2 ) {
       tensorComponents[0] = shearViscosityDouble;
       tensorComponents[4] = shearViscosityDouble;
       tensorComponents[8] = shearViscosity;
-      PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+      coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
     } else {
       tensorComponents[0] = shearViscosityDouble;
       tensorComponents[7] = shearViscosityDouble;
@@ -1316,7 +1316,7 @@ namespace CoupledField {
       tensorComponents[21] = shearViscosity;
       tensorComponents[28] = shearViscosity;
       tensorComponents[35] = shearViscosity;
-      PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
+      coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
     }
 
     PtrCoefFct coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
@@ -1421,6 +1421,32 @@ namespace CoupledField {
       flux2_v1_du1->SetBCoefFunctionOpB(coefBB);
     }
 
+    // (lambda - 2/3 mu) div(v1) I \cdot u1
+    if ( isMaterialComplex_ ) {
+      flux3_dv1_u1 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceNormalDivOperator<FeH1,DIM>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              coefDivDiv, -1.0, curcpl, updatedGeo_, true);
+    } else {
+      flux3_dv1_u1 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceNormalDivOperator<FeH1,DIM>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              coefDivDiv, -1.0, curcpl, updatedGeo_, true);
+    }
+
+    // (lambda - 2/3 mu) div(u1) I \cdot v1
+    if ( isMaterialComplex_ ) {
+      flux3_v1_du1 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceNormalDivOperator<FeH1,DIM>(),
+              coefDivDiv, -1.0, curcpl, updatedGeo_, true);
+    } else {
+      flux3_v1_du1 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceNormalDivOperator<FeH1,DIM>(),
+              coefDivDiv, -1.0, curcpl, updatedGeo_, true);
+    }
+
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
@@ -1465,6 +1491,19 @@ namespace CoupledField {
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, 1.0, curcpl, updatedGeo_, true);
       flux2_dv1_u2->SetBCoefFunctionOpA(coefBB);
+    }
+    
+    // (lambda - 2/3 mu) div(v1) I \cdot u2
+    if ( isMaterialComplex_ ) {
+      flux3_dv1_u2 = new SurfaceNitscheABInt<Complex,Complex>
+          ( new SurfaceNormalDivOperator<FeH1,DIM>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              coefDivDiv, 1.0, curcpl, updatedGeo_, true);
+    } else {
+      flux3_dv1_u2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceNormalDivOperator<FeH1,DIM>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              coefDivDiv, 1.0, curcpl, updatedGeo_, true);
     }
 
 
@@ -1511,11 +1550,14 @@ namespace CoupledField {
     flux1_v1_p1_Context = new SurfaceBiLinFormContext(flux1_v1_p1, targetMatrix, curcpl);
     flux2_dv1_u1_Context = new SurfaceBiLinFormContext(flux2_dv1_u1, targetMatrix, curcpl);
     flux2_v1_du1_Context = new SurfaceBiLinFormContext(flux2_v1_du1, targetMatrix, curcpl);
+    flux3_dv1_u1_Context = new SurfaceBiLinFormContext(flux3_dv1_u1, targetMatrix, curcpl);
+    flux3_v1_du1_Context = new SurfaceBiLinFormContext(flux3_v1_du1, targetMatrix, curcpl);
 
     curcpl = BiLinearForm::MASTER_SLAVE;
     penalty_v1_u2_Context = new SurfaceBiLinFormContext(penalty_v1_u2, targetMatrix, curcpl);
     flux1_v1_p2_Context = new SurfaceBiLinFormContext(flux1_v1_p2, targetMatrix, curcpl);
     flux2_dv1_u2_Context = new SurfaceBiLinFormContext(flux2_dv1_u2, targetMatrix, curcpl);
+    flux3_dv1_u2_Context = new SurfaceBiLinFormContext(flux3_dv1_u2, targetMatrix, curcpl);
 
     curcpl = BiLinearForm::SLAVE_SLAVE;
     penalty_v2_u2_Context = new SurfaceBiLinFormContext(penalty_v2_u2, targetMatrix, curcpl);
@@ -1543,12 +1585,16 @@ namespace CoupledField {
     penalty_v1_u2->SetName("penalty_v1_u2");
     penalty_v2_u2->SetName("penalty_v2_u2");
 
-    flux1_v1_p1->SetName("flux_v1_p1");
-    flux1_v1_p2->SetName("flux_v1_p2");
+    flux1_v1_p1->SetName("flux1_v1_p1");
+    flux1_v1_p2->SetName("flux1_v1_p2");
 
-    flux2_dv1_u1->SetName("flux_dv1_u1");
-    flux2_dv1_u2->SetName("flux_dv1_u2");
-    flux2_v1_du1->SetName("flux_v1_du1");
+    flux2_dv1_u1->SetName("flux2_dv1_u1");
+    flux2_dv1_u2->SetName("flux2_dv1_u2");
+    flux2_v1_du1->SetName("flux2_v1_du1");
+
+    flux3_dv1_u1->SetName("flux3_dv1_u1");
+    flux3_dv1_u2->SetName("flux3_dv1_u2");
+    flux3_v1_du1->SetName("flux3_v1_du1");
 
     // set entities
     penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
@@ -1562,6 +1608,10 @@ namespace CoupledField {
     flux2_dv1_u2_Context->SetEntities(actSDList,actSDList);
     flux2_v1_du1_Context->SetEntities(actSDList,actSDList);
 
+    flux3_dv1_u1_Context->SetEntities(actSDList,actSDList);
+    flux3_dv1_u2_Context->SetEntities(actSDList,actSDList);
+    flux3_v1_du1_Context->SetEntities(actSDList,actSDList);
+
     // set feFunctions
     penalty_v1_u1_Context->SetFeFunctions( velFct, velFct );
     penalty_v1_u2_Context->SetFeFunctions( velFct, velFct );
@@ -1573,11 +1623,17 @@ namespace CoupledField {
     flux2_dv1_u1_Context->SetFeFunctions( velFct, velFct );
     flux2_dv1_u2_Context->SetFeFunctions( velFct, velFct );
     flux2_v1_du1_Context->SetFeFunctions( velFct, velFct );
+    
+    flux3_dv1_u1_Context->SetFeFunctions( velFct, velFct );
+    flux3_dv1_u2_Context->SetFeFunctions( velFct, velFct );
+    flux3_v1_du1_Context->SetFeFunctions( velFct, velFct );
 
     // add counter part (for symmetry)
+    // NOTE: Since the overall formulation is not sym, we could also ommit this, but before doing so, check if the previously defined integrators are the one for traction consistency!!
     penalty_v1_u2_Context->SetCounterPart(true);
     flux1_v1_p2_Context->SetCounterPart(true);
     flux2_dv1_u2_Context->SetCounterPart(true);
+    flux3_dv1_u2_Context->SetCounterPart(true);
 
     // add to assemble
     assemble_->AddBiLinearForm( penalty_v1_u1_Context );
@@ -1591,6 +1647,10 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( flux2_dv1_u2_Context );
     assemble_->AddBiLinearForm( flux2_v1_du1_Context );
 
+    assemble_->AddBiLinearForm( flux3_dv1_u1_Context );
+    assemble_->AddBiLinearForm( flux3_dv1_u2_Context );
+    assemble_->AddBiLinearForm( flux3_v1_du1_Context );
+
 
     ncIf->RegisterIntegrator( penalty_v1_u1_Context );
     ncIf->RegisterIntegrator( penalty_v1_u2_Context );
@@ -1602,6 +1662,10 @@ namespace CoupledField {
     ncIf->RegisterIntegrator( flux2_dv1_u1_Context );
     ncIf->RegisterIntegrator( flux2_dv1_u2_Context );
     ncIf->RegisterIntegrator( flux2_v1_du1_Context );
+
+    ncIf->RegisterIntegrator( flux3_dv1_u1_Context );
+    ncIf->RegisterIntegrator( flux3_dv1_u2_Context );
+    ncIf->RegisterIntegrator( flux3_v1_du1_Context );
 
   }
 
