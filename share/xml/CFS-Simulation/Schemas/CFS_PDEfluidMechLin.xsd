@@ -52,6 +52,13 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Non-conforming interfaces of the PDE -->
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines the non-conforming interfaces</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <!-- (surface) region list for pressure surface terms -->
           <xsd:element name="presSurfaceList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
