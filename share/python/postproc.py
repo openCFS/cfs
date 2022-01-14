@@ -227,9 +227,8 @@ parser.add_argument('--failsafe', help="continue on errors", action='store_true'
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
 args = parser.parse_args()
 
-input = args.input
-# tuples name without .info.xml and larges relative band gap by ev_x_max and ev_(x+1)_min, the two values and the lower ev
-
+input = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+ 
 res = []
 if input[0].endswith('.info.xml'):
   res = read_info_xml_input(args, input)

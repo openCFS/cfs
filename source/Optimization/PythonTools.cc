@@ -168,23 +168,20 @@ void CheckPythonReturn(PyObject* pyobject, const char* name)
 {
   if(!pyobject)
     // allow for stacktrace printing on console
-    throw Exception("Python error within " + string(name != NULL ? name : "") + ": " + PyErr());
+    throw Exception("Python returns error " + string(name != NULL ? name : "") + ": " + PyErr());
 }
 
 void CheckPythonReturn(int ret, const char* name)
 {
   if(ret == 0)
-  {
-    PyErr_Print();
-    throw Exception("Python error within " + string(name != NULL ? name : "") + ": " + PyErr());
-  }
+    throw Exception("Python returns error " + string(name != NULL ? name : "") + ": " + PyErr());
 }
 
 
 void CheckPythonFunction(PyObject* pyobject, const char* name)
 {
   if(!(pyobject && PyCallable_Check(pyobject)))
-    throw Exception("Cannot call Python function '" + string(name ? name : "not-given") + "'");
+    throw Exception("Cannot call Python function " + string(name ? name : ""));
 }
 
 

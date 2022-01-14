@@ -274,9 +274,9 @@ namespace CoupledField
       return mapNodeToElems_[node];
     }
 
-    virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
+    virtual void AddNamedNodes(const std::string& name, StdVector<UInt> & nodeNums);
     
-    virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
+    virtual void AddNamedElems(const std::string& name, StdVector<UInt> & elemNums);
 
 
     //! Get coordinates of element nodes

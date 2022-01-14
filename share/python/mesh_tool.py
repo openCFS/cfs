@@ -509,7 +509,8 @@ def write_ansys_elements(out, elements, dim):
   for i,e in enumerate(elements):  # write one based!
     if elem_dim_ansys(e.type) == dim:
       nodes = len(e.nodes)
-      out.write(str(i + 1) + ' ' + str(e.type) + ' ' + str(node_by_ansys_type(e.type)) + ' ' + e.region + "\n")
+      # we need the int value of the element type, not the enum name
+      out.write(str(i + 1) + ' ' + str(int(e.type)) + ' ' + str(node_by_ansys_type(e.type)) + ' ' + e.region + "\n")
 
       # prepare for second order elements
       for n in range(node_by_ansys_type(e.type)):

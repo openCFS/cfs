@@ -10,6 +10,10 @@
 #include <cstdarg>
 
 #include "SimInputMESH.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+// declare class specific logging stream
+DEFINE_LOG(mesh, "mesh")
 
 namespace CoupledField {
 
@@ -479,23 +483,19 @@ namespace CoupledField {
       // try to read data
       inFile_ >> eNum >> eType >> eNodes >> region;       
 
-      // if read in was successfull, enline position and current
+      // if read in was successful, enline position and current
       // position are the same
       inFile_.ignore( 100, '\n' );
       pos = inFile_.tellg();
-      if ( pos != lineEndPos ) {
-        EXCEPTION("An error occured while reading the " << i << "-th "
-                  << dim << "D element");
-      }
+      LOG_DBG3(mesh) << "GE dim=" << dim << " numElems=" << numElems << " i=" << i << " pos=" << pos << " eNum=" << eNum << " eType=" << eType << " eNodes=" << eNodes << " region=" << region;
+      if(pos != lineEndPos)
+        EXCEPTION("An error occurred while reading the " << i << "-th " << dim << "D element");
 
 
       // Check number of element
-      if ( eNum > maxNumElems_ ) {
-        EXCEPTION("Current element number = " << eNum << " > "
-                  << maxNumElems_ << " = actMaxElemNum_. Something might "
-                  << "have gone wrong in the meshing process.");
-      }
-
+      if(eNum > maxNumElems_)
+        EXCEPTION("Current element number = " << eNum << " > " << maxNumElems_
+               << " = actMaxElemNum_. Something might have gone wrong in the meshing process.");
 
       // Check if previous element had the same id. 
       // If not, obtain new region identifier

@@ -159,6 +159,8 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 {
   static_pyopt = this;
   pyinf_ = info_->Get(Optimization::optimizer.ToString(Optimization::PYTHON_SOLVER));
+  PtrParamNode pnh = pyinf_->Get(ParamNode::HEADER);
+
 
   BaseOptimizer::PostInitScale(1.0);
 
@@ -168,16 +170,20 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   assert(this_opt_pn_ != NULL);
 
   string version;
-  module = InitializePythonModule(this_opt_pn_->Get("file")->As<string>(), this_opt_pn_->Get("path")->As<string>(), PyInit_cfs, &givenname,&version);
+  StdVector<string> syspath;
+  module = InitializePythonModule(this_opt_pn_->Get("file")->As<string>(), this_opt_pn_->Get("path")->As<string>(), PyInit_cfs, &givenname,&version,&syspath);
 
-  pyinf_->Get(ParamNode::HEADER)->Get("file")->SetValue(givenname);
-  pyinf_->Get(ParamNode::HEADER)->Get("version")->SetValue(version);
+  pnh->Get("file")->SetValue(givenname);
+  pnh->Get("version")->SetValue(version);
+  if(progOpts->DoDetailedInfo())
+    pnh->Get("syspath")->SetValue(syspath.ToString(TS_PLAIN, ":"));
+
 
   // the options are given to the python functions setup() and init() for their usage
   ParamNodeList lst = this_opt_pn_->GetList("option");
   options = ParseOptions(lst);
 
-  pyinf_->Get(ParamNode::HEADER)->Get("options")->SetValue(lst);
+  pnh->Get("options")->SetValue(lst);
 
   // call optional setup()
   std::string val = "not callable";
@@ -189,7 +195,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
     Py_XDECREF(ret);
     Py_XDECREF(setup);
   }
-  pyinf_->Get(ParamNode::HEADER)->Get("setup")->SetValue(val);
+  pnh->Get("setup")->SetValue(val);
 
   // call mandatory init(n ,m, iters, name, options)
   PyObject* init = PyObject_GetAttrString(module, "init");
@@ -202,7 +208,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
     PyTuple_SetItem(arg, 4, CreatePythonDict(options));
     PyObject* ret = PyObject_CallObject(init, arg);
     CheckPythonReturn(ret, "init");
-    pyinf_->Get(ParamNode::HEADER)->Get("init")->SetValue(ToString(ret));
+    pnh->Get("init")->SetValue(ToString(ret));
     Py_XDECREF(ret);
     Py_XDECREF(arg);
     Py_XDECREF(init);

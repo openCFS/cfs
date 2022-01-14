@@ -1866,22 +1866,18 @@ namespace CoupledField {
     return numElems;
   }
 
-  void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
+  void GridCFS::AddNamedNodes(const std::string& name, StdVector<unsigned int> & nodeNums)
   {
-    // Check if entities with given name exist already
-    //if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
-    //  EXCEPTION( "Entities with name " << name
-    //             << " are already defined" );
-    //}
+    // entity names need to be unique, even across different entity types
 	  if(nameTypeMap_.find( name) != nameTypeMap_.end())
 	  {
-		  // get the vector of already defined nodes
-	    // but first we need the index
-	    ptrdiff_t pos = find(namedNodeNames_.Begin(), namedNodeNames_.End(), name) - namedNodeNames_.Begin();
-	    StdVector<UInt> &nN = namedNodes_[pos];
-	    StdVector<UInt> &nN_new = nodeNums;
+      // either the name is used for another entity, or we extend the current type
+	    int pos = namedNodeNames_.Find(name);
+	    if(pos == -1)
+	      EXCEPTION("'" + name + "' is not valid for named nodes, another entity type already uses the name");
+	    StdVector<unsigned int> &nN = namedNodes_[pos];
       // now add the new nodeNums (if they are not already in the vector)
-      for(auto& n : nN_new)
+      for(unsigned int& n : nodeNums)
         if(!(std::find(nN.begin(), nN.end(), n) != nN.end()))
           nN.Push_back(n);
 	  }
@@ -1894,13 +1890,13 @@ namespace CoupledField {
 	  }
   }
 
-  void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)
+  void GridCFS::AddNamedElems(const std::string& name, StdVector<UInt> & elemNums)
   {
-    // Check if entities with given name exist already
-    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
-      EXCEPTION( "Entities with name " << name
-                 << " are already defined" );
-    }
+    // Check if entities with given name exist already - might be of other type.
+    // currently no extension of existing named nodes implemented
+    if( nameTypeMap_.find( name) != nameTypeMap_.end())
+      EXCEPTION( "Entities with name " << name << " are already defined" );
+
     namedElemNames_.Push_back(name);
     
     // Perform check, that all elements in this list have the same dimension

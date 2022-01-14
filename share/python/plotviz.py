@@ -16,8 +16,6 @@ if __name__ == '__main__':
   from matplotlib.ticker import MaxNLocator
   import snopt # our snopt.py helper for process
 
-
-
 # having two y2-axis we need to handle colors manually, otherwise they repeat
 # https://matplotlib.org/stable/gallery/color/named_colors.html
 # 'gold' has index 13 for y2 axis
@@ -430,7 +428,7 @@ def apply_grad(fi, data, labels, all_x):
 # plotviz.py is imported by postproc.py, so guard argparse
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Simple gnuplot replacement for standard plots. Needs a header comment')
-  parser.add_argument("input", nargs='+', help="one or two .plot.dat or similar tabular text files")
+  parser.add_argument("input", nargs='+', help="one or more .plot.dat or similar tabular text files")
   parser.add_argument("-x", nargs='*',  help="index or label for the abscissa (optional). Space separated list for multiple inputs")
   parser.add_argument("-y", nargs='+',  help="indices or labels for the ordinate. Multiple separated by space")
   parser.add_argument("-y2", nargs='*', help="optional indices or labels for the secondary ordinate")
@@ -463,7 +461,7 @@ if __name__ == '__main__':
   # matrix of data per file
   data = []
   
-  for input in args.input:
+  for input in args.input: # we do NOT apply glob.glob() to allow wildcards for Windows
     if not os.path.exists(input):
       print('Error: no valid .dat or .snopt file given', input)
       sys.exit()

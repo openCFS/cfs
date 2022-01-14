@@ -77,7 +77,7 @@ def get_image(input, set, design, fill=0.0):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", nargs='*', help="the density.xml file to visualize or the files(s) for --saveall")
+parser.add_argument("input", nargs='+', help="the density.xml file to visualize or the files(s) for --saveall")
 parser.add_argument('--save', help="optional filename to write image")
 parser.add_argument('--gifs', help="write animated gif for all sets")
 parser.add_argument('--saveall', help="saves all input files as png", action='store_true')
@@ -93,7 +93,8 @@ parser.add_argument('--fill', help="fill elements without density information wi
 
 args = parser.parse_args()
 
-input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
+input = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+
 if not args.saveall:
   if not os.path.exists(input[0]):
     print("file '" + input[0] + "' not found")

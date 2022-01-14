@@ -8,9 +8,7 @@ except:
 import argparse
 import sys
 import numpy as np
-
-
-     
+import glob
  
 parser = argparse.ArgumentParser()
 parser.add_argument("input", nargs='+', help="input density.xml file(s)")
@@ -29,11 +27,13 @@ parser.add_argument('--nosave', help="do not write output file", action='store_t
 parser.add_argument('--save', help="optional output file name, for single input only")
 args = parser.parse_args()
 
-if args.save and len(args.input) > 1:
+allinput = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+
+if args.save and len(allinput) > 1:
   print('error: --save only possible with single file input')
   sys.exit()
 
-for input in args.input:
+for input in allinput:
   if not os.path.exists(input):
     print('error: file not found: ' + input)
     sys.exit()
@@ -50,7 +50,7 @@ for input in args.input:
   # usually 'design' or 'physical'  
   data = read_density(input, args.data, set=args.set)
       
-  if len(args.input) == 1:    
+  if len(allinput) == 1:    
     # this is 'design'
     plain    = data if args.data == 'design' else read_density(input, 'design', set=args.set)
     physical = data if args.data == 'physical' else (None if not has_attribute(input, 'physical') else read_density(input, 'physical', set=args.set))
@@ -99,7 +99,7 @@ for input in args.input:
   elif args.show and data.ndim == 2:
     out = data
   if not out is None and not args.nosave:
-    save = args.save if args.save and len(args.input) == 1 else input[:input.find('.density.xml')] + '-out.density.xml'
+    save = args.save if args.save and len(allinput) == 1 else input[:input.find('.density.xml')] + '-out.density.xml'
     
     print("write '" + save + "' min=" + str(np.amin(out)) + " max=" + str(np.amax(out)) + " vol=" + str(np.mean(out)))
     if data.ndim == 1:

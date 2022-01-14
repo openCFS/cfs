@@ -7,6 +7,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/core/include/numpy/arrayobject.h>
 #include "SimInputPython.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Optimization/PythonTools.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/tools.hh"
@@ -105,7 +106,8 @@ void SimInputPython::InitModule()
   info_->Get("file")->SetValue(givenname);
   info_->Get("pythonversion")->SetValue(version);
   info_->Get("function")->SetValue("set_cfs_mesh");
-  info_->Get("syspath")->SetValue(syspath.ToString(TS_PLAIN, ":"));
+  if(progOpts->DoDetailedInfo())
+    info_->Get("syspath")->SetValue(syspath.ToString(TS_PLAIN, ":"));
 
   // the options are given to the python function set_cfs_mesh()
   ParamNodeList lst = myParam_->GetList("option");
