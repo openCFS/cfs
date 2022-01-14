@@ -262,8 +262,22 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   BaseFE* ptFeA = NULL;
   BaseFE* ptFeB = NULL;
   if (useMaster1 && useMaster2){
-    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
-    ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
+    // Here we have to check if we have a PDE with 2 different feSpaces
+    BaseFE* ptFeA_dummy = NULL;
+    BaseFE* ptFeB_dummy = NULL;
+    ptFeA_dummy = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum);
+    ptFeB_dummy = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+    // This is an insufficient check but will work for PDEs using more than one feFunction using different orders
+    // A better way would be to directly access the feFunction and check if the name differs
+    UInt nrFncsA_dummy = ptFeA_dummy->GetNumFncs();
+    UInt nrFncsB_dummy = ptFeB_dummy->GetNumFncs();
+    if( nrFncsA_dummy-nrFncsB_dummy==0 ) {
+      ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
+      ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
+    } else {
+      ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
+      ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
+    }
   }else if(useMaster1 && !useMaster2){
     ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
     ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
