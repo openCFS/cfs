@@ -102,11 +102,6 @@ namespace CoupledField{
       regionNames = regionNames_;
     }
 
-    //! @copydoc SimInput::GetRegionNamesOfDim()
-    virtual void GetRegionNamesOfDim(StdVector<std::string> & regionNames, const UInt dim ) {
-      EXCEPTION("Not implemented");
-    }
-
     //! @copydoc SimInput::GetNodeNames()
     virtual void GetNodeNames(StdVector<std::string>& nodeNames) {
       nodeNames = namedNodes_;

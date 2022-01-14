@@ -75,6 +75,8 @@ PtrParamNode ParamNode::GenerateWriteNode(const string& root, const string& file
 
 void ParamNode::SetValue(const boost::any& value, bool cerr_warning)
 {
+  //std::cout << "ParamNode::SetValue(const boost::any&)" << std::endl;
+
   this->value_ = value;
 
   // check for a valid string if it is a string
@@ -98,6 +100,7 @@ void ParamNode::SetValue(const double value, const int precision)
 
 void ParamNode::SetValue(PtrParamNode node, bool overwrite_name, bool cerr_warning)
 {
+  //std::cout << "ParamNode::SetValue(PtrParamNode) name" << node->GetName() << std::endl;
   if(overwrite_name)
     SetName(node->GetName());
 
@@ -125,7 +128,8 @@ void ParamNode::SetValue(ParamNodeList nodes)
 {
   for(auto add : nodes) {
     PtrParamNode pn = Get(add->GetName(), APPEND);
-    pn->SetValue(add);
+    //std::cout << "ParamNode::SetValue(ParamNodeList) call SetValue" << std::endl;
+    pn->SetValue(add, false, false);
   }
 }
 

@@ -329,56 +329,6 @@ namespace CoupledField {
     return dim_;
   }
 
-  UInt SimInputHDF5::GetNumNodes(){
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-    return 0;
-  }
-
-  UInt SimInputHDF5::GetNumElems(const Integer dim){
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-    return 0;
-  }
-
-  UInt SimInputHDF5::GetNumRegions(){
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-    return 0;
-  }
-
-  UInt SimInputHDF5::GetNumNamedNodes(){
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-    return 0;
-  }
-
-  UInt SimInputHDF5::GetNumNamedElems(){
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-    return 0;
-  }
-
-  // ======================================================
-  // ENTITY NAME ACCESS
-  // ======================================================
-
-  void SimInputHDF5::GetAllRegionNames( StdVector<std::string> & regionNames ){
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-  }
-
-  void SimInputHDF5::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                   const UInt dim )
-  {
-    EXCEPTION("SimInputHDF5::GetRegionNamesOfDim() not implemented");
-  }
-
-  void SimInputHDF5::GetNodeNames( StdVector<std::string> & nodeNames )
-  {
-    EXCEPTION("SimInputHDF5::GetNodeNames() not implemented");
-  }
-
-  void SimInputHDF5::GetElemNames( StdVector<std::string> & elemNames )
-  {
-    EXCEPTION("SimInputHDF5::GetElemNames() not implemented");
-  }
-
-
   // =========================================================================
   //  GENERAL SOLUTION INFORMATION
   // =========================================================================

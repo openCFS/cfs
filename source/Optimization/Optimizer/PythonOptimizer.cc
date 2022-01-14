@@ -1,3 +1,5 @@
+#define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
+//#include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/core/include/numpy/arrayobject.h>
 
@@ -234,10 +236,9 @@ void PythonOptimizer::SolveProblem()
     throw Exception("no solve() in python module " + givenname);
 
   PyObject* ret = PyObject_CallObject(solve, NULL);
-  if(!ret) {
-    PyErr_Print();
-    throw Exception("error calling solve() in python module " + givenname);
-  }
+  if(!ret)
+    throw Exception("error calling solve() in python module " + givenname + ": " + PyErr());
+
   pyinf_->Get(ParamNode::SUMMARY)->Get("solve()")->SetValue(PyLong_AsLong(ret));
   Py_DECREF(ret);
   Py_DECREF(solve);
@@ -425,7 +426,7 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
   PyArrayObject *list;
   PyArg_ParseTuple(args, "O!", &PyArray_Type, &list);
   if(!list)
-    PyErr_Print();
+    throw Exception("no list given to Get_dfdH: " + PyErr());
 
   // number of matrices inside list
   unsigned int n_mat = PyArray_DIM(list,0);

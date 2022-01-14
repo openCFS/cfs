@@ -93,6 +93,7 @@
       <xsd:element name="cdb" type="DT_InputCDB"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
       <xsd:element name="ensight" type="DT_InputEnsight"/>
+      <xsd:element name="python" type="DT_InputPython"/>
     </xsd:choice>
   </xsd:group>
 
@@ -520,6 +521,32 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of the python mesh input type -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_InputPython">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+         Run embedded python interpreter to get mesh data from a python script.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+       <xsd:sequence>
+         <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
+           <xsd:complexType>
+             <xsd:attribute name="key" type="xsd:string" use="required" />
+             <xsd:attribute name="value" type="xsd:string" use="required" />
+           </xsd:complexType>
+         </xsd:element>
+        </xsd:sequence>
+        <!-- fileName is from DT_InputBasic -->
+        <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+        <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of scattered data input type -->

@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 import platform
+import itertools
 # from PIL import Image # load only in the function we need it!
 import sys, os, numpy, math, pickle
 try:
@@ -8,6 +9,7 @@ except:
   print("failed to import hdf5_tools in mesh_tool.py, hopefully we don't need it")
 import scipy.interpolate as ip
 from numpy import ceil
+import numpy as np
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
@@ -16,18 +18,156 @@ try:
 except:
   print("failed to import matviz_vtk in mesh_tools_py, hopefully we don't need it")
 
-# writes a dense two region mesh
-# def write_dense_mesh(pixels, size, file, threshold):
+from enum import IntEnum
 
-# element types as in gid (simInputMESH.cc -> AnsysType2ElemType)
-TRIA3 = 4
-QUAD4 = 6
-TET4 = 8
-TET10 = 9
-HEXA8 = 10
-WEDGE6 = 14
-LINE = 100
+# cfs Elem::FEType for set_cfs_mesh()
+class cfsFE(IntEnum):
+  UNDEF   =  0
+  POINT   =  1
+  LINE2   =  2
+  LINE3   =  3
+  TRIA3   =  4
+  TRIA6   =  5
+  QUAD4   =  6
+  QUAD8   =  7
+  QUAD9   =  8
+  TET4    =  9
+  TET10   = 10
+  HEXA8   = 11
+  HEXA20  = 12
+  HEXA27  = 13
+  PYRA5   = 14
+  PYRA13  = 15
+  PYRA14  = 19
+  WEDGE6  = 16
+  WEDGE15 = 17
+  WEDGE18 = 18
+  POLYGON = 20
+  POLYHEDRON = 21
+  
+# element types as in Ansys/gid (simInputMESH.cc -> AnsysType2ElemType)
+# only partially coinciding with cfs's Elem::FEType
+class Ansys(IntEnum):
+  TRIA3 = 4
+  QUAD4 = 6
+  TET4 = 8
+  TET10 = 9
+  HEXA8 = 10
+  WEDGE6 = 14
+  LINE = 100
 
+def cfs_type_to_ansys_type(cfs_type):
+  if cfs_type == cfsFE.TRIA3:
+    return Ansys.TRIA3
+  if cfs_type == cfsFE.QUAD4:
+    return Ansys.QUAD4
+  if cfs_type == cfsFE.TET4:
+    return Ansys.TET4
+  if cfs_type == cfsFE.TET10:
+    return Ansys.TET10
+  if cfs_type == cfsFE.HEXA8:
+    return Ansys.HEXA8
+  if cfs_type == cfsFE.WEDGE6:
+    return Ansys.WEDGE6
+  if cfs_type == cfsFE.LINE2:
+    return Ansys.LINE
+  assert(False)
+
+def ansys_type_to_cfs_type(ansys_type):
+  if ansys_type == Ansys.TRIA3:
+    return cfsFE.TRIA3
+  if ansys_type == Ansys.QUAD4:
+    return cfsFE.QUAD4
+  if ansys_type == Ansys.TET4:
+    return cfsFE.TET4
+  if ansys_type == Ansys.TET10:
+    return cfsFE.TET10
+  if ansys_type == Ansys.HEXA8:
+    return cfsFE.HEXA8
+  if ansys_type == Ansys.WEDGE6:
+    return cfsFE.WEDGE6
+  if ansys_type == Ansys.LINE:
+    return cfsFE.LINE2
+  assert(False)
+  
+  
+# type is Ansys type
+def node_by_ansys_type(type):
+  if type == Ansys.QUAD4:
+    return 4
+  if type == Ansys.HEXA8:
+    return 8
+  if type == Ansys.WEDGE6:
+    return 6
+  if type == Ansys.TRIA3:
+    return 3
+  if type == Ansys.LINE:
+    return 2
+  if type == Ansys.TET4:
+    return 4
+  if type == Ansys.TET10:
+    return 10
+  assert(False)
+
+
+# dimension by Ansys-Type
+def elem_dim_ansys(type):
+  if type == Ansys.HEXA8 or type == Ansys.WEDGE6 or type == Ansys.TET4 or type == Ansys.TET10:
+    return 3
+  elif type == Ansys.LINE:
+    return 1
+  else:
+    return 2
+
+
+
+# gid element
+class Element:
+  def __init__(self):
+    self.nodes = []  # list of zero based node indices. counter-clock wise
+    self.region = None  # region name
+    self.density = 1  # from lower_bound to 1, not necessarily used
+    self.stiff1 = 0
+    self.stiff2 = 0
+    self.stiff3 = 0
+    self.rotAngle = 0
+    self.rotX = 0
+    self.rotY = 0
+    self.rotZ = 0
+    self.type = -1 # this is for historical reasons the Ansys type!
+
+  def dump(self):
+    print(self.nodes)
+    print(self.region)
+    print(self.density)
+
+
+# gid Mesh
+class Mesh:
+  def __init__(self, nx = -1, ny = -1, nz = -1):
+   self.nodes = []  # list 2d tupels (float, float) or 3d tuples
+   self.elements = []  # list of Element
+   # list of boundary conditon nodes
+   self.bc = []  # list of tupel (name, <list of zero based nodes>)
+   # list of named element (save element in gd)
+   self.ne = []  # list of tupel (name, <list of zero based elements>)
+   self.nx = nx
+   self.ny = ny
+   self.nz = nz
+
+  def element(self, i, j):
+    assert(self.nx > 0 and self.ny > 0)
+    return self.elements[i * self.nx + j]
+
+  # compute the barycenter of the given element 
+  def calc_barycenter(self,e):
+    center = numpy.zeros(len(self.nodes[0]))
+    for n in e.nodes:
+      center += numpy.array(self.nodes[n])
+    center /= len(e.nodes)
+
+    return center
+      
 def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
   from matviz import cartesian_to_voxel_coords
   i,j,k = cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz)
@@ -40,7 +180,7 @@ def calc_edge_length(mesh,node1,node2):
 # calculates longest edge of element e
 def calc_longest_edge(mesh,e):
   # so far only tested for 3D elements
-  assert(elem_dim(e.type) == 3)
+  assert(elem_dim_ansys(e.type) == 3)
   result = 0
 
   nodes = e.nodes
@@ -75,98 +215,8 @@ def calc_min_max_coords(mesh):
 
 
   return mi_x, mi_y, mi_z, ma_x, ma_y, ma_z
-
-# for given node ide (e.g. from optistruct), return id in gid mesh
-#def node_id_to_mesh_id(nodeId):
-
-
-def nodes_by_type(type):
-  if type == QUAD4:
-    return 4
-  if type == HEXA8:
-    return 8
-  if type == WEDGE6:
-    return 6
-  if type == TRIA3:
-    return 3
-  if type == LINE:
-    return 2
-  if type == TET4:
-    return 4
-  if type == TET10:
-    return 10
-  assert(False)
-
-def mesh_type_from_hdf5(type_id):
-  if type_id == 6:
-    return QUAD4
-  if type_id == 16:
-    return WEDGE6
-  if type_id == 11:
-    return HEXA8
-  if type_id == 4:
-    return TRIA3
-  if type_id == 8:
-    return TET4
-  if type_id == 9:
-    return TET10
-  assert(False)
-
-def elem_dim(type):
-  if type == HEXA8 or type == WEDGE6 or type == TET4 or type == TET10:
-    return 3
-  elif type == LINE:
-    return 1
-  else:
-    return 2
-
-
-# gid element
-class Element:
-  def __init__(self):
-    self.nodes = []  # list of zero based node indices. counter-clock wise
-    self.region = None  # region name
-    self.density = 1  # from lower_bound to 1, not necessarily used
-    self.stiff1 = 0
-    self.stiff2 = 0
-    self.stiff3 = 0
-    self.rotAngle = 0
-    self.rotX = 0
-    self.rotY = 0
-    self.rotZ = 0
-    self.type = -1
-
-  def dump(self):
-    print(self.nodes)
-    print(self.region)
-    print(self.density)
-
-
-# gid Mesh
-class Mesh:
-  def __init__(self, nx = -1, ny = -1, nz = -1):
-   self.nodes = []  # list 2d tupels (float, float) or 3d tuples
-   self.elements = []  # list of Element
-   # list of boundary conditon nodes
-   self.bc = []  # list of tupel (name, <list of zero based nodes>)
-   # list of named nodes (save element in gd)
-   self.ne = []  # list of tupel (name, <list of zero based elements>)
-   self.nx = nx
-   self.ny = ny
-   self.nz = nz
-
-  def element(self, i, j):
-    assert(self.nx > 0 and self.ny > 0)
-    return self.elements[i * self.nx + j]
-
-  # compute the barycenter of the given element 
-  def calc_barycenter(self,e):
-    center = numpy.zeros(len(self.nodes[0]))
-    for n in e.nodes:
-      center += numpy.array(self.nodes[n])
-    center /= len(e.nodes)
-
-    return center
+      
+      
       
 # adds same number of boundary nodes on adjacent sides to assure periodic b.c
 # @ min_diam
@@ -454,26 +504,28 @@ def count_elements(elements, type):
       count += 1
   return count
 
-def write_gid_elements(out, elements, dim):
+# helper for write_ansys_mesh()
+def write_ansys_elements(out, elements, dim):
   for i,e in enumerate(elements):  # write one based!
-    if elem_dim(e.type) == dim:
+    if elem_dim_ansys(e.type) == dim:
       nodes = len(e.nodes)
-      out.write(str(i + 1) + ' ' + str(e.type) + ' ' + str(nodes_by_type(e.type)) + ' ' + e.region + "\n")
+      out.write(str(i + 1) + ' ' + str(e.type) + ' ' + str(node_by_ansys_type(e.type)) + ' ' + e.region + "\n")
 
       # prepare for second order elements
-      for n in range(nodes_by_type(e.type)):
-        out.write(str(e.nodes[n] + 1) + ("\n" if n == nodes_by_type(e.type) - 1 else " "))  # write one based node numbers
+      for n in range(node_by_ansys_type(e.type)):
+        out.write(str(e.nodes[n] + 1) + ("\n" if n == node_by_ansys_type(e.type) - 1 else " "))  # write one based node numbers
 
 
-def write_gid_mesh(mesh, filename, scale = 1):
+# the ansys format is also used by the gid writer 
+def write_ansys_mesh(mesh, filename, scale = 1):
   # Warning: mesh dimensions should be in [m]
-  quad4 = count_elements(mesh.elements, QUAD4)
-  hexa8 = count_elements(mesh.elements, HEXA8)
-  wedge6 = count_elements(mesh.elements, WEDGE6)
-  line = count_elements(mesh.elements, LINE)
-  tet4 = count_elements(mesh.elements, TET4)
-  tet10 = count_elements(mesh.elements, TET10)
-  tri3 = count_elements(mesh.elements, TRIA3)
+  quad4 = count_elements(mesh.elements, Ansys.QUAD4)
+  hexa8 = count_elements(mesh.elements, Ansys.HEXA8)
+  wedge6 = count_elements(mesh.elements, Ansys.WEDGE6)
+  line = count_elements(mesh.elements, Ansys.LINE)
+  tet4 = count_elements(mesh.elements, Ansys.TET4)
+  tet10 = count_elements(mesh.elements, Ansys.TET10)
+  tri3 = count_elements(mesh.elements, Ansys.TRIA3)
   num_1d = line
   num_2d = quad4 + tri3
   num_3d = hexa8 + wedge6 + tet4 + tet10
@@ -528,17 +580,17 @@ def write_gid_mesh(mesh, filename, scale = 1):
   out.write('\n[1D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  write_gid_elements(out, mesh.elements, 1)
+  write_ansys_elements(out, mesh.elements, 1)
 
   out.write('\n[2D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  write_gid_elements(out, mesh.elements, 2)
+  write_ansys_elements(out, mesh.elements, 2)
 
   out.write('\n[3D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  write_gid_elements(out, mesh.elements, 3)
+  write_ansys_elements(out, mesh.elements, 3)
 
   out.write('\n[Node BC]\n')
   out.write('#NodeNr Level\n')
@@ -560,6 +612,86 @@ def write_gid_mesh(mesh, filename, scale = 1):
 
   out.write("\n \n")
   out.close()
+
+
+# this is for being called via embedded python from cfs via the python input reader
+# cfs calls set_cfs_mesh() which creates a mesh and then calls this function to call the SimInputPython interface functions
+def call_cfs_input_reader(mesh):
+  #print('call_cfs_input_reader()')
+  import cfs
+  nodes =np.array(mesh.nodes)
+  # print(nodes)
+  cfs.set_nodes(nodes);
+  #print('nodes',nodes)
+
+  # find regions and identify them by an id
+  regions = list(set([e.region for e in mesh.elements]))
+  #print(regions)
+  cfs.set_regions(regions)
+  
+  # for add_elements we need to sort by type 
+  total = len(mesh.elements)
+  curr  = 0 # counter of provided elements to asign element number
+  ansys_types = list(set([e.type for e in mesh.elements]))
+  for at in ansys_types:
+    cfs_type = ansys_type_to_cfs_type(at)
+    #  array with the columns element number (1-based), region id, node numbers (1-based) corresponding to fe type */
+    data = []
+    for e in mesh.elements:
+      if e.type == at:
+        data.append(list(itertools.chain([curr+1,regions.index(e.region)],[n+1 for n in e.nodes]))) # 1-based element and node number
+        curr += 1
+    npd = np.array(data,dtype=int)     
+    #print(total,cfs_type,npd)
+    cfs.add_elements(total, cfs_type, npd)
+
+  # named nodes
+  for name, nodes in mesh.bc:
+    if len(nodes) > 0:
+      npn = np.array(nodes, dtype=np.uintc) # unsigned int 
+      npn += 1 # make 1-based
+      #print(name, npn) 
+      cfs.add_named_nodes(name, npn)
+
+  # named elements
+  for name, elems in mesh.ne:
+    if len(elems) > 0:
+      npe = np.array(elems, dtype=np.uintc) # unsigned int 
+      npe += 1 # make 1-based
+      #print(name, npe) 
+      cfs.add_named_elements(name, npe)
+
+  
+  # ignore named elemeents
+  assert len(mesh.ne) == 0  
+
+
+## this provides simple reference implementation for basic mesh generation with create_2d_mesh and create_3d_mesh
+# to be called from cfs input python with options set with parameters type, x_res and optionally y_res, z_res, width, height, depth
+# type is a subset of the create_mesh.py type attributes
+def set_cfs_mesh(opt):
+  print('\nset_cfs_mesh() from mesh_tool.py with', str(opt))
+  if not ('type' in opt and 'x_res' in opt):
+    raise "set at least the options type and x_res" 
+
+  type = opt['type']
+  x_res  = int(opt['x_res'])
+  y_res  = int(opt['y_res'])  if 'y_res' in opt else None
+  z_res  = int(opt['z_res'])  if 'z_res' in opt else None
+  width  = float(opt['width'])  if 'width' in opt else None
+  height = float(opt['height']) if 'height' in opt else None
+  depth  = float(opt['depth'])  if 'depth' in opt else None
+  
+  # 'bulk2d', 'bulk3d', 'cantilever2d', 'cantilever3d'
+  if type == 'bulk2d' or type == 'cantilever2d':   
+    mesh = create_2d_mesh(type, x_res, y_res, width=width, opt_height=height)
+  elif type == 'bulk3d' or type == 'cantilever3d':   
+    mesh = create_3d_mesh(type, x_res, y_res, z_res, width=width, height=height, depth=depth)
+  else:
+    raise "unknown mesh type " + str(type)  
+      
+  call_cfs_input_reader(mesh)
+
 
 # names all nodes on edges, faces and corners of cubic domain
 def name_bc_nodes(mesh):
@@ -709,7 +841,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       for x in range(nx):
         e = Element()
         e.density = 1.0
-        e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
+        e.type = Ansys.TRIA3 if type == 'triangle_msfem' else Ansys.QUAD4
         # set region for appropriate load case
         e.region = set_region(x+.5,y+.5,nx,ny,type,patch,inclusion, inclusion_size)
         # assign nodes
@@ -745,7 +877,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       for y in range(ny):
         e = Element()
         e.density = 1.0
-        e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
+        e.type = Ansys.TRIA3 if type == 'triangle_msfem' else Ansys.QUAD4
         # assign nodes
         ll = (ny+1) * x + y  # lowerleft
         e.nodes = ((ll, ll+ny+1, ll+1+ny+1, ll+1))
@@ -1609,7 +1741,7 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
           #else:
           #  e.region = 'void'
           regcount += 1
-    e.type = mesh_type_from_hdf5(types[i])
+    e.type = cfs_type_to_ansys_type(types[i])
     mesh.elements.append(e)
   return mesh
 
@@ -1711,7 +1843,7 @@ def create_mesh_from_gmsh_special(meshfile,type):
     mesh = create_mesh_for_aux_cells(nodes,elem,1)
   else:
     print("Error: No correct type was selected! options: apod6, aux_cells")
-  write_gid_mesh(mesh, meshfile+".mesh")
+  write_ansys_mesh(mesh, meshfile+".mesh")
 
 def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   #from two_scale_tools import create_mesh_for_aux_cells, create_mesh_for_apod6
@@ -1796,11 +1928,11 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
         e.density = 1.
         e.region = str(region)
         if len(e.nodes) == 4:
-          e.type = TET4
+          e.type = Ansys.TET4
         elif len(e.nodes) == 6:
-          e.type = WEDGE6
+          e.type = Ansys.WEDGE6
         elif len(e.nodes) == 8:
-          e.type = HEXA8
+          e.type = Ansys.HEXA8
         mesh.elements.append(e)
   else: # workaround
     for reg in regions:
@@ -1811,11 +1943,11 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
       e.density = 1.
       e.region = "mech"
       if len(e.nodes) == 4:
-        e.type = TET4
+        e.type = Ansys.TET4
       elif len(e.nodes) == 6:
-        e.type = WEDGE6
+        e.type = Ansys.WEDGE6
       elif len(e.nodes) == 8:
-        e.type = HEXA8
+        e.type = Ansys.HEXA8
       mesh.elements.append(e)
   for idx, bcnum in enumerate(surfaceBCnumbers):
     mesh.bc.append((str(bcnum), list(set(bcs[idx]))))
@@ -1833,12 +1965,12 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 
   mesh = add_nodes_for_periodic_bc(mesh)
 
-  write_gid_mesh(mesh, meshfile[:-4]+".mesh")
+  write_ansys_mesh(mesh, meshfile[:-4]+".mesh")
 
 def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   # force names and support name has to be set manually, default force1, force2, force3, support, support2, support3
   mesh = create_mesh_from_hdf5(hdf5_file, region, bcregions)
-  write_gid_mesh(mesh, "test.mesh")
+  write_ansys_mesh(mesh, "test.mesh")
   out = open(output, "w")
   # gmsh header
   out.write('$MeshFormat \n')
@@ -1881,9 +2013,9 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   # write 3D elements
   for e in mesh.elements:  # write one based!
     nodes = len(e.nodes)
-    out.write(str(count + 1) + ' ' + str(5 if nodes_by_type(e.type) == 8 else 6) + ' 2 0 ' + str(2 if e.region == 'design' else 3))
+    out.write(str(count + 1) + ' ' + str(5 if node_by_ansys_type(e.type) == 8 else 6) + ' 2 0 ' + str(2 if e.region == 'design' else 3))
     count +=1
-    for n in range(nodes_by_type(e.type)):
+    for n in range(node_by_ansys_type(e.type)):
       out.write(' '+ str(e.nodes[n] + 1))
     out.write('\n')
 
@@ -1917,12 +2049,12 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
   # Hexaeder elements
   for i, e in enumerate(mesh.elements):
     n = e.nodes
-    if e.type == HEXA8 and e.region == 'design':
+    if e.type == Ansys.HEXA8 and e.region == 'design':
       out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       out.write('+       %8d%8d\n'%(n[6]+1,n[7]+1))
       #out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
       #out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6]+1,n[7]+1))
-    elif e.type == HEXA8 and e.region == 'non-design':
+    elif e.type == Ansys.HEXA8 and e.region == 'non-design':
       out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       out.write('+       %8d%8d\n'%(n[6]+1,n[7]+1))
       #out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
@@ -1930,10 +2062,10 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
   # Wedge elements
   for i, e in enumerate(mesh.elements):
     n = e.nodes
-    if e.type == WEDGE6 and e.region == 'design':
+    if e.type == Ansys.WEDGE6 and e.region == 'design':
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
-    elif e.type == WEDGE6 and e.region == 'non-design':
+    elif e.type == Ansys.WEDGE6 and e.region == 'non-design':
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
   # write forces1
@@ -2286,7 +2418,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 0):
     mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,forces,[], supports)
   else:
     print("Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket")
-#   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
+#   write_ansys_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
 
   return mesh
 
@@ -2356,7 +2488,7 @@ def voxelize_mesh_from_optistruct(filename,res):
   validate_periodicity(meshNew)
 
   # moved to create_mesh.py
-  # write_gid_mesh(meshNew, filename[:-4]+"_voxelized_res_" + str(res) + ".mesh")
+  # write_ansys_mesh(meshNew, filename[:-4]+"_voxelized_res_" + str(res) + ".mesh")
 
   return meshNew
 
@@ -2444,11 +2576,11 @@ def create_mesh_for_aux_cells(all_nodes = [], elements = [],offset = 0.):
       e.density = 1.
       e.region = 'mech'
       if len(e.nodes) == 4:
-        e.type = TET4
+        e.type = Ansys.TET4
       elif len(e.nodes) == 6:
-        e.type = WEDGE6
+        e.type = Ansys.WEDGE6
       elif len(e.nodes) == 8:
-        e.type = HEXA8
+        e.type = Ansys.HEXA8
       mesh.elements.append(e)
 
   mesh = convert_to_sparse_mesh(mesh)
@@ -2485,7 +2617,7 @@ def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,
     for y in range(ny):
       for x in range(nx):
         e = Element()
-        e.type = HEXA8
+        e.type = Ansys.HEXA8
         if (array[x,y,z] >= 0.0 and multRegion):
           e.region = "mech" + str(int(array[x][y][z]))
         elif (array[x,y,z] > 1e-6 and not multRegion):
@@ -2517,7 +2649,7 @@ def create_2d_mesh_from_array(array):
   for y in range(ny):
     for x in range(nx):
       e = Element()
-      e.type = QUAD4
+      e.type = Ansys.QUAD4
       if (array[x][y] > 0.0):
         e.region = "mech" + str(int(array[x][y]))
       else:
@@ -2970,7 +3102,7 @@ def add_2d_surface_elems_pfem(mesh):
       for y in range(ny):
         for x in [0,nx]:
           e = Element()
-          e.type = QUAD4
+          e.type = Ansys.QUAD4
           e.density = 1
           ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
           e.nodes = ((ll,ll+nnx,ll+nnx*nny+nnx,ll+nnx*nny))
@@ -2990,7 +3122,7 @@ def add_2d_surface_elems_pfem(mesh):
     for x in range(nx):
       for y in [0,ny]:
         e = Element()
-        e.type = QUAD4
+        e.type = Ansys.QUAD4
         e.density = 1
         ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
         e.nodes = ((ll,ll+nnx*nny,ll+nnx*nny+1,ll+1))
@@ -3001,7 +3133,7 @@ def add_2d_surface_elems_pfem(mesh):
     for x in range(nx):
       for z in [0,nz]:
         e = Element()
-        e.type = QUAD4
+        e.type = Ansys.QUAD4
         e.density = 1
         ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
         e.nodes = ((ll,ll+1,ll+nnx+1,ll+nnx))

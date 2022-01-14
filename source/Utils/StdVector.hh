@@ -323,8 +323,8 @@ namespace CoupledField {
     void Import(const TYPE* source, size_type size);
 
     /** Take over external data including memory ownership, data is not copied.
-     * Note that the destructor will delete current data. To prevent deletion of the assigned data,
-     * assign NULL with delete_old_data=true before this StdVector is destructed.
+     * Note that the destructor will delete current data. If your source is Vector::GetPointer() call Vector::DecoupleMeme().
+     * To prevent deletion of the assigned data, assign NULL with delete_old_data=true before this StdVector is destructed.
      * @param delete_old_data if true this StdVector forgets about current data. Make sure there is no memory leak.
      * @see Import() */
     void Assign(TYPE* source, size_type size, bool delete_old_data);

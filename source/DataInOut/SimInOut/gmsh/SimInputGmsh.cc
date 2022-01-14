@@ -548,56 +548,6 @@ namespace CoupledField {
     numSteps.clear();
   }
 
-  UInt SimInputGmsh::GetNumNodes(){
-    EXCEPTION("SimInputGmsh::GetNumNodes() not implemented");
-    return 0;
-  }
-    
-  UInt SimInputGmsh::GetNumElems(const Integer dim){
-    EXCEPTION("SimInputGmsh::GetNumElems() not implemented");
-    return 0;
-  }
-  
-  UInt SimInputGmsh::GetNumRegions(){
-    EXCEPTION("SimInputGmsh::GetNumRegions() not implemented");
-    return 0;
-  }
-
-  UInt SimInputGmsh::GetNumNamedNodes(){
-    EXCEPTION("SimInputGmsh::GetNumNamedNodes() not implemented");
-    return 0;
-  }
-
-  UInt SimInputGmsh::GetNumNamedElems(){
-    EXCEPTION("SimInputGmsh::GetNumNamedElems() not implemented");
-    return 0;
-  }
-  
-  // ======================================================
-  // ENTITY NAME ACCESS
-  // ======================================================
-
-  void SimInputGmsh::GetAllRegionNames( StdVector<std::string> & regionNames ){
-    EXCEPTION("SimInputGmsh::GetAllRegionNames() not implemented");
-  }
-
-  void SimInputGmsh::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                   const UInt dim )
-  {
-    EXCEPTION("SimInputGmsh::GetRegionNamesOfDim() not implemented");
-  }
-  
-
-  void SimInputGmsh::GetNodeNames( StdVector<std::string> & nodeNames )
-  {
-    EXCEPTION("SimInputGmsh::GetNodeNames() not implemented");
-  }
-  
-  void SimInputGmsh::GetElemNames( StdVector<std::string> & elemNames )
-  {
-    EXCEPTION("SimInputGmsh::GetElemNames() not implemented");
-  }
-
   void SimInputGmsh::LinearizeElem(Elem::FEType* elemType) {
     static std::map<Elem::FEType, Elem::FEType> elemTypeMap;
 

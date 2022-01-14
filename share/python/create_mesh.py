@@ -150,6 +150,6 @@ if args.pfem:
 
 file = mesh_name + res_name + '.mesh' if args.file == None else args.file 
 
-write_gid_mesh(mesh, file, args.optistruct_scaling)
+write_ansys_mesh(mesh, file, args.optistruct_scaling)
 print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 

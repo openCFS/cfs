@@ -47,8 +47,8 @@ include("cmake_modules/CFS_macros.cmake")
 
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
-set(CFS_VERSION_YEAR "21")
-set(CFS_VERSION_MONTH "12")
+set(CFS_VERSION_YEAR "22")
+set(CFS_VERSION_MONTH "01")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -532,6 +532,10 @@ endif()
 if(USE_CGNS)
   add_subdirectory(source/DataInOut/SimInOut/CGNS)
 endif(USE_CGNS)
+if(USE_EMBEDDED_PYTHON)
+  add_subdirectory(source/DataInOut/SimInOut/python)
+endif(USE_EMBEDDED_PYTHON)
+
 add_subdirectory(source/DataInOut/SimInOut/TextOutput)
 add_subdirectory(source/DataInOut/SimInOut/InfoResultOutput)
 add_subdirectory(source/DataInOut/SimInOut/Streaming)

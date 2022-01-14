@@ -1730,10 +1730,11 @@ namespace CoupledField {
   {
 #pragma omp critical (GridCFS)
 {
+    unsigned int old_size = this->numNodes_;
     coords_.Resize(this->numNodes_ + numNodes);
-    for( UInt i = 0; i < coords_.GetSize(); ++i ) {
+    for(unsigned int  i = old_size; i < coords_.GetSize(); ++i )
       coords_[i].Resize(dim_);
-    }
+
     numNodes_ += numNodes;
 }
   }
@@ -1872,15 +1873,20 @@ namespace CoupledField {
     //  EXCEPTION( "Entities with name " << name
     //             << " are already defined" );
     //}
-	  if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+	  if(nameTypeMap_.find( name) != nameTypeMap_.end())
+	  {
 		  // get the vector of already defined nodes
 	    // but first we need the index
 	    ptrdiff_t pos = find(namedNodeNames_.Begin(), namedNodeNames_.End(), name) - namedNodeNames_.Begin();
 	    StdVector<UInt> &nN = namedNodes_[pos];
 	    StdVector<UInt> &nN_new = nodeNums;
       // now add the new nodeNums (if they are not already in the vector)
-      for (auto& n : nN_new) if( !(std::find(nN.begin(), nN.end(), n) != nN.end()) ) nN.Push_back(n);
-	  }else{
+      for(auto& n : nN_new)
+        if(!(std::find(nN.begin(), nN.end(), n) != nN.end()))
+          nN.Push_back(n);
+	  }
+	  else
+	  {
       namedNodeNames_.Push_back(name);
       namedNodes_.Push_back(nodeNums);
       nameTypeMap_[name] = EntityList::NAMED_NODES;

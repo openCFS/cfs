@@ -698,49 +698,6 @@ namespace CoupledField {
     return numElems;
   }
   
-  UInt SimInputCDB::GetNumRegions()
-  {
-    EXCEPTION("Not implemented!");
-    return 0;
-  }
-
-  UInt SimInputCDB::GetNumNamedNodes()
-  {
-    EXCEPTION("Not implemented!");
-    return 0;
-  }
-
-  UInt SimInputCDB::GetNumNamedElems()
-  {
-    EXCEPTION("Not implemented!");
-    return 0;
-  }
-  
-  // ======================================================
-  // ENTITY NAME ACCESS
-  // ======================================================
-
-  void SimInputCDB::GetAllRegionNames( StdVector<std::string> & regionNames )
-  {
-    EXCEPTION("Not implemented!");
-  }
-    
-  void SimInputCDB::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                         const UInt dim )
-  {
-    EXCEPTION("Not implemented!");
-  }
-
-  void SimInputCDB::GetNodeNames( StdVector<std::string> &nodeNames )
-  {
-    EXCEPTION("Not implemented!");
-  }
-
-  void SimInputCDB::GetElemNames( StdVector<std::string> & elemNames )
-  {
-    EXCEPTION("Not implemented!");
-  }
-
   void SimInputCDB::DegenerateElement(const Elem::FEType elemTypeIn,
                                       Elem::FEType& elemTypeOut,
                                       std::vector<UInt>& elemNodes)

@@ -14,9 +14,8 @@
 namespace CoupledField {
 
 
-    SimInputMESH::SimInputMESH(std::string fileName, PtrParamNode inputNode,
-                               PtrParamNode infoNode) :
-        SimInput(fileName, inputNode, infoNode )
+  SimInputMESH::SimInputMESH(std::string fileName, PtrParamNode inputNode, PtrParamNode infoNode) :
+    SimInput(fileName, inputNode, infoNode )
   {
     capabilities_.insert( SimInput::MESH);
   }
@@ -57,8 +56,8 @@ namespace CoupledField {
     std::vector< double > coords;
     GetCoordinates( coords );
 
+    Vector<Double> loc(3);
     for(UInt i=0; i<numNodes; i++) {
-      Vector<Double> loc(3);
       loc[0] = coords[i*3+0];
       loc[1] = coords[i*3+1];
       loc[2] = coords[i*3+2];

@@ -31,8 +31,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <def_use_petsc.hh>
 
-#include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-
 #ifdef USE_PETSC
 #include "petsc.h"
 #include "OLAS/external/petsc/PETSCSolver.hh"

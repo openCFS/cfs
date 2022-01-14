@@ -342,7 +342,7 @@ namespace CoupledField
 
     //! Returns a single element with the given element number
     //! \param elemNr element number
-    virtual const Elem * GetElem( UInt elemNr ) = 0;
+    virtual const Elem* GetElem( UInt elemNr ) = 0;
 
 
     //! Get node numbers of given element

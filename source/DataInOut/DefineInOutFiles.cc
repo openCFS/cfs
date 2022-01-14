@@ -15,6 +15,7 @@
 #include <def_use_unv.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ensight.hh>
+#include <def_use_embedded_python.hh>
 
 #include "DefineInOutFiles.hh"
 
@@ -53,6 +54,10 @@
 #ifdef USE_CGNS
 #include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
 #include "DataInOut/SimInOut/CGNS/SimOutputCGNS.hh"
+#endif
+
+#ifdef USE_EMBEDDED_PYTHON
+#include "DataInOut/SimInOut/python/SimInputPython.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
@@ -401,6 +406,14 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(string fName
       fName += simName + ".mesh";
     }
     aInput = shared_ptr<SimInput>(new InternalMesh(fName, configNode, infoNode));
+  }
+  else if (fFormat == "python")
+  {
+#ifdef USE_EMBEDDED_PYTHON
+    aInput = shared_ptr<SimInput> (new SimInputPython(fName, configNode, infoNode));
+#else
+    EXCEPTION( "Compile with USE_EMBEDDED_PYTHON for python mesh reader." );
+#endif
   }
   else
   {

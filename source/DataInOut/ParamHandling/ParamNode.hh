@@ -142,7 +142,7 @@ namespace CoupledField
     /** Set a ParamNode to an expandable InfoNode. Works recursively
      * @param overwrite_name if the the name of the parent node should be used
      * @param cerr_warning shall a warning be written to cerr */
-    void SetValue(PtrParamNode node, bool overwrite_name, bool cerr_warning = true);
+    void SetValue(PtrParamNode node, bool overwrite_name = false, bool cerr_warning = true);
 
     /** Set ParamaNodes as child nodes. Works recursively */
     void SetValue(ParamNodeList nodes);

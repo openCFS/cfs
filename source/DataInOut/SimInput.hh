@@ -87,61 +87,6 @@ namespace CoupledField
     /** @return includes the complete path */
     const std::string& GetFileName() const { return fileName_; }
 
-    //! Get total number of nodes in mesh
-    virtual UInt GetNumNodes() = 0;
- 
-    //! Get total number of elements in mesh
-    virtual UInt GetNumElems( const Integer dim = -1 ) = 0;
-
-    //! Get total number of regions
-    virtual UInt GetNumRegions() = 0;
-
-    //! Get total number of named nodes
-    virtual UInt GetNumNamedNodes() = 0;
-
-    //! Get total number of named elements
-    virtual UInt GetNumNamedElems() = 0;
-
-    //@}
-  
-    // =========================================================================
-    // ENTITY NAME ACCESS
-    // =========================================================================
-    //@{ \name Entity Name Access
-  
-    //! Get vector with all region names in mesh
- 
-    //! Returns a vector with the names of regions in the mesh of all
-    //! dimensions.
-    //! \param regionNames (output) vector containing names of regions
-    //! \note Since the RegionIdType is guaranteed to be defined by
-    //! a number type (UInt, uint32), the regionId of an element can
-    //! be directly used as index to the regionNames-vector
-    virtual void GetAllRegionNames( StdVector<std::string> & regionNames ) = 0;
-
-    //! Get vector with region names of given dimension
-
-    //! Returns a vector with the names of regions of a given dimension.
-    //! This makes it possible to get for example all names of 
-    //! 3D, 2D or 1D elements.
-    //! \param regionNames (output) vector containing names of regions
-    //! \param dim (input) dimension of the region (1,2, or 3)
-    virtual void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                      const UInt dim ) = 0;
-
-    //! Get vector with all names of named nodes
-
-    //! Returns a vector which contains all names of named nodes.
-    //! \param nodeNames (output) vector with names of named nodes
-    virtual void GetNodeNames( StdVector<std::string> & nodeNames ) = 0;
-  
-    //! Get vector with all names of named elements
-
-    //! Returns a vector which contains all names of named elements.
-    //! \param elemNames (output) vector with names of named elements
-    virtual void GetElemNames( StdVector<std::string> & elemNames ) = 0;
-    //@}
-
     // =========================================================================
     // GENERAL SOLUTION INFORMATION
     // =========================================================================
@@ -214,16 +159,15 @@ namespace CoupledField
     //! Name of input file
     std::string fileName_;
 
-
     Grid *mi_;
 
-    //! Capabilities of output class
+    //! Capabilities of input class
     std::set<Capability> capabilities_;
     
-    //! Parameter node for current output class
+    //! Parameter node for current input class
     PtrParamNode myParam_;
     
-    //! Info node for current output class
+    //! Info node for current input class
     PtrParamNode myInfo_;
 
     UInt dim_;

@@ -126,58 +126,7 @@ namespace CoupledField {
       numSteps.clear();
     }
   }
-
-  UInt SimInputGMV::GetNumNodes(){
-    EXCEPTION("SimInputGMV::GetNumNodes() not implemented");
-    return 0;
-  }
-    
-  UInt SimInputGMV::GetNumElems(const Integer dim){
-    EXCEPTION("SimInputGMV::GetNumElems() not implemented");
-    return 0;
-  }
   
-  UInt SimInputGMV::GetNumRegions(){
-    EXCEPTION("SimInputGMV::GetNumRegions() not implemented");
-    return 0;
-  }
-
-  UInt SimInputGMV::GetNumNamedNodes(){
-    EXCEPTION("SimInputGMV::GetNumNamedNodes() not implemented");
-    return 0;
-  }
-
-  UInt SimInputGMV::GetNumNamedElems(){
-    EXCEPTION("SimInputGMV::GetNumNamedElems() not implemented");
-    return 0;
-  }
-  
-  // ======================================================
-  // ENTITY NAME ACCESS
-  // ======================================================
-
-  void SimInputGMV::GetAllRegionNames( StdVector<std::string> & regionNames ){
-    EXCEPTION("SimInputGMV::GetAllRegionNames() not implemented");
-  }
-
-  void SimInputGMV::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                   const UInt dim )
-  {
-    EXCEPTION("SimInputGMV::GetRegionNamesOfDim() not implemented");
-  }
-  
-
-  void SimInputGMV::GetNodeNames( StdVector<std::string> & nodeNames )
-  {
-    EXCEPTION("SimInputGMV::GetNodeNames() not implemented");
-  }
-  
-  void SimInputGMV::GetElemNames( StdVector<std::string> & elemNames )
-  {
-    EXCEPTION("SimInputGMV::GetElemNames() not implemented");
-  }
-
-
   void SimInputGMV::ReadMesh(Grid *mi)
   {
     Integer retcode;
