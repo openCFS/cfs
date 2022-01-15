@@ -79,9 +79,7 @@ void ParamNode::SetValue(const boost::any& value, bool cerr_warning)
 
   this->value_ = value;
 
-  // check for a valid string if it is a string
-//  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos)); //FIXME second expression does not allow &lt; and &gt; but we might need this for MathParser
-//  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
+  // note that we may not check for valid strings here, as e.g. < or > are valid inputs for attribute values for expressions
 
   if(this->name_ == WARNING && cerr_warning)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
@@ -850,6 +848,12 @@ void ParamNode::ToString(std::string& ret, int depth) const
   if (value_.type() == typeid(std::string))
   {
     ret = boost::any_cast<std::string>(value_);
+    // https://www.w3.org/TR/2006/REC-xml11-20060816/
+    std::replace(ret.begin(), ret.end(), '"', '\''); // " -> '
+    boost::replace_all(ret, "&", "&amp;");
+    // activate if it really hurts
+    // boost::replace_all(ret, "<", "&lt;");
+    // boost::replace_all(ret, ">", "&gt;");
     return;
   }
   if (value_.type() == typeid(double))
@@ -888,7 +892,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = val ? "yes" : "no";
     return;
   }
-  // special conversion tpyes for vector
+  // special conversion types for vector
   if (value_.type() == typeid(Vector<Double> ))
   {
     Vector<Double> vec = boost::any_cast<Vector<Double> >(value_);

@@ -180,21 +180,18 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   pyinf_->Get(ParamNode::HEADER)->Get("options")->SetValue(lst);
 
   // call optional setup()
-  std::string val;
+  std::string val = "not callable";
   PyObject* setup = PyObject_GetAttrString(module, "setup");
   if(setup && PyCallable_Check(setup)) {
     PyObject* ret = PyObject_CallObject(setup, NULL);
-    val = ret != NULL ? to_string(PyLong_AsLong(ret)) : "NULL";
+    CheckPythonReturn(ret, "setup"); // setup is optional, nut if there is function it shall work!
+    val = ToString(ret);
     Py_XDECREF(ret);
     Py_XDECREF(setup);
-    if (val == "NULL")
-      WARN("Failed to execute setup() in python!");
   }
-  else
-    val = "not callable";
-  pyinf_->Get(ParamNode::HEADER)->Get("setup()")->SetValue(val);
+  pyinf_->Get(ParamNode::HEADER)->Get("setup")->SetValue(val);
 
-  // call init(n,m,iters,options)
+  // call mandatory init(n ,m, iters, name, options)
   PyObject* init = PyObject_GetAttrString(module, "init");
   if(init && PyCallable_Check(init)) {
     PyObject* arg = PyTuple_New(5);
@@ -204,17 +201,12 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
     PyTuple_SetItem(arg, 3, PyUnicode_FromString(progOpts->GetSimName().c_str()));
     PyTuple_SetItem(arg, 4, CreatePythonDict(options));
     PyObject* ret = PyObject_CallObject(init, arg);
-    val = ret != NULL ? to_string(PyLong_AsLong(ret)) : "NULL";
+    CheckPythonReturn(ret, "init");
+    pyinf_->Get(ParamNode::HEADER)->Get("init")->SetValue(ToString(ret));
     Py_XDECREF(ret);
     Py_XDECREF(arg);
     Py_XDECREF(init);
-    if (val == "NULL")
-      throw Exception("Failed to execute init() in python!");
   }
-  else
-    val = "not callable";
-
-  pyinf_->Get(ParamNode::HEADER)->Get("init()")->SetValue(val);
   optimizer_timer_->Stop();
 }
 
