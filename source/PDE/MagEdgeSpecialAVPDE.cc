@@ -553,28 +553,30 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     if(!fluxDensityDefined_){
       DefineMagFluxDensity();
     }
-//    // === MAGNETIC FLUX DENSITY ===
-//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-//    fluxDens->resultType = MAG_FLUX_DENSITY;
-//    fluxDens->dofNames = vecComponents;
-//    fluxDens->unit = "Vs/m^2";
-//    fluxDens->definedOn = ResultInfo::ELEMENT;
-//    fluxDens->entryType = ResultInfo::VECTOR;
-//    shared_ptr<CoefFunctionFormBased> bFunc;
-//    if( isComplex_ ) {
-//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-//    } else {
-//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
-//    }
-//    DefineFieldResult( bFunc, fluxDens );
-//    stiffFormCoefs_.insert(bFunc);
+
+    // === MAGNETIC ENERGY ===
+    shared_ptr<ResultInfo> energy(new ResultInfo);
+    energy->resultType = MAG_ENERGY;
+    energy->dofNames = "";
+    energy->unit = "Ws";
+    energy->definedOn = ResultInfo::REGION;
+    energy->entryType = ResultInfo::SCALAR;
+    availResults_.insert( energy );
+    shared_ptr<ResultFunctor> energyFunc;
+    if( isComplex_ ) {
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy, 0.5));
+    } else {
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy, 0.5));
+    }
+    resultFunctors_[MAG_ENERGY] = energyFunc;
+    stiffFormFunctors_.insert(energyFunc);
+
 
 
     // === RESULTS RELATED TO TIME DERIVATIVES ===
     shared_ptr<CoefFunctionFormBased> jFunc;
     shared_ptr<CoefFunction> jPowerDensFunc;
     if( analysistype_ != STATIC ) {
-
 
       // === ELECTRIC FIELD INTENSITY ===
       shared_ptr<ResultInfo> elecIntens(new ResultInfo);

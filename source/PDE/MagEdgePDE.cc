@@ -900,27 +900,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     if(!fluxDensityDefined_){
       DefineMagFluxDensity();
     }
-//    else {
-//      std::cout << "Flux density already defined" << std::endl;
-//    }
 
-//    shared_ptr<CoefFunctionFormBased>
     PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
-//    // === MAGNETIC FLUX DENSITY ===
-//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-//    fluxDens->resultType = MAG_FLUX_DENSITY;
-//    fluxDens->dofNames = vecComponents;
-//    fluxDens->unit = "Vs/m^2";
-//    fluxDens->definedOn = ResultInfo::ELEMENT;
-//    fluxDens->entryType = ResultInfo::VECTOR;
-//    shared_ptr<CoefFunctionFormBased> bFunc;
-//    if( isComplex_ ) {
-//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-//    } else {
-//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
-//    }
-//    DefineFieldResult( bFunc, fluxDens );
-//    stiffFormCoefs_.insert(bFunc);
+
 
     // === MAGNETIC NORMAL FLUX DENSITY ===
     shared_ptr<ResultInfo> normFlux(new ResultInfo);
@@ -1172,67 +1154,30 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     magIntens->unit = "A/m";
     magIntens->definedOn = ResultInfo::ELEMENT;
     magIntens->entryType = ResultInfo::VECTOR;
-//
-//    // assemble coefficient function hFunc = reluctivity * (flux density - remanence)
-//    // has to be done in finalize because RHS is not known now
-//    if ( !isHysteresis_){
-//      shared_ptr<CoefFunctionMulti> hFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-//                                                                  isComplex_));
-//      DefineFieldResult( hFunc, magIntens );
-//    }
-//
-//    // currently take field intensity directly from coef function hyst, i.e. do not subtract remancence like above
-//    // however, inside the hyst. material there should be no additional remancence except the one created by the hyst
-//    // operator itself
-//    if ( isHysteresis_){
-////      std::cout << "DEFINE  HYSTEREITIC RESULTS" << std::endl;
-//      shared_ptr<ResultInfo> magJ ( new ResultInfo );
-//      magJ->resultType = MAG_POLARIZATION;
-//      magJ->SetVectorDOFs(dim_, isaxi_);
-//      magJ->unit = "Vs/m^2";
-//      magJ->definedOn = ResultInfo::ELEMENT;
-//      magJ->entryType = ResultInfo::VECTOR;
-//
-//      DefineFieldResult( polarization_, magJ );
-//      availResults_.insert( magJ );
-//
-//      shared_ptr<ResultInfo> magM ( new ResultInfo );
-//      magM->resultType = MAG_MAGNETIZATION;
-//      magM->SetVectorDOFs(dim_, isaxi_);
-//      magM->unit = "A/m";
-//      magM->definedOn = ResultInfo::ELEMENT;
-//      magM->entryType = ResultInfo::VECTOR;
-//
-//      DefineFieldResult( magnetization_, magM );
-//      availResults_.insert( magM );
-//
-//      DefineFieldResult( fieldIntensity_, magIntens );
-//      availResults_.insert( magIntens );
-//    }
-//    
+
     
     shared_ptr<ResultInfo> magJ ( new ResultInfo );
-      magJ->resultType = MAG_POLARIZATION;
-      magJ->SetVectorDOFs(dim_, isaxi_);
-      magJ->unit = "Vs/m^2";
-      magJ->definedOn = ResultInfo::ELEMENT;
-      magJ->entryType = ResultInfo::VECTOR;
+    magJ->resultType = MAG_POLARIZATION;
+    magJ->SetVectorDOFs(dim_, isaxi_);
+    magJ->unit = "Vs/m^2";
+    magJ->definedOn = ResultInfo::ELEMENT;
+    magJ->entryType = ResultInfo::VECTOR;
 
-      DefineFieldResult( polarization_, magJ );
-      availResults_.insert( magJ );
+    DefineFieldResult( polarization_, magJ );
+    availResults_.insert( magJ );
 
-      shared_ptr<ResultInfo> magM ( new ResultInfo );
-      magM->resultType = MAG_MAGNETIZATION;
-      magM->SetVectorDOFs(dim_, isaxi_);
-      magM->unit = "A/m";
-      magM->definedOn = ResultInfo::ELEMENT;
-      magM->entryType = ResultInfo::VECTOR;
+    shared_ptr<ResultInfo> magM ( new ResultInfo );
+    magM->resultType = MAG_MAGNETIZATION;
+    magM->SetVectorDOFs(dim_, isaxi_);
+    magM->unit = "A/m";
+    magM->definedOn = ResultInfo::ELEMENT;
+    magM->entryType = ResultInfo::VECTOR;
 
-      DefineFieldResult( magnetization_, magM );
-      availResults_.insert( magM );
+    DefineFieldResult( magnetization_, magM );
+    availResults_.insert( magM );
 
-      DefineFieldResult( fieldIntensity_, magIntens );
-      availResults_.insert( magIntens );
+    DefineFieldResult( fieldIntensity_, magIntens );
+    availResults_.insert( magIntens );
     
 
     if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
