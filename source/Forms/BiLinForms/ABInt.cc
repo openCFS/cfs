@@ -282,8 +282,8 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
     ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
   } else if(!useMaster1 && useMaster2){
-    ptFeA = this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
-    ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
+    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
+    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
   }else{
     ptFeA = this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
     ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
