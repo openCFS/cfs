@@ -8,33 +8,18 @@ import math
 import os
 import sys
 import scipy.io
+import xml.sax
 from lxml import etree
 from PIL import Image
 from collections import OrderedDict
 
-# dump some information about a density file
-def print_design_info(filename, attribute, set = None, fill = None):
-  try: 
-    dens = read_density(filename, attribute, set=set, fill=fill)
-    print("for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)))
-  except:  
-    print("failed to read '" + attribute + "'")
-    #print  sys.exc_info()
+# helper to finish SAP parsing 
+# https://stackoverflow.com/questions/8744604/can-i-somehow-tell-to-sax-parser-to-stop-at-some-element-and-get-its-child-nodes
+class FinishedParsing(Exception):
+    pass
 
-## test for a <element  /> attribute. Takes the first set
-# can be slow on large files!!
-def has_attribute(filename, attribute):
-  if not os.path.exists(filename):
-    raise RuntimeError("file '" + filename + "' doesn't exist")
-  
-  xml = open_xml(filename)
-  res = xml.xpath('//set/element')
-  if len(res) > 0 and attribute in res[0].attrib:
-    return True
-  else:
-    return False
 
-# # Read an arbitrary density file as NDArray
+# # Read an arbitrary density file as numpy array. Uses effixient SAX parser
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
@@ -42,8 +27,8 @@ def has_attribute(filename, attribute):
 # @param set optional name of set, if not given use default
 # @param fill if the density is a subset of the mesh return 1D or fill with fill_value if fill is set
 def read_density(filename, attribute="design", x=None, y=None, z=None, set=None, fill = None):
-  vals = read_density_as_vector(filename, 'density', attribute, set)
-  mx, my, mz = read_mesh_info(filename, silent=True)
+  vals, dim = read_density_as_vector(filename, 'density', attribute, set, mesh = True)
+  mx, my, mz = dim
 
   if x == None:
     x = mx
@@ -100,78 +85,146 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
         
   return ret
 
-# extrude an 2D array to the third dimenstion
-def extrude(input, nslices):
-  assert(input.ndim == 2)
-  return numpy.tile(input[:,:,numpy.newaxis], (1,1,nslices))
 
-def swap(input, order):
-  if order == 'yx':
-    assert(input.ndim == 2)
-    tmp = numpy.reshape(input,(input.shape[1],input.shape[0]))
-    return numpy.transpose(tmp,(1,0))
-  elif order == 'xzy':
-    assert(input.ndim == 3)
-    tmp = numpy.reshape(input,(input.shape[0],input.shape[2],input.shape[1]))
-    return numpy.transpose(tmp,(0,2,1))
-  elif order == 'yxz':
-    assert(input.ndim == 3)
-    tmp = numpy.reshape(input,(input.shape[1],input.shape[0],input.shape[2]))
-    return numpy.transpose(tmp,(1,0,2))
-  elif order == 'yzx':
-    assert(input.ndim == 3)
-    tmp = numpy.reshape(input,(input.shape[1],input.shape[2],input.shape[0]))
-    return numpy.transpose(tmp,(1,2,0))
-  elif order == 'zxy':
-    assert(input.ndim == 3)
-    tmp = numpy.reshape(input,(input.shape[2],input.shape[0],input.shape[1]))
-    return numpy.transpose(tmp,(2,0,1))
-  elif order == 'zyx':
-    assert(input.ndim == 3)
-    tmp = numpy.reshape(input,(input.shape[2],input.shape[1],input.shape[0]))
-    return numpy.transpose(tmp,(2,1,0))
-  else:
-    return input
+# # Reads a density.xml file as vector via an efficient SAX parser. 
+# @param filename from which the last 'set' is used
+# @param dt = type, assume shapeParamElement for node or profile, else query element
+# @param attribute the scalar attribute: "design" (default), "physical", "nr"
+# @param set optionally give a set name (string) when not given the last is used
+# @param mesh shall also the mesh be returned as tuple of three ints?
+# @return vector of floats for value and if mesh is set also a tuple of three ints
+def read_density_as_vector(filename, dt="density", attribute="design", set=None, mesh = False):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+ 
+  class Handler( xml.sax.ContentHandler):
+   def __init__(self, dt="density", attribute="design", set=None):
+     self.dt = dt
+     self.att = attribute
+     self.set = set
+     self.in_set = False # only for proper set.
+     self.elem = 'shapeParamElement' if dt == 'node' or dt == 'profile' else 'element'
+     self.dim = (None, None, None) # will become tuple of three mesh ints
+     self.values = []
+     #print(self.elem, self.att)  
+     
+   def startElement(self, tag, att):
+     #print('startElement', tag, attributes.keys(), attributes.values())
+     if not self.in_set:
+       if tag == 'set': 
+         # when no set is given or this set is the desired we read it
+         # when no set is given and there are many sets, the values will be overwritten. 
+         # we don't know in advcance how many sets are in the file
+         if self.set is None or att['id'] == self.set:
+           self.in_set = True
+           self.values = []
+       elif tag == 'mesh':
+         self.dim = (int(att['x']), int(att['y']), int(att['z']))    
+     elif tag == self.elem:
+       self.values.append(float(att[self.att])) # als int or original string could be of interest      
+   
+   def endElement(self, tag):    
+     #print('endElement', tag)
+     if self.in_set and tag == 'set':
+       self.in_set = False # when we currently read a set, we are done now
 
-def read_stiff_angle_matlab(filename):
-  mat = scipy.io.loadmat(filename,appendmat = True)
-  mat2 = scipy.io.loadmat('centers',appendmat = True)
-  domain_data = scipy.io.loadmat('data',appendmat = True)
-  d = mat['x']
-  centers = mat2['centers']
-  domain_data = domain_data['data']
-  max = domain_data[0][:]
-  if max[2] == 0:
-    dim = 2
+  parser = xml.sax.make_parser()
+  handler = Handler(dt, attribute, set)
+  parser.setContentHandler(handler)
+  parser.parse(filename)  
+  
+  if len(handler.values) == 0:
+    raise RuntimeError("file '" + filename + "' seems to not contain a 'set'" + (" with id '" + set + "'" if set is not None else ""))
+ 
+  if mesh:
+    return handler.values, handler.dim
   else:
-    dim = 3
-  min = domain_data[1][:]
-  elem_dim = domain_data[2][:]
-  coords = (centers,min,max,elem_dim)
-  s1 = numpy.zeros((d.shape[0], 1))
-  s2 = numpy.zeros((d.shape[0], 1))
-  s3 = numpy.zeros((d.shape[0], 1)) if dim == 3 else None
-  angle = numpy.zeros((d.shape[0], 1))
-  for i in range(d.shape[0]):
-    # angle needs to be changed to negative to match matlab result
-    angle[i] = -d[i][0]
-    s1[i] = d[i][1]
-    s2[i] = d[i][2]
-    if dim == 3:
-      s3[i] = d[i][3]
-  design = dict()
-  if dim == 3:
-    design['angle'] = numpy.zeros((s1.shape[0], 1))
-    design['s1'] = s1
-    design['s2'] = s2
-    design['s3'] = s3
-    return design,coords
+    return handler.values 
+
+# dump some information about a density file
+def print_design_info(filename, attribute, set = None, fill = None):
+  try: 
+    dens = read_density(filename, attribute, set=set, fill=fill)
+    print("for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)))
+  except:  
+    print("failed to read '" + attribute + "'")
+    #print  sys.exc_info()
+
+
+## tests for an attribute in the density.xml - efficient SAX parser, reads only header
+# the attribute must be part of the very first 'element' in the file.
+# @return True if the attribute is given
+def test_density_xml_attribute(filename, attribute):
+  class Handler( xml.sax.ContentHandler):
+    def __init__(self, attribute):
+      self.att = attribute
+      self.good = False
+     
+    def startElement(self, tag, att):
+      if tag == 'element': # we just read up to the first 'element'
+        self.good = self.att in att
+        raise FinishedParsing()
+
+  parser = xml.sax.make_parser()
+  parser.setContentHandler(Handler(attribute))
+  try:
+    parser.parse(filename)  
+  except FinishedParsing:
+    return parser.getContentHandler().good  
+
+  raise RuntimeError("file '" + filename + "' seems to have no 'element' tag")
+
+## parse the 'mesh' information of the header of a density.xml file via an efficent SAX parser
+# the current implemention still reads the whole file, but does not store and process - could be made faster with more implementation 
+# @param silent if True and no mesh info is found return None, None, None. otherwise raise exception
+# return x, y, z as ints or None if silent
+def read_mesh_info(filename, silent = True):
+  if not os.path.exists(filename):
+    if silent:
+      return None, None, None
+    else:
+      raise RuntimeError("cannot find '" + filename + "'")
+  
+  class Handler( xml.sax.ContentHandler):
+    def __init__(self):
+      self.dim = (None, None, None) # will become tuple if three ints
+     
+    def startElement(self, tag, att):
+      if tag == 'mesh':
+        self.dim = (int(att['x']), int(att['y']), int(att['z']))
+        raise FinishedParsing()
+
+  parser = xml.sax.make_parser()
+  parser.setContentHandler(Handler())
+  try:
+    parser.parse(filename)  
+  except FinishedParsing:
+    assert parser.getContentHandler().dim[0] is not None
+    return parser.getContentHandler().dim   
+  
+  if silent:
+    return (None, None, None)  
   else:
-    design['angle'] = angle
-    design['s1'] = s1
-    design['s2'] = s2
-    design['s3'] = None
-    return design,coords
+    raise RuntimeError("cannot find 'mesh' information in '" + filename + "'")
+
+
+# similar to read_mesh_info(filename) but with a already parsed xml DOM element
+# note that for very huge files, the DOM parsing can be too large (already density.xml with 4 million elements)
+def read_mesh_info_xml(xml):
+
+  mesh = xml.xpath('//cfsErsatzMaterial/header/mesh')
+  
+  if len(mesh) == 0:
+    return None, None, None
+  
+  else:
+    assert(len(mesh) == 1)
+    nx = int(mesh[0].get("x"))
+    ny = int(mesh[0].get("y"))
+    nz = int(mesh[0].get("z"))
+    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    return nx, ny, nz    
+
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
@@ -181,7 +234,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
   if matrix:
-    x, y, z = read_mesh_info(filename, silent=True)
+    x, y, z = read_mesh_info_xml(tree)
   
     if x == None and y == None and z == None:
       x = 1
@@ -265,86 +318,55 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
             count += 1
     out = output
   return out,nr_vec
-  
-## returns all set ids from a density xml
+
+
+## returns all set ids from a density xml. Effixient SAX implementation
 # return a list of string like stuff
 def read_set_ids(filename):
-  tree = etree.parse(filename)
-  root = tree.getroot()
-  sett = root.xpath("//set/@id")
-  return sett
+  class Handler( xml.sax.ContentHandler):
+    def __init__(self):
+      self.sets = []
+     
+    def startElement(self, tag, att):
+      if tag == 'set':
+        self.sets.append(att['id'])
+
+  parser = xml.sax.make_parser()
+  parser.setContentHandler(Handler())
+  parser.parse(filename)  
+
+  return parser.getContentHandler().sets  
   
   
-## tests for an attribute in the density.xml
-# @param attribute you might want to check for physical which is not present when generated via create_density.py
-# @return True if the attribute is given
-def test_density_xml_attribute(filename, attribute, set = None):
-  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))      
-  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
-  query += '/element/@' + attribute
-  s = tree.getroot().xpath(query)
-  return len(s) > 0
+## reads partial domain within a full array. E.g. if the design domain is circular
+# visualize via img = Image.fromarray(a, 'RGB'), img.show()
+# @param dt -> type 
+def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
+  vals, msh = read_density_as_vector(filename, 'density', attribute, set, mesh=True)
+  nrs  = read_density_as_vector(filename, 'density', 'nr', set)
+
+  assert(msh[2] == 1) # implement 3D if you need it
+  
+  a = numpy.ones(msh[0:2]) * fill  
+  
+  nx = msh[0]
+  ny = msh[1]
+  
+  assert(len(nrs) <= nx * ny)
+  
+  for i in range(len(nrs)):
+    n = int(nrs[i]) -1 # the element number is 1 based!
+    # assume a lexicographic order
+    y = int(n / ny)
+    x = n % ny
+    #print 'i=' + str(i) + ' y=' + str(y) + ' x=' + str(x) 
     
-  
-## parse the 'mesh' information of the header of a density.xml file
-# @param silent if True and no mesh info is found return None, None, None. otherwise raise exception
-# return x, y, z as ints
-def read_mesh_info(filename, silent = True):
-  if not os.path.exists(filename):
-    if silent:
-      return None, None, None
-    else:
-      raise RuntimeError("cannot find '" + filename + "'")
-  
-  xml = open_xml(filename)
-  
-  nx, ny, nz = read_mesh_info_xml(xml)
-  
-  if not nx and not silent:
-    raise RuntimeError("file '" + filename + "' has no mesh information")
+    a[y, x] = vals[i]
+      
+  return a
 
-  return nx, ny, nz    
-       
 
-def read_mesh_info_xml(xml):
 
-  mesh = xml.xpath('//cfsErsatzMaterial/header/mesh')
-  
-  if len(mesh) == 0:
-    return None, None, None
-  
-  else:
-    assert(len(mesh) == 1)
-    nx = int(mesh[0].get("x"))
-    ny = int(mesh[0].get("y"))
-    nz = int(mesh[0].get("z"))
-    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
-    return nx, ny, nz    
-       
-
-  
-# # Reads a density.xml file as vector. 
-# @param filename from which the last 'set' is used
-# @param dt = type, assume shapeParamElement for node or profile, else query element
-# @param attribute the scalar attribute: "design" (default), "physical", "nr"
-# @param set optionally give a set name (string) when not given the last is used
-def read_density_as_vector(filename, dt="density", attribute="design", set=None):
-  if not os.path.exists(filename):
-    raise RuntimeError("file '" + filename + "' doesn't exist")
-  
-  qset = 'last()' if set is None else '@id="' + set + '"'
-  qelement = 'shapeParamElement' if dt == 'node' or dt == 'profile' else 'element' 
-  
-  xml = open_xml(filename)
-  query = '//set[' + qset + ']/' + qelement + '[@type="' + dt + '"]/@' + attribute
-  res = xml.xpath(query)
-
-  vals = [0] * len(res)
-  for idx, element in enumerate(res):
-    # traverse the elements and get the design
-    vals[idx] = float(element)
-  
-  return vals
   
 ## wraps density data into an xml file
 # @param bulk a string or a list of size D of strings with the full data
@@ -444,33 +466,79 @@ def write_multi_design_file(filename, data, designs, elemnr=None):
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
 
-## reads partial domain within a full array. E.g. if the design domain is circular
-# visualize via img = Image.fromarray(a, 'RGB'), img.show()
-# @param dt -> type 
-def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
-  msh  = read_mesh_info(filename, silent = False)
-  vals = read_density_as_vector(filename, 'density', attribute, set)
-  nrs  = read_density_as_vector(filename, 'density', 'nr', set)
 
-  assert(msh[2] == 1) # implement 3D if you need it
-  
-  a = numpy.ones(msh[0:2]) * fill  
-  
-  nx = msh[0]
-  ny = msh[1]
-  
-  assert(len(nrs) <= nx * ny)
-  
-  for i in range(len(nrs)):
-    n = int(nrs[i]) -1 # the element number is 1 based!
-    # assume a lexicographic order
-    y = int(n / ny)
-    x = n % ny
-    #print 'i=' + str(i) + ' y=' + str(y) + ' x=' + str(x) 
-    
-    a[y, x] = vals[i]
-      
-  return a
+# extrude an 2D array to the third dimenstion
+def extrude(input, nslices):
+  assert(input.ndim == 2)
+  return numpy.tile(input[:,:,numpy.newaxis], (1,1,nslices))
+
+def swap(input, order):
+  if order == 'yx':
+    assert(input.ndim == 2)
+    tmp = numpy.reshape(input,(input.shape[1],input.shape[0]))
+    return numpy.transpose(tmp,(1,0))
+  elif order == 'xzy':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[0],input.shape[2],input.shape[1]))
+    return numpy.transpose(tmp,(0,2,1))
+  elif order == 'yxz':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[1],input.shape[0],input.shape[2]))
+    return numpy.transpose(tmp,(1,0,2))
+  elif order == 'yzx':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[1],input.shape[2],input.shape[0]))
+    return numpy.transpose(tmp,(1,2,0))
+  elif order == 'zxy':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[2],input.shape[0],input.shape[1]))
+    return numpy.transpose(tmp,(2,0,1))
+  elif order == 'zyx':
+    assert(input.ndim == 3)
+    tmp = numpy.reshape(input,(input.shape[2],input.shape[1],input.shape[0]))
+    return numpy.transpose(tmp,(2,1,0))
+  else:
+    return input
+
+def read_stiff_angle_matlab(filename):
+  mat = scipy.io.loadmat(filename,appendmat = True)
+  mat2 = scipy.io.loadmat('centers',appendmat = True)
+  domain_data = scipy.io.loadmat('data',appendmat = True)
+  d = mat['x']
+  centers = mat2['centers']
+  domain_data = domain_data['data']
+  max = domain_data[0][:]
+  if max[2] == 0:
+    dim = 2
+  else:
+    dim = 3
+  min = domain_data[1][:]
+  elem_dim = domain_data[2][:]
+  coords = (centers,min,max,elem_dim)
+  s1 = numpy.zeros((d.shape[0], 1))
+  s2 = numpy.zeros((d.shape[0], 1))
+  s3 = numpy.zeros((d.shape[0], 1)) if dim == 3 else None
+  angle = numpy.zeros((d.shape[0], 1))
+  for i in range(d.shape[0]):
+    # angle needs to be changed to negative to match matlab result
+    angle[i] = -d[i][0]
+    s1[i] = d[i][1]
+    s2[i] = d[i][2]
+    if dim == 3:
+      s3[i] = d[i][3]
+  design = dict()
+  if dim == 3:
+    design['angle'] = numpy.zeros((s1.shape[0], 1))
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = s3
+    return design,coords
+  else:
+    design['angle'] = angle
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = None
+    return design,coords
 
 def convert_multi_density_to_matlab(filename, outputfile, design1,design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"): 
   d = read_multi_design(filename,design1,design2, design3, design4, design5, design6, matrix, attribute)

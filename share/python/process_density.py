@@ -43,7 +43,7 @@ for input in allinput:
      dump_h5_meta(f)
      os.sys.exit()   
      
-  if not has_attribute(input, args.data):
+  if not test_density_xml_attribute(input, args.data):
     print("Error: <element .../> attribute '" + args.data + "' not found in '" + input + "'")
     os.sys.exit()   
   
@@ -53,7 +53,7 @@ for input in allinput:
   if len(allinput) == 1:    
     # this is 'design'
     plain    = data if args.data == 'design' else read_density(input, 'design', set=args.set)
-    physical = data if args.data == 'physical' else (None if not has_attribute(input, 'physical') else read_density(input, 'physical', set=args.set))
+    physical = data if args.data == 'physical' else (None if not test_density_xml_attribute(input, 'physical') else read_density(input, 'physical', set=args.set))
     extract_all_density_info(plain, physical, silent = False)   
   
   nr = read_density(input, "nr", set=args.set) if data.ndim == 1 else None

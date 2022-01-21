@@ -139,8 +139,8 @@ def read_density_xml_input(args, input):
   for f in input:
     problem = f[0:-len(".density.xml")]
     try:
-      plain    = None if not has_attribute(f, 'design') else read_density(f, 'design')
-      physical = None if not has_attribute(f, 'physical') else read_density(f, 'physical')
+      plain    = None if not test_density_xml_attribute(f, 'design') else read_density(f, 'design')
+      physical = None if not test_density_xml_attribute(f, 'physical') else read_density(f, 'physical')
       
       dic = extract_all_density_info(plain, physical, silent = True)
       dic['problem'] = problem

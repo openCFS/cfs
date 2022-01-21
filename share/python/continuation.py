@@ -7,6 +7,7 @@ import numpy as np
 ## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on
 # @param cnt counter of the calls (start with 0) for qsub only to define dependencies
+# @param type either 'warmstart' or a query
 # @param short_problem the short name of the problem where the variation will be added
 # @param org_problem the name of the problem file including .xml 
 def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_problem, executable, show, failsafe = False, range_idx = -1, qsub = None, plot = None, maxIter = None, cmdonly = False):
@@ -22,12 +23,7 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
     old_problem = short_problem + old_ord
     var_problem = short_problem + new_ord  
   else:
-    if type == 'curvature':
-      var_name = '-curv_'
-    if type == 'penalty':
-      var_name = '-pen_'
-    else:
-      var_name = '-' + type + '_'  
+    var_name = '-' + query_name(type) + '_'  
 
     old_problem = short_problem + var_name + str(old_var) + old_ord
     var_problem = short_problem + var_name + str(var) + new_ord  
@@ -41,23 +37,8 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
 
   xml = open_xml(org_problem)     
 
-  # we assume one hit or three for robust
-  if type == 'beta':
-    # check shape map first
-    rsm = replace(xml, "//cfs:shapeMap/@beta", str(var), unique = False)
-    if rsm == 0:
-      rdf = replace(xml, "//cfs:filter/cfs:density/@beta", str(var), unique = False)
-      if rdf == 0:
-        raise RuntimeError("beta not found for filter/density/@beta and shapeMap/@beta")
-  elif type != 'warmstart': # nothing to be done for continuation
-    query = None
-    if type == 'penalty':     
-      query = '//cfs:transferFunction/@param'
-    if type == 'curvature':     
-      query = '//cfs:constraint[@type="curvature"]/@value'
-    assert(query != None)
-
-    r = replace(xml, query, str(var), unique = False)
+  if type != 'warmstart': # nothing to be done for continuation
+    r = replace(xml, type, str(var), unique = False) # for robust, beta is not unique
     if r == 0:
       raise RuntimeError(" no '" + type + "' found")               
   
@@ -65,6 +46,7 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
     rmi = replace(xml, "//cfs:optimizer/@maxIterations", str(maxIter))
     if rmi == 0:
       raise RuntimeError("maxIterations not found for optimizer")
+  print(var_problem)
   xml.write(var_problem + ".xml")
   
   cmd = executable + " " + start + "-m " + mesh + " " + var_problem
@@ -94,6 +76,33 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
 
   return var_problem
 
+# helper which gives the query from prefined var or original query if not given
+def query(var, query):
+  assert not (var is None and query is None)
+  assert not (var is not None and query is not None)
+  if query:
+    return query
+  if var == 'penalty':
+    return '//cfs:transferFunction/@param'
+  if var == 'beta':
+    return '//cfs:filter/cfs:density/@beta'
+  print('Error: unknown predefined var ' + var)
+  sys.exit(-1)
+
+# try to extract a short name from the query.
+# extend for your needs
+def query_name(query):
+  if 'transferFunction/@param' in query:
+    return 'pen'
+  if '@' in query: 
+    query = query[query.index('@')+1:] # includes --var is 'beta'#
+  if '=' in query: # for //cfs:constraint[@type='volume']/@value use the volume
+    query[query.index('=')+1:query.index(']')]    
+    # clean the stuff as much as possible
+  for s in ["'", '/','[', ']', '@', '"', '=', 'item', 'result', 'data', 'value', 'type', 'name', 'param', 'constraint']:
+    query = query.replace(s,'')     
+  return query
+
 
 # do we compress density.xml?
 def compress(org_problem):
@@ -112,7 +121,8 @@ parser.add_argument('name', nargs='?', help="optional problem name")
 parser.add_argument('-m', '--mesh', help="the mesh file with extension", required=True)
 parser.add_argument('-x', '--initial', help="optional density.xml(.gz) for initial design (with extension)")
 parser.add_argument('-p', '--problem', help="optional problem.xml")
-parser.add_argument('--var', help="on which variable continuation shall be performed on. Together with one of range/factor/list", choices=['beta', 'penalty'])
+parser.add_argument('--var', help="predefined query for continuation variable. Together with one of range/factor/list", choices=['beta', 'penalty'])
+parser.add_argument('--query', help='alternative to --var an open query like //cfs:constraint[@type="volume"]/@value')
 parser.add_argument('--range', nargs='+', help='start stop [inc] for step + inc', type=float)
 parser.add_argument('--factor', nargs=3, help='start stop factor for step * factor',type=float)
 parser.add_argument('--list', nargs='+', help='val1 val2 val3 ...',type=float)
@@ -155,8 +165,8 @@ if args.qsub:
 elif not args.noplot and not args.cmdonly:
   plot = open(short_problem + ".dat", "w")
 
-if args.warmstart and (args.var or args.range or args.list or args.factor):
-  print('Error: do not give warmstart with var and range/factor/list')
+if args.warmstart and (args.var or args.query or args.range or args.list or args.factor):
+  print('Error: do not give warmstart with var/query and range/factor/list')
   sys.exit(-1)
 
 if args.warmstart:
@@ -171,9 +181,12 @@ if args.warmstart:
     old_var = -1 if idx == 0 else v-1
     continuation(args.initial, cnt = idx, type = 'warmstart', old_var=old_var, var=v, range_idx = v, mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.exe, show=args.show, failsafe=args.failsafe, qsub=args.qsub, plot = plot, cmdonly = args.cmdonly)
 else:
+  if args.var and args.query:
+    print("Error: don't give --var and --query the same time")
+    sys.exit(-1)
   # no warmtart
-  if not args.var:
-    print('Error: either --warmstart [S] N or --var *')     
+  if not args.var and not args.query:
+    print('Error: either --warmstart [S] N or --var/query *')     
     sys.exit(-1)
   if (args.range and (args.factor or args.list)) or (args.list and(args.factor or args.range)) or (not args.range and not args.factor and not args.list):
     print('Error: with var give exatly one of range, factor, list')
@@ -204,6 +217,6 @@ else:
   #print(vals)  
   for i in range(len(vals)):
     ri = i if len(vals) != len(set(vals)) else -1
-    continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.exe, show=args.show, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub, plot = plot, cmdonly = args.cmdonly)  
+    continuation(args.initial, cnt = i, type = query(args.var, args.query), old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=short_problem, org_problem=org_problem, executable=args.exe, show=args.show, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub, plot = plot, cmdonly = args.cmdonly)  
 if plot:
   print("saving meta plot file '" + short_problem + ".dat'")

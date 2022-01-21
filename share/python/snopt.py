@@ -208,7 +208,7 @@ if __name__ == '__main__':
     for l in data:
       print('  '.join(l))
   else:
-    idx = header.index('nObj')
+    idx = header.index('nObj' if 'nObj' in header else 'nCon')
     nobj = [int(l[idx]) for l in data]
 
     if args.input[1].endswith('.dat'):

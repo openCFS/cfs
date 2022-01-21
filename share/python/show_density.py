@@ -17,7 +17,7 @@ def density_to_image(filename, set, design, fillval=0.0):
     sys.exit(1)
 
 
-  if not design and not test_density_xml_attribute(filename, 'physical', set):
+  if not design and not test_density_xml_attribute(filename, 'physical'):
     print("the 'physical' design is not present, use non-physical 'design'")
     design = 'design'
   
