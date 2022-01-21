@@ -109,6 +109,9 @@ def parse_abaqus(input):
       mesh.nodes.append((x, y, z))
       abaqus_nr_to_idx[nr] = i
       idx_to_abaqus_nr[i]  = nr
+ 
+  mesh.nodes = np.array(mesh.nodes)    
+      
   
   # read elements
   for e in range(len(element_start)):
@@ -173,4 +176,4 @@ if not os.path.exists(args.input):
 
 mesh = parse_abaqus(args.input)
 
-write_gid_mesh(mesh, args.output)
+write_ansys_mesh(mesh, args.output)

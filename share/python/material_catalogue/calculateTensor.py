@@ -116,7 +116,7 @@ if __name__ == "__main__":
     
     params = [float(param)/args.res for param in args.params]
     mesh, volume = micro_generator_function(params, nx=args.x, ny=args.y)
-    write_gid_mesh(mesh, meshfile)
+    write_ansys_mesh(mesh, meshfile)
 
     os.system('cfsso.rel -m ' + meshfile + ' -p ' + paramfile + ' ' + temporaryfile)
 

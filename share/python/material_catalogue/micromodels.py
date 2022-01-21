@@ -53,8 +53,8 @@ def generate_cross(param, nx=128, ny=128, sparse=True):
     xcoords = np.tile(x,(1,npy))[0]
     ycoords = np.reshape(np.tile(y,(npx,1)),(len(y)*npx,),'F')
     nodes = np.array((xcoords, ycoords))
-    for row in np.transpose(nodes):
-        mesh.nodes.append(row)
+    for i, row in enumerate(np.transpose(nodes)):
+        mesh.nodes[i] = row
     
     # boundary nodes
     if not sparse or s1 == 1 or s2 == 1:
@@ -153,8 +153,8 @@ def generate_sheared_cross(param, nx=128, ny=128, sparse=True):
                 xcoords[idx] = x[jj] + y[ii] * np.tan(s3)
     ycoords = np.reshape(np.tile(y,(npx,1)),(len(y)*npx,),'F')
     nodes = np.array((xcoords, ycoords))
-    for row in np.transpose(nodes):
-        mesh.nodes.append(row)
+    for i, row in enumerate(np.transpose(nodes)):
+        mesh.nodes[i] = row
     
     # boundary nodes
     if not sparse or s1 == 1 or s2 == 1:

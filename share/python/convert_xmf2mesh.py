@@ -69,5 +69,5 @@ for ii in range(nelem):
   e.region = str(int(regions[ii]))
   mesh.elements.append(e)
 
-write_gid_mesh(mesh, args.output)
+write_ansys_mesh(mesh, args.output)
 print('Output written to ' + args.output)

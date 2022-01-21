@@ -422,7 +422,7 @@ if __name__ == "__main__":
     
     mesh_tool.validate_periodicity(mesh)
     
-    mesh_tool.write_gid_mesh(mesh, fileNameBase+".mesh") 
+    mesh_tool.write_ansys_mesh(mesh, fileNameBase+".mesh") 
   
   ################ take care of stl and vtp files ##############  
   if args.target == "volume_mesh":

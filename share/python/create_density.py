@@ -416,11 +416,11 @@ elif not args.write_mesh:
   print("generated density file '" + filename + "'") 
 
 if args.write_mesh:
-  mesh = Mesh(data.shape[0], data.shape[1], data.shape[2])  
-  create_dense_mesh_density(data, mesh, threshold=0.5, scale=1.0, rhomin=1e-3)  # rhomin is irrelevant as we make sparse
+  mesh = Mesh(data.shape[0], data.shape[1], data.shape[2]) 
+  mesh.set_density(data, threshold = .5) 
   sparse = convert_to_sparse_mesh(mesh)
   mesh_name = filename.replace('.density.xml', '.mesh')
-  write_gid_mesh(sparse, mesh_name)
+  write_ansys_mesh(sparse, mesh_name)
   print("generated sparse mesh '" + mesh_name + "'")
   
 if args.show:

@@ -39,7 +39,7 @@ if not os.path.exists(args.name+".1.ele"):
   print("Created volume mesh with tetgen")
 
 mesh = mesh_tool.create_mesh_from_tetgen(name,"mech")
-bounds = mesh_tool.calc_bounding_box(mesh)
+bounds = mesh_tool.calc_min_max_coords(mesh)
 
 if args.type == "box_varel":
   mesh = mesh_tool.add_bc_for_box_varel(mesh,bounds)
@@ -47,6 +47,6 @@ elif args.type == "ppbox":
   mesh = mesh_tool.add_bc_for_ppbox(mesh,bounds)
 
 #mesh = mesh_tool.name_bb_faces(mesh,xmin,xmax,ymin,ymax,zmin,zmax)
-mesh_tool.write_gid_mesh(mesh,name+".mesh")
+mesh_tool.write_ansys_mesh(mesh,name+".mesh")
 
 print("Converted tetgen mesh to cfs mesh and set b.c. for " + args.type)

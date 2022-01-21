@@ -186,7 +186,7 @@ def perform_3d(args, coords, design, scale, nondes = None):
         assert(len(nondes[0]) == 3)
 
         me = create_validation_mesh(coords, nondes[0], design, None, args.hom_grad, args.hom_dir, scale, n_f, valid_position, valid_ring_position, args.type, args.thres, csize, args.show == 'simp')
-        write_gid_mesh(me, args.mesh+".mesh")
+        write_ansys_mesh(me, args.mesh+".mesh")
       else:
         if args.show == "hom_rot_cross":
           viz = create_3d_cross_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres, csize)
@@ -215,7 +215,7 @@ def perform_3d(args, coords, design, scale, nondes = None):
         if args.type == "box_varel" or args.type == "ppbox" or args.mesh:
           if not args.save: # write surface mesh in case we haven't done it before
             matviz_vtk.write_stl(viz, name)
-#          write_gid_mesh(create_volume_mesh_from_stl(name),name[:-4]+".mesh")
+#          write_ansys_mesh(create_volume_mesh_from_stl(name),name[:-4]+".mesh")
           create_volume_mesh_with_gmsh(name)
           viz = None # avoid showing or writing vtp file
       else:

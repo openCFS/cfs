@@ -56,7 +56,10 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
   for z in range(-overhead_z_l, nz + 1 + overhead_z_u):
     for y in range(-overhead_y_l, ny + 1 + overhead_y_u):
       for x in range(-overhead_x_l, nx + 1 + overhead_x_u):
-        mesh.nodes.append((min[0] + float(x) * dx, min[1] + float(y) * dy, min[2] + float(z) * dz))
+        mesh.nodes.append([min[0] + float(x) * dx, min[1] + float(y) * dy, min[2] + float(z) * dz])
+  
+  mesh.nodes = np.array(mesh.nodes) # make the expected np.array
+        
   # initialize pseudo-designvariables for design and nondesign region
   st1_full = zeros((len(centers_full) , 1))
   st2_full = zeros((len(centers_full), 1))
