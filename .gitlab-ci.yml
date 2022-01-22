@@ -70,7 +70,7 @@ testsuite-revision:
   allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
 
 # this job is intended as a warning if the pipeline has changed
-# it is created only if there are changes, and will always fail (but is allowed to)
+# it is running only if there are changes, and will always fail if there are some
 pipeline-changes:
   stage: check
   tags:
@@ -78,11 +78,21 @@ pipeline-changes:
   # switch off cloning the Testsuite submodule
   variables:
     GIT_SUBMODULE_STRATEGY: none
+  rules:
+    # only run the job for merge requests if there are changes in the pipeline definition
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - .gitlab-ci.yml
+      when: always
+      allow_failure: true
+    # otherwise create it but set it to manual
+    - when: manual
+      allow_failure: true
   before_script:
-    - git diff HEAD~1 -- .gitlab-ci.yml
+    - echo $CI_MERGE_REQUEST_TARGET_BRANCH_NAME 
+    - git diff remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME -- .gitlab-ci.yml || git diff HEAD~1 -- .gitlab-ci.yml
   script:
     - /the/pipeline/has/changed
-  allow_failure: true
   cache: {} # disable
 
 runner-debug:
