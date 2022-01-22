@@ -55,6 +55,16 @@ testsuite-revision:
   variables:
     # we clone to make sure we have everyting (including current names of the SHAs)
     GIT_STRATEGY: clone
+  rules:
+    # only run the job for merge requests if there are changes in the Testsuite submodule
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - Testsuite
+      when: always
+      allow_failure: true # it will pop up as warning (maintainers should not ignore)
+      # otherwise create it but set it to manual
+    - when: manual
+      allow_failure: true
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
     - echo "$CI_COMMIT_REF_NAME"
@@ -67,7 +77,6 @@ testsuite-revision:
   after_script:
     - pwd # debug
   cache: {} # disable
-  allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
 
 # this job is intended as a warning if the pipeline has changed
 # it is running only if there are changes, and will always fail if there are some
@@ -75,6 +84,7 @@ pipeline-changes:
   stage: check
   tags:
     - linux
+  image: opencfs/fedora32
   # switch off cloning the Testsuite submodule
   variables:
     GIT_SUBMODULE_STRATEGY: none
