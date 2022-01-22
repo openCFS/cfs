@@ -33,10 +33,18 @@ stages:
 # we create pipelines for merge requests, schedules, and the web-ui
 workflow:
   rules:
+  # run for merge requests
   - if: $CI_MERGE_REQUEST_IID
+  # run for tags
   - if: $CI_COMMIT_TAG
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  # do not run branch pipelines if a merge request is open (avoid duplicates)
+  - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+    when: never
+  # automatically run if branch name starts with test
+  - if: '$CI_COMMIT_BRANCH =~ /^test.*$/'
+  # run for 'run pipeline' button on web-ui
   - if: '$CI_PIPELINE_SOURCE == "web"'
+  # run for schedules
   - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
 #################################################
