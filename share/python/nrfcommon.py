@@ -1493,10 +1493,7 @@ if __name__ == "__main__":
                        template=None,
                        externalFiles=False)
 
-    f.getMeshResult(1, 2, 'dummyResScalar', regions=None, indices=None, verbose = False)
     # perform doctest
     import doctest
     result = doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
-    f._h5.flush
-    f._h5.close
     sys.exit(result.failed)
