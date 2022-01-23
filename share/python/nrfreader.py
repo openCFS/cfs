@@ -83,9 +83,9 @@ class NrfReader(NrfCommon):
     
   def __del__(self):
     '''
-    This method closes the hdf5 file
+    This method should clean up ...
     '''
-    self._h5.close()
+    # self._h5.close() # leads to weird ImportError: sys.meta_path is None, Python is likely shutting down
   
   def _createFile(self, fileName, template):
     """

@@ -33,10 +33,18 @@ stages:
 # we create pipelines for merge requests, schedules, and the web-ui
 workflow:
   rules:
+  # run for merge requests
   - if: $CI_MERGE_REQUEST_IID
+  # run for tags
   - if: $CI_COMMIT_TAG
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  # do not run branch pipelines if a merge request is open (avoid duplicates)
+  - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+    when: never
+  # automatically run if branch name starts with test
+  - if: '$CI_COMMIT_BRANCH =~ /^test.*$/'
+  # run for 'run pipeline' button on web-ui
   - if: '$CI_PIPELINE_SOURCE == "web"'
+  # run for schedules
   - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
 #################################################
@@ -55,6 +63,16 @@ testsuite-revision:
   variables:
     # we clone to make sure we have everyting (including current names of the SHAs)
     GIT_STRATEGY: clone
+  rules:
+    # only run the job for merge requests if there are changes in the Testsuite submodule
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - Testsuite
+      when: always
+      allow_failure: true # it will pop up as warning (maintainers should not ignore)
+      # otherwise create it but set it to manual
+    - when: manual
+      allow_failure: true
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
     - echo "$CI_COMMIT_REF_NAME"
@@ -67,22 +85,32 @@ testsuite-revision:
   after_script:
     - pwd # debug
   cache: {} # disable
-  allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
 
 # this job is intended as a warning if the pipeline has changed
-# it is created only if there are changes, and will always fail (but is allowed to)
+# it is running only if there are changes, and will always fail if there are some
 pipeline-changes:
   stage: check
   tags:
     - linux
+  image: opencfs/fedora32
   # switch off cloning the Testsuite submodule
   variables:
     GIT_SUBMODULE_STRATEGY: none
+  rules:
+    # only run the job for merge requests if there are changes in the pipeline definition
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - .gitlab-ci.yml
+      when: always
+      allow_failure: true
+    # otherwise create it but set it to manual
+    - when: manual
+      allow_failure: true
   before_script:
-    - git diff HEAD~1 -- .gitlab-ci.yml
+    - echo $CI_MERGE_REQUEST_TARGET_BRANCH_NAME 
+    - git diff remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME -- .gitlab-ci.yml || git diff HEAD~1 -- .gitlab-ci.yml
   script:
     - /the/pipeline/has/changed
-  allow_failure: true
   cache: {} # disable
 
 runner-debug:
@@ -138,6 +166,7 @@ skip-build:
     - "**/*.cmake"
     - "**/*.cmake.in"
     - source/**/*.{hh,cc,h,c}
+    - Testsuite
 
 mr-with-code-changes:
   stage: check
@@ -837,19 +866,31 @@ testsuite:intel:linux:
   needs:
     - linux:intel
 
-python:stable:
-  image: opencfs/centos6
+python:linux:
+  image: opencfs/ubuntu20.04
   extends: .ctest_default
-  # disable if 'skip-python-tests' is found in commit message
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-python-tests/
   tags:
-    - python
+    - docker
   stage: test
+  rules:
+    # activate in schedule (nightly builds)
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    # set to manual if 'skip-python-tests' is found in commit message
+    - if: $CI_COMMIT_MESSAGE =~ /skip-python-tests/
+      when: manual
+      allow_failure: true
+    # run when we have changes in python files
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - "**/*.py"
+      when: on_success
+      allow_failure: false
+    # set build jobs to manual if we do not have changes in relevant files
+    - when: manual
+      allow_failure: true
   variables:
     TEST_NAME: "stable"
-    EXCLUDE: "nrfcommon"
+    EXCLUDE: ""
   before_script:
     - mkdir -p build
     - cd build
@@ -863,13 +904,6 @@ python:stable:
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
   artifacts: {}
-
-python:all:
-  extends: python:stable
-  variables:
-    TEST_NAME: "all"
-    EXCLUDE: ""
-  allow_failure: true
 
 #######################################################################
 # DEPLOY STAGES
