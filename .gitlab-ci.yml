@@ -166,6 +166,7 @@ skip-build:
     - "**/*.cmake"
     - "**/*.cmake.in"
     - source/**/*.{hh,cc,h,c}
+    - Testsuite
 
 mr-with-code-changes:
   stage: check
