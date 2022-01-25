@@ -1642,17 +1642,17 @@ namespace CoupledField {
 
     // only line, quad and hexa can be regular. If you have a
     // regular tetra mesh add the code!
-    if(dim_ == 2 && rd.type == SURFACE_REGION
-       && (refShape != Elem::ST_LINE)) return false;
+    if(dim_ == 2 && rd.type == SURFACE_REGION && (refShape != Elem::ST_LINE))
+      return false;
 
-    if(dim_ == 2 && rd.type == VOLUME_REGION
-       && (refShape != Elem::ST_QUAD)) return false;
+    if(dim_ == 2 && rd.type == VOLUME_REGION && (refShape != Elem::ST_QUAD))
+      return false;
 
-    if(dim_ == 3 && rd.type == SURFACE_REGION
-        && (refShape != Elem::ST_QUAD)) return false;
+    if(dim_ == 3 && rd.type == SURFACE_REGION && (refShape != Elem::ST_QUAD))
+      return false;
 
-    if(dim_ == 3 && rd.type == VOLUME_REGION
-       && (refShape != Elem::ST_HEXA)) return false;
+    if(dim_ == 3 && rd.type == VOLUME_REGION && (refShape != Elem::ST_HEXA))
+      return false;
 
     Matrix<Double>  coords;
     Vector<Double> diameter; // diameter of reference (first) element
@@ -1671,7 +1671,7 @@ namespace CoupledField {
 
       testEsm->CalcDiameter(test_diameter);
 
-       diff= diameter-test_diameter; 
+      diff = diameter-test_diameter;
       LOG_DBG3(gridcfs) << "CFRR test=" << elems[i]->elemNum
                         << " dist=" << diff.NormL2()
                         << " test_diameter=" << test_diameter.ToString();

@@ -1899,8 +1899,8 @@ return ptFe_->CoordIsInsideElem(point, tolerance);
 
 void LagrangeElemShapeMap::CalcDiameter(Vector<Double>& diameter) {
   Vector<Double> mins(shape_->dim), maxs(shape_->dim);
-  mins.Init(std::numeric_limits<double>::max());
-  maxs.Init();
+  mins.Init( std::numeric_limits<double>::max());
+  maxs.Init(-std::numeric_limits<double>::max());
   diameter.Resize(shape_->dim);
   diameter.Init();
   for (UInt dim = 0; dim < shape_->dim; dim++) {

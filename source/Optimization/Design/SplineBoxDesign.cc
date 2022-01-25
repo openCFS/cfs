@@ -1568,7 +1568,8 @@ void SplineBoxDesign::WriteBoxToVTK()
   unsigned int iteration = this->opt_->GetCurrentIteration();
   // add leading zeros
   double nzeros = std::ceil(std::log10(domain->GetOptimization()->GetMaxIterations())) - std::to_string(iteration).length();
-  std::string iter = std::string(nzeros, '0') + std::to_string(iteration);
+  std::string iter = std::string(nzeros > 0 ? nzeros : 0, '0') + std::to_string(iteration);
+
   string filename = "results_hdf5/" + progOpts->GetSimName() + ".spb_" + iter + ".vtk";
 
   std::ofstream out;
