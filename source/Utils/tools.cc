@@ -527,6 +527,7 @@ namespace CoupledField {
       for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
         sum += std::exp(values[i] * beta);
 
+      assert(sum > 0);
       res = std::log(sum / (double) values.GetSize()) / beta;
     }
 
@@ -565,6 +566,7 @@ namespace CoupledField {
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
       sum += std::exp((1.0 - values[i]) * beta);
 
+    assert(sum > 0);
     return 1.0 - std::log(sum / (double) values.GetSize()) / beta;
   }
 

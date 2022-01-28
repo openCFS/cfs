@@ -52,10 +52,10 @@ class EigenValueDriver: public virtual SingleDriver {
       return true;
     }
 
-    /** Return the number of eigenmodes to be calculated.
+    /** Return the number of eigenvalues and eigenmodes to be calculated.
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() {
-      return numSteps_;
+      return numEV_;
     }
 
     // TODO implement optimization (StoreResults() is currently functionless)
@@ -126,7 +126,7 @@ class EigenValueDriver: public virtual SingleDriver {
     unsigned int save_step_;
 
     //! Number of converged EV
-    UInt numSteps_ = 1;
+    UInt numEV_ = 1;
     //! input parameter, set method of Mode sizing
     BaseEigenSolver::ModeNormalization modeNormalization_;
 

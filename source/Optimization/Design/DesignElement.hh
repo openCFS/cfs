@@ -248,6 +248,10 @@ public:
      * @param g for sp = CONSTRAINT_GRADIENT only */
     virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
+    /** internal helper to get the cost gradient
+     *  handles single and multi objective */
+    double GetPlainCostGradient() const;
+
     /** returns the sum of all design elements compatible to MECH_TRACE */
     double GetPlainMechTrace() const;
 

@@ -64,7 +64,7 @@
                       <!-- when type is slackFunction we need to give function -->
                       <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function"/>
 
-                      <xsd:attribute name="penalty" type="xsd:float" use="required"/>
+                      <xsd:attribute name="penalty" type="xsd:float" use="optional" default="1.0"/>
 
                       <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
                       <!-- only the globalSlope has a value and only within multiObjective -->
@@ -73,9 +73,21 @@
                       <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
                       <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
                       <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
+                      <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
+                      <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
+			          <xsd:attribute name="type" use="optional" default="weightedSum">
+			            <xsd:simpleType>
+			              <xsd:restriction base="xsd:token">
+			                <xsd:enumeration value="weightedSum" />
+			                <xsd:enumeration value="smoothMin" />
+			                <xsd:enumeration value="smoothMax" />
+		                </xsd:restriction>
+	                </xsd:simpleType>
+                </xsd:attribute>
+                <xsd:attribute name="beta" type="xsd:float" use="optional" default="1"/>
               </xsd:complexType>
             </xsd:element>
             <xsd:element name="stopping" minOccurs="0" maxOccurs="1">
@@ -282,6 +294,10 @@
           <!-- for multiple exciations, tells in which excitations the cost function should be evaluated, same as for constraints -->
           <xsd:attribute name="excitation" use="optional" default="all" type="DT_Excitation" />
           <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
+
+          <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
+          <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
+
         </xsd:complexType>
       </xsd:element>
 
@@ -2177,6 +2193,7 @@
       <xsd:enumeration value="bandgap" />
       <!-- temperature tracking at interface -->
       <xsd:enumeration value="tempTrackingAtInterface" />
+      <xsd:enumeration value="bucklingLoadFactor" />
     </xsd:restriction>
   </xsd:simpleType>
 

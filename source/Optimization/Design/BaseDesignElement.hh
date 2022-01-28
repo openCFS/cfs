@@ -202,7 +202,8 @@ public:
    * <p>Therefore this vector has to be initialized on runtime</p> */
   StdVector<double> constraintGradient;
 
-  /** For multiple objective functions. It already includes penalty! Don't access directly with the excpetion of ShapeMapDesign!
+  /** For multiple objective functions. It already includes penalty!
+   * Don't access directly with the exception of ShapeMapDesign!
    * @see constraintGradient */
   StdVector<double> costGradient;
 

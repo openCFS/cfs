@@ -48,7 +48,7 @@ class BucklingDriver: public virtual SingleDriver {
 
     /** Return the number of eigenmodes to be calculated.
      * @see BaseDriver::GetNumSteps() */
-    unsigned int GetNumSteps() { return numEigenValues_; }
+    unsigned int GetNumSteps() { return numEV_; }
 
     bool IsInverseProblem() { return isInverseProblem_; }
 
@@ -125,7 +125,7 @@ class BucklingDriver: public virtual SingleDriver {
     //! = eigenvalues for original problem, 1/eigenvalues for reformulated one
     SingleVector* loadFactors_;
 
-    UInt numEigenValues_;
+    UInt numEV_;
 
     // order of the sorted modes
     StdVector<unsigned int> modeOrder_;

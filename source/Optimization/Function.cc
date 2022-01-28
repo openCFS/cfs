@@ -44,6 +44,7 @@ DEFINE_LOG(func, "opt_func")
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
 Enum<Function::SlackFnct> Function::slackFnct;
+Enum<Function::MultiObjType> Function::multiObjType;
 Enum<Function::Access> Function::access;
 Enum<Function::StressType> Function::stressType;
 Enum<Function::Local::Locality> Function::Local::locality;
@@ -663,22 +664,13 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     }
     break;
 
-  case MAG_COUPLING:
-    // enforces the excitation to be manually set to "0_1" for the first two excitations
-    assert(excite_index < 0);
-    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() != "0_1")
-       throw Exception("function " + type.ToString(MAG_COUPLING) + " requires excitation='0_1'");
-    excite_ = COMBINED_0_1_EX;
-    excite_sensitive_ = true;
-    break;
-
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
   case GLOBAL_BUCKLING_LOAD_FACTOR:
   case LOCAL_BUCKLING_LOAD_FACTOR:
     // there might be the optional excitation index set
-    if (pn->Get("excitation")->As<string>() == "all") {
+    if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all") {
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
     } else {
       assert(excite_index == UNSET_EX); // assert there is no conflict
@@ -688,6 +680,16 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     }
     excite_sensitive_ = true;
     break;
+
+  case MAG_COUPLING:
+    // enforces the excitation to be manually set to "0_1" for the first two excitations
+    assert(excite_index < 0);
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() != "0_1")
+       throw Exception("function " + type.ToString(MAG_COUPLING) + " requires excitation='0_1'");
+    excite_ = COMBINED_0_1_EX;
+    excite_sensitive_ = true;
+    break;
+
   case MULTI_OBJECTIVE: // only to make the switch complete
     assert(false);
     break;

@@ -226,9 +226,9 @@ void EigenValueDriver::SolveProblem() {
   ResultHandler *resHandler = domain_->GetResultHandler();
 
   // see comments in StaticDriver::SolveProblem() for the interplay with optimization
-  numSteps_ = 1;
+  numEV_ = 1;
   if (!domain->GetOptimization())
-    resHandler->BeginMultiSequenceStep(sequenceStep_, analysis_, numSteps_); // optimization does it by itself
+    resHandler->BeginMultiSequenceStep(sequenceStep_, analysis_, numEV_); // optimization does it by itself
 
   if (writeAllSteps_ || isPartOfSequence_)
     simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
@@ -280,7 +280,7 @@ void EigenValueDriver::SolveProblem() {
     EXCEPTION("Both error bounds are empty? No Eigenvalues found?")
   }
 
-  numSteps_ = eigenValuesComplex_.GetSize();
+  numEV_ = eigenValuesComplex_.GetSize();
   SortModes();
   PrintResult();
   if (calcModes_) {

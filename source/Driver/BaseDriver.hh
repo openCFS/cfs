@@ -99,20 +99,20 @@ namespace CoupledField
 
     //! Compute the index of a given harmonic
     virtual UInt IndexOfHarmonic(const Integer& harmonic){
-      EXCEPTION("IndexOfHarmonic not implemeted here in the baseclass!");
+      EXCEPTION("IndexOfHarmonic not implemented here in BaseDriver!");
     }
     //! Compute the harmonic of a given harmonic
     virtual Integer HarmonicOfIndex(const UInt& Index){
-      EXCEPTION("HarmonicOfIndex not implemeted here in the baseclass!");
+      EXCEPTION("HarmonicOfIndex not implemented here in BaseDriver!");
     }
     //! Get the number of the considered frequencies (positive and negative)
     virtual UInt GetNumFreq(){
-      EXCEPTION("GetNumFreq() not implemeted here in the baseclass!");
+      EXCEPTION("GetNumFreq() not implemented here in BaseDriver!");
     }
 
     //! True, if we are considering the full system with all harmonics (odd and even ones)
     virtual bool IsFullSystem(){
-      EXCEPTION("IsFullSystem() not implemented here in the baseclass!");
+      EXCEPTION("IsFullSystem() not implemented here in BaseDriver!");
     }
 
   protected:

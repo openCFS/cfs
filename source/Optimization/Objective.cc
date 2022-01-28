@@ -196,11 +196,20 @@ double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
 {
   double result = 0.0;
 
+  StdVector<double> vals(data.GetSize());
+
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
     double val = index == -1 ? data[i]->history_.Last() : data[i]->history_[index];
-    result += (penalty ? data[i]->penalty_ : 1.0) * val;
+    vals[i] = (penalty ? data[i]->penalty_ : 1.0) * val;
+    result += vals[i];
   }
+
+  double beta;
+  if(domain->GetOptimization()->GetMOType(beta) == Function::SMOOTH_MIN)
+    result = SmoothMin(vals, beta);
+  else if(domain->GetOptimization()->GetMOType(beta) == Function::SMOOTH_MAX)
+    result = SmoothMax(vals, beta);
 
   return result;
 }

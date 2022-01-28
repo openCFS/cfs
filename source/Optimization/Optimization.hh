@@ -243,6 +243,9 @@ namespace CoupledField
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
 
+        /** Get the combination of functions in multi objective case and write beta */
+        Objective::MultiObjType GetMOType(double& beta) const { beta = this->mo_beta; return mo_type; }
+
         /** Encapsulates Logging information */
         class Log
         {
@@ -409,6 +412,12 @@ namespace CoupledField
 
         /** The time in seconds when. Set in CommitIteration() */
         StdVector<double> time_;
+
+        /** If we have a multiObjective, its type */
+        Objective::MultiObjType mo_type = Function::WEIGHTED_SUM;
+
+        /** If we have a multiObjective and smoothMin or smoothMax, the corresponding beta (default = 1) */
+        double mo_beta;
   };
 
 } // namespace

@@ -426,6 +426,11 @@ void Optimization::SetEnums()
   Function::slackFnct.Add(Function::NORM_BANDGAP, "(2*s)/a");
   Function::slackFnct.Add(Function::ALPHA_MINUS_SLACK, "a-s");
 
+  Function::slackFnct.SetName("Function::MultiObjType");
+  Function::multiObjType.Add(Function::WEIGHTED_SUM, "weightedSum");
+  Function::multiObjType.Add(Function::SMOOTH_MIN, "smoothMin");
+  Function::multiObjType.Add(Function::SMOOTH_MAX, "smoothMax");
+
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");
   Function::access.Add(Function::FILTERED, "filtered");
@@ -927,12 +932,26 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
   double result = 0.0;
 
+  StdVector<double> ovp;
+  StdVector<double> ovpw;
+
   // the multiple excitation case is a special case - for all other cases this is executed once
   for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)
   {
     Excitation& excite = ev_only_excite != NULL ? *ev_only_excite : me->excitations[e];
     excite.Apply(true); // sets the corresponding context
     excite.cost = 0.0;
+
+    bool mo = Objective::type.Parse(optParamNode->Get("costFunction")->Get("type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
+    if(mo)
+    {
+      mo_type = Objective::multiObjType.Parse(optParamNode->Get("costFunction")->Get("multiObjective")->Get("type")->As<std::string>());
+      if(mo_type != Objective::WEIGHTED_SUM)
+      {
+        ovp.Resize(objectives.data.GetSize());
+        ovpw.Resize(objectives.data.GetSize());
+      }
+    }
 
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
     {
@@ -952,9 +971,33 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
       f->AddValue(ov * weight);
 
       result += ov * f->GetPenalty() * weight;
+
+      // if multiobjective, store function values
+      if(mo && mo_type != Objective::WEIGHTED_SUM)
+      {
+        ovp[o] = ov * f->GetPenalty();
+        ovpw[o] = ov * f->GetPenalty() * weight;
+      }
+
       LOG_DBG(opt) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
           << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
           << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
+    }
+
+    if(mo)
+      mo_beta = optParamNode->Get("costFunction")->Get("multiObjective")->Get("beta")->As<double>();
+
+    // if multiobjective, combine stored function values and overwrite results
+    // case WEIGHTED_SUM has already been handled -> no overwrite necessary
+    if(mo && mo_type == Objective::SMOOTH_MIN)
+    {
+      excite.cost = SmoothMin(ovp, mo_beta);
+      result = SmoothMin(ovpw, mo_beta);
+    }
+    if(mo && mo_type == Objective::SMOOTH_MAX)
+    {
+      excite.cost = SmoothMax(ovp, mo_beta);
+      result = SmoothMax(ovpw, mo_beta);
     }
   }
 

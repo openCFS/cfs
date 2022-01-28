@@ -68,7 +68,7 @@ class Objective : public Function
 
   private:
 
-    /** This vector stores the cost functions of the iterations. Written in GetObjective() */
+    /** This vector stores the cost functions of the iterations. Written in PushBackHistory() */
     StdVector<double> history_;
 
     /** by default 1.0 if not multiObjective */

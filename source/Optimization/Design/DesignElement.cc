@@ -612,14 +612,16 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
     return design;
 
   case COST_GRADIENT:
-    return SumObjectiveGradient();
+    return GetPlainCostGradient();
 
   case WEIGHT:
-    if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
+    if(simp == NULL)
+      throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().weight;
 
   case NUM_NEIGHBOURS:
-    if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
+    if(simp == NULL)
+      throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().neighborhood.GetSize();
 
   case CONSTRAINT_GRADIENT:
@@ -640,6 +642,36 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
     throw Exception(valueSpecifier.ToString(sp) + " shall either be special result index or is no scalar value");
   }
   return -1.0; // cannot happen due to default in switch but to please the compiler :(
+}
+
+inline double DesignElement::GetPlainCostGradient() const {
+  Optimization* opt = domain->GetOptimization();
+  assert(opt != NULL);
+
+  double beta;
+
+  // this is also true for single objective
+  if(opt->GetMOType(beta) == Function::WEIGHTED_SUM)
+    return SumObjectiveGradient();
+
+  // get values of all objectives
+  size_t n = opt->objectives.data.GetSize();
+  StdVector<double> ov(n);
+  for(size_t i = 0; i < n; ++i)
+    ov[i] = opt->objectives.data[i]->GetValue();
+
+  double sum = 0.0;
+
+  // GetMOType writes to beta
+  if(opt->GetMOType(beta) == Function::SMOOTH_MIN)
+    for(unsigned int i=0; i < costGradient.GetSize(); ++i)
+      sum += DerivSmoothMin(ov, beta, i) * costGradient[i];
+
+  else if(opt->GetMOType(beta) == Function::SMOOTH_MAX)
+    for(unsigned int i=0; i < costGradient.GetSize(); ++i)
+      sum += DerivSmoothMax(ov, beta, i) * costGradient[i];
+
+  return sum;
 }
 
 double DesignElement::GetPlainMechTrace() const

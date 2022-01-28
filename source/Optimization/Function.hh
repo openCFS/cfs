@@ -177,6 +177,14 @@ class Function
 
     SlackFnct GetSlackFnct() const { return slackFnct_; }
 
+    typedef enum {
+      WEIGHTED_SUM,             /*!< weighted sum of all objectives */
+      SMOOTH_MIN,               /*!< smooth minimum of all objectives */
+      SMOOTH_MAX                /*!< smooth maximum of all objectives */
+    } MultiObjType;
+
+    static Enum<MultiObjType> multiObjType;
+
     /** The real label might be an extended type string. E.g. by "access_".
      * Check if better use this than type.ToString(GetType()).
      * Is overloaded in Condition

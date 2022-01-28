@@ -77,7 +77,7 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
   modeNormalization_ = BaseEigenSolver::NONE;
   isStoredSymmetric_ = false;
 
-  numEigenValues_ = -1;
+  numEV_ = -1;
   eigenValues = new Vector<Complex>();
   errors = new Vector<Complex>();
 
@@ -291,10 +291,10 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     solver->CalcEigenValues(*eigenValues, *errors, numMode_, valueShift_);
   }
 
-  numEigenValues_ = eigenValues->GetSize();
+  numEV_ = eigenValues->GetSize();
 
   // If no eigenvalue at all converged, just leave
-  if(numEigenValues_ == 0) {
+  if(numEV_ == 0) {
     EXCEPTION( "Did not find any eigenvalue!" );
   }
 
@@ -314,7 +314,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     // remove negative eigenvalues and corresponding modes
     Vector<Double> tmp1;
     StdVector<unsigned int> tmp2;
-    for (unsigned int ev = 0; ev < numEigenValues_; ev++) {
+    for (unsigned int ev = 0; ev < numEV_; ev++) {
       if (eigenValuesRealPart[ev] >= 0) {
         tmp1.Push_back(eigenValuesRealPart[ev]);
         tmp2.push_back(modeOrder_[ev]);
@@ -322,13 +322,13 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     }
     (*eigenValues) = tmp1; //copy
     modeOrder_ = tmp2;
-    numEigenValues_ = eigenValues->GetSize();
+    numEV_ = eigenValues->GetSize();
 
     LOG_DBG3(buckD) << "CV: eigenValues = " << eigenValues->ToString();
     LOG_DBG3(buckD) << "CV: modeOrder_ = " << modeOrder_.ToString();
 
     // if all eigenvalues were negative, search for more
-    if (numEigenValues_ == 0)
+    if (numEV_ == 0)
     {
       if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
         assert(minVal_ >= 0 && maxVal_ >= 0);
@@ -343,11 +343,11 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     }
   }
 
-  domain->GetOptimization()->context->num_eigenmodes = numEigenValues_;
+  domain->GetOptimization()->context->num_eigenmodes = numEV_;
 
   // convert eigenvalues to load factors (inverse problem: lf=1/ev, else: lf=ev)
-  loadFactors_->Resize(numEigenValues_);
-  for (UInt i = 0; i < numEigenValues_; i++)
+  loadFactors_->Resize(numEV_);
+  for (UInt i = 0; i < numEV_; i++)
   {
     if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
       if (isInverseProblem_)
@@ -475,16 +475,16 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
     Vector<Double> loadFactorsRealPart = GetRealPartOfVector(loadFactors_);
 
     // check if negative Eigenvalues are present
-    for (unsigned int ev = 0; ev < numEigenValues_; ev++) {
+    for (unsigned int ev = 0; ev < numEV_; ev++) {
       if (loadFactorsRealPart[modeOrder_[ev]] < 0) {
         std::cout << "\n++ WARNING negative proportionality factor will be displayed as positiv in Paraview: " << loadFactorsRealPart[modeOrder_[ev]] << "\n";
       }
     }
 
-    int digs =  boost::lexical_cast<string>((int)numEigenValues_).size() + 2;
+    int digs =  boost::lexical_cast<string>((int)numEV_).size() + 2;
     double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
 
-    for(unsigned int ev = 0; ev < numEigenValues_; ev++)
+    for(unsigned int ev = 0; ev < numEV_; ev++)
     {
       // save_value is the "time" value displayed in paraview
       double save_value = -1.0;
@@ -493,7 +493,7 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
       {
         // time is step.step_val nr
         save_value = step_val + (ev + 1) * sig; // +1 for one based
-        LOG_DBG3(buckD) << "SR: total=" << numEigenValues_ << " digs=" << digs << " sig=" << sig << " count=" << (ev + 1);
+        LOG_DBG3(buckD) << "SR: total=" << numEV_ << " digs=" << digs << " sig=" << sig << " count=" << (ev + 1);
       }
       else
         save_value = std::abs(loadFactorsRealPart[modeOrder_[ev]]);
@@ -567,9 +567,9 @@ void BucklingDriver::SortModes(bool inAbs) {
     }
   }
 
-  modeOrder_.Resize(numEigenValues_);
+  modeOrder_.Resize(numEV_);
   std::size_t n(0);
-  LOG_DBG3(buckD) << "numEigenValues_ = " << numEigenValues_;
+  LOG_DBG3(buckD) << "numEV_ = " << numEV_;
 
   // allocate modeOrder_
   std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&] {return n++;});
