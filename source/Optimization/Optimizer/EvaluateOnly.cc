@@ -86,9 +86,9 @@ void EvaluateOnly::SolveProblem()
     optimization->SolveStateProblem(excite);
 
     eval_obj_timer_->Start();
-    double v = optimization->CalcObjective(excite);
+    design_.value = optimization->CalcObjective(excite);
     eval_obj_timer_->Stop();
-    LOG_DBG(eval) << "SP: obj=" << v;
+    LOG_DBG(eval) << "SP: obj=" << design_.value;
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
     if(eval_grad){
@@ -106,7 +106,7 @@ void EvaluateOnly::SolveProblem()
     {
       Condition* g = optimization->constraints.view->Get(c);
       optimizer_timer_->Start(); // only for the assert
-      v = EvalConstraint(g, false, false, true, excite); // sets the timer itself
+      double v = EvalConstraint(g, false, false, true, excite); // sets the timer itself
       optimizer_timer_->Stop();
 
       double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;

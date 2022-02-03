@@ -124,6 +124,13 @@ Optimization::Optimization()
   objectives.Read(optParamNode->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
+  isMultiObjective_ = Objective::type.Parse(optParamNode->Get("costFunction/type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
+  if(isMultiObjective_)
+  {
+    multiObjectiveType_ = Objective::multiObjType.Parse(optParamNode->Get("costFunction/multiObjective/type")->As<std::string>());
+    multiObjectiveBeta_ = optParamNode->Get("costFunction/multiObjective/beta")->As<double>();
+  }
+
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
   // theoretically we might have multiple multipleExcitation in the xml file for multi sequence cases.
@@ -184,10 +191,13 @@ void Optimization::PostInitSecond()
   if(manager.any().harmonic)
     log.AddToHeader("freq");
 
+  if(isMultiObjective_)
+    log.AddToHeader("multiObjectiveValue");
+
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
-    log.AddToHeader(f->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(f->GetSlackFnct()) : f->GetName());
+    log.AddToHeader(f->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(f->GetSlackFnct()) : f->ToString());
     if(f->GetType() == Function::BANDGAP) {
       log.AddToHeader("max_ef_" + lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
       log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
@@ -952,15 +962,12 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
     excite.Apply(true); // sets the corresponding context
     excite.cost = 0.0;
 
-    bool mo = Objective::type.Parse(optParamNode->Get("costFunction")->Get("type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
-    if(mo)
+    if(isMultiObjective_ && multiObjectiveType_ != Objective::WEIGHTED_SUM)
     {
-      mo_type = Objective::multiObjType.Parse(optParamNode->Get("costFunction")->Get("multiObjective")->Get("type")->As<std::string>());
-      if(mo_type != Objective::WEIGHTED_SUM)
-      {
-        ovp.Resize(objectives.data.GetSize());
-        ovpw.Resize(objectives.data.GetSize());
-      }
+      ovp.Resize(objectives.data.GetSize());
+      ovpw.Resize(objectives.data.GetSize());
+      ovp.Init();
+      ovpw.Init();
     }
 
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
@@ -983,7 +990,7 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
       result += ov * f->GetPenalty() * weight;
 
       // if multiobjective, store function values
-      if(mo && mo_type != Objective::WEIGHTED_SUM)
+      if(isMultiObjective_ && multiObjectiveType_ != Objective::WEIGHTED_SUM)
       {
         ovp[o] = ov * f->GetPenalty();
         ovpw[o] = ov * f->GetPenalty() * weight;
@@ -994,22 +1001,20 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
           << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
     }
 
-    if(mo)
-      mo_beta = optParamNode->Get("costFunction")->Get("multiObjective")->Get("beta")->As<double>();
-
     // if multiobjective, combine stored function values and overwrite results
     // case WEIGHTED_SUM has already been handled -> no overwrite necessary
-    if(mo && mo_type == Objective::SMOOTH_MIN)
+    if(isMultiObjective_ && multiObjectiveType_ == Objective::SMOOTH_MIN)
     {
-      excite.cost = SmoothMin(ovp, mo_beta);
-      result = SmoothMin(ovpw, mo_beta);
+      excite.cost = SmoothMin(ovp, multiObjectiveBeta_);
+      result = SmoothMin(ovpw, multiObjectiveBeta_);
     }
-    if(mo && mo_type == Objective::SMOOTH_MAX)
+    if(isMultiObjective_ && multiObjectiveType_ == Objective::SMOOTH_MAX)
     {
-      excite.cost = SmoothMax(ovp, mo_beta);
-      result = SmoothMax(ovpw, mo_beta);
+      excite.cost = SmoothMax(ovp, multiObjectiveBeta_);
+      result = SmoothMax(ovpw, multiObjectiveBeta_);
     }
   }
+  calcObjIteration_ = this->GetCurrentIteration();
 
   return result;
 }
@@ -1249,6 +1254,11 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out)
   {
     *out << currentIteration;
+    *out << std::fixed << std::setprecision(6);
+
+    if(isMultiObjective_)
+      *out << " \t" << baseOptimizer_->GetObjectiveValue();
+
     if(context->IsHarmonic())
       *out << " \t" << GetIterationFrequency();
 
@@ -1284,6 +1294,12 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(design->HasSlackVariable() && !objectives.Has(Function::SLACK))
     iteration->Get("slack")->SetValue(design->GetSlackVariable());
 
+  if(isMultiObjective_)
+  {
+    std::stringstream ss;
+    ss << std::setprecision(15) << baseOptimizer_->GetObjectiveValue();
+    iteration->Get("multiObjectiveValue")->SetValue(ss.str());
+  }
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {

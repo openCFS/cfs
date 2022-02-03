@@ -244,7 +244,9 @@ namespace CoupledField
         Optimizer GetOptimizerType() const { return optimizer_; }
 
         /** Get the combination of functions in multi objective case and write beta */
-        Objective::MultiObjType GetMOType(double& beta) const { beta = this->mo_beta; return mo_type; }
+        Objective::MultiObjType GetMOType(double& beta) const { beta = this->multiObjectiveBeta_; return multiObjectiveType_; }
+
+        bool CalcObjectiveCalled() { return calcObjIteration_ == this->GetCurrentIteration(); }
 
         /** Encapsulates Logging information */
         class Log
@@ -414,10 +416,15 @@ namespace CoupledField
         StdVector<double> time_;
 
         /** If we have a multiObjective, its type */
-        Objective::MultiObjType mo_type = Function::WEIGHTED_SUM;
+        Objective::MultiObjType multiObjectiveType_ = Function::WEIGHTED_SUM;
+
+        bool isMultiObjective_;
 
         /** If we have a multiObjective and smoothMin or smoothMax, the corresponding beta (default = 1) */
-        double mo_beta = -1.0;
+        double multiObjectiveBeta_;
+
+        /** In DesignElement::GetPlainCostGradient we need to know, if the objective values have been set */
+        int calcObjIteration_ = -1;
   };
 
 } // namespace

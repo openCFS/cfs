@@ -19,7 +19,7 @@ namespace CoupledField {
 
   public:
 
-    //! Defaul Constructor
+    //! Default Constructor
     BaseVector() {
     }
 

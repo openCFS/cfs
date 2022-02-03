@@ -770,9 +770,6 @@ string Condition::ToString() const
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
 
-  if(type_ == GLOBAL_BUCKLING_LOAD_FACTOR or type_ == LOCAL_BUCKLING_LOAD_FACTOR)
-    os << "_" << eigenvalue_id_;
-
   // add bound type if multiple unique conditions exist
   if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
     os << "_" << bound.ToString(bound_);

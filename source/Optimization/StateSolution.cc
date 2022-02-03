@@ -462,9 +462,9 @@ void StateSolution::Write(SinglePDE* pde)
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
     LOG_DBG3(statesol) << "SS:W raw = " << raw->ToString();
-    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString();
+    LOG_DBG3(statesol) << "SS:W fe =  " << fe->GetSingleVector()->ToString();
     *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
-    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString();
+    LOG_DBG3(statesol) << "SS:W fe =  " << fe->GetSingleVector()->ToString();
   }
   else
     LOG_DBG2(statesol) << "SS:W raw not written as it was not set";

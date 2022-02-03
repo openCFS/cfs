@@ -85,9 +85,6 @@ class BucklingDriver: public virtual SingleDriver {
     // store mode in algebraic system solution
     void StoreMode(unsigned int index);
 
-    // export eigenmodes
-    void ExportModes();
-
     // sort modes with ascending eigenvalues
     void SortModes(bool inAbs);
 

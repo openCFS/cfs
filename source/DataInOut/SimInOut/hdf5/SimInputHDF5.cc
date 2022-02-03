@@ -1398,7 +1398,6 @@ namespace CoupledField {
     StdVector<std::string> vec;
     H5IO::ReadArray( extFiles, "MaterialFile", vec);
     params = vec[0];
-
   }
 
   void SimInputHDF5::DB_GetFeFctCoefs( UInt sequenceStep, UInt stepNum,

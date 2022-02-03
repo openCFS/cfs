@@ -416,10 +416,17 @@ string Function::ToString() const
   if(local != NULL && local->GetPhase() != Local::BOTH)
     return Local::phase.ToString(local->GetPhase()) + "_" + tn;
 
+  std::ostringstream os;
+
   if(IsDefaultAccess())
-    return tn;
+    os << tn;
   else
-    return access.ToString(access_) + "_" + tn;
+    os << access.ToString(access_) + "_" + tn;
+
+  if(type_ == GLOBAL_BUCKLING_LOAD_FACTOR)
+    os << "_" << eigenvalue_id_;
+
+  return os.str();
 }
 
 Function::Access Function::DefaultAccess(Function::Type type) const

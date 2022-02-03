@@ -147,8 +147,7 @@ void OptimalityCondition::SolveProblem()
   while(!optimization->DoStopOptimization() && iter <= max_iter)
   {
     // calc gradients to store the results in data[element]...
-    // the gradients are based for the calculation of the next iteration
-
+    // only the gradients are needed for the calculation of the next iteration
 
     optimization->SolveAdjointProblems();
 
@@ -158,20 +157,20 @@ void OptimalityCondition::SolveProblem()
     
     // reset values of the constraint gradients
     optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
-    
+
     if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0) {
       eval_grad_const_timer_->Start();
       optimization->CalcConstraintGradient(NULL);
       eval_grad_const_timer_->Stop();
     }
-    
+
     // store iteration 0
     if(iter == 0)
     {
       eval_obj_timer_->Start();
       optimization->CalcObjective();   // for output
       eval_obj_timer_->Stop();
-      // the gradients are (here only! )pointing to the next design vector, 
+      // the gradients are (here only!) pointing to the next design vector,
       // hence the gradients for iteration "0" and 1 are identical
       optimization->CommitIteration(); // don't assert we are running
       iter++;
@@ -193,11 +192,11 @@ void OptimalityCondition::SolveProblem()
 
     case EXTREMIZE:  CalcNextExtremizeIteration();
                      break;
-                     
-    default: assert(false); 
+
+    default: assert(false);
     }
     optimizer_timer_->Stop();
-    
+
     // solve the state problem for the new design vector
     // we have to set reassemblence for all pdes
     for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++) {
@@ -212,9 +211,9 @@ void OptimalityCondition::SolveProblem()
     eval_obj_timer_->Start();
     optimization->CalcObjective();
     eval_obj_timer_->Stop();
-    
-    // every state problem is an iteration 
-    // The gradients "point" to this design vector. 
+
+    // every state problem is an iteration
+    // The gradients "point" to this design vector.
     optimization->CommitIteration(); // don't assert we are running
     iter++;
   }
@@ -237,8 +236,9 @@ bool OptimalityCondition::CalcNextFramedIteration(bool last_was_stalled_err)
   // find the proper lambda
   optimization->GetDesign()->WriteDesignToExtern(vault_.GetPointer());
 
-  // set the frame borders, first iteration when lower_ == upper_
+  // set the frame borders
   if(lower_ == upper_) {
+    // this is only reached in the first iteration
     lower_ = start_lower_;
     upper_ = start_upper_;
   } else if(last_was_stalled_err) {
@@ -248,6 +248,8 @@ bool OptimalityCondition::CalcNextFramedIteration(bool last_was_stalled_err)
     lower_ = lambda_ * 1e-4;
     upper_ = std::min(2*start_upper_, lambda_ * 1e4);
   } else {
+    //FIXME
+    assert(always_enlarge_);
     lower_ = lambda_ * (always_enlarge_ ? enlarge_lower_ : 1.0);
     upper_ = lambda_ * (always_enlarge_ ? enlarge_upper_ : 1.0);
   }
@@ -259,7 +261,7 @@ bool OptimalityCondition::CalcNextFramedIteration(bool last_was_stalled_err)
   double err = -1;
   double last_err = -2;   // when move limit is a bound, stop, when err is not changing
   bool stalled_err = false; // when | err - last_err | is zero plus other conditions
-   
+
   do
   {
     // calc next lambda
@@ -486,7 +488,7 @@ double OptimalityCondition::Evaluate(double lambda)
    // work (it becomes unsymmetrically for symmetric problems) as all 
    // elements but the first have old and new elements in their filter
    // stencil. Hence we store in evaluate_tmp_
-   
+
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
    for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
    {
@@ -496,6 +498,7 @@ double OptimalityCondition::Evaluate(double lambda)
     
      // if filter is enabled we use the filtered value otherwise the plain one
      double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
+     smart_obj_grad *= optimization->objectives.DoMaximize() ? -1.0 : 1.0;
      double b_e = -1.0 * smart_obj_grad;
 
      // ill posed problems have a problem here!  
@@ -509,8 +512,8 @@ double OptimalityCondition::Evaluate(double lambda)
      b_e /= (lambda * de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g));
      
      // next is density times b_e which is compared with box constraints and move limit
-     double next = rho_e * std::pow(b_e, oc_damping_);        
-                     
+     double next = rho_e * std::pow(b_e, oc_damping_);
+
      double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
      double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);            
 

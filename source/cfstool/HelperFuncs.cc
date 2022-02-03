@@ -436,15 +436,8 @@ namespace CFSTool {
       }
       else 
       {
-        if(xmlFile == "ParameterFile") 
-        {
-          hdf5Reader->DB_GetParamFileContent( xml );
-        }
-        else 
-        {
-          hdf5Reader->DB_Close();
-          EXCEPTION("XML file " << xmlFile << " not found in HDF5 database group.");
-        }
+        hdf5Reader->DB_Close();
+        EXCEPTION("XML file " << xmlFile << " not found in HDF5 database group.");
       }
       hdf5Reader->DB_Close();
     } catch (Exception& ex) 

@@ -80,7 +80,7 @@ class MaterialHandler;
     // Ensure, that hdf5 input class is present
     assert(inFile_);
 
-    // Initialize inpout readers
+    // Initialize in/out readers
     inFile_->InitModule();
     inFile_->DB_Init();
     

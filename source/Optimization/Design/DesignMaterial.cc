@@ -3819,9 +3819,7 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double 
     R2.Resize(dim, dim);
     R3.Resize(dim, dim);
 
-    int axis1 = -1;
-    int axis2 = -1;
-    int axis3 = -1;
+    int axis1 = -1, axis2 = -1, axis3 = -1;
     switch(rotationType_) {
     case RotationType::ZXZ:
       axis3 = 2;

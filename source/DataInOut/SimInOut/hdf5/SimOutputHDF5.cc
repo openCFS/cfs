@@ -1298,9 +1298,7 @@ namespace CoupledField {
     H5::Group userDataGroup;
 
     // If it does not exist, create Group for Data.
-    try {
-      userDataGroup = mainGroup_.openGroup("UserData");
-    } H5_CATCH( "Can not write meta information to hdf5 file" );
+    userDataGroup = H5IO::OpenCreateGroup(mainGroup_, "UserData" );
 
     H5IO::Write1DArray( userDataGroup, dSetName, 1, &str, dPropList_ );
     userDataGroup.close();
@@ -1346,15 +1344,15 @@ namespace CoupledField {
   
   void SimOutputHDF5::DB_WriteXmlFiles( fs::path simFile, fs::path matFile ) {
     if( isRestart_)
-          return;
+      return;
     
     fs::ifstream fin;
     std::ostringstream dumpStr;
     H5::Group extFiles;
-    try {
+    try
+    {
       extFiles = dbGroup_.createGroup("InputFiles");
     } H5_CATCH( "Could not create group for external files");
-    
     
     // open external Files
     StdVector<fs::path> filePaths(2);
@@ -1384,9 +1382,45 @@ namespace CoupledField {
       
       // now write out string
       H5IO::Write1DArray( extFiles, setNames[i], 1, &str, dPropList_ );
-  }
+    }
     extFiles.close();
   }
+
+  void SimOutputHDF5::DB_WritePythonFile( fs::path pythonFile) {
+    if(isRestart_)
+      return;
+
+    fs::ifstream fin;
+    std::ostringstream dumpStr;
+    H5::Group extFiles;
+    meshResultsGroup_ = H5IO::OpenCreateGroup(dbGroup_, "InputFiles");
+
+    // open external file
+    fs::path filePath;
+    std::string setName;
+    filePath = pythonFile;
+    setName = "PythonFile";
+
+    fin.open( filePath, std::ios::binary );
+
+    if(fin.fail())
+      EXCEPTION("Cannot open file '" << filePath << "' to dump into HDF5!");
+
+    // seek to the end of the file
+    fin.seekg (0, std::ios::end);
+    UInt numBytes = fin.tellg();
+    fin.seekg (0, std::ios::beg);
+
+    std::string str;
+    str.resize(numBytes);
+    fin.read(&str[0], numBytes);
+    fin.close();
+
+    // now write out string
+    H5IO::Write1DArray( extFiles, setName, 1, &str, dPropList_ );
+    extFiles.close();
+  }
+
   void SimOutputHDF5::DB_BeginMultiSequenceStep( UInt step,
                                                  BasePDE::AnalysisType type ) {
     currMS_ = step;

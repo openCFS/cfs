@@ -61,17 +61,18 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     // factor for transfer function is 1.0 as we modify the material tensor directly
     Assign(out, stiffness, 1.0);
-    // LOG_DBG3(em) << "stiffness = " << stiffness.ToString();
+    // LOG_DBG3(em) << "SetElementK: stiffness = " << stiffness.ToString();
 
     if(app == App::BUCKLING)
     {
       assert(f->ctxt->DoBuckling());
 
+      // LOG_DBG3(em) << "SetElementK: ev = " << ev;
       if (f->ctxt->GetBucklingDriver()->IsInverseProblem())
         out *= -ev;
 
       AddGeometricStiffnessToStiffness(f->ctxt, NULL, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
-      // LOG_DBG3(em) << "SetElementK: GeoStiff out = " << out.ToString();
+      // LOG_DBG3(em) << "SetElementK: stiff + geostiff: out = " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {

@@ -119,11 +119,11 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
   else
   {
     if(!obj_node->Has("multiObjective"))
-      throw Exception("For costFunction type 'multiObjective' element with 'objective' childs is needed");
+      throw Exception("For costFunction type 'multiObjective' element with 'objective' child is needed");
 
     ParamNodeList list = obj_node->Get("multiObjective")->GetList("objective");
     if(list.GetSize() == 0)
-      throw Exception("For costFunction type 'multiObjective' element with 'objective' childs is needed");
+      throw Exception("For costFunction type 'multiObjective' element with 'objective' child is needed");
 
     data.Resize(list.GetSize(), NULL);
 

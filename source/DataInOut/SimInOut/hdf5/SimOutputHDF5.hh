@@ -107,6 +107,9 @@ namespace CoupledField {
     //! Write parameter and xml file
     void DB_WriteXmlFiles( fs::path simFile, fs::path matFile );
 
+    //! Write python file
+    void DB_WritePythonFile( fs::path pythonFile);
+
     //! Begin new multisequence step for database section
     void DB_BeginMultiSequenceStep( UInt step,
                                     BasePDE::AnalysisType type );

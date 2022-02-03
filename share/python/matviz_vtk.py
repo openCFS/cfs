@@ -250,17 +250,14 @@ def show_vtk(polydata, res, save = None, planes=[], show_edges=False, show_axes=
   renderer.SetBackground(1, 1, 1)  # Background color white
 #  renderWindow.SetAlphaBitPlanes(1)
 
-  if camera_settings:
-    renderWindow.Render()
-    cam = vtk.vtkCamera()
-    cam.SetPosition(camera_settings[0], camera_settings[1], camera_settings[2])
-    cam.SetFocalPoint(camera_settings[3], camera_settings[4], camera_settings[5])
-    cam.SetRoll(camera_settings[6])
-    renderer.SetActiveCamera(cam)
-
   # Render and interact
   renderWindow.Render()
 
+  if camera_settings:
+    cam = renderer.GetActiveCamera();
+    cam.SetPosition(camera_settings[0], camera_settings[1], camera_settings[2])
+    cam.SetFocalPoint(camera_settings[3], camera_settings[4], camera_settings[5])
+    cam.SetRoll(camera_settings[6])
 
   if save:
     save_screenshot(renderWindow, save)

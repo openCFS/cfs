@@ -6,8 +6,12 @@
 #include <assert.h>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
+//#include "Domain/CoefFunction/CoefFunctionOpt.hh"
+//#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "MatVec/Vector.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
@@ -17,6 +21,8 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/PythonKernel.hh"
+//#include "Optimization/PythonTools.hh"
+#include "MatVec/Vector.hh"
 #include "Utils/tools.hh"
 
 // declare class specific logging stream
@@ -48,6 +54,12 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   PythonKernel::LoadStatus stat = python->LoadPythonModule(this_opt_pn_);
   module = stat.module;
   givenname = stat.full_file;
+
+  // this stores the python file in the h5 output file
+  std::ifstream fstream(this_opt_pn_->Get("file")->As<string>());
+  std::stringstream buffer;
+  buffer << fstream.rdbuf();
+  domain->GetSimState()->GetOutputWriter()->WriteStringToUserData("PythonFile", buffer.str());
 
   pnh->Get("file")->SetValue(givenname);
   if(progOpts->DoDetailedInfo())

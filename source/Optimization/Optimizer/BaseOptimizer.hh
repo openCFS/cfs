@@ -88,12 +88,14 @@ namespace CoupledField
     void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
         StdVector<double>& values, GradientType grtype = ALL);
 
-    /** Helper vor EvalGradConstraint()
+    /** Helper for EvalGradConstraint()
      * Called directly by FeasPP
      * @return nnz of constraint
      * @param direct_call @see EvalConstraint() */
     int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call = true);
 
+    /** return the objective value. useful for multi objective */
+    double GetObjectiveValue() const { return design_.value; }
 
     /** Return the infinity value (here for ipopt) */
     virtual double GetInfBound() const { return 1e19; }
@@ -228,15 +230,15 @@ namespace CoupledField
     /** this is the link the specific optimizers param node */
     PtrParamNode this_opt_pn_;
 
+    /** Here we store the objective value for a design. */
+    DesignMemory design_;
+
   private:
 
     /** we need the adjoint for gradients only. In case of a line search the state problems are sufficient.
      * For the harmonic case we need to do the adjoint with the state as as for multiple frequences the system is reassembled.
      * Also note the multiple sequence issue! */
     bool SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale);
-    
-    /** Here we store the objective value for a design. */
-    DesignMemory design_;
     
   };
 

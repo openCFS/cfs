@@ -47,51 +47,7 @@
         <xsd:complexType>
           <xsd:all>
             <!-- It is possible to choose in the costFunction attribute type=multiObjective then this is evaluated -->
-            <xsd:element name="multiObjective" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="objective" minOccurs="1" maxOccurs="unbounded">
-                    <xsd:complexType>
-                      <xsd:all>
-                        <!-- this is the tensor for the homogenizationTracking objective -->
-                        <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1" />
-                        <!-- the tensor can optionally be specified by emod and poisson ratio -->
-                        <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1" />
-                        <!-- some (global) local constraints have optional or mandatory local properties -->
-                        <xsd:element name="local" type="DT_Local" minOccurs="0" maxOccurs="1" />
-                        <!-- local and global python function -->
-                        <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1" />
-                      </xsd:all>
-                      <xsd:attribute name="type" type="DT_Objective" use="required" />
-                      <!-- when type is slackFunction we need to give function -->
-                      <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function"/>
-
-                      <xsd:attribute name="penalty" type="xsd:float" use="optional" default="1.0"/>
-
-                      <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
-                      <!-- only the globalSlope has a value and only within multiObjective -->
-                      <xsd:attribute name="parameter" use="optional" type="xsd:float" />
-                      <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
-                      <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
-                      <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
-                      <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
-                      <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
-                      <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>
-			          <xsd:attribute name="type" use="optional" default="weightedSum">
-			            <xsd:simpleType>
-			              <xsd:restriction base="xsd:token">
-			                <xsd:enumeration value="weightedSum" />
-			                <xsd:enumeration value="smoothMin" />
-			                <xsd:enumeration value="smoothMax" />
-		                </xsd:restriction>
-	                </xsd:simpleType>
-                </xsd:attribute>
-                <xsd:attribute name="beta" type="xsd:float" use="optional" default="1"/>
-              </xsd:complexType>
-            </xsd:element>
+            <xsd:element name="multiObjective" minOccurs="0" maxOccurs="1" type="DT_MultiObjective"/>
             <xsd:element name="stopping" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <!-- type of stopping criteria -->
@@ -573,7 +529,7 @@
       <xsd:element name="optimizer" minOccurs="1">
         <xsd:complexType>
           <!-- It is optional to define the optimizer in more detail. -->
-          <xsd:sequence>
+          <xsd:choice minOccurs="0" maxOccurs="unbounded">
             <!-- This describes the optional autoscale setting <autoscale target="10" tolerance="0.5" manual="1.0"/> -->
             <xsd:element name="autoscale" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -991,6 +947,7 @@
                 <xsd:attribute name="lambda_min" use="optional" default="1e-20" type="xsd:float" />
                 <!-- exceeding this value for fumble actually means that upper or lower are reached -->
                 <xsd:attribute name="max_lambda_iters" use="optional" default="100" type="xsd:integer" />
+                <xsd:attribute name="multiObjectiveWeight" use="optional" default="0.5" type="xsd:float" />
               </xsd:complexType>
             </xsd:element>
 
@@ -1023,7 +980,7 @@
               </xsd:complexType>
             </xsd:element>
 
-          </xsd:sequence>
+          </xsd:choice>
           <!-- mandatory to give the name. The type is one of a list of types -->
           <xsd:attribute name="type" use="required">
             <xsd:simpleType>
@@ -3118,6 +3075,50 @@
     <!-- shall there always be the cfs region material added when not derivative? -->
     <xsd:attribute name="bias" type="xsd:boolean" default="false" />
     
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MultiObjective">
+    <xsd:choice minOccurs="1" maxOccurs="unbounded">
+      <xsd:element name="objective" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:all>
+            <!-- this is the tensor for the homogenizationTracking objective -->
+            <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1" />
+            <!-- the tensor can optionally be specified by emod and poisson ratio -->
+            <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1" />
+            <!-- some (global) local constraints have optional or mandatory local properties -->
+            <xsd:element name="local" type="DT_Local" minOccurs="0" maxOccurs="1" />
+            <!-- local and global python function -->
+            <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1" />
+          </xsd:all>
+          <xsd:attribute name="type" type="DT_Objective" use="required" />
+          <!-- when type is slackFunction we need to give function -->
+          <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function"/>
+  
+          <xsd:attribute name="penalty" type="xsd:float" use="optional" default="1.0"/>
+  
+          <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
+          <!-- only the globalSlope has a value and only within multiObjective -->
+          <xsd:attribute name="parameter" use="optional" type="xsd:float" />
+          <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
+          <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
+          <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
+          <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
+          <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
+          <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:choice>
+    <xsd:attribute name="type" use="optional" default="weightedSum">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="weightedSum" />
+          <xsd:enumeration value="smoothMin" />
+          <xsd:enumeration value="smoothMax" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="beta" type="xsd:float" use="optional" default="1"/>
   </xsd:complexType>
 
 </xsd:schema>

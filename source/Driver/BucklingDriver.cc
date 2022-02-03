@@ -534,30 +534,6 @@ unsigned int BucklingDriver::StoreResults(unsigned int stepNum, double step_val)
     return stepNum;
 }
 
-void BucklingDriver::ExportModes() {
-  StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep());
-
-  // generates a index-array modeOrder_ containing the mode indices sorted by ascending eigenvalue
-  SortModes(true);
-
-  // export solution, i.e. modes
-  PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
-  if (els && els->Get("solution")->As<bool>()) {
-    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
-    std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
-    if(domain->GetDriver()->GetAnalysisId().ToString(true) != "") {
-      base += "_" + domain->GetDriver()->GetAnalysisId().ToString(true);
-    }
-    for (UInt i=0; i< eigenValues->GetSize();i++) {
-      Vector<Complex> mode;
-      sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i], mode);
-      mode.Export( base + "_mode_" + lexical_cast<std::string>(modeOrder_[i]+1), vec_format);
-//      sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i], mode, false);
-//      mode.Export( base + "_mode-left_" + lexical_cast<std::string>(modeOrder_[i]+1), vec_format);
-    }
-  }
-}
-
 void BucklingDriver::SortModes(bool inAbs) {
   Vector<Double> realPart = GetRealPartOfVector(eigenValues);
 

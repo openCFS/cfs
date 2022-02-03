@@ -60,28 +60,28 @@ void CoefFunctionOpt::SetToMaterialDerivative(DesignElement::Type dir)
 template <class T>
 void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
 {
- assert(this->dimType_ == TENSOR);
- Matrix<T> locMatrix;
+  assert(this->dimType_ == TENSOR);
+Matrix<T> locMatrix;
 
- switch(state)
- {
- case DIRECTION:
- case OPT:
-   // the element does not necessarily lay in the design space!
-   // if ApplyPhysicalDesign() returns true, coefMat is already set
-   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), locMatrix, &lpm))
+  switch(state)
+  {
+  case DIRECTION:
+  case OPT:
+    // the element does not necessarily lay in the design space!
+    // if ApplyPhysicalDesign() returns true, coefMat is already set
+    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), locMatrix, &lpm))
      orgMat->GetTensor(locMatrix, lpm);
-   //if (coefMat.GetNumCols() > 0) {
+    //if (coefMat.GetNumCols() > 0) {
      //assert(design->TestTensorPosDef<T>(coefMat, &lpm , shared_from_this()->GetMaterialDerivative()));
-   //}
-   break;
- case ORG:
-   orgMat->GetTensor(locMatrix, lpm);
-   break;
- case SHADOW:
-   shadowMat->GetTensor(locMatrix, lpm);
-   break;
- }
+    //}
+    break;
+  case ORG:
+    orgMat->GetTensor(locMatrix, lpm);
+    break;
+  case SHADOW:
+    shadowMat->GetTensor(locMatrix, lpm);
+    break;
+  }
 
   TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 

@@ -2340,6 +2340,7 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
     LOG_DBG2(em) << "CE: f=" << f->ToString() << " mat=" << mat.ToString();
     LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " col_idx=" << g->bloch.col << " min=" << (g->GetBound() == Condition::LOWER_BOUND) << " f=" << freq;
   }
+  LOG_DBG(em) << "iteration: " << this->GetCurrentIteration() << ", deriv: " << derivative;
   LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " f=" << freq;
 
   if(derivative)
@@ -2411,7 +2412,7 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
     StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
     mode_idx = order[mode_idx];
   }
-  LOG_DBG2(em) << "mode: " << mode_idx << " f: " << f->ToString();
+  LOG_DBG2(em) << "mode_idx: " << mode_idx << " f: " << f->ToString();
 
   TransferFunction* tf = design->GetTransferFunction(f->GetDesignType(), App::BUCKLING, true);
 
@@ -2443,6 +2444,7 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
 
   // calculate fac * mode^T (dK/drho - ev * dG/drho) * mode locally, where mode = sol->elem[App::BUCKLING]
   // and the matrix is set by SetElementK with App::BUCKLING + derivative = true
+  LOG_DBG2(em) << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
   Double sumFirstTerm = CalcU1KU2(tf, sol->elem[App::BUCKLING], App::BUCKLING, sol->elem[App::BUCKLING], NULL, factor, BUCKLING, f, -1, ev);
 
   // this is the adjoint solution v (stored as real vector)

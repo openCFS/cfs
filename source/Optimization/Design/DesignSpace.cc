@@ -931,7 +931,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   if(elementCache == NULL)
     return false;
 
-  // for buckling we must not use local element caching as the local element matrices depend on the current stresses!
+  // for buckling we must not use local element caching as the local element matrices depend on the current stresses
   if(Optimization::context->DoBuckling())
     return false;
 
