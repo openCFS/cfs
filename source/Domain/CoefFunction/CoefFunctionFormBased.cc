@@ -704,11 +704,8 @@ template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::CoefFu
   notation_ = notation;
 
   // set inherited attributes
-  if (APP == App::ELEC){
-  this->dimType_ = CoefFunction::SCALAR;
-  }else{
-  this->dimType_ = CoefFunction::TENSOR;
-  }
+  dimType_ = APP == App::ELEC ? CoefFunction::SCALAR : CoefFunction::TENSOR;
+
 }
 
 template<class TYPE, App::Type APP> CoefFunctionHomogenization<TYPE,APP>::~CoefFunctionHomogenization() { }

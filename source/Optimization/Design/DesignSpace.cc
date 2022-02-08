@@ -7,9 +7,9 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
-#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
@@ -32,7 +32,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
-#ifdef USE_EMBEDDED_PYTHON // currently only the python version
+#ifdef USE_EMBEDDED_PYTHON // currently only the Python version
   #include "Optimization/Design/SpaghettiDesign.hh"
 #endif
 #include "Optimization/Design/SplineBoxDesign.hh"
@@ -88,9 +88,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   // for convenience
   assert(Optimization::manager.context.GetSize() > 0);
-  if (method == ErsatzMaterial::PARAM_MAT) {
+  // better not call SpaghettiDesign::IsMaterial() from this constructor
+  if(ErsatzMaterial::IsParamMat(method)) {
     designMaterials.Resize(Optimization::manager.context.GetSize());
-    //initialize with null to avoid undefined behaviour when decosntructor tries to delete uninitialized data
+    //initialize with null to avoid undefined behavior when destructor tries to delete uninitialized data
     designMaterials.Init(NULL);
   }
   regionIds_ = reg_data;
@@ -164,9 +165,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
 
-  if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
+  if(!ErsatzMaterial::IsParamMat(method))
   {
-
     if(trans_in.GetSize() == 0)
       throw Exception("no transferFunctions given");
     transfer.Reserve(trans_in.GetSize());
@@ -175,7 +175,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
   else
   {
-
     transfer.Reserve(trans_in.GetSize() + 1); // We reserve space for all given TransferFunctions plus the fallback IDENTITY transfer function
     transfer.Push_back(TransferFunction()); // add fallback IDENTITY transfer function at transfer[0] for parameters with no given TransferFunction
   }
@@ -183,6 +182,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   for(unsigned int i = 0; i < trans_in.GetSize(); i++)
     transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
     // check for mass if we have harmonic and density in PostInit() before the pde's are not ready
+
+
 
   // read the optional transformations
   if(pn->Has("transform"))
@@ -338,6 +339,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                   || method == ErsatzMaterial::PARAM_MAT
                   || method == ErsatzMaterial::SHAPE_MAP
                   || method == ErsatzMaterial::SPAGHETTI
+                  || method == ErsatzMaterial::SPAGHETTI_PARAM_MAT
                   || method == ErsatzMaterial::SPLINE_BOX)
               {
                 DesignElement* ptr = &(data.Last());
@@ -502,8 +504,9 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
   case ErsatzMaterial::SHAPE_MAP:
     return new ShapeMapDesign(reg_data, pn, method);
   case ErsatzMaterial::SPAGHETTI:
+  case ErsatzMaterial::SPAGHETTI_PARAM_MAT:
 #ifdef USE_EMBEDDED_PYTHON
-    return new SpaghettiDesign(reg_data,pn);
+    return new SpaghettiDesign(reg_data,pn,method);
 #else
     EXCEPTION("currently spaghetti optimization requires embedded Python")
 #endif
@@ -521,7 +524,8 @@ void DesignSpace::PostInit(int objectives, int constraints)
 {
   setup_timer_->Start();
 
-  if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
+  // probably not the smartest way to omit a transferFunction check - Fabian
+  if(ErsatzMaterial::IsParamMat(method_))
   {
     assert(Optimization::manager.IsInitialized());
     for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++)
@@ -1018,11 +1022,25 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     if(coef->GetForm()->GetName() != "PreStressInt")
     {
       MaterialTensor<T> retTensor(VOIGT, &retMat, false);
-      return Optimization::context->dm->GetMechTensor(retTensor, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative());
+      // this here is the standard case for design material!!!
+      bool ret = Optimization::context->dm->GetMechTensor(retTensor, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative());
+      // we add the bias here as we have no coef in DesignMaterial::GetMechTensor()
+      if(ret && Optimization::context->dm->HasBias() && coef->GetMaterialDerivative() == DesignElement::NO_DERIVATIVE)
+      {
+        const CoefFunctionConst<T>* org = dynamic_cast<const CoefFunctionConst<T>*>(coef->orgMat.get());
+        assert(org != NULL);
+        retMat.Add(1.0, org->GetTensor());
+      }
+      LOG_DBG2(designSpace) << "APD: e=" << lpm->ptEl->elemNum << " dm=1 " << " d=" << DesignElement::type.ToString(coef->GetMaterialDerivative())
+                            <<  " r=" << ret << " rm=" << retMat.ToString();
+
+      return ret;
+      //LOG_DBG3(designSpace) << "APD: form name=" << coef->GetForm()->GetName() << ", dir=" << DesignElement::type.ToString(coef->GetMaterialDerivative());
     }
 
     if(coef->GetMaterialDerivative() != DesignElement::NO_DERIVATIVE)
     {
+      assert(coef->GetForm()->GetName() == "PreStressInt");
       // We have "PreStressInt" and param-mat -> we have to set the direction for the stress computation
       // stress = D' * B * u, i.e. stress is a nested coeffunction
       // In OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
@@ -1885,6 +1903,9 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
     for(unsigned int i = 0; i < regions[0].GetSize(); i++)
       regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
+
+  for(const DesignMaterial* dm : designMaterials)
+    dm->ToInfo(in->Get("designMaterial", ParamNode::APPEND));
 }
 
 std::string DesignSpace::ToString(int level)
@@ -1946,6 +1967,15 @@ unsigned int DesignSpace::GetNumberOfVariables() const
     }
   }
   return n;
+}
+
+std::string DesignSpace::DumpRegions() const
+{
+  std::stringstream ss;
+  for(unsigned int d = 0; d < regions.GetSize(); d++)
+    for(unsigned int r = 0; r < regions[d].GetSize(); r++)
+      ss << "des=" << d << " reg=" << r << ": " << regions[d][r].ToString() << " ";
+  return ss.str();
 }
 
 int DesignSpace::FindRegion(RegionIdType regionId) const

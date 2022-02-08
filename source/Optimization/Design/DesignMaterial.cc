@@ -72,6 +72,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   if(pn->Has("rotationtype"))
     rotationType_ = rotationType.Parse(pn->Get("rotationtype")->As<std::string>());
 
+  bias_ = pn->Get("bias")->As<bool>();
+  // TODO: set biasMaterials_
+
   // initialize, maybe overwritten later
   interpolation_ = DesignMaterial::NOTYPE;
 
@@ -554,6 +557,14 @@ inline void DesignMaterial::ReadCoeff(PtrParamNode pn, const string& name, int n
     coeff.Resize(nRows,nCols);
     coeff.Init();
   }
+}
+
+void DesignMaterial::ToInfo(PtrParamNode in) const
+{
+  in->Get("type")->SetValue(type.ToString(type_));
+  in->Get("bias")->SetValue(bias_); // TODO: Add material names in case
+
+  // dont't easily add GetParameters() map, as there are constants and element temp values mixed
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
@@ -1146,7 +1157,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
   }
   if (type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC) {
     nu3 = nu13 * E3/E;
-    n3 = nu3*nu3*E/E3;
+    n3 = nu13*nu3;
     c = (1.0-nu-2.0*n3); // this is the interesting thing, this must not get 0, however this would imply a volume (trace of tensor) of infinity, so it is hopefully not occuring
     if(c < 1e-8) {
       c = 1e-8;
@@ -4115,6 +4126,8 @@ bool DesignMaterial::GetMechTensor(MaterialTensor<double>& mt, SubTensorType sub
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }
+
+  LOG_DBG2(dm) << "GMT: e=" << elem->elemNum << " t=" << type.ToString(type_) << " d=" << DesignElement::type.ToString(direction) << " p=" << pure << " -> " << mt.GetMatrix(VOIGT).ToString();
 
   assert(mt.GetMatrix(VOIGT).GetNumRows() >= 3 && mt.GetMatrix(VOIGT).GetNumCols() >= 3);
 

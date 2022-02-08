@@ -375,9 +375,9 @@
                 <xsd:enumeration value="overhang_hor" />
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic" />
-                <!-- distance of start and end node of a noodlee (shaphetti design) -->
+                <!-- distance of start and end node of a noodle (shaghetti design) -->
                 <xsd:enumeration value="distance" />
-                <!-- curvature divided by distance of start and end node of a noodlee (shaphetti design) -->
+                <!-- curvature divided by distance of start and end node of a noodle (shaghetti design) -->
                 <xsd:enumeration value="bending" />
                 <!-- spline box stuff  -->                
                 <xsd:enumeration value="cones" />
@@ -856,22 +856,7 @@
               </xsd:complexType>
             </xsd:element>
            <!-- perform optimization via an external python file -->
-            <xsd:element name="python" minOccurs="0">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
-                    <xsd:complexType>
-                      <xsd:attribute name="key" type="xsd:string" use="required"/>
-                      <xsd:attribute name="value" type="xsd:string" use="required"/>
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>
-                <!-- can be the full path if attribute path is not used -->
-                <xsd:attribute name="file" type="xsd:string" use="required" />
-                <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
-                <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
-              </xsd:complexType>
-            </xsd:element>
+            <xsd:element name="python" minOccurs="0" type="DT_Python"/>
             <!-- the parameters of the shape optimizer can be set <shapeOpt enableTopgrad="true" /> -->
             <xsd:element name="shapeOpt" minOccurs="0">
               <xsd:complexType>
@@ -958,7 +943,7 @@
                   <xsd:element name="framed" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <!-- better not too small. It is fast to reduce for the first time but if too small we exceed max_lambda iter which is more expensice -->
-                      <xsd:attribute name="upper" type="xsd:float" default="100000" />
+                      <xsd:attribute name="upper" type="xsd:float" default="1000000" />
                       <xsd:attribute name="lower" type="xsd:float" default="0" />
                       <!-- shall the next interation start with larger bounds? -->
                       <xsd:attribute name="alwaysEnlarge" type="xsd:boolean" default="true" />
@@ -1342,121 +1327,22 @@
               </xsd:complexType>
             </xsd:element>
 
-            <!-- feature mapping via spaghetti -->
-            <xsd:element name="spaghetti" minOccurs="0" maxOccurs="1">
+            <!-- feature mapping via spaghetti based on density mapping -->
+            <xsd:element name="spaghetti" minOccurs="0" maxOccurs="1" type="DT_Spaghetti"/>
+
+            <!-- spaghetti feature mapping based on anisotropic paramMat  -->
+            <xsd:element name="spaghettiParamMat" minOccurs="0" maxOccurs="1" >
               <xsd:complexType>
-                <xsd:sequence>
-                  <!-- when given use the python file for feature mapping wich requires a special structure.
-                      See spaghetti.py -->
-                  <xsd:element name="python" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
-                          <xsd:complexType>
-                            <xsd:attribute name="key" type="xsd:string" use="required"/>
-                            <xsd:attribute name="value" type="xsd:string" use="required"/>
-                          </xsd:complexType>
-                        </xsd:element>
-                      </xsd:sequence>
-                      <!-- can be the full path if attribute path is not used -->
-                      <xsd:attribute name="file" type="xsd:string" use="required" />
-                      <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
-                      <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
-                    </xsd:complexType>
-                  </xsd:element>
-                  <xsd:element name="noodle" minOccurs="1" maxOccurs="unbounded">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="node" minOccurs="4" maxOccurs="4">
-                          <xsd:annotation>
-                            <xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
-                          </xsd:annotation>
-                          <xsd:complexType>
-                            <xsd:attribute name="dof" use="required" type="DT_Axis" />
-                            <xsd:attribute name="tip" use="required" >
-                              <xsd:simpleType>
-                                <xsd:restriction base="xsd:token">
-                                  <xsd:enumeration value="start" />
-                                  <xsd:enumeration value="end" />
-                                </xsd:restriction>
-                             </xsd:simpleType>
-                            </xsd:attribute>
-                            <!-- lower, upper and initial go together or fixed! We apply the mathparser to all of them! -->
-                            <xsd:attribute name="initial" type="xsd:token" use="optional" />
-                            <xsd:attribute name="lower" type="xsd:token" use="optional" />
-                            <xsd:attribute name="upper" type="xsd:token" use="optional" />
-                            <xsd:attribute name="fixed" type="xsd:token" use="optional" />
-                          </xsd:complexType>
-                        </xsd:element>
-                        <xsd:element name="profile" minOccurs="1" maxOccurs="1">
-                          <xsd:annotation>
-                            <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
-                          </xsd:annotation>
-                          <xsd:complexType>
-                            <xsd:attribute name="initial" type="xsd:token" use="optional" />
-                            <xsd:attribute name="lower" type="xsd:token" use="optional" />
-                            <xsd:attribute name="upper" type="xsd:token" use="optional" />
-                            <xsd:attribute name="fixed" type="xsd:token" use="optional" />
-                          </xsd:complexType>
-                        </xsd:element>
-                        <xsd:element name="normal" minOccurs="0" maxOccurs="unbounded">
-                          <xsd:annotation>
-                            <xsd:documentation>The normals are the heights between two segments. Use iff segments larger or equal 2</xsd:documentation>
-                          </xsd:annotation>
-                          <xsd:complexType>
-                            <xsd:attribute name="initial" type="xsd:token" use="optional" />
-                            <xsd:attribute name="lower" type="xsd:token" use="optional" />
-                            <xsd:attribute name="upper" type="xsd:token" use="optional" />
-                            <xsd:attribute name="fixed" type="xsd:token" use="optional" />
-                          </xsd:complexType>
-                        </xsd:element>
-                      </xsd:sequence>
-                      <!-- corresponds to segments-1 normals -->
-                      <xsd:attribute name="segments" type="xsd:int" use="required" />
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>
-
-                <!-- how to hande model the 1D shape profile. -->
-                <xsd:attribute name="boundary" use="optional" default="poly">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <!-- the polynomial is almost cos and requires transition -->
-                      <xsd:enumeration value="poly" />
-                      <!-- simple linear interpolation, also requires transition -->
-                      <xsd:enumeration value="linear" />
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-
-                <!-- full transition zone for poly which is 2*h -->
-                <xsd:attribute name="transition" type="xsd:float" use="required" />
-
-                <!-- The radius for a spaghetti. Could be a variable in theory -->
-                <xsd:attribute name="radius" type="xsd:float" use="required" />
-
-                <!-- combination approach -->
-                <xsd:attribute name="combine" use="optional" default="max">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <!-- non differentiable maximum of shapes -->
-                      <!-- max_i(rho_i) -->
-                      <xsd:enumeration value="max" />
-                      <!-- Kreisselmeier-Steinhauser function -->
-                      <!-- 1/p*ln(sum_i(exp(p*rho_i))) -->
-                      <xsd:enumeration value="KS" />
-                      <!-- p-norm -->
-                      <!-- (sum_i(rho_i^p))^(1/p) -->
-                      <xsd:enumeration value="p-norm" />
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-                
-                <!-- write design and gradient to .grad.plot file -->
-                <xsd:attribute name="gradplot" type="xsd:boolean" default="false" use="optional"/>
+                <xsd:complexContent>
+                  <xsd:extension base="DT_Spaghetti">
+                    <xsd:sequence>
+                       <!-- For anisotropic fibres. one element per sequence only! -->
+                       <xsd:element name="designMaterial" type="DT_DesignMat" minOccurs="1" maxOccurs="unbounded" />
+                    </xsd:sequence>
+                  </xsd:extension>
+                </xsd:complexContent>
               </xsd:complexType>
             </xsd:element>
-
 
             <!-- parametric shape optimization mapped to density (spline box)-->
             <xsd:element name="splineBox" minOccurs="0" maxOccurs="1">
@@ -1895,6 +1781,8 @@
                 <xsd:enumeration value="shapeMap" />
                 <xsd:enumeration value="splineBox" />
                 <xsd:enumeration value="spaghetti" />
+                <!-- spaghetti variant for anisotropy with designMaterial -->
+                <xsd:enumeration value="spaghettiParamMat" />
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -2025,6 +1913,7 @@
           <xsd:enumeration value="laplace" />
           <xsd:enumeration value="elec" />
           <xsd:enumeration value="mech" />
+          <xsd:enumeration value="buckling" />
           <xsd:enumeration value="mass" />
           <xsd:enumeration value="piezoCoupling" />
           <xsd:enumeration value="pressure" />
@@ -2488,7 +2377,6 @@
 
   <!-- This defines a filter. Which is either density or sensitivity filter. The density filter can also be of Heaviside/tanh type. To be used in regularization and for the projection constraint -->
   <xsd:complexType name="DT_Filter">
-
     <!-- optional sub element for target sensitivity filter -->
     <xsd:sequence>
       <xsd:element name="sensitivity" minOccurs="0" maxOccurs="1">
@@ -2594,6 +2482,119 @@
 
   </xsd:complexType>
 
+  <!-- A noodle is part of a spaghetti(ParamNode) -->
+	<xsd:complexType name="DT_Noodle">
+		<xsd:sequence>
+			<xsd:element name="node" minOccurs="4" maxOccurs="4">
+				<xsd:annotation>
+					<xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:attribute name="dof" use="required" type="DT_Axis" />
+					<xsd:attribute name="tip" use="required">
+						<xsd:simpleType>
+							<xsd:restriction base="xsd:token">
+								<xsd:enumeration value="start" />
+								<xsd:enumeration value="end" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:attribute>
+					<!-- lower, upper and initial go together or fixed! We apply the mathparser to all of them! -->
+					<xsd:attribute name="initial" type="xsd:token" use="optional" />
+					<xsd:attribute name="lower" type="xsd:token" use="optional" />
+					<xsd:attribute name="upper" type="xsd:token" use="optional" />
+					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="profile" minOccurs="1" maxOccurs="1">
+				<xsd:annotation>
+					<xsd:documentation>The profile is double the half width w. Radius	needs to be larger w</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:attribute name="initial" type="xsd:token" use="optional" />
+					<xsd:attribute name="lower" type="xsd:token" use="optional" />
+					<xsd:attribute name="upper" type="xsd:token" use="optional" />
+					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="normal" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>The normals are the heights between two segments. Use iff segments larger or equal 2</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:attribute name="initial" type="xsd:token" use="optional" />
+					<xsd:attribute name="lower" type="xsd:token" use="optional" />
+					<xsd:attribute name="upper" type="xsd:token" use="optional" />
+					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+		<!-- corresponds to segments-1 normals -->
+		<xsd:attribute name="segments" type="xsd:int" use="required" />
+	</xsd:complexType> <!-- end of DT_Noodle -->
+
+  <!-- This is the python field for python based optimizers, e.g. spaghetti -->
+  <xsd:complexType name="DT_Python">
+    <xsd:sequence>
+      <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="key" type="xsd:string" use="required" />
+          <xsd:attribute name="value" type="xsd:string" use="required" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <!-- can be the full path if attribute path is not used -->
+    <xsd:attribute name="file" type="xsd:string" use="required" />
+    <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+    <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
+  </xsd:complexType>
+
+  <!-- the basic spaghetti type, to be extended by spaghettiParamMat -->
+  <xsd:complexType name="DT_Spaghetti">
+    <xsd:sequence>
+      <!-- when given use the python file for feature mapping wich requires a special structure. See spaghetti.py -->
+      <xsd:element name="python" minOccurs="0" maxOccurs="1" type="DT_Python" />
+      <xsd:element name="noodle" minOccurs="1" maxOccurs="unbounded" type="DT_Noodle" />
+    </xsd:sequence>
+
+    <!-- how to hande model the 1D shape profile. -->
+    <xsd:attribute name="boundary" use="optional" default="poly">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <!-- the polynomial is almost cos and requires transition -->
+          <xsd:enumeration value="poly" />
+          <!-- simple linear interpolation, also requires transition -->
+          <xsd:enumeration value="linear" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <!-- full transition zone for poly which is 2*h -->
+    <xsd:attribute name="transition" type="xsd:float" use="required" />
+
+    <!-- The radius for a spaghetti. Could be a variable in theory -->
+    <xsd:attribute name="radius" type="xsd:float" use="required" />
+
+    <!-- combination approach -->
+    <xsd:attribute name="combine" use="optional" default="max">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <!-- non differentiable maximum of shapes -->
+          <!-- max_i(rho_i) -->
+          <xsd:enumeration value="max" />
+          <!-- Kreisselmeier-Steinhauser function -->
+          <!-- 1/p*ln(sum_i(exp(p*rho_i))) -->
+          <xsd:enumeration value="KS" />
+          <!-- p-norm -->
+          <!-- (sum_i(rho_i^p))^(1/p) -->
+          <xsd:enumeration value="p-norm" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <!-- write design and gradient to .grad.plot file -->
+    <xsd:attribute name="gradplot" type="xsd:boolean" default="false" use="optional" />
+  </xsd:complexType>
 
   <!-- the same base for scpip and feasSCP -->
   <xsd:complexType name="DT_SCPIP">
@@ -3034,6 +3035,9 @@
     <xsd:attribute name="optimizeMass" type="xsd:boolean" use="optional" default="false" />
     <xsd:attribute name="optimizeDamping" type="xsd:boolean" use="optional" default="false" />
     <xsd:attribute name="trace" type="xsd:float" default="3.0" />
+    <!-- shall there always be the cfs region material added when not derivative? -->
+    <xsd:attribute name="bias" type="xsd:boolean" default="false" />
+    
   </xsd:complexType>
 
 </xsd:schema>

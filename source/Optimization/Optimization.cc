@@ -42,6 +42,7 @@
 #include "Optimization/ShapeOpt.hh"
 #include "Optimization/ShapeMapping.hh"
 #include "Optimization/Spaghetti.hh"
+#include "Optimization/SpaghettiParamMat.hh"
 #include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
@@ -456,6 +457,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE, "multiple_designs_prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::SHAPE, "shape");
   Function::Local::locality.Add(Function::Local::FUNCTION_SPECIFIC, "function_specific");
+  Function::Local::locality.Add(Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS, "function_specific_two_signs");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -498,6 +500,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
   ErsatzMaterial::method.Add(ErsatzMaterial::SPAGHETTI, "spaghetti");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SPAGHETTI_PARAM_MAT, "spaghettiParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
@@ -707,6 +710,9 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SPAGHETTI:
     opt = new Spaghetti();
+    break;
+  case ErsatzMaterial::SPAGHETTI_PARAM_MAT:
+    opt = new SpaghettiParamMat();
     break;
   case ErsatzMaterial::SPLINE_BOX:
     opt = new SplineBoxOpt();

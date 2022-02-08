@@ -110,9 +110,8 @@ public:
 
     void SetType(Type type) {type_ = type;};
 
-    /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
-     * The enum is necessary for the constraint parameter notation. */
-//    static Enum<Notation> notation;
+    /** shall we add the coef->orgMat when we do not do derivative? */
+    bool HasBias() const { return bias_; }
 
     double CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative);
 
@@ -138,6 +137,8 @@ public:
     /** little helper for GetInterpolatedHomTensor().
      * @param vector p has the values of the design variable */
     void GetHomIsoC1Tensor(MaterialTensor<double>& mt, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    void ToInfo(PtrParamNode in) const;
 
 protected:
 
@@ -395,7 +396,11 @@ private:
     Vector<double> msfem_rot_;
     StdVector<Matrix<double> > msfem_coeff_;
 
-    DesignSpace* space_;
+    DesignSpace* space_ = NULL;
+
+    /** bias means, that we add the cfs region material for any non-derivative.
+     * The bias material is simply CoefFunctionOpt::orgMat */
+    bool bias_ = false;
 
     Interpolation interpolation_;
     unsigned int level_;

@@ -515,7 +515,7 @@ void ShapeMapDesign::SetupShapeParam()
 
   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
   {
-    map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
+    map_[i].elemval = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
     // each design node connects to two density elements, also for 3D center node rods
     // this comes from the bilinear interpolation.
     map_[i].nodes.Resize(num_nodes);
@@ -527,11 +527,11 @@ void ShapeMapDesign::SetupShapeParam()
 
   // setup  coord_*_ stuff
   Matrix<double>    coords;   // within the element coordinates we perform the integration
-  domain->GetGrid()->GetElemNodesCoord(coords, map_.First().rho->elem->connect, false); // no deformed mesh
+  domain->GetGrid()->GetElemNodesCoord(coords, map_.First().elemval->elem->connect, false); // no deformed mesh
   coords.GetColMin(coord_min_);
   LOG_DBG(SMD) << "SSP data=" << " min coords=" << coords.ToString();
   LOG_DBG(SMD) << "SSP data=" << " min=" << coord_min_.ToString();
-  domain->GetGrid()->GetElemNodesCoord(coords, map_.Last().rho->elem->connect, false); // no deformed mesh
+  domain->GetGrid()->GetElemNodesCoord(coords, map_.Last().elemval->elem->connect, false); // no deformed mesh
   coords.GetColMax(coord_max_);
   LOG_DBG(SMD) << "SSP data=" << " max coords=" << coords.ToString();
   LOG_DBG(SMD) << "SSP data=" << " max=" << coord_max_.ToString();
@@ -1751,7 +1751,7 @@ void ShapeMapDesign::MapFeatureToDensity()
      for(int r = 0; r < (int) map_.GetSize(); r++)
      {
        Item& item = map_[r];
-       DesignElement* de = item.rho;
+       DesignElement* de = item.elemval;
 
       DensityIdx(r, idx);
 
@@ -1916,7 +1916,7 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
      for(Integer r = 0; r < (Integer) map_.GetSize(); r++) // traverse all rho design elements
      {
        Item& item = map_[r];
-       DesignElement* de = item.rho;
+       DesignElement* de = item.elemval;
        double log_da = 0.0;
        double log_db = 0.0;
        double log_dw = 0.0;
@@ -2175,7 +2175,7 @@ void ShapeMapDesign::ExportLevelSet() const
 
 inline double ShapeMapDesign::DensityToLevelSet(int x, int y) const
 {
-  return 2.0 * map_[DensityIdx(x,y)].rho->GetPlainDesignValue() - 1.0;
+  return 2.0 * map_[DensityIdx(x,y)].elemval->GetPlainDesignValue() - 1.0;
 }
 
 void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
@@ -2697,7 +2697,7 @@ void ShapeMapDesign::DumpMap()
       for(unsigned int x = 0; x < nx_; x++)
       {
         Item i = map_[DensityIdx(x, y, z)];
-        std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.rho->GetPlainDesignValue()<< std::endl;
+        std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.elemval->GetPlainDesignValue()<< std::endl;
         // " min=" << i.min_corner_value << " max=" << i.max_corner_value << std::endl;
         for(unsigned int n = 0; n < i.nodes.GetSize(); n++)
           for(unsigned int q = 0; q < i.nodes[n].GetSize(); q++)

@@ -16,7 +16,6 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
-#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"

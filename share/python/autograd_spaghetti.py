@@ -4,16 +4,14 @@
 import numpy as np
 from numpy.linalg import norm 
 import os
+from pyevtk.hl import gridToVTK
 from itertools import product
-from operator import itemgetter
 
-# for automatic differentiation, replaced with normal numpy for testcase to work with cfs runners
-#  import autograd
-#  import autograd.numpy as agnp
-import numpy as agnp
-
-# for gradient check
-import scipy.optimize as sciopt
+# for automatic differentiation
+import autograd
+import autograd.numpy as agnp
+from pygments.unistring import combine
+from py._builtin import enumerate
 
 # interactive
 if __name__ == '__main__':
@@ -51,24 +49,28 @@ class Global:
     self.idx_field = None # entries are int vectors of size shapes. -2 far outside, -1 far inside, >= 0 nearest part by shape 
     self.dist_field = None # entries are nodal closest distance by shape
     
-    # this is an array of size (nx,ny,sum([len(s.optvar())) with the shape gradients at each element
+    # this is an array of size (nx,ny,sum([len(s.var())) with the shape gradients at each element
     self.grad_field = None
     
     # this are fields of field elements of n-size with data to given to cfs via <result>.
     # this are gradient information but also arbitrary data can be added to this dictionary
     # the string key is reported to cfs via cfs_info_field_keys
     self.info_field = {}
+    
+  # step size as numpy array
+  def dx(self):
+    return 1/np.array(self.n) # not 1/n+1 !
   
   # total number of variables (not cached)
   def total(self):
-    return sum([len(s.optvar()) for s in self.shapes])  
+    return sum([len(s.var()) for s in self.shapes])  
   
   # give optimzation variables of all spaghetti as defined array such that we can easily differentiate
   # @return p_x,p_y,q_x,q_y,p,a_1,...a_n-1,p_x,p_y,q_x,q_y,p,a_1,...a_n-1,...
   def var_all(self):
     vars = []
     for i in range(len(self.shapes)):
-      vars.extend(self.shapes[i].optvar())
+      vars.extend(self.shapes[i].var())
     return vars
     
 glob = Global()    
@@ -83,16 +85,15 @@ glob = Global()
 # @nx, ny, nz are for rho. Currently nx == ny and nz == 1
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dx, design, dict):
+def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, design, dict):
   # non-zero value avoids divide by 0 in autograd. Seems to also work with 0 though
-  glob.rhomin = rhomin
+  glob.rhomin = 1e-30
   glob.radius = radius
   glob.boundary = boundary
   glob.transition = transition
   glob.combine = combine
-  assert nz == 1
+  assert nx == ny and nz == 1   
   glob.n = [nx, ny, 1]
-  glob.dx = round(dx,8)
   glob.design = design
   glob.opts = dict
   
@@ -110,9 +111,6 @@ def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dx, desi
     glob.p = float(dict['p'])
   else:
     glob.p = 8
-  glob.gradient_check = False
-  if 'gradient_check' in dict:
-    glob.gradient_check = dict['gradient_check'] == '1'
   
   if not glob.silent:
     print('cfs_init designs:',glob.design)
@@ -128,7 +126,7 @@ def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):
   Q = [qx,qy]
   
   if id >= len(glob.shapes):
-    base = sum([len(s.optvar()) for s in glob.shapes])
+    base = sum([len(s.var()) for s in glob.shapes])
     # def __init__(self,id,base,radius,P,Q,a,p):
     glob.shapes.append(Spaghetti(id, base, glob.radius, P, Q, a_list, p))
     if not glob.silent:
@@ -143,19 +141,19 @@ def cfs_map_to_design():
   if not glob.silent:
     print('cfs_map_to_design: called for designs',glob.design)
   
+  assert glob.n[0] == glob.n[1]
   nx = glob.n[0]
-  ny = glob.n[1]
   
   if glob.idx_field is None or glob.dist_field is None:
     glob.idx_field, glob.dist_field, glob.idx_field_shapes_only = create_idx_field() 
 
   var = glob.var_all()
 
-  rho = np.ones((nx, ny))
-  angles = np.ones((nx, ny))
-  for i in range(nx):
-    for j in range(ny):
-      tt = combine_designs(var, i, j, derivative=False)
+  rho = np.ones((nx, nx))
+  angles = np.ones((nx, nx))
+  for j in range(nx):
+    for i in range(nx):
+      tt = combine_designs(var, i, j, ad=False)
       rho[i, j] = tt[0]
       if len(glob.design) > 1:
         angles[i, j] = tt[1]
@@ -185,7 +183,6 @@ def cfs_get_gradient(ddes_vec, label):
     print('cfs_get_gradient',label,ddes_vec) 
   n  = glob.n
   nx = n[0]
-  ny = n[1]
   # see density() for comment on layout
   assert len(ddes_vec) == np.prod(n)*len(glob.design)
 
@@ -193,72 +190,36 @@ def cfs_get_gradient(ddes_vec, label):
   if glob.idx_field is None or glob.dist_field is None:
     glob.idx_field, glob.dist_field, glob.idx_field_shapes_only = create_idx_field()
   
-  # quick check of basic derivatives
-  if glob.gradient_check:
-    eps = np.sqrt(np.finfo(float).eps)
-    print('checking gradient with FD step: ' + str(eps))
-    for shape in glob.shapes:
-      optvar = shape.optvar()
-      which =  ['u', 'nu', 'u0vert']
-      for st in ['H', 't', 'tvert', 'alpha', 'C']:
-        for ii in range(len(shape.a)):
-          if ((st == 't' or st == 'tvert') and ii == len(shape.T)) or st == 'alpha' and (ii == 0 or ii == len(shape.a)-1):
-            #print('skip ' + st + str(ii))
-            continue
-          which.append(st+str(ii))
-      for qname in which:
-        for xory in [0,1]:
-          if qname == 'nu' or qname.startswith('alpha'):
-            if xory == 1:
-              continue
-          fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [xory, qname])
-          grad = shape.grad(optvar, [xory, qname])
-          if norm(fd_grad-grad) > 1e-6:
-            print(qname + ', variable: ' + str(xory))
-            print("FD approximation:  " + str(fd_grad))
-            print("Analytic gradient: " + str(grad))
-            print("L2 error: " + str(norm(fd_grad-grad)))
-    print('\n\n')
+
 
   var = glob.var_all()
   var = np.array(var)
   
   # prepare gradient, reset in Spaghetti.set()
   if glob.grad_field is None:
-    glob.grad_field = np.empty((nx,ny,len(glob.design),glob.total()))
+    glob.grad_field = np.empty((nx,nx,len(glob.design),glob.total()))
     # d_rho / d_shape
-    #df =  autograd.jacobian(combine_designs,argnum=0)
+    df =  autograd.jacobian(combine_designs,argnum=0)
     for i in range(nx):
-      for j in range(ny):
-         #tt = df(var,i, j,derivative='autograd') # autograd gives no nice vector
-        tt = combine_designs(var,i, j,derivative=True)
+      for j in range(nx):
         for k in range(len(glob.design)):
+          tt = df(var,i, j,ad=True) # autograd gives no nice vector
+          #print(str(tt))
+          #print(tt.shape)
           if glob.design[k] == 'density':
-            glob.grad_field[i,j,k] = tt[0:len(var)] # make a handleable vector
+            glob.grad_field[i,j,k] = np.array(tt[0]) # make a handleable vector
           elif glob.design[k] == 'rotAngle':
-            glob.grad_field[i,j,k] = np.array(tt[len(var):]) # make a handleable vector
+            glob.grad_field[i,j,k] = np.array(tt[1]) # make a handleable vector
           else:
             print('design ' + str(glob.design[k]) + ' not permitted!')
             assert(False)
           # the components of t are nonzero only where the boundary is gray
-          if glob.gradient_check:
-            fd_grad = sciopt.approx_fprime(var, combine_designs_fd, eps, i, j, glob.design[k])
-            if norm(fd_grad-glob.grad_field[i,j,k])>2e-3:# and norm(fd_grad-glob.grad_field[i,j,k])<1e6:
-              print(glob.design[k])
-              dx = glob.dx
-              X = [(i+0.5) * dx, (j+0.5)*dx]
-              print("X: " + str(X))
-              combine_designs(var,i, j, derivative=False, verbose=True)
-              ddes_k = np.reshape(ddes_vec[k*np.prod(glob.n):(k+1)*np.prod(glob.n)], (n[0],n[1]),order='F')
-              print("CFS sensitivity: " + str(ddes_k[i,j]))
-              print("FD approximation:  " + str(fd_grad))
-              print("Analytic gradient: " + str(glob.grad_field[i,j,k]))
-              print("combine_designs " + glob.design[k] + " gradient L2 error: " + str(norm(fd_grad-glob.grad_field[i,j,k])) + "\n")
+
   sens = np.zeros(len(var))   # return vector 
   # drho_vec represents a 2D matrix, glob.grad_field is three dimensional with the last dimension the variable
   for snum, s in enumerate(glob.shapes):
-    var = glob.shapes[snum].optvar()
-    optvar_names = glob.shapes[snum].optvar_names()   
+    var = glob.shapes[snum].var()
+    varnames = glob.shapes[snum].varnames()   
     for i in range(len(var)):
       for k in range(len(glob.design)):
          ds = glob.grad_field[:,:,k,s.base+i].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
@@ -267,10 +228,10 @@ def cfs_get_gradient(ddes_vec, label):
          sens_field = ddes_vec[k*np.prod(glob.n):(k+1)*np.prod(glob.n)] * ds   
          # '/' is no valid name for the cfs hdf5 writer but it works with gridToVTK?!
          if k == 0:
-           glob.info_field['d_' + label + '_' + glob.design[k] + '_by_d_s' + str(snum) + '_' + optvar_names[i]] = np.concatenate((sens_field, np.zeros((np.prod(glob.n))))) if len(glob.design) == 2 else sens_field
+           glob.info_field['d_' + label + '_' + glob.design[k] + '_by_d_s' + str(snum) + '_' + varnames[i]] = np.concatenate((sens_field, np.zeros((np.prod(glob.n)))))
          elif k == 1:
-           glob.info_field['d_' + label + '_' + glob.design[k] + '_by_d_s' + str(snum) + '_' + optvar_names[i]] = np.concatenate((np.zeros((np.prod(glob.n))),sens_field))
-         sens[s.base+i] += sens_field.sum() # equals for i in range(nx): for j in range(ny): sens +=  drho[i,j] * glob.grad_field[i,j]
+           glob.info_field['d_' + label + '_' + glob.design[k] + '_by_d_s' + str(snum) + '_' + varnames[i]] = np.concatenate((np.zeros((np.prod(glob.n))),sens_field))
+         sens[s.base+i] += sens_field.sum() # eqals for i in range(nx): for j in range(nx): sens +=  drho[i,j] * glob.grad_field[i,j]
 
   # make a field
   if glob.gradvtk:
@@ -278,20 +239,19 @@ def cfs_get_gradient(ddes_vec, label):
     drho = ddes_vec.reshape((n[0],n[1]),order='F') # see density()
     total = glob.total()
     shapes = glob.shapes
-    drho_ad = np.zeros((total,nx,ny,1))
-    d_c_d_shapes_loc = np.zeros((total,nx,ny,1))
+    drho_ad = np.zeros((total,nx,nx,1))
+    d_c_d_shapes_loc = np.zeros((total,nx,nx,1))
     drho_ar = np.expand_dims(drho,axis=2)
     pd={"d_c / d_rho": drho_ar}
     for i in range(nx):
-      for j in range(ny):
+      for j in range(nx):
         drho_ad[:,i,j,0] =  glob.grad_field[i,j]
         d_c_d_shapes_loc[:,i,j,0] =  drho[i,j] * glob.grad_field[i,j]
     for s in shapes:
-      for e, n in enumerate(s.optvar_names()):
+      for e, n in enumerate(s.varnames()):
         pd["d_rho / d_s" + str(s.id) + '_' + n] = drho_ad[s.base+e]
         pd["d_c / d_s" + str(s.id) + '_' + n] = d_c_d_shapes_loc[s.base+e]
     x_ls = np.linspace(0,1,nx+1)
-    y_ls = np.linspace(0,1,ny+1)
     name = str(glob.n[0]) + 'x' + str(glob.n[1]) + '-' + glob.boundary + '-tr_' + str(glob.transition) + '-rm_' + str(glob.rhomin) + '-order_' + str(glob.order)
     gridToVTK(name, x_ls,x_ls,np.zeros(1) , cellData=pd)
     if not glob.silent:
@@ -364,7 +324,7 @@ def create_figure(res, minimal, maximal):
 
   dpi_x = res / 100.0 
 
-  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x*round(max(1,maximal[0])), dpi_x*round(max(1,maximal[1]))))
+  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
   ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
   ax.set_ylim(min(0,minimal[1]), max(1,maximal[1]))
@@ -381,91 +341,48 @@ def matplotlib_color_coder(id):
     
 class Spaghetti: 
   # @param id starting from 0
-  # @param base sum of all len(optvar()) of all previous shapes. Starts with 0
+  # @param base sum of all len(var()) of all previous shapes. Starts with 0
   def __init__(self,id,base,radius,P,Q,a,p):
     self.id = id
     self.base = base
     self.color = matplotlib_color_coder(id)
-    self.radius = radius
-    self.namedidx = {'px': 0,'py': 1,'qx': 2,'qy': 3,'p': 4} # helper to iterate through readable names
-    self.idx_a = {} # helper to get index of a in paper notation
-    for i in range(len(a)):
-      self.namedidx['a' + str(i+1)] = 5+i
-      self.idx_a['a' + str(i+1)] = i+1
+    self.radius = radius  
     self.set(P,Q,a,p)
 
     # derivative of fast_dist_ad by automatic differentiation, used for output, not for cfs
-    #self.grad_fast_dist = autograd.grad(self.fast_dist_ad,argnum=0)
+    self.grad_fast_dist = autograd.grad(self.fast_dist_ad,argnum=0)
 
   
   # does not only set the variables but also computes the internal helpers (C, ...) and deletes glob index fields
-  def set(self, P,Q,a,p, reset_fields=True):
+  def set(self, P,Q,a,p):
     
-    if reset_fields:
-      glob.idx_field = None
-      glob.idx_field_shapes_only = None
-      glob.dist_field = None
-      glob.grad_field = None
-    
-    self.num_optvar = 5+len(a)
-    self.sens = {'grad_u': np.zeros((self.num_optvar,2)),
-             'grad_norm_u': np.zeros((self.num_optvar)),
-             'grad_u0vert': np.zeros((self.num_optvar,2)),
-             'grad_H': np.zeros((len(a)+2, self.num_optvar,2)),
-             'grad_t': np.zeros((len(a)+2, self.num_optvar,2)), # extended with empty first gradient to be consistent with paper notation
-             'grad_tvert': np.zeros((len(a)+2, self.num_optvar,2)), # extended with empty first gradient to be consistent with paper notation
-             'grad_alpha': np.zeros((len(a)+1,self.num_optvar)), # extended with empty first gradient to be consistent with paper notation
-             'grad_C': np.zeros((len(a)+2,self.num_optvar,2))} # extended with empty first gradient to be consistent with paper notation
+    glob.idx_field = None
+    glob.idx_field_shapes_only = None
+    glob.dist_field = None
+    glob.grad_field = None
     
     assert len(P) == 2 and len(Q) == 2  
     self.P = np.array(P) # start coordinate
     self.Q = np.array(Q) # end coordinate
-    self.a = (0.,)+tuple(a)+(0.,) # vector of normals with 0 added as artificial a for P=H_0 and Q=H_n. Might be just (0, 0)
+    self.a = a # vector of normals, might be empty
     self.p = p # profile is full structure thickness
     self.w = p/2. # half structure
     
     # helper
-    self.n = len(self.a) - 1 # number of segments
+    self.n = len(a) + 1 # number of segments
   
     self.U = self.Q - self.P # base line p -> q
-    norm_U = norm(self.U)
-    self.U0 = self.U / norm_U
-    self.sens['grad_u'][0:5,:] = [[-1, 0],
-                [0, -1],
-                [1, 0],
-                [0, 1],
-                [0, 0]]
-    #for i in len(self.a): #zero initialized anyway
-    #  self.sens['grad_u'][5+i]=[0, 0]
-    self.sens['grad_norm_u'][0:5] = [-self.U[0]/norm_U, -self.U[1]/norm_U, self.U[0]/norm_U, self.U[1]/norm_U, 0]
-    #for i in len(self.a): #zero initialized anyway
-    #  self.sens['grad_norm_u'][5+i]=0
+    self.U0 = self.U / norm(self.U)
   
     self.V = np.array((-self.U[1],self.U[0])) # normal to u
     self.V0 = self.V / norm(self.V)
-    nU3 = norm_U**3
-    self.sens['grad_u0vert'][0:5,:] = [[-self.U[0]*self.U[1]/nU3, -self.U[1]**2/nU3],
-                [self.U[0]**2/nU3, self.U[0]*self.U[1]/nU3],
-                [self.U[0]*self.U[1]/nU3, self.U[1]**2/nU3],
-                [-self.U[0]**2/nU3, -self.U[0]*self.U[1]/nU3],
-                [0, 0]]
-    #for i in len(self.a): #zero initialized anyway
-    #  self.sens['grad_u0vert'][5+i]=[0, 0]
     
     self.E = [] # endpoints within p-q line but without p and q
     self.H_int = [] # real summits without p and q
     for i in range(1,self.n):
       self.E.append(self.P + i * self.U/self.n)
-      self.H_int.append(self.E[-1] + self.a[i] * self.V0)
-      self.sens['grad_H'][i][0:5,:] = [[1-i/self.n, 0]+self.a[i]*self.sens['grad_u0vert'][self.namedidx['px']],
-                [0, 1-i/self.n]+self.a[i]*self.sens['grad_u0vert'][self.namedidx['py']],
-                [i/self.n, 0]+self.a[i]*self.sens['grad_u0vert'][self.namedidx['qx']],
-                [0, i/self.n]+self.a[i]*self.sens['grad_u0vert'][self.namedidx['qy']],
-                [0, 0]]
-      self.sens['grad_H'][i][self.namedidx['a'+str(i)],:] = self.V0 # other entries are zero
-    self.sens['grad_H'][0][0:2,:] = [[1, 0], [0,1]] # add derivatives for H_0 = P and H_n = Q
-    self.sens['grad_H'][self.n][2:4,:] = [[1, 0], [0,1]]
-    assert len(self.E) == (len(self.a)-2)
+      self.H_int.append(self.E[-1] + self.a[i-1] * self.V0)
+    assert len(self.E) == len(self.a)
 
     # h = p + h_int + q where the summits are surrounded by p and q as "artificial" summits
     self.H = []
@@ -479,32 +396,17 @@ class Spaghetti:
     for i in range(len(self.H)-1):
       self.segs.append((self.H[i], self.H[i+1]))
 
-    # list of segment directions as normalized vectors T
+    # list of segment lines as vectors T
     # Careful: segments are 0-based here and 1-based in paper!
     self.T = []
-    for i in range(1,self.n+1): # segment index from 1 to n as in paper 
-      seg = self.segs[i-1] # get segment corresponding to paper notation!
-      svec = seg[1]-seg[0]
-      norm_svec = norm(svec)
-      self.T.append(svec/norm(svec))
-      for namedvar in self.optvar_names():
-        idx = self.namedidx[namedvar]
-        if (namedvar == 'px') or (namedvar == 'py') or (namedvar == 'qx') or (namedvar == 'qy') or (namedvar == 'p'):
-          self.sens['grad_t'][i][idx,:] = ((1/self.n*self.sens['grad_u'][idx]
-                                          +(self.a[i]-self.a[i-1])*self.sens['grad_u0vert'][idx])*norm_svec
-                                          -svec*norm_U*self.sens['grad_norm_u'][idx]/(self.n**2*norm_svec))/norm_svec**2
-        elif (self.idx_a[namedvar] == i-1): # a_{i-1}
-          self.sens['grad_t'][i][idx,:] = (-self.V0*norm_svec+svec*(self.a[i]-self.a[i-1])/norm_svec)/norm_svec**2
-        elif (self.idx_a[namedvar] == i): # a_i
-          self.sens['grad_t'][i][idx,:] = (self.V0*norm_svec-svec*(self.a[i]-self.a[i-1])/norm_svec)/norm_svec**2
-        self.sens['grad_tvert'][i][idx,0] = -self.sens['grad_t'][i][idx,1]
-        self.sens['grad_tvert'][i][idx,1] = self.sens['grad_t'][i][idx,0]
+    for seg in self.segs:
+      self.T.append(seg[1] - seg[0])
 
     # list of normals M for each segment
     # Careful: normals are 0-based here and 1-based in paper!
     self.M = []
     for T in self.T:
-      self.M.append(np.array([-T[1], T[0]]))
+      self.M.append([-T[1], T[0]] / norm(T))
 
     # For the arcs the center points C^i
     # the idea is to find the angle alpha between two segments, have vector B at half the angle
@@ -517,55 +419,34 @@ class Spaghetti:
     self.L.append([self.P]) # we will append K1
     # list of arc is only meant as a helper for plotting the arcs
     self.arc = [] 
-    self.alpha = [0] # artificial alpha_0, should not be used
     r = self.radius
-    self.sens['grad_C'][0][0:2,:] = [[1, 0], [0,1]] # add derivatives for C_0 = P and C_n = Q
-    self.sens['grad_C'][self.n][2:4,:] = [[1, 0], [0,1]]
-    for i in range(1,len(self.T)):
-      H = self.H[i] # summit point
-      ti = self.T[i-1]     # normalized segment before H (0-based in code!!) 
-      tiplus1 = self.T[i]    # normalized segment after H
+    for i in range(len(self.segs)-1):
+      H = self.segs[i][1] # summit point is end of first segment
+      v1 = -self.T[i]     # from H to start of first segment 
+      v2 = self.T[i+1]    # from H to end of second segment
+      v1 = v1 / agnorm(v1)
+      v2 = v2 / agnorm(v2)
 
       # get angle between two segments, standard form for angle between two vectors
-      # cos(alpha) = -ti*tiplus1/ (||ti|| * ||tiplus1||)
+      # cos(alpha) = v1*v2/ (||v1|| * ||v2||)
       # If a=0 -> alpha = 0 and numerics goes crazy for the AD case -> see solution there
-      cosa = np.dot(-ti,tiplus1)
+      cosa = agnp.dot(v1,v2)
       cosa = np.clip(cosa,-1,1)
-      alpha = np.arccos(cosa)/2
-      self.alpha.append(alpha)
-      for namedvar in self.optvar_names():
-          idx = self.namedidx[namedvar]
-          self.sens['grad_C'][i][idx,:] = self.sens['grad_H'][i][idx,:] # first part of sensitivity independent of alpha
-      if agnorm(-ti+tiplus1) > 1e-12:
-        # set grad_alpha only here to prevent division by 0
-        # grad_alpha only appears in the derivatives of arc segments, which vanish for ti = tiplus1
-        # should there still be an integration point in the numerically small remaining area,
-        # the spaghetti will be practically straight and dC^i/da^i = dH^i/da^i without the curve should be good enough as approximation
-        for namedvar in self.optvar_names():
-          idx = self.namedidx[namedvar]
-          self.sens['grad_alpha'][i][idx] = (np.dot(ti,self.sens['grad_t'][i+1][idx,:])
-                                             +np.dot(tiplus1,self.sens['grad_t'][i][idx,:]))/(2*np.sqrt(1-np.dot(ti,tiplus1)**2))
-          # for ti != tiplus1 modify derivative of C^i to include arc information
-          self.sens['grad_C'][i][idx,:] = self.sens['grad_C'][i][idx,:] + self.radius*(
-            (self.sens['grad_t'][i+1][idx,:]-self.sens['grad_t'][i][idx,:])/(np.sin(alpha)*norm(tiplus1-ti))
-            -np.cos(alpha)/(np.sin(alpha)**2)*self.sens['grad_alpha'][i][idx]*(tiplus1-ti)/norm(tiplus1-ti)
-            -(tiplus1-ti)/(np.sin(alpha)*norm(tiplus1-ti)**3)*np.dot(tiplus1-ti,self.sens['grad_t'][i+1][idx,:]-self.sens['grad_t'][i][idx,:]))
-        scaling = r/agnp.sin(alpha) # would be r/sin(0)
-        B = -ti + tiplus1
+      alpha = agnp.arccos(cosa)
+      if agnorm(v1+v2) > 1e-12:
+        scaling = r/agnp.sin(alpha/2) # would be r/sin(0)
+        B = v1 + v2
         B0 = B/agnorm(B)
       else:
-        B0 = agnp.array([ti[1], -ti[0]])
+        B0 = agnp.array([-v1[1], v1[0]])
         scaling = r
 
       # from function of hypotenuse of a right-angled triangle
       C = H + scaling * B0
-     # for namedvar in self.optvar_names():
-     #   idx = self.namedidx[namedvar]
-     #   self.sens['grad_C'][i][idx,:] = self.sens['grad_H'][i][idx,:]-
 
       # projection onto segment
-      K1 = H-ti*np.dot(-ti,C-H)
-      K2 = H+tiplus1*np.dot(tiplus1,C-H)
+      K1 = H+v1*np.dot(v1,C-H)
+      K2 = H+v2*np.dot(v2,C-H)
     
       self.C.append(C)
       self.L[-1].append(K1) # finish last (initial) L
@@ -584,20 +465,21 @@ class Spaghetti:
 
   # give optimzation variables as defined array such that we can easily differentiate
   # @return p_x,p_y,q_x,q_y,p,a_1,...a_n-1
-  def optvar(self):
+  def var(self):
     r = [self.P[0],self.P[1],self.Q[0],self.Q[1],self.p]
-    for a in self.a[1:-1]:
+    for a in self.a:
       r.append(a)
 
     return r  
 
-  # helper which gives the name of the variables returned by optvar()
-  def optvar_names(self):
+  # helper which gives the name of the variables returned by var()
+  def varnames(self):
     r = ['px','py','qx','qy','p']
-    for i in range(len(self.a[1:-1])):
+    for i in range(len(self.a)):
       r.append('a' + str(i+1))
 
     return r
+
 
   # search closest distance to all segments and circs from point X
   # @where if 's' only segments, if 'c' only end points and arcs, None for all
@@ -660,7 +542,7 @@ class Spaghetti:
     if what == 'index':
       return minimal[1]
     elif what == 'distance':
-      return (minimal[0], np.zeros(self.num_optvar)) # add fake gradient to be compatible with fast_dist
+      return minimal[0]
     elif what == 'all':
       return minimal
     else:
@@ -694,137 +576,59 @@ class Spaghetti:
   # @return +/-1 3*glob.transition if far inside or far outside
   def fast_dist(self,X,idx):
 
-    # this comes from create_idx_field which is -1/-2 if boundary() does not need to be applied 
-    # returning 0 gradient is technically wrong but saves time, as implemented boundary functions will lead to 0 gradient anyway 
+    # this comes from create_idx_field which is -1/-2 if boundary() does not need to be applied    
     if idx == -1:
-      return (-3 * glob.transition, np.zeros(self.num_optvar))
+      return -3 * glob.transition
     if idx == -2:
-      return (3 * glob.transition, np.zeros(self.num_optvar))
+      return 3 * glob.transition
     
     # constants
     n = self.n
-    w = self.w # p/2
+    w = self.w
 
     P = self.P
     Q = self.Q
     
     # endpoints are the most easy ones
     if idx == 2*n-1:
-      gradp = (P-X)/norm(X-P) if norm(X-P) > 1e-15 else np.ones(2)
-      return (agnorm(X-P) - w, np.concatenate((gradp,np.zeros(2),np.array([-0.5]),np.zeros(self.num_optvar-5))))
+      return norm(X-P) - w 
     if idx == 2*n:
-      gradq = (Q-X)/norm(X-Q) if norm(X-Q) > 1e-15 else np.ones(2)
-      return (norm(X-Q) - w, np.concatenate((np.zeros(2),gradq,np.array([-0.5]),np.zeros(self.num_optvar-5))))
+      return norm(X-Q) - w 
 
     # the index of our segment or arc
-    i = idx+1 if idx < n else idx - n + 1 # index for segments is still zero-based but not for gradient
-    assert i >= 1 and i <= 2*n
+    i = idx if idx < n else idx - n
+    assert i >= 0 and i < 2*n 
     H = self.H[i]
-    M = self.M[i-1] # zero based normals... gotta change this -_-
+    M = self.M[i]
 
     # segments: abs((X-g) @ M) - w but instad of g we can use H
     if idx < n:
-      grad = []
-      for namedvar in self.optvar_names():
-        if namedvar == 'p':
-          grad.append(-0.5)
-        else:
-          gradidx = self.namedidx[namedvar]
-          sig = 1 if np.sign(np.dot(X-H,M)) >=0 else -1
-          grad.append(sig*(np.dot(X-H,self.sens['grad_tvert'][i][gradidx,:])
-                                            -np.dot(self.sens['grad_H'][i][gradidx,:],M)))
-      return (abs((X-H) @ M) - w, np.array(grad))
+      return abs((X-H) @ M) - w
     
-    assert i >= 1 and i <= n-1
+    assert i >= 0 and i <= n-2
     r = self.radius
-    C = self.C[i]
-    grad = []
-    for namedvar in self.optvar_names():
-      if namedvar == 'p':
-        grad.append(-0.5)
-      else:
-        gradidx = self.namedidx[namedvar]
-        sig = 1 if np.sign(norm(X-C)-r) >= 0 else -1
-        grad.append(sig*np.dot(C-X,self.sens['grad_C'][i][gradidx,:])/norm(X-C))
-    return (abs(norm(X-C) - r) - w, np.array(grad))
-
-  # for gradient check only
-  def func(self, var,args):
-    P = agnp.array(var[0:2])
-    Q = agnp.array(var[2:4])
-    p = var[4]
-    w = p/2.0
-    a = var[5:]
-    self.set(P, Q, a, p, reset_fields=False)
-    if str(args[-1]) == 'u0vert':
-      return self.V0[args[0]]
-    elif str(args[-1]) == 'u':
-      return self.U[args[0]]
-    elif str(args[-1]) == 'nu':
-      return norm(self.U)
-    elif str(args[-1]).startswith('H'):
-      return self.H[int(args[-1][-1])][args[0]]
-    elif str(args[-1]).startswith('t'):
-      return self.T[int(args[-1][-1])][args[0]]
-    elif str(args[-1]).startswith('tvert'):
-      return self.M[int(args[-1][-1])][args[0]]
-    elif str(args[-1]).startswith('alpha'):
-      return self.alpha[int(args[-1][-1])]
-    elif str(args[-1]).startswith('C'):
-      return self.C[int(args[-1][-1])][args[0]]
-    res = boundary(self.fast_dist(args[0], args[1]), derivative = False)
-    #res = self.fast_dist(args[0], args[1])
-    #return res[0]
-    return res
-
-  # for gradient check only
-  def grad(self, var,args):
-    P = agnp.array(var[0:2])
-    Q = agnp.array(var[2:4])
-    p = var[4]
-    w = p/2.0
-    a = var[5:]
-    self.set(P, Q, a, p, reset_fields=False)
-    if str(args[-1]) == 'u0vert':
-      return self.sens['grad_u0vert'][:,args[0]]
-    elif str(args[-1]) == 'u':
-      return self.sens['grad_u'][:,args[0]]
-    elif str(args[-1]) == 'nu':
-      return self.sens['grad_norm_u']
-    elif str(args[-1]).startswith('H'):
-      return self.sens['grad_H'][int(args[-1][-1])][:,args[0]]
-    elif str(args[-1]).startswith('t'):
-      return self.sens['grad_t'][int(args[-1][-1])+1][:,args[0]]
-    elif str(args[-1]).startswith('tvert'):
-      return self.sens['grad_tvert'][int(args[-1][-1])+1][:,args[0]]
-    elif str(args[-1]).startswith('alpha'):
-      return self.sens['grad_alpha'][int(args[-1][-1])]
-    elif str(args[-1]).startswith('C'):
-      return self.sens['grad_C'][int(args[-1][-1])][:,args[0]]
-    res = boundary(self.fast_dist(args[0], args[1]), derivative = True)
-    #res = self.fast_dist(args[0], args[1])
-    #print(res)
-    return res[1]
+    C = self.C[i+1]
+    return abs(norm(X-C) - r) - w
 
   # gives the closest distance by part idx - see second return value from dist()!
   # does not check if the part is applicable to the coordinate (e.g. if we are for arc within the cone).
   # is meant as basis for automatic differentiation, not fast as it used no precompiled
-  # param optvar the variables which are p_x,p_y,q_x,q_y,a_1,...a_n-1,w -> optvar()
+  # param var the variables which are p_x,p_y,q_x,q_y,a_1,...a_n-1,w -> var()
   # param X the coordinate as array, 
   # param idx  0..n-1 = segment. n...2*n-2=arc, 2n-1=P,2n=Q -> see nice_idx()
-  # only the distance itself and a fake 0 gradient to be compatible with fast_dist
+  # only the distance itself 
   def fast_dist_ad(self,var,X,idx):
     # main changes for autograd
     # - use autograd.numpy (agnp)
     # - any array for computation needs to be agnp.array, e.g. V = [-U[1],U[0]] cannot be differentiated
 
     if idx == -1:
-      return (-3 * glob.transition, np.zeros(self.num_optvar)) # return artificial gradient to conform with fast_dist()
+      return -3 * glob.transition
     if idx == -2:
-      return (3 * glob.transition, np.zeros(self.num_optvar))
+      return 3 * glob.transition
 
     # design variables
-    assert len(var) == 4 + 1 + len(self.a)-2
+    assert len(var) == 4 + 1 + len(self.a) 
    
     P = agnp.array(var[0:2])
     Q = agnp.array(var[2:4])
@@ -838,32 +642,32 @@ class Spaghetti:
 
     # endpoints are the most easy ones
     if idx == 2*n-1:
-      return (agnorm(X-P) - w, np.zeros(self.num_optvar))
+      return agnorm(X-P) - w 
     if idx == 2*n:
-      return (agnorm(X-Q) - w, np.zeros(self.num_optvar))
+      return agnorm(X-Q) - w 
 
     # the index of our segment or arc
     i = idx if idx < n else idx - n
     assert i >= 0 and i < n 
     U = Q - P
     V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
-    assert len(self.a) == n+1
+    assert len(self.a) == n-1
  
-    H_s = P if i == 0   else P + i/n * U + self.get_a(a, i) * V0    # summit of begin of segment
-    H_e = Q if i >= n-1 else P + (i+1)/n * U + self.get_a(a, i+1) * V0  # summit of end of segment, which is Q for last segment
+    H_s = P if i == 0   else P + i/n * U + a[i-1] * V0    # summit of begin of segment
+    H_e = Q if i >= n-1 else P + (i+1)/n * U + a[i] * V0  # summit of end of segment, which is Q for last segment
       
     T = H_e - H_s # segment as vector   
     M = agnp.array([-T[1], T[0]]) / agnorm(T) # normal
 
     # segments: abs((X-g) @ M) - w but instad of g we can use H_e
     if idx < n:
-      return (agnp.abs(agnp.dot((X-H_e), M)) - w, np.zeros(self.num_optvar))
+      return agnp.abs(agnp.dot((X-H_e), M)) - w
     
     # in the arc case, we need two segments and such three summits. we now use s(start=old s), c(center=old e), f(final, new)
     assert i >= 0 and i <= n-2
     r = self.radius
     H_c = H_e
-    H_f = Q if i == n-2 else P + (i+2)/n * U + self.get_a(a, i+2) * V0
+    H_f = Q if i == n-2 else P + (i+2)/n * U + a[i+1] * V0
     
     v1 = H_s - H_c
     v2 = H_f - H_c
@@ -886,19 +690,10 @@ class Spaghetti:
     C = H_c + scaling * B0
    
     # arcs: abs(norm(XC) - r) - w
-    return (abs(agnorm(X-C) - r) - w, np.zeros(self.num_optvar))
-  
-  # helper to access a_0 to a_n without extending it to keep autograd's ArrayBoxes working
-  def get_a(self,a,idx):
-    if idx == 0:
-      return 0
-    elif idx == self.n:
-      return 0
-    else:
-      return a[idx-1]
+    return abs(agnorm(X-C) - r) - w
    
   # give gradient via autograd for given X and idx for all parameters
-  # @return array of size optvar
+  # @return array of size var
   def ddist(self,var, X,idx): 
     t = self.grad_fast_dist(var, X,idx)
     assert len(var) == len(t)
@@ -914,12 +709,12 @@ class Spaghetti:
 
   # print the shape info
   def __str__(self):
-    return "id=" + str(self.id) + " P=" + str(self.P) + " Q=" + str(self.Q) + " a=" + str(self.a[1:-1]) \
+    return "id=" + str(self.id) + " P=" + str(self.P) + " Q=" + str(self.Q) + " a=" + str(self.a) \
          + " p=" + str(self.p) + " radius=" + str(self.radius) + " color=" + self.color  
 
   # shape info for a given index
   def to_string(self, idx):
-    return "shape=" + str(self.id) + " color=" + str(self.color) + " idx=" + str(idx) + " a=" + str(self.a[idx+1])
+    return "shape=" + str(self.id) + " color=" + str(self.color) + " idx=" + str(idx) + " a=" + str(self.a[idx])
    
    
    
@@ -927,31 +722,21 @@ class Spaghetti:
 # @param dist positive inside, negative outside, boundary at 0
 # @param transition is 2*h in feature mapping paper
 # @return if outside |transition| -> rhomin or 1 
-def boundary(dist, derivative=False):
-  # in the non-derivative case the first (or in the vtk case, only) value used. Whatever dist[1] is otherwise?!
-  phi = -dist if not derivative and type(dist) is float or type(dist) is np.float64 else  -dist[0] # positive inside, negative outside
+def boundary(dist):   
+  phi = -dist # positive inside, negative outside
   h = glob.transition/2.0
   rm = glob.rhomin
   if phi <= -h:
-    rho = rm
-  elif phi >= h:
-    rho = 1.0
-  elif glob.boundary == 'linear':
-    rho = .5*((1-rm)*phi/h+1+rm)
+    return rm
+  if phi >= h:
+    return 1.0
+  if glob.boundary == 'linear':
+    return .5*((1-rm)*phi/h+1+rm)
   elif glob.boundary == 'poly':
-    rho = 3.0/4.0*(1.0 - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (1+rm)
+    return 3.0/4.0*(1.0 - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (1+rm)
   else:
     print("Error: boundary type '" + glob.boundary + "' not implemented!")
     os.sys.exit()
-  if derivative != True:
-    return rho
-  else:
-    if phi <= -h or phi >= h:
-      return (rho, 0*dist[1])
-    elif glob.boundary == 'linear':
-      return (rho, .5*((1-rm)/h)*dist[1])
-    elif glob.boundary == 'poly':
-      return (rho, -3.0/4.0*(1.0 - rm)*(1/h - phi**2/(h**3)) * dist[1])
    
 # returns the nodal density value, is ad_differentiable
 # the fast is not for performant calculation (it is NOT) but for having the idx given
@@ -967,12 +752,12 @@ def fast_rho_ad(var, X, idx):
 def fast_rho(X, idx):   
   s = glob.shapes[0]
   
-  val, grad = s.fast_dist(X,idx)
+  val = s.fast_dist(X,idx)
   return boundary(val)
 
 
-# differentiate fast_rho_ad w.r.t. to the optvar vector -> gives a vector
-#grad_fast_rho = autograd.grad(fast_rho_ad,argnum=0) 
+# differentiate fast_rho_ad w.r.t. to the var vector -> gives a vector
+grad_fast_rho = autograd.grad(fast_rho_ad,argnum=0) 
    
 # ad differentiate fast_rho_ad, does some convience for the return type
 def drho(var, X, idx):   
@@ -993,21 +778,19 @@ def drho(var, X, idx):
 def create_idx_field(discretization = None):
   
   shapes = glob.shapes
-  Nx = discretization if discretization else glob.n[0]+1
-  Ny = discretization if discretization else glob.n[1]+1
+  N = discretization if discretization else glob.n[0]+1
   
   
   h = glob.transition *.55 # is save to add a little buffer
   
-  x_ls = np.linspace(0,glob.dx*glob.n[0],Nx)
-  y_ls = np.linspace(0,glob.dx*glob.n[1],Ny)
+  x_ls = np.linspace(0,1,N)
   
-  idx = np.ones((Nx,Ny,len(shapes)),dtype=int) 
-  idx_shapes_only = np.ones((Nx,Ny,len(shapes)),dtype=int) 
-  dist  = np.ones((Nx,Ny,len(shapes)))
+  idx = np.ones((N,N,len(shapes)),dtype=int) 
+  idx_shapes_only = np.ones((N,N,len(shapes)),dtype=int) 
+  dist  = np.ones((N,N,len(shapes)))
 
-  for i, x in enumerate(x_ls):
-    for j, y in enumerate(y_ls):
+  for j, y in enumerate(x_ls):
+    for i, x in enumerate(x_ls):
       X = [x,y]
       for si, s in enumerate(shapes):
         d, k = s.dist(X)
@@ -1022,9 +805,9 @@ def create_idx_field(discretization = None):
 # integrate a rho for element with indices i and j (however the ordering is)
 # uses glob.idx_field and glob.idx_field_shapes_only
 # @param if ad fast_dist_ad evaluated, otherwise glob.dist_field is used 
-def integrate_rho(var_all, shape, i, j, derivative = False):
+def integrate_rho(var_all, shape, i, j, ad = False):
   shape_num = shape.id
-  optvar = var_all[shape.base:shape.base+len(shape.optvar())]
+  var = var_all[shape.base:shape.base+len(shape.var())]
   idx_field = glob.idx_field
   order = glob.order
   
@@ -1036,15 +819,9 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
  
   # we quickly deal with elements inside of or far away from single shapes
   if idx1 == idx2 == idx3 == idx4 == -1:
-    if derivative != True:
-      return agnp.ones((order*order))
-    else:
-      return (agnp.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
+    return agnp.ones((order*order))
   elif idx1 == idx2 == idx3 == idx4 == -2:
-    if derivative != True:
-      return glob.rhomin*agnp.ones((order*order))
-    else:
-      return (glob.rhomin*agnp.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
+    return glob.rhomin*agnp.ones((order*order))
   
   # we take non-cropped indices as we need them for higher order integration 
   idx_field = glob.idx_field_shapes_only
@@ -1053,8 +830,8 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
   idx3 = idx_field[i,j+1][shape_num]
   idx4 = idx_field[i+1,j+1][shape_num]
  
-  dx = glob.dx
-  deta = dx/(order-1) if order > 1 else None
+  dx = glob.dx()[0]
+  deta = dx/(order-1)
   x = i * dx
   y = j * dx
   if order < 1: 
@@ -1062,71 +839,97 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
   XX = [[x+k[0]*deta,y+k[1]*deta] for k in product(range(order),repeat=2)] if order >= 2 else [[x+.5*dx,y+.5*dx]]
   
   if idx1 == idx2 == idx3 == idx4:
-    if derivative == False:
-      return np.array([boundary(shape.fast_dist(X,idx1)) for X in XX])
-    elif derivative == 'autograd' or derivative == 'grad_check': # for gradient check derivative == False cannot be used as it only uses cached values! 
-      return agnp.array([boundary(shape.fast_dist_ad(optvar,X,idx1)) for X in XX])
-    else: # analytical derivative
-      if glob.gradient_check:
-        for X in XX:
-          err = sciopt.check_grad(shape.func, shape.grad, optvar, [X, idx1])
-          if err > 1e-5:
-            i = idx1+1 if idx1 < shape.n else idx1 - shape.n + 1 # index for segments is still zero-based but not for gradient
-            glob.errcount = glob.errcount + 1
-            eps = np.sqrt(np.finfo(float).eps)
-            fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [X, idx1])
-            grad = shape.grad(optvar, [X, idx1])
-            print("index: " + shape.nice_idx(idx1))
-            print("X: " + str(X))
-            print("FD approximation:    " + str(fd_grad))
-            print("Analytical gradient: " + str(grad))
-            print("check_grad L2 error: " + str(err))
-      rho, grad_ip = zip(*[boundary(shape.fast_dist(X,idx1),derivative) for X in XX])
-      return rho, grad_ip
+    if ad:
+      # this case is rho = agnp.array([boundary(shape.fast_dist_ad(var,X,idx1)) for X in XX])
+      # but fast_dist_ad is manually inlined in order to save doing costly agnp computations for each integration point
+      # design variables
+      assert len(var) == 4 + 1 + len(shape.a)
+
+      P = agnp.array(var[0:2])
+      Q = agnp.array(var[2:4])
+      p = var[4]
+      w = p/2.0
+      a = var[5:]
+
+      # constants
+      n = len(a)+1
+      assert n == shape.n
+
+      # endpoints are the most easy ones
+      if idx1 == 2*n-1:
+        return agnp.array([boundary(agnorm(X-P) - w) for X in XX])
+      if idx1 == 2*n:
+        return agnp.array([boundary(agnorm(X-Q) - w) for X in XX])
+
+      # the index of our segment or arc
+      i = idx1 if idx1 < n else idx1 - n
+      assert i >= 0 and i < n
+      U = Q - P
+      V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
+      assert len(shape.a) == n-1
+
+      H_s = P if i == 0   else P + i/n * U + a[i-1] * V0    # summit of begin of segment
+      H_e = Q if i >= n-1 else P + (i+1)/n * U + a[i] * V0  # summit of end of segment, which is Q for last segment
+
+      T = H_e - H_s # segment as vector
+      M = agnp.array([-T[1], T[0]]) / agnorm(T) # normal
+
+      # segments: abs((X-g) @ M) - w but instad of g we can use H_e
+      if idx1 < n:
+        return agnp.array([boundary(agnp.abs(agnp.dot((X-H_e), M)) - w) for X in XX])
+
+      # in the arc case, we need two segmens and such three summits. we now use s(start=old s), c(center=old e), f(final, new)
+      assert i >= 0 and i <= n-2
+      r = shape.radius
+      H_c = H_e
+      H_f = Q if i == n-2 else P + (i+2)/n * U + a[i+1] * V0
+
+      v1 = H_s - H_c
+      v2 = H_f - H_c
+      v1 = v1 / agnorm(v1)
+      v2 = v2 / agnorm(v2)
+  
+      # the scaling is based on the angle between the v, If a=0 -> alpha = 0 and numerics goes crazy
+      scaling = r # this is the case when the v and B are aligned
+      if agnorm(v1+v2) > 1e-12:
+        B = v1 + v2
+        B0 = B/agnorm(B)
+        cosa = agnp.dot(v1,v2)
+        assert cosa >= -.9999999999 and cosa <= .9999999999
+        #cosa = agnp.clip(cosa,-1,1)
+        alpha = agnp.arccos(cosa)
+        scaling = r/agnp.sin(alpha/2)
+      else:
+        B0 = agnp.array([-v1[1], v1[0]])
+        scaling = r
+  
+      C = H_c + scaling * B0
+
+      # arcs: abs(norm(XC) - r) - w
+      return agnp.array([boundary(abs(agnorm(X-C) - r) - w) for X in XX])
+
+    else: # no ad-case
+      rho = agnp.array([boundary(shape.fast_dist(X,idx1)) for X in XX])
   else: # not all idx same
     #vi = [shape.dist(X) for X in XX]
     #print(vi)
-    if derivative == False:
-      return np.array([boundary(shape.dist(X, None, 'distance')) for X in XX])
-    elif derivative == 'autograd' or derivative == 'grad_check':
-      return agnp.array([boundary(shape.fast_dist_ad(optvar,X,shape.dist(X, None, 'index'))) for X in XX])
+    if ad:
+      rho = agnp.array([boundary(shape.fast_dist_ad(var,X,shape.dist(X, None, 'index'))) for X in XX])
     else:
-      if glob.gradient_check:
-        for X in XX:
-          d, idxx = shape.dist(X, None, 'all')
-          err = sciopt.check_grad(shape.func, shape.grad, optvar, [X, idxx])
-          if err > 1e-5:
-            glob.errcount = glob.errcount + 1
-            eps = np.sqrt(np.finfo(float).eps)
-            fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [X, idxx])
-            grad = shape.grad(optvar, [X, idxx])
-            print("Non-unique element index: " + shape.nice_idx(idxx))
-            print("X: " + str(X))
-            print("FD approximation:    " + str(fd_grad))
-            print("Analytical gradient: " + str(grad))
-            print("check_grad L2 error: " + str(err))
-      rho, grad_ip = zip(*[boundary(shape.fast_dist(X,shape.dist(X, None, 'index')),derivative) for X in XX])
-      return rho, grad_ip
+      rho = agnp.array([boundary(shape.dist(X, None, 'distance')) for X in XX])
     
   return rho
 
 # get material rotation angle for element with indices i and j (however the ordering is)
 # uses glob.idx_field and glob.idx_field_shapes_only
 # @param if ad fast_dist_ad evaluated, otherwise glob.dist_field is used 
-def get_material_rotation(var_all, shape_num, i, j, derivative=False):
+def get_material_rotation(var_all, shape_num, i, j, ad):
   shape = glob.shapes[shape_num]
-  var = var_all[shape.base:shape.base+len(shape.optvar())]
-  dx = glob.dx
+  var = var_all[shape.base:shape.base+len(shape.var())]
+  dx = glob.dx()[0]
   X = [(i+0.5) * dx, (j+0.5)*dx]
+  d, idx = shape.dist(X)
   
-  idx1 = glob.idx_field_shapes_only[i,j][shape_num]
-  idx2 = glob.idx_field_shapes_only[i+1,j][shape_num]
-  idx3 = glob.idx_field_shapes_only[i,j+1][shape_num]
-  idx4 = glob.idx_field_shapes_only[i+1,j+1][shape_num]
-  if idx1 == idx2 == idx3 == idx4:
-    idx = idx1
-  else:
-    d, idx = shape.dist(X)
   
   P = agnp.array(var[0:2])
   Q = agnp.array(var[2:4])
@@ -1136,7 +939,7 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
 
   # constants
   n = len(a)+1
-  assert n == shape.n 
+  assert n == shape.n
 
   # endpoints are the most easy ones
   # perpendicular to X-P or X-Q
@@ -1145,49 +948,34 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
   if idx == 2*n-1:
     XP = P-X
     vec =  agnp.array([XP[1],-XP[0]])
-    if derivative != True:
-      return agnp.arctan2(vec[1],vec[0])
-    else:
-      nvec2 = vec[0]**2+vec[1]**2
-      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2))
-      return (np.arctan2(vec[1],vec[0]), np.concatenate(([-datan2[1], datan2[0]],np.zeros(shape.num_optvar-2))))
+    return -agnp.arctan2(vec[1],vec[0])
   if idx == 2*n:
     XQ = Q-X
     vec = agnp.array([XQ[1],-XQ[0]])
-    if derivative != True:
-      return agnp.arctan2(vec[1],vec[0])
-    else:
-      nvec2 = vec[0]**2+vec[1]**2
-      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2))
-      return (np.arctan2(vec[1],vec[0]), np.concatenate((np.zeros(2),[-datan2[1], datan2[0]],np.zeros(shape.num_optvar-4))))
+    return -agnp.arctan2(vec[1],vec[0])
   
   # the index of our segment or arc
-  i = idx+1 if idx < n else idx - n + 1 # index for segments is still zero-based but not for gradient
-  assert i >= 1 and i <= n
+  i = idx if idx < n else idx - n
+  assert i >= 0 and i < n
   U = Q - P
   V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
   
-  H_s = P if i == 1   else P + (i-1)/n * U + shape.get_a(a, i-1) * V0    # summit of begin of segment
-  H_e = Q if i >= n else P + i/n * U + shape.get_a(a, i) * V0  # summit of end of segment, which is Q for last segment
+  H_s = P if i == 0   else P + i/n * U + a[i-1] * V0    # summit of begin of segment
+  H_e = Q if i >= n-1 else P + (i+1)/n * U + a[i] * V0  # summit of end of segment, which is Q for last segment
 
-  t = H_e - H_s # segment as vector
+  T = H_e - H_s # segment as vector
   
   # segments: parallel to segment
   if idx < n:
-    vec = t/norm(t)
-    if derivative != True:
-      return agnp.arctan2(vec[1],vec[0])
-    else:
-      nvec2 = vec[0]**2+vec[1]**2
-      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2))
-      return (np.arctan2(vec[1],vec[0]), np.dot(shape.sens['grad_t'][i],datan2))
+    vec = T
+    return -agnp.arctan2(vec[1],vec[0])
 
-  # arcs: perpendicular to X-C
-  assert i >= 1 and i <= n-1
-  M = agnp.array([-t[1], t[0]]) / agnorm(t) # normal
+  # arcs: perpendicular to X-E
+  assert i >= 0 and i <= n-2
+  M = agnp.array([-T[1], T[0]]) / agnorm(T) # normal
   r = shape.radius
   H_c = H_e
-  H_f = Q if i == n-1 else P + (i+1)/n * U + shape.get_a(a, i+1) * V0
+  H_f = Q if i == n-2 else P + (i+2)/n * U + a[i+1] * V0
 
   v1 = H_s - H_c
   v2 = H_f - H_c
@@ -1211,89 +999,50 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
   C = H_c + nc*(scaling * B0)
   XC = C-X
   vec = agnp.array([XC[1],-XC[0]])
-  if derivative != True:
-    return agnp.arctan2(vec[1],vec[0])
-  else:
-    nvec2 = vec[0]**2+vec[1]**2
-    return (agnp.arctan2(vec[1],vec[0]), (shape.sens['grad_C'][i][:,1]*XC[0]-shape.sens['grad_C'][i][:,0]*XC[1])/nvec2)
+  return -agnp.arctan2(vec[1],vec[0])
 
 # compute average material rotation angle weighted by density field, if passed
-def combine_angles(angles, density=None, derivative=False):
-  if derivative == True:
-    grad_a = angles[1]
-    angles = angles[0]
+def combine_angles(angles, density=None):
   # use polar coordinates
   X = agnp.cos(angles)
   Y = agnp.sin(angles)
   # scale averaging importance using density
   if density is not None:
-    if derivative == True:
-      grad_dens = density[1]
-      density = density[0]
     assert len(density) == len(angles)
     X = agnp.multiply(density, X)
     Y = agnp.multiply(density, Y)
   # get largest vector sum
   # 180° flips are allowed, as they don't change material properties
   # largest vector sum has least cancellations avoidable by 180° flips
-  m = -1
+  m = 0
   iter = product([1,-1],repeat=len(angles)-1)
   for xx in iter:
     flip = list(xx)
     flip.append((1))
     flip = agnp.array(flip)
-    flipped_X = agnp.multiply(flip,X)
-    flipped_Y = agnp.multiply(flip,Y)
-    sumvecX = agnp.sum(flipped_X)
-    sumvecY = agnp.sum(flipped_Y)
+    sumvecX = agnp.sum(agnp.multiply(flip,X))
+    sumvecY = agnp.sum(agnp.multiply(flip,Y))
     # maximum of squared norm gives same vector as maximum of norm 
     n = sumvecX**2+sumvecY**2
     if n > m:
       # save maximum
       m = n
-      flip_max = flip
-      flipped_max_X = flipped_X
-      flipped_max_Y = flipped_Y
-      vec_max_sum_X = sumvecX
-      vec_max_sum_Y = sumvecY
-  if derivative != True:
-    return agnp.arctan2(vec_max_sum_Y,vec_max_sum_X)
-  else:
-    # derivative of [vec_max_sum_X, vec_max_sum_Y] is [-flipped_max_X[s], flipped_max_Y[s]], of atan2 [-vec_max_sum_Y/norm(vec), vec_max_sum_X/norm(vec)]
-    nvec2 = vec_max_sum_X**2+vec_max_sum_Y**2
-    datan2 = [-vec_max_sum_Y/nvec2, vec_max_sum_X/nvec2]
-    grad_max = []
-    for s in range(len(angles)):
-      grad_s = np.zeros(grad_a[s].shape)
-      grad_s = np.multiply((datan2[0]*(-flipped_max_Y[s])+datan2[1]*flipped_max_X[s]),grad_a[s])
-      if density is not None:
-        grad_s = grad_s + np.multiply(((datan2[0]*flip_max[s]*np.cos(angles[s])+datan2[1]*flip_max[s]*np.sin(angles[s]))),grad_dens[s])
-      grad_max.append(grad_s)
-    return grad_max
-
-# only changing argument order for gradient check of combine_angles w.r.t. density variable
-def combine_angles_fd_density(density, angles):
-  return combine_angles(angles, density, derivative=False)
+      vecX = sumvecX
+      vecY = sumvecY
+  return agnp.arctan2(vecY,vecX)
 
 # integrate rho for element with indices i and j (however the ordering is) for all shapes and take (smooth) maximum
 # get rotation angles and take average angle between shapes
 # uses glob.idx_field
 # @param if ad fast_dist_ad evaluated
-def combine_designs(var, i, j, derivative, verbose=False):
+def combine_designs(var, i, j, ad):
   num_shapes = len(glob.shapes)
   p = glob.p
   order = glob.order
-  # optvar needs to be passed for autograd to work 
-  if derivative != True:
-    rho_shapes_ip = agnp.array([integrate_rho(var, s, i, j, derivative) for s in glob.shapes])
-  else:
-    rho_shapes_ip = []
-    grad_shapes_ip = []
-    for s in glob.shapes:
-      rr, gg = integrate_rho(var, s, i, j, derivative)
-      rho_shapes_ip.append(rr)
-      grad_shapes_ip.append(gg)
-
+  # var needs to be passed for autograd to work 
+  rho_shapes_ip = agnp.array([integrate_rho(var, s, i, j, ad) for s in glob.shapes])
+  #angles_shapes = agnp.array([get_material_rotation(var, s.id, i, j, ad) for s in glob.shapes])
+  #print(directions_shapes.shape)
   if glob.combine == 'p-norm':
     rho = agnp.sum(agnp.power(agnp.sum(agnp.power(rho_shapes_ip,p),0),(1/p)))/(order*order)
   elif glob.combine == 'KS':
@@ -1301,96 +1050,22 @@ def combine_designs(var, i, j, derivative, verbose=False):
   else:
     rho = agnp.sum(agnp.max(rho_shapes_ip,0))/(order*order)
     #rho_ip = agnp.sum(rho_shapes)/(order*order)
-  if derivative == True:
-    if glob.combine == 'p-norm':
-      sum_s = np.sum(np.power(rho_shapes_ip,p),0)
-      for ip in range(len(sum_s)):
-        sum_s[ip] = np.power(sum_s[ip],1/p-1) if sum_s[ip] > 1e-30 else 0 # avoid non-differentiability of norm as gradient in void is zero anyways
-      rho_s_p = np.power(rho_shapes_ip, p-1)
-      tmp = np.expand_dims(sum_s,axis=0)*rho_s_p
-      grad_dens = []
-      for s in range(len(glob.shapes)):
-        grad_s = np.expand_dims(tmp[s],axis=1)*grad_shapes_ip[s]
-        grad_dens.append(np.sum(grad_s,axis=0)/(order*order))
-
-  # angle computation
-  angle = 0 # dummy result for void
-  grad_a = np.zeros((len(var)))
-  if len(glob.design) > 1:
-    rho_shapes = agnp.sum(rho_shapes_ip,1)/(order*order) # weights for angle average
-    # for angle average use only non-zero values
-    sidx = agnp.nonzero(rho_shapes > glob.rhomin + 1e-15)
-    if len(sidx[0]) != 0:
-      angles_shapes = agnp.array([get_material_rotation(var, idx, i, j, derivative) for idx in sidx[0]])
-      if derivative == True:
-        ang, grad_ang = zip(*angles_shapes)
-        eps = np.sqrt(np.finfo(float).eps)
-        if glob.gradient_check:
-          for ind,s in enumerate(sidx[0]):
-            fd_grad = sciopt.approx_fprime(var, get_material_rotation, eps, s, i, j)
-            shape = glob.shapes[s]
-            fd_grad = fd_grad[shape.base:shape.base+len(shape.optvar())]
-            err = norm(fd_grad-grad_ang[ind])
-            if err>3e-5:
-              dx = glob.dx
-              X = [(i+0.5) * dx, (j+0.5)*dx]
-              d, idx = shape.dist(X)
-              print("index: " + shape.nice_idx(idx))
-              print("X: " + str(X))
-              print("FD approximation:    " + str(fd_grad))
-              print("Analytical gradient: " + str(grad_ang))
-              print("get_material_rotation gradient L2 error: " + str(err))
-        if glob.gradient_check:
-          grad_max_ang = combine_angles((ang,np.ones(len(sidx[0]))), (rho_shapes[sidx[0]],np.zeros(len(sidx[0]))), derivative)
-          fd_grad_ang = sciopt.approx_fprime(ang, combine_angles, eps, rho_shapes[sidx[0]])
-          err = norm(fd_grad_ang-grad_max_ang)
-          if err>3e-5:
-            dx = glob.dx
-            X = [(i+0.5) * dx, (j+0.5)*dx]
-            print("X: " + str(X))
-            print("FD approximation:    " + str(fd_grad_ang))
-            print("Analytical gradient: " + str(grad_max_ang))
-            print("combine_angles angle gradient L2 error: " + str(err))
-          grad_max_dens = combine_angles((ang,np.zeros(len(sidx[0]))), (rho_shapes[sidx[0]],np.ones(len(sidx[0]))), derivative)
-          fd_grad_dens = sciopt.approx_fprime(rho_shapes[sidx[0]], combine_angles_fd_density, eps, ang)
-          err = norm(fd_grad_dens-grad_max_dens)
-          if err>3e-5:
-            dx = glob.dx
-            X = [(i+0.5) * dx, (j+0.5)*dx]
-            print("X: " + str(X))
-            print("FD approximation:    " + str(fd_grad_dens))
-            print("Analytical gradient: " + str(grad_max_dens))
-            print("combine_angles density gradient L2 error: " + str(err))
-        grad_dens_sidx = []
-        for s in sidx[0]:
-          grad_dens_sidx.append(np.sum(grad_shapes_ip[s],axis=0)/(order*order))
-        grad_max = combine_angles((ang,grad_ang), (rho_shapes[sidx[0]],grad_dens_sidx), derivative)
-        #grad_max = combine_angles((ang,grad_ang), None, derivative)
-        for ind,s in enumerate(sidx[0]):
-          shape = glob.shapes[s]
-          grad_a[shape.base:shape.base+len(shape.optvar())] = grad_max[ind]
-      else:
-        angle = combine_angles(angles_shapes, rho_shapes[sidx[0]])
-        #angle = combine_angles(angles_shapes, None)
-        if verbose:
-          print("active shapes " + str(sidx[0]) + " with densities " + str(rho_shapes[sidx[0]]))
-          print("angles in degrees: " + str(180*angles_shapes/np.pi))
-          print("weighted angles in degrees: " + str(180*(angles_shapes*rho_shapes[sidx[0]])/(np.max(rho_shapes[sidx[0]])*np.pi)) )
-          print("averaged angle in degrees: " + str(180*angle/np.pi))
-    # else: void, set above
-
+  rho_shapes = agnp.sum(rho_shapes_ip,1)/(order*order)
+  # for angle average use only non-zero values
+  sidx = agnp.nonzero(rho_shapes > 1e-25)
+  if len(sidx[0]) != 0:
+    angles_shapes = agnp.array([get_material_rotation(var, idx, i, j, ad) for idx in sidx[0]])
+    angle = combine_angles(angles_shapes, rho_shapes[sidx[0]])
+  else:
+    # fallback in void, won't have influence
+    angle = 0
   #X2_scaled = agnp.multiply(rho_shapes,agnp.cos(2*angles_shapes))
   #Y2_scaled = agnp.multiply(rho_shapes,agnp.sin(2*angles_shapes))
   #angle = 0.5*agnp.arctan2(agnp.sum(Y2_scaled,axis=0),agnp.sum(X2_scaled,axis=0))
-  if derivative != True:
-    return agnp.array([rho, angle])
-  else:
-    return np.concatenate((np.concatenate(grad_dens), grad_a))
+  return agnp.array([rho, angle])
 
-# helper for gradient check
-def combine_designs_fd(var,i, j, which = 'rotAngle'):
-  res = combine_designs(var,i, j,derivative='grad_check')
-  return res[1] if which == 'rotAngle' else res[0]
+
+
  
 # generates a density map for a unit square. 
 # this is a trivial implementation, serving for reference which whall be deleted in near future     
@@ -1447,11 +1122,6 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
   if not radius:
     radius = float(ot.xpath(xml, '//header/spaghetti/@radius')) 
 
-  glob.n[0] = float(ot.xpath(xml, '//header/mesh/@x'))
-  glob.n[1] = float(ot.xpath(xml, '//header/mesh/@y'))
-  glob.n[2] = float(ot.xpath(xml, '//header/mesh/@z'))
-  assert(glob.n[2] == 1)
-
   while True: # exit with break
     idx = len(shapes)
     base = '//set[' + sq + ']/shapeParamElement[@shape="' + str(idx) + '"]'
@@ -1478,7 +1148,7 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
       a.append(des)
       last = nr 
 
-    base = sum([len(s.optvar()) for s in shapes])
+    base = sum([len(s.var()) for s in shapes])
     noodle = Spaghetti(id=idx, base=base, radius=radius, P=(Px,Py), Q=(Qx,Qy), a=a, p=p)
     shapes.append(noodle)
     if cfseval:
@@ -1494,8 +1164,7 @@ def plot_data(res, shapes, detail):
 
   # could respect non-unit regions and out of bounds movement
   minimal = [0,0]
-  min_dim = min((glob.n[0],glob.n[1]))
-  maximal = [glob.n[0]/min_dim,glob.n[1]/min_dim] # normalize smaller dimension to 1, as there is no other element information in .density.xml
+  maximal = [1,1] 
   
   fig, sub = create_figure(res, minimal, maximal)
   
@@ -1538,7 +1207,7 @@ def plot_data(res, shapes, detail):
         sub.add_patch(patch)
         if detail > 1 and num == 0:
           p1 = 0.8*L1+0.2*L2
-          sign = np.sign(s.a[1]) if (len(s.a) > 2 and s.a[1] != 0) else 1
+          sign = np.sign(s.a[0]) if (len(s.a) > 0 and s.a[0] != 0) else 1
           p2 = p1+sign*w*M
           sub.add_line(plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), color= 'red'))
           plt.annotate('p/2', 0.7*p2+0.3*p1, fontsize=14, xytext=(-5,6), textcoords='offset points', color = 'red')
@@ -1563,7 +1232,7 @@ def plot_data(res, shapes, detail):
           plt.annotate('$a_'+str(num+1)+'$', .5*(H+E), fontsize=16, xytext=(3,-6), textcoords='offset points', color = 'green')
           vec = s.P-s.Q
           gamma2 = 180/np.pi*np.arctan2(vec[1],vec[0])
-          if s.a[num+1] > 0:
+          if s.a[num] > 0:
             gamma1 = gamma2-90
           else:
             gamma1 = gamma2
@@ -1636,7 +1305,7 @@ def plot_data(res, shapes, detail):
         assert len(s.T) == len(s.M)
         for i, T in enumerate(s.T):
           M = s.M[i]
-          p1 = .5*(s.H[i] + s.H[i+1])
+          p1 = s.H[i] + .5*T
           p2 = p1 + .1*M 
           
           sub.add_line(plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), color= 'red'))
@@ -1696,13 +1365,13 @@ def write_vtk(name,N, detailed, derivative):
 
   field_dist_ad = np.zeros((N,N,1))
   
-  total = sum([len(s.optvar()) for s in shapes])
-  assert total == shapes[-1].base + len(shapes[-1].optvar()) 
+  total = sum([len(s.var()) for s in shapes])
+  assert total == shapes[-1].base + len(shapes[-1].var()) 
   ddist         = np.zeros((total,N,N,1)) # ad for fast_dist_ad
   drho_ad       = np.zeros((total,N,N,1)) # ad for fast_rho_ad 
   
   for s in shapes:
-    var = s.optvar()
+    var = s.var()
     for j, y in enumerate(x_ls):
       for i, x in enumerate(x_ls):
         X = [x,y]
@@ -1720,12 +1389,12 @@ def write_vtk(name,N, detailed, derivative):
           rho_ad[i,j,0] = fast_rho_ad(var,X,idx)
         if derivative:
           g = drho(var,X,idx)
-          for e in range(len(s.optvar())):
+          for e in range(len(s.var())):
             drho_ad[s.base+e,i,j,0] = g[e]
 
         if derivative and detailed:
           g = s.ddist(var,X,idx)
-          for e in range(len(s.optvar())):
+          for e in range(len(s.var())):
             ddist[s.base+e,i,j,0] = g[e]
 
   pd={"dist": dist}
@@ -1740,12 +1409,12 @@ def write_vtk(name,N, detailed, derivative):
     pd["field_dist"] = field_dist_ad
   if derivative:
     for s in shapes:
-      for e, n in enumerate(s.optvar_names()):
+      for e, n in enumerate(s.varnames()):
         pd["d_rho / d_s" + str(s.id) + '_' + n] = drho_ad[s.base+e]
 
   if derivative and detailed:
     for s in shapes:
-      for e, n in enumerate(s.optvar_names()):
+      for e, n in enumerate(s.varnames()):
         pd["d_dist(s" + str(s.id) + ") / d_" + n] = ddist[s.base+e]
 
   gridToVTK(name, x_ls,x_ls,np.zeros(1) , pointData=pd)
@@ -1763,7 +1432,7 @@ def lineplot(res):
   fdisad = np.ones(res) # fast_dist_ad
   idx = np.ones(res,dtype=int)
   ad = np.ones(res)
-  var = np.copy(s.optvar())
+  var = np.copy(s.var())
   for i, y in enumerate(np.linspace(0,1,res)):
     X = [x,y]
     v,k = s.dist(X) 
@@ -1780,7 +1449,7 @@ def lineplot(res):
   epsa = 1e-5
   ap[0] += epsa
   s.set(s.P, s.Q, ap, s.p)  
-  dv = s.optvar()
+  dv = s.var()
   dap   = np.ones(res) # using dist
   dapad = np.ones(res) # using fast_dist_ad
   for i, x in enumerate(np.linspace(0,1,res)):
@@ -1789,7 +1458,7 @@ def lineplot(res):
     dapad[i] = s.fast_dist_ad(dv,X,idx[i])
   s.set(s.P, s.Q, org, s.p) # reset   
   
-  print('# lineplot of distance for height ',y, ' optvar=',var)
+  print('# lineplot of distance for height ',y, ' var=',var)
   print('# set xlabel "x"; set ylabel "distance at y=' + str(y) + '"; set y2label "d distance / dx"; set ytics nomirror; set y2tics nomirror')
   print('# plot "line.dat" u 1:2 w l t "dist", "line.dat" u 1:3 w l axis x1y2 t "d dist / dx", 0')
   print("#(1) x \t(2) dist \t(3) fast_dist_ad \t(4) d dist / dx \t(5) d dist/ da \t(6) d fast_dist_ad / da \t(7)  d dist/da (AD) \t(8) idx ")
@@ -1830,7 +1499,6 @@ if __name__ == '__main__':
   parser.add_argument('--cfseval', help="dry run cfs calls once, mainly for profiling", action='store_true')
   parser.add_argument('--lineplot', help="plots the distance value for the horizontal line crossing H1 in the given res", type=int)
   parser.add_argument('--noshow', help="don't show the image", action='store_true')  
-  parser.add_argument('--gradient_check', help="check internal spaghetti derivatives", action='store_true')
 
   args = parser.parse_args()
   
@@ -1846,8 +1514,7 @@ if __name__ == '__main__':
   glob.boundary = args.boundary
   glob.combine = args.combine
   glob.order = args.order
-  glob.gradient_check = args.gradient_check
-  #glob.n = [args.density_res, args.density_res, 1]
+  glob.n = [args.density_res, args.density_res, 1]
 
   if args.lineplot:
     if not args.noshow:
@@ -1867,7 +1534,7 @@ if __name__ == '__main__':
       "order": args.order,
       "silent": 1}
     design = ['density', 'rotAngle']
-    cfs_init(args.rhomin, args.radius, args.boundary, args.transition, args.combine, glob.n[0], glob.n[1], glob.n[2], design, dict)
+    cfs_init(args.rhomin, args.radius, args.boundary, args.transition, args.combine, args.density_res, args.density_res, 1, design, dict)
     des = cfs_map_to_design()
     #if len(design)>1:
       #des = np.reshape(des, (args.density_res*args.density_res,len(design)), 'C')

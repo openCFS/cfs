@@ -844,13 +844,7 @@ void Condition::ToInfo(PtrParamNode in)
   if(observation_)
       in->Get("mode")->SetValue("observation");
 
-    in->Get("design")->SetValue(DesignElement::type.ToString(design_));
-
-
-  // if(delta_logging_ignored_)
-  //  in->Get("delta_logging")->SetWarning("no value given");
-  // else
-  //  in->Get("delta_logging")->SetValue(delta_logging);
+  in->Get("design")->SetValue(DesignElement::type.ToString(design_));
 
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());

@@ -71,6 +71,8 @@ Function::Function(PtrParamNode pn)
 {
   Init();
 
+  this->type_ = type.Parse(pn->Get("type")->As<string>());
+
   this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
   this->pn = pn;
 
@@ -350,7 +352,7 @@ void Function::ToInfo(PtrParamNode info) {
   info_ = info;
 
   // there might be set something, i.g. in PostProc
-  info_->SetValue(preInfo_, false); // don't do tricks with name
+  info_->SetValue(preInfo_, false, false); // don't do tricks with name and don't repeat warning prints
 
   info->Get("type")->SetValue(type.ToString(type_));
 
@@ -725,6 +727,19 @@ bool Function::IsExcitationSensitive() const {
 }
 
 
+bool Function::IsSlackFunction() const
+{
+  switch(type_)
+  {
+  case SLACK:
+  case SLACK_FNCT:
+  case EXPRESSION:
+    return true;
+  default:
+    return false;
+  }
+}
+
 bool Function::IsStateDependent() const
 {
   if(IsAdjointBased())
@@ -1091,6 +1106,10 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
     throw Exception("for constraint 'bending' use design 'spaghetti'");
 
   // don't define the elements here, it is specific for objective and conditions
+
+  if(design_ == DesignElement::DEFAULT && space->design.GetSize() > 1 && !IsStateDependent())
+    if(!IsSlackFunction())
+      preInfo_->Get(ParamNode::WARNING)->SetValue("consider setting 'design' for function '" + ToString() + "'");
 }
 
 Function::Local* Function::InitLocal(DesignSpace* space) {
@@ -1269,10 +1288,16 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
 
   case DISTANCE:
-  case BENDING:
     if(locality_ != FUNCTION_SPECIFIC && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = FUNCTION_SPECIFIC;
+    break;
+
+  case BENDING:
+    if(user == DEFAULT)
+      locality_ = db_opt ? FUNCTION_SPECIFIC : FUNCTION_SPECIFIC_TWO_SIGNS;
+    if(locality_ != FUNCTION_SPECIFIC && locality_ != FUNCTION_SPECIFIC_TWO_SIGNS && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
   case CONES:
@@ -2072,6 +2097,7 @@ bool Function::Local::IsReverse(Locality loc)
   case DEG_45_STAR_AND_REVERSE:
   case MULT_DESIGNS_NEXT_AND_REVERSE:
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
+  case FUNCTION_SPECIFIC_TWO_SIGNS:
     return true;
   default:
     return false;
@@ -3338,7 +3364,9 @@ double Function::Local::Identifier::CalcDistance(int neigh_idx, bool grad) const
 double Function::Local::Identifier::CalcBending(int neigh_idx, bool grad) const
 {
   // see SpaghettiDesign::SetupVirtualShapeElementMap()
-  double prev = 0, mine = 0, next = 0;
+  double prev = 0;
+  double mine = 0;
+  double next = 0;
 
   int base = 3; // the first index for normals, distance is before. More complex for 3D and fixed for nodes
   switch(bending)

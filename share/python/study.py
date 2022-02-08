@@ -66,7 +66,7 @@ parser.add_argument('-x', '--initial', help="optional density.xml(.gz) for initi
 parser.add_argument('-p', '--problem', help="the problem -xml file used for the study", required=True)
 parser.add_argument('-b', '--base', help="the common base name for the study", required=True)
 
-parser.add_argument('-v', '--var', help='the query for the variable, e.g. //cfs:constraint[@type="volume"]/@value', required=True)
+parser.add_argument('-v', '--var', help='the query for the variable, e.g. \'//cfs:constraint[@type="volume"]/@value\'', required=True)
 parser.add_argument('-r', '--range', nargs='+', help='the range for the variable as <start> <end> [<step>] in Python style')
 parser.add_argument('-c', '--choice', nargs='+', help='range for var as alternative to --range, e.g. 1 10 100 1000')
 parser.add_argument('-l', '--label', help="short label for the var varibale if  automatism fails")

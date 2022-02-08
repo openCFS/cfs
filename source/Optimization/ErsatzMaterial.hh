@@ -80,8 +80,15 @@ public:
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
-    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP, SPAGHETTI, SPLINE_BOX
+    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP,
+    SPAGHETTI, SPAGHETTI_PARAM_MAT, SPLINE_BOX
   } Method;
+
+  /** Actually everything with has material parameterization, e.g. rotated anisotropy as in spaghetti */
+  static bool IsParamMat(Method test) { return test ==  PARAM_MAT || test == SHAPE_PARAM_MAT || test == SPAGHETTI_PARAM_MAT; }
+
+  /** True for spaghetti and spaghettiParamMat */
+  static bool IsSpaghetti(Method test) { return test ==  SPAGHETTI || test == SPAGHETTI_PARAM_MAT; }
 
   static Enum<Method> method;
 

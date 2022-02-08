@@ -15,11 +15,12 @@ namespace CoupledField
 class SpaghettiDesign : public FeaturedDesign
 {
 public:
-  SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::SPAGHETTI);
+  /** @method either SPAGHETTI or SPAGHETTI_PARAM_MAT */
+  SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method);
 
   virtual ~SpaghettiDesign();
 
-  /** read the design and do a conditional mapping */
+    /** read the design and do a conditional mapping */
   int ReadDesignFromExtern(const double* space_in) override;
 
   void ToInfo(ErsatzMaterial* em) override;

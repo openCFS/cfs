@@ -11,7 +11,7 @@ import numpy as np
 parser = argparse.ArgumentParser(description = 'Compare columns of a .plot.dat file with another (reference) file')
 parser.add_argument("first", help=".plot.dat file, default is <directory name>.plot.dat", nargs='?')
 parser.add_argument("second", help="second .plot.dat file, default is <first> but .ref.plot.dat", nargs='?')
-parser.add_argument('--col', help="the column to dispplay", type=int, default=2)
+parser.add_argument('--col', help="the column to display (1-based)", type=int, default=2)
 parser.add_argument('--marker', help="style for current data line", choices=['o'], default='o')
 args = parser.parse_args()
 
@@ -40,12 +40,12 @@ sd = np.loadtxt(second)
 if fd.shape[1] != sd.shape[1]:
   print("warning, the number of columns in '" + first  + "' (" + str(fd.shape[1]) + ") differs from '" + second + "' (" + str(sd.shape[1]) + ")") 
 
-col = args.col+1
+col = args.col-1
 
 if col > fd.shape[1] and col > sd.shape[1]:
-  print("--col is choosen too large")
+  print("--col is chosen too large")
   os.sys.exit()
-  
+
 plt.plot(sd[:,0], sd[:,col], marker=args.marker, label=second)
 plt.plot(fd[:,0], fd[:,col], label=first)
 

@@ -391,3 +391,16 @@ BOOST_AUTO_TEST_CASE(Matrix_ToString)
   BOOST_TEST(mr.ToString(TS_INFO) == "rows=2 cols=2 nnz=3 min=0 max=2");
   BOOST_TEST(mr.ToString(TS_NONZEROS, ", ") == "row=0 1:2, row=1 0:2 1:2");
 }
+
+BOOST_AUTO_TEST_CASE(ConvertToVec_UpperTriangular)
+{
+  Matrix<int> m(6,6);
+  for(int i = 0; i < 6; i++)
+    for(int j= 0; j < 6; j++)
+      m[i][j] = (i+1) * 10 + (j+1);
+
+  //std::cout << "m(6,6) = " << m.ToString() << std::endl;
+  Vector<int> v;
+  m.ConvertToVec_UpperTriangular(v);
+  std::cout << "v(m) = " << v.ToString() << std::endl;
+}

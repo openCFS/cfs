@@ -133,7 +133,7 @@ int FeaturedDesign::WriteDesignToExtern(double* space_out, bool scaling) const
 
 void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
-  LOG_DBG2(FD) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << shape_param_.GetSize()
+  LOG_DBG(FD) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << shape_param_.GetSize()
       << " out=" << out.GetSize() << " outwindowstart=" << out.window.GetStart() << " outwindowsz=" << out.window.GetSize();
   assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
 
@@ -147,8 +147,7 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   assert(!(vs == DesignElement::COST_GRADIENT && !f->IsObjective()));
   assert(vs == DesignElement::COST_GRADIENT || vs == DesignElement::CONSTRAINT_GRADIENT);
   assert(!opt_->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for feature map. In DesignSpace we do f->GetExcitation()->Apply()
-  assert(design.GetSize() == 1); // only pseudo density, nothing else implemented yet
-  assert(regions.GetSize() == 1); // needs to be as design shall be 1
+  assert(!(regions.GetSize() > 1 && GetMethod() != ErsatzMaterial::SPAGHETTI_PARAM_MAT)); // only param mat can have multiple designs
 
   assert(out.window.Initialized());
   unsigned int base = out.window.GetStart();
@@ -273,28 +272,40 @@ void FeaturedDesign::SetupMeshStructure()
   ny_ = n_[1];
   nz_ = n_[2];
 
+  // We need the spacing of an element
+  Matrix<double> box = domain->GetGrid()->CalcGridBoundingBox(NULL, true); // force 3d (0 size for z)
+  assert(n_.GetSize() == box.GetNumRows());
+  assert(box.GetNumCols() == 2); // min and max for every dim
+
+  Vector<double> spacing(3);
+  for(unsigned int i = 0; i < 3; i++)
+    spacing[i] = (box[i][1] - box[i][0]) / n_[i];
+  assert(spacing[0] == spacing[1]);
+  dx_ = spacing[0];
+
   assert(!(dim_ == 2 && nz_ != 1));
 }
 
 void FeaturedDesign::SetupMapping()
 {
-  //set physical design, i.e. density field
+  // set physical design, which is usually the density but for spaghetti also angles.
   map_.Resize(data.GetSize());
   StdVector<Elem*> designElems;
   assert(GetRegionIds().GetSize() == 1);
 
   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
-  assert(map_.GetSize() == designElems.GetSize());
+  //assert(map_.GetSize() == designElems.GetSize());
 
   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
   {
     Item& item = map_[i];
-    item.rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
+    item.elemval = &data[i]; // this could be the location to add an arbitrary element ordering layer towards the mesh
+    //item.elemval = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
     item.min_corner_value.Resize(1);
     item.max_corner_value.Resize(1);
 
-    LOG_DBG3(FD) << "SM i=" << i << " elem=" << item.rho->elem->elemNum << " de_elem=" << designElems[i]->elemNum
-                 << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.rho->elem).ToString();
+    LOG_DBG3(FD) << "SM i=" << i << " elem=" << item.elemval->elem->elemNum << " de_elem=" << designElems[i]->elemNum
+                 << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.elemval->elem).ToString();
   }
 }
 

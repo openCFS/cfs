@@ -26,7 +26,7 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   tip.Add(START, "start");
   tip.Add(END, "end");
 
-  PtrParamNode pn = empn->Get("spaghetti");
+  PtrParamNode pn = empn->Get(ErsatzMaterial::method.ToString(method)); // spaghetti or spaghettiParamMat
 
   combine_ = combine.Parse(pn->Get("combine")->As<string>());
   boundary_ = boundary.Parse(pn->Get("boundary")->As<string>());
@@ -156,12 +156,13 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   pyopts = ParseOptions(pn->GetList("option"));
 
   python = InitializePythonModule(pn->Get("file")->As<string>(), pn->Get("path")->As<string>(), nullptr, &file_, &version_);
+  LOG_DBG(pasta) << "PY file=" << file_ << " version=" << version_;
 
   // def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz):
   PyObject* func = PyObject_GetAttrString(python, "cfs_init");
   CheckPythonFunction(func, "cfs_init");
 
-  PyObject* arg = PyTuple_New(9);
+  PyObject* arg = PyTuple_New(11);
   PyTuple_SetItem(arg, 0, PyFloat_FromDouble(rhomin));
   PyTuple_SetItem(arg, 1, PyFloat_FromDouble(radius));
   PyTuple_SetItem(arg, 2, PyUnicode_FromString(boundary.ToString(boundary_).c_str()));
@@ -170,7 +171,14 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   PyTuple_SetItem(arg, 5, PyLong_FromLong(nx_));
   PyTuple_SetItem(arg, 6, PyLong_FromLong(ny_));
   PyTuple_SetItem(arg, 7, PyLong_FromLong(nz_));
-  PyTuple_SetItem(arg, 8, CreatePythonDict(pyopts));
+  PyTuple_SetItem(arg, 8, PyFloat_FromDouble(dx_));
+
+  PyObject* des = PyTuple_New(design.GetSize());
+  for(unsigned int i = 0; i < design.GetSize(); i++)
+    PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
+  PyTuple_SetItem(arg, 9, des); // steals the reference, so no need to decref
+
+  PyTuple_SetItem(arg, 10, CreatePythonDict(pyopts));
   PyObject* ret = PyObject_CallObject(func, arg);
   CheckPythonReturn(ret);
 
@@ -234,8 +242,8 @@ void SpaghettiDesign::MapFeatureToDensity()
   py_timer->Start();
 
   // up to now we only can do python
-  PyObject* func = PyObject_GetAttrString(python, "cfs_map_to_density");
-  CheckPythonFunction(func, "cfs_map_to_density");
+  PyObject* func = PyObject_GetAttrString(python, "cfs_map_to_design");
+  CheckPythonFunction(func, "cfs_map_to_design");
 
   PyObject* ret = PyObject_CallObject(func, NULL);
   CheckPythonReturn(ret);
@@ -248,7 +256,7 @@ void SpaghettiDesign::MapFeatureToDensity()
   assert(tmp.GetSize() == map_.GetSize());
 
   for(unsigned int i = 0; i < tmp.GetSize(); i++)
-    map_[i].rho->SetDesign(tmp[i]);
+    map_[i].elemval->SetDesign(tmp[i]);
 
   LOG_DBG(pasta)  << "MFTD: old mid=" << mapped_design_ << " current did=" << design_id << " size=" << tmp.GetSize();
   LOG_DBG2(pasta) << "MFTD: rho=" << tmp.ToString();
@@ -288,7 +296,7 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   // copy data to numpy array - does extensive range checks with good error message
   drho.Export(np_rho);
 
-  // now get the gradient form python. We get all gradients and ignore efficiency optimization by skipping fixed variables
+  // now get the gradient from python. We get all gradients and ignore efficiency optimization by skipping fixed variables
   PyObject* gfunc = PyObject_GetAttrString(python, "cfs_get_gradient");
   CheckPythonFunction(gfunc, "cfs_get_gradient");
 
@@ -384,12 +392,17 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
   assert(f->GetType() == Function::DISTANCE || f->GetType() == Function::BENDING);
 
   // we assume fixed only for profile if at all
-  assert(locality == Function::Local::FUNCTION_SPECIFIC);
+  assert(locality == Function::Local::FUNCTION_SPECIFIC || locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS);
 
   vem.Reserve(spaghetti.GetSize()); // assume nothing fixec
 
   assert(dim_ == 2);
   StdVector<BaseDesignElement*> nodes;
+
+  bool two_signs = locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS;
+
+  int sign_1 = two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
+  int sign_2 = -1;
 
   for(Noodle& s : spaghetti)
   {
@@ -426,8 +439,12 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
         if(s.a_var.GetSize() == 1)
         {
           buddies.Push_back(&s.a_var[0]);
-          vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+          vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
           vem.Last().bending = Function::Local::Identifier::ZNZ;
+          if(two_signs){
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+            vem.Last().bending = Function::Local::Identifier::ZNZ;
+          }
         }
         else
         {
@@ -435,15 +452,23 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
           {
             buddies.Push_back(&s.a_var[0]);
             buddies.Push_back(&s.a_var[1]);
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
             vem.Last().bending = Function::Local::Identifier::ZNN;
+            if(two_signs){
+              vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+              vem.Last().bending = Function::Local::Identifier::ZNN;
+            }
           }
           else if(ai == s.a_var.GetSize()-1)
           {
             buddies.Push_back(&s.a_var[ai-1]);
             buddies.Push_back(&s.a_var[ai]);
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
             vem.Last().bending = Function::Local::Identifier::NNZ;
+            if(two_signs){
+              vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+              vem.Last().bending = Function::Local::Identifier::NNZ;
+            }
           }
           else
           {
@@ -451,8 +476,14 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
             buddies.Push_back(&s.a_var[ai-1]);
             buddies.Push_back(&s.a_var[ai]);
             buddies.Push_back(&s.a_var[ai+1]);
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+           // vem.Push_back(Function::Local::Identifier(&s.px, buddies));
+            //vem.Last().bending = Function::Local::Identifier::NNN;
+            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
             vem.Last().bending = Function::Local::Identifier::NNN;
+            if(two_signs){
+              vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+              vem.Last().bending = Function::Local::Identifier::NNN;
+            }
           }
         }
         LOG_DBG(pasta) << "SVSEM: f=" << f->ToString() << " s=" << s.idx << " id=" << vem.Last().ToString();

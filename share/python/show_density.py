@@ -5,13 +5,14 @@ import sys
 import argparse
 import glob
 
+
 # you can approximate the stuff iteratively in python by
 # Image.fromarray(255* data.T).transpose(Image.FLIP_TOP_BOTTOM).show()
 # with data being an array
 
 
 #@ return image, density_array
-def density_to_image(filename, set, design, fillval=0.0):
+def density_to_image(filename, set, design, fillval=0.0, color='gray'):
   if not is_valid_density_file(filename):
     print("not a valid density file given!")
     sys.exit(1)
@@ -29,14 +30,35 @@ def density_to_image(filename, set, design, fillval=0.0):
     sys.exit("can handle only 2D data")
 
   # the image needs to be transposed, as the first index is y (row) and the second the column!
-  ret = numpy.zeros((y, x), dtype="uint8")
+  raw = numpy.zeros((y, x), dtype="uint8")
   
   # copy data from linear list
   for i in range(y):
     for j in range(x):
-      ret[y-i-1][j] = 255 - int(255 * min(dens[j][i],1))
+      raw[y-i-1][j] = 255 - int(255 * min(dens[j][i],1))
 
-  return Image.fromarray(ret), dens
+  img = Image.fromarray(raw, 'L')
+  # https://stackoverflow.com/questions/66641432/how-to-create-a-palette-based-png-with-alpha-channel
+  if color != 'gray':
+    img = img.convert('P')
+    from matplotlib import colors
+    col = colors.to_rgb(color) # (0.0, 0.0, 1.0)
+    # 255,255,255: white (void)
+    # 0,  0,  0  : black
+    # 0,  0,  255: blue  (solid) (0.0, 0.0, 1.0)
+    # 128,128,255: light blue
+    # 64, 64, 255: darker than light blue
+    # 192,192,255: very light blue
+    p = [0] * 3 * 256
+    for i in range(256):
+      # col = 0: 0 ... 255
+      # col = 1: 255
+      p[3*i+0] = int(255 - (1-col[0]) * (255-i))
+      p[3*i+1] = int(255 - (1-col[1]) * (255-i))
+      p[3*i+2] = int(255 - (1-col[2]) * (255-i))
+    img.putpalette(p)
+
+  return img, dens
 
 
 def print_grid_on_image(I, dens):
@@ -59,9 +81,8 @@ def print_grid_on_image(I, dens):
 
 
 # return image and density
-def get_image(input, set, design, fill=0.0):
-  img, dens = density_to_image(input, set, design, fill)
-  img.convert('L')
+def get_image(input, set, design, fill=0.0, color='gray'):
+  img, dens = density_to_image(input, set, design, fill, color)
   
   if args.grid:
     print_grid_on_image(img,dens)
@@ -79,8 +100,9 @@ def get_image(input, set, design, fill=0.0):
 parser = argparse.ArgumentParser()
 parser.add_argument("input", nargs='+', help="the density.xml file to visualize or the files(s) for --saveall")
 parser.add_argument('--save', help="optional filename to write image")
-parser.add_argument('--gifs', help="write animated gif for all sets")
 parser.add_argument('--saveall', help="saves all input files as png", action='store_true')
+parser.add_argument('--animgif', help="write single animated gif for all sets to filename")
+parser.add_argument('--savesets', help="write <savesets>_XXX.png files for all sets")
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
@@ -89,7 +111,8 @@ parser.add_argument('--info', help="print some info about the density file and e
 parser.add_argument('--set', help="optional label of set, default is the last one")
 parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
 parser.add_argument('--tileborder', help="show tile borders when repeating patches. works only in combination with --tile", action='store_true')
-parser.add_argument('--fill', help="fill elements without density information with this pseudodensity value", type=float, default="0.0")
+parser.add_argument('--fill', help="fill elements without density information with this pseudodensity value", type=float, default=0.0)
+parser.add_argument('--color', help="name of color to be used -> extend for jet, heat, ...", default="gray")
 
 args = parser.parse_args()
 
@@ -114,18 +137,17 @@ if args.info:
 
 elif args.saveall:
   for f in input:
-    img, den = get_image(f, args.set, args.design)
+    img, den = get_image(f, args.set, args.design, color=args.color)
     base = f[:-12] if f.endswith('.density.xml') else f
     print("save '" + base + ".png'")
     img.save(base + '.png')
-    
-elif args.gifs:
+elif (args.animgif or args.savesets):
   images = []
    
   if len(input) > 1:
     # read from separate files
     for file in input:
-      img, den = get_image(file, args.set, args.design, args.fill)
+      img, den = get_image(file, args.set, args.design, args.fill, args.color)
       images.append(img)
   else:
     # read sets: TODO - read XML only once!
@@ -137,18 +159,20 @@ elif args.gifs:
     print('read', len(sets),'sets from',input[0] + ': ',end='') # only python3
     for i in sets:
       print(i,' ',end='' if i < sets[-1] else '\n',flush=True)
-      img, den = get_image(input[0], str(i), args.design, args.fill)
+      img, den = get_image(input[0], str(i), args.design, args.fill, args.color)
       images.append(img)  
-  # https://note.nkmk.me/en/python-pillow-gif/
-  # loop = 0 for endleess, duration in ms per image
-  images[0].save(args.gifs, save_all=True, append_images=images[1:], optimize=True, duration=375, loop=1)
-  print("wrote animated gif '" + args.gifs + "' with " + str(len(input)) + " images")   
-  
+  if args.animgif:      
+    # https://note.nkmk.me/en/python-pillow-gif/
+    # loop = 0 for endleess, duration in ms per image
+    images[0].save(args.animgif, save_all=True, append_images=images[1:], optimize=True, duration=375, loop=1)
+    print("wrote animated gif '" + args.animgif + "' with " + str(len(input)) + " images")
+  else:      
+    for i, img in enumerate(images):
+      img.save(args.savesets + str(i).zfill(4) + '.png')
       
-else:
+else: # neither info nor global functions
   for file in input:
-    img, den = get_image(file, args.set, args.design, args.fill)
-
+    img, den = get_image(file, args.set, args.design, args.fill, args.color)
     if args.tile:
       assert(img.size[0] == img.size[1]) # extend if you need
       if args.orgsize: # otherwise args.resize is set above

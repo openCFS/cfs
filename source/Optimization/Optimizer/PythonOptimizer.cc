@@ -6,8 +6,6 @@
 #include <assert.h>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include "Domain/CoefFunction/CoefFunctionOpt.hh"
-#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Optimization/ErsatzMaterial.hh"

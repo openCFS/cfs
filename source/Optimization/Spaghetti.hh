@@ -5,7 +5,8 @@
 
 namespace CoupledField {
 
-/** Feature mapping variant flying spaghetti (SpaghettiDesign) */
+/** Feature mapping variant flying spaghetti (SpaghettiDesign).
+ * Classical density based version. The anisotropy case is SpaghettiParamMat */
 class Spaghetti : public SIMP
 {
 public:

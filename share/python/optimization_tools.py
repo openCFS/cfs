@@ -227,7 +227,7 @@ def read_mesh_info_xml(xml):
 
 
 # # read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design", set=None):
   if not os.path.exists(filename):
 
     raise RuntimeError("file '" + filename + "' doesn't exist")
@@ -241,8 +241,11 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       y = 1
       z = 1
   
-    assert(x > 0 and y > 0 and z > 0)  
-  sett = root.xpath("//set[last()]")[0]
+    assert(x > 0 and y > 0 and z > 0)
+  
+  qset = 'last()' if set is None else '@id="' + set + '"'
+  query = '//set[' + qset + ']'
+  sett = root.xpath(query)[0]
   #print(len(sett))
   
   designs = 1
@@ -433,10 +436,8 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
            if elemnr is not None:
              nr = int(getNDArrayEntry(elemnr, i, j, k))
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
-           if param > 0:
-             string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
-           else:
-            string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
+           physical = ' physical="' + '{:.16f}'.format(val ** param) + '"' if param > 0 else ''
+           string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + '{:.16f}'.format(val) + '"' + physical + '/>\n')
            if elemnr is None:
              nr = nr + 1       
 

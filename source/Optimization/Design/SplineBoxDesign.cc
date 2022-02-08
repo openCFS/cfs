@@ -902,7 +902,7 @@ void SplineBoxDesign::MapFeatureToDensity()
     // loop over FE grid elements
     for(unsigned int r = 0; r < map_.GetSize(); ++r) {
       Item& item = map_[r];
-      DesignElement* de = item.rho;
+      DesignElement* de = item.elemval;
 
       Vector<int> order(item.min_corner_value.GetSize());
 
@@ -1025,7 +1025,7 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
     for(unsigned int r = 0; r < map_.GetSize(); r++)
     {
       Item& item = map_[r];
-      DesignElement* de = item.rho;
+      DesignElement* de = item.elemval;
       Vector<double> log_dip_rho(dim_, 0.0);
 
       int max_order = item.GetOrder(order, numInt_); // sets order. 0, 1 or >= 2

@@ -92,6 +92,7 @@ namespace CoupledField
        return Optimization::context->dm->GetType();
      }
 
+     /** @see ErsaszMaterial::IsParamMat() for a weaker test */
      ErsatzMaterial::Method GetMethod() const { return this->method_; };
 
      /** Do we do multiscale FEM, where we model not the tensor as in FEM but the local element matrix */
@@ -517,6 +518,9 @@ namespace CoupledField
      /** This is a vector of design and nested regions: regions[design][region].
       Design is here the unique design. */
      StdVector<StdVector<DesignRegion> > regions;
+
+     /** return a debug string with regions information */
+     std::string DumpRegions() const;
 
      /** it is convenient to have such a vector for some functions. Taken from regions! */
      StdVector<RegionIdType>& GetRegionIds() { return regionIds_; }

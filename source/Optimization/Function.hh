@@ -268,6 +268,9 @@ class Function
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;
 
+    /** is this a slack type function ? */
+    bool IsSlackFunction() const;
+
     /** to be overwritten in Condition */
     virtual bool HasDenseJacobian() const { return true; }
 
@@ -399,7 +402,8 @@ class Function
         MULT_DESIGNS_NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
         MULT_DESIGNS_PREV_NEXT,
         MULT_DESIGNS_PREV_NEXT_AND_REVERSE,  /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
-        FUNCTION_SPECIFIC        /*!< tuned for single complex functions: distance, bending */
+        FUNCTION_SPECIFIC,        /*!< tuned for single complex functions: distance, bending */
+        FUNCTION_SPECIFIC_TWO_SIGNS  /*!< reverse case */
       } Locality;
 
       static Enum<Locality> locality;

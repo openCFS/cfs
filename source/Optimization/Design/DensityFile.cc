@@ -435,7 +435,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   }
 
   // spaghetti.py can visualize the noodles
-  if(space_->GetMethod() == ErsatzMaterial::Method::SPAGHETTI)
+  if(ErsatzMaterial::IsSpaghetti(space_->GetMethod()))
   {
 #ifdef USE_EMBEDDED_PYTHON // currently only the python version
 

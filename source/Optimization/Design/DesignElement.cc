@@ -856,7 +856,7 @@ void DesignElement::SetEnums()
   type.Add(SHAPE_MAP, "shape_map");
   type.Add(SPAGHETTI, "spaghetti");
   type.Add(SPLINE_BOX, "spline_box");
-    type.Add(MECH_TRACE, "mech_trace");
+  type.Add(MECH_TRACE, "mech_trace");
   type.Add(MECH_ALL, "mech_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
   type.Add(DIELEC_ALL, "dielec_all");

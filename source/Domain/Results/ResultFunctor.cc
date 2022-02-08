@@ -135,7 +135,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, c
 {
   LOG_DBG(resfunc) << "FCF::GV "<< coef_->ToString() << " dim=" << coef_->GetDimType();
 
-  switch( coef_->GetDimType())
+  switch(coef_->GetDimType())
   {
     case CoefFunction::VECTOR:
       coef_->GetVector( vec, lpm );
@@ -158,6 +158,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, c
       EXCEPTION("Missing case statement");
       break;
   }
+  LOG_DBG2(resfunc) << "FCF::GV vec=" << vec.ToString();
 }
 
 template class FieldCoefFunctor<Double>;

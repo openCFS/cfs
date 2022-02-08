@@ -3080,7 +3080,11 @@ namespace CoupledField {
     // === MECH_TENSOR_HILL_MANDEL converts to HillMandel notation
     shared_ptr<ResultInfo> mech_tensor_hm(new ResultInfo);
     mech_tensor_hm->resultType = MECH_TENSOR_HILL_MANDEL;
-    mech_tensor_hm->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    if(dim_ == 2)
+      mech_tensor_hm->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    else
+      mech_tensor_hm->dofNames = "e11", "e22", "e33", "e44", "e55", "e66", "e56", "e46", "e36", "e26", "e16", "e45", "e35", "e25", "e15", "e34", "e24", "e14", "e23", "e13", "e12";
+
     mech_tensor_hm->unit = "Pa";
     mech_tensor_hm->entryType = ResultInfo::TENSOR;
     mech_tensor_hm->definedOn = ResultInfo::ELEMENT;
@@ -3095,7 +3099,11 @@ namespace CoupledField {
     // === MECH_TENSOR for free and parameterized material optimization but generally it simply returns the tensor
     shared_ptr<ResultInfo> mech_tensor(new ResultInfo);
     mech_tensor->resultType = MECH_TENSOR;
-    mech_tensor->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    if(dim_ == 2)
+      mech_tensor->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    else
+      mech_tensor->dofNames = "e11", "e22", "e33", "e44", "e55", "e66", "e56", "e46", "e36", "e26", "e16", "e45", "e35", "e25", "e15", "e34", "e24", "e14", "e23", "e13", "e12";
+
     mech_tensor->unit = "Pa";
     mech_tensor->entryType = ResultInfo::TENSOR;
     mech_tensor->definedOn = ResultInfo::ELEMENT;

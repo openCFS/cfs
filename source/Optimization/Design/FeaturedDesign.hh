@@ -145,8 +145,8 @@ protected:
   /** to conveniently handle the mapping shape param to design */
   struct Item
   {
-    /** our Design Element */
-    DesignElement* rho;
+    /** our Design Element, which is almost always the density (rho) but might also be an angle */
+    DesignElement* elemval;
 
     /** This is the minimal corner value of all corners. Set by EvalAllCorners() */
     Vector<double> min_corner_value;
@@ -196,10 +196,13 @@ protected:
   /** shortcut to the dimension (2|3) */
   static unsigned int dim_;
 
-  /** number of elements of rho in x-direction. +1 for nodes! */
+  /** number of elements of elemval in x-direction. +1 for nodes! */
   unsigned int nx_ = 0;
   unsigned int ny_ = 0;
   unsigned int nz_ = 0; // 1 for 2D
+
+  /** discrectization spacing (assumed regular!) */
+  Float dx_ = 0;
 
   /** repeats nx_, ny_ and nz_ */
   Vector<unsigned int> n_;
@@ -221,7 +224,7 @@ protected:
    * Note that in ShapeMapDesign the variable is a vector of another type */
   StdVector<ShapeParamElement*> opt_shape_param_;
 
-  /** mapping with size of rho to ShapeParamElement pointers to design variables */
+  /** mapping with size of elemval to ShapeParamElement pointers to design variables */
   StdVector<Item> map_;
 
   /** reference to optimization as we need it in MapFeatureGradient() to get the functions */

@@ -152,15 +152,23 @@ void Context::Update()
     infoNode->Get("bloch")->SetValue(bloch_);
     infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
 
-    if (dm == NULL && em->GetMethod() == ErsatzMaterial::PARAM_MAT) {
-      assert(em->pn->Has("paramMat/designMaterials"));
+    // PARAM_MAT, SHAPE_PARAM_MAT (not tested), SPAGHETTI_PARAM_MAT (NOT SPAGHETTI)
+    if(dm == NULL &&  em->IsParamMat(em->GetMethod())) {
+      // either em->pn->paramMat/designMaterials/designMaterial or em->pn->spaghetti/designMaterial
+      std::string base = em->GetMethod() == ErsatzMaterial::SPAGHETTI_PARAM_MAT ? "spaghettiParamMat" : "paramMat/designMaterials";
+      assert(em->pn->Has(base));
       assert(sequence != -1);
-      ParamNodeList list = em->pn->Get("paramMat/designMaterials")->GetListByVal("designMaterial", "sequence", sequence);
-      assert(list.GetSize() == 1);
-      assert(mat != NULL);
-      domain->GetDesign()->SetDesignMaterial(list[0], mat->GetSystem());
-      assert(dm != NULL);
-      LOG_DBG3(context) << "CTXT: set design material '" << OptimizationMaterial::system.ToString(mat->GetSystem()) << "' for sequence=" << sequence;
+      ParamNodeList list = em->pn->Get(base)->GetListByVal("designMaterial", "sequence", sequence);
+
+      assert(!(list.IsEmpty() && em->GetMethod() != ErsatzMaterial::SPAGHETTI_PARAM_MAT));
+      if(!list.IsEmpty())
+      {
+        assert(list.GetSize() == 1);
+        assert(mat != NULL);
+        domain->GetDesign()->SetDesignMaterial(list[0], mat->GetSystem()); // the single material for the specified sequence
+        assert(dm != NULL);
+        LOG_DBG3(context) << "CTXT: set design material '" << OptimizationMaterial::system.ToString(mat->GetSystem()) << "' for sequence=" << sequence;
+      }
     }
   }
 }
