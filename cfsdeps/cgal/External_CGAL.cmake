@@ -58,7 +58,8 @@ CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://archive.ubuntu.com/ubuntu/pool/universe/c/cgal/cgal_4.2.orig.tar.bz2"
+  "https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-${CGAL_VER}/CGAL-${CGAL_VER}.tar.xz"
+  "http://archive.ubuntu.com/ubuntu/pool/universe/c/cgal/cgal_${CGAL_VER}.orig.tar.xz"
   "https://gforge.inria.fr/frs/download.php/32361/${CGAL_BZ2}"
   "${CFS_DS_SOURCES_DIR}/cgal/${CGAL_BZ2}"
 )

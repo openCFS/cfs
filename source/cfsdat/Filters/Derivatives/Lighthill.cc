@@ -297,7 +297,7 @@ struct My_point_property_map{
   typedef Point_3 value_type;
   typedef const value_type& reference;
   typedef const Point_and_int& key_type;
-  typedef boost::readable_property_map_tag category;
+  typedef boost::lvalue_property_map_tag category;
 };
 
 //get function for the property map

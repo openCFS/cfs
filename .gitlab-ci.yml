@@ -16,7 +16,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   # build options for the maximal config
-  MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_ILUPACK=ON -DUSE_EMBEDDED_PYTHON=ON"
+  MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_ILUPACK=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON"
 
 # stages in the pipeline run in succession
 stages:

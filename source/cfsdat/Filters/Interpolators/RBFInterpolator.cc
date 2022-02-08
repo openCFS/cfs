@@ -153,7 +153,7 @@ void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>
    typedef Point_3 value_type;
    typedef const value_type& reference;
    typedef const Point_and_int& key_type;
-   typedef boost::readable_property_map_tag category;
+   typedef boost::lvalue_property_map_tag category;
  };
 
  //get function for the property map
