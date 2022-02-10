@@ -777,7 +777,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
           ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
         }else if(formulation == "specialA-V"){
           ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else if(formulation == "Darwin"){
+        }else if(formulation == "Darwin" || "Darwin_doubleLagrange"){
           ptSinglePde_[i] = new DarwinPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
         }else{
           EXCEPTION("Formulation of MagEdgePDE not known!");

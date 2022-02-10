@@ -159,6 +159,14 @@
                   </xsd:annotation>
                 </xsd:element>
                 
+                <xsd:element name="lagrangeMultiplier1" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>additional Lagrange multiplier
+                    for the double Lagrange multiplier Darwin formulation
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
                 <xsd:element name="voltOnEfield" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>hard to explain</xsd:documentation>
@@ -198,9 +206,12 @@
               <xsd:enumeration value="A-V"/>
               <xsd:enumeration value="specialA-V"/>
               <xsd:enumeration value="Darwin"/>
+              <xsd:enumeration value="Darwin_doubleLagrange"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
+	
+	<xsd:attribute name="alpha" type="xsd:float" use="optional" default="1.0"/>
 	
 	<xsd:attribute name="useGradientFields" type="xsd:boolean" use="optional" default="false"/>
 
@@ -323,6 +334,7 @@
       <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
+      <xsd:enumeration value="lagrangeMultiplier1"/>
     </xsd:restriction>
   </xsd:simpleType>
   

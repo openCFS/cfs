@@ -1,17 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-// ================================================================================================
-/*!
- *       \file
- *       \brief
- *
- *       \date     Dec. 27, 2018
- *       \author   kroppert
- */
-//================================================================================================
-
 #ifndef FILE_DARWINPDE
 #define FILE_DARWINPDE
 
@@ -24,7 +10,7 @@ namespace CoupledField
 {
 
 
-  //! Class for 3D magnetics using edge elements and scalar nodal elements
+  /** Class for 3D simulation with Darwin model including double Lagrange multiplier version */
   class DarwinPDE : public SinglePDE
   {
   public:
@@ -112,6 +98,8 @@ namespace CoupledField
     //! regions.
     std::set<RegionIdType> regularizedRegions_;
 
+    /** String containing the information, which Darwin formulation we are using */
+    std::string formulationType_;
 
   private:
 

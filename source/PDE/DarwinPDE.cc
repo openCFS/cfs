@@ -63,6 +63,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     //! Always use updated Lagrangian formulation
     updatedGeo_        = true; //true;
 
+    formulationType_ = paramNode->Get("formulation")->As<std::string>();
 
     // check if we have a 3d setup
     bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
@@ -106,10 +107,18 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
 
     shared_ptr<BaseFeFunction> magVecPotFeFunc = feFunctions_[MAG_POTENTIAL];
     shared_ptr<BaseFeFunction> elecScalPotFeFunc = feFunctions_[ELEC_POTENTIAL];
-    shared_ptr<BaseFeFunction> lagrangeMultFeFunc = feFunctions_[LAGRANGE_MULT];
+    shared_ptr<BaseFeFunction> lagrangeMultFeFunc = feFunctions_[LAGRANGE_MULT]; // b Lagrange multiplier
     shared_ptr<FeSpace> magVecPotFeSpace = magVecPotFeFunc->GetFeSpace();
     shared_ptr<FeSpace> elecScalPotFeSpace = elecScalPotFeFunc->GetFeSpace();
     shared_ptr<FeSpace> lagrangeMultFeSpace = lagrangeMultFeFunc->GetFeSpace();
+
+    shared_ptr<BaseFeFunction> lagrangeMult1FeFunc = NULL;
+    shared_ptr<FeSpace> lagrangeMult1FeSpace = NULL;
+    if(formulationType_ == "Darwin_doubleLagrange"){
+        lagrangeMult1FeFunc = feFunctions_[LAGRANGE_MULT_1]; // c Lagrange multiplier
+        lagrangeMult1FeSpace = lagrangeMult1FeFunc->GetFeSpace();
+    }
+
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
@@ -135,11 +144,18 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       elecScalPotFeSpace->SetRegionApproximation(actRegion, elecScalPolyId, elecScalIntegId);
 
 
-      // Get polynomial and integration order for electric scalar potential
+      // Get polynomial and integration order for Lagrange multiplier
       std::string lagrangeMultPolyId = curRegNode->Get("lagrangeMultPolyId")->As<std::string>();
       std::string lagrangeMultIntegId = curRegNode->Get("lagrangeMultIntegId")->As<std::string>();
       lagrangeMultFeSpace->SetRegionApproximation(actRegion, lagrangeMultPolyId, lagrangeMultIntegId);
 
+
+      if(formulationType_ == "Darwin_doubleLagrange"){
+		  // Get polynomial and integration order for the second Lagrange multiplier
+		  std::string lagrangeMult1PolyId = curRegNode->Get("lagrangeMultPolyId")->As<std::string>();
+		  std::string lagrangeMult1IntegId = curRegNode->Get("lagrangeMultIntegId")->As<std::string>();
+		  lagrangeMult1FeSpace->SetRegionApproximation(actRegion, lagrangeMultPolyId, lagrangeMultIntegId);
+      }
 
 
       // Get possible nonlinearities defined in this region
@@ -150,10 +166,14 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
 
-      // Pass entitylist to fespace / fefunction for magnetic vector and electric scalar potential
+      // Pass entitylist to fespace / fefunction for magnetic vector, scalar potential and Lagrange multiplier(s)
       magVecPotFeFunc->AddEntityList( actSDList );
       elecScalPotFeFunc->AddEntityList( actSDList );
       lagrangeMultFeFunc->AddEntityList( actSDList );
+      if(formulationType_ == "Darwin_doubleLagrange"){
+    	  lagrangeMult1FeFunc->AddEntityList( actSDList );
+      }
+
 
       if(matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1){
         EXCEPTION("DarwinPDE does not support nonlinear"
@@ -199,19 +219,19 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         eps_->AddRegion(actRegion, eps);
 
         /* ==============================================
-         * M_A_A^(nu):
+         * K_A_A^(nu):
          * nu curl(A) \cdot curl(A)
            ============================================== */
-        BaseBDBInt* M_A_A_nu = NULL;
-        M_A_A_nu = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
-        M_A_A_nu->SetName("M_A_A_nu");
+        BaseBDBInt* K_A_A_nu = NULL;
+        K_A_A_nu = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
+        K_A_A_nu->SetName("K_A_A_nu");
 
-        BiLinFormContext * M_A_A_nuContext = new BiLinFormContext(M_A_A_nu, STIFFNESS );
-        M_A_A_nuContext->SetEntities( actSDList, actSDList );
-        M_A_A_nuContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
-        assemble_->AddBiLinearForm( M_A_A_nuContext );
+        BiLinFormContext * K_A_A_nuContext = new BiLinFormContext(K_A_A_nu, STIFFNESS );
+        K_A_A_nuContext->SetEntities( actSDList, actSDList );
+        K_A_A_nuContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+        assemble_->AddBiLinearForm( K_A_A_nuContext );
         // Add bdb-integrator to global list, needed for flux density evaluation
-        bdbInts_[actRegion] = M_A_A_nu;
+        bdbInts_[actRegion] = K_A_A_nu;
 
 
         /* ==============================================
@@ -379,6 +399,90 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
           K_p_A_epsilonContext->SetEntities( actSDList, actSDList );
           K_p_A_epsilonContext->SetFeFunctions( lagrangeMultFeFunc, magVecPotFeFunc  );
           assemble_->AddBiLinearForm( K_p_A_epsilonContext );
+
+
+          if(formulationType_ == "Darwin_doubleLagrange"){
+              /* ==============================================
+               * K_A_c^(epsilon):
+               * \epsilon (A) \cdot grad(c)
+                 ============================================== */
+              BiLinearForm* K_A_c_epsilon = NULL;
+              K_A_c_epsilon = new ABInt<>( new IdentityOperator<FeHCurl,3,1,Double>(), new GradientOperator<FeH1,3,1,Double>(),
+                                       eps, -1.0, updatedGeo_);
+              K_A_c_epsilon->SetName("K_A_p_epsilon");
+
+              BiLinFormContext * K_A_c_epsilonContext = new BiLinFormContext(K_A_c_epsilon, DAMPING );
+              K_A_c_epsilonContext->SetEntities( actSDList, actSDList );
+              K_A_c_epsilonContext->SetFeFunctions( magVecPotFeFunc, lagrangeMult1FeFunc  );
+              assemble_->AddBiLinearForm( K_A_c_epsilonContext );
+
+
+              /* ==============================================
+               * K_c_A^(epsilon):
+               * \epsilon  grad(c) \cdot (A)
+                 ============================================== */
+              BiLinearForm* K_c_A_epsilon = NULL;
+              K_c_A_epsilon = new ABInt<>( new GradientOperator<FeH1,3,1,Double>(), new IdentityOperator<FeHCurl,3,1,Double>(),
+                                       eps, -1.0, updatedGeo_);
+              K_c_A_epsilon->SetName("K_c_A_epsilon");
+
+              BiLinFormContext * K_c_A_epsilonContext = new BiLinFormContext(K_c_A_epsilon, DAMPING );
+              K_c_A_epsilonContext->SetEntities( actSDList, actSDList );
+              K_c_A_epsilonContext->SetFeFunctions( lagrangeMult1FeFunc, magVecPotFeFunc  );
+              assemble_->AddBiLinearForm( K_c_A_epsilonContext );
+
+
+
+              // Reading the alpha parameter from the xml file
+              std::string alpha = myParam_->Get("alpha")->As<std::string>();
+              PtrCoefFct alphaCoef = CoefFunction::Generate(mp_, Global::REAL, alpha);
+
+              /* ==============================================
+               * K_b_b^(alpha):
+               * \alpha  b \cdot b
+                 ============================================== */
+              BiLinearForm* K_b_b_alpha = NULL;
+              K_b_b_alpha = new BBInt<>( new IdentityOperator<FeH1,3,1,Double>(),
+                                       alphaCoef, 1.0, updatedGeo_);
+              K_b_b_alpha->SetName("K_b_b_alpha");
+
+              BiLinFormContext * K_b_b_alphaContext = new BiLinFormContext(K_b_b_alpha, STIFFNESS );
+              K_b_b_alphaContext->SetEntities( actSDList, actSDList );
+              K_b_b_alphaContext->SetFeFunctions( lagrangeMultFeFunc, lagrangeMultFeFunc  );
+              assemble_->AddBiLinearForm( K_b_b_alphaContext );
+
+              /* ==============================================
+               * K_c_c^(alpha):
+               * \alpha  c \cdot c
+                 ============================================== */
+              BiLinearForm* K_c_c_alpha = NULL;
+              K_c_c_alpha = new BBInt<>( new IdentityOperator<FeH1,3,1,Double>(),
+                                       alphaCoef, 1.0, updatedGeo_);
+              K_c_c_alpha->SetName("K_c_c_alpha");
+
+              BiLinFormContext * K_c_c_alphaContext = new BiLinFormContext(K_c_c_alpha, STIFFNESS );
+              K_c_c_alphaContext->SetEntities( actSDList, actSDList );
+              K_c_c_alphaContext->SetFeFunctions( lagrangeMult1FeFunc, lagrangeMult1FeFunc  );
+              assemble_->AddBiLinearForm( K_c_c_alphaContext );
+
+
+              /* ==============================================
+               * K_b_c^(alpha):
+               * \alpha  b \cdot c
+                 ============================================== */
+              BiLinearForm* K_b_c_alpha = NULL;
+              K_b_c_alpha = new BBInt<>( new IdentityOperator<FeH1,3,1,Double>(),
+                                       alphaCoef, -1.0, updatedGeo_);
+              K_b_c_alpha->SetName("K_b_c_alpha");
+
+              BiLinFormContext * K_b_c_alphaContext = new BiLinFormContext(K_b_c_alpha, STIFFNESS );
+              K_b_c_alphaContext->SetEntities( actSDList, actSDList );
+              K_b_c_alphaContext->SetFeFunctions( lagrangeMultFeFunc, lagrangeMult1FeFunc  );
+              K_b_c_alphaContext->SetCounterPart(true);
+              assemble_->AddBiLinearForm( K_b_c_alphaContext );
+
+          }
+
 
 
      } // END OF NONLIN/LIN PART
@@ -627,6 +731,24 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     //hdbcSolNameMap_[ELEC_POTENTIAL] = "fluxParallel";
     idbcSolNameMap_[LAGRANGE_MULT] = "lagrangeMultiplier";
 
+
+
+    if(formulationType_ == "Darwin_doubleLagrange"){
+        // === LAGRANGE MULTIPLIER 1 ===
+        shared_ptr<BaseFeFunction> lagMpl1Fct = feFunctions_[LAGRANGE_MULT_1];
+        shared_ptr<ResultInfo> res4(new ResultInfo);
+        res4->resultType = LAGRANGE_MULT_1;
+        res4->dofNames = "";
+        res4->unit = "";
+        res4->definedOn = ResultInfo::NODE;
+        res4->entryType = ResultInfo::SCALAR;
+        results_.Push_back( res4);
+        availResults_.insert( res4 );
+        lagMpl1Fct->SetResultInfo(res4);
+        DefineFieldResult( lagMpl1Fct, res4 );
+
+        idbcSolNameMap_[LAGRANGE_MULT_1] = "lagrangeMultiplier1";
+    }
 
 
 
@@ -935,7 +1057,11 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
 	crSpaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, lagrangeMultSpaceNode, FeSpace::H1, ptGrid_);
 	crSpaces[LAGRANGE_MULT]->Init(solStrat_);
 
-
+	if(formulationType_ == "Darwin_doubleLagrange"){
+	    PtrParamNode lagrangeMultSpaceNode = infoNode->Get("lagrangeMultiplier1");
+		crSpaces[LAGRANGE_MULT_1] = FeSpace::CreateInstance(myParam_, lagrangeMultSpaceNode, FeSpace::H1, ptGrid_);
+		crSpaces[LAGRANGE_MULT_1]->Init(solStrat_);
+	}
 
     return crSpaces;
   }
