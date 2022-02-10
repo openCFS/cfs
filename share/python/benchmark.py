@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 from cfs_utils import *
+from mesh_tool import *
 
 # the purposee of this script is to assist in running cfs benchmarks. It contains the probems.
 # The resulting .info.xml shall be analysed with performance,py
@@ -191,10 +192,11 @@ shapemapstr = """\
 
 parser = argparse.ArgumentParser(description="Run cfs benchmarks with permutations of CFS/OMP/MKL_THREADS for different problems. Use --dry to learn")
 parser.add_argument("input", nargs='+', help="cfs binary and optional second value the comment of the binary (e.g. cfs_rel gcc_mkl)")
-parser.add_argument("--res", help="edge resolution of bulk3d_<res>.mesh to scale problem size", default='30')
+parser.add_argument("--res", help="edge resolution of bulk3d_<res>.mesh to scale problem size", type=int, default='30')
 parser.add_argument("--threads", nargs='+', help="space separated list of CFS/OMP/MKL_THREADS to be tested, see --permutate", default=['1','4'])
 parser.add_argument("--permutate", help="perform selected permuation of threads", action='store_true')
 parser.add_argument("--dry", help="don't execute but print what shall be run", action='store_true')
+parser.add_argument("--log", help="if given, write a summary plot file with the given name")
 parser.add_argument("--hostname", help="overwrite hostname detection")
 parser.add_argument("--skip_cholmod", help="skip the simp linear elasticity OMP/BLAS benchmark", action='store_true')
 parser.add_argument("--skip_shapemap", help="skip the shape map non-blas benchmark", action='store_true')
@@ -212,11 +214,11 @@ mat = open("bench_mat.xml","w")
 mat.write(matstr)
 mat.close()
 
-# prepare files
-mesh = 'bulk3d_' + args.res + '.mesh'
+# prepare files. Use the python tools from the same location as we have this script from
+mesh = 'bulk3d_' + str(args.res) + '.mesh'
 if not os.path.exists(mesh):
-  # if this fails (e.g. create_mesh.py not in path, provide manually
-  execute('create_mesh.py --type bulk3d --res ' + args.res,output=True)
+  mo = create_3d_mesh(args.res)
+  write_ansys_mesh(mo, mesh)
    
 host = args.hostname if args.hostname else os.uname().nodename.split('.')[0]   
     
@@ -243,12 +245,20 @@ for i, t in enumerate(args.threads):
     threads.append([t,t0,t0]) # CFS and MKL high
   threads.append([t,t,t])
 
+# here we optinally write the log file to
+log = open(args.log, "w") if args.log else False
+
+# here we store the results
+result = {'test' : [], 'wall' : [], 'cpu' : [], 'CFS_NUM_THREADS' : [], 'OMP_NUM_THREADS' : [], 'MKL_NUM_THREADS' : [], 'res' : []}
+if comment != 'dummy':
+  result['comment'] = []
+
 for tst in tests:      
   for t in threads:
     if tst == 'shapemap' and t[2] != t0 and not (t[0] == t[1] == t[2]): # skip playing with mkl, we don't need it
       continue 
 
-    problem = 'bench_' + host + '-' + comment + '-' + tst + '-res_' + args.res + '-cfs_' + t[0] + '-omp_' + t[1] + '-mkl_' + t[2]
+    problem = 'bench_' + host + '-' + comment + '-' + tst + '-res_' + str(args.res) + '-cfs_' + t[0] + '-omp_' + t[1] + '-mkl_' + t[2]
     cmd = 'CFS_NUM_THREADS=' + str(t[0]) + ' OMP_NUM_THREADS=' + str(t[1]) + ' MKL_NUM_THREADS=' + str(t[2]) + ' '
     cmd += args.input[0] + ' -q -m ' + mesh + ' -p bench_' + tst + '.xml ' + problem 
     if args.dry:
@@ -260,8 +270,33 @@ for tst in tests:
       cpu = xpath(xml, '//cfsInfo/summary/timer/@cpu')
       print('wall', wall, 'cpu', cpu, problem)
       print()
-    
+      result['test'].append(tst)
+      result['wall'].append(wall)
+      result['cpu'].append(cpu)
+      result['CFS_NUM_THREADS'].append(str(t[0]))
+      result['OMP_NUM_THREADS'].append(str(t[1]))
+      result['MKL_NUM_THREADS'].append(str(t[2]))
+      result['res'].append(str(args.res))
+      if comment != 'dummy':
+        result['comment'].append(comment)
+ 
+# present the whole data 
+hdr = '# host:' + host + ' mesh:' + str(args.res) + ' comment:' + comment + '\n'
+hdr += '# '
+for i, k in enumerate(result.keys()):
+  hdr += str(i+1) + ':' + k + ' ' 
+if log:
+  print("write log file '" + args.log + "'")
+  log.write(hdr + '\n')    
   
+print(hdr)
   
+for i in range(len(result['test'])):
+  line = ''
+  for v in result.values():
+    line += v[i] + ' \t'   
+  print(line)
+  if log:
+    log.write(line + '\n')    
   
     
