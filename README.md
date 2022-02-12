@@ -11,10 +11,12 @@ openCFS is under **[MIT License](LICENSE)**. You may use, distribute and copy it
 Building
 --------
 
+Building openCFS is supported under macOS, Windows, and Linux.
+
 For building you need
-* [CMake](https://cmake.org)
-* C++ and Fortran compilers
-* some additional dependencies depending on the build configuration
+* [CMake](https://cmake.org),
+* C++ and Fortran compilers, and
+* some additional dependencies depending on the build configuration.
 
 There are installation instructions for required dependencies for
 [Ubuntu](share/doc/developer/build-dependencies/ubuntu_latest.md), 
@@ -31,7 +33,7 @@ cmake .
 make
 ```
 
-To get started be sure to visit the [wiki](/../wikis).
+To get started be sure to visit the [wiki](https://gitlab.com/openCFS/cfs/-/wikis/home).
 
 Running
 ------------
@@ -55,7 +57,7 @@ Please consult our [contributing guide](CONTRIBUTING.md) for details.
 
 Want to suggest an awesome feature? 
 Did you _really_ find a bug? 
-Please create an [issue](/../issues)!
+Please create an [issue](/../../issues)!
 
 
 Resources
@@ -64,6 +66,6 @@ Resources
 * [project homepage](www.opencfs.org)
 * [user documentation](https://opencfs.gitlab.io/userdocu)
 * [related projects](https://gitlab.com/openCFS)
-* [developer wiki](/../wikis)
-* [issue tracker](/../issues/)
+* [developer wiki](https://gitlab.com/openCFS/cfs/-/wikis/home)
+* [issue tracker](/../../issues/)
 * [Developer documentation](/share/doc/developer/README.md) in the source tree
