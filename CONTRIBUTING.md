@@ -2,7 +2,7 @@ Contributing to openCFS
 =======================
 
 Looking to __contribute code__ to openCFS? Awesome! Go for it (after reading this guide) ...
-You can also contribute by _suggesting features_ or _giving feedback_ which is best done by opening an [issue](https://gitlab.com/openCFS/cfs/-/issues/new).
+You can also contribute by _suggesting features_ or _giving feedback_ which is best done by opening an [issue](https://gitlab.com/openCFS/cfs/-/issues).
 
 Getting Started
 ---------------

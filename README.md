@@ -57,15 +57,15 @@ Please consult our [contributing guide](CONTRIBUTING.md) for details.
 
 Want to suggest an awesome feature? 
 Did you _really_ find a bug? 
-Please create an [issue](/../../issues)!
+Please create an [issue](https://gitlab.com/openCFS/cfs/-/issues)!
 
 
 Resources
 ---------
 
-* [project homepage](www.opencfs.org)
+* [project homepage](https://www.opencfs.org)
 * [user documentation](https://opencfs.gitlab.io/userdocu)
 * [related projects](https://gitlab.com/openCFS)
 * [developer wiki](https://gitlab.com/openCFS/cfs/-/wikis/home)
-* [issue tracker](/../../issues/)
-* [Developer documentation](/share/doc/developer/README.md) in the source tree
+* [issue tracker](https://gitlab.com/openCFS/cfs/-/issues)
+* [Developer documentation](share/doc/developer/README.md) in the source tree
