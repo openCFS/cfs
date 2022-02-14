@@ -111,6 +111,9 @@ public:
   
   //! Factor in case of surface mapping
   Double factor_;
+
+  //! information
+  SolutionType resultType_;
 };
 
 //! This class represents coefficient functions, which are defined just on a
@@ -130,10 +133,9 @@ public:
   //! \param surfInfo Result info object for surface result
 
   CoefFunctionSurfMaxwell( bool mapNormal,
-		                   std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
-                           Grid* ptrid,
-						   Double factor = 1.0,
-						   shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+		                       std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+                           Grid* ptrid, Double factor = 1.0,
+                           shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
 
   //! Destructor
   virtual ~CoefFunctionSurfMaxwell();

@@ -40,6 +40,9 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal,
     // volume coef in the method ::AddVolumeCoef
     this->dimType_ = NO_DIM;
   }
+  if( surfInfo) {
+    resultType_ = surfInfo->resultType;
+  }
 }
 
 
@@ -289,21 +292,16 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
   assert(this->dimType_ == VECTOR);// Richtungsvektor
 
   // create local point for surface
-  LocPointMapped surfLpm(lpm);//Permeabilitätsänderung
+  LocPointMapped surfLpm(lpm); //Permeabilitätsänderung
 
   //get regionId from surfRegion
   RegionIdType surRegId = surfLpm.ptEl->regionId;
   RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
   surfLpm.SetSurfInfo( regions_, volNeighborRegionId);
 
-  //RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-  //std::string regionName = ptGrid_->GetRegion().ToString(region);
-  //std::cout << "RegName: " << regionName << std::endl;
-
   //get magnetic flux density
   Vector<Double> Bvec;
   coefs_[volNeighborRegionId]->GetVector(Bvec, *surfLpm.lpmVol );
-  //std::cout << "Bvec:  " << Bvec << std::endl;
 
   //get permeability
   Double permeability, matFactor;
@@ -312,21 +310,99 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
   matFactor = 1.0 / permeability;
 
   //compute: factors * ( (B*n)*B - 1/2*B^2*n )
-  Double Bn = Bvec * surfLpm.normal; // normal component of B
+  Vector<Double> normalVec = surfLpm.normal;
+  Double Bn = Bvec * normalVec; // normal component of B
   Double B2 = Bvec.Inner(); // square of B
   Vector<Double> BnB = Bvec; BnB.ScalarMult(Bn); // B * normal component
-  Vector<Double> B2n = surfLpm.normal; B2n.ScalarMult(0.5*B2); // n * B^2/2
+  Vector<Double> B2n = normalVec; B2n.ScalarMult(0.5*B2); // n * B^2/2
   coefVec = BnB - B2n;
   coefVec.ScalarMult(factor_ * matFactor); // don't forget factors
+
+  if ( resultType_ == MAG_NORMALFORCE_MAXWELL_DENSITY
+       || resultType_ == MAG_TANGENTIALFORCE_MAXWELL_DENSITY) {
+    //save the total surface force density vector
+    Vector<Double> fVecSurface(coefVec);
+
+    Double fNormal = coefVec * normalVec;
+    coefVec = normalVec; coefVec.ScalarMult(fNormal); //vector in normal direction
+
+    if (resultType_ == MAG_TANGENTIALFORCE_MAXWELL_DENSITY) {
+      //coefVec contains already the force density vector in normal direction
+      coefVec *= -1.0;
+      coefVec += fVecSurface;
+    }
+  }
 }
+
 
 void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
                                const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
 
-  EXCEPTION("SurfMaxwell for Harmonic Analysis not implemented");
+  assert(this->dimType_ == VECTOR);// surface force vector
 
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);//Permeabilitätsänderung
+
+  //get regionId from surfRegion
+  RegionIdType surRegId = surfLpm.ptEl->regionId;
+  RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
+  surfLpm.SetSurfInfo( regions_, volNeighborRegionId);
+
+  // normal unit vector
+  Vector<Double> normalVec = surfLpm.normal;
+  Vector<Complex> normalVecC(normalVec.GetSize());
+  for ( UInt i=0; i<normalVec.GetSize(); i++) {
+    normalVecC[i] = Complex(normalVec[i], 0.0);
+  }
+
+  //get magnetic flux density
+  Vector<Complex> Bvec;
+  Vector<Complex> conjBvec;
+  coefs_[volNeighborRegionId]->GetVector(Bvec, *surfLpm.lpmVol );
+  conjBvec = Bvec.Conj();
+
+  //get permeability
+  Double permeability, matFactor;
+  std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
+  permFncs[volNeighborRegionId]->GetScalar(permeability, *surfLpm.lpmVol );
+  matFactor = 1.0 / permeability;
+
+  //compute B* \cdot n; Bn = B \cdot n; compute B^2
+  Complex Bn1 = conjBvec * normalVecC; // normal component of B
+  Complex Bn2 = Bvec * normalVecC;
+  Complex B2 = Bvec.Inner(); // square of B
+
+  //compute BnB1 = (B* \cdot n)*B; BnB2 = (B \cdot n)*B*
+  Vector<Complex> BnB1;
+  Vector<Complex> BnB2;
+  BnB1 = Bvec; BnB1.ScalarMult(0.25*Bn1);
+  BnB2 = conjBvec; BnB2.ScalarMult(0.25*Bn2);
+
+  Vector<Complex> B2n(normalVecC);
+  B2n.ScalarMult(0.25*B2); // n * B^2/2
+
+  //compute force vector on the surface: (1/mu) * ( 1/4 ((B* \cdot n) B + (B \cdot n) B*) - 1/4*(B \cdot B*) n )
+  coefVec = BnB1 + BnB2 - B2n;
+  coefVec.ScalarMult(factor_ * matFactor);
+
+  if ( resultType_ == MAG_NORMALFORCE_MAXWELL_DENSITY
+       || resultType_ == MAG_TANGENTIALFORCE_MAXWELL_DENSITY) {
+    //save the total surface force density vector
+    Vector<Complex> fVecSurface(coefVec);
+
+    //compute surface force in normal direction
+    Complex fNormal = coefVec * normalVecC;
+    coefVec = normalVecC;
+    coefVec.ScalarMult(fNormal);
+
+    if (resultType_ == MAG_TANGENTIALFORCE_MAXWELL_DENSITY) {
+      //coefVec contains already the force density vector in normal direction
+      coefVec.ScalarMult(-1.0);
+      coefVec += fVecSurface;
+    }
+  }
 }
+
 
 CoefFunctionSurfMaxwell::~CoefFunctionSurfMaxwell() {
 

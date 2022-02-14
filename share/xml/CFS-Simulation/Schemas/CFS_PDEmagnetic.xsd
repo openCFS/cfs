@@ -373,6 +373,8 @@
   <xsd:simpleType name="DT_MagneticSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magForceMaxwellDensity"/>
+      <xsd:enumeration value="magNormalForceMaxwellDensity"/>
+      <xsd:enumeration value="magTangentialForceMaxwellDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   

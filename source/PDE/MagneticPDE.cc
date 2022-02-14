@@ -1601,12 +1601,11 @@ namespace CoupledField {
     resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
 
 
-    if( analysistype_ != HARMONIC ) {
-	// === MAXWELL FORCE DENSITY ===
+ 	// === MAXWELL FORCE DENSITY ===
 	shared_ptr<ResultInfo> mfd(new ResultInfo);
 	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
 	mfd->dofNames = vecComponents;
-	mfd->unit = "N/m^3";
+	mfd->unit = MapSolTypeToUnit(mfd->resultType);
 	mfd->definedOn = ResultInfo::SURF_ELEM;
 	mfd->entryType = ResultInfo::VECTOR;
 	availResults_.insert( mfd );
@@ -1614,9 +1613,37 @@ namespace CoupledField {
 	// Note: The positive normal direction in this case is defined as the
 	//       inward facing one.
 	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, -1.0, mfd));
-	DefineFieldResult( maxForceDens, mfd);
+	DefineFieldResult(maxForceDens, mfd);
 	surfCoefFcts_[maxForceDens] = bFunc;
 
+  // === MAXWELL NORMAL_FORCE DENSITY ===
+  shared_ptr<ResultInfo> mfdN(new ResultInfo);
+  mfdN->resultType = MAG_NORMALFORCE_MAXWELL_DENSITY;
+  mfdN->dofNames = vecComponents;
+  mfdN->unit = MapSolTypeToUnit(mfdN->resultType);
+  mfdN->definedOn = ResultInfo::SURF_ELEM;
+  mfdN->entryType = ResultInfo::VECTOR;
+  availResults_.insert( mfdN );
+  shared_ptr<CoefFunctionSurfMaxwell> maxNormalForceDens(new CoefFunctionSurfMaxwell(false,
+                                                         matCoefs_, ptGrid_, -1.0, mfdN));
+  DefineFieldResult(maxNormalForceDens, mfdN);
+  surfCoefFcts_[maxNormalForceDens] = bFunc;
+
+  // === MAXWELL TANGENTIAL_FORCE DENSITY ===
+  shared_ptr<ResultInfo> mfdT(new ResultInfo);
+  mfdT->resultType = MAG_TANGENTIALFORCE_MAXWELL_DENSITY;
+  mfdT->dofNames = vecComponents;
+  mfdT->unit = MapSolTypeToUnit(mfdT->resultType);
+  mfdT->definedOn = ResultInfo::SURF_ELEM;
+  mfdT->entryType = ResultInfo::VECTOR;
+  availResults_.insert( mfdT );
+  shared_ptr<CoefFunctionSurfMaxwell> maxTangentialForceDens(new CoefFunctionSurfMaxwell(false,
+                                                             matCoefs_, ptGrid_, -1.0, mfdT));
+  DefineFieldResult(maxTangentialForceDens, mfdT);
+  surfCoefFcts_[maxTangentialForceDens] = bFunc;
+
+
+  if( analysistype_ != HARMONIC ) {
 	// === MAXWELL FORCE (TOTAL) ===
 	shared_ptr<ResultInfo> mf(new ResultInfo);
 	mf->resultType = MAG_FORCE_MAXWELL;
