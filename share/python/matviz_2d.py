@@ -103,7 +103,7 @@ def to_polygons(angle, data, x_offset, y_offset, scale, only_pos):
       r = numpy.abs(r) if r < 0 else 0
     r = numpy.abs(r)
     x = r * numpy.cos(angle[i])
-    y = r * numpy.sin(-angle[i])
+    y = r * numpy.sin(angle[i])
     tupl.append((x_offset + scale * x, y_offset + scale * y))
   return tupl
 

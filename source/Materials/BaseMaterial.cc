@@ -633,10 +633,13 @@ namespace CoupledField
   void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double> &rotAngle,
                                                    MaterialType matType,
                                                    bool persistent) {
-    // Calculate rotation matrix( based on Kardan-Angles)
+    // Calculate rotation matrix (based on Kardan-Angles)
     // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+    // This rotates a tensor first around the z-axis by gamma, then around the
+    // y-axis by beta and last around the x-axis by alpha
+    // Kardan-Angles, x-y-z (extrinsic rotation)
 
     Double alpha = rotAngle[0] * M_PI / 180.0;
     Double beta  = rotAngle[1] * M_PI / 180.0;;

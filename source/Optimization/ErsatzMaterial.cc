@@ -1375,6 +1375,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::MULTIMATERIAL_SUM:
     case Function::SHAPE_INF:
     case Function::LOCAL_PYTHON_FUNCTION:
+    case Function::ARC_OVERLAP:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;

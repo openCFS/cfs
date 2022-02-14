@@ -431,7 +431,7 @@ namespace CoupledField {
     /** converts MaterialClass to the corresponding MaterialType tensor. Extend for your needs */
     static MaterialType ConvertMaterialClass(MaterialClass mc);
 
-    //! Rotate rotation of 2nd order tensor in Voigt notation
+    //! Rotate 2nd order tensor in Voigt notation
     template<typename T>
     static void PerformRotationVoigt( const Matrix<Double>& rotMatrix,
                                       Vector<T>& rotMatTensor,

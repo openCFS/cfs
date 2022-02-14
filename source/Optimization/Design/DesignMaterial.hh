@@ -53,9 +53,6 @@ public:
 //    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt */
 //    typedef enum {  NO_TYPE=-1, VOIGT, HILL_MANDEL } Notation;
 
-    /** Rotation  direction. Clockwise (CW) or Counter-clockwise (CCW) */
-    typedef enum { CW, CCW } Clock;
-
     /** Method used for interpolation of material tensor and volume */
     typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
 
@@ -120,12 +117,12 @@ public:
     /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
      *  in 3d: rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
      *  in 2d: rotates the material by ROTANGLE or rx
+     *  rotation is always mathematically positive, i.e. counterclockwise
      * @param mt Material Tensor which is rotated in place (or the derivative is calculated in place)
      * @param direction if one of ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
-     * @param clock can be CCW (counter-clockwise) or CW (clockwise)
      * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
      */
-    void RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
+    void RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
 
     /** Calculate the Isotropic tensor */
     void GetIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);

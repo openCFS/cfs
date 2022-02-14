@@ -4,6 +4,7 @@
 import numpy as np
 from numpy.linalg import norm 
 import os
+import cfs_utils as ut
 from itertools import product
 from operator import itemgetter
 
@@ -58,6 +59,9 @@ class Global:
     # this are gradient information but also arbitrary data can be added to this dictionary
     # the string key is reported to cfs via cfs_info_field_keys
     self.info_field = {}
+    
+    # this is the sparsity pattern for overlap constraints
+    jac = None
   
   # total number of variables (not cached)
   def total(self):
@@ -83,13 +87,14 @@ glob = Global()
 # @nx, ny, nz are for rho. Currently nx == ny and nz == 1
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dx, design, dict):
+def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dx, orientation, design, dict):
   # non-zero value avoids divide by 0 in autograd. Seems to also work with 0 though
   glob.rhomin = rhomin
   glob.radius = radius
   glob.boundary = boundary
   glob.transition = transition
   glob.combine = combine
+  glob.orientation = orientation
   assert nz == 1
   glob.n = [nx, ny, 1]
   glob.dx = round(dx,8)
@@ -301,6 +306,65 @@ def cfs_get_gradient(ddes_vec, label):
     print('cfs_get_gradient',label,'->',sens)
 
   return sens
+
+# get constraint value to prevent arcs moving too close together and overlapping
+def cfs_get_constraint_arc_overlap(constraint_num):
+  shapenum, a_num, cfs_jac = glob.jac[constraint_num]
+  shape = glob.shapes[shapenum]
+  return shape.get_constraint_arc_overlap(a_num)
+
+# get constraint gradient
+def cfs_get_gradient_arc_overlap(constraint_num):
+  shapenum, a_num, cfs_jac = glob.jac[constraint_num]
+  shape = glob.shapes[shapenum]
+  gradient_full = shape.get_gradient_arc_overlap(a_num)
+  return gradient_full[cfs_jac-shape.base]
+
+# get constraint sparsity pattern
+# implemented exact sparsity pattern here, might be easier to always just add all 'a_i' variables even though some might be zero
+def cfs_get_sparsity_arc_overlap(opt):
+  glob.jac = [] # list of arrays of 0-based variable indices
+  cfs_jac = []
+  for snum, s in enumerate(glob.shapes):
+    print(s.namedidx)
+    if len(s.idx_a) == 0:
+      continue
+    base = s.base
+    #sparse = np.arange(base,base+s.num_optvar)
+    for i in range(1,s.n+1):
+      sparse = [base+s.namedidx['px'], base+s.namedidx['py'], base+s.namedidx['qx'], base+s.namedidx['qy']]
+      #for j in range(len(s.idx_a)):
+      #  sparse.append(base+s.namedidx['a'+str(j+1)])
+      #cfs_jac.append(np.array(sparse))
+      #glob.jac.append((snum, i, cfs_jac[-1]))
+      
+      if i == 1 or i == 2: # first two segments, need just one, two or three a's instead of four
+        sparse.append(base+s.namedidx['a1'])
+        if len(s.idx_a) > 1:
+          sparse.append(base+s.namedidx['a2'])
+        if i == 2 and len(s.idx_a) > 2:
+          sparse.append(base+s.namedidx['a3'])
+        cfs_jac.append(np.array(sparse))
+        glob.jac.append((snum, i, cfs_jac[-1]))
+        if len(s.idx_a) == 1: # only two segments -> overlap symmetric on both sides and only needs one constraint
+          break
+      elif i == (s.n-1) or i == s.n: # last two segments, need just one, two or three a's instead of four
+        if i == (s.n-1) and len(s.idx_a) > 2:
+          sparse.append(base+s.namedidx['a'+str(s.n-3)])
+        if len(s.idx_a) > 1:
+          sparse.append(base+s.namedidx['a'+str(s.n-2)])
+        sparse.append(base+s.namedidx['a'+str(s.n-1)])
+        cfs_jac.append(np.array(sparse))
+        glob.jac.append((snum, i, cfs_jac[-1]))
+      else: # need to append four a's
+        sparse.append(base+s.namedidx['a'+str(i-2)])
+        sparse.append(base+s.namedidx['a'+str(i-1)])
+        sparse.append(base+s.namedidx['a'+str(i)])
+        sparse.append(base+s.namedidx['a'+str(i+1)])
+        cfs_jac.append(np.array(sparse))
+        glob.jac.append((snum, i, cfs_jac[-1]))
+  print(cfs_jac)
+  return cfs_jac
 
 # as we cannot create a numpy array in C (it should work but fails in reality) we get it here.
 # it shall have the size of rho as a 1D array  
@@ -633,7 +697,7 @@ class Spaghetti:
         v2 = -self.T[i+1]
         XC = X - C
     
-        if v1 @ XC >= 0 and v2 @ XC >=0: # we are in the cone
+        if v1 @ XC > 0 and v2 @ XC > 0: # we are in the cone
           
           #assert len(self.E) == len(self.C)-2
           #E = self.E[i]
@@ -875,7 +939,7 @@ class Spaghetti:
       B = v1 + v2
       B0 = B/agnorm(B)
       cosa = agnp.dot(v1,v2)
-      assert cosa >= -.9999999999 and cosa <= .9999999999
+      assert cosa >= -.99999999999999 and cosa <= .99999999999999
       #cosa = agnp.clip(cosa,-1,1) 
       alpha = agnp.arccos(cosa)
       scaling = r/agnp.sin(alpha/2)
@@ -896,6 +960,17 @@ class Spaghetti:
       return 0
     else:
       return a[idx-1]
+
+  # get constraint value to prevent arcs moving too close together and overlapping
+  def get_constraint_arc_overlap(self, segnum):
+    assert(len(self.C)>segnum)
+    return np.dot(self.H[segnum]-self.H[segnum-1], self.C[segnum]-self.C[segnum-1])
+
+  # get gradient value
+  def get_gradient_arc_overlap(self, segnum):
+    assert(len(self.a)>segnum)
+    return np.dot(self.sens['grad_H'][segnum]-self.sens['grad_H'][segnum-1], self.C[segnum]-self.C[segnum-1]) + \
+      np.dot(self.sens['grad_C'][segnum]-self.sens['grad_C'][segnum-1], self.H[segnum]-self.H[segnum-1])
    
   # give gradient via autograd for given X and idx for all parameters
   # @return array of size optvar
@@ -1072,7 +1147,6 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
           err = sciopt.check_grad(shape.func, shape.grad, optvar, [X, idx1])
           if err > 1e-5:
             i = idx1+1 if idx1 < shape.n else idx1 - shape.n + 1 # index for segments is still zero-based but not for gradient
-            glob.errcount = glob.errcount + 1
             eps = np.sqrt(np.finfo(float).eps)
             fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [X, idx1])
             grad = shape.grad(optvar, [X, idx1])
@@ -1096,7 +1170,6 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
           d, idxx = shape.dist(X, None, 'all')
           err = sciopt.check_grad(shape.func, shape.grad, optvar, [X, idxx])
           if err > 1e-5:
-            glob.errcount = glob.errcount + 1
             eps = np.sqrt(np.finfo(float).eps)
             fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [X, idxx])
             grad = shape.grad(optvar, [X, idxx])
@@ -1113,7 +1186,7 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
 # get material rotation angle for element with indices i and j (however the ordering is)
 # uses glob.idx_field and glob.idx_field_shapes_only
 # @param if ad fast_dist_ad evaluated, otherwise glob.dist_field is used 
-def get_material_rotation(var_all, shape_num, i, j, derivative=False):
+def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=False):
   shape = glob.shapes[shape_num]
   var = var_all[shape.base:shape.base+len(shape.optvar())]
   dx = glob.dx
@@ -1127,6 +1200,8 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
     idx = idx1
   else:
     d, idx = shape.dist(X)
+  if verbose:
+    print("index: " + shape.nice_idx(idx))
   
   P = agnp.array(var[0:2])
   Q = agnp.array(var[2:4])
@@ -1143,32 +1218,44 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
   # vec_vert = X-P => vec = (p1-x1, x2-p2)
   # rotAngle is angle between x-axis and vec
   if idx == 2*n-1:
-    XP = P-X
-    vec =  agnp.array([XP[1],-XP[0]])
-    if derivative != True:
-      return agnp.arctan2(vec[1],vec[0])
-    else:
-      nvec2 = vec[0]**2+vec[1]**2
-      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2))
-      return (np.arctan2(vec[1],vec[0]), np.concatenate(([-datan2[1], datan2[0]],np.zeros(shape.num_optvar-2))))
+    if glob.orientation == 'straight':
+      idx = 0 # use orientation of first segment
+    else: # should be 'rounded'
+      XP = P-X
+      vec =  agnp.array([XP[1],-XP[0]])
+      if derivative != True:
+        return agnp.arctan2(vec[1],vec[0])
+      else:
+        if verbose:
+          print("vector P-X: ", vec, ' with norm ', nvec2)
+          print('derivative: ', datan2)
+        nvec2 = vec[0]**2+vec[1]**2
+        datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2)) if nvec2 > 1e-15 else np.zeros((2)) # nondifferentiable if X=Q, but should be inside of spaghetti anyways
+        return (np.arctan2(vec[1],vec[0]), np.concatenate(([-datan2[1], datan2[0]],np.zeros(shape.num_optvar-2))))
   if idx == 2*n:
-    XQ = Q-X
-    vec = agnp.array([XQ[1],-XQ[0]])
-    if derivative != True:
-      return agnp.arctan2(vec[1],vec[0])
-    else:
-      nvec2 = vec[0]**2+vec[1]**2
-      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2))
-      return (np.arctan2(vec[1],vec[0]), np.concatenate((np.zeros(2),[-datan2[1], datan2[0]],np.zeros(shape.num_optvar-4))))
+    if glob.orientation == 'straight':
+      idx = n-1 # use orientation of last segment
+    else: # glob.orientation == 'rounded'
+      XQ = Q-X
+      vec = agnp.array([XQ[1],-XQ[0]])
+      if derivative != True:
+        return agnp.arctan2(vec[1],vec[0])
+      else:
+        nvec2 = vec[0]**2+vec[1]**2
+        datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2)) if nvec2 > 1e-15 else np.zeros((2)) # nondifferentiable if X=Q, but should be inside of spaghetti anyways
+        if verbose:
+          print("vector Q-X: ", vec, ' with norm ', nvec2)
+          print('derivative: ', datan2)
+        return (np.arctan2(vec[1],vec[0]), np.concatenate((np.zeros(2),[-datan2[1], datan2[0]],np.zeros(shape.num_optvar-4))))
   
   # the index of our segment or arc
-  i = idx+1 if idx < n else idx - n + 1 # index for segments is still zero-based but not for gradient
-  assert i >= 1 and i <= n
+  idx_seg_or_arc = idx+1 if idx < n else idx - n + 1 # index for segments is still zero-based but not for gradient
+  assert idx_seg_or_arc >= 1 and idx_seg_or_arc <= n
   U = Q - P
   V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
   
-  H_s = P if i == 1   else P + (i-1)/n * U + shape.get_a(a, i-1) * V0    # summit of begin of segment
-  H_e = Q if i >= n else P + i/n * U + shape.get_a(a, i) * V0  # summit of end of segment, which is Q for last segment
+  H_s = P if idx_seg_or_arc == 1   else P + (idx_seg_or_arc-1)/n * U + shape.get_a(a, idx_seg_or_arc-1) * V0    # summit of begin of segment
+  H_e = Q if idx_seg_or_arc >= n else P + idx_seg_or_arc/n * U + shape.get_a(a, idx_seg_or_arc) * V0  # summit of end of segment, which is Q for last segment
 
   t = H_e - H_s # segment as vector
   
@@ -1179,15 +1266,15 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
       return agnp.arctan2(vec[1],vec[0])
     else:
       nvec2 = vec[0]**2+vec[1]**2
-      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2))
-      return (np.arctan2(vec[1],vec[0]), np.dot(shape.sens['grad_t'][i],datan2))
+      datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2)) if nvec2 > 1e-15 else np.zeros((2)) # nondifferentiable if segment has zero length
+      return (np.arctan2(vec[1],vec[0]), np.dot(shape.sens['grad_t'][idx_seg_or_arc],datan2))
 
   # arcs: perpendicular to X-C
-  assert i >= 1 and i <= n-1
+  assert idx_seg_or_arc >= 1 and idx_seg_or_arc <= n-1
   M = agnp.array([-t[1], t[0]]) / agnorm(t) # normal
   r = shape.radius
   H_c = H_e
-  H_f = Q if i == n-1 else P + (i+1)/n * U + shape.get_a(a, i+1) * V0
+  H_f = Q if idx_seg_or_arc == n-1 else P + (idx_seg_or_arc+1)/n * U + shape.get_a(a, idx_seg_or_arc+1) * V0
 
   v1 = H_s - H_c
   v2 = H_f - H_c
@@ -1203,7 +1290,7 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
   scaling = r # this is the case when the M and B are aligned
   if agnorm(M1-M2) > 1e-10:
     cosa = agnp.dot(v1,v2)/(agnorm(v1) * agnorm(v2))
-    assert cosa >= -.9999999999 and cosa <= .9999999999
+    assert cosa >= -.99999999999999 and cosa <= .99999999999999
     #cosa = agnp.clip(cosa,-1,1)
     alpha = agnp.arccos(cosa)
     scaling = r/agnp.sin(alpha/2)
@@ -1215,7 +1302,9 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False):
     return agnp.arctan2(vec[1],vec[0])
   else:
     nvec2 = vec[0]**2+vec[1]**2
-    return (agnp.arctan2(vec[1],vec[0]), (shape.sens['grad_C'][i][:,1]*XC[0]-shape.sens['grad_C'][i][:,0]*XC[1])/nvec2)
+    if nvec2 < 1e-15:
+      nvec2 = 1e-15 # only happens when X=C, which should lie in void
+    return (agnp.arctan2(vec[1],vec[0]), (shape.sens['grad_C'][idx_seg_or_arc][:,1]*XC[0]-shape.sens['grad_C'][idx_seg_or_arc][:,0]*XC[1])/nvec2)
 
 # compute average material rotation angle weighted by density field, if passed
 def combine_angles(angles, density=None, derivative=False):
@@ -1293,37 +1382,81 @@ def combine_designs(var, i, j, derivative, verbose=False):
       rr, gg = integrate_rho(var, s, i, j, derivative)
       rho_shapes_ip.append(rr)
       grad_shapes_ip.append(gg)
+    rho_shapes_ip = np.array(rho_shapes_ip)
 
   if glob.combine == 'p-norm':
-    rho = agnp.sum(agnp.power(agnp.sum(agnp.power(rho_shapes_ip,p),0),(1/p)))/(order*order)
+    rho_shapes_ip_p = agnp.power(rho_shapes_ip,p)
+    rho_shape_weights = agnp.sum(rho_shapes_ip_p,1)/(order*order)
+    rho = agnp.sum(agnp.power(agnp.sum(rho_shapes_ip_p,0),(1/p)))/(order*order)
+  elif glob.combine == 'softmax':
+    exp = agnp.exp(p*rho_shapes_ip)
+    sum_exp = agnp.sum(exp,0)
+    rho_shape_weights = rho_shapes_ip*exp
+    rho_ip = agnp.sum(rho_shape_weights,0)/sum_exp
+    rho_shape_weights = agnp.sum(rho_shape_weights,1)/(order*order)
+    rho = agnp.sum(rho_ip)/(order*order)
   elif glob.combine == 'KS':
-    rho = agnp.sum(agnp.log(agnp.sum(agnp.exp(p*rho_shapes_ip),0)))/(p*order*order)
+    exp = agnp.exp(p*rho_shapes_ip)
+    sum_exp = agnp.sum(exp,0)
+    rho_shape_weights = agnp.sum(exp,1)/(order*order)-1
+    rho = agnp.sum(agnp.log(sum_exp))/(p*order*order)
   else:
     rho = agnp.sum(agnp.max(rho_shapes_ip,0))/(order*order)
     #rho_ip = agnp.sum(rho_shapes)/(order*order)
   if derivative == True:
+    grad_dens = []
+    grad_rho_shape_weights = []
     if glob.combine == 'p-norm':
-      sum_s = np.sum(np.power(rho_shapes_ip,p),0)
+      sum_s = np.sum(rho_shapes_ip_p,0)
       for ip in range(len(sum_s)):
         sum_s[ip] = np.power(sum_s[ip],1/p-1) if sum_s[ip] > 1e-30 else 0 # avoid non-differentiability of norm as gradient in void is zero anyways
       rho_s_p = np.power(rho_shapes_ip, p-1)
       tmp = np.expand_dims(sum_s,axis=0)*rho_s_p
-      grad_dens = []
       for s in range(len(glob.shapes)):
         grad_s = np.expand_dims(tmp[s],axis=1)*grad_shapes_ip[s]
         grad_dens.append(np.sum(grad_s,axis=0)/(order*order))
+        grad_rho_shape_weights.append(p*np.sum(np.expand_dims(rho_s_p[s],axis=1)*grad_shapes_ip[s],0)/(order*order))
+    elif glob.combine == 'softmax':
+      for s in range(len(glob.shapes)):
+        grad_rho_shape_weights.append(np.sum(np.expand_dims(exp[s]+p*exp[s]*rho_shapes_ip[s],1)*grad_shapes_ip[s],0)/(order*order))
+        grad_s = np.expand_dims(exp[s]/sum_exp*(1+p*(rho_shapes_ip[s]-rho_ip)),axis=1)*grad_shapes_ip[s]
+        grad_dens.append(np.sum(grad_s,axis=0)/(order*order))
+    elif glob.combine == 'KS':
+      for s in range(len(glob.shapes)):
+        grad_s = np.expand_dims(np.exp(p*rho_shapes_ip[s])/sum_exp,axis=1)*grad_shapes_ip[s]
+        grad_dens.append(np.sum(grad_s,axis=0)/(order*order))
+        grad_rho_shape_weights.append(np.sum(np.expand_dims(p*exp[s],axis=1)*grad_shapes_ip[s],0)/(order*order))
+    elif glob.combine == 'max':
+      rho_argmax = np.argmax(rho_shapes_ip,axis=0)
+      for s in range(len(glob.shapes)):
+        grad_s = np.zeros((len(grad_shapes_ip[s][0])))
+        for ip in np.nonzero(rho_argmax==s)[0]:
+          grad_s += grad_shapes_ip[s][ip]
+        grad_dens.append(grad_s/(order*order))
+    else:
+      print("gradient for feature combination ", glob.combine, " not implemented!")
+      assert(False)
 
   # angle computation
   angle = 0 # dummy result for void
   grad_a = np.zeros((len(var)))
   if len(glob.design) > 1:
-    rho_shapes = agnp.sum(rho_shapes_ip,1)/(order*order) # weights for angle average
+    if glob.combine == 'max':
+      rho_shape_weights = agnp.sum(rho_shapes_ip,1)/(order*order) # weights for angle average
     # for angle average use only non-zero values
-    sidx = agnp.nonzero(rho_shapes > glob.rhomin + 1e-15)
+    sidx = agnp.nonzero(rho_shape_weights > 1e-14)
     if len(sidx[0]) != 0:
       angles_shapes = agnp.array([get_material_rotation(var, idx, i, j, derivative) for idx in sidx[0]])
       if derivative == True:
         ang, grad_ang = zip(*angles_shapes)
+        if verbose:
+          print("gradient before combine_angles: ", grad_ang)
+          [get_material_rotation(var, idx, i, j, derivative, verbose=True) for idx in sidx[0]]
+        if glob.combine == 'max': # just take argmax close to center. Other "more precise" implementation possible as well
+          rho_argmax = np.argmax(rho_shapes_ip[sidx[0]][0][round(0.5*(order-1)*(order+1))])
+          shape = glob.shapes[sidx[0][rho_argmax]]
+          grad_a[shape.base:shape.base+len(shape.optvar())] = grad_ang[rho_argmax]
+          return np.concatenate((np.concatenate(grad_dens), grad_a))
         eps = np.sqrt(np.finfo(float).eps)
         if glob.gradient_check:
           for ind,s in enumerate(sidx[0]):
@@ -1341,8 +1474,8 @@ def combine_designs(var, i, j, derivative, verbose=False):
               print("Analytical gradient: " + str(grad_ang))
               print("get_material_rotation gradient L2 error: " + str(err))
         if glob.gradient_check:
-          grad_max_ang = combine_angles((ang,np.ones(len(sidx[0]))), (rho_shapes[sidx[0]],np.zeros(len(sidx[0]))), derivative)
-          fd_grad_ang = sciopt.approx_fprime(ang, combine_angles, eps, rho_shapes[sidx[0]])
+          grad_max_ang = combine_angles((ang,np.ones(len(sidx[0]))), (rho_shape_weights[sidx[0]],np.zeros(len(sidx[0]))), derivative)
+          fd_grad_ang = sciopt.approx_fprime(ang, combine_angles, eps, rho_shape_weights[sidx[0]])
           err = norm(fd_grad_ang-grad_max_ang)
           if err>3e-5:
             dx = glob.dx
@@ -1351,8 +1484,8 @@ def combine_designs(var, i, j, derivative, verbose=False):
             print("FD approximation:    " + str(fd_grad_ang))
             print("Analytical gradient: " + str(grad_max_ang))
             print("combine_angles angle gradient L2 error: " + str(err))
-          grad_max_dens = combine_angles((ang,np.zeros(len(sidx[0]))), (rho_shapes[sidx[0]],np.ones(len(sidx[0]))), derivative)
-          fd_grad_dens = sciopt.approx_fprime(rho_shapes[sidx[0]], combine_angles_fd_density, eps, ang)
+          grad_max_dens = combine_angles((ang,np.zeros(len(sidx[0]))), (rho_shape_weights[sidx[0]],np.ones(len(sidx[0]))), derivative)
+          fd_grad_dens = sciopt.approx_fprime(rho_shape_weights[sidx[0]], combine_angles_fd_density, eps, ang)
           err = norm(fd_grad_dens-grad_max_dens)
           if err>3e-5:
             dx = glob.dx
@@ -1363,20 +1496,26 @@ def combine_designs(var, i, j, derivative, verbose=False):
             print("combine_angles density gradient L2 error: " + str(err))
         grad_dens_sidx = []
         for s in sidx[0]:
-          grad_dens_sidx.append(np.sum(grad_shapes_ip[s],axis=0)/(order*order))
-        grad_max = combine_angles((ang,grad_ang), (rho_shapes[sidx[0]],grad_dens_sidx), derivative)
+          grad_dens_sidx.append(grad_rho_shape_weights[s])
+        grad_max = combine_angles((ang,grad_ang), (rho_shape_weights[sidx[0]],grad_dens_sidx), derivative)
         #grad_max = combine_angles((ang,grad_ang), None, derivative)
+        if verbose:
+          print("gradient after combine_angles: ", grad_max)
         for ind,s in enumerate(sidx[0]):
           shape = glob.shapes[s]
           grad_a[shape.base:shape.base+len(shape.optvar())] = grad_max[ind]
       else:
-        angle = combine_angles(angles_shapes, rho_shapes[sidx[0]])
-        #angle = combine_angles(angles_shapes, None)
-        if verbose:
-          print("active shapes " + str(sidx[0]) + " with densities " + str(rho_shapes[sidx[0]]))
-          print("angles in degrees: " + str(180*angles_shapes/np.pi))
-          print("weighted angles in degrees: " + str(180*(angles_shapes*rho_shapes[sidx[0]])/(np.max(rho_shapes[sidx[0]])*np.pi)) )
-          print("averaged angle in degrees: " + str(180*angle/np.pi))
+        if glob.combine == 'max': # just take argmax close to center. Other "more precise" implementation possible as well
+          rho_argmax = np.argmax(rho_shapes_ip[sidx[0]][0][round(0.5*(order-1)*(order+1))])
+          angle = angles_shapes[rho_argmax]
+        else:
+          angle = combine_angles(angles_shapes, rho_shape_weights[sidx[0]])
+          #angle = combine_angles(angles_shapes, None)
+          if verbose:
+            print("active shapes " + str(sidx[0]) + " with densities " + str(rho_shape_weights[sidx[0]]))
+            print("angles in degrees: " + str(180*angles_shapes/np.pi))
+            print("weighted angles in degrees: " + str(180*(angles_shapes*rho_shape_weights[sidx[0]])/(np.max(rho_shape_weights[sidx[0]])*np.pi)) )
+            print("averaged angle in degrees: " + str(180*angle/np.pi))
     # else: void, set above
 
   #X2_scaled = agnp.multiply(rho_shapes,agnp.cos(2*angles_shapes))
@@ -1593,10 +1732,10 @@ def plot_data(res, shapes, detail):
           plt.annotate('$H^'+str(num+1)+'$', H, fontsize=16, xytext=(1,1), textcoords='offset points', color = 'red')
         
       for num, C in enumerate(s.C[1:-1]): # arcs are only around interior C
-        fig.gca().add_artist(plt.Circle(C, 0.005, color = 'blue'))
         if detail > 2:
           plt.annotate('$C^'+str(num+1)+'$', C, fontsize=16, xytext=(1,1), textcoords='offset points', color = 'blue')
         if detail > 1:
+          fig.gca().add_artist(plt.Circle(C, 0.005, color = 'blue'))
           L=s.L[num+1][0]
           vec = C-L
           w = s.w
@@ -1632,7 +1771,7 @@ def plot_data(res, shapes, detail):
         fig.gca().add_artist(plt.Circle(L[1], 0.005, color = 'gray'))
       
       # plot normals
-      if detail < 2:
+      if detail < 0:
         assert len(s.T) == len(s.M)
         for i, T in enumerate(s.T):
           M = s.M[i]
@@ -1654,12 +1793,15 @@ def plot_data(res, shapes, detail):
     for C,cosa, K1, K2 in s.arc:
       v1 = K1-C
       v2 = K2-C
-      cosa = min(max(cosa,-1),1) # can be numerically out of bounds, e.g. with a=0 -> cosa=-1.0000000000000002
       alpha = np.arctan2(v1[1], v1[0])*180/np.pi # Orientation of arc defined by C->K2
       beta = np.arctan2(v2[1], v2[0])*180/np.pi # Orientation of arc defined by C->K2
 
       gamma1 = min(alpha,beta)
       gamma2 = max(alpha,beta)
+      if (gamma2-gamma1 > 180): # for edge case of arctan2 domain, angle difference should never be this large
+        tmp = gamma1
+        gamma1 = gamma2
+        gamma2 = tmp
       
       if detail == 2:
         sub.add_patch(patches.Arc(C, r, r, theta1=0, theta2=360, edgecolor='gray', lw=1))
@@ -1815,6 +1957,7 @@ if __name__ == '__main__':
   parser.add_argument("--radius", help="overwrite value from .density.file", type=float)
   parser.add_argument("--set", help="set within a .density.file", type=int)
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps, vtp")
+  parser.add_argument('--saveall', help="save all sets as image with the given format. Might be png, pdf, eps, vtp", action='store_true')
   parser.add_argument('--detail', help="level of technical details for spaghetti plot", choices=[0, 1, 2, 3, 4], default=1, type=int)
   parser.add_argument('--rhomin', help="void outside the feature", type=float, default=1e-6)
   parser.add_argument('--transition', help="size of the transition zone (2*h)", type=float, default=.1)
@@ -1874,6 +2017,25 @@ if __name__ == '__main__':
     ot.write_multi_design_file(args.input[0:-12] + '.eval.density.xml', des, ['density', 'rotAngle'])
     dummy_drho_vec = np.ones(args.density_res*args.density_res)
     drho = cfs_get_gradient(dummy_drho_vec, 'compliance')
+
+  if args.saveall:
+    xml = ut.open_xml(args.input)
+    sets = []
+    for set in xml.xpath('//set'):
+      sets.append(int(set.attrib['id']))
+      #print(etree.tostring(set.xpath('//[@id]')))
+    print('read', len(sets),'sets from',args.input + ': ',end='') # only python3
+    path = os.getcwd()
+    dir = os.path.join(path, 'giffiles')
+    if not os.path.exists(dir):
+      os.mkdir(dir)
+    for i in sets:
+      print(i,' ',end='' if i < sets[-1] else '\n',flush=True)
+      shapes = read_xml(args.input, i, args.radius, args.cfseval)
+      glob.shapes = shapes
+      fig = plot_data(800,shapes,args.detail)
+      fig.savefig('giffiles/' + str(i).zfill(4) + '.png')
+      plt.close(fig)
 
   fig = plot_data(800,shapes,args.detail)
   if args.save:

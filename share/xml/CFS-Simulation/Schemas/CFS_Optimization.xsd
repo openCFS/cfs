@@ -1350,6 +1350,16 @@
                        <!-- For anisotropic fibres. one element per sequence only! -->
                        <xsd:element name="designMaterial" type="DT_DesignMat" minOccurs="1" maxOccurs="unbounded" />
                     </xsd:sequence>
+                    <xsd:attribute name="orientation" use="optional" default="rounded">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <!-- the polynomial is almost cos and requires transition -->
+                          <xsd:enumeration value="straight" />
+                          <!-- simple linear interpolation, also requires transition -->
+                          <xsd:enumeration value="rounded" />
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
                   </xsd:extension>
                 </xsd:complexContent>
               </xsd:complexType>
@@ -2635,7 +2645,7 @@
     <xsd:attribute name="radius" type="xsd:float" use="required" />
 
     <!-- combination approach -->
-    <xsd:attribute name="combine" use="optional" default="max">
+    <xsd:attribute name="combine" use="optional" default="softmax">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <!-- non differentiable maximum of shapes -->
@@ -2647,6 +2657,9 @@
           <!-- p-norm -->
           <!-- (sum_i(rho_i^p))^(1/p) -->
           <xsd:enumeration value="p-norm" />
+          <!-- softmax -->
+          <!-- sum_i(rho_i*exp(p*rho_i))/sum_i(exp(p*rho_i)) -->
+          <xsd:enumeration value="softmax" />
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

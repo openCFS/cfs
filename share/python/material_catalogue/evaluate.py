@@ -465,7 +465,7 @@ def rotate_3d_tensor(tensor, axis, angle):
   assert(Q is not None)
   print("rotated tensor by ", angle, " around axis ", axis)
   
-  return np.dot(Q, dot(tensor, Q.transpose()))
+  return np.dot(Q, np.dot(tensor, Q.transpose()))
 
 # FUNCTIONS NOT USED CURRENTLY
 

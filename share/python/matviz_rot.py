@@ -27,19 +27,19 @@ def dump_tensor(tensor, toString=False):
       print(msg)
 
   return out
-## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
-## WARNING!!!! This rotates in clockwise direction and not counter-clockwise as in CFS!!!
+
+## This rotates in 2D counterclockwise around the z-axis.
 def get_rot_2x2(angle):
   R = numpy.zeros((2,2))
 
   R[0][0] =  cos(angle)
-  R[0][1] =  sin(angle)
-  R[1][0] =  -sin(angle)
+  R[0][1] =  -sin(angle)
+  R[1][0] =  sin(angle)
   R[1][1] =  cos(angle)
 
   return R
 
-## This rotates a 3*3 2D tensor via the third direction. As in Richter and CFS
+## This rotates a 3*3 2D tensor counterclockwise around the z-axis.
 def get_rot_3x3(angle):
 
   R = get_rot_2x2(angle)
@@ -60,28 +60,22 @@ def get_rot_3x3(angle):
 
   return Q
 
-## This rotates a 3x3 3D tensor around Euler angles(alpha,beta,gamma), see Wikipedia!
+## This rotates in 3D counterclockwise around z-axis by gamma,
+#  then y-axis by beta and last x-axis by alpha.
+#  see Wikipedia: Kardan/Tait–Bryan angles, x-y-z (extrinsic rotation)
 def get_rot_3x3_3d(alpha, beta, gamma):
   from numpy import sin, cos
   Rx = numpy.array([ [1,0,0], [0,cos(alpha),-sin(alpha)], [0,sin(alpha),cos(alpha)] ])
   Ry = numpy.array([ [cos(beta),0,sin(beta)], [0,1,0], [-sin(beta),0,cos(beta)] ])
   Rz = numpy.array([ [cos(gamma),-sin(gamma),0], [sin(gamma),cos(gamma),0], [0,0,1] ])
 
-  return (Rz.dot(Ry)).dot(Rx)
+  return (Rx.dot(Ry)).dot(Rz)
 
-## This rotates a 6x6 3D tensor from CFS BaseMaterial
+## This rotates a 6x6 3D tensor counterclockwise around z-axis by gamma,
+#  then y-axis by beta and last x-axis by alpha.
 def get_rot_6x6(alpha, beta, gamma):
 
-  R = numpy.zeros((3,3))
-  R[0][0] =  cos(beta) * cos(gamma)
-  R[0][1] = -cos(beta) * sin(gamma)
-  R[0][2] =  sin(beta)
-  R[1][0] =  cos(alpha)*sin(gamma) + sin(alpha)*sin(beta)*cos(gamma)
-  R[1][1] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma)
-  R[1][2] = -sin(alpha)*cos(beta)
-  R[2][0] =  sin(alpha)*sin(gamma) - cos(alpha)*sin(beta)*cos(gamma)
-  R[2][1] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma)
-  R[2][2] =  cos(alpha)*cos(beta)
+  R = get_rot_3x3_3d(alpha, beta, gamma)
 
   Q = numpy.zeros((6,6))
 
@@ -129,7 +123,7 @@ def get_rot_6x6(alpha, beta, gamma):
 
   return Q
 
-## this performs the cfs rotation for 2D.
+## this rotates a tensor counterclockwise around z-axis by theta (and y-axis by phi in 3D)
 # works for 2*2 tensors (permitivity), 2*3 (piezo coupling) and 3*3 (elasticity in Voigt notation)
 # @param tensor: we assume the cfs rotation alpha=-90 and gamma=-90 already to be done -> XML-Reference
 # @return with the dimension of tensor

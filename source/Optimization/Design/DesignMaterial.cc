@@ -1047,7 +1047,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
       if(direction == DesignElement::DENSITY)
         factor = 0.0;
     }
-    if (type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
+    if (type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC) {
       ninv2 = E3 - nu13 * nu13 * E;
       //assert(ninv2>0.0); //positivity of the elasticity tensor is violated. Use constraint "parametrized-plane-stress-pos-def" > 0
       ninv2 = 1 / (ninv2 * ninv2);
@@ -1057,7 +1057,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
     case DesignElement::DENSITY:
     case DesignElement::ROTANGLE: {
       if (type_ == TRANSVERSAL_ISOTROPIC
-          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
+          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC) {
         D = E * E3 / (E3 - nu13 * nu13 * E);
         D3 = E3 * E3 / (E3 - nu13 * nu13 * E);
         nD3 = nu13 * E * E3 / (E3 - nu13 * nu13 * E);
@@ -1073,7 +1073,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
     }
     case DesignElement::EMODULISO: {
       if (type_ == TRANSVERSAL_ISOTROPIC
-          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
+          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC) {
         D = E3 * E3 * ninv2;
         D3 = nu13 * nu13 * E3 * E3 * ninv2;
         nD3 = nu13 * E3 * E3 * ninv2;
@@ -1088,7 +1088,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
     }
     case DesignElement::EMODUL: {
       if (type_ == TRANSVERSAL_ISOTROPIC
-          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
+          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC) {
         D = -E * E * nu13 * nu13 * ninv2;
         D3 = -E3 * (-E3 + 2 * nu13 * nu13 * E) * ninv2;
         nD3 = -nu13 * nu13 * nu13 * E * E * ninv2;
@@ -1103,7 +1103,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
     }
     case DesignElement::POISSON: {
       if (type_ == TRANSVERSAL_ISOTROPIC
-          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
+          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC) {
         D = 2 * nu13 * E * E * E3 * ninv2;
         D3 = 2 * nu13 * E * E3 * E3 * ninv2;
         nD3 = E * E3 * (nu13 * nu13 * E + E3) * ninv2;
@@ -1130,7 +1130,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
     if (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) {
       double rotAngle = GetParameter(DesignElement::ROTANGLE);
       LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: E before rotation = " << t.ToString();
-      RotateTensor(mt, direction, CW, true, rotAngle);
+      RotateTensor(mt, direction, true, rotAngle);
       LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: E after rotation = " << t.ToString();
 
       //    static int count(0);
@@ -1257,7 +1257,7 @@ inline void DesignMaterial::GetTransIsoMaterialTensor(MaterialTensor<double>& mt
   if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12){
     // for all rotated types, rotate the material tensor
     LOG_DBG2(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
-    RotateTensor(mt, direction, CCW);
+    RotateTensor(mt, direction);
     LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString();
   }
   LOG_DBG2(dm) << "GetTransIsoMaterialTensor: tensor result is " << t.ToString();
@@ -1417,7 +1417,7 @@ inline void DesignMaterial::GetOrthotropicMaterialTensor(MaterialTensor<double>&
     LOG_DBG2(dm)<< "GetOrthotropicMaterialTensor: E before rotation = " << t.ToString();
     // transform to Voigt notation for rotation
     mt.ToVoigt();
-    RotateTensor(mt, direction, CW, true, rotAngle);
+    RotateTensor(mt, direction, true, rotAngle);
     LOG_DBG2(dm)<< "GetOrthotropicMaterialTensor: E after rotation = " << t.ToString();
 
     return;
@@ -1495,7 +1495,7 @@ inline void DesignMaterial::GetDensityTimes2dTensorTensor(MaterialTensor<double>
   if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
     double rotAngle = GetParameter(DesignElement::ROTANGLE);
     LOG_DBG2(dm)<< "GetDensityTimes2dTensorTensor: E before rotation = " << t.ToString();
-    RotateTensor(mt, direction, CCW, true, rotAngle);
+    RotateTensor(mt, direction, true, rotAngle);
     LOG_DBG2(dm)<< "GetDensityTimes2dTensorTensor: E after rotation = " << t.ToString();
 //    static int count(0);
 //    if (count % 10 == 0 && count/100 % 10 == 0){
@@ -1794,11 +1794,7 @@ inline void DesignMaterial::GetInterpolatedHomTensor(MaterialTensor<double>& mt,
 
   if (type_ != HEAT) {
     LOG_DBG2(dm)<< "GetInterpolatedHomTensor: E before rotation = " << E.ToString();
-    if (subTensor == FULL) {
-      RotateTensor(mt, direction, CCW);
-    } else {
-      RotateTensor(mt, direction, CW, true, rotAngle);
-    }
+    RotateTensor(mt, direction);
     LOG_DBG2(dm)<< "GetInterpolatedHomTensor: E after rotation =  " << E.ToString();
   }
 
@@ -3293,7 +3289,7 @@ inline void DesignMaterial::GetIN718Tensor(MaterialTensor<double>& mt, SubTensor
     LOG_DBG3(dm) << "GetIN718Tensor: tensor before rotation=" << t.ToString();
     LOG_DBG2(dm)<< "GetIN718Tensor: E before rotation = " << t.ToString();
     // RotateTensor needs Hill Mandel matrix
-    RotateTensor(mt, direction, CCW);
+    RotateTensor(mt, direction);
     LOG_DBG2(dm)<< "GetIN718Tensor: E after rotation = " << t.ToString();
   }
 }
@@ -3420,7 +3416,7 @@ inline void DesignMaterial::GetLaminatesTensor(MaterialTensor<double>& mt, SubTe
 
   double rotAngle = GetParameter(map, DesignElement::ROTANGLE);
   LOG_DBG2(dm)<< "GetLaminatesTensor: E before rotation = " << t.ToString();
-  RotateTensor(mt, direction, CW, true, rotAngle);
+  RotateTensor(mt, direction, true, rotAngle);
   LOG_DBG2(dm)<< "GetLaminatesTensor: E after rotation = " << t.ToString();
   return;
 }
@@ -3617,7 +3613,7 @@ inline void DesignMaterial::SetIsoMatrix(Matrix<double>& t, SubTensorType subTen
   SetTransIsoMatrix(t, subTensor, D, nd, G, D, nd, G);
 }
 
-void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, Clock clock, bool angles, double rx, double ry, double rz){
+void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, bool angles, double rx, double ry, double rz){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
   // rotates the material by ROTANGLEFIRST around the first (z-)axis, by ROTANGLESECOND around the second (y-)axis and by ROTANGLETHIRD around the third (x-)axis in this given order or rz,ry,rx
@@ -3648,13 +3644,6 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
     } else {
       theta1 = GetParameter(DesignElement::ROTANGLE);
     }
-  }
-
-  // if rotation is clockwise, change rotation angles
-  if (dim == 2 && clock == CW) {
-    theta3 = -theta3;
-    theta2 = -theta2;
-    theta1 = -theta1;
   }
 
   Matrix<Double> R(dim, dim);
@@ -3774,11 +3763,6 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
     help.Mult(dQT, t); // here, we overwrite t
     t.Add(1.0, dQ);    // and add the rest
     //FIXME: this section is ugly and should be fixed if expression templates work reliably
-
-    //only necessary in 2d, since Hill-Mandel rotation was replaced
-    if (dim == 2 && clock == CW) {
-      t = -t;
-    }
   }
 
 }
@@ -3919,7 +3903,7 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, De
   // R(phi) * [e] * Q(phi)^T
   // derivative: dR(phi)/dphi * ([e] * Q(phi)^T) + R(phi) * ([e] * dQ(phi)/dphi)^T
 
-  // Note, that we use VOIGT rotation matrix Q here, while in RotateHMStiffnessTensor Hill-Mandel is used. Also the QT here is QT^T of the HM rotation!
+  // rotation is clockwise
 
   Matrix<double> R(2,2);
   R[0][0] = cos(phi);
@@ -3990,6 +3974,8 @@ void DesignMaterial::RotateElecTensor(MaterialTensor<double>& mt, double phi, De
 {
   // R(phi) * [e] * R(phi)^T
   // derivative: dR(phi)/dphi * ([e] * R(phi)^T) + R(phi) * ([e] * dR(phi)/dphi)^T
+
+  // rotation is counterclockwise
 
   Matrix<double>& E = mt.GetMatrix(NO_NOTATION);
 

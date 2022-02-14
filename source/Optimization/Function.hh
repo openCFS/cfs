@@ -110,6 +110,7 @@ class Function
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
       GLOBAL_BUCKLING_LOAD_FACTOR,/*!< with the attribute ev for the number of the load factor/ eigenvalue */
       LOCAL_BUCKLING_LOAD_FACTOR,/*!< microscopic load factor/ eigenvalue for two scale optimization*/
+      ARC_OVERLAP,               /*!< prevents overlapping arc segments for spaghetti optimization */
       PYTHON_FUNCTION,           /*!< python global function */
       LOCAL_PYTHON_FUNCTION,     /*!< python local function */
 

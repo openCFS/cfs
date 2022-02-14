@@ -175,11 +175,16 @@ protected:
    * TANH_SUM limits via tanh_l( sum(tanh(shape) ) where tanh_l maps to 0..1 with own beta and the beta within sum(tanh(shape)) is halfed.
    *
    * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
-  typedef enum {NO_COMBINE, MAX, TANH_SUM, KS, P_NORM } Combine;
+  typedef enum {NO_COMBINE, MAX, TANH_SUM, KS, P_NORM, SOFTMAX} Combine;
 
   /** this describes the continuation of a structure in 1D. See feature mapping review.
    * Not every class uses all boundary functions, this is handled in the schema file */
   typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY } Boundary;
+
+  /** gives the fiber orientation for anisotropic material in spaghettiParamMat
+   * rounded: follows the spaghetti direction but at the endings uses orientations parallel to the boundary
+   * straight: follows the spaghetti direction extended to the round endings */
+  typedef enum {STRAIGHT, ROUNDED} Orientation;
 
   Boundary GetBoundary() const { return boundary_; }
 
@@ -188,10 +193,14 @@ protected:
 
   Enum<Boundary> boundary;
 
+  Enum<Orientation> orientation;
+
   /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
   Combine combine_ = NO_COMBINE;
 
   Boundary boundary_ = NO_BOUNDARY;
+
+  Orientation orientation_ = ROUNDED;
 
   /** shortcut to the dimension (2|3) */
   static unsigned int dim_;

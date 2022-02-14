@@ -30,6 +30,9 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
 
   combine_ = combine.Parse(pn->Get("combine")->As<string>());
   boundary_ = boundary.Parse(pn->Get("boundary")->As<string>());
+  if (method == ErsatzMaterial::SPAGHETTI_PARAM_MAT){
+    orientation_ = orientation.Parse(pn->Get("orientation")->As<string>());
+  }
 
   transition = pn->Get("transition")->As<double>(); // make optional
   radius = pn->Get("radius")->As<double>();
@@ -79,6 +82,7 @@ void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
   sp_info_->Get("radius")->SetValue(radius);
   sp_info_->Get("boundary/type")->SetValue(boundary.ToString(boundary_));
   sp_info_->Get("boundary/transition")->SetValue(transition);
+  sp_info_->Get("orientation")->SetValue(orientation.ToString(orientation_));
 
   // python stuff written with PythonInit()
 
@@ -143,11 +147,11 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
     py->Get("syspath")->SetValue(stat.sys_path.ToString(TS_PLAIN, ":"));
   py->Get("options")->SetValue(pyopts);
 
-  // def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz):
+  // def cfs_init(rhomin, radius, boundary, transition, combine, orientation, nx, ny, nz, dx, design, dict):
   PyObject* func = PyObject_GetAttrString(module_, "cfs_init");
   PythonKernel::CheckPythonFunction(func, "cfs_init");
 
-  PyObject* arg = PyTuple_New(11);
+  PyObject* arg = PyTuple_New(12);
   PyTuple_SetItem(arg, 0, PyFloat_FromDouble(rhomin));
   PyTuple_SetItem(arg, 1, PyFloat_FromDouble(radius));
   PyTuple_SetItem(arg, 2, PyUnicode_FromString(boundary.ToString(boundary_).c_str()));
@@ -157,13 +161,14 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   PyTuple_SetItem(arg, 6, PyLong_FromLong(ny_));
   PyTuple_SetItem(arg, 7, PyLong_FromLong(nz_));
   PyTuple_SetItem(arg, 8, PyFloat_FromDouble(dx_));
+  PyTuple_SetItem(arg, 9, PyUnicode_FromString(orientation.ToString(orientation_).c_str()));
 
   PyObject* des = PyTuple_New(design.GetSize());
   for(unsigned int i = 0; i < design.GetSize(); i++)
     PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
-  PyTuple_SetItem(arg, 9, des); // steals the reference, so no need to decref
+  PyTuple_SetItem(arg, 10, des); // steals the reference, so no need to decref
 
-  PyTuple_SetItem(arg, 10, PythonKernel::CreatePythonDict(pyopts));
+  PyTuple_SetItem(arg, 11, PythonKernel::CreatePythonDict(pyopts));
   PyObject* ret = PyObject_CallObject(func, arg);
   PythonKernel::CheckPythonReturn(ret);
 
@@ -399,7 +404,13 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
     nodes.Clear();
     // assume nothing fixed
     if(s.px.fixed || s.py.fixed || s.qx.fixed || s.qy.fixed)
-      throw Exception("distance constraints currently only for non-fixed nodes");
+      if (f->GetType() == Function::DISTANCE){
+        throw Exception("distance constraints currently only for non-fixed nodes");
+      } else { // Bending
+        if (s.px.fixed && s.py.fixed && s.qx.fixed && s.qy.fixed && (s.a_var.GetSize() == 0)){
+          continue; // won't add empty constraint if all points are fixed
+        }
+      }
 
     // px is element, then py, then qx then qy
     nodes.Push_back(&s.py);

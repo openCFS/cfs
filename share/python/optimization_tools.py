@@ -265,6 +265,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   out = numpy.zeros((length, designs))
   nr_vec = numpy.zeros((length,1))
   counter = 0
+  warned = 0
   idx_old = -1
   for element in sett:
     nr = int(element.get("nr"))- offset
@@ -285,7 +286,9 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     if not idx == -1:
       tmp = element.get(attribute)
       if tmp is None:
-        print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
+        if warned == 0:
+          warned += 1
+          print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
       # here we assume that the density.xml is ordered like it is written from cfs:
       # <element nr="1" type="design1" design="0.0"/>

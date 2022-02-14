@@ -41,11 +41,15 @@ void FeaturedDesign::SetEnums()
   combine.Add(TANH_SUM, "tanh_sum");
   combine.Add(KS, "KS");
   combine.Add(P_NORM, "p-norm");
+  combine.Add(SOFTMAX, "softmax");
 
   boundary.SetName("FeaturedDesign::Boundary");
   boundary.Add(TANH, "tanh");
   boundary.Add(LINEAR, "linear");
   boundary.Add(POLY, "poly");
+
+  orientation.Add(ROUNDED, "rounded");
+  orientation.Add(STRAIGHT, "straight");
 }
 
 

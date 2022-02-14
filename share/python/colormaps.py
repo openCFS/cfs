@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 def show_colormap(cmap):
     im = np.outer(np.ones(10), np.arange(100))
@@ -21,7 +22,7 @@ def grayify_cmap(cmap):
     luminance = np.sqrt(np.dot(colors[:, :3] ** 2, RGB_weight))
     colors[:, :3] = luminance[:, np.newaxis]
     
-    return cmap.from_list(cmap.name + "_grayscale", colors, cmap.N)
+    return LinearSegmentedColormap.from_list(cmap.name + "_grayscale", colors, cmap.N)
 
 
 
