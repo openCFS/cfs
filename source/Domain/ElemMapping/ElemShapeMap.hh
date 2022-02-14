@@ -30,7 +30,10 @@ namespace CoupledField {
   //  C L A S S   LocPoint
   // ==========================================================================
 
-  //! Simple struct representing an element local point
+  //! Multiple usage struct:
+  //! - standard case: representing an element local point
+  //! - rare case: transport coordinate for nodal points in global system
+  //! - rare case: transport number of element or node
 
   //! This struct represents an element local point (xi, eta, zeta)
   //! which is either defined by its coordinates or by an integration 
@@ -44,25 +47,23 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    LocPoint();
+    LocPoint() {};
     
     //! Conversion from standard vector
     LocPoint( const Vector<Double>& vec);
     
     //! Return coordinate component of point
-    inline Double& operator[]( UInt i) 
-    { return coord[i];}
+    inline Double& operator[]( UInt i) { return coord[i];}
 
     //! Return coordinate component of point
-    inline const Double& operator[]( UInt i) const 
-    { return coord[i];}
+    inline const Double& operator[]( UInt i) const { return coord[i];}
 
     //! Alias for point, which is not explicitly represented by 
     //! a integration point
     enum {NOT_SET = -1};
 
     //! Number of corresponding integration point 
-    Integer number;
+    Integer number = NOT_SET;
 
     //! Coordinate of local point
     Vector<Double> coord;
@@ -77,16 +78,25 @@ namespace CoupledField {
 
   //! Struct representing mapped element local information at a given point
   
+  //! The struct servers the following usage:
+  //! - provide FE relatated information for an element, including local/global transformation
+  //! - (rarely) transport information about a nodal point of interest in global coordinate space
+  //! - (rarely) transport about an element or nodal number of interest.
+  //!
+  //! For the rarely usage, lp is misused, lpm is overly complicated and we do not
+  //! identify what the intended usage is, just having shapeMap not set gives an indication
+
   //! This class represents all geometry related information of a finite element
   //! at a given local point. The idea is to bundle up any geometry related
   //! information when it is computed first (e.g. within the integration loop
   //! of an integrator) and to pass it to any succeeding functions (e.g. within
   //! the bilinearforms, the mapped point is passed to the differential operators,
   //! which need the Jacobian matrix).
-  //! 
+  //!
   //! Thus, this struct basically contains the following data:
   //! 
   //! - LocPoint (point in element-local xi/eta/zeta coordinates)
+  //!   Alternatively number and coord are used for the rarely cases mentioned above
   //! - ElementTransformation (mapping for reference -> physical domain)
   //! - Pointer to geometrical element
   //! - Jacobian Matrix, its inverse and determinant for given local point
@@ -185,13 +195,26 @@ namespace CoupledField {
     //! Return shape map
     const shared_ptr<ElemShapeMap> GetShapeMap() const {return shapeMap;}
 
+    /** service function which obtains a global point based on a LocPoint
+     * @parm loc if not given the own lp is used
+     * @param fallback if shapeMap is not set, assue we want the rare nodal case and use lp->number
+     *        as nodal number and get the coordinate from the mesh
+     * @param update for the fallback case, obtain the updated coordinate from the mesh
+     * @return the given coord as convenience */
+    Vector<double>& GetGlobal(Vector<double>& coord, const LocPoint* loc = NULL, bool fallback = true, bool update = false) const;
+
+    /** same as the other GetGlobal() helper, but we (abuse) lp::coord, either given or internal lp */
+    Vector<double>& GetGlobal(LocPoint* loc = NULL, bool fallback = true, bool update = false) {
+      return GetGlobal(lp.coord, loc, fallback, update);
+    }
+
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;
 
     //! Pointer to element
-    const Elem * ptEl;
+    const Elem* ptEl;
 
-    //! Element local point
+    //! Element local point, which is of multiple usage
     LocPoint lp;
     
     //! Integration weight
@@ -479,25 +502,25 @@ namespace CoupledField {
   protected:
 
     //! Type of shape mapping
-    ShapeMapType type_;
+    ShapeMapType type_ = NO_TYPE;
 
     //! Pointer to grid
-    Grid *ptGrid_;
+    Grid *ptGrid_ = NULL;
 
     //! Flag for axisymmetry
-    bool isAxi_;
+    bool isAxi_ = false;
 
     //! Flag if updated coordinates are uses (updated Lagrange)
-    bool isUpdated_;
+    bool isUpdated_ = false;
 
     //! Depth of elements (only for 2D)
-    Double depth_;
+    Double depth_ = 1.0;
 
     //! Pointer to current element
-    const Elem* ptElem_;
+    const Elem* ptElem_ = NULL;
     
     //! Pointer to current surface element (if valid)
-    const SurfElem* ptSurfElem_;
+    const SurfElem* ptSurfElem_ = NULL;
 
   };
   

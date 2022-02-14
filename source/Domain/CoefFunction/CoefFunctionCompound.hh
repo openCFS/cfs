@@ -84,6 +84,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionCompound();
 
+  virtual string GetName() const { return "CoefFunctionCompound<double>"; }
+
   //! \copydoc CoefFunction::GetTensor
   void GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm );
 
@@ -216,6 +218,8 @@ public:
 
   //! Destructor
   virtual ~CoefFunctionCompound();
+
+  virtual string GetName() const { return "CoefFunctionCompound<complex>"; }
 
   //! \copydoc CoefFunction::GetTensor
   void GetTensor( Matrix<Complex>& coefMat, const LocPointMapped& lpm );

@@ -27,6 +27,8 @@ public:
     ;
   }
 
+  virtual string GetName() const { return "CoefFunctionDiagTensorFromScalar"; }
+
 
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat,

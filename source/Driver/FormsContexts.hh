@@ -261,7 +261,8 @@ namespace CoupledField
     //  MAPPING METHODS
     // ======================================================
 
-    //! Map equations of linearform for a given entitylist
+    /** Map equations of linearform for a given entitylist (e.g. NODE_LIST)
+      * @param eqnVec returned equations. Might be empty, e.g. if nodes  are not part of simulation */
     void MapEqns( EntityIterator& it,
                   StdVector<Integer>& eqnVec,
                   FeFctIdType& id );

@@ -41,6 +41,8 @@ template < typename TYPE > class CoefFunctionConst;
 class FeSpace;
 class BaseFeFunction;
 
+using std::string; // shortcut for GetDescription
+
 //! This is the base class for describing coefficients
 
 //!   It is used in the Integrator classes to obtain the material tensor
@@ -88,7 +90,7 @@ public:
     VECTOR,   /*!< Vector entry (cardinality 1)*/
     TENSOR    /*!< Tensor entry (cardinality 2)*/ 
   } CoefDimType;
-  static Enum<CoefDimType> CoefDimType_;
+  static Enum<CoefDimType> coefDimType;
   
   //! Dependency of coefficient function
   typedef enum{ 
@@ -98,7 +100,7 @@ public:
     GENERAL,       /*!< General dependency on space and time /freq */
     SOLUTION       /*!< Dependency on another FeFunction */
   } CoefDependType;
-  static Enum<CoefDependType> CoefDependType_;
+  static Enum<CoefDependType> coefDependType;
   
   //! Dependency of coefficient function
   typedef enum{
@@ -106,7 +108,7 @@ public:
     INVSOURCE,         /*!< Invserse scheme: source data */
     INVMEASURE         /*!< Inverse scheme: measured data */
   } CoefInverseType;
-  static Enum<CoefInverseType> CoefInverseType_;
+  static Enum<CoefInverseType> coefInverseType;
 
   //! Dependency of coefficient function
   typedef enum{
@@ -114,14 +116,14 @@ public:
     FEBASIS,         /*!< Invserse scheme: source data */
     DELTA         /*!< Inverse scheme: measured data */
   } CoefInverseSourceApprox;
-  static Enum<CoefInverseSourceApprox> CoefInverseSourceApprox_;
+  static Enum<CoefInverseSourceApprox> coefInverseSourceApprox;
 
   //! Modifications of coefficient function
   typedef enum{
     NONE,              /*!< Default interpolation of data*/
     VECTOR_DIVERGENCE  /*!< Return divergence of vector valued CoefFuncton when called with getScalar*/
   } CoefDerivativeType;
-  static Enum<CoefDerivativeType> CoefDerivativeType_;
+  static Enum<CoefDerivativeType> coefDerivativeType;
   
   //! Get the maximum CoefFunction dependency type
   static CoefDependType GetMaxCoefDependType(CoefDependType typeA, CoefDependType typeB);
@@ -253,6 +255,11 @@ public:
   virtual ~CoefFunction(){
     ;
   }
+
+  /** gives coef function class name for info.xml output and logging.
+   * Note that this is the only abstract method, all others have default implementations (throwing exceptions)
+   * @see ToString() */
+  virtual string GetName() const = 0;
   
   //! Get an instance of the object with only a given ComplexPart
   
@@ -261,7 +268,7 @@ public:
   //! real-part of an already real-valued coefficient function is requested,
   //! a pointer to the same instance is returned
   virtual PtrCoefFct GetComplexPart( Global::ComplexPart part ) {
-    EXCEPTION( "Method CoefFunction::GetComplexPart not properly overwritten" );
+    EXCEPTION("CoefFunction::GetComplexPart not overwritten by " << GetName());
     return PtrCoefFct();
   }
   
@@ -274,27 +281,23 @@ public:
 
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued CoefFunction object." );
+    EXCEPTION( "CoefFunction::GetTensor<Double> not overwritten by " << GetName());
   }
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen "
-        << "Most likely this method is called with a complex-valued CoefFunction object." );
+    EXCEPTION( "CoefFunction::GetVector<Double> not overwritten by " << GetName());
   }
 
   //! Return real-valued element averaged value
   virtual void GetAvgElemValue(Double & vec, const Elem* elem) {
-    EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not implemented in base class" );
+    EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not overwritten by " << GetName());
   }
 
 
   //! Return real-valued scalar at integration point
   virtual void GetScalar(Double& scal, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetScalar<Double> called: This may not happen. " 
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+    EXCEPTION( "CoefFunction::GetScalar<Double> not overwritten by " << GetName());
   }
 
   //! Return complex-valued tensor at integration point
@@ -318,24 +321,23 @@ public:
   }
 
   //! Return complex-valued scalar at integration point
-  virtual void GetScalar(Complex& scalar, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetScalar(Complex& scalar, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
     // just the double value as real part of a complex
     Double temp;
     GetScalar( temp, lpm);
-     scalar = Complex(temp, 0.0);
+    scalar = Complex(temp, 0.0);
   }
   
   //! Return size of vector in case coefficient function is a vector
   virtual UInt GetVecSize() const {
-    EXCEPTION( "CoefFunction::GetVecSize: Not overwritten");
+    EXCEPTION( "CoefFunction::GetVecSize not overwritten by " << GetName());
     return 0;
   }
   
   //! Return row and columns size of tensor if coefficient function is a tensor
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      EXCEPTION( "CoefFunction::GetVecSize: Not overwritten");
+    EXCEPTION("CoefFunction::GetTensorSize not overwritten by " << GetName());
   }
   
   //@}
@@ -351,9 +353,9 @@ public:
             const Double& baseFreq,
             const UInt& nFFT,
             std::string modelName,
-            PtrCoefFct matCoef){
-    EXCEPTION("Not implemented here in base class");
-    return;
+            PtrCoefFct matCoef)
+  {
+    EXCEPTION("CoefFunction::Init not overwritten by " << GetName());
   }
 
   //! Set associated coordinate system
@@ -372,12 +374,19 @@ public:
   }
   
   //! Return dependency of CoefFunction
-  CoefDependType GetDependency() {
+  CoefDependType GetDependency() const {
     return dependType_;
   }
 
+  /** we are special dependent for dependency SPACE or GENERAL */
+  bool IsSpacialDependent() const { return dependType_ == CoefFunction::SPACE ||dependType_ == CoefFunction::GENERAL; }
+
+  /** some rhs load integrators are normalized by number elements via a compount coef
+   * Here we can control if we want this. The CoefFunctionFileData does not want to to this */
+  virtual bool DoNormalize() const { return true; }
+
   //! Return dependency of CoefFunction
-  CoefInverseType GetInverseType() {
+  CoefInverseType GetInverseType() const {
     return inverseType_;
   }
 
@@ -387,12 +396,12 @@ public:
   }
 
   //! Return dependency of CoefFunction
-  CoefInverseSourceApprox GetInverseSourceApproxType() {
+  CoefInverseSourceApprox GetInverseSourceApproxType() const {
     return approxSourceType_;
   }
 
   //! Return type of entry (scalar, vector, tensor)
-  virtual CoefDimType GetDimType() const{
+  virtual CoefDimType GetDimType() const {
     return dimType_;
   }
   
@@ -430,62 +439,62 @@ public:
     isActive_ = val;
   }
 
-
-  //! Dump coefficient function to string 
+  /** some coef function (e.g. const) give the value, others have a general description.
+   * Default is the empty string.
+   * @see GetName() */
   virtual std::string ToString() const {
-    EXCEPTION("CoefFuncion: ToString() not properly overwritten");
     return "";
   }
   
   //! sets the derivative modification to the coefFunction
   virtual void SetDerivativeOperation(CoefDerivativeType type){
-    EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
+    EXCEPTION("CoefFunction::SetDerivativeOperation not overwritten by " << GetName());
     return;
   }
   //! sets the derivative modification to the coefFunction
   virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
-    EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
+    EXCEPTION("CoefFunction::SetDerivativeOperation not overwritten by " << GetName());
     return;
   }
   //! computes the optimality condition
   virtual void ComputeOptCondition(Double& optAmp, Double& optPhase) {
-	  EXCEPTION("CoefFuncion::ComputeOptCondition not implemented");
+	  EXCEPTION("CoefFuncion::ComputeOptCondition not overwritten by " << GetName());
    }
 
   //! computes the L2 norm of error
   virtual void ComputeDiff2Meas( Double& error ) {
-	  EXCEPTION("CoefFuncion::ComputeDiff2Meas not implemented");
+	  EXCEPTION("CoefFuncion::ComputeDiff2Meas not overwritten by " << GetName());
   }
 
   //! set all parameters for inverse scheme
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
 		                        Double& freq, std::string fileNameMeasdata,
 								std::string logLevel, Double& scalVal) {
- 	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
+ 	  EXCEPTION("CoefFuncion::SetInverseParam not overwritten by " << GetName());
    }
 
   //! set all parameters for inverse scheme
   virtual void ChangeInverseParam( Double& alpha, Double& beta, Double& rho) {
-   	  EXCEPTION("CoefFuncion::ChangeInverseParam not implemented");
+   	  EXCEPTION("CoefFuncion::ChangeInverseParam not overwritten by " << GetName());
   }
 
   //! update the source values (amplitude and phase)
   virtual void UpdateSource(Double& stepLength, bool lineSearch, bool scaleBack=false) {
-	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
+	  EXCEPTION("CoefFuncion::UpdateSource not overwritten by " << GetName());
   }
 
   //! computes the L2 norm of error
   virtual void ComputeTikh(Double& funcVal, Double& resSquared) {
-	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
+	  EXCEPTION("CoefFuncion::ComputeTikh not overwritten by " << GetName());
   }
 
   //! compute square of L2-norm of measured pressure at mic-positions
   virtual void ComputeMeasL2squared( Double& vaL2 ) {
-	  EXCEPTION("CoefFuncion::ComputeMeasL2squared not implemented");
+	  EXCEPTION("CoefFuncion::ComputeMeasL2squared not overwritten by " << GetName());
   }
 
   virtual void SetApproxSourceDelta() {
-	  EXCEPTION("CoefFuncion::SetApproxSourceDelta not implemented");
+	  EXCEPTION("CoefFuncion::SetApproxSourceDelta not overwritten by " << GetName());
   }
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
@@ -519,15 +528,13 @@ public:
   //@{ \name External Data interfaces
 
   //! Map Conservative to FeFunction Vector
-  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
-                                    Vector<Double>& feFncVec){
-    EXCEPTION("This coefficient function does not support Conservative Mapping");
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace, Vector<Double>& feFncVec){
+    EXCEPTION("CoefFuncion::MapConservative not overwritten by " << GetName());
   }
 
   //! Map Conservative to FeFunction Vector
-  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
-                                    Vector<Complex>& feFncVec){
-    EXCEPTION("This coefficient function does not support Conservative Mapping");
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace, Vector<Complex>& feFncVec){
+    EXCEPTION("CoefFuncion::MapConservative not overwritten by " << GetName());
   }
 
   //! Determine if coefFunction has conservative mapping
@@ -612,7 +619,7 @@ public:
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
                                         StdVector<shared_ptr<EntityList> >() ) {
-    Exception("GetTensorValuesAtCoords<Double> not implemented in base class");
+    EXCEPTION("CoefFuncion::GetTensorValuesAtCoords not overwritten by " << GetName());
   }
 
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
@@ -620,7 +627,7 @@ public:
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
                                         StdVector<shared_ptr<EntityList> >() ) {
-    Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
+    EXCEPTION("CoefFuncion::GetTensorValuesAtCoords not overwritten by " << GetName());
   }
 
   //! Needed for harmonic balancing CoefFunctionHarmBalance
@@ -628,174 +635,174 @@ public:
                                                       const std::string& name,
                                                       const bool nonLin,
                                                       shared_ptr<ElemList> actSDList){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GenerateMatCoefFnc not overwritten by " << GetName());
   }
 
   //! Needed for harmonic balancing CoefFunctionHarmBalance
   virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
                                      const UInt& iRegion){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::RegisterElemsInRegion not overwritten by " << GetName());
   }
 
 
   //! Functions needed for Hystersis
   virtual void GetCouplTensorSize(UInt& numRows, UInt& numCols){
-    EXCEPTION("GetCouplTensorSize not available");
+    EXCEPTION("CoefFuncion::GetCouplTensorSize not overwritten by " << GetName());
   }
 
   virtual void ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign, std::string vectorName, bool onBoundary, bool usedAsRHSload ){
-    EXCEPTION("ComputeVector not available");
+    EXCEPTION("CoefFuncion::ComputeVector not overwritten by " << GetName());
   }
 
   virtual void ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm,
           std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat ){
-    EXCEPTION("ComputeTensor not available");
+    EXCEPTION("CoefFuncion::ComputeTensor not overwritten by " << GetName());
   }
 
   virtual void PrecomputeMaterialTensorForInverison(){
-    EXCEPTION("PrecomputeMaterialTensorForInverison not available");
+    EXCEPTION("CoefFuncion::PrecomputeMaterialTensorForInverison not overwritten by " << GetName());
   }
 
   virtual void SetPreviousHystVals(bool lastTS = false, bool forceMemoryLock = false){
-	  EXCEPTION("SetPreviousHystVals not available");
+    EXCEPTION("CoefFuncion::SetPreviousHystVals not overwritten by " << GetName());
   }
 
   virtual void TestInversion(PtrParamNode testNode, PtrParamNode infoNode){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::TestInversion not overwritten by " << GetName());
   }
   virtual void SetFlag(std::string flagName, Integer intState){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::SetFlag not overwritten by " << GetName());
   }
   virtual void SetDoubleFlag(std::string flagName, Double intState){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::SetDoubleFlag not overwritten by " << GetName());
   }
   
   virtual bool useStrainForm(){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::RegisterElemsInRegion not overwritten by " << GetName());
   }
   
   virtual int GetStrainForm(){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetStrainForm not overwritten by " << GetName());
   }
 
   virtual void SetStrainForm(int intState){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::RegisterElemsInRegion not overwritten by " << GetName());
   }
 
   virtual std::string getPDEName(){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::getPDEName not overwritten by " << GetName());
   }
   
   virtual bool deltaMatActive(){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::deltaMatActive not overwritten by " << GetName());
   }
   
   virtual bool couplingTensorSet(){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::couplingTensorSet not overwritten by " << GetName());
   }
   virtual int GetDeltaForm(){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetDeltaForm not overwritten by " << GetName());
   }
   
   virtual int GetTimeLevel(std::string EntitiyType){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetDeltaForm not overwritten by " << GetName());
   }
   
   virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName ){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GenerateMatCoefFnc not overwritten by " << GetName());
   }
   virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GenerateRHSCoefFnc not overwritten by " << GetName());
   }
   virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, shared_ptr<CoefFunction> coefFunctionToBeIncluded){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GenerateRHSCoefFnc not overwritten by " << GetName());
   }
 
   virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
-    EXCEPTION("Not implemented in base class");
+    EXCEPTION("CoefFuncion::GenerateOutputCoefFnc not overwritten by " << GetName());
   }
   
   virtual void ActiveOneShotSlopeEstimation(Double steppingLength, Double scaling){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::ActiveOneShotSlopeEstimation not overwritten by " << GetName());
   }
 
   virtual void checkSaturationStateAllElements(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
       Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::checkSaturationStateAllElements not overwritten by " << GetName());
   }
 
   virtual Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetIrreversibleStrains not overwritten by " << GetName());
   }
 
   virtual Matrix<Double> ConvertFromVoigtToTensor(Vector<Double> Si_voigt){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::ConvertFromVoigtToTensor not overwritten by " << GetName());
   }
 
   virtual Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetIrreversibleStrainTensor not overwritten by " << GetName());
   }
 
   virtual Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool forStrain){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetPrecomputedOutputOfHysteresisOperator not overwritten by " << GetName());
   }
 
   virtual Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetPrecomputedInputToHysteresisOperator not overwritten by " << GetName());
   }
 
   virtual void SetFPMaterialTensors(Integer intState){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::SetFPMaterialTensors not overwritten by " << GetName());
   }
   virtual UInt GetFPMaterialState(){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetFPMaterialState not overwritten by " << GetName());
   }
   virtual UInt GetFPMaterialStateRHS(){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetFPMaterialStateRHS not overwritten by " << GetName());
   }
   virtual Matrix<Double> GetFPMaterialTensor(const LocPointMapped& OriginalLPM){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetFPMaterialTensor not overwritten by " << GetName());
   }
   virtual Vector<Double> GetFPCorrectionVector(const LocPointMapped& OriginalLPM, Integer timeLevel){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetFPCorrectionVector not overwritten by " << GetName());
   }
 
   virtual bool anyMatrixForLocalInversionRequiresComputation(){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::anyMatrixForLocalInversionRequiresComputation not overwritten by " << GetName());
   }
 
   virtual void getMatrixForLocalInversion(const LocPointMapped& Originallpm, Matrix<Double>& matrixForInversion, Matrix<Double>& matrixForInversionInverse){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::getMatrixForLocalInversion not overwritten by " << GetName());
   }
 
   virtual void setMatrixForLocalInversion(Matrix<Double> matrixForInversion, Matrix<Double> matrixForInversionInverse, UInt storageIdx, bool reuse){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::setMatrixForLocalInversion not overwritten by " << GetName());
   }
 
   virtual void getLPMMaps(std::map<UInt, LocPointMapped >& allLPM, std::map<UInt, LocPointMapped >& midpointLPM){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::getLPMMaps not overwritten by " << GetName());
   }
 
   virtual void GetScaledAndRotatedCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
   bool rotate=true){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetScaledAndRotatedCouplingTensor not overwritten by " << GetName());
   }
   
   virtual Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel_new, int timelevel_old, bool useStrains, bool useAbs,
       std::string implementationVersion){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetDeltaMat not overwritten by " << GetName());
   }
   
   virtual void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::SetElastAndCouplTensor not overwritten by " << GetName());
   }
   
   virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, RegionIdType volReg, bool onSurface){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::AddAdditionalSDList not overwritten by " << GetName());
   }
   
   virtual Double GetOutputSaturation(){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::GetOutputSaturation not overwritten by " << GetName());
   }
 
 
@@ -806,7 +813,7 @@ public:
 
   //! To initialze the material model
   virtual void InitModel(std::map<std::string, double> ParameterMap , UInt numElems){
-    EXCEPTION( "Not implemented in base class");
+    EXCEPTION("CoefFuncion::InitModel not overwritten by " << GetName());
   }
 
   //! return volume regionId being the correct neighbor of a surface region id
@@ -933,6 +940,8 @@ public:
 
   //! Destructor
   virtual ~CoefFunctionAnalytic() {}
+
+  std::string GetName() const { return "CoefFunctionAnalytic"; }
 
 
   //! Get scalar expression

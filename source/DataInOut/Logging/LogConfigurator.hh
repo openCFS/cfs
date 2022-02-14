@@ -45,8 +45,10 @@ namespace CoupledField { namespace logging {
 #define LOG_TRACE(logger) if(true) {} else std::cout
 #endif
 
+// this creates a new logger. E.g. after DEFINE_LOG(mylog,"mylog") use LOG_DBG(mylog) << "hans"; see log.xml
 #define DEFINE_LOG(logger, loggerName) auto logger = ::CoupledField::LogConfigurator::getLogger(loggerName);
 
+// this allows to use a logger which was defined already elsewhere
 #define EXTERN_LOG(logger) extern boost::log::sources::severity_logger<int> logger;
 
 #define IS_LOG_ENABLED(asdf, jkl) false /// TODO: check every occourence

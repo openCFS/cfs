@@ -16,12 +16,7 @@ namespace CoupledField {
 //  C L A S S  LocPoint
 // ===========================================================================
 
-LocPoint::LocPoint() :
-    number(NOT_SET) {
-}
-
 LocPoint::LocPoint(const Vector<Double>& vec) {
-  number = NOT_SET;
   coord = vec;
 }
 
@@ -320,6 +315,21 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions,
   normal /= normal.NormL2();
 }
 
+Vector<double>& LocPointMapped::GetGlobal(Vector<double>& coord, const LocPoint* loc, bool fallback, bool update) const
+{
+  loc = loc != NULL ? loc : &(this->lp); // use own lp as default
+
+  if(shapeMap)
+    shapeMap->Local2Global(coord,*loc);
+  else
+  {
+    assert(fallback);
+    assert(loc->number != LocPoint::NOT_SET);
+    assert(loc->number > 0);
+    domain->GetGrid()->GetNodeCoordinate(coord, (unsigned int) loc->number, update);
+  }
+  return coord;
+}
 
 // ========================================================================
 //  ElemShapeMap
@@ -336,12 +346,7 @@ Enum<ElemShapeMap::ShapeMapType> ElemShapeMap::shapeMapType = Enum<
     sizeof(elemShapeTuples) / sizeof(EnumTuple), elemShapeTuples);
 
 ElemShapeMap::ElemShapeMap(Grid* ptGrid) {
-  type_ = NO_TYPE;
   ptGrid_ = ptGrid;
-  depth_ = 1.0;
-  isAxi_ = false;
-  ptElem_ = NULL;
-  ptSurfElem_ = NULL;
 }
 
 ElemShapeMap::~ElemShapeMap() {

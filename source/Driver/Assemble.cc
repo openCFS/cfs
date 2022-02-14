@@ -28,6 +28,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/LinForms/LinearForm.hh"
+#include "Forms/LinForms/SingleEntryInt.hh"
 
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -1619,6 +1620,9 @@ namespace CoupledField
               progStream.str("");
             }
 
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: linform: " << form->ToString();
+
             // Calculate real valued element vector
             // check if only the real part of a complex value shall be considered
             if( form->IsExtractReal() ){
@@ -1629,20 +1633,20 @@ namespace CoupledField
               form->CalcElemVector(elemVec, entIt);
             }
             
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
-            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
-
-            // Map equation numbers
+            // Map equation numbers. eqnVec can be empty if nodes are not in system (e.g. not simulated region)
             actContext.MapEqns(entIt, eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.GetSize() << " -> " << eqnVec.ToString();
 
             // Perform remapping
             ReMapEquations(eqnVec, fctId);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
 
+            // elemVec can be independent on equations, e.g. for const or expression form
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-            // Pass element vector to algebraic system
-            algsys_->SetElementRHS(elemVec, fctId, eqnVec, h);
+
+            // Pass element vector to algebraic system only when we have equations
+            if(!eqnVec.IsEmpty())
+              algsys_->SetElementRHS(elemVec, fctId, eqnVec, h);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         }
@@ -1676,21 +1680,30 @@ namespace CoupledField
       BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
       if(bdb != NULL && bdb->GetBOp() != NULL && bdb->GetBOp()->GetName() != "")
         inf->Get("BOp")->SetValue(bdb->GetBOp()->GetName());
+      // coef function for value
+      if(bdb != NULL) {
+        // bdb->GetCoef()->GetName() is the class Name like CoefFunctionConst
+        // the ToString() is either empty, the description or something useful
+        string val =bdb->GetCoef()->ToString();
+        LOG_DBG2(assemble) << "TI: coef=" << bdb->GetCoef()->GetName() << " val=" << val;
+        if(val == bdb->GetCoef()->GetName() || val == "" || (val.size() > 60 && !progOpts->DoDetailedInfo()))
+          inf->Get("coef")->SetValue(bdb->GetCoef()->GetName()); // attribute to linearForm
+        else {
+          inf->Get("coef/type")->SetValue(bdb->GetCoef()->GetName()); // attribute to linearForm
+          inf->Get("coef/value")->SetValue(val);
+        }
+      }
 
       // region name of entity list
       std::string regionName;
       if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST )
       {
-        shared_ptr<ElemList> list =
-          boost::dynamic_pointer_cast<ElemList,EntityList>
-          (context.GetFirstEntities());
+        shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetFirstEntities());
         regionName = list->GetName();
       }
       else if ( context.GetFirstEntities()->GetType() == EntityList::SURF_ELEM_LIST )
       {
-        shared_ptr<SurfElemList> list =
-          boost::dynamic_pointer_cast<SurfElemList,EntityList>
-          (context.GetFirstEntities());
+        shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetFirstEntities());
         regionName = list->GetName();
       }
       inf->Get("region")->SetValue(regionName);
@@ -1778,6 +1791,17 @@ namespace CoupledField
       form->Get("entities/size")->SetValue(el->GetSize());
       form->Get("entities/region")->SetValue(el->GetRegion() != NO_REGION_ID ? domain->GetGrid()->GetRegion().ToString(el->GetRegion()) : "no_region");
 
+      SingleEntryInt* sei = dynamic_cast<SingleEntryInt*>(context.GetIntegrator());
+      if(sei) {
+        string val = sei->GetCoef()->ToString();
+        LOG_DBG2(assemble) << "TI: coef=" << sei->GetCoef()->GetName() << " val=" << val;
+        if(val == sei->GetCoef()->GetName() || val == "" || (val.size() > 70 && !progOpts->DoDetailedInfo()))
+          form->Get("coef")->SetValue(sei->GetCoef()->GetName()); // attribute to linearForm
+        else {
+          form->Get("coef/type")->SetValue(sei->GetCoef()->GetName()); // attribute to linearForm
+          form->Get("coef/value")->SetValue(val);
+        }
+      }
       // region name of entity list
       std::string regionName;
       if( context.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
@@ -1789,11 +1813,8 @@ namespace CoupledField
         regionName = list->GetName();
       }
 
-      form->Get("region")->SetValue(regionName);
-
       // add information about row / column coordinate
       PtrParamNode row = form->Get("row", ParamNode::APPEND);
-
       // associated PDEs
       row->Get("pde")->SetValue(context.GetPde()->GetName());
 

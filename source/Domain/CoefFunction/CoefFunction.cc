@@ -869,7 +869,7 @@ static EnumTuple dimTypeTuples[] =
  EnumTuple(CoefFunction::TENSOR,  "TENSOR")
 };
 
-Enum<CoefFunction::CoefDimType> CoefFunction::CoefDimType_ = \
+Enum<CoefFunction::CoefDimType> CoefFunction::coefDimType = \
     Enum<CoefFunction::CoefDimType>("Dimension of CoefFunction",
                                     sizeof(dimTypeTuples) / sizeof(EnumTuple),
                                     dimTypeTuples);
@@ -884,7 +884,7 @@ static EnumTuple coefDependTuples[] =
  EnumTuple(CoefFunction::SOLUTION, "SOLUTION")
 };
 
-Enum<CoefFunction::CoefDependType>CoefFunction::CoefDependType_ = \
+Enum<CoefFunction::CoefDependType>CoefFunction::coefDependType = \
     Enum<CoefFunction::CoefDependType>("Dependency of CoefFunction",
                                        sizeof(coefDependTuples) / sizeof(EnumTuple),
                                        coefDependTuples);

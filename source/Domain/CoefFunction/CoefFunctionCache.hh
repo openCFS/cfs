@@ -39,6 +39,8 @@ public:
 
   void EmptyCache();
 
+  std::string GetName() const { return "CoefFunctionAccumulator"; }
+
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec, const LocPointMapped& lpm);
 

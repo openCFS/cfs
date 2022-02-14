@@ -45,6 +45,8 @@ namespace CoupledField {
     //! Destructor
     virtual ~CoefFunctionMeanFlowConvection(){;}
 
+    virtual string GetName() const { return "CoefFunctionMeanFlowConvection"; }
+
     //! Return real-valued tensor at integration point
     virtual void GetTensor( Matrix<T>& tensor, 
                             const LocPointMapped& lpm );

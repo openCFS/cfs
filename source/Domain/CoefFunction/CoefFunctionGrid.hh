@@ -70,6 +70,8 @@ class CoefFunctionGrid : public CoefFunction{
     ///Destructor
     virtual ~CoefFunctionGrid();
 
+    virtual string GetName() const { return "CoefFunctionGrid"; }
+
     // ========================
     //  ACCESS METHODS
     // ========================
@@ -94,8 +96,6 @@ class CoefFunctionGrid : public CoefFunction{
                            const LocPointMapped& lpm );
     //@}
 
-    //! Dump coefficient function to string
-    virtual std::string ToString() const;
 
     virtual void AddEntityList(shared_ptr<EntityList> ent){
     	if(!this->entities_.Contains(ent)){

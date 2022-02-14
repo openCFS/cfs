@@ -76,12 +76,9 @@ ELSE()
     PATCH_COMMAND ""
     CMAKE_ARGS
       ${CMAKE_ARGS}
-      -DCMAKE_SYSTEM_PROCESSOR:STRING=x86_64
       -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
       -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/lib64
-      -DDYNAMIC_ARCH=1
-      -E
-  )
+   )
   
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors
@@ -125,7 +122,7 @@ set(OPENBLAS_LIBRARY ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
 MARK_AS_ADVANCED(OPENBLAS_LIBRARY)
 
 # for OPENBLAS LAPACK_LIBRARY is the same as BLAS_LIBRARY. See also External_LAPACK for netlib and FindIntelMKL
-# e.g. lib64/OPENSUSE_TUMBLEWEED_X86_64/libopenblas.a;-lpthread
+# e.g. lib64/libopenblas.a;-lpthread
 if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   set(BLAS_LIBRARY "${OPENBLAS_LIBRARY}")
 endif()

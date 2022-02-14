@@ -268,10 +268,6 @@ void CoefFunctionGrid::GetScalar(Double& CoefMat,
 
 
 
-std::string CoefFunctionGrid::ToString() const {
-  return "ToString is not implemented";
-}
-
 UInt CoefFunctionGrid::GetVecSize() const {
   return dimDof_;
 }

@@ -64,15 +64,18 @@ GetVector( Vector<Double>& coefVec, const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR );
 
   //assert(this->dimType_ == CoefFunction::VECTOR);
-  Vector<Double> pointCoord, locVector;
+  Vector<Double> pointCoord;
 
-  // First, obtain global coordinates of current point, register it at the mathParser
-  // and compute local coefficient vector
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  // First, obtain global coordinates of current point,
+  lpm.GetGlobal(pointCoord);
+
+  // register it at the mathParser and compute local coefficient vector
   parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
   // update internal variables 
-  UpdateXpr( lpm );
+  UpdateXpr(lpm);
+
+  Vector<Double> locVector;
   parser_->EvalVector( handle_, locVector );
 
   if( this->coordSys_ ) {
@@ -188,7 +191,7 @@ std::string CoefFunctionCompound<Double>::ToString() const {
   it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
     out << "\tvariable: " << it->first << std::endl;
-    out << "\ttype: " << CoefDimType_.ToString(it->second->GetDimType() ) << std::endl;
+    out << "\ttype: " << coefDimType.ToString(it->second->GetDimType() ) << std::endl;
     out << "\tvalue: " << it->second->ToString() << std::endl;
   }
   
@@ -521,7 +524,7 @@ std::string CoefFunctionCompound<Complex>::ToString() const {
   for( ; it != coefs_.end(); ++it ) {
     out << "\tvariable: " << it->first << std::endl;
     out << "\ttype: " 
-        << CoefDimType_.ToString(it->second->GetDimType() ) << std::endl;
+        << coefDimType.ToString(it->second->GetDimType() ) << std::endl;
     out << "\tvalue: " << it->second->ToString() << std::endl;
   }
 

@@ -47,6 +47,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionMaterialModel();
 
+  virtual string GetName() const { return "CoefFunctionMaterialModel"; }
+
   // Init this coeffunction. State the dependend Coeffunction and used model
   void Init(PtrCoefFct depCoef, std::string modelName);
 

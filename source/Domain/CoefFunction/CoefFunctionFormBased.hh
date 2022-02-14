@@ -39,6 +39,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionFormBased();
   
+  virtual string GetName() const { return "CoefFunctionFormBased"; }
+
   //! Set integrator for specific region
   virtual void AddIntegrator(BaseBDBInt* form, RegionIdType region);
   
@@ -74,6 +76,9 @@ public:
                    shared_ptr<ResultInfo> info,
                    TYPE factor = 1.0 );
   
+  virtual string GetName() const { return "CoefFunctionBOp"; }
+
+
   //! Set integrator for specific region
   virtual void AddIntegrator( BaseBDBInt* form,  
                               RegionIdType region );
@@ -160,6 +165,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionFlux();
 
+  virtual string GetName() const { return "CoefFunctionFlux"; }
+
   //! Set integrator for specific region
   virtual void AddIntegrator( BaseBDBInt* form,  
                               RegionIdType region );
@@ -227,6 +234,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionEigen();
 
+  virtual string GetName() const { return "CoefFunctionEigen"; }
+
 
   // ========================
   //  ACCESS METHODS
@@ -283,6 +292,8 @@ public:
   CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,  TYPE factor = 1.0);
   //! Destructor
   virtual ~CoefFunctionBdBKernel();
+
+  virtual string GetName() const { return "CoefFunctionBdBKernel"; }
 
   // ========================
   //  ACCESS METHODS
@@ -342,6 +353,8 @@ public:
 
   virtual ~CoefFunctionDyadicStrain();
 
+  virtual string GetName() const { return "CoefFunctionDyadicStrain"; }
+
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
 
@@ -371,6 +384,8 @@ public:
 
   virtual ~CoefFunctionQuadSol();
 
+  virtual string GetName() const { return "CoefFunctionQuadSol"; }
+
   virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
 
   //! \copydoc CoefFunction::ToString
@@ -395,6 +410,9 @@ public:
   CoefFunctionLBM(LatticeBoltzmannPDE* lbm, shared_ptr<BaseFeFunction> feFct,shared_ptr<ResultInfo> resInfo);
 
   virtual ~CoefFunctionLBM();
+
+  virtual string GetName() const { return "CoefFunctionLBM"; }
+
 
   virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
 
@@ -423,6 +441,8 @@ public:
   CoefFunctionHomogenization(shared_ptr<BaseFeFunction> feFct, MaterialTensorNotation notation = NO_NOTATION);
 
   virtual ~CoefFunctionHomogenization();
+
+  virtual string GetName() const { return "CoefFunctionHomogenization"; }
 
   //! \copydoc CoefFunction::GetTensorSize
   unsigned int GetVecSize() const;

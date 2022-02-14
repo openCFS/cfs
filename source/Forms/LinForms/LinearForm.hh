@@ -89,6 +89,9 @@ namespace CoupledField{
         return name_;
       }
 
+      /** some debug output for logging */
+      virtual const std::string ToString() { return GetName(); }
+
       virtual bool IsComplex() const =0;
 
       virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){

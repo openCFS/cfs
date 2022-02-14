@@ -1,31 +1,46 @@
 #include "SingleEntryInt.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
-namespace CoupledField {
+DEFINE_LOG(entryint, "entryint")
+
+namespace CoupledField
+{
 
 
- SingleEntryInt::SingleEntryInt( PtrCoefFct& val )
-    : LinearForm() {
-
+SingleEntryInt::SingleEntryInt(PtrCoefFct& val) : LinearForm()
+ {
     name_ = "SingleEntryInt";
-
     val_ = val;
   }
 
- SingleEntryInt::SingleEntryInt(const SingleEntryInt& right )
-   : LinearForm(right){
+ SingleEntryInt::SingleEntryInt(const SingleEntryInt& right) : LinearForm(right)
+ {
    this->val_ = right.val_;
  }
 
   SingleEntryInt::~SingleEntryInt() {
   }
   
-  void SingleEntryInt::CalcElemVector( Vector<Double>& elemVec,
-                                       EntityIterator& ent1) {
+  const std::string SingleEntryInt::ToString()
+  {
+    return GetName() + " coef=" + val_->GetName() + " val=" + val_->ToString();
+
+  }
+
+  void SingleEntryInt::CalcElemVector(Vector<Double>& elemVec, EntityIterator& ent1)
+  {
+    LOG_DBG2(entryint) << "SEI:CEV: val:" << val_->ToString() << " ent1=" << ent1.ToString()
+        << " size=" << ent1.GetSize() << " dep" << CoefFunction::coefDependType.ToString(val_->GetDependency());
     
-    // we use just a dummy local point, as we assume constant
-    // expression coefficient function
+    // not that elemVec gets here usually (e.g. mech rhs force) the nodal (vectorial) value
+    // but when we have a NODE_LIST the LPM::shapeMap cannot be set.
+    // usually we have coef const, the lpm is not used there anyway and just required for the function :(
+    // special cases are optimization with design dependend loads or coef expression (force is sin(x))
+    // we then set the coordinate and hope the coef::GetVector() can handle it
+    // (implemented for CoefFunctionExp::GetVector())
+
     LocPointMapped lpm; 
     if(val_->GetDimType() == CoefFunction::SCALAR)
     {
@@ -35,21 +50,17 @@ namespace CoupledField {
     }
     if(val_->GetDimType() == CoefFunction::VECTOR)
     {
-      // if we have design dependent loads for optimization
-      if(typeid(*val_) == typeid(CoefFunctionOpt))
+      // if we have design dependent loads for optimization we need to set the lp number
+      // for spatial displacement we set the coordinate
+      if(typeid(*val_) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent())
       {
         assert(ent1.GetType() == EntityList::NODE_LIST);
-        elemVec.Resize(ent1.GetSize()); // resize to number of nodes
-
-        LocPoint lp;
-        lp.number = ent1.GetNode();
-        lp.coord.Resize(3);
-        lpm.lp = lp;
-        // we don't set an ElemShapeMap as we are here purely in the regime of nodes an use lpm only to transport
-        // the node to DesignSpace::ApplyPhysicalDesign(... Vector ...)
+        lpm.lp.number = ent1.GetNode();
+        assert(!lpm.shapeMap); // having no shapeMap makes usage of lpm.lp
       }
+      val_->GetVector(elemVec, lpm); // gets nodal coordinate from lp.number via lpm::GetCoord() with fallbac
 
-      val_->GetVector(elemVec, lpm);
+      LOG_DBG2(entryint) << "SEI:CEV: res=" << elemVec.ToString() << " coord=" << lpm.lp.coord.ToString();
       return;
     }
     assert(false); // SingleEntryInt only works for SCALAR and VECTOR
@@ -61,11 +72,13 @@ namespace CoupledField {
     // we use just a dummy local point, as we assume constant
     // expression coefficient function
     LocPointMapped lpm;
-    // std::cout << "val_->GetDimType(): " << CoefFunction::CoefDimType_.ToString(val_->GetDimType()) << std::endl;
+    // std::cout << "val_->GetDimType(): " << CoefFunction::coefDimType.ToString(val_->GetDimType()) << std::endl;
     if( val_->GetDimType() == CoefFunction::SCALAR) {
       elemVec.Resize(1);
       val_->GetScalar(elemVec[0], lpm);
     } else  if( val_->GetDimType() == CoefFunction::VECTOR) {
+      if((typeid(*val_) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent()) && ent1.GetType() == EntityList::NODE_LIST)
+        lpm.lp.number = ent1.GetNode();
       val_->GetVector(elemVec, lpm);
     } else {
       EXCEPTION( "SingleEntryInt only works for SCALAR and VECTOR" );

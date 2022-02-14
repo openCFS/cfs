@@ -164,9 +164,9 @@ namespace CoupledField
 
     //! Get list of nodes contained in a region
 
-    //! Returns a list of all nodes, which are contained in a 
-    //! volume- or surface-region.
-    //! \param nodeList (out) list with node numbers
+    //! Returns a list of all nodes, which are contained in a volume- or surface-region.
+    //! Is quite fast
+    //! \param nodeList (out) list with 1-based node numbers, shall be sorted
     //! \param regionId (in) region identifier
     void GetNodesByRegion( StdVector<UInt> & nodeList,
                            const RegionIdType regionId );

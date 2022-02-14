@@ -21,17 +21,17 @@ SET(CFS_FORTRAN_LIBS "")
 # on most Linuxes and MacOS.
 #-----------------------------------------------------------------------------
 if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-  message(STATUS "GNU Fortran")
+  # message(STATUS "GNU Fortran")
   #---------------------------------------------------------------------------
   # On Unix we may encounter the situation, that we have Intel as Fortran
   # compiler but some system libs depend on GFortran. Therefore, we assume,
   # that the system GFortran compiler is on the PATH and is named gfortran.
   #---------------------------------------------------------------------------
-  IF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-    SET(GFORTRAN_EXECUTABLE "gfortran")
-  ELSE(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-    SET(GFORTRAN_EXECUTABLE "${CMAKE_Fortran_COMPILER}")
-  ENDIF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+  if(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+    set(GFORTRAN_EXECUTABLE "gfortran")
+  else()
+    set(GFORTRAN_EXECUTABLE "${CMAKE_Fortran_COMPILER}")
+  endif()
 
   #---------------------------------------------------------------------------
   # Let gfortran print its internal search directories, so that we can use
@@ -113,16 +113,24 @@ if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
   # Prefer static runtime libs over shared ones.
   #---------------------------------------------------------------------------
   if(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND" AND NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
-    
-    LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
+    # both libs are found
+    list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
     
     # clang on macOS complains about -static-libgfortran"
     if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG"))
-      LIST(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
+      list(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
     endif()  
   else()
-    message(WARNING "no static Fortran library found - this build will not run on systems missing compatible Fortran runtime libs!")
-    LIST(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}" "-lquadmath")
+    #neither lib is found
+    #message(WARNING "CFS_ARCH=${CFS_ARCH}")
+    #message(WARNING "GFORTRAN_LIBRARY=${GFORTRAN_LIBRARY}")
+    #message(WARNING "CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
+    #message(WARNING "no static Fortran library found - this build will not run on systems missing compatible Fortran runtime libs!")
+    list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}")
+    if(CFS_ARCH MATCHES "X86_64")
+      # gfortan for arm64 seems to no know 128 bits https://github.com/Homebrew/homebrew-core/issues/73949
+      list(APPEND CFS_FORTRAN_LIBS "-lquadmath") 
+    endif()
   endif()
 endif(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
 
@@ -193,73 +201,18 @@ include(FortranCInterface)
 # Each fortran function which are used in CFS have to be listed here else one
 # will get an undefined reference to 'symbol' error.
 # Also make sure the function is defined in MatVec/BLASLAPACKInterface.hh
-FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh"
-  MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
-  SYMBOLS
-  # BLAS and LAPACK
-  dgecon
-  dgemm
-  zgemm
-  dgemv
-  zgemv
-  dgetrf
-  dgetri
-  dpotrf
-  dpotri
-  dposv
-  zsysv
-  zhesv
-  zgesv
-  zheev
-  dgbtrf
-  zgbtrf
-  dgbequ
-  zgbequ
-  dlaqgb
-  zlaqgb
-  dgbtrs
-  zgbtrs
-  dgbrfs
-  zgbrfs
-  dlartg
-  zlartg
-  dpbtrf
-  zpbtrf
-  dpbtrs
-  zpbtrs
-  dsyev
-  zgetrf
-  zgetri
-  ilaver
-  cblas_zdscal
-  cblas_dznrm2
-  # ARPACK
-  dsaupd
-  dseupd
-  debug
-  znaupd
-  zneupd
-  # Pardiso
-  pardisoinit
-  pardiso
-  # additionally for PALM
-  dscal
-  dgesvd
-  # scpip
-  scpip30
-  # snopt
-  snopta
-  sninit
-  sngeti
-  sngetr
-  snset
-  sngetc
-  snseti
-  snsetr
-  snspec
-  snmema
-  snjac
-  snopenappend
-  snclose
-)
+#
+# the cmake module FortranCInterface_HEADER() is kind of sensitive, therefore
+# we provide def_cfs_fortran_interface_fallback.hh. Extend this file if you
+# modifiy the list below
+
+include("${CFS_SOURCE_DIR}/cmake_modules/FortranManglingModules.cmake")
+ 
+# in case cmake name mangling fails our reference might work. Only because cmake is confused does not
+# mean that it would not for the compiler! A hint for this issue, is to use the proper cmake (e.g. architecture)
+if(NOT FortranCInterface_GLOBAL_FOUND OR NOT FortranCInterface_GLOBAL_FOUND)
+  configure_file("${CFS_SOURCE_DIR}/include/def_cfs_fortran_interface_fallback.hh" "${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh" COPYONLY)
+  message(STATUS "because cmake's Fortran name mangling failed, we use def_cfs_fortran_interface_fallback.hh")
+endif()
+
 

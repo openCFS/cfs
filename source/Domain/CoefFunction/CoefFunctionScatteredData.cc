@@ -276,7 +276,7 @@ namespace CoupledField{
   void CoefFunctionScatteredData<T,DOFS>::GetVector( Vector<T>& vec, 
                                                      const LocPointMapped& lpm ) {
     Vector<double> globPoint(DOFS);
-    lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+    lpm.GetGlobal(globPoint);
     this->InterpolateVector(globPoint,vec);
   }
 
@@ -298,9 +298,8 @@ namespace CoupledField{
 
       //obtain the global coordinate
       Vector<double> globPoint(DOFS);
-
+      lpm.GetGlobal(globPoint);
       T divergence = 0.0;
-      lpm.shapeMap->Local2Global(globPoint, lpm.lp);
       LocPointMapped tmpLocPoint = lpm;
 
       //temorarily change the dimType to Vector again

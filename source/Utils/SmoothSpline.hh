@@ -47,7 +47,7 @@ namespace CoupledField {
     virtual ~SmoothSpline();
 
     //computes the approximation polynom
-    virtual void CalcApproximation( const bool start=true );
+    void CalcApproximation( const bool start=true ) override;
 
     //! computes the regularization parameter
     void CalcBestParameter();
@@ -63,13 +63,13 @@ namespace CoupledField {
     };
 
     //! returns f(x)
-    virtual double EvaluateFunc( double x ) const override;
+    double EvaluateFunc( double x ) const override;
 
     //! returns  f'(x)
-    virtual double EvaluateDeriv( double x ) const override;
+    double EvaluateDeriv( double x ) const override;
 
     //! returns grad f(x)
-    virtual Vector<double> EvaluatePrime(const Vector<double>& p) const override {
+    Vector<double> EvaluatePrime(const Vector<double>& p) const override {
       Vector<double> ret(1,0.0);
       ret[0] = EvaluateDeriv(p[0]);
       return ret;
@@ -82,7 +82,7 @@ namespace CoupledField {
     double EvaluatePrimeInv( double t ) const;
 
     //! computes the magnetic reluctivity
-    double EvaluateFuncNu(double t) const {
+    double EvaluateFuncNu(double t) const override {
       if (t > yMax_ ) {
         t = yMax_;
       }
@@ -95,7 +95,7 @@ namespace CoupledField {
     }
 
     //! computes the derivative of magnetic reluctivity
-    double EvaluatePrimeNu(double t) const {
+    double EvaluatePrimeNu(double t) const override {
       if (t > yMax_ ) 
         t = yMax_;
       if ( t < yEnd_ ) {
@@ -116,7 +116,7 @@ namespace CoupledField {
     double EvaluateOrigNu( Integer i ) const { return x_[i]/y_[i]; };
 
     //! prints out original and approximated function
-    void Print() const;
+    void Print() const override;
 
   private:
 

@@ -4,8 +4,8 @@
 #include "LinearForm.hh" 
 #include "MatVec/Vector.hh"
 
-namespace CoupledField {
-
+namespace CoupledField
+{
   //! (Bi)Linearform, which sets just one single entry 
   class SingleEntryInt : public LinearForm {
 
@@ -37,6 +37,11 @@ namespace CoupledField {
       return val_->IsComplex();
     }
     
+    /** borrow the pointer to the shared coef function */
+    CoefFunction* GetCoef() { return val_.get(); }
+
+    virtual const std::string ToString();
+
   protected:
 
     //! Coefficient function

@@ -45,13 +45,9 @@ public:
 							  PtrParamNode curInfo,
 							  shared_ptr<RegionList> regions);
 
-  virtual ~CoefFunctionGridNodalSource(){
-  };
+  virtual ~CoefFunctionGridNodalSource() { };
 
-  //! Dump coefficient function to string
-  virtual std::string ToString() const{
-    return "";
-  };
+  virtual string GetName() const { return "CoefFunctionGridNodalInterp"; }
 
   //! adds entities to the coeffunction
   virtual void AddEntityList(shared_ptr<EntityList> ent);

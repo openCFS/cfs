@@ -36,6 +36,8 @@ public:
 
   virtual ~CoefFunctionMapping();
 
+  virtual string GetName() const { return "CoefFunctionMapping"; }
+
   //! Return real-valued tensor at integration point
   void GetTensor(Matrix<Double>& tensor,
                  const LocPointMapped& lpm );

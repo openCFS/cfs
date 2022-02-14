@@ -436,7 +436,7 @@ namespace CoupledField
     
     // check, if material type is allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-       std::string dim = CoefFunction::CoefDimType_.ToString(coef->GetDimType());
+       std::string dim = CoefFunction::coefDimType.ToString(coef->GetDimType());
        matTypeNotAllowed( matType, dim );
      }
     

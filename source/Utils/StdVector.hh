@@ -245,7 +245,8 @@ namespace CoupledField {
     //! True, if vector is empty
     inline bool empty() const {return (size_? false : true);}
   
-    //! Returns capacity of the vector
+    /** Returns capacity of the vector
+      * @see Reserve() */
     inline size_type GetCapacity() const {return capacity_;}
 
     /** Is there space for another Push_back() ? */
@@ -253,7 +254,8 @@ namespace CoupledField {
 
     /** Increases the capacity.
      * If the new capacity is smaller than the current one nothing happens.
-     * Otherwise the old data is copied up to size and the rest is uninitialized! */
+     * Otherwise the old data is copied up to size and the rest is uninitialized!
+     * @see GetCapacity() */
     void Reserve(size_type capacity);
 
     //! Delete non-used reserved memory
@@ -317,10 +319,27 @@ namespace CoupledField {
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
 
-    /** Imports data from extern, adjusts internal size and capacity. The data is copied.
+    /** Imports data from external, adjusts internal size and capacity. The data is copied.
      * Any existing data is overwritten.
      * @see Assign() */
     void Import(const TYPE* source, size_type size);
+
+    /** Import data from an external stl container. Resizes this vector accordingly.
+     * Not all containers have a size, e.g. boost::tokenizer. If possible provide it, otherwise Push_back might have to
+     * copy the data multiple time.
+       @param begin assign your begin iterator
+     * @param end your end iterator
+     * @param size if known for you container. Sets capacity to the value */
+    // https://stackoverflow.com/questions/7728478/c-template-class-function-with-arbitrary-container-type-how-to-define-it
+    template <typename Iter>
+    void Import(Iter it, Iter end, int size = -1) {
+      Resize(0);
+      if(size > 0)
+        Reserve(size);
+
+      for(; it!=end; ++it)
+         Push_back(*it);
+    }
 
     /** Take over external data including memory ownership, data is not copied.
      * Note that the destructor will delete current data. If your source is Vector::GetPointer() call Vector::DecoupleMeme().
@@ -370,11 +389,17 @@ namespace CoupledField {
     //! Append 2nd vector at the end
     void Append(const StdVector<TYPE>& vec );
 
-    //! Return the position number of element x in the vector
+    /** Return the position number of element x in the vector.
+     * Finds the element x in the vector and returns the
+     * position. If no element was found, it returns -1.
+     * @param quiet if not, throw exception in failed case */
+    int Find(const TYPE &x, bool quiet = true) const;
 
-    //! Finds the element x in the vector and returns the 
-    //! position. If no element was found, it returns -1.
-    int Find(const TYPE &x) const;
+    /** Return the position number of element x in the vector. Faster with a guess
+     * Takes a guess on where to start linear searching.
+     * Consider if you need a thread local storage for the guess!
+     * @param guess when found, guess will set to index+1 or 0 if at end */
+    int Find(const TYPE &x, unsigned int& guess, bool quiet = true) const;
 
     //! Finds all elements x in the vector and returns the
     //! position. If no element was found, the length of

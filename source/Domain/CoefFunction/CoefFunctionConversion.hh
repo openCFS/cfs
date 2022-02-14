@@ -64,6 +64,9 @@ public:
   virtual ~CoefFunctionVectorToTensor(){;};
 
 
+  virtual string GetName() const { return "CoefFunctionVectorToTensor"; }
+
+
   //! \copydoc CoefFunction::GetScalar
   virtual void GetScalar(T& coefScal, const LocPointMapped& lpm ){
     EXCEPTION("Should never be called ...");

@@ -3,6 +3,7 @@
 #include <boost/bind/bind.hpp>
 #include <def_expl_templ_inst.hh>
 
+#include "Utils/tools.hh"
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -874,58 +875,78 @@ namespace CoupledField {
         // 2) Legacy Nodal Based Coefficient Mapping
         // ------------------------------------------
 
-        // Note: The legacy based is implemented only for 
-        // coefficient functions not depending on space
-        if( actBc.value->GetDependency() == CoefFunction::GENERAL ||
-            actBc.value->GetDependency() == CoefFunction::SPACE ||
-            actBc.value->GetDependency() == CoefFunction::SOLUTION) {
-          EXCEPTION("Boundary condition, which are not defined on elements "
-              << "are not allowed to be spatially dependent!");
-        }
+        // we can handle spatial coef, e.g. expressions
+        if(actBc.value->GetDependency() == CoefFunction::SOLUTION)
+          EXCEPTION("Boundary condition, which are not defined on elements are not allowed to be solution dependent!");
         
         // Evaluate coefficient function (general vector valued case)
-        Vector<T> dummyVec;
         Complex harm;
-        UInt harmInt;
-        LocPointMapped lpm;
-        StdVector<Integer> eqns;
-        if( actBc.value->GetDimType() == CoefFunction::SCALAR ) {
-          dummyVec.Resize(1);
+        unsigned int harmInt = 0;
+        LocPointMapped lpm; // usually blind dummy, for spacial we set lpm.lp.number with the element number
+        StdVector<int> eqns;
+
+        // do we have to handle spacial dependency? We don't keepp the list, so no shared pointer
+        NodeList* nl = actBc.value->IsSpacialDependent() ? dynamic_cast<NodeList*>(actBc.entities.get()) : NULL;
+        // we obtain a realistic dummy value, e.g. from an expression coef, other would ignore it
+        if(nl)
+          lpm.lp.number = nl->GetNodes()[0];
+
+        // the dummyVec is mostly used for non-spacial values
+        Vector<T> dummyVec(actBc.dofs.size());
+        if(actBc.value->GetDimType() == CoefFunction::SCALAR)
           actBc.value->GetScalar(dummyVec[0], lpm);
-        } else {
-          actBc.value->GetVector( dummyVec, lpm);
-        }
+        else
+          actBc.value->GetVector(dummyVec, lpm);
+
         if(algsys_->IsMultHarm()){
           actBc.harm->GetScalar(harm, lpm);
           harmInt = harm.real();
         }
+        LOG_DBG(fefunc) << "ABC: bc dofs=" << ToStringCont(actBc.dofs);
+        LOG_DBG(fefunc) << "ABC: dummyVec=" << dummyVec.ToString();
+        LOG_DBG(fefunc) << "ABC: bc entities=" << actBc.entities->ToString();
+        LOG_DBG(fefunc) << "ABC: nl nodes=" << (nl != NULL ? nl->GetNodes().ToString() : "no node list in usage");
+
         // loop over all dofs
-        std::set<UInt>::const_iterator it = actBc.dofs.begin();
-        for( ; it != actBc.dofs.end(); ++it) {
-
-          T val = dummyVec[*it];
+        for(std::set<UInt>::const_iterator it = actBc.dofs.begin(); it != actBc.dofs.end(); ++it)
+        {
+          // transform the node list to an equations list. Do cfs -M to validate
           feSpace_->GetEntityListEqns( eqns,  actBc.entities, *it );
-          UInt numEqns = eqns.GetSize();
 
-          for( UInt i = 0; i < numEqns; ++i ) {
-		// if the solution order and the bc order do not match, adaptBC
-		// (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
-		//  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )  
-		if( this->GetTimeScheme() ) {
-			this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqns[i]);
-		}
-		/*
+          // in the spatial case we need to overwrite this value but save the effort for the normal case
+          T val = dummyVec[*it];
+          LOG_DBG(fefunc) << "ABC dof=" << *it << " val=" << val;
+
+          //LOG_DBG3(fefunc) << "ABC: eqns=" << eqns.ToString();
+          for( UInt i = 0; i < eqns.GetSize(); ++i )
+          {
+            // handle spatial case
+            if(nl)
+            {
+              lpm.lp.number = nl->GetNodes()[i];
+              if(actBc.value->GetDimType() == CoefFunction::SCALAR)
+                actBc.value->GetScalar(dummyVec[0], lpm);
+               else
+                actBc.value->GetVector(dummyVec, lpm); // done multiple times for all dofs :(
+              val = dummyVec[*it];
+              LOG_DBG3(fefunc) << "ABC dof=" << *it << " i=" << i << " node=" << nl->GetNodes()[i] << " eqn=" << eqns[i] << " val=" << val;
+            }
+
+            // if the solution order and the bc order do not match, adaptBC
+            // (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
+            //  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )
+            if( this->GetTimeScheme() )
+              this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqns[i]);
+            /*
             // In case of effective mass-formulation, 
             // the bcs have to be adjusted
-            if( this->GetTimeScheme() ) {
+            if( this->GetTimeScheme() )
               this->GetTimeScheme()->AdaptBC(val,val,0,eqns[i]);
-            }
             */
-        if(!algsys_->IsMultHarm()){
-          algsys_->SetDirichlet(  fctId_, eqns[i], val);
-        } else {
-          algsys_->SetDirichletMH(  fctId_, eqns[i], val, harmInt);
-		}
+            if(!algsys_->IsMultHarm())
+              algsys_->SetDirichlet(  fctId_, eqns[i], val);
+            else
+              algsys_->SetDirichletMH(  fctId_, eqns[i], val, harmInt);
           } // loop: eqns
         } // loop: dofs
       } // if: not defined on elements

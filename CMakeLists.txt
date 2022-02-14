@@ -31,15 +31,16 @@ if(PIPELINE_TEST_STAGE_CONFIG)
   endif()
   set(CMAKE_MAKE_PROGRAM "none")
   project(CFS NONE)
-else(PIPELINE_TEST_STAGE_CONFIG)
-project(CFS C CXX Fortran)
+else()
+# this else part is has no indent and goes for almost 400 lines. Search for PIPELINE_TEST_STAGE_CONFIG
+project(CFS C CXX Fortran) 
 
 # Make sure that output of started programs is in English, so that we can
 # grep for defined messages.
 set(ENV{LC_MESSAGES} "en_EN")
 set(ENV{LANG} C)
 
-# Include some standard macros
+# adds the cmake feature cmake_dependent_option
 include(CMakeDependentOption)
 
 # Include some utility macros (for building ext. libs, etc...)
@@ -48,7 +49,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "22")
-set(CFS_VERSION_MONTH "01")
+set(CFS_VERSION_MONTH "02")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -113,6 +114,10 @@ option(CFS_NATIVE "Compile for native CPU for speed, might not be transferable" 
 option(CFS_PROFILING "Set profiling compiler options for Release for vtune and valgrind (-g)." OFF)
 option(CFS_COVERAGE "Turn on coverage compiler options (gcc, clang) to be analyzed by gcov." OFF)
 option(CFS_FSANITIZE "Use -fsanitize to check for memory leaks and general errors. Very costly during runtime!" OFF)
+# background for reordering is that on arm64 metis fails but sloand and no reordering works
+set(CFS_REORDERING ${CFS_REORDERING_DEFAULT} CACHE STRING "Overwrite implementation of default for reordering")
+set_property(CACHE CFS_REORDERING PROPERTY STRINGS default Metis Sloan noReordering)
+
 # Do we want to use explicit or implicit template instantiation
 option(EXPLICIT_TEMPLATE_INSTANTIATION "Use explicit template instantiation." ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 # Do we want to use expression templates
@@ -314,6 +319,7 @@ endif()
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
 mark_as_advanced(CFS_PARDISO)
+mark_as_advanced(CFS_REORDERING)
 mark_as_advanced(CMAKE_BUILD_TYPE)
 mark_as_advanced(CMAKE_BACKWARDS_COMPATIBILITY)
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
@@ -339,6 +345,8 @@ mark_as_advanced(USE_FEAST_COMMUNITY_PRECOMPILED)
 include("cmake_modules/FindPrograms.cmake")
 
 # Set compiler flags according to output target and debug setting
+# TODO: for in distro.cmake the architecture is set, hence distro.cmake
+#       shall run before compiler.cmake. However vor win32 compiler settings are used in distr.sh 
 include("cmake_modules/compiler.cmake")
 
 # Determine on what UNIX/Linux/Windows distribution we are building on
@@ -350,13 +358,8 @@ include("cmake_modules/CheckFortranRuntime.cmake")
 # Perform some configure checks
 include("cmake_modules/ConfigureChecks.cmake")
 
-# Set path where shared/static libraries should go
-if(CFS_ARCH STREQUAL "X86_64")
-  set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64 CACHE INTERNAL "Single output directory for building all libraries.")
-else()
-  message("CFS_ARCH=${CFS_ARCH} and not X86_64 shall fail, als lib64 is hard coded in some cfsdeps")
-  set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output directory for building all libraries.")
-endif()
+# Set path where shared/static libraries should go. We only have lib64
+set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64 CACHE INTERNAL "Single output directory for building all libraries.")
 
 # Set path where executables should go
 set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
@@ -381,7 +384,8 @@ TODAY(CFS_CONF_DATE)
 # and other informations from working copy
 include("cmake_modules/DetermineWorkingCopyInfos.cmake")
 
-endif(PIPELINE_TEST_STAGE_CONFIG)
+endif() # this is the end of the non indent else() for the if(PIPELINE_TEST_STAGE_CONFIG) case
+
 # Configure Dart testing support.  This should be done before any
 # message(FATAL_ERROR ...) commands are invoked (???) and after the languages
 # for the project have been defined since CMake needs to know about the 
@@ -587,7 +591,7 @@ add_subdirectory(share/xsl)
 add_subdirectory(share/python)
 
 # generate compile_commands.json in the build dir which is used e.g. by vscode
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # snice project() sets a cache entry for it
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # since project() sets a cache entry for it
 
 # set cpack config options
 # see https://cmake.org/Wiki/CMake:CPackConfiguration

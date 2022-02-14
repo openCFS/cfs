@@ -54,8 +54,9 @@ public:
   CoefFunctionGridNodalInterp(Domain* ptDomain,
                               PtrParamNode configNode,PtrParamNode curInfo, shared_ptr<RegionList> regions);
 
-  virtual ~CoefFunctionGridNodalInterp(){
-  };
+  virtual ~CoefFunctionGridNodalInterp() { };
+
+  virtual string GetName() const { return "CoefFunctionGridNodalInterp"; }
 
   // ========================
   //  ACCESS METHODS
@@ -74,12 +75,6 @@ public:
   virtual void GetScalar(DATA_TYPE& CoefMat,
                          const LocPointMapped& lpm );
   //@}
-
-  //! Dump coefficient function to string
-  std::string ToString() const{
-
-    return "";
-  };
 
   //! Prepares the interpolation, former done in GetVector method but there we had problems with OMP
   virtual void PrepareInterpolation();

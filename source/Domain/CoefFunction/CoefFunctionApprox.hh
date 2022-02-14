@@ -32,22 +32,21 @@ public:
   //! Destructor
   virtual ~CoefFunctionApprox();
   
+  std::string GetName() const { return "CoefFunctionApprox"; }
+
   //! Initialize with data
   void Init(Double coefScalar, ApproxData* nLinFnc, PtrCoefFct dependCoef);
 
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
     
-  //! \see CoefFunction::ToString
-  std::string ToString() const;
-
 protected:
   
   //! Constant initial value of the curve
-  Double coefScalar_;
+  Double coefScalar_ = 0.0;
   
   //! Class for function approximation
-  ApproxData * nLinFnc_;
+  ApproxData* nLinFnc_ = NULL;
   
   //! Coefficient function which this one depends one
   PtrCoefFct dependCoef_;
@@ -74,6 +73,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionComposite() {}
   
+  std::string GetName() const { return "CoefFunctionComposite"; }
+
   //! \see CoefFunction::GetScalar
   virtual void GetScalar(Double& coefScalar, 
                  const LocPointMapped& lpm ) {EXCEPTION("not implemented");}
@@ -111,10 +112,6 @@ public:
   Double GetTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm);
 
   void MultiplyByElemArea( Double & value, const LocPointMapped & lpm);
-
-
-  //! \see CoefFunction::ToString
-  std::string ToString() const {return "Composite Coefficient function";}
 
 protected:
 
@@ -174,8 +171,10 @@ public:
   virtual ~CoefFunctionBipole() {}
 
   //! \see CoefFunction::GetScalar
-  void GetScalar(Double& coefScalar, 
-                 const LocPointMapped& lpm );
+  void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
+
+  std::string GetName() const { return "CoefFunctionBipole"; }
+
     
   //! \see CoefFunction::ToString
   std::string ToString() const {return "Composite Coefficient function for temperature dependent bipole";}
@@ -202,9 +201,10 @@ public:
   virtual ~CoefFunctionHeatBipole() {}
 
   //! \see CoefFunction::GetScalar
-  void GetScalar(Double& coefScalar, 
-                 const LocPointMapped& lpm );
-    
+  void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
+
+  std::string GetName() const { return "CoefFunctionHeatBipole"; }
+
   //! \see CoefFunction::ToString
   std::string ToString() const {return "Composite Coefficient function for temperature dependent bipole";}
 };
@@ -249,11 +249,10 @@ public:
   virtual ~CoefFunctionHeatTripole() {}
 
   //! \see CoefFunction::GetScalar
-  void GetScalar(Double& coefScalar, 
-                 const LocPointMapped& lpm );
+  void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
 
-    
-  //! \see CoefFunction::ToString
+  std::string GetName() const { return "CoefFunctionHeatTripole"; }
+
   std::string ToString() const {return "Composite Coefficient function for temperature dependent tripole";}
 
 private:
@@ -277,6 +276,9 @@ public:
   //! Destructor
   virtual ~CoefFunctionApproxDeriv();
   
+  std::string GetName() const { return "CoefFunctionApproxDeriv"; }
+
+
   //! Initialize with data
   void Init( ApproxData * nLinFnc,
              UInt dimDMat,
@@ -289,9 +291,6 @@ public:
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar,
                  const LocPointMapped& lpm );
-
-  //! \see CoefFunction::ToString
-  std::string ToString() const;
 
 protected:
   
@@ -325,6 +324,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionApproxAniso();
 
+  std::string GetName() const { return "CoefFunctionApproxAniso"; }
+
   //! Initialize with data
   void Init( Double coefScalar, 
              StdVector<shared_ptr<CoefFunction> > nLinFnc,
@@ -335,9 +336,6 @@ public:
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, 
                  const LocPointMapped& lpm );
-
-  //! \see CoefFunction::ToString
-  std::string ToString() const;
 
 protected:
 
@@ -387,13 +385,12 @@ public:
   void GetTensor(Matrix<Double>& coefMat, 
                  const LocPointMapped& lpm );
 
-  //! \see CoefFunction::ToString
-  std::string ToString() const;
+  virtual string GetName() const { return "CoefFunctionApproxDerivAniso"; }
 
 protected:
   
   //! Dimension of the D-matrix
-  UInt dimDMat_;
+  UInt dimDMat_ = 0;
   
   //! Vector containing the approximations of the curves
   StdVector<shared_ptr<CoefFunction> > nLinFnc_;

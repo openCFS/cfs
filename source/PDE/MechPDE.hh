@@ -190,6 +190,8 @@ protected:
         //! Destructor
         ~CoefFunction2ndPiolaTensor();
         
+        virtual string GetName() const { return "CoefFunction2ndPiolaTensor"; }
+
         //! Return tensor in Voigt vector notation
         virtual void GetVector(Vector<Double>& vec, 
                                const LocPointMapped& lpm );

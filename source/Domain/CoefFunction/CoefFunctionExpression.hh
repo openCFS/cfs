@@ -42,6 +42,9 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
 
     virtual ~CoefFunctionExpression();
 
+    virtual string GetName() const { return "CoefFunctionExpression"; }
+
+
     //! \copydoc CoefFunction::GetComplexPart
     virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
     
@@ -116,10 +119,10 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     StdVector<std::string > coefMat_;
 
     //! Number of rows of tensor
-    UInt numRows_;
+    UInt numRows_ = 0;
     
     //! Number of columns of tensor
-    UInt numCols_;
+    UInt numCols_ = 0;
     
     //! Coefficients for vector
     StdVector<std::string> coefVec_;
@@ -128,10 +131,10 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     std::string coefScalar_;
 
     //! Pointer to math parser instance
-    MathParser* mp_;
+    MathParser* mp_ = NULL;
     
     //! Default coordinate system 
-    CoordSystem* coordSysDefault_;
+    CoordSystem* coordSysDefault_ = NULL;
     
     //! Handle for expression
     MathParser::HandleType mHandle_;

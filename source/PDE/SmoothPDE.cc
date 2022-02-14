@@ -304,8 +304,8 @@ namespace CoupledField {
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
       // In case of a total force, we can not have a spatial dependency
-      if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
-        EXCEPTION("Total forces must not be spatial dependent");
+      if(coef[i]->IsSpacialDependent()) {
+        EXCEPTION("Check changes in mechPDE for spatial dependent forces");
       }
       
       // check type of entitylist
@@ -318,7 +318,7 @@ namespace CoupledField {
         // If more than one node is defined, we divide the total force by the number
         // of nodes to ensure that the total force is applied, independent of the 
         // number of nodes
-        if( numNodes > 1 ) {
+        if(numNodes > 1  && coef[i]->DoNormalize()) {
           Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
           coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i],
                   boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );

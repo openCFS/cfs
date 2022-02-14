@@ -36,6 +36,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionSurf();
 
+  virtual string GetName() const { return "CoefFunctionSurf"; }
+
   //! Set single volume coefficient function
   virtual void AddVolumeCoef( RegionIdType, PtrCoefFct );
   
@@ -136,6 +138,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionSurfMaxwell();
 
+  virtual string GetName() const { return "CoefFunctionSurfMaxwell"; }
+
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat,
                  const LocPointMapped& lpm ) {
@@ -202,6 +206,8 @@ public:
 
   //! Destructor
   virtual ~CoefFunctionSurfVWP();
+
+  virtual string GetName() const { return "CoefFunctionSurfVWP"; }
 
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat,

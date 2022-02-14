@@ -10,7 +10,7 @@ namespace CoupledField{
 
 template<typename T>
 class CoefFunctionImpedanceModel : public CoefFunctionTimeFreq<Complex> {
-
+  virtual string GetName() const { return "CoefFunctionImpedanceModel"; }
 };
 
 //! Coefficient function for calculating the impedance
@@ -24,6 +24,8 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     //! Destructor
     virtual ~CoefFunctionImpedanceModel();
+
+    virtual string GetName() const { return "CoefFunctionImpedanceModel<complex>"; }
 
     /**
      *  Generates necessary data for MPP impedance model (c_0, density etc.)

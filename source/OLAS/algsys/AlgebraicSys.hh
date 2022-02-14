@@ -1129,6 +1129,11 @@ namespace CoupledField {
     //!       functionality.
     void CheckConsistency();
     
+    /** helper for CheckConsistency(), determines reordering setting based on
+     * xml and compile time option. If set to default, compile settings are used
+     * @param can_change true if obtained by "default" in xml or CFS_REORDERING and false in precise setting
+     * @return metis, sloan or noreodering */
+    BaseOrdering::ReorderingType ReorderingDefault(PtrParamNode pn, bool& can_change);
 
     //! Generate  SBM matrix according to graph information
     

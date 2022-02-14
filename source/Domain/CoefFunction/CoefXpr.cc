@@ -230,8 +230,8 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
         dim = CoefFunction::VECTOR;
     } else {
       EXCEPTION( "Can not apply a function on arguments of type "
-          << CoefFunction::CoefDimType_.ToString(a->GetDimType())
-          << " and " << CoefFunction::CoefDimType_.ToString(b->GetDimType()) );
+          << CoefFunction::coefDimType.ToString(a->GetDimType())
+          << " and " << CoefFunction::coefDimType.ToString(b->GetDimType()) );
     }
     
   }

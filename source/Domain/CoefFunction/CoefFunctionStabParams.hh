@@ -55,6 +55,8 @@ namespace CoupledField {
     //! Destructor
     virtual ~CoefFunctionStabParams(){;}
     
+    virtual string GetName() const { return "CoefFunctionStabParams"; }
+
     //! Return complex-valued scalar at integration point
     void GetScalar(Double& val,
                    const LocPointMapped& lpm ) ;

@@ -29,6 +29,8 @@ public:
   //! Destructor 
   virtual ~CoefFunctionMulti();
   
+  virtual string GetName() const { return "CoefFunctionMulti"; }
+
   //! Set coefficient function for a region
   void AddRegion( RegionIdType region, PtrCoefFct coef, bool allowReplacement = false );
 

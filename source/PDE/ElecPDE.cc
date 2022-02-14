@@ -968,9 +968,8 @@ namespace CoupledField {
         //  Nodal Charges 
         // ---------------
         // Nodal charge must be constant
-        if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
+        if(coef[i]->IsSpacialDependent())
           EXCEPTION("Nodal charges must not be spatial dependent");
-        }
         
         UInt numNodes = ent[i]->GetSize();
         Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  

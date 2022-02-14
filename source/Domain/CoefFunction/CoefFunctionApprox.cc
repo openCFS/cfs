@@ -89,9 +89,6 @@ bool IsComplex(){
   return false;
 }
 
-std::string CoefFunctionApprox::ToString() const {
-  return "";
-}
 // ============================================================================
 //  coef function composite
 // ============================================================================
@@ -378,11 +375,6 @@ void CoefFunctionApproxDeriv::GetScalar(Double& coefScalar,
   }
 }
 
-std::string CoefFunctionApproxDeriv::ToString() const {
-  EXCEPTION( "Implement me");
-  return "";
-}
-
 // ============================================================================
 //  ANISOTROPIC VERSIONS
 // ============================================================================
@@ -651,11 +643,6 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     } // endif ( is2dAnisotropic )
 
   }
-}
-
-std::string CoefFunctionApproxAniso::ToString() const {
-  EXCEPTION( "Implement me");
-  return "";
 }
 
 // ==========================================================================
@@ -970,11 +957,6 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
 #endif
     
   }
-}
-
-std::string CoefFunctionApproxDerivAniso::ToString() const {
-  EXCEPTION( "Implement me");
-  return "";
 }
 
 } // namespace

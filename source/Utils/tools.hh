@@ -2,7 +2,6 @@
 #define TOOLS_2001
 
 #include <cmath>
-
 #include <string>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
@@ -21,6 +20,7 @@
 #include <omp.h>
 #endif
 
+#include <set> // a gcc7 runner has issues with std::set, try including it late
 
 namespace CoupledField {
 
@@ -295,11 +295,22 @@ namespace CoupledField {
   template <class TYPE>
   std::string ToString(const StdVector<StdVector<TYPE> >& data, bool new_line = false);
 
-
   /** converts data arrays to strings such that they can be copy & pasted from log to matlab.
    * Redundant to StdVector::ToString() but there the complex special implementation was not possible */
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size);
+
+  /** generic ToString for STL containers (set, vector, ...).
+   * A pitty, the containers doen't bring this by themselves :( */
+  template <class Cont>
+  std::string ToStringCont(const Cont& cont, const std::string& sep = " ")
+  {
+    std::ostringstream os;
+    for(const auto& it : cont)
+      os << it << sep;
+    return os.str();
+  }
+
 
   /** Returns the sign of a value 
    * @return 0 if 0 or +/- 1 */ 

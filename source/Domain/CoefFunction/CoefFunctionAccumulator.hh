@@ -18,12 +18,13 @@ namespace CoupledField  {
 class CoefFunctionAccumulator : public CoefFunction {
 public:
   //! Constructor
-  CoefFunctionAccumulator(PtrCoefFct fct, 
-                          bool integrate ); 
+  CoefFunctionAccumulator(PtrCoefFct fct, bool integrate );
   
   //! Destructor 
   virtual ~CoefFunctionAccumulator();
   
+  std::string GetName() const { return "CoefFunctionAccumulator"; }
+
   // ========================
    //  ACCUMULATOR METHODS
    // ========================

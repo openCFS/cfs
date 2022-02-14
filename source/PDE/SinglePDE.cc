@@ -6,6 +6,7 @@
 #include <direct.h>
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
+#include "Domain/CoefFunction/CoefFunctionFileData.hh"
 
 #include "PDE/SinglePDE.hh"
 
@@ -3020,7 +3021,7 @@ namespace CoupledField {
             (dimType == CoefFunction::VECTOR && type == ResultInfo::VECTOR ) ||
             (dimType == CoefFunction::TENSOR && type == ResultInfo::TENSOR ) ) ) {
           EXCEPTION( "Quantity '" << quantityName << "' is of type '" 
-                     << CoefFunction::CoefDimType_.ToString(coef->GetDimType())
+                     << CoefFunction::coefDimType.ToString(coef->GetDimType())
                      << "' but type '" 
                      << ResultInfo::EntryTypeEnum_.ToString(type) 
                      << "' is required." );
@@ -3063,54 +3064,44 @@ namespace CoupledField {
         definedDofs.insert(i);
       }
 
-    } else if( valueNode->Has("scatteredData") ) {
+    }
+    else if(valueNode->Has("scatteredData"))
+    {
       PtrParamNode scatteredDataNode = valueNode->Get("scatteredData");
       if(type == ResultInfo::SCALAR){
         if(isComplex)
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Complex, 1>(scatteredDataNode) );
-        }
+          coef.reset(new CoefFunctionScatteredData<Complex, 1>(scatteredDataNode));
         else
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Double, 1>(scatteredDataNode)
-            );
-        }
+          coef.reset(new CoefFunctionScatteredData<Double, 1>(scatteredDataNode));
       }
       else if(type == ResultInfo::VECTOR){
-        if( dim_ == 2 ) {
+        if( dim_ == 2 )
+        {
           if(isComplex)
-          {
-            coef.reset(
-              new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
-              );
-          }
+            coef.reset(new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode));
           else
-          {
-            coef.reset(
-              new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
-              );
-          }
-        } else {
+            coef.reset(new CoefFunctionScatteredData<Double, 2>(scatteredDataNode));
+        } else  {
           if(isComplex)
-          {
-            coef.reset(
-              new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
-              );
-          }
+            coef.reset(new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode));
           else
-          {
-            coef.reset(
-              new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
-              );
-          }
+            coef.reset(new CoefFunctionScatteredData<Double, 3>(scatteredDataNode));
         }
       }
-      else{
+      else
         EXCEPTION("TENSOR not implemented yet!");
-      }
-    }else{
+    }
+    else if(valueNode->Has("fileData"))
+    {
+      if(type == ResultInfo::TENSOR)
+        EXCEPTION("TENSOR not implemented yet!");
+
+      PtrParamNode pnfd = valueNode->Get("fileData");
+      int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
+      coef.reset(new CoefFunctionFileData(pnfd, mydim));
+    }
+    else
+    {
       // ======================================
       //  STANDARD EXPLICIT BOUNDARY CONDITION 
       // ======================================
@@ -3153,14 +3144,12 @@ namespace CoupledField {
             valV = val;
             coef = CoefFunction::Generate(mp_, Global::REAL, valV );
           } else {
-            coef = CoefFunction::Generate(mp_, Global::COMPLEX,
-                                             realV, imagV );
+            coef = CoefFunction::Generate(mp_, Global::COMPLEX, realV, imagV);
           }
         }
-
-      } else if (type == ResultInfo::VECTOR) {
-        
-        
+      }
+      else if (type == ResultInfo::VECTOR)
+      {
         CoordSystem * coordSys = NULL;
         std::string coordSysId = "default";
         valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
@@ -3187,16 +3176,13 @@ namespace CoupledField {
             SplitStringList(phaseString, phases, ' ');
 
             // consistency check
-            if( phases.GetSize() != numComp ) {
-              EXCEPTION("Boundary condition needs " << numComp
-                         << " phase values!");
-            }
+            if(phases.GetSize() != numComp )
+              EXCEPTION("Boundary condition needs " << numComp << " phase values!");
           }
           
           // add all dofs to the definedDofs
-          for( UInt i = 0; i < compNames.GetSize(); ++i ) {
+          for(UInt i = 0; i < compNames.GetSize(); ++i )
             definedDofs.insert(i);
-          }
         }
         // b) values are given component-wise
         else if(valueNode->Has("comp")) {

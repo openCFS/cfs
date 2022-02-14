@@ -45,6 +45,9 @@ public:
   virtual ~CoefFunctionGridNodalDefault(){
   };
 
+  virtual string GetName() const { return "CoefFunctionGridNodalDefault"; }
+
+
   // ========================
   //  ACCESS METHODS
   // ========================
@@ -62,11 +65,6 @@ public:
   virtual void GetScalar(DATA_TYPE& CoefMat,
                          const LocPointMapped& lpm );
   //@}
-
-  //! Dump coefficient function to string
-  virtual std::string ToString() const{
-    return "";
-  };
 
   // COLLECTION ACCESS
   virtual void GetScalarValuesAtPoints( const StdVector<Vector<Double> >  & points,

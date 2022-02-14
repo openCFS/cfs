@@ -502,14 +502,6 @@ template<class T>
     return ptGrid_->GetDim();
   }
 
-  template<class T>
-  std::string CoefFunctionHarmBalance<T>::
-  ToString() const {
-    return "CoefFunctionHarmBalance";
-  }
-
-
-
   // ==========================================================================
   //  COEFFICIENT FUNCTION HARMONIC BALANCING EVALUATE B FIELD
   // ==========================================================================
@@ -563,12 +555,6 @@ template<class T>
   GetVecSize() const{
     // spatial dimension (dimension of B vector)
     return ptGrid_->GetDim();
-  }
-
-  template<class T>
-  std::string CoefFunctionHarmBalanceEval<T>::
-  ToString() const {
-    return "CoefFunctionHarmBalanceEval";
   }
 
 

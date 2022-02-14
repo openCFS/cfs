@@ -470,11 +470,6 @@ namespace CoupledField {
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
         LOG_TRACE(mechpde) << "Add Lin BDB" << std::endl;
-        
-        // write to info-xml
-        PtrParamNode form = infoNode_->Get("header")->Get("integrators")->Get("matrixBiLinearForms")->GetByVal("bilinearForm","integrator","LinElastInt",ParamNode::APPEND);
-        PtrParamNode coef = form->Get("coef", ParamNode::APPEND);
-        coef->Get("value")->SetValue(stiffInt->GetCoef()->ToString());
       }
       
       // ====================================================================
@@ -1410,27 +1405,23 @@ namespace CoupledField {
     // ========================
     //  FORCES (volume, nodal)
     // ========================
-    LOG_DBG(mechpde) << "Reading forces";
     ReadRhsExcitation("force", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      
-      // In case of a total force, we can not have a spatial dependency
-      if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
-        EXCEPTION("Total forces must not be spatial dependent");
-      }
-      
-      // check type of entitylist
+      LOG_DBG(mechpde) << "DRLI: reading force " << i << " coef=" << coef[i]->GetName() << " val=" << coef[i]->ToString() << " dep=" << CoefFunction::coefDependType.ToString(coef[i]->GetDependency());
+
+      // check type of entity list
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
-        
         // --------------
         //  Nodal Forces 
         // --------------
         UInt numNodes = ent[i]->GetSize();
         // If more than one node is defined, we divide the total force by the number
         // of nodes to ensure that the total force is applied, independent of the 
-        // number of nodes
-        if( numNodes > 1 ) {
+        // number of nodes.
+        // Note that is also happens when we have an expression as function.
+        // Run with -d and check the .info.xml
+        if(numNodes > 1 && coef[i]->DoNormalize()) {
           Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
           coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i],
                   boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );

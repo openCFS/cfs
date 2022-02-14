@@ -17,6 +17,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionImpedanceModel.cc
   CoefFunctionMulti.cc
   CoefFunctionOpt.cc
+  CoefFunctionFileData.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc

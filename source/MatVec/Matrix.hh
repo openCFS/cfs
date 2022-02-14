@@ -190,6 +190,7 @@ namespace CoupledField
     //! \param col (input) Column number
     inline TYPE & operator()( UInt row, UInt col)
     {
+      assert(row < size_row_ && col < size_col_);
       return data_[row][col];
     }
 
@@ -200,6 +201,7 @@ namespace CoupledField
     //! \param col (input) Column number
     inline TYPE operator()( UInt row, UInt col ) const
     {
+      assert(row < size_row_ && col < size_col_);
       return data_[row][col];
     }
     
@@ -227,6 +229,7 @@ namespace CoupledField
     //! \param val (output) on return contains value of entry
     inline void GetEntry( const UInt row, const UInt col, TYPE & val ) const
     {
+      assert(row < size_row_ && col < size_col_);
       val = data_[row][col];
     }
      
@@ -236,6 +239,7 @@ namespace CoupledField
     //! \param val (input) Value to be set
     inline void SetEntry(const UInt row, const UInt col, const TYPE val)
     {
+      assert(row < size_row_ && col < size_col_);
       data_[row][col] = val;
     }
 
@@ -246,6 +250,7 @@ namespace CoupledField
     //! \param val (input) Value to be added
     inline void AddToEntry( const UInt row, const UInt col, const TYPE val )
     {
+      assert(row < size_row_ && col < size_col_);
       data_[row][col] += val;
     }
     

@@ -41,6 +41,10 @@ namespace CoupledField {
 
     virtual ~CoefFunctionHystMatTensor(){};
 
+    virtual string GetName() const { return "CoefFunctionHystMatTensor"; }
+
+
+
     //    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
     //      EXCEPTION("CoefFunctionHystMatTensor only returns tensors")
     //    }
@@ -148,6 +152,8 @@ namespace CoupledField {
     }
 
     virtual ~CoefFunctionHystRHSLoad(){};
+
+    virtual string GetName() const { return "CoefFunctionHystRHSLoad"; }
 
     void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
       EXCEPTION("CoefFunctionHystRHSLoad only returns vectors")
@@ -263,6 +269,9 @@ namespace CoupledField {
 
     virtual ~CoefFunctionHystOutput(){};
 
+    virtual string GetName() const { return "CoefFunctionHystOutput"; }
+
+
     void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
       EXCEPTION("CoefFunctionHystOutput returns no scalars")
     }
@@ -358,6 +367,9 @@ namespace CoupledField {
     SubTensorType tensorType,
     MaterialType matType,
     shared_ptr<FeSpace> ptFeSpace);
+
+    virtual string GetName() const { return "CoefFunctionHyst"; }
+
 
     void Init(BaseMaterial* const material,
     shared_ptr<ElemList> actSDList,

@@ -9,6 +9,7 @@
 #include <def_use_arpack.hh>
 #include <def_use_phist_cg.hh>
 #include <def_use_phist_ev.hh>
+#include <def_reordering.hh>
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -3034,16 +3035,16 @@ namespace CoupledField {
       StdVector<Integer>& eqnNrs, UInt& harm ) {
 
     LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
-    LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
-    LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
-
+    LOG_DBG2(algSys) << "SER: vector " << elemRHS.GetSize() << " -> " << elemRHS.ToString();
+    LOG_DBG2(algSys) << "SER: eqnNrs " << eqnNrs.GetSize() << " -> " << eqnNrs.ToString();
     // Ensure that there are as many equations as vector entries
-    assert(eqnNrs.GetSize() == elemRHS.GetSize());
+    //assert(eqnNrs.GetSize() == elemRHS.GetSize());
 
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
     StdVector<UInt>& rowNums      = rowNums_.Mine();
     MapFctIdEqnToIndex(fctId, eqnNrs, rowBlocks, rowNums);
+
 
     // Now, dismantle equations
     UInt numRows = rowBlocks.GetSize();
@@ -4059,8 +4060,35 @@ namespace CoupledField {
   }
 
 
-  void AlgebraicSys::CheckConsistency() {
+  BaseOrdering::ReorderingType AlgebraicSys::ReorderingDefault(PtrParamNode pn, bool& can_change)
+  {
+    LOG_DBG(algSys) << "RD: xml reordering: " << (pn->Has("reordering") ? pn->Get("reordering")->As<string>() : "none") << " RD=" << REORDERING_DEFAULT;
 
+    // we have only no default when we set im xml other than "default"
+    if(pn->Has("reordering") && pn->Get("reordering")->As<string>() != "default")
+    {
+      can_change = false; // no, we know what we want
+      return BaseOrdering::reorderingType.Parse(pn->Get("reordering")->As<string>());
+    }
+
+    // we have default, select from compile settings but allow for change
+    can_change = true; // holds for all comming returns
+
+    // do we use CFS_REORDERING with a manual setting?
+    if(string(REORDERING_DEFAULT).size() > 0 && string(REORDERING_DEFAULT) != "default")
+      return  BaseOrdering::reorderingType.Parse(REORDERING_DEFAULT);
+
+    // use METIS if present - might be changed anyway depending on solver
+    // what we set by compile option
+    #ifdef USE_METIS
+      return BaseOrdering::METIS;
+    #else
+      return BaseOrdering::SLOAN;
+    #endif
+  }
+
+  void AlgebraicSys::CheckConsistency()
+  {
     // First check, if we have a true SBM system.
     // consisting of more than one SBM-Block
     if( (numBlocks_ == 1 || (numBlocks_ == 2 && statCond_) ) && !isMultHarm_ ) {
@@ -4148,9 +4176,11 @@ namespace CoupledField {
       // check if a solver is specified
       if(!solverNode)
       {
-        // no solver set -> use default direct solver. Pardiso if available, else directLDL
+        // no solver set -> use default direct solver in order of availability: pardiso, cholmod, directLDL
 #ifdef USE_PARDISO
         st = BaseSolver::PARDISO_SOLVER;
+#elif USE_CHOLMOD
+        st = BaseSolver::CHOLMOD_SOLVER;
 #else
         st = BaseSolver::LDL_SOLVER;
 #endif
@@ -4272,68 +4302,36 @@ namespace CoupledField {
       // ---------------
       //  Check Reordering
       // ---------------
-      BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
-#ifdef USE_METIS
-      ot = BaseOrdering::METIS;
-#endif
-      bool canChangeReordering = true;
-      if (matNode->Has("reordering") &&
-          matNode->Get("reordering")->As<std::string>() != "default" ) {
-        ot = BaseOrdering::reorderingType.Parse(
-            matNode->Get("reordering")->As<std::string>());
-        canChangeReordering = false;
-      }
+      // this is the standard reordering from compile settings. We generally use it
+      // - if not the user selects something differen
+      // - if not we keeep "default" in xml and we have solver which does it by itself (or does not profit from it)
+      bool canChangeReordering = false; // overwritten in ReorderingDefault()
+      BaseOrdering::ReorderingType ot = ReorderingDefault(matNode, canChangeReordering);
 
-      // a) for our own direct solvers we activate re-ordering
-      if( (st == BaseSolver::LU_SOLVER ||
-           st == BaseSolver::LDL_SOLVER ||
-           st == BaseSolver::LAPACK_LL ||
-           st == BaseSolver::LAPACK_LU ) &&
-           ot == BaseOrdering::NOREORDERING &&
-          canChangeReordering == true ) {
-#ifdef USE_METIS
-        ot = BaseOrdering::METIS;
-#else
-        ot = BaseOrdering::SLOAN;
-#endif
-      }
+      LOG_DBG(algSys) << "CS: pre handling: " << BaseOrdering::reorderingType.ToString(ot) << " change=" << canChangeReordering;
+
+      // ot can now be be sload, metis from default or noreodering from matNode. No idea how minimumDegree or nestedDissection can be selected?!
+
+      // a) for our own direct solvers ot stays metis or sloan in the default case.
+      //    I the non-default case, it can also be noreordering when selected by the user
 
       // b) pardiso and most external solvers need no reordering or have their own
-
-      if( (st == BaseSolver::PARDISO_SOLVER ||
+      // if we are a solver which does not need reordering and if we are default, we switch reordering off
+      if((st == BaseSolver::PARDISO_SOLVER ||
           st == BaseSolver::UMFPACK ||
           st == BaseSolver::ILUPACK ||
           st == BaseSolver::LIS ||
           st == BaseSolver::SUPERLU ||
           st == BaseSolver::SPOOLES ||
-          st ==BaseSolver::PETSC ||
-          st ==BaseSolver::CG ) &&
-          (ot != BaseOrdering::NOREORDERING &&
-          canChangeReordering == true) ) {
+          st == BaseSolver::PETSC ||
+          st == BaseSolver::CHOLMOD) && (canChangeReordering == true) )
+      {
         ot = BaseOrdering::NOREORDERING;
       }
-
-
-
-      // c) ilu-based preconditioners prefer reordering
-      if( ( pt == BasePrecond::ILUK ||
-            pt == BasePrecond::ILUTP ||
-            pt == BasePrecond::ILDLK ||
-            pt == BasePrecond::ILDLTP ||
-            pt == BasePrecond::ILDLCN ) &&
-            ot == BaseOrdering::NOREORDERING &&
-            canChangeReordering == true ) {
-#ifdef USE_METIS
-        ot = BaseOrdering::METIS;
-#else
-        ot = BaseOrdering::SLOAN;
-#endif
-      }
+      // c) ilu-based preconditioners prefer reordering: stay with the default ot
 
       // in the end store back the reordering type
-      matNode->Get("reordering",ParamNode::INSERT)->
-          SetValue(BaseOrdering::reorderingType.ToString(ot));
-
+      matNode->Get("reordering",ParamNode::INSERT)->SetValue(BaseOrdering::reorderingType.ToString(ot));
     }
 
     if( isMultHarm_ ){
@@ -4341,8 +4339,6 @@ namespace CoupledField {
         //  True SBM Case, e.g. for multiharmonic analysis
         // =========================================================================
         WARN("The implementation of this section is not yet finished");
-
-
 
         // --------------------------
         //  Check Symmetry of Matrix
@@ -4367,9 +4363,6 @@ namespace CoupledField {
         // -----------------------------------------------
         //  Check of Eigenvalue Solver not yet implemented
         // -----------------------------------------------
-
-
-
 
         // ------------------------------------------------
         //  Check Solver
@@ -4502,46 +4495,20 @@ namespace CoupledField {
         // ---------------
         //  Check Reordering
         // ---------------
-        BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
-  #ifdef USE_METIS
-        ot = BaseOrdering::METIS;
-  #endif
-        bool canChangeReordering = true; // is yes when the user keeps default
-        if(matNode->Has("reordering") && matNode->Get("reordering")->As<std::string>() != "_default_") {
-          ot = BaseOrdering::reorderingType.Parse(matNode->Get("reordering")->As<std::string>());
-          canChangeReordering = false;
-        }
+        bool canChangeReordering = false; // overwritten in ReorderingDefault()
+        BaseOrdering::ReorderingType ot = ReorderingDefault(matNode, canChangeReordering);
 
-        // a) for our own direct solvers we activate re-ordering
-        if(canChangeReordering == true && ot == BaseOrdering::NOREORDERING &&
-           (st == BaseSolver::LU_SOLVER || st == BaseSolver::LDL_SOLVER || st == BaseSolver::LAPACK_LL || st == BaseSolver::LAPACK_LU))
-        {
-  #ifdef USE_METIS
-          ot = BaseOrdering::METIS;
-  #else
-          ot = BaseOrdering::SLOAN;
-  #endif
-        }
+        // a) for our own direct solvers we use the default or selected reordering
 
-        // b) pardiso and most external solvers need no reordering or have their own
-        if(canChangeReordering == true && ot != BaseOrdering::NOREORDERING &&
+        // b) pardiso and most external solvers need no reordering or have their own - switch it off when we have default
+        if(canChangeReordering == true &&
            (st == BaseSolver::PARDISO_SOLVER || st == BaseSolver::UMFPACK || st == BaseSolver::ILUPACK ||
             st == BaseSolver::SUPERLU || st == BaseSolver::SPOOLES /* || st == BaseSolver::LIS */))
         {
           ot = BaseOrdering::NOREORDERING;
         }
 
-        // c) ilu-based preconditioners prefer reordering
-        if(canChangeReordering == true && ot == BaseOrdering::NOREORDERING &&
-           (pt == BasePrecond::ILUK || pt == BasePrecond::ILUTP || pt == BasePrecond::ILDLK ||
-            pt == BasePrecond::ILDLTP || pt == BasePrecond::ILDLCN))
-        {
-  #ifdef USE_METIS
-          ot = BaseOrdering::METIS;
-  #else
-          ot = BaseOrdering::SLOAN;
-  #endif
-        }
+        // c) ilu-based preconditioners prefer reordering we stick to the default selection
 
         // in the end store back the reordering type
         matNode->Get("reordering",ParamNode::INSERT)->SetValue(BaseOrdering::reorderingType.ToString(ot));

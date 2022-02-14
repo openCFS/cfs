@@ -47,6 +47,9 @@ public:
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
 
+  virtual string GetName() const { return "CoefFunctionComplexToReal"; }
+
+
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
 

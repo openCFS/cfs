@@ -220,6 +220,9 @@ public:
 
   virtual ~CoefFunctionPML();
 
+  virtual string GetName() const { return "CoefFunctionPML"; }
+
+
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Complex>& tensor,
                  const LocPointMapped& lpm );
@@ -336,6 +339,8 @@ public:
                          StdVector<RegionIdType> pdeDomains, bool isVector);
 
   virtual ~CoefFunctionShiftedPML();
+
+  virtual string GetName() const { return "CoefFunctionShiftedPML"; }
 
   //! \copydoc CoeffFunctionPML::GetTensor
   virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm);

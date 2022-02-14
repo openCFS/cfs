@@ -59,6 +59,8 @@ public:
   //! Constructor
   BaseFeFunction(MathParser* mp);
   
+  virtual string GetName() const { return "BaseFeFunction"; }
+
   //! Destructor
   virtual ~BaseFeFunction();
   

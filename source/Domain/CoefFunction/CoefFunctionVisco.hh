@@ -21,6 +21,8 @@ namespace CoupledField {
     //! Destructor
     virtual ~CoefFunctionVisco();
 
+    virtual string GetName() const { return "CoefFunctionVisco"; }
+
     //! Return real-valued vector at integration point
     void GetVector(Vector<Double>& vec, const LocPointMapped& lpm );
 

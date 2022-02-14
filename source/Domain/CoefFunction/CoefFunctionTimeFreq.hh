@@ -22,6 +22,8 @@ namespace CoupledField{
 template<typename T>
 class CoefFunctionTimeFreq : public CoefFunction {                             
   
+  virtual string GetName() const { return "CoefFunctionTimeFreq"; }
+
 };
 
 // ===========================================================================
@@ -39,6 +41,9 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
   
+  virtual string GetName() const { return "CoefFunctionTimeFreq<double>"; }
+
+
   //! \copydoc CoefFunction::GetComplexPart
   virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
   
@@ -210,6 +215,8 @@ public:
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
+
+  virtual string GetName() const { return "CoefFunctionTimeFreq<complex>"; }
 
   //! \copydoc CoefFunction::GetComplexPart
   virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );

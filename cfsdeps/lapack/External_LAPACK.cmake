@@ -164,8 +164,8 @@ MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY)
 #-------------------------------------------------------------------------------
 
 # see also External_OpenBLAS and FindIntelMKL
-# e.g. BLAS_LIBRARY=...lib64/OPENSUSE_TUMBLEWEED_X86_64/libblas.a;/usr/lib64/gcc/x86_64-suse-linux/7/libgfortran.so
-# e.g. LAPACK_LIBRARY=...lib64/OPENSUSE_TUMBLEWEED_X86_64/liblapack.a
+# e.g. BLAS_LIBRARY=...lib64/libblas.a;/usr/lib64/gcc/x86_64-suse-linux/7/libgfortran.so
+# e.g. LAPACK_LIBRARY=...lib64/liblapack.a
 if(USE_BLAS_LAPACK STREQUAL "NETLIB")
   set(BLAS_LIBRARY "${NETLIB_BLAS_LIBRARY}")
   set(LAPACK_LIBRARY "${NETLIB_LAPACK_LIBRARY}")

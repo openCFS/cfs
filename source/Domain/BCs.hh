@@ -58,10 +58,10 @@ namespace CoupledField {
     virtual void ToInfo(PtrParamNode in) const;
     
     //! Flag, if updated geometry is to be used
-    bool updatedGeo;
+    bool updatedGeo = false;
     
     //! Integer prescribing the timederivation order 
-    UInt timeDerivOrder;
+    UInt timeDerivOrder = 0;
 
     //! Harmonic for Multiharmonic IDBC
     PtrCoefFct harm;

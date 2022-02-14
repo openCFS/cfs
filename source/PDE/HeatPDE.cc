@@ -887,7 +887,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     }
 
     UInt numNodes = ent[i]->GetSize();
-    if( numNodes > 1 ) {
+    if(numNodes > 1 && coef[i]->DoNormalize()) {
       Global::ComplexPart part = Global::REAL;
       coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
     }
@@ -906,11 +906,11 @@ void HeatPDE::DefineRhsLoadIntegrators() {
   LOG_DBG(heatcondpde) << "Reading heat source values (design dependent)";
 
   ReadRhsExcitation( "designDependentHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
-  if (GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"))
+  if(GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"))
     interfaceDrivenHeatSource_ = true;
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
     // assume that we have elem list due to specification of a region instead of named nodes in xml file
-    if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
+    if(ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
       EXCEPTION("Design dependent heat source must be defined on nodes!")
     }
 

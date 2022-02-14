@@ -318,6 +318,18 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ************************************************************************ -->
+  <!--  More technical variant of scattered data. Apply value for node numbers  -->
+  <!-- ************************************************************************ -->
+  <xsd:complexType name="DT_FileData">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+         Provide a text file with node number and node value. Must match mesh.              
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="file" type="xsd:token" use="required" />
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of standard types for BCs and RHS values               -->
   <!-- ******************************************************************* -->
@@ -499,6 +511,15 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- text file with node number and values to be applied for the nodes
+               See CoefFunctionFileData -->
+          <xsd:element name="fileData" maxOccurs="1" type="DT_FileData">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Text file with node number and values to be applied for the nodes.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>

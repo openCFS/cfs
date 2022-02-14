@@ -170,8 +170,8 @@ namespace CoupledField {
 
     // Copy entries
     size_ = vec.size_;
-    if (data_)
-    std::copy(vec.data_, vec.data_+size_, data_);
+    if(data_)
+      std::copy(vec.data_, vec.data_+size_, data_);
 
     return *this;
   }
@@ -192,8 +192,8 @@ namespace CoupledField {
 
     size_ = vec.size();
     
-    if (data_)
-    std::copy(vec.begin(), vec.end(), data_);
+    if(data_)
+      std::copy(vec.begin(), vec.end(), data_);
 
     return *this;
   }
@@ -340,15 +340,45 @@ namespace CoupledField {
     capacity_ = size_;
   }
 
+
   template<class TYPE>
-  int StdVector<TYPE>::Find(const TYPE &x) const
+  int StdVector<TYPE>::Find(const TYPE &x, bool quiet) const
   {
     for(unsigned int i = 0; i < size_; ++i)
-      if(data_[i] == x) return i;
-    
+      if(data_[i] == x)
+        return i;
+
     // not found
+    if(!quiet)
+      EXCEPTION("cannot find " << x << " in vector of size " << size_);
     return -1;
   }
+
+  template<class TYPE>
+  int StdVector<TYPE>::Find(const TYPE &x, unsigned int& guess, bool quiet) const
+  {
+    int idx = -1;
+    // optimistically the guess is right, search upwards
+    for(unsigned int i = guess; idx < 0 && i < size_; i++)
+      if(data_[i] == x)
+        idx = i;
+
+    // in case we did not find, search from the beginning
+    for(unsigned int i = 0; idx < 0 && i < guess; i++)
+      if(data_[i] == x)
+        idx = i;
+
+    if(idx > -1) {
+      guess = idx+1 == (int) size_ ? 0 : idx+1;
+      return idx;
+    }
+
+    if(!quiet)
+      EXCEPTION("cannot find " << x << " in vector of size " << size_);
+    return -1;
+
+  }
+
 
   template<class TYPE>
   StdVector<unsigned int> StdVector<TYPE>::FindAll(const TYPE &x) const

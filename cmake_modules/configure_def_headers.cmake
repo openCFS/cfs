@@ -11,6 +11,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_type_options.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
   "${CFS_BINARY_DIR}/include/def_config.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_reordering.hh.in"
+  "${CFS_BINARY_DIR}/include/def_reordering.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 

@@ -47,6 +47,8 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     ///Destructor freeing al used data strutures
     virtual ~CoefFunctionGridNodal();
 
+    virtual string GetName() const { return "CoefFunctionGridNodal"; }
+
     // ========================
     //  ACCESS METHODS
     // ========================
@@ -64,9 +66,6 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     virtual void GetScalar(DATA_TYPE& CoefMat,
                            const LocPointMapped& lpm );
     //@}
-
-    //! Dump coefficient function to string
-    virtual std::string ToString() const =0 ;
 
     virtual void AddEntityList(shared_ptr<EntityList> ent){
     	if(!this->entities_.Contains(ent)){

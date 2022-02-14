@@ -33,6 +33,8 @@ public:
 
   virtual ~CoefFunctionOpt() { }
 
+  virtual string GetName() const { return "CoefFunctionOpt"; }
+
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm) {
     GetTensor<double>(coefMat, lpm);
@@ -98,8 +100,6 @@ public:
   const LinearForm* GetFormL() const  {
     return formL;
   }
-
-  std::string ToString() const{ return "CoefFunctionOpt";};
 
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
   void SetToOptimization();

@@ -181,6 +181,8 @@ namespace CoupledField {
     //! Destructor
     virtual ~CoefFunctionScatteredData(){;}
     
+    virtual string GetName() const { return "CoefFunctionScatteredData"; }
+
     //! Return vector value at integration point
     virtual void GetVector( Vector<T>& vec, 
                             const LocPointMapped& lpm );

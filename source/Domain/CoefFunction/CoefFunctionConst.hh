@@ -31,6 +31,9 @@ public:
     ;
   }
  
+  virtual string GetName() const { return "CoefFunctionConst"; }
+
+
   //! \copydoc CoefFunction::GetComplexPart
   virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
 
@@ -77,7 +80,11 @@ public:
       } else {
         // otherwise, perform local -> global mapping
         Vector<Double> pointCoord;
+
+        // in case we are interested in nodal points or have no shapeMap for other reasons
+        // lpm.GetGlobal(pointCoord) would be an option - if one resolves the const issue
         lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+
 
         // Afterwards rotate the local vector back to global coordinates
         this->coordSys_->Local2GlobalVector( coefVec, coefVec_, pointCoord );

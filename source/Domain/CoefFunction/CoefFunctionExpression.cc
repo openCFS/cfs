@@ -66,7 +66,7 @@ void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat,
 
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  lpm.GetGlobal(pointCoord);
   if( this->coordSys_ ) {
     this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
   }
@@ -79,29 +79,34 @@ void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat,
   TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 }
 
-void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec, 
-                                                const LocPointMapped& lpm ){
-  assert(this->dimType_ == CoefFunction::VECTOR ||
-         this->dimType_ == CoefFunction::SCALAR);
-  Vector<Double> pointCoord, locVector;
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+void CoefFunctionExpression<Double>::GetVector(Vector<double>& coefVec, const LocPointMapped& lpm)
+{
+  assert(this->dimType_ == CoefFunction::VECTOR || this->dimType_ == CoefFunction::SCALAR);
+
+  Vector<double> pointCoord;
+  lpm.GetGlobal(pointCoord); // either from shapeMap or from lpm.lp.number
+
+  // why do we use here coordSysDefault_ and below coordSys_ ?!
   this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
-   
+
   // in case of scalars, just set one entry in the vector
-  if( this->dimType_ == SCALAR ) {
+  if(this->dimType_ == SCALAR )
+  {
     coefVec.Resize(1);
     GetScalar(coefVec[0], lpm);
-  } else {
-    // First, obtain global coordinates of current point, register it at the mathParser
-    // and compute local coefficient vector
-    this->mp_->EvalVector(mHandle_, locVector );
-
-    if (this->coordSys_ ) {
-      // Afterwards rotate the local vector back to global coordinates
-      this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
-    } else {
-      coefVec = locVector;
+  }
+  else
+  {
+    if(this->coordSys_)
+    {
+      Vector<double> locVector;
+      // First, obtain global coordinates of current point, register it at the mathParser
+      // and compute local coefficient vector
+      this->mp_->EvalVector(mHandle_, locVector );
+      this->coordSys_->Local2GlobalVector(coefVec, locVector, pointCoord);
     }
+    else
+      this->mp_->EvalVector(mHandle_, coefVec);
   }
 }
 
@@ -109,7 +114,7 @@ void CoefFunctionExpression<Double>::GetScalar(Double& coefScalar,
                                                const LocPointMapped& lpm){
   // First, obtain global coordinates of current point and  register it at the mathParser
   Vector<Double> pointCoord;
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  lpm.GetGlobal(pointCoord);
   this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
   if(this->derivType_ == NONE){
     assert(this->dimType_ == CoefFunction::SCALAR);
@@ -172,7 +177,7 @@ std::string CoefFunctionExpression<Double>::ToString() const {
       return lexical_cast<std::string>(this->coefScalar_);
       break;
     case VECTOR:
-      return this->coefVec_.ToString();
+      return this->coefVec_.ToString(TS_PYTHON);
       break;
     case TENSOR:
       ret = lexical_cast<string>(this->numRows_) + "x" + lexical_cast<string>(this->numCols_) + " tensor:\n";
@@ -293,7 +298,7 @@ void CoefFunctionExpression<Complex>::GetTensor( Matrix<Complex>& coefMat,
 
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  lpm.GetGlobal(pointCoord);
   this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), pointCoord);
   this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), pointCoord);
   this->mp_->EvalMatrix(mHandleReal_, temp, 
@@ -312,7 +317,7 @@ void CoefFunctionExpression<Complex>::GetVector( Vector<Complex>& coefVec,
   assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> temp, pointCoord;
   Vector<Complex> locVector;
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  lpm.GetGlobal(pointCoord);
   this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), pointCoord);
   this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), pointCoord);
      
@@ -343,7 +348,7 @@ void CoefFunctionExpression<Complex>::GetScalar(Complex& coefScalar,
   // First, obtain global coordinates of current point and  register it at the mathParser
   Double real, imag;
   Vector<Double> pointCoord;
-  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  lpm.GetGlobal(pointCoord);
   this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), pointCoord);
   this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), pointCoord);
   if(this->derivType_ == NONE){

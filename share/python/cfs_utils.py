@@ -394,3 +394,35 @@ def dicts_to_gnuplot(dicts):
       line += str(item[key])  + ' \t'
     print(line)
 
+# assumes a rectangualr regular mesh of size nx x ny and creates for a given displacement a vtk file.
+# this allows to visualize displacement u with paraview without having to deal with hdf5
+# u is an array of dim 2 with x as fast variable (left lower to right upper)
+# u = read_displacement(hdf5_file)
+def cfs_displacement_to_vtk(u, nx, ny, name):
+  from pyevtk.hl import gridToVTK
+  
+  assert len(u)==(nx+1)*(ny+1)
+  assert u.shape[1] == 2
+  x=np.linspace(0,1,(nx+1))      
+  y=np.linspace(0,1,(ny+1))
+  
+  ux = np.zeros((nx+1,ny+1,1))
+  uy = np.zeros((nx+1,ny+1,1))
+   # fake third component of displacement vector
+  uz = np.zeros((nx+1,ny+1,1))
+  
+  for j in range(0,ny+1):
+    for i in range(nx, -1, -1):
+      idx = j * (ny+1) + i
+      print(i,j,idx,u[idx][0])
+      ux[i,j,0] = u[idx][0]
+      uy[i,j,0] = u[idx][1]
+
+  print('x', x)      
+  print('y', y)
+  print('ux', ux)
+  print('uy', uy)
+  # gridToVTK expects 3D data, thus we fake the third dimension
+  gridToVTK(name, x,y,np.zeros(1),pointData={"displacement":(ux,uy,uz)})
+  print("# wrote '" + name + ".vtr'") 
+

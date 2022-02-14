@@ -42,6 +42,8 @@ public:
   //! Destructor
   virtual ~CoefFunctionHarmBalance();
 
+  virtual string GetName() const { return "CoefFunctionHarmBalance"; }
+
   virtual void Init(shared_ptr<BaseFeFunction> feFct,
           shared_ptr<FeSpace> feSpc,
           const StdVector<RegionIdType>& regions,
@@ -67,10 +69,7 @@ public:
   //! \copydoc CoefFunction::GetTensor
   virtual void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
 
-  //! \copydoc CoefFunction::ToString
-  virtual std::string ToString() const;
-
-  //! \copydoc CoefFunction::GetVecSize
+    //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
 
   PtrCoefFct GenerateMatCoefFnc(const UInt& iRegion,
@@ -206,6 +205,7 @@ public:
   //! Destructor
   virtual ~CoefFunctionHarmBalanceEval();
 
+  virtual string GetName() const { return "CoefFunctionHarmBalanceEval"; }
 
   //! \copydoc CoefFunction::GetScalar
   virtual void GetScalar(T& coefScal, const LocPointMapped& lpm );
@@ -216,9 +216,6 @@ public:
 
   //! \copydoc CoefFunction::GetTensor
   virtual void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
-
-  //! \copydoc CoefFunction::ToString
-  virtual std::string ToString() const;
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;

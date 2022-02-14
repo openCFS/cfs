@@ -245,9 +245,9 @@ ENDIF(USE_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
 # see NETLIB comment
 #-----------------------------------------------------------------------------
 if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  set(OPENBLAS_VER "0.3.10")
+  set(OPENBLAS_VER "0.3.17")
   set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-  set(OPENBLAS_MD5 "4727a1333a380b67c8d7c7787a3d9c9a")
+  set(OPENBLAS_MD5 "5429954163bcbaccaa13e11fe30ca5b6")
   INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
 endif(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
 

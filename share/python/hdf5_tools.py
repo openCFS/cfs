@@ -1,42 +1,58 @@
 import sys
 import h5py
-import numpy
+import numpy as np
 import operator
 
+# generally a hdf5_file object is created via 
+# hdf5_file = h5py.File('myfile.cfs','r')
+# some functions may to this automaticall if hdf5_file is a filename string
+# note: [:] gets a numpy array out of a hdf5 datase  
 
-# open a hdf5 file as
-# f = h5py.File("/home/fwein/project/simp/piezo_fmo.h5")
+# get node numbers for a given nodal group name
+# @param hdf5_file object or string
+# @return numpy array of ints with 1-based node numbers 
+def get_nodes(hdf5_file, name):
+  if type(hdf5_file) == str:
+    hdf5_file = h5py.File(hdf5_file,'r')
+  return hdf5_file['/Mesh/Groups/' + name + '/Nodes'][:] 
 
-# u is an array of dim 2 with x as fast variable (left lower to right upper)
-# hdf5_file = h5py.File(base + '.cfs', 'r')
-# u = read_displacement(hdf5_file)
-def cfs_displacement_to_vtk(u, nx, ny, name):
-  from pyevtk.hl import gridToVTK
-  
-  assert len(u)==(nx+1)*(ny+1)
-  assert u.shape[1] == 2
-  x=np.linspace(0,1,(nx+1))      
-  y=np.linspace(0,1,(ny+1))
-  
-  ux = np.zeros((nx+1,ny+1,1))
-  uy = np.zeros((nx+1,ny+1,1))
-   # fake third component of displacement vector
-  uz = np.zeros((nx+1,ny+1,1))
-  
-  for j in range(0,ny+1):
-    for i in range(nx, -1, -1):
-      idx = j * (ny+1) + i
-      print(i,j,idx,u[idx][0])
-      ux[i,j,0] = u[idx][0]
-      uy[i,j,0] = u[idx][1]
+# get nodes for the elements of a region. 
+# corresponds to <nodeList><nodes name="mine"><allNodesInRegion regName="reg"/>.. in <domain>
+def get_nodes_in_region(hdf5_file, reg_name):
+  if type(hdf5_file) == str:
+    hdf5_file = h5py.File(hdf5_file,'r')
+    
+  # in GridCFS::GetNodesByRegion() this is obtained by searching and 
+  # we would have to usa set in python (unique and sorted).
+  # but obviously the information is already in the hdf5 file  
+  return hdf5_file['Mesh/Regions/' + name + '/Nodes'][:]  
 
-  print('x', x)      
-  print('y', y)
-  print('ux', ux)
-  print('uy', uy)
-  # gridToVTK expects 3D data, thus we fake the third dimension
-  gridToVTK(name, x,y,np.zeros(1),pointData={"displacement":(ux,uy,uz)})
-  print("# wrote '" + name + ".vtr'") 
+# obtain all available (nodal) group names
+def get_groups(hdf5_file):
+  if type(hdf5_file) == str:
+    hdf5_file = h5py.File(hdf5_file,'r')
+
+  groups = hdf5_file['/Mesh/Groups']
+  
+  res = []
+  for g in groups:
+    res.append(str(g))
+    
+  return res  
+
+# obtain all available region names = element groups
+# for all dims (volume and surfe)
+def get_regions(hdf5_file):
+  if type(hdf5_file) == str:
+    hdf5_file = h5py.File(hdf5_file,'r')
+
+  groups = hdf5_file['/Mesh/Regions']
+  
+  res = []
+  for g in groups:
+    res.append(str(g))
+    
+  return res  
 
   
 # checks if the region exists
@@ -51,8 +67,8 @@ def element_dimensions(elem_id, all_elements, all_nodes):
   for n in range(len(all_elements[elem_id])):
     node_coords.append(all_nodes[all_elements[elem_id][n] - 1])  # numbers are one-based
 #   print("all_nodes:",all_nodes)
-  ma = numpy.array([max(node_coords, key=operator.itemgetter(0))[0], max(node_coords, key=operator.itemgetter(1))[1], max(node_coords, key=operator.itemgetter(2))[2]])
-  mi = numpy.array([min(node_coords, key=operator.itemgetter(0))[0], min(node_coords, key=operator.itemgetter(1))[1], min(node_coords, key=operator.itemgetter(2))[2]])
+  ma = np.array([max(node_coords, key=operator.itemgetter(0))[0], max(node_coords, key=operator.itemgetter(1))[1], max(node_coords, key=operator.itemgetter(2))[2]])
+  mi = np.array([min(node_coords, key=operator.itemgetter(0))[0], min(node_coords, key=operator.itemgetter(1))[1], min(node_coords, key=operator.itemgetter(2))[2]])
   elem_dim = ma - mi
   return elem_dim
 
@@ -71,15 +87,15 @@ def num_nodes_by_type(type_id):
 # works 2D and 3D
 # @return list barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
 def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered = True):
-  all_elements = hdf5_file['/Mesh/Elements/Connectivity'][()]  # for all regions
-  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'][()]
+  all_elements = hdf5_file['/Mesh/Elements/Connectivity'][:]  # for all regions
+  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'][:]
   
   # check if reg_elements is list of list and flatten if necessary
-  if any(isinstance(el, numpy.ndarray) for el in reg_elements):
+  if any(isinstance(el, np.ndarray) for el in reg_elements):
     reg_elements = [el[0] for el in reg_elements]
   
-  types = hdf5_file['/Mesh/Elements/Types'][()]
-  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'][()]
+  types = hdf5_file['/Mesh/Elements/Types'][:]
+  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'][:]
   reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
   if region_force != None:
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
@@ -96,12 +112,12 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     elem_dim = element_dimensions(reg_elements[0] - 1, all_elements, all_nodes)
     
   # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
-  nodes = numpy.zeros((len(reg_nodes), 3))
+  nodes = np.zeros((len(reg_nodes), 3))
   for e in range(len(reg_nodes)):
     nodes[e] = all_nodes[reg_nodes[e] - 1]
   # extract boundary force nodes from region_force if available
   if region_force != None:
-    nodes_force = numpy.zeros((len(reg_force_nodes), 3))
+    nodes_force = np.zeros((len(reg_force_nodes), 3))
     for e in range(len(reg_force_nodes)):
       nodes_force[e] = all_nodes[reg_force_nodes[e] - 1]
   else:
@@ -110,7 +126,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
   # extract boundary support nodes from region_support if available
   if region_support != None:
     # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
-    nodes_support = numpy.zeros((len(reg_support_nodes), 3))
+    nodes_support = np.zeros((len(reg_support_nodes), 3))
     for e in range(len(reg_support_nodes)):
       nodes_support[e] = all_nodes[reg_support_nodes[e] - 1]
   else:
@@ -131,7 +147,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     for e in range(len(reg_elements)):
       idx = reg_elements[e] - 1  # cfs writes one based
       nod = all_elements[idx]
-      center = numpy.array([0.0, 0.0, 0.0])
+      center = np.array([0.0, 0.0, 0.0])
       len_nod = num_nodes_by_type(types[idx])
       for n in range(len_nod):
         center += all_nodes[nod[n] - 1]  # numbers are one-based
@@ -201,7 +217,7 @@ def last_h5_step(hdf5_file,multistep=1):
 
 # hdf5_file = h5py.File(name, 'r')
 def read_displacement(hdf5_file,region = 'mech'):
-  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'][()]
+  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'][:]
   return u
 
 # dumps meta data    
@@ -242,12 +258,12 @@ def has_element(hdf5_file, name, given_step=99999):
 
   return False
           
-# returns a deep copied numpy array          
+# returns a deep copied numpy array of element results by regioin and step          
 def get_element(hdf5_file, name, region, given_step=99999):
   step = min((given_step, last_h5_step(hdf5_file)))
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
   try:
-    return hdf5_file[key][()]
+    return hdf5_file[key][:]
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
 
@@ -280,9 +296,8 @@ def get_step_values(hdf5_file) :
     >>> len(step_val_list)
     1
     """
-    if type(hdf5_file) == str :
-        from h5py import File
-        with File(hdf5_file,'r') as h5:
+    if type(hdf5_file) == str:
+        with h5py.File(hdf5_file,'r') as h5:
             return get_step_values(h5)
     else:
         from numpy import allclose
@@ -335,9 +350,8 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
            [-4.28143434e-04,   4.28143434e-04,   2.07611520e-02],
            [ 4.28143434e-04,   4.28143434e-04,   2.07611520e-02]])
     """
-    if type(hdf5_file) == str :
-        from h5py import File
-        with File(hdf5_file,'r') as h5:
+    if type(hdf5_file) == str:
+        with h5py.File(hdf5_file,'r') as h5:
             return get_result(h5,result,region,step,multistep)
     else:
         from numpy import array, squeeze
@@ -410,9 +424,8 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
       ...
            [0.,  0.,  0.]])
     """
-    if type(hdf5_file) == str :
-        from h5py import File
-        with File(hdf5_file,'r') as h5:
+    if type(hdf5_file) == str:
+        with h5py.File(hdf5_file,'r') as h5:
             return get_subregion_idx(h5,region,subregion,rtype)
     else:
         from numpy import array, argwhere
@@ -421,6 +434,10 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
         Isr = array([argwhere(Ir==i).ravel() for i in Is if i in Ir]).ravel()
         return Isr
 
+# get coordinates either by a region name or for all regions
+# @see see also get_node_coordinates()
+# @param hdf5_file object or string  
+# @return  array with three columns   
 def get_coordinates(hdf5_file,region=None) :
   """
   return nodal coordinates, optional for nodes in a certain region
@@ -446,9 +463,8 @@ def get_coordinates(hdf5_file,region=None) :
          [11.5,   4.8,   0. ],
          [ 0.5,   7.2,   0. ]])
   """
-  if type(hdf5_file) == str :
-    from h5py import File
-    with File(hdf5_file,'r') as h5:
+  if type(hdf5_file) == str:
+    with h5py.File(hdf5_file,'r') as h5:
       return get_coordinates(h5,region)
   else:
     if not region==None :
@@ -456,6 +472,23 @@ def get_coordinates(hdf5_file,region=None) :
       return hdf5_file['Mesh/Nodes/Coordinates'][:][I,:]
     else :
       return hdf5_file['Mesh/Nodes/Coordinates'][:]
+
+# return coordinates for given set of nude numbers
+# @see get_nodes()
+# @param hdf5_file object or filename
+# @oaram nodes array of 1-based ints or name of group nodes
+def get_node_coordinates(hdf5_file, nodes): 
+  if type(hdf5_file) == str:
+    hdf5_file = h5py.File(hdf5_file,'r')
+  if type(nodes) == str:
+    nodes = get_nodes(hdf5_file,nodes)
+    
+  c = hdf5_file['Mesh/Nodes/Coordinates']
+  
+  # probably numpy index stuff is faster than this list comprehension
+  res = [c[i-1] for i in nodes] # node numbers are 1-based but nodes are stored 0-based
+  return np.array(res) 
+
 
 def get_centroids(hdf5_file,region=None) :
     """
@@ -493,8 +526,7 @@ def get_centroids(hdf5_file,region=None) :
            [1.  , 1.  , 2.95]])
     """
     if type(hdf5_file) == str :
-        from h5py import File
-        with File(hdf5_file,'r') as h5:
+        with h5py.File(hdf5_file,'r') as h5:
             return get_centroids(h5,region)
     else:
         from numpy import sum, unique, argwhere, zeros, arange, mean
@@ -526,10 +558,9 @@ if __name__ == "__main__":
     # Thus, you must cd to the correct location for interactive testing.
 
     #%% Load some files (paths relative to TESTSUIT_DIR)
-    from h5py import File
     # should load from TESTSUITE_DIR
-    Plate3D = File('TESTSUIT/Singlefield/Mechanics/Plate3D/Plate3D.h5ref','r')
-    dampedEV2D = File('TESTSUIT/Singlefield/Mechanics/dampedEV2D/dampedEV2D.h5ref','r')
+    Plate3D = h5py.File('TESTSUIT/Singlefield/Mechanics/Plate3D/Plate3D.h5ref','r')
+    dampedEV2D = h5py.File('TESTSUIT/Singlefield/Mechanics/dampedEV2D/dampedEV2D.h5ref','r')
 
     # finally run doctest
     import doctest

@@ -33,6 +33,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~CoefFunctionConvolution();
 
+    virtual string GetName() const { return "CoefFunctionConvolution"; }
+
+
     //! evaluate the recursive convolution
     void RecursiveConvolution(Double dt);
 

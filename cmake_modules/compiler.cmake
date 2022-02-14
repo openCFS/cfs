@@ -93,22 +93,28 @@ SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
 SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 
 #-------------------------------------------------------------------------------
+# Prepare for macOS
+#-------------------------------------------------------------------------------
+# pracically one needs brew to compile cfs on macOS. The base is system dependent
+if(CFS_ARCH MATCHES "ARM64") # don't care for non-Apple - no harm
+  set(CFS_BREW_BASE "/opt/homebrew")
+else()
+  set(CFS_BREW_BASE "/usr/local")
+endif()    
+
+#-------------------------------------------------------------------------------
 # Check if compiler supports OpenMP
 #-------------------------------------------------------------------------------
 find_package(OpenMP)
 
 if(USE_OPENMP)
-  if(OPENMP_FOUND)
-    set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
-    set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
-    if(APPLE)
-      # let's hope this does not make the compiler use system gmp, hdf5, ...
-      include_directories(AFTER SYSTEM "/usr/local/include")
-      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L/usr/local/lib")
-    endif() # APPLE
-  else()
-    message(FATAL_ERROR "USE_OPENMP enabled but OpenMP not found on the system")
-  endif() # OPENMP_FOUND
+  set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
+  set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
+  if(APPLE)
+    # best is to use homebrew llvm: https://stackoverflow.com/questions/43555410/enable-openmp-support-in-clang-in-mac-os-x-sierra-mojave
+    include_directories(AFTER SYSTEM "${CFS_BREW_BASE}/include")
+    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${CFS_BREW_BASE}/lib")
+  endif()   
 endif() # USE_OPENMP
 
 #-------------------------------------------------------------------------------
@@ -163,11 +169,9 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
       # -flto Link time optimization - extremely slow linking on gcc with almost no effect
       # -param prefetch-latency=300 - Generate memory preload in structions - negative effect
       # some more for AMD Clang in the link above
-      set(CFS_OPT_FLAGS "-m64 -march=native -Ofast ") 
-
+      set(CFS_OPT_FLAGS "-march=native -Ofast ") 
     else()
-      # AMD K8 is a years old legacy that worked, who know's a better portable id?
-      set(CFS_OPT_FLAGS "-m64 -march=k8")
+      set(CFS_OPT_FLAGS "-m64 -O3 ")
     endif()
 
   ENDIF() # end debug/release
@@ -234,19 +238,18 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-unknown-warning-option")
   ENDIF()
 
-  IF(APPLE)
+  if(APPLE)
     # Check wether the compiler has the -sysroot= flag.
-    SET(CXX_HAS_SYSROOT_FLAG_SOURCE "
-int
-main ()
-{
-  return 0;
-}
-")
-    SET(CMAKE_REQUIRED_FLAGS "-sysroot=${CMAKE_OSX_SYSROOT}")
+    # note that in the first run this is executed before distro.cmake where the architecture might be defined!
+    set(CXX_HAS_SYSROOT_FLAG_SOURCE "int main() { return 0; }")
+    set(CMAKE_REQUIRED_FLAGS "-sysroot=${CMAKE_OSX_SYSROOT}")
     CHECK_CXX_SOURCE_COMPILES("${CXX_HAS_SYSROOT_FLAG_SOURCE}" CXX_HAS_SYSROOT_FLAG)
-    UNSET(CMAKE_REQUIRED_FLAGS)
-  ENDIF()
+    unset(CMAKE_REQUIRED_FLAGS)
+
+    # practically we need homebrew for libquadmath (on x86_64) 
+    # we might already have this from openmp
+    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -L${CFS_BREW_BASE}/lib")
+  endif() # apple
 
   # see https://en.wikipedia.org/wiki/Gcov
   IF(CFS_COVERAGE)
