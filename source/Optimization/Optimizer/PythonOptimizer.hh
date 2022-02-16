@@ -1,13 +1,6 @@
 #ifndef OPTIMIZATION_OPTIMIZER_PYTHONOPTIMIZER_HH_
 #define OPTIMIZATION_OPTIMIZER_PYTHONOPTIMIZER_HH_
 
-#include <def_use_embedded_python.hh>
-
-#ifdef USE_EMBEDDED_PYTHON
-  #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
-  #include <Python.h>
-#endif
-
 #include <utility>
 #include <tuple>
 #include <boost/filesystem.hpp>
@@ -20,6 +13,7 @@ class PythonOptimizer : public BaseOptimizer
 {
 public:
   PythonOptimizer(Optimization* optimization, PtrParamNode pn);
+
   virtual ~PythonOptimizer();
 
   /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
@@ -41,7 +35,7 @@ public:
 
   void EvalGradConstraints(PyObject* args);
 
-  /** this should be in PythonTools but somehow this gives a segfault which indicates that PyArg_ParseTuple is not defined?! 
+  /** this should be in PythonKernel but somehow this gives a segfault which indicates that PyArg_ParseTuple is not defined?!
    * @param decref if false make sure to decref the objects via the return array
    * @return you must not use the PyObjects when decref is true */
   static StdVector<PyObject*> ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
@@ -65,7 +59,7 @@ private:
   /** given filename. Possibly via file and path which path = cfs:share:python key */
   std::string givenname;
 
-  /** the module givenname opened as embedded python environment */
+  /** keeps the python script */
   PyObject* module = NULL;
 
   /** number of design variables */

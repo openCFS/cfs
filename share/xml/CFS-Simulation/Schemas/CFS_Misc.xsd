@@ -239,8 +239,12 @@
       </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="showInGrid" type="DT_CFSBool" default="yes"/>
+  </xsd:complexType>
 
-
+  <!-- For a python element this are the option child elements with key and value attributes -->
+  <xsd:complexType name="DT_PythonOption">
+    <xsd:attribute name="key" type="xsd:string" use="required" />
+    <xsd:attribute name="value" type="xsd:string" use="required" />
   </xsd:complexType>
 
 </xsd:schema>

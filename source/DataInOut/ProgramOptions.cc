@@ -27,8 +27,8 @@ using namespace boost::placeholders;
 
 namespace CoupledField {
 
-  // extern definition
-  ProgramOptions * progOpts = NULL;
+  // external definition
+  ProgramOptions* progOpts = NULL;
 
   ProgramOptions::ProgramOptions( Integer argc,
                                   const char **argv )
@@ -112,12 +112,12 @@ namespace CoupledField {
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
 
-      ( "id", po::value<string>(),
-        "set the provided value in info.xml as cfsInfo/header/@id")
-
       ( "noColor",
         "turn off colored output")
-      ;
+
+      ( "id", po::value<string>(),
+        "set the provided value in info.xml as cfsInfo/header/@id")
+        ;
 
 
     // Store help description in variable
@@ -414,7 +414,6 @@ namespace CoupledField {
   {
     return varMap_.count("detailed") > 0;
   }
-
 
   bool ProgramOptions::IsQuiet() const
   {

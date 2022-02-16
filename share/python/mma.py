@@ -761,7 +761,7 @@ class Optimizer:
 # optional for cfs to call. 
 # @return an integer with 0 for ok
 def setup():
-  print('ocm.py: setup() called')
+  print('mma.py: setup() called')
   return 1
 
 # called by cfs

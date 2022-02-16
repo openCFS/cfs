@@ -31,8 +31,8 @@ SingleEntryInt::SingleEntryInt(PtrCoefFct& val) : LinearForm()
 
   void SingleEntryInt::CalcElemVector(Vector<Double>& elemVec, EntityIterator& ent1)
   {
-    LOG_DBG2(entryint) << "SEI:CEV: val:" << val_->ToString() << " ent1=" << ent1.ToString()
-        << " size=" << ent1.GetSize() << " dep" << CoefFunction::coefDependType.ToString(val_->GetDependency());
+    LOG_DBG2(entryint) << "SEI:CEV: coef=" << val_->GetName() << " val=" << val_->ToString() << " ent1=" << ent1.ToString()
+        << " size=" << ent1.GetSize() << " dep=" << CoefFunction::coefDependType.ToString(val_->GetDependency());
     
     // not that elemVec gets here usually (e.g. mech rhs force) the nodal (vectorial) value
     // but when we have a NODE_LIST the LPM::shapeMap cannot be set.

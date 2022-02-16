@@ -7,6 +7,7 @@
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 #include "Domain/CoefFunction/CoefFunctionFileData.hh"
+#include "Domain/CoefFunction/CoefFunctionPython.hh"
 
 #include "PDE/SinglePDE.hh"
 
@@ -3100,6 +3101,12 @@ namespace CoupledField {
       int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
       coef.reset(new CoefFunctionFileData(pnfd, mydim));
     }
+    else if(valueNode->Has("python"))
+    {
+      unsigned int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
+      coef.reset(new CoefFunctionPython(valueNode->Get("python"), mydim));
+    }
+
     else
     {
       // ======================================

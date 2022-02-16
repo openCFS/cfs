@@ -55,6 +55,7 @@
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
   <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PythonKernel.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
@@ -78,6 +79,9 @@
 
         <!-- Tags for documenting simulations (required just for test suite)-->
         <xsd:element name="documentation" type="DT_Documentation" minOccurs="0"/>
+
+        <!-- Optional python kernel -->
+        <xsd:element name="python" type="DT_PythonKernel" minOccurs="0"/>
 
         <!-- File format list for io-specifications (required)-->
         <xsd:element name="fileFormats" type="DT_FileFormats" minOccurs="1"/>
@@ -115,12 +119,10 @@
 				</xsd:element>
 				
 				<!-- Definition of fe polynomials -->
-				<xsd:element name="fePolynomialList" maxOccurs="1"
-					minOccurs="0" type="DT_PolyList">
+				<xsd:element name="fePolynomialList" maxOccurs="1" minOccurs="0" type="DT_PolyList">
 				</xsd:element>
 				
-				<xsd:element name="integrationSchemeList" maxOccurs="1"
-					minOccurs="0">
+				<xsd:element name="integrationSchemeList" maxOccurs="1" minOccurs="0">
           <xsd:complexType>
             <xsd:sequence>
               <xsd:element name="scheme" type="DT_IntegrationScheme"
@@ -128,8 +130,7 @@
             </xsd:sequence>
           </xsd:complexType>         
         </xsd:element>
-				<xsd:element name="sequenceStep" minOccurs="0"
-					maxOccurs="unbounded">
+				<xsd:element name="sequenceStep" minOccurs="0" maxOccurs="unbounded">
 					<xsd:complexType>
 						<xsd:sequence>
 
@@ -138,8 +139,7 @@
 								<xsd:complexType>
 									<xsd:sequence>
 										<!-- Parameters for transient/harmonic analysis (semi-optional) -->
-										<xsd:element ref="AnalysisBasic"
-											minOccurs="1" maxOccurs="1" />
+										<xsd:element ref="AnalysisBasic" minOccurs="1" maxOccurs="1" />
 									</xsd:sequence>
 								</xsd:complexType>
 							</xsd:element>
@@ -148,49 +148,39 @@
 							<xsd:element name="pdeList">
 								<xsd:complexType>
 									<xsd:sequence>
-										<xsd:element ref="PDEBasic"
-											minOccurs="1" maxOccurs="unbounded" />
+										<xsd:element ref="PDEBasic" minOccurs="1" maxOccurs="unbounded" />
 									</xsd:sequence>
 								</xsd:complexType>
 							</xsd:element>
 
 							<!-- List of PDE Couplings (optional) -->
-							<xsd:element name="couplingList"
-								minOccurs="0" maxOccurs="unbounded">
+							<xsd:element name="couplingList" minOccurs="0" maxOccurs="unbounded">
 								<xsd:complexType>
 									<xsd:sequence>
-										<xsd:element
-											ref="PDEBasicCoupling" minOccurs="0" maxOccurs="unbounded" />
+										<xsd:element ref="PDEBasicCoupling" minOccurs="0" maxOccurs="unbounded" />
 									</xsd:sequence>
-									<xsd:attribute name="tag"
-										type="xsd:token" use="optional" default="anyTag" />
+									<xsd:attribute name="tag" type="xsd:token" use="optional" default="anyTag" />
 								</xsd:complexType>
 							</xsd:element>
 
 							<!-- Data postprocessing section (optional) -->
-							<xsd:element name="postProcList"
-								type="DT_PostProcList" minOccurs="0" maxOccurs="1" />
+							<xsd:element name="postProcList" type="DT_PostProcList" minOccurs="0" maxOccurs="1" />
 
 							<!-- Paremeters for setting up and solving linear systems -->
-							<xsd:element name="linearSystems"
-								minOccurs="0">
+							<xsd:element name="linearSystems" minOccurs="0">
 								<xsd:complexType>
 									<xsd:sequence>
-										<xsd:element name="system"
-											type="DT_SystemSpec" minOccurs="1" maxOccurs="unbounded" />
+										<xsd:element name="system" type="DT_SystemSpec" minOccurs="1" maxOccurs="unbounded" />
 									</xsd:sequence>
 								</xsd:complexType>
 							</xsd:element>
 						</xsd:sequence>
-						<xsd:attribute name="index"
-							type="xsd:positiveInteger" default="1" />
-						<xsd:attribute name="usage" use="optional"
-							default="startValue">
+						<xsd:attribute name="index" type="xsd:positiveInteger" default="1" />
+						<xsd:attribute name="usage" use="optional" default="startValue">
 							<xsd:simpleType>
 								<xsd:restriction base="xsd:token">
 									<xsd:enumeration value="startValue" />
-									<xsd:enumeration
-										value="dirichletValue" />
+									<xsd:enumeration value="dirichletValue" />
 								</xsd:restriction>
 							</xsd:simpleType>
 						</xsd:attribute>
@@ -217,8 +207,7 @@
 
 		<!-- Make sure that for every region referenced in the PDE section -->
 		<!-- a corresponding region has been designated in the domain part -->
-		<xsd:keyref name="CS_RegionExists"
-			refer="CS_DomainNamesRegion">
+		<xsd:keyref name="CS_RegionExists" refer="CS_DomainNamesRegion">
 			<xsd:selector
 				xpath="cfs:pdeList/cfs:LatticeBoltzmann/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region" />
 			<!-- Simple selection of all PDEs does not work due to problems -->

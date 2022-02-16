@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  xmlns:cfs="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
+
+
+  <!-- ******************************************************************** -->
+  <!--   Data type for domain section -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PythonKernel">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Run a python interpreter within openCFS with the given python script.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="callback" minOccurs="0" maxOccurs="unbounded">
+       <xsd:annotation>
+         <xsd:documentation xml:lang="en">
+           Call given python function at specified event with optional options dictionary
+         </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption"/>
+          </xsd:sequence>
+          <xsd:attribute name="hook" use="required" >
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="post_grid" />
+                <xsd:enumeration value="post_solve_problem" />
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="function" type="xsd:string" use="required" />
+        </xsd:complexType>  
+      </xsd:element>
+    </xsd:sequence> 
+    <xsd:attribute name="file" type="xsd:token" default="default">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">filename of the input file</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+    <xsd:attribute name="path" type="xsd:string" use="optional" default="" >
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">optional root for file with cfs:share:python a special key to be resolved via schema path</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+  
+</xsd:schema>

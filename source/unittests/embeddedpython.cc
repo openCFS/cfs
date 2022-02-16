@@ -8,7 +8,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
 #include <iostream>
-#include "Utils/StdVector.hh"
 #include <def_use_embedded_python.hh>
 
 #ifdef USE_EMBEDDED_PYTHON

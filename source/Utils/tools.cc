@@ -15,14 +15,20 @@
 #include "General/Exception.hh"
 #include "Domain/Domain.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/PythonKernel.hh"
 
 using boost::char_separator;
 using boost::tokenizer;
 using boost::bad_lexical_cast;
 
+// global pointer to singleton object. Cannot be in PythonKernel.cc as we don't compile/link it w/o USE_EMBEDDED_PYTHON
+PythonKernel* CoupledField::python = NULL;
+
+
 DEFINE_LOG(tools, "tools")
 
 namespace CoupledField {
+
 
   // =========================================
   //   Split a string into a list of strings

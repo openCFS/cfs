@@ -127,10 +127,10 @@ namespace CoupledField
     //! If only one PDE is defined, this method returns the pointer to it.
     //! In the iterative coupled case, the pointer to the coupled PDE is 
     //! returned
-    BasePDE * GetBasePDE();
+    BasePDE* GetBasePDE();
 
     //! Get pointer to StdPDE by name
-    StdPDE * GetStdPDE(const std::string pdename);
+    StdPDE* GetStdPDE(const std::string pdename);
 
     /** Get pointer to SinglePDE by name.
      * @param throw_exception shall an exception be thrown if the name does not exist

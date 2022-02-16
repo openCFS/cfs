@@ -480,7 +480,7 @@ void Domain::SolveProblem()
   // **********************
   //   Getter function
   // **********************
-  StdPDE * Domain::GetStdPDE(const std::string pdeName)
+  StdPDE* Domain::GetStdPDE(const std::string pdeName)
   {
     bool pdeFound = false;
     UInt i;

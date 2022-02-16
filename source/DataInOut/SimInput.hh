@@ -65,6 +65,7 @@ namespace CoupledField
     { return capabilities_; }
     //@}
 
+    /** initialize the SimInputModule(), late constructor */
     virtual void InitModule() = 0;
       
     virtual void ReadMesh( Grid *mi ) = 0;

@@ -3,12 +3,6 @@
 
 #include "Optimization/Design/FeaturedDesign.hh"
 
-#include <def_use_embedded_python.hh>
-#ifdef USE_EMBEDDED_PYTHON
-  #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
-  #include <Python.h>
-#endif
-
 namespace CoupledField
 {
 /** Feature mapping variant spaghetti optimization. See also spaghetti.py */
@@ -133,9 +127,6 @@ private:
   /** call cfs_init in python file */
   void PythonInit(PtrParamNode pn);
 
-  /** python part of the desctructor */
-  void PythonDestructor();
-
   /** create/update all spaghetti data in python */
   void PythonUpdateSpaghetti();
 
@@ -156,18 +147,11 @@ private:
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;
 
-  /** used python script. Based on 'file' and optional 'path' in the 'python' element */
-  std::string file_;
-
-  /** the python version */
-  std::string version_;
-
-
-  /** in the 'python' element, the 'option' elements. See PythonTools::CreatePythonDict */
+  /** in the 'python' element, the 'option' elements. See PythonKernel::CreatePythonDict */
   StdVector<std::pair<std::string, std::string> > pyopts;
 
-  /** this contains the (later optional) Python module */
-  PyObject* python = NULL;
+  /** this contains the (later optional) Python script */
+  PyObject* module_ = NULL;
 
   PtrParamNode sp_info_; // our own info
 

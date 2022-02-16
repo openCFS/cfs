@@ -24,7 +24,7 @@ class CoefFunctionFileData : public CoefFunction, public boost::enable_shared_fr
 public:
 
   /** <fileData> Element, e.g. for mechanic force */
-  CoefFunctionFileData(PtrParamNode scatteredDataNode, int dim);
+  CoefFunctionFileData(PtrParamNode pn, int dim);
 
   /** for testing purpose only */
   CoefFunctionFileData(std::istream& input, int dim);

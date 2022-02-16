@@ -32,6 +32,17 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConversion.hh
 )
 
+if(USE_EMBEDDED_PYTHON)
+  # see FindPrograms.cmake on how the PYTHON_ stuff is set
+  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
+  # required for numpy
+  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  set(COEFFUNCTION_SRCS ${COEFFUNCTION_SRCS} CoefFunctionPython.cc)
+else()
+  # empty definitions to please linker
+  set(COEFFUNCTION_SRCS ${COEFFUNCTION_SRCS} NoPythonCoefFunctionPython.cc)
+endif()
+
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 
 IF(TARGET cgal)

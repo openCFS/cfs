@@ -64,7 +64,7 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetRhsFeFunctions() { return rhsFeFunctions_;  }
     
     //! Return pointer to the SolveStep object
-    BaseSolveStep * GetSolveStep();
+    BaseSolveStep* GetSolveStep();
     
     //! Return vector with resultInfo types
     ResultInfoList& GetResultInfos() { return results_;}

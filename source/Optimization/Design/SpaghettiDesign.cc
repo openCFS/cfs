@@ -4,7 +4,7 @@
 #include "Optimization/Design/SpaghettiDesign.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include "Optimization/PythonTools.hh"
+#include "Utils/PythonKernel.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/TransferFunction.hh"
 
@@ -66,10 +66,8 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
 
 SpaghettiDesign::~SpaghettiDesign()
 {
-   if(python)
-     PythonDestructor();
+  Py_XDECREF(module_);
 }
-
 
 void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
 {
@@ -82,18 +80,7 @@ void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
   sp_info_->Get("boundary/type")->SetValue(boundary.ToString(boundary_));
   sp_info_->Get("boundary/transition")->SetValue(transition);
 
-  PtrParamNode py = sp_info_->Get("python");
-  if(python) {
-    py->Get("file")->SetValue(file_);
-    py->Get("version")->SetValue(version_);
-    for(auto& opt : pyopts) {
-      PtrParamNode o = py->Get("option", ParamNode::APPEND);
-      o->Get("key")->SetValue(opt.first);
-      o->Get("value")->SetValue(opt.second);
-    }
-  } else {
-    py->SetValue(false);
-  }
+  // python stuff written with PythonInit()
 
   PtrParamNode msh = sp_info_->Get("mesh");
   msh->Get("n")->SetValue(n_.ToString());
@@ -108,26 +95,16 @@ void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
     s.ToInfo(base->Get("noodle", ParamNode::APPEND));
 }
 
-void SpaghettiDesign::PythonDestructor()
-{
-  py_timer->Start();
-
-  Py_XDECREF(python);
-  python = NULL;
-  Py_Finalize();
-
-  py_timer->Stop();
-}
 
 StdVector<string> SpaghettiDesign::PythonGetInfoFieldKeys()
 {
   // get keys of python glob.info_field
   // no need to time the stuff
-  PyObject* afunc = PyObject_GetAttrString(python, "cfs_info_field_keys");
-  CheckPythonFunction(afunc, "cfs_info_field_keys");
+  PyObject* afunc = PyObject_GetAttrString(module_, "cfs_info_field_keys");
+  PythonKernel::CheckPythonFunction(afunc, "cfs_info_field_keys");
 
   PyObject* py_list = PyObject_CallObject(afunc, NULL);
-  CheckPythonReturn(py_list);
+  PythonKernel::CheckPythonReturn(py_list);
 
   if(!PyList_Check(py_list))
     EXCEPTION("python function cfs_info_field_keys did not return a list")
@@ -151,16 +128,24 @@ StdVector<string> SpaghettiDesign::PythonGetInfoFieldKeys()
 
 void SpaghettiDesign::PythonInit(PtrParamNode pn)
 {
+  // as spaghetti.py has no callback, we don't need to register
   py_timer->Start();
 
-  pyopts = ParseOptions(pn->GetList("option"));
+  pyopts = PythonKernel::ParseOptions(pn->GetList("option"));
 
-  python = InitializePythonModule(pn->Get("file")->As<string>(), pn->Get("path")->As<string>(), nullptr, &file_, &version_);
-  LOG_DBG(pasta) << "PY file=" << file_ << " version=" << version_;
+  PythonKernel::LoadStatus stat = python->LoadPythonModule(pn);
+  module_ = stat.module;
+
+  sp_info_ = info_->Get("spaghetti");
+  PtrParamNode py = sp_info_->Get("python");
+  py->Get("file")->SetValue(stat.full_file);
+  if(progOpts->DoDetailedInfo())
+    py->Get("syspath")->SetValue(stat.sys_path.ToString(TS_PLAIN, ":"));
+  py->Get("options")->SetValue(pyopts);
 
   // def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz):
-  PyObject* func = PyObject_GetAttrString(python, "cfs_init");
-  CheckPythonFunction(func, "cfs_init");
+  PyObject* func = PyObject_GetAttrString(module_, "cfs_init");
+  PythonKernel::CheckPythonFunction(func, "cfs_init");
 
   PyObject* arg = PyTuple_New(11);
   PyTuple_SetItem(arg, 0, PyFloat_FromDouble(rhomin));
@@ -178,9 +163,9 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
     PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
   PyTuple_SetItem(arg, 9, des); // steals the reference, so no need to decref
 
-  PyTuple_SetItem(arg, 10, CreatePythonDict(pyopts));
+  PyTuple_SetItem(arg, 10, PythonKernel::CreatePythonDict(pyopts));
   PyObject* ret = PyObject_CallObject(func, arg);
-  CheckPythonReturn(ret);
+  PythonKernel::CheckPythonReturn(ret);
 
   Py_XDECREF(ret);
   Py_XDECREF(arg);
@@ -194,8 +179,8 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
   py_timer->Start();
 
   // def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):
-  PyObject* func = PyObject_GetAttrString(python, "cfs_set_spaghetti");
-  CheckPythonFunction(func, "cfs_set_spaghetti");
+  PyObject* func = PyObject_GetAttrString(module_, "cfs_set_spaghetti");
+  PythonKernel::CheckPythonFunction(func, "cfs_set_spaghetti");
 
   for(Noodle& s : spaghetti)
   {
@@ -216,7 +201,7 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
     LOG_DBG2(pasta) << "PUS: s=" << s.idx << " a=" << s.a.GetSize() << " func=" << func << " arg=" << arg << " pya=" << pya;
 
     PyObject* ret = PyObject_CallObject(func, arg);
-    CheckPythonReturn(ret);
+    PythonKernel::CheckPythonReturn(ret);
 
     Py_XDECREF(ret);
     Py_XDECREF(arg); // do NOT also Py_XDECREF(pya) as PyTuple_SetItem() steals the reference: https://docs.python.org/3/c-api/intro.html
@@ -232,7 +217,7 @@ void SpaghettiDesign::MapFeatureToDensity()
 {
   mapping_timer_->Start();
   // this is the pure python implementation
-  assert(python);
+  assert(module_);
 
   LOG_DBG(pasta) << "MFTD called";
 
@@ -242,11 +227,11 @@ void SpaghettiDesign::MapFeatureToDensity()
   py_timer->Start();
 
   // up to now we only can do python
-  PyObject* func = PyObject_GetAttrString(python, "cfs_map_to_design");
-  CheckPythonFunction(func, "cfs_map_to_design");
+  PyObject* func = PyObject_GetAttrString(module_, "cfs_map_to_design");
+  PythonKernel::CheckPythonFunction(func, "cfs_map_to_design");
 
   PyObject* ret = PyObject_CallObject(func, NULL);
-  CheckPythonReturn(ret);
+  PythonKernel::CheckPythonReturn(ret);
 
   // more convenient to use a temporary object than to iterate directly on the numpy object
   Vector<double> tmp(ret,true); // decref ret
@@ -271,7 +256,7 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
 {
   gradient_timer_->Start();
 
-  assert(python);
+  assert(module_);
 
   assert(mapped_design_ == design_id);
 
@@ -281,11 +266,11 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   // for several functions for the same design set (compliance, volume, ...)
 
   // we cannot create a numpy array in C - so get it from python to be filled with the rho-density to be given to python
-  PyObject* afunc = PyObject_GetAttrString(python, "cfs_get_drho_vector");
-  CheckPythonFunction(afunc, "cfs_get_drho_vector");
+  PyObject* afunc = PyObject_GetAttrString(module_, "cfs_get_drho_vector");
+  PythonKernel::CheckPythonFunction(afunc, "cfs_get_drho_vector");
 
   PyObject* np_rho = PyObject_CallObject(afunc, NULL);
-  CheckPythonReturn(np_rho);
+  PythonKernel::CheckPythonReturn(np_rho);
 
   // we create a temporary vector for the gradient values such that we can use Export() - just for convenience.
   // With Python we expect no hpc performance anyway
@@ -297,8 +282,8 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   drho.Export(np_rho);
 
   // now get the gradient from python. We get all gradients and ignore efficiency optimization by skipping fixed variables
-  PyObject* gfunc = PyObject_GetAttrString(python, "cfs_get_gradient");
-  CheckPythonFunction(gfunc, "cfs_get_gradient");
+  PyObject* gfunc = PyObject_GetAttrString(module_, "cfs_get_gradient");
+  PythonKernel::CheckPythonFunction(gfunc, "cfs_get_gradient");
 
   PyObject* arg = PyTuple_New(2);
   Py_INCREF(np_rho); // this is important, as PyTuple_SetItem() steals the reference: https://docs.python.org/3/c-api/intro.html
@@ -306,7 +291,7 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   PyTuple_SetItem(arg, 1, PyUnicode_FromString(f->ToString().c_str()));
 
   PyObject* np_grad = PyObject_CallObject(gfunc, arg);
-  CheckPythonReturn(np_grad);
+  PythonKernel::CheckPythonReturn(np_grad);
 
   // create temporary vector - ordering is all nodes, profiles, normals as in density.xml and SetupDesign()
   // we set all to shape_param_ and opt_shape_param_ "gets updated automatically" - clearly its all pointer referencing
@@ -342,14 +327,14 @@ void SpaghettiDesign::PrepareSpecialResults()
   StdVector<const ResultDescription*> res = GetGenericResults();
   for(const ResultDescription* rs : res)
   {
-    PyObject* afunc = PyObject_GetAttrString(python, "cfs_get_info_field");
-    CheckPythonFunction(afunc, "cfs_get_info_field");
+    PyObject* afunc = PyObject_GetAttrString(module_, "cfs_get_info_field");
+    PythonKernel::CheckPythonFunction(afunc, "cfs_get_info_field");
 
     PyObject* arg = PyTuple_New(1);
     PyTuple_SetItem(arg, 0, PyUnicode_FromString(rs->generic.c_str()));
 
     PyObject* np = PyObject_CallObject(afunc, arg);
-    CheckPythonReturn(np);
+    PythonKernel::CheckPythonReturn(np);
 
     Vector<double> sr(np, true); // decref
     assert(sr.GetSize() == data.GetSize()); // will fail once we have angle!!

@@ -35,13 +35,11 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Solvers.xsd ${DST_DIR}/Schemas/CFS_Solvers.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_ErsatzMaterial.xsd ${DST_DIR}/Schemas/CFS_ErsatzMaterial.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd ${DST_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PythonKernel.xsd ${DST_DIR}/Schemas/CFS_PythonKernel.xsd
   COMMENT "Updating XML schemata for CFS++ simulation..."
 )
 
-ADD_CUSTOM_TARGET(share_xml_cfsopt ALL 
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
-  COMMENT "Updating XML schemata for CFS++ optimization...")
-  
 SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/CFS-Material)
 SET(DST_DIR ${CFS_BINARY_DIR}/share/xml/CFS-Material)
 

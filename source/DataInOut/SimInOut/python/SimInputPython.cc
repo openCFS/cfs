@@ -2,18 +2,23 @@
 #include <iostream>
 #include <algorithm>
 
+#include <def_use_embedded_python.hh>
+#ifdef USE_EMBEDDED_PYTHON
+  #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
+  #include <Python.h>
+#endif
+
+
 #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
 //#include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/core/include/numpy/arrayobject.h>
 #include "SimInputPython.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include "Optimization/PythonTools.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/tools.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-
 
 // declare class specific logging stream
 DEFINE_LOG(pymesh, "pymesh")
@@ -24,98 +29,42 @@ using std::to_string;
 namespace CoupledField
 {
 
-/** global pointer to be used by the callback function */
-SimInputPython* static_pymesh = NULL;
-
-PyObject* SimInputPython::cfs_set_nodes(PyObject *self, PyObject *args)
-{
-  static_pymesh->SetNodes(args);
-  Py_RETURN_NONE;
-}
-
-PyObject* SimInputPython::cfs_set_regions(PyObject *self, PyObject *args)
-{
-  static_pymesh->SetRegions(args);
-  Py_RETURN_NONE;
-}
-
-PyObject* SimInputPython::cfs_add_elements(PyObject *self, PyObject *args)
-{
-  static_pymesh->AddElements(args);
-  Py_RETURN_NONE;
-}
-
-PyObject* SimInputPython::cfs_add_named_nodes(PyObject *self, PyObject *args)
-{
-  static_pymesh->AddNamedNodes(args);
-  Py_RETURN_NONE;
-}
-
-PyObject* SimInputPython::cfs_add_named_elements(PyObject *self, PyObject *args)
-{
-  static_pymesh->AddNamedElements(args);
-  Py_RETURN_NONE;
-}
-
-PyMethodDef SimInputPython::cfs_pymesh_methods[] = {
-    {"set_nodes", SimInputPython::cfs_set_nodes, METH_VARARGS, "Set node coordinates via numpy array with 2 or 3 columns"},
-    {"set_regions", SimInputPython::cfs_set_regions, METH_VARARGS, "set region names by list of strings"},
-    {"add_elements", SimInputPython::cfs_add_elements, METH_VARARGS, "parameters total_number, fe_type, int numpy array of 1-based node ids"},
-    {"add_named_nodes", SimInputPython::cfs_add_named_nodes, METH_VARARGS, "string and int numpy array of 1-based node ids"},
-    {"add_naned_elements", SimInputPython::cfs_add_named_elements, METH_VARARGS, "string and int numpy array of 1-based element ids"},
-    {NULL, NULL, 0, NULL}
-};
-
-PyModuleDef SimInputPython::cfs_pymesh_modules = {
-    PyModuleDef_HEAD_INIT, "cfs", NULL, -1, cfs_pymesh_methods, NULL, NULL, NULL, NULL
-};
-
-PyObject* SimInputPython::PyInit_meshpy_cfs(void)
-{
-  // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
-  import_array();
-
-  return PyModule_Create(&SimInputPython::cfs_pymesh_modules);
-}
-
-
-
 SimInputPython::SimInputPython(std::string fileName, PtrParamNode inputNode, PtrParamNode infoNode) :
   SimInput(fileName, inputNode, infoNode)
 {
   info_ = infoNode->Get(ParamNode::HEADER)->Get("domain/python");
-  static_pymesh = this;
   capabilities_.insert( SimInput::MESH);
 
+  python->Register(this);
   // InitModule() does the real work
 }
 
-
 SimInputPython::~SimInputPython()
 {
-  // we shall have cleaned module in ReadMesh(). No assert as it with fail as exceptions call desctructors
+  python->Register(this, true); // remove
 }
 
 
 void SimInputPython::InitModule()
 {
-  string version;
-  StdVector<string> syspath;
-  module = InitializePythonModule(myParam_->Get("fileName")->As<string>(), myParam_->Get("path")->As<string>(), PyInit_meshpy_cfs, &givenname,&version, &syspath);
+  PythonKernel::LoadStatus stat = python->LoadPythonModule(myParam_->Get("fileName")->As<string>(), myParam_->Get("path")->As<string>());
+
+  module = stat.module;
+  givenname = stat.full_file;
 
   info_->Get("file")->SetValue(givenname);
-  info_->Get("pythonversion")->SetValue(version);
   info_->Get("function")->SetValue("set_cfs_mesh");
   if(progOpts->DoDetailedInfo())
-    info_->Get("syspath")->SetValue(syspath.ToString(TS_PLAIN, ":"));
+    info_->Get("syspath")->SetValue(stat.sys_path.ToString(TS_PLAIN, ":"));
 
   // the options are given to the python function set_cfs_mesh()
   ParamNodeList lst = myParam_->GetList("option");
-  options = ParseOptions(lst);
+  options = PythonKernel::ParseOptions(lst);
 
   info_->Get("options")->SetValue(lst);
-
   // to be continued in ReadMesh()
+
+  import_array1();
 }
 
 
@@ -132,12 +81,12 @@ void SimInputPython::ReadMesh(Grid* grid)
   PyObject* init = PyObject_GetAttrString(module, "set_cfs_mesh");
   if(init && PyCallable_Check(init)) {
     PyObject* arg = PyTuple_New(1);
-    PyTuple_SetItem(arg, 0, CreatePythonDict(options));
+    PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonDict(options));
     LOG_DBG(pymesh) << "RM: call set_cfs_mesh()";
     PyObject* ret = PyObject_CallObject(init, arg);
     LOG_DBG(pymesh) << "RM: called set_cfs_mesh()";
     if(!ret)
-      throw Exception("set_cfs_mesh() aborted in module " + givenname + ": " + PyErr());
+      throw Exception("set_cfs_mesh() aborted in module " + givenname + ": " + PythonKernel::PyErr());
     Py_XDECREF(ret);
     Py_XDECREF(arg);
     Py_XDECREF(init);
@@ -148,7 +97,7 @@ void SimInputPython::ReadMesh(Grid* grid)
   // to expensive too keep for cfs life time
   Py_XDECREF(module);
   module = NULL;
-  Py_Finalize();
+  // The interpreter stays running!
 
   if(grid->GetNumNodes() == 0 || total_elements_ == 0 || grid->regionData.IsEmpty())
     throw Exception("set_cfs_mesh() did not call (all of) set_nodes, set_regions and add_elements");
@@ -165,12 +114,10 @@ void SimInputPython::SetNodes(PyObject* args)
   if(grid->GetNumNodes() > 0)
     throw Exception("set_nodes() called before");
 
-  import_array1();
-
   PyArrayObject *array = NULL;
 
   PyArg_ParseTuple(args, "O!", &PyArray_Type, &array);
-  CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn((PyObject*) array);
 
   if(!PyArray_Check(array))
     throw Exception("did not get numpy array with set_nodes()");
@@ -209,7 +156,7 @@ void SimInputPython::SetRegions(PyObject* args)
   // https://stackoverflow.com/questions/3253563/pass-list-as-argument-to-python-c-module
   PyObject* list;
   PyArg_ParseTuple(args, "O!", &PyList_Type, &list);
-  CheckPythonReturn((PyObject*) list);
+  PythonKernel::CheckPythonReturn((PyObject*) list);
 
   unsigned int numLines = PyList_Size(list);
   if(numLines < 1)
@@ -239,8 +186,8 @@ void SimInputPython::AddElements(PyObject* args)
   int type;
   PyArrayObject *array = NULL;
   int ret = PyArg_ParseTuple(args, "iiO!", &total, &type, &PyArray_Type, &array);
-  CheckPythonReturn(ret);
-  CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn(ret);
+  PythonKernel::CheckPythonReturn((PyObject*) array);
   LOG_DBG(pymesh) << "AE: total=" << total << " type=" << type << "=" << Elem::feType.ToString((Elem::FEType) type);
 
 
@@ -289,8 +236,8 @@ void SimInputPython::AddNamedNodesElements(PyObject* args, bool nodes)
   char* s;
   PyArrayObject *array = NULL;
   int ret = PyArg_ParseTuple(args, "sO!", &s, &PyArray_Type, &array);
-  CheckPythonReturn(ret);
-  CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn(ret);
+  PythonKernel::CheckPythonReturn((PyObject*) array);
   LOG_DBG(pymesh) << "ANNE: action=" << (nodes ? "nodes" : "elements") << " s=" << s << " rows=" << PyArray_DIM(array,0);
 
   Vector<unsigned int> vec((PyObject*) array, false); // shall be np.array(nodes, dtype=uintc)

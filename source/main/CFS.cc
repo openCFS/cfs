@@ -38,6 +38,7 @@
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "PDE/SinglePDE.hh"
+#include "Utils/PythonKernel.hh"
 
 using namespace CoupledField;
 using namespace std;
@@ -47,7 +48,6 @@ using namespace boost::gregorian;
 
 // Create global info node
 PtrParamNode infoNode;
-
 
 #ifdef USE_PETSC
 int main(int argc, const char **argv)
@@ -211,18 +211,29 @@ int CFS::Run()
       cout << endl;
     }
 
-    ReadXMLFile();
+    ReadXMLFile(); // sets paramNode_
+
+    // the python kernel only does stuff when compiled with USE_EMBEDDED_PYTHON and when we actually load a module (script)
+    python = new PythonKernel(paramNode_->Get("python", ParamNode::PASS), infoNode);
+
     SetupIO(paramNode_);
 
     domain = new Domain( gridInputs, resultHandler, materialHandler, 
                          simState, paramNode_, infoNode );
+
     // Create grid
     domain->CreateGrid();
+
+    // if a python function is registered, call it.
+    python->CallHook(PythonKernel::POST_GRID);
 
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else
       SolveProblem();
+
+    python->CallHook(PythonKernel::POST_SOLVE_PROBLEM);
+
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);

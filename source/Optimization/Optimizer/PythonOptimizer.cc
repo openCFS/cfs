@@ -15,10 +15,9 @@
 #include "Optimization/Optimizer/PythonOptimizer.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/PythonTools.hh"
 #include "MatVec/Vector.hh"
+#include "Utils/PythonKernel.hh"
 #include "Utils/tools.hh"
-
 
 // declare class specific logging stream
 DEFINE_LOG(pyopt, "pyopt")
@@ -30,135 +29,12 @@ using std::string;
 using std::to_string;
 using std::make_pair;
 
-/** global pointer to the snopt class to be used by the callback function */
-PythonOptimizer* static_pyopt = NULL;
-
-/** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
-static PyObject* cfs_getDims(PyObject *self, PyObject *args)
-{
-  return static_pyopt->GetDims(args);
-}
-
-/** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
-static PyObject* cfs_bounds(PyObject *self, PyObject *args)
-{
-  static_pyopt->GetBounds(args);
-  Py_RETURN_NONE;
-}
-
-/** cfs.initialdesign(x) fills 1d numpy array */
-static PyObject* cfs_initialdesign(PyObject *self, PyObject *args)
-{
-  static_pyopt->GetInitialDesign(args);
-  Py_RETURN_NONE;
-}
-
-/** cfs.evalobj(x) returns a float) */
-static PyObject* cfs_evalobj(PyObject *self, PyObject *args)
-{
-  return PyFloat_FromDouble(static_pyopt->EvalObjective(args));
-}
-
-/** cfs.cfs_commitIteration() commits iteration to cfs */
-static PyObject* cfs_commitIteration(PyObject *self, PyObject *args)
-{
-  static_pyopt->CommitIteration(); // return paramnode ignored;
-
-  Py_RETURN_NONE;
-}
-
-/** cfs.evalgradobj(x,grad) fills numpy 1d arrays of size n */
-static PyObject* cfs_evalgradobj(PyObject *self, PyObject *args)
-{
-  static_pyopt->EvalGradObjective(args);
-//  cfs_commitIteration(self,args);
-
-  Py_RETURN_NONE;
-}
-
-/** cfs.cfs_evalconstrs(x,g) fills numpy 1d arrays of size n and m */
-static PyObject* cfs_evalconstrs(PyObject *self, PyObject *args)
-{
-  static_pyopt->EvalConstraints(args);
-
-  Py_RETURN_NONE;
-}
-
-/** cfs.cfs_evalgradconstrs(x,grad) fills numpy 1d arrays of size n and m*n */
-static PyObject* cfs_evalgradconstrs(PyObject *self, PyObject *args)
-{
-  static_pyopt->EvalGradConstraints(args);
-
-  Py_RETURN_NONE;
-}
-
-static PyObject* cfs_getSimpExponent(PyObject *self, PyObject *args)
-{
-  return PyFloat_FromDouble(static_pyopt->GetSimpExponent());
-}
-
-/** returns derivative of compliance w.r.t stiffness tensor entries of original (core) material */
-static PyObject* cfs_get_dfdH(PyObject *self, PyObject *args)
-{
-  static_pyopt->Get_dfdH(args);
-
-  Py_RETURN_NONE;
-}
-
-/** cfs.cfs_getOrgStiffness(stiffness) returns stiffness tensor of original (core) material */
-static PyObject* cfs_getOrgStiffness(PyObject *self, PyObject *args)
-{
-  static_pyopt->GetCoreStiffness(args);
-
-  Py_RETURN_NONE;
-}
-
-/** return true if cfs's stopping criteria is met, including finding the file HALTOPT */
-static PyObject* cfs_dostop(PyObject *self, PyObject *args)
-{
-  bool stop = static_pyopt->optimization->DoStopOptimization();
-
-  if(stop)
-    Py_RETURN_TRUE;
-  else
-    Py_RETURN_FALSE;
-}
-
-static PyMethodDef cfs_methods[] = {
-    {"getDims", cfs_getDims, METH_VARARGS, "Returns info on mesh dimensions: dim, nx, ny, nz."},
-    {"bounds", cfs_bounds, METH_VARARGS, "Give design and constraints bounds. Expects 1D arrays for xl, xu, gl, gu"},
-    {"initialdesign", cfs_initialdesign, METH_VARARGS, "Sets the initial design to the given 1D array"},
-    {"evalobj", cfs_evalobj, METH_VARARGS, "Evaluate objective. Expects 1D design array"},
-    {"evalconstrs", cfs_evalconstrs, METH_VARARGS, "Evaluate constraints. Expects 1D design array and 1D value array or size m"},
-    {"evalgradobj", cfs_evalgradobj, METH_VARARGS, "Evaluate objective gradient w. r. t design variables. Expects 1D design array and dense gradient array "},
-    {"evalgradconstrs", cfs_evalgradconstrs, METH_VARARGS, "Evaluate constrains gradients. Expects 1D design array of size n and dense 1D value array of size m*n"},
-    {"getSimpExponent", cfs_getSimpExponent, METH_VARARGS, "Returns power-law exponent."},
-    {"get_dfdH", cfs_get_dfdH, METH_VARARGS, "Returns derivative of objective w.r.t. material tensor. Expects 3D array of size nelems x 3 x 3"},
-    {"getOrgStiffness", cfs_getOrgStiffness, METH_VARARGS, "Returns stiffness tensor of original (core) material."},
-    {"commitIteration", cfs_commitIteration, METH_VARARGS, "Commit current iteration to cfs."},
-    {"dostop", cfs_dostop, METH_VARARGS, "Uses stopping criteria from cfs (including HALTOPT file) and returns True or False"},
-    {NULL, NULL, 0, NULL}
-};
-
-static PyModuleDef cfs_modules = {
-    PyModuleDef_HEAD_INIT, "cfs", NULL, -1, cfs_methods, NULL, NULL, NULL, NULL
-};
-
-static PyObject* PyInit_cfs(void)
-{
-  // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
-  import_array();
-
-  return PyModule_Create(&cfs_modules);
-}
 
 PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   BaseOptimizer(opt, pn, Optimization::PYTHON_SOLVER)
 {
-  static_pyopt = this;
   pyinf_ = info_->Get(Optimization::optimizer.ToString(Optimization::PYTHON_SOLVER));
   PtrParamNode pnh = pyinf_->Get(ParamNode::HEADER);
-
 
   BaseOptimizer::PostInitScale(1.0);
 
@@ -167,29 +43,31 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 
   assert(this_opt_pn_ != NULL);
 
-  string version;
-  StdVector<string> syspath;
-  module = InitializePythonModule(this_opt_pn_->Get("file")->As<string>(), this_opt_pn_->Get("path")->As<string>(), PyInit_cfs, &givenname,&version,&syspath);
+  python->Register(this);
+
+  PythonKernel::LoadStatus stat = python->LoadPythonModule(this_opt_pn_);
+  module = stat.module;
+  givenname = stat.full_file;
 
   pnh->Get("file")->SetValue(givenname);
-  pnh->Get("version")->SetValue(version);
   if(progOpts->DoDetailedInfo())
-    pnh->Get("syspath")->SetValue(syspath.ToString(TS_PLAIN, ":"));
-
+    pnh->Get("syspath")->SetValue(stat.sys_path.ToString(TS_PLAIN, ":"));
 
   // the options are given to the python functions setup() and init() for their usage
   ParamNodeList lst = this_opt_pn_->GetList("option");
-  options = ParseOptions(lst);
-
+  options = PythonKernel::ParseOptions(lst);
   pnh->Get("options")->SetValue(lst);
+
+  // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
+  import_array1(); // having this in the first call magically prevents segfaults with PyArg_ParseTuple
 
   // call optional setup()
   std::string val = "not callable";
   PyObject* setup = PyObject_GetAttrString(module, "setup");
   if(setup && PyCallable_Check(setup)) {
     PyObject* ret = PyObject_CallObject(setup, NULL);
-    CheckPythonReturn(ret, "setup"); // setup is optional, nut if there is function it shall work!
-    val = ToString(ret);
+    PythonKernel::CheckPythonReturn(ret, "setup"); // setup is optional, nut if there is function it shall work!
+    val = PythonKernel::ToString(ret);
     Py_XDECREF(ret);
     Py_XDECREF(setup);
   }
@@ -203,10 +81,10 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
     PyTuple_SetItem(arg, 1, PyLong_FromLong(m));
     PyTuple_SetItem(arg, 2, PyLong_FromLong(optimization->GetMaxIterations()));
     PyTuple_SetItem(arg, 3, PyUnicode_FromString(progOpts->GetSimName().c_str()));
-    PyTuple_SetItem(arg, 4, CreatePythonDict(options));
+    PyTuple_SetItem(arg, 4, PythonKernel::CreatePythonDict(options));
     PyObject* ret = PyObject_CallObject(init, arg);
-    CheckPythonReturn(ret, "init");
-    pnh->Get("init")->SetValue(ToString(ret));
+    PythonKernel::CheckPythonReturn(ret, "init");
+    pnh->Get("init")->SetValue(PythonKernel::ToString(ret));
     Py_XDECREF(ret);
     Py_XDECREF(arg);
     Py_XDECREF(init);
@@ -216,9 +94,10 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 
 PythonOptimizer::~PythonOptimizer()
 {
+  python->Register(this, false);
   Py_XDECREF(module);
-  Py_Finalize();
 }
+
 
 
 void PythonOptimizer::SolveProblem()
@@ -233,7 +112,7 @@ void PythonOptimizer::SolveProblem()
 
   PyObject* ret = PyObject_CallObject(solve, NULL);
   if(!ret)
-    throw Exception("error calling solve() in python module " + givenname + ": " + PyErr());
+    throw Exception("error calling solve() in python module " + givenname + ": " + PythonKernel::PyErr());
 
   pyinf_->Get(ParamNode::SUMMARY)->Get("solve()")->SetValue(PyLong_AsLong(ret));
   Py_DECREF(ret);
@@ -412,7 +291,7 @@ void PythonOptimizer::EvalGradConstraints(PyObject *args)
   grad.Export(obj[1]);
 }
 
-inline double PythonOptimizer::GetSimpExponent() {
+double PythonOptimizer::GetSimpExponent() {
   return optimization->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH)->GetParam();
 }
 
@@ -422,7 +301,7 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
   PyArrayObject *list;
   PyArg_ParseTuple(args, "O!", &PyArray_Type, &list);
   if(!list)
-    throw Exception("no list given to Get_dfdH: " + PyErr());
+    throw Exception("no list given to Get_dfdH: " + PythonKernel::PyErr());
 
   // number of matrices inside list
   unsigned int n_mat = PyArray_DIM(list,0);

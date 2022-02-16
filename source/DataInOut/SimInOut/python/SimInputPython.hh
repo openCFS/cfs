@@ -2,15 +2,7 @@
 #define SIM_INPUT_PYTHON_HH
 
 #include <DataInOut/SimInput.hh>
-
-
-#include <def_use_embedded_python.hh>
-
-#ifdef USE_EMBEDDED_PYTHON
-  #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
-  #include <Python.h>
-#endif
-
+#include <Utils/PythonKernel.hh>
 
 namespace CoupledField
 {
@@ -19,6 +11,9 @@ namespace CoupledField
    * to be imported where cfs functions wait to be called. */
   class SimInputPython: virtual public SimInput
   {
+    /** the PythonKernel may call our private SetNodes(), SetRegions() from python */
+    friend class PythonKernel;
+
   public:
     /** fileName might be empty, then we get the stuff from inputNode */
     SimInputPython(std::string fileName, PtrParamNode inputNode, PtrParamNode infoNode);
@@ -35,7 +30,8 @@ namespace CoupledField
   private:
 
     /** to be called first as cfs.set_nodes with a numpy array with three columns of doubles with the nodes coordinates.
-     * The nodes are referred to as 1-based ids */
+     * The nodes are referred to as 1-based ids.
+     * Called from PythonKernel, which is our friend (can call private functions) */
     void SetNodes(PyObject* args);
 
     /** to be called second as cfs.set_regions with a list of region names. The region id for the other functions is the 0-based index */
@@ -67,7 +63,7 @@ namespace CoupledField
     /** the python options from the xml file */
     StdVector<std::pair<std::string, std::string> > options;
 
-    /** this is our python environment */
+    /** this represents the python script */
     PyObject* module = NULL;
 
     /** set by ReadMesh() */
@@ -78,18 +74,6 @@ namespace CoupledField
 
     /** child element of base class myInfo_ in header/domain */
     PtrParamNode info_;
-
-    /** make the static functions class members to allow access to private members, otherwise not needed  */
-    static PyObject* cfs_set_nodes(PyObject *self, PyObject *args);
-    static PyObject* cfs_set_regions(PyObject *self, PyObject *args);
-    static PyObject* cfs_add_elements(PyObject *self, PyObject *args);
-    static PyObject* cfs_add_named_nodes(PyObject *self, PyObject *args);
-    static PyObject* cfs_add_named_elements(PyObject *self, PyObject *args);
-    static PyObject* PyInit_meshpy_cfs(void);
-
-    static PyMethodDef cfs_pymesh_methods[];
-    static PyModuleDef cfs_pymesh_modules;
-
   }; // end class
 
 } // end name space

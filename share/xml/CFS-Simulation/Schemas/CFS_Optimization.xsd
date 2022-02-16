@@ -2536,12 +2536,7 @@
   <!-- This is the python field for python based optimizers, e.g. spaghetti -->
   <xsd:complexType name="DT_Python">
     <xsd:sequence>
-      <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
-        <xsd:complexType>
-          <xsd:attribute name="key" type="xsd:string" use="required" />
-          <xsd:attribute name="value" type="xsd:string" use="required" />
-        </xsd:complexType>
-      </xsd:element>
+      <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption" />
     </xsd:sequence>
     <!-- can be the full path if attribute path is not used -->
     <xsd:attribute name="file" type="xsd:string" use="required" />
