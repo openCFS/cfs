@@ -25,6 +25,7 @@ stages:
   - cfsdeps
   - build
   - test # we may have several test configs for one build
+  - docs
   - deploy
 
 # determine when pipelines are created
@@ -922,6 +923,37 @@ python:linux:
   artifacts: {}
 
 #######################################################################
+# DOCS STAGE - Documentation jobs
+#######################################################################
+
+# build doxygen docu
+doxygen:
+  stage: docs
+  image: opencfs/fedora32
+  tags:
+    - docker
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  before_script:
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+  script:
+    # configure with correct generator
+    - cmake ..
+    # build docu
+    - make doc-doxygen
+    # pack
+    - cd share/doc/developer/doxygen/html
+    - tar -czf doxygen-html.tgz *
+  after_script:
+    - mv build/share/doc/developer/doxygen/html/doxygen-html.tgz doxygen-html.tgz
+  artifacts:
+    paths:
+      - doxygen-html.tgz
+    expire_in: 6 hours
+  needs: []
+
+#######################################################################
 # DEPLOY STAGES
 #######################################################################
 
@@ -972,11 +1004,13 @@ pages:
     GIT_STRATEGY: none
   dependencies:
     - linux:gcc5
+    - doxygen
   script:
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
-    - mkdir -p public
+    - mkdir -p public/doxygen
     - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
     - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
+    - tar -xzf doxygen-html.tgz -C public/doxygen
   artifacts:
     paths:
       - public

@@ -516,13 +516,14 @@ namespace CoupledField {
   //**********************************************************************
   void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, PtrParamNode acou)
   {
-    
+    //! [Read PtrParamNode]
     // read density
-    if (acou->Has("density")) {
-      PtrCoefFct densFct = ReadScalarLin(acou, "density", Global::REAL);
-      material->SetCoefFct( DENSITY, densFct );
+    if (acou->Has("density")) { // check if PtrParamNode acou has <density> tag
+      PtrCoefFct densFct = ReadScalarLin(acou, "density", Global::REAL); // generate a real valued coefficient function
+      material->SetCoefFct( DENSITY, densFct ); // set it to the material
     }
-    
+    //! [Read PtrParamNode]
+
     // check for complex valued density
     if ( acou->Has("densityComplex") ) {
     	PtrCoefFct densFct = ReadScalarLin(acou, "densityComplex", Global::COMPLEX);
