@@ -86,6 +86,22 @@ testsuite-revision:
     - pwd # debug
   cache: {} # disable
 
+# check the links in markdown files using https://github.com/tcort/markdown-link-check
+markdown-link-check:
+  stage: check
+  image: 
+    name: ghcr.io/tcort/markdown-link-check # working label :3.9.2
+    entrypoint: ["/bin/sh","-c"]
+  tags:
+    - docker
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - markdown-link-check README.md
+    - markdown-link-check CONTRIBUTING.md
+  allow_failure: true
+  cache: {} # disable
+
 # this job is intended as a warning if the pipeline has changed
 # it is running only if there are changes, and will always fail if there are some
 pipeline-changes:

@@ -2,7 +2,7 @@ Contributing to openCFS
 =======================
 
 Looking to __contribute code__ to openCFS? Awesome! Go for it (after reading this guide) ...
-You can also contribute by _suggesting features_ or _giving feedback_ which is best done by opening an [issue](https://gitlab.com/openCFS/cfs/-/issues/new).
+You can also contribute by _suggesting features_ or _giving feedback_ which is best done by opening an [issue](https://gitlab.com/openCFS/cfs/-/issues).
 
 Getting Started
 ---------------
@@ -25,19 +25,26 @@ Merge Request Guidelines
   Always base your work on top of the master branch.
 * __Single topic per change__. 
   Often one finds something that needs fixing but is unrelated to the current work (can happen in the best codebase).
-  Please fix it in a separate topic branch and open another _merge request_.
+  Please fix it in a separate commit, or (for larger issues) create another topic branch and associated _merge request_.
 * __Use a coherent commit history__.
-  Make sure each individual commit in your pull request is meaningful and organized in logical chunks.
-  Tidy up and squash commits before submitting a merge request.
-  Most contributions will fit in a single commit.
+  Make sure your merge request is organized in logical chunks of meaningful individual commits.
+  Tidy up your history before submitting a merge request.
+* __Keep commits small__. Indeally, the changes bundled into a commit can be described by a one-liner, e.g.
+  *added postprocessing result for magnetic energy density in MagEdgePDE*.
+  The commit message adds context to the code changes (why this change?) and commits become instructive for new developers.
 * __Discuss large changes__ in an issue to make sure nobody is already working on a similar topic. 
   This will also make sure you can get relevant input of senior developers and avoids possible conflicts with related changes happening at the same time.
 * Run the __Testsuite__ regularly on your local development machine,
-  and make sure your merge request passes the __Pipeline__ with all relevant build configurations.
+  and make sure every fast-forward commit in your merge request passes the __Pipeline__ with all relevant build configurations.
   We only include contributions that pass all tests in the pipeline. 
 * Make sure your contribution __merges fast forward__ into the master branch.
   This is the only way to ensure the code is tested before ending up in the master branch, keeping it stable.
-
+  If, for _good reason_ not every commit in your merge request passes the pipeline, you can create a (fast-forward) merge commit on your feature branch (which must pass all tests).
+* Respect the  __Assignee__ of the merge request on gitlab.
+  To prevent conflicts when cleaning up the history, only a single person should be __assigned__ to a merge request:
+  This person is allwed to __work__ (commit, force push, ...) on the branch of the mergre request.
+  Change the assignment from yourself to someone else (which will get notified) to hand over!
+  
 Bringing your contribution in shape for a merge adhering to the guidelines above can be hard.
 If you're unsure of how to do something please study our guide on [git workflow](https://gitlab.com/openCFS/cfs/-/wikis/git-workflow),
 and do not hesitate to ask for further guidance.
