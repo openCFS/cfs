@@ -1159,7 +1159,8 @@ namespace CoupledField
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
                                    StdVector<shared_ptr<EntityList> >(),
-                                   Double tol = 0.0 );
+                                   Double tol = 0.0,
+                                   bool updatedGeo = false );
 
     //! Map for each dimension (key) a list containing the "boxes" of elements (value)
     std::map<UInt, std::vector<HandleBox> > elemBoxes_;
@@ -1176,7 +1177,8 @@ namespace CoupledField
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
                                    StdVector<shared_ptr<EntityList> >(),
-                                   Double tol = 1e-3 );
+                                   Double tol = 1e-3,
+                                   bool updatedGeo = false );
 
 #else
     //! Return list of potential elements containing global points (slow version)
@@ -1189,7 +1191,7 @@ namespace CoupledField
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
                                    StdVector<shared_ptr<EntityList> >(),
                                    Double tol = 1e-3,
-                                   bool updatedGeo = false);
+                                   bool updatedGeo = false );
     
     //! Define type for bounding boxes
     typedef std::pair<boost::array<Double,6>, UInt> BoxType;

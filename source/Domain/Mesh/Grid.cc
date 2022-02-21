@@ -1255,11 +1255,12 @@ namespace CoupledField
 
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                        const StdVector<shared_ptr<EntityList> >& srcEntities,
-                                       Double tol ) {
+                                       Double tol,
+                                       bool updatedGeo ) {
     boost::array<Double,6> bbox;
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
-    if(elemBoxes_.empty())
+    if(elemBoxes_.empty() || updatedGeo == 1)
     {
       StdVector<Elem*> elems;
       Vector<Double> p(3);
@@ -1277,7 +1278,7 @@ namespace CoupledField
           if( Elem::shapes[elems[i]->type].dim != dim ) 
             continue;
 
-          CreateBBoxFromElement(elems[i], tol, &bbox[0]);
+          CreateBBoxFromElement(elems[i], tol, &bbox[0], updatedGeo);
 
           HandleBox hbox(BBox3D(bbox[0], bbox[1], bbox[2],
                                 bbox[3], bbox[4], bbox[5]),
@@ -1737,7 +1738,7 @@ namespace CoupledField {
     //   0     1      2     3     4     5
     boost::array<Double,6> bbox;
     
-    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0], false); // set the updatedGeometry flag to false (similar to the previous implementation)
 
     return std::make_pair(bbox[0], bbox[3]);
   }
@@ -1751,7 +1752,7 @@ namespace CoupledField {
     //   0     1      2     3     4     5
     boost::array<Double,6> bbox;
     
-    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0], false); // set the updatedGeometry flag to false (similar to the previous implementation)
 
     return std::make_pair(bbox[1], bbox[4]);
   }
@@ -1765,7 +1766,7 @@ namespace CoupledField {
     //   0     1      2     3     4     5
     boost::array<Double,6> bbox;
     
-    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0], false);
 
     return std::make_pair(bbox[2], bbox[5]);
   }
@@ -1811,7 +1812,10 @@ namespace CoupledField {
 
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                        const StdVector<shared_ptr<EntityList> >& srcEntities,
-                                       Double tol ) {
+                                       Double tol,
+                                       bool updatedGeo ) {
+    WARN("Updated geometry is not used, please implement me!");
+    
     std::vector< Elem* > elems;
     std::vector< Vector<Double>* > points;
     
