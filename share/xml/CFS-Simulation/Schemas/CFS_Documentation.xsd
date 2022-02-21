@@ -51,14 +51,14 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="references" minOccurs="1" maxOccurs="1">
+      <xsd:element name="references" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             What literature has been used to create this simulation?
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="isVerified" minOccurs="1" maxOccurs="1" type="DT_CFSBool">
+      <xsd:element name="isVerified" minOccurs="0" maxOccurs="1" type="DT_CFSBool">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Is this a verified example, i.e. an analytical solution or measured
@@ -71,13 +71,6 @@
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Detailed description of the current simulation.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="free" minOccurs="0" maxOccurs="1">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            More informations the authors want to add.
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
@@ -104,7 +97,7 @@
     </xsd:annotation>
 
     <xsd:sequence>
-      <xsd:element name="keyword" minOccurs="1" maxOccurs="unbounded"
+      <xsd:element name="keyword" minOccurs="0" maxOccurs="unbounded"
                    type="DT_DocAllowedKeywords"/>
     </xsd:sequence>
   </xsd:complexType>
