@@ -3,4 +3,5 @@
 #=============================================================================
 
 # copy data from install dir to the target.
-FILE(COPY "@mpfr_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
+file(COPY "@mpfr_install@/include/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
+file(COPY "@mpfr_install@/lib64/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64")
