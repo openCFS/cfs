@@ -4,8 +4,6 @@ SET(CMAKE_CURRENT_SOURCE_DIR "@CMAKE_CURRENT_SOURCE_DIR@")
 
 INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake_modules/DevelopmentServer.cmake")
 
-INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/../doc-common.cmake")
-
 MESSAGE(STATUS "Building Doxygen documentation...")
 
 SET(DOXY_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/doxygen/html") 
@@ -18,8 +16,6 @@ SET(PYG_OPTIONS -O linenos=True,linenostep=1,style=${PYGMENTS_STYLE})
 SET(CFS_WC_URL "@CFS_WC_URL@")
 SET(CFS_WC_REVISION "@CFS_WC_REVISION@")
 SET(CFS_VERSION "@CFS_VERSION@")
-
-TODAY(DATE)
 
 CONFIGURE_FILE(
   "${CMAKE_CURRENT_SOURCE_DIR}/doxygen/config/header.html.in"
@@ -44,21 +40,6 @@ EXECUTE_PROCESS(
 
 FILE(MAKE_DIRECTORY "${DOXY_HTML_DIR}/images")
 
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/cfs-logo_small.png" "${DOXY_HTML_DIR}/images/cfs-logo.png"
-  )
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/e325_logo.png" "${DOXY_HTML_DIR}/images/e325_logo.png"
-  )
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/tu_signet.png" "${DOXY_HTML_DIR}/images/tu_signet.png"
-  )
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/cfs-docu.png" "${DOXY_HTML_DIR}/images/cfs-docu.png"
-  )
 
 # Write Pygments HTML CSS style file
 EXECUTE_PROCESS(
@@ -67,12 +48,6 @@ EXECUTE_PROCESS(
   )
 
 FILE(WRITE "${DOXY_HTML_DIR}/pygments.css" "${PYGMENTS_CSS}")
-
-# Write Pygments HTML listing
-EXECUTE_PROCESS(
-  COMMAND "${PYGMENTS_EXE}" -f html ${PYG_OPTIONS} "${CMAKE_CURRENT_SOURCE_DIR}/../developer/develManual/sources/qs_bootstrap.sh"
-  OUTPUT_VARIABLE PYG_HTMLOUT
-  )
 
 FILE(WRITE "${DOXY_HTML_DIR}/../snippets/pygments_test.html" "<div id=\"franzgeorg\" class=\"fragment\">")
 FILE(APPEND "${DOXY_HTML_DIR}/../snippets/pygments_test.html" "${PYG_HTMLOUT}")
@@ -86,11 +61,6 @@ EXECUTE_PROCESS(
 
 FILE(WRITE "${DOXY_LATEX_DIR}/pygments.tex" "${PYGMENTS_LATEX}")
 
-# Write Pygments LaTeX listing
-EXECUTE_PROCESS(
-  COMMAND "${PYGMENTS_EXE}" -f latex ${PYG_OPTIONS} "${CMAKE_CURRENT_SOURCE_DIR}/../developer/develManual/sources/qs_bootstrap.sh"
-  OUTPUT_VARIABLE PYG_LATEXOUT
-  )
 
 STRING(REPLACE "commandchars"
   "frame=lines,framesep=2mm,fontsize=\\small,commandchars"
@@ -98,5 +68,4 @@ STRING(REPLACE "commandchars"
   "${PYG_LATEXOUT}"
   )
 
-FILE(WRITE "${DOXY_LATEX_DIR}/pygments_test.tex" "${PYG_LATEXOUT}")
 

@@ -1,9 +1,0 @@
-<fileFormats>
-  <input>
-    <gmsh fileName="input.msh">
-      <region name="air" physicalEntity="0"/>
-      <region name="cylinder" physicalEntity="1"/>
-      <region name="bnd" physicalEntity="2"/>
-    </gmsh>
-  </input>
-</fileFormats>

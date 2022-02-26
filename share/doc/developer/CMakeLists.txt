@@ -36,6 +36,9 @@
 # www.mip.informatik.uni-kiel.de/~jw
 cmake_minimum_required(VERSION 2.9)
 
+message(STATUS "doc/develper with DOXYGEN=${DOXYGEN}")
+
+
 IF (DOXYGEN)
 
   # click+jump in Emacs and Visual Studio (for doxy.config) (jw)
@@ -58,16 +61,6 @@ IF (DOXYGEN)
   ENDIF (NOT DVIPS_CONVERTER)
 
 
-  CONFIGURE_FILE(
-    "${CMAKE_CURRENT_SOURCE_DIR}/doc-develmanual.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
-    @ONLY )
-
-  ADD_CUSTOM_TARGET(doc-develmanual
-                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
-		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
-		    )
-
   SET(DOXY_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/doxygen/config/doxy-config.in")
   SET(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/doxygen/doxy-config")
   # MESSAGE(STATUS "Configuring ${DOXY_CONFIG_IN} --> ${DOXY_CONFIG} for CFS++ ${CFS_VERSION}")
@@ -84,9 +77,8 @@ IF (DOXYGEN)
     ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
 	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake" )
 
-
   ADD_CUSTOM_TARGET(doc-devel
-    DEPENDS doc-develmanual doc-doxygen)
+    DEPENDS doc-doxygen)
 
   # create a windows help .chm file using hhc.exe
   # HTMLHelp DLL must be in path!

@@ -29,7 +29,6 @@ We use CMake so it might be as simple as
 ```shell
 mkdir build && cd build
 cmake ..
-cmake .
 make
 ```
 
