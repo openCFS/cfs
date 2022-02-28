@@ -124,7 +124,7 @@ void CoefFunctionFileData::ReadData(std::istream& input, int dim)
   }
 
 
-  assert(idx == node_.GetSize());
+  assert(idx == (int) node_.GetSize());
 }
 
 

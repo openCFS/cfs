@@ -1373,6 +1373,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::DESIGN:
     case Function::MULTIMATERIAL_SUM:
     case Function::SHAPE_INF:
+    case Function::LOCAL_PYTHON_FUNCTION:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
@@ -1497,12 +1498,17 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       result = CalcExpression(g, derivative);
       break;
 
+    case Function::PYTHON_FUNCTION:
+      result = CalcPython(excite, f, derivative);
+      break;
+
     case Function::ISOTROPY:
     case Function::ISO_ORTHOTROPY:
     case Function::ORTHOTROPY:
     case Function::MULTI_OBJECTIVE:
       assert(false);// no valid function
       break;
+
     // no default, gcc warns
   }
   LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
@@ -1941,6 +1947,7 @@ double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* c, Conditio
   }
   return res;
 }
+
 
 
 

@@ -25,6 +25,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
+#include "Utils/PythonKernel.hh"
 
 using namespace CoupledField;
 using std::abs;
@@ -349,15 +350,19 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
+
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
   // we might come from another eval, then the optimizer is already stopped and we must not restart it
   bool restart_timer = optimizer_timer_->IsRunning();
   if(restart_timer)
     optimizer_timer_->Stop();
 
+  python->CallHook(PythonKernel::OPT_EVAL_FUNC);
+
   assert(!GetRunningEvalTimer()); // no currently running timer!
 
   eval_obj_timer_->Start();
+
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -443,6 +448,8 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   if(opt_run)
     optimizer_timer_->Stop();
 
+  python->CallHook(PythonKernel::OPT_EVAL_GRAD);
+
   // might trigger EvalObjective so start timer afterwards
   bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
 
@@ -494,6 +501,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val, bool normalize)
 {
   optimizer_timer_->Stop();
+  python->CallHook(PythonKernel::OPT_EVAL_FUNC);
 
   ConditionContainer& cc = optimization->constraints;
 
@@ -582,6 +590,8 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 {
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
   optimizer_timer_->Stop();
+
+  python->CallHook(PythonKernel::OPT_EVAL_GRAD);
 
   // might trigger EvalObjective so start timer afterwards
   SolveAdjointProblemsIfNeeded(n, x, cfs_scale);

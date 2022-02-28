@@ -59,6 +59,8 @@
                         <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1" />
                         <!-- some (global) local constraints have optional or mandatory local properties -->
                         <xsd:element name="local" type="DT_Local" minOccurs="0" maxOccurs="1" />
+                        <!-- local and global python function -->
+                        <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1" />
                       </xsd:all>
                       <xsd:attribute name="type" type="DT_Objective" use="required" />
                       <!-- when type is slackFunction we need to give function -->
@@ -236,6 +238,9 @@
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1" />
 
+            <!--  for python function -->
+            <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1"/>
+
             <!-- some (global) local functions have optional or mandatory local properties -->
             <xsd:element name="local" type="DT_Local" minOccurs="0" maxOccurs="1"/>
 
@@ -333,6 +338,8 @@
             <!-- only for the output constraint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1" />
             <xsd:element name="squaredOutput" type="DT_output" minOccurs="0" maxOccurs="1" />
+            <!-- for local and global python function -->
+            <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1" />
           </xsd:all>
           <!-- mandatory to give the name -->
           <xsd:attribute name="type" use="required">
@@ -346,6 +353,9 @@
                 <xsd:enumeration value="conjugateCompliance" />
                 <xsd:enumeration value="globalDynamicCompliance" />
                 <xsd:enumeration value="output" />
+                <!-- requires the python sub-element -->
+                <xsd:enumeration value="python" />
+                <xsd:enumeration value="localPython" />
                 <xsd:enumeration value="squaredOutput" />
                 <xsd:enumeration value="greyness" />
                 <xsd:enumeration value="realvolume" />
@@ -1031,6 +1041,7 @@
                 <!-- this is for own implementation of BFGS optimization method presented by Tim Kelly https://ctk.math.ncsu.edu/matlab_darts.html -->
                 <!-- <xsd:enumeration value="bfgs"/> -->
                 <xsd:enumeration value="python" />
+                <xsd:enumeration value="localPython" />
                 <!-- this evaluates only the initial design -->
                 <xsd:enumeration value="evaluate" />
                 <xsd:enumeration value="shapeOpt" />
@@ -2045,6 +2056,9 @@
       <xsd:enumeration value="youngsModulusE1" />
       <xsd:enumeration value="youngsModulusE2" />
       <xsd:enumeration value="volume" />
+      <!-- requires python sub-element -->
+      <xsd:enumeration value="python"/>
+      <xsd:enumeration value="localPython"/>
       <xsd:enumeration value="penalizedVolume" />
       <xsd:enumeration value="filteringGap" />
       <xsd:enumeration value="gap" />
@@ -2374,6 +2388,56 @@
       <xsd:enumeration value="maxEdge" />
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!-- this is a (global/local) python function for objective and constraint -->
+  <xsd:complexType name="DT_PythonFunction">
+    <xsd:sequence>
+      <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption" />
+    </xsd:sequence>
+    <xsd:attribute name="script" use="optional" default="kernel">
+      <xsd:annotation>
+        <xsd:documentation>Specify the python module (script) to be used (where the file is specified)</xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="kernel" />
+          <xsd:enumeration value="design" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    
+    <xsd:attribute name="name" type="xsd:token" use="optional" default="python">
+      <xsd:annotation>
+        <xsd:documentation>Optional name for the python function for info.xml and plot.dat</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="init" type="xsd:token" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Optional init python function. Will be called with dictionary opt with all function arguments.
+        Child elemements are flattened via colon separation.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="eval" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Mandatory name of python funciton which needs to return a float.
+        For global python opt is given as parameter (see init). 
+        For local python the local 0-based sub index is given. See sparsity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="grad" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Gradient funciton. Return numpy array of floats. See eval</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="sparsity" type="xsd:token" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Mandatory for sparsity pattern for local function. 
+        Return a list if numpy arrays of ints. 
+        The size of the list determines the number of local functions which determines the index for eval and grad</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+  
 
   <!-- This defines a filter. Which is either density or sensitivity filter. The density filter can also be of Heaviside/tanh type. To be used in regularization and for the projection constraint -->
   <xsd:complexType name="DT_Filter">

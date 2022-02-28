@@ -174,6 +174,11 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   py_timer->Stop();
 }
 
+PyObject* SpaghettiDesign::GetPythonModule()
+{
+  return module_;
+}
+
 void SpaghettiDesign::PythonUpdateSpaghetti()
 {
   py_timer->Start();

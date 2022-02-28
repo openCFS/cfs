@@ -52,7 +52,7 @@ extern PythonKernel* python;
 class PythonKernel
 {
 public:
-  typedef enum { POST_GRID = 0, POST_SOLVE_PROBLEM} Hook;
+  typedef enum { POST_GRID = 0, POST_SOLVE_PROBLEM, OPT_EVAL_FUNC, OPT_EVAL_GRAD} Hook;
 
   static Enum<Hook> hook;
 
@@ -79,7 +79,9 @@ public:
 
   /** to by called by the pathon mesher to forward the static functions from cfs_modules_, called from python to the class */
   void Register(SimInputPython* mesher, bool remove = false) { this->mesher_ = remove ? NULL : mesher; }
-  void Register(PythonOptimizer* opt, bool remove = false) { this->opt_ = remove ? NULL : opt; }
+
+  /** register PythonOptimizer. Note that Optimization is not registered but taken from domain->GetOptimization() */
+  void Register(PythonOptimizer* opt, bool remove = false) { this->pyopt_ = remove ? NULL : opt; }
 
   /** return value of LoadPythonModule. How easy this is with Python :( */
   struct LoadStatus
@@ -188,10 +190,14 @@ public:
   static bool CheckMesher();
 
   /** check if the PythonOptimizer is registered */
+  static bool CheckPyOpt();
+
+  /** check if we have Optimization at all.
+   * @see CheckPyOpt() */
   static bool CheckOpt();
 
   /** make this public such that the c-functions can directly call */
-  static PythonOptimizer* GetOpt() { return opt_; }
+  static PythonOptimizer* GetPyOpt() { return pyopt_; }
 
   /** DOES NOT WORK! SHALL REPLACE PythonOptimizer::ParseArrays() BUT SEGAULTS ?!
      * Helper which processes a PyTupleObject which needs to consist only of 1dim numpy arrays
@@ -250,7 +256,7 @@ private:
   /** to forward the python mesher calls from python (set_nodes, ...)
    * @see Register() */
   static SimInputPython* mesher_;
-  static PythonOptimizer* opt_;
+  static PythonOptimizer* pyopt_;
 
 // we can have a dummy PyObject* from Vector but not these structures
 #ifdef USE_EMBEDDED_PYTHON

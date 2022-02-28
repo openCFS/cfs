@@ -43,7 +43,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="keywords" type="DT_DocKeywordList">
+      <xsd:element name="keywords" minOccurs="0" maxOccurs="1" type="DT_DocKeywordList">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Keywords for identifying certain topics.

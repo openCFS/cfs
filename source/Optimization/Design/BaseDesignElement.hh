@@ -25,9 +25,10 @@ class BaseDesignElement
 {
 public:
 
-  /** types for GetValue() and for the optimization results in the xml file */
-  typedef enum { DESIGN, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
-    LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
+  /** types for GetValue() and for the optimization results in the xml file.
+   * The numbered values can also be applied to the python exported function opt_get_value */
+  typedef enum { DESIGN = 0, COST_GRADIENT = 1, CONSTRAINT_GRADIENT = 2, WEIGHT = 3, NUM_NEIGHBOURS = 4,
+    OBJECTIVE, LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
     MAX_CHECKERBOARD, /* the max value per element */
     MAX_MOLE, /* the max mole value */
@@ -57,40 +58,40 @@ public:
     GENERIC_ELEM /** with attribute generic with content from .info.xml, e.g. for Python spaghetti */
   } ValueSpecifier;
 
-    /** The type of this design element, influences the Get*Bound() methods.
-     * By definition the design elements are stored in the ordering of the type!!
-     * make sure, that ALL_DESIGNS is the last with the highest number!!! */
-    typedef enum { UNITY = -20, // unused stuff from ShapeOpt
-                   // wrapper design types representig a class of design types
-                   SHAPE_MAP, // NODE or PROFILE
-                   SPAGHETTI, // NODE, PROFILE, NORMAL
-                   SPLINE_BOX, // e.g. CP
-                   MECH_TRACE, // MECH_11, MECH_22, MECH_33
-                   MECH_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL,
-                   // special types
-                   MULTIMATERIAL,NO_MULTIMATERIAL, INTERPOLATION,
-                   NO_DERIVATIVE = -3, DEFAULT = -2, NO_TYPE = -1,
-                   // real design types
-                   DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA = 12,
-                   MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16,
-                   MECH_22, MECH_23, MECH_24, MECH_25, MECH_26,
-                   MECH_33, MECH_34, MECH_35, MECH_36,
-                   MECH_44, MECH_45, MECH_46,
-                   MECH_55, MECH_56,
-                   MECH_66,
-                   RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
-                   DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, 
-                   SLACK, ALPHA,  // slack variables
-                   NODE, PROFILE, // shape mapping and spaghetti
-                   NORMAL,        // spaghetti height
-                   CP,            // spline box control point
-                   ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
+  /** The type of this design element, influences the Get*Bound() methods.
+   * By definition the design elements are stored in the ordering of the type!!
+   * make sure, that ALL_DESIGNS is the last with the highest number!!! */
+  typedef enum { UNITY = -20, // unused stuff from ShapeOpt
+                 // wrapper design types representig a class of design types
+                 SHAPE_MAP, // NODE or PROFILE
+                 SPAGHETTI, // NODE, PROFILE, NORMAL
+                 SPLINE_BOX, // e.g. CP
+                 MECH_TRACE, // MECH_11, MECH_22, MECH_33
+                 MECH_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL,
+                 // special types
+                 MULTIMATERIAL,NO_MULTIMATERIAL, INTERPOLATION,
+                 NO_DERIVATIVE = -3, DEFAULT = -2, NO_TYPE = -1,
+                 // real design types
+                 DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
+                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA = 12,
+                 MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16,
+                 MECH_22, MECH_23, MECH_24, MECH_25, MECH_26,
+                 MECH_33, MECH_34, MECH_35, MECH_36,
+                 MECH_44, MECH_45, MECH_46,
+                 MECH_55, MECH_56,
+                 MECH_66,
+                 RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
+                 DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
+                 ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD,
+                 SLACK, ALPHA,  // slack variables
+                 NODE, PROFILE, // shape mapping and spaghetti
+                 NORMAL,        // spaghetti height
+                 CP,            // spline box control point
+                 ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
 
-    /** This defines how to access variables (design, objective_gradient, ...),
-     *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
-    typedef enum { PLAIN, SMART } Access; // not used here but needed for virtual method GetDesign(Access)
+  /** This defines how to access variables (design, objective_gradient, ...),
+   *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
+  typedef enum { PLAIN = 0, SMART = 1} Access; // not used here but needed for virtual method GetDesign(Access)
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};

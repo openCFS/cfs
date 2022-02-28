@@ -31,6 +31,9 @@ public:
   /** sets radius for spaghetti.py to visualize the stuff */
   void AddToDensityHeader(PtrParamNode pn) override;
 
+  /** the spaghetti python script */
+  PyObject* GetPythonModule() override;
+
   typedef enum { NO_TIP = -1, START, END } Tip;
 
   static Enum<Tip> tip;

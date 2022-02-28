@@ -60,49 +60,74 @@ PyObject* PythonKernel::mesher_add_named_elements(PyObject *self, PyObject *args
 /** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
 PyObject* opt_getDims(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!PythonKernel::CheckOpt())
     return NULL;
 
-  return python->GetOpt()->GetDims(args);
+  return PythonOptimizer::GetDims(args);
 }
+
+PyObject* get_opt_design_size(PyObject *self, PyObject *args)
+{
+  if(!PythonKernel::CheckOpt())
+    return NULL;
+
+  return PythonOptimizer::GetNumDesign(args);
+}
+
+PyObject* get_opt_design_value(PyObject *self, PyObject *args)
+{
+  if(!PythonKernel::CheckOpt())
+    return NULL;
+
+  return PythonOptimizer::GetDesignValue(args);
+}
+
+PyObject* get_opt_design_values(PyObject *self, PyObject *args)
+{
+  if(!PythonKernel::CheckOpt())
+    return NULL;
+
+  return PythonOptimizer::GetDesignValues(args);
+}
+
 
 /** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
 PyObject* opt_bounds(PyObject *self, PyObject *args)
 
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->GetBounds(args);
+  python->GetPyOpt()->GetBounds(args);
   Py_RETURN_NONE;
 }
 
 /** cfs.initialdesign(x) fills 1d numpy array */
 PyObject* opt_initialdesign(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->GetInitialDesign(args);
+  python->GetPyOpt()->GetInitialDesign(args);
   Py_RETURN_NONE;
 }
 
 /** cfs.evalobj(x) returns a float) */
 PyObject* opt_evalobj(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  return PyFloat_FromDouble(python->GetOpt()->EvalObjective(args));
+  return PyFloat_FromDouble(python->GetPyOpt()->EvalObjective(args));
 }
 
 /** cfs.cfs_commitIteration() commits iteration to cfs */
 PyObject* opt_commitIteration(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->CommitIteration(); // return paramnode ignored;
+  python->GetPyOpt()->CommitIteration(); // return paramnode ignored;
 
   Py_RETURN_NONE;
 }
@@ -110,65 +135,65 @@ PyObject* opt_commitIteration(PyObject *self, PyObject *args)
 /** cfs.evalgradobj(x,grad) fills numpy 1d arrays of size n */
 PyObject* opt_evalgradobj(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->EvalGradObjective(args);
+  python->GetPyOpt()->EvalGradObjective(args);
   Py_RETURN_NONE;
 }
 
 /** cfs.cfs_evalconstrs(x,g) fills numpy 1d arrays of size n and m */
 PyObject* opt_evalconstrs(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->EvalConstraints(args);
+  python->GetPyOpt()->EvalConstraints(args);
   Py_RETURN_NONE;
 }
 
 /** cfs.cfs_evalgradconstrs(x,grad) fills numpy 1d arrays of size n and m*n */
 PyObject* opt_evalgradconstrs(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->EvalGradConstraints(args);
+  python->GetPyOpt()->EvalGradConstraints(args);
   Py_RETURN_NONE;
 }
 
 PyObject* opt_getSimpExponent(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  return PyFloat_FromDouble(python->GetOpt()->GetSimpExponent());
+  return PyFloat_FromDouble(python->GetPyOpt()->GetSimpExponent());
 }
 
 /** returns derivative of compliance w.r.t stiffness tensor entries of original (core) material */
 PyObject* opt_get_dfdH(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->Get_dfdH(args);
+  python->GetPyOpt()->Get_dfdH(args);
   Py_RETURN_NONE;
 }
 
 /** cfs.cfs_getOrgStiffness(stiffness) returns stiffness tensor of original (core) material */
 PyObject* opt_getOrgStiffness(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
-  python->GetOpt()->GetCoreStiffness(args);
+  python->GetPyOpt()->GetCoreStiffness(args);
   Py_RETURN_NONE;
 }
 
 /** return true if cfs's stopping criteria is met, including finding the file HALTOPT */
 PyObject* opt_dostop(PyObject *self, PyObject *args)
 {
-  if(!python->CheckOpt())
+  if(!python->CheckPyOpt())
     return NULL;
 
   bool stop = domain->GetOptimization()->DoStopOptimization();
@@ -203,8 +228,13 @@ PyMethodDef PythonKernel::cfs_methods[] =
   {"add_named_nodes", PythonKernel::mesher_add_named_nodes, METH_VARARGS, "string and int numpy array of 1-based node ids"},
   {"add_naned_elements", PythonKernel::mesher_add_named_elements, METH_VARARGS, "string and int numpy array of 1-based element ids"},
 
-  /* python optimizer */
+  /* general optimization */
   {"getDims", opt_getDims, METH_VARARGS, "Returns info on optimization design domain dimensions: dim, nx, ny, nz."},
+  {"get_opt_design_size", get_opt_design_size, METH_VARARGS, "Returns number of design variables"},
+  {"get_opt_design_value", get_opt_design_value, METH_VARARGS, "Give single DesignSpace::GetDesignValue() for 0-based index with optional access (default plain)"},
+  {"get_opt_design_values", get_opt_design_values, METH_VARARGS, "Call DesignElement::GetValues() with attributes numpy array and optional access"},
+
+  /** python optimizer */
   {"bounds", opt_bounds, METH_VARARGS, "Give design and constraints bounds. Expects 1D arrays for xl, xu, gl, gu"},
   {"initialdesign", opt_initialdesign, METH_VARARGS, "Sets the initial design to the given 1D array"},
   {"evalobj", opt_evalobj, METH_VARARGS, "Evaluate objective. Expects 1D design array"},

@@ -14,6 +14,7 @@
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <fstream>
 #include <string>
+#include <utility>
 
 using namespace std;
 using namespace boost;
@@ -1184,15 +1185,41 @@ void ParamNode::Dump(int level) const
     cout << "<!-- " << strValue << " -->" << std::endl;
     break;
   case BULK:
-  {
-    const StdVector<std::string>& block = boost::any_cast<const StdVector<std::string>&>(value_);
-    for(UInt i = 0, n = block.GetSize(); i < n; i++)
-      cout << " bulk: " << block[i] << std::endl;
-    break;
-  }
+    {
+      const StdVector<std::string>& block = boost::any_cast<const StdVector<std::string>&>(value_);
+      for(UInt i = 0, n = block.GetSize(); i < n; i++)
+        cout << " bulk: " << block[i] << std::endl;
+      break;
+    }
   }
   for (unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
     children_[i]->Dump(level + 1);
+}
+
+
+void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& list, int level) const
+{
+  // level 0 name is not printed, level 1 is printed and only from level 2 we have a parent name chain
+  string parentname;
+  for(int add = level; add >= 2; add--) // e.g. we have level 2
+  {
+    ParamNode* base = parent_.get(); // this is then level 1
+    for(int search = 1; search < add-2; search++)
+    {
+      base = base->parent_.get();
+      assert(base);
+    }
+    parentname += base->name_ + ":";
+  }
+
+
+  string val = As<string>();
+  if(val != "")
+    list.Push_back(std::make_pair(parentname + name_, val));
+
+
+  for(auto child : children_)
+      child->ToStringList(list, level +1);
 }
 
 StdVector<string> ParamNode::SplitIntoTokens(const string& input) const
@@ -1201,8 +1228,7 @@ StdVector<string> ParamNode::SplitIntoTokens(const string& input) const
   char_separator<char> sep("/");
   tokenizer<char_separator<char> > tokens(input, sep);
 
-  for (tokenizer<char_separator<char> >::iterator it = tokens.begin(); it
-      != tokens.end(); ++it)
+  for (tokenizer<char_separator<char> >::iterator it = tokens.begin(); it != tokens.end(); ++it)
     out.Push_back(*it);
   return out;
 }

@@ -419,6 +419,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
   Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
   Function::type.Add(Function::MAG_COUPLING,"magCoupling");
+  Function::type.Add(Function::PYTHON_FUNCTION,"python");
+  Function::type.Add(Function::LOCAL_PYTHON_FUNCTION,"localPython");
 
   Function::slackFnct.SetName("Function::SlackFnct");
   Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
@@ -458,6 +460,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::SHAPE, "shape");
   Function::Local::locality.Add(Function::Local::FUNCTION_SPECIFIC, "function_specific");
   Function::Local::locality.Add(Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS, "function_specific_two_signs");
+  Function::Local::locality.Add(Function::Local::EXTERNALLY_DEFINED, "externally_defined");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");

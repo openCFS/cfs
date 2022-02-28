@@ -39,7 +39,7 @@ static PyObject* cfs_vec(PyObject *self, PyObject *args)
   // in python 'verify' is a bool. Here it must be of type 'int'
   // e.g. see https://github.com/numpy/numpy/issues/12400
   int verify;
-  std::cout << "cfs_vec: args= " << PyTuple_GET_SIZE(args) << std::endl;
+  std::cout << "cfs_vec: args= " << PyTuple_Size(args) << std::endl;
   PyArg_ParseTuple(args, "O!O!np", &PyArray_Type, &vec1, &PyArray_Type, &vec2, &test, &verify);
   BOOST_TEST(PyArray_NDIM(vec1) == 1);
   BOOST_TEST(PyArray_TYPE(vec1) == NPY_DOUBLE);

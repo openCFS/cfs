@@ -395,6 +395,12 @@ namespace CoupledField
     * @param level start with 0, is used for ident */
     void Dump(int level = 0) const;
 
+    /** Similar to recursive dump, this adds all childs to the flat list.
+     * colons (:) separates (sub) child names.
+     * @param list output
+     * @param level only for recursive calls, don't use */
+    void ToStringList(StdVector<std::pair<std::string, std::string> >& list, int level = 0) const;
+
     /** The ParamNode::Dump() shows all sub-content. This shows the parent path */
     void DumpParentPath();
     

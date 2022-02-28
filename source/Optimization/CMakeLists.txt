@@ -26,8 +26,15 @@ SET(OPTIMIZATION_SRCS
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
 
-
-
+if(USE_EMBEDDED_PYTHON)
+  # see FindPrograms.cmake on how the PYTHON_ stuff is set
+  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
+  # required for numpy
+  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  set(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} PythonFunction.cc)
+else()
+  set(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} NoPythonFunction.cc)
+endif()
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 

@@ -122,8 +122,8 @@ void PythonOptimizer::SolveProblem()
 
 StdVector<PyObject*> PythonOptimizer::ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref)
 {
-  if(PyTuple_GET_SIZE(args) != expect)
-    throw Exception("expects " + to_string(expect) + " parameters in python function call, got " + to_string(PyTuple_GET_SIZE(args)));
+  if(PyTuple_Size(args) != expect)
+    throw Exception("expects " + to_string(expect) + " parameters in python function call, got " + to_string(PyTuple_Size(args)));
 
   StdVector<PyObject*> obj(expect);
 
@@ -175,22 +175,6 @@ void PythonOptimizer::GetInitialDesign(PyObject* args)
   x.Export(obj[0]);
 }
 
-PyObject* PythonOptimizer::GetDims(PyObject* args)
-{
-  unsigned int dim = domain->GetGrid()->GetDim();
-  // assume rectilinear mesh with one region only
-  assert(optimization->GetDesign()->GetRegionIds().GetSize() == 1);
-  StdVector<unsigned int> bounds = domain->GetGrid()->GetBoundaries(optimization->GetDesign()->GetRegionIds().First());
-  assert(bounds.GetSize() == 3);
-
-  PyObject* res = PyTuple_New(4);
-  PyTuple_SetItem(res, 0, PyLong_FromLong(dim));
-  PyTuple_SetItem(res, 1, PyLong_FromLong(bounds[0]));
-  PyTuple_SetItem(res, 2, PyLong_FromLong(bounds[1]));
-  PyTuple_SetItem(res, 3, PyLong_FromLong(bounds[2]));
-
-  return res;
-}
 
 void PythonOptimizer::GetBounds(PyObject *args)
 {
@@ -473,5 +457,75 @@ void PythonOptimizer::GetCoreStiffness(PyObject *args)
     }
 
 }
+
+PyObject* PythonOptimizer::GetDims(PyObject* args)
+{
+  unsigned int dim = domain->GetGrid()->GetDim();
+  // assume rectilinear mesh with one region only
+  const auto& regids = domain->GetOptimization()->GetDesign()->GetRegionIds();
+
+
+  assert(regids.GetSize() == 1);
+  StdVector<unsigned int> bounds = domain->GetGrid()->GetBoundaries(regids.First());
+  assert(bounds.GetSize() == 3);
+
+  PyObject* res = PyTuple_New(4);
+  PyTuple_SetItem(res, 0, PyLong_FromLong(dim));
+  PyTuple_SetItem(res, 1, PyLong_FromLong(bounds[0]));
+  PyTuple_SetItem(res, 2, PyLong_FromLong(bounds[1]));
+  PyTuple_SetItem(res, 3, PyLong_FromLong(bounds[2]));
+
+  return res;
+}
+
+/** number of design variables */
+PyObject* PythonOptimizer::GetNumDesign(PyObject* args)
+{
+  return PyLong_FromLong(domain->GetOptimization()->GetDesign()->data.GetSize());
+}
+
+/** return single plain design value */
+PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
+{
+  DesignSpace* space = domain->GetOptimization()->GetDesign();
+
+  if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
+    throw("arguments for opt_get_design_value() are 0-based index and optionally access");
+
+  int idx = PyLong_AsLong(PyTuple_GetItem(args,0));
+  DesignElement::Access ac = PyTuple_Size(args) == 2 ? (DesignElement::Access) PyLong_AsLong(PyTuple_GetItem(args,1)) : DesignElement::PLAIN;
+
+  if(idx < 0 || idx >= space->GetNumberOfVariables())
+    EXCEPTION("invalid design index " << idx);
+
+  return PyFloat_FromDouble(space->GetDesignElement(idx)->GetDesign(ac));
+}
+
+
+/** set design variables to provided numpy array of proper size (1. arg) with optional access (2.arg).
+ * @see BaseDesignElement::ValueSpecifier and BaseDesignElement::Access */
+PyObject* PythonOptimizer::GetDesignValues(PyObject* args)
+{
+  DesignSpace* space = domain->GetOptimization()->GetDesign();
+
+
+  if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
+    throw("arguments for opt_get_design_values() are numpy-return, access (optional)");
+
+  DesignElement::Access ac = PyTuple_Size(args) == 2 ? (DesignElement::Access) PyLong_AsLong(PyTuple_GetItem(args,1)) : DesignElement::PLAIN;
+
+  Vector<double> py(space->GetNumberOfVariables());
+
+  for(unsigned int i = 0, n = space->GetNumberOfVariables(); i < n; i++)
+    py[i] = space->GetDesignElement(i)->GetDesign(ac);
+
+  py.Export(PyTuple_GetItem(args,0)); // PyTuple_GetItem = Borrowed reference
+
+  Py_RETURN_NONE;
+}
+
+
+
+
 
 } // namespace

@@ -110,6 +110,8 @@ class Function
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
       GLOBAL_BUCKLING_LOAD_FACTOR,/*!< with the attribute ev for the number of the load factor/ eigenvalue */
       LOCAL_BUCKLING_LOAD_FACTOR,/*!< microscopic load factor/ eigenvalue for two scale optimization*/
+      PYTHON_FUNCTION,           /*!< python global function */
+      LOCAL_PYTHON_FUNCTION,     /*!< python local function */
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
@@ -403,7 +405,8 @@ class Function
         MULT_DESIGNS_PREV_NEXT,
         MULT_DESIGNS_PREV_NEXT_AND_REVERSE,  /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
         FUNCTION_SPECIFIC,        /*!< tuned for single complex functions: distance, bending */
-        FUNCTION_SPECIFIC_TWO_SIGNS  /*!< reverse case */
+        FUNCTION_SPECIFIC_TWO_SIGNS,  /*!< reverse case */
+        EXTERNALLY_DEFINED        /* for local python function we get the full neighborbood from there */
       } Locality;
 
       static Enum<Locality> locality;
@@ -528,6 +531,11 @@ class Function
 
         /** noodle curvature divided by distance of start and end node for spaghetti optimization */
         double CalcBending(int neigh_idx, bool grad) const;
+
+        /** implemented in PythonFunction.cc */
+        double CalcLocalPythonFunc(const Local* local) const;
+        /** we return the "full" local python function gradient at once. Implemented in PythonFunction.cc */
+        void CalcLocalPythonGrad(Vector<double>& grad, const Local* local) const;
 
         /** calculate the cone constraint for spline box variables */
         double CalcCones(const Local* local) const;
@@ -754,6 +762,11 @@ class Function
     /** We also store here the info ptr. When overload, call also this. */
     virtual void ToInfo(PtrParamNode info);
 
+    /** to export the (global) python functions to ErsatzMaterial.
+     * The local functions are defined in Function::Local::Identifier::CalcLocalPython*()
+     * @param eval if false the grad is called */
+    PyObject* CallPythonFunction(bool eval);
+
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
@@ -789,6 +802,13 @@ class Function
     /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
      * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */
     void SetDenseSparsityPattern(DesignSpace* space);
+
+    /** Implementation in PythonFunction.cc. Needs to be called late, when we have DesignSpace which might contain the script
+     * @param pn of full function which python as child (to be checked) */
+    void InitPythonFunction(PtrParamNode pn, DesignSpace* space);
+
+    /** obtain from python the sparsity pattern */
+    void SetLocalPythonVirtualElementMap(StdVector<Function::Local::Identifier>& virtual_element_map, DesignSpace* space);
 
     /** matrices for polynomial coefficients and discretization steps of the interpolation for volume calculation in 3D with cross shaped base cells*/
 
@@ -855,7 +875,24 @@ class Function
     /** only for tensor trace and volume */
     MaterialTensorNotation notation_;
 
+    /** All python functions have a single argument an dict with all xml values as flat list */
+    /** the given options enriched by all xml function values */
+    PyObject* py_arg_ = NULL;
+
+    /** this is the name the python function gives itself. Default is python (schema) */
+    std::string py_name_;
+
+    /** the python function to evaluate. Having it set indicates, we are a python function */
+    PyObject* py_eval_ = NULL;
+    PyObject* py_grad_ = NULL;
+    PyObject* py_sparsity_ = NULL;
+    /** here we store the gradient vector for local python grad evaluations */
+    CfsTLS<Vector<double> > py_local_grad_;
+
   private:
+
+    /** destructor for python part, implemented in PythonFunction.cc */
+    void DeletePythonFunction();
 
     /** to replace default access in xml with a real value */
     Access DefaultAccess(Type ft) const;

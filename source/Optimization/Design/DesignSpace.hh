@@ -202,12 +202,6 @@ namespace CoupledField
       * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
       DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL) const;
 
-      /** the const version. const is sometimes just bullshit! :(*/
-/*      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {
-        return const_cast<const DesignElement*>(ApplyTransformations(de, fallback ? const_cast<DesignElement*>(de) : NULL));
-      };
-*/
-
      /**<p>check the optResult_1/2/3/... from the optimization/simp/result elements against
       * element results in the pde and conditionally add it as store results to the pde.</p>
       * @param pde where to checke for store results
@@ -370,6 +364,10 @@ namespace CoupledField
 
      /** allows to set a line in the header of the density.xml via DesnsityFile::Create(). Done by SpaghettiDensity */
      virtual void AddToDensityHeader(PtrParamNode pn) {};
+
+     /** SpaghettiDesign has a own python module (script) which can be selected for python functions as script=design */
+     virtual PyObject* GetPythonModule() { return NULL; }
+
 
      /** the global LocalElementCache instance, not necessary enabled. Only a pointer for include reasons */
      LocalElementCache* elementCache = NULL;

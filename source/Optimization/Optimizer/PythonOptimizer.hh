@@ -16,11 +16,22 @@ public:
 
   virtual ~PythonOptimizer();
 
-  /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
-  void GetBounds(PyObject* args);
+  /** the static functions are generally optimization oriented and e.g. available for python functions */
 
   /** returns 4 values: dim, nx, ny, nz */
-  PyObject* GetDims(PyObject* args);
+  static PyObject* GetDims(PyObject* args);
+
+  /** number of design variables */
+  static PyObject* GetNumDesign(PyObject* args);
+
+  /** return single plain design variable */
+  static PyObject* GetDesignValue(PyObject* args);
+
+  /** set design variables to provided numpy array of proper size + optional acesss */
+  static PyObject* GetDesignValues(PyObject* args);
+
+  /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
+  void GetBounds(PyObject* args);
 
   void GetInitialDesign(PyObject* args);
 

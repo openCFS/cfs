@@ -239,6 +239,7 @@ Function::Function(PtrParamNode pn)
   // snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
+
 }
 
 Function::~Function()
@@ -409,14 +410,16 @@ string Function::ToString() const
     }
   }
 
+  string tn = (type_ == PYTHON_FUNCTION || type_ == LOCAL_PYTHON_FUNCTION) ? py_name_ : type.ToString(type_);
+
   // optional for oscillation
   if(local != NULL && local->GetPhase() != Local::BOTH)
-    return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
+    return Local::phase.ToString(local->GetPhase()) + "_" + tn;
 
   if(IsDefaultAccess())
-    return type.ToString(type_);
+    return tn;
   else
-    return access.ToString(access_) + "_" + type.ToString(type_);
+    return access.ToString(access_) + "_" + tn;
 }
 
 Function::Access Function::DefaultAccess(Function::Type type) const
@@ -465,6 +468,8 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
   case EXPRESSION:
+  case PYTHON_FUNCTION:
+  case LOCAL_PYTHON_FUNCTION:
     return PLAIN;
 
   // filtered stuff different for sensitivity filtering
@@ -608,6 +613,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SLACK_FNCT:
   case EXPRESSION:
   case FILTERING_GAP:
+  case PYTHON_FUNCTION: // check in case!
+  case LOCAL_PYTHON_FUNCTION:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -898,6 +905,7 @@ bool Function::IsLocal(Type t) {
   case SHAPE_INF:
   case LOCAL_STRESS:
   case LOCAL_BUCKLING_LOAD_FACTOR:
+  case LOCAL_PYTHON_FUNCTION:
     return true;
   default:
     return false;
@@ -1076,9 +1084,15 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case LOCAL_BUCKLING_LOAD_FACTOR:
   case SUM_MODULI:
   case SHAPE_INF:
-
     // we need no neighbors.
     InitLocal(space);
+    break;
+
+  case PYTHON_FUNCTION:
+  case LOCAL_PYTHON_FUNCTION:
+    InitPythonFunction(pn, space);
+    if(IsLocal())
+      InitLocal(space);
     break;
 
   case PENALIZED_VOLUME:
@@ -1398,6 +1412,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = PREV_NEXT;
     break;
+
+  case LOCAL_PYTHON_FUNCTION:
+    if (locality_ != EXTERNALLY_DEFINED && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = EXTERNALLY_DEFINED;
+    break;
+
     
   case SHAPE_INF:
     locality_ = SHAPE;
@@ -1472,6 +1493,11 @@ void Function::Local::PostInit()
     else
       throw Exception("the local function '" + func_->ToString() + "' is only mapping");
    break;
+
+  case EXTERNALLY_DEFINED:
+    assert(ftype == LOCAL_PYTHON_FUNCTION);
+    func_->SetLocalPythonVirtualElementMap(virtual_elem_map, space);
+    break;
 
 
   default:
@@ -2217,7 +2243,7 @@ Function::Local::Identifier::Identifier(BaseDesignElement* elem, BaseDesignEleme
 Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si)
 {
   this->element = elem;
-  this->neighbor = buddies;
+  this->neighbor = buddies; // copy constructor
   assert(si == NO_SIGN || si == -1 || si == 1);
   this->sign = si;
 }
@@ -2331,6 +2357,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
 
   case BENDING:
     fv = CalcBending(-1, false);
+    break;
+
+  case LOCAL_PYTHON_FUNCTION:
+    fv = CalcLocalPythonFunc(local);
     break;
 
   case CONES:
@@ -2468,6 +2498,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   }
   assert(local->IsGlobalized() || ft == PERIMETER || g != NULL); // only constraints are local
 
+  /** in the local python grad case we call python for a "full" local gradient */
+  if(ft == LOCAL_PYTHON_FUNCTION) {
+    CalcLocalPythonGrad(local->func_->py_local_grad_.Mine(), local);
+  }
+
   for (int n = -1, nn = neighbor.GetSize(); n < nn; n++)
   {
     double gv = -5.0;
@@ -2526,6 +2561,13 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case BENDING:
       gv = CalcBending(n, true);
       break;
+
+    case LOCAL_PYTHON_FUNCTION:
+    {
+      const Vector<double>& vec = local->func_->py_local_grad_.Mine();
+      gv = vec[n + 1]; // n = -1 is this element, 0 is first neighbor
+      break;
+    }
 
     case CONES:
       gv = CalcConesGradient(n, local);
@@ -2655,7 +2697,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                    << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv
                    << " stored_gv=" << bde->GetPlainGradient(funct)
                    << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
-  }
+  } // end loop over n
 }
 
 double Function::Local::Identifier::CalcSlope() const {

@@ -25,7 +25,7 @@ using std::pair;
 
 // set static attributes
 SimInputPython*  PythonKernel::mesher_ = NULL;
-PythonOptimizer* PythonKernel::opt_    = NULL;
+PythonOptimizer* PythonKernel::pyopt_  = NULL;
 
 
 Enum<PythonKernel::Hook> PythonKernel::hook;
@@ -39,6 +39,8 @@ void PythonKernel::Init(PtrParamNode pn, PtrParamNode info)
   hook.SetName("PythonKernel::Hook");
   hook.Add(POST_GRID, "post_grid");
   hook.Add(POST_SOLVE_PROBLEM, "post_solve_problem");
+  hook.Add(OPT_EVAL_FUNC, "opt_eval_func");
+  hook.Add(OPT_EVAL_GRAD, "opt_eval_grad");
 
   if(pn)
   {
@@ -198,12 +200,22 @@ bool PythonKernel::CheckMesher()
   return false;
 }
 
-bool PythonKernel::CheckOpt()
+bool PythonKernel::CheckPyOpt()
 {
-  if(PythonKernel::opt_)
+  if(PythonKernel::pyopt_)
     return true;
 
   PyErr_SetString(PyExc_ValueError, "the python optimizer did not (yet) register itself");
+  return false;
+}
+
+
+bool PythonKernel::CheckOpt()
+{
+  if(domain->GetOptimization())
+    return true;
+
+  PyErr_SetString(PyExc_ValueError, "no optimization problem given");
   return false;
 }
 
@@ -241,14 +253,20 @@ double PythonKernel::Convert<double>(PyObject* item)
   return PyFloat_AsDouble(item);
 }
 
+template<>
+Vector<int> PythonKernel::Convert<Vector<int> >(PyObject* item)
+{
+  Vector<int> vec(item, false); // don't decref
+  return vec;
+}
+
+
 template<class TYPE>
 PyObject* PythonKernel::CreatePythonList(const Container<TYPE>& vec)
 {
   PyObject* list = PyList_New(vec.GetSize());
-  for(unsigned int i = 0; i < vec.GetSize(); i++) {
-    int ret = PyList_SetItem(list, i, Create<TYPE>(vec[i]));
-    assert(ret == 0);
-  }
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+    PyList_SetItem(list, i, Create<TYPE>(vec[i]));
   return list;
 }
 
@@ -289,8 +307,8 @@ StdVector<pair<string, string> > PythonKernel::ParseOptions(ParamNodeList lst)
 
 StdVector<PyObject*> PythonKernel::ParseNumpyArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref)
 {
-  if(PyTuple_GET_SIZE(args) != expect)
-    throw Exception("expects " + to_string(expect) + " parameters in python function call, got " + to_string(PyTuple_GET_SIZE(args)));
+  if(PyTuple_Size(args) != expect)
+    throw Exception("expects " + to_string(expect) + " parameters in python function call, got " + to_string(PyTuple_Size(args)));
 
   StdVector<PyObject*> obj(expect);
 
@@ -435,6 +453,7 @@ void PythonKernel::MatrixToNumpyArray(const Matrix<T>& in, PyObject* numpy)
 
   template void PythonKernel::ConvertPythonList<std::string>(Container<std::string>&, PyObject*);
   template void PythonKernel::ConvertPythonList<double>(Container<double>&, PyObject*);
+  template void PythonKernel::ConvertPythonList<Vector<int> >(Container<Vector<int> >&, PyObject*);
 #endif
 
 
