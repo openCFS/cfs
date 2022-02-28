@@ -599,6 +599,7 @@ string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
 if(CFS_WC_MODIFIED)
   set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
 endif(CFS_WC_MODIFIED)
+set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run preinstall target for..." which seems to be only done for "Unix Makefiles"
 
 # choose what to install
 # see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
@@ -608,11 +609,11 @@ if(UNIX)
   #install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
   install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS)
   install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64" USE_SOURCE_PERMISSIONS
-	  PATTERN "*.a" EXCLUDE
-	  PATTERN "*.la" EXCLUDE
-	  PATTERN "*.pc" EXCLUDE
-          PATTERN "pkgconfig" EXCLUDE
-	  ) # lib64 only works for 64bit ...
+    PATTERN "*.a" EXCLUDE
+    PATTERN "*.la" EXCLUDE
+    PATTERN "*.pc" EXCLUDE
+    PATTERN "pkgconfig" EXCLUDE
+    ) # lib64 only works for 64bit ...
   # license install
   file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
   install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)

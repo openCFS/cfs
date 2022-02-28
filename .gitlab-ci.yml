@@ -447,7 +447,14 @@ cfsdeps:gcc10:
     # build
     - ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
-    # install test to create arifacts
+    # install test to create arifacts (first delete stuff to make space for packing)
+    - df -h # debug
+    - du -h --max-depth=1 . # debug
+    - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
+    - find -name CMakeFiles -type d -exec rm -rf {} + # delete cmake directories
+    - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
+    - du -h --max-depth=1 . # debug
+    - df -h # debug
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
