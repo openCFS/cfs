@@ -1503,16 +1503,8 @@ namespace CoupledField {
       bool complexMat = complexMatData_[curRegionId];
       curMaterial = materials_[curRegionId];
       
-      SubTensorType tensorType = NO_TENSOR;
-	    if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
-        tensorType = PLANE_STRAIN;
-	    } else if( subType_ == "axi" ){
-        tensorType = AXI;
-	    } else if (subType_ == "3d" ){
-        tensorType = FULL;
-	    } else {
-        EXCEPTION( "Unknown subtype '" << subType_ << "'" );
-	    }
+      //Set tensor type
+      SubTensorType tensorType = GetSubTensorType();
       
       shared_ptr<CoefFunction > curCoef;
       
@@ -1637,21 +1629,7 @@ namespace CoupledField {
       
       RegionIdType myRegionId = ent[i]->GetRegion();
       // set sub tensor type
-      SubTensorType subType;
-      if (subType_=="axi") {
-        subType = AXI;
-      }
-      else if (subType_=="planeStrain") {
-        subType = PLANE_STRAIN;
-      }
-      else if (subType_=="planeStress") {
-        subType = PLANE_STRESS;
-      }else if (subType_=="3d") {
-        subType = FULL;
-      }
-      else {
-        EXCEPTION("Mechanical Tensortype '"<< subType_ <<"' not implemented!");
-      }
+      SubTensorType subType = GetSubTensorType();
       
       // get stiffness tensor and thermal expansion coefficient (reduced to problem dim)
       PtrCoefFct cCoef, aCoef;
@@ -3575,6 +3553,14 @@ namespace CoupledField {
     }
   }
   
+  SubTensorType MechPDE::GetSubTensorType(){
+    if(subType_ =="axi"){return AXI;}
+    if(subType_ =="planeStrain"){return PLANE_STRAIN;}
+    if(subType_ =="planeStress"){return PLANE_STRAIN;}
+    if(subType_ =="3d"){return FULL;}
+    else{EXCEPTION( "Unknown subtype '" << subType_ << "'" );}
+  }
+
   template BiLinearForm* MechPDE::GetPenaltyIntegrator<Double>(PtrCoefFct, Double, BiLinearForm::CouplingDirection);
   template BiLinearForm* MechPDE::GetPenaltyIntegrator<Complex>(PtrCoefFct, Double, BiLinearForm::CouplingDirection);
   template BiLinearForm* MechPDE::GetFluxIntegrator<Double>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool, bool, bool);

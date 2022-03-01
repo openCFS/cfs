@@ -160,6 +160,9 @@ protected:
     //! Tensor type
     SubTensorType tensorType_;
 
+    //! Returns SubTensorType based on string
+    SubTensorType GetSubTensorType();
+
     //! coefFunctzion for thermal strain
     shared_ptr<CoefFunctionMulti> thermalStrain_;
 
