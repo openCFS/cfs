@@ -4,6 +4,7 @@
 # it extracts iformation from a header line with like #(1) iter \t(2) compliance ....
 import os.path
 import sys
+import re
 
 import datetime
 import numpy as np
@@ -185,11 +186,11 @@ def content(body):
   # convert str to float
   for i, c in enumerate(data[0]):
     if type(c) == str:
-      for r in range(len(data)):
+      for r in data:
         try:
-          if data[r][i].endswith('%'): # remove trailing % from bluetooth sensor for rel humidity 
-            data[r][i] = data[r][i][:-1]
-          data[r][i] = 0 if data[r][i] == '' else float(data[r][i])
+          if r[i].endswith('%'): # remove trailing % from bluetooth sensor for rel humidity 
+            r[i] = r[i][:-1]
+          r[i] = 0 if r[i] == '' else float(r[i])
         except ValueError as ve:
           pass
   #print(data)
@@ -204,11 +205,11 @@ def check(format, test):
     return False
   
 # gives back the file index and the corresponding 0-based index.
-# @param ky if string, search for uniqueness, if number, make double 0-based
+# @param key if string, search for uniqueness, if number, make double 0-based
 # @return 0-based file index, 0-based column within file, label
 def find_index(meta, key):
   fi = -1  # file index
-  idx = -1 # relative within file index 
+  idx = -1 # relative within file index
   if all(map(str.isdigit, key)):
     k = int(key)-1 # key from print_header() as 0-based
     base = 0
@@ -221,17 +222,19 @@ def find_index(meta, key):
         break
     if idx == -1:
       print('Error: given key', k+1, 'out of range')
-      sys.exit()      
+      sys.exit()
   else:
-    for f, m in enumerate(meta):
+    for file, m in enumerate(meta):
       for i, t in enumerate(m):
         if t.startswith(key):
           if idx > -1:
-            print("Error: key not unique '", key, '"')
+            print("Error: key not unique '", key, "'")
             sys.exit()
           idx = i
-          fi = f
-  
+          fi = file
+    if idx == -1:
+      print("key not found '", key, "'")
+      sys.exit()
   return fi, idx, meta[fi][idx]
 
 # transform list of list of keys to list of tuples (1-based-id, key)
@@ -257,20 +260,22 @@ def resolve_multiple(meta, args):
     if len(ids) > 1:
       ret.extend(ids)
     else:
-      ret.append(key)    
+      ret.append(key)
   return ret   
 
 # gets back the column by index descrition
 # file-index is 1-based when the key is Not Note (-x) and encodes bar
 # @param key if None return range, can be a list
 # @return arrays of file-index, data column, label
-def column(meta, data, key,bars):
+def column(meta, data, key, bars):
   if key == None:
     # for default if -x is not given. Shall not be callend for y2 is None
     n = len(data)
     return [i for i in range(n)] , [range(len(data[i])) for i in range(n)], [''] * n
   else:
     if type(key) != list:
+      if any(op in key for op in ['+','-','*','/']):
+        return eval_expression(meta, data, key, bars)
       fi, idx, label = find_index(meta, key)
       return (-(fi + 1) if bars and key in bars else fi+1), [d[idx] for d in data[fi]], label
     else:
@@ -283,6 +288,38 @@ def column(meta, data, key,bars):
         dl.append(d)
         ll.append(l)
       return fl, dl, ll  
+
+# evaluate a expression like '2+compliance-$5'
+def eval_expression(meta, data, key, bars):
+  # remove whitespaces and split expression at operators
+  exp = re.split(r'([\+\-\*\/\(\)])', key.replace(' ',''))
+  # remove empty strings (non-printable characters get inserted before ( and ) by bash)
+  exp = [kk for kk in exp if kk]
+  # extract column numbers/labels which we want the data for
+  k = []
+  for kk in exp:
+    if kk[0] == '$':
+      k.append(kk[1:])
+    if re.search('[a-zA-Z]', kk):
+      k.append(kk)
+  # get data
+  f, d, l = column(meta, data, k, bars)
+  # assert all file indices are equal. else d might belong to different x values
+  assert(f[:-1] == f[1:])
+  # convert to numpy to be able to operate on arrays
+  d = np.array(d)
+  # replace '$*' in expression by 'd[i]' and in label by l[i]
+  label = exp.copy()
+  exp_idx = 0
+  for i in range(len(exp)):
+    if exp[i][0] == '$' or re.search('[a-zA-Z]', exp[i]):
+      exp[i] = 'd[{:d}]'.format(exp_idx)
+      label[i] = l[exp_idx]
+      exp_idx += 1
+  # evaluate expression with data from d
+  d = eval(''.join(exp))
+  return f[0], d, ''.join(label)
+
 
 # extract kwnown extension of filename
 def filename_base(filename):
@@ -326,7 +363,7 @@ def bounds(x, start, end):
       break
          
   eidx = len(x)
-  for i in range(len(x)-1,0,-1): # list(range(4,0,-1)) -> [4, 3, 2, 1]        
+  for i in range(len(x)-1,0,-1): # list(range(4,0,-1)) -> [4, 3, 2, 1]
     if x[i-1] > end:
       eidx = i-1
     else:    
@@ -446,11 +483,14 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Simple gnuplot replacement for standard plots. Needs a header comment')
   parser.add_argument("input", nargs='+', help="one or more .plot.dat or similar tabular text files")
   parser.add_argument("-x", nargs='*',  help="index or label for the abscissa (optional). Space separated list for multiple inputs")
-  parser.add_argument("-y", nargs='+',  help="indices or labels for the ordinate. Multiple separated by space")
+  parser.add_argument("-y", nargs='+',  help="indices or labels for the ordinate. Multiple separated by space.\
+                                              Expressions are possible in single quotes (e.g. '0.5*compliance -$3/ 2') with references to columns prefixed with $.")
   parser.add_argument("-y2", nargs='*', help="optional indices or labels for the secondary ordinate")
   parser.add_argument("-z", nargs='*',  help="trigger 3D plots wich requires a single -x and -y component")
   parser.add_argument("--range", help='range (day fractions for datetime) to be shown. negative for final range', type=float)
   parser.add_argument("--shift", help='shift range (day fractions for datetime)', type=float)
+  parser.add_argument("--ylim", nargs=2, help='range for y-axis', type=float)
+  parser.add_argument("--y2lim", nargs=2, help='range for y2-axis', type=float)
   parser.add_argument("--xlabel", help='optional label for the abscissa')
   parser.add_argument("--ylabel", help='optional label for the primary ordinate')
   parser.add_argument("--y2label", help='optional label for the secondary ordinate')
@@ -458,6 +498,7 @@ if __name__ == '__main__':
   parser.add_argument("--marker", help='optional matplotlib marker: e.g. . , o v')
   parser.add_argument("--legend", nargs='*', help="(partially) overwrite labels in the legend as space separated list of strings")
   parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc)")
+  parser.add_argument("--legend_ncol", help="number of columns of legend", type=int, default=1)
   parser.add_argument("--title", help='optional title for the plot')
   parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit"],default='linear')
@@ -627,8 +668,8 @@ if __name__ == '__main__':
   ax = None
   if not args.z:
     fig, ax = plt.subplots() 
-    lines = [] 
-     
+    lines = []
+
     for i in range(len(y)):
       # y is a list of data. if fiy we know the current file index and take the x with the proper file index for you y columns
       # fiy(2) is 1-based and encodes bar with a negative value
@@ -636,7 +677,9 @@ if __name__ == '__main__':
         lines.append(ax.plot(x[fiy[i]-1],y[i], color=colors[i], marker=args.marker)[0]) # returns multiple results and we want only the first
       else:
         lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=colors[i])) # has only one return
-      
+    if args.ylim:
+      ax.set_ylim(args.ylim)
+
     if args.y2:
       if args.dashed:      
         plt.rc('axes', prop_cycle=c_cms_y2)
@@ -647,6 +690,8 @@ if __name__ == '__main__':
         else:
           #print(-fiy2[i]-1,x[-fiy2[i]-1],y2[i])
           lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i])))
+      if args.y2lim:
+        ax.set_ylim(args.y2lim)
 
     labels = fix_labels(ylabel, fiy, args.input) + fix_labels(y2lbl, fiy2, args.input)
     if args.legend:
@@ -657,7 +702,7 @@ if __name__ == '__main__':
     if args.legend_loc:
       if not len(args.legend_loc) == 2:
         print('Error: --legend_loc requires two values (e.g. 1.05 1) to form the bbox_to_anchor attribute to plt.legend()')
-    plt.legend(lines, labels, loc=args.legend_loc)
+    plt.legend(lines, labels, loc=args.legend_loc, ncol=args.legend_ncol)
 
   else: # here comes the z-case
     # https://towardsdatascience.com/an-easy-introduction-to-3d-plotting-with-matplotlib-801561999725
@@ -683,7 +728,7 @@ if __name__ == '__main__':
           if x[0][k] == xv and y[0][k] == yv:
             if zv is not None:
               print('Error: data pair x=',xv,'y=',yv,'not unique:',zv,z[0][k]) 
-            zv = [z[i][k] for i in range(len(z))]
+            zv = [zi[k] for zi in z]
             #zv = z[0][k]
         if zv == None:
           print('miss',xv,yv)
@@ -708,8 +753,10 @@ if __name__ == '__main__':
     
   # common stuff for 2D and 3D  
   ax.set_yscale(args.yscale)
+  ax.ticklabel_format(useOffset=False)
   if args.y2:
     ax2.set_yscale(args.y2scale)
+    ax2.ticklabel_format(useOffset=False)
  
   # when the timespan is too short, we skip the day information squeezed in by matplotlib
   if has_dt:

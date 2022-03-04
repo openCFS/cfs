@@ -142,7 +142,7 @@ try:
         c = cmd + problem + ' --id ' + v1    
         
         if args.redirect_output:
-          c = c + ' > ' + problem + '.out 2>&1'
+          c = c + ' > ' + problem + '.txt 2>&1'
         
         if args.execute:
           execute(c, output=True)

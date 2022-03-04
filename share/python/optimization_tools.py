@@ -1477,6 +1477,7 @@ def data_to_image(data, show = False):
 
 # tol: tolerance to detect checkerboard (0,1]
 def checkerboard(data, image = True, tol = .1):
+  assert(data.ndim == 2)
   solid = np.zeros(data.shape)
   void  = np.zeros(data.shape)  
   
@@ -1525,8 +1526,9 @@ def extract_density_info(data):
   dict['min'] = np.amin(data)
   dict['max'] = np.amax(data)
   dict['vol'] = np.mean(data)
-  dict['grayness'] = np.sum(data*(1-data))/np.size(data)     
-  dict['checkerboard'] = checkerboard(data, image = False)
+  dict['grayness'] = np.sum(data*(1-data))/np.size(data)
+  if data.ndim == 2:
+    dict['checkerboard'] = checkerboard(data, image = False)
   return dict    
  
 def extract_all_density_info(plain, physical, silent = False):
