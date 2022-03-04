@@ -1191,22 +1191,13 @@ double SplineBoxDesign::GetDensityAtCoord(Vector<double> point) const
       }
     }
     if(interpolation_ == Interpolation::CUBIC) {
-      // These are lower and upper bounds for the density.
-      // Actually we want to have 0 and 1. However, we apply SmoothMax and SmoothMin,
-      // which may result in values outside (0,1). Also the corresponding limits are
-      // SmoothMax(x, 0) ->   ln(.5)/beta_ < 0 for x -> -infinity
-      // SmoothMin(x, 1) -> 1-ln(.5)/beta_ > 1 for x ->  infinity
-      // We choose lower and upper such that the limit is 0 or 1, respectively.
-      // SmoothMax(x,   std::log(2)/beta_) ->   ln(1)/beta_ = 0 for x -> -infinity
-      // SmoothMin(x, 1-std::log(2)/beta_) -> 1-ln(1)/beta_ = 1 for x ->  infinity
-      double lower = std::log(2)/beta_;
-      double upper = 1-std::log(2)/beta_;
       if(dim_ == 2) {
         val = bicubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1]);
       } else {
         val = tricubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1], relative_coords[2]);
       }
-      val = SmoothMin(SmoothMax(val, lower, beta_), upper, beta_);
+      // Interpolated density might be outside (0,1).
+      val = SmoothMin(SmoothMax(val, 0.0, beta_), 1.0, beta_);
     } else {
       StdVector<int> sub(dim_);
       for(unsigned int d = 0; d < dim_; ++d) {
@@ -1276,9 +1267,6 @@ Vector<double> SplineBoxDesign::GetDensityDerivativeAtCoord(Vector<double> point
     }
     if(interpolation_ == Interpolation::CUBIC) {
       double val;
-      //@see GetDensityAtCoord
-      double lower = std::log(2)/beta_;
-      double upper = 1-std::log(2)/beta_;
       if(dim_ == 2) {
         out = bicubicInterpolator_->EvaluatePrime(relative_coords[0], relative_coords[1]);
         val = bicubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1]);
@@ -1287,8 +1275,8 @@ Vector<double> SplineBoxDesign::GetDensityDerivativeAtCoord(Vector<double> point
         val = tricubicInterpolator_->EvaluateFunc(relative_coords[0], relative_coords[1], relative_coords[2]);
       }
       // chain rule
-      out *= DerivSmoothMax(val, lower, beta_, -1);
-      out *= DerivSmoothMin(SmoothMax(val, lower, beta_), upper, beta_, -1);
+      out *= DerivSmoothMax(val, 0.0, beta_, -1);
+      out *= DerivSmoothMin(SmoothMax(val, 0.0, beta_), 1.0, beta_, -1);
       for(unsigned int d = 0; d < dim_; ++d) {
         // derivative normalized w.r.t. size of spline box
         out[d] *= 1/(bounding_box_[d][1]-bounding_box_[d][0]);

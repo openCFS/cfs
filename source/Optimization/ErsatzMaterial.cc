@@ -2538,7 +2538,7 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
       if(res_idx != -1)
       {
         de->specialResult[res_idx] = val;
-        LOG_TRACE(em) << "CLVMS: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << val << " " << de->specialResult[res_idx];
+        LOG_DBG2(em) << "CLVMS: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << val << " " << de->specialResult[res_idx];
       }
     }
     lc->SetValue(val); // for CalcMaxValue() used in Function::Local::Identifier::EvalFunction()
@@ -3742,7 +3742,6 @@ double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative)
                    << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign
                    << " fv=" << fv << " -> " << res;
     }
-
     return res;
   }
   else

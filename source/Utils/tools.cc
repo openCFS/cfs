@@ -498,51 +498,45 @@ namespace CoupledField {
     return 0;
   }
 
-
-
-  double SmoothMax(double left, double right, double beta)
+  double SmoothMax(double left, double right, double beta, bool normalize)
   {
     assert(beta > 0 || beta == -1.0);
-    if(beta == -1.0) return std::max(left, right);
+    double max = std::max(left, right);
 
-    // the continuous Kreisselmeier and Steinhauser max approximation taken
-    // from Sigmund; Morphology-based black and white filters for topology optimization; 2007
-    // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
+    if(beta == -1.0) return max;
 
-    return std::log(0.5 * (std::exp(left * beta) + std::exp(right * beta))) / beta;
+    // the continuous Kreisselmeier and Steinhauser max approximation
+    // shift by maximum for better numerical stability
+    double fac = normalize ? 0.5 : 1.0;
+    return std::log(fac * (std::exp((left - max) * beta) + std::exp((right - max) * beta))) / beta + max;
   }
 
-  double SmoothMax(const StdVector<double>& values, double beta)
+  double SmoothMax(const StdVector<double>& values, double beta, bool normalize)
   {
     assert(beta > 0 || beta == -1.0);
     assert(values.GetSize() > 0);
 
-    double res = 0.0;
+    double max = *std::max_element(values.begin(), values.end());
 
     if(beta == -1.0)
-    {
-      res = values[0];
-      for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
-        res = std::max(res, values[i]);
-    }
-    else
-    {
-      // see  SmoothMax(double left, double right, double beta)
-      // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
-      double sum = 0.0;
-      for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
-        sum += std::exp(values[i] * beta);
+      return max;
 
-      assert(sum > 0);
-      res = std::log(sum / (double) values.GetSize()) / beta;
-    }
+    // see SmoothMax(double left, double right, double beta)
+    // x = log ( sum(exp(beta * x_i))) / beta
+    // shift by maximum for better numerical stability
+    double sum = 0.0;
+    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+      sum += std::exp((values[i] - max) * beta);
+
+    assert(sum > 0);
+    double fac = normalize ? (double) values.GetSize() : 1.0;
+    double res = std::log(sum / fac) / beta + max;
 
     // LOG_DBG3(tools) << "SmoothMax v=" << values.ToString() << " beta=" << beta << " -> " << res;
-    // std::cout << "SmoothMax v=" << values.ToString() << " beta=" << beta << " -> " << res << std::endl;
     return res;
   }
 
-  double SmoothMin(double left, double right, double beta)
+  double SmoothMin(double left, double right, double beta, bool normalize)
   {
     assert(beta > 0 || beta == -1.0);
     assert(right > 0 && left > 0);
@@ -550,40 +544,45 @@ namespace CoupledField {
     if(beta == -1.0)
       return std::min(left, right);
 
-    // see comment in SmoothMax(double, double, double)
-    return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
+    // shift by maximum for better numerical stability
+    // the shift cancels out in the formula and also has no influence on the derivative
+    double max = std::max(left, right);
+
+    double fac = normalize ? 0.5 : 1.0;
+    return max - std::log(fac * (std::exp((max - left) * beta) + std::exp((max - right) * beta))) / beta;
   }
 
-  double SmoothMin(const StdVector<double>& values, double beta)
+  double SmoothMin(const StdVector<double>& values, double beta, bool normalize)
   {
     assert(beta > 0 || beta == -1.0);
     assert(values.GetSize() > 0);
     // see  SmoothMax(double left, double right, double beta)
 
     if(beta == -1.0)
-    {
-      double t = values[0];
-      for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
-        t = std::min(t, values[i]);
-      return t;
-    }
+      return *std::min_element(values.begin(), values.end());
+
+    // shift by maximum for better numerical stability
+    // the shift cancels out in the formula and also has no influence on the derivative
+    double max = *std::max_element(values.begin(), values.end());
 
     double sum = 0.0;
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
-      sum += std::exp((1.0 - values[i]) * beta);
+      sum += std::exp((max - values[i]) * beta);
 
     assert(sum > 0);
-    return 1.0 - std::log(sum / (double) values.GetSize()) / beta;
+    double fac = normalize ? (double) values.GetSize() : 1.0;
+    return max - std::log(sum / fac) / beta;
   }
-
 
   double DerivSmoothMax(double left, double right, double beta, int derive)
   {
     assert(derive == -1 || derive == 1); // left or right
     assert(beta > 0);
 
-    double exp_left  = std::exp(left * beta);
-    double exp_right = std::exp(right * beta);
+    // shift by maximum for better numerical stability
+    double max = std::max(left, right);
+    double exp_left  = std::exp((left - max) * beta);
+    double exp_right = std::exp((right - max) * beta);
 
     if(derive == -1)
       return exp_left / (exp_left + exp_right);
@@ -601,11 +600,14 @@ namespace CoupledField {
     if(values.GetSize() == 1)
       return 1.0;
 
+    // shift by maximum for better numerical stability
+    double max = *std::max_element(values.begin(), values.end());
+
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {
-      double v = std::exp(values[i] * beta);
+      double v = std::exp((values[i]-max) * beta);
       sum += v;
-      if(derive == i) my_exp = v; // not derive ist not a window based index
+      if(derive == i) my_exp = v; // note derive is not a window based index
     }
     assert(my_exp != -1.0);
 
@@ -615,8 +617,11 @@ namespace CoupledField {
   double DerivSmoothMin(double left, double right, double beta, int derive)
   {
     assert(derive == -1 || derive == 1); // left or right
-    double exp_left  = std::exp((1.0 - left) * beta);
-    double exp_right = std::exp((1.0 - right) * beta);
+
+    // shift by maximum for better numerical stability
+    double max = std::max(left, right);
+    double exp_left  = std::exp((max - left) * beta);
+    double exp_right = std::exp((max - right) * beta);
 
     if(derive == -1)
       return exp_left / (exp_left + exp_right);
@@ -632,9 +637,12 @@ namespace CoupledField {
     if(values.GetSize() == 1)
       return 1.0;
 
+    // shift by maximum for better numerical stability
+    double max = *std::max_element(values.begin(), values.end());
+
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {
-      double v = std::exp((1.0 - values[i]) * beta);
+      double v = std::exp((max - values[i]) * beta);
       sum += v;
       if(derive == i) my_exp = v;
     }
@@ -673,152 +681,152 @@ namespace CoupledField {
     return ret;
   }
 
-StdVector<Vector<double> > GetNewtonCotes()
-{
-  StdVector<Vector<double> > nc(11);
-  nc[0].Resize(0);
+  StdVector<Vector<double> > GetNewtonCotes()
+  {
+    StdVector<Vector<double> > nc(11);
+    nc[0].Resize(0);
 
-  nc[1].Resize(2);
-  nc[1][0] = 1.0/2;
-  nc[1][1] = 1.0/2;
+    nc[1].Resize(2);
+    nc[1][0] = 1.0/2;
+    nc[1][1] = 1.0/2;
 
-  nc[2].Resize(3);
-  nc[2][0] = 1.0/6;
-  nc[2][1] = 2.0/3;
-  nc[2][2] = 1.0/6;
+    nc[2].Resize(3);
+    nc[2][0] = 1.0/6;
+    nc[2][1] = 2.0/3;
+    nc[2][2] = 1.0/6;
 
-  nc[3].Resize(4);
-  nc[3][0] = 1.0/8;
-  nc[3][1] = 3.0/8;
-  nc[3][2] = 3.0/8;
-  nc[3][3] = 1.0/8;
+    nc[3].Resize(4);
+    nc[3][0] = 1.0/8;
+    nc[3][1] = 3.0/8;
+    nc[3][2] = 3.0/8;
+    nc[3][3] = 1.0/8;
 
-  nc[4].Resize(5);
-  nc[4][0] = 7.0/90;
-  nc[4][1] = 16.0/45;
-  nc[4][2] = 2.0/15;
-  nc[4][3] = 16.0/45;
-  nc[4][4] = 7.0/90;
+    nc[4].Resize(5);
+    nc[4][0] = 7.0/90;
+    nc[4][1] = 16.0/45;
+    nc[4][2] = 2.0/15;
+    nc[4][3] = 16.0/45;
+    nc[4][4] = 7.0/90;
 
-  nc[5].Resize(6);
-  nc[5][0] = 19.0/288;
-  nc[5][1] = 25.0/96;
-  nc[5][2] = 25.0/144;
-  nc[5][3] = 25.0/144;
-  nc[5][4] = 25.0/96;
-  nc[5][5] = 19.0/288;
+    nc[5].Resize(6);
+    nc[5][0] = 19.0/288;
+    nc[5][1] = 25.0/96;
+    nc[5][2] = 25.0/144;
+    nc[5][3] = 25.0/144;
+    nc[5][4] = 25.0/96;
+    nc[5][5] = 19.0/288;
 
-  nc[6].Resize(7);
-  nc[6][0] = 41.0/840;
-  nc[6][1] = 9.0/35;
-  nc[6][2] = 9.0/280;
-  nc[6][3] = 34.0/105;
-  nc[6][4] = 9.0/280;
-  nc[6][5] = 9.0/35;
-  nc[6][6] = 41.0/840;
+    nc[6].Resize(7);
+    nc[6][0] = 41.0/840;
+    nc[6][1] = 9.0/35;
+    nc[6][2] = 9.0/280;
+    nc[6][3] = 34.0/105;
+    nc[6][4] = 9.0/280;
+    nc[6][5] = 9.0/35;
+    nc[6][6] = 41.0/840;
 
-  nc[7].Resize(8);
-  nc[7][0] = 751.0/17280;
-  nc[7][1] = 3577.0/17280;
-  nc[7][2] = 49.0/640;
-  nc[7][3] = 2989.0/17280;
-  nc[7][4] = 2989.0/17280;
-  nc[7][5] = 49.0/640;
-  nc[7][6] = 3577.0/17280;
-  nc[7][7] = 751.0/17280;
+    nc[7].Resize(8);
+    nc[7][0] = 751.0/17280;
+    nc[7][1] = 3577.0/17280;
+    nc[7][2] = 49.0/640;
+    nc[7][3] = 2989.0/17280;
+    nc[7][4] = 2989.0/17280;
+    nc[7][5] = 49.0/640;
+    nc[7][6] = 3577.0/17280;
+    nc[7][7] = 751.0/17280;
 
-  nc[8].Resize(9);
-  nc[8][0] = 989.0/28350;
-  nc[8][1] = 2944.0/14175;
-  nc[8][2] = -464.0/14175;
-  nc[8][3] = 5248.0/14175;
-  nc[8][4] = -454.0/2835;
-  nc[8][5] = 5248.0/14175;
-  nc[8][6] = -464.0/14175;
-  nc[8][7] = 2944.0/14175;
-  nc[8][8] = 989.0/28350;
+    nc[8].Resize(9);
+    nc[8][0] = 989.0/28350;
+    nc[8][1] = 2944.0/14175;
+    nc[8][2] = -464.0/14175;
+    nc[8][3] = 5248.0/14175;
+    nc[8][4] = -454.0/2835;
+    nc[8][5] = 5248.0/14175;
+    nc[8][6] = -464.0/14175;
+    nc[8][7] = 2944.0/14175;
+    nc[8][8] = 989.0/28350;
 
-  nc[9].Resize(10);
-  nc[9][0] = 2857.0/89600;
-  nc[9][1] = 15741.0/89600;
-  nc[9][2] = 27.0/2240;
-  nc[9][3] = 1209.0/5600;
-  nc[9][4] = 2889.0/44800;
-  nc[9][5] = 2889.0/44800;
-  nc[9][6] = 1209.0/5600;
-  nc[9][7] = 27.0/2240;
-  nc[9][8] = 15741.0/89600;
-  nc[9][9] = 2857.0/89600;
+    nc[9].Resize(10);
+    nc[9][0] = 2857.0/89600;
+    nc[9][1] = 15741.0/89600;
+    nc[9][2] = 27.0/2240;
+    nc[9][3] = 1209.0/5600;
+    nc[9][4] = 2889.0/44800;
+    nc[9][5] = 2889.0/44800;
+    nc[9][6] = 1209.0/5600;
+    nc[9][7] = 27.0/2240;
+    nc[9][8] = 15741.0/89600;
+    nc[9][9] = 2857.0/89600;
 
-  nc[10].Resize(11);
-  nc[10][0] = 16067.0/598752;
-  nc[10][1] = 26575.0/149688;
-  nc[10][2] = -16175.0/199584;
-  nc[10][3] = 5675.0/12474;
-  nc[10][4] = -4825.0/11088;
-  nc[10][5] = 17807.0/24948;
-  nc[10][6] = -4825.0/11088;
-  nc[10][7] = 5675.0/12474;
-  nc[10][8] = -16175.0/199584;
-  nc[10][9] = 26575.0/149688;
-  nc[10][10] = 16067.0/598752;
+    nc[10].Resize(11);
+    nc[10][0] = 16067.0/598752;
+    nc[10][1] = 26575.0/149688;
+    nc[10][2] = -16175.0/199584;
+    nc[10][3] = 5675.0/12474;
+    nc[10][4] = -4825.0/11088;
+    nc[10][5] = 17807.0/24948;
+    nc[10][6] = -4825.0/11088;
+    nc[10][7] = 5675.0/12474;
+    nc[10][8] = -16175.0/199584;
+    nc[10][9] = 26575.0/149688;
+    nc[10][10] = 16067.0/598752;
 
-  return nc;
-}
-
-Vector<double> Linspace(double start, double end, int n)
-{
-  Vector<double> res(n);
-  for(int i = 0; i < n; n++)
-    res[i] = start + i*(end-start)/(n-1);
-  return res;
-}
-
-void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind)
-{
-  assert(size.GetSize() >= sub.GetSize());
-
-  // cumulative product
-  StdVector<int> cumprod = StdVector<int>(size.GetSize());
-  cumprod[0] = size[0];
-  for(unsigned int i = 1; i < size.GetSize(); ++i) {
-    cumprod[i] = cumprod[i-1] * size[i];
+    return nc;
   }
 
-  int idx = sub[0] + 1; // zero based
-  for(unsigned int i = 1; i < sub.GetSize(); ++i) {
-    idx += sub[i] * cumprod[i-1];
-  }
-  ind = idx - 1; // zero based
-}
-
-void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub)
-{
-  sub.Resize(size.GetSize());
-
-  // cumulative product
-  StdVector<int> cumprod = StdVector<int>(size.GetSize());
-  cumprod[0] = size[0];
-  for(unsigned int i = 1; i < size.GetSize(); ++i) {
-    cumprod[i] = cumprod[i-1] * size[i];
+  Vector<double> Linspace(double start, double end, int n)
+  {
+    Vector<double> res(n);
+    for(int i = 0; i < n; n++)
+      res[i] = start + i*(end-start)/(n-1);
+    return res;
   }
 
-  unsigned int idx = ind + 1; //zero based
-  for(unsigned int i = sub.GetSize()-1; i > 0; i--) {
-    int v = (idx-1) % cumprod[i-1] + 1;
-    sub[i] = (idx - v) / cumprod[i-1];
-    idx = v;
-  }
-  sub[0] = idx-1;
-}
+  void Sub2Ind(Vector<unsigned int> size, StdVector<int> sub, unsigned int &ind)
+  {
+    assert(size.GetSize() >= sub.GetSize());
 
-Vector<double> LogspaceBase(double start, double end, int n)
-{
-  Vector<double> res(n);
-  for(int i = 0; i < n; i++)
-    res[i] = std::pow(10, start + i*(end-start)/(n-1)); // pow(10,linspace(s,e,n))
-  return res;
-}
+    // cumulative product
+    StdVector<int> cumprod = StdVector<int>(size.GetSize());
+    cumprod[0] = size[0];
+    for(unsigned int i = 1; i < size.GetSize(); ++i) {
+      cumprod[i] = cumprod[i-1] * size[i];
+    }
+
+    int idx = sub[0] + 1; // zero based
+    for(unsigned int i = 1; i < sub.GetSize(); ++i) {
+      idx += sub[i] * cumprod[i-1];
+    }
+    ind = idx - 1; // zero based
+  }
+
+  void Ind2Sub(Vector<unsigned int> size, unsigned int ind, StdVector<int> &sub)
+  {
+    sub.Resize(size.GetSize());
+
+    // cumulative product
+    StdVector<int> cumprod = StdVector<int>(size.GetSize());
+    cumprod[0] = size[0];
+    for(unsigned int i = 1; i < size.GetSize(); ++i) {
+      cumprod[i] = cumprod[i-1] * size[i];
+    }
+
+    unsigned int idx = ind + 1; //zero based
+    for(unsigned int i = sub.GetSize()-1; i > 0; i--) {
+      int v = (idx-1) % cumprod[i-1] + 1;
+      sub[i] = (idx - v) / cumprod[i-1];
+      idx = v;
+    }
+    sub[0] = idx-1;
+  }
+
+  Vector<double> LogspaceBase(double start, double end, int n)
+  {
+    Vector<double> res(n);
+    for(int i = 0; i < n; i++)
+      res[i] = std::pow(10, start + i*(end-start)/(n-1)); // pow(10,linspace(s,e,n))
+    return res;
+  }
 
   // explicit template instantiation
   template std::string ToString<double>(const double* data, unsigned int size);

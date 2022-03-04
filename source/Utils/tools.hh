@@ -332,11 +332,14 @@ namespace CoupledField {
   int MemoryUsage(bool peak);
 
   /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values.
-   * @param beta -1 is special and makes real max, otherwise beta needs to be > 0 */
-  double SmoothMax(double left, double right, double beta);
+   * @param beta - -1 is special and makes real max, otherwise beta needs to be > 0
+   * @param normalize - applies normalization by factor 0.5 */
+  double SmoothMax(double left, double right, double beta, bool normalize = false);
 
-  /** Calculates the continuous Kreisselmeier and Steinhauser max approximation for arbitrary values. */
-  double SmoothMax(const StdVector<double>& values, double beta);
+  /** Calculates the continuous Kreisselmeier and Steinhauser max approximation for arbitrary values.
+  * @param beta - -1 is special and makes real max, otherwise beta needs to be > 0
+  * @param normalize - applies normalization by number of values */
+  double SmoothMax(const StdVector<double>& values, double beta, bool normalize = false);
 
   /** @param deriv -1 for left or 1 for right value to derive for */
   double DerivSmoothMax(double left, double right, double beta, int derive);
@@ -344,14 +347,16 @@ namespace CoupledField {
   /** @param deriv index within values. */
   double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive);
 
-  /** @see CalcMaxApproximation() */
-  double SmoothMin(double left, double right, double beta);
+  /** @see SmoothMax(double, double, double, bool) */
+  double SmoothMin(double left, double right, double beta, bool normalize = false);
 
-  double SmoothMin(const StdVector<double>& values, double beta);
+  /** @see SmoothMax(const StdVector<double>&, double, bool) */
+  double SmoothMin(const StdVector<double>& values, double beta, bool normalize = false);
 
-  /** @see DerivSmoothMax() */
+  /** @see DerivSmoothMax(double, double, double, int) */
   double DerivSmoothMin(double left, double right, double beta, int derive);
 
+  /** @see DerivSmoothMax(const StdVector<double>&, double, unsigned int) */
   double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive);
 
   /** Calculates an approximation of the abs function:A(x) = sqrt(x^2 + eps^2) - eps
