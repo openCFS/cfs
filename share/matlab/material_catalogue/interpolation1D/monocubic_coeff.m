@@ -1,7 +1,7 @@
-function [c] = monocubic_coeff(E, dEda, da, atRightBoundary)
+function [c] = monocubic_coeff(E, dEda, da, boundary)
 % Berechnung der Interpolationskoeffizienten für ein bestimmtes Intervall
 % Polynom ist definiert auf dem Referenzintervall [0,1]
-if nargin < 4 || ~atRightBoundary
+if nargin < 4 || boundary == 0
     A=[1 0 0 0
        1 1 1 1
        0 1 0 0
@@ -10,11 +10,18 @@ if nargin < 4 || ~atRightBoundary
     x = [E(1), E(2), dEda(1)*da, dEda(2)*da];
     c = A\x';
 else
-    A=[1 0 0
-       1 1 1
-       0 1 0];
+    if boundary == 1
+        A=[1 0 0
+           1 1 1
+           0 1 0];
+        x = [E(1), E(2), dEda(1)*da];
+    else
+        A=[1 0 0
+           1 1 1
+           0 1 2];
+        x = [E(1), E(2), dEda(2)*da];
+    end
 
-    x = [E(1), E(2), dEda(1)*da];
     c = A\x';
     c(4) = 0;
 end

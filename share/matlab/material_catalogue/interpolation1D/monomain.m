@@ -12,10 +12,11 @@ nparam = sum(nparamintervals > 0);
 
 % normalize parameters
 for d=1:nparam
-    params{d} = params{d} / params{d}(end);
-    if max(data(:,d)) ~= 1
-        data(:,d) = data(:,d)/max(data(:,d));
-    end
+%     params{d} = params{d} - params{d}(1);
+%     params{d} = params{d} / params{d}(end);
+%     if max(data(:,d)) ~= 1
+%         data(:,d) = data(:,d)/max(data(:,d));
+%     end
 end
 
 if nparam == 1

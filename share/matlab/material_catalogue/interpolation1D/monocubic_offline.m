@@ -16,10 +16,12 @@ for j=1:m-1
     Eint(2) = E(j+1);
     Eda(1) = dEda(j);
     Eda(2) = dEda(j+1);
-    if j < m-1
-        Coeff(j,:) = monocubic_coeff(Eint, Eda, da);
+    if j == 1
+        Coeff(j,:) = monocubic_coeff(Eint, Eda, da, -1);
+    elseif j == m-1
+        Coeff(j,:) = monocubic_coeff(Eint, Eda, da, 1);
     else
-        Coeff(j,:) = monocubic_coeff(Eint, Eda, da, true);
+        Coeff(j,:) = monocubic_coeff(Eint, Eda, da);
     end
 end
 end

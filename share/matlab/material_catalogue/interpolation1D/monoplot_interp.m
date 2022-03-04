@@ -1,4 +1,4 @@
-function monoplot_interp(inputEhom, inputXML)
+function h = monoplot_interp(inputEhom, inputXML)
 
 list = load(inputEhom);
 coeffs = readXML(inputXML);
@@ -26,15 +26,23 @@ for i=2:size(list,1)
 end
 
 % figure;
-XX = 0:.01:1;
+XX = linspace(min(a),max(a),101);
 ZZ = zeros(101,1);
 for ii=1:101
     ZZ(ii) = monocubic_int(Coeff11, sort(a), XX(ii));
 end
-plot(XX,ZZ);
+h = plot(XX,ZZ,'LineWidth',2);
 hold on;
-plot(a, E11_grid, '*');
+plot(a, E11_grid, '+', 'LineWidth',2,'MarkerSize',10);
+% plot(XX,XX.^3*list(end,2))
+% plot(XX,XX.^2*list(end,2))
+% q = 2.8;
+% plot(XX,XX./(1+q*(1-XX))*list(end,2))
+% legend('int','dat', 'rho^2','rho^3','RAMP')
 hold off;
+
+set(gca,'FontSize',18)
+
 % 
 % figure;
 % ZZ = zeros(101,1);
