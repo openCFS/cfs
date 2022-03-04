@@ -22,7 +22,7 @@ public:
 
   /** conditionally calls UpdateCoordinates()
    *  @see AuxDesign::ReadDesignFromExtern() */
-  int ReadDesignFromExtern(const double* space_in) override;
+  int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true) override;
 
   void ToInfo(ErsatzMaterial* em) override;
 

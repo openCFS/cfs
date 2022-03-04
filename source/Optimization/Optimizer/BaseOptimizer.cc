@@ -444,6 +444,7 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
 
 bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
 {
+  assert(optimization->CalcObjectiveCalled());
   bool opt_run = optimizer_timer_->IsRunning(); // in the scale case we have to optimization_timer
   if(opt_run)
     optimizer_timer_->Stop();

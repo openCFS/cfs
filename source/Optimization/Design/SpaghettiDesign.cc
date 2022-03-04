@@ -494,10 +494,10 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
 }
 
 
-int SpaghettiDesign::ReadDesignFromExtern(const double* space_in)
+int SpaghettiDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   // practically updates the Variable objects within spaghetti. Set's design_id
-  FeaturedDesign::ReadDesignFromExtern(space_in);
+  FeaturedDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent);
 
   // update also the convenience variables
   for(Noodle& s : spaghetti)

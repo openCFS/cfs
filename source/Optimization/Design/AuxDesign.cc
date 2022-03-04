@@ -105,12 +105,12 @@ void AuxDesign::ToInfo(ErsatzMaterial* em)
 
 }
 
-int AuxDesign::ReadDesignFromExtern(const double* space_in)
+int AuxDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   int old_design = design_id;
 
   if(export_fe_design_)
-    DesignSpace::ReadDesignFromExtern(space_in);
+    DesignSpace::ReadDesignFromExtern(space_in, setAndWriteCurrent);
 
   unsigned int offset = AuxDesignOffset(); // the size of the simp space - might be != data.GetSize()
   assert((export_fe_design_ && (offset <= elements * design.GetSize())) || !export_fe_design_);

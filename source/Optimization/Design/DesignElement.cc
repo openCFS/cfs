@@ -656,14 +656,15 @@ inline double DesignElement::GetPlainCostGradient() const {
 
   // get values of all objectives
   // opt->CalcObjective() has to been had called before, such that the values are set!
-  if (!opt->CalcObjectiveCalled())
-    opt->CalcObjective(); // sets function values for opt->objectives.data
-
+#pragma omp critical
+  {
+  if(!opt->CalcObjectiveCalled())
+    opt->CalcObjective();
+  }
   size_t n = opt->objectives.data.GetSize();
   StdVector<double> ov(n);
   for(size_t i = 0; i < n; ++i)
     ov[i] = opt->objectives.data[i]->GetValue();
-
   double sum = 0.0;
 
   // GetMOType writes to beta

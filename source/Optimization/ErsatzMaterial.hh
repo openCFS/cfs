@@ -586,6 +586,7 @@ private:
   /** coefficients of polynomials from Hermite interpolation for micro loadfactor*/
   Vector<double> mlf_a_;
   Matrix<double> mlf_coeff_;
+  double extrapolationThreshold_;
 
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_;

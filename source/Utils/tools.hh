@@ -344,7 +344,7 @@ namespace CoupledField {
   /** @param deriv -1 for left or 1 for right value to derive for */
   double DerivSmoothMax(double left, double right, double beta, int derive);
 
-  /** @param deriv index within values. */
+  /** @param derive index within values. */
   double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive);
 
   /** @see SmoothMax(double, double, double, bool) */

@@ -20,7 +20,7 @@ public:
    * Already increments design_id in case!
    * This is the default implementation for part of SplineBox and almost all of Spaghetti.
    * It cannot apply for ShapeMap as there opt_shape_param_ is overwritten */
-  virtual int ReadDesignFromExtern(const double* space_in) override;
+  virtual int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true) override;
 
   /** overwrites DesignSpace::CompareDesign() */
   virtual bool CompareDesign(const double* space_in) override;

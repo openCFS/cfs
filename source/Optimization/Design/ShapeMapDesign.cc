@@ -1037,7 +1037,7 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 }
 
 
-int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
+int ShapeMapDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   // TODO: This is almost in FeaturedDesign()
 
@@ -1067,7 +1067,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   }
 
   // append aux design, might also change design_id
-  AuxDesign::ReadDesignFromExtern(space_in); // note the asserts above!
+  AuxDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent); // note the asserts above!
 
   if(new_design && design_id <= old_design)
     design_id++; // if new design and not already changed by AuxDesign

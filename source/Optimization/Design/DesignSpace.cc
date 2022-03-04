@@ -1522,7 +1522,7 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 }
 
 
-int DesignSpace::ReadDesignFromExtern(const double* space)
+int DesignSpace::ReadDesignFromExtern(const double* space, bool setAndWriteCurrent)
 {
   bool new_design = false;
   const unsigned int nd = design.GetSize();
@@ -1585,14 +1585,14 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
   if(new_design && domain->GetOptimization())
   {
     DensityFile* df = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->GetDensityFile();
-    if(df)
+    if(df && setAndWriteCurrent)
       df->SetAndWriteCurrent(domain->GetOptimization()->GetCurrentIteration());
   }
   return design_id;
 }
-int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
+int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space, bool setAndWriteCurrent)
 {
-  return ReadDesignFromExtern(space.GetPointer());
+  return ReadDesignFromExtern(space.GetPointer(), setAndWriteCurrent);
 }
 
 bool DesignSpace::CompareDesign(const double* space)

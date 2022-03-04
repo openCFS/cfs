@@ -60,6 +60,7 @@ E55 = zeros(nparamintervals(1)+1, nparamintervals(2)+1, nparamintervals(3)+1);
 E56 = zeros(nparamintervals(1)+1, nparamintervals(2)+1, nparamintervals(3)+1);
 E66 = zeros(nparamintervals(1)+1, nparamintervals(2)+1, nparamintervals(3)+1);
 vol = zeros(nparamintervals(1)+1, nparamintervals(2)+1, nparamintervals(3)+1);
+loadfactor = zeros(nparamintervals(1)+1, nparamintervals(2)+1, nparamintervals(3)+1);
 
 for i=2:size(data,1)
 %     idx = sub2ind(size(E11), list(i,1)+1, min(1,n)*list(i,2)+1, min(1,o)*list(i,3)+1);
@@ -72,7 +73,9 @@ for i=2:size(data,1)
         end
     end
     idx = sub2ind(size(E11), sub(1), sub(2), sub(3));
-    if size(data,2) == 4+nparam || size(data,2) == 5+nparam
+    if size(data,2) == 2
+        loadfactor(idx) = data(i,1+nparam);
+    elseif size(data,2) == 4+nparam || size(data,2) == 5+nparam
         E11(idx) = data(i, 1+nparam);
         E12(idx) = data(i, 2+nparam);
         E22(idx) = data(i, 3+nparam);
@@ -141,7 +144,8 @@ E = struct(...
 'E55', E55,...
 'E56', E56,...
 'E66', E66,...
-'vol', vol...
+'vol', vol,...
+'loadfactor', loadfactor...
 );
 
 interpolation_func = @monocubic_offline;
@@ -200,7 +204,11 @@ coeffs = struct(...
 );
 
 if norm(temp(:,:,22)) ~= 0
-    coeffs = setfield(coeffs, 'coeffvol',temp(:,:,22));
+    coeffs.coeffvol = temp(:,:,22);
+end
+
+if norm(temp(:,:,23)) ~= 0
+    coeffs.microloadfactor = temp(:,:,23);
 end
 
 write_to_xml(outputfile, params, coeffs);
@@ -210,10 +218,12 @@ end
 
 function [params, nparamintervals, dparams] = getSampling(list)
 
+nparams = size(list,2)-1;
+
 nparamintervals = zeros(3,1);
 dparams = zeros(3,1);
 
-for d=1:3
+for d=1:nparams
     nparamintervals(d) = max(0, list(1,d));
     if nparamintervals(d) > 1
         params{d} = unique(list(2:end,d));

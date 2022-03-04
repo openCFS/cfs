@@ -28,11 +28,13 @@ names = {
 'coeff55';
 'coeff56';
 'coeff66';
+'vol';
+'microloadfactor'
 };
 
 
 % read sizes
-for i = 1:21
+for i = 1:length(names)
     name = names{i};
     list1 = doc.getElementsByTagName(name);
     if list1.getLength < 1
@@ -45,8 +47,8 @@ for i = 1:21
 end
 
 % read coeffs
-temp = zeros(nintervals, ncoefficients, 21);
-for i = 1:21
+temp = zeros(nintervals, ncoefficients, length(names));
+for i = 1:length(names)
     name = names{i};
     list1 = doc.getElementsByTagName(name);
     if list1.getLength > 1
@@ -82,6 +84,8 @@ coeffs = struct(...
 'coeff46', temp(:,:,18),...
 'coeff55', temp(:,:,19),...
 'coeff56', temp(:,:,20),...
-'coeff66', temp(:,:,21)...
+'coeff66', temp(:,:,21),...
+'coeffvol', temp(:,:,22),...
+'microloadfactor', temp(:,:,23)...
 );
 

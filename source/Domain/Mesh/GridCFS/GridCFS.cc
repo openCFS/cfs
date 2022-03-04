@@ -3223,6 +3223,7 @@ namespace CoupledField {
     LOG_DBG(gridcfs) << "Volume of rectangular dense mesh: " << s;
 
     if( std::abs(s - cube_vol) / s < 1e-5 ) {
+      assert(s >= 0);
       return s;
     }
 
@@ -3235,6 +3236,7 @@ namespace CoupledField {
     verts.Reserve(pow(2,dim_) * dim_);
     // This stores the indices of named nodes, which we take into account in the following
     // calculations. E.g., if there are too little nodes in namedNodes[i], we skip these nodes.
+    assert(namedNodeNames_.GetSize() > 3);
     StdVector<UInt> pointsToNamedNodesMap;
     pointsToNamedNodesMap.Reserve(namedNodeNames_.GetSize());
     for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )

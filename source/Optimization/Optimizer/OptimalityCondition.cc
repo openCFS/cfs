@@ -50,8 +50,8 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   this->lambda_min_ = 1e-20;
   this->lambda_iters_ = 0;
   this->max_lambda_iters_ = 70;
-  this->feasibility_    = 1e-6;
-  this->type_       = optimization->objectives.Has(Objective::COMPLIANCE) ? FRAMED : FUMBLE;
+  this->feasibility_ = 1e-6;
+  this->type_ = optimization->objectives.Has(Objective::COMPLIANCE) ? FRAMED : FUMBLE;
 
   // framed
   this->upper_ = 0.0;
@@ -69,7 +69,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::OPTIMALITY_CONDITION), ParamNode::PASS);
-  
+
   // read the xml values
   if(pn != NULL)
   {
@@ -112,11 +112,31 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
       if(contract_ >= 1.0 )
         throw Exception("contract shall be < 1.0, e.g. 0.49");
     }
+
+    if(pn->Has("multiObjective"))
+    {
+      PtrParamNode multiObj = pn->Get("multiObjective");
+      this->weight_ = multiObj->Get("multiObjectiveWeight")->As<double>();
+      this->beta_ = multiObj->Get("beta")->As<double>();
+
+      // Get index of "real" constraint
+      Function::Type constraint_type = Function::type.Parse(multiObj->Get("constraint")->As<std::string>());
+      constraint_idx_ = -1;
+      for(int i=0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); ++i)
+        if(optimization->constraints.view->Get(i)->GetType() == constraint_type)
+            constraint_idx_ = i;
+      optimization->constraints.view->Done();
+
+      if(constraint_idx_ == -1)
+        EXCEPTION("multiObjective constraint type " << Function::type.ToString(constraint_type) << " is not given as constraint.")
+
+      LOG_DBG3(oc) << "mO: w=" << weight_ << " b=" << beta_ << " c=" << Function::type.ToString(constraint_type) << " constraint_idx_=" << constraint_idx_;
+    }
   }
 
   // some plausibility about optimality condition
-  if(type_ != EXTREMIZE && optimization->constraints.view->GetNumberOfActiveConstraints() != 1)
-    throw Exception("optimality condition is only possible with exactly one constraint");
+//  if(type_ != EXTREMIZE && optimization->constraints.view->GetNumberOfActiveConstraints() != 1)
+//    throw Exception("optimality condition is only possible with exactly one constraint");
   if(type_ == EXTREMIZE && optimization->constraints.view->GetNumberOfActiveConstraints() > 0)
     throw Exception("Optimality Condition 'extremize' is not implemented for constraints");
 
@@ -138,6 +158,7 @@ void OptimalityCondition::SolveProblem()
   // solve the state problem first
   Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed
   optimization->SolveStateProblem();
+  optimization->CalcObjective();
 
   // start with iteration 0 which is the initial design
   int iter = 0;
@@ -158,20 +179,87 @@ void OptimalityCondition::SolveProblem()
     // reset values of the constraint gradients
     optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
 
-    if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0) {
+
+    ConditionContainer& cc = optimization->constraints;
+
+    // if we have more than one constraints
+    // we agglomerate all but the chosen "real" constraint in a smooth minimum and combine it with the objective
+    // (1-weight_) * objective - weight_ * smoothmin(constraints)
+
+    // here we get all "fake" constraint values -> needed for derivative of smooth minimum
+    StdVector<double> constraint_values;
+    if(cc.view->GetNumberOfActiveConstraints() > 1)
+    {
+      for(int i = 0; i < cc.view->GetNumberOfActiveConstraints(); i++)
+      {
+        if(i != constraint_idx_)
+        {
+          Condition* c = cc.view->Get(i);
+          optimization->CalcConstraint(c);
+          constraint_values.Push_back(c->IsLocal() ? ((LocalCondition*)c)->GetValue(): c->GetValue());
+        }
+      }
+      cc.view->Done();
+
+      LOG_DBG2(oc) << " constraint_values=" << constraint_values.ToString(TS_PYTHON);
+      LOG_DBG2(oc) << " min(con_vals)=" << SmoothMin(constraint_values, beta_, true);
+    }
+
+    // calculate the derivative of the "real" constraint and the smooth minimum of the "fake" constraints
+    if(cc.view->GetNumberOfActiveConstraints() > 0) {
+      StdVector<double> grad(optimization->GetDesign()->data.GetSize());
+      grad.window.Set(0, grad.GetSize());
+      agglomerated_grad_.Resize(optimization->GetDesign()->data.GetSize());
+      agglomerated_grad_.Init(0);
+
+      //SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
+
       eval_grad_const_timer_->Start();
-      optimization->CalcConstraintGradient(NULL);
+
+      int fake_constraint_idx = 0;
+      for(int i = 0; i < cc.view->GetNumberOfActiveConstraints(); ++i)
+      {
+        if(i == constraint_idx_)
+          // "real" constraint
+          optimization->CalcConstraintGradient(cc.view->Get(i));
+        else
+        {
+          // "fake" constraints
+          optimization->CalcConstraintGradient(cc.view->Get(i), &grad);
+
+          LOG_DBG2(oc) << "e=" << i << " x=" << optimization->GetDesign()->data[i].GetValue(DesignElement::DESIGN, DesignElement::SMART) << " f=" << optimization->CalcConstraint(cc.view->Get(i)) << " df=" << grad.ToString(2);
+          // agglomerate all gradients of "fake" constraints, chain rule applies
+          // d/drho smoothmin(f_1(rho), ..., f_n(rho)) = sum_i d/df_i smoothmin(f_1(rho), ..., f_n(rho)) * d/drho f_i(rho)
+          for(unsigned int j = 0; j < grad.GetSize(); ++j)
+          {
+            agglomerated_grad_[j] += DerivSmoothMin(constraint_values, beta_, fake_constraint_idx) * grad[j];
+            LOG_DBG3(oc) << " dmin * df_SMART = " << DerivSmoothMin(constraint_values, beta_, fake_constraint_idx) << " * " << grad[j]
+                         << " = " << DerivSmoothMin(constraint_values, beta_, fake_constraint_idx) * grad[j];
+          }
+          ++fake_constraint_idx;
+        }
+      }
+      cc.view->Done();
       eval_grad_const_timer_->Stop();
+
+      LOG_DBG2(oc) << " agglo_grad=" << agglomerated_grad_.ToString(TS_PYTHON);
+
+      DesignSpace* design = optimization->GetDesign();
+      int res_idx = design->GetSpecialResultIndex(DesignElement::GENERIC_ELEM, "ocm_agglomerated_grad_");
+      if(res_idx != -1)
+      {
+        for(unsigned int j = 0; j < grad.GetSize(); ++j)
+          design->data[j].specialResult[res_idx] = agglomerated_grad_[j];
+      }
     }
 
     // store iteration 0
     if(iter == 0)
     {
       eval_obj_timer_->Start();
-      optimization->CalcObjective();   // for output
+      design_.value = optimization->CalcObjective();   // for output
       eval_obj_timer_->Stop();
-      // the gradients are (here only!) pointing to the next design vector,
-      // hence the gradients for iteration "0" and 1 are identical
+
       optimization->CommitIteration(); // don't assert we are running
       iter++;
       continue; // redo gradients and start optimization
@@ -205,11 +293,11 @@ void OptimalityCondition::SolveProblem()
     }
     optimization->SolveStateProblem();
 
-    // calc the objective for the logging in CommitIteration(),
+    // calc the objective and "fake" constraint values for the logging in CommitIteration(),
     // for the optimality condition it is not required.
 
     eval_obj_timer_->Start();
-    optimization->CalcObjective();
+    design_.value = optimization->CalcObjective();
     eval_obj_timer_->Stop();
 
     // every state problem is an iteration
@@ -270,7 +358,8 @@ bool OptimalityCondition::CalcNextFramedIteration(bool last_was_stalled_err)
     // evaluate with new lambda 
     // restore original density from temp so we always start the calculation 
     // on the same base but with different lambda
-    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
+    // do not write density file
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer(), false);
 
     last_err = err;
     err = Evaluate(lambda_);
@@ -284,20 +373,23 @@ bool OptimalityCondition::CalcNextFramedIteration(bool last_was_stalled_err)
     
     lambda_iters_++;
 
-    LOG_DBG2(oc) << "CNFI: li=" << lambda_iters_ << " l=" << lambda_ << " e=" << err << " lo=" << lower_ << " up=" << upper_ << " de=" << abs(err - last_err);
-   }
-   while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_ && !stalled_err && abs(lambda_) > abs(lambda_min_));
+    LOG_DBG2(oc) << "CNFI: li=" << lambda_iters_ << " l=" << lambda_ << " err=" << err << " lo=" << lower_ << " up=" << upper_ << " derr=" << abs(err - last_err);
+  }
+  while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_ && !stalled_err && abs(lambda_) > abs(lambda_min_));
 
-   if(abs(lambda_) < abs(lambda_min_))
-     std::cout << "Iteration fails due to too small lambda, check feasibility, move_limit or other optimalityCondition@type than 'framed'" << std::endl;
+  // write design to density file
+  optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer(), true);
 
-   if(stalled_err) {
-     std::cout << "Iteration fails due to too stalled error: enlarge move_limit (" << move_limit_ << ") or disable optimalityCondition/framed@checkErr" << std::endl;
-   }
-   if(lambda_iters_ >= max_lambda_iters_)
-     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check move_limit or bounds in 'optimalityCondition/framed'\n";
+  if(abs(lambda_) < abs(lambda_min_))
+   std::cout << "Iteration fails due to too small lambda, check feasibility, move_limit or other optimalityCondition@type than 'framed'" << std::endl;
 
-   return stalled_err;
+  if(stalled_err) {
+   std::cout << "Iteration fails due to too stalled error: enlarge move_limit (" << move_limit_ << ") or disable optimalityCondition/framed@checkErr" << std::endl;
+  }
+  if(lambda_iters_ >= max_lambda_iters_)
+   std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check move_limit or bounds in 'optimalityCondition/framed'\n";
+
+  return stalled_err;
 }
 
 void OptimalityCondition::CalcNextFumbleIteration()
@@ -437,7 +529,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   // elements but the first have old and new elements in their filter
   // stencil. Hence we store in evaluate_tmp_
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-  for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
+  for(unsigned int i = 0; i < data.GetSize(); i++)
   {
     DesignElement* de = &data[i];
     // rho_e is the old rho
@@ -467,84 +559,91 @@ void OptimalityCondition::CalcNextExtremizeIteration()
 
 double OptimalityCondition::Evaluate(double lambda)
 {
-   // we assume DensityElement.objective_gradient to be set
-   // we assume DensityElement.constraint_gradient to be set
-  
-   if(abs(lambda) < abs(lambda_min_))
-   {
-     double org_lambda = lambda;
-     lambda = lambda < 0 ? -1.0 * lambda_min_ : lambda_min_;
-     std::cout << "Optimality Condition evaluates with too small lambda " 
-               << org_lambda << " adjust to " << lambda << std::endl;
-     LOG_DBG(oc) << "Evaluate: adjust " << org_lambda << " to " << lambda;
-   }
+  // we assume DensityElement.objective_gradient to be set
+  // we assume DensityElement.constraint_gradient to be set
 
-   ConditionContainer& cc = optimization->constraints;
-   assert(cc.view->GetNumberOfActiveConstraints() == 1);
-   Condition* g = cc.view->Get(0);
-   StdVector<DesignElement>& data = optimization->GetDesign()->data;
+  if(abs(lambda) < abs(lambda_min_))
+  {
+   double org_lambda = lambda;
+   lambda = lambda < 0 ? -1.0 * lambda_min_ : lambda_min_;
+   std::cout << "Optimality Condition evaluates with too small lambda "
+             << org_lambda << " adjust to " << lambda << std::endl;
+   LOG_DBG(oc) << "Evaluate: adjust " << org_lambda << " to " << lambda;
+  }
 
-   // we cannot set the design directly otherwise the filter does not 
-   // work (it becomes unsymmetrically for symmetric problems) as all 
-   // elements but the first have old and new elements in their filter
-   // stencil. Hence we store in evaluate_tmp_
+  ConditionContainer& cc = optimization->constraints;
+  assert(cc.view->GetNumberOfActiveConstraints() > 0);
+  Condition* g = cc.view->Get(constraint_idx_);
+  StdVector<DesignElement>& data = optimization->GetDesign()->data;
 
+  // we cannot set the design directly otherwise the filter does not
+  // work (it becomes unsymmetrically for symmetric problems) as all
+  // elements but the first have old and new elements in their filter
+  // stencil. Hence we store in evaluate_tmp_
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-   for(Integer i = 0; i < (Integer) data.GetSize(); i++)    
-   {
-     DesignElement* de = &data[i];
-     // rho_e is the old rho
-     double rho_e = de->GetDesign(DesignElement::PLAIN);   
-    
-     // if filter is enabled we use the filtered value otherwise the plain one
-     double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
-     smart_obj_grad *= optimization->objectives.DoMaximize() ? -1.0 : 1.0;
-     double b_e = -1.0 * smart_obj_grad;
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+  {
+    DesignElement* de = &data[i];
+    // rho_e is the old rho
+    double rho_e = de->GetDesign(DesignElement::PLAIN);
 
-     // ill posed problems have a problem here!  
-     if((boost::math::isnan)(b_e)) EXCEPTION("b_e is nan");
+    // if filter is enabled we use the filtered value otherwise the plain one
+    double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
 
-     // for compliant mechanism the gradient can be positive, this is cut
-     // -> Bendsoe/Sigmund. p 97
-     // for piezo we might become negative lambdas -> cut the positive!
-     b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
-     
-     b_e /= (lambda * de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g));
-     
-     // next is density times b_e which is compared with box constraints and move limit
-     double next = rho_e * std::pow(b_e, oc_damping_);
+    // "real" objective = (1-weight_) * objective - weight_ * smoothmin(constraints)
+    if(cc.view->GetNumberOfActiveConstraints() > 1)
+      smart_obj_grad = (1-weight_) * smart_obj_grad - weight_ * agglomerated_grad_[de->GetIndex()];
 
-     double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
-     double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);            
+    smart_obj_grad *= optimization->objectives.DoMaximize() ? -1.0 : 1.0;
 
-     // we cannot set the design directly - otherwise the filter stencil get violated 
-     evaluate_tmp_[i] = next;
-     if(next <= lower) evaluate_tmp_[i] =lower;
-     if(upper <= next) evaluate_tmp_[i] =upper;
-     
-     LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum << " obj_grad=" << smart_obj_grad
-                  << "(" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN) << ")"
-                  << " const_grad=" << de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)
-                  << " old= " << rho_e << " next=" << next << " lower=" << lower
-                  << " upper=" << upper << " new=" << evaluate_tmp_[i];
-   }
-   optimizer_timer_->Stop();
+    double b_e = -1.0 * smart_obj_grad;
 
-   eval_const_timer_->Start();
+    // ill posed problems have a problem here!
+    if((boost::math::isnan)(b_e)) EXCEPTION("b_e is nan");
 
-   // store the new values in the design variables
-   optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
-   
-   double vol = optimization->CalcConstraint(g);
-   eval_const_timer_->Stop();
+    // for compliant mechanism and eigenvalue optimization the gradient can be positive, this is cut
+    // -> Bendsoe/Sigmund. p 74, p 97
+    // for piezo we might become negative lambdas -> cut the positive!
+    b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
 
-   optimizer_timer_->Start();
+    double smart_con_grad = de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
+    b_e /= (lambda * smart_con_grad);
 
-   double err = g->GetBoundValue() - vol;
+    // next is density times b_e which is compared with box constraints and move limit
+    double next = rho_e * std::pow(b_e, oc_damping_);
+    LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum
+                 << " smart_obj_grad=" << smart_obj_grad << " smart_con_grad=" << smart_con_grad
+                 << "(" << Function::type.ToString(g->GetType()) << ")"
+                 << " lambda=" << lambda << " b_e=" << b_e << " damping=" << oc_damping_
+                 << " rho_e=" << rho_e << " -> next=" << next;
 
-   LOG_DBG2(oc) << "E: lambda=" << lambda << " v=" << vol << " e=" << err;
+    double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
+    double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);
 
-   return err;
+    // we cannot set the design directly - otherwise the filter stencil get violated
+    evaluate_tmp_[i] = next;
+    if(next <= lower) evaluate_tmp_[i] = lower;
+    if(upper <= next) evaluate_tmp_[i] = upper;
+
+    LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum<< " old=" << rho_e
+                 << " next=" << next << " lower=" << lower << " upper=" << upper
+                 << " -> new=" << evaluate_tmp_[i];
+  }
+  optimizer_timer_->Stop();
+
+  eval_const_timer_->Start();
+  // store the new values in the design variables and evaluate the constraint
+  optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer(), false);
+  double vol = optimization->CalcConstraint(g);
+  eval_const_timer_->Stop();
+
+  optimizer_timer_->Start();
+
+  double err = g->GetBoundValue() - vol;
+
+  LOG_DBG2(oc) << "E: lambda=" << lambda << " v=" << vol << " e=" << err;
+
+  return err;
 }
 
 void OptimalityCondition::LogFileHeader(Optimization::Log& log)

@@ -34,7 +34,7 @@ class AuxDesign : public DesignSpace
     virtual void PostInit(int objectives, int constraints);
 
     /** @see DesignSpace::ReadDesignFromExtern() */
-    virtual int ReadDesignFromExtern(const double* space_in);
+    virtual int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true);
 
     /** overwrites DesignSpace::CompareDesign() */
     virtual bool CompareDesign(const double* space_in);

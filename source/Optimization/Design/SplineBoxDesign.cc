@@ -296,11 +296,11 @@ void SplineBoxDesign::CheckPlausibility()
     throw Exception("Number of control points has to be at least degree+1");
 }
 
-int SplineBoxDesign::ReadDesignFromExtern(const double* space_in)
+int SplineBoxDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   int old_design = design_id;
 
-  FeaturedDesign::ReadDesignFromExtern(space_in);
+  FeaturedDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent);
 
   if(design_id != old_design) {
     StdVector<Point> offset(total_num_cp_);

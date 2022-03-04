@@ -15,7 +15,7 @@ public:
   virtual ~SpaghettiDesign();
 
     /** read the design and do a conditional mapping */
-  int ReadDesignFromExtern(const double* space_in) override;
+  int ReadDesignFromExtern(const double* space_in, bool doNotSetAndWriteCurrent = false) override;
 
   void ToInfo(ErsatzMaterial* em) override;
 

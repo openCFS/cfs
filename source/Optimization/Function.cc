@@ -2484,7 +2484,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
 }
 
 void Function::Local::Identifier::EvalGradient(const Local* local) {
-  // TODO the dynamic_cast might be to slow, check! and do faster by IsObjective()
+  // TODO the dynamic_cast might be too slow, check! and do faster by IsObjective()
   // we need this pointers, note that C++ makes NULL for an invalid dynamic cast
   Function* funct = local->func_;
   Function::Type ft = funct->type_;

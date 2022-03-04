@@ -36,7 +36,7 @@ public:
   virtual void PostInit(int objectives, int constraints) override;
 
   /** @see DesignSpace::ReadDesignFromExtern() */
-  int ReadDesignFromExtern(const double* space_in) override;
+  int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true) override;
 
   /** writes design to the vector, beginning with shape variables (shape_param_) and then aux_design_ */
   int WriteDesignToExtern(double* space_out, bool scaling = true) const override;

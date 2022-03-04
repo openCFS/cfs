@@ -21,7 +21,7 @@ for i=2:size(list,1)
     E22_grid(i-1) = list(i,3);
     E33_grid(i-1) = list(i,4);
     E12_grid(i-1) = list(i,7);
-    E12_grid(i-1) = list(i,3);
+%     E12_grid(i-1) = list(i,3);
     E66_grid(i-1) = list(i,end);
 end
 
@@ -44,32 +44,32 @@ hold off;
 set(gca,'FontSize',18)
 
 % 
-% figure;
-% ZZ = zeros(101,1);
-% for ii=1:101
-%     ZZ(ii) = monocubic_int(Coeff22, sort(a), XX(ii));
-% end
-% plot(XX,ZZ);
-% hold on;
-% plot(a, E22_grid, '*');
-% hold off;
-% 
-% figure;
-% ZZ = zeros(101,1);
-% for ii=1:101
-%     ZZ(ii) = monocubic_int(Coeff33, sort(a), XX(ii));
-% end
-% plot(XX,ZZ);
-% hold on;
-% plot(a, E33_grid, '*');
-% hold off;
-% 
-% figure;
-% ZZ = zeros(101,1);
-% for ii=1:101
-%     ZZ(ii) = monocubic_int(Coeff12, sort(a), XX(ii));
-% end
-% plot(XX,ZZ);
-% hold on;
-% plot(a, E12_grid, '*');
-% hold off;
+figure;
+ZZ = zeros(101,1);
+for ii=1:101
+    ZZ(ii) = monocubic_int(Coeff22, sort(a), XX(ii));
+end
+plot(XX,ZZ);
+hold on;
+plot(a, E22_grid, '*');
+hold off;
+
+figure;
+ZZ = zeros(101,1);
+for ii=1:101
+    ZZ(ii) = monocubic_int(Coeff33, sort(a), XX(ii));
+end
+plot(XX,ZZ);
+hold on;
+plot(a, E33_grid, '*');
+hold off;
+
+figure;
+ZZ = zeros(101,1);
+for ii=1:101
+    ZZ(ii) = monocubic_int(Coeff12, sort(a), XX(ii));
+end
+plot(XX,ZZ);
+hold on;
+plot(a, E12_grid, '*');
+hold off;

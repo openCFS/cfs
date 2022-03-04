@@ -120,11 +120,11 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   assert(aux_design_.GetSize() == nshapeparams);
 }
 
-int ShapeDesign::ReadDesignFromExtern(const double* space_in)
+int ShapeDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   int old_design = design_id;
 
-  AuxDesign::ReadDesignFromExtern(space_in); // sets design_id
+  AuxDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent); // sets design_id
 
   if(design_id != old_design)
     UpdateCoordinates();

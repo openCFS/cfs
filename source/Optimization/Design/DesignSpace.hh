@@ -224,8 +224,8 @@ namespace CoupledField
       * (only doubles) where we have a StdVector of the complex DesignElement.</p>
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
-     virtual int ReadDesignFromExtern(const double* space_in);
-     int ReadDesignFromExtern(const StdVector<double>& space);
+     virtual int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true);
+     int ReadDesignFromExtern(const StdVector<double>& space, bool setAndWriteCurrent = true);
 
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */

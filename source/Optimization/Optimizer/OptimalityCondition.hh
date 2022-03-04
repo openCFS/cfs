@@ -137,6 +137,25 @@ namespace CoupledField
       
       /** This is a temporay design space such that it can be used in evalue */
       Vector<double> evaluate_tmp_;
+
+
+      /** multi objective is defined as a combination of the objective given in the XML
+       * and all but one constraints. The remaining constraint is the "real" constraint.
+       * All "fake" constraints will be agglomerated with a smooth minimum.
+       * The actual objective is then given by
+       * (1-weight_) * objective - weight_ * smooth_min("fake" constraints) */
+
+      /** index of the "real" constraint */
+      int constraint_idx_ = 0;
+
+      /** gradient of the agglomerated "fake" constraints */
+      StdVector<double> agglomerated_grad_;
+
+      /** multi objective weight */
+      double weight_;
+
+      /** parameter for the smooth minimum */
+      double beta_;
   };
 
 

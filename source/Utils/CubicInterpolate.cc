@@ -196,7 +196,7 @@ inline unsigned int CubicInterpolate::GetLocalValues(double x, double& xloc, dou
       x += (int)x + 1;
   }
 
-  assert(0 <= x && x <= 1);
+  assert(0 - DBL_EPSILON <= x && x <= 1 + DBL_EPSILON);
 
   unsigned int kx;
 

@@ -75,7 +75,7 @@ void FeaturedDesign::PostInit(int objectives, int constraints)
   setup_timer_->Stop();
 };
 
-int FeaturedDesign::ReadDesignFromExtern(const double* space_in)
+int FeaturedDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   assert(!std::isnan(scaling_));
   int old_design = design_id;
@@ -99,7 +99,7 @@ int FeaturedDesign::ReadDesignFromExtern(const double* space_in)
   }
 
   // append aux design, might also change design_id
-  AuxDesign::ReadDesignFromExtern(space_in);
+  AuxDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent);
 
   if(new_design && design_id <= old_design)
     design_id++;

@@ -44,7 +44,6 @@ DensityFile::DensityFile(DesignSpace* designSpace,
                             PtrParamNode regulize_pn)
 {
   this->space_ = designSpace;
-  this->last_set_iter = -2;
   this->compress_ = export_pn->Get("compress")->As<bool>();
 
   name_ = export_pn->Get("file")->As<string>();
@@ -344,8 +343,8 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
 void DensityFile::SetAndWriteCurrent(int current_iteration)
 {
-  if(current_iteration == last_set_iter)
-    return;
+  //FIXME
+  // check if design changed since last write to avoid writing same data again
 
   PtrParamNode in = data->Get("set", all_iterations_ ? ParamNode::APPEND : ParamNode::INSERT);
   // add the entry, note that the iteration counter was incremented in base implementation
@@ -485,6 +484,4 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   // do we need to write?
   if(!finally_only_) // here or on destructor
     data->ToFile(name_);
-
-  last_set_iter = current_iteration;
 }

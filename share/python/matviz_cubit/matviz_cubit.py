@@ -129,7 +129,7 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
     ny = repetitions
 
   # edge length of outer triangle
-  length = 1/nx
+  length = (max_bb[0]-min_bb[0])/nx
 
   # same conversion as in matviz_2d::show_triangle_grad
   rad = radius * length/np.sqrt(3)/4
@@ -344,7 +344,7 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
 
   shape = cubit.get_last_id("surface")
 
-  name_regions_and_nodes(shape, param)
+  #name_regions_and_nodes(shape, param)
 
   end = time.time()
   print('Time for creating geometry: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))))
@@ -366,8 +366,13 @@ def name_regions_and_nodes(shape, param):
     cubit.silent_cmd('nodeset 2 add curve 2 ')
     cubit.silent_cmd('nodeset 3 add curve 3 ')
     cubit.silent_cmd('nodeset 4 add curve 4 ')
+    cubit.silent_cmd('nodeset 5 add vertex 1')
+    cubit.silent_cmd('nodeset 6 add vertex 2')
+    cubit.silent_cmd('nodeset 7 add vertex 3')
+    cubit.silent_cmd('nodeset 8 add vertex 4')
   else:
     bb = cubit.get_bounding_box("surface", shape)
+    print(bb)
 
     all_curves = cubit.get_entities("curve")
 
@@ -388,36 +393,58 @@ def name_regions_and_nodes(shape, param):
       if abs(start_point[1]-bb[4]) < 1e-12 and abs(end_point[1]-bb[4]) < 1e-12:
         top.append(curve)
 
+    bottom_left_id, top_left_id, bottom_right_id, top_right_id = None, None, None, None
+    for curve in left:
+      vertices = cubit.get_relatives("curve", curve, "vertex")
+      for vertex in vertices:
+        if bottom_left_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[3]) < 1e-12:
+          bottom_left_id = cubit.vertex(vertex).id()
+        if top_left_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[4]) < 1e-12:
+          top_left_id = cubit.vertex(vertex).id()
+    for curve in right:
+      vertices = cubit.get_relatives("curve", curve, "vertex")
+      for vertex in vertices:
+        if bottom_right_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[3]) < 1e-12:
+          bottom_right_id = cubit.vertex(vertex).id()
+        if top_right_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[4]) < 1e-12:
+          top_right_id = cubit.vertex(vertex).id()
+
+    print('top_right_id: {}'.format(top_right_id))
+    print('top_left_id: {}'.format(top_left_id))
+    print('bottom_left_id: {}'.format(bottom_left_id))
+    print('bottom_right_id: {}'.format(bottom_right_id))
+
     # generate string from list
     left_ids = ' '.join('{:d}'.format(x) for x in left)
     right_ids = ' '.join('{:d}'.format(x) for x in right)
     bottom_ids = ' '.join('{:d}'.format(x) for x in bottom)
     top_ids = ' '.join('{:d}'.format(x) for x in top)
 
-    print('Adding {} curve(s) to westy.'.format(len(left)))
-    print('Adding {} curve(s) to southy.'.format(len(bottom)))
-    print('Adding {} curve(s) to easty.'.format(len(right)))
-    print('Adding {} curve(s) to northy.'.format(len(top)))
+    print('Adding {} curve(s) to lefty.'.format(len(left)))
+    print('Adding {} curve(s) to bottomy.'.format(len(bottom)))
+    print('Adding {} curve(s) to righty.'.format(len(right)))
+    print('Adding {} curve(s) to topy.'.format(len(top)))
 
     cubit.silent_cmd('nodeset 1 add curve {} '.format(left_ids))
     cubit.silent_cmd('nodeset 2 add curve {} '.format(bottom_ids))
     cubit.silent_cmd('nodeset 3 add curve {} '.format(right_ids))
     cubit.silent_cmd('nodeset 4 add curve {} '.format(top_ids))
 
-  # west, south, east and north are cubit identifiers, thus we use -y
-  cubit.silent_cmd('nodeset 1 name "westy"')
-  cubit.silent_cmd('nodeset 2 name "southy"')
-  cubit.silent_cmd('nodeset 3 name "easty"')
-  cubit.silent_cmd('nodeset 4 name "northy"')
+    cubit.silent_cmd('nodeset 5 add vertex {}'.format(top_right_id))
+    cubit.silent_cmd('nodeset 6 add vertex {}'.format(top_left_id))
+    cubit.silent_cmd('nodeset 7 add vertex {}'.format(bottom_left_id))
+    cubit.silent_cmd('nodeset 8 add vertex {}'.format(bottom_right_id))
 
-  cubit.silent_cmd('nodeset 5 add vertex 1')
-  cubit.silent_cmd('nodeset 5 name "north_east"')
-  cubit.silent_cmd('nodeset 6 add vertex 2')
-  cubit.silent_cmd('nodeset 6 name "north_west"')
-  cubit.silent_cmd('nodeset 7 add vertex 3')
-  cubit.silent_cmd('nodeset 7 name "south_west"')
-  cubit.silent_cmd('nodeset 8 add vertex 4')
-  cubit.silent_cmd('nodeset 8 name "south_east"')
+  # west, south, east and north are cubit identifiers, thus we use -y
+  cubit.silent_cmd('nodeset 1 name "lefty"')
+  cubit.silent_cmd('nodeset 2 name "bottomy"')
+  cubit.silent_cmd('nodeset 3 name "righty"')
+  cubit.silent_cmd('nodeset 4 name "topy"')
+
+  cubit.silent_cmd('nodeset 5 name "top_right"')
+  cubit.silent_cmd('nodeset 6 name "top_left"')
+  cubit.silent_cmd('nodeset 7 name "bottom_left"')
+  cubit.silent_cmd('nodeset 8 name "bottom_right"')
 
 
 # mesh a given geometry

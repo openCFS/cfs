@@ -276,7 +276,7 @@ namespace CoupledField
        return std::max(current_view_index_ - virtual_base_index_, -1);
      }
 
-     /** The absolute postion of the local constraint
+     /** The absolute position of the local constraint
       * @return starts from 0 */
      int GetCurrentPosition() const {
        return current_view_index_;
@@ -366,7 +366,7 @@ namespace CoupledField
        /** The constraints have been changed (slope constraints initialized) */
        void Refresh();
 
-       /** call this after traversing via Get() to swith a potential slope constraint back to global mode */
+       /** call this after traversing via Get() to switch a potential slope constraint back to global mode */
        void Done();
 
        /** handles slope constraints. Note that observe is always after active!

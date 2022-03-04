@@ -1246,7 +1246,7 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
       return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
     else
     {
-      std::cout << "Homogenized Tensor (" << tensorNotation.ToString(f->GetNotation()) << "): " << std::endl << hom_tensor.ToString();
+      std::cout << "Homogenized Tensor (" << tensorNotation.ToString(f->GetNotation()) << "): " << std::endl << hom_tensor.ToString() << std::endl;
 
       if (f->ctxt->ToApp() == App::MECH)
       {
@@ -2340,7 +2340,7 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
     LOG_DBG2(em) << "CE: f=" << f->ToString() << " mat=" << mat.ToString();
     LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " col_idx=" << g->bloch.col << " min=" << (g->GetBound() == Condition::LOWER_BOUND) << " f=" << freq;
   }
-  LOG_DBG(em) << "iteration: " << this->GetCurrentIteration() << ", deriv: " << derivative;
+  LOG_DBG(em) << "CE: iteration: " << this->GetCurrentIteration() << " deriv: " << derivative;
   LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " f=" << freq;
 
   if(derivative)
@@ -2538,11 +2538,11 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
       if(res_idx != -1)
       {
         de->specialResult[res_idx] = val;
-        LOG_DBG2(em) << "CLVMS: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << val << " " << de->specialResult[res_idx];
+        LOG_DBG3(em) << "CLVMS: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << val << " -> " << de->specialResult[res_idx];
       }
     }
     lc->SetValue(val); // for CalcMaxValue() used in Function::Local::Identifier::EvalFunction()
-    LOG_DBG2(em) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " val=" << val << " values=" << f->GetLocal()->local_values.ToString();
+    LOG_DBG2(em) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " val=" << f->GetLocal()->local_values[f->GetCurrentRelativePosition()];
     return val;
   }
   else
@@ -2640,7 +2640,9 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
             this_value *= ((complex<double>) sp).real();
 
           de->AddGradient(f, this_value);
-          LOG_DBG3(em) << "CLVMS: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
+          LOG_DBG3(em) << "CLVMS: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString()
+                       << " <l,K'*u-f'>  = " << sp << " -> " << this_value
+                       << " globalTerm = " << de->GetPlainGradient(f);
         }
       }
 
@@ -2654,6 +2656,8 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     // this is the derivative of local stress
     de->AddGradient(f, appendix); // de is called for all f->elements, hence there is no a),b),c) case as for the global stress gradient
 
+    LOG_DBG3(em) << "CLVMS: de=" << de->ToString() << " localTerm = " << appendix << " sum = " << de->GetPlainGradient(f);
+
     // for the local load factor, we have to apply chain rule
     // we take the stress gradient, which was stored in de, apply the chain rule,
     // delete the gradient in all elements and write the new one
@@ -2666,21 +2670,32 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
       {
         double dval = de2.GetPlainGradient(f); // stress gradient
 
-        // d/dx ev/sqrt(s) = (s * ev' - s' * ev * 1/2 ) / sqrt(s) / s
-        // ev is local, i.e. dev/drho is a diagonal matrix
+        // 'val' is the squared norm of local stress
+        // (Euclidean for load factor under consideration of Voigt notation)
+        // d/dx ev/sqrt(val) = (val * ev' - val' * ev * 1/2 ) / sqrt(val) / val
+        //                   = ev' / sqrt(val) - val' * ev * 1/2 / sqrt(val) / val
+        // ev is local, i.e. ev' is a diagonal matrix
         // however, the stress gradient is a full matrix
-        double firstTerm = de->elem->elemNum == de2.elem->elemNum ? val * dev_interpolated : 0;
-        appendix = (firstTerm - dval * ev_interpolated * 0.5) / std::sqrt(val) / val;
 
-        LOG_DBG3(em) << "CLVMS: de2=" << de2.elem->elemNum << " val=" << val << " dev=" << dev_interpolated
-            << " dval=" << dval << " ev=" << ev_interpolated << " -> df=" << appendix;
+        // calc  - val' * ev * 1/2 / sqrt(val) / val
+        appendix = - dval * ev_interpolated * 0.5 / std::sqrt(val) / val;
 
         de2.Reset(DesignElement::CONSTRAINT_GRADIENT, f);
         de2.AddGradient(f, appendix);
+
+        LOG_DBG3(em) << "CLVMS: de2=" << de2.elem->elemNum << " stress^2=" << val
+                     << " dval=" << dval << " ev=" << ev_interpolated << " -> globalTerm=" << appendix;
       }
+
+      // calc  ev' / sqrt(val)
+      de->AddGradient(f, dev_interpolated / std::sqrt(val));
+
+      LOG_DBG3(em) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum
+                   << " stress^2=" << val << " dev=" << dev_interpolated
+                   << " localTerm=" << dev_interpolated / std::sqrt(val)
+                   << " -> df=" << de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, f);
     }
 
-    LOG_DBG2(em) << "CLVMS: f=" << f->ToString() << " de=" << de->elem->elemNum << " idx=" << idx << " appendix=" << appendix;
     return 0;
   }
 }
@@ -2704,10 +2719,12 @@ double ErsatzMaterial::GetMicroLoadFactor(double vol, bool derivative)
       ParamTools::AsTensor<double>(root->Get("microloadfactor/matrix/real"), num_intervals, num_interp_coeffs, mlf_coeff_);
     else
       throw Exception("Please define coefficients for microloadfactor in catalogue.");
+
+    extrapolationThreshold_ = list[0]->Get("homRectC1")->Get("mlfExtrapolationThreshold")->As<double>();
   }
 
   // do a quadratic extrapolation for all x > x0
-  double x0 = 0.9;
+  double x0 = extrapolationThreshold_;
   int j = Optimization::context->dm->GetInterpolationIndex(mlf_a_, x0);
   double ev0 = Optimization::context->dm->EvaluateC1Interpolation1D(x0, mlf_coeff_, j);
   double dev0 = Optimization::context->dm->EvaluateC1Interpolation1D_Deriv(x0, mlf_coeff_, j, DesignElement::DENSITY);
@@ -4114,7 +4131,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       // store the stuff -> no rhs but special handling of element results
       int local_index = f->GetCurrentRelativePosition();
       assert(!(f->GetType() == Function::LOCAL_STRESS && local_index == 0));
-      StorePDESolution(adjoint, *excite, f,local_index, true, false, true, NO_DERIVTYPE, "adjoint");
+      StorePDESolution(adjoint, *excite, f, local_index, true, false, true, NO_DERIVTYPE, "adjoint");
 
       // restore system state
       RestoreStateSystem(state);
@@ -4874,7 +4891,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
     {
       DesignElement* de = design->Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
       assert(de->specialResult[res_idx] == 0);
-      de->specialResult[res_idx] += sigma[j] / B.GetNumCols() * dim;
+      de->specialResult[res_idx] = sigma[j] / B.GetNumCols() * dim;
       //LOG_DBG3(em) << "CSFBH: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << sigma[j] << " " << de->specialResult[res_idx];
     }
   }
