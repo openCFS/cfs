@@ -125,13 +125,14 @@ if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
     #message(WARNING "CFS_ARCH=${CFS_ARCH}")
     #message(WARNING "GFORTRAN_LIBRARY=${GFORTRAN_LIBRARY}")
     #message(WARNING "CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
-    #message(WARNING "no static Fortran library found - this build will not run on systems missing compatible Fortran runtime libs!")
+    message(WARNING "no static Fortran library found - this build might not run on systems missing compatible Fortran runtime libs!")
     list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}")
     if(CFS_ARCH MATCHES "X86_64")
       # gfortan for arm64 seems to no know 128 bits https://github.com/Homebrew/homebrew-core/issues/73949
       list(APPEND CFS_FORTRAN_LIBS "-lquadmath") 
     endif()
   endif()
+  set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "") # disable dynamic linking of gfortran and quadmath caused by this variable
 endif(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
 
 #-----------------------------------------------------------------------------
@@ -214,5 +215,3 @@ if(NOT FortranCInterface_GLOBAL_FOUND OR NOT FortranCInterface_GLOBAL_FOUND)
   configure_file("${CFS_SOURCE_DIR}/include/def_cfs_fortran_interface_fallback.hh" "${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh" COPYONLY)
   message(STATUS "because cmake's Fortran name mangling failed, we use def_cfs_fortran_interface_fallback.hh")
 endif()
-
-
