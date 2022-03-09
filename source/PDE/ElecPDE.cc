@@ -92,7 +92,10 @@ namespace CoupledField {
     modelName_ = "nonlinearCurve";
     // for multiharmonic
     multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>());
+    // Be aware that the hysteresis which are build in via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
     matModelCoef_.reset( new CoefFunctionMaterialModel<Complex>());
+    //init the nlFluxCoef
+    nlFluxCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
   }
   
   void ElecPDE::InitNonLin() {
@@ -259,6 +262,8 @@ namespace CoupledField {
     PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
 
     UInt baseFreq=0, N, M, nFFT;
+
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
     // Init material model for transient analysis
     if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve")){
@@ -452,9 +457,16 @@ namespace CoupledField {
 
               matModelCoef_->InitModel( ParameterMap,actSDList->GetSize());
               epsilonNL = actSDMat->GetScalCoefFncModel( matModelCoef_ );
+
+              PtrCoefFct hystFluxTmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,epsilonNL,elecFieldCoef,CoefXpr::OP_MULT));
+              nlFluxCoef_->AddRegion(actRegion, hystFluxTmp);
+
             }else{
               PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
               epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
+
+              PtrCoefFct hystFluxTmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,epsilonNL,elecFieldCoef,CoefXpr::OP_MULT));
+              nlFluxCoef_->AddRegion(actRegion, hystFluxTmp);
             }
             if( dim_ == 2 ) {
               stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), epsilonNL, 1.0, updatedGeo_);
@@ -1693,7 +1705,13 @@ namespace CoupledField {
         combinedFlux = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,fluxFunc,hysteresisPolarization_,CoefXpr::OP_ADD));
       }
       DefineFieldResult( combinedFlux, flux );
-    } else {
+    } else if(nonLin_){
+      // for all other nonlinear cases
+      // !!!
+      // Be aware that the hysteresis which are build in via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
+      // !!!
+      DefineFieldResult( nlFluxCoef_, flux );
+    }else {
       DefineFieldResult( fluxFunc, flux );
     }
     

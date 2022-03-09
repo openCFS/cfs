@@ -197,6 +197,9 @@ namespace CoupledField
 
     // Coefficient function for material model
     shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
+
+    //stores the flux for hystersis and nonlinear models
+    shared_ptr<CoefFunctionMulti> nlFluxCoef_;
   };
   
 #ifdef DOXYGEN_DETAILED_DOC
