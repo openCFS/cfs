@@ -540,6 +540,11 @@ void HeatPDE::DefineIntegrators() {
   //========================================================================================
   this->HeatTransferBC();
 
+  //========================================================================================
+  // Thermal Radiation boundary condition
+  //========================================================================================
+  this->ThermalRadiationBC();
+
 
   //     // =======================================================================
   //     // Integrators for NonConforming Interfaces
@@ -817,6 +822,153 @@ void HeatPDE::HeatTransferBC(){
         ctx->SetFeFunction(myFct);
         assemble_->AddLinearForm(ctx);
 
+  }
+}
+
+void HeatPDE::ThermalRadiationBC(){
+  // incorporate thermal radiation bc
+  LOG_TRACE(heatcondpde) << "Defining thermal radiation BC for thermal PDE";
+
+  // Get FESpace and FeFunction
+  shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
+  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+
+  StdVector<shared_ptr<EntityList> > ent;
+  StdVector<PtrCoefFct > coef;
+  LinearForm * lin = NULL;
+  BiLinearForm * thermRadInt = NULL;
+
+  bool coefUpdateGeo = true;
+  std::string elemName = "thermalRadiation";
+  ParamNodeList elems = myParam_->Get( "bcsAndLoads" )->GetList( "thermalRadiation" );
+  ent.Resize(elems.GetSize());
+  coef.Resize(elems.GetSize());
+  std::string entName;
+
+  for (UInt i = 0; i < elems.GetSize(); ++i) {
+	  PtrParamNode xml = elems[i];
+	  try {
+		  // get entity list, depending on type
+		  entName = xml->Get("name")->As<std::string>();
+		  // check if we only have surface elements in the given region
+		  EntityList::ListType listType = EntityList::ELEM_LIST;
+		  if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
+			listType = EntityList::SURF_ELEM_LIST;
+		  } else {
+			EXCEPTION("Thermal Radiation BC can only be applied on surface regions");
+		  }
+		  switch( ptGrid_->GetEntityType(entName) ) {
+		    case EntityList::NAMED_NODES:
+			  ent[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
+			  break;
+			case EntityList::REGION:
+			case EntityList::NAMED_ELEMS:
+			  ent[i] = ptGrid_->GetEntityList( listType, entName );
+			  break;
+			case EntityList::NO_TYPE:
+			  EXCEPTION("No entities with name '" << entName << "' known");
+			  break;
+		  }
+	  } catch (Exception &e) {
+		  RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+		                              << "' on entities '" << entName <<"'");
+	  }
+
+	  // check just defined type of entitylist
+	  if (ent[i]->GetType() == EntityList::NODE_LIST) {
+		EXCEPTION("Thermal Radiation BC must be defined on elements")
+	  }
+
+	  std::string T0 = xml->Get("bulkTemperature")->As<std::string>();
+	  std::string epsilon = xml->Get("emissivity")->As<std::string>();
+	  std::string sigma = "5.670374419e-8"; //stefan-boltzmann-constant
+
+	  PtrCoefFct epsilonCoef = CoefFunction::Generate(mp_, Global::REAL, epsilon);
+	  PtrCoefFct T0Coef = CoefFunction::Generate(mp_, Global::REAL, T0);
+	  PtrCoefFct sigmaCoef = CoefFunction::Generate(mp_, Global::REAL, sigma);
+
+	  //========================================================================================
+	  // First part of thermal radiation boundary condition  4 * \epsilon \sigma * (T_{k-1})^3 \int_{\Gamma} T' T_k dS
+	  //========================================================================================
+	  // \epsilon ... emissivity
+	  // \sigma ... stefan-boltzmann constant
+
+	  // get current temperature T_{k-1}
+	  PtrCoefFct currT = this->GetCoefFct(HEAT_TEMPERATURE);
+
+	  currT->SetSolDependent();
+
+	  PtrCoefFct factor3 = CoefFunction::Generate(mp_, Global::REAL, "3.0");
+	  PtrCoefFct factor4 = CoefFunction::Generate(mp_, Global::REAL, "4.0");
+	  // T_{k-1}^3
+	  PtrCoefFct TPow3 = CoefFunction::Generate(mp_, Global::REAL,
+	  				CoefXprBinOp(mp_, currT, factor3, CoefXpr::OP_POW));
+	  // \epsilon * \sigma
+	  PtrCoefFct SigmaTimesEpsilon = CoefFunction::Generate(mp_, Global::REAL,
+	  				CoefXprBinOp(mp_, sigmaCoef, epsilonCoef, CoefXpr::OP_MULT));
+	  // 4 * \epsilon * \sigma
+	  PtrCoefFct FourTimesSigmaTimesEpsilon = CoefFunction::Generate(mp_, Global::REAL,
+	  						CoefXprBinOp(mp_, SigmaTimesEpsilon, factor4, CoefXpr::OP_MULT));
+	  // coefficient function of LHS : 4 * \epsilon \sigma * (T_{k-1})^3
+	  PtrCoefFct coeffLHS = CoefFunction::Generate(mp_, Global::REAL,
+	  				CoefXprBinOp(mp_, TPow3, FourTimesSigmaTimesEpsilon, CoefXpr::OP_MULT));
+
+	  if (dim_ == 2) {
+		thermRadInt = new BBInt<>(new IdentityOperator<FeH1, 2, 1>(),
+		coeffLHS, 1.0, updatedGeo_);
+	  } else {
+		thermRadInt = new BBInt<>(new IdentityOperator<FeH1, 3, 1>(),
+		coeffLHS, 1.0, updatedGeo_);
+	  }
+	  thermRadInt->SetName("ThermalRadiationLHSNonLinInt");
+	  thermRadInt->SetFeSpace(feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
+
+	  BiLinFormContext *thermRadContext = new BiLinFormContext(thermRadInt,
+	  				STIFFNESS);
+	  thermRadContext->SetEntities(ent[i], ent[i]);
+	  thermRadContext->SetFeFunctions(myFct, myFct);
+	  feFunctions_[HEAT_TEMPERATURE]->AddEntityList(ent[i]);
+	  assemble_->AddBiLinearForm(thermRadContext);
+
+	  // =======================================================================================
+	  //  Second Part of heat transfer BC \int_{\Gamma} \epsilon * \sigma  (3 *T_{k-1}^4 + T0^4) T' dS
+	  // =======================================================================================
+
+	  // T_{k-1}^4
+	  PtrCoefFct TPow4 = CoefFunction::Generate(mp_, Global::REAL,
+				CoefXprBinOp(mp_, currT, factor4, CoefXpr::OP_POW));
+	  // T0^4
+	  PtrCoefFct T0Pow4 = CoefFunction::Generate(mp_, Global::REAL,
+				CoefXprBinOp(mp_, T0Coef, factor4, CoefXpr::OP_POW));
+	  // 3 * T_{k-1}^4
+	  PtrCoefFct ThreeTimesTPow4 = CoefFunction::Generate(mp_, Global::REAL,
+				CoefXprBinOp(mp_, TPow4, factor3, CoefXpr::OP_MULT));
+	  // 3 * T_{k-1}^4 + T0^4
+	  PtrCoefFct ThreeTimesTPow4PlusT0Pow4 = CoefFunction::Generate(mp_, Global::REAL,
+				CoefXprBinOp(mp_, ThreeTimesTPow4, T0Pow4, CoefXpr::OP_ADD));
+	  // coefficient function of RHS : \epsilon * \sigma  (3 *T_{k-1}^4 + T0^4)
+	  PtrCoefFct coeffRHS = CoefFunction::Generate(mp_, Global::REAL,
+				CoefXprBinOp(mp_, SigmaTimesEpsilon, ThreeTimesTPow4PlusT0Pow4, CoefXpr::OP_MULT));
+	  if (isComplex_) {
+	    lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1>(),
+					Complex(1.0), coeffRHS, coefUpdateGeo);
+	  } else {
+	  	lin = new BUIntegrator<Double>(new IdentityOperator<FeH1>(), 1.0,
+					coeffRHS, coefUpdateGeo);
+	  }
+	  // obtain coordinate system and set it at coefficient function
+	  std::string coordSysId = "default";
+	  xml->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+	  if (coordSysId != "default") {
+	  	coeffRHS->SetCoordinateSystem(domain_->GetCoordSystem(coordSysId));
+	  }
+      lin->SetName("ThermalRadiationRHSNonLinInt");
+	  lin->SetFeSpace(feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
+	  lin->SetSolDependent();
+	  LinearFormContext *ctx = new LinearFormContext(lin);
+	  ctx->SetEntities(ent[i]);
+	  ctx->SetFeFunction(myFct);
+	  assemble_->AddLinearForm(ctx);
   }
 }
 

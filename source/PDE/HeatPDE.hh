@@ -93,6 +93,9 @@ namespace CoupledField {
     //! Incorporate heat transfer boundary conditions
     void HeatTransferBC();
 
+    //! Incorporate thermal radiation boundary conditions
+    void ThermalRadiationBC();
+
 
     SolutionType GetNativeSolutionType() const { return HEAT_TEMPERATURE; }
 

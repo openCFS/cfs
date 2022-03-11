@@ -504,7 +504,10 @@ namespace CoupledField {
         std::string actTypeString = nonLinNodes[i]->GetName();
         std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
-        modelName_ = nonLinNodes[i]->Get("model")->As<std::string>();
+        // thermal radiation BC doesn't have model name attribute
+        if (actTypeString != "thermalRadiation") {
+          modelName_ = nonLinNodes[i]->Get("model")->As<std::string>();
+        }
 
         //std::cout << "actTypeString " << actTypeString << std::endl;
         //std::cout << "actId " << actId << std::endl;

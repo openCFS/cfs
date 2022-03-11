@@ -73,6 +73,11 @@
                     <xsd:documentation>mass density dependent on temperature</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="thermalRadiation" type="DT_HeatNonLinBC">
+                  <xsd:annotation>
+                    <xsd:documentation>thermal Radiation BC</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -141,6 +146,12 @@
                 <xsd:element name="heatFlux" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Defines heat flux (Neumann B.C.)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <xsd:element name="thermalRadiation" type="DT_HeatNonLinR">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines thermal radiation (non-linear Robin B.C.)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
 
@@ -252,6 +263,16 @@
       <xsd:extension base="DT_BcInhomScalar">
         <xsd:attribute name="heatTransferCoefficient" type="xsd:string"/>
         <xsd:attribute name="bulkTemperature" type="xsd:string" default="20.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Element type for specifying non-linear robin boundary condition -->
+  <xsd:complexType name="DT_HeatNonLinR">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcInhomScalar">
+        <xsd:attribute name="emissivity" type="xsd:string" default="1.0"/>
+        <xsd:attribute name="bulkTemperature" type="xsd:string" default="293.15"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -395,6 +416,12 @@
   <xsd:complexType name="DT_HeatNonLin">
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_HeatNonLinBC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBC"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
   

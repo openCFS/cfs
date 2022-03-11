@@ -368,6 +368,11 @@ public:
 	  feFunctions_[solType] = fct1;
   }
 
+  // Set explicitly that coeff function is solution dependent
+  virtual void SetSolDependent() {
+	  dependType_ = CoefDependType::SOLUTION;
+  }
+
   //! Get associated coordinate system
   CoordSystem* GetCoordinateSystem(){
     return coordSys_;

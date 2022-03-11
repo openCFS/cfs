@@ -726,6 +726,14 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
+  
+  <xsd:complexType name="DT_NonLinBC">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <xsd:complexType name="DT_matDependencyBasic">
     <xsd:complexContent>
