@@ -119,6 +119,8 @@ else()
     SOURCE_DIR "${scpip_source}"
     URL "${LOCAL_FILE}"
     URL_MD5 "${SCPIP_MD5}"
+    # disable automatic extract of the zip file by cmake (does not work for encrypted files)
+    DOWNLOAD_NO_EXTRACT 1
     # the patch needs to upack the encrypted file and apply patches to enable compiling - both in the patch command
     # the patch does the unpacking with password
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"

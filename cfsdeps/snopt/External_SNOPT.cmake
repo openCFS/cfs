@@ -104,6 +104,8 @@ else()
       SOURCE_DIR "${SNOPT_SOURCE}"
       URL ${LOCAL_FILE}
       URL_MD5 ${SNOPT_MD5}
+      # disable automatic extract of the zip file by cmake (does not work for encrypted files)
+      DOWNLOAD_NO_EXTRACT 1
       # all in the zip is below snopt7
       BINARY_DIR "${SNOPT_SOURCE}/snopt7"
       # the zip file is encrypted!

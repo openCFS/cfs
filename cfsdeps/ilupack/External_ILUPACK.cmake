@@ -132,6 +132,8 @@ else()
     SOURCE_DIR "${ilupack_source}"
     URL ${LOCAL_FILE}
     URL_MD5 ${ILUPACK_MD5}
+    # disable automatic extract of the zip file by cmake (does not work for encrypted files)
+    DOWNLOAD_NO_EXTRACT 1
     # extract enceypted file and apply patches
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     LIST_SEPARATOR "^"

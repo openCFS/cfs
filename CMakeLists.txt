@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.6.0 FATAL_ERROR)
 
 # Include global definitions for openCFS development server (host name, etc.)
 include("cmake_modules/DevelopmentServer.cmake")
