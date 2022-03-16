@@ -58,13 +58,13 @@ namespace CoupledField {
 
   private:
     //! pointer to ofstream of current file
-    std::ofstream * output_;
+    std::ofstream* output_ = NULL;
 
     //! current multiSequence step
-    Integer currMsStep_;
+    Integer currMsStep_ = -1;
     
     //! current analysis type
-    BasePDE::AnalysisType currAnalysis_;
+    BasePDE::AnalysisType currAnalysis_ = BasePDE::NO_ANALYSIS;
 
     //! indicator of type for data
     bool ascii_;

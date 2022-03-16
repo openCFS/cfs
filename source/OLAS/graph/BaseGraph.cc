@@ -449,16 +449,13 @@ namespace CoupledField {
       std::sort( element_[i].begin(), element_[i].end() );
     }
 
-    
-    // print out usage information
-//    std::cerr << "BaseGraph statistics:\n"
-//               << "====================\n";
-//    std::cerr << "\ttotal number of entries (unsorted): " << totalSize << std::endl;
-//    std::cerr << "\ttotal capacity: " << totalCapacity << std::endl;
-//    std::cerr << "\tmemory over-estimation: " 
-//            << double(totalCapacity/totalSize*100) << " %\n";
-//    std::cerr << "\taverage row size: " << mean(size) << "\n";
-    
+#ifndef NDEBUG
+    LOG_DBG(graphLogger) << "SL: statistics";
+    LOG_DBG(graphLogger) << "\ttotal number of entries (unsorted): " << totalSize << std::endl;
+    LOG_DBG(graphLogger) << "\ttotal capacity: " << totalCapacity << std::endl;
+    LOG_DBG(graphLogger) << "\tmemory over-estimation: "<< double(totalCapacity/totalSize*100) << " %\n";
+    LOG_DBG(graphLogger) << "\taverage row size: " << mean(size) << "\n";
+#endif
     
   }
 

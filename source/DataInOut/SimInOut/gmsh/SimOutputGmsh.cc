@@ -29,7 +29,6 @@ namespace CoupledField {
                                 PtrParamNode outputNode,
                                 PtrParamNode infoNode, bool isRestart ) :
   SimOutput( fileName, outputNode, infoNode, isRestart ),
-    output_(NULL),
     ascii_(true),
     bigEndian_(false),
     stepNumOffset_(0),
@@ -441,7 +440,6 @@ namespace CoupledField {
     // read information about number of elements 
     UInt numElems = ptGrid_->GetNumElems();
     UInt namedElemsOffset = numElems;
-    UInt namedNodesOffset = namedElemsOffset;
     numRegions_ = ptGrid_->GetNumRegions();
     
     // ================
@@ -453,7 +451,6 @@ namespace CoupledField {
 
     for( UInt i = 0, n = elemNames.GetSize(); i < n; i++ ) {
       ptGrid_->GetElemsByName( elemVec, elemNames[i] );
-      namedNodesOffset += elemVec.GetSize();
       numElems += elemVec.GetSize();
     }
 

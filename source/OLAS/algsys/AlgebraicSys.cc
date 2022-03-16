@@ -2148,24 +2148,23 @@ namespace CoupledField {
                           std::map<UInt, std::set<UInt> >& fixedIndPerBlock,
                           bool indexZeroBased ) {
     std::set<FeFctIdType> fctIds;
-    UInt size = 0;
-    if ( fctId == NO_FCT_ID ) {
+
+    if(fctId == NO_FCT_ID)
+    {
       std::map<FeFctIdType, std::set<UInt> >::iterator it;
       it = fctIdsInBlocks_.begin();
-      for( ; it != fctIdsInBlocks_.end(); ++it ){
+      for(; it != fctIdsInBlocks_.end(); ++it)
         fctIds.insert(it->first);
-        size += numEqnsPerFct_[it->first];
-      }
-    } else {
-      fctIds.insert(fctId);
-      size = numEqnsPerFct_[fctId];
     }
+    else
+      fctIds.insert(fctId);
+
 
     //blockNums.Resize(size);
     //indices.Resize(size);
 
     Integer offset = 0;
-    if( indexZeroBased )
+    if(indexZeroBased)
       offset = -1;
 
 

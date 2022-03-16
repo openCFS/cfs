@@ -187,7 +187,7 @@ namespace CoupledField
 
     bool isaxi_;             //!< true: axisymmetric problem
 
-    bool geoUpdate_;        //!< flag for geometric update
+    bool geoUpdate_ = false;        //!< flag for geometric update
 
     //! Dimension of problem
     UInt dim_;
@@ -204,7 +204,7 @@ namespace CoupledField
 
     //! index of current set of boundary conditions. For a multiSequence-simulation
     //! this index determines, which set of boundary conditions is applied.
-    UInt sequenceStep_;
+    UInt sequenceStep_  = 0;
     //@}
 
     //! set containing the types of possible solutions
@@ -217,7 +217,7 @@ namespace CoupledField
     ResultMap histResultLists_;
 
     //! Type of current analysis
-    BasePDE::AnalysisType analysisType_;
+    BasePDE::AnalysisType analysisType_ = BasePDE::NO_ANALYSIS;
 
     //! Flag indicating use of complex values
     bool isComplex_;
@@ -242,7 +242,7 @@ namespace CoupledField
     std::map<RegionIdType, Composite> compositeMaterials_;
 
     //! material class
-    MaterialClass materialClass_;
+    MaterialClass materialClass_ = NO_CLASS;
 
     //@}
 
@@ -297,7 +297,7 @@ namespace CoupledField
     SinglePDE *pde2_;
 
     //! Pointer to assemble object
-    Assemble *assemble_;
+    Assemble *assemble_ = NULL;
 
     //! Pointer to grid object
     Grid * ptGrid_;

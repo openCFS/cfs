@@ -249,7 +249,6 @@ namespace CoupledField {
     MathParser * parser = domain->GetMathParser();
     StdVector<MathParser::HandleType> handles(dim_);
     StdVector<Vector<Double> > sampleVals(dim_);
-    UInt totalNum = 1;
     for( UInt iDim = 0; iDim < dim_; iDim++ ) {
       if( !coords[iDim].isFree ) {
         handles[iDim] = parser->GetNewHandle();
@@ -270,7 +269,6 @@ namespace CoupledField {
             + iSample * coords[iDim].inc;
         }
       }
-      totalNum *= sampleVals[iDim].GetSize();
     }
 
 

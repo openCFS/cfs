@@ -122,8 +122,7 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
                                         std::string aSecMatFac ) {
     secDestMat_ = aSecMat;
     mathParser_->SetExpr(secMatFacHandle_, aSecMatFac);  
-    Double dummy = mathParser_->Eval(secMatFacHandle_);
-    dummy +=1.0;
+    mathParser_->Eval(secMatFacHandle_);
   }
   std::string BiLinFormContext::GetSecMatFac() const {
     return mathParser_->GetExpr(secMatFacHandle_);

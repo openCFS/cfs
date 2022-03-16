@@ -1660,7 +1660,6 @@ namespace CoupledField {
         stop.Init(0);
         inc.Init(1);
         numSamples.Init(1);
-        UInt totalPoints = 1;
         std::string comp;
         UInt compIndex;
         for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
@@ -1670,9 +1669,7 @@ namespace CoupledField {
           start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
           stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
           inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
-          numSamples[compIndex]  =
-              UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
-          totalPoints *= numSamples[compIndex];
+          numSamples[compIndex] = UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
         }
 
         globPoints.Resize( numSamples[0] *

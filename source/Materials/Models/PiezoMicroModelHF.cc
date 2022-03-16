@@ -349,7 +349,7 @@ namespace CoupledField{
                                                 Vector<Double>& elecField,
                                                 UInt elemIdx ) {
 
-    Double partElec, partMech, partCouple;
+    Double partElec, partCouple; // mechPart removed, as it was not used. Check blame and history!
 
     //    std::cout << "\n ComputeDrivingForces: Ein = " << elecField << std::endl;
 
@@ -360,13 +360,6 @@ namespace CoupledField{
         partElec += elecField[i] * switchingDirection_[i][sys];
       }
       partElec *=  switchPolarizationVal_[sys];
-
-      // mechanical part
-      partMech = 0.0;
-      for ( UInt i=0; i<SchmidTensorAsVector_.GetSize(); i++ ) {
-        partMech += SchmidTensorAsVector_[i]*stress[i];
-      }
-      partMech *= switchStrainVal_[sys];
 
       // coupling part
       partCouple = 0.0;

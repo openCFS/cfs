@@ -311,7 +311,6 @@ namespace CoupledField {
     for ( i = 0; i < nCols; i++ ) {
       (*debug) << " " << i << " | " << auxVec[i] << std::endl;
     }
-#endif
 
     // Maximal fill-in will generate a column with all non-zero entries
     // between the diagonal and the row determined above. Summing these
@@ -321,7 +320,6 @@ namespace CoupledField {
       profile += i - auxVec[i] + 1;
     }
 
-#ifdef DEBUG_LDLSOLVER_ANALYSE
     (*debug) << " column | max number of entries in factor L" << std::endl;
     for ( i = 0; i < nCols; i++ ) {
       (*debug) << " " << i << " | " << i - auxVec[i] + 1 << std::endl;

@@ -157,14 +157,12 @@ namespace CoupledField {
 
     // loop over all diagonal blocks
     UInt bs = 0;
-    UInt numEntries = 0;
     for( UInt i = 0; i < numRows_; ++i ) {
 
       // get factorization matrix for this block and copy entries
       Matrix<Double> & inv = factors_[i];
       sysmat.GetDiagBlock(i, inv);
       bs = inv.GetNumRows();
-      numEntries += bs;
 #ifdef DEBUG_JAC_PRECOND
       std::cerr << "\n original block #" << i <<"\n";
       for( UInt k = 0; k < bs; ++k ) {

@@ -111,7 +111,6 @@ void ApproxData::ReadNlinFuncThreeIndep(std::string fncName)  {
   std::vector<std::string> filenames;
   double xt;
   std::string iFilename;
-  UInt nSlices = 0;
   while(pos <= pos_end)
   {
     line_start_pos = datafile.tellg();
@@ -124,7 +123,6 @@ void ApproxData::ReadNlinFuncThreeIndep(std::string fncName)  {
       x.push_back(xt);
       filenames.push_back(iFilename);
       datafile.ignore(100,'\n');
-      nSlices += 1;
     }
     pos = datafile.tellg();  // and, where we are ?
   }
@@ -136,8 +134,7 @@ void ApproxData::ReadNlinFuncThreeIndep(std::string fncName)  {
   }
 
 
-  LOG_DBG(approxdata) << "Read 3d slices file '" << fncName << "' with " << numMeas_ <<
-      " slice files ";
+  LOG_DBG(approxdata) << "Read 3d slices file '" << fncName << "' with " << numMeas_ << " slice files ";
 
   x_.Resize(numMeas_);
   slicesFiles_.Resize(numMeas_);
