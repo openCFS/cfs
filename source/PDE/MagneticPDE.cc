@@ -1366,6 +1366,30 @@ namespace CoupledField {
       }
       massFormCoefs_.insert(jFunc);
 
+
+      // === EDDY CURRENT (SURFACE RESULT) ===
+      shared_ptr<ResultInfo> ec(new ResultInfo());
+      ec->resultType = MAG_EDDY_CURRENT;
+      ec->dofNames = "";
+      ec->unit = "A";
+      ec->definedOn = ResultInfo::REGION;
+      ec->entryType = ResultInfo::SCALAR;
+      availResults_.insert( ec );
+      // first, create normal mapping
+      //shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, 1.0, ec));
+      //surfCoefFcts_[ncd] = jFunc;
+      // then, integrate values
+      shared_ptr<ResultFunctor> eddyCurrentFunc;
+      if( isComplex_ ) {
+        eddyCurrentFunc.reset(new ResultFunctorIntegrate<Complex>(jFunc,
+                                                                  feFct, ec ) );
+      } else {
+        eddyCurrentFunc.reset(new ResultFunctorIntegrate<Double>(jFunc,
+                                                           feFct, ec ) );
+      }
+      resultFunctors_[MAG_EDDY_CURRENT] = eddyCurrentFunc;
+
+
       /*
        * currently, the following part leads to an Exception (when hex elements are used in 3d)
        * > ElemType is not supported by FESpace
