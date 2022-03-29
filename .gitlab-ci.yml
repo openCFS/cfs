@@ -966,6 +966,8 @@ doxygen:
 
 cdash:report:
   stage: deploy
+  tags: # add a tag since some runners refuse to run un-tagged jobsgit add .gi  
+    - linux
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
@@ -979,7 +981,8 @@ cdash:report:
     name: CDash/$CI_COMMIT_REF_SLUG
     url: http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
     auto_stop_in: 1 week
-  dependencies: [] 
+  dependencies: []
+  allow_failure: true # this is an infrmational job and should not stop us from merging
 
 .deploy_rules: &deploy_rules
   only:
