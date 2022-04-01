@@ -65,7 +65,7 @@
 namespace CoupledField {
 
   DEFINE_LOG(mechpde, "mechpde")
-          
+
           /** the static test strain enum mapping */
   Enum<MechPDE::TestStrain> MechPDE::testStrain;
   
@@ -1642,27 +1642,33 @@ namespace CoupledField {
         aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_THERMAL_EXPANSION_TENSOR, subType, Global::REAL);
       }
       
+      LOG_DBG3(mechpde)<< "Generating dT" << std::endl;
       // get reference temperature and compute dT = T - T_ref
       PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TE_REFTEMPERATURE, part);
       PtrCoefFct dT = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,tCoef[i],refTemp,CoefXpr::OP_SUB));
       
+      LOG_DBG3(mechpde)<< "Generating thermalStrainCoef" << std::endl;
       // compute the thermal strain eps_th = alpha*dT
-      PtrCoefFct thermalStrainCoef = CoefFunction::Generate( mp_, part,
-              CoefXprVecScalOp(mp_,aCoef,dT,CoefXpr::OP_MULT));
+
+      // Using CoefXprBinOp instead of CoefXprVecScalOp
+      PtrCoefFct thermalStrainCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,dT,aCoef,CoefXpr::OP_MULT));
       // store the coefFunction for postprocessing
       thermalStrain_->AddRegion( myRegionId, thermalStrainCoef);
       
       // Compute thermal stress (C*alpha)*dT
       // Note: the order of combining coef functions is important: C*alpha can usually be evaluated analytically.
       // Therefore, we combine it first. Then it is multiplied with dT, which might be a CoefFuctionGrid. 
+
       PtrCoefFct Calpha = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,cCoef,aCoef,CoefXpr::OP_MULT));
-      PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_,Calpha,dT,CoefXpr::OP_MULT));
-      
+
+      LOG_DBG3(mechpde)<< "Generating thermalStressCoef" << std::endl;
+      // Using CoefXprBinOp instead of CoefXprVecScalOp
+      PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,dT,Calpha, CoefXpr::OP_MULT));
+
       // store the coefFunction for postprocessing
       thermalStress_->AddRegion( myRegionId, thermalStressCoef);
       
       BaseBOperator * bOp = GetStrainOperator( isComplex_, false );
-      
       if(isComplex_) {
         lin = new BUIntegrator<Complex>(bOp, 1.0, thermalStressCoef, coefUpdateGeo);
       }
@@ -1677,6 +1683,167 @@ namespace CoupledField {
       myFct->AddEntityList(ent[i]);
     } // for
     
+    //================
+    //ELECTRIC STRAIN (for forwardcoupling the piezo problem)
+    //================
+    LOG_DBG(mechpde)<< "Reading electric strain definition";
+    //excitation
+    StdVector<PtrCoefFct > exCoef;
+    //direction
+    StdVector<PtrCoefFct > dirCoef;
+    //dependent
+    StdVector<PtrCoefFct > depCoef;
+    //formulation
+    std::string formulation {"none"};
+    /*
+     * !!! Can currently only defined once in XML-schema!
+     * Can be extended by ParamList->Get("bcsAndLoads")->GetChildren() and loop over children and
+     * define rhs for each elecStrain entry
+     *
+     * Here we want to implement a pretty complex rhs, which is defined by:
+     *
+     * * excitation quantity: The main excitation. In our case the electric field
+     * * direction: Just needed if you need to rotate the material tensor. Idea is that here you could
+     *           specify for example the polarization, and the material tensor gets rotated in direction
+     *           of the polarization
+     * * scaling: Depends out of two parts:
+     *            -Dependent scaling field quantity
+     *            -formulation
+     *
+     * So the RHS looks something like this (without any testfunctions and diff operators):
+     *       f(P) * Q(D) e Q(D) * E
+     *
+     *       scaling:
+     *       f(P) = factor * |P| -> have to define P in dependentCoef (for example polarization
+     *
+     *       direction D: -> for example D = P/|P|
+     *       Q(D) is the rotation matrix witch rotates e in D
+     *
+     *       E is the excitation vector.
+    */
+
+    //setting default PtrParamNode
+    PtrParamNode elecStrainNode = myParam_->Get("bcsAndLoads");
+
+    //be aware that node1->Get("ThisDoNotExcists,PASS)->Get("This->ThrowsError!")
+
+    if(myParam_->Get("bcsAndLoads")->Has("elecStrain")){
+      elecStrainNode = myParam_->Get("bcsAndLoads")->Get("elecStrain");
+
+      //read in all the CoefFunctions and check if they are defined on the same entity
+      //Excitation is checked as last one, because data is overwritten
+      //and this is the only one which is not optional
+
+      std::string entName {};
+
+      ReadRhsExcitation("direction", dispDofNames, ResultInfo::VECTOR, isComplex_, ent,
+          dirCoef, coefUpdateGeo,  elecStrainNode);
+
+      //check if its defined not more than 1
+      //if so, save Name
+      if( ent.size() > 1 ){
+        EXCEPTION("Electric Strain can (currently) only be assigned once in bcsAndLoads!")
+      } else if (ent.size() == 1){
+        entName= ent[0]->GetName();
+      }
+
+      ReadRhsExcitation("dependency", dispDofNames, ResultInfo::VECTOR, isComplex_, ent,
+          depCoef, coefUpdateGeo, elecStrainNode->Get("scaling", ParamNode::PASS));
+
+      //check if its defined not more than 1
+      if( ent.size() > 1 ){
+        EXCEPTION("Electric Strain can (currently) only be assigned once in bcsAndLoads!")
+      } else if (ent.size() == 1){
+        if(entName.empty()){
+          entName= ent[0]->GetName();
+        }
+        else if(entName != ent[0]->GetName()){
+          EXCEPTION("All electric strain sub-quantities must be defined on same region!")
+        }
+      }
+
+      ReadRhsExcitation("excitation", dispDofNames, ResultInfo::VECTOR, isComplex_, ent,
+          exCoef, coefUpdateGeo, elecStrainNode);
+
+      if( ent.size() > 1 ){
+        EXCEPTION("Electric Strain can (currently) only be assigned once in bcsAndLoads!")
+      } else {
+        if(entName.empty()){
+          entName= ent[0]->GetName();
+        }
+        else if(ent[0]->GetName() != entName){
+          EXCEPTION("All electric strain sub-quantities must be defined on same region!")
+        }
+      }
+
+      //Get specific paramNode
+      if(elecStrainNode->Has("scaling") && elecStrainNode->Get("scaling")->Has("formulation")){
+        formulation = elecStrainNode->Get("scaling")->Get("formulation")->GetChild()->GetName();
+      }
+
+      LOG_DBG3(mechpde) << "Formulation: " << formulation << std::endl;
+
+      // check type of entitylist
+      if (ent[0]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("electric strain must be defined on elements") // Needed?
+      }
+
+      PtrCoefFct tmpCoef = exCoef[0];
+
+      //Default value
+      std::string factorString = "1";
+
+      //if formulation exists, there must be also a depCoef
+      if (formulation == "linear"){
+        //linear scaling
+        PtrCoefFct depNormCoef = CoefFunction::Generate( mp_, part, CoefXprUnaryOp(mp_,depCoef[0],CoefXpr::OP_NORM));
+        //resulting coefFunction
+        tmpCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,depNormCoef,exCoef[0],CoefXpr::OP_MULT));
+        //can i read it directly as coeffunction?
+        factorString = elecStrainNode->Get("scaling")->Get("formulation")->GetChild()->Get("factor")->As<std::string>();
+      }
+
+      PtrCoefFct factor = CoefFunction::Generate(mp_, part,factorString);
+
+      PtrCoefFct resCoef = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_,factor,tmpCoef,CoefXpr::OP_MULT));
+
+      RegionIdType myRegionId = ent[0]->GetRegion();
+
+      // set sub tensor type
+      SubTensorType subType = GetSubTensorType();
+
+      // Getting the piezoelectric couple tensor
+      PtrCoefFct eCoef;
+      if( isComplex_ ) {
+        eCoef = materials_[myRegionId]->GetTensorCoefFnc(PIEZO_TENSOR, subType, Global::COMPLEX, true);
+      }
+      else {
+        eCoef = materials_[myRegionId]->GetTensorCoefFnc(PIEZO_TENSOR, subType, Global::REAL, true);
+      }
+
+      //TODO: rotate e depending on dirCoef
+      //===================================
+      //Insert here a cool thingy which does that
+      //neatRotationFunction(eCoef,dirCoef)
+
+      if (dim_ == 3){
+        if(isComplex_) {
+          lin = new BDUIntegrator<StrainOperator3D<FeH1,Complex>, Complex> (1 ,resCoef,eCoef,coefUpdateGeo);
+        } else {
+          lin = new BDUIntegrator<StrainOperator3D<FeH1,Complex>, Double> (1 ,resCoef,eCoef,coefUpdateGeo);
+        }
+      } else {
+        EXCEPTION("Currently only 3d case implemented! Dont worry its just copy pase.")
+      }
+
+      lin->SetName("ElecStrainInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[0] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[0]);
+    }
+
     // ===============
     //  PRESSURE 
     // ===============

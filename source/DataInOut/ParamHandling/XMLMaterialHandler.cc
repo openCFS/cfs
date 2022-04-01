@@ -7,6 +7,9 @@
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 
+// header for logging
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 // header for materials
 #include "Materials/ElectroMagneticMaterial.hh"
 #include "Materials/ElectroStaticMaterial.hh"
@@ -31,6 +34,8 @@ typedef BaseMaterial BM;
 
 namespace CoupledField {
   
+  DEFINE_LOG(xmlmathandler, "xmlmathandler")
+
   // Path to the material XML schema relative to share/xml
   const std::string XMLMaterialHandler::schemaFile_ = "/CFS-Material/CFS_Material.xsd";
 
@@ -508,6 +513,32 @@ namespace CoupledField {
       PtrCoefFct pctCoef = ReadTensor(mech->Get("magnetoStrictionTensor_h_mech"),
                                       Global::COMPLEX);
       material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h_mech, pctCoef);
+    }
+
+    if (mech->Has("piezoCoupling")){
+      LOG_DBG3(xmlmathandler)<< "It has piezoCoupling" << std::endl;
+      PtrParamNode cpl = mech->Get("piezoCoupling", ParamNode::PASS);
+      if (cpl) {
+        // read piezo coupling tensor
+        if (cpl->Has("linear")) {
+          BM::SymmetryType symType = BM::NOSYMMETRY;
+
+          if (cpl->Get("linear")->Has("tensor")) {
+            PtrParamNode pcTensor = cpl->Get("linear")->Get("tensor");
+            PtrCoefFct piezoCoef = ReadTensor(pcTensor, Global::COMPLEX );
+            material->SetCoefFct(PIEZO_TENSOR, piezoCoef);
+            symType = BM::GENERAL;
+          }
+          material->SetSymmetryType(PIEZO_TENSOR, symType);
+        }
+
+        // read nonlinearity of a coupling coefficient
+        if (cpl->Has("nonlinear") && cpl->Get("nonlinear")->Has("isotropic")) {
+          BaseMaterial::MatDescriptorNl nlInfo =
+              ReadNonlinDescriptor(cpl->Get("nonlinear")->Get("isotropic"), material);
+          material->SetNonLinMatIso(PIEZO_TENSOR, nlInfo);
+        }
+      }
     }
   }
   

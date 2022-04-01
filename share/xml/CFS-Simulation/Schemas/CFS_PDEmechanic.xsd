@@ -155,7 +155,9 @@
 
                 <!-- RHS, due to thermal strains-->
                 <xsd:element name="thermalStrain" type="DT_BcInhomScalar"/>
-
+                <!-- RHS, due to (piezo-)electric strains-->
+                <xsd:element name="elecStrain" type="DT_elecStrain"/>
+                
               	<!-- Special Boundary Conditions -->
                 <xsd:element name="constraint" type="DT_MechCS"/>
                 <!-- Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output-->
@@ -864,4 +866,48 @@
       </xsd:simpleType>
     </xsd:attribute>
   </xsd:complexType>
+  <xsd:complexType name="DT_elecStrain">
+    <xsd:sequence>
+      <xsd:element name="excitation" type="DT_BcInhomVector">
+        <xsd:annotation>
+          <xsd:documentation>Excitation quantiy</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element minOccurs="0" name="direction" type="DT_BcInhomVector">
+        <xsd:annotation>
+          <xsd:documentation>Currently dummy function.
+Idea is to use this to rotate a material tensor in this direction. 
+
+Example: Electric field and polarization
+Gets excited with a electric field, but polarization not same direction and material tensor depends on polarization</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element minOccurs="0" name="scaling">
+        <xsd:annotation>
+          <xsd:documentation>Used for scaling the excitation</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element minOccurs="1" name="dependency" type="DT_BcInhomVector"> </xsd:element>
+            <xsd:element name="formulation">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="linear">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element default="0" name="factor" type="xsd:float"/>
+                      </xsd:sequence>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string"/>
+    <xsd:attribute name="region" type="xsd:string"/>
+  </xsd:complexType>
+
 </xsd:schema>

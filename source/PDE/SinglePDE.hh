@@ -155,6 +155,8 @@ class BaseFieldFunctor;
     //! \param coef Vector of coefficients function for the values
     //! \param updateGeo Flag indicating, if coefficient function is defined
     //!                  on an updated geometry (e.g. due to iterative coupling).
+    //! \param input default nullptr (will search in bcsAndLoad)
+    //!                  if specified it will search elemName in input-Nodeset
     void ReadRhsExcitation( const std::string& elemName,
                             const StdVector<std::string>& compNames,
                             ResultInfo::EntryType type,
@@ -187,6 +189,7 @@ class BaseFieldFunctor;
                                     StdVector<PtrCoefFct>& coef,
                                     bool& updateGeo,
                                     StdVector<std::string>& volumeRegions);
+
 
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or

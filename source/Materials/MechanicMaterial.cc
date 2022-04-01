@@ -54,6 +54,7 @@ namespace CoupledField
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mech );
+    isAllowed_.insert( PIEZO_TENSOR );
 //    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
 //    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
 //    isAllowed_.insert( MECH_VISCOK_VECTOR );
@@ -234,8 +235,7 @@ namespace CoupledField
 
     CoefMap::const_iterator it = tensorCoef_.find(matType);
     if ( it != tensorCoef_.end() ) {
-
-      if (matType == MAGNETOSTRICTION_TENSOR_h_mech || matType == MECH_THERMAL_EXPANSION_TENSOR) {
+      if (matType == MAGNETOSTRICTION_TENSOR_h_mech || matType == MECH_THERMAL_EXPANSION_TENSOR || matType == PIEZO_TENSOR) {
         /*
          * special case: iterative magnetostrictive coupling
          * here we need to have the 3x6 material tensor on the rhs
