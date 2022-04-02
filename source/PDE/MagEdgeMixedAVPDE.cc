@@ -198,7 +198,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         stiffUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( stiffUpperLeftContext );
         // Add bdb-integrator to global list, needed for flux density evaluation
-        bdbInts_[actRegion] = stiffUpperLeft;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffUpperLeft) );
 
         /* ==============================================
          * Upper right STIFFNESS part:

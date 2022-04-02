@@ -186,7 +186,7 @@ namespace CoupledField {
         
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
         LOG_TRACE(smoothpde) << "Add Lin BDB" << std::endl;
         
         // write to info-xml

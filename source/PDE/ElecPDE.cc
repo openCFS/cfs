@@ -490,7 +490,7 @@ namespace CoupledField {
         stiffInt->SetFeSpace( myFct->GetFeSpace());
 
         assemble_->AddBiLinearForm( stiffIntDescr );
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
 
       } else{
         stiffInt->SetName("LinElecIntegrator");
@@ -507,7 +507,7 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( stiffIntDescr );
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
       
       }
     }

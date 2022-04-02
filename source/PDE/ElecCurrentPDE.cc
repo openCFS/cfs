@@ -213,7 +213,7 @@ namespace CoupledField {
 
         feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( stiffContext );
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
       }
       else if ( nonLinTypes.Find(NLELEC_BIPOLE) != -1 || 
                 nonLinTypes.Find(NLELEC_BIPOLE_TEMP_DEP) != -1 ||
@@ -299,7 +299,7 @@ namespace CoupledField {
 
         feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( stiffContext );
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
       }
       else {
         // ----- standard real-valued stiffness integrator with constant conductivity
@@ -317,7 +317,7 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( stiffIntDescr );
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
       }
     }
 

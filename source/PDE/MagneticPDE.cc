@@ -267,7 +267,7 @@ namespace CoupledField {
 
 			  // Important: Add bdb-integrator to global list, as we need them later
 			  // for calculation of postprocessing results
-			  bdbInts_[actRegion] = stiffInt;
+			  bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
 			  // add also material to global, distributed reluctivity coefficient function
 			  //relucTensor_->AddRegion(actRegion, nuNl);
 
@@ -415,7 +415,7 @@ namespace CoupledField {
 
 			  // Important: Add bdb-integrator to global list, as we need them later
 			  // for calculation of postprocessing results
-			  bdbInts_[actRegion] = stiffInt;
+			  bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
 
         // NEW: curCoef is a specialized coef function responsible
         // for delivering the mat tensor > type is tensor

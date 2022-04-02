@@ -210,7 +210,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         assemble_->AddBiLinearForm( stiffContext );
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiff1;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiff1) );
         // add also material to global, distributed reluctivity coefficient function
         reluc_->AddRegion(actRegion, nuNl);
 
@@ -299,7 +299,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = curlcurl;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,curlcurl) );
 
         } // END OF NONLIN/LIN PART
 

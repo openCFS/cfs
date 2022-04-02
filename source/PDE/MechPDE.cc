@@ -468,7 +468,7 @@ namespace CoupledField {
         
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiffInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
         LOG_TRACE(mechpde) << "Add Lin BDB" << std::endl;
       }
       
@@ -519,7 +519,7 @@ namespace CoupledField {
         
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results.
-        bdbInts_[actRegion] = nlBInt;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,nlBInt) );
         
         if( nonLinMethod_ == NEWTON ) {
           //here we define the tangent matrix

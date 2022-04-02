@@ -1185,7 +1185,7 @@ namespace CoupledField {
     {
       // 1) Associate all stiffness related coeffunctions and result functors
       //    with the bilinearform
-      std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
+      std::multimap<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
       for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
         RegionIdType region = stiffIt->first;
         BaseBDBInt* bdb = stiffIt->second;
@@ -1193,6 +1193,8 @@ namespace CoupledField {
           continue;
 
         // 1) pass it to all coefficient functions related to stiffness
+        // Although multiple integrators can be stored in bdbInts_, only one can be passed to the coefFunction
+        // This can be controlled by assigning the name of the requested integrator
         std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
         for( stiffCoefIt = stiffFormCoefs_.begin();
             stiffCoefIt != stiffFormCoefs_.end(); ++stiffCoefIt) {

@@ -39,19 +39,24 @@ void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,
 #endif
   std::map<RegionIdType, BaseBDBInt* >& forms = forms_.Mine(0);
 
-  // check if region has already an integrator assigned
-  if( forms.find(region) != forms.end() ) {
-    EXCEPTION( "Multiply defined region");
-  }
-  //here we check if we are from a single threaded region.
-  //if so, we fill all slots. If not, we just fill the current thread
+  // check if we need to skip the integrator assignment if e.g. the requested integrator name differs
+  if( integratorName_.empty() || integratorName_==form->GetName() ) {
+    // check if region has already an integrator assigned
+    if( forms.find(region) != forms.end() ) {
+      EXCEPTION( "Multiply defined region");
+    }
+    //here we check if we are from a single threaded region.
+    //if so, we fill all slots. If not, we just fill the current thread
 #ifdef USE_OPENMP
-  for(UInt i=0;i<forms_.GetNumSlots();++i){
-    forms_.Mine(i)[region] = form->Clone();
-  }
+    for(UInt i=0;i<forms_.GetNumSlots();++i){
+      forms_.Mine(i)[region] = form->Clone();
+    }
 #else
-  forms_.Mine()[region] = form;
+    forms_.Mine()[region] = form;
 #endif
+  } else {
+    WARN("Skipped adding integrator " << form->GetName() << " to " << this->GetName());
+  }
 }    
 
 
@@ -87,27 +92,32 @@ AddIntegrator( BaseBDBInt* form,
 
   // call method in base class
   CoefFunctionFormBased::AddIntegrator( form, region );
-  
   // store B-operator as well
-  AddBOperator( form->GetBOp(), region );
+  AddBOperator( form->GetBOp(), region, form->GetName() );
 }
 
 
 template<class TYPE>  void CoefFunctionBOp<TYPE>::
 AddBOperator( BaseBOperator* bOp,
-              RegionIdType region ) {
-  
-  // check for compatibility of dimension
-  if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
-    EXCEPTION( "All B-operators must have the same vector size");
+              RegionIdType region,
+              std::string integratorName ) {
+
+  // check if we need to skip the integrator assignment if e.g. the requested integrator name differs
+  if( integratorName_.empty() || integratorName_==integratorName ) {
+    // check for compatibility of dimension
+    if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
+      EXCEPTION( "Implementation error: All B-operators must have the same vector size");
+    }
+    
+    // check if region has already an integrator assigned
+    if( bOps_.find(region) != bOps_.end() ) {
+      EXCEPTION( "Implementation error: Multiply defined region. Only one integrator can be assigned to a region.");
+    }
+    
+    bOps_[region] = bOp;
+  } else {
+    WARN("Implementation warning: Skipped adding bOp " << bOp->GetName() << " from integrator " << integratorName << " to " << this->GetName());
   }
-  
-  // check if region has already an integrator assigned
-  if( bOps_.find(region) != bOps_.end() ) {
-    EXCEPTION( "Multiply defined region");
-  }
-  
-  bOps_[region] = bOp;
 
 }
 
@@ -228,29 +238,34 @@ AddIntegrator( BaseBDBInt* form,
 #endif
   std::map<RegionIdType, BaseBDBInt* >& forms = forms_.Mine(0);
 
-  // check if region has already an integrator assigned
-  if( forms.find(region) != forms.end() ) {
-    EXCEPTION( "Multiply defined region");
-  }
+  // check if we need to skip the integrator assignment if e.g. the requested integrator name differs
+  if( integratorName_.empty() || integratorName_==form->GetName() ) {
+    // check if region has already an integrator assigned
+    if( forms.find(region) != forms.end() ) {
+      EXCEPTION( "Multiply defined region");
+    }
 
-  // check for compatibility of dimension
-  PtrCoefFct coef = form->GetCoef();
-  if( coef->GetDimType() == CoefFunction::TENSOR ) {
-    UInt nRows, nCols;
-    coef->GetTensorSize(nRows, nCols);
-    UInt dMatSize = TRANS ? nCols : nRows;
-    if( dMatSize != res_->dofNames.GetSize() ) {
-      EXCEPTION( "All B-operators must have the same vector size");
-    } 
-  }
-  //now we clone each integrator and we already checked if we are in single thread region
+    // check for compatibility of dimension
+    PtrCoefFct coef = form->GetCoef();
+    if( coef->GetDimType() == CoefFunction::TENSOR ) {
+      UInt nRows, nCols;
+      coef->GetTensorSize(nRows, nCols);
+      UInt dMatSize = TRANS ? nCols : nRows;
+      if( dMatSize != res_->dofNames.GetSize() ) {
+        EXCEPTION( "All B-operators must have the same vector size");
+      } 
+    }
+    //now we clone each integrator and we already checked if we are in single thread region
 #ifdef USE_OPENMP
-  for(UInt i=0;i<forms_.GetNumSlots();++i){
-    forms_.Mine(i)[region] = form->Clone();
-  }
+    for(UInt i=0;i<forms_.GetNumSlots();++i){
+      forms_.Mine(i)[region] = form->Clone();
+    }
 #else
-  forms_.Mine()[region] = form;
+    forms_.Mine()[region] = form;
 #endif
+  } else {
+    WARN("Skipped adding integrator " << form->GetName() << " to " << this->GetName());
+  }
 }
 
 template<class TYPE, bool TRANS>

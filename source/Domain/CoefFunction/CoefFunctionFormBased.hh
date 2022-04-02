@@ -43,6 +43,14 @@ public:
 
   //! Set integrator for specific region
   virtual void AddIntegrator(BaseBDBInt* form, RegionIdType region);
+
+  //! Set name request for specific integrator
+  void SetIntegratorName(const std::string& integratorName) {
+    if( !integratorName_.empty() ) {
+      EXCEPTION("Implementation error: Overwriting already defined integrator " << integratorName << " with integrator " << integratorName_ << " for post-processing result makes no sense. Please fix the implementation by using SetIntegratorName() correctly (only once!).");
+    }
+    integratorName_ = integratorName;
+  }
   
   //! Return type of entry (scalar, vector, tensor)
   virtual CoefDimType GetDimType() const { return dimType_;  }
@@ -53,6 +61,9 @@ protected:
 
   //! Store bilinearform for each region
   CfsTLS< std::map<RegionIdType, BaseBDBInt* > > forms_;
+
+  //! Store the name of the requestet integrator type
+  std::string integratorName_;
 
 };
 
@@ -85,7 +96,8 @@ public:
   
   //! Pass directly a B-operator
   void AddBOperator( BaseBOperator* bOp,
-                     RegionIdType region );
+                     RegionIdType region,
+                     std::string integratorName="" );
 
   //! Destructor
   virtual ~CoefFunctionBOp();

@@ -261,7 +261,7 @@ void HeatPDE::DefineIntegrators() {
       stiffContext->SetFeFunctions( feFunc, feFunc );
 
       assemble_->AddBiLinearForm( stiffContext );
-      bdbInts_[actRegion] = stiffInt;
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
 
       // =================================
       //  Nonlinear RHS-integrator
@@ -320,7 +320,7 @@ void HeatPDE::DefineIntegrators() {
       stiffInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      bdbInts_[actRegion] = stiffInt;
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
 
       //      if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) ||
       //                nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
@@ -1107,7 +1107,21 @@ void HeatPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<Linear
 
     shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, ptGrid_->GetRegionName(actRegion));
 
-    PtrCoefFct curCoef = bdbInts_[actRegion]->GetCoef();
+    std::multimap<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
+    BaseBDBInt* bdb;
+    if( bdbInts_.count(actRegion)==1 ) {
+      for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
+        RegionIdType region = stiffIt->first;
+        if(region==actRegion) {
+          bdb = stiffIt->second;
+        }
+      }
+    } else {
+      EXCEPTION("Implementation error: Multiple bdbInts_ defined, can't return single coefFunction. You probably used bdbInts.insert() multiple times per region and did not use SetIntegratorName().")
+    }
+
+    
+    PtrCoefFct curCoef = bdb->GetCoef();
     PtrCoefFct ttg = CoefFunction::Generate(mp_, Global::REAL, tempGrad);
 
     LinearForm* lin = NULL;

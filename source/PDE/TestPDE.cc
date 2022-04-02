@@ -147,7 +147,7 @@ namespace CoupledField {
       stiffInt->SetFeSpace( mySpace );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      bdbInts_[actRegion] = stiffInt;
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
 
       // ====================================================================
       // mass integrator

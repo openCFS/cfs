@@ -492,7 +492,8 @@ class BaseFieldFunctor;
     
     //! This map stores the primary BDB integrators, which can be used for 
     //! calculating spatial derivatives, fluxes and energy.
-    std::map<RegionIdType, BaseBDBInt*> bdbInts_;
+    //! Here we use a multimap in order to enable storing multiple bdbInts (see e.g. LinFlowPDE)
+    std::multimap<RegionIdType, BaseBDBInt*> bdbInts_;
     
     //! Map for storing the auxiliary primary BDB integrators of the problem
 

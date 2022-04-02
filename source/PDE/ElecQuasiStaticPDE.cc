@@ -145,7 +145,7 @@ namespace CoupledField {
       stiffIntDescr->SetFeFunctions(feFunctions_[ELEC_POTENTIAL],feFunctions_[ELEC_POTENTIAL]);
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      bdbInts_[actRegion] = stiffInt;  //for calculation of postprocessing results
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );  //for calculation of postprocessing results
 
 
 //      shared_ptr<CoefFunction > stiffCoef;

@@ -231,7 +231,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         K_A_A_nuContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( K_A_A_nuContext );
         // Add bdb-integrator to global list, needed for flux density evaluation
-        bdbInts_[actRegion] = K_A_A_nu;
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,K_A_A_nu) );
 
 
         /* ==============================================

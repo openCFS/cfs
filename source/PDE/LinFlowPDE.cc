@@ -103,6 +103,9 @@ namespace CoupledField {
 
     if(ptGrid_->GetDim() == 3)
       subType_ = "3d";
+
+    if(subType_ == "axi")
+      EXCEPTION("SubType 'axi' not implemented for LinFlowPDE");
       
     //get oder of FE basis functions
     presPolyId_ = myParam_->Get("presPolyId")->As<std::string>();
@@ -334,7 +337,7 @@ namespace CoupledField {
       PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
           CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
       PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
-      BiLinearForm * stiffIntLaplace = NULL;
+      BaseBDBInt * stiffIntLaplace = NULL;
       StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? 9 : 36);
       tensorComponents.Init(coefZero);
       if( dim_ == 2 ) {
@@ -361,6 +364,12 @@ namespace CoupledField {
       stiffContLaplace->SetFeFunctions( velFct, velFct );
       assemble_->AddBiLinearForm( stiffContLaplace );
 
+      // Important: Add bdb-integrator to global list, as we need them later
+      // for calculation of postprocessing results
+      // We can't add two integrators to a coefFunction, hence, by adding both to bdbInts_ we need to add name requests for the coefFunction
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffIntLaplace) );
+      LOG_TRACE(linfluidmechpde) << "Add Lin BDB (strain part)" << std::endl;
+
       if ( isCompressible_ ) { // we need to subtract 2*mu/3 Div(v)I and add the bulk part lambda*Div(v)I
         PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
         PtrCoefFct coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
@@ -385,8 +394,9 @@ namespace CoupledField {
 
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiffIntDivDiv;
-        LOG_TRACE(linfluidmechpde) << "Add Lin BDB" << std::endl;
+        // We can't add two integrators to a coefFunction, hence, by adding both to bdbInts_ we need to add name requests for the coefFunction
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffIntDivDiv) );
+        LOG_TRACE(linfluidmechpde) << "Add Lin BDB (compressible part)" << std::endl;
       }
 
 
@@ -1190,6 +1200,7 @@ namespace CoupledField {
       shared_ptr<BaseFeFunction> velFeFct = feFunctions_[FLUIDMECH_VELOCITY];
 
       // === FLUID-MECHANIC STRESS ===
+      // mu ( grad(v)+grad(v)^T )
       shared_ptr<ResultInfo> stress(new ResultInfo);
       stress->resultType = FLUIDMECH_STRESS;
       stress->dofNames = stressComponents;
@@ -1203,7 +1214,10 @@ namespace CoupledField {
       } else {
         sigmaFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stress));
       }
+      // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
+      sigmaFunc->SetIntegratorName("LinFlowStiffIntViscous");
       DefineFieldResult( sigmaFunc, stress );
+      stiffFormCoefs_.insert(sigmaFunc);
 
       // === FLUID-MECHANIC ZERO PRESSURE ===
       // This is a dummy result in order to get the iterative coupling to recognize
@@ -1227,13 +1241,17 @@ namespace CoupledField {
       strain->entryType = ResultInfo::TENSOR;
       strain->definedOn = ResultInfo::ELEMENT;
       availResults_.insert( strain );
-      shared_ptr<CoefFunctionFormBased> strainFunc;
+      shared_ptr<CoefFunctionFormBased> strainFunc; // Coef function for result evaluation
       if( isComplex_ ) {
         strainFunc.reset(new CoefFunctionBOp<Complex>(velFeFct, strain));
       } else {
         strainFunc.reset(new CoefFunctionBOp<Double>(velFeFct, strain));
       }
+      // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
+      strainFunc->SetIntegratorName("LinFlowStiffIntViscous"); // coefFunctionBOp acts on strain part
       DefineFieldResult( strainFunc, strain );
+      // we use the same stiffness bdbInt as for the stress, but evaluating it with CoefFunctionBOp seems to ignore the material and return the strain
+      stiffFormCoefs_.insert(strainFunc);
 
 
       // check for grid velocity
@@ -1293,32 +1311,9 @@ namespace CoupledField {
       DefineFieldResult( totalVelCoefElem, totalVelocityElem );
       
 
-      // === FLUID-MECHANIC STRESS (COMPRESSIBLE) ===
-      // (lambda - 2/3 mu) div(v) I
-      shared_ptr<ResultInfo> stressComp(new ResultInfo);
-      stressComp->resultType = FLUIDMECH_COMP_STRESS;
-      stressComp->dofNames = stressComponents;
-      stressComp->unit = MapSolTypeToUnit(FLUIDMECH_COMP_STRESS);
-      stressComp->entryType = ResultInfo::TENSOR;
-      stressComp->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert( stressComp );
-      shared_ptr<CoefFunctionFormBased> stressCompFunc;
-      if( isComplex_ ) {
-        stressCompFunc.reset(new CoefFunctionFlux<Complex>(velFeFct, stressComp));
-      } else {
-        stressCompFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stressComp));
-      }
-      StdVector<PtrCoefFct> stressCompDiagValues = StdVector<PtrCoefFct>(dim_);
-      for(UInt i = 0; i < dim_; i++){
-        stressCompDiagValues[i] = stressCompFunc;
-      }
-      shared_ptr<CoefFunction> stressCompTensor (new CoefFunctionDiagTensorFromScalar(stressCompDiagValues,subType_));
-      DefineFieldResult( stressCompTensor, stressComp );
-      stiffFormCoefs_.insert(stressCompFunc);
-
-
-       // === FLUID-MECHANIC VISCOUS STRESS ===
-       // mu ( grad(v)+grad(v)^T ) + (lambda - 2/3 mu) div(v) I
+      // === FLUID-MECHANIC VISCOUS STRESS ===
+      // mu ( grad(v)+grad(v)^T ) + (lambda - 2/3 mu) div(v) I (compressible formulation)
+      // mu ( grad(v)+grad(v)^T ) (incompressible formulation)
       shared_ptr<ResultInfo> stressVisc(new ResultInfo);
       stressVisc->resultType = FLUIDMECH_VISC_STRESS;
       stressVisc->dofNames = stressComponents;
@@ -1327,9 +1322,44 @@ namespace CoupledField {
       stressVisc->definedOn = ResultInfo::ELEMENT;
       availResults_.insert( stressVisc );
       PtrCoefFct stressViscCoef;
-      stressViscCoef =
+      // we define the stressViscCoef in the next section since we have to differ between compressible / incompressible formulation
+
+
+      if ( isCompressible_ ) {
+        // === FLUID-MECHANIC STRESS (COMPRESSIBLE) ===
+        // (lambda - 2/3 mu) div(v) I
+        shared_ptr<ResultInfo> stressComp(new ResultInfo);
+        stressComp->resultType = FLUIDMECH_COMP_STRESS;
+        stressComp->dofNames = stressComponents;
+        stressComp->unit = MapSolTypeToUnit(FLUIDMECH_COMP_STRESS);
+        stressComp->entryType = ResultInfo::TENSOR;
+        stressComp->definedOn = ResultInfo::ELEMENT;
+        availResults_.insert( stressComp );
+        shared_ptr<CoefFunctionFormBased> stressCompFunc;
+        if( isComplex_ ) {
+          stressCompFunc.reset(new CoefFunctionFlux<Complex>(velFeFct, stressComp));
+        } else {
+          stressCompFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stressComp));
+        }
+        // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
+        stressCompFunc->SetIntegratorName("LinFlowStiffIntBulkViscous"); // coefFunctionFlux acts on strain part
+        StdVector<PtrCoefFct> stressCompDiagValues = StdVector<PtrCoefFct>(dim_);
+        for(UInt i = 0; i < dim_; i++){
+          stressCompDiagValues[i] = stressCompFunc;
+        }
+        shared_ptr<CoefFunction> stressCompTensor (new CoefFunctionDiagTensorFromScalar(stressCompDiagValues,subType_));
+        DefineFieldResult( stressCompTensor, stressComp );
+        stiffFormCoefs_.insert(stressCompFunc);
+
+
+        // insert the missing coefFunction for the viscous stress result
+        stressViscCoef =
               CoefFunction::Generate( mp_, part,
               CoefXprBinOp(mp_,sigmaFunc,stressCompFunc,CoefXpr::OP_ADD));
+      } else {
+        // insert the missing coefFunction for the viscous stress result
+        stressViscCoef = sigmaFunc;
+      }
       DefineFieldResult( stressViscCoef, stressVisc );
 
 
@@ -1341,7 +1371,7 @@ namespace CoupledField {
       presTens->unit = MapSolTypeToUnit(FLUIDMECH_PRES_TENS);
       presTens->entryType = ResultInfo::TENSOR;
       presTens->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert( stressComp );
+      availResults_.insert( presTens );
       PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
       StdVector<PtrCoefFct> presTensDiagValues = StdVector<PtrCoefFct>(dim_);
       for(UInt i = 0; i < dim_; i++){
@@ -1352,7 +1382,8 @@ namespace CoupledField {
 
 
       // === FLUID-MECHANIC TOTAL STRESS ===
-      // -p I + mu ( grad(v)+grad(v)^T ) + (lambda - 2/3 mu) div(v) I
+      // -p I + mu ( grad(v)+grad(v)^T ) + (lambda - 2/3 mu) div(v) I (compressible formulation)
+      // -p I + mu ( grad(v)+grad(v)^T ) (incompressible formulation)
       shared_ptr<ResultInfo> stressTotal(new ResultInfo);
       stressTotal->resultType = FLUIDMECH_TOTAL_STRESS;
       stressTotal->dofNames = stressComponents;
@@ -1414,25 +1445,6 @@ namespace CoupledField {
         dynamic_pointer_cast<CoefFunctionFormBased>(
           fieldCoefs_[FLUIDMECH_STRAINRATE]
           );
-
-    // ============================
-    // Initialize result functors:
-    // ============================
-
-    //  Loop over all regions
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {      
-      RegionIdType region = it->first;
-      BaseMaterial* actSDMat = it->second;
-
-      // 2) pass integrators to functors
-      // eFunc->AddIntegrator(stiffIntVP, region);
-      BaseBDBInt *integ = GetStiffIntegrator( actSDMat, region, isComplex_ );
-      integ->SetName("ViscousStrainRateInt");
-      integ->SetFeSpace( feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace() );
-      sigmaFunc->AddIntegrator(integ,region);
-      strainFunc->AddIntegrator(integ,region);
-    }
   }
 
   
@@ -1504,153 +1516,5 @@ namespace CoupledField {
 
     DefineFieldResult(meanVelocityCoef_, flowvelocity);
   }
-
-//  void LinFlowPDE::CreateGridVelFunction(StdVector<std::string> dofNames)
-//  {
-//    //// === ALE GRID VELOCITY ===
-//    Copy from primary results
-//  }
-
-
-//  void LinFlowPDE::FinilizeBeforTimeStep()
-//  {
-//
-//    RegionIdType actRegion;
-//
-//    shared_ptr<BaseFeFunction> meanVelFct = meanFlowFeFct_;
-//    shared_ptr<FeSpace> meanVelSpace = meanVelFct->GetFeSpace();
-//
-//    shared_ptr<BaseFeFunction> gridVelFct = gridVelFeFct_;
-//    shared_ptr<FeSpace> gridVelSpace = gridVelFct->GetFeSpace();
-//
-//    // Create coefficient functions for all fluid densities
-//    std::map< RegionIdType, PtrCoefFct > oneFuncs;
-//    std::set< RegionIdType > flowRegions;
-//
-//    //  Loop over all regions
-//    std::map<RegionIdType, BaseMaterial*>::iterator it;
-//    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-//
-//      // Set current region and material
-//      actRegion = it->first;
-//
-//      // Get current region name
-//      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-//
-//      // Get ParamNode for current region
-//      PtrParamNode curRegNode = myParam_->Get("regionList")
-//          ->GetByVal("region","name",regionName.c_str());
-//
-//      // create new entity list and add it fefunction
-//      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-//      actSDList->SetRegion( actRegion );
-//
-//      meanVelFct->AddEntityList( actSDList );
-//      //gridVelFct->AddEntityList( actSDList );
-//
-//
-//      PtrCoefFct density =
-//              materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
-//
-//      // Create set of flow regions and map of density functions for surface integrators.
-//      flowRegions.insert(actRegion);
-//
-//      //======================================================================
-//      // ALE-section (check for grid-velocity)
-//      //======================================================================
-//      std::string movingMeshId = curRegNode->Get("movingMeshId")->As<std::string>();
-//      if(movingMeshId != ""){
-//
-//        // Get result info object for flow
-//        shared_ptr<ResultInfo> movingMeshInfo;
-//        movingMeshInfo = GetResultInfo(FLUIDMECH_MESH_VELOCITY);
-//        // Read ALE coefficient function for this region
-//        PtrCoefFct regionMovingMesh;
-//        std::set<UInt> definedDofs;
-//
-//        //Add the region information
-//        PtrParamNode movingMeshNode =
-//          myParam_->Get("movingMeshList")->GetByVal("movingMesh",
-//                                              "name",
-//                                              movingMeshId.c_str());
-//
-//        ReadUserFieldValues( actSDList, movingMeshNode, movingMeshInfo->dofNames,
-//                             movingMeshInfo->entryType, isComplex_, regionMovingMesh,
-//                             definedDofs, updatedGeo_ );
-//        bool allowReplacement = true;
-//        gridVelCoef_->AddRegion( actRegion, regionMovingMesh, allowReplacement );
-//
-//
-//        gridVelFct->AddEntityList( actSDList );
-//        gridVelFct->AddExternalDataSource( regionMovingMesh,
-//                                           actSDList );
-//
-//      }
-//    }
-//  }
-
-
-  BaseBDBInt* LinFlowPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
-                                              RegionIdType regionId,
-                                              bool isComplex ) {
-
-    // Get region name
-    std::string regionName = ptGrid_->GetRegion().ToString( regionId );
-
-    // ------------------------
-    //  Obtain linear material
-    // ------------------------
-    shared_ptr<CoefFunction > curCoef;
-
-    BaseMaterial* regionMat = materials_[regionId];
-    SubTensorType subTensorType = NO_TENSOR;
-    Global::ComplexPart complexPart = Global::REAL;
-
-    if( isComplex ) {
-      complexPart = Global::COMPLEX;
-    }
-    
-    if( subType_ == "axi" ) {
-      subTensorType = AXI;
-    } else if( subType_ == "plane" ) {
-      subTensorType = PLANE;
-    } else if( subType_ == "3d") {
-      subTensorType = FULL;
-    } else {
-      EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
-    }
-
-    curCoef = regionMat->GetTensorCoefFnc( FLUID_DYNAMIC_VISCOSITY, subTensorType, complexPart );
-    //curCoef = regionMat->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL);;
-    // ----------------------------------------
-    //  Determine correct stiffness integrator 
-    // ----------------------------------------
-    BaseBDBInt * integ = NULL;
-    if( isComplex ) {
-      if( subType_ == "axi" ) {
-        integ = new BDBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "plane" ) {
-        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "3d") {
-        integ = new BDBInt<Complex>(new StrainOperator3D<FeH1,Complex>(), curCoef, 1.0);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
-      }
-    }
-    else {
-      if( subType_ == "axi" ) {
-        integ = new BDBInt<>(new StrainOperatorAxi<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "plane" ) {
-        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "3d") {
-        integ = new BDBInt<>(new StrainOperator3D<FeH1>(), curCoef, 1.0);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
-      }
-    }
-
-    return integ;
-  }
-
 
 }
