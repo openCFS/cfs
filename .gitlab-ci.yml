@@ -254,19 +254,33 @@ mr-with-code-changes:
 # add all platforms we can build on.
 # the IMAGE variable should be set according to the 'image' (docker runner option) and requires
 # a correctly named instruction in share/doc/developer/build-dependencies
+
+# fedora releases, see https://hub.docker.com/_/fedora
+# latest stable release
 fedora:latest:
   extends: .platform:image
   image:
-    name: fedora
+    name: fedora:latest
     entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "fedora"
     TAG: "latest"
 
-# the latest LTS release
+# latest development release
+fedora:rawhide:
+  extends: .platform:image
+  image:
+    name: fedora:rawhide
+    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+  variables:
+    IMAGE: "fedora"
+    TAG: "rawhide"
+
+# ubuntu releases, see https://hub.docker.com/_/ubuntu
+# latest LTS release 
 ubuntu:latest:
   extends: .platform:image
-  image: ubuntu
+  image: ubuntu:latest
   variables:
     IMAGE: "ubuntu"
     TAG: "latest"
@@ -281,14 +295,7 @@ ubuntu:rolling:
     IMAGE: "ubuntu"
     TAG: "rolling"
 
-# older ubuntu versions
-ubuntu:16.04:
-  extends: .platform:image
-  image: ubuntu:16.04
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "16.04"
-
+# older LTS releases ...
 ubuntu:18.04:
   extends: .platform:image
   image: ubuntu:18.04
@@ -296,20 +303,15 @@ ubuntu:18.04:
     IMAGE: "ubuntu"
     TAG: "18.04"
 
+# latest stable debian release, see https://hub.docker.com/_/debian
 debian:latest:
   extends: .platform:image
-  image: debian
+  image: debian:latest
   variables:
     IMAGE: "debian"
     TAG: "latest"
 
-centos:latest:
-  extends: .platform:image
-  image: centos
-  variables:
-    IMAGE: "centos"
-    TAG: "latest"
-
+# centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
 centos:7:
   extends: .platform:image
   image: centos:7
