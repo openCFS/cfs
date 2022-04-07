@@ -473,12 +473,26 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
      // Note: In the case of LinFlowMechNitsche coupling feFct1_ is the unknown from Master(Displacement-Mechanics PDE)
      // and feFct2_ is the unknown from slave(velocity-LinFlow PDE)
 
+    std::string res1;
+    std::string res2;
+
      switch(currentDirection_){
      case BiLinearForm::PRIM_PRIM:
-       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
-       eqnVec2 = eqnVec1;
-       id1 = feFct1_.lock()->GetFctId();
-       id2 = feFct1_.lock()->GetFctId();
+       res1 = this->feFct1_.lock()->GetResultInfo()->resultName;
+       res2 = this->feFct2_.lock()->GetResultInfo()->resultName;
+
+       if( res1 == res2 ) {
+         //standard case
+         this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
+         eqnVec2 = eqnVec1;
+         id1 = feFct1_.lock()->GetFctId();
+         id2 = feFct1_.lock()->GetFctId();
+       } else {
+         this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
+         this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+         id1 = feFct1_.lock()->GetFctId();
+         id2 = feFct2_.lock()->GetFctId();
+       }
        break;
      case BiLinearForm::SEC_SEC:
        this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);

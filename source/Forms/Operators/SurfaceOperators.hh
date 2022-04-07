@@ -1110,37 +1110,57 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
   assert(D == ptFe->shape_.dim);
 
   UInt numFncs = ptFe->GetNumFncs();
-  // Set correct size of matrix B and initialise with zeros
-  // Set correct size of matrix B and initialise with zeros
-  bMat.Resize( 3, numFncs);
-  bMat.Init();
-
-  Matrix<Double> v;
   FE *fe = (static_cast<FE*>(ptFe));
 
-  if(fe->GetFeSpaceName() != "HCurl"){
-    EXCEPTION("SurfaceNormalOperator only for HCurl function space");
-  }
+  //check if we are in HCurl or H1
+  if(fe->GetFeSpaceName() == "HCurl"){
+    // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( 3, numFncs);
+    bMat.Init();
 
-  // normal vector
-  Vector<Double> n = lp.normal;
+    Matrix<Double> v;
 
-  FeHCurl *feHC = (static_cast<FeHCurl*>(ptFe));
-  feHC->GetShFnc( v, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+    // normal vector
+    Vector<Double> n = lp.normal;
+
+    FeHCurl *feHC = (static_cast<FeHCurl*>(ptFe));
+    feHC->GetShFnc( v, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
 
 
 
-  Vector<Double> tmp, curl;
-  Vector<Double> transNormal ;
-  for(UInt sh = 0; sh < numFncs ; sh ++){
-    v.GetCol(tmp, sh);
-    transNormal = lp.normal;
-    tmp.CrossProduct( transNormal ,curl);
-    for(UInt d = 0; d < 3; d ++){
-      bMat[d][sh] = curl[d];
+    Vector<Double> tmp, curl;
+    Vector<Double> transNormal ;
+    for(UInt sh = 0; sh < numFncs ; sh ++){
+      v.GetCol(tmp, sh);
+      transNormal = lp.normal;
+      tmp.CrossProduct( transNormal ,curl);
+      for(UInt d = 0; d < 3; d ++){
+        bMat[d][sh] = curl[d];
+      }
     }
-  }
+  } else if(fe->GetFeSpaceName() == "H1") {
+    // For H1 we construct a matrix looking like
+    //     / N_1*n_x  N_2*n_x  .. \
+    // b = | N_1*n_y  N_2*n_y  ..  | = \vec{n} * N
+    //     \ N_1*n_z  N_2*n_z  .. /
+    //
+    // which is of size (DIM_SPACE x Number of functions).
 
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_SPACE, numFncs);
+    bMat.Init();
+
+    Vector<Double> s;
+
+    for(UInt d = 0; d < DIM_SPACE; d++){
+      fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d );
+      for(UInt sh = 0; sh < numFncs; sh ++){
+    	  bMat[d][sh] = s[sh] * lp.normal[d];
+      }
+    }
+  } else {
+    EXCEPTION("SurfaceNormalOperator only for HCurl and H1 function space");
+  }
 }
 
 template<class FE,  UInt D, UInt D_DOF, class TYPE>

@@ -1293,6 +1293,7 @@ namespace CoupledField {
       EXCEPTION("LinFlow ncInterfaces only support constant material parameters at the moment!")
     }
 
+    // define coefFunctions for the material
     PtrCoefFct shearViscosity = shearViscosityMaster;
     PtrCoefFct bulkViscosity = bulkViscosityMaster;
     PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -1324,6 +1325,14 @@ namespace CoupledField {
           bulkViscosity,
           CoefXprBinOp(mp_,shearViscosityDouble,CoefFunction::Generate( mp_, Global::REAL, "3"),CoefXpr::OP_DIV),
       CoefXpr::OP_SUB ));
+
+    // change subType to be able to use mech-integrators for the 2D case
+    std::string subType;
+    if( subType_ == "plane" ) {
+      subType = "planeStrain";
+    } else {
+      subType = subType_;
+    }
 
     // get feFunctions
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
@@ -1381,26 +1390,26 @@ namespace CoupledField {
     if ( isMaterialComplex_) {
       flux1_v1_p1 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            new SurfaceNormalOperator<FeH1,DIM,P_DOF>(),
             constTwo, 1.0, curcpl, updatedGeo_, true);
     }
     else {
       flux1_v1_p1 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            new SurfaceNormalOperator<FeH1,DIM,P_DOF>(),
             constTwo, 1.0, curcpl, updatedGeo_, true);
     }
 
     // -mu ( grad(v1)+grad(v1)^T ) \cdot u1
     if ( isMaterialComplex_ ) {
       flux2_dv1_u1 = new SurfaceNitscheABInt<Complex,Complex>
-          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, -1.0, curcpl, updatedGeo_, true);
       flux2_dv1_u1->SetBCoefFunctionOpA(coefBB);
     } else {
       flux2_dv1_u1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, -1.0, curcpl, updatedGeo_, true);
       flux2_dv1_u1->SetBCoefFunctionOpA(coefBB);
@@ -1410,13 +1419,13 @@ namespace CoupledField {
     if ( isMaterialComplex_ ) {
       flux2_v1_du1 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType, false),
               constOne, -1.0, curcpl, updatedGeo_, true);
       flux2_v1_du1->SetBCoefFunctionOpB(coefBB);
     } else {
       flux2_v1_du1 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType, false),
               constOne, -1.0, curcpl, updatedGeo_, true);
       flux2_v1_du1->SetBCoefFunctionOpB(coefBB);
     }
@@ -1468,26 +1477,26 @@ namespace CoupledField {
     if ( isMaterialComplex_) {
       flux1_v1_p2 = new SurfaceNitscheABInt<Complex,Complex>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            new SurfaceNormalOperator<FeH1,DIM,P_DOF>(),
             constOne, -1.0, curcpl, updatedGeo_, true);
     }
     else {
       flux1_v1_p2 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,P_DOF>(),
+            new SurfaceNormalOperator<FeH1,DIM,P_DOF>(),
             constOne, -1.0, curcpl, updatedGeo_, true);
     }
 
     // mu ( grad(v1)+grad(v1)^T ) \cdot u2
     if ( isMaterialComplex_ ) {
       flux2_dv1_u2 = new SurfaceNitscheABInt<Complex,Complex>
-          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, 1.0, curcpl, updatedGeo_, true);
       flux2_dv1_u2->SetBCoefFunctionOpA(coefBB);
     } else {
       flux2_dv1_u2 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+          ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType, false),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               constOne, 1.0, curcpl, updatedGeo_, true);
       flux2_dv1_u2->SetBCoefFunctionOpA(coefBB);

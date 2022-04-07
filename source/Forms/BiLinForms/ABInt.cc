@@ -438,9 +438,25 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   // set the volume elements according to the current coupling term
   ptVolElem1 = (usePrimary1) ? ptSurfPrimary->ptVolElems[0] : ptSurfSecondary->ptVolElems[0]; // take pointer volume element of test function
   ptVolElem2 = (usePrimary2) ? ptSurfPrimary->ptVolElems[0] : ptSurfSecondary->ptVolElems[0]; // take pointer volume element of unknown
-  // Obtain FE element from FeSpace for operators according to the current coupling term (different FeSpaces are only used for inter-PDE coupling)
-  ptFe1 = (usePrimary1) ? this->ptFeSpace1_->GetFe(ptVolElem1->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem1->elemNum);
-  ptFe2 = (usePrimary2) ? this->ptFeSpace1_->GetFe(ptVolElem2->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+  // Obtain FE element from FeSpace for operators according to the current coupling term (different FeSpaces are only used for inter-PDE coupling and e.g. LinFlow PDE)
+  
+  // Here we have to check if we have a PDE with 2 different feSpaces
+  BaseFE* ptFeA_dummy = NULL;
+  BaseFE* ptFeB_dummy = NULL;
+  ptFeA_dummy = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum);
+  ptFeB_dummy = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+  // This is an insufficient check but will work for PDEs using more than one feFunction using different orders
+  // A better way would be to directly access the feFunction and check if the name differs
+  UInt nrFncsA_dummy = ptFeA_dummy->GetNumFncs();
+  UInt nrFncsB_dummy = ptFeB_dummy->GetNumFncs();
+  if( nrFncsA_dummy-nrFncsB_dummy==0 ) {
+    ptFe1 = (usePrimary1) ? this->ptFeSpace1_->GetFe(ptVolElem1->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
+    ptFe2 = (usePrimary2) ? this->ptFeSpace1_->GetFe(ptVolElem2->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
+  } else {
+    // TODO just adapted to the new workflow but not verified!! The old change only tackled the primary-primary coupling, so this will behave differently!!
+    ptFe1 = (usePrimary1) ? this->ptFeSpace1_->GetFe(ptVolElem1->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
+    ptFe2 = (usePrimary2) ? this->ptFeSpace2_->GetFe(ptVolElem2->elemNum) : this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
+  }
 }
 
 
