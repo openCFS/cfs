@@ -6,25 +6,28 @@ For the default build config we need
 dnf install -y make gcc gcc-c++ gcc-gfortran cmake patch m4 findutils diffutils
 ```
 
-Intel MKL can be installed using [Intel's YUM repositories](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-yum-repo).
+Intel MKL can be installed using the package manager from [Intel's oneAPI repositories](https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/yum-dnf-zypper.html#yum-dnf-zypper).
 
-First add the repo, install the GPG key and check if we can find MKL
+First create the repo file
 ```shell
-dnf install -y dnf-plugins-core
-dnf config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.repo
-rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+tee > /tmp/oneAPI.repo << EOF
+[oneAPI]
+name=Intel® oneAPI repository
+baseurl=https://yum.repos.intel.com/oneapi
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+EOF
 ```
-
-Disable GPG checking for the repo, since there seems to be a bug concearning `dnf` in docker containers.
+then copy it to the correct place and import the GPG key
 ```shell
-dnf config-manager --save --setopt=intel*.gpgcheck=0
-dnf config-manager --save --setopt=intel*.repo_gpgcheck=0
+mv /tmp/oneAPI.repo /etc/yum.repos.d
+rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
 ```
-
-Then install the 64-bit version of the most recent MKL release
+Finally, install the most recent MKL release
 ```shell
-LATEST_MKL=$(dnf search -q -y intel-mkl-64bit | sed -r -e :a -e '$!N;s/\n[[:space:]]+://;ta' -e 'P;D' | grep ^intel | sort | tail -n 1 | awk '{print $1}')
-dnf install -y $LATEST_MKL
+yum install -y intel-oneapi-mkl-devel
 ```
 
 Additionally every developer should have git installed
