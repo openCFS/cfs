@@ -1794,13 +1794,24 @@ namespace CoupledField {
     stiffFormFunctors_.insert(energyFunc);
 
 
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
     // === ELECTROSTATC FORCE DENSITY ===
     shared_ptr<ResultInfo> efd(new ResultInfo);
     efd->resultType = ELEC_FORCE_DENSITY;
-    efd->SetVectorDOFs(dim_, isaxi_, is2p5);
-//    efd->dofNames= "";
+    //efd->SetVectorDOFs(dim_, isaxi_, is2p5);
+    efd->dofNames= vecDofNames;
     efd->unit = "N/m^2";
-    efd->definedOn = ResultInfo::ELEMENT;
+    efd->definedOn = ResultInfo::SURF_ELEM;
     efd->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionSurf> efdFuncS;
     //factor -1 because positive normal direction points into mechanic region
@@ -1811,7 +1822,7 @@ namespace CoupledField {
     // === ELECTROSTATC FORCE ===
     shared_ptr<ResultInfo> elForce(new ResultInfo);
     elForce->resultType = ELEC_FORCE;
-    elForce->SetVectorDOFs(dim_, isaxi_, is2p5);
+    elForce->dofNames= vecDofNames;
     elForce->unit = MapSolTypeToUnit(ELEC_FORCE);
     elForce->definedOn = ResultInfo::SURF_REGION;
     elForce->entryType = ResultInfo::VECTOR;
