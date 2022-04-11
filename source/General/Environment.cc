@@ -123,6 +123,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
     SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
+    SolutionTypeEnum.Add(ELEC_FORCE, "elecForce");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
     SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
@@ -770,6 +771,7 @@ namespace CoupledField {
       case FLUIDMECH_FORCE:
       case MAG_FORCE_VWP:
       case MECH_RHS_LOAD:
+      case ELEC_FORCE:
         return "N";
         break;
 

@@ -1807,6 +1807,23 @@ namespace CoupledField {
     efdFuncS.reset(new CoefFunctionSurf(true, -1.0, efd));
     DefineFieldResult(efdFuncS, efd);
     surfCoefFcts_[efdFuncS] = edFunc;
+
+    // === ELECTROSTATC FORCE ===
+    shared_ptr<ResultInfo> elForce(new ResultInfo);
+    elForce->resultType = ELEC_FORCE;
+    elForce->SetVectorDOFs(dim_, isaxi_, is2p5);
+    elForce->unit = MapSolTypeToUnit(ELEC_FORCE);
+    elForce->definedOn = ResultInfo::SURF_REGION;
+    elForce->entryType = ResultInfo::VECTOR;
+    availResults_.insert( elForce );
+    // build result functor for integration
+    shared_ptr<ResultFunctor> elForceFunc;
+    if( isComplex_ ) {
+      elForceFunc.reset(new ResultFunctorIntegrate<Complex>(efdFuncS, feFct, elForce ) );
+    } else {
+      elForceFunc.reset(new ResultFunctorIntegrate<Double>(efdFuncS, feFct, elForce ) );
+    }
+    resultFunctors_[ELEC_FORCE] = elForceFunc;
   }
   
   

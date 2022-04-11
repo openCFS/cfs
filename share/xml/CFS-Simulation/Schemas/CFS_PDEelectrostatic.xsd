@@ -346,6 +346,7 @@
   <xsd:simpleType name="DT_ElecSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecCharge"/>
+      <xsd:enumeration value="elecForce"/>
     </xsd:restriction>
   </xsd:simpleType>
 
