@@ -307,6 +307,11 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_WVT_U2, "fluidMechWVT_u2");
     SolutionTypeEnum.Add(FLUIDMECH_WVT_F, "fluidMechWVT_f");
 
+    SolutionTypeEnum.Add(FLUIDMECH_VISCOUS_DISS_POWER_DENS, "fluidMechViscousDissipationDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV, "fluidMechViscousDissipationDensityDivergencePart");
+    SolutionTypeEnum.Add(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN, "fluidMechViscousDissipationDensityTotalStrainPart");
+    SolutionTypeEnum.Add(FLUIDMECH_VISCOUS_DISS_POWER, "fluidMechViscousDissipation");
+
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
     // TEST PDE
@@ -783,6 +788,7 @@ namespace CoupledField {
       case HEAT_FLUX:
       case MAG_EDDY_POWER:
       case MAG_CORE_LOSS:
+      case FLUIDMECH_VISCOUS_DISS_POWER:
         return "W";
          break;
 
@@ -933,6 +939,7 @@ namespace CoupledField {
         break;
 
       case ELEC_POWER_DENSITY:
+      case FLUIDMECH_VISCOUS_DISS_POWER_DENS:
         return "W/m^3";
         break;
 

@@ -1464,7 +1464,68 @@ namespace CoupledField {
       resultFunctors_[FLUIDMECH_FORCE] = reactionForceFct;
       availResults_.insert(reactionForceInfo);
 
-  }
+      // === FLUID-MECHANIC VISCOUS DISSIPATION POWER DENSITY DIVERGENCE : 1/2(\lambda -2/3 \mu)(Div v)^2===
+      shared_ptr<ResultInfo> vdpd1(new ResultInfo);
+      vdpd1->resultType = FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV;
+      vdpd1->dofNames = "";
+      vdpd1->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV);
+      vdpd1->entryType = ResultInfo::SCALAR;
+      vdpd1->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert(vdpd1);
+      shared_ptr<CoefFunctionFormBased> vdpd1Func;
+      if( isComplex_ ) {
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, 0.5));
+      } else {
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, 0.5));
+      }
+      // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
+      vdpd1Func->SetIntegratorName("LinFlowStiffIntBulkViscous"); // coefFunctionBOp acts on strain part
+      DefineFieldResult( vdpd1Func, vdpd1 );
+      stiffFormCoefs_.insert( vdpd1Func );
+
+      // === FLUID-MECHANIC VISCOUS DISSIPATION POWER DENSITY TOTAL STRAIN : 1/2 \mu (Grad v: Grad v + Grad v: (Grad v)^T )===
+      shared_ptr<ResultInfo> vdpd2(new ResultInfo);
+      vdpd2->resultType = FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN;
+      vdpd2->dofNames = "";
+      vdpd2->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN);
+      vdpd2->entryType = ResultInfo::SCALAR;
+      vdpd2->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( vdpd2 );
+      shared_ptr<CoefFunctionFormBased> vdpd2Func;
+      if( isComplex_ ) {
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, 0.5));
+      } else {
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, 0.5));
+      }
+      // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
+      vdpd2Func->SetIntegratorName("LinFlowStiffIntViscous");
+      DefineFieldResult( vdpd2Func, vdpd2 );
+      stiffFormCoefs_.insert(vdpd2Func);
+
+      // === VISCOUS DISSIPATION POWER DENSITY - TOTAL : 1/2(\lambda -2/3 \mu)(Div v) +1/2 \mu (Grad v: Grad v + Grad v: (Grad v)^T ) ===
+      // The actual summation of Term1 and Term2
+      shared_ptr<ResultInfo> vdpd(new ResultInfo);
+      vdpd->resultType = FLUIDMECH_VISCOUS_DISS_POWER_DENS;
+      vdpd->dofNames = "";
+      vdpd->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS);
+      vdpd->entryType = ResultInfo::SCALAR;
+      vdpd->definedOn = ResultInfo::ELEMENT;
+      shared_ptr<CoefFunctionMulti> vdpdFunc(new CoefFunctionMulti(CoefFunction::SCALAR,dim_,1, isComplex_));
+      DefineFieldResult( vdpdFunc, vdpd );
+
+      // Summation of FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV and FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN
+      shared_ptr<CoefFunctionMulti> vdpdCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[FLUIDMECH_VISCOUS_DISS_POWER_DENS]);
+      StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+      regIt = regions_.Begin();
+      for( ; regIt != regions_.End(); ++regIt ){
+        std::string regionName = ptGrid_->GetRegion().ToString(*regIt);
+        PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+        PtrCoefFct h = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_,
+                                               GetCoefFct(FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV),
+                                               GetCoefFct(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN), CoefXpr::OP_ADD ) );
+        vdpdCoef->AddRegion(*regIt, h);
+      }
+    }
   
   void LinFlowPDE::FinalizePostProcResults() {
 

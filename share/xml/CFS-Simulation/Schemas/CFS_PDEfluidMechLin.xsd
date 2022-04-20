@@ -395,6 +395,9 @@
       <xsd:enumeration value="fluidMechTotalStress"/>
       <xsd:enumeration value="fluidMechTotalVelocityElem"/>
       <xsd:enumeration value="fluidMechMeshVelocityElem"/>
+      <xsd:enumeration value="fluidMechViscousDissipationDensity"/>
+      <xsd:enumeration value="fluidMechViscousDissipationDensityDivergencePart"/> 
+      <xsd:enumeration value="fluidMechViscousDissipationDensityTotalStrainPart"/> 
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -406,14 +409,14 @@
   </xsd:simpleType>
 
  
-  <!-- Definition of surface region result types of fluid-mechanic PDE -->
-  <!--xsd:simpleType name="DT_FluidMechRegionResult">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechEnergy"/>
-    </xsd:restriction>
-  </xsd:simpleType-->
-
   <!-- Definition of region result types of linearized fluid-mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechLinRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechViscousDissipation"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of surface region result types of linearized fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechLinSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechForce"/>
@@ -469,7 +472,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
-                <xsd:attribute name="type" type="DT_FluidMechRegionResult"/>
+                <xsd:attribute name="type" type="DT_FluidMechLinRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
