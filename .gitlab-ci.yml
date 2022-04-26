@@ -447,7 +447,7 @@ cfsdeps:gcc10:
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     # build
-    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out
+    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     # install test to create arifacts (first delete stuff to make space for packing)
     - df -h # debug
