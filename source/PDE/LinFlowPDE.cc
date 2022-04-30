@@ -101,11 +101,18 @@ namespace CoupledField {
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
 
-    if(ptGrid_->GetDim() == 3)
+    if(ptGrid_->GetDim() == 3) {
       subType_ = "3d";
+    } else if(isaxi_) {
+      subType_ = "axi";
+    }
+    if( !(subType_ == "3d" || subType_ == "plane" || subType_ == "axi") ) {
+      EXCEPTION( "Subtype '" << subType_ << "' unknown for linearized fluid-mechanic physic" );
+    }
 
-    if(subType_ == "axi")
-      EXCEPTION("SubType 'axi' not implemented for LinFlowPDE");
+    //type of geometry
+    isaxi_ = ptGrid_->IsAxi();
+    
       
     //get oder of FE basis functions
     presPolyId_ = myParam_->Get("presPolyId")->As<std::string>();
@@ -169,6 +176,7 @@ namespace CoupledField {
   }
 
   void LinFlowPDE::DefineIntegrators() {
+
     RegionIdType actRegion;
 
     // Get FESpace and FeFunction of fluid velocity
@@ -233,8 +241,13 @@ namespace CoupledField {
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
-        stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
+        if( isaxi_ ) {
+          stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
+                                  new DivOperatorAxi<FeH1>(), constOne, 1.0, updatedGeo_ );
+        } else if(subType_ == "plane") {
+          stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
                                   new DivOperator<FeH1,2>(), constOne, 1.0, updatedGeo_ );
+        }
       } else {
         stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,3>(),
                                   new DivOperator<FeH1,3>(), constOne, 1.0, updatedGeo_ );
@@ -313,8 +326,13 @@ namespace CoupledField {
       PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
-                                  new MultiIdOp<FeH1,2>(), coeffKVP, -1.0, updatedGeo_ );
+        if( isaxi_ ) {
+          stiffIntVP = new ABInt<>( new DivOperatorAxi<FeH1>(),
+                                      new MultiIdOp<FeH1,2>(), coeffKVP, -1.0, updatedGeo_ );
+        } else if(subType_ == "plane") {
+          stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
+                                    new MultiIdOp<FeH1,2>(), coeffKVP, -1.0, updatedGeo_ );
+        }
       } else {
         stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
                                   new MultiIdOp<FeH1,3>(), coeffKVP, -1.0, updatedGeo_ );
@@ -338,14 +356,23 @@ namespace CoupledField {
           CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
       PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
       BaseBDBInt * stiffIntLaplace = NULL;
-      StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? 9 : 36);
+      StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? (isaxi_ == true ? 16 : 9) : 36);
       tensorComponents.Init(coefZero);
       if( dim_ == 2 ) {
-        tensorComponents[0] = shearViscosityDouble;
-        tensorComponents[4] = shearViscosityDouble;
-        tensorComponents[8] = shearViscosity;
-        PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
-        stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, 1.0, updatedGeo_ );
+        if( isaxi_ ) {
+          tensorComponents[0] = shearViscosityDouble;
+          tensorComponents[5] = shearViscosityDouble;
+          tensorComponents[10] = shearViscosity;
+          tensorComponents[15] = shearViscosityDouble;
+          PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
+          stiffIntLaplace = new BDBInt<>( new StrainOperatorAxi<FeH1>(), coefBB, 1.0, updatedGeo_ );
+        } else if( subType_ == "plane" ) {
+          tensorComponents[0] = shearViscosityDouble;
+          tensorComponents[4] = shearViscosityDouble;
+          tensorComponents[8] = shearViscosity;
+          PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+          stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, 1.0, updatedGeo_ );
+        }
       } else {
         tensorComponents[0] = shearViscosityDouble;
         tensorComponents[7] = shearViscosityDouble;
@@ -380,7 +407,11 @@ namespace CoupledField {
 
         BaseBDBInt * stiffIntDivDiv = NULL;
         if( dim_ == 2 ) {
-          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, 1.0, updatedGeo_);
+          if( isaxi_ ) {
+            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperatorAxi<FeH1>(), coefDivDiv, 1.0, updatedGeo_ );
+          } else if(subType_ == "plane") {
+            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, 1.0, updatedGeo_);
+          }         
         } else {
           stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(), coefDivDiv, 1.0, updatedGeo_);
         }
@@ -405,6 +436,9 @@ namespace CoupledField {
       //======================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != ""){
+        if( isaxi_ ) {
+          EXCEPTION("Axi formulation not checked for background flow, please check and verify!");
+        }
 
         // Get result info object for flow
         shared_ptr<ResultInfo> velocityInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
@@ -693,6 +727,7 @@ namespace CoupledField {
           BiLinearForm *stiffIntMovingGridVV = NULL;
 
           if( dim_ == 2 ) {
+            // Axi-symmetric version is identical to plane when setting v_g,\phi = 0 and assuming no changes in \phi direction
             if(isComplex_)
             {
               stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
