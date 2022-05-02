@@ -786,6 +786,7 @@ namespace CoupledField {
     // read magnetic permeability
     if (mag->Has("permeability")) {
       PtrParamNode perm = mag->Get("permeability");
+      PtrParamNode model;
 
       if (perm->Has("linear")) {
         MaterialType orthoProps[3] = {
@@ -800,6 +801,7 @@ namespace CoupledField {
         PtrParamNode permNl = perm->Get("nonlinear");
 
         if (permNl->Has("isotropic")) {
+          
           PtrParamNode iso = permNl->Get("isotropic");
           
           BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
@@ -814,6 +816,15 @@ namespace CoupledField {
             info.analyticExprDeriv = iso->Get("nuDerivExpr")->As<std::string>();
           }
           
+          if (iso->Has("muExpr")) {
+            info.analyticExpr = iso->Get("muExpr")->As<std::string>();
+          }
+          
+          // read analytic derivative of material parameter
+          if (iso->Has("muDerivExpr")) {
+            info.analyticExprDeriv = iso->Get("muDerivExpr")->As<std::string>();
+          }
+
           // pass info to material class
           material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);
         } // nonlinear isotropic material   
@@ -865,6 +876,19 @@ namespace CoupledField {
           
         } // end of anisotropic nonlinear material
       } // end of nonlinear section
+
+      if (perm->Has("model") && perm->Get("model")->Has("isotropic")){
+        if (perm->Get("model")->Get("isotropic")->Has("EBHysteresisModel")){
+          model = perm->Get("model")->Get("isotropic")->Get("EBHysteresisModel");
+
+          material->SetScalar(model->Get("Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL );
+          material->SetScalar(model->Get("A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL );
+          material->SetScalar(model->Get("mu0")->As<Double>(), MaterialType(MAG_MU0_EB), Global::REAL );
+          material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL );
+          material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL );
+        }
+      }
+
     } // end of permeability
 	
 	// read in prescribed magnetization

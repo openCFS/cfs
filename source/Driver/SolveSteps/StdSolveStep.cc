@@ -424,7 +424,11 @@ namespace CoupledField {
     if ( isHyst_ ){
       EXCEPTION("Time stepping for hysteresis no longer implemented in stdsolvestep");
     }
-    
+    // do a time step with hysteretic behaviour;
+    // TODO ldomenig: isHyst_ is 1/0 to determine if there are any hysteretic regions
+    else if (isHyst_){
+      StepTransHyst();
+    }
     //currently not supported
     //  else if ( nonLin_ && nonLinMaterial_ ) {
     //      StepTransNonLinMaterial();
@@ -1148,6 +1152,90 @@ namespace CoupledField {
       fncIt->second->GetTimeScheme()->FinishStep();
     }
   }
+/** direct quasi-Newton formlation
+ * Solves for one transient time step by using the direct quasi-Newton formulation.
+ * In this formulation the PDE is directly linearized by a Taylor Series expansion.
+ * So we come up with a linear algebraic system of the form
+ * dF/du * delta_u = -F
+ * where F is the residual of the PDE and dF/du is the Jacobian of the PDE.
+ * 
+ * ### MAGNETOSTATIC PHI-FORMULATION ###
+ * This would lead to the following weak form
+ * (-dB/dH gradDelta_Phi, gradPhi')_Omega = -(B_prev, gradPhi')_Omega .
+ * 
+ * ### MAGNETOSTATIC A-FORMULATION ###
+ * This would lead to the following weak form
+ * (-dH/dB curlDelta_A, curlA')_Omega = -(H_prev, curlA')_Omega - (J_s, A')_Omega .
+ * 
+ * where dB/dH or dH/dB is the material tensor mu(H) or nu(B) respectively.
+ * This system of equations has to be solved until the error norm is small enough.
+ * 
+ * =================================================================================
+ * ### Start: ALGORITHM
+ * =================================================================================
+ * u = linearFEM() // initial guess with current boundary conditions
+ * while(true) // nonlinear iterations
+ *   getMaterialTensor() // evaluate hysteresis operator + DFP for mu(H)
+ *   solveSystem() // solve linearized system from above
+ *   performNewtonStep() // maybe also use a linesearch method
+ *   checkStoppingCriteria() // check if error small enough
+ *   saveState() // save all needed quantities for next iteration (if necessary)
+ * end while
+ * 
+ * saveState() // save all needed quantities for next time step
+ * =================================================================================
+ * ### End: ALGORITHM
+ * =================================================================================
+**/
+  void StdSolveStep::StepTransHyst(){
+    mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
+
+    LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransHyst";
+    bool performOneMoreStep;
+
+
+    // TODO ldomenig: get initial guess from linear case with current boundary conditions
+    // and  previous mu
+
+
+    // =================================================================================
+    // ### nonlinear iterations
+    // =================================================================================
+    // set iteration counter
+    UInt iterationCounter = 0;
+
+    do { // nonlinear iteration start
+      iterationCounter++;
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+      SBM_Vector deltaPhi(BaseMatrix::DOUBLE);
+
+
+
+
+      Double deltaPhiL2Norm = 0.0;
+      // calculation of ||Delta_phi||_L2 ==============================================
+      deltaPhiL2Norm = deltaPhi.NormL2();
+
+
+      // check if one more step is necessary ==========================================
+      performOneMoreStep = (deltaPhiL2Norm > incStopCrit_);
+      if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_){
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                    << "' at iteration '" << iterationCounter 
+                    << "'.\n ==> delta phi L2norm: " << deltaPhiL2Norm);
+      }
+      if (performOneMoreStep){
+        // TODO ldomenig: save current state for next iteration
+        
+      }
+    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_); // nonlinear iteration end
+
+      // TODO ldomenig: save current state for next time step
+  } 
+    
+
   
   void StdSolveStep::StepTransNonLinMaterial() {
     

@@ -1521,10 +1521,15 @@ namespace CoupledField
 
 
    PtrCoefFct BaseMaterial::GetScalCoefFncModel(shared_ptr<CoefFunction> coefObj){
+    shared_ptr<CoefFunction> coef;
+    coef = coefObj;
+    return coef;
+   }
 
-   shared_ptr<CoefFunction> coef;
-   coef = coefObj;
-   return coef;
+   PtrCoefFct BaseMaterial::GetTensorCoefFncModel(shared_ptr<CoefFunction> coefObj){
+    shared_ptr<CoefFunction> coef;
+    coef = coefObj;
+    return coef;
    }
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,

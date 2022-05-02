@@ -28,9 +28,6 @@ namespace CoupledField
     //! base method for solving one static step 
     void SolveStepStatic();
 
-    //! solves for one nonlinear static step 
-    void StepStaticNonLinEpsDiff();
-
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initializations before execution the SolveStep-method
     void PreStepTrans( );
@@ -46,9 +43,6 @@ namespace CoupledField
     //! routine for actions after the SolveStep-method
      void PostStepTrans()
     {PostStepStatic();};
-
-    //! computes differential permittivity
-    void SetPreviousVals4Hyst();
 
   private:
 

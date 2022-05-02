@@ -35,6 +35,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   };
 
+  virtual Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> E, Integer ElemNum){
+    EXCEPTION( "Not implemented in base class");
+  };
+
 };
 
 }

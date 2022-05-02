@@ -17,6 +17,7 @@
 #include "Utils/mathParser/mathParser.hh"
 
 #include "Materials/Models/Jiles.hh"
+#include "Materials/Models/EBHysteresis.hh"
 #include "Materials/Models/Model.hh"
 
 namespace CoupledField  {
@@ -54,6 +55,15 @@ public:
 
   // Evaluates model at certain lpm. (at what thime should be implemented in the model)
   void GetScalar(Double& coefScalar, const LocPointMapped& lpm);
+
+  // Evaluates model at certain lpm
+  void GetTensor(Matrix<Double>& coefVector, const LocPointMapped& lpm);
+
+  //! Return row and columns size of tensor if coefficient function is a tensor
+  void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    numRows = 2;
+    numCols = 2;
+  }
 
   // Init  the used material model
   void InitModel(std::map<std::string, double> ParameterMap, UInt numElems);

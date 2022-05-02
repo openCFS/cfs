@@ -14,7 +14,7 @@
   </xsd:annotation>
 
   <!-- ******************************************************************* -->
-  <!--   Definition of hysterese model                                     -->
+  <!--   Definition of hysteresis models                                     -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_HystModelElec">
     <xsd:all>
@@ -866,6 +866,23 @@
       <xsd:element name="c" type="DT_FloatUnitInterval" minOccurs="1"/>
     </xsd:all>
   </xsd:complexType>  
+
+
+  <xsd:complexType name="DT_EBHysteresisModel">
+     <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameters for Energy Based vectorhysteresis model;
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="Ps" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="mu0" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/>
+    </xsd:all>
+  </xsd:complexType>  
+
 
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">
     <xsd:sequence>

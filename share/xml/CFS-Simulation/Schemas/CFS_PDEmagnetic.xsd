@@ -18,7 +18,12 @@
   <!-- ******************************************************************* -->
   <xsd:element name="magnetic" type="DT_PDEMagnetic" substitutionGroup="PDEBasic">
     <xsd:annotation>
-      <xsd:documentation>Solves for the magnetic field in 2D (3D is nor recommended; use in 3D magEdgePDE, which applies edge elements); standarrd nodal finite elements are used; primary dof is the magnetic vector potential.</xsd:documentation>
+      <xsd:documentation>Solves for the magnetic field in 2D (3D is nor recommended; use in 3D magEdgePDE, which applies edge elements);
+        standarrd nodal finite elements are used; primary dof is the magnetic vector potential.
+        There are the following formulations available:
+        -) A: magnetic vector potential discretized with nodal basis functions (B-based formulation)
+        -) Psi: reduced magnetic scalar potential discretized with nodal basis functions (H-based formulation)
+      </xsd:documentation>
     </xsd:annotation>
     <xsd:unique name="CS_MagneticRegion">
       <xsd:selector xpath="cfs:region"/>
@@ -115,7 +120,7 @@
                     <xsd:documentation>Sets all components of magnetic vector potential to zero</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                <xsd:element name="potential" type="DT_BcInhomVector">
+                <xsd:element name="potential" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Prescribes the magnetic vector potential</xsd:documentation>
                   </xsd:annotation>
@@ -130,6 +135,11 @@
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector">
                   <xsd:annotation>
                     <xsd:documentation>Prescribes the magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="fieldIntensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Exciting magnetic field intensity precomupted by curl-curl formulation</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <!-- for iterative coupling to magnetostrictive material -->
@@ -171,6 +181,16 @@
           </xsd:simpleType>
         </xsd:attribute>
         <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
+
+        <xsd:attribute name="formulation" use="optional" default="A">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="A"/>
+              <xsd:enumeration value="Psi"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute> 
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

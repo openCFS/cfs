@@ -87,6 +87,9 @@ namespace CoupledField
     //! solves for one nonlinear transient step: total formulation 
     virtual void StepTransNonLinTotal();
 
+    //! solves for one hysteretic transient step: direct quasi-Newton formulation
+    virtual void StepTransHyst();
+
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
     void StepTransNonLinMaterial();

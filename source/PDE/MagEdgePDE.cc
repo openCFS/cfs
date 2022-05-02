@@ -71,6 +71,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     // default is false
     useGradFields_ = paramNode->Get("useGradientFields")->As<bool>();
+    onlyVacuum_ = paramNode->Get("onlyVacuum")->As<bool>();
 
     // check if we have a 3d setup
 //    bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
@@ -265,13 +266,21 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           // ===============================
           //  Standard Stiffness Integrator
           // ===============================
-          PtrCoefFct curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
+          PtrCoefFct curCoef = NULL;
 
           CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
 
           //compute permeability
           PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-          PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
+          PtrCoefFct mu0 = CoefFunction::Generate( mp_, Global::REAL, "795774.716369");
+          PtrCoefFct permeability = NULL;
+          if(onlyVacuum_){
+            curCoef = mu0;
+            permeability = mu0;
+          }else{
+            curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
+            permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
+          }
           matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 
           if(domain->HasDesign())

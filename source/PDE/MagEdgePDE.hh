@@ -144,6 +144,10 @@ namespace CoupledField
     //! Use gradient fields in shape functions (Edge elements of second kind)
     bool useGradFields_;
 
+    //! For the calculation of the source field Hs (magnetic scalar potential PDE),
+    //! we need to consider every region as vacuum
+    bool onlyVacuum_;
+
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
   };

@@ -51,7 +51,15 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
     matModel_ = &JilesModel;
 
     std::cout << "Initialized Model: " << modelName_ << std::endl;
+  } else if(modelName_ == "EBHysteresis"){
+    dimType_ = TENSOR;
+
+    static EBHysteresis EBHysteresisModel;
+    matModel_ = &EBHysteresisModel;
+
+    std::cout << "Initialized Model: " << modelName_ << std::endl;
   } else {
+
     EXCEPTION("Model not implemented! ("<< modelName_<<")")
   }
 }
@@ -91,6 +99,33 @@ template<class T> void CoefFunctionMaterialModel<T>::GetScalar(
   LOG_DBG(cfjc)
   << "Epsilon = :" << coefScalar << std::endl;
 }
+
+template<class T> void CoefFunctionMaterialModel<T>::GetTensor(
+    Matrix<Double> &coefTensor, const LocPointMapped &lpm) {
+  Vector<Complex> DependentVec;
+
+  depCoef_->GetVector(DependentVec, lpm);
+
+  //Can i do this in less codelines? Complex vector to Real Vector??
+  Vector<Double> RealDependentVec;
+
+  RealDependentVec.Resize(2);
+  RealDependentVec.Init(0);
+
+  RealDependentVec[0] = std::real(DependentVec[0]);
+  RealDependentVec[1] = std::real(DependentVec[1]);
+  //RealDependentVec[2] = std::real(DependentVec[2]);
+
+  coefTensor = matModel_->ComputeTensorialMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+
+  LOG_DBG(cfjc)
+  << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
+  LOG_DBG(cfjc)
+  << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
+  LOG_DBG(cfjc)
+  << "Epsilon = :" << coefTensor << std::endl;
+}
+
 
 template class CoefFunctionMaterialModel<Double> ;
 template class CoefFunctionMaterialModel<Complex> ;

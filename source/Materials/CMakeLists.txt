@@ -12,6 +12,7 @@ SET(MATERIALS_SRCS
   ElectricConductionMaterial.cc
   TestMaterial.cc
   Models/Hysteresis.cc
+  Models/EBHysteresis.cc
   Models/Jiles.cc
   Models/Model.cc
   Models/PiezoMicroModelBK.cc

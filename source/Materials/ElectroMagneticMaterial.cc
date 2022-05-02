@@ -52,6 +52,13 @@ namespace CoupledField
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( NONLIN_DEPENDENCY );
 
+    // -- Energy based vectorhysteresis
+    isAllowed_.insert( MAG_PS_EB );
+    isAllowed_.insert( MAG_A_EB );
+    isAllowed_.insert( MAG_MU0_EB );
+    isAllowed_.insert( MAG_NUMS_EB );
+    isAllowed_.insert( MAG_CHI_FACTOR_EB );
+
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION );
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION_X );
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION_Y );
@@ -780,9 +787,10 @@ namespace CoupledField
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
     if( matType != MAG_RELUCTIVITY_SCALAR &&
+        matType != MAG_PERMEABILITY_SCALAR &&
         matType != MAG_CORE_LOSS_PER_MASS &&
         matType != MAG_CONDUCTIVITY_SCALAR) {
-      EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY and CORE_LOSS!"
+      EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY, MAG_PERMEABILITY_SCALAR and CORE_LOSS!"
           << "MAG_RELUCTIVITY_DERIV must be queried using GetTensorCoefFncNonLin.");
     }
 
@@ -844,7 +852,6 @@ namespace CoupledField
           shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
           std::map<std::string,PtrCoefFct> symbolsNu;
           symbolsNu["B"] = fluxDensAbs;
-
           nuStr.insert(0,"( ");
           nuStr.append(" )");
           nuFnc->SetScalar(nuStr,symbolsNu);
@@ -1016,6 +1023,47 @@ namespace CoupledField
       }
     } else if( matType == MAG_CONDUCTIVITY_SCALAR){
     	ret = BaseMaterial::GetScalCoefFncNonLin(matType, matDataType, fluxCoef);
+    } else if( matType == MAG_PERMEABILITY_SCALAR){
+      // -----------
+      // PERMEABILITY
+      // -----------
+      // check if material is isotropic or anisotropic
+      if( nonlinIsoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinIsoParams_.end() ) {
+        // ---------------------------
+        // ISOTROPIC VERSION
+        // ---------------------------
+        // check, if nonlinear curve was already calculated
+        MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
+
+        //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
+        if( matNl.approxType == SMOOTH_SPLINES ) {
+          EXCEPTION("mu(H) is only implemented for the analytic definition of mu(H)");
+        }else if( matNl.approxType == ANALYTIC ) {
+          // this is for describing the permeability directly in the xml as analytic formula
+          // idea: the string from the xml describes a function with the same notation as
+          // described in CoefFunctionCompound.hh
+          // basically, all occurences of H_R are replaced with the CoefFunction fluxDensAbs
+          // ALTHOUGH fluxDens does not mean H, in this mu(H) evaluation it means field intensity!!!
+          // note: a good starting value for H->0 works miracles!
+
+          // get Euclidean norm of H
+          CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+          PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+
+          // get function of H
+          std::string muStr = matNl.analyticExpr;
+          shared_ptr<CoefFunctionCompound<Double> > muFnc(new CoefFunctionCompound<Double>(mp_));
+          std::map<std::string,PtrCoefFct> symbolsMu;
+          symbolsMu["H"] = fluxDensAbs;
+          muStr.insert(0,"( ");
+          muStr.append(" )");
+          muFnc->SetScalar(muStr,symbolsMu);
+          ret = muFnc;
+        }
+      }else{
+        EXCEPTION("mu(H) in the MagneticScalarPotentialPDE is only implemented for the isotropic case");
+      }
+
     }
 
     return ret;

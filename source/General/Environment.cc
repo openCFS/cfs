@@ -204,7 +204,8 @@ namespace CoupledField {
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
-    SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
+    SolutionTypeEnum.Add(MAG_TOTAL_POTENTIAL, "magTotalPotential");
+    SolutionTypeEnum.Add(MAG_REDUCED_POTENTIAL, "magReducedPotential");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
     SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
 
@@ -241,6 +242,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY, "magElemReluctivity");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
     SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
+
     // for magnetic coil optimization
     SolutionTypeEnum.Add(RHS_PSEUDO_DENSITY, "rhsPseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_RHS_PSEUDO_DENSITY, "physicalRhsPseudoDensity");
@@ -450,6 +452,12 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_BH_VALUES_3, "Magnetic_BH_Curve_3");
     MaterialTypeEnum.Add( MAG_BH_DATA_ACCURACY, "Magnetic_BH_Data_Accuracy");
     MaterialTypeEnum.Add( MAG_BH_MAX_APPROX_VAL, "Magnetic_BH_Max_Approx_Value");
+    // Magnetic EB Hysteresis Parameters
+    MaterialTypeEnum.Add(MAG_PS_EB, "mag_Ps_EB");
+    MaterialTypeEnum.Add(MAG_A_EB, "mag_A_EB");
+    MaterialTypeEnum.Add(MAG_MU0_EB, "mag_mu0_EB");
+    MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");
+    MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
 
     // -- Mechanical --
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "Mechanic_Stiffness_Tensor" );
@@ -1012,7 +1020,8 @@ namespace CoupledField {
       case COIL_CURRENT:
       case ELEC_GRAD_V_INT:
       case ELEC_CURRENT:
-      case MAG_SCALAR_POTENTIAL:
+      case MAG_TOTAL_POTENTIAL:
+      case MAG_REDUCED_POTENTIAL:
         return "A";
         break;
         

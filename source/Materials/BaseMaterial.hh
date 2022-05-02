@@ -163,6 +163,9 @@ namespace CoupledField {
     //! Return scalar-valued coefficient function for a matrial model
     virtual PtrCoefFct GetScalCoefFncModel(shared_ptr<CoefFunction> matModel);
 
+    //! Return tensor-valued coefficient function for a matrial model (e.g., vector hysteresis)
+    virtual PtrCoefFct GetTensorCoefFncModel(shared_ptr<CoefFunction> matModel);
+
     //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,

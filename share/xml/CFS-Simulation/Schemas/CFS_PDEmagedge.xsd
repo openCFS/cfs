@@ -18,7 +18,22 @@
   <!-- ******************************************************************* -->
   <xsd:element name="magneticEdge" type="DT_PDEMagneticEdge" substitutionGroup="PDEBasic">
     <xsd:annotation>
-      <xsd:documentation>Magnetic PDE solved by edge elements (just for 3D computations); primary dof is the magnetic vector potential</xsd:documentation>
+      <xsd:documentation>Magnetic PDE solved by edge elements (just for 3D computations); primary dof is the magnetic vector potential
+        There are the following formulations available:
+        -) A: formulation with reduced magnetic vector potential, sometimes called A* formulation (B-based)
+        -) A-V: formulation with magnetic vector potential and electric scalar potential (B-based formulation)
+        -) specialAV: formulation specialized for total current excitation where the scalar potential V is precomputed with a Laplace problem (e.g. elecConductionPDE)
+        -) Darwin: Formulation with magnetic vector potential A and electric scalar potential V, neglecting only wave propagation in Maxwell's equations, capacitive-resistive-inductive are included
+        -) Darwin_doubleLagrange: Darwin formulation with an additional Lagrange multiplier used for stabilization
+        
+        if useGradientFields=true, we are using Nedelec edge elements of 2nd kind (not to be mistaken with higher order)
+
+        if onlyVacuum=true, all the permeabilities are set to mu_0 (vacuum permeability), even if other permeabilities
+        are defined in the material-xml file. This is needed because for some formulations (Psi-formulation) we need
+        to precompute a source field with the curl-curl equation where are parameters are assumed to be vacuum-parameters.
+        This needs to be handled in this way because the A-formulation of magEdgePDE and the Psi-formulation in
+        MagneticScalarPotentialPDE are using the same material-tag in the material xml file.
+      </xsd:documentation>
     </xsd:annotation>
     <xsd:unique name="CS_MagneticEdgeRegion">
       <xsd:selector xpath="cfs:region"/>
@@ -38,7 +53,7 @@
           <!-- set penalty factor for static / non-conductive regimes -->
           <xsd:element name="penaltyFactor" type="xsd:float" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
-              <xsd:documentation>Sets the penalty factor in case of static computation or in case of transient / harmonic simulation in non-conductive regions; it is better to allow CFS++ to set this factor automatically!</xsd:documentation>
+              <xsd:documentation>Sets the penalty factor in case of static computation or in case of transient / harmonic simulation in non-conductive regions; it is better to allow openCFS to set this factor automatically!</xsd:documentation>
             </xsd:annotation>
           </xsd:element>
 
@@ -202,19 +217,18 @@
         <xsd:attribute name="formulation" use="optional" default="A">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="A"/>
+              <xsd:enumeration value="A"/> 
               <xsd:enumeration value="A-V"/>
-              <xsd:enumeration value="specialA-V"/>
-              <xsd:enumeration value="Darwin"/>
+              <xsd:enumeration value="specialA-V"/> 
+              <xsd:enumeration value="Darwin"/> 
               <xsd:enumeration value="Darwin_doubleLagrange"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
 	
-	<xsd:attribute name="alpha" type="xsd:float" use="optional" default="1.0"/>
-	
-	<xsd:attribute name="useGradientFields" type="xsd:boolean" use="optional" default="false"/>
-
+        <xsd:attribute name="alpha" type="xsd:float" use="optional" default="1.0"/>
+        <xsd:attribute name="useGradientFields" type="xsd:boolean" use="optional" default="false"/>
+        <xsd:attribute name="onlyVacuum" type="xsd:boolean" use="optional" default="false"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

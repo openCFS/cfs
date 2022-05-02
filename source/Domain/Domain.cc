@@ -51,6 +51,7 @@
 #include "PDE/LinFlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
+#include "PDE/MagneticScalarPotentialPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
@@ -765,8 +766,16 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     else if (actPdeName == "acousticMixed")
       ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
-    else if (actPdeName == "magnetic")
-      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    else if (actPdeName == "magnetic"){
+      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+      if (formulation == "A") {
+        ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      }else if(formulation == "Psi") {
+        ptSinglePde_[i] = new MagneticScalarPotentialPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      }else{
+        EXCEPTION("Formulation of MagEdgePDE not known!");
+      }
+    }
 
     else if (actPdeName == "magneticEdge"){
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
