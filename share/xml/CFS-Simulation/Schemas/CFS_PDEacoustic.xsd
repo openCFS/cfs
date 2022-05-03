@@ -156,6 +156,8 @@
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsDensity" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsDensityVector" type="DT_BcInhomVector" minOccurs="0" maxOccurs="1"/> 
+                <xsd:element name="BCVector" type="DT_BcInhomVector" minOccurs="0" maxOccurs="1"/> 
                 <xsd:element name="rhsMassTimeDeriv" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsMassConvective" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>

@@ -98,7 +98,9 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        Global::ComplexPart format, 
                                        PtrParamNode infoNode, 
                                        PtrParamNode configNode,
-                                       shared_ptr<RegionList> regions){
+									   shared_ptr<RegionList> regions,
+									   ResultInfo::EntryType type
+									   ){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
 
@@ -119,11 +121,11 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
 	  else {
 		  if (format == Global::COMPLEX) {
 			  ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-					    configNode->Get("defaultGrid"), tmpNode, regions));
+					    configNode->Get("defaultGrid"), tmpNode, regions,type));
 		      }
 		  	  else {
 		  		  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-		                    configNode->Get("defaultGrid"), tmpNode, regions));
+		                    configNode->Get("defaultGrid"), tmpNode, regions,type));
 		  	  }
 	  }
 

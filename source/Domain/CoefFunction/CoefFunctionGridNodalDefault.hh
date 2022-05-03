@@ -40,7 +40,7 @@ class CoefFunctionGridNodalDefault : public CoefFunctionGridNodal<DATA_TYPE>{
 public:
   
   CoefFunctionGridNodalDefault(Domain* ptDomain,
-                               PtrParamNode configNode,PtrParamNode curInfo, shared_ptr<RegionList> regions);
+                               PtrParamNode configNode,PtrParamNode curInfo, shared_ptr<RegionList> regions,ResultInfo::EntryType type);
 
   virtual ~CoefFunctionGridNodalDefault(){
   };

@@ -61,7 +61,8 @@ class CoefFunctionGrid : public CoefFunction{
               Global::ComplexPart format,
               PtrParamNode infoNode,
               PtrParamNode configNode,
-              shared_ptr<RegionList> regions);
+              shared_ptr<RegionList> regions,
+			  ResultInfo::EntryType type);
 
     ///Constructor which sets every field to default values
     /// carefully check for each field in an overloaded class

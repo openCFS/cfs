@@ -23,7 +23,8 @@ namespace CoupledField{
 template<typename DATA_TYPE>
 CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* ptDomain,
                                                                       PtrParamNode configNode,PtrParamNode curInfo,
-                                                                      shared_ptr<RegionList> regions)
+                                                                      shared_ptr<RegionList> regions,
+                                                                      ResultInfo::EntryType type)
                                         :CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode, regions){
   //====================================================
   // Determine information about source grid and result
@@ -49,13 +50,14 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
   // Create interpolation in time and space
   //====================================================                                          
   UInt dimGrid = this->srcGrid_->GetDim();
-  if(this->resultInfo_->entryType == ResultInfo::SCALAR){
+  //if(this->resultInfo_->entryType == ResultInfo::SCALAR){
+  if(type == ResultInfo::SCALAR){
     this->dimDof_ = 1;
     this->dimType_ = CoefFunction::SCALAR;
-  }else if(this->resultInfo_->entryType == ResultInfo::VECTOR){
+  }else if(type == ResultInfo::VECTOR){
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::VECTOR;
-  }else if(this->resultInfo_->entryType == ResultInfo::TENSOR){
+  }else if(type == ResultInfo::TENSOR){
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::TENSOR;
   }

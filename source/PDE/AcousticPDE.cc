@@ -1607,6 +1607,132 @@ namespace CoupledField{
       //if ( coef[i]->GetInverseType() == CoefFunction::INVSOURCE )
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
+    
+       // ================
+       //  RHS DENSITY Vector
+       //	For reading vectoriel source terms of the lightill analogy (div(T)) 
+       //      Diss Freidhager 2022
+       // ================
+       LOG_DBG(acousticpde) << "Reading rhsDensityVector";
+       ReadRhsExcitation( "rhsDensityVector", vecDofNames, ResultInfo::VECTOR,
+    		   isComplex_, ent, coef, updatedGeo_ );
+
+       //perform checks
+
+
+
+       for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    	   	   	   	   	   	   	   	   std::cout << "ausgabe     " << i << std::endl;
+         // check type of entitylist
+         //if (ent[i]->GetType() == EntityList::NODE_LIST) {
+         //  EXCEPTION("Rhs density Vector must be defined on elements, because BUIntegrator requires a density")
+         //}
+         EntityIterator it = ent[i]->GetIterator();
+         it.Begin();
+
+         if( formulation_ == ACOU_POTENTIAL){
+      	   EXCEPTION("Using rhsDensityVector based on Lighthill's equation -> AcouPressure Formulation!")
+         } //closes if AcouPotential
+         else{
+        	 if(isComplex_) {
+           		 std::cout << "\t \t \t Using complexe vector formulation of Lighthill div(T) in grad(phi)" << std::endl;
+                 scalFactor = 1.0;
+        		 if( dim_ == 2) {
+
+        		 	 lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex()>(),Complex(scalFactor), coef[i], updatedGeo_);
+        		 }else{
+
+            		 lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,3,1,Complex()>(),Complex(scalFactor), coef[i], updatedGeo_);
+        		 }
+
+				} else  { //Transiente Simulation
+
+				std::cout << "\t \t \t Using vector formulation of Lighthill div(T) in grad(phi)" << std::endl;
+				scalFactor = 1.0;
+				if( dim_ == 2) {
+					lin = new BUIntegrator<Double,false>( new GradientOperator<FeH1,2,1>(),scalFactor, coef[i], updatedGeo_);
+				}else{
+					lin = new BUIntegrator<Double,false>( new GradientOperator<FeH1,3,1>(),scalFactor, coef[i], updatedGeo_);
+				}
+				}
+         }
+
+         lin->SetName("RhsDensityVectorInt");
+         LinearFormContext *ctx = new LinearFormContext( lin );
+         ctx->SetEntities( ent[i] );
+         ctx->SetFeFunction(myFct);
+         assemble_->AddLinearForm(ctx);
+     }
+
+
+       // ================
+       //  BC Vector
+       //  Requires a vector v for which v in n is computed on BC surfaces.
+       //  Therefore the vector v has to be interpolated onto BC surfaces first
+       //  v has to be on elements, since it is a numeric density
+       //  For Lighthill thsi means computing div(T)+grad(c_0^2 rho) as BC Vector
+       //  Diss Freidhager 2022
+       // ================
+       LOG_DBG(acousticpde) << "Reading BCVector";
+             ReadRhsExcitation( "BCVector", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+
+             for( UInt i = 0; i < ent.GetSize(); ++i ) {
+               EntityIterator it = ent[i]->GetIterator();
+               it.Begin();
+               // check type of entitylist
+		// if (ent[i]->GetType() == EntityList::NODE_LIST) {
+		// EXCEPTION("BCVector must be defined on elements, because BUIntegrator requires a density")
+		// }
+
+               // ensure that list contains only surface elements
+               UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+               if( elemDim != (dim_-1) ) {
+                 EXCEPTION("BCVector can only be defined on surface elements");
+               }
+
+
+               if ( sosAtLaplace_) {
+            	   EXCEPTION("BCVector not defined for sosAtLaplace");
+             	}//closes sosAtLaplace
+              else{
+            	  if(isComplex_) {
+            		  std::cout << "\t \t \t Surface Term of vector formulation of Lighthill's analogy" << std::endl;
+            		  scalFactor = 1.0;
+		          if( dim_ == 2) {
+			      lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(),
+								Complex(scalFactor), coef[i],volRegions, coefUpdateGeo); //IdentityOperatorNormal
+
+			   } else  {
+			      lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(),
+								Complex(scalFactor), coef[i],volRegions, coefUpdateGeo);
+			   }
+            	  }
+            	  else {
+
+            	          std::cout << "\t \t \t Surface Term of vector formulation of Lighthill's analogy" << std::endl;
+            	          scalFactor = 1.0;
+                         if( dim_ == 2) {
+            	         	lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,2>(),
+            	         			scalFactor, coef[i],volRegions, coefUpdateGeo);
+                         } else  {
+                              lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,3>(),
+            	         			scalFactor, coef[i],volRegions, coefUpdateGeo);
+            	         }
+            	  }
+               }
+
+               lin->SetName("BCVector");
+               LinearFormContext *ctx = new LinearFormContext( lin );
+               ctx->SetEntities( ent[i] );
+               ctx->SetFeFunction(myFct);
+               assemble_->AddLinearForm(ctx);
+               myFct->AddEntityList(ent[i]);
+
+//               RegionIdType regionId = ent[i]->GetRegion();
+//               BCSurfaceVectorCoef_->AddRegion(  regionId, coef[i] );
+
+             }
+                      
 
     // ================
     //  RHS DENSITY
@@ -1658,7 +1784,7 @@ namespace CoupledField{
         			                          scalFactor, coef[i], updatedGeo_);
         }
       }
-            lin->SetName("RhsDensityInt");
+      lin->SetName("RhsDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
@@ -2107,7 +2233,7 @@ namespace CoupledField{
       intensNormal->dofNames = "";
       intensNormal->unit = "W/m^2";
       intensNormal->entryType = ResultInfo::SCALAR;
-      intensNormal->definedOn = ResultInfo::SURF_ELEM;
+      intensNormal->definedOn = ResultInfo::SURF_ELEM;  
       
       // === ACOU_POWER ===
       power.reset(new ResultInfo);

@@ -2882,13 +2882,13 @@ namespace CoupledField {
       }
       if(!isComplex) {
         coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"),
-                                          regions);
+                                          regions,type);
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
         coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
-                                          regions);
+                                          regions,type);
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs

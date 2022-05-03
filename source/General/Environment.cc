@@ -159,6 +159,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
+    SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY_VECTOR, "acouRhsLoadDensityVector");
     SolutionTypeEnum.Add(ACOU_RHS_LOADP, "acouRhsLoadP");
     SolutionTypeEnum.Add(ACOU_APE_RHS_LOAD, "apeRhsLoad");
     SolutionTypeEnum.Add(ACOU_VORTEX_RHS_LOAD, "vortexRhsLoad");
@@ -914,6 +915,10 @@ namespace CoupledField {
 
       case ACOU_RHS_LOAD_DENSITY:
         return "kg m^-6 s^-2";
+        break;
+        
+      case ACOU_RHS_LOAD_DENSITY_VECTOR:
+        return "kg m^-5 s^-2";
         break;
 
       case SPLIT_LAMB:
