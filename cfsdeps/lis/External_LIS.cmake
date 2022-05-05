@@ -147,6 +147,7 @@ ELSE()
   #-------------------------------------------------------------------------------
   IF(UNIX)
     find_program(LIS_MAKE_PROGRAM make)
+    mark_as_advanced(LIS_MAKE_PROGRAM)
     ExternalProject_Add(lis
       PREFIX "${lis_prefix}"
       SOURCE_DIR "${lis_source}"
