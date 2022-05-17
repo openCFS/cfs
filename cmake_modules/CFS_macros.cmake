@@ -206,7 +206,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(DOWNLOAD_OKAY 0)                             
   STRING(STRIP ${MD5_SUM} MD5_SUM)                    
   STRING(TOLOWER ${MD5_SUM} MD5_SUM)                  
-  SET(TIMEOUT 60)                         
+  SET(TIMEOUT 120)                         
 
   IF(EXISTS ${LOCAL_FILE})
     MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
