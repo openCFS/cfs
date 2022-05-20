@@ -133,10 +133,7 @@ option(BUILD_CFSDAT "Build openCFS data analysis tool (cfsdat)."  ${BUILD_CFSDAT
 option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TESTS_DEFAULT})
 option(BUILD_HDFVIEW "Build the HDF5 file viewer from the hdf5lib" ${BUILD_HDFVIEW_DEFAULT}) # advanced
 option(BUILD_H5TOOL "Build openCFS own's h5tool" ON) #andvanced
-# shall not work for WIN32
-if(UNIX)
-  option(BUILD_CPACK_BINARY "Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py" ${BUILD_CPACK_BINARY_DEFAULT})
-endif()
+
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
 option(BUILD_QUADEIGENSOLVER "Build the Quadratic Eigenvalue Solver to linearise the problem, requires another solver for the resulting generalised EVP" ${BUILD_QUADEIGENSOLVER_DEFAULT})
 
@@ -392,7 +389,7 @@ endif() # this is the end of the non indent else() for the if(PIPELINE_TEST_STAG
 # language-specific build tools.
 # Switch support for testing ON if the default testsuite dir is used, i.e.
 # the git submodule 'Testing'
-if(BUILD_TESTING OR BUILD_CPACK_BINARY)
+if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   # check if TESTSUITE_DIR is correct (contains TESTSUIT)
   if(BUILD_TESTING AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
     if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
@@ -411,7 +408,7 @@ if(BUILD_TESTING OR BUILD_CPACK_BINARY)
   # set a build name
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
   mark_as_advanced(BUILDNAME)
-    if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
+  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host
     execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
                     COMMAND grep CFS_BUILD_HOST
@@ -428,12 +425,18 @@ if(BUILD_TESTING OR BUILD_CPACK_BINARY)
     endif()
   endif(GITLAB_TEST_TAG)
   enable_testing()
-endif(BUILD_TESTING OR BUILD_CPACK_BINARY)
+endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
 if(NOT PIPELINE_TEST_STAGE_CONFIG)
-# add a packing test
-if(BUILD_CPACK_BINARY)
+
+# add packing and build test
+#  - probably won't work for WIN or Mac
+#  - only used in CI pipeline
+if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   include(CTest)
-  add_test(Install_Pack_Linux_TGZ cpack -G TGZ --verbose)
+  # Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py
+  add_test(Pipeline_Build_cpack-Linux-TGZ cpack -G TGZ --verbose)
+  # Use an additional test during the build stage to grep the compiler errors
+  add_test(Pipeline_Build_check-compiler-errors grep "0 Compiler errors" build.log)
   enable_testing()
   # we need this options if we do not clone and include the testsuite, 
   # but still want to submit the build resutls to cdash
@@ -447,7 +450,7 @@ if(BUILD_CPACK_BINARY)
   include(Dart) # to actually write DartConfiguration.tcl
 endif()
 
-if(NOT BUILD_CPACK_BINARY AND NOT BUILD_TESTING)
+if(NOT DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} AND NOT BUILD_TESTING)
   # remove Ctest config if testing is off
   # will probably not be necessay any mode with https://gitlab.kitware.com/cmake/cmake/-/merge_requests/258
   file(REMOVE "${CFS_BINARY_DIR}/CTestTestfile.cmake")

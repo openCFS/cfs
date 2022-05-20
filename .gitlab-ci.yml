@@ -435,10 +435,11 @@ cfsdeps:gcc10:
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    CI_PIPELINE_USE_BUILDTESTS: "ON" # we define this variable to include additional build tests
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_CPACK_BINARY=ON -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -447,7 +448,7 @@ cfsdeps:gcc10:
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     # build
-    - ( ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee /dev/stderr | grep -q '0 Compiler errors' ) 2>&1
+    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     # install test to create arifacts (first delete stuff to make space for packing)
     - df -h # debug
@@ -457,7 +458,7 @@ cfsdeps:gcc10:
     - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
     - du -h --max-depth=1 . # debug
     - df -h # debug
-    - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
+    - ctest -D ExperimentalTest --track $CDASH_TRACK # test build and install
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
     - git status # debug
