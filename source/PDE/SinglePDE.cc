@@ -3953,12 +3953,14 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
+    std::cout << "In DefineNitscheCoupling" << std::endl;
+
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE ) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
     }
-    else if ( solType == ELEC_POTENTIAL ) {
+    else if ( solType == ELEC_POTENTIAL && pdename_  != "elecQuasistatic") {
     	if(additionalCoef){
     		factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_CONDUCTIVITY_SCALAR, Global::REAL );
     	}else{
@@ -4002,6 +4004,24 @@ namespace CoupledField {
     	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
     	   factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
        }
+    }
+    else if ( solType == ELEC_POTENTIAL && pdename_  == "elecQuasistatic") {
+      factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      if ( isMaterialComplex_ ) {
+        // ----- alpha = electricConductivity + i*omega*permittivity
+        PtrCoefFct omega = CoefFunction::Generate( mp_,  Global::COMPLEX, "0", "2*pi*f");
+        shared_ptr<CoefFunction > condCoef;
+        std::cout << "get conductivity" << std::endl;
+        condCoef = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc(ELEC_CONDUCTIVITY_SCALAR,Global::REAL);
+        shared_ptr<CoefFunction > permCoef;
+        permCoef = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR, Global::REAL);
+        //shared_ptr<CoefFunction > matCoef;
+        shared_ptr<CoefFunction > omegaPermCoef;
+        omegaPermCoef = CoefFunction::Generate( mp_, Global::COMPLEX,
+                            CoefXprBinOp(mp_, permCoef, omega, CoefXpr::OP_MULT));
+        factor = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                         CoefXprBinOp(mp_, condCoef, omegaPermCoef, CoefXpr::OP_ADD));
+        }
     }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");

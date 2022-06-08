@@ -682,41 +682,51 @@ namespace CoupledField {
   {
     // read electric conductivity
     if (elec->Has("electricConductivity")) {
-      PtrParamNode cond = elec->Get("electricConductivity");
+      PtrCoefFct elecCond = ReadScalarLin(elec, "electricConductivity", Global::COMPLEX);
+      material->SetCoefFct( ELEC_CONDUCTIVITY_SCALAR, elecCond );
 
-      if (cond->Has("linear")) {
-        MaterialType orthoProps[3] = {
-            ELEC_CONDUCTIVITY_1, ELEC_CONDUCTIVITY_2, ELEC_CONDUCTIVITY_3
-        };
-        ReadSquare3x3Tensor(cond->Get("linear"), material, ELEC_CONDUCTIVITY_SCALAR,
-            orthoProps, ELEC_CONDUCTIVITY_TENSOR, Global::COMPLEX);
-      }
+//      PtrParamNode cond = elec->Get("electricConductivity");
+//
+//      if (cond->Has("linear")) {
+//        MaterialType orthoProps[3] = {
+//            ELEC_CONDUCTIVITY_1, ELEC_CONDUCTIVITY_2, ELEC_CONDUCTIVITY_3
+//        };
+//        ReadSquare3x3Tensor(cond->Get("linear"), material, ELEC_CONDUCTIVITY_SCALAR,
+//            orthoProps, ELEC_CONDUCTIVITY_TENSOR, Global::COMPLEX);
+//        }
 
       // we know only nonlinear isotropic material
-      if (cond->Has("nonlinear") && cond->Get("nonlinear")->Has("isotropic")) {
-        PtrParamNode iso = cond->Get("nonlinear")->Get("isotropic");
-        BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
-        material->SetNonLinMatIso(ELEC_CONDUCTIVITY_SCALAR, info);
-      } // nonlinear isotropic material
+//      if (cond->Has("nonlinear") && cond->Get("nonlinear")->Has("isotropic")) {
+//        PtrParamNode iso = cond->Get("nonlinear")->Get("isotropic");
+//        BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
+//        material->SetNonLinMatIso(ELEC_CONDUCTIVITY_SCALAR, info);
+//      } // nonlinear isotropic material
     }
 
     // check for permittivity
-    PtrParamNode permit = elec->Get("permittivity", ParamNode::PASS);
-    if (permit) {
-      if (permit->Has("linear")) {
-        MaterialType orthoProp[3] = {
-            ELEC_PERMITTIVITY_1, ELEC_PERMITTIVITY_2, ELEC_PERMITTIVITY_3
-        };
-        ReadSquare3x3Tensor(permit->Get("linear"), material, ELEC_PERMITTIVITY_SCALAR,
-                            orthoProp, ELEC_PERMITTIVITY_TENSOR, Global::COMPLEX);
-      }
+    if (elec->Has("permittivity")) {
+      PtrCoefFct elecPerm = ReadScalarLin(elec, "permittivity", Global::COMPLEX);
+      material->SetCoefFct( ELEC_PERMITTIVITY_SCALAR, elecPerm );
+    }
 
-      if (permit->Has("nonlinear") && permit->Get("nonlinear")->Has("isotropic")) {
-        BaseMaterial::MatDescriptorNl nlInfo =
-            ReadNonlinDescriptor(permit->Get("nonlinear")->Get("isotropic"), material);
-        material->SetNonLinMatIso(ELEC_PERMITTIVITY_SCALAR, nlInfo);
-      }
-    } // end of permittivity
+//    PtrParamNode permit = elec->Get("permittivity", ParamNode::PASS);
+//    if (permit) {
+//      if (permit->Has("linear")) {
+//        PtrCoefFct elecPerm = ReadScalarLin(permit, "permittivity", Global::COMPLEX);
+//        material->SetCoefFct( ELEC_PERMITTIVITY_SCALAR, elecPerm );
+//        MaterialType orthoProp[3] = {
+//            ELEC_PERMITTIVITY_1, ELEC_PERMITTIVITY_2, ELEC_PERMITTIVITY_3
+//        };
+//        ReadSquare3x3Tensor(permit->Get("linear"), material, ELEC_PERMITTIVITY_SCALAR,
+//                            orthoProp, ELEC_PERMITTIVITY_TENSOR, Global::COMPLEX);
+      //}
+
+//      if (permit->Has("nonlinear") && permit->Get("nonlinear")->Has("isotropic")) {
+//        BaseMaterial::MatDescriptorNl nlInfo =
+//            ReadNonlinDescriptor(permit->Get("nonlinear")->Get("isotropic"), material);
+//        material->SetNonLinMatIso(ELEC_PERMITTIVITY_SCALAR, nlInfo);
+//      }
+//    } // end of permittivity
   }
 
 
@@ -2366,11 +2376,9 @@ namespace CoupledField {
 
   bool XMLMaterialHandler::ReadScalarLin(PtrParamNode ptrNode, std::string& val,
                                          std::string str1, std::string str2) {
-
     bool isAvailable = false;
     if ( ptrNode->Has(str1) ) {
       PtrParamNode linear = ptrNode->Get(str1)->Get("linear");
-
       // read the real part
       if ( linear->Has(str2) ) {
         val = linear->Get(str2)->As<std::string>();

@@ -98,7 +98,12 @@
                     <xsd:documentation>Fixes electric potential to a prescribed value</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                <xsd:element name="normalCurrentDensity" type="DT_BcInhomVector">
+                <xsd:element name="constraint" type="DT_QuasiElecCS">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines for selected elements just one degree of freedom, e.g., do model an electrode with unknown potential (models an equipotental surface)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="normalCurrentDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Specify a current density on a surface to indirectly specify a current.</xsd:documentation>
                   </xsd:annotation>
@@ -166,6 +171,18 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for constraint condition -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_QuasiElecCS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" default="elecPotential" type="DT_ElecQuasistaticUnknownType"/>
+        <xsd:attribute name="masterDof" type="xsd:token" use="optional" default=""/>
+        <xsd:attribute name="slaveDof" type="xsd:token" use="optional" default=""/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->

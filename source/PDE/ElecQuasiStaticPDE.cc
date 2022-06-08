@@ -61,7 +61,11 @@ namespace CoupledField {
     
     //! Always use updated Lagrangian formulation 
     updatedGeo_     = true;
+
+    //! currently we just support harmonic analysis
+    isMaterialComplex_ = true;
   }
+
   
   void ElecQuasistaticPDE::InitNonLin() {
 
@@ -75,21 +79,25 @@ namespace CoupledField {
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
-    //transform the type
-    SubTensorType tensorType;
+    //check analysis type:
+    if ( analysistype_ != HARMONIC )
+      EXCEPTION("ElecQuasistaticPDE: Currently we just support HARMONIC analysis!");
 
-    if ( dim_ == 3 ) {
-      tensorType = FULL;
-    }
-    else {
-      if ( isaxi_ == true ) {
-        tensorType = AXI;
-      }
-      else {
-        // 2d: plane case
-        tensorType = PLANE_STRAIN;
-      }
-    }
+//    //transform the type
+//    SubTensorType tensorType;
+//
+//    if ( dim_ == 3 ) {
+//      tensorType = FULL;
+//    }
+//    else {
+//      if ( isaxi_ == true ) {
+//        tensorType = AXI;
+//      }
+//      else {
+//        // 2d: plane case
+//        tensorType = PLANE_STRAIN;
+//      }
+//    }
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -118,22 +126,22 @@ namespace CoupledField {
       // ----- alpha = electricConductivity + i*omega*permittivity
       PtrCoefFct omega = CoefFunction::Generate( mp_,  Global::COMPLEX, "0", "2*pi*f");
       shared_ptr<CoefFunction > condCoef;
-      condCoef = actSDMat->GetTensorCoefFnc(ELEC_CONDUCTIVITY_TENSOR,tensorType, Global::REAL);
+      condCoef = actSDMat->GetScalCoefFnc(ELEC_CONDUCTIVITY_SCALAR, Global::REAL);
       shared_ptr<CoefFunction > permCoef;
-      permCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR,tensorType, Global::REAL);
+      permCoef = actSDMat->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR, Global::REAL);
       shared_ptr<CoefFunction > matCoef;
       shared_ptr<CoefFunction > omegaPermCoef;
       omegaPermCoef = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                    CoefXprTensScalOp(mp_, permCoef, omega, CoefXpr::OP_MULT));
+                                    CoefXprBinOp(mp_, permCoef, omega, CoefXpr::OP_MULT));
       matCoef = CoefFunction::Generate( mp_, Global::COMPLEX,
                               CoefXprBinOp(mp_, condCoef, omegaPermCoef, CoefXpr::OP_ADD));
 
       BaseBDBInt *stiffInt;
       if( dim_ == 2 ) {
-        stiffInt = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
+        stiffInt = new BBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
                                                 matCoef, 1.0, updatedGeo_ );
       } else {
-        stiffInt = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
+        stiffInt = new BBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
                                                 matCoef, 1.0, updatedGeo_ );
       }
       stiffInt->SetName("LinElecQuasistaticStiffIntegrator");
@@ -214,7 +222,7 @@ namespace CoupledField {
     // integral is negative on LHS but J = -grad(phi)*gamma
     //=======================================================
     ReadRhsExcitation( "normalCurrentDensity", vecDofNames,
-                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo );
 
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -230,18 +238,18 @@ namespace CoupledField {
         // === SURFACE ===
         if( dim_ == 2 ) {
           if(isComplex_) {
-            lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,2>(),
+            lin = new BUIntegrator<Complex, true>( new IdentityOperator<FeH1,2>(),
                                                    Complex(-1.0), coef[i], volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,2>(),
+            lin = new BUIntegrator<Double, true>( new IdentityOperator<FeH1,2>(),
                                                   -1.0, coef[i], volRegions, coefUpdateGeo);
           }
         } else {
           if(isComplex_) {
-            lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,3>(),
+            lin = new BUIntegrator<Complex, true>( new IdentityOperator<FeH1,3>(),
                                                    Complex(-1.0), coef[i], volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,3>(),
+            lin = new BUIntegrator<Double, true>( new IdentityOperator<FeH1,3>(),
                                                   -1.0, coef[i], volRegions, coefUpdateGeo);
           }
         }
@@ -303,10 +311,7 @@ namespace CoupledField {
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        if (dim_ == 2)
-          DefineMortarCoupling<2,1>(ELEC_POTENTIAL, *ncIt);
-        else
-          DefineMortarCoupling<3,1>(ELEC_POTENTIAL, *ncIt);
+        EXCEPTION("ncInterface of Mortar type is not implemented for ElecQuasistaticPDE")
         break;
       case NC_NITSCHE:
         if (dim_ == 2)
