@@ -222,6 +222,13 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-sign-compare ")
   endif()
 
+  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "12.0")
+    # to prevent error with gcc 12: struct std::unary_function’ is deprecated
+    # unary_function is used in cfs and in boost. Shall be removed in cfs when boost is updated
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations ")
+    # to prevent (real?) issue use-after-freegmvread.cc:33:121: error: pointer ‘save’ may be used after ‘void* realloc(void*, size_t)’
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wuse-after-free ")
+  endif()
 
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")

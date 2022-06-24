@@ -2219,7 +2219,7 @@ namespace CoupledField {
           StoreElemGroup(regnam,numdata,dataVal);
         }
       }
-      delete dataVal;
+      delete[] dataVal;
     }
 
   }
