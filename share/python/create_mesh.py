@@ -41,7 +41,7 @@ elif args.type in ['bulk3d', 'cantilver3d']:
     args.width  = 3.0
     args.height = 2.0
     args.depth  = 1.0 
-  mesh = create_3d_mesh(args.res, args.y_res, args.z_res, args.width, args.height, args.depth, pfem = pfem) # no col_major implemented
+  mesh = create_3d_mesh(args.res, args.y_res, args.z_res, args.width, args.height, args.depth, pfem = args.pfem) # no col_major implemented
   
 res_name = '_' + str(args.res)
 if args.type in ['bulk2d', 'bulk3d']:
