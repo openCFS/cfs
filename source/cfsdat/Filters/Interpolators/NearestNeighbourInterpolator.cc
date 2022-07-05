@@ -39,9 +39,11 @@ NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::
 #ifndef USE_CGAL
     EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
 #endif
+
   interpolatorName_ = "NearestNeighbourInterpolator";
-  p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
-  numNeighbors_ = config->Get("scheme")->Get("numNeighbours")->As<UInt>();
+  p_ = config->Get("IntSchemeNN")->Get("interpolationExponent")->As<UInt>();
+  numNeighbors_ = config->Get("IntSchemeNN")->Get("numNeighbours")->As<UInt>();
+  globalFactor_ = config->Get("IntSchemeNN")->Get("globalFactor")->As<Double>();
 
   useElemAsTarget_ = false;
   if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
@@ -138,6 +140,10 @@ void NearestNeighbourInterpolator::FillMatrix(StdVector<CF::UInt>& globSrcEntity
         }
         for (i = 0; i < numNeighbors_; i++) {
           srcFactors[i] /= weights;
+	      std::cout << "\t\t\t scrFactor " << srcFactors[i] << std::endl;
+
+          srcFactors[i] = srcFactors[i] * globalFactor_;
+	      std::cout << "\t\t\t scrFactor mult " << srcFactors[i] << std::endl;
         }
       } else {
         outIn[ITrgSrcIndex] = nearestIndices[0];

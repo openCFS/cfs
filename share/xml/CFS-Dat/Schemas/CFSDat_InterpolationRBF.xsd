@@ -1,0 +1,47 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/simulation"
+  xmlns="http://www.cfs++.org/simulation"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for RBF Interpolation -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_RBFScheme">
+    <xsd:attribute name="interpolationExponent" type="xsd:integer" default="2" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Controls the "locality" of the interpolation, the higher the exponent is, the more
+          local the interpolation becomes, this means, points further away are weighted less
+          than closer points. Increasing this value makes approximation less accurate but capable of resolving stronger gradients.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="numNeighbours" type="xsd:integer" default="18" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Default values chosen according to experience (see puclication Lazzaro 2002 Radial basis functions for the multivariate interpolation
+of large scattered data sets).
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="numNeighbours_weight" type="xsd:integer" default="13" use="optional">
+        <xsd:annotation>
+        <xsd:documentation>
+          Default values chosen according to experience (see puclication Lazzaro 2002 Radial basis functions for the multivariate interpolation
+of large scattered data sets).
+        </xsd:documentation>
+      </xsd:annotation> 
+    </xsd:attribute>
+    <xsd:attribute name="useCGAL4RBF" type="xsd:boolean" default="true" use="optional"/>
+    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional"/>
+  </xsd:complexType>
+  
+</xsd:schema>
