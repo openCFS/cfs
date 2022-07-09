@@ -1838,7 +1838,8 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
+      // why do we need to reassemble in harmonic analysis
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::MULTIHARMONIC
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
