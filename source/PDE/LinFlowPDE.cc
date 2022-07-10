@@ -1433,21 +1433,21 @@ namespace CoupledField {
       DefineFieldResult( stressTotalCoef, stressTotal );
 
 
-      // === FLUID-MECHANIC NORMAL SURFACE STRESS ===
-      shared_ptr<ResultInfo> surfaceNormalStressInfo;
-      shared_ptr<CoefFunctionSurf> surfaceNormalStressFct;
-      surfaceNormalStressInfo.reset(new ResultInfo);
-      surfaceNormalStressInfo->resultType = FLUIDMECH_NORMAL_SURFACE_STRESS;
-      surfaceNormalStressInfo->dofNames = dispDofNames;
-      surfaceNormalStressInfo->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_SURFACE_STRESS);
-      surfaceNormalStressInfo->entryType = ResultInfo::VECTOR;
-      surfaceNormalStressInfo->definedOn = ResultInfo::SURF_ELEM;
+      // === FLUID-MECHANIC SURFACE TRACTION ===
+      shared_ptr<ResultInfo> surfaceTractionInfo;
+      shared_ptr<CoefFunctionSurf> surfaceTractionFct;
+      surfaceTractionInfo.reset(new ResultInfo);
+      surfaceTractionInfo->resultType = FLUIDMECH_SURFACE_TRACTION;
+      surfaceTractionInfo->dofNames = dispDofNames;
+      surfaceTractionInfo->unit = MapSolTypeToUnit(FLUIDMECH_SURFACE_TRACTION);
+      surfaceTractionInfo->entryType = ResultInfo::VECTOR;
+      surfaceTractionInfo->definedOn = ResultInfo::SURF_ELEM;
 
-      surfaceNormalStressFct.reset(new CoefFunctionSurf(true, 1.0, surfaceNormalStressInfo));
-      DefineFieldResult(surfaceNormalStressFct, surfaceNormalStressInfo);
-      surfCoefFcts_[surfaceNormalStressFct] = stressTotalCoef;
+      surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
+      DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
+      surfCoefFcts_[surfaceTractionFct] = stressTotalCoef;
 
-      // === FLUID-MECHANIC REACTION FORCE (= integral of surface traction, i.e. normal stress from above, over the surface region ) ===
+      // === FLUID-MECHANIC REACTION FORCE (= integral of surface traction over the surface region ) ===
       shared_ptr<ResultInfo> reactionForceInfo;
       reactionForceInfo.reset(new ResultInfo);
       reactionForceInfo->resultType = FLUIDMECH_FORCE;
@@ -1458,9 +1458,9 @@ namespace CoupledField {
       // Integrate surface traction
       shared_ptr<ResultFunctor> reactionForceFct;
       if(isComplex_)
-          reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceNormalStressFct, feFct, reactionForceInfo));
+          reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceTractionFct, feFct, reactionForceInfo));
       else
-          reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceNormalStressFct, feFct, reactionForceInfo));
+          reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceTractionFct, feFct, reactionForceInfo));
       resultFunctors_[FLUIDMECH_FORCE] = reactionForceFct;
       availResults_.insert(reactionForceInfo);
 

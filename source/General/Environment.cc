@@ -300,7 +300,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_VISC_STRESS, "fluidMechViscousStress");
     SolutionTypeEnum.Add(FLUIDMECH_PRES_TENS, "fluidMechPressureTensor");
     SolutionTypeEnum.Add(FLUIDMECH_TOTAL_STRESS, "fluidMechTotalStress");
-    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_SURFACE_STRESS, "fluidMechNormalSurfaceStress");
+    SolutionTypeEnum.Add(FLUIDMECH_SURFACE_TRACTION, "fluidMechSurfaceTraction");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
     SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
     SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY, "fluidMechWVTDensity");
@@ -885,7 +885,7 @@ namespace CoupledField {
       case FLUIDMECH_VISC_STRESS:
       case FLUIDMECH_PRES_TENS:
       case FLUIDMECH_TOTAL_STRESS:
-      case FLUIDMECH_NORMAL_SURFACE_STRESS:
+      case FLUIDMECH_SURFACE_TRACTION:
       case FLUIDMECH_ZERO_PRESSURE:
       case WATER_PRESSURE:
       case SMOOTH_ZERO_PRESSURE:

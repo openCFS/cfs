@@ -404,7 +404,7 @@
   <!-- Definition of surface element result types of linearized fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechLinSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechNormalSurfaceStress"/> 
+      <xsd:enumeration value="fluidMechSurfaceTraction"/> 
     </xsd:restriction>
   </xsd:simpleType>
 
