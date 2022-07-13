@@ -228,16 +228,17 @@
         <xsd:sequence>
           <xsd:choice>
             <xsd:choice minOccurs="0" maxOccurs="unbounded">
-              <xsd:element name="numModes"   type="xsd:token"/>
+              <xsd:element name="numModes"   type="xsd:integer"/>
               <xsd:element name="valueShift" type="xsd:float" default="0.0"/>
             </xsd:choice>
             <xsd:choice minOccurs="0" maxOccurs="unbounded">
-              <xsd:element name="maxVal" type="xsd:token">   <xsd:annotation>
-                <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its RIGHT intersection point with the real axis.</xsd:documentation>
-              </xsd:annotation> 
+              <xsd:element name="maxVal" type="xsd:float">
+                <xsd:annotation>
+                  <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its RIGHT intersection point with the real axis.</xsd:documentation>
+                </xsd:annotation> 
               </xsd:element>
               
-              <xsd:element name="minVal" type="xsd:token" default="0">
+              <xsd:element name="minVal" type="xsd:float" default="0">
                 <xsd:annotation>
                   <xsd:documentation>Imagining a circle on the complex plane with its center on the real axis, this value is its LEFT intersection point with the real axis.</xsd:documentation>
                 </xsd:annotation> 
@@ -252,7 +253,7 @@
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="inverse" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="stressFilter" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="stressFilter" type="xsd:double" default="-1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

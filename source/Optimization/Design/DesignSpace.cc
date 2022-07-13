@@ -1107,29 +1107,23 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     factor = 1.0;
 
     ParamNodeList sequenceSteps = domain->GetParamRoot()->GetList("sequenceStep");
-    bool stressFiltering = false;
-    for (unsigned int i=0; i<sequenceSteps.GetSize(); ++i)
-      if (sequenceSteps[i]->Get("analysis")->Has("buckling"))
-        if (sequenceSteps[i]->Get("analysis")->Get("buckling")->Get("stressFilter")->As<bool>())
-          stressFiltering = true;
+    double stressFilter = -1;
+    for(unsigned int i=0; i<sequenceSteps.GetSize(); ++i)
+      if(sequenceSteps[i]->Get("analysis")->Has("buckling"))
+        stressFilter = sequenceSteps[i]->Get("analysis")->Get("buckling")->Get("stressFilter")->As<double>();
 
-    if (stressFiltering)
+    if(stressFilter > 0.0)
     {
       // stress filtering
-      // for each element, where density < 0.1, we set the stress to 10^-15
+      // for each element, where density < stressFilter, we set the stress to 10^-10
       DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, false);
+      if(!de)
+        de = Find(lpm->ptEl->elemNum, DesignElement::STIFF1, false);
       if(de)
       {
-        assert(de->GetType() == BaseDesignElement::DENSITY);
         double density = de->GetDesign(BaseDesignElement::PLAIN);
-        if(density < 0.1)
-        {
-          unsigned int ncols = retMat.GetNumCols();
-          for (unsigned int i=0; i<ncols; ++i)
-              for (unsigned int j=0; j<ncols; ++j)
-                if (std::abs(retMat(i,j)) > 1e-10)
-                  retMat(i,j) = pow(10,-15);
-        }
+        if(density < stressFilter)
+          retMat.InitValue(pow(10,-10));
       }
     }
   }

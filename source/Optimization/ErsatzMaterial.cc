@@ -2320,7 +2320,11 @@ double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, b
     if(f->ctxt->DoBuckling())
     {
       if(mode_idx >= f->ctxt->GetBucklingDriver()->GetNumSteps())
-        EXCEPTION("Requested a load factor which was not computed. Increase numModes in your analysis.")
+      {
+        if (!derivative)
+          WARN("Requested more load factors than have been computed. Try to increase numModes or maxVal in your analysis.")
+        return 0.0;
+      }
       StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
       mode_idx = order[mode_idx];
     }

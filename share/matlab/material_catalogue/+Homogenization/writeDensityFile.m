@@ -1,10 +1,17 @@
-function writeDensityFile(density,densityfile)
-% WRITEDENSITYFILE  -  Generates a density file out of a given density vector.
+function writeDensityFile(density,densityfile,x,y)
+% WRITEDENSITYFILE  -  Generates a density file out of a given density vector or matrix.
 %
 % @param:
-%       density         density vector (entry has to be 0 for no material)
+%       density         density (entry has to be 0 for no material)
 %       densityfile     name of generated .dens file
 %
+
+if nargin < 3
+    [n,m] = size(density);
+else
+    n = x;
+    m = y;
+end
 
 if islogical(density)
     density = double(density);
@@ -14,11 +21,11 @@ end
 density(density < 1e-10) = 1e-7;
 
 % If density is column vector, transpose
-if size(density,2) == 1
+if m == 1
     density = density';
+else
+    density = flipud(density);
 end
-
-[n,m] = size(density);
 
 % Write density file
 fid = fopen(densityfile,'wt');
@@ -31,7 +38,7 @@ fprintf(fid,'    <design initial="0.5" lower="1e-3" name="density" region="mech"
 fprintf(fid,'    <transferFunction application="mech" design="density" param="1" type="simp"/>\n');
 fprintf(fid,'  </header>\n');
 fprintf(fid,'  <set id="4">\n');
-fprintf(fid,'    <element nr="%d" type="density" design="%e"/>\n',[1:size(density,2);density]);
+fprintf(fid,'    <element nr="%d" type="density" design="%e"/>\n',[1:n*m;density(:)']);
 fprintf(fid,'  </set>\n');
 fprintf(fid,'</cfsErsatzMaterial>\n');
 

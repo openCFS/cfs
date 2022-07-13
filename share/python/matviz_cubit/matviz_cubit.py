@@ -1,13 +1,78 @@
 #!/usr/bin/env python3
 
-# This is a collection of functions to create unit cells (e.g. 2D triangles or 3D crosses)
+# This is a collection of functions to create unit cells (e.g. 2D triangles)
 # or dehomogenize macroscopic results with Coreform Cubit and mesh these geometries.
 # The file provides similar functionality as matviz_2d.py.
 # However, the functions have to be called from Cubit's Python command line.
 # For examples, see dehomogenize_triangle.py and dehomogenize_cross_3d.py.
 
 
-import cubit
+import os, sys, subprocess
+
+try:
+  import cubit
+except ImportError:
+  ########################################################################
+  # this section will set the correct environment paths for cubit.       #
+  # this is only necessary, if you import cubit into python outside of   #
+  # the cubit gui/journal editor. paths should be found automatically.   #
+  # if not or paths are missing, change the following paths and set the  #
+  # environment variables below.                                         #
+  #                                                                      #
+  #    PATHS HAVE TO BE SET BEFORE OTHER IMPORTS (especially numpy)!     #
+  
+  cubit_search_path = sys.executable
+  pillow_search_path = sys.path
+  
+  # find the path of a file
+  def find_path(file, search_path=None):
+    out = subprocess.run(["locate", "-b", "\\" + file], capture_output=True)
+    if out.returncode == 0:
+      for path in out.stdout.split():
+        if not search_path or (sp in path.decode("utf-8") for sp in search_path):
+          # returns first occurence
+          return os.path.dirname(path.decode("utf-8"))
+    else:
+      for root, _, files in os.walk(search_path):
+        if file in files:
+          return root
+  
+  CUBIT_PATH = find_path('coreform_cubit', cubit_search_path)
+  PILLOW_PATH = find_path('_imaging.cpython-38-x86_64-linux-gnu.so', pillow_search_path)
+  
+  assert(CUBIT_PATH)
+  assert(PILLOW_PATH)
+  
+  # this will evaluate to false, if matviz_cubit is imported inside of cubit
+  # gui/journal editor and if paths are set before starting cubit, see wiki
+  if not CUBIT_PATH in os.environ['LD_LIBRARY_PATH']:
+    env = os.environ.copy()
+    env['LD_LIBRARY_PATH'] = os.path.join(CUBIT_PATH) + ':' + os.path.join(CUBIT_PATH, 'plugins/mediaservice') + ':' + env['LD_LIBRARY_PATH']
+    # env['PYTHONPATH'] = '/home/daniel/code/cfs/share/python:/home/daniel/code/cfs/share/python/matviz_cubit:/home/daniel/code/cfs/share/python/trelis:' + os.environ['PYTHONPATH']
+    env['PYTHONPATH'] = os.path.join(PILLOW_PATH) + ':' + os.path.join(CUBIT_PATH) + ':' + os.path.join(CUBIT_PATH, 'python3/lib/python3.8/lib-dynload') + ':' + os.path.join(CUBIT_PATH, 'python3/lib/python3.8/site-packages') + ':' + os.environ['PYTHONPATH']
+    env['PATH'] = '/home/daniel/anaconda3/lib/:' + env['PATH']
+    env['HDF5_DISABLE_VERSION_CHECK']='2'
+    try:
+      # restart python interpreter
+      os.execve(sys.executable, [sys.executable] + [sys.argv[0]], env)
+    except Exception as exc:
+      print('Failed re-exec:', exc)
+      sys.exit(1)
+
+  ########################################################################
+
+  import cubit
+  cubit_version = cubit.get_version()
+  
+  # add Cubit libraries to your path
+  try:
+    sys.path.index('/opt/Coreform-Cubit-{}/bin'.format(cubit_version))
+  except ValueError:
+    sys.path.append('/opt/Coreform-Cubit-{}/bin'.format(cubit_version))
+  
+  # start cubit - this step is key if not working inside cubit gui/journal editor!
+  cubit.init(['cubit', '-nographics', '-nojournal', '-batch', '-noecho', '-information', 'off', '-warning', 'off'])
+
 import time
 import numpy as np
 import matviz_2d
@@ -103,11 +168,16 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
 
 
   start = time.time()
-  
+
   assert(param is not None or design is not None)
 
   # not tested otherwise
   assert(equilateral == True)
+
+  if design is not None:  
+    homogeneousDesign = abs(max(design) - min(design)) < 1e-12
+  else:
+    homogeneousDesign = False
 
   if param is None:
     centers, min_bb, max_bb, elem = coords
@@ -124,12 +194,14 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
     ny = int(np.round((max_bb[1]-min_bb[1]) / elem[1]))
     # recalculate elem size, such that we always draw complete triangles in y-direction
     elem[1] = (max_bb[1]-min_bb[1]) / ny
+
+    # edge length of outer triangle
+    length = (max_bb[0]-min_bb[0])/nx
+
   else:
     nx = repetitions
     ny = repetitions
-
-  # edge length of outer triangle
-  length = (max_bb[0]-min_bb[0])/nx
+    length = 1/nx
 
   # same conversion as in matviz_2d::show_triangle_grad
   rad = radius * length/np.sqrt(3)/4
@@ -242,9 +314,10 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
       area *= np.sqrt(3)/4*length**2
 
       if area < np.sqrt(3)/4*length**2 - np.pi*rad**2:
-        # when we want a parallelogram for homogenization, the design is constant and thus all holes are the same.
-        # we only draw one hole and copy + rotate + translate it
-        if param is None or (x == 0 and y == 0):
+        # when we want a parallelogram for homogenization (param not None), all holes are the same size.
+        # same is true for homogeneous design.
+        # in these cases we only draw one hole and copy + rotate + translate it
+        if (param is not None and x == 0 and y == 0) or (param is None and (not homogeneousDesign or (x == 1 and y == 0))):
           # without round corners
           # area = 3*param*(g - sqrt(3)*param)
           # param = (np.sqrt(3)*length - np.sqrt( 3*length**2 - 4*np.sqrt(3)*area )) / 6
@@ -315,14 +388,23 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
           triangleidx += 1
         else:
           # we copy + rotate + translate the first hole
-          if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
-            rotation_angle = 0
-            translation_x = mid[0] - length/2
-            translation_y = mid[1] - np.sqrt(3)/4 * length
+          if param is not None:
+            if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
+              rotation_angle = 0
+              translation_x = mid[0] - length/2
+              translation_y = mid[1] - np.sqrt(3)/4 * length
+            else:
+              rotation_angle = 180
+              translation_x = mid[0] + length/2
+              translation_y = mid[1] + np.sqrt(3)/4 * length
           else:
-            rotation_angle = 180
-            translation_x = mid[0] + length/2
-            translation_y = mid[1] + np.sqrt(3)/4 * length
+            translation_x = mid[0]
+            if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
+              rotation_angle = 180
+              translation_y = mid[1] + np.sqrt(3)/4 * length
+            else:
+              rotation_angle = 0
+              translation_y = mid[1] - np.sqrt(3)/4 * length
           cubit.silent_cmd('surface {} copy rotate {} about z nomesh'.format(triangles[0], rotation_angle))
           id = cubit.get_last_id("surface")
           cubit.silent_cmd('move Surface {} x {} y {} z 0 include_merged '.format(id, translation_x, translation_y))
@@ -372,7 +454,6 @@ def name_regions_and_nodes(shape, param):
     cubit.silent_cmd('nodeset 8 add vertex 4')
   else:
     bb = cubit.get_bounding_box("surface", shape)
-    print(bb)
 
     all_curves = cubit.get_entities("curve")
 
@@ -484,6 +565,307 @@ def mesh_shape(shape, meshsize, filename):
     print('Number of nodes in southy: {}'.format(cubit.get_nodeset_node_count(2)), file=fid)
     print('Number of nodes in easty:  {}'.format(cubit.get_nodeset_node_count(3)), file=fid)
     print('Number of nodes in northy: {}'.format(cubit.get_nodeset_node_count(4)), file=fid)
+
+
+def mesh_shape_with_triangle(shape, meshsize, filename, holes=None, periodic=False):
+#  cubit.silent_cmd('curve all size {}'.format(meshsize))
+#  cubit.silent_cmd('curve all scheme equal')
+#  cubit.silent_cmd('mesh curve all')
+
+  def split_curve(curve, nsegs):
+    cc = cubit.curve(curve)
+    has_curvature = any( np.abs( cc.curvature(cc.position_from_fraction(0.5))) > 1e-10)
+    if not has_curvature:
+      for i in range(1, nsegs+1):
+        cubit.silent_cmd("create vertex on curve {} fraction {} from start".format(curve, i/(nsegs+1)))
+    else:
+      old_vertices = cubit.get_entities("vertex")
+      for i in range(1, nsegs):
+        cubit.silent_cmd("create vertex on curve {} fraction {} from start".format(curve, i/nsegs))
+      new_vertices = cubit.get_entities("vertex")
+      curves_to_delete.append(curve)
+
+      vertices = cubit.get_relatives("curve", curve, "vertex")
+      new_vertices = [vertex for vertex in new_vertices if vertex not in old_vertices]
+      new_vertices.insert(0, vertices[0])
+      new_vertices.append(vertices[1])
+      for vert1, vert2 in zip(new_vertices, new_vertices[1:]):
+        cubit.silent_cmd("create curve vertex {} {}".format(vert1, vert2))
+
+  all_vertices = cubit.get_entities("vertex")
+  all_curves = cubit.get_entities("curve")
+
+  nodeset_id_list = cubit.get_nodeset_id_list()
+  boundary_curve = {}
+  for ns in nodeset_id_list:
+    boundary_curve[ns] = cubit.get_nodeset_curves(ns)
+
+  curves_to_delete = []
+  for curve in all_curves:
+    cc = cubit.curve(curve)
+    nsegs = int(cc.length() / meshsize)
+    split_curve(curve, nsegs)
+    # has_curvature = any( np.abs( cc.curvature(cc.position_from_fraction(0.5))) > 1e-10)
+    # if has_curvature:
+    #   nsegs = int(cc.length() / meshsize)
+    #   if nsegs > 1:
+    #     #cubit.silent_cmd("split curve {} segment {} merge".format(curve, nsegs))
+    #     split_curve(curve, nsegs)
+    #     curves_to_delete.append(curve)
+    # else:
+    #   for bc in boundary_curve.values():
+    #     if curve in bc:
+    #       nsegs = int(cc.length() / meshsize)
+    #       if nsegs > 1:
+    #         #pass
+    #         split_curve(curve, nsegs)
+
+  all_vertices = cubit.get_entities("vertex")
+  all_curves = cubit.get_entities("curve")
+  all_curves = [curve for curve in all_curves if curve not in curves_to_delete]
+  print(all_curves)
+
+  # vertex_data contains the original vertex index, the vertex coordinates and a marker
+  vertex_data = np.zeros((len(all_vertices), 4))
+  for i, vertex in enumerate(all_vertices):
+    vertex_data[i, 0] = vertex
+    vertex_data[i, 1:3] = cubit.vertex(vertex).coordinates()[0:2]
+
+  # curve_data contains the original curve index, the row indices of the associated vertices of a curve and a marker
+  curve_data = np.zeros((len(all_curves), 4))
+  for i, curve in enumerate(all_curves):
+    curve_data[i, 0] = curve
+    vertices = cubit.get_relatives("curve", curve, "vertex")
+    for j, vertex in enumerate(vertices):
+      curve_data[i, 1+j] = np.where(vertex_data[:,0] == vertex)[0][0]
+
+  # set markers
+  nodeset_id_list = cubit.get_nodeset_id_list()
+  for ns in nodeset_id_list:
+    vertex_list = cubit.get_nodeset_vertices(ns)
+    idx = [x in vertex_list for x in vertex_data[:,0]]
+    if vertex_list:
+      key = list(possible_nodesets.keys())[list(possible_nodesets.values()).index(cubit.get_exodus_entity_name("nodeset", ns))]
+      vertex_data[idx, 3] = key
+
+    curve_list = cubit.get_nodeset_curves(ns)
+    idx = [x in curve_list for x in curve_data[:,0]]
+    if curve_list:
+      key = list(possible_nodesets.keys())[list(possible_nodesets.values()).index(cubit.get_exodus_entity_name("nodeset", ns))]
+      curve_data[idx, 3] = key
+
+  # create poly file
+  with open('{}.poly'.format(filename), 'w+') as fid:
+    print('# generated by matviz_cubit.py', file = fid)
+
+  # write poly file. append is necessary for numpy.savetxt
+  with open('{}.poly'.format(filename), 'a+') as fid:
+    # vertices
+    vertices = np.c_[np.arange(0, len(all_vertices)), vertex_data[:,1:]]
+    print('{:d} 2 0 1'.format(len(all_vertices)), file=fid)
+    np.savetxt(fid, vertices, fmt='%d %f %f %d')
+    
+    # segments
+    segments = np.c_[np.arange(0, len(all_curves)), curve_data[:,1:]]
+    print('{:d} 1'.format(len(all_curves)), file=fid)
+    np.savetxt(fid, segments, fmt='%d %f %f %d')
+
+    # holes
+    if holes is not None:
+      print('{:d}'.format(len(holes)), file=fid)
+      holes = np.c_[np.arange(0, len(holes)), holes]
+      np.savetxt(fid, holes, fmt='%d %f %f')
+
+  print('\nMeshing with triangle...')
+
+  cmd = ["/home/daniel/code/triangle/triangle", "-q30 -zja{:f}".format(pow(meshsize,2)), "-p", "{}.poly".format(filename)]
+  if periodic:
+    # -Y  No new vertices on the boundary.
+    cmd.append("-s")
+  
+  print(cmd)
+  out = subprocess.run(cmd, capture_output=True)
+  print(out.stdout.decode("utf-8"))
+
+
+# this is around 50-100 times faster than the cubit mesher
+def mesh_shape_with_gmsh(shape, meshsize, filename):
+  import gmsh
+
+  cubit.silent_cmd('export step "{}.stp" overwrite'.format(filename))
+
+  # Cubit 2022.4 crashes for gmsh.initialize()
+  # thus we write the code to a file and call the system python
+  with open('gmsh_script.py', 'w+') as fid:
+    print("""
+#!python3
+import gmsh
+import os
+import numpy as np
+
+if not gmsh.is_initialized():
+  gmsh.initialize()
+gmsh.clear()
+
+# import shape
+gmsh.merge('{}' + '.stp')
+gmsh.model.geo.synchronize()
+
+xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.getBoundingBox(-1,-1)
+
+eps = 1e-6
+bottom = gmsh.model.getEntitiesInBoundingBox(xmin-eps, ymin-eps, zmin-eps, xmax+eps, ymin+eps, zmin+eps, 1)
+top = gmsh.model.getEntitiesInBoundingBox(xmin-eps, ymax-eps, zmin-eps, xmax+eps, ymax+eps, zmin+eps, 1)
+left = gmsh.model.getEntitiesInBoundingBox(xmin-eps, ymin-eps, zmin-eps, xmin+eps, ymax+eps, zmin+eps, 1)
+right = gmsh.model.getEntitiesInBoundingBox(xmax-eps, ymin-eps, zmin-eps, xmax+eps, ymax+eps, zmin+eps, 1)
+
+if not left:
+  for curve in gmsh.model.getEntities(1):
+    lxmin, lymin, lzmin, lxmax, lymax, lzmax = gmsh.model.getBoundingBox(*curve)
+    if (abs(lymin - ymin) < eps and abs(lymax - ymax) < eps) and abs(lxmin - xmin) < eps:
+      left.append(curve)
+    if (abs(lymin - ymin) < eps and abs(lymax - ymax) < eps) and abs(lxmax - xmax) < eps:
+      right.append(curve)
+
+# name regions and nodes
+gmsh.model.addPhysicalGroup(1, [curve[1] for curve in left], name="lefty")
+gmsh.model.addPhysicalGroup(1, [curve[1] for curve in bottom], name="bottomy")
+gmsh.model.addPhysicalGroup(1, [curve[1] for curve in right], name="righty")
+gmsh.model.addPhysicalGroup(1, [curve[1] for curve in top], name="topy")
+gmsh.model.addPhysicalGroup(2, [1], name="mech")
+
+# set periodicity of mesh
+translation = [1, 0, 0, 1,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1]
+for i in left:
+  # get the bounding box of each left surface
+  lxmin, lymin, lzmin, lxmax, lymax, lzmax = gmsh.model.getBoundingBox(i[0], i[1])
+  # For all the matches, we compare the corresponding bounding boxes...
+  for j in right:
+    lxmin2, lymin2, lzmin2, lxmax2, lymax2, lzmax2 = gmsh.model.getBoundingBox(j[0], j[1])
+    lxmin2 -= 1
+    lxmax2 -= 1
+    # ...and if they match, we apply the periodicity constraint
+    if (abs(lxmin2 - lxmin) < eps and abs(lxmax2 - lxmax) < eps
+    and abs(lymin2 - lymin) < eps and abs(lymax2 - lymax) < eps
+    and abs(lzmin2 - lzmin) < eps and abs(lzmax2 - lzmax) < eps):
+      gmsh.model.mesh.setPeriodic(1, [j[1]], [i[1]], translation)
+
+translation = [1, 0, 0, 0.5,  0, 1, 0, np.sqrt(3)/2,  0, 0, 1, 0,  0, 0, 0, 1]
+for i in bottom:
+  # get the bounding box of each left surface
+  lxmin, lymin, lzmin, lxmax, lymax, lzmax = gmsh.model.getBoundingBox(i[0], i[1])
+  # For all the matches, we compare the corresponding bounding boxes...
+  for j in top:
+    lxmin2, lymin2, lzmin2, lxmax2, lymax2, lzmax2 = gmsh.model.getBoundingBox(j[0], j[1])
+    lxmin2 -= 0.5
+    lxmax2 -= 0.5
+    lymin2 -= ymax
+    lymax2 -= ymax
+    # ...and if they match, we apply the periodicity constraint
+    if (abs(lxmin2 - lxmin) < eps and abs(lxmax2 - lxmax) < eps
+    and abs(lymin2 - lymin) < eps and abs(lymax2 - lymax) < eps
+    and abs(lzmin2 - lzmin) < eps and abs(lzmax2 - lzmax) < eps):
+      gmsh.model.mesh.setPeriodic(1, [j[1]], [i[1]], translation)
+
+# mesh shape
+gmsh.option.setNumber("Mesh.MeshSizeFactor", {});
+gmsh.model.mesh.generate(2)
+
+gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
+gmsh.write('{}' + ".msh")
+  """.format(filename, meshsize, filename), file=fid)
+    
+  with open('gmsh_script.py', 'a') as fid:
+    print("""
+print('Number of nodes: {:d}'.format(len(gmsh.model.mesh.getNodes(-1, -1)[0])))
+
+#gmsh.fltk.run()
+gmsh.finalize()
+    """, file=fid)
+
+  # run the script
+  out = subprocess.run([sys.executable, "gmsh_script.py"], capture_output=True)
+  assert(out.returncode == 0)
+  print(out.stdout.decode("utf-8"))
+
+  # cleanup
+  os.remove('{}.stp'.format(filename))
+  os.remove('step_export.log')
+  os.remove('gmsh_script.py')
+
+
+def convert_poly_to_cdb(meshfilename):
+
+  node_data = np.loadtxt(meshfilename + '.1.node', skiprows=1)
+  elem_data = np.loadtxt(meshfilename + '.1.ele', skiprows=1)
+  with open(meshfilename + '.1.poly') as f:
+    f.readline()
+    second_line = f.readline()
+  poly_data = np.loadtxt(meshfilename + '.1.poly', skiprows=2, max_rows=int(second_line.split()[0]))
+
+  node_data[:,0] += 1
+  elem_data += 1
+  poly_data[:,:3] += 1
+
+  nnode = node_data.shape[0]
+  nelem = elem_data.shape[0]
+
+  node_lists = {}
+  #for id in seg_list_ids:
+  for id in possible_nodesets.keys():
+    node_lists[possible_nodesets[id]] = np.unique(poly_data[poly_data[:,-1] == int(id), 1:-1])
+    if len(node_lists[possible_nodesets[id]]) == 0:
+      node_lists[possible_nodesets[id]] = node_data[node_data[:,-1] == id, 0]
+
+  header = """/COM,ANSYS RELEASE 15.0
+! Generated by matviz_cubit
+/PREP7
+/TITLE,
+*IF,_CDRDOFF,EQ,1,THEN
+_CDRDOFF= 
+*ELSE
+NUMOFF,NODE, {:>8d}
+NUMOFF,ELEM, {:>8d}
+NUMOFF,TYPE,        1
+*ENDIF
+DOF,DELETE
+ET,       1,182"""
+
+  outfile = meshfilename + '.cdb'
+
+  with open(outfile, 'w+') as fid:
+    print(header.format(nnode, nelem), file=fid)
+
+  node_data_ = np.c_[node_data[:,0], np.zeros((nnode,2)), node_data[:,1:-1], np.zeros((nnode,1))]
+  with open(outfile, 'a+') as fid:
+    print('NBLOCK,6,SOLID, {:>9d}, {:>9d}'.format(nnode, nnode), file=fid)
+    print('(3i9,6e20.13)', file=fid)
+    np.savetxt(fid, node_data_, fmt='%9d%9d%9d%20.13e%20.13e%20.13e')
+
+  elem_data_ = np.c_[np.ones((nelem,4)), np.zeros((nelem,4)), 4*np.ones((nelem,1)), np.zeros((nelem,1)), elem_data, elem_data[:,-1]]
+  with open(outfile, 'a+') as fid:
+    print('N,R5.3,LOC, -1\nEBLOCK, 19, SOLID', file=fid)
+    print('(19i9)', file=fid)
+    np.savetxt(fid, elem_data_, fmt=''.join('%9d' for _ in range(15)))
+    print('       -1', file=fid)
+
+    print('CMBLOCK,mech    ,ELEM,{:>8d}'.format(nelem), file=fid)
+    print('(8i10)', file=fid)
+    nlines = int(nelem/8)
+    extra = nelem % 8
+    extra_data = elem_data[nlines*8:,0].astype(int)
+    np.savetxt(fid, np.reshape(elem_data[:nlines*8,0], (nlines,8)), fmt=''.join('%10d' for _ in range(8)))
+    print(''.join('{:>10d}' for _ in range(extra)).format(*extra_data), file=fid)
+
+    for node_list_name in node_lists:
+      nl = node_lists[node_list_name]
+      print('CMBLOCK,{:<8s},NODE,{:>8d}'.format(node_list_name, len(nl)), file=fid)
+      print('(8i10)', file=fid)
+      nlines = int(len(nl)/8)
+      extra = len(nl) % 8
+      np.savetxt(fid, np.reshape(nl[:nlines*8], (nlines,8)), fmt=''.join('%10d' for _ in range(8)))
+      print(''.join('{:>10d}' for _ in range(extra)).format(*nl[nlines*8:].astype(int)), file=fid)
+
 
 if __name__ == "__main__":
   print('Hello!')

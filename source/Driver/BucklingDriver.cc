@@ -129,15 +129,21 @@ void BucklingDriver::Init(bool restart) {
   // set definition of PDE relevant matrices
   InitializePDEs();
 
-  if (valueShift_ == 0.0) {
+  if (numMode_ > 0 && valueShift_ == 0.0) {
     valueShift_ = 0.1;
     info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for buckling. Changed to 0.1.");
   }
 
   // has to be treated here, else multiple calls to SolveProblem (e.g. during gradient check)
   // would invert valueShift_ all the time
-  if (isInverseProblem_)
+  if (isInverseProblem_) {
     valueShift_ = 1.0/valueShift_;
+    if (std::abs(minVal_) < 1e-10) minVal_ = -1e-10;
+    if (std::abs(maxVal_) < 1e-10) maxVal_ =  1e-10;
+    double tmp = minVal_;
+    minVal_ = 1.0/maxVal_;
+    maxVal_ = 1.0/tmp;
+  }
 }
 
 void BucklingDriver::SolveProblem() {
@@ -170,16 +176,12 @@ void BucklingDriver::SolveProblem() {
 
   // define input method, which is needed in CalcValues()
   // inputMethod_ is 1 for minVal & maxVal, 2 for numModes & shiftMode
-  if (minVal_ < maxVal_) {
-    inputMethod_ = 1;
-  }
-  else if (minVal_ > maxVal_) {
-    EXCEPTION("minVal is bigger than maxVal. Please correct XML input file.");
-  }
-  else if (numMode_ > 0) {
+  if (numMode_ > 0) {
     inputMethod_ = 2;
   }
-  else {
+  else if (minVal_ != maxVal_) {
+    inputMethod_ = 1;
+  } else {
     // this case should not be possible in the XML schema
     EXCEPTION("Input method cannot be determined.")
   }
