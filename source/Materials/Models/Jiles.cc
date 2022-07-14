@@ -27,7 +27,7 @@ isMH_{false}
 Jiles::~Jiles() {
 }
 
-void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems) {
+void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UInt dim) {
 
   numElems_ = numElems;
 

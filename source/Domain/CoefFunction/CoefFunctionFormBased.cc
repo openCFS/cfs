@@ -829,7 +829,7 @@ template class CoefFunctionHomogenization<double, App::HEAT>;
 
 template class CoefFunctionHomogenization<Complex, App::ELEC>;
 template class CoefFunctionHomogenization<double, App::ELEC>;
-
+template class CoefFunctionHomogenization<double, App::MAG>;
 template class CoefFunctionLBM<double>;
 
    

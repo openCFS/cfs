@@ -30,7 +30,7 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
-#include "Driver/SolveSteps/SolveStepElec.hh"
+#include "Driver/SolveSteps/SolveStepEB.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -64,12 +64,10 @@ namespace CoupledField
     // this is the default value
     modelName_ = "nonlinearCurve";
 
-    // Be aware that the hysteresis which are build in via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
+    // Be aware that the hysteresis via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
     matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
     // init the nlFluxCoef
     nlFluxCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
-
-    //perm_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
   }
 
   void MagneticScalarPotentialPDE::DefineIntegrators()
@@ -78,6 +76,8 @@ namespace CoupledField
     RegionIdType actRegion;
     BaseMaterial *actSDMat = NULL;
 
+    perm_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, false));
+
     // get FEFunctions and space
     shared_ptr<BaseFeFunction> feFunc_reduced = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> feSpace_reduced = feFunc_reduced->GetFeSpace();
@@ -85,18 +85,19 @@ namespace CoupledField
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial *>::iterator it;
 
-    
-    // Init material model for transient analysis
-    // if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
-    // {
-    //   matModelCoef_->Init(magFieldCoef, modelName_);
-    // }
+    PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
+    // Init material model for hysteretic transient analysis
+    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+    {
+      matModelCoef_->Init(magFieldCoef, modelName_, dim_);
+    }
+
+    // currently we are only allowed to have one hysteresis region
+    bool moreThan1HystRegion = false;
 
     // iterate over the region (or materials)
     for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
     {
-      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-
       // set current region and material
       actRegion = regions_[iRegion];
       actSDMat = materials_[actRegion];
@@ -118,13 +119,12 @@ namespace CoupledField
       feSpace_reduced->SetRegionApproximation(actRegion, polyId, integId);
       feFunc_reduced->AddEntityList(actSDList);
 
-      PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
-
       // ====================================================================
       // stiffness integrator - NONLINEAR
       // ====================================================================
       BaseBDBInt *stiffInt = NULL;
       PtrCoefFct muNL = NULL;
+      PtrCoefFct flux = NULL;
       if (nonLinTypes.Find(PERMEABILITY) != -1)
       {
         // ====================================================================
@@ -136,9 +136,13 @@ namespace CoupledField
         {
           EXCEPTION("Jiles-Atherton model not implemented for MagneticScalarPotentialPDE");
         }
-        else if (modelName_ == "EBHysteresis")
+        else if (modelName_ == "EBHysteresisModel")
         {
-          EXCEPTION("EB Hysteresis model not yet finished for MagneticScalarPotentialPDE");
+          if(moreThan1HystRegion){
+            EXCEPTION("Currently only ONE hysteretic region is allowed!");
+          }
+          moreThan1HystRegion = true;
+          
           std::map<std::string, double> ParameterMap;
           actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
@@ -146,14 +150,11 @@ namespace CoupledField
           actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
           ParameterMap["isMH"] = 0;
-          matModelCoef_->InitModel(ParameterMap, actSDList->GetSize());
+          matModelCoef_->InitModel(ParameterMap, actSDList);
 
-          muNL = actSDMat->GetTensorCoefFncModel(matModelCoef_);
-
-          // TODO kroppert: create functionality to get the B_previous in the same way as muNL_...the values are there
-          //                in the hysteresis model, we only need to pipe it through here
-          PtrCoefFct hystFluxTmp = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, muNL, magFieldCoef, CoefXpr::OP_MULT));
-          nlFluxCoef_->AddRegion(actRegion, hystFluxTmp);
+          muNL = matModelCoef_; //actSDMat->GetTensorCoefFncModel(matModelCoef_);
+          flux = matModelCoef_; //actSDMat->GetVectorCoefFncModel(matModelCoef_);
+          nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
 
           if (dim_ == 2)
           {
@@ -166,9 +167,6 @@ namespace CoupledField
         }
         else
         {
-          // The problem is, that we need the nonlinearity as a function of H and not of B, like in the usual
-          // magnetic nonlinear cases!!
-
           // classical nonlinearity with analytic prescription
           PtrCoefFct muNl = actSDMat->GetScalCoefFncNonLin( MAG_PERMEABILITY_SCALAR, Global::REAL, magFieldCoef);
           
@@ -180,8 +178,7 @@ namespace CoupledField
           {
             stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), muNl, 1.0, updatedGeo_);
           }
-          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, muNl);
-//          perm_->AddRegion(actRegion, muNl);
+          perm_->AddRegion(actRegion, muNl);
         }
 
         stiffInt->SetName("StiffnessIntegratorHysteresis");
@@ -192,7 +189,7 @@ namespace CoupledField
         // stiffness integrator - LINEAR
         // ====================================================================
         PtrCoefFct mu = actSDMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
-        //matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, mu);
+        perm_->AddRegion(actRegion, mu);
         if (dim_ == 2)
         {
           stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), mu, 1.0, updatedGeo_);
@@ -202,7 +199,6 @@ namespace CoupledField
           stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), mu, 1.0, updatedGeo_);
         }
         stiffInt->SetName("StiffnessIntegrator");
-        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, mu);
       }
 
       BiLinFormContext *stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS);
@@ -223,17 +219,63 @@ namespace CoupledField
     shared_ptr<BaseFeFunction> feFunc_reduced = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> feSpace_reduced = feFunc_reduced->GetFeSpace();
 
-    StdVector<shared_ptr<EntityList>> ent;
-    StdVector<PtrCoefFct> coef;
-    LinearForm *lin = NULL;
-    StdVector<std::string> dofNames;
-
-    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
+    LinearForm * lin = NULL;
+    RegionIdType actRegion;
 
     bool coefUpdateGeo = true;
+
+
+    // iterate over the region (or materials)
+    for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
+    {
+      // set current region and material
+      actRegion = regions_[iRegion];
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+
+      // Get current region name
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
+      actSDList->SetRegion(actRegion);
+
+      PtrCoefFct fluxDensityNL = NULL;
+      fluxDensityNL = matModelCoef_; //actSDMat->GetVectorCoefFncModel(matModelCoef_);
+
+      if (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve")
+      {
+        if (modelName_ == "JilesAthertonModel")
+        {
+          EXCEPTION("Jiles-Atherton model not implemented for MagneticScalarPotentialPDE");
+        }
+        else if (modelName_ == "EBHysteresisModel")
+        {
+          if( dim_ == 2 ) {
+            lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2> (),
+                    (1.0), fluxDensityNL, coefUpdateGeo, false);
+          } else {
+            lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3> (),
+                    (1.0), fluxDensityNL, coefUpdateGeo, false);
+          }
+        }
+      lin->SetName("residualInt");
+      lin->SetSolDependent();
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( actSDList );
+      ctx->SetFeFunction(feFunc_reduced);
+      assemble_->AddLinearForm(ctx);
+      }
+    }
+
+
     // =====================
     //  Current Vector Potential (T or Hs)
     // =====================
+    StdVector<shared_ptr<EntityList>> ent;
+    StdVector<PtrCoefFct> coef;
+    LinearForm *lin2 = NULL;
+    StdVector<std::string> dofNames;
+    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     ReadRhsExcitation("fieldIntensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
     for (UInt i = 0; i < ent.GetSize(); ++i)
     {
@@ -260,10 +302,10 @@ namespace CoupledField
       // Here we store the Hs field for every region to have it ready for postprocessing
       Hsmap_[ent[i]->GetRegion()] = coef[i];
 
-      lin = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, coef[i], volRegions, coefUpdateGeo);
+      lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, coef[i], volRegions, coefUpdateGeo);
       
-      lin->SetName("SourceMagFieldIntensityInt");
-      LinearFormContext *ctx = new LinearFormContext(lin);
+      lin2->SetName("SourceMagFieldIntensityInt");
+      LinearFormContext *ctx = new LinearFormContext(lin2);
       ctx->SetEntities(ent[i]);
       ctx->SetFeFunction(feFunc_reduced);
       assemble_->AddLinearForm(ctx);
@@ -276,15 +318,16 @@ namespace CoupledField
   //  Initialize Nonlinearities
   // ****************************
   void MagneticScalarPotentialPDE::InitNonLin() {
-
     SinglePDE::InitNonLin();
- //  nonLinTotalFormulation_ = true;
-
   }
 
   void MagneticScalarPotentialPDE::DefineSolveStep()
   {
-    solveStep_ = new StdSolveStep(*this);
+    if(nonLin_ && (modelName_ == "EBHysteresisModel")){
+      solveStep_ = new SolveStepEB(*this);
+    }else{
+      solveStep_ = new StdSolveStep(*this);
+    }
   }
 
   void MagneticScalarPotentialPDE::InitTimeStepping()
@@ -314,18 +357,6 @@ namespace CoupledField
     results_.Push_back(res1);
     availResults_.insert(res1);
     DefineFieldResult(feFunctions_[MAG_POTENTIAL], res1);
-
-    // === PERMEABILITY  ===
-    shared_ptr<ResultInfo> perm(new ResultInfo);
-    perm->resultType = MAG_ELEM_PERMEABILITY;
-    perm->dofNames = "";
-    perm->unit = "Vs/Am";
-    perm->definedOn = ResultInfo::ELEMENT;
-    perm->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-    matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-    DefineFieldResult( permFct, perm );
-
 
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
@@ -367,6 +398,29 @@ namespace CoupledField
     shared_ptr<CoefFunctionMulti> hIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(hIntensFunc, ef);
 
+
+    // === PERMEABILITY  ===
+    shared_ptr<ResultInfo> perm(new ResultInfo);
+    perm->resultType = MAG_ELEM_PERMEABILITY;
+    shared_ptr<CoefFunctionFormBased> perm_coef;
+    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+    if(nonLin_ && (modelName_ == "EBHysteresisModel")){
+      perm->dofNames = "xx", "yy", "xy";
+      perm->unit = "Vs/Am";
+      perm->definedOn = ResultInfo::ELEMENT;
+      perm->entryType = ResultInfo::TENSOR;
+      perm_coef.reset(new CoefFunctionHomogenization<double, App::MAG>(feFct));
+      DefineFieldResult(perm_coef , perm);
+      stiffFormCoefs_.insert(perm_coef);
+    }else{
+      perm->dofNames = "";
+      perm->unit = "Vs/Am";
+      perm->definedOn = ResultInfo::ELEMENT;
+      perm->entryType = ResultInfo::SCALAR;
+      DefineFieldResult( perm_, perm );
+    }
+
+
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> bf(new ResultInfo);
     bf->resultType = MAG_FLUX_DENSITY;
@@ -386,14 +440,7 @@ namespace CoupledField
     hf->definedOn = ResultInfo::ELEMENT;
     hf->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> hFunc;
-    if (isComplex_)
-    {
-      hFunc.reset(new CoefFunctionBOp<Complex>(feFct, hf, -1.0));
-    }
-    else
-    {
-      hFunc.reset(new CoefFunctionBOp<Double>(feFct, hf, -1.0));
-    }
+    hFunc.reset(new CoefFunctionBOp<Double>(feFct, hf, -1.0));
     DefineFieldResult(hFunc, hf);
     stiffFormCoefs_.insert(hFunc);
   }
@@ -415,7 +462,9 @@ namespace CoupledField
     // Hs
     shared_ptr<CoefFunctionMulti> hIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
     shared_ptr<CoefFunctionMulti> bCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FLUX_DENSITY]);
-    shared_ptr<CoefFunctionMulti> mu = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_ELEM_PERMEABILITY]);
+    //shared_ptr<CoefFunctionMulti> mu = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_ELEM_PERMEABILITY]);
+
+    // We only need this to check which kind of nonlinearity is specified in the different regions
 
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
     regIt = regions_.Begin();
@@ -435,9 +484,16 @@ namespace CoupledField
       }
 
       // ========= B field =============
-      PtrCoefFct b = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_, hIntensCoef, mu, CoefXpr::OP_MULT));
-      bCoef->AddRegion(*regIt, b);
-
+      // Just to find out which linear/nonlinear type is defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt];
+      if( nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve" ){
+        // hysteretic case
+        bCoef->AddRegion(*regIt, nlFluxCoef_);
+      }else{
+        // classical nonlinear case and linear case
+        PtrCoefFct b = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_, hIntensCoef, perm_, CoefXpr::OP_MULT));
+        bCoef->AddRegion(*regIt, b);
+      }
     } // loop over regions
   }
 

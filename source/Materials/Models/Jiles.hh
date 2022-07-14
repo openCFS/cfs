@@ -22,7 +22,7 @@ public:
   //! Destructor
   virtual ~Jiles();
 
-  void Init(std::map<std::string, double> ParameterMap, UInt numElems);
+  void Init(std::map<std::string, double> ParameterMap, UInt numElems, UInt dim);
 
   Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum);
 

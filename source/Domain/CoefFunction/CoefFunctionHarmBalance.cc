@@ -206,7 +206,7 @@ template<class T>
                 matModelCoef_->InitModel( ParameterMap, actSDList->GetSize());
               }
 
-              regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncModel(matModelCoef_);
+              regStruc.nonLinNuCoefMap = matModelCoef_; //actMat->GetScalCoefFncModel(matModelCoef_);
               // for the initial solution we also need the linear nu
               regStruc.linNuCoefMap = actMat->GetScalCoefFnc( ELEC_PERMITTIVITY_SCALAR, Global::REAL);
 

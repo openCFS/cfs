@@ -21,33 +21,33 @@ public:
   //! Destructor
   virtual ~EBHysteresis();
 
-  void Init(std::map<std::string, double> ParameterMap, UInt numElems);
+  void Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim);
 
   Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum);
   Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> E, Integer ElemNum);
 
-  Matrix<Double> EvaluateLocalEpsilon(StdVector<Double> E, StdVector<Double> D);
+  // just for the computation of the residual, we do not store anything here
+  Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum);
 
-  Matrix<Double> EvaluateLocalEpsilonDFP(StdVector<Double> E, StdVector<Double> D);
+  Matrix<Double> EvaluateLocalMu(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
-  Vector<Double> Evaluate(Vector<Double> E);
+  Matrix<Double> EvaluateLocalMuDFP(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
-  //  void RampUp(Integer Nt, Double E, Integer idx);
+  Matrix<Double> EvaluateLocalMuGBM(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
-  void saveValues(bool InstantSave);
+  StdVector<Double> inv3x3(StdVector<Double> A);
+
+  Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
 
 private:
   //==============
+  UInt dim_; 
 
-  Vector<UInt> ElemNum2Idx_;
+  std::map<UInt,UInt> ElemNum2Idx_;
 
   UInt numElems_;
 
-  //current index
-  UInt idx_;
-
-  Double epsilon0_;
-
+  Double mu_0;
 
   Double Ps_;
   Double A_;
@@ -55,29 +55,35 @@ private:
   Double numS_;
   Double chi_factor_;
 
-  StdVector< StdVector<Double> > E0_;
-  StdVector< StdVector<Double> > E1_;
+  StdVector< StdVector<Double> > H0_;
+  StdVector< StdVector<Double> > H1_;
 
-  StdVector< StdVector<Double> > P0_;
-  StdVector< StdVector<Double> > P1_;
+  StdVector< StdVector<Double> > M0_;
+  StdVector< StdVector<Double> > M1_;
 
   StdVector< StdVector<Double> > HxS_prev_;
   StdVector< StdVector<Double> > HyS_prev_;
+  StdVector< StdVector<Double> > HzS_prev_;
   StdVector< StdVector<Double> > MxS_prev_;
   StdVector< StdVector<Double> > MyS_prev_;
+  StdVector< StdVector<Double> > MzS_prev_;
 
   StdVector< StdVector<Double> > HxS_n_;
   StdVector< StdVector<Double> > HyS_n_;
+  StdVector< StdVector<Double> > HzS_n_;
   StdVector< StdVector<Double> > MxS_n_;
   StdVector< StdVector<Double> > MyS_n_;
+  StdVector< StdVector<Double> > MzS_n_;
 
   StdVector< StdVector<Double> > HxS_n_tmp_;
   StdVector< StdVector<Double> > HyS_n_tmp_;
+  StdVector< StdVector<Double> > HzS_n_tmp_;
   StdVector< StdVector<Double> > MxS_n_tmp_;
   StdVector< StdVector<Double> > MyS_n_tmp_;
+  StdVector< StdVector<Double> > MzS_n_tmp_;
 
   // epsilon tensor of the previous iteration
-  StdVector< Matrix<Double> > epsilon_;
+  StdVector< Matrix<Double> > mu_;
 
   //! Pointer to math parser instance
   MathParser* mp_;
@@ -91,6 +97,8 @@ private:
   double isMH_;
 
   std::string varHandle_;
+
+  StdVector<bool> hasElemSolution_;
 
 };
 } //end of namespace

@@ -222,8 +222,39 @@
     <xsd:attribute name="type" use="optional" default="none">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="none"/>
-          <xsd:enumeration value="minEnergy"/>
+          <xsd:enumeration value="none">
+            <xsd:annotation>
+              <xsd:documentation>
+                Disables line search by keeping line search parameter gamma = 1.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="minEnergy">
+          <xsd:annotation>
+              <xsd:documentation>
+                An array of line search parameters gamma is used to evaluate the residual for 
+                gamma = [0.1 0.2 0.3 0.4 0.5 0.6 0.6 0.7 0.8 0.9 1] and the one which minimizes the residual
+                is used for the Newton step.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="Armijo">
+          <xsd:annotation>
+              <xsd:documentation>
+                Decreases gamma starting from 1 until a sufficient decrease of the residual is achieved.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="ArmijoRegularization">
+            <xsd:annotation>
+              <xsd:documentation>
+                Decreases gamma starting from 1 until a sufficient decrease of the residual is achieved
+                and weakens this condition for higher iterations to keep the line search parameter near to 1
+                to converge faster. It is assumed that the current solution is near to the real solution
+                for higher iterations and a weaker line search can be used.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
           <xsd:enumeration value="multiharmonicIncreasing">
             <xsd:annotation>
               <xsd:documentation>
@@ -472,4 +503,3 @@
   </xsd:complexType>
 
 </xsd:schema>
-

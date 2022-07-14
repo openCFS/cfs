@@ -209,6 +209,11 @@ namespace CoupledField {
       // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
       solStrat_->SetActSolStep(iLevel + 1);
       ReadNonLinData();
+      
+      if((lineSearch_ != "none") && (lineSearch_ != "minEnergy")){
+        EXCEPTION("The selected linesearch method is currently only available for energy-based hysteresis");
+      }
+
       PDE_.UpdateToSolStrategy();
       algsys_->UpdateToSolStrategy();
 

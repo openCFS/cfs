@@ -15,6 +15,7 @@
 #include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
 
 namespace CoupledField {
 
@@ -27,7 +28,11 @@ public:
   //! Destructor
   virtual ~Model();
 
-  virtual void Init(std::map<std::string, double> ParameterMap, UInt numElems){
+  virtual void Init(std::map<std::string, double> ParameterMap, UInt numElems, UInt dim){
+    EXCEPTION( "Not implemented in base class");
+  };
+
+  virtual void Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim){
     EXCEPTION( "Not implemented in base class");
   };
 
@@ -38,7 +43,11 @@ public:
   virtual Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> E, Integer ElemNum){
     EXCEPTION( "Not implemented in base class");
   };
-
+  
+  virtual Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum){
+    EXCEPTION( "Not implemented in base class");
+  };
+ 
 };
 
 }

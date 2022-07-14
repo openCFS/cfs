@@ -10,6 +10,7 @@
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 namespace CoupledField {
   
@@ -18,7 +19,7 @@ namespace CoupledField {
   class BasePairCoupling;
   class WriteResults;
   class StdSolveStep;
-  
+
   class BiotSavart;
   class BaseFeFunction;
   
@@ -74,6 +75,7 @@ namespace CoupledField {
     //! Returns the resultInfo related to the specified solutionType
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
     
+    shared_ptr<CoefFunctionMaterialModel<Complex>> GetModelCoef(){ return matModelCoef_; };
     
     virtual AnalysisType GetAnalysisType() const {
       return analysistype_;
@@ -135,7 +137,7 @@ namespace CoupledField {
     
     //! Return pointer to algebraic system
     AlgebraicSys* GetAlgSys() { return algsys_; }
-    
+
     //! Return pointer to grid the PDE is defined on
     Grid* GetGrid() { return ptGrid_; }
     
@@ -255,6 +257,7 @@ namespace CoupledField {
       bool              movingMortarForm;
     };
         
+
   protected:
     //! Constructor
     /*!
@@ -366,6 +369,8 @@ namespace CoupledField {
     // type of nonlinear algorithm (e.g., Newton)
     NonLinMethodType nonLinMethod_;
     
+    // Coefficient function for material model
+    shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
     //@}
     
     

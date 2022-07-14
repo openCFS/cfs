@@ -51,7 +51,7 @@ public:
   virtual string GetName() const { return "CoefFunctionMaterialModel"; }
 
   // Init this coeffunction. State the dependend Coeffunction and used model
-  void Init(PtrCoefFct depCoef, std::string modelName);
+  void Init(PtrCoefFct depCoef, std::string modelName, UInt dim=3);
 
   // Evaluates model at certain lpm. (at what thime should be implemented in the model)
   void GetScalar(Double& coefScalar, const LocPointMapped& lpm);
@@ -59,17 +59,29 @@ public:
   // Evaluates model at certain lpm
   void GetTensor(Matrix<Double>& coefVector, const LocPointMapped& lpm);
 
+  // Evaluates model at certain lpm
+  void GetVector(Vector<Double>& coefVector, const LocPointMapped& lpm);
+
   //! Return row and columns size of tensor if coefficient function is a tensor
   void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     numRows = 2;
     numCols = 2;
   }
 
+  UInt GetVecSize() const {
+    return 2;
+  }
+
   // Init  the used material model
   void InitModel(std::map<std::string, double> ParameterMap, UInt numElems);
 
+  void InitModel(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList);
+
 protected:
 
+  // Spatial dimension of the problem
+  UInt spaceDim_;
+  
   // object for the model
   Model* matModel_;
 

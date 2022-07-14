@@ -34,7 +34,7 @@ template<class TYPE> CoefFunctionMaterialModel<TYPE>::CoefFunctionMaterialModel(
 
 }
 
-template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depCoef, std::string modelName){
+template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depCoef, std::string modelName, UInt dim){
 
   LOG_DBG(cfjc)
   << "Init CoefFunctionMaterialModel" << std::endl;
@@ -42,6 +42,8 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
   depCoef_ = depCoef;
 
   modelName_ = modelName;
+
+  spaceDim_ = dim;
 
   if (modelName_ == "JilesAthertonModel") {
 
@@ -51,7 +53,7 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
     matModel_ = &JilesModel;
 
     std::cout << "Initialized Model: " << modelName_ << std::endl;
-  } else if(modelName_ == "EBHysteresis"){
+  } else if(modelName_ == "EBHysteresisModel"){
     dimType_ = TENSOR;
 
     static EBHysteresis EBHysteresisModel;
@@ -70,7 +72,14 @@ template<class TYPE> CoefFunctionMaterialModel<TYPE>::~CoefFunctionMaterialModel
 template<class T> void CoefFunctionMaterialModel<T>::InitModel(
     std::map<std::string, double> ParameterMap, UInt numElems) {
 
-  matModel_->Init(ParameterMap, numElems);
+  matModel_->Init(ParameterMap, numElems, spaceDim_);
+
+}
+
+template<class T> void CoefFunctionMaterialModel<T>::InitModel(
+    std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList) {
+
+  matModel_->Init(ParameterMap, entityList, spaceDim_);
 
 }
 
@@ -106,15 +115,14 @@ template<class T> void CoefFunctionMaterialModel<T>::GetTensor(
 
   depCoef_->GetVector(DependentVec, lpm);
 
-  //Can i do this in less codelines? Complex vector to Real Vector??
   Vector<Double> RealDependentVec;
 
-  RealDependentVec.Resize(2);
+  RealDependentVec.Resize(spaceDim_);
   RealDependentVec.Init(0);
 
-  RealDependentVec[0] = std::real(DependentVec[0]);
-  RealDependentVec[1] = std::real(DependentVec[1]);
-  //RealDependentVec[2] = std::real(DependentVec[2]);
+  for(UInt i = 0 ; i < spaceDim_; ++i){
+    RealDependentVec[i] = std::real(DependentVec[i]); 
+  }
 
   coefTensor = matModel_->ComputeTensorialMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
 
@@ -124,6 +132,27 @@ template<class T> void CoefFunctionMaterialModel<T>::GetTensor(
   << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
   LOG_DBG(cfjc)
   << "Epsilon = :" << coefTensor << std::endl;
+}
+
+template<class T> void CoefFunctionMaterialModel<T>::GetVector(
+    Vector<Double> &coefVector, const LocPointMapped &lpm) {
+  Vector<Complex> DependentVec;
+  depCoef_->GetVector(DependentVec, lpm);
+
+  Vector<Double> RealDependentVec;
+
+  RealDependentVec.Resize(spaceDim_);
+  RealDependentVec.Init(0);
+
+  for(UInt i = 0 ; i < spaceDim_; ++i){
+    RealDependentVec[i] = std::real(DependentVec[i]); 
+  }
+  coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  
+  LOG_DBG(cfjc)
+  << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
+  LOG_DBG(cfjc)
+  << "Flux Density = :" << coefVector << std::endl;
 }
 
 
