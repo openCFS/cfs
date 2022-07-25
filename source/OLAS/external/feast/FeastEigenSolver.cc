@@ -326,6 +326,8 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
               E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
         }
         // put the solution into the complex vectors
+        // structure of X matrix is explained in feast V3.0 manual chapter 3.1.2 table 3 (page 17/37)
+        // X matrix is column-wise (eigenvector-wise) casted into array
         E_c.Resize(m_);
         res_c.Resize(m_);
         vr_.Resize(m_*n_);
