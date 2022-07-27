@@ -42,7 +42,6 @@ private:
   Vector<UInt> ElemNum2Idx_;
 
   UInt numElems_;
-  Double MaxE_;
 
   //current index
   UInt idx_;

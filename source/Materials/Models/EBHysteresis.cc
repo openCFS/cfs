@@ -17,7 +17,7 @@ namespace CoupledField {
 DEFINE_LOG(eb, "EBHysteresis")
 
     EBHysteresis::EBHysteresis() : Model(),
-    numElems_{0}, MaxE_{0},  idx_{0},
+    numElems_{0}, idx_{0},
     Ps_{0}, A_{0}, mu0_{0}, numS_{0},chi_factor_{0},
     mp_{nullptr}, isFirstTimeFinished_{0},
     timeStep_{0}, globalIter_{0},
@@ -176,7 +176,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       //epsilon = EvaluateLocalEpsilon(delta_E, delta_D);
       epsilon = EvaluateLocalEpsilonDFP(delta_E, delta_D);
 
-      Double eps = 1e-8;
       // if( (std::abs(epsilon[0][0]) < eps) && (std::abs(epsilon[0][1]) < eps)
       //     && (std::abs(epsilon[1][0]) < eps) && (std::abs(epsilon[1][1]) < eps) ){
       //   epsilon[0][0] = epsilon0_;
@@ -251,7 +250,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         deltaE[i] = dE[i];
         deltaD[i] = dD[i];
       }
-      Double dDtransposed_in_dE = deltaE.Inner(deltaD);
+      // Double dDtransposed_in_dE = deltaE.Inner(deltaD);
       
       Matrix<Double> leftM(dim, dim);
       //leftM = (I - dD_dyadic_dEtransposed / dDtransposed_in_dE);
