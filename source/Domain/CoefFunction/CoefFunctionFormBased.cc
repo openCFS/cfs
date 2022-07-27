@@ -7,6 +7,7 @@
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "MatVec/BLASLAPACKInterface.hh"
+#include "Optimization/Optimization.hh"
 #include "Optimization/Excitation.hh"
 
 namespace CoupledField
