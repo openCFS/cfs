@@ -1409,16 +1409,16 @@ namespace CoupledField {
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
 
-    assemble_->AssembleMatrices( );
+    assemble_->AssembleMatrices( ); // this assembles to MASS and STIFFNESS including the omega factors already in the harmonic case. See Matrix2Harmonic
     PDE_.SetBCs();
     
     // store rhs vector back to PDE
     algsys_->GetRHSVal( rhsVec_ );
 
-    // Where should we get the matrix factors from in a harmonic case?
-    // In my opinion this method
-    //if( assemble_->IsMatrixUpdated() ) {
-    std::map<FEMatrixType,Double> empty;
+    // This is here since its introduction by Andi Hueppe in 2014
+    // it could assemble the the effective system matrix from MASS, DAMPING and STIFFNESS
+    // however, currently it dows nothing ???
+    std::map<FEMatrixType,Double> empty; // this might be to blame
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
     
 

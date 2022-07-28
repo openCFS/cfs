@@ -3416,17 +3416,17 @@ namespace CoupledField {
                             const std::map<FEMatrixType,Double> &matFactors,
                             const bool isMultHarm) {
 
-    LOG_DBG(algSys) << "Constructing effective system matrix for feFunction "
-        << "with id " << fctId;
-    if (IS_LOG_ENABLED(algSys, dbg)) {
+    factorMap::const_iterator it;
+    
+    LOG_DBG(algSys) << "Constructing effective system matrix for feFunction " << "with id " << fctId;
+    #ifndef NDEBUG
       LOG_DBG(algSys) << "Factors are:";
-      std::map<FEMatrixType,Double>::const_iterator it = matFactors.begin();
-      for( ; it != matFactors.end(); ++it ) {
+      for( it = matFactors.begin() ; it != matFactors.end(); ++it ) {
         LOG_DBG(algSys) << feMatrixType.ToString(it->first) << ": " << it->second;
       }
-    }
+      LOG_DBG(algSys) << std::endl;
+    #endif
 
-    factorMap::const_iterator it;
     SBM_Matrix *sys = sysMat_[SYSTEM];
 
     // As one functionId can be spread over many SBM blocks, we
@@ -3434,7 +3434,7 @@ namespace CoupledField {
     std::map<UInt, std::set<UInt> > freeIndPerBlock, fixedIndPerBlock;
     std::map<UInt, std::set<UInt> > dummyFreeSet;
     MapCompleteFctIdToIndex(fctId, freeIndPerBlock, fixedIndPerBlock, true);
-
+    LOG_DBG3(algSys) << "Number of freeIndPerBlock = " << freeIndPerBlock.size()<<std::endl;
     // If there are no affected free dofs, leave immediately
     if( freeIndPerBlock.size() == 0 ) {
       return;
@@ -3442,12 +3442,15 @@ namespace CoupledField {
 
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
+    LOG_DBG3(algSys) << "matFactors.empty()="<<matFactors.empty()<<std::endl;
     if ( matFactors.empty() == true ) {
+      LOG_DBG3(algSys) << "matrixTypes_.size() = " << matrixTypes_.size()<<std::endl;
+      LOG_DBG3(algSys) << "sys = " << sys <<std::endl;
       if ( matrixTypes_.size() == 1 && sys != NULL ) {
         // Also assemble the effective auxilliary system matrix for moving
         // IDBCs to the right-hand side
+        LOG_DBG3(algSys) << " assembling effective auxilliary system matrix for moving IDBCs to the right-hand side" << std::endl;
         idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
-
         // Now we are done
         return;
       }
@@ -3455,6 +3458,7 @@ namespace CoupledField {
 
     // In multiharmonic analysis, we have to adapt the mass part
     if(isMultHarm){
+      LOG_DBG3(algSys) << " multiharmonic case " << std::endl;
       SBM_Matrix *mass = sysMat_[DAMPING];
       for(UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow){
         StdMatrix* sysSub = sys->GetPointer(iRow, iRow);
@@ -3466,8 +3470,12 @@ namespace CoupledField {
       }
     }else{
       for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
+        LOG_DBG3(algSys) << " (*it).first = " << (*it).first << std::endl;
+        LOG_DBG3(algSys) << " (*it).second = " << (*it).second << std::endl;
+        LOG_DBG3(algSys) << " sysMat_[(*it).first] = " << sysMat_[(*it).first] << std::endl;
         if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
           std::map<UInt, std::set<UInt> > dummyFreeSet;
+          LOG_DBG3(algSys) << " add " << std::endl;
           sys->Add( (*it).second, *sysMat_[(*it).first],
               dummyFreeSet, freeIndPerBlock );
         }
@@ -3476,6 +3484,7 @@ namespace CoupledField {
     // Also assemble the effective auxilliary system matrix for moving
     // IDBCs to the right-hand side
     idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
+    LOG_DBG3(algSys) << " end ConstructEffectiveMatrix" << std::endl;
   }
 
   void AlgebraicSys::PrintKeff(){
