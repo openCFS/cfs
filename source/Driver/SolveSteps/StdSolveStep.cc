@@ -1418,9 +1418,13 @@ namespace CoupledField {
     // This is here since its introduction by Andi Hueppe in 2014
     // it could assemble the the effective system matrix from MASS, DAMPING and STIFFNESS
     // however, currently it dows nothing ???
-    std::map<FEMatrixType,Double> empty; // this might be to blame
-    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
-    
+    algsys_->InitMatrix(SYSTEM); // zero system matrix
+    Double omega = 2.0*M_PI*actFreq_;
+    std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,-omega*omega) );
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors );
+    algsys_->ExportLinSys(true,false,false);
 
     // Check if the AMG-framework is used (if so, we have
     // to gather some geometry information at this point)
@@ -1438,16 +1442,15 @@ namespace CoupledField {
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    if( assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-    }
-    
+    // we need to re-setup the solver in every step since the dynamic stiffness matrix has changed
+    algsys_->SetupPrecond();
+    algsys_->SetupSolver();
+    // solve
     algsys_->Solve();
     // Since the entries of solVec_ are pointers to the SingleVector
     // of the FE function, it automatically inserts the values there
     algsys_->GetSolutionVal(solVec_);
-    
+    //algsys_->ExportLinSys(false,false,true);
     if ( adjointSource_ ) {
       //check if adjoint PDE has been solved in case of source localization
       //if yes, we have to multiply the solution with a standard mass matrix

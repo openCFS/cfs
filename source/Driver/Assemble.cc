@@ -1886,6 +1886,11 @@ namespace CoupledField
     }
   }
 
+  void Assemble::Matrix2Complex(Matrix<Complex>& complexMat,Matrix<Double>& origMat){
+    complexMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
+    complexMat.SetPart( Global::REAL, origMat );
+  }
+
   void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
                                  Matrix<Double>& origMat,
                                  FEMatrixType matrixType,
@@ -2025,15 +2030,15 @@ namespace CoupledField
       break;
 
     case BasePDE::HARMONIC:
-      matrixMap_[SYSTEM]    = SYSTEM;
-      matrixMap_[STIFFNESS] = SYSTEM;
-      matrixMap_[DAMPING]   = SYSTEM;
-      matrixMap_[DAMPING_AUX]   = SYSTEM;
-      matrixMap_[MASS]      = SYSTEM;
-      matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
-      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
-      matrixMap_[DAMPING_UPDATE]   = SYSTEM;
-      matrixMap_[MASS_UPDATE]      = SYSTEM;
+      matrixMap_[SYSTEM]      = SYSTEM;
+      matrixMap_[STIFFNESS]   = STIFFNESS;
+      matrixMap_[DAMPING]     = DAMPING;
+      matrixMap_[DAMPING_AUX] = DAMPING_AUX;
+      matrixMap_[MASS]        = MASS;
+      matrixMap_[AUXILIARY]   = AUXILIARY; // optimization for radiation needs this
+      matrixMap_[STIFFNESS_UPDATE] = STIFFNESS_UPDATE;
+      matrixMap_[DAMPING_UPDATE]   = DAMPING_UPDATE;
+      matrixMap_[MASS_UPDATE]      = MASS_UPDATE;
       break;
 
     case BasePDE::MULTIHARMONIC:
@@ -2208,21 +2213,20 @@ namespace CoupledField
         omega = mp_->Eval( mHandle_ );
       }
 
-      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
-
       if( analysisType_ == BasePDE::MULTIHARMONIC){
+        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
         algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,
                                             fctId1, eqnVec1,
                                             fctId2, eqnVec2,
                                             context.IsSetCounterPart(),
                                             sbmIndices);
-      }else{
-        algsys_->SetElementMatrix( mappedDest, harmMat,
-                                  fctId1, eqnVec1,
-                                  fctId2, eqnVec2,
-                                  context.IsSetCounterPart(),
-                                  preventStaticCond,
-                                  context.isDiagonal());
+      }else{ // harmonic case
+        if( algsys_->IsMatrixComplex()) { // not clear if this 'if' is needed or if it in scomplex all the time
+          Matrix2Complex( harmMat, elemMat);
+          algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+        } else {
+          algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+        }
       }
     }
 
