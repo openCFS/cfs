@@ -2222,7 +2222,12 @@ namespace CoupledField
                                             sbmIndices);
       }else{ // harmonic case
         if( algsys_->IsMatrixComplex()) { // not clear if this 'if' is needed or if it in scomplex all the time
-          Matrix2Complex( harmMat, elemMat);
+          // dirty hack: we make damping matrices complex valued (multipy by j) since ConstructEffectiveMatrix can only handle real valued factors
+          if(mappedDest==DAMPING||mappedDest==DAMPING_AUX||mappedDest==DAMPING_UPDATE){
+            Matrix2Harmonic( harmMat, elemMat, DAMPING, context.GetEntryType(), 1.0 ); // elemMat -> harmMat should multipy by j
+          } else {
+            Matrix2Complex( harmMat, elemMat);
+          }
           algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
         } else {
           algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
