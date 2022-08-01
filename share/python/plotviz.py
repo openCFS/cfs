@@ -330,10 +330,13 @@ def process(input):
   comments = []
   body = [] 
  
+  # we assume first comments (and assume the last comment to be the header descriotion)
+  # then the body. For comment/body/comment we ignore comments after body
   for l in lines:
     h = l.strip()
-    if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---'): 
-      comments.append(h)
+    if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---'):
+      if len(body) == 0: # ignore comments after body 
+        comments.append(h)
     else:
       body.append(l)  
 
