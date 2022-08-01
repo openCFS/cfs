@@ -970,8 +970,19 @@ namespace CoupledField {
   {
     // read density
     if (therm->Has("density")) {
-      PtrCoefFct densFct = ReadScalarLin(therm, "density", Global::REAL);
-      material->SetCoefFct( DENSITY, densFct );
+      PtrParamNode dens = therm->Get("density");
+      
+      if (dens->Has("linear")) {
+        PtrCoefFct densFct = ReadScalarLin(therm, "density", Global::REAL);
+        material->SetCoefFct( DENSITY, densFct );
+      }
+
+      // we know only nonlinear isotropic material
+      if (dens->Has("nonlinear") && dens->Get("nonlinear")) {
+        PtrParamNode nl = dens->Get("nonlinear");
+        BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(nl, material);
+        material->SetNonLinMatIso(DENSITY, info);
+      }
     }
     
     // read heat capacity
