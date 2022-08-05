@@ -1033,7 +1033,10 @@ namespace CoupledField {
 					  fnc->GetCoefFct()->SetVolNeighborRegionId(surfRegionId,volNeighborRegionId);
 			  	  }
 
-				  // pass result to result handler
+				  // update sequence step for result handler (also done in ResultHandler::BeginMultiSequenceStep, but AFTER reading the xml for the current step, hence we would be one step behind regarding reading e.g. postproc results from the xml)
+          // nevertheless, it appears that we have to keep it in ResultHandler::BeginMultiSequenceStep as well since not setting the sequence step in this routine breaks stuff
+          resHandler->SetSequenceStep(sequenceStep_);
+          // pass result to result  
 				  resHandler->RegisterResult( actSol, fnc, sequenceStep_,
 						  saveBegin, saveInc, saveEnd,
 						  actOutDest,

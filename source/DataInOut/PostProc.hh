@@ -93,7 +93,7 @@ namespace CoupledField {
 
     //! Output result
     shared_ptr<BaseResult> output_;
-    
+
     //! Flag for writing output
     bool writeResult_;
     
@@ -244,6 +244,90 @@ namespace CoupledField {
 
     //! Pointer to MathParser object
     MathParser * mParser_;
+  };
+
+// -------------------------------------------------------------------------
+
+  //! Creates a new result by applying an arbitrary function to each result and calculating the L2 norm
+  class PostProcL2Norm : public PostProc {
+
+  public:
+
+    //! Constructor
+    PostProcL2Norm( Grid * ptGrid, PtrParamNode postProcNode );
+
+    //! Destructor
+    virtual ~PostProcL2Norm();
+
+    //! Initialize postprocessing operator
+    void SetResult( shared_ptr<BaseResult> res );
+
+    //! Set dofNames and functions for the new result
+    void Initialize( const std::string& resultName,
+                     const UInt& integrationOrder,
+                     const std::string& mode,
+                     const StdVector<std::string>& dofNames,
+                     const StdVector<std::string>& rFunctions,
+                     const StdVector<std::string>& iFunctions ); 
+    
+    //! Apply procedure
+    void Apply( );
+
+    //! Finalize
+    void Finalize( );
+
+    
+  private:
+
+    //! Templatized sub-routine
+    template<class TYPE>
+    void CalcNorm();
+    
+    //! name of new result to be created
+    std::string resultName_;
+
+    //! integration order for evaluation, needs to be set high enough to accurately get the differenece between analytical function and FE approximation
+    UInt integrationOrder_;
+
+    //! mode how the L2 norm function shall operate (absolute/relative)
+    std::string mode_;
+    
+    //! dof names of new result
+    StdVector<std::string> dofNames_;
+
+    //! function string of new result (real part)
+    StdVector<std::string> rFuncs_;
+
+    //! function string of new result (imag part)
+    StdVector<std::string> iFuncs_;
+
+    //! function string of new result (real part), matched to grid DOFs
+    StdVector<std::string> rFuncsSorted_;
+
+    //! function string of new result (imag part), matched to grid DOFs
+    StdVector<std::string> iFuncsSorted_;
+
+    //! vector with related handles for math parser (real part)
+    StdVector<MathParser::HandleType> rHandles_;
+
+    //! vector with related handles for math parser (imag part)
+    StdVector<MathParser::HandleType> iHandles_;
+
+    //! vector containing values for registered variables (real part)
+    Vector<Double> rVals_;
+
+    //! vector containing values for registered variables (imag part)
+    Vector<Double> iVals_;
+
+    //! Pointer to MathParser object
+    MathParser * mParser_;
+
+    //! coefFunction of the difference (FE solution minus reference solution) for norm evaluation
+    PtrCoefFct diffCoef_;
+
+    //! coefFunnction of the reference solution
+    PtrCoefFct coef_;
+
   };
 
   // -------------------------------------------------------------------------
