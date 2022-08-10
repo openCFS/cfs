@@ -1,21 +1,20 @@
+#!python
+#!python
 #!/usr/bin/env python3
 
-# This script has to be run from Cubit's Python command line
-# or the Journal Editor.
+# this reloads matviz_cubit each time, when this script runs.
+# necessary, if matviz_cubit has changed
+import cubit_scripts.matviz_cubit as mc
+import importlib
+importlib.reload(mc)
 
 import os
 import numpy
 import h5py
 import hdf5_tools
+from cubit_scripts.matviz_cubit import cubit
 
-# this reloads matviz_cubit each time, when this script runs.
-# necessary, if matviz_cubit has changed
-import matviz_cubit.matviz_cubit as mc
-import importlib
-importlib.reload(mc)
-
-
-input = '/home/daniel/manni/optimization/pillar/worst_case/globBuck_locBuck/results_hdf5/0.500_snopt.cfs'
+input = '/home/daniel/manni/BE_study/homogenDesign_v0.4.cfs'
 
 # radius of rounded corners
 radius = 0.6
@@ -23,7 +22,7 @@ radius = 0.6
 meshsize = 0.00125
 
 samples = 2
-samp = [6,10,14]
+samp = [2,4,6,8,10,12,14,16,18,20,22]
 
 grad = 'linear'
 
@@ -42,6 +41,7 @@ for samples in samp:
   if os.path.isfile(savefilename + ".cub5"):
     cubit.cmd('open "{}.cub5"'.format(savefilename))
     shape = cubit.get_last_id("surface")
+    mids = numpy.loadtxt(savefilename + '.hole')
 
   else:
     # open file
@@ -78,7 +78,7 @@ for samples in samp:
       samples = samples if isinstance(samples, (list, tuple)) else [int(samples), int(samples)]
   
     # create the geometry
-    shape = mc.show_triangle_grad(coords, design, grad, samples, thres=None, equilateral=True, radius=radius, savefile=savefilename)
+    shape, mids = mc.show_triangle_grad(coords, design, grad, samples, thres=None, equilateral=True, radius=radius, savefile=savefilename)
   
     print('Relative Surface Area: {}'.format(cubit.get_surface_area(shape) / (max_bb[0]-min_bb[0]) / (max_bb[1]-min_bb[1])))
 
@@ -120,4 +120,7 @@ for samples in samp:
   mc.name_regions_and_nodes(shape, None)
 
   # mesh the geometry
-  mc.mesh_shape(shape, meshsize, meshfilename)
+  #mc.mesh_shape(shape, meshsize, meshfilename)
+  # *6 yields approximately same number of nodes and elements as meshing with cubit
+  mc.mesh_shape_with_gmsh(shape, meshsize*2, meshfilename)
+

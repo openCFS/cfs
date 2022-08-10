@@ -485,7 +485,7 @@ def create_2d_mesh_from_image(img, threshold):
     for x in range(nx):  
       val = sum(pa[x,ny-1-y][0:3]) / 3.0 if color else pa[x,ny-1-y] # our y goes upwards (origin is left-lower). The image origin is left-upper
       data[x,y] = 1.0 - (val / 255.0)
-  
+
   return create_2d_mesh_from_array(data, threshold)
 
 ## creates a mesh

@@ -423,7 +423,7 @@ string Function::ToString() const
   else
     os << access.ToString(access_) + "_" + tn;
 
-  if(type_ == GLOBAL_BUCKLING_LOAD_FACTOR)
+  if(type_ == GLOBAL_BUCKLING_LOAD_FACTOR || type_ == LOCAL_BUCKLING_LOAD_FACTOR)
     os << "_" << eigenvalue_id_;
 
   return os.str();

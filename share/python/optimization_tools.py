@@ -435,14 +435,14 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
     for k in range(z):
       for j in range(y):
         for i in range(x):    
-           val = getNDArrayEntry(data, i, j, k)
-           if elemnr is not None:
-             nr = int(getNDArrayEntry(elemnr, i, j, k))
-           # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
-           physical = ' physical="' + '{:.16f}'.format(val ** param) + '"' if param > 0 else ''
-           string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + '{:.16f}'.format(val) + '"' + physical + '/>\n')
-           if elemnr is None:
-             nr = nr + 1       
+          val = getNDArrayEntry(data, i, j, k)
+          if elemnr is not None:
+            nr = int(getNDArrayEntry(elemnr, i, j, k))
+          # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
+          physical = ' physical="' + '{:.16f}'.format(val ** param) + '"' if param > 0 else ''
+          string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + '{:.16f}'.format(val) + '"' + physical + '/>\n')
+          if elemnr is None:
+            nr = nr + 1
 
     # this is a fast way to create a large string which is added to bulk_list: https://waymoot.org/home/python_string/
     bulk_list.append(''.join(string_list)) 

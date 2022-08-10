@@ -160,7 +160,9 @@ void Context::Update()
       assert(sequence != -1);
       ParamNodeList list = em->pn->Get(base)->GetListByVal("designMaterial", "sequence", sequence);
 
-      assert(!(list.IsEmpty() && em->GetMethod() != ErsatzMaterial::SPAGHETTI_PARAM_MAT));
+      if(list.IsEmpty() && em->GetMethod() != ErsatzMaterial::SPAGHETTI_PARAM_MAT)
+        EXCEPTION("No designMaterial given in paramMat for sequence step " + std::to_string(sequence));
+
       if(!list.IsEmpty())
       {
         assert(list.GetSize() == 1);

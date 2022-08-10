@@ -75,7 +75,13 @@ except ImportError:
 
 import time
 import numpy as np
-import matviz_2d
+#import matviz_2d
+from scipy.spatial import ConvexHull
+
+
+possible_nodesets = {11:'lefty', 12:'bottomy', 13:'righty', 14:'topy',
+                     21:'bottom_left', 22:'bottom_right', 23:'top_left', 24:'top_right'}
+
 
 # if param is given, create a parallelogram with two triangular holes and repeat in each dimension
 # or dehomogenize a macroscopic result
@@ -215,6 +221,8 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
 
   if param is None:
     print('Not cutting hole, if relative volume above {:.6f}.'.format(1 - np.pi*rad**2 / (np.sqrt(3)/4*length**2)))
+  else:
+    print('param = {:.6f}'.format(param))
 
   cubit.silent_cmd('reset')
 
@@ -254,13 +262,14 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
   triangleidx = 0
 
   if param is None:
-    # calculate new element centers
+    # calculate new element centers as gauss integration points
     centers_new = []
     for y in range(ny):
       for x in range(nx):
         # -length/2 will add one column too much. we need this to get
         # the correct orientation of triangles
-        center = np.array([-length/2 + x * length/2, np.sqrt(3)/4 * length + y * np.sqrt(3)/2 * length])
+        #center = np.array([-length/2 + x * length/2, 1/2 * np.sqrt(3)/2 * length + y * np.sqrt(3)/2 * length])
+        center = np.array([-length/2 + x * length/2, 1/3 * np.sqrt(3)/2 * length + y * np.sqrt(3)/2 * length])
         centers_new.append(center)
         # kind of integration points -> should be removed and graded triangle bars should be used
         if (x % 2 == 0 and y % 2 == 1) or (x % 2 == 1 and y % 2 == 0):
@@ -268,18 +277,24 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
           #   / \       |   \         /   |
           #  /   \      |    \       /    |
           # 1-----3     1-----3     1-----3
-          centers_new.append(center + [-elem[0]/4.0, -elem[1]/4.0])
-          centers_new.append(center + [+elem[0]/4.0, -elem[1]/4.0])
-          centers_new.append(center + [         0.0, +elem[1]/4.0])
+          #centers_new.append(center + [-elem[0]/4.0, -elem[1]/4.0])
+          #centers_new.append(center + [+elem[0]/4.0, -elem[1]/4.0])
+          #centers_new.append(center + [         0.0, +elem[1]/4.0])
+          centers_new.append(center + [      0.0, + 2/5 * 2/3 * np.sqrt(3)/2 * length])
+          centers_new.append(center + [-length/5, - 1/5 * np.sqrt(3)/2 * length])
+          centers_new.append(center + [+length/5, - 1/5 * np.sqrt(3)/2 * length])
         else:
           # upside down
           # 1-----3     1-----3     1-----3
           #  \   /      |    /       \    |
           #   \ /       |   /         \   |
           #    2        4--2           2--5
-          centers_new.append(center + [-elem[0]/4.0, +elem[1]/4.0])
-          centers_new.append(center + [+elem[0]/4.0, +elem[1]/4.0])
-          centers_new.append(center + [         0.0, -elem[1]/4.0])
+          #centers_new.append(center + [-elem[0]/4.0, +elem[1]/4.0])
+          #centers_new.append(center + [+elem[0]/4.0, +elem[1]/4.0])
+          #centers_new.append(center + [         0.0, -elem[1]/4.0])
+          centers_new.append(center + [      0.0, - 2/5 * 2/3 * np.sqrt(3)/2 * length])
+          centers_new.append(center + [-length/5, + 1/5 * np.sqrt(3)/2 * length])
+          centers_new.append(center + [+length/5, + 1/5 * np.sqrt(3)/2 * length])
 
     # interpolate original data at new centers
     c, v = matviz_2d.convert_single_data_interpolation_input(centers, design, None)
@@ -287,6 +302,8 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
     # any interpolation but nearest neighbor can only interpolate in the convex hull
     ip_near = matviz_2d.ip.griddata(c, v, centers_new, 'nearest') if grad != 'nearest' else None
 
+  holes = np.zeros((nx*ny,2))
+  mid_idx = 0
   for y in range(ny):
     for x in range(nx):
       if param is not None:
@@ -303,17 +320,21 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
 
         # if the value is -1 we use the nearest interpolation
         # mid IS NOT THE MIDPOINT OF THE TRIANGLE BUT OF elem (= enclosing rectangle)
-        mid, area = matviz_2d.get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+0)
+        mid = np.array([-length/2 + x * length/2, 1/2 * np.sqrt(3)/2 * length + y * np.sqrt(3)/2 * length])
+        
+        # gauss integration -> should be removed and graded triangle bars should be used
+        _, area = matviz_2d.get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+0)
         _, area1 = matviz_2d.get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+1)
         _, area2 = matviz_2d.get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+2)
         _, area3 = matviz_2d.get_interpol_data(centers_new if equilateral else centers, ip_data, ip_near, (y * nx + x)*4+3)
-        # kind of integration -> should be removed and graded triangle bars should be used
-        area = (3*area + area1+area2+area3)/6
+        area = -27/48 * area + 25/48 * (area1+area2+area3)
         area = area[0]
 
       area *= np.sqrt(3)/4*length**2
 
       if area < np.sqrt(3)/4*length**2 - np.pi*rad**2:
+        holes[mid_idx,:] = mid
+        mid_idx += 1
         # when we want a parallelogram for homogenization (param not None), all holes are the same size.
         # same is true for homogeneous design.
         # in these cases we only draw one hole and copy + rotate + translate it
@@ -351,11 +372,11 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
           # The triangle approach can lead to very short edges, if the rounded 
           # corners almost form a circle. This causes problems when meshing.
           # Thus, we draw a circle instead, if the area of the hole is smaller
-          # than 3.5 times the area of a circle with radius rad.
-          threshold = 3.5
+          # than threshold times the area of a circle with radius rad.
+          threshold = 1.2
           if np.sqrt(3)/4*length**2 - area < np.pi*rad**2*threshold:
             # midpoint of incircle of triangle
-            edgelengths = np.linalg.norm(nodes, axis=1)
+            edgelengths = np.linalg.norm(nodes[[1,2,0],:]-nodes[[2,0,1],:], axis=1)
             incirc_mid = np.dot(np.transpose(nodes), edgelengths) / sum(edgelengths)
             
             # radius of incircle
@@ -413,16 +434,21 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
       else:
         pass
 
+  holes = holes[~np.all(holes == 0, axis=1)]
+
   mystring = ''
   for idx in triangles:
     if idx > 0:
       mystring += '{:.0f} '.format(idx)
 
   # cut inner triangles from outerShape
-  cubit.silent_cmd('subtract surface {} from surface {} imprint '.format(mystring, outerShape))
+  if mystring:
+    cubit.silent_cmd('subtract surface {} from surface {} imprint '.format(mystring, outerShape))
 
   if savefile is not None:
     cubit.cmd('save cub5 "{}.cub5" overwrite journal'.format(savefile))
+    with open(savefile + '.hole', 'w+') as fid:
+      np.savetxt(fid, holes, fmt='%f %f')
 
   shape = cubit.get_last_id("surface")
 
@@ -431,7 +457,7 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
   end = time.time()
   print('Time for creating geometry: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))))
 
-  return shape
+  return shape, holes
 
 
 # names regions and nodes of a geometry
@@ -462,6 +488,7 @@ def name_regions_and_nodes(shape, param):
     right = []
     bottom = []
     top = []
+
     for curve in all_curves:
       start_point = cubit.curve(curve).position_from_fraction(0)
       end_point = cubit.curve(curve).position_from_fraction(1)
@@ -511,10 +538,10 @@ def name_regions_and_nodes(shape, param):
     cubit.silent_cmd('nodeset 3 add curve {} '.format(right_ids))
     cubit.silent_cmd('nodeset 4 add curve {} '.format(top_ids))
 
-    cubit.silent_cmd('nodeset 5 add vertex {}'.format(top_right_id))
-    cubit.silent_cmd('nodeset 6 add vertex {}'.format(top_left_id))
-    cubit.silent_cmd('nodeset 7 add vertex {}'.format(bottom_left_id))
-    cubit.silent_cmd('nodeset 8 add vertex {}'.format(bottom_right_id))
+    cubit.silent_cmd('nodeset 5 add vertex {}'.format(bottom_left_id))
+    cubit.silent_cmd('nodeset 6 add vertex {}'.format(bottom_right_id))
+    cubit.silent_cmd('nodeset 7 add vertex {}'.format(top_left_id))
+    cubit.silent_cmd('nodeset 8 add vertex {}'.format(top_right_id))
 
   # west, south, east and north are cubit identifiers, thus we use -y
   cubit.silent_cmd('nodeset 1 name "lefty"')
@@ -522,10 +549,10 @@ def name_regions_and_nodes(shape, param):
   cubit.silent_cmd('nodeset 3 name "righty"')
   cubit.silent_cmd('nodeset 4 name "topy"')
 
-  cubit.silent_cmd('nodeset 5 name "top_right"')
-  cubit.silent_cmd('nodeset 6 name "top_left"')
-  cubit.silent_cmd('nodeset 7 name "bottom_left"')
-  cubit.silent_cmd('nodeset 8 name "bottom_right"')
+  cubit.silent_cmd('nodeset 5 name "bottom_left"')
+  cubit.silent_cmd('nodeset 6 name "bottom_right"')
+  cubit.silent_cmd('nodeset 7 name "top_left"')
+  cubit.silent_cmd('nodeset 8 name "top_right"')
 
 
 # mesh a given geometry
@@ -535,8 +562,18 @@ def name_regions_and_nodes(shape, param):
 def mesh_shape(shape, meshsize, filename):
   start = time.time()
 
+  # calculate convex hull of shape
+  vertices_ids = cubit.get_relatives("surface", shape, "vertex")
+  vertices = np.zeros((len(vertices_ids),2))
+  for ii, vertex_id in enumerate(vertices_ids):
+    vertex = cubit.vertex(vertex_id)
+    vertices[ii,:] = vertex.coordinates()[:2]
+  hull = ConvexHull(vertices)
+
+
   block_id = cubit.get_block_id("surface", shape)
-  cubit.silent_cmd('block {} element type TRI3'.format(block_id))
+  if block_id > 0:
+    cubit.silent_cmd('block {} element type TRI3'.format(block_id))
 
   # mesh shape
   cubit.silent_cmd('surface {} size {} '.format(shape, meshsize))
@@ -547,16 +584,21 @@ def mesh_shape(shape, meshsize, filename):
   cubit.cmd('export ansys cdb "{}.cdb"  overwrite '.format(filename))
 
   bb = cubit.get_bounding_box("surface", shape)
-  rel_volume = cubit.get_surface_area(shape) / bb[2] / bb[5]
-  rel_meshed_volume = cubit.get_meshed_volume_or_area("surface",[shape]) / bb[2] / bb[5] 
+  abs_volume = cubit.get_surface_area(shape)
+  #rel_volume = cubit.get_surface_area(shape) / bb[2] / bb[5]
+  #rel_meshed_volume = cubit.get_meshed_volume_or_area("surface",[shape]) / bb[2] / bb[5]
+  rel_volume = cubit.get_surface_area(shape) / hull.volume
+  rel_meshed_volume = cubit.get_meshed_volume_or_area("surface",[shape]) / hull.volume
 
   end = time.time()
   print('Time for meshing: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))))
+  print('Absolute Surface Area: {}'.format(abs_volume))
   print('Relative Surface Area: {}'.format(rel_volume))
   print('Relative Meshed Area: {} ({} triangles)\n'.format(rel_meshed_volume, cubit.get_tri_count()))
 
   with open('{}.log'.format(filename), 'a+') as fid:
     print(filename, file=fid)
+    print('Absolute Surface Area: {}'.format(abs_volume), file=fid)
     print('Relative Surface Area: {}'.format(rel_volume), file=fid)
     print('Relative Meshed Area: {} ({} triangles)\n'.format(rel_meshed_volume, cubit.get_tri_count()), file=fid)
     print('Time for meshing: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))), file=fid)

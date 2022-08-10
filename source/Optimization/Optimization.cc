@@ -440,7 +440,7 @@ void Optimization::SetEnums()
   Function::slackFnct.Add(Function::NORM_BANDGAP, "(2*s)/a");
   Function::slackFnct.Add(Function::ALPHA_MINUS_SLACK, "a-s");
 
-  Function::slackFnct.SetName("Function::MultiObjType");
+  Function::multiObjType.SetName("Function::MultiObjType");
   Function::multiObjType.Add(Function::WEIGHTED_SUM, "weightedSum");
   Function::multiObjType.Add(Function::SMOOTH_MIN, "smoothMin");
   Function::multiObjType.Add(Function::SMOOTH_MAX, "smoothMax");

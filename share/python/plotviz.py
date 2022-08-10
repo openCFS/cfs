@@ -8,8 +8,9 @@ import re
 
 import datetime
 import numpy as np
+from itertools import cycle
 
-# when we use plotviz from postrpoc.py, we don't need this stuff
+# when we use plotviz from postproc.py, we don't need this stuff
 if __name__ == '__main__':
   import argparse
   import matplotlib
@@ -36,6 +37,11 @@ colors = ['tab:green','tab:red','tab:purple','tab:blue','tab:orange','black','ta
           'gold','peru','blueviolet', 'coral','yellowgreen'] 
 colors += colors # repeat such that it should be really enough
 
+# this will cycle through different marker/line styles
+markers = [".","x","+","v","^","<",">","s","*"]
+lines = ["-","--",":","-."]
+markercycler = cycle(markers)
+linecycler = cycle(lines)
 
 # parses the header lines for the first hint on column names.
 # Tries to be smart!!
@@ -496,6 +502,7 @@ if __name__ == '__main__':
   parser.add_argument("--y2label", help='optional label for the secondary ordinate')
   parser.add_argument("--zlabel", help='optional label for the 3d data')
   parser.add_argument("--marker", help='optional matplotlib marker: e.g. . , o v')
+  parser.add_argument("--linestyle", help='optional matplotlib linestyle: e.g. - dashed')
   parser.add_argument("--legend", nargs='*', help="(partially) overwrite labels in the legend as space separated list of strings")
   parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc)")
   parser.add_argument("--legend_ncol", help="number of columns of legend", type=int, default=1)
@@ -673,10 +680,10 @@ if __name__ == '__main__':
     for i in range(len(y)):
       # y is a list of data. if fiy we know the current file index and take the x with the proper file index for you y columns
       # fiy(2) is 1-based and encodes bar with a negative value
-      if fiy[i] > 0: 
-        lines.append(ax.plot(x[fiy[i]-1],y[i], color=colors[i], marker=args.marker)[0]) # returns multiple results and we want only the first
+      if fiy[i] > 0:
+        lines.append(ax.plot(x[fiy[i]-1],y[i], color=colors[i], marker=args.marker if args.marker else next(markercycler), linestyle=args.linestyle if args.linestyle else next(linecycler))[0]) # returns multiple results and we want only the first
       else:
-        lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=colors[i])) # has only one return
+        lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=colors[i], linestyle=args.linestyle if args.linestyle else next(linecycler))) # has only one return
     if args.ylim:
       ax.set_ylim(args.ylim)
 
@@ -686,10 +693,10 @@ if __name__ == '__main__':
       ax2 = ax.twinx()
       for i in range(len(y2)):
         if fiy2[i] > 0:
-          lines.append(ax2.plot(x[fiy2[i]-1],y2[i], color=colors[13+i], marker=args.marker)[0]) # start with gold
+          lines.append(ax2.plot(x[fiy2[i]-1],y2[i], color=colors[13+i], marker=args.marker if args.marker else next(markercycler), linestyle=args.linestyle)[0]) # start with gold
         else:
           #print(-fiy2[i]-1,x[-fiy2[i]-1],y2[i])
-          lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i])))
+          lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i], linestyle=args.linestyle)))
       if args.y2lim:
         ax.set_ylim(args.y2lim)
 

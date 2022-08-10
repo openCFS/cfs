@@ -1439,7 +1439,7 @@ namespace CoupledField {
         // -------------------------
         //  Surface / Volume Forces 
         // -------------------------
-        EXCEPTION("Not yet implemented")
+        EXCEPTION("Not yet implemented: Surface / Volume Forces")
                 
                 // Same issue here as above: We need to "divide" the total force by the
                 // area / volume to get the force density.
