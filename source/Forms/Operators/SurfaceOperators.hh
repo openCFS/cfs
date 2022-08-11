@@ -558,7 +558,7 @@ void SurfaceNormalDivOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
     normalSum += lp.normal[iDim];
   }
 
-  if( !(abs(normalSum)-1<1e-15) ) {
+  if( !(abs(normalSum)-1<1e-12) ) {
     EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
   }
 }
