@@ -2260,9 +2260,13 @@ namespace CoupledField
 
     Double omega = isMultHarmDiag ? 2 * M_PI * f : mp_->Eval(mHandle_);
 
-    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE || domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC){
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
+    }
+    else if( domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC && (mappedDest==DAMPING||mappedDest==DAMPING_AUX||mappedDest==DAMPING_UPDATE) ){
+      // multiply damping with j
+      Matrix2Harmonic( harmMat, elemMat, DAMPING, context.GetEntryType(), 1.0 );
+    }
     else
       harmMat = elemMat;
 
