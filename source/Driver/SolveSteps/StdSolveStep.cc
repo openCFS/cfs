@@ -1422,8 +1422,13 @@ namespace CoupledField {
     Double omega = 2.0*M_PI*actFreq_;
     std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
-    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,omega) );// only multipy by omega, since we have multipied by j already
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS_UPDATE,1.0) );
+    // multiply damping by omega, since we already multipied by j in assemble
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,omega) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING_UPDATE,omega) );
+    // multiply mass by omega^2
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,-omega*omega) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS_UPDATE,-omega*omega) );
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors );
     algsys_->ExportLinSys(true,false,false);
 
