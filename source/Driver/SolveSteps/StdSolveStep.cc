@@ -1426,6 +1426,8 @@ namespace CoupledField {
     // multiply damping by omega, since we already multipied by j in assemble
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,omega) );
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING_UPDATE,omega) );
+    // multiply damping inverse ba 1/omega since we already multipied by j in assemble
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING_AUX,1.0/omega) );
     // multiply mass by omega^2
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,-omega*omega) );
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS_UPDATE,-omega*omega) );
