@@ -1136,7 +1136,8 @@ namespace CoupledField{
         }
 
         FEMatrixType targetMatrix = DAMPING;
-        if(updatedGeo_){
+        CoefFunction::CoefDependType cdt = Z_impMod->GetDependency();
+        if(updatedGeo_ || cdt == CoefFunction::GENERAL || cdt == CoefFunction::TIMEFREQ || cdt == CoefFunction::SOLUTION ){
           targetMatrix = DAMPING_UPDATE;
         }
 
