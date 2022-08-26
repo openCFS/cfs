@@ -137,6 +137,51 @@
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
+  <!--   Definition of postprocessing operation 'L2Norm' -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="L2Norm" type="DT_PostProcL2Norm"
+    substitutionGroup="PostProcBasic">
+    <xsd:annotation>
+      <xsd:documentation>
+        Evaluates the function \sqrt{ \int_\Omega (u_num-u_real)^2 d\Omega } in absolute mode or the function \sqrt{ \frac{\int_\Omega (u_num-u_real)^2 d\Omega}{\int_\Omega u_real^2 d\Omega} } in relative mode.
+        Since the integral gets evaluated numerically but the real solution is given analytically, a suitable (high enough) integration order has to be chosen.
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for postprocessing operation 'L2Norm'  -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PostProcL2Norm">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PostProcBasic">
+        <xsd:choice>
+          <xsd:sequence>
+            <xsd:element name="dof" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="name" type="xsd:token" use="required"/>
+                <xsd:attribute name="realFunc" type="xsd:token" default=""/>
+                <xsd:attribute name="imagFunc" type="xsd:token" default=""/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:choice>
+        <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+        <xsd:attribute name="integrationOrder" type="xsd:integer" use="required"/>
+        <xsd:attribute name="mode" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="absolute"/>
+              <xsd:enumeration value="relative"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
   <!--   Definition of postprocessing operation 'limit' -->
   <!-- ******************************************************************** -->
   <xsd:element name="limit" type="DT_PostProcLimit"

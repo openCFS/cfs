@@ -1929,9 +1929,9 @@ namespace CoupledField {
           }
         }
       }
-      // for the fluidMechNormalSurfaceStress we have to multiply by -1 to be consistent with the normal vectors
+      // for the fluidMechSurfaceTraction we have to multiply by -1 to be consistent with the normal vectors
       Double tracFac;
-      if ( couplName == "fluidMechNormalSurfaceStress") {
+      if ( couplName == "fluidMechSurfaceTraction") {
         tracFac = -1.0;
       } else {
         tracFac = 1.0;

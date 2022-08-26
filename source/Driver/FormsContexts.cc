@@ -35,6 +35,9 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     
     ptPde1_ = NULL;
     ptPde2_ = NULL;
+
+    useVolEqnA_ = biLinForm->GetUseVolEqnA();
+    useVolEqnB_ = biLinForm->GetUseVolEqnB();
   }
 
   BiLinFormContext::~BiLinFormContext() {
@@ -69,13 +72,47 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
                                   StdVector<Integer>& eqnVec2,
                                   FeFctIdType& id1, FeFctIdType& id2 ) {
 
-    // Get equation numbers
-    feFct1_.lock()->GetFeSpace()->GetEqns( eqnVec1, it1 );
-    feFct2_.lock()->GetFeSpace()->GetEqns( eqnVec2, it2 );
+    if( useVolEqnA_ ){
+      // Use eqn evaltion from volume (use case: eval surface BLF where volume information is needed --> e.g. gradient)
 
-    // Get PDE IDs
-    id1 = feFct1_.lock()->GetFctId();
-    id2 = feFct2_.lock()->GetFctId();
+      // get volume element 
+      const SurfElem* sElem1 = it1.GetSurfElem();
+      Elem* ptVolElem1 = sElem1->ptVolElems[0];
+
+      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,ptVolElem1);
+       
+      id1 = feFct1_.lock()->GetFctId();
+
+    } else {
+      // Standard case
+
+      // Get equation numbers
+      feFct1_.lock()->GetFeSpace()->GetEqns( eqnVec1, it1 );
+
+      // Get PDE IDs
+      id1 = feFct1_.lock()->GetFctId();
+    }
+
+    if( useVolEqnB_ ){
+      // Use eqn evaltion from volume (use case: eval surface BLF where volume information is needed --> e.g. gradient)
+
+      // get volume element 
+      const SurfElem* sElem2 = it2.GetSurfElem();
+      Elem* ptVolElem2 = sElem2->ptVolElems[0];
+
+      this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,ptVolElem2);
+       
+      id2 = feFct2_.lock()->GetFctId();
+
+    } else {
+      // Standard case
+
+      // Get equation numbers
+      feFct2_.lock()->GetFeSpace()->GetEqns( eqnVec2, it2 );
+
+      // Get PDE IDs
+      id2 = feFct2_.lock()->GetFctId();
+    }
 
   }
     

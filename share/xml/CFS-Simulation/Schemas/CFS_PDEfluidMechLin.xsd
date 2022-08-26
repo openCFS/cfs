@@ -171,6 +171,18 @@
                     </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <!-- Commented out due to instability, see implementation anntoations in the LinFlow PDE-->
+                <!--<xsd:element name="doNothing" type="DT_AbsorbingBC">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      The doNothing boundary condition adds the surface integrators stemming from the partial integration to the weak form
+                      
+                      ⎛        ⎛                     T⎞   ⎛    2    ⎞            ⎞                       
+                      ⎜-pI + μ ⎝nabla(v) + (nabla(v)) ⎠ + ⎜λ - ─ ⋅ μ⎟ ⋅ I(div(v))⎟ ⋅ n
+                      ⎝                                   ⎝    3    ⎠            ⎠                
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>-->
                 <!-- RHS Load Values-->
                 <xsd:element name="traction" type="DT_BcInhomVector">
                   <xsd:annotation>
@@ -183,7 +195,63 @@
                       This is equivalent to an external surface pressure
                     </xsd:documentation>
                   </xsd:annotation>
-                </xsd:element>                     
+                </xsd:element>   
+                <xsd:element name="velocityConstraint" >
+                  <xsd:annotation>
+                    <xsd:documentation>Sets the velocity in weak sense with the help of a vectorial Lagrange multiplier</xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:choice>
+                        <!-- Standard no slip BC -->
+                        <xsd:element name="noSlip" minOccurs="0" maxOccurs="1">
+                          <xsd:annotation>
+                            <xsd:documentation>Sets all velocity components to zero</xsd:documentation>
+                        </xsd:annotation>
+                        </xsd:element>
+                        <!-- Apply first order Maxwell slip BC -->
+                        <xsd:element name="MaxwellFirstOrderSlip" minOccurs="0" maxOccurs="1">
+                          <xsd:annotation>
+                            <xsd:documentation>
+                              Applies the first order Maxwell slip BC which is valid for higher Knudsen numbers than the standard noSlip BC. 
+                              The slip velocity is calculated as follows: 
+                              $\bm{v} = \bm{v}_\mathrm{wall} - C \frac{\lambda}{\mu} (\bm{n} \cdot \bm{\Pi} ) \cdot (\bm{I}-\bm{n} \otimes \bm{n})$ 
+                              As it can be seen, the slip velocity is proportional to the normal derivative of the velocity which gets projected in the tangential plane.
+                              Futhermore, the stress tensor $\Pi$ is scaled with the inverse of the viscosity in order to get the strain, which is scaled with $C$ and $\lambda$.
+                              The factor $C$ is used to model the surface influence - a value of 1.1466 seems to be a good value for air according to experiments in the literature. 
+                              The mean free path $\lambda$ of air molecules under normal circumstances is about 68 nm.
+                            </xsd:documentation>
+                          </xsd:annotation>
+                          <xsd:complexType>
+                            <xsd:attribute name="meanFreePath" type="xsd:token" use="required"/>
+                            <xsd:attribute name="C1" type="xsd:token" use="required"/>
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:choice>
+                    </xsd:sequence>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>   
+                <xsd:element name="scalarVelocityConstraint" >
+                  <xsd:annotation>
+                    <xsd:documentation>Sets the velocity in weak sense with the help of a scalar Lagrange multiplier</xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:choice>
+                        <!-- noPenetration BC -->
+                        <xsd:element name="noPenetration" minOccurs="0" maxOccurs="1">
+                          <xsd:annotation>
+                            <xsd:documentation>Sets the normal velocity component to zero</xsd:documentation>
+                        </xsd:annotation>
+                        </xsd:element>
+                      </xsd:choice>
+                    </xsd:sequence>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>             
               </xsd:choice>
             </xsd:complexType>
 
@@ -230,6 +298,8 @@
         <xsd:attribute name="velPolyId" type="xsd:string" use="required"/>
         <xsd:attribute name="presIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="velIntegId" type="xsd:string" use="optional" default="default"/>
+        <xsd:attribute name="lagrangeMultPolyId" type="xsd:string" use="optional" fixed="default"/>
+        <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" fixed="default"/>
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="factorC1" type="xsd:double" default="2.0"/>
         <xsd:attribute name="enableC2" type="xsd:boolean" default="false">
@@ -367,15 +437,18 @@
   <!-- ******************************************************************* -->
 
   <!-- Definition of nodal result types of fluid-mechanic PDE -->
-  <!--xsd:simpleType name="DT_FluidMechNodeResult">
+  <xsd:simpleType name="DT_FluidMechLinNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechVelocity"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
       <xsd:enumeration value="fluidMechMeshVelocity"/>
+      <xsd:enumeration value="fluidMechMeshVelocityNode"/>
       <xsd:enumeration value="fluidMechPressure"/>
-      <xsd:enumeration value="acouRhsLoad"/>
+      <xsd:enumeration value="fluidMechZeroPressure"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
+      <xsd:enumeration value="lagrangeMultiplier1"/>
     </xsd:restriction>
-  </xsd:simpleType-->
+  </xsd:simpleType>
 
   <!-- Definition of element result types of fluid-mechanic PDE -->
   <!--xsd:simpleType name="DT_FluidMechElemResult">
@@ -404,7 +477,7 @@
   <!-- Definition of surface element result types of linearized fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechLinSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechNormalSurfaceStress"/> 
+      <xsd:enumeration value="fluidMechSurfaceTraction"/> 
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -439,7 +512,7 @@
 
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_FluidMechNodeResult"/>
+                <xsd:attribute name="type" type="DT_FluidMechLinNodeResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

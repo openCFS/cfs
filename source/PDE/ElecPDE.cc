@@ -267,12 +267,12 @@ namespace CoupledField {
 
     // Init material model for transient analysis
     if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve")){
-        matModelCoef_->Init( elecFieldCoef, modelName_);
+        matModelCoef_->Init( elecFieldCoef, modelName_, dim_);
     }
     // Create new harmonic balance coefficient function and register the regions and material
     if(analysistype_ == MULTIHARMONIC){
         if(modelName_ != "nonlinearCurve"){
-          matModelCoef_->Init( elecFieldCoef, modelName_);
+          matModelCoef_->Init( elecFieldCoef, modelName_, dim_);
         }
 
         baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
@@ -456,7 +456,7 @@ namespace CoupledField {
               ParameterMap["isMH"]=0;
 
               matModelCoef_->InitModel( ParameterMap,actSDList->GetSize());
-              epsilonNL = actSDMat->GetScalCoefFncModel( matModelCoef_ );
+              epsilonNL = matModelCoef_; //actSDMat->GetScalCoefFncModel( matModelCoef_ );
 
               PtrCoefFct hystFluxTmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,epsilonNL,elecFieldCoef,CoefXpr::OP_MULT));
               nlFluxCoef_->AddRegion(actRegion, hystFluxTmp);

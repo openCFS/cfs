@@ -401,11 +401,38 @@ void Lighthill::PrepareCalculation(){
 
 
   StdVector<RegionIdType> rId;
-
+  rId.Init(0);
+  StdVector<UInt> numNodesTrgRegs;
+  numNodesTrgRegs.Init(0);
   std::set<std::string>::const_iterator destRegIt = this->trgRegions_.begin();
   for(; destRegIt != this->trgRegions_.end(); ++destRegIt ) {
     RegionIdType r = trgGrid_->GetRegion().Parse(*destRegIt);
     rId.Push_back(r);
+    UInt cache = trgGrid_->GetNumNodes(r);
+    numNodesTrgRegs.Push_back(cache);
+  }
+
+  StdVector<RegionIdType> src_rId;
+  src_rId.Init(0);
+  StdVector<UInt> numNodesSrcRegs;
+  numNodesSrcRegs.Init(0);
+  UInt noRegions = 0;
+  std::set<std::string>::const_iterator srcRegIt = this->srcRegions_.begin();
+  for(; srcRegIt != this->srcRegions_.end(); ++srcRegIt ) {
+    RegionIdType r = inGrid_->GetRegion().Parse(*srcRegIt);
+    src_rId.Push_back(r);
+    UInt cache = inGrid_->GetNumNodes(r);
+    numNodesSrcRegs.Push_back(cache);
+    noRegions += 1;
+  }
+
+  bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
+  for(UInt i=0; i < noRegions; i++){
+	    if(numNodesSrcRegs[i]!=numNodesTrgRegs[i]){
+	      std::cout << "\t\t\t Differentiator is dealing with " << numNodesSrcRegs[i] <<
+	                   " source " << (inElems ? "elements" : "nodes") << " and "<< numNodesTrgRegs[i] << " target nodes" << std::endl;
+	      EXCEPTION("Source and target mesh of involved regions must be consistent. Use a subsequent interpolation filter, if required otherwise.");
+	    }
   }
 
 

@@ -42,8 +42,7 @@ namespace CoupledField
     virtual ~MagneticScalarPotentialPDE(){};
     
 
-    // Coefficient function for material model
-    shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
+
     //stores the flux for hystersis and nonlinear models
     shared_ptr<CoefFunctionMulti> nlFluxCoef_;
     
@@ -87,8 +86,8 @@ namespace CoupledField
     std::map<RegionIdType, PtrCoefFct> Hsmap_;
 
     //! Coefficient function, containing the overall permeability
-    //shared_ptr<CoefFunctionMulti> perm_;
-    
+    shared_ptr<CoefFunctionMulti> perm_;
+   
   };
   
 #ifdef DOXYGEN_DETAILED_DOC

@@ -37,11 +37,10 @@ AbstractInterpolator::AbstractInterpolator(UInt numWorkers, CF::PtrParamNode con
   useElemAsTarget_ = false;
   if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
   verboseSum_ = false;
-  if(config->Has("scheme") == true){
-	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
-  }else{
-	  globalFactor_ = 1.0;
-  }
+
+  // Global factor removed from xml scheme. Therefore, it is hard-coded. Use binary operation filter if required.
+  globalFactor_= 1.0;
+
 }
 
 AbstractInterpolator::~AbstractInterpolator(){

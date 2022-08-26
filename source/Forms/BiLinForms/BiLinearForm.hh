@@ -47,6 +47,9 @@ class BiLinearForm : public CfsCopyable{
         isNewtonBilinearForm_ = false;
         isSymmetric_ = false;
         isSolDependent_ = false;
+
+        useVolEqnA_ = false;
+        useVolEqnB_ = false;
       }
 
       /** This assignment operator is only! designed for use for OMP
@@ -73,6 +76,9 @@ class BiLinearForm : public CfsCopyable{
         this->ptFeSpace2_ = right.ptFeSpace2_;
         this->intScheme_ = right.intScheme_;
         this->isSolDependent_ = false;
+
+        this->useVolEqnA_ = right.useVolEqnA_;
+        this->useVolEqnB_ = right.useVolEqnB_;
       }
 
       /** Create a deep copy of the current objects pointer in combination
@@ -161,6 +167,26 @@ class BiLinearForm : public CfsCopyable{
       FeSpace* GetFeSpace1() { return ptFeSpace1_.get(); }
       shared_ptr<FeSpace> GetPtrFeSpace1() { return ptFeSpace1_; }
 
+      //! Set eqn evaluation to volume for A operator
+      virtual void SetUseVolEqnA( bool useVolEqn ) {
+        useVolEqnA_ = useVolEqn;
+      }
+
+      //! Get eqn evaluation for A operator
+      virtual bool GetUseVolEqnA() {
+        return useVolEqnA_;
+      }
+
+      //! Set eqn evaluation to volume for B operator
+      virtual void SetUseVolEqnB( bool useVolEqn ) {
+        useVolEqnB_ = useVolEqn;
+      }
+
+      //! Get eqn evaluation for B operator
+      virtual bool GetUseVolEqnB() {
+        return useVolEqnB_;
+      }
+
     protected:
 
       /** name of (bi)linearform. This is in the constructor BDBInt, ... and can be overwritten by SetName() */
@@ -188,6 +214,14 @@ class BiLinearForm : public CfsCopyable{
 
       //! point to integration scheme
       shared_ptr<IntScheme> intScheme_;
+
+      // Flag to indicate if the number of functions shall be aquired from the volume or surface element
+      // This is needed for e.g. a gradient evaluated at a surface, since we perform the evaluation at the
+      // integration points of the surface, but we need all DOFs of the element for the calculation of the gradient
+      // We can set this for A- and B operator seperately
+      bool useVolEqnA_;
+
+      bool useVolEqnB_;
   };
 }
 

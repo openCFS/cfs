@@ -30,11 +30,7 @@ GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode
 
   this->filtStreamType_ = FIFO_FILTER;
 
-  if(config->Has("scheme") == true){
-	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
-  }else{
-	  globalFactor_ = 1.0;
-  }
+  globalFactor_ = 1.0; // if scaling required, it must be done by dedicated binary operation - filter
 
 }
 

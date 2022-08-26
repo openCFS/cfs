@@ -113,6 +113,11 @@ namespace CoupledField
                         RegionIdType regionId,
                         bool isComplex );
 
+    //! Add surface integrators stemming from partially integrating the stress tensor
+    //! We usually do not need these terms when prescribing the velocity directly, but we need them for e.g. LM-based constraints or the doNothingBC
+    void AddSurfaceIntegratorFromPartialIntegration(UInt i, StdVector<std::string> volumeRegions,
+                                                    StdVector<shared_ptr<EntityList> > ent, std::string integrator);
+
     //! Coefficient function for the flow field
     
     //! This coefficient function describes the flow field. As this 
@@ -122,6 +127,16 @@ namespace CoupledField
     shared_ptr<CoefFunction> meanFlowCoefScattered_;
     shared_ptr<BaseFeFunction> meanFlowFeFct_;
     shared_ptr<FeSpace> meanFlowFeSpace_;
+
+    //! Slip condition
+    bool isSlip_;
+    shared_ptr<CoefFunctionMulti> meanFreePathCoef_;
+
+    //! Use lagrange multiplier to enforce constraints
+    bool useLagrangeMultVec_;
+
+    //! Use lagrange multiplier 1 to enforce scalar constraints
+    bool useLagrangeMultScal_;
 
     //! Surface regions on which pressure surface integral has to be defined
     StdVector<RegionIdType> presSurfaces_;
@@ -135,11 +150,17 @@ namespace CoupledField
     //! order of FE basis function for velocity
     std::string velPolyId_;
 
+    //! order of FE basis function for lagrange multiplier
+    std::string lagrangeMultPolyId_;
+    
     //! order of integration for pressure
     std::string presIntegId_;
 
     //! order of integration for velocity
     std::string velIntegId_;
+
+    //! order of integration lagrange multiplier
+    std::string lagrangeMultIntegId_;
 
     //! considers a varying background flow
     bool enableC2_;

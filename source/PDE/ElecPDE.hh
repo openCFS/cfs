@@ -195,9 +195,6 @@ namespace CoupledField
     //! Coefficient function for the multiharmonic material adaptions
     shared_ptr<CoefFunction> multiHarmCoef_;
 
-    // Coefficient function for material model
-    shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
-
     //stores the flux for hystersis and nonlinear models
     shared_ptr<CoefFunctionMulti> nlFluxCoef_;
   };

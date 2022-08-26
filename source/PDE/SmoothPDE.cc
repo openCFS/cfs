@@ -607,7 +607,7 @@ namespace CoupledField {
       //feFunctions_[MECH_VELOCITY] = vFct;
 
       // === GRID ACCELERATION ===
-      shared_ptr<ResultInfo> acc(new ResultInfo);
+      /*shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = SMOOTH_ACCELERATION;
       acc->dofNames = dispDofNames;
       acc->unit = "m^2/s";
@@ -615,20 +615,10 @@ namespace CoupledField {
       acc->definedOn = ResultInfo::NODE;
       availResults_.insert( acc );
       DefineTimeDerivResult( SMOOTH_ACCELERATION, 2, SMOOTH_DISPLACEMENT );
-      aFct = timeDerivFeFunctions_[SMOOTH_ACCELERATION];
+      aFct = timeDerivFeFunctions_[SMOOTH_ACCELERATION];*/
+      //feFunctions_[SMOOTH_ACCELERATION] = aFct;
     }
     
-//    // === SMOOTH ACCELERATION ===
-//    shared_ptr<ResultInfo> acc(new ResultInfo);
-//    acc->resultType = SMOOTH_ACCELERATION;
-//    acc->dofNames = dispDofNames;
-//    acc->unit = "m/s^2";
-//    acc->entryType = ResultInfo::VECTOR;
-//    acc->definedOn = ResultInfo::NODE;
-//    availResults_.insert( acc );
-//    DefineTimeDerivResult( SMOOTH_ACCELERATION, 2, SMOOTH_DISPLACEMENT );
-//    aFct = timeDerivFeFunctions_[SMOOTH_ACCELERATION];
-//    //feFunctions_[SMOOTH_ACCELERATION] = aFct;
 
     // === SMOOTH ZERO STRESS ===
     // This is a dummy result in order to get the iterative coupling to recognize

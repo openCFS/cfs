@@ -137,10 +137,49 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
+
+  const SurfElem *sElem1 = NULL;
+  const SurfElem *sElem2 = NULL;
+  const Elem *ptVolElem1 = NULL;
+  const Elem *ptVolElem2 = NULL;
+
+  BaseFE *ptFeA = NULL;
+  BaseFE *ptFeB = NULL;
   IntegOrder order1, order2;
   IntScheme::IntegMethod method1, method2;
-  BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
-  BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, method2, order2 );
+
+  // Check if we have to evaluate the volume or surface element in the case of special conditions for the surface
+  if ( this->GetUseVolEqnA() )
+  {
+    // get surface element
+    sElem1 = ent1.GetSurfElem();
+    // get volume element
+    ptVolElem1 = sElem1->ptVolElems[0];
+
+    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum);
+    
+    this->ptFeSpace1_->GetIntegration(ptFeA, ptVolElem1->regionId, method1, order1);
+  }
+  else
+  {
+    ptFeA = this->ptFeSpace1_->GetFe(ent1, method1, order1);
+  }
+
+  if ( this->GetUseVolEqnB() )
+  {
+    // get surface element
+    sElem2 = ent2.GetSurfElem();
+    // get volume element
+    ptVolElem2 = sElem2->ptVolElems[0];
+
+    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+
+    this->ptFeSpace2_->GetIntegration(ptFeB, ptVolElem2->regionId, method2, order2);
+  }
+  else
+  {
+    ptFeB = this->ptFeSpace2_->GetFe(ent2, method2, order2);
+  }
 
 
   const UInt nrFncsA = ptFeA->GetNumFncs();

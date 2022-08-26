@@ -55,6 +55,8 @@
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 
 
@@ -98,6 +100,7 @@ namespace CoupledField {
     if ( formulation == "compressible")
         isCompressible_ = true;
 
+
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
 
@@ -117,10 +120,12 @@ namespace CoupledField {
     //get oder of FE basis functions
     presPolyId_ = myParam_->Get("presPolyId")->As<std::string>();
     velPolyId_  = myParam_->Get("velPolyId")->As<std::string>();
+    lagrangeMultPolyId_ = myParam_->Get("presPolyId")->As<std::string>();
 
     //get order of integration
     presIntegId_ = myParam_->Get("presIntegId")->As<std::string>();
     velIntegId_  = myParam_->Get("velIntegId")->As<std::string>();
+    lagrangeMultIntegId_ = myParam_->Get("presIntegId")->As<std::string>();
 
     // Obtain pressure surface regions
     PtrParamNode presSurfaceNode = myParam_->Get("presSurfaceList",
@@ -169,6 +174,24 @@ namespace CoupledField {
 
     // grid velocity coefFunction
     gridVelCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, ptGrid_->GetDim(), 1, isComplex_, true));
+
+
+    // Check if the lagrange multiplier is needed
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    ParamNodeList velocityConstraintNodes = bcNode->GetList( "velocityConstraint" );
+    useLagrangeMultVec_ = false;
+    if( !velocityConstraintNodes.IsEmpty() ) {
+      // enables usage of LAGRANGE_MULT
+      useLagrangeMultVec_ = true;
+    }
+
+     // Check if the lagrange multiplier 1 is needed
+    ParamNodeList scalarVelocityConstraintNodes = bcNode->GetList( "scalarVelocityConstraint" );
+    useLagrangeMultScal_ = false;
+    if( !scalarVelocityConstraintNodes.IsEmpty() ) {
+      // enables usage of LAGRANGE_MULT_1
+      useLagrangeMultScal_ = true;
+    }
   }
   
   void LinFlowPDE::InitNonLin() {
@@ -194,6 +217,21 @@ namespace CoupledField {
     std::map< RegionIdType, PtrCoefFct > oneFuncs;
     std::set< RegionIdType > flowRegions;
 
+    shared_ptr<BaseFeFunction> lagrangeMultFct = NULL;
+    shared_ptr<FeSpace> lagrangeMultSpace = NULL;
+
+    shared_ptr<BaseFeFunction> lagrangeMultFct_1 = NULL;
+    shared_ptr<FeSpace> lagrangeMultSpace_1 = NULL;
+
+    if ( useLagrangeMultVec_ ) {
+      lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
+      lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
+    }
+    if ( useLagrangeMultScal_ ) {
+      lagrangeMultFct_1 = feFunctions_[LAGRANGE_MULT_1];
+      lagrangeMultSpace_1 = lagrangeMultFct_1->GetFeSpace();
+    }
+
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
@@ -215,6 +253,18 @@ namespace CoupledField {
       velFct->AddEntityList( actSDList );
       presFct->AddEntityList( actSDList );
       meanVelFct->AddEntityList( actSDList );
+
+
+      // Lagrange multiplier
+      if ( useLagrangeMultVec_ ) {
+        lagrangeMultFct->AddEntityList( actSDList );
+        lagrangeMultSpace->SetRegionApproximation(actRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
+      }
+      if ( useLagrangeMultScal_ ) {
+        lagrangeMultFct_1->AddEntityList( actSDList );
+        lagrangeMultSpace_1->SetRegionApproximation(actRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
+      }
+
 
       // --------------------------
       //  Set region approximation
@@ -915,12 +965,190 @@ namespace CoupledField {
       assemble_->AddLinearForm(ctx);
       velFct->AddEntityList(ent[i]);
     } // for
+
+
+    //========================================================================================
+    // Lagrange multiplier based weak Dirichlet BCs
+    //========================================================================================
+
+    // Get FESpace and FeFunction of the lagrange multiplier
+    shared_ptr<BaseFeFunction> lagrangeMultFct = NULL;
+    shared_ptr<FeSpace> lagrangeMultSpace = NULL;
+    shared_ptr<BaseFeFunction> lagrangeMultFct_1 = NULL;
+    shared_ptr<FeSpace> lagrangeMultSpace_1 = NULL;
+
+    // we only assemble the integrator if there are some BCs specified and if mesh movement is present
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+      StdVector<shared_ptr<EntityList> > ent;
+      StdVector<PtrCoefFct > kCoef;
+      StdVector<std::string> volumeRegions;
+
+      // Define FE space etc.
+      if ( useLagrangeMultScal_ ) {
+        lagrangeMultFct_1 = feFunctions_[LAGRANGE_MULT_1];
+        lagrangeMultSpace_1 = lagrangeMultFct_1->GetFeSpace();
+      }
+
+      ReadRhsExcitation("scalarVelocityConstraint", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        // check type of entitylist
+        if (ent[i]->GetType() != EntityList::SURF_ELEM_LIST) {
+          EXCEPTION("Velocity constraint BC must be defined on (surface) elements")
+        }
+        std::string regionName = ent[i]->GetName();
+        shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+
+        // check for grid velocity, if the coefFunction is not present, skip the definition of the integrator
+        std::string volRegionName = ptGrid_->GetRegion().ToString(aRegion);
+        PtrParamNode regionNode = myParam_->Get("regionList")->GetByVal("region","name",volRegionName.c_str());
+        std::string movingMeshID;
+        regionNode->GetValue( "movingMeshId", movingMeshID, ParamNode::PASS );
+
+        if( !movingMeshID.empty() ) {
+          // Get polynomial and integration order for Lagrange multiplier
+          lagrangeMultSpace_1->SetRegionApproximation(aRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
+
+          // check for noPenetration BC
+          PtrParamNode scalVelConstNode = bcNode->GetByVal("scalarVelocityConstraint","name", regionName);
+          ParamNodeList scalVelConstNodeList = scalVelConstNode->GetChildren();
+
+          for (UInt ii = 0; ii < scalVelConstNodeList.GetSize(); ii++){
+
+            std::string nodeName = scalVelConstNodeList[ii]->GetName();
+        
+            if( nodeName=="noPenetration" ) {
+              // build the RHS
+              // constraint equation: \int_\Gamma_D \lambda^\star n \cdot  v_g
+              // since this is dependent on the grid velocity we will always have a geometry update
+              PtrCoefFct gridVelCoefRegion = gridVelCoef_->GetRegionCoef(aRegion);
+
+              if( dim_ == 2) {
+                if(isComplex_) {
+                  lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormal<FeH1,2,1>(),
+                      Complex(1.0,0), gridVelCoefRegion, volRegion, true, true);
+                } else {
+                  lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormal<FeH1,2,1>(),
+                      1.0, gridVelCoefRegion, volRegion, true, true);
+                }
+              } else  {
+                if(isComplex_) {
+                  lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormal<FeH1,3,1>(),
+                      Complex(1.0,0), gridVelCoefRegion, volRegion, true, true);
+                } else {
+                  lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormal<FeH1,3,1>(),
+                      1.0, gridVelCoefRegion, volRegion, true, true);
+                }
+              }
+              lin->SetName("noPenetrationInt");
+              LinearFormContext *ctx = new LinearFormContext( lin );
+              ctx->SetEntities( ent[i] );
+              ctx->SetFeFunction(lagrangeMultFct_1);
+              assemble_->AddLinearForm(ctx);
+              lagrangeMultFct_1->AddEntityList(ent[i]);
+            }
+          }
+        }
+      }
+
+      // Define FE space etc.
+      if ( useLagrangeMultVec_ ) {
+        lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
+        lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
+      }
+      
+      ReadRhsExcitation("velocityConstraint", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        // check type of entitylist
+        if (ent[i]->GetType() != EntityList::SURF_ELEM_LIST) {
+          EXCEPTION("Velocity constraint BC must be defined on (surface) elements")
+        }
+        std::string regionName = ent[i]->GetName();
+        shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+
+        // check for grid velocity, if the coefFunction is not present, skip the definition of the integrator
+        std::string volRegionName = ptGrid_->GetRegion().ToString(aRegion);
+        PtrParamNode regionNode = myParam_->Get("regionList")->GetByVal("region","name",volRegionName.c_str());
+        std::string movingMeshID;
+        regionNode->GetValue( "movingMeshId", movingMeshID, ParamNode::PASS );
+
+        if( !movingMeshID.empty() ) {
+          // Get polynomial and integration order for Lagrange multiplier
+          lagrangeMultSpace->SetRegionApproximation(aRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
+
+          // check for noSlip and Maxwell slip BC
+          PtrParamNode velConstNode = bcNode->GetByVal("velocityConstraint","name", regionName);
+          ParamNodeList velConstNodeList = velConstNode->GetChildren();
+
+          for (UInt ii = 0; ii < velConstNodeList.GetSize(); ii++){
+
+            std::string nodeName = velConstNodeList[ii]->GetName();
+        
+            if( nodeName=="MaxwellFirstOrderSlip" || nodeName=="noSlip" ) {
+              // build the RHS
+              // constraint equation: \int_\Gamma_D \lambda^\star \cdot  v_g
+              // since this is dependent on the grid velocity we will always have a geometry update
+              PtrCoefFct gridVelCoefRegion = gridVelCoef_->GetRegionCoef(aRegion);
+
+              if( dim_ == 2) {
+                if(isComplex_) {
+                  lin = new BUIntegrator<Complex, true> ( new IdentityOperator<FeH1,2,2>(),
+                      Complex(1.0,0), gridVelCoefRegion, volRegion, true, true);
+                } else {
+                  lin = new BUIntegrator<Double,true> ( new IdentityOperator<FeH1,2,2>(),
+                      1.0, gridVelCoefRegion, volRegion, true, true);
+                }
+              } else  {
+                if(isComplex_) {
+                  lin = new BUIntegrator<Complex, true> ( new IdentityOperator<FeH1,3,3>(),
+                      Complex(1.0,0), gridVelCoefRegion, volRegion, true, true);
+                } else {
+                  lin = new BUIntegrator<Double, true> ( new IdentityOperator<FeH1,3,3>(),
+                      1.0, gridVelCoefRegion, volRegion, true, true);
+                }
+              }
+              lin->SetName("SlipInt");
+              LinearFormContext *ctx = new LinearFormContext( lin );
+              ctx->SetEntities( ent[i] );
+              ctx->SetFeFunction(lagrangeMultFct);
+              assemble_->AddLinearForm(ctx);
+              lagrangeMultFct->AddEntityList(ent[i]);
+            }
+          }
+        }
+      }
+    } // LM based weak Dirichlet BC
+
   }
 
   void LinFlowPDE::DefineSurfaceIntegrators(){
     // Get FESpace and FeFunction of fluid velocity
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
     shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
+
+    // Get FESpace and FeFunction of fluid pressure
+    shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
+    shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+
+    // Get FESpace and FeFunction of the lagrange multiplier
+    shared_ptr<BaseFeFunction> lagrangeMultFct = NULL;
+    shared_ptr<FeSpace> lagrangeMultSpace = NULL;
+
+    shared_ptr<BaseFeFunction> lagrangeMultFct_1 = NULL;
+    shared_ptr<FeSpace> lagrangeMultSpace_1 = NULL;
+
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
       StdVector<shared_ptr<EntityList> > ent;
@@ -1138,6 +1366,321 @@ namespace CoupledField {
         feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( abcContext );
       }
+      
+      
+      //========================================================================================
+      // Do nothing BC
+      // Implements the classical do nothing BC which is also required for LM based BCs
+      // Although we could provide the doNothing BC in the xml scheme, we restrict it to be an
+      // "inner" function. The reason for this is that the formulation seems unstable when
+      // inflow occours, hence, the usage besides the weakly enforced Maxwell BC is questionable
+      //========================================================================================
+
+      ReadRhsExcitation("doNothing", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // Axi-symmetric formulation is not finished yet, throw an exception of requested
+        // Note: The strain operator is already updated to handle axi-symmetric stuff, only the surface div-operator is missing
+        if( isaxi_ ) {
+          EXCEPTION("Axi-symmtric formulation not implemented for the doNothing BC (missing surface div-operator in axi-formulation, please implement me)");
+        }
+        
+        AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "all");
+        
+      }
+
+
+      //========================================================================================
+      // velocity constraint
+      //========================================================================================
+
+      ReadRhsExcitation("velocityConstraint", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+
+      // Define FE space etc.
+      if ( useLagrangeMultVec_ ) {
+        lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
+        lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
+      }
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        // check type of entitylist
+        if (ent[i]->GetType() != EntityList::SURF_ELEM_LIST) {
+          EXCEPTION("Velocity constraint BC must be defined on (surface) elements")
+        }
+        std::string regionName = ent[i]->GetName();
+        shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+
+        // Get polynomial and integration order for Lagrange multiplier
+        lagrangeMultSpace->SetRegionApproximation(aRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
+
+
+        PtrParamNode velConstNode = bcNode->GetByVal("velocityConstraint","name", regionName);
+        ParamNodeList velConstNodeList = velConstNode->GetChildren();
+
+        bool isNoSlipBC = false;
+        bool isMaxwellBC = false;
+        for (UInt ii = 0; ii < velConstNodeList.GetSize(); ii++){
+          std::string nodeName = velConstNodeList[ii]->GetName();
+          if( nodeName=="noSlip" ){
+            isNoSlipBC = true;
+          } else if( nodeName=="MaxwellFirstOrderSlip" ) {
+            isMaxwellBC = true;
+          }
+        }
+
+        // setup the integrators
+
+
+        if( isNoSlipBC || isMaxwellBC ) {
+          // since the velocity is enforced weakly we have to add the missing surface term stemming from partial integration
+          // similar to the noPenetration BC we only add the pressure term, otherwise stuff gets unstable for the noSlip BC
+          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
+
+
+          // conservation of momentum: \int_\Gamma_D v' \lambda
+          BiLinearForm * surfVelocityConstraintIntVL = NULL;
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          if(isComplex_) {
+            if (dim_ == 2){
+              surfVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                              new IdentityOperator<FeH1,2,2>(),
+                                                                              constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              surfVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
+                                                                              new IdentityOperator<FeH1,3,3>(),
+                                                                              constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            }
+          } else {
+            if (dim_ == 2){
+              surfVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                new IdentityOperator<FeH1,2,2>(),
+                                                                constOne, 1.0, volRegion, updatedGeo_ );
+            } else {
+              surfVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                                                new IdentityOperator<FeH1,3,3>(),
+                                                                constOne, 1.0, volRegion, updatedGeo_ );
+            }
+          }
+          surfVelocityConstraintIntVL->SetName("velocityConstraintIntVL");
+          BiLinFormContext *surfVelocityConstraintContextVL = new BiLinFormContext(surfVelocityConstraintIntVL, STIFFNESS );
+          surfVelocityConstraintContextVL->SetEntities( actSDList, actSDList);
+          surfVelocityConstraintContextVL->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY], feFunctions_[LAGRANGE_MULT]);
+          feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+          feFunctions_[LAGRANGE_MULT]->AddEntityList( actSDList );
+          assemble_->AddBiLinearForm( surfVelocityConstraintContextVL );
+
+
+          // constraint equation: \int_\Gamma_D \lambda' \cdot  v 
+          BiLinearForm * surfVelocityConstraintIntLV = NULL;
+          if(isComplex_) {
+            if (dim_ == 2){
+              surfVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                              new IdentityOperator<FeH1,2,2>(),
+                                                                              constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              surfVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
+                                                                              new IdentityOperator<FeH1,3,3>(),
+                                                                              constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            }
+          } else {
+            if (dim_ == 2){
+              surfVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                new IdentityOperator<FeH1,2,2>(),
+                                                                constOne, 1.0, volRegion, updatedGeo_ );
+            } else {
+              surfVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                                                new IdentityOperator<FeH1,3,3>(),
+                                                                constOne, 1.0, volRegion, updatedGeo_ );
+            }
+          }
+          surfVelocityConstraintIntLV->SetName("velocityConstraintIntLV");
+          BiLinFormContext *surfVelocityConstraintContextLV = new BiLinFormContext(surfVelocityConstraintIntLV, STIFFNESS );
+          surfVelocityConstraintContextLV->SetEntities( actSDList, actSDList);
+          surfVelocityConstraintContextLV->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[FLUIDMECH_VELOCITY]);
+          feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+          feFunctions_[LAGRANGE_MULT]->AddEntityList( actSDList );
+          assemble_->AddBiLinearForm( surfVelocityConstraintContextLV );
+        }
+
+
+        if( isMaxwellBC ){
+          std::string maxwellMeanFreePathString;
+          std::string maxwellC1String;
+          velConstNode->Get("MaxwellFirstOrderSlip")->GetValue( "meanFreePath", maxwellMeanFreePathString );
+          velConstNode->Get("MaxwellFirstOrderSlip")->GetValue( "C1", maxwellC1String );
+
+          //double meanFreePath = std::stod(maxwellMeanFreePathString);
+          //double maxwellC1 = std::stod(maxwellC1String);
+          
+          PtrCoefFct coefMaxwellBC = CoefFunction::Generate( mp_,  Global::REAL,
+            CoefXprBinOp(mp_, CoefFunction::Generate( mp_, Global::REAL, maxwellC1String),
+            CoefFunction::Generate( mp_, Global::REAL, maxwellMeanFreePathString), CoefXpr::OP_MULT));
+
+          
+          // for the Maxwell BC we also add the rest of the terms stemming from partial integration
+          // this is necessary in order to not get a mesh dependent BC, which would be the case if the missing terms are neglected
+          // for the Maxwell BC adding these terms does not seem to introduce instability when the normal vector is parallel to an axis
+          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P2");
+          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P3");
+          
+          
+          // constraint equation: \int_\Gamma_D \lambda^\star \cdot  M(u)
+          // here M() denotes the operator used for the calculation of the slip velocity based on the normal derivative of the velocity 
+          // to be consistent with the derivation we also set the counterpart for this integrator
+          // since we used the weak noSlip BC as a basis and the Maxwell part only acts in the tangential plane, we also enforce a noPenetration BC
+          BiLinearForm * surfVelocityConstraintMaxwellIntLV = NULL;
+          if(isComplex_) {
+            if (dim_ == 2){
+              surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                                      new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
+                                                                                      coefMaxwellBC, Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
+            }
+          } else {
+            if (dim_ == 2){
+              surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                      new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
+                                                                      coefMaxwellBC, 1.0, volRegion, updatedGeo_ );
+            } else {
+              EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
+            }
+          }
+          //surfWeakVelocityMaxwellIntLV->SetRequestVolElem();
+          surfVelocityConstraintMaxwellIntLV->SetName("velocityConstraintMaxwellIntLV");
+          // we set the volume evaluation for the BiLinForm since the context will automatically use the value of the BiLinForm
+          // we have to do this before the initialization of the context!
+          surfVelocityConstraintMaxwellIntLV->SetUseVolEqnB( true ); 
+          BiLinFormContext *surfVelocityConstraintMaxwellContextLV = new BiLinFormContext(surfVelocityConstraintMaxwellIntLV, STIFFNESS );
+          surfVelocityConstraintMaxwellContextLV->SetEntities( actSDList, actSDList);
+          surfVelocityConstraintMaxwellContextLV->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[FLUIDMECH_VELOCITY]);
+          feFunctions_[LAGRANGE_MULT]->AddEntityList( actSDList );
+          feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+          surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+          assemble_->AddBiLinearForm( surfVelocityConstraintMaxwellContextLV );
+        }
+      }
+
+
+      //========================================================================================
+      // scalar velocity constraint
+      //========================================================================================
+
+      ReadRhsExcitation("scalarVelocityConstraint", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+
+      // Define FE space etc.
+      if ( useLagrangeMultScal_ ) {
+        lagrangeMultFct_1 = feFunctions_[LAGRANGE_MULT_1];
+        lagrangeMultSpace_1 = lagrangeMultFct_1->GetFeSpace();
+      }
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+
+        // check type of entitylist
+        if (ent[i]->GetType() != EntityList::SURF_ELEM_LIST) {
+          EXCEPTION("Velocity constraint BC must be defined on (surface) elements")
+        }
+
+        std::string regionName = ent[i]->GetName();
+        shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+
+        // Get polynomial and integration order for Lagrange multiplier
+        lagrangeMultSpace_1->SetRegionApproximation(aRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
+
+
+        PtrParamNode scalVelConstNode = bcNode->GetByVal("scalarVelocityConstraint","name", regionName);
+        ParamNodeList scalVelConstNodeList = scalVelConstNode->GetChildren();
+
+        bool isNoPenetrationBC = false;
+        for (UInt i = 0; i < scalVelConstNodeList.GetSize(); i++){
+          std::string nodeName = scalVelConstNodeList[i]->GetName();
+          if( nodeName=="noPenetration" ){
+            isNoPenetrationBC = true;
+          }
+        }
+
+        // setup the integrators
+
+        // adding the additional velocity based surface integrators from integration by parts here causes some trouble, hence, we skip them
+        // it is ok for this case since the contribution would be similar (in normal direction) and will be just "taken over" by the Lagrange multiplier
+        AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
+
+        if( isNoPenetrationBC ) {
+          // conservation of momentum: \int_\Gamma_D v' \cdot n \lambda
+          BiLinearForm * surfScalarVelocityConstraintIntVL = NULL;
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          if(isComplex_) {
+            if (dim_ == 2){
+              surfScalarVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                                    new IdentityOperatorNormal<FeH1,2,1>(),
+                                                                                    constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              surfScalarVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
+                                                                                    new IdentityOperatorNormal<FeH1,3,1>(),
+                                                                                    constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            }
+          } else {
+            if (dim_ == 2){
+              surfScalarVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                      new IdentityOperatorNormal<FeH1,2,1>(),
+                                                                      constOne, 1.0, volRegion, updatedGeo_ );
+            } else {
+              surfScalarVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                                                      new IdentityOperatorNormal<FeH1,3,1>(),
+                                                                      constOne, 1.0, volRegion, updatedGeo_ );
+            }
+          }
+          surfScalarVelocityConstraintIntVL->SetName("scalarVelocityConstraintIntVL");
+          BiLinFormContext *surfScalarVelocityConstraintContextVL = new BiLinFormContext(surfScalarVelocityConstraintIntVL, STIFFNESS );
+          surfScalarVelocityConstraintContextVL->SetEntities( actSDList, actSDList);
+          surfScalarVelocityConstraintContextVL->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY], feFunctions_[LAGRANGE_MULT_1]);
+          feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+          feFunctions_[LAGRANGE_MULT_1]->AddEntityList( actSDList );
+          assemble_->AddBiLinearForm( surfScalarVelocityConstraintContextVL );
+
+          // constraint equation: \int_\Gamma_D \lambda' n \cdot v
+          BiLinearForm * surfScalarVelocityConstraintIntLV = NULL;
+          if(isComplex_) {
+            if (dim_ == 2){
+              surfScalarVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperatorNormal<FeH1,2,1>(),
+                                                                                    new IdentityOperator<FeH1,2,2>(),
+                                                                                    constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            } else {
+              surfScalarVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperatorNormal<FeH1,3,1>(),
+                                                                                    new IdentityOperator<FeH1,3,3>(),
+                                                                                    constOne, Complex(1.0,0), volRegion, updatedGeo_ );
+            }
+          } else {
+            if (dim_ == 2){
+              surfScalarVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,2,1>(),
+                                                                      new IdentityOperator<FeH1,2,2>(),
+                                                                      constOne, 1.0, volRegion, updatedGeo_ );
+            } else {
+              surfScalarVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,3,1>(),
+                                                                      new IdentityOperator<FeH1,3,3>(),
+                                                                      constOne, 1.0, volRegion, updatedGeo_ );
+            }
+          }
+          surfScalarVelocityConstraintIntLV->SetName("surfScalarVelocityConstraintIntLV");
+          BiLinFormContext *surfScalarVelocityConstraintContextLV = new BiLinFormContext(surfScalarVelocityConstraintIntLV, STIFFNESS );
+          surfScalarVelocityConstraintContextLV->SetEntities( actSDList, actSDList);
+          surfScalarVelocityConstraintContextLV->SetFeFunctions( feFunctions_[LAGRANGE_MULT_1], feFunctions_[FLUIDMECH_VELOCITY]);
+          feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+          feFunctions_[LAGRANGE_MULT_1]->AddEntityList( actSDList );
+          assemble_->AddBiLinearForm( surfScalarVelocityConstraintContextLV );
+        }
+      }
     }
   }
 
@@ -1149,11 +1692,29 @@ namespace CoupledField {
 
     GLMScheme * schemeV = new Trapezoidal(0.5);
     GLMScheme * schemeP = new Trapezoidal(0.5);
+    // Important: Create a new time scheme just for the Lagrange multiplier unknowns, as otherwise the
+	  // size of the vectors does not match!
+    GLMScheme * schemeL = NULL;
+    GLMScheme * schemeL_1 = NULL;
+    if ( useLagrangeMultVec_ ) {
+	    schemeL = new Trapezoidal(0.5);
+    }
+    if ( useLagrangeMultScal_ ) {
+      schemeL_1 = new Trapezoidal(0.5);
+    }
 
     shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0) );
     shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0) );
     feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
     feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
+    if ( useLagrangeMultVec_ ) {
+      shared_ptr<BaseTimeScheme> mySchemeL(new TimeSchemeGLM(schemeL, 0) );
+      feFunctions_[LAGRANGE_MULT]->SetTimeScheme(mySchemeL);
+    }
+    if ( useLagrangeMultScal_ ) {
+      shared_ptr<BaseTimeScheme> mySchemeL_1(new TimeSchemeGLM(schemeL_1, 0) );
+      feFunctions_[LAGRANGE_MULT_1]->SetTimeScheme(mySchemeL_1);
+    }
   }
   
 
@@ -1206,11 +1767,50 @@ namespace CoupledField {
     // MEAN VELOCITY
     CreateMeanFlowFunction(velDofNames);
 
+
+    if ( useLagrangeMultVec_ ) {
+      // === LAGRANGE MULTIPLIER ===
+      // used for weakly enforced Dirichlet BC (e.g. Maxwell Slip BC)
+      shared_ptr<BaseFeFunction> lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
+      shared_ptr<ResultInfo> lagrangeMult(new ResultInfo);
+      lagrangeMult->resultType = LAGRANGE_MULT;
+      lagrangeMult->dofNames = velDofNames;
+      lagrangeMult->unit = "";
+      lagrangeMult->definedOn = ResultInfo::NODE;
+      lagrangeMult->entryType = ResultInfo::VECTOR;
+      results_.Push_back( lagrangeMult );
+      availResults_.insert( lagrangeMult );
+      lagrangeMultFct->SetResultInfo( lagrangeMult );
+      DefineFieldResult( lagrangeMultFct, lagrangeMult );
+    }
+      
+    if ( useLagrangeMultScal_ ) {
+      // === LAGRANGE MULTIPLIER 1 ===
+      // used for weakly enforced Dirichlet BC in only one direction (e.g. noPenetration BC)
+      shared_ptr<BaseFeFunction> lagrangeMultFct_1 = feFunctions_[LAGRANGE_MULT_1];
+      shared_ptr<ResultInfo> lagrangeMult_1(new ResultInfo);
+      lagrangeMult_1->resultType = LAGRANGE_MULT_1;
+      lagrangeMult_1->dofNames = "";
+      lagrangeMult_1->unit = "";
+      lagrangeMult_1->definedOn = ResultInfo::NODE;
+      lagrangeMult_1->entryType = ResultInfo::SCALAR;
+      results_.Push_back( lagrangeMult_1 );
+      availResults_.insert( lagrangeMult_1 );
+      lagrangeMultFct_1->SetResultInfo( lagrangeMult_1 );
+      DefineFieldResult( lagrangeMultFct_1, lagrangeMult_1 );
+    }
+
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
-    idbcSolNameMap_[FLUIDMECH_PRESSURE] = "pressure";
-    idbcSolNameMap_[FLUIDMECH_VELOCITY] = "velocity";
+    idbcSolNameMap_.insert( std::pair<SolutionType, std::string>(FLUIDMECH_PRESSURE,"pressure") );
+    idbcSolNameMap_.insert( std::pair<SolutionType, std::string>(FLUIDMECH_VELOCITY,"velocity") );
+    if ( useLagrangeMultVec_ ) {
+      idbcSolNameMap_.insert( std::pair<SolutionType, std::string>(LAGRANGE_MULT,"lagrangeMultiplier") );
+    }
+    if ( useLagrangeMultScal_ ) {
+      idbcSolNameMap_.insert( std::pair<SolutionType, std::string>(LAGRANGE_MULT_1,"lagrangeMultiplier1") );
+    }
   
     hdbcSolNameMap_[FLUIDMECH_PRESSURE] = "noPressure";
     hdbcSolNameMap_[FLUIDMECH_VELOCITY] = "noSlip";
@@ -1433,21 +2033,21 @@ namespace CoupledField {
       DefineFieldResult( stressTotalCoef, stressTotal );
 
 
-      // === FLUID-MECHANIC NORMAL SURFACE STRESS ===
-      shared_ptr<ResultInfo> surfaceNormalStressInfo;
-      shared_ptr<CoefFunctionSurf> surfaceNormalStressFct;
-      surfaceNormalStressInfo.reset(new ResultInfo);
-      surfaceNormalStressInfo->resultType = FLUIDMECH_NORMAL_SURFACE_STRESS;
-      surfaceNormalStressInfo->dofNames = dispDofNames;
-      surfaceNormalStressInfo->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_SURFACE_STRESS);
-      surfaceNormalStressInfo->entryType = ResultInfo::VECTOR;
-      surfaceNormalStressInfo->definedOn = ResultInfo::SURF_ELEM;
+      // === FLUID-MECHANIC SURFACE TRACTION ===
+      shared_ptr<ResultInfo> surfaceTractionInfo;
+      shared_ptr<CoefFunctionSurf> surfaceTractionFct;
+      surfaceTractionInfo.reset(new ResultInfo);
+      surfaceTractionInfo->resultType = FLUIDMECH_SURFACE_TRACTION;
+      surfaceTractionInfo->dofNames = dispDofNames;
+      surfaceTractionInfo->unit = MapSolTypeToUnit(FLUIDMECH_SURFACE_TRACTION);
+      surfaceTractionInfo->entryType = ResultInfo::VECTOR;
+      surfaceTractionInfo->definedOn = ResultInfo::SURF_ELEM;
 
-      surfaceNormalStressFct.reset(new CoefFunctionSurf(true, 1.0, surfaceNormalStressInfo));
-      DefineFieldResult(surfaceNormalStressFct, surfaceNormalStressInfo);
-      surfCoefFcts_[surfaceNormalStressFct] = stressTotalCoef;
+      surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
+      DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
+      surfCoefFcts_[surfaceTractionFct] = stressTotalCoef;
 
-      // === FLUID-MECHANIC REACTION FORCE (= integral of surface traction, i.e. normal stress from above, over the surface region ) ===
+      // === FLUID-MECHANIC REACTION FORCE (= integral of surface traction over the surface region ) ===
       shared_ptr<ResultInfo> reactionForceInfo;
       reactionForceInfo.reset(new ResultInfo);
       reactionForceInfo->resultType = FLUIDMECH_FORCE;
@@ -1458,9 +2058,9 @@ namespace CoupledField {
       // Integrate surface traction
       shared_ptr<ResultFunctor> reactionForceFct;
       if(isComplex_)
-          reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceNormalStressFct, feFct, reactionForceInfo));
+          reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceTractionFct, feFct, reactionForceInfo));
       else
-          reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceNormalStressFct, feFct, reactionForceInfo));
+          reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceTractionFct, feFct, reactionForceInfo));
       resultFunctors_[FLUIDMECH_FORCE] = reactionForceFct;
       availResults_.insert(reactionForceInfo);
 
@@ -1569,6 +2169,19 @@ namespace CoupledField {
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
 
+      if ( useLagrangeMultVec_ ) {
+        // Create space for the lagrange multiplier
+        spaceNode = infoNode->Get(SolutionTypeEnum.ToString(LAGRANGE_MULT));
+        crSpaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[LAGRANGE_MULT]->Init(solStrat_);
+      }
+      if ( useLagrangeMultScal_ ) {
+        // Create space for the lagrange multiplier 1
+        spaceNode = infoNode->Get(SolutionTypeEnum.ToString(LAGRANGE_MULT_1));
+        crSpaces[LAGRANGE_MULT_1] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[LAGRANGE_MULT_1]->Init(solStrat_);
+      }
+
     }else{
       EXCEPTION("The formulation " << formulation << 
                 "of fluid perturbed PDE is not known!");
@@ -1613,4 +2226,224 @@ namespace CoupledField {
     DefineFieldResult(meanVelocityCoef_, flowvelocity);
   }
 
+
+  void LinFlowPDE::AddSurfaceIntegratorFromPartialIntegration(UInt i, StdVector<std::string> volumeRegions,
+                                                              StdVector<shared_ptr<EntityList> > ent, std::string integrator)
+  {
+    // Get FESpace and FeFunction of fluid velocity
+    shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
+    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
+
+    // Get FESpace and FeFunction of fluid pressure
+    shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
+    shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+    
+    // get the volume region for defining the correct normal direction
+    RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+    std::set<RegionIdType> volRegion;
+    volRegion.insert(aRegion);
+    std::string regionName = ent[i]->GetName();
+    shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+
+    // define coefFunctions for the material
+    PtrCoefFct shearViscosity = materials_[aRegion]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
+    PtrCoefFct bulkViscosity;
+    if ( isCompressible_ ) { // we need to subtract 2*mu/3 Div(v)I and add the bulk part lambda*Div(v)I
+      bulkViscosity = materials_[aRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
+    }
+    PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    PtrCoefFct constTwo = CoefFunction::Generate( mp_, Global::REAL, "2.0");
+
+    PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
+        CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
+    PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
+    StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? (isaxi_ == true ? 16 : 9) : 36);
+    tensorComponents.Init(coefZero);
+    PtrCoefFct coefBB;
+    if( dim_ == 2 ) {
+      if( isaxi_ ) {
+        tensorComponents[0] = shearViscosityDouble;
+        tensorComponents[5] = shearViscosityDouble;
+        tensorComponents[10] = shearViscosity;
+        tensorComponents[15] = shearViscosityDouble;
+        coefBB = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
+      } else if( subType_ == "plane" ) {
+        tensorComponents[0] = shearViscosityDouble;
+        tensorComponents[4] = shearViscosityDouble;
+        tensorComponents[8] = shearViscosity;
+        coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+      }
+    } else {
+      tensorComponents[0] = shearViscosityDouble;
+      tensorComponents[7] = shearViscosityDouble;
+      tensorComponents[14] = shearViscosityDouble;
+      tensorComponents[21] = shearViscosity;
+      tensorComponents[28] = shearViscosity;
+      tensorComponents[35] = shearViscosity;
+      coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
+    }
+
+    PtrCoefFct coefDivDiv;
+    if ( isCompressible_ ) {
+      coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
+        CoefXprBinOp(mp_,
+            bulkViscosity,
+            CoefXprBinOp(mp_,shearViscosityDouble,CoefFunction::Generate( mp_, Global::REAL, "3"),CoefXpr::OP_DIV),
+        CoefXpr::OP_SUB ));
+    }
+
+    // change subType to be able to use mech-integrators for the 2D case
+    std::string subType;
+    if( subType_ == "plane" ) {
+      subType = "planeStrain";
+    } else {
+      subType = subType_;
+    }
+
+    // check which integrators we have to add
+    bool setP1 = false;
+    bool setP2 = false;
+    bool setP3 = false;
+    if( integrator == "all" ) {
+      setP1 = true;
+      setP2 = true;
+      setP3 = true;
+    } else if ( integrator == "P1" ) {
+      setP1 = true;
+    } else if ( integrator == "P2" ) {
+      setP2 = true;
+    } else if ( integrator == "P3" ) {
+      setP3 = true;
+    } else {
+      EXCEPTION("Implementation error: Unknown integrator type specified!");
+    }
+
+    if( setP1 == true ) {
+      presFct->AddEntityList( actSDList );
+    }
+    velFct->AddEntityList( actSDList );
+
+    if( setP1 == true ) {
+      // --------------------------------------------------------------------
+      //  K_VP Surface Integrator - part 1 - pressure part
+      //  (upper off-diagonal integrators - partially integrated, surface)
+      // --------------------------------------------------------------------
+      BiLinearForm * stiffIntVP1Surf = NULL;
+      if( dim_ == 2 ) {
+          stiffIntVP1Surf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                new IdentityOperatorNormal<FeH1,2>(),
+                                constOne, 1.0, volRegion, updatedGeo_);
+      } else {
+          stiffIntVP1Surf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                new IdentityOperatorNormal<FeH1,3>(),
+                                constOne, 1.0, volRegion, updatedGeo_);
+      }
+      stiffIntVP1Surf->SetName("LinFlowStiffIntVP1Surf");
+      BiLinFormContext *stiffContVP1 = NULL;
+      stiffContVP1 = new BiLinFormContext(stiffIntVP1Surf, STIFFNESS );
+      stiffContVP1->SetEntities( actSDList, actSDList );
+      stiffContVP1->SetFeFunctions( velFct, presFct );
+      assemble_->AddBiLinearForm( stiffContVP1 );
+    }
+
+
+    if( setP2 == true ) {
+      // --------------------------------------------------------------------
+      //  K_VP Surface Integrator - part 2 - strain part
+      //  (upper off-diagonal integrators - partially integrated, surface)
+      // --------------------------------------------------------------------
+      BiLinearForm * stiffIntVP2Surf = NULL;
+      BaseBOperator * sNSOp1 = NULL;
+      if( dim_ == 2 ) {
+        if( isComplex_ ) {
+          sNSOp1 = new SurfaceNormalStressOperator<FeH1,2,2,Complex>(subType, false);
+          sNSOp1->SetCoefFunction(coefBB);
+          stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                sNSOp1,
+                                constOne, -1.0, volRegion, updatedGeo_);
+        } else {
+          sNSOp1 = new SurfaceNormalStressOperator<FeH1,2,2,Double>(subType, false);
+          sNSOp1->SetCoefFunction(coefBB);
+          stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                sNSOp1,
+                                constOne, -1.0, volRegion, updatedGeo_);
+        }
+      } else {
+        if( isComplex_ ) {
+          sNSOp1 = new SurfaceNormalStressOperator<FeH1,3,3,Complex>(subType, false);
+          sNSOp1->SetCoefFunction(coefBB);
+          stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                sNSOp1,
+                                constOne, -1.0, volRegion, updatedGeo_);
+        } else {
+          sNSOp1 = new SurfaceNormalStressOperator<FeH1,3,3,Double>(subType, false);
+          sNSOp1->SetCoefFunction(coefBB);
+          stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                sNSOp1,
+                                constOne, -1.0, volRegion, updatedGeo_);
+        }
+      }
+      stiffIntVP2Surf->SetName("LinFlowStiffIntVP2Surf");
+      // we set the volume evaluation for the BiLinForm since the context will automatically use the value of the BiLinForm
+      // we have to do this before the initialization of the context!
+      stiffIntVP2Surf->SetUseVolEqnA( true );
+      stiffIntVP2Surf->SetUseVolEqnB( true ); 
+      BiLinFormContext *stiffContVP2 = NULL;
+      stiffContVP2 = new BiLinFormContext(stiffIntVP2Surf, STIFFNESS );
+      stiffContVP2->SetEntities( actSDList, actSDList );
+      stiffContVP2->SetFeFunctions( velFct, velFct );
+      assemble_->AddBiLinearForm( stiffContVP2 );
+    }
+
+
+    if( setP3 == true ) {
+      // --------------------------------------------------------------------
+      //  K_VP Surface Integrator - part 3 - div part
+      //  (upper off-diagonal integrators - partially integrated, surface)
+      // --------------------------------------------------------------------
+      if ( isCompressible_ ) {
+        BiLinearForm * stiffIntVP3Surf = NULL;
+        BaseBOperator * sNDOp1 = NULL;
+        if( dim_ == 2 ) {
+          if( isComplex_ ) {
+            sNDOp1 = new SurfaceNormalDivOperator<FeH1,2,Complex>();
+            sNDOp1->SetCoefFunction(coefDivDiv);
+            stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                  sNDOp1,
+                                  constOne, -1.0, volRegion, updatedGeo_);
+          } else {
+            sNDOp1 = new SurfaceNormalDivOperator<FeH1,2,Double>();
+            sNDOp1->SetCoefFunction(coefDivDiv);
+            stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                  sNDOp1,
+                                  constOne, -1.0, volRegion, updatedGeo_);
+          }
+        } else {
+          if( isComplex_ ) {
+            sNDOp1 = new SurfaceNormalDivOperator<FeH1,3,Complex>();
+            sNDOp1->SetCoefFunction(coefDivDiv);
+            stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                  sNDOp1,
+                                  constOne, -1.0, volRegion, updatedGeo_);
+          } else {
+            sNDOp1 = new SurfaceNormalDivOperator<FeH1,3,Double>();
+            sNDOp1->SetCoefFunction(coefDivDiv);
+            stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
+                                  sNDOp1,
+                                  constOne, -1.0, volRegion, updatedGeo_);
+          }
+        }
+        stiffIntVP3Surf->SetName("LinFlowStiffIntVP3Surf");
+        // we set the volume evaluation for the BiLinForm since the context will automatically use the value of the BiLinForm
+        // we have to do this before the initialization of the context!
+        stiffIntVP3Surf->SetUseVolEqnA( true ); 
+        stiffIntVP3Surf->SetUseVolEqnB( true );
+        BiLinFormContext *stiffContVP3 = NULL;
+        stiffContVP3 = new BiLinFormContext(stiffIntVP3Surf, STIFFNESS );
+        stiffContVP3->SetEntities( actSDList, actSDList );
+        stiffContVP3->SetFeFunctions( velFct, velFct );
+        assemble_->AddBiLinearForm( stiffContVP3 );
+      }
+    }
+  }
 }

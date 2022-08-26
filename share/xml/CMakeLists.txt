@@ -89,6 +89,7 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FilterList.xsd ${DST_DIR}/Schemas/CFSDat_FilterList.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_GridType.xsd ${DST_DIR}/Schemas/CFSDat_GridType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Interpolation.xsd ${DST_DIR}/Schemas/CFSDat_Interpolation.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_InterpolationRBF.xsd ${DST_DIR}/Schemas/CFSDat_InterpolationRBF.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_InterpolationType.xsd ${DST_DIR}/Schemas/CFSDat_InterpolationType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_NearestNeighbour.xsd ${DST_DIR}/Schemas/CFSDat_NearestNeighbour.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FEBased.xsd ${DST_DIR}/Schemas/CFSDat_FEBased.xsd

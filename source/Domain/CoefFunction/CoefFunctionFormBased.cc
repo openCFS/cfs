@@ -7,6 +7,7 @@
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "MatVec/BLASLAPACKInterface.hh"
+#include "Optimization/Optimization.hh"
 #include "Optimization/Excitation.hh"
 
 namespace CoupledField
@@ -828,7 +829,7 @@ template class CoefFunctionHomogenization<double, App::HEAT>;
 
 template class CoefFunctionHomogenization<Complex, App::ELEC>;
 template class CoefFunctionHomogenization<double, App::ELEC>;
-
+template class CoefFunctionHomogenization<double, App::MAG>;
 template class CoefFunctionLBM<double>;
 
    

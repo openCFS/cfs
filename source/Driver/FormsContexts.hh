@@ -96,6 +96,16 @@ namespace CoupledField
     void SetEntryType( Global::ComplexPart &pEntryType ){
       entryType_ = pEntryType;};
 
+    //! Set eqn evaluation to volume for A operator
+    void SetUseVolEqnA( bool useVolEqn ){
+      useVolEqnA_ = useVolEqn;
+    }
+
+    //! Set eqn evaluation to volume for B operator
+    void SetUseVolEqnB( bool useVolEqn ){
+      useVolEqnB_ = useVolEqn;
+    }
+
     // ======================================================
     //  MAPPING METHODS
     // ======================================================
@@ -204,6 +214,15 @@ namespace CoupledField
 
     // Flag indicating negating the entries of the element matrix
     bool negateEntries_;
+
+    // Flag to indicate if the number of functions shall be aquired from the volume or surface element
+    // This is needed for e.g. a gradient evaluated at a surface, since we perform the evaluation at the
+    // integration points of the surface, but we need all DOFs of the element for the calculation of the gradient
+    // We can set this for A- and B operator seperately
+    bool useVolEqnA_;
+
+    bool useVolEqnB_;
+
 
     // ======================================================
     //  MAPPING DATA

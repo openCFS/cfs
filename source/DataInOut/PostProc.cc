@@ -9,6 +9,10 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "FeBasis/FeFunctions.hh"
+#include "PDE/SinglePDE.hh"
+
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 namespace CoupledField {
 
@@ -173,6 +177,38 @@ namespace CoupledField {
         }
         funcProc->Initialize( resultName, unit, dofNames, rFunctions, iFunctions );
         actProc = funcProc;
+      }
+
+      // === L2Norm ===
+      if( procName == "L2Norm" ) {      
+        found = true;
+        shared_ptr<PostProcL2Norm> normProc;
+        normProc = shared_ptr<PostProcL2Norm>(new PostProcL2Norm( ptGrid, PtrParamNode() ) );
+
+        // get resultName
+        std::string resultName;
+        procNodes[i]->GetValue( "resultName", resultName );
+
+        // get integration order
+        Integer integrationOrder;
+        procNodes[i]->GetValue( "integrationOrder", integrationOrder );
+
+        // get mode
+        std::string mode;
+        procNodes[i]->GetValue( "mode", mode );
+
+        // get dof-nodes
+        ParamNodeList dofNodes = procNodes[i]->GetList("dof");;
+        
+        // get dofnames, real functions and imaginary functions for each dof
+        StdVector<std::string> dofNames, rFunctions, iFunctions;
+        for( UInt iDof = 0; iDof < dofNodes.GetSize(); iDof++ ) {
+          dofNames.Push_back( dofNodes[iDof]->Get("name")->As<std::string>() );
+          rFunctions.Push_back( dofNodes[iDof]->Get("realFunc")->As<std::string>() );
+          iFunctions.Push_back( dofNodes[iDof]->Get("imagFunc")->As<std::string>() );
+        }
+        normProc->Initialize( resultName, integrationOrder, mode, dofNames, rFunctions, iFunctions );
+        actProc = normProc;
       }
 
       // === LIMIT ===
@@ -690,6 +726,293 @@ namespace CoupledField {
   void PostProcFunc::Finalize( ) {
     
   }
+
+// =================== L2Norm-POSTPROCEDURE ===================
+  
+
+  PostProcL2Norm::PostProcL2Norm( Grid * ptGrid,
+                              PtrParamNode postProcNode )
+    : PostProc( ptGrid, postProcNode ) {
+
+    name_ = "L2Norm";
+    reducType_ = SPACE;
+
+    // fetch math parser object
+    mParser_ = domain->GetMathParser();
+
+  }
+
+  PostProcL2Norm::~PostProcL2Norm() {
+    
+  }
+
+  void PostProcL2Norm::SetResult( shared_ptr<BaseResult> res ) {
+
+    // Append result to list of results
+    input_ =  res;
+
+    
+    // intialize rVals and mathParser handles
+    // a) double
+    rVals_.Resize( dofNames_.GetSize() );
+    rVals_.Init();
+    rHandles_.Resize( dofNames_.GetSize() );
+    // b) complex
+    if( input_->GetEntryType() == BaseMatrix::COMPLEX ) {
+      iVals_.Resize( dofNames_.GetSize() );
+      iVals_.Init();
+      iHandles_.Resize( dofNames_.GetSize() );
+    }
+
+    if( !(input_->GetResultInfo()->entryType == ResultInfo::SCALAR) && !(input_->GetResultInfo()->entryType == ResultInfo::VECTOR) ) {
+      EXCEPTION("Only scalar and vectorial quantities are supported at the moment!");
+    }
+
+
+    // Create correct output result
+    // a) Fetch related (reduced) entity list and EntityUnknownType
+    shared_ptr<EntityList> newList;
+    ResultInfo::EntityUnknownType newDefinedOn;
+    ResultInfo & inResult  = *(res->GetResultInfo());
+    
+    GetReducedList( newList, newDefinedOn, res->GetEntityList(), 
+                    inResult.definedOn, reducType_ );
+    
+    // b) Adjust new ResultInfo
+    shared_ptr<ResultInfo> newInfo = 
+      shared_ptr<ResultInfo>( new ResultInfo( inResult ) );
+    newInfo->definedOn = newDefinedOn;
+    if( mode_ == "relative" ) {
+      newInfo->resultName += "RelL2Norm";
+    } else {
+      newInfo->resultName += "L2Norm";
+    }
+    if( mode_ == "relative" ) {
+      newInfo->unit = "";
+    } else {
+      // check grid dim in order to set the correct unit
+      UInt dim = res->GetResultInfo()->GetFeFunction().lock()->GetGrid()->GetDim();
+      std::string oldUnit = newInfo->unit;
+      if( dim == 2 ) {
+        // plane
+        newInfo->unit = "((" + oldUnit + ")^2 m^2)^(1/2)";
+      } else if ( dim == 3) {
+        // 3D
+        newInfo->unit = "((" + oldUnit + ")^2 m^3)^(1/2)";
+      } else {
+        EXCEPTION("Unknown grid dimension!");
+      }
+    }
+    // we calcualte the norm, this will always be scalar regardless of the input (scalar/vector)
+    newInfo->dofNames = "";
+    newInfo->entryType = ResultInfo::SCALAR;
+    
+    
+    // c) Create new Result and set is as output
+    shared_ptr<BaseResult> newResult;
+    if( input_->GetEntryType() == BaseMatrix::COMPLEX ) {
+      newResult = shared_ptr<BaseResult>(new Result<Complex>() );
+    } else {
+      newResult = shared_ptr<BaseResult>( new Result<Double>() );
+    }
+    newResult->SetEntityList( newList );
+    newResult->SetResultInfo( newInfo );
+    
+    output_ = newResult;
+
+
+    // Adapt functor for result evaluation
+
+    shared_ptr<BaseFeFunction> feFct = res->GetResultInfo()->GetFeFunction().lock();
+    // get coefFunctions of primary variable
+    PtrCoefFct coefPDE = feFct->GetPDE()->GetCoefFct( res->GetResultInfo()->resultType );
+
+    // sort Funcs
+    std::string probGeo = feFct->GetPDE()->GetDomain()->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>();
+    
+    shared_ptr<ResultInfo> resInfo = feFct->GetResultInfo();
+    StdVector<std::string> dofNamesRes = resInfo->dofNames; 
+    
+    if( dofNamesRes.GetSize() > 1 ) {
+      StdVector<std::string> dofNamesGrid;
+      if ( probGeo == "3d" ) {
+        dofNamesGrid = "x", "y", "z";
+      }
+      else if ( probGeo == "plane")
+      {
+        dofNamesGrid = "x", "y";
+      }
+      else if ( probGeo == "axi" ) {
+        EXCEPTION("L2Norm is not implemented for axi-symmetric simulations, please implement me!");
+        dofNamesGrid = "r", "z";
+      }
+
+      // now loop over DOFs and match rFuncs and iFuncs accordingly
+      for( UInt i = 0; i < dofNamesGrid.GetSize(); i++  ) {
+        for( UInt o = 0; o < dofNames_.GetSize(); o++  ) {
+          if( dofNamesGrid[i]==dofNames_[o] ) {
+            rFuncsSorted_[i] = rFuncs_[o];
+            iFuncsSorted_[i] = iFuncs_[o];
+          }
+        }
+      }
+    } else {
+      // scalar problem, check if only one dof is given and assign
+      if( dofNames_.GetSize()==1 ) {
+        rFuncsSorted_[0] = rFuncs_[0];
+      } else {
+        EXCEPTION("Multiple DOFs defined for a scalar problem, check your xml-file!");
+      }
+    }
+
+    
+    Global::ComplexPart part;
+    bool isComplex;
+    if( output_->GetEntryType() == BaseMatrix::COMPLEX ) {
+      isComplex = true;
+      part = Global::COMPLEX;
+    } else {
+      isComplex = false;
+      part = Global::REAL;
+    }
+
+    PtrCoefFct coef;
+    if(!isComplex) {
+      coef = CoefFunction::Generate(mParser_, Global::REAL, rFuncsSorted_ );
+    } else {
+      coef = CoefFunction::Generate(mParser_, Global::COMPLEX, rFuncsSorted_, iFuncsSorted_ );
+    }
+    //! Generate coefFunction of the difference (analytical and numerical solution)
+    PtrCoefFct diffCoef;
+    diffCoef = CoefFunction::Generate( mParser_, part,
+                CoefXprBinOp(mParser_,coefPDE,coef,CoefXpr::OP_SUB));
+
+    this->coef_ = coef;
+    this->diffCoef_ = diffCoef;
+
+  }
+  
+  
+  void PostProcL2Norm::Initialize( const std::string& resultName,
+                                 const UInt& integrationOrder,
+                                 const std::string& mode,
+                                 const StdVector<std::string>& dofNames,
+                                 const StdVector<std::string>& rFunctions,
+                                 const StdVector<std::string>& iFunctions ) {
+    
+    // ensure, that dofNames has the same size as functions
+    assert( dofNames.GetSize() == rFunctions.GetSize() );
+    assert( dofNames.GetSize() == iFunctions.GetSize() );
+    
+    // store resultName, dofNames and functions
+    resultName_ = resultName;
+    integrationOrder_ = integrationOrder;
+    mode_ = mode;
+    dofNames_ = dofNames;
+    rFuncs_ = rFunctions;
+    iFuncs_ = iFunctions;
+    rFuncsSorted_.Resize(rFuncs_.GetSize());
+    iFuncsSorted_.Resize(iFuncs_.GetSize());
+  }
+
+  
+  void PostProcL2Norm::Apply( ) {
+
+    if( output_->GetEntryType() == BaseMatrix::DOUBLE ) {
+      CalcNorm<Double>();
+    } else {
+      CalcNorm<Complex>();
+    }
+  }
+  
+  template<class TYPE> 
+  void PostProcL2Norm::CalcNorm() {
+
+    // Cast output into correct type
+    Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
+    Vector<TYPE> & outVec = out.GetVector();
+
+
+    shared_ptr<EntityList> outList = out.GetEntityList();
+    EntityIterator outIt = outList->GetIterator();
+    ResultInfo & outResInfo = *(out.GetResultInfo() );
+    outVec.Resize( outResInfo.dofNames.GetSize() );
+    outVec.Init();
+    //outIt.Begin();
+
+    shared_ptr<BaseFeFunction> baseFeFct = output_->GetResultInfo()->GetFeFunction().lock();
+    shared_ptr<FeFunction<TYPE> > feFct = dynamic_pointer_cast<FeFunction<TYPE> >(baseFeFct);
+    
+    Vector<TYPE> elemSol, temp, fac, refFac;
+    
+    
+    // get lpm for higher integration order and loop over all lpms
+
+    // Loop over regions
+    for( outIt.Begin(); !outIt.IsEnd(); outIt++ ) {
+      shared_ptr<EntityList> actSDList = 
+          outIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, outIt.GetGrid()->GetRegionName(outIt.GetRegion()) );
+      EntityIterator elemIt = actSDList->GetIterator();
+
+      Double tempNorm = 0.0;
+      Double refSum = 0.0;
+      // loop over elements
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        const Elem * el = elemIt.GetElem();
+        
+        // we calcualte the individual contributions by coef^2*J*w
+        // the feFunction is needed in order to get the grid and integration stuff
+        feFct->GetElemSolution( elemSol, el);
+
+        // Obtain FE element from feSpace and integration scheme
+        IntegOrder order;
+        // Use higher order integration in order to get accurate results
+        order.SetIsoOrder(integrationOrder_);
+        shared_ptr<FeSpace> feSpace = feFct->GetFeSpace();
+        shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
+        // Get shape map from grid
+        shared_ptr<ElemShapeMap> esm =
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
+
+        // Get integration points
+        StdVector<LocPoint> intPoints;
+        StdVector<Double> weights;
+        intScheme->GetIntPoints( Elem::GetShapeType(el->type), IntScheme::GAUSS, order, 
+                                  intPoints, weights );
+        // Loop over all integration points
+        LocPointMapped lpm;
+        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+          //std::cerr << "i = " << i << ", point = " << intPoints[i] << ", weight = " << weights[i] << std::endl;
+          // Calculate for each integration point the LocPointMapped
+          lpm.Set( intPoints[i], esm, weights[i] );
+          
+          this->diffCoef_->GetVector(fac, lpm);
+
+          tempNorm += fac.NormL2_squared()*lpm.jacDet * weights[i];
+          if( mode_ == "relative" ) {
+            // for the relative norm we also need to evaluate the reference result and divide by it afterwards
+            this->coef_->GetVector(refFac, lpm);
+            refSum += refFac.NormL2_squared()*lpm.jacDet * weights[i];
+          }
+          
+
+        } // loop integration points
+
+      } // loop elements
+
+      if( mode_ == "relative" ) {
+        outVec[outIt.GetPos()] = sqrt(tempNorm/refSum);
+      } else {
+        outVec[outIt.GetPos()] = sqrt(tempNorm);
+      }
+    }
+
+  }
+
+  void PostProcL2Norm::Finalize( ) {
+    
+  }
+
   
  // =================== LIMIT-POSTPROCEDURE ===================
 

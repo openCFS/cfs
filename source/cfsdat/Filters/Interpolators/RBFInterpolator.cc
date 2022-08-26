@@ -41,18 +41,15 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   this->filtStreamType_ = FIFO_FILTER;
 
 
-  if(config->Has("scheme") == false){
+  if(config->Has("IntSchemeRBF") == false){
 	  EXCEPTION("Scheme tag required for RBF interpolation")
   }
 
-
-  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  globalFactor_ = config->Get("IntSchemeRBF")->Get("globalFactor")->As<Double>();
   inDim_ = 0;
-  p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
-
-  // Setup lazzaro scheme
-  numNN_ = 18;
-  numNW_ = 13;
+  p_ = config->Get("IntSchemeRBF")->Get("interpolationExponent")->As<UInt>();
+  numNN_ = config->Get("IntSchemeRBF")->Get("numNeighbours")->As<UInt>();
+  numNW_ = config->Get("IntSchemeRBF")->Get("numNeighbours_weight")->As<UInt>();
 
   //No Slip Boundary handling on target Grid
   noSlip_ = false;
@@ -181,7 +178,7 @@ CF::StdVector<RBFInterpolator::Matrix> RBFInterpolator::matrices_;
 //TODO Merge PrepareCGAL() and PreparePATCH() ... a lot of c&p
 void RBFInterpolator::PrepareCalculation(){
 
-  if(params_->Get("scheme/useCGAL4RBF")->As<std::string>()=="true"){
+  if(params_->Get("IntSchemeRBF/useCGAL4RBF")->As<std::string>()=="true"){
     PrepareCGAL();
   }else{
     PreparePATCH();
