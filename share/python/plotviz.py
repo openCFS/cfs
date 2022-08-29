@@ -176,7 +176,7 @@ def content(body):
   # check for datetime in the first columns and replace in case
   for c in range(min(len(data[0]),3)):
      # ..., 28.03.21,  28.03.2021, 2021-01-04
-    for frmt in ['%Y-%m-%d %H:%M:%S', '%d.%m.%Y %H:%M', '%Y/%m/%d %H:%M:%S','%d.%m.%y', '%d.%m.%Y', '%Y-%m-%d']:
+    for frmt in ['%Y-%m-%d %H:%M:%S', '%d.%m.%Y %H:%M', '%Y/%m/%d %H:%M:%S','%d.%m.%y', '%d.%m.%Y', '%m.%Y', '%Y-%m-%d']:
       if check(frmt, str(data[0][c])):
         for l in data:
           l[c] = datetime.datetime.strptime(l[c], frmt)
