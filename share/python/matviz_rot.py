@@ -6,7 +6,7 @@
 # pylab.show()
 
 import sys
-import numpy
+import numpy as np
 import numpy.linalg
 
 from numpy import dot
@@ -16,6 +16,7 @@ from numpy import sqrt
 
 ## print tensor nicely
 def dump_tensor(tensor, toString=False):
+  tensor = np.round(tensor,15)
   out = ""
   for y in range(tensor.shape[0]):
     msg = '{:2}: '.format(y+1)
@@ -30,7 +31,7 @@ def dump_tensor(tensor, toString=False):
 
 ## This rotates in 2D counterclockwise around the z-axis.
 def get_rot_2x2(angle):
-  R = numpy.zeros((2,2))
+  R = np.zeros((2,2))
 
   R[0][0] =  cos(angle)
   R[0][1] =  -sin(angle)
@@ -44,7 +45,7 @@ def get_rot_3x3(angle):
 
   R = get_rot_2x2(angle)
 
-  Q = numpy.zeros((3,3))
+  Q = np.zeros((3,3))
 
   Q[0][0] = R[0][0]*R[0][0];
   Q[0][1] = R[0][1]*R[0][1];
@@ -60,24 +61,40 @@ def get_rot_3x3(angle):
 
   return Q
 
-## This rotates in 3D counterclockwise around z-axis by gamma,
-#  then y-axis by beta and last x-axis by alpha.
+## This is a variant of DesignMaterial::SetOneAxisRotationMatrix
 #  see Wikipedia: Kardan/Tait–Bryan angles, x-y-z (extrinsic rotation)
-def get_rot_3x3_3d(alpha, beta, gamma):
-  from numpy import sin, cos
-  Rx = numpy.array([ [1,0,0], [0,cos(alpha),-sin(alpha)], [0,sin(alpha),cos(alpha)] ])
-  Ry = numpy.array([ [cos(beta),0,sin(beta)], [0,1,0], [-sin(beta),0,cos(beta)] ])
-  Rz = numpy.array([ [cos(gamma),-sin(gamma),0], [sin(gamma),cos(gamma),0], [0,0,1] ])
+# @param axis is either 'x', 'y' or 'z'
+# @param angle in rad ccw
+def get_rot_3x3_3d_one_axis(axis, angle):
+  if axis == 'x':
+    return np.array([ [1,0,0], [0,cos(angle),-sin(angle)], [0,sin(angle),cos(angle)] ])
+  if axis == 'y':
+    return np.array([ [cos(angle),0,sin(angle)], [0,1,0], [-sin(angle),0,cos(angle)] ])
+  if axis == 'z':
+    return np.array([ [cos(angle),-sin(angle),0], [sin(angle),cos(angle),0], [0,0,1] ])
+  
+  assert False, 'inavild axis value'
+  
+## This rotates in 3D counterclockwise around three axes.
+# @param axes 'xyz' rotates first by gamma around z and last by alpha around x and is default 
+#  see Wikipedia: Kardan/Tait–Bryan angles, x-y-z (extrinsic rotation)
+def get_rot_3x3_3d(alpha, beta, gamma, axes = 'xyz'):
+  assert len(axes) == 3
+  R1 = get_rot_3x3_3d_one_axis(axes[0], alpha) # x for axis = 'xyz' 
+  R2 = get_rot_3x3_3d_one_axis(axes[1], beta)  # y for axis = 'xyz'
+  R3 = get_rot_3x3_3d_one_axis(axes[2], gamma) # z for axis = 'xyz'
 
-  return (Rx.dot(Ry)).dot(Rz)
+  return (R1.dot(R2)).dot(R3) # note (R1 @ R2) @ R3 == R1 @ (R2 @ R3)
+  
+  
+## This rotates a 6x6 3D tensor counterclockwise around last axis by gamma,
+#  then midde axis by beta and last first axis by alpha. By default 'xyz' this
+#  ist last gamma around z, then beta around y and last alpha around x
+def get_rot_6x6(alpha, beta, gamma, axes = 'xyz'):
 
-## This rotates a 6x6 3D tensor counterclockwise around z-axis by gamma,
-#  then y-axis by beta and last x-axis by alpha.
-def get_rot_6x6(alpha, beta, gamma):
+  R = get_rot_3x3_3d(alpha, beta, gamma, axes)
 
-  R = get_rot_3x3_3d(alpha, beta, gamma)
-
-  Q = numpy.zeros((6,6))
+  Q = np.zeros((6,6))
 
   Q[0][0] = R[0][0]*R[0][0]
   Q[0][1] = R[0][1]*R[0][1]
@@ -129,7 +146,7 @@ def get_rot_6x6(alpha, beta, gamma):
 # @return with the dimension of tensor
 def rotate_cfs(tensor, theta, phi = None):
 
-  out = numpy.zeros(tensor.shape)
+  out = np.zeros(tensor.shape)
 
   # 3D only for pure elasticity
   if tensor.shape == (6,6):
@@ -156,11 +173,11 @@ def rotate_cfs(tensor, theta, phi = None):
 # Hill-Mandel rotation is trace invariant
 def rotate_hill_mandel(tensor, theta):
 
-  assert(theta >= 0 and theta <= numpy.pi)
+  assert(theta >= 0 and theta <= np.pi)
 
-  out = numpy.zeros(tensor.shape)
+  out = np.zeros(tensor.shape)
 
-  Q = numpy.zeros((3,3))
+  Q = np.zeros((3,3))
   Q[0,0] = cos(theta)**2
   Q[0,1] = sin(theta)**2
   Q[0,2] = -1.0 * sqrt(2.0)/2.0 * sin(2.0 * theta)
@@ -177,7 +194,7 @@ def test_rotation(tensor, steps, notation):
 
   res = []
 
-  for x in numpy.arange(0, numpy.pi, numpy.pi/steps):
+  for x in np.arange(0, np.pi, np.pi/steps):
     test = 0
     if notation == "mandel":
       test = rotate_hill_mandel(tensor, x)
@@ -194,13 +211,12 @@ def test_rotation(tensor, steps, notation):
 # @param steps: how many probes
 # @param aux: "default" = none, "ortho_norm", "mono_norm" for 3D elasticity, "e21_normed"
 # @return: 1st: list of angles (angle or (theta, phi) in 3D), 2nd: vector of magnitudes, 3rd: aux vector of option
-def perform_cfs_rotation(tensor, steps, aux_data = "default"):
+def perform_voigt_tensor_samping(tensor, steps, aux_data = "default"):
   angle = []
   data  = []
   aux   = []
-  idx = 0
   
-  assert(numpy.ndim(tensor) == 2)
+  assert(np.ndim(tensor) == 2)
 
   if tensor.shape == (6,6):
     # 3D case for mech
@@ -208,13 +224,11 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
     # therefore, as z = sin(theta) instead of cos(theta) we need to run from [pi/2, 3/2 * pi] to cover all z
 
     #Create points on Surface
-    d_phi = 2 * numpy.pi / (steps-1)
-    for theta in numpy.arange(0.5 * numpy.pi, 1.5001 * numpy.pi, numpy.pi / (steps-1)):
-      for phi in numpy.arange(0, 2.0001 * numpy.pi, d_phi):
+    for theta in np.arange(0.5 * np.pi, 1.5001 * np.pi, np.pi / (steps-1)):
+      for phi in np.arange(0, 2.0001 * np.pi, 2 * np.pi / (steps-1)):
         test = rotate_cfs(tensor, phi, theta)
-        invtest = numpy.linalg.inv(test)
         angle.append((phi, theta))
-        data.append(1./invtest[0,0])
+        data.append(test[0,0])
 
         if aux_data == "ortho_norm":
           aux.append(sqrt(2.0 * (test[0,3]**2 + test[1,3]**2 + test[2,3]**2 + test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +
@@ -225,7 +239,7 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
   else:
     # 2D case for elec, piezo, mech
     # for mech it is enought to go from 0 to pi and duplicate, for piezo we need all. Do slow and easy
-    for x in numpy.arange(0, 2.0*numpy.pi, 2.0*numpy.pi/steps):
+    for x in np.arange(0, 2.0*np.pi, 2.0*np.pi/steps):
       test = rotate_cfs(tensor, x)
       #print "angle=" + str(x) + " -> " + str(test)
       angle.append(x)
@@ -238,18 +252,10 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
         if tensor.shape == (3,3):
           aux.append(sqrt(2.0 * (test[0,2]**2 + test[1,2]**2)))
         if tensor.shape == (2,3):
-          aux.append(numpy.min((sqrt(test[0,0]**2 + test[0,1]**2 + test[1,2]**2), sqrt(test[1,0]**2 + test[1,1]**2 + test[0,2]**2))))
+          aux.append(np.min((sqrt(test[0,0]**2 + test[0,1]**2 + test[1,2]**2), sqrt(test[1,0]**2 + test[1,1]**2 + test[0,2]**2))))
       if aux_data == "e21_normed":
         aux.append(test[2,2])
-        # aux.append(numpy.abs(test[1,0]/test[1,1]))
-
-      idx += 1
-
-    # duplicate
-    #data.extend(data)
-    #aux.extend(aux)
-    #for x in numpy.arange(numpy.pi, 2.0 * numpy.pi, numpy.pi/steps):
-    #  angle.append(x)
+        # aux.append(np.abs(test[1,0]/test[1,1]))
 
   assert(len(data) == len(angle))
   assert(len(aux) == len(data) or len(aux) == 0)
@@ -287,7 +293,7 @@ def find_minima(angle, data):
         result.append((angle[i], data[i]))
   else:
     samples = int(sqrt(len(angle)))
-    half    = samples/2
+    half    = int(samples/2)
     assert(samples**2 == len(angle))
 
     for i in range(0, half):
@@ -334,14 +340,22 @@ def Voigt2HillMandel(tensor):
   return ret
 
 
-# creates a 2D elasticity tensor. To the HillMandel2Voigt conversion if necessary!
-def to_mech_tensor(input):
-  assert(len(input) == 6 or len(input) == 21)
+# creates a 2D elasticity tensor. Do the HillMandel2Voigt conversion if necessary!
+# we have a trace and a column style
+# t2d = 11 22 33 23 13 12
+# t3d = 11 22 33 44 55 66 23 13 12 34 24 14 45 35 25 15 56 46 36 26 16 
+# c3d = 11 12 22 13 23 33 14 24 34 44 15 25 35 45 55 16 26 36 46 56 66
+# @param style None, 'trace' or 'column'. None = default 2d is trace style and 3d is column style
+# note that tensorviz.py has trace as default for style
+def to_mech_tensor(input, style = None):
+  assert style in [None, 'trace', 'column']
+  assert len(input) == 6 or len(input) == 21
 
   if len(input) == 6:
+    assert not style == 'column' # not implemented
     # "e11", "e22", "e33", "e23", "e13", "e12";
     #    0      1      2      3      4      5
-    tensor = numpy.zeros((3,3))
+    tensor = np.zeros((3,3))
     tensor[0,0] = input[0]
     tensor[0,1] = input[5]
     tensor[0,2] = input[4]
@@ -353,18 +367,44 @@ def to_mech_tensor(input):
     tensor[2,2] = input[2]
     return tensor
   else:
-    # e11, e12, e22, e13, ..
-    tensor = numpy.zeros((6,6))
-    idx = 0
-    for x in range(6):
-      for y in range(6):
-        if y > x:
-           continue
-        else:
-          val = float(input[idx])
-          idx += 1
-          tensor[x][y] = val
-          tensor[y][x] = val
+    tensor = np.zeros((6,6))
+
+    if style == 'trace':
+      # 11 22 33 44 55 66 23 13 12 34 24 14 45 35 25 15 56 46 36 26 16
+      #  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20        
+      tensor[0,0] = input[0]
+      tensor[1,1] = input[1]
+      tensor[2,2] = input[2]
+      tensor[3,3] = input[3]
+      tensor[4,4] = input[4]
+      tensor[5,5] = input[5]
+      tensor[1,2] = input[6]
+      tensor[0,2] = input[7]
+      tensor[0,1] = input[8]
+      tensor[2,3] = input[9]
+      tensor[1,3] = input[10]
+      tensor[0,3] = input[11]
+      tensor[3,4] = input[12]
+      tensor[2,4] = input[13]
+      tensor[1,4] = input[14]
+      tensor[0,4] = input[15]
+      tensor[4,5] = input[16]
+      tensor[3,5] = input[17]
+      tensor[2,5] = input[18]
+      tensor[1,5] = input[19]
+      tensor[0,5] = input[20]
+    else:  
+      # e11, e12, e22, e13, ..
+      idx = 0
+      for x in range(6):
+        for y in range(6):
+          if y > x:
+             continue
+          else:
+            val = float(input[idx])
+            idx += 1
+            tensor[x][y] = val
+            tensor[y][x] = val
     return tensor
 
 ## invert to_mech_tensor()
@@ -393,7 +433,7 @@ def to_mech_vector(tensor, as_array=False):
     assert(len(vec) == 21)
 
   if as_array:
-    array = numpy.zeros((len(vec)))
+    array = np.zeros((len(vec)))
     array[:] = vec
     return array
   else:
@@ -405,7 +445,7 @@ def to_piezo_tensor(input):
   assert(len(input) == 6)
   # "e11", "e12", "e13", "e21", "e22", "e23";
   #    0      1      2      3      4      5
-  tensor = numpy.zeros((2,3))
+  tensor = np.zeros((2,3))
   tensor[0,0] = input[0]
   tensor[0,1] = input[1]
   tensor[0,2] = input[2]
@@ -429,7 +469,7 @@ def to_piezo_vector(tensor, as_array=False):
   vec.append(tensor[1,2])
 
   if as_array:
-    array = numpy.zeros((len(vec)))
+    array = np.zeros((len(vec)))
     array[:] = vec
     return array
   else:
@@ -441,7 +481,7 @@ def to_elec_tensor(input):
   assert(len(input) == 3)
   # "e11", "e22", "e12"
   #    0      1      2
-  tensor = numpy.zeros((2,2))
+  tensor = np.zeros((2,2))
   tensor[0,0] = input[0]
   tensor[0,1] = input[2]
   tensor[1,0] = input[2]
@@ -454,8 +494,8 @@ def to_elec_tensor(input):
 # angle a scalar or (phi,theta)
 def to_vector(angle):
 
-  result = numpy.zeros((3))
-  if numpy.isscalar(angle):
+  result = np.zeros((3))
+  if np.isscalar(angle):
     result[0] = cos(angle)
     result[1] = sin(angle)
     result[2] = 0
@@ -482,7 +522,7 @@ def poissons_ratio(tensor):
 # @return first, second the scaled vectors of stiffest directions. second is 0,0,0 if there is none, v21 and v12 if desired
 # THIS FUNCTION MIGHT NOT BE CORRECT!!!
 def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
-  angle, data, aux = perform_cfs_rotation(tensor, steps, also_poissons_ratio)
+  angle, data, aux = perform_voigt_tensor_samping(tensor, steps, also_poissons_ratio)
   idx_first, idx_second = find_maxima(data)
 
   first = to_vector(angle[idx_first]) * data[idx_first]
@@ -504,13 +544,13 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
     return first, second
 
 
-# e2d = numpy.zeros((2,2))
+# e2d = np.zeros((2,2))
 # e2d[0,0] = 1.51
 # e2d[0,1] = 0.0
 # e2d[1,0] = 0.0
 # e2d[1,1] = 1.27
 #
-# p0 = numpy.zeros((2,3))
+# p0 = np.zeros((2,3))
 # p0[0,0] = 0.01
 # p0[0,1] = 0.01
 # p0[0,2] = 17.0
@@ -518,7 +558,7 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
 # p0[1,1] = 23.3
 # p0[1,2] = 0.01
 #
-# e3d = numpy.zeros((6,6))
+# e3d = np.zeros((6,6))
 # e3d[0,0] = 1.0
 #
 # iso3d = to_mech_tensor(eval("[9.999406e-01,2.999666e-01,9.999406e-01,2.999666e-01,2.999666e-01,9.999406e-01,0.0,0.0,0.0,3.499870e-01,0,0,0,0,3.499870e-01,0,0,0,0,0,3.499870e-01]"))

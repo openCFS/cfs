@@ -38,7 +38,7 @@ TWO_SCALE = {
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None, nondes = None, min_bb = None, max_bb = None, elems_in_regions = None):
+def perform(args, h5_read, dim_2D, tensor, centers, force_scale = None, nondes = None, min_bb = None, max_bb = None, elems_in_regions = None):
   volume = None  # might never be set
 
   scale = force_scale if force_scale else args.scale
@@ -89,7 +89,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
       else:
         volume = matviz_io.show_or_write(viz, args)
   else:
-    show_boebbale(tensor, args, coords, scale, aux_code)
+    show_boebbale(tensor, args, coords, scale)
 
   return volume
 
@@ -249,7 +249,7 @@ def perform_3d(args, coords, design, scale, nondes = None):
       raise NotImplementedError
   return viz
 
-def show_boebbale(tensor, args, coords, scale, aux_code):
+def show_boebbale(tensor, args, coords, scale):
   if dim_2D:
     assert(args.show is None or args.show in ['ortho_norm', 'mono_norm', 'ortho_err'])
     if h5_read:
@@ -257,7 +257,7 @@ def show_boebbale(tensor, args, coords, scale, aux_code):
       tensor = numpy.zeros((len(tensors),3,3)) if tensors.shape[1] == 6 else numpy.zeros((len(tensors),6,6))
       for i, vec in enumerate(tensors):
         tensor[i] = to_mech_tensor(vec)
-    angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.show)
+    angle, data = perform_rotations(tensor, int(args.sampling), args.show)
 
     if args.gnuplot != None:
       matviz_io.write_angle_data(args.gnuplot, angle, data)
@@ -266,43 +266,8 @@ def show_boebbale(tensor, args, coords, scale, aux_code):
       viz = show_orientational_stiffness(coords, angle, data, args.res, scale, args.axes)
       matviz_io.show_or_write(viz, args)
   else:
-    angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
-
-    angle_max = angle[numpy.argmax(numpy.abs(data))]
-    angle_min = angle[numpy.argmin(numpy.abs(data))]
-
-    print(" largest e-modulus: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
-    print("smallest e-modulus: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
-    if len(aux) > 0:
-      print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
-
-    poly = create_vtk_poly_data(angle, data if args.show == None else aux)
-
-    actors = []
-    if not args.symmetries == "default":
-      tmp = []
-      if args.symmetries_mode == "minima":
-        tmp = find_minima(angle, aux)
-      else:
-        for i in range(len(angle)):
-          tmp.append((angle[i], aux[i]))
-      # sort by value
-      tmp2 = sorted(tmp, key=lambda entry: entry[1])
-      # max
-      tmp3 = tmp2[0:int(args.symmetries_max)]
-      # handle threshold
-      mins = []
-      for i in range(len(tmp3)):
-        if tmp3[i][1] <= float(args.symmetries_threshold):
-          mins.append(tmp3[i])
-      actors = create_symmetry_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
-
-    if args.gnuplot != None:
-      matviz_io.write_angle_data(args.gnuplot, angle, data)
-      sys.exit() # all done
-    else:
-      show_write_vtk(poly, args.res, args.save, actors, args.axes, camera_settings=args.cam)
-
+    assert False, 'use tensorviz.py'
+    
 def match_volume_bisec(target_volume, func, params, param_idx):
 # performs a bisection to match volume
 # @param vol  desired volume
@@ -459,7 +424,7 @@ def get_MPI_rank():
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
+parser.add_argument("input", help="a cfs++ h5 file")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
 parser.add_argument("--h5_nondes", help="non-design (solid) region name (default 'non-design')", default="None")
@@ -476,11 +441,6 @@ parser.add_argument("--sampling", help="sampling rate for tensor rotation (defau
 parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d', 'hom_triangle'])
 parser.add_argument("--axes", help="show axes", action='store_true', default=False)
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", choices=['mandel','voigt'], default="voigt")
-parser.add_argument("--symmetries", help="same options as for show", default="default")
-parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
-parser.add_argument("--symmetries_threshold", help="threshold value for symmetries (default 9999)", default=9999)
-parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
-parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also show planes to normals (default 'false')", default="false")
 parser.add_argument("--access", help="'plain' or 'smart' (default 'smart')", default="smart")
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'])
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'])
@@ -517,14 +477,8 @@ parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", typ
 parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
 parser.add_argument("--parameter", help="parameter for different usage", type=float, default=None)
 parser.add_argument("--repetitions", help="number of repetitions of basecell", type=int, default=1)
-# print sys.argv
 
 args = parser.parse_args()
-
-# check ans postproc arguments
-if not args.symmetries == "default" and not args.show == None and not args.symmetries == args.show:
-  raise Exception("'show' and 'symmetries' do not match")
-aux_code = args.show if args.show else args.symmetries  # might still be default
 
 # check 3d ortho basecell parameters
 if args.show == "hom_ortho_3d":
@@ -568,123 +522,89 @@ design_elems = None
 design_elems_min = None
 design_elems_max = None
 
-# check if we read data from command line or info.xml instead from a cfs file
-if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
+h5_read = True
+infoXml_read = False
+if not os.path.exists(args.input):
+  raise Exception('Error: file does not exist: ' + args.input)
+f = h5py.File(args.input, 'r')
+if args.h5_info:
+  dump_h5_meta(f)
+  sys.exit()
+validate_region(f, args.h5_region)
+if len(args.unstructured) != 0:
+  nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _, _, _, _ = centered_elements(f, args.h5_nondes, False, 'load', 'support')
+  print('Reading elements from H5-file done ')
+  dim_2D = nondes_min[2] == nondes_max[2]
+  print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region")
 
-  h5_read = False
-  infoXml_read = True
-  dim_2D = None
-  input = None
-
-  if args.input.startswith('['):
-    input = eval(args.input)
-    if len(input) != 21 and len(input) != 6:
-      raise Exception("the input has " + str(len(input)) + " coefficients but requires 6 (2D) or 21 (3D)")
-    dim_2D = len(input) != 21
-  elif args.input.endswith(".info.xml"):
-    input, dim_2D = matviz_io.read_hom_tensor_from_info_xml(args.input)
-  else:
-    #data from matlab file
-    assert(args.input.endswith(".mat"))
-    input = args.input
-    args.tensor = 'matlab'
-
-  if args.tensor == 'mechTensor':
-    tensor = to_mech_tensor(input)
-    tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
-    print("Input data is read as " + args.notation + ".")
-    print("Voigt notation of input tensor:")
-  if args.tensor == 'piezoTensor':
-    tensor = to_piezo_tensor(input)
-  if not args.tensor == 'matlab':
-    dump_tensor(tensor)
-
-  centers.append([0.5, 0.5, 0.0])
-# read 2D or 3D data from h5 file
+if args.h5_region == 'all':
+  centers = [[None, None, None]]
+  min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
+  max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
+  for region in f['/Mesh/Regions']:
+    reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements, connectivity, reg_nodes, reg_nodes_map  = centered_elements(f, region)
+    elems_in_regions.append(reg_elements)
+    centers = numpy.concatenate((centers, reg_centers))
+    min_bb = numpy.min([min_bb,reg_min_bb],0);
+    max_bb = numpy.max([max_bb,reg_max_bb],0);
+  elems_in_regions = elems_in_regions[1:]
+  centers = centers[1:,:]
 else:
-  h5_read = True
-  infoXml_read = False
-  if not os.path.exists(args.input):
-    raise Exception('Error: file does not exist: ' + args.input)
-  f = h5py.File(args.input, 'r')
-  if args.h5_info:
-    dump_h5_meta(f)
-    sys.exit()
-  validate_region(f, args.h5_region)
-  if len(args.unstructured) != 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _, _, _, _ = centered_elements(f, args.h5_nondes, False, 'load', 'support')
-    print('Reading elements from H5-file done ')
-    dim_2D = nondes_min[2] == nondes_max[2]
-    print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region")
+  # similar to centers, but not centered
+  centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region)
 
-  if args.h5_region == 'all':
-    centers = [[None, None, None]]
-    min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
-    max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
-    for region in f['/Mesh/Regions']:
-      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements, connectivity, reg_nodes, reg_nodes_map  = centered_elements(f, region)
-      elems_in_regions.append(reg_elements)
-      centers = numpy.concatenate((centers, reg_centers))
-      min_bb = numpy.min([min_bb,reg_min_bb],0);
-      max_bb = numpy.max([max_bb,reg_max_bb],0);
-    elems_in_regions = elems_in_regions[1:]
-    centers = centers[1:,:]
+design_elems = None
+if get_MPI_rank() == 0:
+  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
+    nondes_regs = args.h5_nondes
+    # in case we have more than 1 non-design solid region
+    if "," in args.h5_nondes:
+      nondes_regs = args.h5_nondes.split(",")
+    elif type(nondes_regs) == str:
+      nondes_regs = [nondes_regs]
+
+    if args.h5_nondes != "None":
+      nondes_centers = []
+      nondes_elements = []
+      nondes_min = 999999
+      nondes_max = -999999
+      for nr in list(nondes_regs):
+        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _, _ = centered_elements(f, nr,centered=False)
+        nondes_elements.extend(tmp_nondes_elements)
+        nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
+        nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
+
+  # take centered values and interpolate to edges
+  design_elems, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
+
+  print("args.h5_nondes_void:",args.h5_nondes_void)
+  if args.h5_nondes_void != "None":
+    if get_MPI_rank() == 0:
+      nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
+
+dim_2D = min_bb[2] == max_bb[2]
+print('detected dimension ' + ('2D' if dim_2D else '3D'))
+
+if args.hist:
+  if args.show == None:
+    raise Exception('The option --hist can only be used in combination with --show.')
+  design = matviz_io.read_design(f, dim_2D, args, TWO_SCALE)
+  s1 = design['s1']
+  s2 = design['s2']
+  if dim_2D:
+    vol = s1 + s2 - s1*s2
   else:
-    # similar to centers, but not centered
-    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region)
-
-  design_elems = None
-  if get_MPI_rank() == 0:
-    if args.h5_nondes != "None" or args.h5_nondes_void != "None":
-      nondes_regs = args.h5_nondes
-      # in case we have more than 1 non-design solid region
-      if "," in args.h5_nondes:
-        nondes_regs = args.h5_nondes.split(",")
-      elif type(nondes_regs) == str:
-        nondes_regs = [nondes_regs]
-
-      if args.h5_nondes != "None":
-        nondes_centers = []
-        nondes_elements = []
-        nondes_min = 999999
-        nondes_max = -999999
-        for nr in list(nondes_regs):
-          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _, _ = centered_elements(f, nr,centered=False)
-          nondes_elements.extend(tmp_nondes_elements)
-          nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
-          nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
-
-    # take centered values and interpolate to edges
-    design_elems, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
-
-    print("args.h5_nondes_void:",args.h5_nondes_void)
-    if args.h5_nondes_void != "None":
-      if get_MPI_rank() == 0:
-        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
-
-  dim_2D = min_bb[2] == max_bb[2]
-  print('detected dimension ' + ('2D' if dim_2D else '3D'))
-
-  if args.hist:
-    if args.show == None:
-      raise Exception('The option --hist can only be used in combination with --show.')
-    design = matviz_io.read_design(f, dim_2D, args, TWO_SCALE)
-    s1 = design['s1']
-    s2 = design['s2']
-    if dim_2D:
-      vol = s1 + s2 - s1*s2
-    else:
-      s3 = design['s3']
-      vol = pow(s1,2) + pow(s2,2) + pow(s3,2) - (pow(s1,2)*s2+pow(s1,2)*s3+pow(s2,2)*s1+pow(s2,2)*s3+pow(s3,2)*s1+pow(s3,2)*s2)/6.0 *2.0 # rough approximation
-    matplotlib.pyplot.hist(vol,args.hist)
-    matplotlib.pyplot.title('element volume')
-    matplotlib.pyplot.xlim((min(vol),max(vol)))
-    matplotlib.pyplot.show()
-    for des in design:
-      val = design[des]
-      if val.ndim != 1:
-        continue
-    sys.exit()
+    s3 = design['s3']
+    vol = pow(s1,2) + pow(s2,2) + pow(s3,2) - (pow(s1,2)*s2+pow(s1,2)*s3+pow(s2,2)*s1+pow(s2,2)*s3+pow(s3,2)*s1+pow(s3,2)*s2)/6.0 *2.0 # rough approximation
+  matplotlib.pyplot.hist(vol,args.hist)
+  matplotlib.pyplot.title('element volume')
+  matplotlib.pyplot.xlim((min(vol),max(vol)))
+  matplotlib.pyplot.show()
+  for des in design:
+    val = design[des]
+    if val.ndim != 1:
+      continue
+  sys.exit()
 
 if max_bb is None:
   max_bb = [1.0, 1.0] if dim_2D else [1.0, 1.0, 1.0]
@@ -706,11 +626,11 @@ if not args.target_volume:
         nondes_solid = (nondes_elements, nondes_min, nondes_max)
       if args.h5_nondes_void != "None":
         nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
+    perform(args, h5_read, dim_2D, tensor, centers, None, nondes=(nondes_solid,nondes_void,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code, None, nondes=(None,None,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
+    perform(args, h5_read, dim_2D, tensor, centers, None, nondes=(None,None,design), min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
 else:
-  perform(args, h5_read, dim_2D, tensor, centers, aux_code, min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
+  perform(args, h5_read, dim_2D, tensor, centers, min_bb=min_bb, max_bb=max_bb, elems_in_regions=elems_in_regions)
 
 if args.info:
   matviz_io.write_info_xml(args.info)

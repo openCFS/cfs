@@ -1332,8 +1332,6 @@ def show_orientational_stiffness(coords, angle, data, nx, scale=-1.0, axes=False
 
   im, draw, dim, dx, dy = create_image(min, max, nx)
 
-  print("max=" + str(max_val) + " min=" + str(min_val))
-
   if scale == -1.0:
     dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0]
     scale = 0.35 * dx * dist / max_val
@@ -1348,8 +1346,8 @@ def show_orientational_stiffness(coords, angle, data, nx, scale=-1.0, axes=False
     angle_max = angles[numpy.argmax(numpy.abs(vals))]
     angle_min = angles[numpy.argmin(numpy.abs(vals))]
 
-    print(" largest e-modulus: {:>13.6e}".format(max_val) + "  in direction " + str(to_vector(angle_max)))
-    print("smallest e-modulus: {:>13.6e}".format(min_val) + "  in direction " + str(to_vector(angle_min)))
+    #print(" largest entry: {:>13.6e}".format(max_val) + "  in direction " + str(to_vector(angle_max)))
+    #print("smallest entry: {:>13.6e}".format(min_val) + "  in direction " + str(to_vector(angle_min)))
 
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
@@ -1380,7 +1378,12 @@ def show_orientational_stiffness(coords, angle, data, nx, scale=-1.0, axes=False
       draw.ellipse(twoPointList, outline="black", width=1)
       label = str(r*axes_step)
       pos = (x_center + radius/sqrt(2), y_center - radius/sqrt(2))
-      fnt = ImageFont.truetype("arial.ttf", int(dx/50))
+      
+      fnt = None
+      try:
+        fnt = ImageFont.truetype("arial.ttf", int(dx/50))
+      except OSError:  
+        fnt = ImageFont.truetype("Geneva.ttf", int(dx/50))
       draw.text(pos, label, anchor="lb", fill="black", font=fnt)
     # draw lines for angles
     for seg in range(12):
@@ -1393,13 +1396,13 @@ def show_orientational_stiffness(coords, angle, data, nx, scale=-1.0, axes=False
   return im
 
 
-# @param aux see  perform_cfs_rotation()
+# @param aux see  perform_voigt_tensor_samping()
 # @return list of angles and list of data which might be aux
-def perform_rotations(tensors, notation, samples, aux_code=None):
+def perform_rotations(tensors, samples, aux_code=None):
 
   # tensors contains just one tensor
   if numpy.ndim(tensors) == 2:
-    angle, data, aux = perform_cfs_rotation(tensors, samples, aux_code)
+    angle, data, aux = perform_voigt_tensor_samping(tensors, samples, aux_code)
     return angle, data if aux_code == None else aux
 
   # tensors is an array of tensors
@@ -1408,7 +1411,7 @@ def perform_rotations(tensors, notation, samples, aux_code=None):
   for i in range(len(tensors)):
     tensor = tensors[i]
     assert(numpy.ndim(tensor) == 2)
-    angle, data, aux = perform_cfs_rotation(tensor, samples, aux_code)
+    angle, data, aux = perform_voigt_tensor_samping(tensor, samples, aux_code)
     res_angle.append(angle)
     res_data.append(data if aux_code == None else aux)
 
