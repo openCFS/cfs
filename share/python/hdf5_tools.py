@@ -18,7 +18,7 @@ def get_nodes(hdf5_file, name):
 
 # get nodes for the elements of a region. 
 # corresponds to <nodeList><nodes name="mine"><allNodesInRegion regName="reg"/>.. in <domain>
-def get_nodes_in_region(hdf5_file, reg_name):
+def get_nodes_in_region(hdf5_file, name):
   if type(hdf5_file) == str:
     hdf5_file = h5py.File(hdf5_file,'r')
     
