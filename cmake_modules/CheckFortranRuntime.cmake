@@ -116,8 +116,8 @@ if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
     # both libs are found
     list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
     
-    # clang on macOS complains about -static-libgfortran"
-    if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG"))
+    # clang complains about -static-libgfortran"
+    if(NOT(CFS_CXX_COMPILER_NAME STREQUAL "CLANG"))
       list(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
     endif()  
   else()

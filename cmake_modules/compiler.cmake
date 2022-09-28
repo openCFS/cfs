@@ -243,6 +243,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-nested-anon-types")
     # not all gcc options are compatible with clang (mac)
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-unknown-warning-option")
+    # boost 1.73 'unary_function<bool, unsigned long>' is deprecated
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations")
   ENDIF()
 
   if(APPLE)
