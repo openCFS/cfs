@@ -1037,6 +1037,55 @@ pages:
   after_script: []
   before_script: []
 
+.package-release_common: &package-release_common
+  stage: deploy
+  variables:
+    # switch off cloning any code and add common variables
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+    # see https://docs.gitlab.com/ee/user/packages/generic_packages/index.html for PACKAGE_REGISTRY_URL format
+    #                                                    projects/:id/packages/generic/:package_name/:package_version/:file_name
+    PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/openCFS/${CI_COMMIT_TAG}"
+    LINUX_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
+  rules:
+    - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"  # Run this job when a tag is created
+  cache: {}
+  after_script: []
+  before_script: []
+
+package:
+  <<: *package-release_common
+  image: curlimages/curl:latest
+  needs:
+    - linux:gcc5
+  script:
+    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
+    - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
+    - tar -czvf "${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+
+release:
+  <<: *package-release_common
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - package
+  script:
+    - echo "${CI_COMMIT_TAG_MESSAGE}" > description.md
+    - cat description.md
+  release:  # See https://docs.gitlab.com/ee/ci/yaml/#release for available properties
+    tag_name: '$CI_COMMIT_TAG'
+    description: './description.md'
+    assets:
+      # add links to downloads
+      # format: https://gitlab.com/openCFS/cfs/-/releases/:release/downloads/:filepath
+      # or permanent link to latest version: https://gitlab.com/openCFS/cfs/-/releases/permalink/latest/downloads/:filepath
+      links:
+        - name: 'Linux binary (tar.gz)'
+          url: "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}" # uploaded by 'package' job before
+          filepath: '/CFS-Linux.tar.gz' # optional, but requred for 'latest' dowloads, defines the url (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
+          link_type: 'package' # optional, defines the section aind icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
+
 copy_to_draco:
   dependencies:
     - linux:gcc5
