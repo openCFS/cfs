@@ -1037,33 +1037,47 @@ pages:
   after_script: []
   before_script: []
 
-release:
+.package-release_common: &package-release_common
   stage: deploy
-  image: curlimages/curl:latest
-  # switch off cloning any code
+  # switch off cloning any code and add common variables
   variables:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
+    # see https://docs.gitlab.com/ee/user/packages/generic_packages/index.html for PACKAGE_REGISTRY_URL format
+    PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cfs-Linux/${CI_COMMIT_TAG}"
+    LINUX_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
   rules:
     - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"  # Run this job when a tag is created
-  dependencies:
+  cache: {}
+  after_script: []
+  before_script: []
+
+package:
+  <<: *package-release_common
+  image: curlimages/curl:latest
+  needs:
     - linux:gcc5
   script:
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
-    - tar -czvf CFS-$CI_COMMIT_TAG-Linux.tar.gz CFS-$CI_COMMIT_TAG-Linux # repack
+    - tar -czvf "${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "CFS-${CI_COMMIT_TAG}-Linux.tar.gz" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/Linux/${CI_COMMIT_TAG}/CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+
+release:
+  <<: *package-release_common
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - package
+  script:
+    - echo "creating release (needs dummy script)"
   release:  # See https://docs.gitlab.com/ee/ci/yaml/#release for available properties
     tag_name: '$CI_COMMIT_TAG'
     description: 'Release for $CI_COMMIT_TAG'
     assets:
       links:
         - name: 'Linux'
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/Linux/${CI_COMMIT_TAG}/CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
-  cache: {}
-  after_script: []
-  before_script: []
+          url: "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
 
 copy_to_draco:
   dependencies:
