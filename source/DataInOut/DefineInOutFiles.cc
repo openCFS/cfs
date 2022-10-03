@@ -274,9 +274,10 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 MaterialHandler *
 DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 {
-
-  string fileName = "mat.dat";
-  string format = "dat";
+  fs::path root = progOpts->ObtainCFSRootFromSystem();
+  root.normalize();                                                                          // shall be save to remove when the depreciaton hurts
+  string fileName = root.string() + "/share/xml/CFS-Material/Examples/MaterialDataBase.xml"; // shall work also on Windows
+  string format = "xml";
 
   // Determine filename and format
   PtrParamNode matNode = 
@@ -285,6 +286,10 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
   {
     matNode->GetValue("file", fileName);
     matNode->GetValue("format", format);
+  }
+  else
+  {
+    WARN("No materialData tag given in XML input. CFS is using the default material database in '" << fileName << "'");
   }
 
   if (format == "dat")

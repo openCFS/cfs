@@ -1574,7 +1574,6 @@
             2.64500E+10 </real>
           </tensor>
         </linear>
-        <nonlinear/>
       </elasticity>
       <damping>
         <rayleigh>
@@ -1612,15 +1611,6 @@
           </tensor>
         </linear>
       </permittivity>
-      <!--      <permittivityCoefficient nonlinear="function">
-          <entry>      33            </entry>
-          <dependency> elecField     </dependency>
-          <approxType> smoothSplines </approxType>
-          <dataName>   PZTeps33NL1   </dataName>
-      </permittivityCoefficient>  -->
-      <hystModel>
-        <preisach>
-          <eSat> 1E06 </eSat><pSat> 0.04 </pSat><Pr>3</Pr><!--dim> 3 </dim--><dirP>3</dirP><dim>3</dim><weights> 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 </weights></preisach></hystModel>
     </electric>
     <flow>
       <density>
@@ -1667,15 +1657,6 @@
             <real> 1.256E-03 </real>
           </isotropic>
         </linear>
-        <nonlinear>
-          <isotropic>
-            <dependency></dependency>
-            <approxType>smoothSplines</approxType>
-            <measAccuracy>0</measAccuracy>
-            <maxApproxVal>0</maxApproxVal>
-            <dataName></dataName>
-          </isotropic>
-        </nonlinear>
       </permeability>
     </magnetic>
     <piezo>
@@ -1687,7 +1668,6 @@
           1.41000E+01 0.00000E+00 0.00000E+00 0.00000E+00 </real>
           </tensor>
         </linear>
-        <nonlinear/>
       </piezoCoupling>
     </piezo>
     <pyroElectric>
