@@ -94,11 +94,17 @@ Notes for Maintainers
 
 * Generate a __Release__ by pushing an annotated tag `git tag -a`. 
   The annotation message should summarize the changes since the last release.
-  Usually we do two releases per year, tagged as `yyyyS` (summer) and `yyyyW` (winter).
-* __Binaries__ can be distributed by using [GitLab's Generic Packages Repository](https://docs.gitlab.com/ee/user/packages/generic_packages/).
-  Push the file using the API: `curl --header "PRIVATE-TOKEN: <personal_access_token>" --upload-file CFS-2022W-Linux.tar.gz "https://gitlab.com/api/v4/projects/12930334/packages/generic/openCFS/2022W/CFS-2022W-Linux.tar.gz"`.
-  Use a _personal access token_ with _api_ privileges created via the gitlab UI.
-* Releases and binaries are connected by __links__ in the release.
+  Usually, we do two releases per year, tagged as `yyyyS` (summer) and `yyyyW` (winter).
+* A binary __Package__ can be distributed by using [GitLab's Generic Packages Repository](https://docs.gitlab.com/ee/user/packages/generic_packages/).
+  Push the file using the API: `curl --header "PRIVATE-TOKEN: <personal_access_token>" --upload-file CFS-2022W-Linux.tar.gz "https://gitlab.com/api/v4/projects/12930334/packages/generic/openCFS/:release/CFS-2022W-Linux.tar.gz"`.
+  Use a _personal access token_ with _api_ privileges created via the gitlab web-ui.
+* Releases and packages are connected by __links__ in the release.
   Links are set up automatically in the pipeline, but can also be added manually.
-  Add them via the API to define `filepath` and `link_type`: e.g. (adapt `<URL>`, `<NAME>` and `:release`)
-  `curl --request POST --header "PRIVATE-TOKEN: <personal_access_token>" --data name="Linux binary (tar.gz)" --data url="<URL>" --data filepath="/<NAME>" --data link_type="package" "https://gitlab.com/api/v4/projects/12930334/releases/:release/assets/links"`
+  A _permalink_ to the latest release is `https://gitlab.com/openCFS/cfs/-/releases/permalink/latest/downloads/<FILEPATH>`.
+  In order to make it work, one has to define a `filepath` for the link.
+  This is only possible via the API: use `curl --request POST --header "PRIVATE-TOKEN: <personal_access_token>" --data name="<NAME>" --data url="<URL>" --data filepath="/<FILEPATH>" --data link_type="package" "https://gitlab.com/api/v4/projects/12930334/releases/:release/assets/links"`
+   and adapt the following:
+   - `<NAME>` is the name visible in the web-ui, e.g. `Linux binary (tag.gz)` or `Windows binary (zip)`
+   - `<URL>` is the url of the package defined above
+   - `<FILEPATH>` is the filename used for _latest_ links, e.g. `CFS-Linux.tar.gz` or `CFS-Windows.zip`
+   - `:release` is the release you want to place the link in
