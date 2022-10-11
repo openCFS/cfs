@@ -331,6 +331,11 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Definition of field variables (union of nodal and element results) -->
+  <xsd:simpleType name="DT_HeatFieldResult">
+    <xsd:union memberTypes="DT_HeatNodeResult DT_HeatElemResult"/>
+  </xsd:simpleType>
+
   <xsd:simpleType name="DT_HeatSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatFluxIntensity"/>
@@ -398,6 +403,17 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
                 <xsd:attribute name="type" type="DT_HeatSurfRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_HeatFieldResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
