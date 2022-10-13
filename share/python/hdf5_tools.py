@@ -360,7 +360,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
             steps=[last_h5_step(hdf5_file,multistep)]
         elif step=='all' :
             steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)][:]
-        elif type(step)==int :
+        elif type(step) in [int, np.int64] :
             steps=[step]
         elif hasattr(step, '__iter__') :
             steps=step
