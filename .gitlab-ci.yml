@@ -784,7 +784,7 @@ linux:gcc10:ninja:
 stable:gcc5:linux:
   tags:
     - linux
-  image: opencfs/ubuntu20.04
+  image: opencfs/ubuntu22.04
   stage: test
   variables:
     BUILD_NAME: GCC5 / stable
@@ -807,7 +807,7 @@ testsuite:gcc5:linux:
 stable:gcc7min:linux:
   tags:
     - linux
-  image: opencfs/ubuntu20.04
+  image: opencfs/ubuntu22.04
   stage: test
   variables:
     BUILD_NAME: GCC7 minimal / stable
@@ -904,7 +904,7 @@ testsuite:gcc10:linux:
 stable:intel:linux:
   tags:
     - linux
-  image: opencfs/ubuntu20.04
+  image: opencfs/ubuntu22.04
   stage: test
   variables:
     BUILD_NAME: Intel2021 / stable
@@ -932,7 +932,7 @@ testsuite:intel:linux:
     - linux:intel
 
 python:linux:
-  image: opencfs/ubuntu20.04
+  image: opencfs/ubuntu22.04
   extends: .ctest_default
   tags:
     - docker
