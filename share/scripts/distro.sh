@@ -290,6 +290,7 @@ case "$(echo $DIST | sed 'y/'$LOWER'/'$UPPER'/')" in
     "SCIENTIFIC") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
     "CENTOS") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//');;
     "ORACLE") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
+    "ROCKY") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
     "RHEL") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
     "SLE") DIST_FAMILY="SLE"; MAJOR_REV=${REV} ;;
     *) break ;;

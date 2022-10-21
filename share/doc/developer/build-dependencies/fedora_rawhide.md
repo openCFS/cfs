@@ -1,1 +1,1 @@
-fedora_latest.md
+fedora.md

@@ -296,6 +296,13 @@ ubuntu:rolling:
     TAG: "rolling"
 
 # older LTS releases ...
+ubuntu:20.04:
+  extends: .platform:image
+  image: ubuntu:20.04
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "20.04"
+
 ubuntu:18.04:
   extends: .platform:image
   image: ubuntu:18.04
@@ -303,7 +310,8 @@ ubuntu:18.04:
     IMAGE: "ubuntu"
     TAG: "18.04"
 
-# latest stable debian release, see https://hub.docker.com/_/debian
+# debian releases, see https://hub.docker.com/_/debian
+# latest stable release (dynamic image name)
 debian:latest:
   extends: .platform:image
   image: debian:latest
@@ -311,13 +319,38 @@ debian:latest:
     IMAGE: "debian"
     TAG: "latest"
 
+# older releases ...
+debian:10: # (buster)
+  extends: .platform:image
+  image: debian:10
+  variables:
+    IMAGE: "debian"
+    TAG: "10"
+
+# RHEL derivatives
 # centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
-centos:7:
+rhel:7:
   extends: .platform:image
   image: centos:7
   variables:
     IMAGE: "centos"
     TAG: "7"
+
+# rockylinux 8, see https://hub.docker.com/_/rockylinux
+rhel:8:
+  extends: .platform:image
+  image: rockylinux:8
+  variables:
+    IMAGE: "rockylinux"
+    TAG: "8"
+
+# rockylinux 9, see https://hub.docker.com/_/rockylinux
+rhel:9:
+  extends: .platform:image
+  image: rockylinux:9
+  variables:
+    IMAGE: "rockylinux"
+    TAG: "9"
 
 #######################################################################
 # cfsdeps stage
