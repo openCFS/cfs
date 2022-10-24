@@ -113,7 +113,7 @@ if(USE_OPENMP)
   if(APPLE)
     # best is to use homebrew llvm: https://stackoverflow.com/questions/43555410/enable-openmp-support-in-clang-in-mac-os-x-sierra-mojave
     include_directories(AFTER SYSTEM "${CFS_BREW_BASE}/include")
-    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${CFS_BREW_BASE}/lib")
+    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${CFS_BREW_BASE}/lib ")
   endif()   
 endif() # USE_OPENMP
 
@@ -255,9 +255,12 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     CHECK_CXX_SOURCE_COMPILES("${CXX_HAS_SYSROOT_FLAG_SOURCE}" CXX_HAS_SYSROOT_FLAG)
     unset(CMAKE_REQUIRED_FLAGS)
 
-    # practically we need homebrew for libquadmath (on x86_64) 
-    # we might already have this from openmp
-    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -L${CFS_BREW_BASE}/lib")
+    # practically we need homebrew for libquadmath (on x86_64) we might already have this from openmp
+    if(NOT USE_OPENMP)
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -L${CFS_BREW_BASE}/lib")  
+    endif()
+
+    # warning! don't do -Wl,-nowarn_compact_unwind to prevent unwind warnings! This kills exception catching!
   endif() # apple
 
   # see https://en.wikipedia.org/wiki/Gcov
