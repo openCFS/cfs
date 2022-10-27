@@ -32,7 +32,7 @@ else
     assert(nparamintervals(2) > 1);
     assert(nparamintervals(3) > 1);
 end
-        
+
 regular = true;
 if any( isnan(dparams) )
     regular = false;
@@ -94,7 +94,7 @@ for i=2:size(data,1)
             vol(idx) = data(i, 7+nparam);
         end
     else
-        assert(size(data,2) == 21+nparam || size(data,2) == 22+nparam);
+        assert(size(data,2) >= 21+nparam && size(data,2) <= 23+nparam);
         E11(idx) = data(i, 1+nparam);
         E12(idx) = data(i, 2+nparam);
         E13(idx) = data(i, 3+nparam);
@@ -116,8 +116,11 @@ for i=2:size(data,1)
         E55(idx) = data(i,19+nparam);
         E56(idx) = data(i,20+nparam);
         E66(idx) = data(i,21+nparam);
+%         if size(data,2) >= 22+nparam
+%             vol(idx) = data(i, 22+nparam);
+%         end
         if size(data,2) == 22+nparam
-            vol(idx) = data(i, 22+nparam);
+            loadfactor(idx) = data(i, 22+nparam);
         end
     end
 end
@@ -218,12 +221,10 @@ end
 
 function [params, nparamintervals, dparams] = getSampling(list)
 
-nparams = size(list,2)-1;
-
 nparamintervals = zeros(3,1);
 dparams = zeros(3,1);
 
-for d=1:nparams
+for d=1:3
     nparamintervals(d) = max(0, list(1,d));
     if nparamintervals(d) > 1
         params{d} = unique(list(2:end,d));

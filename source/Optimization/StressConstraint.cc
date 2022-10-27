@@ -58,18 +58,12 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
   this->u2_elem_ptr = NULL;
 
   // global initializations
-  M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
-
-  // for the local buckling load factor we need the norm of the stress
   if(type == Function::LOCAL_BUCKLING_LOAD_FACTOR)
-  {
-    M = Matrix<double>();
-    M.Resize(3,3);
-    M.Init();
-    M[0][0] = 1.0;
-    M[1][1] = 1.0;
-    M[2][2] = 2.0;
-  }
+    // for the local buckling load factor we need the norm of the stress
+    M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetHillMandelMatrix(domain->GetGrid()->GetDim());
+  else
+    M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
+
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
     tf = TransferFunction(App::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());

@@ -100,11 +100,6 @@ ErsatzMaterial::ErsatzMaterial() :
   volumeFraction_ = 0.0;
   densityFile = NULL;
   bitensor_ = false;
-  trackingFunc_ = NULL;
-
-  interfaceDrivenGradCalc_ = false;
-
-  printProgressBar_ = false;
 
   pn = domain->GetParamRoot()->Get("optimization/ersatzMaterial");
 

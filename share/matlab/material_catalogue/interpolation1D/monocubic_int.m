@@ -15,6 +15,9 @@ for i=1:m-1
         k=m-1;
     elseif x < a(1) || x > a(m)
         error('x out of bounds\n');
+%         al = a(m-1);
+%         au = a(m);
+%         k=m-1;
     end
 end
 

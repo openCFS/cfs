@@ -591,9 +591,9 @@ std::string FeastEigenSolver::FeastInfo(Integer info) {
     case 4:
       msg="Only the subspace has been returned using fpm(14)=1"; break;
     case 3:
-      msg="Size of the subspace M0 is too small (M0<=M)"; break;
+      msg="Size of the subspace M0 is too small (M0 less than M)"; break;
     case 2:
-      msg="No Convergence (#iteration loops>fpm(4))"; break;
+      msg="No Convergence (#iteration loops greater than fpm(4))"; break;
     case 1:
       msg="No Eigenvalue found in the search interval"; break;
     case 0:

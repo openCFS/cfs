@@ -460,12 +460,66 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
   return shape, holes
 
 
+def show_cross_3D_grad(coords, design, grad, samples, thres, radius=None, savefile=None, param=None, repetitions=1):
+  radius = param
+  height = 10
+  
+  cubit.silent_cmd('reset')
+  
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height, radius))
+  cyl1 = cubit.get_last_id("volume")
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height, radius))
+  cyl2 = cubit.get_last_id("volume")
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height, radius))
+  cyl3 = cubit.get_last_id("volume")
+  
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height*np.sqrt(3), radius))
+  cyl4 = cubit.get_last_id("volume")
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height*np.sqrt(3), radius))
+  cyl5 = cubit.get_last_id("volume")
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height*np.sqrt(3), radius))
+  cyl6 = cubit.get_last_id("volume")
+  cubit.silent_cmd('create Cylinder height {} radius {} '.format(height*np.sqrt(3), radius))
+  cyl7 = cubit.get_last_id("volume")
+  
+  cubit.silent_cmd('rotate Volume {} angle 90  about X include_merged '.format(cyl2))
+  cubit.silent_cmd('rotate Volume {} angle 90  about Y include_merged '.format(cyl3))
+  angle = np.arccos(1/np.sqrt(3))*180/np.pi
+  cubit.silent_cmd('rotate Volume {} angle {}  about origin 0 0 0 direction 1 1 0 include_merged '.format(cyl4, angle))
+  cubit.silent_cmd('rotate Volume {} angle {}  about origin 0 0 0 direction -1 1 0 include_merged '.format(cyl5, angle))
+  cubit.silent_cmd('rotate Volume {} angle {}  about origin 0 0 0 direction 1 -1 0 include_merged '.format(cyl6, angle))
+  cubit.silent_cmd('rotate Volume {} angle {}  about origin 0 0 0 direction -1 -1 0 include_merged '.format(cyl7, angle))
+  
+  cubit.silent_cmd('brick x {} '.format(height))
+  cube = cubit.get_last_id("volume")
+  cubit.silent_cmd('unite body {:d} {:d} {:d} {:d} {:d} {:d} {:d} '.format(cyl1, cyl2, cyl3, cyl4, cyl5, cyl6, cyl7))
+  cubit.silent_cmd('intersect body {:d} {:d} '.format(cube, cyl1))
+  shape = cyl1
+  
+  cubit.silent_cmd('list body {} geometry'.format(shape))
+  
+  for xx in range(repetitions):
+    for yy in range(repetitions):
+      for zz in range(repetitions):
+        cubit.silent_cmd('Volume {}  copy move x {} y {} z {}'.format(shape, xx*height, yy*height, zz*height))
+  
+  cubit.silent_cmd('unite body all')
+  shape = cubit.get_entities("volume")[0]
+  
+  return shape, []
+
+
 # names regions and nodes of a geometry
 # @param shape - id of geometry
 # @param param - if None, macroscopic naming is applied, if not None, unit cell will be named
 def name_regions_and_nodes(shape, param):
+
+  is2d = cubit.get_volume_count() == cubit.get_surface_count()
+  entity = "surface" if is2d else "volume"
+  subentity = "curve" if is2d else "surface"
+
   # name region
-  cubit.silent_cmd('block 1 add surface {} '.format(shape))
+  cubit.silent_cmd('block 1 add ' + entity + ' {} '.format(shape))
   cubit.silent_cmd('block 1 name "mech"')
 
   # name boundary nodes
@@ -479,80 +533,190 @@ def name_regions_and_nodes(shape, param):
     cubit.silent_cmd('nodeset 7 add vertex 3')
     cubit.silent_cmd('nodeset 8 add vertex 4')
   else:
-    bb = cubit.get_bounding_box("surface", shape)
+    bb = cubit.get_bounding_box(entity, shape)
 
-    all_curves = cubit.get_entities("curve")
+    all_subentities = cubit.get_entities(subentity)
 
     # find curves belonging to boundaries
     left = []
     right = []
     bottom = []
     top = []
+    back = []
+    front = []
 
-    for curve in all_curves:
-      start_point = cubit.curve(curve).position_from_fraction(0)
-      end_point = cubit.curve(curve).position_from_fraction(1)
-      if abs(start_point[0]-bb[0]) < 1e-12 and abs(end_point[0]-bb[0]) < 1e-12:
-        left.append(curve)
-      if abs(start_point[0]-bb[1]) < 1e-12 and abs(end_point[0]-bb[1]) < 1e-12:
-        right.append(curve)
-      if abs(start_point[1]-bb[3]) < 1e-12 and abs(end_point[1]-bb[3]) < 1e-12:
-        bottom.append(curve)
-      if abs(start_point[1]-bb[4]) < 1e-12 and abs(end_point[1]-bb[4]) < 1e-12:
-        top.append(curve)
+    for subent in all_subentities:
+      if is2d:
+        start_point = cubit.curve(subent).position_from_fraction(0)
+        end_point = cubit.curve(subent).position_from_fraction(1)
+        if abs(start_point[0]-bb[0]) < 1e-12 and abs(end_point[0]-bb[0]) < 1e-12:
+          left.append(subent)
+        if abs(start_point[0]-bb[1]) < 1e-12 and abs(end_point[0]-bb[1]) < 1e-12:
+          right.append(subent)
+        if abs(start_point[1]-bb[3]) < 1e-12 and abs(end_point[1]-bb[3]) < 1e-12:
+          bottom.append(subent)
+        if abs(start_point[1]-bb[4]) < 1e-12 and abs(end_point[1]-bb[4]) < 1e-12:
+          top.append(subent)
 
-    bottom_left_id, top_left_id, bottom_right_id, top_right_id = None, None, None, None
-    for curve in left:
-      vertices = cubit.get_relatives("curve", curve, "vertex")
-      for vertex in vertices:
-        if bottom_left_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[3]) < 1e-12:
-          bottom_left_id = cubit.vertex(vertex).id()
-        if top_left_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[4]) < 1e-12:
-          top_left_id = cubit.vertex(vertex).id()
-    for curve in right:
-      vertices = cubit.get_relatives("curve", curve, "vertex")
-      for vertex in vertices:
-        if bottom_right_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[3]) < 1e-12:
-          bottom_right_id = cubit.vertex(vertex).id()
-        if top_right_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[4]) < 1e-12:
-          top_right_id = cubit.vertex(vertex).id()
+        bottom_left_id, top_left_id, bottom_right_id, top_right_id = None, None, None, None
+        for curve in left:
+          vertices = cubit.get_relatives("curve", curve, "vertex")
+          for vertex in vertices:
+            if bottom_left_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[3]) < 1e-12:
+              bottom_left_id = cubit.vertex(vertex).id()
+            if top_left_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[4]) < 1e-12:
+              top_left_id = cubit.vertex(vertex).id()
+        for curve in right:
+          vertices = cubit.get_relatives("curve", curve, "vertex")
+          for vertex in vertices:
+            if bottom_right_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[3]) < 1e-12:
+              bottom_right_id = cubit.vertex(vertex).id()
+            if top_right_id is None and abs(cubit.vertex(vertex).coordinates()[1]-bb[4]) < 1e-12:
+              top_right_id = cubit.vertex(vertex).id()
+    
+        print('top_right_id: {}'.format(top_right_id))
+        print('top_left_id: {}'.format(top_left_id))
+        print('bottom_left_id: {}'.format(bottom_left_id))
+        print('bottom_right_id: {}'.format(bottom_right_id))
 
-    print('top_right_id: {}'.format(top_right_id))
-    print('top_left_id: {}'.format(top_left_id))
-    print('bottom_left_id: {}'.format(bottom_left_id))
-    print('bottom_right_id: {}'.format(bottom_right_id))
+      else:
+        a = cubit.surface(subent).get_param_range_U()
+        b = cubit.surface(subent).get_param_range_V()
+        p1 = cubit.surface(subent).position_from_u_v(a[0],b[0])
+        p2 = cubit.surface(subent).position_from_u_v(a[1],b[0])
+        p3 = cubit.surface(subent).position_from_u_v(a[0],b[1])
+        if abs(p1[0]-bb[0]) < 1e-12 and abs(p2[0]-bb[0]) < 1e-12 and abs(p3[0]-bb[0]) < 1e-12:
+          left.append(subent)
+        if abs(p1[0]-bb[1]) < 1e-12 and abs(p2[0]-bb[1]) < 1e-12 and abs(p3[0]-bb[1]) < 1e-12:
+          right.append(subent)
+        if abs(p1[1]-bb[3]) < 1e-12 and abs(p2[1]-bb[3]) < 1e-12 and abs(p3[1]-bb[3]) < 1e-12:
+          bottom.append(subent)
+        if abs(p1[1]-bb[4]) < 1e-12 and abs(p2[1]-bb[4]) < 1e-12 and abs(p3[1]-bb[4]) < 1e-12:
+          top.append(subent)
+        if abs(p1[2]-bb[6]) < 1e-12 and abs(p2[2]-bb[6]) < 1e-12 and abs(p3[2]-bb[6]) < 1e-12:
+          back.append(subent)
+        if abs(p1[2]-bb[7]) < 1e-12 and abs(p2[2]-bb[7]) < 1e-12 and abs(p3[2]-bb[7]) < 1e-12:
+          front.append(subent)
 
     # generate string from list
     left_ids = ' '.join('{:d}'.format(x) for x in left)
     right_ids = ' '.join('{:d}'.format(x) for x in right)
     bottom_ids = ' '.join('{:d}'.format(x) for x in bottom)
     top_ids = ' '.join('{:d}'.format(x) for x in top)
+    back_ids = ' '.join('{:d}'.format(x) for x in back)
+    front_ids = ' '.join('{:d}'.format(x) for x in front)
 
-    print('Adding {} curve(s) to lefty.'.format(len(left)))
-    print('Adding {} curve(s) to bottomy.'.format(len(bottom)))
-    print('Adding {} curve(s) to righty.'.format(len(right)))
-    print('Adding {} curve(s) to topy.'.format(len(top)))
+    print('Adding {} '.format(len(left)) + subentity + '(s) to lefty.')
+    print('Adding {} '.format(len(bottom)) + subentity + '(s) to bottomy.')
+    print('Adding {} '.format(len(right)) + subentity + '(s) to righty.')
+    print('Adding {} '.format(len(top)) + subentity + '(s) to topy.')
+    if not is2d:
+      print('Adding {} '.format(len(back)) + subentity + '(s) to backy.')
+      print('Adding {} '.format(len(front)) + subentity + '(s) to fronty.')
+  
+    cubit.silent_cmd('nodeset 1 add ' + subentity + ' {} '.format(left_ids))
+    cubit.silent_cmd('nodeset 2 add ' + subentity + ' {} '.format(bottom_ids))
+    cubit.silent_cmd('nodeset 3 add ' + subentity + ' {} '.format(right_ids))
+    cubit.silent_cmd('nodeset 4 add ' + subentity + ' {} '.format(top_ids))
+    if not is2d:
+      cubit.silent_cmd('nodeset 5 add ' + subentity + ' {} '.format(back_ids))
+      cubit.silent_cmd('nodeset 6 add ' + subentity + ' {} '.format(front_ids))
 
-    cubit.silent_cmd('nodeset 1 add curve {} '.format(left_ids))
-    cubit.silent_cmd('nodeset 2 add curve {} '.format(bottom_ids))
-    cubit.silent_cmd('nodeset 3 add curve {} '.format(right_ids))
-    cubit.silent_cmd('nodeset 4 add curve {} '.format(top_ids))
-
-    cubit.silent_cmd('nodeset 5 add vertex {}'.format(bottom_left_id))
-    cubit.silent_cmd('nodeset 6 add vertex {}'.format(bottom_right_id))
-    cubit.silent_cmd('nodeset 7 add vertex {}'.format(top_left_id))
-    cubit.silent_cmd('nodeset 8 add vertex {}'.format(top_right_id))
+    if is2d:
+      cubit.silent_cmd('nodeset 5 add vertex {}'.format(bottom_left_id))
+      cubit.silent_cmd('nodeset 6 add vertex {}'.format(bottom_right_id))
+      cubit.silent_cmd('nodeset 7 add vertex {}'.format(top_left_id))
+      cubit.silent_cmd('nodeset 8 add vertex {}'.format(top_right_id))
 
   # west, south, east and north are cubit identifiers, thus we use -y
   cubit.silent_cmd('nodeset 1 name "lefty"')
   cubit.silent_cmd('nodeset 2 name "bottomy"')
   cubit.silent_cmd('nodeset 3 name "righty"')
   cubit.silent_cmd('nodeset 4 name "topy"')
+  if not is2d:
+    cubit.silent_cmd('nodeset 5 name "backy"')
+    cubit.silent_cmd('nodeset 6 name "fronty"')
 
-  cubit.silent_cmd('nodeset 5 name "bottom_left"')
-  cubit.silent_cmd('nodeset 6 name "bottom_right"')
-  cubit.silent_cmd('nodeset 7 name "top_left"')
-  cubit.silent_cmd('nodeset 8 name "top_right"')
+  if is2d:
+    cubit.silent_cmd('nodeset 5 name "bottom_left"')
+    cubit.silent_cmd('nodeset 6 name "bottom_right"')
+    cubit.silent_cmd('nodeset 7 name "top_left"')
+    cubit.silent_cmd('nodeset 8 name "top_right"')
+
+
+# find matching surfaces, curves and vertices for periodic mesh
+def get_pairs(shape):
+  left = cubit.get_nodeset_surfaces(1)
+  bottom = cubit.get_nodeset_surfaces(2)
+  right = cubit.get_nodeset_surfaces(3)
+  top = cubit.get_nodeset_surfaces(4)
+  back = cubit.get_nodeset_surfaces(5)
+  front = cubit.get_nodeset_surfaces(6)
+
+  bb = cubit.get_bounding_box("volume", shape)
+
+  periodic_sides = [[0, left, right, bb[2]], [1, bottom, top, bb[5]], [2, back, front, bb[8]]]
+
+  pairs = []
+
+  for axis_idx, master_list, slave_list, distance in periodic_sides:
+    for master in master_list:
+      # get a point on the master surface
+      msurf = cubit.surface(master)
+      a = msurf.get_param_range_U()
+      b = msurf.get_param_range_V()
+      p = list(msurf.position_from_u_v( (a[0]+a[1])/2, (b[0]+b[1])/2 ))
+      # project the point to the other side
+      p[axis_idx] += distance
+      for slave in slave_list:
+        ssurf = cubit.surface(slave)
+        # check if projected point is on slave surface
+        if ssurf.point_containment(p):
+          mcurves = cubit.get_relatives("surface", master, "curve")
+          scurves = cubit.get_relatives("surface", slave, "curve")
+          assert(len(mcurves) == len(scurves))
+          if len(mcurves) == 1:
+            # for circles we have only one curve and one vertex
+            mvertex = cubit.get_relatives("curve", mcurves[0], "vertex")
+            svertex = cubit.get_relatives("curve", scurves[0], "vertex")
+            #p1 = cubit.vertex(mvertex[0]).coordinates()
+            #p2 = cubit.vertex(svertex[0]).coordinates()
+            #diff = [y - x for x, y in zip(p1,p2)]
+            #assert(abs(diff[0]-distance) < 1e-12 and abs(diff[1]) < 1e-12 and abs(diff[2]) < 1e-12)
+            pairs.append([master, slave, mcurves[0], scurves[0], mvertex[0], svertex[0]])
+            break #for slave in slave_list
+          for mcurve in mcurves:
+            # for more curves, we have to find matching curve and vertex
+            mvertices = cubit.get_relatives("curve", mcurve, "vertex")
+            mstart_point = np.array(cubit.vertex(mvertices[0]).coordinates())
+            mend_point = np.array(cubit.vertex(mvertices[1]).coordinates())
+            mstart_point[axis_idx] += distance
+            mend_point[axis_idx] += distance
+            for scurve in scurves:
+              svertices = cubit.get_relatives("curve", scurve, "vertex")
+              sstart_point = np.array(cubit.vertex(svertices[0]).coordinates())
+              send_point = np.array(cubit.vertex(svertices[1]).coordinates())
+              n1 = np.linalg.norm(mstart_point-sstart_point)
+              n2 = np.linalg.norm(mstart_point-send_point)
+              n3 = np.linalg.norm(mend_point-sstart_point)
+              n4 = np.linalg.norm(mend_point-send_point)
+              # mcurve and scurve are either congruent or mirrored
+              if (abs(n1) < 1e-12 and abs(n4) < 1e-12) or (abs(n2) < 1e-12 and abs(n3) < 1e-12):
+                if abs(n1) < 1e-12:
+                  pairs.append([master, slave, mcurve, scurve, mvertices[0], svertices[0]])
+                else:
+                  pairs.append([master, slave, mcurve, scurve, mvertices[0], svertices[1]])
+                break #for scurve in scurves
+            # this is a trick to break both for loops. 
+            # else case is only executed, if the inner loop does not break
+            else:
+              continue
+            break #for mcurve in mcurves
+        else:
+          continue
+        break #for slave in slave_list
+
+  return pairs
 
 
 # mesh a given geometry
@@ -560,53 +724,81 @@ def name_regions_and_nodes(shape, param):
 # @param meshsize - approximate size of FE
 # @param filename - filename of meshfile
 def mesh_shape(shape, meshsize, filename):
+  
+  is2d = cubit.get_volume_count() == cubit.get_surface_count()
+  entity = "surface" if is2d else "volume"
+  subentity = "curve" if is2d else "surface"
+
   start = time.time()
 
   # calculate convex hull of shape
-  vertices_ids = cubit.get_relatives("surface", shape, "vertex")
-  vertices = np.zeros((len(vertices_ids),2))
+  vertices_ids = cubit.get_relatives(entity, shape, "vertex")
+  vertices = np.zeros((len(vertices_ids), 2 if is2d else 3))
   for ii, vertex_id in enumerate(vertices_ids):
     vertex = cubit.vertex(vertex_id)
-    vertices[ii,:] = vertex.coordinates()[:2]
+    vertices[ii,:] = vertex.coordinates()[:2 if is2d else 3]
   hull = ConvexHull(vertices)
 
+  if is2d:
+    block_id = cubit.get_block_id("surface", shape)
+    if block_id > 0:
+      cubit.silent_cmd('block {} element type TRI3'.format(block_id))
 
-  block_id = cubit.get_block_id("surface", shape)
-  if block_id > 0:
-    cubit.silent_cmd('block {} element type TRI3'.format(block_id))
+    # mesh shape
+    cubit.silent_cmd('surface {} size {} '.format(shape, meshsize))
+    cubit.silent_cmd('surface {} scheme trimesh'.format(shape))
+    cubit.silent_cmd('Trimesher geometry sizing on')
+    cubit.silent_cmd('mesh surface {}'.format(shape))
 
-  # mesh shape
-  cubit.silent_cmd('surface {} size {} '.format(shape, meshsize))
-  cubit.silent_cmd('surface {} scheme trimesh'.format(shape))
-  cubit.silent_cmd('Trimesher geometry sizing on')
-  cubit.silent_cmd('mesh surface {}'.format(shape))
+    nelem = cubit.get_tri_count()
+    #bb = cubit.get_bounding_box("surface", shape)
+    abs_volume = cubit.get_surface_area(shape)
+    #rel_volume = cubit.get_surface_area(shape) / bb[2] / bb[5]
+    #rel_meshed_volume = cubit.get_meshed_volume_or_area("surface",[shape]) / bb[2] / bb[5]
 
+  else:
+    height = 10
+    # mesh shape
+    cubit.silent_cmd('volume {} size {} '.format(shape, meshsize))
+  
+    pairs = get_pairs(shape)
+  
+    for source_surf, target_surf, source_curf, target_curf, source_vert, target_vert in pairs:
+      cubit.silent_cmd('surface {:d} scheme trimesh'.format(source_surf))
+      cubit.silent_cmd('mesh surface {:d}'.format(source_surf))
+      cubit.silent_cmd('copy mesh surface {:d}  onto  surface {:d}  source curve {:d}  source vertex {:d}  target curve {:d}  target vertex {:d}   smooth '.format(
+        source_surf, target_surf, source_curf, source_vert, target_curf, target_vert))
+    cubit.silent_cmd('volume all scheme tetmesh ')
+    cubit.silent_cmd('mesh volume {}'.format(shape))
+  
+    nelem = cubit.get_tet_count()
+    abs_volume = cubit.get_total_volume([shape])
+  
+  rel_volume = abs_volume / hull.volume
+  rel_meshed_volume = cubit.get_meshed_volume_or_area(entity, [shape]) / hull.volume
+  
   cubit.cmd('export ansys cdb "{}.cdb"  overwrite '.format(filename))
-
-  bb = cubit.get_bounding_box("surface", shape)
-  abs_volume = cubit.get_surface_area(shape)
-  #rel_volume = cubit.get_surface_area(shape) / bb[2] / bb[5]
-  #rel_meshed_volume = cubit.get_meshed_volume_or_area("surface",[shape]) / bb[2] / bb[5]
-  rel_volume = cubit.get_surface_area(shape) / hull.volume
-  rel_meshed_volume = cubit.get_meshed_volume_or_area("surface",[shape]) / hull.volume
 
   end = time.time()
   print('Time for meshing: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))))
-  print('Absolute Surface Area: {}'.format(abs_volume))
-  print('Relative Surface Area: {}'.format(rel_volume))
-  print('Relative Meshed Area: {} ({} triangles)\n'.format(rel_meshed_volume, cubit.get_tri_count()))
+
+  print('Absolute Surface Area/Volume: {}'.format(abs_volume))
+  print('Relative Surface Area/Volume: {}'.format(rel_volume))
+  print('Relative Meshed Area/Volume: {} ({} elements)\n'.format(rel_meshed_volume, nelem))
 
   with open('{}.log'.format(filename), 'a+') as fid:
     print(filename, file=fid)
-    print('Absolute Surface Area: {}'.format(abs_volume), file=fid)
-    print('Relative Surface Area: {}'.format(rel_volume), file=fid)
-    print('Relative Meshed Area: {} ({} triangles)\n'.format(rel_meshed_volume, cubit.get_tri_count()), file=fid)
+    print('Absolute Surface Area/Volume: {}'.format(abs_volume), file=fid)
+    print('Relative Surface Area/Volume: {}'.format(rel_volume), file=fid)
+    print('Relative Meshed Area/Volume: {} ({} elements)\n'.format(rel_meshed_volume, nelem), file=fid)
     print('Time for meshing: {}'.format(time.strftime('%H h %M m %S s', time.gmtime(end-start))), file=fid)
 
-    print('Number of nodes in westy:  {}'.format(cubit.get_nodeset_node_count(1)), file=fid)
-    print('Number of nodes in southy: {}'.format(cubit.get_nodeset_node_count(2)), file=fid)
-    print('Number of nodes in easty:  {}'.format(cubit.get_nodeset_node_count(3)), file=fid)
-    print('Number of nodes in northy: {}'.format(cubit.get_nodeset_node_count(4)), file=fid)
+    print('Number of nodes in lefty:  {}'.format(cubit.get_nodeset_node_count(1)), file=fid)
+    print('Number of nodes in bottomy: {}'.format(cubit.get_nodeset_node_count(2)), file=fid)
+    print('Number of nodes in righty:  {}'.format(cubit.get_nodeset_node_count(3)), file=fid)
+    print('Number of nodes in topy: {}'.format(cubit.get_nodeset_node_count(4)), file=fid)
+    print('Number of nodes in backy:  {}'.format(cubit.get_nodeset_node_count(5)), file=fid)
+    print('Number of nodes in fronty: {}'.format(cubit.get_nodeset_node_count(6)), file=fid)
 
 
 def mesh_shape_with_triangle(shape, meshsize, filename, holes=None, periodic=False):

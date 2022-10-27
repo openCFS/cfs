@@ -586,14 +586,14 @@ private:
   /** coefficients of polynomials from Hermite interpolation for micro loadfactor*/
   Vector<double> mlf_a_;
   Matrix<double> mlf_coeff_;
-  double extrapolationThreshold_;
+  double extrapolationThreshold_ = 0.0;
 
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
-  bool interfaceDrivenGradCalc_;
+  bool interfaceDrivenGradCalc_ = false;
 
-  Function* trackingFunc_;
+  Function* trackingFunc_ = NULL;
 
-  bool printProgressBar_;
+  bool printProgressBar_ = false;
 
   boost::shared_ptr<Timer> calc_u1ku2_timer_;
 

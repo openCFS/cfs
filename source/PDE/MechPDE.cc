@@ -2450,7 +2450,36 @@ namespace CoupledField {
     }
     return m;
   }
-  
+
+  const Matrix<double>& MechPDE::GetHillMandelMatrix(int dim)
+  {
+    Matrix<double>& m = dim == 2 ? hillMandelMatrix_2d_ : hillMandelMatrix_3d_;
+    if(m.GetNumRows() == 0)
+    {
+      // Hill Mandel norm = stress^T * M * stress
+      if(dim == 2)
+      {
+        m.Resize(3,3);
+        m.Init();
+        m[0][0] = 1.0;
+        m[1][1] = 1.0;
+        m[2][2] = 2.0;
+      }
+      else
+      {
+        m.Resize(6,6);
+        m.Init();
+        m[0][0] = 1.0;
+        m[1][1] = 1.0;
+        m[2][2] = 1.0;
+        m[3][3] = 2.0;
+        m[4][4] = 2.0;
+        m[5][5] = 2.0;
+      }
+    }
+    return m;
+  }
+
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================

@@ -43,6 +43,10 @@ namespace CoupledField
      * @param dim desired dimension. axis is ignored currently :( */
     const Matrix<double>& GetVonMisesMatrix(int dim);
 
+    /** return the Hill Mandel matrix (stress^T * M * stress = Hill Mandel norm)
+     * @param dim desired dimension. */
+    const Matrix<double>& GetHillMandelMatrix(int dim);
+
     /** Add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
      * called from Excitation::ReadLoads or Excitation::SetHomogenizationTestStrains() (optimization)
      * @param test is an enum
@@ -173,6 +177,10 @@ protected:
      * See Kocvara and Stingl; 2007 */
     Matrix<double> vonMisesMatrix_2d_;
     Matrix<double> vonMisesMatrix_3d_;
+
+    /** static matrix which allows the calculation of the Hill Mandel norm of a vector. */
+    Matrix<double> hillMandelMatrix_2d_;
+    Matrix<double> hillMandelMatrix_3d_;
 
     StdVector<std::string> dofNames_;
 
