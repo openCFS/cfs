@@ -197,10 +197,9 @@ namespace CoupledField
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solInc, setIDBC );
 
-        Double etaLineSearch;
+        Double etaLineSearch = 1.0;
 
         if ( lineSearch_ == "none"){
-          etaLineSearch = 1.0;
           stageSol.Add(etaLineSearch, solInc);
         }else if ( lineSearch_ == "minEnergy"){
           LineSearchHeavy(solInc, stageSol, etaLineSearch);

@@ -136,7 +136,7 @@ void CFSDatProgramOptions::ParseData(){
     if( varMap_.count("version") != 0  )
     {
       GetHeaderString(std::cout);
-      GetVersionString( std::cout, true );
+      PrintVersion( std::cout, true );
       exit( EXIT_SUCCESS );
     }
 

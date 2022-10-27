@@ -64,7 +64,7 @@ namespace CFSTool
       args.push_back((std::string)argv[i]);
     }
 
-    // Obtain paths of cfstoolbin, the CFS++ base and home directory and build
+    // Obtain paths of cfstool, the CFS++ base and home directory and build
     // a list of possible locations of the cfstool config file.
     // cf. http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
     StdVector<fs::path> configFiles;
@@ -84,16 +84,16 @@ namespace CFSTool
     
     // added char(0) to end of the read in path to ensure that the path ends correctly
     // reason: during the last build I sometimes encountered errors when starting cfstoolsbin;
-    // errormsg: boost::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstoolbin`
+    // errormsg: boost::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstool`
 
     buf[success_] = char(0);
 //    std::cout << "BUFFER AFTER MOD: " << buf << std::endl;    
 #endif    
 #endif
 
-    fs::path cfstoolbin = fs::canonical(buf);
+    fs::path cfstool = fs::canonical(buf);
     fs::path cfsbasedir;
-    cfsbasedir = cfstoolbin.parent_path().parent_path().parent_path();
+    cfsbasedir = cfstool.parent_path().parent_path().parent_path();
     fs::path cfstoolconfig;
     fs::path home;
 
@@ -204,16 +204,17 @@ namespace CFSTool
     // get children of param to set them
     ParamNodeList &leafs = param->GetChildren();
 
-    // Put path to cfstoolbin into global param node.
+    // Put path to cfstool into global param node.
     pNode = PtrParamNode(new ParamNode());
-    pNode->SetName("cfsToolBin");
-    pNode->SetValue(cfstoolbin.string());
+    pNode->SetName("cfstool");
+    pNode->SetValue(cfstool.string());
     param->AddChildNode(pNode);
 
     // Put CFS++ base directory into global param node.
     pNode = PtrParamNode(new ParamNode());
     pNode->SetName("cfsBaseDir");
     pNode->SetValue(cfsbasedir.string());
+
     param->AddChildNode(pNode);
     
     pNode = PtrParamNode(new ParamNode());
@@ -351,7 +352,7 @@ namespace CFSTool
       }
 
       if (vm.count("version")) {
-        ProgramOptions::GetVersionString(std::cout, false);
+        ProgramOptions::PrintVersion(std::cout, false);
         exit(0);
       }
 

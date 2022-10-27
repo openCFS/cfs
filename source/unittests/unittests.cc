@@ -13,16 +13,16 @@
 /* Example unit tests for CFS.
  *
  * List all available tests with
- * ./cfstestbin --list_content
+ * ./cfstest --list_content
  *
  * Run tests and see errors and std output:
- * ./cfstestbin --color_output --log_level=message
+ * ./cfstest --color_output --log_level=message
  *
  * More output with runtimes of individual test cases:
- * ./cfstestbin --color_output --log_level=unit_scope
+ * ./cfstest --color_output --log_level=unit_scope
  *
  * Even more output with passed tests:
- * ./cfstestbin --color_output --log_level=success
+ * ./cfstest --color_output --log_level=success
  */
 
 // https://kuniganotas.wordpress.com/2011/01/14/measuring-time-with-boost-library/

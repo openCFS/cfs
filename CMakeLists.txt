@@ -49,7 +49,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "22")
-set(CFS_VERSION_MONTH "09")
+set(CFS_VERSION_MONTH "10")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -357,6 +357,11 @@ include("cmake_modules/ConfigureChecks.cmake")
 
 # Set path where shared/static libraries should go. We only have lib64
 set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64 CACHE INTERNAL "Single output directory for building all libraries.")
+
+# set RPATH to a relative path (Linux and theoretically but not pracically macOS)
+# this ensures dynamically linked libraries are found
+# check the set value with `chrpath -l bin/cfs` (Linux) or 'otool -l bin/cfs' (macOS) 
+set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
 # Set path where executables should go
 set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")

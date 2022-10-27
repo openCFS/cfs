@@ -75,12 +75,12 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     
   # BUGFIX: Hardcoded fix for the linker command
   # When configuring with SGPP, CMake moves the intel libs at the end of the
-  # linker command for cfstoolbin but leaves the group inplace. Hence linking
-  # of cfstoolbin fails.
+  # linker command for cfstool but leaves the group inplace. Hence linking
+  # of cfstool fails.
   SET(INTEL_LIBS "/opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_core.a")
   ExternalProject_Add_Step(sgpp fix_link_command
-    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
-    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstool.dir/link.txt"
+    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstool.dir/link.txt"
     DEPENDEES install
   )
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -113,12 +113,12 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   
   # BUGFIX: Hardcoded fix for the linker command
   # When configuring with SGPP, CMake moves the intel libs at the end of the
-  # linker command for cfstoolbin but leaves the group inplace. Hence linking
-  # of cfstoolbin fails.
+  # linker command for cfstool but leaves the group inplace. Hence linking
+  # of cfstool fails.
   SET(INTEL_LIBS "/opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_core.a")
   ExternalProject_Add_Step(sgpp fix_link_command
-    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
-    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstool.dir/link.txt"
+    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstool.dir/link.txt"
     DEPENDEES install
   )
 

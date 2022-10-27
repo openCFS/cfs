@@ -8,7 +8,7 @@ ENDIF(USE_IPOPT)
 SET(CFS_SRCS CFS.cc)
 
 # Main CFS++ executable target.
-ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
+ADD_EXECUTABLE(cfs ${CFS_SRCS})
 
 # Define a list of libraries CFS++ depends upon. At the moment there
 # are some nasty circular dependencies which should be resolved in
@@ -61,10 +61,10 @@ ENDIF()
 
 IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
   SET(INTEL_LIB_DIR "${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win")
-  TARGET_LINK_DIRECTORIES(cfsbin PUBLIC ${INTEL_LIB_DIR})
+  TARGET_LINK_DIRECTORIES(cfs PUBLIC ${INTEL_LIB_DIR})
 ENDIF()
 
 # Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL})
+TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
 
-SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
+SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

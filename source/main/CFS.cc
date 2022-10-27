@@ -3,7 +3,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-
 #include <iomanip>
 #include <fstream>
 #include <boost/version.hpp>
@@ -28,7 +27,6 @@
 #  include <unistd.h>
 #endif
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "DataInOut/Logging/LogConfigurator.hh"
 #include <def_use_petsc.hh>
 
 #ifdef USE_PETSC
@@ -119,19 +117,18 @@ CFS::CFS(int argc, const char **argv) :
   // =========================================================================
   progOpts = new ProgramOptions(argc, argv);
 
-  // Parse command line
+  // Parse command line, also initializes logging
   progOpts->ParseData();
 
-  //now set the number of threads from the commandline
-  SetNumberOfThreads(progOpts->GetNumThreads());
-
   // Log program startup
-  progOpts->GetHeaderString( cout );
+  progOpts->PrintHeader(cout);
 
-  // Initialize logging class (read parameters from file if desired)
-  std::string confFile = progOpts->GetLogConfFileStr();
-  LogConfigurator::ParseLogConfFile(confFile);
+  // homogenize CFS_/OMP_/MKL_NUM_THREADS based on command line and environment setting
+  SetNumberOfThreads(progOpts->GetNumThreads(), true, false); // yes, homogenize, no, don't be quiet
   
+  // when we have the threads num set, we can print them
+  progOpts->PrintNumThreads(cout, progOpts->IsQuiet());
+
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
   
@@ -156,15 +153,10 @@ CFS::CFS(int argc, const char **argv) :
   env->Get("started")->SetValue(start_time_);
   
   hostname_ = boost::asio::ip::host_name();
-  
-//  char host[256];
-//  hostname_ = gethostname( host, sizeof(host) ) > 0 ? host : "";
-
   if(!hostname_.empty())
     env->Get("host")->SetValue(hostname_);
   
   infoNode->ToFile("", true);
-
 }
 
 
@@ -180,7 +172,6 @@ CFS::~CFS()
   
   // Delete objects
   //delete param;
-  
   
   delete domain;
   domain = NULL;

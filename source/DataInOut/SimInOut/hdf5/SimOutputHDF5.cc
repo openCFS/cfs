@@ -685,7 +685,7 @@ namespace CoupledField {
       fin.close();
     }
 
-    progOpts->GetVersionString( dumpStr, false );
+    progOpts->PrintVersion( dumpStr, false );
     WriteStringToUserData( "ProgramStats", dumpStr.str() );
 
     // Release lock

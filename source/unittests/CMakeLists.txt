@@ -35,14 +35,14 @@ if(USE_EMBEDDED_PYTHON)
 endif()
 
 # Main CFS++ Dat executable target.
-add_executable(cfstestbin ${UNIT_TESTS_SRC})
+add_executable(cfstest ${UNIT_TESTS_SRC})
 
 
 IF(MKL_BLAS_LIB)
   LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
 ENDIF(MKL_BLAS_LIB)
 
-TARGET_LINK_LIBRARIES(cfstestbin ${TARGET_LL})
+TARGET_LINK_LIBRARIES(cfstest ${TARGET_LL})
 
 # this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)
 # new apple system have no more librt dll, probably same for Windows
@@ -55,4 +55,4 @@ if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER
   set(CMAKE_CXX_FLAGS "${CFS_SUPPRESSIONS} -Wno-terminate")
 endif() 
 
-SET_TARGET_PROPERTIES(cfstestbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
+SET_TARGET_PROPERTIES(cfstest PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

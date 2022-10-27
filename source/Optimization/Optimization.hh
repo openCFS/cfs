@@ -417,7 +417,7 @@ namespace CoupledField
         Objective::MultiObjType mo_type = Function::WEIGHTED_SUM;
 
         /** If we have a multiObjective and smoothMin or smoothMax, the corresponding beta (default = 1) */
-        double mo_beta;
+        double mo_beta = -1.0;
   };
 
 } // namespace

@@ -33,11 +33,14 @@ namespace CoupledField
 
     ~ProgramOptions();
 
-    //! Gather information from commandline and environment
-
-    //! This method triggers the reading of information from the command line
-    //! and the environment.
+    /** Gather information from command line and environment
+     * Logging is initialized based on -l and schemaPath is obtained */
     void ParseData();
+
+    /** static general purpose helper function which tries to obtain the root of the
+     * cfs installation.
+     * @return absolute file path to root of bin/share/lib64 or exception */
+    static boost::filesystem::path ObtainCFSRootFromSystem();
 
     // =======================================================================
     // QUERY METHODS FOR PARAMETERS
@@ -146,7 +149,8 @@ namespace CoupledField
     /** Is cfs invoked with the quite flag to compress console output to just a minimu. */
     bool IsQuiet() const;
 
-    /** Get number of threads for CFS supplied on the command line */
+    /** Get number of threads for CFS supplied on the command line.
+     * When not USE_OPENMP this is always 1 */
     UInt GetNumThreads() const;
 
     // =======================================================================
@@ -164,14 +168,18 @@ namespace CoupledField
     /** collects all available data to the string 
      *  It containts valuable information about the executable like the 
      *  distro on which it was built on, the compiler it was built with and so on. */
-    static void GetVersionString( std::ostream & outstr, bool colorise);
+    static void PrintVersion(std::ostream & outstr, bool colorise);
     
     /** Major release history notes. From Dec. 08 */
-    static void GetHistoryString(std::ostream& out);
+    static void PrintHistory(std::ostream& out);
     
-    /** This gives the head line of CFS++ printed to cout */
-    void GetHeaderString(std::ostream& out);
+    /** This gives the head line of openCFS printed to the given string (usually cout) */
+    void PrintHeader(std::ostream& out);
 
+    /** prints a line with comprehensive CFS_/OMP_/MKL_NUM_THREADS info.
+     * In not USE_OPENMP case nothing is written.
+     * @param quiet the CFS_QUIET (ProgramOptions::IsQuiet()) value */
+    static void PrintNumThreads(std::ostream& out, bool quiet);
     // @}
 
   protected:
@@ -211,7 +219,7 @@ namespace CoupledField
 
     static void WriteColoredString(std::ostream& out, int trim_size, const string& head, int data);
 
-    // static GetVersionString() has own variant
+    // static PrintVersion() has own variant
     Dependencies deps_;
   };
 }
