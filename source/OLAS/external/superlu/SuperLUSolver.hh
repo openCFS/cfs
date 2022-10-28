@@ -121,8 +121,4 @@ namespace CoupledField {
 
 }
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "SuperLUSolver.cc"
-#endif
-
 #endif

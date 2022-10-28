@@ -1,7 +1,7 @@
 #ifndef OLAS_MINRES_HH
 #define OLAS_MINRES_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/GivensRotation.hh"
 #include "OLAS/utils/math/LanczosMethod.hh"
@@ -361,9 +361,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "minres.cc"
-#endif
 
 #endif

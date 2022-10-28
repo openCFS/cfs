@@ -1,7 +1,7 @@
 #ifndef ILDLTP_FACTORISER_HH
 #define ILDLTP_FACTORISER_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 
 #include "baseildlfactoriser.hh"
@@ -172,9 +172,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ildltpfactoriser.cc"
-#endif
 
 #endif

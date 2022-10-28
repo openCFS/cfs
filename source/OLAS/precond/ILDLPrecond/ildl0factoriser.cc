@@ -192,9 +192,7 @@ namespace CoupledField {
   }
 
   // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class ILDL0Factoriser<Double>;
-    template class ILDL0Factoriser<Complex>;
-  #endif
+  template class ILDL0Factoriser<Complex>;
 
 }

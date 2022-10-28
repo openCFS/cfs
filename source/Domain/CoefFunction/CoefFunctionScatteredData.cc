@@ -628,7 +628,6 @@ namespace CoupledField{
 #endif  
 
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionScatteredData<Double,1>;
   template class CoefFunctionScatteredData<Complex,1>;
 
@@ -637,6 +636,5 @@ namespace CoupledField{
 
   template class CoefFunctionScatteredData<Double,3>;
   template class CoefFunctionScatteredData<Complex,3>;
-#endif
 }// end of namespace
 

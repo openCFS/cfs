@@ -1,7 +1,7 @@
 #ifndef OLAS_ILU0_PRECOND_HH
 #define OLAS_ILU0_PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "BasePrecond.hh"
 #include "BNPrecond.hh"
@@ -113,10 +113,6 @@ namespace CoupledField {
   };
 
 }//namespace
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ilu0precond.cc"
-#endif
 
 #endif
 

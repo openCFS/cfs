@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_expl_templ_inst.hh>
+
 #include <limits>
 
 #include "CoefFunctionComplexToReal.hh"
@@ -90,9 +90,7 @@ CoefFunctionComplexToReal<T>::CoefFunctionComplexToReal(PtrCoefFct coefToChange,
 
 
   // Explicit template instantiation
-  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-    template class CoefFunctionComplexToReal<Double>;
-    template class CoefFunctionComplexToReal<Complex>;
-  #endif
+  template class CoefFunctionComplexToReal<Double>;
+  template class CoefFunctionComplexToReal<Complex>;
 
 } // end of namespace

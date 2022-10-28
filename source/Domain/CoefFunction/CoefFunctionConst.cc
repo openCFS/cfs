@@ -1,7 +1,7 @@
 #include "CoefFunctionConst.hh"
 
 #include <limits>
-#include <def_expl_templ_inst.hh>
+
 
 namespace CoupledField {
 
@@ -209,9 +209,7 @@ void CoefFunctionConst<T>::GetTensorValuesAtCoords( const StdVector<Vector<Doubl
   }
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class CoefFunctionConst<Double>;
-  template class CoefFunctionConst<Complex>;
-#endif
+template class CoefFunctionConst<Double>;
+template class CoefFunctionConst<Complex>;
 
 } // namespace CoupledField

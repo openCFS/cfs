@@ -962,10 +962,8 @@ namespace CoupledField {
   }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class VBR_Matrix<Double>;
   template class VBR_Matrix<Complex>;
-#endif
 
 } // end of namespace
 

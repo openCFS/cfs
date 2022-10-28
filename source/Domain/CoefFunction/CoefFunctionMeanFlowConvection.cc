@@ -83,12 +83,10 @@ DEFINE_LOG(coefMeanFlowConv, "CoefFunctionMeanFlowConvection")
   }
 
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionMeanFlowConvection<Double,2>;
   template class CoefFunctionMeanFlowConvection<Complex,2>;
 
   template class CoefFunctionMeanFlowConvection<Double,3>;
   template class CoefFunctionMeanFlowConvection<Complex,3>;
-#endif
 }// end of namespace
 

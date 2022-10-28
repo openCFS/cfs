@@ -485,10 +485,8 @@ void LocalElementCache::ToInfo(PtrParamNode info)
 
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template bool LocalElementCache::CachedOrgElement<double>(Matrix<double>& out, BiLinearForm* form, const Elem* elem);
 template bool LocalElementCache::CachedOrgElement<Complex>(Matrix<Complex>& out,  BiLinearForm* form, const Elem* elem);
-#endif
 
 
 } // end of namespace

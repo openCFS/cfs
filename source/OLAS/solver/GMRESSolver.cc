@@ -499,9 +499,7 @@ namespace CoupledField {
   }
 
   // Explicit template instantiation
-  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-    template class GMRESSolver<Double>;
-    template class GMRESSolver<Complex>;
-  #endif
+  template class GMRESSolver<Double>;
+  template class GMRESSolver<Complex>;
   
 }

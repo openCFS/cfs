@@ -271,10 +271,8 @@ namespace CoupledField {
 
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class ILUTP_Precond<Double>;
   template class ILUTP_Precond<Complex>;
-#endif
   
 }

@@ -2478,8 +2478,7 @@ void DensityFilterMat::ExportDensityFilterMatrix()
 }
 
 
-// explicit template instantiation for GCC compiler
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+// explicit template instantiation
 template void DesignSpace::ExtractResults<double>(shared_ptr<BaseResult> base_result);
 template void DesignSpace::ExtractResults<complex<double> >(shared_ptr<BaseResult> base_result);
 template void DesignSpace::FillNodeResults<double>(Result<double>& result, ResultDescription& descr);
@@ -2495,5 +2494,3 @@ template bool DesignSpace::ApplyPhysicalDesignElementMatrix<double>(BiLinearForm
 template bool DesignSpace::ApplyPhysicalDesignElementMatrix<complex<double> >(BiLinearForm* form, Matrix<complex<double> >& retMat, const Elem* elem);
 template bool DesignSpace::TestTensorPosDef<double>(Matrix<double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
 template bool DesignSpace::TestTensorPosDef<complex<double> >(Matrix<complex<double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
-
-#endif

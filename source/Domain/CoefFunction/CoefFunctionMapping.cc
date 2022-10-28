@@ -12,7 +12,7 @@
  */
 //================================================================================================
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "CoefFunctionMapping.hh"
 
@@ -169,8 +169,6 @@ void CoefFunctionMapping<T>::GetScalar(Double& val,
 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class CoefFunctionMapping<Double>;
-  template class CoefFunctionMapping<Complex>;
-#endif
+template class CoefFunctionMapping<Double>;
+template class CoefFunctionMapping<Complex>;
 }

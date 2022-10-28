@@ -12,7 +12,7 @@
 #ifndef OLAS_EXTERNAL_PHIST_PHISTCORE_HH_
 #define OLAS_EXTERNAL_PHIST_PHISTCORE_HH_
 
-#include <def_expl_templ_inst.hh>
+
 
 #include <limits>
 #include <string.h>

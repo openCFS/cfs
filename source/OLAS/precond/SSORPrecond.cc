@@ -99,10 +99,8 @@ namespace CoupledField {
     }
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class SSORPrecond<Double>;
   template class SSORPrecond<Complex>;
-#endif
   
 } // namespace

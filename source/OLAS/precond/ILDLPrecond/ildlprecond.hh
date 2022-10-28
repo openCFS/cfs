@@ -1,7 +1,7 @@
 #ifndef ILDL_PRECOND_HH
 #define ILDL_PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/LDLSystemSolve.hh"
 
@@ -226,9 +226,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ildlprecond.cc"
-#endif
 
 #endif

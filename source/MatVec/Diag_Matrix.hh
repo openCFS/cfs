@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "SparseOLASMatrix.hh"
 #include "Vector.hh"
@@ -445,9 +445,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "diag_matrix.cc"
-#endif
 
 #endif

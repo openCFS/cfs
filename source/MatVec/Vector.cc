@@ -1434,46 +1434,14 @@ namespace CoupledField {
    }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class Vector<Double>;
   template class Vector<Complex>;
   template class Vector<Integer>;
   template class Vector<UInt>;
-  /*
-#ifndef _MSC_VER
-  template void Vector<Double>::Inner(const Vector<Double>&, PROMOTE(Double,Double)&) const;
-  template void Vector<Double>::Inner(const Vector<Complex>&, PROMOTE(Double,Complex)&) const;
-  template void Vector<Complex>::Inner(const Vector<Double>&, PROMOTE(Complex,Double)&) const; 
-  template void Vector<Complex>::Inner(const Vector<Complex>&, PROMOTE(Complex,Complex)&) const; 
-  template PROMOTE(Double,Double) Vector<Double>::Inner(const Vector<Double>&) const;
-  template PROMOTE(Double,Complex) Vector<Double>::Inner(const Vector<Complex>&) const;
-  template PROMOTE(Complex,Double) Vector<Complex>::Inner(const Vector<Double>&) const; 
-  template PROMOTE(Complex,Complex) Vector<Complex>::Inner(const Vector<Complex>&) const; 
-  template PROMOTE(Double,Double) Vector<Double>::Inner(const Vector<Double>&, unsigned int, unsigned int) const;
-  template PROMOTE(Double,Complex) Vector<Double>::Inner(const Vector<Complex>&, unsigned int, unsigned int) const;
-  template PROMOTE(Complex,Double) Vector<Complex>::Inner(const Vector<Double>&, unsigned int, unsigned int) const; 
-  template PROMOTE(Complex,Complex) Vector<Complex>::Inner(const Vector<Complex>&, unsigned int, unsigned int) const; 
-#else
-  template void Vector<Double>::Inner(const Vector<Double>&, Double&) const;
-  template void Vector<Double>::Inner(const Vector<Complex>&, Complex&) const;
-  template void Vector<Complex>::Inner(const Vector<Double>&, Complex&) const; 
-  template void Vector<Complex>::Inner(const Vector<Complex>&, Complex&) const; 
-  template Double Vector<Double>::Inner(const Vector<Double>&) const;
-  template Complex Vector<Double>::Inner(const Vector<Complex>&) const;
-  template Complex Vector<Complex>::Inner(const Vector<Double>&) const; 
-  template Complex Vector<Complex>::Inner(const Vector<Complex>&) const; 
-  template Double Vector<Double>::Inner(const Vector<Double>&, unsigned int, unsigned int) const;
-  template Complex Vector<Double>::Inner(const Vector<Complex>&, unsigned int, unsigned int) const;
-  template Complex Vector<Complex>::Inner(const Vector<Double>&, unsigned int, unsigned int) const; 
-  template Complex Vector<Complex>::Inner(const Vector<Complex>&, unsigned int, unsigned int) const; 
-#endif
-*/
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
   template std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
-#endif
-
 
 
 }

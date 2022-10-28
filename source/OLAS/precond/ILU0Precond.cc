@@ -308,10 +308,8 @@ void ILU0Precond<T>::ExportILUFactorisation( const std::string& fileName ) {
 }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class ILU0Precond<Double>;
 template class ILU0Precond<Complex>;
-#endif
 
 }//namespace
 

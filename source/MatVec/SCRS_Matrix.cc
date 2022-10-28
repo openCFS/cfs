@@ -1232,31 +1232,20 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
     
   }
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class SCRS_Matrix<Double>;
   template class SCRS_Matrix<Complex>;
 #ifdef MSVC
   template void SCRS_Matrix<Double>::Mult(const Vector<Double>&, Vector<Double>&) const;
-//  template void SCRS_Matrix<Double>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Complex>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Double>::MultT(const Vector<Double>&, Vector<Double>&) const;
-//  template void SCRS_Matrix<Double>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Complex>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
-//  template void SCRS_Matrix<Complex>::MultT(const Vector<Double>&, Vector<Double>&) const;
   template void SCRS_Matrix<Double>::MultAdd(const Vector<Double>&, Vector<Double>&) const;
-//  template void SCRS_Matrix<Double>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Complex>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Double>::MultTAdd(const Vector<Double>&, Vector<Double>&) const;
-//  template void SCRS_Matrix<Double>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Complex>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
-//  template void SCRS_Matrix<Complex>::MultTAdd(const Vector<Double>&, Vector<Double>&) const;
   template void SCRS_Matrix<Double>::MultSub(const Vector<Double>&, Vector<Double>&) const;
-//  template void SCRS_Matrix<Double>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Complex>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Double>::MultTSub(const Vector<Double>&, Vector<Double>&) const;
-//  template void SCRS_Matrix<Double>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
   template void SCRS_Matrix<Complex>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
-//  template void SCRS_Matrix<Complex>::MultTSub(const Vector<Double>&, Vector<Double>&) const;
-#endif
 #endif
 }

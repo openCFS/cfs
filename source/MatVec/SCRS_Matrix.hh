@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "SparseOLASMatrix.hh"
 #include "Vector.hh"
@@ -653,8 +653,5 @@ namespace CoupledField {
 
 } // namespace
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "scrs_matrix.cc"
-#endif
 
 #endif // OLAS_SCRS_MATRIX_HH

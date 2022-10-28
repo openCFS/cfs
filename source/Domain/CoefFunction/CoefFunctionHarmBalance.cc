@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_expl_templ_inst.hh>
+
 #include <limits>
 
 #include "CoefFunctionHarmBalance.hh"
@@ -559,11 +559,10 @@ template<class T>
 
 
   // Explicit template instantiation
-  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-    template class CoefFunctionHarmBalance<Double>;
-    template class CoefFunctionHarmBalance<Complex>;
-    template class CoefFunctionHarmBalanceEval<Double>;
-    template class CoefFunctionHarmBalanceEval<Complex>;
-  #endif
+  template class CoefFunctionHarmBalance<Double>;
+  template class CoefFunctionHarmBalance<Complex>;
+  template class CoefFunctionHarmBalanceEval<Double>;
+  template class CoefFunctionHarmBalanceEval<Complex>;
+
 
 } // end of namespace

@@ -912,10 +912,8 @@ void MeshFilter::CalcGradient(Vector<Double>& returnVec,
 
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void MeshFilter::Node2Cell(Vector<Double>& returnVec,const boost::uuids::uuid& resId,const Vector<Double>& inVec,const std::vector<QuantityStruct>& interpolData);
-  template void MeshFilter::Node2Cell(Vector<Complex>& returnVec,const boost::uuids::uuid& resId,const Vector<Complex>& inVec,const std::vector<QuantityStruct>& interpolData);
-#endif
+template void MeshFilter::Node2Cell(Vector<Double>& returnVec,const boost::uuids::uuid& resId,const Vector<Double>& inVec,const std::vector<QuantityStruct>& interpolData);
+template void MeshFilter::Node2Cell(Vector<Complex>& returnVec,const boost::uuids::uuid& resId,const Vector<Complex>& inVec,const std::vector<QuantityStruct>& interpolData);
 
 }
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "BaseSolver.hh"
 
@@ -197,8 +197,5 @@ namespace CoupledField {
 
 } //namespace
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "cgsolver.cc"
-#endif
 
 #endif // OLAS_CGSOLVER_HH

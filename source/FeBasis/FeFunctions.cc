@@ -1,7 +1,7 @@
 #include "FeFunctions.hh"
 
 #include <boost/bind/bind.hpp>
-#include <def_expl_templ_inst.hh>
+
 
 #include "Utils/tools.hh"
 #include "PDE/SinglePDE.hh"
@@ -1230,8 +1230,6 @@ namespace CoupledField {
   
   
   // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class FeFunction<Double>;
   template class FeFunction<Complex>;
-#endif
 }

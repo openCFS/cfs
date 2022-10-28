@@ -828,8 +828,6 @@ void CoefFunction::TransformTensorByCoordSys(Matrix<TYPE> &outMat,
 // ************************************************************************
 // EXPLICIT TEMPLATE INSTANTIATION
 // ************************************************************************
-
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template void CoefFunction::TransformVectorByCoordSys(Vector<Double> &outVec,
                                                       const Vector<Double> &inVec,
                                                       const Vector<Double> &point);
@@ -854,7 +852,6 @@ template void CoefFunction::TransformTensorByCoordSys(Matrix<Double> &outMat,
 template void CoefFunction::TransformTensorByCoordSys(Matrix<Complex> &outMat,
                                                       const Matrix<Complex> &inMat,
                                                       const LocPointMapped &lpm);
-#endif
 
 // ************************************************************************
 // ENUM INITIALIZATION

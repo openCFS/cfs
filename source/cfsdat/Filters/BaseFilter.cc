@@ -468,37 +468,34 @@ void BaseFilter::PrepareUpstreamResult(uuids::uuid resId) {
   }
 }
 
+template CF::Vector<Double>& BaseFilter::GetOwnResultVector(uuids::uuid, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetOwnResultVector(uuids::uuid, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetOwnResultVector(uuids::uuid);
+template CF::Vector<Complex>& BaseFilter::GetOwnResultVector(uuids::uuid);
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template CF::Vector<Double>& BaseFilter::GetOwnResultVector(uuids::uuid, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetOwnResultVector(uuids::uuid, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetOwnResultVector(uuids::uuid);
-  template CF::Vector<Complex>& BaseFilter::GetOwnResultVector(uuids::uuid);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
 
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
-  
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
-  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string);
-  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string);
-#endif
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
+template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string);
+template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string);
 }

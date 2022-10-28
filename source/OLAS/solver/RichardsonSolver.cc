@@ -155,10 +155,8 @@ template<typename T>
     
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class RichardsonSolver<Double>;
   template class RichardsonSolver<Complex>;
-#endif
   
 }

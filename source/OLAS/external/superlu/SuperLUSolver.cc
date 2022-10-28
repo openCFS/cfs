@@ -479,10 +479,8 @@ namespace CoupledField {
     StatFree(&stat);
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class SuperLUSolver<Double>;
   template class SuperLUSolver<Complex>;
-#endif
 
 }

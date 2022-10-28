@@ -1,7 +1,7 @@
 #ifndef ILUPACK_HH
 #define ILUPACK_HH
 
-#include <def_expl_templ_inst.hh>
+
 #include<def_use_ilupack.hh>
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
@@ -268,9 +268,5 @@ namespace CoupledField
   };
 
 } // end of namespace
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "Ilupack.cc"
-#endif
 
 #endif

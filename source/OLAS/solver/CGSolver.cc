@@ -208,10 +208,8 @@ namespace CoupledField {
     stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class CGSolver<Double>;
   template class CGSolver<Complex>;
-#endif
   
 }

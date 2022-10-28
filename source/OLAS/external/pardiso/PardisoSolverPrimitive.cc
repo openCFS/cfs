@@ -734,10 +734,8 @@ extern "C" {
 
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class PardisoSolverPrimitive<Double>;
   template class PardisoSolverPrimitive<Complex>;
-#endif
 
 }

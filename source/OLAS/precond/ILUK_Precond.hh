@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/CroutLU.hh"
 
@@ -262,9 +262,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ilukprecond.cc"
-#endif
 
 #endif

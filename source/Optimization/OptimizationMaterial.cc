@@ -814,13 +814,11 @@ LBMMat::LBMMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
 }
 
 
-// explicit template instantiation for GCC compiler
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+// explicit template instantiation
 template const Matrix<double>&  OptimizationMaterial::ComputeElementMatrix<double>(Matrix<double>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType);
 template const Matrix<Complex>& OptimizationMaterial::ComputeElementMatrix<Complex>(Matrix<Complex>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType);
 
 template const Matrix<double>& OptimizationMaterial::ComputeElementMatrix(Matrix<double>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow);
 template const Matrix<Complex>& OptimizationMaterial::ComputeElementMatrix(Matrix<Complex>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow);
-#endif
 
 

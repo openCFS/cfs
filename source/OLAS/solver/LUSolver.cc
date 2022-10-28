@@ -232,10 +232,8 @@ namespace CoupledField {
 
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class LUSolver<Double>;
   template class LUSolver<Complex>;
-#endif
   
 }

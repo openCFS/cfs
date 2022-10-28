@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "BaseSolver.hh"
 
@@ -74,9 +74,5 @@ namespace CoupledField {
   };
 
 } //namespace
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "diagsolver.cc"
-#endif
 
 #endif // OLAS_RichardsonSOLVER_HH

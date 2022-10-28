@@ -14,7 +14,7 @@
 
 #ifndef LISSOLVER_HH_
 #define LISSOLVER_HH_
-#include <def_expl_templ_inst.hh>
+
 
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"

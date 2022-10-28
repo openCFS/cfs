@@ -17,7 +17,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
-#include <def_expl_templ_inst.hh>
+
 
 #include "General/defs.hh"
 
@@ -986,17 +986,15 @@ namespace CoupledField{
    }
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Double,2>();
-  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Complex,2>();
-  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Double,3>();
-  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Complex,3>();
+template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Double,2>();
+template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Complex,2>();
+template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Double,3>();
+template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Complex,3>();
 
-  template void AcousticMixedPDE::DefineIntegratorsTempl<Complex,2>();
-  template void AcousticMixedPDE::DefineIntegratorsTempl<Double,2>();
-  template void AcousticMixedPDE::DefineIntegratorsTempl<Complex,3>();
-  template void AcousticMixedPDE::DefineIntegratorsTempl<Double,3>();
+template void AcousticMixedPDE::DefineIntegratorsTempl<Complex,2>();
+template void AcousticMixedPDE::DefineIntegratorsTempl<Double,2>();
+template void AcousticMixedPDE::DefineIntegratorsTempl<Complex,3>();
+template void AcousticMixedPDE::DefineIntegratorsTempl<Double,3>();
 
-  template void AcousticMixedPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string);
-  template void AcousticMixedPDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string);
-#endif
+template void AcousticMixedPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string);
+template void AcousticMixedPDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string);

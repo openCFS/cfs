@@ -30,10 +30,8 @@ namespace CoupledField {
 
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class DiagSolver<Double>;
   template class DiagSolver<Complex>;
-#endif
   
 }

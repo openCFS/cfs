@@ -1,7 +1,7 @@
 #ifndef OLAS_ILUTP_PRECOND_HH
 #define OLAS_ILUTP_PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/CroutLU.hh"
 
@@ -264,9 +264,5 @@ namespace CoupledField {
   };
 
 } // namespace CoupledField
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ilutpprecond.cc"
-#endif
 
 #endif

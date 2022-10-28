@@ -1,4 +1,4 @@
-#include <def_expl_templ_inst.hh>
+
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/Matrix.hh"
@@ -108,15 +108,13 @@ namespace CoupledField {
   }
   
   
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class JacPrecond< CRS_Matrix<Double>, Double>;
   template class JacPrecond< CRS_Matrix<Complex>, Complex>;
   template class JacPrecond< Diag_Matrix<Double>, Double>;
   template class JacPrecond< Diag_Matrix<Complex>, Complex>;
   template class JacPrecond< SCRS_Matrix<Double>, Double>;
   template class JacPrecond< SCRS_Matrix<Complex>, Complex>;
-#endif
   
   
 
@@ -263,10 +261,8 @@ namespace CoupledField {
   
   // ***********************
   // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class BlockJacPrecondImpl<Double>;
   template class BlockJacPrecondImpl<Complex>;
-#endif
 
   // ========================================================================
   //   B L O C K   J A C O B I   P R E C O N D I T I O N E R
@@ -322,11 +318,9 @@ namespace CoupledField {
    }
    // ***********************
    // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
    template class BlockJacPrecond< VBR_Matrix<Double>, Double>;
    template class BlockJacPrecond< VBR_Matrix<Complex>, Complex>;
    template class BlockJacPrecond< SCRS_Matrix<Double> , Double>;
    template class BlockJacPrecond< SCRS_Matrix<Complex>, Complex>;
-#endif
 
 }

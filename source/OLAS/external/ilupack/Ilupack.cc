@@ -713,9 +713,7 @@ void Ilupack<T>::CalcFillIn(PtrParamNode out)
 }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class Ilupack<Double> ;
 template class Ilupack<Complex> ;
-#endif
 
 }

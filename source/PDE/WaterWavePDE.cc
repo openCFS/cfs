@@ -39,7 +39,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
-#include <def_expl_templ_inst.hh>
+
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -769,7 +769,5 @@ namespace CoupledField{
   }
 
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template void WaterWavePDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string);
   template void WaterWavePDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string);
-#endif

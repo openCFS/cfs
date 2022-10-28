@@ -532,9 +532,7 @@ namespace CoupledField {
 
 
   // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class LapackGBMatrix< double, Double >;
   template class LapackGBMatrix< std::complex<double>, Complex >;
-#endif
 }
 

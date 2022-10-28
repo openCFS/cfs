@@ -109,9 +109,7 @@ void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunctio
 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template void ParamMat::SetElementK<double, double>( Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
 template void ParamMat::SetElementK<Complex, Complex>(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
 template void ParamMat::SetElementK<Complex, double>(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
-#endif
 

@@ -554,10 +554,8 @@ namespace CoupledField {
 
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class UMFPACKSolver<Double>;
   template class UMFPACKSolver<Complex>;
-#endif
 
 }

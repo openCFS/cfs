@@ -1,5 +1,5 @@
 //#define  INCLUDE_MULTIGRID_CC_FILES
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/precond/MGPrecond.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -104,9 +104,7 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
 /**********************************************************/
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class MGPrecond<Double>;
 template class MGPrecond<Complex>;
-#endif
 
 } // namespace CoupledField

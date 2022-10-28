@@ -118,8 +118,6 @@ option(CFS_FSANITIZE "Use -fsanitize to check for memory leaks and general error
 set(CFS_REORDERING ${CFS_REORDERING_DEFAULT} CACHE STRING "Overwrite implementation of default for reordering")
 set_property(CACHE CFS_REORDERING PROPERTY STRINGS default Metis Sloan noReordering)
 
-# Do we want to use explicit or implicit template instantiation
-option(EXPLICIT_TEMPLATE_INSTANTIATION "Use explicit template instantiation." ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 # Do we want to use expression templates
 option(USE_EXPRESSION_TEMPLATES "Use expression templates for matrix and vector operators." ON)
 # Set a sane default value for the openCFS schema path
@@ -320,7 +318,6 @@ mark_as_advanced(CFS_REORDERING)
 mark_as_advanced(CMAKE_BUILD_TYPE)
 mark_as_advanced(CMAKE_BACKWARDS_COMPATIBILITY)
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
-mark_as_advanced(EXPLICIT_TEMPLATE_INSTANTIATION)
 mark_as_advanced(BUILD_HDFVIEW)
 mark_as_advanced(BUILD_H5TOOL)
 mark_as_advanced(BUILD_GHOST)

@@ -408,9 +408,7 @@ namespace CoupledField {
   }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class IC0Precond<Double>;
-  template class IC0Precond<Complex>;
-#endif
+template class IC0Precond<Double>;
+template class IC0Precond<Complex>;
 
 } // namespace

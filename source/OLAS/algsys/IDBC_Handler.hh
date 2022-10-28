@@ -5,7 +5,7 @@
 
 #include "BaseIDBC_Handler.hh"
 
-#include <def_expl_templ_inst.hh>
+
 #include "MatVec/SBM_Matrix.hh"
 
 
@@ -263,9 +263,5 @@ namespace CoupledField {
     bool remIDBCPossible_;
   };
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "idbchandler.cc"
-#endif
 
 #endif

@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "FeBasis/FeSpace.hh"
 
@@ -193,7 +193,6 @@ namespace CoupledField
   } 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template shared_ptr<FeFunction<Double> >
   SimInput::GetFeFunction( UInt sequenceStep,
                            UInt stepValue,
@@ -205,6 +204,5 @@ namespace CoupledField
                            UInt stepValue,
                            SolutionType solType,
                            std::set<std::string> & regionNames );
-#endif
 
 }

@@ -440,21 +440,18 @@ void PythonKernel::MatrixToNumpyArray(const Matrix<T>& in, PyObject* numpy)
 
 // the pyton function stuff is in PythonKernelFunction.cc
 
+template Matrix<double> PythonKernel::Numpy2DArrayToMatrix<double>(PyObject*, Matrix<double>&, bool);
+template Matrix<int> PythonKernel::Numpy2DArrayToMatrix<int>(PyObject*, Matrix<int>&, bool);
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template Matrix<double> PythonKernel::Numpy2DArrayToMatrix<double>(PyObject*, Matrix<double>&, bool);
-  template Matrix<int> PythonKernel::Numpy2DArrayToMatrix<int>(PyObject*, Matrix<int>&, bool);
+template void PythonKernel::MatrixToNumpyArray<double>(const Matrix<double>&, PyObject*);
+template void PythonKernel::MatrixToNumpyArray<int>(const Matrix<int>&, PyObject*);
 
-  template void PythonKernel::MatrixToNumpyArray<double>(const Matrix<double>&, PyObject*);
-  template void PythonKernel::MatrixToNumpyArray<int>(const Matrix<int>&, PyObject*);
+template PyObject* PythonKernel::CreatePythonList<std::string>(const Container<std::string>&);
+template PyObject* PythonKernel::CreatePythonList<double>(const Container<double>&);
 
-  template PyObject* PythonKernel::CreatePythonList<std::string>(const Container<std::string>&);
-  template PyObject* PythonKernel::CreatePythonList<double>(const Container<double>&);
-
-  template void PythonKernel::ConvertPythonList<std::string>(Container<std::string>&, PyObject*);
-  template void PythonKernel::ConvertPythonList<double>(Container<double>&, PyObject*);
-  template void PythonKernel::ConvertPythonList<Vector<int> >(Container<Vector<int> >&, PyObject*);
-#endif
+template void PythonKernel::ConvertPythonList<std::string>(Container<std::string>&, PyObject*);
+template void PythonKernel::ConvertPythonList<double>(Container<double>&, PyObject*);
+template void PythonKernel::ConvertPythonList<Vector<int> >(Container<Vector<int> >&, PyObject*);
 
 
 } // end of namespace

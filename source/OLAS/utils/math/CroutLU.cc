@@ -1196,11 +1196,9 @@ namespace CoupledField {
     }
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class CroutLU<Double>;
   template class CroutLU<Complex>;
-#endif
 
 }
 

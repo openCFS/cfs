@@ -197,8 +197,5 @@ namespace CoupledField {
 
 }
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "PardisoSolverPrimitive.cc"
-#endif
 
 #endif

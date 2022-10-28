@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/GivensRotation.hh"
 
@@ -474,9 +474,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "gmres.cc"
-#endif
 
 #endif

@@ -627,11 +627,9 @@ void ResultManager::SetResultVectorSize(InfoPtr cInfo, ResPtr cRes){
   }
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&);
-  template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&);
-  template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid);
-  template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid);
-#endif
+template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&);
+template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&);
+template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid);
+template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid);
 }
 
