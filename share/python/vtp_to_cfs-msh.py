@@ -6,7 +6,7 @@ import sys
 import mesh_tool
 import argparse
 
-parser = argparse.ArgumentParser(description='Convert .vtp file to volume mesh for CFS++')
+parser = argparse.ArgumentParser(description='Convert .vtp file to volume mesh for openCFS')
 parser.add_argument("name", help="specify base name of in-/ and output files without format ending .vtp")
 parser.add_argument("--type", help="set b.c. for which problem type (default box_varel)",default="box_varel",choices=["box_varel","ppbox","wwb"])
 

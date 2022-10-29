@@ -21,7 +21,7 @@ SET(CFSTOOL_SRCS
   cfstool.cc
 )
 
-# Main CFS++ Tool executable target.
+# Main cfstool executable target.
 ADD_EXECUTABLE(cfstool ${CFSTOOL_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
@@ -115,7 +115,7 @@ ENDIF()
 
 SET(CFS_LINK_FLAGS "")
 
-# Even if we did not compile CFS++ itself with OpenMP enabled, we may have
+# Even if we did not compile openCFS itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")

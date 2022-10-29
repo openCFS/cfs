@@ -297,7 +297,7 @@ namespace CoupledField {
     //! \param fctId       unique identifier for the feFunction
     //! \param numEqns     number of unknowns in the linear system associated
     //!                    with the feFunction (i.e. number of equation numbers 
-    //!                    from CFS++)
+    //!                    from openCFS)
     //! \param numLastFreeEqn specifies the equation number of the last
     //!                       unfixed degree equation (if inhomogeneous
     //!                       Dirichlet boundary conditions are treated by the

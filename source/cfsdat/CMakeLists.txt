@@ -49,7 +49,7 @@ SET(CFSDAT_SRCS
 #  Utils/KNNSearch.cc
 )
 
-# Main CFS++ Dat executable target.
+# Main cfsDAT executable target.
 ADD_EXECUTABLE(cfsdat ${CFSDAT_SRCS})
 
 SET(TARGET_LL 

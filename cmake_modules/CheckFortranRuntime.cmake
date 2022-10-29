@@ -183,7 +183,7 @@ ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 # support for the Open64 Fortran compiler removed. Check svn version 15997
 #==============================================================================
 # Create a header file include/def_cfs_fortran_interface.hh with the correct
-# mangling for the Fortran routines called in CFS++.
+# mangling for the Fortran routines called in openCFS.
 # 
 # How LAPACK library enables Microsoft Visual Studio support with CMake
 # and LAPACKE:

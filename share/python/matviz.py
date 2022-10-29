@@ -424,7 +424,7 @@ def get_MPI_rank():
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="a cfs++ h5 file")
+parser.add_argument("input", help="a openCFS h5 file")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
 parser.add_argument("--h5_nondes", help="non-design (solid) region name (default 'non-design')", default="None")

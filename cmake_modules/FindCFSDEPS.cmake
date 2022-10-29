@@ -3,7 +3,7 @@
 # Find locations of external binary libs (e.g. MKL) and build additional
 # external libs from source.
 # 
-# This module finds and builds libs that CFS++ depends upon and determines
+# This module finds and builds libs that openCFS depends upon and determines
 # where the include files and libraries are. 
 #  
 # AUTHORS
@@ -72,7 +72,7 @@ endif()
 
 #-----------------------------------------------------------------------------
 # On Mac OS X we want to build the external libs for the same SDK and 
-# architecture as CFS++.
+# architecture as openCFS.
 #-----------------------------------------------------------------------------
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
@@ -105,7 +105,7 @@ ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
 IF(NOT CFS_DEPS_CACHE_DIR)
   MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. 
 This dirctory is used to store downloaded sources, 
-which can be reused for other CFS++ builds.
+which can be reused for other openCFS builds.
 This directory may even be located on a network share.")
 ENDIF(NOT CFS_DEPS_CACHE_DIR)
 

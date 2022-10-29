@@ -91,7 +91,7 @@ namespace CoupledField {
       EXCEPTION("Gmsh element type " << eType << " not supported!\n"
                 << "Please refer to the Gmsh documentation at\n"
                 << "http://www.geuz.org/gmsh for available element types.\n"
-                << "Documentation for CFS++ element types may be found in\n"
+                << "Documentation for openCFS element types may be found in\n"
                 << "CFS_SOURCE_DIR/share/doc/developer/AddDoc/element_types.");
       break;
     }
@@ -176,7 +176,7 @@ namespace CoupledField {
   void GmshHelper::InitElemNodeMap()
   {
     // Initialize node mappings from/to Gmsh element types
-    // Left is Gmsh node, right is CFS++ node.
+    // Left is Gmsh node, right is openCFS node.
     
     typedef ElemNodeMapType::value_type emvt;
 

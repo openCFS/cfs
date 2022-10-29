@@ -112,7 +112,7 @@ namespace CoupledField {
     sysMatNNZ_ = sysMat.GetNnz();
 
     // If the matrix is not in LEX or LEX_DIAG_FIRST sub-format, we prefer
-    // to have it in LEX, which is the default if it comes from CFS++.
+    // to have it in LEX, which is the default if it comes from openCFS.
     if ( sysMat.GetCurrentLayout() == CRS_Matrix<T>::UNSORTED ) {
       sysMat.ChangeLayout( CRS_Matrix<T>::LEX );
     }

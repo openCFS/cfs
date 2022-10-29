@@ -196,7 +196,7 @@ namespace CoupledField {
   //! 
   //! \purpose 
   //! This class serves as base class for all representations of a local 
-  //! coordinate system. In CFS++, all methods for integration and geometry
+  //! coordinate system. In openCFS, all methods for integration and geometry
   //! handling expect by default a representation of points and vectors w.r.t.
   //! the \e global cartesian system with its x-,y- and z-axis. 
   //! In order to allow different representations of vectors and points, they

@@ -368,7 +368,7 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
 
 
   #---------------------------------------------------------------------------
-  # Only set last CFS++ PARDISO variable if test was successful
+  # Only set last openCFS PARDISO variable if test was successful
   #---------------------------------------------------------------------------
   IF(PARDISO_API_VER_3_EXITCODE EQUAL 0)
     SET(PARDISO_API_VER_3_LAST_CFS_PARDISO ${CFS_PARDISO} CACHE INTERNAL "${CFS_PARDISO}" FORCE)
@@ -422,7 +422,7 @@ IF(NOT PARDISO_API_VER_4_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
                             "${IFORT_LIB_PATH}")
 
   #---------------------------------------------------------------------------
-  # Only set last CFS++ PARDISO variable if test was successful
+  # Only set last openCFS PARDISO variable if test was successful
   #---------------------------------------------------------------------------
   IF(PARDISO_API_VER_4_EXITCODE EQUAL 0)
     SET(PARDISO_API_VER_4_LAST_CFS_PARDISO ${CFS_PARDISO}

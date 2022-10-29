@@ -34,7 +34,7 @@ if(USE_EMBEDDED_PYTHON)
   set(UNIT_TESTS_SRC ${UNIT_TESTS_SRC} embeddedpython.cc)
 endif()
 
-# Main CFS++ Dat executable target.
+# Main openCFS Dat executable target.
 add_executable(cfstest ${UNIT_TESTS_SRC})
 
 

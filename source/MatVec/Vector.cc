@@ -1003,7 +1003,7 @@ namespace CoupledField {
       }
       
       // Print comment
-      fprintf( fp, "%%\n%% Vector exported by CFS++\n%%\n" );
+      fprintf( fp, "%%\n%% Vector exported by openCFS\n%%\n" );
       
       // Information on number of rows, columns and entries
       fprintf( fp, "%d\t%d\t%d\n", nrows, ncols, nnz );
@@ -1042,7 +1042,7 @@ namespace CoupledField {
       UInt valcrd = nnz;
       UInt totcrd = 4 + ptrcrd + indcrd + valcrd;
       //fprintf( fp, "No label                                                                No key  \n");
-      fprintf( fp, "Harwell-Boeing vector exported from CFS++                               No key  \n");
+      fprintf( fp, "Harwell-Boeing vector exported from openCFS                              No key  \n");
       fprintf( fp, "% 14d% 14d% 14d% 14d% 14d\n", totcrd, ptrcrd, indcrd, valcrd, 0 );
       fprintf( fp, "%s% 14d% 14d% 14d\n", code.c_str(), size_, 1, nnz );
       fprintf( fp, "(8I10)          (8I10)          %s\n", fmt.c_str());

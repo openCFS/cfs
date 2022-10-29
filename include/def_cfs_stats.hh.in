@@ -1,9 +1,9 @@
-// Define version of CFS++ (year and month)
+// Define version of openCFS (year and month)
 #define CFS_VERSION "@CFS_VERSION@"
 #define CFS_VERSION_YEAR "@CFS_VERSION_YEAR@"
 #define CFS_VERSION_MONTH "@CFS_VERSION_MONTH@"
 
-// Define verion name of CFS++
+// Define verion name of openCFS++
 #define CFS_NAME "@CFS_NAME@"
 
 // Date on which the source tree has been configured
@@ -32,28 +32,28 @@
 // Local git branch corresponding to built exe
 #define CFS_GIT_BRANCH "@CFS_GIT_BRANCH@"
 
-// Name of the C++ compiler used to compile CFS++
+// Name of the C++ compiler used to compile openCFS
 #define CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@"
 
-// Version of the C++ compiler used to compile CFS++
+// Version of the C++ compiler used to compile openCFS
 #define CFS_CXX_COMPILER_VER "@CFS_CXX_COMPILER_VER@"
 
-// Fortran compiler used to compile CFS++
+// Fortran compiler used to compile openCFS
 #define CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@"
 
-// Version of the Fortran compiler used to compile CFS++
+// Version of the Fortran compiler used to compile openCFS
 #define CFS_FORTRAN_COMPILER_VER "@CFS_FORTRAN_COMPILER_VER@"
 
-// Linux/UNIX/Windows distribution for which CFS++ has been built
+// Linux/UNIX/Windows distribution for which openCFS has been built
 #define CFS_DISTRO "@CFS_FULL_DISTRO@"
 
-// Linux/UNIX/Windows version for which CFS++ has been built
+// Linux/UNIX/Windows version for which openCFS has been built
 #define CFS_DISTRO_VER "@CFS_FULL_DISTRO_VER@"
 
-// Hardware architecture for which CFS++ has been built
+// Hardware architecture for which openCFS has been built
 #define CFS_ARCH "@CFS_ARCH@"
 
-// Platform that has been used to build CFS++.
+// Platform that has been used to build openCFS.
 #define CFS_BUILD_DISTRO "@CFS_BUILD_DISTRO@"
 
 // Variables from the CMAKE build system

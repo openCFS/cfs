@@ -23,7 +23,7 @@ SET(patches
   # Patch for adding basic CMake support to SuiteSparse
   # http://www.zeuux.com/group/scipython/bbs/content/52045/
   "suitesparse-cmake.patch"
-  # Patch for adding CFS++ specifics to CMake for SuiteSparse
+  # Patch for adding openCFS specifics to CMake for SuiteSparse
   "suitesparse-cmake-for-cfs.patch"
   # Patch for automatically detecting proper Fortran name mangling for BLAS
   "suitesparse-fortran-iface.patch"

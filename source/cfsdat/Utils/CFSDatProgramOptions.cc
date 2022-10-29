@@ -177,7 +177,7 @@ void CFSDatProgramOptions::GetHeaderString(std::ostream & out)
     out << std::endl
         << "============================================================"
         << "===========" << std::endl;
-    out << " CFS++ Data Processing Tool" << std::endl << std::endl
+    out << " openCFS Data Processing Tool" << std::endl << std::endl
         << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
         << " (rev " << CFS_WC_REVISION << ")" << std::endl
         << " compiled " << __DATE__

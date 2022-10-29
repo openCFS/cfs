@@ -166,7 +166,7 @@ def parse_abaqus(input):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="abaqus input file")
-parser.add_argument("output", help="CFS++ mesh file")
+parser.add_argument("output", help="openCFS mesh file")
 
 
 args = parser.parse_args()

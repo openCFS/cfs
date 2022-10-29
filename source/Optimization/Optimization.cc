@@ -234,7 +234,7 @@ void Optimization::PostInitSecond()
          #ifdef USE_IPOPT
            baseOptimizer_ = new IPOPTHolder(this, opt);
          #else
-           throw Exception("CFS++ was compiled w/o IPOPT!");
+           throw Exception("openCFS was compiled w/o IPOPT!");
          #endif
          break;
 
@@ -242,13 +242,13 @@ void Optimization::PostInitSecond()
          #ifdef USE_SCPIP
            baseOptimizer_ = new SCPIP(this, opt);
          #else
-           throw Exception("CFS++ was compiled w/o SCPIP");
+           throw Exception("openCFS was compiled w/o SCPIP");
          #endif
          break;
 
     case FEAS_PP_SOLVER:
          #ifndef USE_IPOPT
-           throw Exception("CFS++ needs to be compiled with IPOPT to use feasPP");
+           throw Exception("openCFS needs to be compiled with IPOPT to use feasPP");
          #else
            baseOptimizer_ = new FeasPP(this, opt);
          #endif
@@ -262,7 +262,7 @@ void Optimization::PostInitSecond()
          #ifdef USE_SNOPT
            baseOptimizer_ = new SnOpt(this, opt);
          #else
-           throw Exception("CFS++ was compiled w/o SnOpt");
+           throw Exception("openCFS was compiled w/o SnOpt");
          #endif
       break;
 
@@ -270,7 +270,7 @@ void Optimization::PostInitSecond()
          #ifdef USE_KNITRO
            baseOptimizer_ = new KNITRO(this, opt);
          #else
-           throw Exception("CFS++ was compiled w/o KNITRO");
+           throw Exception("openCFS was compiled w/o KNITRO");
          #endif
       break;
 

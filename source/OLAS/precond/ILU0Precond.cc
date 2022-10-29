@@ -88,7 +88,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
   this->xml_->GetValue("logging", logging_, ParamNode::INSERT ) ;
 
   // Assure that matrix is in proper format for current implementation
-  // NOTE: By default while using CFS++ the matrix will be in LEX format,
+  // NOTE: By default while using openCFS the matrix will be in LEX format,
   // so it would be more efficient to re-write the code to take advantage
   // of that format, or simply to use a diagPtr_ for acessing diagonal
   // entries!

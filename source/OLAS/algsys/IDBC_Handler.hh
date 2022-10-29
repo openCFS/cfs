@@ -26,7 +26,7 @@ namespace CoupledField {
   //! <b>I</b>nhomogeneous <b>D</b>irichlet <b>B</b>oundary <b>C</b>onditions
   //! and for updating the right hand side of the linear system using these
   //! weights and the prescribed Dirichlet values.
-  //! \note The CFS++/OLAS interface arranges equation numbers for degrees of
+  //! \note The openCFS interface arranges equation numbers for degrees of
   //! freedom in such a manner that those degrees of freedom that are fixed
   //! by inhomogeneous Dirichlet boundary conditions start at (limit+1)\n\n
   //! <center><img src="../AddDoc/splitting.png"></center>\n

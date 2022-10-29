@@ -291,7 +291,7 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, BaseVector* rh
    // the first line is constat
    //   ->|0        1         2         3         4         5         6         7         |<-
    // out << "No label                                                                No key  " << std::endl;
-   out << "Harwell-Boeing matrix exported from CFS++                               No key  " << std::endl;
+   out << "Harwell-Boeing matrix exported from openCFS                              No key  " << std::endl;
 
    // second line: total lines excl. header + col lines + row lines + mat data lines + rhs lines
    out.width(14); 

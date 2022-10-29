@@ -8,7 +8,7 @@
 
 #include <string>
 
-// Include headers which define what types of in/output files CFS++ supports
+// Include headers which define what types of in/output files openCFS supports
 #include <def_use_gidpost.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>

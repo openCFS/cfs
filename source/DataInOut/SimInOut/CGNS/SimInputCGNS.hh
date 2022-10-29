@@ -51,7 +51,7 @@ namespace CoupledField{
   //! post-processors have problems handling quadratic element types often used in
   //! FE codes, even if the CGNS standard properly defines such element types.
   //! Nonetheless, this class is able to read all complete and incomplete element
-  //! types supported by CGNS and CFS++. This class handles CGNS sections as regions.
+  //! types supported by CGNS and openCFS. This class handles CGNS sections as regions.
   //! Therefore, it is not yet able to read CGNS files written with the SimOutputCGNS
   //! class, since it maps regions to zones.
   //!

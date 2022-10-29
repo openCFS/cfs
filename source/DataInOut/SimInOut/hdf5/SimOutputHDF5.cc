@@ -133,7 +133,7 @@ namespace CoupledField {
 
     // write creator
     std::stringstream creator;
-    creator << "CFS++ " << CFS_VERSION << ", " << CFS_NAME << " ( " << CFS_WC_REVISION << " )";
+    creator << "openCFS " << CFS_VERSION << ", " << CFS_NAME << " ( " << CFS_WC_REVISION << " )";
     std::string creatorString = creator.str();
     H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ );
 

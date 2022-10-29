@@ -388,7 +388,7 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   # with  some versions  of the  GCC runtime  environment. The  problems often
   # occur in external libraries, most notably Boost. The favored policy should
   # be,  to fix  those problems  locally  by patching  the external  libraries
-  # instead of  introducing global  flags and defines  for CFS++,  which might
+  # instead of  introducing global  flags and defines  for openCFS,  which might
   # break other stuff.
   #---------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")

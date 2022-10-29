@@ -1,4 +1,4 @@
-# This script is the main entry point for automated nightly builds of CFS++.
+# This script is the main entry point for automated nightly builds of openCFS.
 # It gets either called from /etc/crontab or through the provisioner scripts
 # for Vagrant VBoxes.
 #

@@ -195,7 +195,7 @@ namespace CoupledField {
     for (node=1; node<=numNodes_; ++node) {
       capaIf_.GetPos(node, &pTemp[0]);
       // unused variable Double d;
-      // In the 2D case CFS++ writes the 3D coordinates in the
+      // In the 2D case openCFS writes the 3D coordinates in the
       // following form: 0 x y
       // if(dim_ == 2)
       // {

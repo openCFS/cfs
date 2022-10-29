@@ -533,7 +533,7 @@ namespace CoupledField {
     //! Copy the matrix into full-storage format 
 
     //! Trasforms matrix into vector containing all upper
-    // triangle elements further usage in CFS++ 
+    // triangle elements further usage in openCFS
     void CopySCRSMatrix2Vec(Complex* &dataVec);
 
     //@}

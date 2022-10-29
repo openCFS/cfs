@@ -33,7 +33,7 @@ namespace CoupledField
   //!           Since the VisItBridge inside ParaView does not support the
   //!           selection of subdomains according to CGNS sections, one zone
   //!           per region is written. Due to this, the ExtractBlock filter can
-  //!           can be used to extract regions from CFS++ by their name.
+  //!           can be used to extract regions from openCFS by their name.
   //! CFDPost: The ANSYS CFD post processor can open only nodal transient results.
   //! EnSight: Has the best support next to ParaView.
   //! Tecplot: Only tested with Tecplot 360 2010 which needs CGNS files written
@@ -41,7 +41,7 @@ namespace CoupledField
   //! VisIt: Another free post-processor based on VTK. Up until version &lt;= 2.7
   //!        VisIt is linked against the CGNS library v3.0 which has some
   //!        incompatibilities due to a different definition of the element type
-  //!        enum with version 3.1 (cf. cgnslib.h). Since CFS++ is linked to
+  //!        enum with version 3.1 (cf. cgnslib.h). Since openCFS is linked to
   //!        CGNS 3.1 there may occur problems!
   //!
   //! By default separate files for nodal and element results will be written.

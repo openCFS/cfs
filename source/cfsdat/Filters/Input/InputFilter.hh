@@ -5,7 +5,7 @@
 // ================================================================================================
 /*!
  *       \file     GenericInputFilter.hh
- *       \brief    Input filter for most CFS++ input readers
+ *       \brief    Input filter for most openCFS input readers
  *
  *       \date     Aug 13, 2015
  *       \author   ahueppe

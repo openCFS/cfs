@@ -37,7 +37,7 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd ${DST_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PythonKernel.xsd ${DST_DIR}/Schemas/CFS_PythonKernel.xsd
-  COMMENT "Updating XML schemata for CFS++ simulation..."
+  COMMENT "Updating XML schemata for openCFS simulation..."
 )
 
 SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/CFS-Material)
@@ -60,7 +60,7 @@ ADD_CUSTOM_TARGET(share_xml_cfsmat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATpyroelectric.xsd ${DST_DIR}/Schemas/CFS_MATpyroelectric.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATthermoelastic.xsd ${DST_DIR}/Schemas/CFS_MATthermoelastic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Misc.xsd ${DST_DIR}/Schemas/CFS_Misc.xsd
-  COMMENT "Updating XML schemata for CFS++ materials..."
+  COMMENT "Updating XML schemata for openCFS materials..."
 )
 
 SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/config)

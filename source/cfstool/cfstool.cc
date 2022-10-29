@@ -1285,7 +1285,7 @@ int main(int argc, char** argv)
     std::cout << std::endl
               << "============================================================"
               << "===========" << std::endl;
-    std::cout << " CFSTOOL - File Conversions/Comparisons for CFS++" << std::endl << std::endl
+    std::cout << " CFSTOOL - File Conversions/Comparisons for openCFS" << std::endl << std::endl
               << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
               << " (rev " << CFS_WC_REVISION << ")" << std::endl
               << " compiled " << __DATE__

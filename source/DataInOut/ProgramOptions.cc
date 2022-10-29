@@ -716,16 +716,20 @@ assert(PATH_MAX > 10);
         << "  Precompiled CFSDEPS are back and eamc080 is a new mirror server for CFSDEPS." << endl
         << "  Tests now are able to compare info.xml files." << endl
         << endl
-        << "16.1, Concurrent Monorail" << endl
+        << "16.01, Concurrent Monorail" << endl
         << "  Starting point of making classes thread safe in preparation to parallelize assembly loop." << endl
         << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl
         << endl
-        << "18.8, AMGme" << endl
+        << "18.08, AMGme" << endl
         << "  Contains Klaus' algebraic multigrid." << endl
         << endl
-        << "20.9, Frohes Fensterln" << endl
+        << "20.09, Frohes Fensterln" << endl
         << "  Brings native Windows support and several features from the fork (thanks to Hermann, Jens and Simon)." << endl
-        << "  We are on the track of going open source as openCFS! :)" << endl;
+        << "  We are on the track of going open source as openCFS! :)" << endl
+        << endl
+        << "22.10, Welcome World" << endl
+        << "  CFS++ became officially open source and got renamed to openCFS (www.opencfs.org)." << endl
+        << "  Feel free to contribute via gitlab.com/openCFS :)" << endl;
   }
 
   void ProgramOptions::PrintHeader(std::ostream & out)

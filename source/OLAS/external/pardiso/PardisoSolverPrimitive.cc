@@ -513,7 +513,7 @@ extern "C" {
     // Switch to iterative solver
     if(mSolver_) {
 #if PARDISO_API_VER == 3
-      EXCEPTION("This CFS++ executable has been linked to a PARDISO 3.x library.\n"
+      EXCEPTION("This openCFS executable has been linked to a PARDISO 3.x library.\n"
                 << "PARDISO implements iterative solvers since version 4.0.\n"
                 << "To get iterative solvers you should switch CFS_PARDISO to SCHENK.");
 #endif      

@@ -199,7 +199,7 @@ namespace CoupledField {
 
 
     //! Trasforms SCRS matrix into vector containing all upper
-    //! triangle elements further usage in CFS++
+    //! triangle elements further usage in openCFS
     virtual void CopySCRSMatrix2Vec(Complex* &A){;};
 
     /** Dump the matrix for debug purpose */

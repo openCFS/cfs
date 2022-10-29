@@ -42,7 +42,7 @@ namespace CFSDat{
 
 typedef CF::StdVector<uuids::uuid> ResultIdList;
 
-//Basically a CFS++ Resulthandler adapted to our special needs
+//Basically a openCFS Resulthandler adapted to our special needs
 //its main purpose is to coordinate result access and to give the
 //possibility to optimize result storage independent of the
 //filter pipeline defined

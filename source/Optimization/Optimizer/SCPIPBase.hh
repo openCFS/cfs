@@ -6,7 +6,7 @@
 
 #include "General/Exception.hh"
 
-// This Interface is written to be used in Finite Element Simulation software CFS++
+// This Interface is written to be used in Finite Element Simulation software openCFS
 // of chair for sensorics at the university of Erlangen in Germany.
 //
 // The double usage in the C++SCPIP interface is realized via the USE_4_CFS compile

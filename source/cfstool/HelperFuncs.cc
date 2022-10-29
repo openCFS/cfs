@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 // Include headers which define what types
-// of in/output files CFS++ should support
+// of in/output files openCFS should support
 #include <def_use_gidpost.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_gmv.hh>

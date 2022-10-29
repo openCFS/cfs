@@ -177,7 +177,7 @@ namespace CoupledField {
                            const std::string& name,
                            TYPE* data );
 
-    //! Read data from a dataset into a CFS++ vector
+    //! Read data from a dataset into a openCFS vector
     template<typename TYPE>
     static void ReadArray( H5::CommonFG &loc,
                            const std::string& name,

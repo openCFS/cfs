@@ -18,7 +18,7 @@
   #include "SCPIPBase.hh"
   #include "scpip30.hh"
 
-  // in CFS++ we use a wrapped version of the unofficial
+  // in openCFS we use a wrapped version of the unofficial
   // Boost Logging Template library by John Torjo.
   // For C++SCPIP this is simply disabled.
   struct nullstream:

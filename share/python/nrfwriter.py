@@ -48,8 +48,8 @@ class NrfWriter(NrfCommon):
     self._elemAttrs[17] = 'WEDGE15'
     self._elemAttrs[18] = 'WEDGE18'
     self._elemAttrs[19] = 'PYRA14'
-    self._elemAttrs[20] = 'POLYGON'    # still not implemented in CFS++
-    self._elemAttrs[21] = 'POLYHEDRON' # still not implemented in CFS++
+    self._elemAttrs[20] = 'POLYGON'    # still not implemented in openCFS
+    self._elemAttrs[21] = 'POLYHEDRON' # still not implemented in openCFS
     
   
   def __del__(self):

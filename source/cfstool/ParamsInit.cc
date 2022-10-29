@@ -64,7 +64,7 @@ namespace CFSTool
       args.push_back((std::string)argv[i]);
     }
 
-    // Obtain paths of cfstool, the CFS++ base and home directory and build
+    // Obtain paths of cfstool, the openCFS base and home directory and build
     // a list of possible locations of the cfstool config file.
     // cf. http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
     StdVector<fs::path> configFiles;
@@ -210,7 +210,7 @@ namespace CFSTool
     pNode->SetValue(cfstool.string());
     param->AddChildNode(pNode);
 
-    // Put CFS++ base directory into global param node.
+    // Put openCFS base directory into global param node.
     pNode = PtrParamNode(new ParamNode());
     pNode->SetName("cfsBaseDir");
     pNode->SetValue(cfsbasedir.string());
@@ -309,11 +309,11 @@ namespace CFSTool
         std::cout <<
           "'convert' converts files from one type to another. The following types of" << std::endl <<
           "\tconversions are supported:" << std::endl <<
-          "\tinput:  .h5 (CFS++), .mesh (CFS++|NACS|CAPA), .msh (Gmsh), .gmv (GMV)," << std::endl <<
+          "\tinput:  .h5 (openCFS), .mesh (openCFS|NACS|CAPA), .msh (Gmsh), .gmv (GMV)," << std::endl <<
           "\t        .unv[erg|ref] (Ideas|CAPA), .mphtxt (COMSOL mesh)," << std::endl <<
           "\t        .refelem (reference elements e.g. HEXA20.refelem)" << std::endl <<
-          "\toutput: .h5 (CFS++), .post.[res|bin] (GiD), .gmv (GMV), .msh (Gmsh)," << std::endl <<
-          "\t        .xmf (Xdmf2 format for CFS++ HDF5), .unv[erg|ref] (Ideas|CAPA)," << std::endl <<
+          "\toutput: .h5 (openCFS++), .post.[res|bin] (GiD), .gmv (GMV), .msh (Gmsh)," << std::endl <<
+          "\t        .xmf (Xdmf2 format for openCFS HDF5), .unv[erg|ref] (Ideas|CAPA)," << std::endl <<
           "\t        .rst (ANSYS)" << std::endl;
         std::cout <<
           "\tCall: cfstool --mode convert input_file output_file" << std::endl;

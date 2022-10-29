@@ -132,7 +132,7 @@ namespace CoupledField {
     (*output) << buf << std::endl;
 
     // DB Application
-    (*output) << "CFS++ (TU Wien and Univ. of Erlangen-Nuremberg)" << std::endl;
+    (*output) << "openCFS (TU Wien and Univ. of Erlangen-Nuremberg)" << std::endl;
 
     std::stringstream sstr;
     dt::time_facet *facet = new dt::time_facet(" %d-%b-%y  %H:%M:%S");
@@ -174,7 +174,7 @@ namespace CoupledField {
   
   void SimOutputUnv::Dataset164()
   {
-    // We use SI units in CFS++
+    // We use SI units in openCFS
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
               << 164 << std::endl ;
     (*output) << "         1Meter (newton)               2" << std::endl;

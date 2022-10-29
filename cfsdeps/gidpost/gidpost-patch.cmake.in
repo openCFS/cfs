@@ -55,7 +55,7 @@ SET(patches
   # Make sure GiDpost gets installed to the correct location.
   "gidpost-install.patch"
 
-  # Make sure GiDpost can find all CFS++ Fortran libs for linking its
+  # Make sure GiDpost can find all openCFS Fortran libs for linking its
   # Fortran example.
   "gidpost-fortran.patch"
 

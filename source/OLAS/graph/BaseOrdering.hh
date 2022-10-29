@@ -13,7 +13,7 @@ namespace CoupledField {
   //! Base Class for ordering of a matrix graph 
 
   //! (notation: ordering of nodes although in combination with
-  //! CFS++ we order equation numbers).
+  //! openCFS we order equation numbers).
   class BaseOrdering {
   public:
   //! Type of re-ordering for the graph

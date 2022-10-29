@@ -325,7 +325,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     Parameters
     ----------
     hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
+        openCFS hdf5 data file
     result: string 
         specifies the results to return: e.g. 'accuPressure','mechDisplacement',...
     region: string 
@@ -623,7 +623,7 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     Parameters
     ----------
     hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
+        openCFS hdf5 data file
     region : string
         region name
     sugregion : string
@@ -669,7 +669,7 @@ def get_coordinates(hdf5_file,region=None) :
   Parameters
   ----------
   hdf5_file : h5py.File or str
-      CFS++ hdf5 data file
+      openCFS hdf5 data file
   region : string, optional
       region name for a subset of coordinates
 
@@ -723,7 +723,7 @@ def get_centroids(hdf5_file,region=None) :
     Parameters
     ----------
     hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
+        openCFS hdf5 data file
     region : string, optional
         region name for a subset of elements
 

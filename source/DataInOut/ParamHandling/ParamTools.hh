@@ -13,8 +13,7 @@ namespace CoupledField
 {
   /** This class provides an extension to the ParamNode class. It is kept
    * seperate from the ParamNode as the inline implementation is convenient
-   * for the template function but the ParamNode is better lightwight. Actually
-   * it is also a necessary to use the ParamNode both in OLAS and CFS++ */
+   * for the template function but the ParamNode is better lightwight. */
   class ParamTools
   {
     public:

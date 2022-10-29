@@ -28,7 +28,7 @@
 
 //! \file Environment.hh
 //! This file contains some global macro, class and enumeration data type
-//! definitions for CFS++.
+//! definitions for openCFS.
 namespace CoupledField {
 
   // Import Boost's namespace
