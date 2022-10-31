@@ -110,6 +110,14 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
   }
 
 
+  void HeatPDE::SetLinFlowPDECouplingFlags(bool useSymmtericForm) {
+  	// Set flag for coupling
+    isLinFlowPDECoupled_ = true;
+    // Set flag whether to use symmetric form or not
+    isCouplingFormulationSymmetric_= useSymmtericForm;
+  }
+
+
   // ****************************
   //  Initialize Nonlinearities
   // ****************************

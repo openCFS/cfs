@@ -89,7 +89,8 @@ namespace CoupledField {
     nonLin_    = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = false;
-    isHeatCoupled_  = false;
+    isHeatPDECoupled_  = false;
+    isCouplingFormulationSymmetric_ = false;
 
     //! Always use total Lagrangian formulation 
     updatedGeo_        = true;
@@ -192,6 +193,13 @@ namespace CoupledField {
       // enables usage of LAGRANGE_MULT_1
       useLagrangeMultScal_ = true;
     }
+  }
+
+  void LinFlowPDE::SetHeatPDECouplingFlags(bool useSymmtericForm) {
+  	// Set flag for coupling
+    isHeatPDECoupled_ = true;
+    // Set flag whether to use symmetric form or not
+    isCouplingFormulationSymmetric_= useSymmtericForm;
   }
   
   void LinFlowPDE::InitNonLin() {
@@ -320,7 +328,7 @@ namespace CoupledField {
         // In general form : adiabaticExp \(\rho * c^2)
         // ====================================================================
           PtrCoefFct fnc;
-          if ( isHeatCoupled_ ) {
+          if ( isHeatPDECoupled_ ) {
               fnc = CoefFunction::Generate( mp_, Global::REAL,
                               CoefXprBinOp(mp_, adiabaticExp, compressionModulus, CoefXpr::OP_DIV ) );
           }
@@ -716,7 +724,7 @@ namespace CoupledField {
             // ====================================================================
             BiLinearForm *stiffIntMovingGridPP = NULL;
 
-            if (isHeatCoupled_) {
+            if (isHeatPDECoupled_) {
               EXCEPTION("Heat coupling with moving grid is not implemented yet")
             }
             else {

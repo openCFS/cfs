@@ -44,10 +44,19 @@ namespace CoupledField {
     // determine subtype
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
+		// determine whether symmetric or non ymmetric formulation should be used
+		isCouplingFormulationSymmetric_ = false;
+		paramNode->GetValue("symmetric",isCouplingFormulationSymmetric_,ParamNode::PASS);
+
     nonLin_ = false;
     
     // Initialize nonlinearities
     InitNonLin();
+
+		// inform linFlowPDE about coupling to HeatPDE and vice versa
+    dynamic_cast<LinFlowPDE*> (pde1)->SetHeatPDECouplingFlags(isCouplingFormulationSymmetric_);
+    dynamic_cast<HeatPDE*> (pde2)->SetLinFlowPDECouplingFlags(isCouplingFormulationSymmetric_);
+
   }
 
 
