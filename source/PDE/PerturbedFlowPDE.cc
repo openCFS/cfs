@@ -961,6 +961,7 @@ namespace CoupledField {
       stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
       stress->entryType = ResultInfo::TENSOR;
       stress->definedOn = ResultInfo::ELEMENT;
+      stress->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( stress );
       shared_ptr<CoefFunctionFormBased> sigmaFunc;
       if( isComplex_ ) {
@@ -977,6 +978,7 @@ namespace CoupledField {
       strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
       strain->entryType = ResultInfo::TENSOR;
       strain->definedOn = ResultInfo::ELEMENT;
+      strain->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( strain );
       shared_ptr<CoefFunctionFormBased> strainFunc;
       if( isComplex_ ) {

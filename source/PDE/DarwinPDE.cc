@@ -681,6 +681,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     potInfo->unit = "Vs/m";
     potInfo->definedOn = ResultInfo::ELEMENT;
     potInfo->entryType = ResultInfo::VECTOR;
+    potInfo->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
 
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(potInfo);
     DefineFieldResult( feFunctions_[MAG_POTENTIAL], potInfo );
@@ -700,6 +701,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     res2->unit = "V";
     res2->definedOn = ResultInfo::NODE;
     res2->entryType = ResultInfo::SCALAR;
+    res2->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res2 );
     availResults_.insert( res2 );
     scalFct->SetResultInfo(res2);
@@ -720,6 +722,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     res3->unit = "";
     res3->definedOn = ResultInfo::NODE;
     res3->entryType = ResultInfo::SCALAR;
+    res3->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
     results_.Push_back( res3);
     availResults_.insert( res3 );
     lagMplFct->SetResultInfo(res3);
@@ -742,6 +745,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         res4->unit = "";
         res4->definedOn = ResultInfo::NODE;
         res4->entryType = ResultInfo::SCALAR;
+        res4->SetFeFunction(feFunctions_[LAGRANGE_MULT_1]);
         results_.Push_back( res4);
         availResults_.insert( res4 );
         lagMpl1Fct->SetResultInfo(res4);
@@ -759,6 +763,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     permeability->unit = "Vs/Am";
     permeability->definedOn = ResultInfo::ELEMENT;
     permeability->entryType = ResultInfo::SCALAR;
+    permeability->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
@@ -782,6 +787,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       aDot->unit = "V/m";
       aDot->definedOn = ResultInfo::ELEMENT;
       aDot->entryType = ResultInfo::VECTOR;
+      aDot->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
 
@@ -792,6 +798,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       gradV->unit = "V/m";
       gradV->definedOn = ResultInfo::ELEMENT;
       gradV->entryType = ResultInfo::VECTOR;
+      gradV->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       availResults_.insert( gradV );
       shared_ptr<CoefFunctionFormBased> gradVFunc;
       if( isComplex_ ) {
@@ -811,6 +818,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       elecIntensT->unit = "V/m";
       elecIntensT->definedOn = ResultInfo::ELEMENT;
       elecIntensT->entryType = ResultInfo::VECTOR;
+      elecIntensT->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       shared_ptr<CoefFunctionMulti> elecIntensTFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( elecIntensTFunc, elecIntensT );
 
@@ -823,6 +831,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       elecIntensL->unit = "V/m";
       elecIntensL->definedOn = ResultInfo::ELEMENT;
       elecIntensL->entryType = ResultInfo::VECTOR;
+      elecIntensL->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       shared_ptr<CoefFunctionMulti> elecIntensLFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( elecIntensLFunc, elecIntensL );
 
@@ -846,6 +855,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       displcurrIntens->unit = "";
       displcurrIntens->definedOn = ResultInfo::ELEMENT;
       displcurrIntens->entryType = ResultInfo::VECTOR;
+      displcurrIntens->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       shared_ptr<CoefFunctionMulti> displcurrIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( displcurrIntensFunc, displcurrIntens );
 
@@ -857,6 +867,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       displcurr->unit = "";
       displcurr->definedOn = ResultInfo::SURF_REGION;
       displcurr->entryType = ResultInfo::SCALAR;
+      displcurr->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       availResults_.insert( displcurr );
       // first, create normal mapping
       shared_ptr<CoefFunctionSurf> displcurrSurf(new CoefFunctionSurf(true, 1.0, displcurr));
@@ -913,6 +924,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     fluxDens->unit = "Vs/m^2";
     fluxDens->definedOn = ResultInfo::ELEMENT;
     fluxDens->entryType = ResultInfo::VECTOR;
+    fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionFormBased> bFunc;
     if( isComplex_ ) {
       bFunc.reset(new CoefFunctionBOp<Complex>(magVecPotFeFct, fluxDens));
@@ -930,6 +942,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     normFlux->unit = "Vs/m^2";
     normFlux->entryType = ResultInfo::SCALAR;
     normFlux->definedOn = ResultInfo::ELEMENT;
+    normFlux->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
     DefineFieldResult( sNormFDens, normFlux );
@@ -943,6 +956,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     flux->unit = "Vs";
     flux->entryType = ResultInfo::SCALAR;
     flux->definedOn = ResultInfo::SURF_REGION;
+    flux->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<ResultFunctor> fluxFct;
     if( isComplex_ ) {
       fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens, magVecPotFeFct, flux ) );

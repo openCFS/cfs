@@ -844,6 +844,7 @@ namespace CoupledField{
       rhsP->unit = "?";
       rhsP->definedOn = ResultInfo::NODE;
       rhsP->entryType = ResultInfo::SCALAR;
+      rhsP->SetFeFunction(feFunctions_[ACOU_PRESSURE]);
       DefineFieldResult( this->rhsFeFunctions_[ACOU_PRESSURE], rhsP );
       results_.Push_back( rhsP );
       availResults_.insert( rhsP );
@@ -855,7 +856,8 @@ namespace CoupledField{
       rhsV->unit = "?";
       rhsV->definedOn = ResultInfo::NODE;
       rhsV->entryType = ResultInfo::VECTOR;;
-      DefineFieldResult( this->rhsFeFunctions_[ACOU_PRESSURE], rhsV );
+      rhsV->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
+      DefineFieldResult( this->rhsFeFunctions_[ACOU_VELOCITY], rhsV );
       results_.Push_back( rhsV );
       availResults_.insert( rhsV );
 
@@ -869,6 +871,7 @@ namespace CoupledField{
       pml->unit = "";
       pml->definedOn = ResultInfo::ELEMENT;
       pml->entryType = ResultInfo::VECTOR;
+      pml->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
       shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
                                                                  isComplex_));
       matCoefs_[PML_DAMP_FACTOR] = pmlFct;
@@ -911,6 +914,7 @@ namespace CoupledField{
 
      flowvelocity->definedOn = ResultInfo::NODE;
      flowvelocity->entryType = ResultInfo::VECTOR;
+     flowvelocity->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
      results_.Push_back( flowvelocity );
      availResults_.insert( flowvelocity );
      meanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 

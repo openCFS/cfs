@@ -1842,6 +1842,7 @@ namespace CoupledField {
       stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
       stress->entryType = ResultInfo::TENSOR;
       stress->definedOn = ResultInfo::ELEMENT;
+      stress->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( stress );
       shared_ptr<CoefFunctionFormBased> sigmaFunc;
       if( isComplex_ ) {
@@ -1863,6 +1864,7 @@ namespace CoupledField {
       pressureZero->unit = MapSolTypeToUnit(FLUIDMECH_ZERO_PRESSURE);
       pressureZero->entryType = ResultInfo::SCALAR;
       pressureZero->definedOn = ResultInfo::NODE;
+      pressureZero->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
       availResults_.insert( pressureZero );
       PtrCoefFct constZero = CoefFunction::Generate( mp_, Global::REAL, "0.0");
 
@@ -1875,6 +1877,7 @@ namespace CoupledField {
       strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
       strain->entryType = ResultInfo::TENSOR;
       strain->definedOn = ResultInfo::ELEMENT;
+      strain->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( strain );
       shared_ptr<CoefFunctionFormBased> strainFunc; // Coef function for result evaluation
       if( isComplex_ ) {
@@ -1955,6 +1958,7 @@ namespace CoupledField {
       stressVisc->unit = MapSolTypeToUnit(FLUIDMECH_VISC_STRESS);
       stressVisc->entryType = ResultInfo::TENSOR;
       stressVisc->definedOn = ResultInfo::ELEMENT;
+      stressVisc->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( stressVisc );
       PtrCoefFct stressViscCoef;
       // we define the stressViscCoef in the next section since we have to differ between compressible / incompressible formulation
@@ -1969,6 +1973,7 @@ namespace CoupledField {
         stressComp->unit = MapSolTypeToUnit(FLUIDMECH_COMP_STRESS);
         stressComp->entryType = ResultInfo::TENSOR;
         stressComp->definedOn = ResultInfo::ELEMENT;
+        stressComp->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
         availResults_.insert( stressComp );
         shared_ptr<CoefFunctionFormBased> stressCompFunc;
         if( isComplex_ ) {
@@ -2006,6 +2011,7 @@ namespace CoupledField {
       presTens->unit = MapSolTypeToUnit(FLUIDMECH_PRES_TENS);
       presTens->entryType = ResultInfo::TENSOR;
       presTens->definedOn = ResultInfo::ELEMENT;
+      presTens->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
       availResults_.insert( presTens );
       PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
       StdVector<PtrCoefFct> presTensDiagValues = StdVector<PtrCoefFct>(dim_);
@@ -2071,8 +2077,9 @@ namespace CoupledField {
       vdpd1->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV);
       vdpd1->entryType = ResultInfo::SCALAR;
       vdpd1->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert(vdpd1);
-      shared_ptr<CoefFunctionFormBased> vdpd1Func;
+      vdpd1->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
+      availResults_.insert(vdpd1);  
+      shared_ptr<CoefFunctionFormBased> vdpd1Func;    
       if( isComplex_ ) {
         vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, 0.5));
       } else {
@@ -2090,6 +2097,7 @@ namespace CoupledField {
       vdpd2->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN);
       vdpd2->entryType = ResultInfo::SCALAR;
       vdpd2->definedOn = ResultInfo::ELEMENT;
+      vdpd2->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( vdpd2 );
       shared_ptr<CoefFunctionFormBased> vdpd2Func;
       if( isComplex_ ) {
@@ -2111,6 +2119,7 @@ namespace CoupledField {
       vdpd->entryType = ResultInfo::SCALAR;
       vdpd->definedOn = ResultInfo::ELEMENT;
       shared_ptr<CoefFunctionMulti> vdpdFunc(new CoefFunctionMulti(CoefFunction::SCALAR,dim_,1, isComplex_));
+      vdpd->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       DefineFieldResult( vdpdFunc, vdpd );
 
       // Summation of FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV and FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN

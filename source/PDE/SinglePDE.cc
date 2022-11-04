@@ -3569,7 +3569,7 @@ namespace CoupledField {
       res->SetFeFunction( feFunctions_.rbegin()->second );//we set it
     }
     if ( res->GetFeFunction().expired() ) {
-      WARN("use SetFeFct() to make averaged results work for '" << SolutionTypeEnum.ToString(res->resultType) <<"'")
+      WARN("Developer Info: use SetFeFct() to make averaged results work for '" << SolutionTypeEnum.ToString(res->resultType) <<"'")
     } else {
       shared_ptr<BaseFeFunction> feFct = shared_ptr<BaseFeFunction>(res->GetFeFunction());
       shared_ptr<ResultFunctor> avgResFunctor;

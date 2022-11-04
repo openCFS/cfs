@@ -480,6 +480,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     potInfo->unit = "Vs/m";
     potInfo->definedOn = ResultInfo::ELEMENT;
     potInfo->entryType = ResultInfo::VECTOR;
+    potInfo->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
 
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(potInfo);
     DefineFieldResult( feFunctions_[MAG_POTENTIAL], potInfo );
@@ -492,6 +493,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       voltInfo->unit = "V";
       voltInfo->definedOn = ResultInfo::COIL;
       voltInfo->entryType = ResultInfo::SCALAR;
+      voltInfo->SetFeFunction(feFunctions_[COIL_VOLTAGE]);
 
       feFunctions_[COIL_VOLTAGE]->SetResultInfo(voltInfo);
       DefineFieldResult( feFunctions_[COIL_VOLTAGE], voltInfo );
@@ -540,6 +542,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       aDot->unit = "V/m";
       aDot->definedOn = ResultInfo::ELEMENT;
       aDot->entryType = ResultInfo::VECTOR;
+      aDot->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
 

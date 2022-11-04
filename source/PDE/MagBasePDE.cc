@@ -273,6 +273,7 @@ namespace CoupledField
     fluxDens->unit = "Vs/m^2";
     fluxDens->definedOn = ResultInfo::ELEMENT;
     fluxDens->entryType = ResultInfo::VECTOR;
+    fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     availResults_.insert( fluxDens );
     shared_ptr<CoefFunctionFormBased> bFunc;
     if( isComplex_ ) {

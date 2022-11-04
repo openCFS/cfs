@@ -497,6 +497,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     potInfo->unit = "Vs/m";
     potInfo->definedOn = ResultInfo::ELEMENT;
     potInfo->entryType = ResultInfo::VECTOR;
+    potInfo->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
 
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(potInfo);
     DefineFieldResult( feFunctions_[MAG_POTENTIAL], potInfo );
@@ -516,6 +517,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     res2->unit = "V";
     res2->definedOn = ResultInfo::NODE;
     res2->entryType = ResultInfo::SCALAR;
+    res2->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res2 );
     availResults_.insert( res2 );
     scalFct->SetResultInfo(res2);
@@ -558,6 +560,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       aDot->unit = "V/m";
       aDot->definedOn = ResultInfo::ELEMENT;
       aDot->entryType = ResultInfo::VECTOR;
+      aDot->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
 
@@ -568,6 +571,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       gradV->unit = "V/m";
       gradV->definedOn = ResultInfo::ELEMENT;
       gradV->entryType = ResultInfo::VECTOR;
+      gradV->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       availResults_.insert( gradV );
       shared_ptr<CoefFunctionFormBased> gradVFunc;
       if( isComplex_ ) {
@@ -666,6 +670,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     fluxDens->unit = "Vs/m^2";
     fluxDens->definedOn = ResultInfo::ELEMENT;
     fluxDens->entryType = ResultInfo::VECTOR;
+    fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionFormBased> bFunc;
     if( isComplex_ ) {
       bFunc.reset(new CoefFunctionBOp<Complex>(magVecPotFeFct, fluxDens));
@@ -683,6 +688,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     normFlux->unit = "Vs/m^2";
     normFlux->entryType = ResultInfo::SCALAR;
     normFlux->definedOn = ResultInfo::ELEMENT;
+    normFlux->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
     DefineFieldResult( sNormFDens, normFlux );
