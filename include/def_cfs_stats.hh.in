@@ -33,16 +33,16 @@
 #define CFS_GIT_BRANCH "@CFS_GIT_BRANCH@"
 
 // Name of the C++ compiler used to compile openCFS
-#define CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@"
+#define CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@"
 
 // Version of the C++ compiler used to compile openCFS
-#define CFS_CXX_COMPILER_VER "@CFS_CXX_COMPILER_VER@"
+#define CMAKE_CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@"
 
 // Fortran compiler used to compile openCFS
-#define CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@"
+#define CMAKE_Fortran_COMPILER_ID "@CMAKE_Fortran_COMPILER_ID@"
 
 // Version of the Fortran compiler used to compile openCFS
-#define CFS_FORTRAN_COMPILER_VER "@CFS_FORTRAN_COMPILER_VER@"
+#define CMAKE_Fortran_COMPILER_VERSION "@CMAKE_Fortran_COMPILER_VERSION@"
 
 // Linux/UNIX/Windows distribution for which openCFS has been built
 #define CFS_DISTRO "@CFS_FULL_DISTRO@"

@@ -50,7 +50,7 @@ if(NOT APPLE AND NOT WIN32)
   set(CFS_LINK_FLAGS "-lrt")
 endif()
 
-if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0") # there is no >= and also there is no 5.0.0.0
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0) # there is no >= and also there is no 5.0.0.0
   # the current boost test case is crap :(
   set(CMAKE_CXX_FLAGS "${CFS_SUPPRESSIONS} -Wno-terminate")
 endif() 

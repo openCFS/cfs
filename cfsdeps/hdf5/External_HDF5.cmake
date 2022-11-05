@@ -9,13 +9,13 @@ set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 # https://software.intel.com/en-us/forums/intel-c-compiler/topic/777003
 set(hdf5_c_flags "${CFSDEPS_C_FLAGS}")
 set(hdf5_cxx_flags ${CFS_SUPPRESSIONS})
-if(CFS_CXX_COMPILER_NAME STREQUAL "ICC") 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel") 
   IF(NOT WIN32)
     set(hdf5_c_flags "-D_Float32=float -D_Float64='long double' -D_Float32x=double -D_Float64x='long double' ${hdf5_c_flags}")
   ENDIF()
 endif()
 
-if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(hdf5_c_flags " -Wno-implicit-function-declaration ") # Apple clang version 12.0.0
   set(hdf5_cxx_flags " -Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
 endif()

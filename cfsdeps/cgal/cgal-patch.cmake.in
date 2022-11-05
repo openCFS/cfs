@@ -11,7 +11,7 @@ set(cgal_source  "@cgal_source@")
 set(cgal_prefix  "@cgal_prefix@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -41,10 +41,8 @@ SET(patches
   "cgal-intmax_t.patch"
   )
 
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  LIST(APPEND patches
-    "cgal-intel-isfinite.patch"
-  )
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  list(APPEND patches "cgal-intel-isfinite.patch")
+endif()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgal")

@@ -35,6 +35,12 @@ else()
 # this else part is has no indent and goes for almost 400 lines. Search for PIPELINE_TEST_STAGE_CONFIG
 project(CFS C CXX Fortran) 
 
+# most early identification of detected compilers with their variables to support coding cmake files
+message(STATUS "CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID} CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "CMAKE_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID} CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "CMAKE_Fortran_COMPILER_ID=${CMAKE_Fortran_COMPILER_ID} CMAKE_Fortran_COMPILER_VERSION=${CMAKE_Fortran_COMPILER_VERSION}")
+
+
 # Make sure that output of started programs is in English, so that we can
 # grep for defined messages.
 set(ENV{LC_MESSAGES} "en_EN")
@@ -408,7 +414,7 @@ if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
     endif()
   endif()
   # set a build name
-  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
   mark_as_advanced(BUILDNAME)
   if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host

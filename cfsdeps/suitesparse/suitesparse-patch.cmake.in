@@ -9,7 +9,7 @@
 #=============================================================================
 SET(suitesparse_source "@suitesparse_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
+SET(CMAKE_Fortran_COMPILER_ID "@CMAKE_Fortran_COMPILER_ID@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).

@@ -69,8 +69,6 @@ CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
 #copy license
 file(COPY "${CFS_SOURCE_DIR}/cfsdeps/arpack/license/" DESTINATION "${CFS_BINARY_DIR}/license/arpack" )
 
-
-
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "arpack" "${ARPACK_VER}") 
 
 # This should be either PREFIX_DIR (install manifest is used for zipping)

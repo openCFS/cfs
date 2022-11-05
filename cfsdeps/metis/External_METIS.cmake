@@ -14,7 +14,7 @@ set(metis_source  "${metis_prefix}/src/metis")
 set(metis_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 set(metis_c_flags ${CFS_SUPPRESSIONS})
-if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   set(metis_c_flags "-Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
 endif()
 

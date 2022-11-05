@@ -12,7 +12,7 @@ set(gidpost_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/gidpost")
 set(gidpost_source  "${gidpost_prefix}/src/gidpost")
 set(gidpost_install  "${CFS_BINARY_DIR}")
 
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   SET(GIDPOST_C_FLAGS "-DINTEL_COMPILER ${CFSDEPS_C_FLAGS}")
 ELSE()
   SET(GIDPOST_C_FLAGS "-DgFortran ${CFSDEPS_C_FLAGS}")

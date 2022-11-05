@@ -2,7 +2,7 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
 SET(vtk_source "@vtk_source@")
 
 #=============================================================================

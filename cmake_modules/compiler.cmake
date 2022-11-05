@@ -1,96 +1,23 @@
-SET(IDCOMP_TEMPL "${CFS_SOURCE_DIR}/share/scripts/identify_compiler.cmake.in")
-SET(COMPILER_ID_FILE "${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
-SET(IDENTIFY_COMPILER_SRC "IdentifyCXXCompiler.cpp")
+include(CheckCXXSourceCompiles) # exotic cmake service function for macOS
 
-include(CheckCXXSourceCompiles)
+# for compiler id and version we use CMAKE_X_COMPILER_ID and CMAKE_X_COMPILER_VERSION which is (for copy & paste)
+# CMAKE_C_COMPILER_ID, CMAKE_C_COMPILER_VERSION, 
+# CMAKE_CXX_COMPILER_ID, CMAKE_CXX_COMPILER_VERSION
+# CMAKE_Fortran_COMPILER_ID, CMAKE_Fortran_COMPILER_VERSION
 
-#-------------------------------------------------------------------------------
-# Determine what equivalent GNU version the compiler has, to check if it is
-# compatible with the GNU C++ compiler on the system PATH.
-#-------------------------------------------------------------------------------
-IF(UNIX)
-  #-----------------------------------------------------------------------------
-  # Let's first find out some infos about the system GNU compiler first.
-  #-----------------------------------------------------------------------------
-  SET(COMPILER "g++")
+# see https://cmake.org/cmake/help/v3.25/variable/CMAKE_LANG_COMPILER_ID.html
+# note that there is "Clang" and "AppleClang", so use CMAKE_CCX_COMPILER_ID MATCHES "Clang" which identifies both
 
-  SET(ID_GXX "${CFS_BINARY_DIR}/share/scripts/identify_gxx.cmake")
-  CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_GXX}" @ONLY)
-
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
-    WORKING_DIRECTORY "${CFS_BINARY_DIR}"
-    RESULT_VARIABLE RETVAL
-    )
-
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -P "${ID_GXX}"
-    WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
-    RESULT_VARIABLE RETVAL
-    )
-
-  INCLUDE("${COMPILER_ID_FILE}")
-
-  SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
-ENDIF(UNIX)
 
 IF(WIN32)
-  #-----------------------------------------------------------------------------
-    # we currently support 
-    #    Visual Studio 2017 or 2019 plus Intel Fortran (2019/2020)
-    # or
-    #    Intel 2020 C++ and Fortran
-    # the later requires either VC2017 or VC2019 environment
-    # in order to build boost correctly, we need to know which env is used
-    SET(CFS_MSVC_VERSION $ENV{VisualStudioVersion})
+  # we currently support 
+  #    Visual Studio 2017 or 2019 plus Intel Fortran (2019/2020)
+  # or
+  #    Intel 2020 C++ and Fortran
+  # the later requires either VC2017 or VC2019 environment
+  # in order to build boost correctly, we need to know which env is used
+  SET(CFS_MSVC_VERSION $ENV{VisualStudioVersion}) # TODO: shall be replaced by CMAKE_X_COMPILER_VERSION
 ENDIF(WIN32)
-
-
-
-#-------------------------------------------------------------------------------
-# Collect output of compiler version command to determine compiler type and
-# version information.
-#-------------------------------------------------------------------------------
-SET(COMPILER "")
-
-SET(ID_CXX "${CFS_BINARY_DIR}/share/scripts/identify_cxx.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}"
-  WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
-  RESULT_VARIABLE RETVAL
-  )
-
-INCLUDE("${COMPILER_ID_FILE}")
-
-#-------------------------------------------------------------------------------
-# Set the C++ compiler name and compiler version
-#-------------------------------------------------------------------------------
-SET(CFS_CXX_COMPILER_NAME ${CXX_ID})
-SET(CFS_CXX_COMPILER_VER "${CXX_VERSION}")
-SET(CFS_CXX_COMPILER_GNU_VER "${CXX_GCC_VERSION}")
-
-#-------------------------------------------------------------------------------
-# Now let's find out info about Fortran compiler.
-#-------------------------------------------------------------------------------
-SET(IDENTIFY_COMPILER_SRC "IdentifyFortranCompiler.F90")
-SET(ID_FORTRAN "${CFS_BINARY_DIR}/share/scripts/identify_fortran.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_FORTRAN}" @ONLY)
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -P "${ID_FORTRAN}"
-  WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
-  RESULT_VARIABLE RETVAL
-  )
-
-INCLUDE("${COMPILER_ID_FILE}")
-
-#-------------------------------------------------------------------------------
-# Set the Fortran compiler name and compiler version
-#-------------------------------------------------------------------------------
-SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
-SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 
 #-------------------------------------------------------------------------------
 # Prepare for macOS
@@ -120,12 +47,11 @@ endif() # USE_OPENMP
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ or clang compiler
 #-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
   # Obtain major version number of GCC or Clang
-  STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
-  LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
+  STRING(REPLACE "." ";" CMAKE_CXX_COMPILER_VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
+  LIST(GET CMAKE_CXX_COMPILER_VERSION_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
   # we assue C++14 for CFS for any compiler (including icc below)
   set(CFS_CXX_FLAGS "-std=c++14 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
@@ -139,25 +65,25 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
-  IF(DEBUG)
-    SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+  if(DEBUG)
+    set(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     #
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
     # -frounding-math: is needed for CGAL library
-    IF(USE_CGAL)
-      SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
-    ENDIF(USE_CGAL)
+    if(USE_CGAL)
+      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
+    endif()  
 
-    SET(CHECK_MEM_ALLOC 1)
-  ELSE()
+    set(CHECK_MEM_ALLOC 1)
+  else()
     # release!
-    SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
+    set(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
     # the CFS_OPT_FLAGS are also used in FindCFSDEPS.cmake for CFSDEPS_*_FLAGS
     if(CFS_NATIVE)
@@ -173,8 +99,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     else()
       set(CFS_OPT_FLAGS "-m64 -O3 ")
     endif()
-
-  ENDIF() # end debug/release
+  endif() # end debug/release
 
   # Disable some annoying warnings.
   # note we have at least gcc 4.8
@@ -183,14 +108,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-parentheses -Wno-unused-function ")
   # stuff that was removed with boost 1.67: -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow
 
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0) # there is no >= and also there is no 5.0.0.0
     # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined]
      #if ! DONT_USE_HAS_NEW_OPERATOR
 
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-expansion-to-defined ")
   ENDIF()
 
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0")
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0)
     # -Wno-misleading-indentation -Wno-error=placement-new are for gcc 6.1.1 and boost 1.61 maybe remove when a newer boost ist available!
     # however cfs has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58
     # we must not set this to CFS_SUPRESSIONS because these also become CMAKE_C_FLAGS and then the following happens:
@@ -200,29 +125,29 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new")
   ENDIF()
 
-  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
     # on macOS with gcc-7.1 
     # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined ")
   endif()
 
-  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "8.0")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0)
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-stringop-truncation ")
   endif()
 
-  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "10.0")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 10.0)
     # to prevent boost error with gcc 11:  ‘this’ pointer is null [-Werror=nonnull]
     # try to remove when boost ist updated beyond 1.73
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-nonnull ")
   endif()
 
-  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "11.0")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 11.0)
     # to prevent boost error with gcc 11:  thread_data.hpp: error: comparison of integer expressions of different signedness:
     # try to remove when boost ist updated beyond 1.73
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-sign-compare ")
   endif()
 
-  if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "12.0")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 12.0)
     # to prevent error with gcc 12: struct std::unary_function’ is deprecated
     # unary_function is used in cfs and in boost. Shall be removed in cfs when boost is updated
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations ")
@@ -231,7 +156,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   endif()
 
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+  IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
@@ -283,7 +208,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     SET(CFS_CXX_FLAGS "-frounding-math ${CFS_CXX_FLAGS}")
   ENDIF()
 # end gcc/clang section
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "MSVC")
+ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   #-------------------------------------------------------------------------------
   # Check for Visual Studio C++ compiler
   #-------------------------------------------------------------------------------
@@ -314,13 +239,13 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "MSVC")
   # support for alternative tokens requires the following
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /permissive- /Zc:twoPhase-")
 
-#  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
+#  MESSAGE(FATAL_ERROR "CMAKE_CXX_COMPILER_ID ${CMAKE_CXX_COMPILER_ID} Compiler")
 
 #  MESSAGE(FATAL_ERROR "MSVC Compiler")
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
@@ -391,10 +316,10 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   # instead of  introducing global  flags and defines  for openCFS,  which might
   # break other stuff.
   #---------------------------------------------------------------------------
-  IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
+  IF(CMAKE_CXX_COMPILER_VERSION MATCHES "11\\.")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
-  ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
+  ENDIF(CMAKE_CXX_COMPILER_VERSION MATCHES "11\\.")
   # Open64 compiler support removed. See svn version 15997
 ENDIF() # close all CXX compiler specific blocks
 
@@ -410,7 +335,7 @@ ENDIF()
 #-------------------------------------------------------------------------------
 # Check for Intel Fortran compiler
 #-------------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   #-----------------------------------------------------------------------------
   # Set Intel Fortran library paths in dedicated variables
   #-----------------------------------------------------------------------------
@@ -420,7 +345,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   # Paths for libraries and compilers are different for version 11 compilers.
   # There is even a difference between Linux and Mac OS X! Thank you Intel!!!
   #-----------------------------------------------------------------------------
-  IF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND NOT CFS_DISTRO STREQUAL "MACOSX")
+  IF(CMAKE_Fortran_COMPILER_VERSION MATCHES "11\\." AND NOT CFS_DISTRO STREQUAL "MACOSX")
     STRING(REGEX REPLACE "bin/(.*)/ifort" "lib/\\1" IFORT_LIB_PATH "${CMAKE_Fortran_COMPILER}")
   ENDIF()
 
@@ -459,7 +384,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
     SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
     GET_FILENAME_COMPONENT(INTEL_COMPILER_DIR ${CMAKE_Fortran_COMPILER} PATH)    
 
-    IF(CFS_FORTRAN_COMPILER_VER MATCHES "20\\.")
+    IF(CMAKE_Fortran_COMPILER_VERSION MATCHES "20\\.")
       # intel oneApi
       SET(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64_win/compiler/")
     ELSE()
@@ -472,16 +397,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
       FILE(COPY ${ICC_REDIST_DIR}/${lib} DESTINATION ${LIB_DEST_DIR})
     ENDFOREACH()
   ENDIF(WIN32)
-
-ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
-
-
-#-------------------------------------------------------------------------------
-# Check if we have a valid combination of C++ and Fortran compilers.
-#-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_NAME STREQUAL "" OR  CFS_FORTRAN_COMPILER_NAME STREQUAL "")
-  MESSAGE(SEND_ERROR "Combination of C++ and Fortran compilers not supported!")
-ENDIF()
+endif() # Intel
 
 #-------------------------------------------------------------------------------
 # Set compiler/linker flags for all build types
@@ -497,10 +413,10 @@ STRING(STRIP "${CMAKE_MODULE_LINKER_FLAGS}" CMAKE_MODULE_LINKER_FLAGS)
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
 STRING(STRIP "${CMAKE_SHARED_LINKER_FLAGS}" CMAKE_SHARED_LINKER_FLAGS)
 
-# MESSAGE("C++ name: ${CFS_CXX_COMPILER_NAME}")
-# MESSAGE("C++ version: ${CFS_CXX_COMPILER_VER}")
-# MESSAGE("FORTRAN Compiler ${CFS_FORTRAN_COMPILER_NAME}")
-# MESSAGE("FORTRAN Compiler version ${CFS_FORTRAN_COMPILER_VER}")
+# MESSAGE("C++ name: ${CMAKE_CXX_COMPILER_ID}")
+# MESSAGE("C++ version: ${CMAKE_CXX_COMPILER_VERSION}")
+# MESSAGE("FORTRAN Compiler ${CMAKE_Fortran_COMPILER_ID}")
+# MESSAGE("FORTRAN Compiler version ${CMAKE_Fortran_COMPILER_VERSION}")
 # MESSAGE("CMAKE BUILD TYPE: ${CMAKE_BUILD_TYPE}")
 # MESSAGE("CFS_ARCH_STR: ${CFS_ARCH_STR}")
 

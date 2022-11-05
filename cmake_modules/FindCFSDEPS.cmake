@@ -35,7 +35,7 @@ SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 # We do not want to see warnings from external projects, since they would
 # show up on CDash.
 #-----------------------------------------------------------------------------
-if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if(NOT CFS_OPT_FLAGS)
     message(STATUS "CFS_OPT_FLAGS not set, check order with compile.cmake")
   endif()
@@ -46,19 +46,19 @@ if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
   endif()
 endif()
-if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "FLANG")
-  set(CFSDEPS_Fortran_FLAGS "{CFS_OPT_FLAGS} -w")
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Flang") # not sure if Flang and LLVMFlang is used?!
+  set(CFSDEPS_Fortran_FLAGS "${CFS_OPT_FLAGS} -w")
 endif()  
 
 # TODO: Intel is missing but there is a lot CFSDEPS_ stuff for intel in compiler.cmake
 #message(STATUS "CFS_OPT_FLAGS = ${CFS_OPT_FLAGS}")
 #message(STATUS "CMAKE_COMPILER_IS_GNUCXX = ${CMAKE_COMPILER_IS_GNUCXX}")
-#message(STATUS "CFS_CXX_COMPILER_NAME = ${CFS_CXX_COMPILER_NAME}")
-#message(STATUS "CFS_FORTRAN_COMPILER_NAME = ${CFS_FORTRAN_COMPILER_NAME}")
+#message(STATUS "CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
+#message(STATUS "CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
 #message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
 
 # handle gfortran >= 10.
-if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (NOT ${FC_VERSION} VERSION_LESS 10))
+if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER 9.9))
   # was once --std=legacy
   # see https://github.com/Reference-LAPACK/lapack/issues/353
   set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch")
@@ -304,11 +304,6 @@ ENDIF()
 #-----------------------------------------------------------------------------
 # TODO: skip ILUPACK_PARALLEL, it makes not really sense
 IF(USE_ILUPACK_PARALLEL)
-  #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
-  IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
-   ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
-    MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
-  ENDIF()
   # TODO: For intel compilers still one needs to figure out the proper compiler versions
 # 
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")

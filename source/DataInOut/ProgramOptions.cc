@@ -598,8 +598,8 @@ assert(PATH_MAX > 10);
     out << endl;
 
     WriteColoredString(out, trim_size, "CMAKE_BUILD_TYPE", CMAKE_BUILD_TYPE);
-    WriteColoredString(out, trim_size, "C++ compiler", CFS_CXX_COMPILER_NAME, CFS_CXX_COMPILER_VER);
-    WriteColoredString(out, trim_size, "Fortran compiler", CFS_FORTRAN_COMPILER_NAME, CFS_FORTRAN_COMPILER_VER);
+    WriteColoredString(out, trim_size, "C++ compiler", CMAKE_CXX_COMPILER_ID, CMAKE_CXX_COMPILER_VERSION);
+    WriteColoredString(out, trim_size, "Fortran compiler", CMAKE_Fortran_COMPILER_ID, CMAKE_Fortran_COMPILER_VERSION);
     WriteColoredString(out, trim_size, "CFS_DISTRO", CFS_DISTRO, CFS_DISTRO_VER);
     WriteColoredString(out, trim_size, "CFS_ARCH", CFS_ARCH);
 
