@@ -56,7 +56,20 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>          
-                    
+          
+          <!-- List defining nonlinear types -->
+          <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="elecConductivity" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Electric conductivity tensor (read from file) </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Surface regions on which results can be calculated-->
           <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -192,15 +205,18 @@
   <xsd:simpleType name="DT_ElecQuasistaticNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPotential"/>
+      <xsd:enumeration value="elecPotentialD1"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of element result types of electric conduction PDE -->
   <xsd:simpleType name="DT_ElecQuasistaticElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="elecCurrentDensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
-      <xsd:enumeration value="elecPowerDensity"/>
+      <xsd:enumeration value="elecCurrentDensity"/>
+      <xsd:enumeration value="displacementCurrentDensity"/>
+      <xsd:enumeration value="electricAndDisplacemetCurrentDensity"/>
+      <!--xsd:enumeration value="elecPowerDensity"/-->
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -215,6 +231,8 @@
   <xsd:simpleType name="DT_ElecQuasistaticSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecNormalCurrentDensity"/>
+      <xsd:enumeration value="displacementNormalCurrentDensity"/>
+      <xsd:enumeration value="elecAndDisplacementNormalCurrentDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -222,6 +240,8 @@
   <xsd:simpleType name="DT_ElecQuasistaticSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecCurrent"/>
+      <xsd:enumeration value="displacementCurrent"/>
+      <xsd:enumeration value="elecAndDisplacementCurrent"/>
       <!-- integration of current density over surface __region__ -->
     </xsd:restriction>
   </xsd:simpleType>

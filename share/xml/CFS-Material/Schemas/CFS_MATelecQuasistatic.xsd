@@ -27,7 +27,7 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_ElecPermittivityQuasi">
     <xsd:sequence>
-      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
+      <xsd:element name="linear" type="DT_Square3TensorType" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   
@@ -36,7 +36,7 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_ElecConductivityQuasi">
     <xsd:sequence>
-      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
+      <xsd:element name="linear" type="DT_Square3TensorType" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
     

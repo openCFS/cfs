@@ -118,13 +118,19 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_TRANSVERSAL, "elecFieldIntensityTransversal");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_LONGITUDINAL, "elecFieldIntensityLongitudinal");
-    SolutionTypeEnum.Add(DISPLACEMENTCURRENT_FIELD_INTENSITY, "displacementCurrentDensity");
-    SolutionTypeEnum.Add(DISPLACEMENTCURRENT_SURF, "displacementCurrent");
+    SolutionTypeEnum.Add(ELEC_CURRENT_FIELD_INTENSITY, "elecCurrentDensitySurf");
+    SolutionTypeEnum.Add(ELEC_CURRENT_SURF, "elecCurrentSurf");
+    SolutionTypeEnum.Add(DISPLACEMENT_CURRENT_FIELD_INTENSITY, "displacementCurrentDensity");
+    SolutionTypeEnum.Add(DISPLACEMENT_CURRENT_SURF, "displacementCurrent");
+    SolutionTypeEnum.Add(ELECTRIC_AND_DISPLACEMENT_CURRENT_DENSITY, "electricAndDisplacemetCurrentDensity");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
     SolutionTypeEnum.Add(ELEC_GRAD_V_INT, "elecGradVInt");
     SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
+    SolutionTypeEnum.Add(DISPLACEMENT_NORMAL_CURRENT_DENSITY, "displacementNormalCurrentDensity");
+    SolutionTypeEnum.Add(ELECTRIC_AND_DISPLACEMENT_NORMAL_CURRENT_DENSITY,"elecAndDisplacementNormalCurrentDensity");
     SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
+    SolutionTypeEnum.Add(ELEC_AND_DISPLACEMENT_CURRENT, "elecAndDisplacementCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
     SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
     SolutionTypeEnum.Add(ELEC_FORCE, "elecForce");
@@ -137,6 +143,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FORCE_DENSITY, "elecForceDensity");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
     SolutionTypeEnum.Add(ELEC_ELEM_PERMITTIVITY, "elecElemPermittivity");
+    SolutionTypeEnum.Add(ELEC_COND_TENSOR, "ElectCond");
 
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");

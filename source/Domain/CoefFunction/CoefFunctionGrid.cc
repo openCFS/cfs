@@ -177,12 +177,12 @@ CoefFunctionGrid::~CoefFunctionGrid(){
 
 void CoefFunctionGrid::GetTensor(Matrix<Double>& CoefMat,
                                  const LocPointMapped& lpm ){
-  EXCEPTION("GetTensor is not implemented here"); 
+  EXCEPTION("CoefFunctionGrid: GetTensor is not implemented here"); 
 
 }
 void CoefFunctionGrid::GetTensor(Matrix<Complex>& CoefMat,
                                  const LocPointMapped& lpm ){
-  EXCEPTION("GetTensor is not implemented here"); 
+  EXCEPTION("CoefFunctionGrid: GetTensor is not implemented here"); 
 
 }
 
@@ -275,7 +275,9 @@ UInt CoefFunctionGrid::GetVecSize() const {
 }
 
 void CoefFunctionGrid::GetTensorSize( UInt& numRows, UInt& numCols ) const {
-  EXCEPTION("No tensor valued data available yet");
+  numRows = numRowTensor_;
+  numCols = numColTensor_;
+  //EXCEPTION("No tensor valued data available yet");
 }
 
 

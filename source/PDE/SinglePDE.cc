@@ -3956,8 +3956,6 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
-    std::cout << "In DefineNitscheCoupling" << std::endl;
-
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE ) {
@@ -4013,17 +4011,46 @@ namespace CoupledField {
       if ( isMaterialComplex_ ) {
         // ----- alpha = electricConductivity + i*omega*permittivity
         PtrCoefFct omega = CoefFunction::Generate( mp_,  Global::COMPLEX, "0", "2*pi*f");
+        
+        //get characteristic conductivity
         shared_ptr<CoefFunction > condCoef;
-        std::cout << "get conductivity" << std::endl;
-        condCoef = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc(ELEC_CONDUCTIVITY_SCALAR,Global::REAL);
+        condCoef = materials_[nitscheIf->GetMasterVolRegion()]->GetTensorCoefFnc(ELEC_CONDUCTIVITY_TENSOR, FULL,
+                                                                                 Global::REAL);
+        StdVector< Matrix<Double> > mat;
+        Double matVal = 0.0;
+        StdVector<Vector<Double> > points(1);
+        Vector<Double> p1(DIM);
+        p1.Init();
+        points[0]= p1;
+        condCoef->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
+        for (UInt i = 0, numRows = mat[0].GetNumRows(); i < numRows; ++i) {
+          matVal += mat[0][i][i];
+        }
+        matVal /= (Double) mat[0].GetNumRows();
+        std::string strCond = std::to_string(matVal);
+        PtrCoefFct constCond = CoefFunction::Generate( mp_, Global::REAL, strCond);
+
+        //get characteristic permittivity
         shared_ptr<CoefFunction > permCoef;
-        permCoef = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR, Global::REAL);
+        permCoef = materials_[nitscheIf->GetMasterVolRegion()]->GetTensorCoefFnc(ELEC_PERMITTIVITY_TENSOR, FULL, 
+                                                                                 Global::REAL);
+        p1.Init();
+        points[0]= p1;
+        permCoef->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
+        matVal = 0.0;
+        for (UInt i = 0, numRows = mat[0].GetNumRows(); i < numRows; ++i) {
+          matVal += mat[0][i][i];
+        }
+        matVal /= (Double) mat[0].GetNumRows();
+        std::string strPerm  = std::to_string(matVal);
+        PtrCoefFct constPerm = CoefFunction::Generate( mp_, Global::REAL, strPerm);
+        
         //shared_ptr<CoefFunction > matCoef;
         shared_ptr<CoefFunction > omegaPermCoef;
         omegaPermCoef = CoefFunction::Generate( mp_, Global::COMPLEX,
-                            CoefXprBinOp(mp_, permCoef, omega, CoefXpr::OP_MULT));
+                                                CoefXprBinOp(mp_, constPerm, omega, CoefXpr::OP_MULT));
         factor = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                         CoefXprBinOp(mp_, condCoef, omegaPermCoef, CoefXpr::OP_ADD));
+                                         CoefXprBinOp(mp_, constCond, omegaPermCoef, CoefXpr::OP_ADD));
         }
     }
     else

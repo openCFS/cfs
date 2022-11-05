@@ -669,52 +669,24 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadElecQuasistatic(BaseMaterial *material, PtrParamNode elec)
   {
     // read electric conductivity
-    if (elec->Has("electricConductivity")) {
-      PtrCoefFct elecCond = ReadScalarLin(elec, "electricConductivity", Global::COMPLEX);
-      material->SetCoefFct( ELEC_CONDUCTIVITY_SCALAR, elecCond );
-
-//      PtrParamNode cond = elec->Get("electricConductivity");
-//
-//      if (cond->Has("linear")) {
-//        MaterialType orthoProps[3] = {
-//            ELEC_CONDUCTIVITY_1, ELEC_CONDUCTIVITY_2, ELEC_CONDUCTIVITY_3
-//        };
-//        ReadSquare3x3Tensor(cond->Get("linear"), material, ELEC_CONDUCTIVITY_SCALAR,
-//            orthoProps, ELEC_CONDUCTIVITY_TENSOR, Global::COMPLEX);
-//        }
-
-      // we know only nonlinear isotropic material
-//      if (cond->Has("nonlinear") && cond->Get("nonlinear")->Has("isotropic")) {
-//        PtrParamNode iso = cond->Get("nonlinear")->Get("isotropic");
-//        BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
-//        material->SetNonLinMatIso(ELEC_CONDUCTIVITY_SCALAR, info);
-//      } // nonlinear isotropic material
+    PtrParamNode cond = elec->Get("electricConductivity", ParamNode::PASS);
+    if ( cond ) {
+      if (cond->Has("linear")) {        
+          MaterialType orthoProps[3] = { ELEC_CONDUCTIVITY_1, ELEC_CONDUCTIVITY_2, ELEC_CONDUCTIVITY_3 };
+          ReadSquare3x3Tensor(cond->Get("linear"), material, ELEC_CONDUCTIVITY_SCALAR,
+                                  orthoProps, ELEC_CONDUCTIVITY_TENSOR, Global::COMPLEX);
+      }
     }
-
+    
     // check for permittivity
-    if (elec->Has("permittivity")) {
-      PtrCoefFct elecPerm = ReadScalarLin(elec, "permittivity", Global::COMPLEX);
-      material->SetCoefFct( ELEC_PERMITTIVITY_SCALAR, elecPerm );
-    }
-
-//    PtrParamNode permit = elec->Get("permittivity", ParamNode::PASS);
-//    if (permit) {
-//      if (permit->Has("linear")) {
-//        PtrCoefFct elecPerm = ReadScalarLin(permit, "permittivity", Global::COMPLEX);
-//        material->SetCoefFct( ELEC_PERMITTIVITY_SCALAR, elecPerm );
-//        MaterialType orthoProp[3] = {
-//            ELEC_PERMITTIVITY_1, ELEC_PERMITTIVITY_2, ELEC_PERMITTIVITY_3
-//        };
-//        ReadSquare3x3Tensor(permit->Get("linear"), material, ELEC_PERMITTIVITY_SCALAR,
-//                            orthoProp, ELEC_PERMITTIVITY_TENSOR, Global::COMPLEX);
-      //}
-
-//      if (permit->Has("nonlinear") && permit->Get("nonlinear")->Has("isotropic")) {
-//        BaseMaterial::MatDescriptorNl nlInfo =
-//            ReadNonlinDescriptor(permit->Get("nonlinear")->Get("isotropic"), material);
-//        material->SetNonLinMatIso(ELEC_PERMITTIVITY_SCALAR, nlInfo);
-//      }
-//    } // end of permittivity
+    PtrParamNode permit = elec->Get("permittivity", ParamNode::PASS);
+    if ( permit ) {      
+      if (permit->Has("linear")) {
+        MaterialType orthoProps[3] = { ELEC_PERMITTIVITY_1, ELEC_PERMITTIVITY_2, ELEC_PERMITTIVITY_3 };
+          ReadSquare3x3Tensor(permit->Get("linear"), material, ELEC_PERMITTIVITY_SCALAR,
+                                  orthoProps, ELEC_PERMITTIVITY_TENSOR, Global::COMPLEX);
+      }
+    }    
   }
 
 
@@ -2527,8 +2499,7 @@ namespace CoupledField {
                        MaterialType tensorProp,
                        Global::ComplexPart part)
   {
-    BM::SymmetryType symType = BM::NOSYMMETRY;
-
+    BM::SymmetryType symType = BM::NOSYMMETRY;    
     if ( p->Has("tensor") ) {
       PtrParamNode pTensor = p->Get("tensor");
       PtrCoefFct tensorCoef = ReadTensor( pTensor, part );

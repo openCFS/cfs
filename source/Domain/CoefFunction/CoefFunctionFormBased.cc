@@ -493,10 +493,7 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
 
   // set inherited attributes
   this->dimType_ = CoefFunction::SCALAR;
-
- // std::cout << "DimType: " << CoefFunction::SCALAR << \n";
-
-}
+ }
 
 template<class TYPE> CoefFunctionBdBKernel<TYPE>::
   ~CoefFunctionBdBKernel() {

@@ -30,19 +30,19 @@ namespace CoupledField
   }
 
   void ElecQuasistaticMaterial::Finalize() {
-//    MaterialType orthoCond[3] = {
-//       ELEC_CONDUCTIVITY_1,
-//       ELEC_CONDUCTIVITY_2,
-//       ELEC_CONDUCTIVITY_3
-//    };
-//    CalcFull3x3Tensor(ELEC_CONDUCTIVITY_SCALAR, orthoCond, ELEC_CONDUCTIVITY_TENSOR);
-//
-//    MaterialType orthoPerm[3] = {
-//        ELEC_PERMITTIVITY_1,
-//        ELEC_PERMITTIVITY_2,
-//        ELEC_PERMITTIVITY_3
-//    };
-//    CalcFull3x3Tensor(ELEC_PERMITTIVITY_SCALAR, orthoPerm, ELEC_PERMITTIVITY_TENSOR);
+    MaterialType orthoCond[3] = {
+       ELEC_CONDUCTIVITY_1,
+       ELEC_CONDUCTIVITY_2,
+       ELEC_CONDUCTIVITY_3
+    };
+    CalcFull3x3Tensor(ELEC_CONDUCTIVITY_SCALAR, orthoCond, ELEC_CONDUCTIVITY_TENSOR);
+
+    MaterialType orthoPerm[3] = {
+        ELEC_PERMITTIVITY_1,
+        ELEC_PERMITTIVITY_2,
+        ELEC_PERMITTIVITY_3
+    };
+    CalcFull3x3Tensor(ELEC_PERMITTIVITY_SCALAR, orthoPerm, ELEC_PERMITTIVITY_TENSOR);
   }
 
 }

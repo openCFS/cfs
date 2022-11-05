@@ -849,7 +849,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
 
       // === DISPLACEMENT CURRENT DENSITY ===
       shared_ptr<ResultInfo> displcurrIntens(new ResultInfo);
-      displcurrIntens->resultType = DISPLACEMENTCURRENT_FIELD_INTENSITY;
+      displcurrIntens->resultType = DISPLACEMENT_CURRENT_FIELD_INTENSITY;
       displcurrIntens->SetVectorDOFs(dim_, isaxi_);
       displcurrIntens->dofNames = vecComponents;
       displcurrIntens->unit = "";
@@ -861,7 +861,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
 
       // === DISPLACEMENT CURRENT ===
       shared_ptr<ResultInfo> displcurr(new ResultInfo);
-      displcurr->resultType = DISPLACEMENTCURRENT_SURF;
+      displcurr->resultType = DISPLACEMENT_CURRENT_SURF;
       displcurr->SetVectorDOFs(dim_, isaxi_);
       displcurr->dofNames = "";
       displcurr->unit = "";
@@ -879,7 +879,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       } else {
     	  displcurrSurfFunc.reset(new ResultFunctorIntegrate<Double>(displcurrSurf, magVecPotFeFct, displcurr ) );
       }
-      resultFunctors_[DISPLACEMENTCURRENT_SURF] = displcurrSurfFunc;
+      resultFunctors_[DISPLACEMENT_CURRENT_SURF] = displcurrSurfFunc;
 
     }
 
@@ -997,7 +997,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     shared_ptr<CoefFunctionMulti> jDensLCoef =
         dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_EDDY_CURRENT_DENSITY]);
     shared_ptr<CoefFunctionMulti> dispCurrDensCoef =
-            dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[DISPLACEMENTCURRENT_FIELD_INTENSITY]);
+            dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[DISPLACEMENT_CURRENT_FIELD_INTENSITY]);
 
 
 

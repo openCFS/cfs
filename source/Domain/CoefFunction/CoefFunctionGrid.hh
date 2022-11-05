@@ -201,6 +201,10 @@ class CoefFunctionGrid : public CoefFunction{
     //! Store the dimension of (Vectorial) Result
     UInt dimDof_;
 
+    //! Store the dimension of tensor
+    UInt numRowTensor_;
+    UInt numColTensor_;
+
     //! Support of the CoefFunction. Only needed for grid/solution results
     StdVector<shared_ptr<EntityList> > entities_;
     

@@ -91,13 +91,15 @@ namespace CoupledField
     //! Define available postprocessing results
     void DefinePostProcResults();
 
+    // //! \copydoc SinglePDE::FinalizePostProcResults
+    // void FinalizePostProcResults();
+
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
   private:
-
 
   };
 

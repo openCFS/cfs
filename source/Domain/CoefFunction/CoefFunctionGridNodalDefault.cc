@@ -60,6 +60,20 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
   }else if(type == ResultInfo::TENSOR){
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::TENSOR;
+    if ( ptDomain->GetGrid()->IsAxi() ) {
+      EXCEPTION("Axisymmtric case not supported yet!");
+    }
+    //4 entries: (2x2) tensor;  9 entries (3x3) tensor
+    if ( this->dimDof_ == 4) {
+      this->numRowTensor_ = 2;
+      this->numColTensor_ = 2;
+    }
+    else if( this->dimDof_ == 9) {
+      this->numRowTensor_ = 3;
+      this->numColTensor_ = 3;
+    }
+    else
+      EXCEPTION("CoefFunctionGridNodalDefault: Just tensor with 9 or 6 entries known");
   }
   this->CreateOperator(dimGrid,this->dimDof_);
 
@@ -74,7 +88,49 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalDefault<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMat,
                        const LocPointMapped& lpm ){
-  EXCEPTION("TENSORIAL RESULTS NOT SUPPORTED FOR INTERPOLATION FROM EXTERNAL GRIDS");
+
+  //cover the case of nc_surfElems
+  const Elem* sourceElem = NULL;
+
+  this->UpdateSolution();
+  //ok we always take the volume element
+  //because even if we are coping here with surfaces, e.g. for boundary conditions,
+  //the volume element connectivity should give also the boundary nodes and
+  //we do not cover special, nonconforming cases here...
+  if(lpm.isSurface && !this->srcIsSurface_)
+    sourceElem = lpm.lpmVol->ptEl;
+  else
+    sourceElem = lpm.ptEl;
+
+  Vector<DATA_TYPE> elemSol;
+  Vector<DATA_TYPE> CoefVec;
+  CoefVec.Resize(this->dimDof_);
+  
+  if(!sourceElem){
+    EXCEPTION("Could not determine source element.")
+  }
+
+  this->GetElemSolution( elemSol, sourceElem->elemNum);
+
+  shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  BaseFE *ptFe = esm->GetBaseFE();
+
+  if(lpm.isSurface)
+    this->myOperator_->ApplyOp(CoefVec,(*lpm.lpmVol),ptFe,elemSol);
+  else
+    this->myOperator_->ApplyOp(CoefVec,lpm,ptFe,elemSol);
+ 
+  //convert interpolated vector to tensor
+  UInt k = 0;
+  CoefMat.Resize(this->numRowTensor_,this->numColTensor_);
+  for (UInt i=0; i<this->numRowTensor_; i++){
+    for (UInt j=0; j<this->numColTensor_; j++){
+      CoefMat[i][j] = CoefVec[k];
+      k++;
+    }
+  }
+
+  //EXCEPTION("TENSORIAL RESULTS NOT SUPPORTED FOR INTERPOLATION FROM EXTERNAL GRIDS");
 }
 
 template<typename DATA_TYPE>
@@ -97,6 +153,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefM
     sourceElem = lpm.ptEl;
 
   Vector<DATA_TYPE> elemSol;
+  
   if(this->dimType_ == CoefFunction::SCALAR)
     CoefMat.Resize(1);
   else if (this->dimType_ == CoefFunction::VECTOR)

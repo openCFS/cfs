@@ -387,7 +387,8 @@ std::string CoefFunctionTimeFreq<Complex>::ToString() const {
       return ret;
       break;
     case TENSOR:
-      WARN("Not clean implemented");
+      //WARN("Not clean implemented");
+      //Tested in "ElecQuasistaticPDE" and it works!!
       ret  = "Real-Part: " + this->coefMatReal_.ToString() + "\n";
       ret += "Imag-Part: " + this->coefMatImag_.ToString();
       return ret;

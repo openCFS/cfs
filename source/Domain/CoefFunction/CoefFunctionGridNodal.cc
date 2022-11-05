@@ -222,7 +222,7 @@ template<class DATA_TYPE>
   template<class DATA_TYPE>
   void CoefFunctionGridNodal<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMat,
                                                    const LocPointMapped& lpm ){
-    EXCEPTION("GetTensor is not implemented here"); 
+    EXCEPTION("CoefFunctionGridNodal: GetTensor is not implemented here"); 
   }
 
   template<class DATA_TYPE>
@@ -255,7 +255,12 @@ template<class DATA_TYPE>
         this->myOperator_.reset(new IdentityOperator<FeH1,2,3,DATA_TYPE>());
       else if(spaceDim == 3)
         this->myOperator_.reset(new IdentityOperator<FeH1,3,3,DATA_TYPE>());
-    }
+    }else if (dofDim == 4 || dofDim == 9)
+      //tensor in 2D (2x2) or 3D (3x3)
+      if(spaceDim == 2)
+        this->myOperator_.reset(new IdentityOperator<FeH1,2,4,DATA_TYPE>());
+      else if(spaceDim == 3)
+        this->myOperator_.reset(new IdentityOperator<FeH1,3,9,DATA_TYPE>());    
   }
 
   template<class DATA_TYPE>
