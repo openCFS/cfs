@@ -48,11 +48,6 @@ endif() # USE_OPENMP
 # Check if we are using the GNU C++ or clang compiler
 #-------------------------------------------------------------------------------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
-  # Obtain major version number of GCC or Clang
-  STRING(REPLACE "." ";" CMAKE_CXX_COMPILER_VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-  LIST(GET CMAKE_CXX_COMPILER_VERSION_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
-
   # we assue C++14 for CFS for any compiler (including icc below)
   set(CFS_CXX_FLAGS "-std=c++14 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   set(CFS_C_FLAGS "-std=c11")
