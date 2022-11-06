@@ -136,7 +136,6 @@ option(BUILD_CFSTOOL "Build openCFS converter and testing tool (cfstool)."  ${BU
 option(BUILD_CFSDAT "Build openCFS data analysis tool (cfsdat)."  ${BUILD_CFSDAT_DEFAULT})
 option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TESTS_DEFAULT})
 option(BUILD_HDFVIEW "Build the HDF5 file viewer from the hdf5lib" ${BUILD_HDFVIEW_DEFAULT}) # advanced
-option(BUILD_H5TOOL "Build openCFS own's h5tool" ON) #andvanced
 
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
 option(BUILD_QUADEIGENSOLVER "Build the Quadratic Eigenvalue Solver to linearise the problem, requires another solver for the resulting generalised EVP" ${BUILD_QUADEIGENSOLVER_DEFAULT})
@@ -325,7 +324,6 @@ mark_as_advanced(CMAKE_BUILD_TYPE)
 mark_as_advanced(CMAKE_BACKWARDS_COMPATIBILITY)
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
 mark_as_advanced(BUILD_HDFVIEW)
-mark_as_advanced(BUILD_H5TOOL)
 mark_as_advanced(BUILD_GHOST)
 mark_as_advanced(BUILD_HWLOC)
 mark_as_advanced(BUILD_QUADEIGENSOLVER)
