@@ -58,7 +58,7 @@ endif()
 #message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
 
 # handle gfortran >= 10.
-if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER 9.9))
+if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0))
   # was once --std=legacy
   # see https://github.com/Reference-LAPACK/lapack/issues/353
   set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch")
