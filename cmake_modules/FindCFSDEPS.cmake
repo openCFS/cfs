@@ -183,16 +183,13 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
-  IF(APPLE)
-    SET(HDF5_VER "1.8.17")
-    SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203") # 1.8.17
-  ELSE()
-    SET(HDF5_VER "1.8.12")
-    SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
-  ENDIF()
+# Note that newer versions require rather new cmakes:
+# 3.10 for 1.8.21 and 3.12 for 1.8.22
+set(HDF5_VER "1.8.20")
+set(HDF5_MD5 "23078d57975903e9536d1e7b299cc39c") 
   
-  SET(HDF5_BZ2 "hdf5-${HDF5_VER}.tar.bz2")
-  INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
+set(HDF5_BZ2 "hdf5-${HDF5_VER}.tar.bz2")
+include("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for CGNS library
