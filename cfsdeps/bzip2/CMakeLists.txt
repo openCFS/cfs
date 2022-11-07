@@ -1,10 +1,7 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.6)
 
 PROJECT(bzip2 C)
 
-set(INSTALL_BIN_DIR
-  "${CMAKE_INSTALL_PREFIX}/bin"
-  CACHE PATH "Installation directory for executables")
 set(INSTALL_LIB_DIR
   "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}"
   CACHE PATH "Installation directory for libraries")
@@ -42,38 +39,22 @@ ENDIF(UNIX)
 # MESSAGE(FATAL_ERROR "${BZIP2_LIBNAME}")
 ADD_LIBRARY(${BZIP2_LIBNAME} ${BZIP2_SRCS})
 
-IF(NOT BUILD_SHARED_LIBS)
-  ADD_EXECUTABLE(bzip2 bzip2.c)
-  TARGET_LINK_LIBRARIES(bzip2 ${BZIP2_LIBNAME})
-  
-  ADD_EXECUTABLE(bzip2recover bzip2recover.c)
-  TARGET_LINK_LIBRARIES(bzip2recover ${BZIP2_LIBNAME})
+# parse the full version number from zlib.h and include in ZLIB_FULL_VERSION
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/bzlib_private.h _bzlib_private_h_contents)
+string(REGEX REPLACE ".*#define[ \t]+BZ_VERSION[ \t]+\"([0-9A-Za-z.]+).*"
+  "\\1" BZIP2_FULL_VERSION ${_bzlib_private_h_contents})
 
-  INSTALL(TARGETS bzip2 bzip2recover
-    RUNTIME DESTINATION "bin")
+set_target_properties(${BZIP2_LIBNAME} PROPERTIES SOVERSION 1)
 
-ELSE()
+# This property causes shared libraries on Linux to have the full version
+# encoded into their final filename.  
 
-  # parse the full version number from zlib.h and include in ZLIB_FULL_VERSION
-  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/bzlib_private.h _bzlib_private_h_contents)
-  string(REGEX REPLACE ".*#define[ \t]+BZ_VERSION[ \t]+\"([0-9A-Za-z.]+).*"
-    "\\1" BZIP2_FULL_VERSION ${_bzlib_private_h_contents})
-
-  set_target_properties(${BZIP2_LIBNAME} PROPERTIES SOVERSION 1)
-
-  # This property causes shared libraries on Linux to have the full version
-  # encoded into their final filename.  
-  
-  # This has no effect with MSVC, on that platform the version info for
-  # the DLL comes from the resource file win32/zlib1.rc
-  set_target_properties(${BZIP2_LIBNAME} PROPERTIES VERSION ${BZIP2_FULL_VERSION})
-ENDIF(NOT BUILD_SHARED_LIBS)
+# This has no effect with MSVC, on that platform the version info for
+# the DLL comes from the resource file win32/zlib1.rc
+set_target_properties(${BZIP2_LIBNAME} PROPERTIES VERSION ${BZIP2_FULL_VERSION})
 
 INSTALL(TARGETS ${BZIP2_LIBNAME}
   ARCHIVE DESTINATION "${INSTALL_LIB_DIR}"
-  RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
   LIBRARY DESTINATION "${INSTALL_LIB_DIR}")
 
-INSTALL(FILES
-  bzlib.h
-  DESTINATION include)
+INSTALL(FILES bzlib.h DESTINATION include)

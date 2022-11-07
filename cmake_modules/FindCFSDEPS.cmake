@@ -174,9 +174,9 @@ INCLUDE("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
 # Build bzip2 library
 #-------------------------------------------------------------------------------
 SET(BZIP2_URL "${CFS_DS_SOURCES_DIR}/bzip2")
-SET(BZIP2_VER "1.0.6")
+SET(BZIP2_VER "1.0.8")
 SET(BZIP2_GZ "bzip2-${BZIP2_VER}.tar.gz")
-SET(BZIP2_MD5 "00b516f4704d4a7cb50a1d97e6e8e15b")
+SET(BZIP2_MD5 "67e051268d0c475ea773822f7500d0e5")
 
 INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 
