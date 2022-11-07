@@ -594,7 +594,6 @@ endif(NOT PIPELINE_TEST_STAGE_CONFIG)
 # all copy/configure only targets
 add_subdirectory(share/doc) #building documentation (see 'make help')
 add_subdirectory(share/scripts)
-add_subdirectory(share/mkmesh)
 add_subdirectory(share/xml)
 add_subdirectory(share/xsl)
 add_subdirectory(share/python)
