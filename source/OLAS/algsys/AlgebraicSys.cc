@@ -4181,7 +4181,12 @@ namespace CoupledField {
 #elif USE_CHOLMOD
         st = BaseSolver::CHOLMOD_SOLVER;
 #else
-        st = BaseSolver::LDL_SOLVER;
+        if(storType == BaseMatrix::SPARSE_SYM)
+        {
+          st = BaseSolver::LDL_SOLVER; // symmetric case
+        } else {
+          st = BaseSolver::LU_SOLVER; // unsymmetric case
+        }
 #endif
         solverList->Get(BaseSolver::solverType.ToString(st),ParamNode::INSERT)->Get("id",ParamNode::INSERT)->SetValue(solverId);
       }
