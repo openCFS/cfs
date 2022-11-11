@@ -1839,7 +1839,7 @@ namespace CoupledField
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
       // why do we need to reassemble in harmonic analysis
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::MULTIHARMONIC
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::MULTIHARMONIC || (actContext.GetIntegrator()->IsTimeFrequencyDependent() && analysisType_==BasePDE::HARMONIC)
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
