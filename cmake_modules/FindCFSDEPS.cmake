@@ -45,11 +45,14 @@ endif()
 #message(STATUS "CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
 #message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
 
-# handle gfortran >= 10.
-if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0))
+# handle gfortran flags depending on version
+# these flags allow an argument mismatch when building
+if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0)) # gfortran version >= 10 (gcc10+)
   # was once --std=legacy
   # see https://github.com/Reference-LAPACK/lapack/issues/353
   set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch")
+elseif(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 10.0)) # gfortran <10 (gcc7), this is required to build FEAST with gcc7
+  set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -Wno-argument-mismatch")
 endif()  
 
 if(MSVC)
@@ -392,9 +395,9 @@ INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 # FEAST - FEAST Eigenvalue Solver
 #-----------------------------------------------------------------------------
 IF(USE_FEAST_COMMUNITY)
-  SET(FEAST_VER "3.0") # note that this is ignored in feast/CMakeLists.txt
+  SET(FEAST_VER "4.0") # note that this is ignored in feast/CMakeLists.txt
   SET(FEAST_GZ "feast_${FEAST_VER}.tgz")
-  SET(FEAST_MD5 "f03819c19a8724d0095dd24eae7ba43a")
+  SET(FEAST_MD5 "e4e6b47de276c203de2c0e9e7d9e5a65")
   INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
 ENDIF()
 

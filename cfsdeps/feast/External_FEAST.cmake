@@ -36,13 +36,22 @@ MARK_AS_ADVANCED(FEAST_INCLUDE_DIR)
 # Configure FEAST by copying the config file.
 #-------------------------------------------------------------------------------
 IF(UNIX)
-  SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/make.inc.in")
-  SET(CONF "${feast_prefix}/make.inc"	)
+  SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/Makefile.in")
+  SET(CONF "${feast_prefix}/Makefile"	)
   CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
 ELSE()
   SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/feast-patch.cmake.in")
   SET(PFN "${feast_prefix}/feast-patch.cmake")
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
+ENDIF()
+
+#-------------------------------------------------------------------------------
+# Check which compiler is used to set F90
+#-------------------------------------------------------------------------------
+IF(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU") # if gfortran
+  SET(CFS_FEAST_COMPILER "gfortran")
+ELSE() # if intel
+  SET(CFS_FEAST_COMPILER "ifort")
 ENDIF()
 
 #-------------------------------------------------------------------------------
@@ -53,7 +62,7 @@ ENDIF()
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://www.ecs.umass.edu/~polizzi/feast/m3-0/feast_3.0.tgz"
+  "https://gitlab.com/api/v4/projects/12930334/packages/generic/cfsdeps/sources/feast_4.0.tgz"
   "${CFS_DS_SOURCES_DIR}/feast/${FEAST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/feast/${FEAST_GZ}")
@@ -91,7 +100,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 IF(UNIX)
   SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-  SET(FEAST_LIBS "feast" "feast_sparse")
+  SET(FEAST_LIBS "feast")
   foreach(LIB IN LISTS FEAST_LIBS)
     LIST(APPEND LIBS "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
   endforeach()
@@ -179,10 +188,10 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
         # however, the precompiled has a dependency on _intel_fast_memcpy/set e.g. in libfeast_sparse.a which we cannot satisfy. 
         # when we build it by ourselves, the libfeast*.a are much larger and don't have this depenceny (check with nm <lib> | grep intel)
         # compare <build>/cfsdeps/feast/src/feast/3.0/lib -> x64 and <CFS_ARCH_STR>
-        BUILD_COMMAND ${FEAST_MAKE_PROGRAM} "ARCH=${CFS_ARCH_STR}" "LIB=feast" "all"
+        BUILD_COMMAND ${FEAST_MAKE_PROGRAM} "ARCH=${CFS_ARCH_STR}" "F90=${CFS_FEAST_COMPILER}" "${FEAST_LIBS}"
         INSTALL_COMMAND ""
-        BUILD_BYPRODUCTS ${FEAST_LIBRARY}
-    )
+        BUILD_BYPRODUCTS ${FEAST_LIBRARY} 
+      )
     ELSE()
       ExternalProject_Add(feast
         PREFIX "${feast_prefix}"
