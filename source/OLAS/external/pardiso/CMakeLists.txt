@@ -1,10 +1,5 @@
 
-IF(EXPLICIT_TEMPLATE_INSTANTIATION)
-    SET(PARDISO_SRCS PardisoSolver.cc
-                     PardisoSolverPrimitive.cc)
-ELSE(EXPLICIT_TEMPLATE_INSTANTIATION)
-    SET(PARDISO_SRCS PardisoDummy.cc)
-ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
+SET(PARDISO_SRCS PardisoSolver.cc PardisoSolverPrimitive.cc)
 
 ADD_LIBRARY(pardiso-olas STATIC ${PARDISO_SRCS})
 

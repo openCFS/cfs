@@ -9,7 +9,7 @@
 #=============================================================================
 set(ilupack_source  "@ilupack_source@")
 set(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-set(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
+set(CMAKE_Fortran_COMPILER_ID "@CMAKE_Fortran_COMPILER_ID@")
 set(CFS_DISTRO "@CFS_DISTRO@")
 set(CFS_DEPS_CACHE_DIR "@CFS_DEPS_CACHE_DIR@")
 set(CFS_KEY_ILUPACK "@CFS_KEY_ILUPACK@")

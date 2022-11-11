@@ -368,10 +368,8 @@ namespace CoupledField {
     }
   }
 
-// Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  // Explicit template instantiation
   template class MINRESSolver<Double>;
   template class MINRESSolver<Complex>;
-#endif
 
 }

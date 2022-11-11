@@ -15,7 +15,7 @@ IF(TARGET cgal)
   ADD_DEPENDENCIES(simoutunv cgal)
 ENDIF()
 
-if(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   if(NOT WIN32)
     set_source_files_properties(SimOutputUnv.cc PROPERTIES COMPILE_FLAGS
          "-D '__sync_fetch_and_add(ptr,addend)=_InterlockedExchangeAdd(const_cast<void*>(reinterpret_cast<volatile void*>(ptr)), addend)'")

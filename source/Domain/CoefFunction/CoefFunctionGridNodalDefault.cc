@@ -12,7 +12,7 @@
  */
 //================================================================================================
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "CoefFunctionGridNodalDefault.hh"
 #include "FeBasis/FeSpace.hh"
@@ -324,9 +324,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetElemsForPoints(const StdVector<
                                           lists);
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class CoefFunctionGridNodalDefault<Double>;
-  template class CoefFunctionGridNodalDefault<Complex>;
-#endif
+template class CoefFunctionGridNodalDefault<Double>;
+template class CoefFunctionGridNodalDefault<Complex>;
 
 } // namespace CoupledField

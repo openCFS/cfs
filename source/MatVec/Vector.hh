@@ -4,7 +4,7 @@
 #include "TypeDefs.hh"
 #include "SingleVector.hh"
 
-#include <def_expl_templ_inst.hh>
+
 #include <def_build_type_options.hh>
 #include <def_use_embedded_python.hh>
 

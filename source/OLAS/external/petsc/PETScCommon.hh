@@ -14,7 +14,7 @@
 #define OLAS_EXTERNAL_PETSC_PETSCCOMMON_HH_
 
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"

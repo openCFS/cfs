@@ -52,17 +52,19 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
+  "https://sourceware.org/pub/bzip2/"
   "https://fossies.org/linux/misc/${BZIP2_GZ}"
   "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/${BZIP2_GZ}"
   "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/${BZIP2_GZ}"
   "${BZIP2_URL}/${BZIP2_GZ}"
 )
+
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/bzip2/${BZIP2_GZ}")
 SET(MD5_SUM ${BZIP2_MD5})
 
@@ -75,8 +77,6 @@ CONFIGURE_FILE(
 
 #copy license
 file(COPY "${CFS_SOURCE_DIR}/cfsdeps/bzip2/license/" DESTINATION "${CFS_BINARY_DIR}/license/bzip2" )
-
-
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "bzip2" "${BZIP2_VER}") 
   
@@ -101,7 +101,7 @@ SET(BZIP2_LIBRARY
 #-------------------------------------------------------------------------------
 # The bzip2 external project
 #-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+if("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+else()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project (static)
   #-------------------------------------------------------------------------------
@@ -176,7 +176,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+endif()
 
 
 #-------------------------------------------------------------------------------

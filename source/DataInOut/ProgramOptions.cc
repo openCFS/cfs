@@ -10,15 +10,31 @@
 #include <cstdlib>
 
 #include <boost/bind/bind.hpp>
+#include <boost/predef/os.h>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Utils/tools.hh"
+
+// https://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+#if defined(WIN32)
+  #include <stdlib.h>
+#endif
+#if (BOOST_OS_LINUX) // note that this NOT a define (boost sucks :()
+  #include <unistd.h>
+  #include <limits.h>
+#endif
+#if (BOOST_OS_MACOS)
+  #include <mach-o/dyld.h>
+#endif
+
+DEFINE_LOG(progopts, "progOpts")
 
 using std::string;
 using std::endl;
@@ -47,6 +63,67 @@ namespace CoupledField {
   {
   }
 
+  boost::filesystem::path ProgramOptions::ObtainCFSRootFromSystem()
+  {
+    // obtaining the path of the current executable is a non-trivial and non-portable task
+
+    // argv[0] from the main() call has this information for
+    // - Windows
+    // - Linux and macOs when the executable was called absolutely or relatively.
+    //   In the link case only the link name is given.
+    // see https://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+
+    // some systems/shells have the executable in "_"
+    // https://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+    const char* underline = getenv("_");
+    LOG_DBG(progopts) << "OCR: env('_')=" << underline;
+
+    // most Linux systems /proc/self/exe. Plain old Ubunut (14) have this for root only
+    // https://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+#if (BOOST_OS_WINDOWS)
+    char *exePath;
+    if(_get_pgmptr(&exePath) != 0)
+      exePath = "";
+    LOG_DBG(progopts) << "OCR: win get_pgmptr=" << exePath;
+#endif
+assert(PATH_MAX > 10);
+#if (BOOST_OS_LINUX)
+     char exePath[PATH_MAX];
+     ssize_t l_len = ::readlink("/proc/self/exe", exePath, sizeof(exePath));
+     if(l_len == -1 || l_len == sizeof(exePath))
+       l_len = 0;
+     exePath[l_len] = '\0';
+     LOG_DBG(progopts) << "OCR: /proc/self/exe=" << exePath;
+#endif
+#if (BOOST_OS_MACOS)
+    char exePath[PATH_MAX];
+    // in case of a link _NSGetExecutablePath does not resolve the link
+    uint32_t len = sizeof(exePath);
+    if (_NSGetExecutablePath(exePath, &len) == 0)
+    {
+      char *canonicalPath = realpath(exePath, NULL);
+      if (canonicalPath == NULL)
+        exePath[0] = '\0';
+      else
+      {
+        strncpy(exePath,canonicalPath,len);
+        free(canonicalPath);
+      }
+    }
+    else
+      exePath[0] = '\0';
+    LOG_DBG(progopts) << "OCR: macOS realpath=" << exePath;
+#endif
+
+    fs::path root = fs::path(exePath).parent_path().parent_path();
+    LOG_DBG(progopts) << "OCR: root cand=" << root.string();
+    bool good = fs::exists(root);
+    LOG_DBG(progopts) << "OCR: root exits=" << good;
+    if(!good)
+      throw Exception("guessed exePath " + string(exePath) + " but " + root.string() + " doesn't exist");
+    return root;
+  }
+
   void ProgramOptions::ParseData()
   {
     // define header string
@@ -65,13 +142,17 @@ namespace CoupledField {
         "display this usage information" )
 
       ( "version,v",
-        "information about the CFS++ executable" )
+        "information about the openCFS executable" )
 
       ( "history,H",
         "history of revisions" )
 
       ( "numThreads,t", po::value<UInt>()->default_value(1),
-        "number of threads used in CFS run, default = 1 (env CFS_NUM_THREADS)" )
+#ifdef USE_OPENMP
+        "set number of threads to use\nalternatively, set env CFS_NUM_THREADS" )
+#else
+        "not available, not compiled with USE_OPENMP" )
+#endif
 
       ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
@@ -80,7 +161,7 @@ namespace CoupledField {
         "name of XML parameter file for the simulation" )
 
       ( "schemaRoot,s", po::value<string>(),
-        "path to XML schema definitions (env CFS_SCHEMA_ROOT)")
+        "XML schema directory (env CFS_SCHEMA_ROOT)")
 
       ( "ersatz,x", po::value<string>(),
         "name of ersatz material density file")
@@ -95,16 +176,16 @@ namespace CoupledField {
         "read grid from input and write it to output file" )
 
       ( "exportGrid,G",
-        "export the grid to the info.xml file, best with -g")
+        "export the grid to .info.xml, best with -g")
 
       ( "equationMap,M",
-        "create a .map file with details about the equation mapping")
+        "create equation mapping data file (.map)")
 
       ( "dependencies,c", po::value<string>(),
         "write CMake file with dependencies to given file")
 
       ( "logConfFile,l", po::value<string>(),
-        "name of configuration file for logging streams, only works for DEBUG builds" )
+        "logging config file (.xml), only debug build" )
 
       ( "forceSegFault,f",
         "force a segmentation fault at exceptions")
@@ -116,7 +197,7 @@ namespace CoupledField {
         "turn off colored output")
 
       ( "id", po::value<string>(),
-        "set the provided value in info.xml as cfsInfo/header/@id")
+        "set cfsInfo/header/@id in .info.xml")
         ;
 
 
@@ -137,17 +218,6 @@ namespace CoupledField {
     // make the input file the only allowed positional parameter
     po::positional_options_description p;
     p.add( "simName", 1 );
-
-
-    // Explicit definition of environment options is not necessary
-    // as we are using a mapping function anyway
-//    // 3) Define environment options
-//    // -----------------------------------------
-//    po::options_description envOptions("" );
-//    envOptions.add_options()
-//      ("schemaRoot", po::value<string>(),
-//       "Path to schema definitions of CFS++ installation")
-//      ;
 
     // 4) Combine visible and invisible options to commandLine options
     // -----------------------------------------
@@ -181,6 +251,11 @@ namespace CoupledField {
 
     po::notify( varMap_ );
 
+    // Initialize logging class (read parameters from file if desired)
+    // such that we can debug FindSchemaPath()
+    std::string confFile = progOpts->GetLogConfFileStr();
+    LogConfigurator::ParseLogConfFile(confFile);
+
     // obtain schema path once and prior --version prints the information
     schemaPath_ = FindSchemaPath();
 
@@ -192,23 +267,23 @@ namespace CoupledField {
     // Check for version
     if( varMap_.count("version") != 0  ) 
     {
-      GetHeaderString(cout);      
-      GetVersionString( cout, true );
+      PrintHeader(cout);
+      PrintVersion( cout, true );
       exit( EXIT_SUCCESS );
     }
 
     // Check for history
     if(varMap_.count("history") != 0)
     {
-      GetHeaderString(cout);      
-      GetHistoryString(cout);
+      PrintHeader(cout);
+      PrintHistory(cout);
       exit( EXIT_SUCCESS );
     }
 
     // do we want to output dependency as cmake file? Exit afterwards
     if(varMap_.count("dependencies"))
     {
-      GetHeaderString(cout);
+      PrintHeader(cout);
       deps_.WriteCMakeUSE(varMap_["dependencies"].as<string>());
       exit(EXIT_SUCCESS);
     }
@@ -216,7 +291,7 @@ namespace CoupledField {
     // Check for help
     if( varMap_.count("help") != 0 || varMap_.count("simName") == 0) 
     {
-      GetHeaderString(cout);      
+      PrintHeader(cout);
       cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
@@ -324,9 +399,14 @@ namespace CoupledField {
 
   fs::path ProgramOptions::FindSchemaPath() const
   {
+    // XMLSCHEMA is set by compile time and will fail on any distributed cfs.
+
+    LOG_DBG(progopts) << "FSP: compiled XMLSCHEMA: " << XMLSCHEMA;
+
     string schema;
 
-    // If the user specified a path on the command line or the CFS_SCHEMA_ROOT variable, use it instead.
+    bool given = false;
+    // command line option or CFS_SCHEMA_ROOT environment variable beats CFS_SCHEMA_ROOT
     if(varMap_.count("schemaRoot"))
     {
       schema = varMap_["schemaRoot"].as<string>();
@@ -334,6 +414,8 @@ namespace CoupledField {
       // watch out for leading and closing " in schema string
       boost::trim_if(schema, boost::is_any_of(" \t\"\'"));
 #endif      
+      LOG_DBG(progopts) << "FSP: arg given: " << schema;
+      given = true;
     }
     else
     {
@@ -346,24 +428,22 @@ namespace CoupledField {
     fs::path schemaPath = fs::system_complete(schema); // if it did not start with root inserts current working directory, which is clearly nonsense but does not throw an error
     schemaPath.normalize(); // resolves stuff like bla/../fasel. Is depreciated and should work without
 
-    // try to obtain the schema root from argv[0]. Use it only if schema is invalid
-    // This is the full path for Windows but on Linux and macOS this is either the full path or the pure link name (e.g. "cfs_rel")
-    // For the full path we are in .../<cfs_root>/bin/cfsbin
-    // for the link case, parent_path() is ".." and .parent_path() is "", all exception save
-    fs::path exe_schema_root;
-    if(fs::path(exe_).parent_path().filename() == "bin")
-      exe_schema_root = fs::path(exe_).parent_path().parent_path();
-    exe_schema_root.normalize(); // shall be save to remove when the depreciaton hurts
-    exe_schema_root = exe_schema_root.string() + "/share/xml"; // shall work also on Windows
-
     if(fs::exists(schemaPath))
       return schemaPath;
-    if(fs::exists(exe_schema_root)) {
-      std::cout << "Warning: given xml schema path '" + schemaPath.string() + "' is invalid, use extraction from executable.\n"; // given in .info.xml
-      return exe_schema_root;
-    }
 
-    EXCEPTION( "Schema path " << schemaPath << " does not exist. Use -s or environment variable CFS_SCHEMA_ROOT." );
+    // now either CFS_SCHEMA_ROOT and command line are not given or wrong and also XMLSCHEMA is invalid
+    // generate from cfs root but make a smart message
+    if(given)
+      std::cout << "Warning: given xml schema path '" + schemaPath.string() + "' is invalid. We construct from executable location\n"; // see .info.xml or --version
+
+    fs::path root = ObtainCFSRootFromSystem();
+    root.normalize(); // shall be save to remove when the depreciaton hurts
+    string exe_schema_root = root.string() + "/share/xml"; // shall work also on Windows
+
+    if(fs::exists(exe_schema_root))
+      return exe_schema_root;
+    else
+      EXCEPTION( "Schema path " << exe_schema_root << " does not exist. Use -s or environment variable CFS_SCHEMA_ROOT." );
   }
 
 
@@ -423,11 +503,10 @@ namespace CoupledField {
   UInt ProgramOptions::GetNumThreads() const
   {
 #ifdef USE_OPENMP
-    if( varMap_.count( "numThreads") != 0 ) {
+    if( varMap_.count( "numThreads") != 0 )
       return varMap_["numThreads"].as<UInt>();
-    }else{
+    else
       return 1;
-    }
 #else
     return 1;
 #endif
@@ -486,7 +565,7 @@ namespace CoupledField {
     WriteColoredString(out, trim_size, head, std::to_string(data));
   }
   
-  void ProgramOptions::GetVersionString(std::ostream & out, bool colorise)
+  void ProgramOptions::PrintVersion(std::ostream & out, bool colorise)
   {
     // local instance as GetVersionString() is static.
     // If you want to know deps.IsDistributable() outside, simply create your own object
@@ -503,8 +582,9 @@ namespace CoupledField {
     {      
       fs::path fn = fs::system_complete(progOpts->exe_);
       fn.normalize();
-      WriteColoredString(out, trim_size, "CFS_EXECUTABLE", fn.string());
-      WriteColoredString(out, trim_size, "XMLSCHEMA", progOpts->GetSchemaPathStr());
+      WriteColoredString(out, trim_size, "executable", fn.string());
+      WriteColoredString(out, trim_size, "xml schema", progOpts->GetSchemaPathStr());
+      WriteColoredString(out, trim_size, "compiled XMLSCHEMA", XMLSCHEMA);
     }
     else
       WriteColoredString(out, trim_size, "XMLSCHEMA", XMLSCHEMA);
@@ -518,8 +598,8 @@ namespace CoupledField {
     out << endl;
 
     WriteColoredString(out, trim_size, "CMAKE_BUILD_TYPE", CMAKE_BUILD_TYPE);
-    WriteColoredString(out, trim_size, "C++ compiler", CFS_CXX_COMPILER_NAME, CFS_CXX_COMPILER_VER);
-    WriteColoredString(out, trim_size, "Fortran compiler", CFS_FORTRAN_COMPILER_NAME, CFS_FORTRAN_COMPILER_VER);
+    WriteColoredString(out, trim_size, "C++ compiler", CMAKE_CXX_COMPILER_ID, CMAKE_CXX_COMPILER_VERSION);
+    WriteColoredString(out, trim_size, "Fortran compiler", CMAKE_Fortran_COMPILER_ID, CMAKE_Fortran_COMPILER_VERSION);
     WriteColoredString(out, trim_size, "CFS_DISTRO", CFS_DISTRO, CFS_DISTRO_VER);
     WriteColoredString(out, trim_size, "CFS_ARCH", CFS_ARCH);
 
@@ -577,7 +657,7 @@ namespace CoupledField {
     ColoredConsole::colorise = colTmp;
   }
 
-  void ProgramOptions::GetHistoryString( std::ostream & out)
+  void ProgramOptions::PrintHistory( std::ostream & out)
   {
     out << "This is a incomplete revision history. It starts with the new versioning schema:" << endl
         << " * CFS-Version: <yy>.<mm> with two digits for year and month" << endl
@@ -636,44 +716,67 @@ namespace CoupledField {
         << "  Precompiled CFSDEPS are back and eamc080 is a new mirror server for CFSDEPS." << endl
         << "  Tests now are able to compare info.xml files." << endl
         << endl
-        << "16.1, Concurrent Monorail" << endl
+        << "16.01, Concurrent Monorail" << endl
         << "  Starting point of making classes thread safe in preparation to parallelize assembly loop." << endl
         << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl
         << endl
-        << "18.8, AMGme" << endl
+        << "18.08, AMGme" << endl
         << "  Contains Klaus' algebraic multigrid." << endl
         << endl
-        << "20.9, Frohes Fensterln" << endl
+        << "20.09, Frohes Fensterln" << endl
         << "  Brings native Windows support and several features from the fork (thanks to Hermann, Jens and Simon)." << endl
-        << "  We are on the track of going open source as openCFS! :)" << endl;
+        << "  We are on the track of going open source as openCFS! :)" << endl
+        << endl
+        << "22.10, Welcome World" << endl
+        << "  CFS++ became officially open source and got renamed to openCFS (www.opencfs.org)." << endl
+        << "  Feel free to contribute via gitlab.com/openCFS :)" << endl;
   }
 
-  void ProgramOptions::GetHeaderString(std::ostream & out)
+  void ProgramOptions::PrintHeader(std::ostream & out)
   {
-    string omp = getenv("OMP_NUM_THREADS") != NULL ? string(getenv("OMP_NUM_THREADS")) : "-";
-    string mkl = getenv("MKL_NUM_THREADS") != NULL ? string(getenv("MKL_NUM_THREADS")) : "-";
     if(IsQuiet())
     {
-      out << ">> CFS++ '" << CFS_VERSION << " " << CFS_NAME << "'"
+      out << ">> openCFS '" << CFS_VERSION << " " << CFS_NAME << "'"
           << " Compiled: '" << __DATE__ << "'"
           << " Build: '" << CMAKE_BUILD_TYPE << "'"
           << " (" << (deps_.IsDistributable() ? "" : "NOT ") << "distributable)" << endl;
-      #ifdef USE_OPENMP
-        out << ">> OpenMP *_NUM_THREADS: CFS=" << CFS_NUM_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
-      #endif
     }
     else
     {
       // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
+      string git_ref(CFS_WC_REVISION); // "591da40ea0b41e336e169ee632618fd63313231f (modified)"
+      string git_short = git_ref.substr(0,6); // first 6 characters
+      if(git_ref.find(' ') != string::npos) // re-add a potential " (modified)"
+        git_short += git_ref.substr(git_ref.find(' '));
+
       out << endl
           << "=======================================================================" << endl;
-      out << " CFS++ - Coupled Field Simulation" << endl << endl
-          << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'" << " " << CFS_WC_REVISION << endl
+      out << " openCFS - Coupled Field Simulation" << endl << endl
+          << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'" << " " << git_short << endl
           << " compiled " << __DATE__  << " as " << CMAKE_BUILD_TYPE
-          << " (" << (deps_.IsDistributable() ? "" : "NOT ") << "distributable)" << endl
-          << " CFS++ routines use " << CFS_NUM_THREADS << " threads for this run."
-          << " OMP/ MKL threads: " << omp << "/ " << mkl << endl;
+          << " (" << (deps_.IsDistributable() ? "" : "NOT ") << "distributable)" << endl << endl;
+
+    }
+  }
+
+  void ProgramOptions::PrintNumThreads(std::ostream& out, bool quiet)
+  {
+    string omp = getenv("OMP_NUM_THREADS") != NULL ? string(getenv("OMP_NUM_THREADS")) : "-";
+    string mkl = getenv("MKL_NUM_THREADS") != NULL ? string(getenv("MKL_NUM_THREADS")) : "-";
+#ifdef USE_OPENMP
+    if(quiet)
+    {
+      out << ">> OpenMP *_NUM_THREADS: CFS=" << CFS_NUM_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
+    }
+    else
+    {
+      out << " openCFS is using " << CFS_NUM_THREADS << " OpenMP threads";
+      string cfs = std::to_string(CFS_NUM_THREADS);
+      if((cfs != omp) || (cfs != mkl))
+        out << " and OMP_NUM_THREADS=" << omp << " and MKL_NUM_THREADS=" << mkl;
+      out << endl;
       out << "=======================================================================" << endl << endl;
     }
+#endif
   }
 }

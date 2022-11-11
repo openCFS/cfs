@@ -1,5 +1,3 @@
-IF(EXPLICIT_TEMPLATE_INSTANTIATION)
-
 SET(MG_SRCS
     ${MG_SRCS}
     amg.cc
@@ -15,8 +13,6 @@ SET(MG_SRCS
     agglomerate.cc
     AFWsmoother.cc
     )
-ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
-
 
 ADD_LIBRARY(multigrid-olas STATIC ${MG_SRCS})
 

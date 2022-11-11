@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include <cmath>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "ResultHandler.hh"
 
@@ -1052,23 +1052,20 @@ namespace CoupledField {
 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template
   shared_ptr<FeFunction<Double> >
   ResultHandler::GetFeFunction<Double>( const std::string& readerId,
-                                        UInt sequenceStep,
-                                        UInt stepValue,
-                                        SolutionType solType,
-                                        std::set<std::string> & regionNames,
-                                        PtrParamNode rootNode );
+      UInt sequenceStep,
+      UInt stepValue,
+      SolutionType solType,
+      std::set<std::string> & regionNames,
+      PtrParamNode rootNode );
   template
   shared_ptr<FeFunction<Complex> >
   ResultHandler::GetFeFunction<Complex>( const std::string& readerId,
-                                         UInt sequenceStep,
-                                         UInt stepValue,
-                                         SolutionType solType,
-                                         std::set<std::string> & regionNames,
-                                         PtrParamNode rootNode );
-
-#endif
+      UInt sequenceStep,
+      UInt stepValue,
+      SolutionType solType,
+      std::set<std::string> & regionNames,
+      PtrParamNode rootNode );
 }

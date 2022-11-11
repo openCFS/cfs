@@ -37,12 +37,8 @@ SET(CMAKE_ARGS
   -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DUSE_OPENMP:BOOL=${USE_OPENMP}
-  -DBUILD_DOC:BOOL=OFF
   -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}/cmake/hdf5
   -DHDF5_C_LIBRARY:PATH=${FLANN_HDF5_LIBRARY}
-  -DHDF5_C_HL_LIBRARY:PATH=${HDF5_LT_LIBRARY}
-  -DHDF5_CXX_LIBRARY:PATH=${HDF5_CPP_LIBRARY}
-  -DHDF5_CXX_HL_LIBRARY:PATH=${HDF5_LT_CPP_LIBRARY}
   -DHDF5_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
 )
 
@@ -69,7 +65,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
@@ -172,7 +168,9 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       -DBUILD_C_BINDINGS=OFF
       -DBUILD_MATLAB_BINDINGS=OFF
       -DBUILD_PYTHON_BINDINGS=OFF
-      -DPYTHON_EXECUTABLE=PYTHON_EXECUTABLE_NOTFOUND
+      -DBUILD_DOC:BOOL=OFF
+      -DBUILD_EXAMPLES:BOOL=OFF
+      -DBUILD_TESTS:BOOL=OFF
     BUILD_BYPRODUCTS ${FLANN_LIBRARY} ${FLANN_SHARED_LIBRARY}
   )
   

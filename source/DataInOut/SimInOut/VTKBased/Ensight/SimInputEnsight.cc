@@ -697,12 +697,8 @@ Double SimInputEnsight::dround(Double a, int ndigits) {
 }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void SimInputEnsight::GetNodeResult<Double>(UInt,UInt,shared_ptr<BaseResult>);
-  //template void SimInputEnsight::GetNodeResult<Complex>(UInt,UInt,shared_ptr<BaseResult>);
-  template void SimInputEnsight::GetElemResult<Double>(UInt,UInt,shared_ptr<BaseResult>);
-  //template void SimInputEnsight::GetElemResult<Complex>(UInt,UInt,shared_ptr<BaseResult>);
-#endif
+template void SimInputEnsight::GetNodeResult<Double>(UInt,UInt,shared_ptr<BaseResult>);
+template void SimInputEnsight::GetElemResult<Double>(UInt,UInt,shared_ptr<BaseResult>);
 
 }
 

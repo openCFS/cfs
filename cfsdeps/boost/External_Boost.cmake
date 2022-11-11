@@ -19,7 +19,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
@@ -86,7 +86,7 @@ ELSE()
     SET(BOOST_MSVC_VERSION ${CFS_MSVC_VERSION})
   ENDIF()
 
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     IF(DEBUG)
       SET(BOOST_LIB_SUFFIX "-iw-mt-gd-x64-${BOOST_VER_WIN}.lib")
     ELSE()
@@ -130,23 +130,23 @@ IF(UNIX)
 
   # setting the mac system clang compiler as toolset does not work
   set(BOOST_SYSTEM_COMPILER OFF)
-  if(CFS_DISTRO STREQUAL "MACOSX" AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+  if(CFS_DISTRO STREQUAL "MACOSX" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(BOOST_SYSTEM_COMPILER ON)
   endif()
   # set the gcc and clang compiler via toolset it might be specified via CXX=g++-8 or CXX=clang++
   if(NOT BOOST_SYSTEM_COMPILER)
-    if(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       set(BOOST_TOOLSET_COMPILER "gcc")
     endif()
-    if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
       set(BOOST_TOOLSET_COMPILER "clang")
     endif()
     if(BOOST_TOOLSET_COMPILER)
-      set(BOOST_PATCH_COMMAND echo "using ${BOOST_TOOLSET_COMPILER} : ${CFS_CXX_COMPILER_VER} : ${CMAKE_CXX_COMPILER} $<SEMICOLON>" > user-config.jam)
-      set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--user-config=user-config.jam" "toolset=${BOOST_TOOLSET_COMPILER}-${CFS_CXX_COMPILER_VER}")
+      set(BOOST_PATCH_COMMAND echo "using ${BOOST_TOOLSET_COMPILER} : ${CMAKE_CXX_COMPILER_VERSION} : ${CMAKE_CXX_COMPILER} $<SEMICOLON>" > user-config.jam)
+      set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "--user-config=user-config.jam" "toolset=${BOOST_TOOLSET_COMPILER}-${CMAKE_CXX_COMPILER_VERSION}")
     endif()  
   endif()
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     # Simon made it without toolset and it shall work.
     set(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux )
     set(BOOST_B2_PARAMS ${BOOST_B2_PARAMS})
@@ -160,11 +160,11 @@ IF(WIN32)
   SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "variant=debug,release" "threading=multi" "link=static,shared" "runtime-link=shared")
 
   IF(BOOST_MSVC_VERSION VERSION_GREATER_EQUAL 16.0)
-    IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-      IF(CFS_CXX_COMPILER_VER GREATER_EQUAL 20.2)
+    IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+      IF(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20.2)
         SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-2021.2-vc14.2")
         SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-2021.2-vc14.2")
-      ELSEIF(CFS_CXX_COMPILER_VER GREATER_EQUAL 20.1)
+      ELSEIF(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20.1)
         SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-2021.1-vc14.2")
         SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-2021.1-vc14.2")
       ELSE()
@@ -176,7 +176,7 @@ IF(WIN32)
       SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=msvc-14.2")
     ENDIF()
   ELSE()
-    IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
       SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} "--with-toolset=intel-19.1-vc14.1")
       SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "toolset=intel-19.1-vc14.1")
     ELSE()
@@ -190,7 +190,7 @@ IF(WIN32)
   SET(BOOST_B2_PARAMS ${BOOST_B2_PARAMS} "-sZLIB_SOURCE=${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/zlib/src/zlib" "-sBZIP2_SOURCE=${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/bzip2/src/bzip2" "install")
 ENDIF(WIN32)
 
-#message("CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME}")
+#message("CMAKE_CXX_COMPILER_ID ${CMAKE_CXX_COMPILER_ID}")
 #message("BOOST_SYSTEM_COMPILER ${BOOST_SYSTEM_COMPILER}")
 #message("BOOST_PATCH_COMMAND ${BOOST_PATCH_COMMAND}")
 #message("BOOST_B2_PARAMS ${BOOST_B2_PARAMS}")
@@ -275,7 +275,7 @@ ELSE()
   #-------------------------------------------------------------------------------
   # Add custom patch step
   #-------------------------------------------------------------------------------
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     ExternalProject_Add_Step(boost winpatch
       COMMAND ${CMAKE_COMMAND} -P "${PFN}"
       DEPENDERS build

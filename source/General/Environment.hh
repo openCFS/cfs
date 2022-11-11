@@ -28,7 +28,7 @@
 
 //! \file Environment.hh
 //! This file contains some global macro, class and enumeration data type
-//! definitions for CFS++.
+//! definitions for openCFS.
 namespace CoupledField {
 
   // Import Boost's namespace
@@ -105,8 +105,13 @@ namespace CoupledField {
 
   void SetEnvironmentEnums();
 
-  //! set the global number of threads for all OMP loops within CFS
-  void SetNumberOfThreads(UInt numThreads);
+  /** sets the global CFS_NUM_THREADS variable.
+   * CFS_NUM_THREADS controls e.g. parallel FEM assembly and it is important
+   * to no call some cfs functions like coef functions with more threads than this!
+   * OMP_NUM_THREADS and MKL_NUM_THREADS are environment variables. Setting them only effects this process, not the system.
+   * @param homogenize also sets environment variables OMP_NUM_THREADS and MKL_NUM_THREADS used e.g. from libs
+   * @param quiet suppress command line output when OMP and MKL_NUM_THREADS are set. */
+  void SetNumberOfThreads(int numThreads, bool homogenize = false, bool quiet=true);
 
 } // end of namespace
 

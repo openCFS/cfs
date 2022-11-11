@@ -291,7 +291,7 @@ namespace CoupledField {
       fprintf( fp, "%%\n%% %s\n%%\n", comment.c_str());
     }
     else {
-      fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
+      fprintf( fp, "%%\n%% Matrix exported by openCFS\n%%\n" );
     }
 
     // -----------------
@@ -532,9 +532,7 @@ namespace CoupledField {
 
 
   // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class LapackGBMatrix< double, Double >;
   template class LapackGBMatrix< std::complex<double>, Complex >;
-#endif
 }
 

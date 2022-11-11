@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "SparseOLASMatrix.hh"
 #include "Vector.hh"

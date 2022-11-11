@@ -12,10 +12,8 @@
 
 namespace CoupledField {
 
-  //! Class for reading in a mesh created by the ANSYS mkmesh-extension.
-
-  //! Class, that is derived from class FileType for reading mesh-input data,
-  //! which is produced by Ansys mkmesh-interface. 
+  /** Class for reading in a mesh created by the ANSYS mkmesh-extension
+   * or via our own create_mesh.py or mesh_tool.py */
   class SimInputMESH: virtual public SimInput {
 
   public:

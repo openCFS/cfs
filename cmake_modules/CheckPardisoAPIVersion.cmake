@@ -368,12 +368,12 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
 
 
   #---------------------------------------------------------------------------
-  # Only set last CFS++ PARDISO variable if test was successful
+  # Only set last openCFS PARDISO variable if test was successful
   #---------------------------------------------------------------------------
   IF(PARDISO_API_VER_3_EXITCODE EQUAL 0)
     SET(PARDISO_API_VER_3_LAST_CFS_PARDISO ${CFS_PARDISO} CACHE INTERNAL "${CFS_PARDISO}" FORCE)
   ELSE()
-    IF(USE_BLAS_LAPACK STREQUAL "MKL" AND CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    IF(USE_BLAS_LAPACK STREQUAL "MKL" AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
        MESSAGE("Please try using the library MKL provided by the Intel compiler!")
        MESSAGE("Mixing runtime libraries provided by standalone MKL and Intel")
        MESSAGE("compiler may cause problems.")
@@ -422,7 +422,7 @@ IF(NOT PARDISO_API_VER_4_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
                             "${IFORT_LIB_PATH}")
 
   #---------------------------------------------------------------------------
-  # Only set last CFS++ PARDISO variable if test was successful
+  # Only set last openCFS PARDISO variable if test was successful
   #---------------------------------------------------------------------------
   IF(PARDISO_API_VER_4_EXITCODE EQUAL 0)
     SET(PARDISO_API_VER_4_LAST_CFS_PARDISO ${CFS_PARDISO}

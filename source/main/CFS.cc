@@ -3,7 +3,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-
 #include <iomanip>
 #include <fstream>
 #include <boost/version.hpp>
@@ -28,7 +27,6 @@
 #  include <unistd.h>
 #endif
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "DataInOut/Logging/LogConfigurator.hh"
 #include <def_use_petsc.hh>
 
 #ifdef USE_PETSC
@@ -61,8 +59,16 @@ int main(int argc, const char **argv)
   MPI_Comm_size(MPI_COMM_WORLD,&size);
   if(rank==0)
   {
-    CFS cfs(argc, argv);   
-    ret = cfs.Run();
+    try
+    {
+      CFS cfs(argc, argv);  // possibly a std::exception
+      ret = cfs.Run();      // catches all
+    }
+    catch(const std::exception& ex)
+    {
+      CFS::HandleException(ex);
+      ret = 0;
+    }
     //Send a Kill Tag to all workers before exiting the code
     if(size>1)
       for(rank = 1; rank < size; ++rank)
@@ -79,13 +85,21 @@ int main(int argc, const char **argv)
 #else
 int main(int argc, const char **argv)
 {
-  CFS cfs(argc, argv);
-  int ret = cfs.Run();
-  return ret;
+  try
+  {
+    CFS cfs(argc, argv);
+    int ret = cfs.Run();
+    return ret;
+  }
+  catch(const exception& ex) // is catched in Run but can also come from constructor
+  {
+    CFS::HandleException(ex);
+    return 1;
+  }
 }
 #endif // USE_PETSC
 
-void PrintWarning(CoupledField::Exception& ex ) {
+void PrintWarning(const CoupledField::Exception& ex ) {
   
   // Print warning on command line
   std::string msg = ex.GetMsg();
@@ -119,19 +133,18 @@ CFS::CFS(int argc, const char **argv) :
   // =========================================================================
   progOpts = new ProgramOptions(argc, argv);
 
-  // Parse command line
+  // Parse command line, also initializes logging
   progOpts->ParseData();
 
-  //now set the number of threads from the commandline
-  SetNumberOfThreads(progOpts->GetNumThreads());
-
   // Log program startup
-  progOpts->GetHeaderString( cout );
+  progOpts->PrintHeader(cout);
 
-  // Initialize logging class (read parameters from file if desired)
-  std::string confFile = progOpts->GetLogConfFileStr();
-  LogConfigurator::ParseLogConfFile(confFile);
+  // homogenize CFS_/OMP_/MKL_NUM_THREADS based on command line and environment setting
+  SetNumberOfThreads(progOpts->GetNumThreads(), true, false); // yes, homogenize, no, don't be quiet
   
+  // when we have the threads num set, we can print them
+  progOpts->PrintNumThreads(cout, progOpts->IsQuiet());
+
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
   
@@ -156,31 +169,20 @@ CFS::CFS(int argc, const char **argv) :
   env->Get("started")->SetValue(start_time_);
   
   hostname_ = boost::asio::ip::host_name();
-  
-//  char host[256];
-//  hostname_ = gethostname( host, sizeof(host) ) > 0 ? host : "";
-
   if(!hostname_.empty())
     env->Get("host")->SetValue(hostname_);
   
   infoNode->ToFile("", true);
-
 }
 
 
 CFS::~CFS()
 {
-
   // flush last information.
   infoNode->ToFile(std::string(), true);
 
-
   delete resultHandler;
   resultHandler = NULL;
-  
-  // Delete objects
-  //delete param;
-  
   
   delete domain;
   domain = NULL;
@@ -218,8 +220,8 @@ int CFS::Run()
 
     SetupIO(paramNode_);
 
-    domain = new Domain( gridInputs, resultHandler, materialHandler, 
-                         simState, paramNode_, infoNode );
+    domain = new Domain( gridInputs, resultHandler, materialHandler,
+        simState, paramNode_, infoNode );
 
     // Create grid
     domain->CreateGrid();
@@ -239,12 +241,12 @@ int CFS::Run()
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    
+
     cout << endl;
     cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
-         << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
-         << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
-      
+                 << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
+                 << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
+
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
 
@@ -264,34 +266,9 @@ int CFS::Run()
     cerr << endl << "mu::ParserError: '" << e.GetMsg() << "'"; // for expression '" << e.GetExpr() << "'" << endl;
     return 1;
   }
-  catch(exception& ex)
+  catch(const exception& ex)
   {
-    if(!progOpts->IsQuiet())
-    {
-      cerr << endl << endl
-                << "***********************************************************************"
-                << endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
-                << endl << endl
-                << ex.what() << endl << endl
-                << "***********************************************************************"
-                << endl << endl;
-    }
-    else
-    {
-      cerr << endl << ">> Error: " << ex.what() << endl;
-    }
-
-    cerr.flush();
-
-    // Print error cause to info file
-    if(infoNode != NULL)
-    {
-      PtrParamNode errorNode = infoNode->Get(ParamNode::FAIL);
-      errorNode->SetValue(ex.what());
-      infoNode->Get("status")->SetValue("aborted");
-      infoNode->ToFile();
-    }
-
+    CFS::HandleException(ex);
     return 1;
   }
   catch (...)
@@ -299,6 +276,37 @@ int CFS::Run()
     cerr << "leftover exception caught:" << endl;
     cerr << boost::current_exception_diagnostic_information() << endl;
     return 1;
+  }
+}
+
+
+void CFS::HandleException(const std::exception& ex)
+{
+  // long or brief output?
+  if(progOpts != NULL && !progOpts->IsQuiet())
+  {
+    cerr << endl << endl
+              << "***********************************************************************"
+              << endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
+              << endl << endl
+              << ex.what() << endl << endl
+              << "***********************************************************************"
+              << endl << endl;
+  }
+  else
+  {
+    cerr << endl << ">> Error: " << ex.what() << endl;
+  }
+
+  cerr.flush();
+
+  // Print error cause to info file
+  if(infoNode != NULL)
+  {
+    PtrParamNode errorNode = infoNode->Get(ParamNode::FAIL);
+    errorNode->SetValue(ex.what());
+    infoNode->Get("status")->SetValue("aborted");
+    infoNode->ToFile();
   }
 }
 

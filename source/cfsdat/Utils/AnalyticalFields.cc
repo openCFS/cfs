@@ -132,10 +132,6 @@ void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::V
 //  }
 
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template struct CylinderVortex<2>;
-  template struct CylinderVortex<3>;
-  //void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>&, const CF::Vector<Double>&);
-  //void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>&, const CF::Vector<Double>&);
-#endif
+template struct CylinderVortex<2>;
+template struct CylinderVortex<3>;
 }

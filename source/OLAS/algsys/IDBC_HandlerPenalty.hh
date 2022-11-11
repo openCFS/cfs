@@ -3,7 +3,7 @@
 
 #include <set>
 
-#include <def_expl_templ_inst.hh>
+
 #include "BaseIDBC_Handler.hh"
 
 namespace CoupledField {
@@ -210,9 +210,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "idbchandlerpenalty.cc"
-#endif
 
 #endif

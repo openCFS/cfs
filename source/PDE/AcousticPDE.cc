@@ -39,7 +39,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
-#include <def_expl_templ_inst.hh>
+
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -2580,9 +2580,7 @@ namespace CoupledField{
   }
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string,
-		                                               RegionIdType actRegion, std::string tempId);
-  template void AcousticPDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string,
-		                                               RegionIdType actRegion, std::string tempId);
-#endif
+template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string,
+    RegionIdType actRegion, std::string tempId);
+template void AcousticPDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string,
+    RegionIdType actRegion, std::string tempId);

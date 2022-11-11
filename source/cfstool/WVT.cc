@@ -1883,7 +1883,7 @@ namespace CFSTool {
       intPointsFile_.open(intPointsFileName_, std::ofstream::out | std::ofstream::trunc);
       
       intPointsFile_ << "# vtk DataFile Version 2.0" << std::endl
-                     << "Integration points from CFS++ for STAR-CCM+ Arbitrary Probe" << std::endl
+                     << "Integration points from openCFS for STAR-CCM+ Arbitrary Probe" << std::endl
                      << "ASCII" << std::endl
                      << "DATASET POLYDATA" << std::endl;
       intPointsFilePos_ = intPointsFile_.tellp();

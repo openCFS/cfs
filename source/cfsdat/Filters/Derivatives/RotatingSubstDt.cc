@@ -402,9 +402,8 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
     EXCEPTION("Rotating time derivative filter can only handle mesh results on nodes or elements.")
   }
 }
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void RotatingSubstDt::ExtractCylinderVelocities<2>(CF::PtrParamNode);
-  template void RotatingSubstDt::ExtractCylinderVelocities<3>(CF::PtrParamNode);
-#endif
+
+template void RotatingSubstDt::ExtractCylinderVelocities<2>(CF::PtrParamNode);
+template void RotatingSubstDt::ExtractCylinderVelocities<3>(CF::PtrParamNode);
 
 }

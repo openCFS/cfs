@@ -68,7 +68,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   space_ = space;
 
-  rotationType_ = RotationType::XYZ;
   if(pn->Has("rotationtype"))
     rotationType_ = rotationType.Parse(pn->Get("rotationtype")->As<std::string>());
 
@@ -3769,6 +3768,8 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
 void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis, bool derivative) {
   // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis
 
+  // see https://en.wikipedia.org/wiki/Rotation_matrix
+
   double stheta, ctheta, dx;
   if(!derivative) {
     stheta = sin(theta);
@@ -3818,7 +3819,9 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double 
     R2.Resize(dim, dim);
     R3.Resize(dim, dim);
 
-    int axis1, axis2, axis3;
+    int axis1 = -1;
+    int axis2 = -1;
+    int axis3 = -1;
     switch(rotationType_) {
     case RotationType::ZXZ:
       axis3 = 2;
@@ -3880,12 +3883,9 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double 
       axis2 = 2;
       axis1 = 0;
       break;
-    default:
-      axis3 = 0;
-      axis2 = 1;
-      axis1 = 2;
-      break;
     }
+    assert((axis1 != -1) && (axis2 != -1) && (axis3 =! -1));
+
     SetOneAxisRotationMatrix(R1, theta1, axis1, direction == DesignElement::ROTANGLEFIRST);
     SetOneAxisRotationMatrix(R2, theta2, axis2, direction == DesignElement::ROTANGLESECOND);
     SetOneAxisRotationMatrix(R3, theta3, axis3, direction == DesignElement::ROTANGLETHIRD);

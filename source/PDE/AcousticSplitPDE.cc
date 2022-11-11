@@ -32,7 +32,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
-#include <def_expl_templ_inst.hh>
+
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"

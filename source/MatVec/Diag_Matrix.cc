@@ -246,9 +246,7 @@ namespace CoupledField {
   }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class Diag_Matrix<Double>;
   template class Diag_Matrix<Complex>;
-#endif
   
 }

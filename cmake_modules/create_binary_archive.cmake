@@ -29,7 +29,7 @@ endif(HOSTNAME AND TEST_NAME)
 
 set(CFS_BIN_DIR "${CTEST_BINARY_DIRECTORY}/bin/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}")
 message("  Searching for cfs executables in ${CFS_BIN_DIR}")
-set(CFS_BINARY "${CFS_BIN_DIR}/cfsbin")
+set(CFS_BINARY "${CFS_BIN_DIR}/cfs")
 if(EXISTS "${CFS_BINARY}")
   
   # define which files to keep

@@ -344,8 +344,6 @@ namespace CoupledField {
   }
 
   // Explicit template instantiation
-  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-    template class IDBC_HandlerPenalty<Double>;
-    template class IDBC_HandlerPenalty<Complex>;
-  #endif  
+  template class IDBC_HandlerPenalty<Double>;
+  template class IDBC_HandlerPenalty<Complex>;
 }

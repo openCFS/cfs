@@ -758,7 +758,7 @@ class NrfCommon(object):
     
     analStr = ''
     if 'AnalysisType' in msGroup.attrs.keys():
-      analStr = str(msGroup.attrs['AnalysisType'], 'utf-8')
+      analStr = msGroup.attrs['AnalysisType']
     
     if analStr == 'static' or analStr == 'transient' \
         or analStr == 'harmonic' or analStr == 'eigenFrequency':
@@ -936,7 +936,7 @@ class NrfCommon(object):
       print("ERROR: result %s not contained in result file!" % result)
       return ''
 
-    return self._h5[addrStr][:]
+    return np.array([val.decode('UTF-8') for val in self._h5[addrStr][:]], dtype=object)
 
 
   def getEntitiesForMeshResult(self, step, result):
@@ -961,7 +961,7 @@ class NrfCommon(object):
     if not result in self.getMeshResultsForMultisequenceStep(step):
       return list()
     addrStr = 'Results/Mesh/%s/ResultDescription/%s' % (self._getMultiStepStr(step), result)
-    return self._h5['%s/EntityNames' % addrStr][:]
+    return np.array([val.decode('UTF-8') for val in self._h5['%s/EntityNames' % addrStr][:]], dtype=object)
 
   def getEntitiesForHistoryResult(self, step, result):
     """

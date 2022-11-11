@@ -846,7 +846,7 @@ namespace CoupledField {
         regionId = mi_->AddRegion(std::string(sectionName));
       }
       else {
-        regionId = NO_REGION_ID;
+        regionId = mi_->AddRegion(std::string(sectionName));
         groupElems.Resize(numElems);
       }
       elemOffset = mi_->GetNumElems();

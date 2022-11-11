@@ -43,11 +43,8 @@ SET(CMAKE_ARGS
 )
 
 #intel compiler has problems with emty rpath commands
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_SKIP_RPATH:BOOL=TRUE
-   )
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  SET(CMAKE_ARGS ${CMAKE_ARGS} -DCMAKE_SKIP_RPATH:BOOL=TRUE)
 ENDIF()
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
@@ -73,7 +70,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
@@ -117,20 +114,14 @@ SET(CGNS_LIBRARY
   "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "CGNS library.")
 
-IF(CFS_OS STREQUAL LINUX)
+IF(WIN32)
+  SET(CGNS_SHARED_LIBRARY
+     "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
+ELSE()
   SET(CGNS_SHARED_LIBRARY
     "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
     CACHE FILEPATH "CGNS shared library.")
-ELSE()
-  IF(WIN32)
-    SET(CGNS_SHARED_LIBRARY
-      "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS shared library.")
-  ELSE()
-    SET(CGNS_SHARED_LIBRARY
-      "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS shared library.")
-  ENDIF()
 ENDIF()
 
 SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")

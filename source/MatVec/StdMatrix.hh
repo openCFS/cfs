@@ -500,7 +500,7 @@ namespace CoupledField {
     /*! copies the system matrix from SCRS format into a vector (complex)
       containing all (even all zeros) upper triangle elements
       is called by method GetFullSystemMatrixAsVec in standardsys which 
-      provides an interface to CFS++
+      provides an interface to openCFS
     */
     virtual void CopySCRSMatrix2Vec(Complex* &vec){;};
  

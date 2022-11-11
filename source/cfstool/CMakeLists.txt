@@ -21,8 +21,8 @@ SET(CFSTOOL_SRCS
   cfstool.cc
 )
 
-# Main CFS++ Tool executable target.
-ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
+# Main cfstool executable target.
+ADD_EXECUTABLE(cfstool ${CFSTOOL_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
   driver
@@ -106,19 +106,19 @@ ENDIF(USE_PARDISO)
 
 LIST(APPEND TARGET_LL ${CFS_FORTRAN_DYNRT_LIBS} )
 
-TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
+TARGET_LINK_LIBRARIES(cfstool ${TARGET_LL})
 
 IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
   SET(INTEL_LIB_DIR "${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win")
-  TARGET_LINK_DIRECTORIES(cfstoolbin PUBLIC ${INTEL_LIB_DIR})
+  TARGET_LINK_DIRECTORIES(cfstool PUBLIC ${INTEL_LIB_DIR})
 ENDIF()
 
 SET(CFS_LINK_FLAGS "")
 
-# Even if we did not compile CFS++ itself with OpenMP enabled, we may have
+# Even if we did not compile openCFS itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
-SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
+SET_TARGET_PROPERTIES(cfstool PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

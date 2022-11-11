@@ -4,7 +4,6 @@ SET(PRECOND_SRCS
     generateprecond.cc
     )
 
-IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(PRECOND_SRCS
     ${PRECOND_SRCS}
     IC0Precond.cc
@@ -22,7 +21,6 @@ SET(PRECOND_SRCS
     ILDLPrecond/ildlprecond.cc
     ILDLPrecond/ildltpfactoriser.cc    
     )
-ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(precond-olas STATIC ${PRECOND_SRCS})
 

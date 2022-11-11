@@ -79,10 +79,8 @@ void GenericVecOpFilter<Operator>::AdaptFilterResults(){
 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class GenericVecOpFilter<VecOpFilter::PlusOp>;
-  template class GenericVecOpFilter<VecOpFilter::MultOp>;
-  template class GenericVecOpFilter<VecOpFilter::DivOp>;
-  template class GenericVecOpFilter<VecOpFilter::MinusOp>;
-#endif
+template class GenericVecOpFilter<VecOpFilter::PlusOp>;
+template class GenericVecOpFilter<VecOpFilter::MultOp>;
+template class GenericVecOpFilter<VecOpFilter::DivOp>;
+template class GenericVecOpFilter<VecOpFilter::MinusOp>;
 }

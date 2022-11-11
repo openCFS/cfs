@@ -42,7 +42,7 @@ class mat_converter:
     inroot = tree.getroot()
     if (_clean_ns(inroot.tag) != "cfsMaterialDataBase" or
         _get_ns(inroot.tag) != self.nsmap_old[None]):
-      print("Input file is not an old CFS++ material database", file=sys.stderr, flush=True)
+      print("Input file is not an old openCFS material database", file=sys.stderr, flush=True)
       return 1
     
     outroot = self.E.cfsMaterialDataBase()

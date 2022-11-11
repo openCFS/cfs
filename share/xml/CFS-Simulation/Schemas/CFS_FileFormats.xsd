@@ -122,8 +122,8 @@
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         Original  mesh file  format of  CFS++. Can  be written  by  the mkmesh
-        extension in ANSYS  and the plugin in GiD. Mesh  files are ASCII files
-        and were also supported by CAPA which is the predecessor of CFS++.
+        extension in ANSYS, the plugin in GiD or create_mesh.py. 
+        Mesh  files are ASCII files  and were also supported by CAPA which is the predecessor of CFS++.
       </xsd:documentation>
     </xsd:annotation>
 

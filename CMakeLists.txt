@@ -35,6 +35,12 @@ else()
 # this else part is has no indent and goes for almost 400 lines. Search for PIPELINE_TEST_STAGE_CONFIG
 project(CFS C CXX Fortran) 
 
+# most early identification of detected compilers with their variables to support coding cmake files
+message(STATUS "CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID} CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "CMAKE_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID} CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "CMAKE_Fortran_COMPILER_ID=${CMAKE_Fortran_COMPILER_ID} CMAKE_Fortran_COMPILER_VERSION=${CMAKE_Fortran_COMPILER_VERSION}")
+
+
 # Make sure that output of started programs is in English, so that we can
 # grep for defined messages.
 set(ENV{LC_MESSAGES} "en_EN")
@@ -49,12 +55,12 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "22")
-set(CFS_VERSION_MONTH "03")
+set(CFS_VERSION_MONTH "11")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
 # shall be updated less frequently than VERSION
-set(CFS_NAME "Frohes Fensterln")
+set(CFS_NAME "Welcome World")
 
 colormsg(HIBLUE "Configuration for openCFS ${CFS_VERSION}: ${CFS_NAME} starting")
 
@@ -118,8 +124,6 @@ option(CFS_FSANITIZE "Use -fsanitize to check for memory leaks and general error
 set(CFS_REORDERING ${CFS_REORDERING_DEFAULT} CACHE STRING "Overwrite implementation of default for reordering")
 set_property(CACHE CFS_REORDERING PROPERTY STRINGS default Metis Sloan noReordering)
 
-# Do we want to use explicit or implicit template instantiation
-option(EXPLICIT_TEMPLATE_INSTANTIATION "Use explicit template instantiation." ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 # Do we want to use expression templates
 option(USE_EXPRESSION_TEMPLATES "Use expression templates for matrix and vector operators." ON)
 # Set a sane default value for the openCFS schema path
@@ -132,7 +136,6 @@ option(BUILD_CFSTOOL "Build openCFS converter and testing tool (cfstool)."  ${BU
 option(BUILD_CFSDAT "Build openCFS data analysis tool (cfsdat)."  ${BUILD_CFSDAT_DEFAULT})
 option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TESTS_DEFAULT})
 option(BUILD_HDFVIEW "Build the HDF5 file viewer from the hdf5lib" ${BUILD_HDFVIEW_DEFAULT}) # advanced
-option(BUILD_H5TOOL "Build openCFS own's h5tool" ON) #andvanced
 
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
 option(BUILD_QUADEIGENSOLVER "Build the Quadratic Eigenvalue Solver to linearise the problem, requires another solver for the resulting generalised EVP" ${BUILD_QUADEIGENSOLVER_DEFAULT})
@@ -320,9 +323,7 @@ mark_as_advanced(CFS_REORDERING)
 mark_as_advanced(CMAKE_BUILD_TYPE)
 mark_as_advanced(CMAKE_BACKWARDS_COMPATIBILITY)
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
-mark_as_advanced(EXPLICIT_TEMPLATE_INSTANTIATION)
 mark_as_advanced(BUILD_HDFVIEW)
-mark_as_advanced(BUILD_H5TOOL)
 mark_as_advanced(BUILD_GHOST)
 mark_as_advanced(BUILD_HWLOC)
 mark_as_advanced(BUILD_QUADEIGENSOLVER)
@@ -357,6 +358,11 @@ include("cmake_modules/ConfigureChecks.cmake")
 
 # Set path where shared/static libraries should go. We only have lib64
 set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64 CACHE INTERNAL "Single output directory for building all libraries.")
+
+# set RPATH to a relative path (Linux and theoretically but not pracically macOS)
+# this ensures dynamically linked libraries are found
+# check the set value with `chrpath -l bin/cfs` (Linux) or 'otool -l bin/cfs' (macOS) 
+set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
 # Set path where executables should go
 set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
@@ -406,7 +412,7 @@ if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
     endif()
   endif()
   # set a build name
-  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
   mark_as_advanced(BUILDNAME)
   if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host
@@ -588,7 +594,6 @@ endif(NOT PIPELINE_TEST_STAGE_CONFIG)
 # all copy/configure only targets
 add_subdirectory(share/doc) #building documentation (see 'make help')
 add_subdirectory(share/scripts)
-add_subdirectory(share/mkmesh)
 add_subdirectory(share/xml)
 add_subdirectory(share/xsl)
 add_subdirectory(share/python)

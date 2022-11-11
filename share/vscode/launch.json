@@ -9,7 +9,7 @@
             "name": "selected XML using build-dir-link",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/.vscode/build-dir-link/bin/cfsbin",
+            "program": "${workspaceFolder}/.vscode/build-dir-link/bin/cfs",
             "args": ["-f","-p","${fileBasename}","dbg"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
@@ -26,10 +26,10 @@
         },
         {
             // select yout input XML in the editor, hit run, and enter binary path
-            "name": "selected XML with custom cfsbin",
+            "name": "selected XML with custom cfs",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${input:cfsbin}",
+            "program": "${input:cfs}",
             "args": ["${fileBasenameNoExtension}"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
@@ -47,10 +47,10 @@
     ],
     "inputs": [
         {
-          "id": "cfsbin",
+          "id": "cfs",
           "type": "promptString",
           "description": "specify binary to use for debugging",
-          "default": "${workspaceFolder}/.vscode/build-dir-link/bin/cfsbin"
+          "default": "${workspaceFolder}/.vscode/build-dir-link/bin/cfs"
         }
       ]
 }

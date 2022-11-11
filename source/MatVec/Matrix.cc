@@ -2860,7 +2860,7 @@ namespace CoupledField
     lp_sysVecf77 = new std::complex<double>[size_row_*size_row_];
    
 
-    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
+    // Convert openCFS Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_*bcols; ++count ) {
       lp_rhsVecf77[count] = lp_rhsVec[count];
       }
@@ -2975,7 +2975,7 @@ namespace CoupledField
     double* lp_wf77     = new double[size_row_];
     double* lp_rworkf77 = new double[3*size_row_-2];
       
-    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
+    // Convert openCFS Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_; count++ ) 
       for ( UInt countC = 0; countC <size_row_; countC++ ) {
         lp_af77[countC*size_row_+count] = data_[count][countC];

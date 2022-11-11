@@ -16,12 +16,25 @@ if __name__ == '__main__':
   from matplotlib.ticker import MaxNLocator
   import snopt # our snopt.py helper for process
 
+  # in case we have --dashed we use c_cms_y and c_cms_y2
+  # https://stackoverflow.com/questions/7358118/matplotlib-black-white-colormap-with-dashes-dots-etc
+  # probably to be combined with --black
+  from cycler import cycler
+  color_c = cycler('color', ['k'])
+  markr_c = cycler('marker', ['', '.', 'o'])
+  style_c_y = cycler('linestyle', ['-', '--', ':', '-.'])
+  style_c_y2 = cycler('linestyle', ['-.', ':','--', '-'])
+  c_cms_y = color_c * markr_c * style_c_y
+  c_cms_y2 = color_c * markr_c * style_c_y2
+
 # having two y2-axis we need to handle colors manually, otherwise they repeat
 # https://matplotlib.org/stable/gallery/color/named_colors.html
 # 'gold' has index 13 for y2 axis
+# in case of --black will be replaced below by all 'black'
 colors = ['tab:green','tab:red','tab:purple','tab:blue','tab:orange','black','tab:brown','tab:gray','tab:olive','blue','tab:cyan','tab:pink','cornflowerblue', 
           'gold','peru','blueviolet', 'coral','yellowgreen'] 
 colors += colors # repeat such that it should be really enough
+
 
 # parses the header lines for the first hint on column names.
 # Tries to be smart!!
@@ -163,7 +176,7 @@ def content(body):
   # check for datetime in the first columns and replace in case
   for c in range(min(len(data[0]),3)):
      # ..., 28.03.21,  28.03.2021, 2021-01-04
-    for frmt in ['%Y-%m-%d %H:%M:%S', '%d.%m.%Y %H:%M', '%Y/%m/%d %H:%M:%S','%d.%m.%y', '%d.%m.%Y', '%Y-%m-%d']:
+    for frmt in ['%Y-%m-%d %H:%M:%S', '%d.%m.%Y %H:%M', '%Y/%m/%d %H:%M:%S','%d.%m.%y', '%d.%m.%Y', '%m.%Y', '%Y-%m-%d']:
       if check(frmt, str(data[0][c])):
         for l in data:
           l[c] = datetime.datetime.strptime(l[c], frmt)
@@ -454,10 +467,15 @@ if __name__ == '__main__':
   parser.add_argument("--smooth_window", help="window size of Savitzky–Golay filter", type=int, default = 7)
   parser.add_argument("--smooth_poly", help="polynomial order of Savitzky–Golay filter", type=int, default = 3)
   parser.add_argument("--grad", nargs='*', help="give finite difference gradients, you might want to smooth first")
+  parser.add_argument("--dashed", help="cylce through different line styles. Use with --black for b/w",action='store_true')
+  parser.add_argument("--black", help="change all line colors to black. Use with --dashed",action='store_true')
   parser.add_argument("--save", help='write to given filename using the extension')
   parser.add_argument("--noshow", help='supress popping up the image window', action='store_true')
     
   args = parser.parse_args()
+  
+  if args.black:
+    colors = ['black'] * 20
   
   # array of headers per file
   meta = [] 
@@ -600,8 +618,10 @@ if __name__ == '__main__':
   y  = apply_grad(fiy, y, ylabel, x)
   y2 = apply_grad(fiy2, y2, y2lbl, x)
   z  = apply_grad(fiz, z, zlabel, x)
-        
-        
+  
+  if args.dashed:      
+    plt.rc('axes', prop_cycle=c_cms_y)
+
   # now plot the stuff on potentially in 1D by the y-axis or in 2D/3D (3d=warped)
   fig = None
   ax = None
@@ -618,6 +638,8 @@ if __name__ == '__main__':
         lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=colors[i])) # has only one return
       
     if args.y2:
+      if args.dashed:      
+        plt.rc('axes', prop_cycle=c_cms_y2)
       ax2 = ax.twinx()
       for i in range(len(y2)):
         if fiy2[i] > 0:

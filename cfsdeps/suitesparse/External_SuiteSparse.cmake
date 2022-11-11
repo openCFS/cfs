@@ -45,7 +45,7 @@ SET(CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCMAKE_LINKER:FILEPATH=${CMAKE_LINKER}
-  -DCFS_FORTRAN_COMPILER_NAME=${CFS_FORTRAN_COMPILER_NAME}
+  -DCMAKE_Fortran_COMPILER_ID=${CMAKE_Fortran_COMPILER_ID}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
   )
@@ -74,7 +74,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.

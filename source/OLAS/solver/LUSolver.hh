@@ -1,7 +1,7 @@
 #ifndef LUSOLVER_HH
 #define LUSOLVER_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/CroutLU.hh"
 #include "OLAS/utils/math/IterativeRefinement.hh"
@@ -170,9 +170,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "lusolver.cc"
-#endif
 
 #endif

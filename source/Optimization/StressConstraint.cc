@@ -489,12 +489,9 @@ typename StressConstraint<T>::DKuCache& StressConstraint<T>::GetdKuCache() {
 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class StressConstraint<double> ;
 template class StressConstraint<complex<double> > ;
 template<class T> typename StressConstraint<T>::DKuCache StressConstraint<T>::dKuCache;
-#endif
-
 
 
 }

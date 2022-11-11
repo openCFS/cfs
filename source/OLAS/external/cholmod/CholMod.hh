@@ -1,7 +1,7 @@
 #ifndef CHOLMOD_HH
 #define CHOLMOD_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"

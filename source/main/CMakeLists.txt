@@ -7,10 +7,10 @@ ENDIF(USE_IPOPT)
 # List of source codes for current target.
 SET(CFS_SRCS CFS.cc)
 
-# Main CFS++ executable target.
-ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
+# Main openCFS executable target.
+ADD_EXECUTABLE(cfs ${CFS_SRCS})
 
-# Define a list of libraries CFS++ depends upon. At the moment there
+# Define a list of libraries openCFS depends upon. At the moment there
 # are some nasty circular dependencies which should be resolved in
 # the future (see e.g. pde <-> domain, domain <-> gridcfs !!!)
   
@@ -53,7 +53,7 @@ ENDIF(DEPS_SEQUENTIAL)
 
 SET(CFS_LINK_FLAGS "")
 
-# Even if we did not compile CFS++ itself with OpenMP enabled, we may have
+# Even if we did not compile openCFS itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}  ")
@@ -61,10 +61,10 @@ ENDIF()
 
 IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
   SET(INTEL_LIB_DIR "${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win")
-  TARGET_LINK_DIRECTORIES(cfsbin PUBLIC ${INTEL_LIB_DIR})
+  TARGET_LINK_DIRECTORIES(cfs PUBLIC ${INTEL_LIB_DIR})
 ENDIF()
 
-# Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL})
+# Target link libraries for openCFS executable target.
+TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
 
-SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
+SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

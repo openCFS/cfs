@@ -96,8 +96,6 @@ if(NOT WIN32)
     set(CFS_DISTRO_VER "${REV}")
   endif()
     
-  set(CFS_OS "${OS}")
-  
   # ARCH will be x86_64 or ARM64. E.g. for Apple M1 we can switch from ARM64 to build x86_64
   
   # on macOS we enforce CMAKE_OSX_ARCHITECTURES to the single selected value. 
@@ -143,7 +141,7 @@ else()
   SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
   SET(CFS_FULL_DISTRO_VER "${CMAKE_C_COMPILER_VERSION}")
 
-  SET(CFS_BUILD_DISTRO "${DIST}_${CFS_CXX_COMPILER_NAME}_MSVC${CFS_MSVC_VERSION}_${ARCH}")
+  SET(CFS_BUILD_DISTRO "${DIST}_${CMAKE_CXX_COMPILER_ID}_MSVC${CFS_MSVC_VERSION}_${ARCH}")
 endif()
 
 #message("CFS_DISTRO: ${CFS_DISTRO}")

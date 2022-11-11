@@ -4489,7 +4489,6 @@ namespace CoupledField {
     ncIf->RegisterIntegrator( flux_du1_v2_Context );
   }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&, std::string);
   template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Complex>&, std::string);
   template void SinglePDE::DefineMortarCoupling<2,1>(SolutionType,NcInterfaceInfo&);
@@ -4500,6 +4499,5 @@ namespace CoupledField {
   template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunctionMulti> additionalCoef);
   template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunctionMulti> additionalCoef);
   template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunctionMulti> additionalCoef);
-#endif
 
 } // end of namespace

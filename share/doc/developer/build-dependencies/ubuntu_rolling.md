@@ -1,1 +1,1 @@
-ubuntu_latest.md
+ubuntu.md

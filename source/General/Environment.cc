@@ -6,6 +6,8 @@
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 
+using std::to_string;
+
 namespace CoupledField {
 
   // Define global objects 
@@ -2008,29 +2010,57 @@ namespace CoupledField {
     }
   }
 
-
-
-
-  void SetNumberOfThreads(UInt numThreads){
+  void SetNumberOfThreads(int cfs, bool homogenize, bool quiet)
+  {
+    using std::cout;
 #if defined(_MSC_VER) && (!defined(__INTEL_COMPILER))
-    std::cout << "==================================================================================" << std::endl;
-    std::cout << 
-      "  WARNING:This version of CFS has been compiled using Microsoft C++ compilers." << std::endl;
-    std::cout << "  Due to limited support for OpenMP (Version 2.0), the number of parallel CFS threads is limited to 1." << std::endl;
-    std::cout << 
-      "  The number of CFS threads for this run has been specified to " << numThreads << ", either\n\tby using commandline argument \"-t " << numThreads << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
-    std::cout << 
-      "  Due to these compiler limitations, this has been reset to a single thread." << std::endl;
-    std::cout << 
-      "  Note that the settings for OMP_NUM_THREADS and/or MKL_NUM_THREADS are not involved." << std::endl;
-    std::cout << "==================================================================================" << std::endl;
+    if(!quiet)
+    {
+      cout << "==================================================================================" << std::endl;
+      cout << "  WARNING:This version of openCFS has been compiled using Microsoft C++ compilers." << std::endl;
+      cout << "  Due to limited support for OpenMP (Version 2.0), the number of parallel CFS threads is limited to 1." << std::endl;
+      cout << "  The number of CFS threads for this run has been specified to " << numThreads << ", either\n\tby using commandline argument \"-t " << numThreads << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
+      cout << "  Due to these compiler limitations, this has been reset to a single thread." << std::endl;
+      cout << "  Note that the settings for OMP_NUM_THREADS and/or MKL_NUM_THREADS are not involved." << std::endl;
+      cout << "==================================================================================" << std::endl;
+    }
     CFS_NUM_THREADS=1;
-#else
-    CFS_NUM_THREADS = numThreads;
+#endif
+
+    CFS_NUM_THREADS = cfs; // this is a global int variable
+
+#ifdef USE_OPENMP
+    assert(cfs >= 1); // programOptions has this as fallback
+    // our variables are cfs (command line or CFS_NUM_THREADS) and omp and mkl from environment
+    int omp = getenv("OMP_NUM_THREADS") != NULL ? atoi(getenv("OMP_NUM_THREADS")) : -1;
+    int mkl = getenv("MKL_NUM_THREADS") != NULL ? atoi(getenv("MKL_NUM_THREADS")) : -1;
+
+    // set the threads via environment variables, this is how e.g. the external libs (lis, cholmod, mkl) read it.
+    // note that this change is only for this process and child processes, it does not change the system settings.
+    if(omp <= 0) {
+      omp = cfs; // for later comparison
+      setenv("OMP_NUM_THREADS",to_string(omp).c_str(),1); // libs read it there
+    }
+    if(mkl <= 0) {
+      mkl = cfs;
+      setenv("MKL_NUM_THREADS",to_string(mkl).c_str(),1); // 1 = overwrite but it shall not have been there before
+    }
+
+    // now some hints if OMP and MKL were set to something different than CFS
+    std::string msg = "Hint: openCFS threads (CFS_NUM_THREADS=" + to_string(cfs) + ") differs from ";
+    unsigned int org = msg.size();
+    if(cfs != omp && cfs != mkl)
+      msg+= "OMP_NUM_THREADS=" + to_string(omp) + " and MKL_NUM_THREADS=" + to_string(mkl);
+    if(cfs != omp && cfs == mkl)
+      msg+= "OMP_NUM_THREADS=" + to_string(omp);
+    if(cfs == omp && cfs != mkl)
+      msg+= "MKL_NUM_THREADS=" + to_string(mkl);
+    if(msg.size() != org && !quiet)
+      cout << ">> " << msg << std::endl;
 #endif
   }
 
-}
+} // end of namespace
 
 
 

@@ -80,8 +80,8 @@ def create_symmetry_planes(minima, scale, add_planes):
     # also has a property, transformation matrix, and/or texture map.
     actor_c = vtk.vtkActor()
     actor_c.SetMapper(mapper_c)
-
-    actor_c.GetProperty().SetColor(black)
+    nc = vtk.vtkNamedColors().GetColor3d('black')
+    actor_c.GetProperty().SetColor(nc)
     angle = mini[0]
     phi = angle[0]
     theta = angle[1]
@@ -116,7 +116,8 @@ def create_symmetry_planes(minima, scale, add_planes):
       actor_d = vtk.vtkActor()
       actor_d.SetMapper(mapper_d)
 
-      actor_d.GetProperty().SetColor(banana)
+      nc = vtk.vtkNamedColors().GetColor3d('banana')
+      actor_d.GetProperty().SetColor(nc)
       actor_d.GetProperty().SetOpacity(0.5)
 
       # actor_d.RotateX(angle[0] * 180/numpy.pi)

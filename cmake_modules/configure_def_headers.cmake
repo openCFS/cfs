@@ -147,6 +147,3 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
   "${CFS_BINARY_DIR}/include/def_cfs_stats.hh"
   @ONLY )
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
-  "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"
-  @ONLY )

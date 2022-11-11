@@ -133,7 +133,7 @@ namespace CoupledField {
 
     // write creator
     std::stringstream creator;
-    creator << "CFS++ " << CFS_VERSION << ", " << CFS_NAME << " ( " << CFS_WC_REVISION << " )";
+    creator << "openCFS " << CFS_VERSION << ", " << CFS_NAME << " ( " << CFS_WC_REVISION << " )";
     std::string creatorString = creator.str();
     H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ );
 
@@ -685,7 +685,7 @@ namespace CoupledField {
       fin.close();
     }
 
-    progOpts->GetVersionString( dumpStr, false );
+    progOpts->PrintVersion( dumpStr, false );
     WriteStringToUserData( "ProgramStats", dumpStr.str() );
 
     // Release lock

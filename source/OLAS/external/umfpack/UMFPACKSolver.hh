@@ -211,8 +211,4 @@ namespace CoupledField {
 
 }
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "UMFPACKSolver.cc"
-#endif
-
 #endif

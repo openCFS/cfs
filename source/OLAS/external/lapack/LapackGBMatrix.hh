@@ -7,7 +7,7 @@
 #ifndef OLAS_LAPACKGBMATRIX_HH
 #define OLAS_LAPACKGBMATRIX_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "LapackBaseMatrix.hh"
 #include "MatVec/CRS_Matrix.hh"
@@ -360,9 +360,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "lapackgbmatrix.cc"
-#endif
 
 #endif

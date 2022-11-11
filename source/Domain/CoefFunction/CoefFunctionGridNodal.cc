@@ -12,7 +12,7 @@
  */
 //================================================================================================
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "CoefFunctionGridNodal.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
@@ -812,9 +812,8 @@ template<class DATA_TYPE>
     return true;
   }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+
   template class CoefFunctionGridNodal<Double>;
   template class CoefFunctionGridNodal<Complex>;
-#endif
 
 } // namespace CoupledField

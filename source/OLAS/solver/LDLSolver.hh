@@ -1,7 +1,7 @@
 #ifndef LDLSOLVER_HH
 #define LDLSOLVER_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "OLAS/utils/math/LDLSystemSolve.hh"
 #include "OLAS/utils/math/IterativeRefinement.hh"
@@ -231,9 +231,5 @@ namespace CoupledField {
   };
 
 }
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ldlsolver.cc"
-#endif
 
 #endif

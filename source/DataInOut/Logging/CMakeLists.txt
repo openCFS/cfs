@@ -1,9 +1,5 @@
 SET(LOGGING_SRCS LogConfigurator.cc)
 
-if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER MATCHES "4.4")
-  ADD_DEFINITIONS("-fno-strict-aliasing")
-endif()
-
 SET(TARGET_LL
   paramh
   utils

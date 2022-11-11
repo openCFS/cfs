@@ -5,7 +5,7 @@
 #ifndef OLAS_SSORPRECOND_HH
 #define OLAS_SSORPRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "BasePrecond.hh"
 #include "BNPrecond.hh"
@@ -103,9 +103,5 @@ namespace CoupledField {
   };
 
 }//namespace
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "ssorprecond.cc"
-#endif
 
 #endif // OLAS_SSORPRECOND_HH

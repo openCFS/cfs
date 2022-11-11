@@ -504,7 +504,7 @@ namespace CoupledField {
 
   //! This enumeration data type is used for distinguishing the different
   //! approaches for sampling the frequency domain when performing a
-  //! harmonic analysis with CFS++. The type currently allows the following
+  //! harmonic analysis with openCFS. The type currently allows the following
   //! values
   //! - NO_SAMPLING_TYPE
   //! - LINEAR_SAMPLING
@@ -570,7 +570,7 @@ namespace CoupledField {
 
   //! This macro specifies the maximal number
   //! of different types of Finite-Element matrices that can occur in a
-  //! CFS++/OLAS run, i.e. the number of possible choices from FEMatrixType
+  //! openCFS run, i.e. the number of possible choices from FEMatrixType
   //! besides the NOTYPE value.
   extern unsigned int MAX_NUM_FE_MATRICES;
 

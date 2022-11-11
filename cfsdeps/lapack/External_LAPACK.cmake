@@ -27,7 +27,7 @@ endif()
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
@@ -145,7 +145,7 @@ ELSE()
   SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libblas.a")
   SET(LAPACK_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/liblapack.a")
 
-  IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+  IF(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     LIST(APPEND BLAS_LIB ${CFS_FORTRAN_LIBS})
   ENDIF()
 

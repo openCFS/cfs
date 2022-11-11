@@ -30,6 +30,10 @@ namespace CoupledField
      * To be called also from cfstool.cc */
     static void SetGlobalEnums();
 
+    /** Print exception, also to info.xml.
+     * Export to be used by serial and mpi main */
+    static void HandleException(const std::exception& ex);
+
     /** delete the "global" objects */
     ~CFS();
   private:

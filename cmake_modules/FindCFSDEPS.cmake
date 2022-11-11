@@ -3,7 +3,7 @@
 # Find locations of external binary libs (e.g. MKL) and build additional
 # external libs from source.
 # 
-# This module finds and builds libs that CFS++ depends upon and determines
+# This module finds and builds libs that openCFS depends upon and determines
 # where the include files and libraries are. 
 #  
 # AUTHORS
@@ -35,7 +35,7 @@ SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 # We do not want to see warnings from external projects, since they would
 # show up on CDash.
 #-----------------------------------------------------------------------------
-if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if(NOT CFS_OPT_FLAGS)
     message(STATUS "CFS_OPT_FLAGS not set, check order with compile.cmake")
   endif()
@@ -46,19 +46,19 @@ if(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     set(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
   endif()
 endif()
-if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "FLANG")
-  set(CFSDEPS_Fortran_FLAGS "{CFS_OPT_FLAGS} -w")
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Flang") # not sure if Flang and LLVMFlang is used?!
+  set(CFSDEPS_Fortran_FLAGS "${CFS_OPT_FLAGS} -w")
 endif()  
 
 # TODO: Intel is missing but there is a lot CFSDEPS_ stuff for intel in compiler.cmake
 #message(STATUS "CFS_OPT_FLAGS = ${CFS_OPT_FLAGS}")
 #message(STATUS "CMAKE_COMPILER_IS_GNUCXX = ${CMAKE_COMPILER_IS_GNUCXX}")
-#message(STATUS "CFS_CXX_COMPILER_NAME = ${CFS_CXX_COMPILER_NAME}")
-#message(STATUS "CFS_FORTRAN_COMPILER_NAME = ${CFS_FORTRAN_COMPILER_NAME}")
+#message(STATUS "CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
+#message(STATUS "CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
 #message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
 
 # handle gfortran >= 10.
-if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (NOT ${FC_VERSION} VERSION_LESS 10))
+if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0))
   # was once --std=legacy
   # see https://github.com/Reference-LAPACK/lapack/issues/353
   set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch")
@@ -72,7 +72,7 @@ endif()
 
 #-----------------------------------------------------------------------------
 # On Mac OS X we want to build the external libs for the same SDK and 
-# architecture as CFS++.
+# architecture as openCFS.
 #-----------------------------------------------------------------------------
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
@@ -105,7 +105,7 @@ ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
 IF(NOT CFS_DEPS_CACHE_DIR)
   MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. 
 This dirctory is used to store downloaded sources, 
-which can be reused for other CFS++ builds.
+which can be reused for other openCFS builds.
 This directory may even be located on a network share.")
 ENDIF(NOT CFS_DEPS_CACHE_DIR)
 
@@ -174,25 +174,22 @@ INCLUDE("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
 # Build bzip2 library
 #-------------------------------------------------------------------------------
 SET(BZIP2_URL "${CFS_DS_SOURCES_DIR}/bzip2")
-SET(BZIP2_VER "1.0.6")
+SET(BZIP2_VER "1.0.8")
 SET(BZIP2_GZ "bzip2-${BZIP2_VER}.tar.gz")
-SET(BZIP2_MD5 "00b516f4704d4a7cb50a1d97e6e8e15b")
+SET(BZIP2_MD5 "67e051268d0c475ea773822f7500d0e5")
 
 INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
-  IF(APPLE)
-    SET(HDF5_VER "1.8.17")
-    SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203") # 1.8.17
-  ELSE()
-    SET(HDF5_VER "1.8.12")
-    SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
-  ENDIF()
+# Note that newer versions require rather new cmakes:
+# 3.10 for 1.8.21 and 3.12 for 1.8.22
+set(HDF5_VER "1.8.20")
+set(HDF5_MD5 "23078d57975903e9536d1e7b299cc39c") 
   
-  SET(HDF5_BZ2 "hdf5-${HDF5_VER}.tar.bz2")
-  INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
+set(HDF5_BZ2 "hdf5-${HDF5_VER}.tar.bz2")
+include("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for CGNS library
@@ -304,11 +301,6 @@ ENDIF()
 #-----------------------------------------------------------------------------
 # TODO: skip ILUPACK_PARALLEL, it makes not really sense
 IF(USE_ILUPACK_PARALLEL)
-  #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
-  IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
-   ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
-    MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
-  ENDIF()
   # TODO: For intel compilers still one needs to figure out the proper compiler versions
 # 
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
@@ -437,7 +429,7 @@ IF(USE_CGAL)
 
   SET(CGAL_URL "${CFS_DS_SOURCES_DIR}/cgal")
   SET(CGAL_VER "4.9.1")
-  SET(CGAL_BZ2 "CGAL-${CGAL_VER}.tar.bz2")
+  SET(CGAL_BZ2 "CGAL-${CGAL_VER}.tar.xz")
   SET(CGAL_MD5 "820ef17ffa7ed87af6cc9918a961d966")
   INCLUDE("${CFSDEPS_DIR}/cgal/External_CGAL.cmake")
 ENDIF(USE_CGAL)

@@ -18,7 +18,7 @@ def get_nodes(hdf5_file, name):
 
 # get nodes for the elements of a region. 
 # corresponds to <nodeList><nodes name="mine"><allNodesInRegion regName="reg"/>.. in <domain>
-def get_nodes_in_region(hdf5_file, reg_name):
+def get_nodes_in_region(hdf5_file, name):
   if type(hdf5_file) == str:
     hdf5_file = h5py.File(hdf5_file,'r')
     
@@ -325,7 +325,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     Parameters
     ----------
     hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
+        openCFS hdf5 data file
     result: string 
         specifies the results to return: e.g. 'accuPressure','mechDisplacement',...
     region: string 
@@ -360,7 +360,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
             steps=[last_h5_step(hdf5_file,multistep)]
         elif step=='all' :
             steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)][:]
-        elif type(step)==int :
+        elif type(step) in [int, np.int64] :
             steps=[step]
         elif hasattr(step, '__iter__') :
             steps=step
@@ -391,6 +391,230 @@ def get_all_results(hdf5_file,region=None,step='last',multistep=1):
     res[name] = get_result(hdf5_file,name,region,step,multistep)
 
   return res
+  
+  
+def get_n_results(hdf5_files, multisteps, steps, results='all', regions='all'):
+
+    '''
+    Reads N datasets and provides them in an ND-array.
+
+    The data can be from N (compatible) hdf5_files, multisteps and steps.
+    By default, attempt to read all results on all regions, returend in a nested dictionary.
+
+    Parameters
+    ----------
+    hdf5_files: h5py.File, string or list with length N of those
+        Defines the CFS hdf5 data file(s) to read from.
+    multisteps: integer or list with length N of integers
+        Defines the multistep(s) to read data from.
+        The multistep refers to the corresponding file (same list index).
+    steps: integer or list with length N of integers
+        Defines the steps to read data from.
+        The step-data of the corresponding multistep (same list index) is used.
+    results: string or list
+        string or list of strings specifying e.g. ['mechDisplacement', 'acouPressure',...] 
+        Use 'all' to read all available results.
+    regions: string or list
+        string or list of strings specifying desired regions.
+        Use 'all' for all regions (the result is defined on).
+
+    Returns
+    -------
+    out: dictionary of desired data, e.g. {result:{region: data[N,...]}}
+         The data-arrays contained in the dictionaries have as first dimension N, 
+         the last dimensions are the original data dimensions.
+
+    Example
+    -------
+    For a single hdf5 file, get all steps in multistep 1
+    >>> steps = get_step_values(Oscillator)[0]
+
+    As fileinput you can use an open h5py.File (file will stay open):
+    >>> get_n_results(Oscillator, multisteps=1, steps=[i+1 for i in range(len(steps))]) # doctest: +ELLIPSIS
+    {'mechDisplacement': {'surf': array([[[ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652265e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652266e-01j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336322e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336321e-01j]]])}}
+
+    A string as input for hdf5_files also works (opens and clodes the file) 
+    >>> h5string = 'TESTSUIT/Solver/quadraticEigenSolver/1dOscillator_eigenValue_firstCompanion/1dOscillator_eigenValue_firstCompanion.h5ref'
+    >>> get_n_results(h5string, multisteps=1, steps=[i+1 for i in range(len(steps))]) # doctest: +ELLIPSIS
+    {'mechDisplacement': {'surf': array([[[ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652265e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652266e-01j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336322e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336321e-01j]]])}}
+
+    For a single hdf5 file you can also get designated data from mutistep/step pairs. 
+    >>> test = get_n_results(Oscillator, multisteps=[1,1], steps=[1,2])
+    >>> test # doctest: +ELLIPSIS
+    {'mechDisplacement': {'surf': array([[[ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652265e-01j],
+               ...
+            [ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652266e-01j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336322e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336321e-01j]]])}}
+
+    You can also combine results from multiple compatible hdf5 files (here we use the same)
+    >>> get_n_results([Oscillator, Oscillator], multisteps=[1,1], steps=[1,2]) # doctest: +ELLIPSIS
+    {'mechDisplacement': {'surf': array([[[ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652265e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652266e-01j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336322e-01j],
+              ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336321e-01j]]])}}
+
+    When reading 1D results (e.g. acouPressure) the shape of the stored arrays is different (2D instead of 3D).
+    >>> get_n_results(ComplexMat,multisteps=[1,1],steps=[1,2])["acouPressure"]["damp"].shape
+    (2, 294)
+
+    The return data (ND-arrays) can be used to efficiently compute linear combinations, e.g. if the data represents
+    oscillations modes and the combination factor modal coordinates.
+    This can be done by numpy.einsum: It finds the necessary multiplication and addition to transform the two input arrays
+    with their respective dimensions into an output array with defined dimensions.
+    The dimensions have to be named with letters. Syntax: '(input array 1 dims),(input array 2 dims)->(desired output dims)'
+
+    >>> from numpy import einsum
+    >>> from numpy import array
+    
+    >>> modes = test['mechDisplacement']['surf']
+    >>> modes.shape
+    (2, 4, 2)
+
+    The modes array is of the shape (N, original-data-dims).
+
+    >>> modes # doctest: +ELLIPSIS
+    array([[[ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652265e-01j],
+             ...
+            [ 0.00000000e+00+0.00000000e+00j,
+              7.66995677e-01+6.41652266e-01j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336322e-01j],
+             ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -9.82295831e-01-1.87336321e-01j]]])
+    
+    N modal contribution factors - array of length N:
+    >>> eta1 = array([1,2])
+    
+    N modal contribution factors for F frequencies - (F x N) array:
+    >>> eta2 = array([[1,2], [3,4], [5,6]])
+
+    n...modal contribution factors
+    r...modes rows (e.g. nodes)
+    c...modes columns (e.g. DoF)
+    f...frequencies
+
+    >>> U1 = einsum('nrc,n->rc', modes, eta1)
+    >>> U1 # doctest: +ELLIPSIS
+    array([[ 0.00000000e+00+0.00000000e+00j, -1.19759598e+00+2.66979620e-01j],
+           ...
+           [ 0.00000000e+00+0.00000000e+00j, -1.19759599e+00+2.66979624e-01j]])
+    
+    >>> U2 = einsum('nrc,fn->frc', modes, eta2)
+    >>> U2 # doctest: +ELLIPSIS
+    array([[[ 0.00000000e+00+0.00000000e+00j,
+             -1.19759598e+00+2.66979620e-01j],
+            ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -1.19759599e+00+2.66979624e-01j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -1.62819629e+00+1.17561150e+00j],
+            ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -1.62819629e+00+1.17561151e+00j]],
+           [[ 0.00000000e+00+0.00000000e+00j,
+             -2.05879660e+00+2.08424339e+00j],
+            ...
+            [ 0.00000000e+00+0.00000000e+00j,
+             -2.05879660e+00+2.08424340e+00j]]])
+    '''
+
+
+    from h5py import File
+    from collections.abc import Iterable
+
+    # 1) all iterables must have the same length
+    lengths = [len(arg) for arg in [hdf5_files,multisteps,steps] if isinstance(arg,Iterable) and (type(arg) not in [str, h5py._hl.files.File])]
+    if len(lengths) > 0:
+        assert lengths.count(lengths[0]) == len(lengths), f"input iterables for hdf5_files,multisteps,steps must have the same lengths"+str(lengths)
+        N = lengths[0]
+    else:
+        N = 1
+    # 2) convert multisteps+steps inputs to iterables
+    if not isinstance(multisteps,Iterable):
+        multisteps = N*[multisteps]
+    if not isinstance(steps,Iterable):
+        steps = N*[steps]
+    # 3) deal with files
+    openedIndex = [] # list of index of opened files
+    uniqueFiles = [] # list of unique files in order of first occurence
+    if type(hdf5_files) == str: # open once
+        uniqueFiles.append(hdf5_files)
+        openedIndex.append(0)
+        h5f = h5py.File(hdf5_files,'r')
+        hdf5_files = [h5f]*N # create a list of the same open file
+    elif type(hdf5_files) == h5py._hl.files.File: # convert to length-N list 
+        hdf5_files = [hdf5_files]*N
+    else: # it's a (possibly mixed) iterable
+        assert isinstance(hdf5_files,Iterable), f"hdf5_files must be of type str, h5py.File or Iterable"
+        for n in range(len(hdf5_files)):
+            if type(hdf5_files[n])==str: # we need to open it
+                if hdf5_files[n] not in uniqueFiles: # open the file
+                    uniqueFiles.append(hdf5_files[n])
+                    openedIndex.append(n) # remember which files were opened by function
+                    hdf5_files[n] = h5py.File(hdf5_files[n],'r')
+                else: # it's open already
+                    m = uniqueFiles.index(hdf5_files[n]) # find index of first time string appears in original list
+                    hdf5_files[n] = hdf5_files[m]
+    # 4) deal with 'all' for results
+    if results == 'all':
+        results = list(hdf5_files[0][f'Results/Mesh/MultiStep_{multisteps[0]}/Step_{steps[0]}'].keys())
+    elif type(results) == str :
+        results = [results]
+    # 5) setup result dictionary and deal with 'all' in regions
+    ret = dict((result,None) for result in results)
+    for result,regs in ret.items():
+        if regions == 'all':
+            reglist = list(hdf5_files[0][f'Results/Mesh/MultiStep_{multisteps[0]}/Step_{steps[0]}/{result}'].keys())
+        elif type(regions) == str :
+            reglist = [regions]
+        else :
+            reglist = regions
+        for region in reglist:
+            data0 = get_result(hdf5_files[0], result, region=region, step=steps[0], multistep=multisteps[0])
+            # allocate by the shape of the original data adding one dimension with depth N
+            ret[result] = {region:np.zeros([N]+list(data0.shape),dtype=data0.dtype)}
+            # set first data since we have it already
+            ret[result][region][0,...] = data0
+            # now read the rest
+            for n in range(1,N):
+                ret[result][region][n,...] = get_result(hdf5_files[n], result, region=region, step=steps[n], multistep=multisteps[n])
+    # 6) close files opened by function
+    for oi in openedIndex:
+        hdf5_files[oi].close()
+    # return        
+    return ret
 
 def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     """
@@ -399,7 +623,7 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     Parameters
     ----------
     hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
+        openCFS hdf5 data file
     region : string
         region name
     sugregion : string
@@ -445,7 +669,7 @@ def get_coordinates(hdf5_file,region=None) :
   Parameters
   ----------
   hdf5_file : h5py.File or str
-      CFS++ hdf5 data file
+      openCFS hdf5 data file
   region : string, optional
       region name for a subset of coordinates
 
@@ -499,7 +723,7 @@ def get_centroids(hdf5_file,region=None) :
     Parameters
     ----------
     hdf5_file : h5py.File or str
-        CFS++ hdf5 data file
+        openCFS hdf5 data file
     region : string, optional
         region name for a subset of elements
 
@@ -561,6 +785,8 @@ if __name__ == "__main__":
     # should load from TESTSUITE_DIR
     Plate3D = h5py.File('TESTSUIT/Singlefield/Mechanics/Plate3D/Plate3D.h5ref','r')
     dampedEV2D = h5py.File('TESTSUIT/Singlefield/Mechanics/dampedEV2D/dampedEV2D.h5ref','r')
+    ComplexMat = h5py.File('TESTSUIT/Singlefield/Acoustics/ComplexMat/ComplexMat.h5ref','r')
+    Oscillator = h5py.File('TESTSUIT/Solver/quadraticEigenSolver/1dOscillator_eigenValue_firstCompanion/1dOscillator_eigenValue_firstCompanion.h5ref', 'r')
 
     # finally run doctest
     import doctest

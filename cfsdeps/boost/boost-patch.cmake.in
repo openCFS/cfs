@@ -8,8 +8,8 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
-SET(CFS_CXX_COMPILER_VER "@CFS_CXX_COMPILER_VER@")
+SET(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
+SET(CMAKE_CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@")
 SET(WIN32 "@WIN32@")
 SET(MSVC "@MSVC@")
 
@@ -22,11 +22,11 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 # Apply some patches.
 #=============================================================================
 IF(WIN32)
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     SET(patches
       "boost-win-icc-alternative-tokens.patch"
     )
-    IF(CFS_CXX_COMPILER_VER GREATER_EQUAL 20.1)
+    IF(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20.1)
       SET(patches
         "boost-win-icc-alternative-tokens.patch"
         "boost-win-icc-oneApi.patch"

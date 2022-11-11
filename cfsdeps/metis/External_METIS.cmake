@@ -14,7 +14,7 @@ set(metis_source  "${metis_prefix}/src/metis")
 set(metis_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 set(metis_c_flags ${CFS_SUPPRESSIONS})
-if(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   set(metis_c_flags "-Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
 endif()
 
@@ -47,7 +47,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.

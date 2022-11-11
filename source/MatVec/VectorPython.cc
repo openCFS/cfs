@@ -56,11 +56,9 @@ void Vector<T>::Export(PyObject* obj)
     *((T*) PyArray_GETPTR1(pao,i)) = data_[i];
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class Vector<Double>;
-  template class Vector<Complex>;
-  template class Vector<Integer>;
-  template class Vector<UInt>;
-#endif
+template class Vector<Double>;
+template class Vector<Complex>;
+template class Vector<Integer>;
+template class Vector<UInt>;
 
 } // end of name space

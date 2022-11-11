@@ -82,7 +82,7 @@ IF(MSVC)
   MKL_VERSION_FROM_HEADER()
   set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include" CACHE PATH "mkl include dir")
   
-  if(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
     set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win" CACHE PATH "here we assume the mkl libs")
   else()
     set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64" CACHE PATH "here we assume the mkl libs")
@@ -96,7 +96,7 @@ IF(MSVC)
     ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
     ${MKL_LIB_DIR}/mkl_core_dll.lib
   )
-  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
     SET(MKL_BLAS_LIB 
       ${MKL_BLAS_LIB}
       ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
@@ -116,7 +116,7 @@ IF(MSVC)
     ${MKL_LIB_DIR}/mkl_core.lib
     ${MKL_LIB_DIR}/mkl_sequential.lib
   )
-  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
     SET(DEPS_SEQUENTIAL
       ${DEPS_SEQUENTIAL}
       ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
@@ -136,7 +136,7 @@ IF(MSVC)
   SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
   
   # redistributable directory
-  IF(CFS_CXX_COMPILER_VER LESS_EQUAL 19.1)
+  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
     SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
   ELSE()
     SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/redist/intel64/")
@@ -289,7 +289,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   # regarting the correct Fortran interface library (libmkl_gf_lp64):
   # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
   set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_gf_lp64.a")
-  if(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     message(STATUS "Unsing intel Fortran compiler: use libmkl_intel_lp64.a")
     set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_intel_lp64.a")
   endif()

@@ -900,7 +900,7 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(domain && info_) // we have no domain in the cfstoolbin case
+    if(domain && info_) // we have no domain in the cfstool case
     {
       ToInfo(info_->Get(ParamNode::HEADER)->Get("domain"));
 

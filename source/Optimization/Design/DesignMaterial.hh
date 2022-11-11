@@ -56,7 +56,12 @@ public:
     /** Method used for interpolation of material tensor and volume */
     typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
 
-    /** Types of rotation, the strings are read from the xml file */
+    /** Types of rotation, the strings are read from the xml file
+     * The order of application is read from right to left, hence the default xyz means that
+      we rotate first around z, then y and finally araound x.
+      We apply conventions of extrinsic rotation, see
+      https://en.wikipedia.org/wiki/Euler_angles#Conventions_by_extrinsic_rotations
+      The formats ABA are Euler angles, the format ABC are Tait–Bryan angles (Kardanwinkel in German) */
     typedef enum { ZXZ, ZYZ, YZY, YXY, XYX, XZX, XYZ, YXZ, XZY, ZXY, ZYX, YZX } RotationType;
 
     /** constructor, reads in DesignMaterial from XML
@@ -114,13 +119,15 @@ public:
 
     Interpolation GetInterpolationMethod() const { return interpolation_; };
 
-    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative.
+     * The order of rations is determined by rotationType_
      *  in 3d: rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
      *  in 2d: rotates the material by ROTANGLE or rx
      *  rotation is always mathematically positive, i.e. counterclockwise
      * @param mt Material Tensor which is rotated in place (or the derivative is calculated in place)
      * @param direction if one of ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
      * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
+     * @see rotationType_
      */
     void RotateTensor(MaterialTensor<double>& mt, DesignElement::Type direction, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
 
@@ -291,11 +298,11 @@ private:
     /** put the entries of the isotropic matrix at the "right" places */
     void SetIsoMatrix(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
 
-    // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis (default x)
-    void SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis = 0, bool derivative = false);
+    // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis
+    void SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis, bool derivative = false);
 
     /** helper function to set a rotation matrix of size 3x3
-     * rotation axes ares given by rotationType (default XYZ, i.e. first z, then y, then x)
+     * rotation axes ares given by rotationType_ (default XYZ, i.e. first z, then y, then x)
      * @param R the place to set the rotation matrix
      * @theta1 angle for rotation around first axis
      * @theta2 angle for rotation around second axis
@@ -363,7 +370,7 @@ private:
 
     /** what convention for order of rotations we use (xyz, ...) */
     static Enum<RotationType> rotationType;
-    RotationType rotationType_;
+    RotationType rotationType_ = RotationType::XYZ; // first around z, then y, finally x
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */

@@ -402,25 +402,16 @@ ENDMACRO()
 # Also check PRECOMPILED_ZIP_NOBUILD, it might be more appropriate
 # ------------------------------------------------------------------------------
 MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  # there is complex issue with ifort. On Thumbeweed we have
-  # FC_VERSION=16.0 20150815, CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
-  # With Ubuntu it seems to depend on the version. E.g. CMAKE_Fortran_COMPILER_VERSION is not set but FC_VERSION w/o space ?!
-  # anyway we make sure we have no spaces
-  # with gfortran both variables have the same value (e.g. 5.2.0) 
-  # use our own variable
+  # there is complex issue with ifort. On Ubuntu there was the case CMAKE_Fortran_COMPILER_VERSION is not set?!
 
+  # use our own variable
   IF(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
-    SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
+    message(WARNING "Fortran compiler version not recognised (by CMake)")
+    SET(Fortran_COMPILER_VERSION "?")
   ENDIF()
-  STRING(REPLACE " " "." Fortran_COMPILER_VERSION ${Fortran_COMPILER_VERSION})
 
-  # MESSAGE("PCZ: CFS_ARCH_STR = ${CFS_ARCH_STR}")
-  # MESSAGE("PCZ: CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
-  # MESSAGE("PCZ: CMAKE_CXX_COMPILER_VERSION = ${CMAKE_CXX_COMPILER_VERSION}")
-  # MESSAGE("PCZ: CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
-  
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
   ELSE()
@@ -431,12 +422,12 @@ ENDMACRO()
 
 # don't add Release or Debug when the package is built independently
 MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  # see PRECOMPILED_ZIP
   IF(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
-    SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
+    SET(Fortran_COMPILER_VERSION "?")
   ENDIF()
-  STRING(REPLACE " " "." Fortran_COMPILER_VERSION ${Fortran_COMPILER_VERSION})  
 
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")

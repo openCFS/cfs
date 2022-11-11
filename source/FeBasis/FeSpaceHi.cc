@@ -2,7 +2,7 @@
 
 #include "FeHi.hh"
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -787,17 +787,13 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
 
 } // end of namespace
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void FeSpaceHi::
-  MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
-                                 shared_ptr<CoefFunction>,
-                                 shared_ptr<BaseFeFunction> feFct,
-                                 std::map <Integer, Double>&,
-                                 bool,const std::set<UInt>&);
-  template void FeSpaceHi::
-  MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
-                                 shared_ptr<CoefFunction>,
-                                 shared_ptr<BaseFeFunction> feFct,
-                                 std::map <Integer, Complex>&,
-                                 bool,const std::set<UInt>&);
-#endif
+template void FeSpaceHi::MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
+    shared_ptr<CoefFunction>,
+    shared_ptr<BaseFeFunction> feFct,
+    std::map <Integer, Double>&,
+    bool,const std::set<UInt>&);
+template void FeSpaceHi::MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
+    shared_ptr<CoefFunction>,
+    shared_ptr<BaseFeFunction> feFct,
+    std::map <Integer, Complex>&,
+    bool,const std::set<UInt>&);

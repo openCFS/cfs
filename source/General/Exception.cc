@@ -54,7 +54,7 @@ namespace CoupledField {
         ostream << "\n" << msg_;
 
         if( fileName_ != "" && fileName_ != "NO_FILENAME") {
-            ostream << "\nIn file '" << fileName_ << "'";
+            ostream << "\n\nIn file '" << fileName_ << "'";
         }
         
         if( lineNum_ != 0 ) {

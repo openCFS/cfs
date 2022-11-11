@@ -20,14 +20,14 @@ SET(CFS_FORTRAN_LIBS "")
 # Lets find the runtime libraries of gfortran. This branch should be taken
 # on most Linuxes and MacOS.
 #-----------------------------------------------------------------------------
-if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
   # message(STATUS "GNU Fortran")
   #---------------------------------------------------------------------------
   # On Unix we may encounter the situation, that we have Intel as Fortran
   # compiler but some system libs depend on GFortran. Therefore, we assume,
   # that the system GFortran compiler is on the PATH and is named gfortran.
   #---------------------------------------------------------------------------
-  if(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+  if(NOT CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     set(GFORTRAN_EXECUTABLE "gfortran")
   else()
     set(GFORTRAN_EXECUTABLE "${CMAKE_Fortran_COMPILER}")
@@ -116,8 +116,8 @@ if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
     # both libs are found
     list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
     
-    # clang on macOS complains about -static-libgfortran"
-    if(NOT(APPLE AND CFS_CXX_COMPILER_NAME STREQUAL "CLANG"))
+    # clang complains about -static-libgfortran"
+    if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
       list(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
     endif()  
   else()
@@ -133,12 +133,12 @@ if(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
     endif()
   endif()
   set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "") # disable dynamic linking of gfortran and quadmath caused by this variable
-endif(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+endif(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
 
 #-----------------------------------------------------------------------------
 # Lets find the runtime libraries of the Intel Fortran compiler.
 #-----------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   message(STATUS "Intel Fortran compiler")
   #---------------------------------------------------------------------------
   # Search explicitely for implicitely defined Fortran libs
@@ -178,12 +178,12 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
       endif()
     endif()
   endforeach()
-ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+endif() # Intel
 
 # support for the Open64 Fortran compiler removed. Check svn version 15997
 #==============================================================================
 # Create a header file include/def_cfs_fortran_interface.hh with the correct
-# mangling for the Fortran routines called in CFS++.
+# mangling for the Fortran routines called in openCFS.
 # 
 # How LAPACK library enables Microsoft Visual Studio support with CMake
 # and LAPACKE:

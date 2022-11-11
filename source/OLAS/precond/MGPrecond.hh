@@ -108,8 +108,5 @@ class MGPrecond : public BNPrecond< MGPrecond<T>, StdMatrix, T >
 /**********************************************************/
 } // namespace CoupledField
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "MGPrecond.cc"
-#endif
 
 #endif // OLAS_MGPRECOND_HH

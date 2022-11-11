@@ -55,8 +55,10 @@ private:
   /** name of the mandatory evaluation function, Called with a list of coordinates */
   std::string function_;
 
+#ifdef USE_EMBEDDED_PYTHON
   /** function object to be repeatedly called */
   PyObject* eval_ = NULL;
+#endif
 };
 
 

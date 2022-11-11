@@ -1,3 +1,0 @@
-// Do we want to use explicit or implicit template instantiation
-
-#cmakedefine EXPLICIT_TEMPLATE_INSTANTIATION

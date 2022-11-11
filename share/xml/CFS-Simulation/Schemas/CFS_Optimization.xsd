@@ -3086,6 +3086,14 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="rotationtype" use="optional" default="xyz">
+      <xsd:annotation>
+        <xsd:documentation>The order of application is read from right to left, hence the default xyz means that
+      we rotate first around z, then y and finally araound x. 
+      We apply conventions of extrinsic rotation, see
+      https://en.wikipedia.org/wiki/Euler_angles#Conventions_by_extrinsic_rotations  
+      The formats ABA are Euler angles, the format ABC are Tait–Bryan angles (Kardanwinkel in German) 
+        </xsd:documentation>
+      </xsd:annotation>
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="zxz" />

@@ -478,7 +478,7 @@ int ignore_me;
       }
       if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",keyword);
 
-      if ((feof(gmvin) != 0) | (ferror(gmvin) != 0)) iend = 1;
+      if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0)) iend = 1;
 
       /*  If comments keyword, read through comments,  */
       /*  then read and proces next keyword.           */
@@ -491,7 +491,7 @@ int ignore_me;
           *(keyword+8)=(char)0;
         }
         if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",keyword);
-        if ((feof(gmvin) != 0) | (ferror(gmvin) != 0)) iend = 1;
+        if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0)) iend = 1;
       }
 
       if (strncmp(keyword,"endgmv",6) == 0)
@@ -847,7 +847,7 @@ int ignore_me;
       if(fscanf(gmvin,"%d",&iarray[i]) == 0)
         return i;
 
-      if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+      if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
       {
         EXCEPTION("I/O error while reading gmv input file.");
         gmv_data.keyword = GMVERROR;
@@ -871,7 +871,7 @@ int ignore_me;
       if(fscanf(gmvin,"%ld",&iarray[i]) == 0)
         return i;
 
-      if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+      if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
       {
         EXCEPTION("I/O error while reading gmv input file.");
         gmv_data.keyword = GMVERROR;
@@ -895,7 +895,7 @@ int ignore_me;
       if(fscanf(gmvin,"%lf",&farray[i]) == 0)
         return i;
 
-      if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+      if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
       {
         EXCEPTION("I/O error while reading gmv input file.");
         gmv_data.keyword = GMVERROR;
@@ -915,7 +915,7 @@ int ignore_me;
     {
       binread(ckeyword, charsize, CHAR, (long)8, gmvin);
 
-      if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+      if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
         return (-1);
 
       *(ckeyword+8)=(char)0;
@@ -1522,7 +1522,7 @@ int ignore_me;
       }
     }
 
-    if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+    if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
     {
       EXCEPTION("I/O error while reading nodes.");
       gmv_data.keyword = GMVERROR;
@@ -1750,7 +1750,7 @@ int ignore_me;
       return;
     }
 
-    if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+    if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
     {
       EXCEPTION("I/O error while reading cells.");
       gmv_data.keyword = GMVERROR;
@@ -1945,7 +1945,7 @@ int ignore_me;
       }
       if (ftype == ASCII) rdlongs(lcellnodenos,(long)ndat,gmvin);
 
-      if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+      if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
       {
         EXCEPTION("I/O error while reading cells.");
         gmv_data.keyword = GMVERROR;
@@ -2056,7 +2056,7 @@ int ignore_me;
       ioerrtst(gmvin);
     }
 
-    if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+    if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
     {
       EXCEPTION("I/O error while reading faces.");
       gmv_data.keyword = GMVERROR;
@@ -2179,7 +2179,7 @@ int ignore_me;
       ioerrtst(gmvin);
     }
 
-    if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+    if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
     {
       EXCEPTION("I/O error while reading faces.");
       gmv_data.keyword = GMVERROR;
@@ -3719,7 +3719,7 @@ int ignore_me;
     }
     if (ftype == ASCII) rdlongs(vertsin,(long)nverts,gmvin);
 
-    if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+    if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
     {
       EXCEPTION("I/O error while reading surfaces.");
       gmv_data.keyword = GMVERROR;
@@ -4654,7 +4654,7 @@ int ignore_me;
     /*  Test input file for eof and error.  */
     /*                                      */
 
-    if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
+    if ((feof(gmvin) != 0) ||  (ferror(gmvin) != 0))
     {
       EXCEPTION("I/O error while reading gmv input file.");
 
@@ -6817,7 +6817,7 @@ int ioerrtst2(FILE * gmvrayin)
   /*  Test input file for eof and error.  */
   /*                                      */
 
-  if ((feof(gmvrayin) != 0) | (ferror(gmvrayin) != 0))
+  if ((feof(gmvrayin) != 0) || (ferror(gmvrayin) != 0))
   {
     EXCEPTION("I/O error while reading gmv ray input file.");
     gmvray_data.nvars = -1;
@@ -6850,7 +6850,7 @@ void gmvrayread_data()
     }
     if (ftype == ASCII) ignore_me = fscanf(gmvrayin,"%s",keyword);
 
-    if ((feof(gmvrayin) != 0) | (ferror(gmvrayin) != 0)) iend = 1;
+    if ((feof(gmvrayin) != 0) || (ferror(gmvrayin) != 0)) iend = 1;
 
     if (strncmp(keyword,"endray",6) == 0)
     {
@@ -7161,7 +7161,7 @@ void readrays(FILE* gmvrayin, int ftype)
   }
   gmvray_data.gmvrays = gmvrays;
 
-  if ((feof(gmvrayin) != 0) | (ferror(gmvrayin) != 0))
+  if ((feof(gmvrayin) != 0) || (ferror(gmvrayin) != 0))
   {
     EXCEPTION("I/O error while reading rays.");
     gmvray_data.nvars = -1;

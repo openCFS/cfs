@@ -496,8 +496,6 @@ std::string DesignDependentRHS::ToString(int level)
 }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template bool DesignDependentRHS::Init<double>(DesignSpace* design, App::Type app);
 template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, App::Type app);
 template bool DesignDependentRHS::Init<double>(std::string excite_label, App::Type my_app);
-#endif

@@ -308,9 +308,7 @@ void CholMod<T>::SetEnums()
 }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class CholMod<Double> ;
 template class CholMod<Complex> ;
-#endif
 
 }

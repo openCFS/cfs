@@ -1110,7 +1110,7 @@ namespace CoupledField {
       fprintf( fp, "%%\n%% %s\n%%\n", comment.c_str() );
     }
     else {
-      fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
+      fprintf( fp, "%%\n%% Matrix exported by openCFS\n%%\n" );
     }
 
     // Information on number of rows, columns and entries
@@ -2164,29 +2164,21 @@ namespace CoupledField {
 
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CRS_Matrix<Double>;
   template class CRS_Matrix<Complex>;
 #ifdef MSVC
   template void CRS_Matrix<Double>::Mult(const Vector<Double>&, Vector<Double>&) const;
-//  template void CRS_Matrix<Double>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Complex>::Mult(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Double>::MultT(const Vector<Double>&, Vector<Double>&) const;
-//  template void CRS_Matrix<Double>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Complex>::MultT(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Double>::MultAdd(const Vector<Double>&, Vector<Double>&) const;
-//  template void CRS_Matrix<Double>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Complex>::MultAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Double>::MultTAdd(const Vector<Double>&, Vector<Double>&) const;
-//  template void CRS_Matrix<Double>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Complex>::MultTAdd(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Double>::MultSub(const Vector<Double>&, Vector<Double>&) const;
-//  template void CRS_Matrix<Double>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Complex>::MultSub(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Double>::MultTSub(const Vector<Double>&, Vector<Double>&) const;
-//  template void CRS_Matrix<Double>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
   template void CRS_Matrix<Complex>::MultTSub(const Vector<Complex>&, Vector<Complex>&) const;
-#endif
 #endif
 
 }

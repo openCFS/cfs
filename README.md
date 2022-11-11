@@ -3,7 +3,7 @@ openCFS
 
 Multiphysics and more based on the finite element method:
 openCFS (Coupled Field Simulation) is a finite element-based multi-physics modelling and simulation tool.
-With about 20 years of research driven development, the core of openCFS is used in scientific research and industrial application.
+With about 20 years of research-driven development, the core of openCFS is used in scientific research and industrial application.
 The modelling strategy focuses on physical fields and their respective couplings.
 
 openCFS is under **[MIT License](LICENSE)**. You may use, distribute and copy it under the license terms.
@@ -19,10 +19,10 @@ For building you need
 * some additional dependencies depending on the build configuration.
 
 There are installation instructions for required dependencies for
-[Ubuntu](share/doc/developer/build-dependencies/ubuntu_latest.md), 
-[Debian](share/doc/developer/build-dependencies/debian_latest.md),  
-[Centos](share/doc/developer/build-dependencies/centos_latest.md) and
-[Fedora](share/doc/developer/build-dependencies/fedora_latest.md).
+[Ubuntu](share/doc/developer/build-dependencies/ubuntu.md), 
+[Debian](share/doc/developer/build-dependencies/debian.md),  
+[Fedora](share/doc/developer/build-dependencies/fedora.md) and
+[Red Hat Enterprise Linux (RHEL) and derivatives](share/doc/developer/build-dependencies/rhel.md).
 They are regularly tested on the newest releases using [docker containers](share/docker/README.md), via our CI/CD [pipeline](.gitlab-ci.yml). 
 
 We use CMake so it might be as simple as
@@ -37,7 +37,7 @@ To get started be sure to visit the [wiki](https://gitlab.com/openCFS/cfs/-/wiki
 Running
 ------------
 
-After a successful build you can execute
+After a successful build, you can execute
 ```shell
 ./bin/cfs
 ```

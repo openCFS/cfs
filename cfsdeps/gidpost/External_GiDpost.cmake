@@ -12,7 +12,7 @@ set(gidpost_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/gidpost")
 set(gidpost_source  "${gidpost_prefix}/src/gidpost")
 set(gidpost_install  "${CFS_BINARY_DIR}")
 
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   SET(GIDPOST_C_FLAGS "-DINTEL_COMPILER ${CFSDEPS_C_FLAGS}")
 ELSE()
   SET(GIDPOST_C_FLAGS "-DgFortran ${CFSDEPS_C_FLAGS}")
@@ -64,7 +64,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
+# number of the FTP server on the openCFS development server  may not be
 # accessible from behind firewalls.
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.

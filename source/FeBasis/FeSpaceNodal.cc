@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include "FeSpaceNodal.hh"
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "FeNodal.hh"
 #include "H1/H1ElemsLagVar.hh"
@@ -311,7 +311,6 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
 
 } // namespace
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template void FeSpaceNodal::
 MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
                                shared_ptr<CoefFunction>,
@@ -326,4 +325,3 @@ MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
                                 std::map <Integer, Complex>&,
                                 bool,const std::set<UInt>&,
                                 bool updatedGeo);
-#endif

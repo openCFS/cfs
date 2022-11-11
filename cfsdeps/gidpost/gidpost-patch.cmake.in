@@ -9,7 +9,7 @@
 #=============================================================================
 set(gidpost_source  "@gidpost_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -55,7 +55,7 @@ SET(patches
   # Make sure GiDpost gets installed to the correct location.
   "gidpost-install.patch"
 
-  # Make sure GiDpost can find all CFS++ Fortran libs for linking its
+  # Make sure GiDpost can find all openCFS Fortran libs for linking its
   # Fortran example.
   "gidpost-fortran.patch"
 

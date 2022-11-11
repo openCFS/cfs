@@ -9,7 +9,7 @@
 #=============================================================================
 SET(suitesparse_source "@suitesparse_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
+SET(CMAKE_Fortran_COMPILER_ID "@CMAKE_Fortran_COMPILER_ID@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -23,7 +23,7 @@ SET(patches
   # Patch for adding basic CMake support to SuiteSparse
   # http://www.zeuux.com/group/scipython/bbs/content/52045/
   "suitesparse-cmake.patch"
-  # Patch for adding CFS++ specifics to CMake for SuiteSparse
+  # Patch for adding openCFS specifics to CMake for SuiteSparse
   "suitesparse-cmake-for-cfs.patch"
   # Patch for automatically detecting proper Fortran name mangling for BLAS
   "suitesparse-fortran-iface.patch"

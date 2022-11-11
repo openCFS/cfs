@@ -97,7 +97,6 @@ namespace CoupledField {
   }
 
   // explicit template instantiation
-#if defined(EXPLICIT_TEMPLATE_INSTANTIATION) || defined(__GNUC__)
   template void SimOutput::
   FillGlobalVec<Double>(Vector<Double>& gSol, 
                         const StdVector<shared_ptr<BaseResult> > & solList,
@@ -106,5 +105,4 @@ namespace CoupledField {
   FillGlobalVec<Complex>(Vector<Complex>& gSol, 
                          const StdVector<shared_ptr<BaseResult> > & solList,
                          ResultInfo::EntityUnknownType entityType );
-#endif
 }

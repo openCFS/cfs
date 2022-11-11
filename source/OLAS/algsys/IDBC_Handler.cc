@@ -633,9 +633,7 @@ namespace CoupledField {
 
   
   // Explicit template instantiation
-  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-    template class IDBC_Handler<Double>;
-    template class IDBC_Handler<Complex>;
-  #endif
+  template class IDBC_Handler<Double>;
+  template class IDBC_Handler<Complex>;
   
 }

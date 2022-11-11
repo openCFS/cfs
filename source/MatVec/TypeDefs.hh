@@ -6,7 +6,7 @@
 //! of matrices and vectors with block entries.
 
 #include <string>
-#include <def_expl_templ_inst.hh>
+
 #include "General/defs.hh"
 
 namespace CoupledField {

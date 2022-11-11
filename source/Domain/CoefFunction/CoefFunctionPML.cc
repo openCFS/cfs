@@ -12,7 +12,7 @@
  */
 //================================================================================================
 
-#include <def_expl_templ_inst.hh>
+
 
 #include "CoefFunctionPML.hh"
 
@@ -530,10 +530,8 @@ void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped&
 }
 
 // Explicit template instantiation
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class CoefFunctionPML<Double>;
-  template class CoefFunctionPML<Complex>;
-  template class CoefFunctionShiftedPML<Double>;
-  template class CoefFunctionShiftedPML<Complex>;
-#endif
+template class CoefFunctionPML<Double>;
+template class CoefFunctionPML<Complex>;
+template class CoefFunctionShiftedPML<Double>;
+template class CoefFunctionShiftedPML<Complex>;
 }

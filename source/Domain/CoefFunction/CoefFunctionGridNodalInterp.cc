@@ -12,7 +12,7 @@
  */
 //================================================================================================
 
-#include <def_expl_templ_inst.hh>
+
 
 #include <fstream>
 #include <algorithm>
@@ -802,9 +802,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdV
   }
 }
 
-#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class CoefFunctionGridNodalInterp<Double>;
-  template class CoefFunctionGridNodalInterp<Complex>;
-#endif
+template class CoefFunctionGridNodalInterp<Double>;
+template class CoefFunctionGridNodalInterp<Complex>;
 
 } // namespace CoupledField
