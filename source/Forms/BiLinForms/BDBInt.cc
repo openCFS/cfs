@@ -45,6 +45,7 @@ namespace CoupledField{
       dData_ = dData;
       factor_ = factor;
       isSolDependent_ = dData->GetDependency() == CoefFunction::SOLUTION;
+      isTimeFrequencyDependent_ = dData->IsTimeFrequencyDependent();
   }
 
   //! Destructor

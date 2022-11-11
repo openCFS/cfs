@@ -47,6 +47,7 @@ class BiLinearForm : public CfsCopyable{
         isNewtonBilinearForm_ = false;
         isSymmetric_ = false;
         isSolDependent_ = false;
+        isTimeFrequencyDependent_ = false;
 
         useVolEqnA_ = false;
         useVolEqnB_ = false;
@@ -76,6 +77,7 @@ class BiLinearForm : public CfsCopyable{
         this->ptFeSpace2_ = right.ptFeSpace2_;
         this->intScheme_ = right.intScheme_;
         this->isSolDependent_ = false;
+        this->isTimeFrequencyDependent_ = false;
 
         this->useVolEqnA_ = right.useVolEqnA_;
         this->useVolEqnB_ = right.useVolEqnB_;
@@ -129,6 +131,9 @@ class BiLinearForm : public CfsCopyable{
       
       //! Return if element matrix is solution dependent
       virtual bool IsSolDependent() = 0;
+
+      //! Return, if bilinear form is dependent on time or frequency (by coefFunction)
+      bool IsTimeFrequencyDependent() {return isTimeFrequencyDependent_;}
       
       //! Return if bilinearform uses updated Lagrangian formulation
       bool IsCoordUpdate() { return coordUpdate_; }
@@ -205,6 +210,9 @@ class BiLinearForm : public CfsCopyable{
 
       //!depends on the solution
       bool isSolDependent_;
+
+      //!depends on thime or frequency (by time or frequency dependent coefFunction)
+      bool isTimeFrequencyDependent_;
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace1_;
