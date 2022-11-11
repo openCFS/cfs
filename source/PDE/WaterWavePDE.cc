@@ -324,6 +324,7 @@ namespace CoupledField{
       // standard stiffness integrator
       // ====================================================================
       BaseBDBInt * stiffInt = NULL;
+      FEMatrixType stiffnessMatrixType = NOTYPE;
       // if we have a transform defined on the region we need to use scaled operators
       if(transformFctList_[actRegion]){
           LOG_TRACE(waterWavepde) << "transform on region '"<<regionName<<"'\n";
@@ -349,6 +350,7 @@ namespace CoupledField{
                   stiffInt->SetBCoefFunctionOpB(coeffTransVec);
               }
           }
+          stiffnessMatrixType = STIFFNESS_UPDATE; // since the entries are frequency dependent 
       }
       // use the standard operators
       else {
@@ -357,11 +359,12 @@ namespace CoupledField{
           } else {
               stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 1.0, updatedGeo_ );
           }
+          stiffnessMatrixType = STIFFNESS; // since the entries are constant
       }
 
       stiffInt->SetName("LaplaceIntegrator");
-
-      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
+      
+      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, stiffnessMatrixType );
 
       feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
 
