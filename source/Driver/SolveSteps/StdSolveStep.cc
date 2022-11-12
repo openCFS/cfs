@@ -1415,11 +1415,7 @@ namespace CoupledField {
     assemble_->AssembleLinRHS();
 
     assemble_->AssembleMatrices( ); // this assembles to MASS and STIFFNESS including the omega factors already in the harmonic case. See Matrix2Harmonic
-    PDE_.SetBCs();
     
-    // store rhs vector back to PDE
-    algsys_->GetRHSVal( rhsVec_ );
-
     // This is here since its introduction by Andi Hueppe in 2014
     // it could assemble the the effective system matrix from MASS, DAMPING and STIFFNESS
     // however, currently it dows nothing ???
@@ -1437,6 +1433,12 @@ namespace CoupledField {
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,-omega*omega) );
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS_UPDATE,-omega*omega) );
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors );
+
+    PDE_.SetBCs();
+
+    // store rhs vector back to PDE
+    algsys_->GetRHSVal( rhsVec_ );
+
     algsys_->ExportLinSys(true,false,false);
 
     // Check if the AMG-framework is used (if so, we have
