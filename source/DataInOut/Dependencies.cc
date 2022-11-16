@@ -84,20 +84,6 @@
 
 #ifdef USE_CGNS
 #include <cgnslib.h>
-// The NO_ERROR and NO_DATA symbols are defined in some windows headers:
-// and conflict with ADF headers...
-#define CFS_DUMMY_NO_ERROR NO_ERROR
-#define CFS_DUMMY_NO_DATA NO_DATA
-#undef NO_ERROR
-#undef NO_DATA
-#include <adf/ADF.h>
-#include <adfh/ADFH.h>
-#undef NO_ERROR
-#undef NO_DATA
-#define NO_ERROR CFS_DUMMY_NO_ERROR
-#define NO_DATA CFS_DUMMY_NO_DATA
-#undef CFS_DUMMY_NO_ERROR
-#undef CFS_DUMMY_NO_DATA
 #endif
 
 #ifdef USE_EMBEDDED_PYTHON
@@ -399,16 +385,6 @@ void Dependencies::ReadSetting()
 #ifdef USE_CGNS
   cgns.SetVersion(CGNS_VERSION/1000, (CGNS_VERSION%1000)/100, (CGNS_VERSION%100)/10);
   ss.clear();
-#if defined(CGNS_COMPATVERSION)
-  ss << "CGNS_COMPATVERSION="<< (CGNS_COMPATVERSION/1000) << "." << ((CGNS_COMPATVERSION%1000)/100) << ((CGNS_COMPATVERSION%100)/10) << " ";
-#endif
-  char version[1024];
-  int error_return = 0;
-  ADF_Library_Version(version, &error_return);
-  ss << "ADF_VERSION=" << version << " ";
-  ADFH_Library_Version(version, &error_return);
-  ss << "ADFH_VERSION=" << version;
-  cgns.comment == ss.str();
 #endif
   data.Push_back(cgns);
 

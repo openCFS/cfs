@@ -20,26 +20,24 @@ set(cgns_source  "${cgns_prefix}/src/cgns")
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${cgns_install}
+  # CMAKE_INSTALL_LIBDIR is ignored (4.3.0), hence we need to patch
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  -DCGNS_BUILD_CGNSTOOLS:BOOL=OFF # handles only cgnstools, we remove tools by patch
+  -DCGNS_BUILD_SHARED:BOOL=OFF
+  -DCGNS_BUILD_TESTING:BOOL=OFF
+  -DCGNS_ENABLE_64BIT:BOOL=OFF
+  -DCGNS_ENABLE_BASE_SCOPE:BOOL=OFF
+  -DCGNS_ENABLE_FORTRAN:BOOL=OFF
   -DCGNS_ENABLE_HDF5:BOOL=ON
-  -DCGNS_ENABLE_LEGACY:BOOL=ON
-  -DENABLE_64BIT:BOOL=OFF
-  -DENABLE_TESTS:BOOL=OFF
-  -DHDF5_INCLUDE_PATH:PATH=${cgns_install}/include
-  -DHDF5_LIBRARY:FILEPATH=${HDF5_SHARED_LIBRARY}
-  -DHDF5_NEED_ZLIB:BOOL=ON
-  -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
-  -DCGNS_BUILD_SHARED:BOOL=ON
+  -DCGNS_ENABLE_TESTS:BOOL=OFF
   -DCGNS_USE_SHARED:BOOL=OFF
-  -DBUILD_CGNSTOOLS:BOOL=OFF
+  # we have no hdf5 lib and include dir but need hdf5-config.cmake
+  -DHDF5_DIR:FILEPATH=${CMAKE_CURRENT_BINARY_DIR}/share/cmake # for hdf5-config.cmake
   # We do not want to see warning messages from external projects
   -DCMAKE_C_FLAGS:STRING=${CFLAGS}
-  -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
 #intel compiler has problems with emty rpath commands
@@ -58,12 +56,6 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
   )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
-
 SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgns/cgns-patch.cmake.in")
 SET(PFN "${cgns_prefix}/cgns-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
@@ -76,7 +68,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "https://github.com/CGNS/CGNS/archive/${CGNS_GZ}"
+  "https://github.com/CGNS/CGNS/archive/refs/tags/${CGNS_GZ}"
   "${CFS_DS_SOURCES_DIR}/cgns/${CGNS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
@@ -91,8 +83,6 @@ CONFIGURE_FILE(
 
 #copy license
 file(COPY "${CFS_SOURCE_DIR}/cfsdeps/cgns/license/" DESTINATION "${CFS_BINARY_DIR}/license/cgns" )
-
-
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "cgns" "${CGNS_VER}")  
   
@@ -114,21 +104,10 @@ SET(CGNS_LIBRARY
   "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "CGNS library.")
 
-IF(WIN32)
-  SET(CGNS_SHARED_LIBRARY
-     "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS shared library.")
-ELSE()
-  SET(CGNS_SHARED_LIBRARY
-    "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
-    CACHE FILEPATH "CGNS shared library.")
-ENDIF()
-
 SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")
 
 MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)
 MARK_AS_ADVANCED(CGNS_LIBRARY)
-MARK_AS_ADVANCED(CGNS_SHARED_LIBRARY)
 
 #-------------------------------------------------------------------------------
 # The CGNS external project
@@ -145,7 +124,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${CGNS_LIBRARY} ${CGNS_SHARED_LIBRARY}
+    BUILD_BYPRODUCTS ${CGNS_LIBRARY}
   )
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
@@ -161,7 +140,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     LIST_SEPARATOR ,
     CMAKE_ARGS
       ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${CGNS_LIBRARY} ${CGNS_SHARED_LIBRARY}
+    BUILD_BYPRODUCTS ${CGNS_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -191,7 +170,4 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  cgns
-)
+set(CFSDEPS ${CFSDEPS} cgns)

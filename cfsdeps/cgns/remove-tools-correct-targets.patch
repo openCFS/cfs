@@ -1,0 +1,31 @@
+--- src/CMakeLists-org.txt	2022-11-16 14:53:25.000000000 +0100
++++ src/CMakeLists.txt	2022-11-16 14:51:00.000000000 +0100
+@@ -682,8 +682,8 @@
+ # for windows, need to install both cgnsdll.dll and cgnsdll.lib
+ install (TARGETS ${install_targets}
+          EXPORT cgns-targets
+-         LIBRARY DESTINATION lib COMPONENT libraries
+-         ARCHIVE DESTINATION lib COMPONENT libraries
++         LIBRARY DESTINATION lib64 COMPONENT libraries
++         ARCHIVE DESTINATION lib64 COMPONENT libraries
+          RUNTIME DESTINATION bin COMPONENT libraries
+          INCLUDES DESTINATION include)
+ 
+@@ -730,7 +730,7 @@
+ install(EXPORT cgns-targets
+ 	FILE cgns-targets.cmake
+ 	NAMESPACE CGNS::
+-	DESTINATION lib/cmake/cgns
++	DESTINATION share/cmake/cgns
+ 	)
+ #endif()
+ 
+@@ -738,7 +738,7 @@
+ # Tools #
+ #########
+ 
+-add_subdirectory(tools)
++# add_subdirectory(tools)
+ 
+ #########
+ # Tests #
