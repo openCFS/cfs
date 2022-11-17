@@ -303,13 +303,6 @@ ubuntu:20.04:
     IMAGE: "ubuntu"
     TAG: "20.04"
 
-ubuntu:18.04:
-  extends: .platform:image
-  image: ubuntu:18.04
-  variables:
-    IMAGE: "ubuntu"
-    TAG: "18.04"
-
 # debian releases, see https://hub.docker.com/_/debian
 # latest stable release (dynamic image name)
 debian:latest:
