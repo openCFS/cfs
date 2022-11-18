@@ -139,18 +139,28 @@ namespace CoupledField {
     	heatToFlowDescr->SetFeFunctions( flowFct, heatFct );
     	heatToFlowDescr->SetCounterPart(false);
 
-		assemble_->AddBiLinearForm( heatToFlowDescr );
+			assemble_->AddBiLinearForm( heatToFlowDescr );
 
     	// bilinear form for coupling from flow to heat: coefThermalExpansion*refTemp \frac{\partial p_\ra}{\partial t}
     	// The coefficient "ThermalExpansion*refTemp" is necessary for a general fluid.
-		// For an ideal gas: ThermalExpansion*refTemp = 1
-        PtrCoefFct coefThermalExpansionT  = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
-    	BiLinearForm *flowToHeat = NULL;
-    	if( dim_ == 2 ) {
-    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefThermalExpansionT, -1.0 );
-    	} else {
-    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefThermalExpansionT, -1.0 );
-    	}
+			// For an ideal gas: ThermalExpansion*refTemp = 1
+			// In case the coupling is symmetric the coefficent function is divied by refTemp
+			BiLinearForm *flowToHeat = NULL;
+			if (isCouplingFormulationSymmetric_) {
+				if( dim_ == 2 ) {
+					flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefThermalExpansion, -1.0 );
+				} else {
+					flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefThermalExpansion, -1.0 );
+				}
+			} else {
+				PtrCoefFct coefThermalExpansionT  = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
+				if( dim_ == 2 ) {
+					flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefThermalExpansionT, -1.0 );
+				} else {
+					flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefThermalExpansionT, -1.0 );
+				}
+			}
+
     	heatToFlow->SetName("LinFlowToHeatCoupling");
 
     	BiLinFormContext * flowToHeatDescr = new BiLinFormContext(flowToHeat, DAMPING );
@@ -159,7 +169,7 @@ namespace CoupledField {
     	flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
     	flowToHeatDescr->SetCounterPart(false);
 
-		assemble_->AddBiLinearForm( flowToHeatDescr );
+			assemble_->AddBiLinearForm( flowToHeatDescr );
     }
   }
 }
