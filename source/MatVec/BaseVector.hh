@@ -62,6 +62,17 @@ namespace CoupledField {
                          BaseMatrix::OutputFormat format = 
                            BaseMatrix::MATRIX_MARKET ) const = 0;
 
+    /** Import ascii file to vector
+     * This method can be used to import the vector from an ascii file.
+     * Only MatrixMarket formated ascii files can be imported.
+     * Information about the MatrixMarket format can be found here:
+     * https://math.nist.gov/MatrixMarket/formats.html
+     */
+    virtual void Import(const std::string& fname)
+    {
+      EXCEPTION( "Class not implemented by derived class" );
+    }
+
     //! Add vec to this vector
     virtual void Add(const BaseVector& vec) = 0;
 

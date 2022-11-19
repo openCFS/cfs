@@ -689,7 +689,131 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                         EXTERNAL_SOLVER Solver                == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
 
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for EXTERNAL_SOLVER Solvers -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="externalSolver" type="DT_externalSolver" substitutionGroup="SolverBasic"/>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of data types for EXTERNAL_SOLVER Solvers -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_externalSolver">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Specifies if the output of the external Solver is shown in the terminal.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="cmd" type="xsd:string" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Contains the command, with which the programm of the external solver will be executed. In case of a python programm which solves the linear system
+                it could be look like 'python solve.py'. Additional arguments can be specified in the xml-element 'arguments'(Optional), the order of the arguments 
+                in the command matches with the order in the xml-file.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="arguments" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Additional arguments for the external solver. The order in the command will be the same as in the xml file. Possible arguments:
+                'arg', 'timeFreq' (maxOccurs = 1), 'matrixFileName' (maxOccurs = 1), 'rhsFileName' (maxOccurs = 1), 'solutionFileName' (maxOccurs = 1)
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                <xsd:element name="arg" type="xsd:string" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Add additional arguments as a string to the solver, e.g. '-s'.
+                      This element can occur multiple times.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="step" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      If this element appears the current step number of the transient/harmonic analysis will be added to the command line.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType/>
+                </xsd:element>
+                <xsd:element name="timeFreq" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      If this element appears the current time or frequency value of the transient/harmonic analysis step will be added to the command line as a decimal number with 6 digits after the comma.
+                      In the attribute "formatString" the format of the output time/frequency can be set, with format specifier, see: https://en.cppreference.com/w/cpp/io/c/fprintf.
+                      Note, that the time/frequency has the datatype of a double.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:attribute name="formatString" type="xsd:string" use="optional"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="matrixFileName" type="xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Specifies the name of the exported matrix-file. Note, '.mtx' will be appended to the given name. The default name is: 
+                      JOB_mat_MultiSequenceStepNumber_StepNumber, e.g.resulting in myjob_mat_1_2.mat for the second step of the first sequencs-step of job myjob.
+                      Information about the matrix markt format: https://math.nist.gov/MatrixMarket/formats.html
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="rhsFileName" type="xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Specifies the name of the exported right-hand-side-vector-file. Note, '.mtx' will be appended to the given name. The default name is: 
+                      JOB_rhs_MultiSequenceStepNumber_StepNumber, e.g.resulting in myjob_rhs_1_2.mat for the second step of the first sequencs-step of job myjob.
+                      Information about the matrix markt format: https://math.nist.gov/MatrixMarket/formats.html
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="solutionFileName" type="xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Specifies the name of the created solution-file which will be imported into CFS, the file has to be in matrix-market-format. 
+                      Note, '.mtx' will be appended to the given name. The default name is: JOB_sol_MultiSequenceStepNumber_StepNumber, e.g.resulting in myjob_sol_1_2.mat for the second step of the first sequencs-step of job myjob.
+                      Information about the matrix markt format: https://math.nist.gov/MatrixMarket/formats.html
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+            <!-- Making sure the filenames appear only once -->
+            <xsd:unique name="unique-matrixFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:matrixFileName"/>
+            </xsd:unique>
+            <xsd:unique name="unique-rhsFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:rhsFileName"/>
+            </xsd:unique>
+            <xsd:unique name="unique-solutionFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:rhsFileName"/>
+            </xsd:unique>
+          </xsd:element>
+          <xsd:element name="deleteFiles" type="DT_CFSBool" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>
+                Specifies if the created files should be deleted after the solution has been read by CFS. The default value is true.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->

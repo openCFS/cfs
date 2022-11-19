@@ -15,6 +15,7 @@ SET(SOLVER_SRCS
     LUSolver.cc
     MINRESSolver.cc
     RichardsonSolver.cc
+    ExternalSolver.cc
     )
 
 if(USE_SUPERLU AND USE_ARPACK)

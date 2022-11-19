@@ -33,7 +33,8 @@ namespace CoupledField {
     EnumTuple( BaseSolver::LIS, "lis"),
     EnumTuple( BaseSolver::PETSC, "petsc"),
     EnumTuple( BaseSolver::SUPERLU, "superlu" ),
-    EnumTuple( BaseSolver::PHIST, "phist_linSolv")
+    EnumTuple( BaseSolver::PHIST, "phist_linSolv"),
+    EnumTuple( BaseSolver::EXTERNAL_SOLVER, "externalSolver")
 
   };
 

@@ -1088,6 +1088,153 @@ namespace CoupledField {
     }
   }
 
+  // ********************
+  //   Import vector
+  // ********************
+  template<typename T>
+  void Vector<T>::Import(const std::string& fname)
+  {
+    // Determine expected entry Type of the imported file
+    std::string matrixType;
+    if(GetEntryType() == BaseMatrix::DOUBLE)
+      matrixType = "real";
+    else if(GetEntryType() == BaseMatrix::COMPLEX)
+      matrixType = "complex";
+    else
+      EXCEPTION( "Entry Type of the Matrix is not supported by the Import Method" );
+
+    //adding the ending to the fileName
+    std::stringstream sstr;
+    sstr << fname << ".mtx";
+    // open input file
+    FILE *fp = fopen( sstr.str().c_str(), "r" );
+    if(fp == NULL)
+    {
+      EXCEPTION( "Cannot open file '" << fname << "' for reading!" );
+    }
+
+    // Determine the matrix format
+    int lineLength = 1024;
+    char line[lineLength];
+    char fileType[64];
+    char objectType[64];
+    char formatType[64];
+    char firstQualifier[64];
+
+    //reading the header
+    if(fgets( line, lineLength, fp) == NULL)
+    {
+      EXCEPTION("The first line of the input file '" << fname << "' could not be read");
+    }
+    if(sscanf(line,"%s %s %s %s",fileType, objectType, formatType, firstQualifier) != 4)
+    {
+      EXCEPTION("The header of the input file '" << fname << "'could not be read properly");
+    }
+
+    //check if the file is of type MatrixMarket format
+    if(std::string(fileType) != "%%MatrixMarket")
+    {
+      EXCEPTION("The Input File '" << fname << "'has not the MatrixMarket format, first line must start with %%MatrixMarket");
+    }
+
+    if(std::string(objectType) != "matrix")
+    {
+      EXCEPTION("Only object type 'matrix' of the MatrixMarket format is supported");
+    }
+
+    //Check if entry Type of the Matrix match with the entry type of the imported matrix
+    if(std::string(firstQualifier) != matrixType)
+    {
+      EXCEPTION("Entry Type does not match the type of the imported file");
+    }
+
+    // Depending on the format type, import the data
+    if(std::string(formatType) == "array")
+    {
+      //skipping the comment section
+      while(fgets( line, lineLength, fp) == "%");
+
+      //Determine the amount of rows and columbs
+      UInt rows;
+      UInt columbs;
+      if(fgets( line, lineLength, fp) == NULL)
+      {
+        EXCEPTION("Error reading input file '" << fname << "'");
+      }
+      if(sscanf(line,"%i %i",&rows,&columbs) != 2)
+      {
+        EXCEPTION("Unable to read the amount of rows and columbs in the input file '" << fname << "'");
+      }
+      if((columbs != 1) || (rows != size_))
+      {
+        EXCEPTION("Input Matrix should be a [" << size_ << " x 1] - matrix");
+      }
+      //reading the entries
+      for( UInt i = 0; i < rows; i++)
+      {
+        if(fgets( line, lineLength, fp) == NULL)
+        {
+          EXCEPTION("Imported File " << fname << " contains not enough entries");
+        }
+        T entry;
+        ReadSingleEntry(&entry,line,false);
+        SetEntry(i,entry);
+      }
+    }
+    else if(std::string(formatType) == "coordinate")
+    {
+      //skipping the comment section
+      while(fgets( line, lineLength, fp) == "%");
+
+      //Determine the amount of rows, columbs and non-zero entries
+      UInt rows;
+      UInt columbs;
+      UInt nonZero;
+      if(fgets( line, lineLength, fp) == NULL)
+      {
+        EXCEPTION("Error reading input file '" << fname << "'");
+      }
+      if(sscanf(line,"%i %i %i",&rows,&columbs,&nonZero) != 3)
+      {
+        EXCEPTION("Unable to read the amount of rows and columbs in the input file '" << fname << "'");
+      }
+      if((columbs != 1) || (rows != size_))
+      {
+        EXCEPTION("Input Matrix should be a [" << size_ << " x 1] - matrix");
+      }
+      //Initialize vector
+      Init();
+      //reading the entries
+      for( UInt i = 0; i < nonZero; i++)
+      {
+        UInt row;
+        if(fgets( line, lineLength, fp) == NULL)
+        {
+          EXCEPTION("Imported File " << fname << " contains not enough entries");
+        }
+        if(sscanf(line,"%i %*i",&row) != 1)
+        {
+          EXCEPTION("Couldn't read the row, of the " << i << ". non-zero Entry");
+        }
+
+        T entry;
+        //reading in the entry value
+        ReadSingleEntry(&entry,line,true);
+        // setting the entry row-1 (0-based array) to the entry value
+        SetEntry(row-1,entry);
+      }
+    }
+    else
+    {
+      EXCEPTION("Matrix format is not specified in the Import file");
+    }
+
+    // close input file
+    if(fclose( fp ) == EOF)
+    {
+      WARN("Could not close file '" << fname << "' after reading!");
+    }
+  }
 
   // ********************
   //   ScalarDiv (real)

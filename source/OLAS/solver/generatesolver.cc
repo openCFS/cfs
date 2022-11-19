@@ -54,6 +54,7 @@
 #include "LUSolver.hh"
 #include "LDLSolver.hh"
 #include "DiagSolver.hh"
+#include "ExternalSolver.hh"
 
 // include last as strange stuff can happen with Ilupack.hh due to f2c.h
 #if defined (USE_ILUPACK) || defined (USE_ILUPACK_PARALLEL)
@@ -241,6 +242,19 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       }
     }
     break;
+
+  case BaseSolver::EXTERNAL_SOLVER:
+      if ( eType == BaseMatrix::DOUBLE ) {
+        retSolver = new ExternalSolver<Double>( solverNode, olasInfo );
+        ASSERTMEM( retSolver, sizeof(ExternalSolver<Double>) );
+        LOG_DBG(genSolver) << " GenerateSolver: Generated real " << BaseSolver::solverType.ToString(solver);
+      }
+      else if ( eType == BaseMatrix::COMPLEX ) {
+        retSolver = new ExternalSolver<Complex>( solverNode, olasInfo );
+        ASSERTMEM( retSolver, sizeof(ExternalSolver<Complex>) );
+        LOG_DBG(genSolver) << " GenerateSolver: Generated complex " << BaseSolver::solverType.ToString(solver);
+      }
+      break;
 
   case BaseSolver::PARDISO_SOLVER:
 
@@ -593,6 +607,10 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
 
     case BaseSolver::DIAGSOLVER:
       ret.insert(BaseMatrix::DIAG);
+      break;
+
+    // The external solver should not be limited by the matrix format within cfs
+    case BaseSolver::EXTERNAL_SOLVER:
       break;
 
     default:

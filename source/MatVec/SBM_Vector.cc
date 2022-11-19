@@ -609,7 +609,6 @@ namespace CoupledField {
     }
   }
 
-
   // ********************
   //   ScalarDiv (real)
   // ********************

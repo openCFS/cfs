@@ -546,6 +546,9 @@ template<typename T> class ElemStoreSol;
     //! \f$a_k\f$.
     virtual void Export(const std::string& fname, BaseMatrix::OutputFormat format ) const;
 
+    /** @see BaseVector::Import()*/
+    void Import(const std::string& fname) override;
+
     /** writes the content of the vector to a numpy array which needs to have proper size and type.
      * @see Fill() */
     void Export(PyObject* obj);
