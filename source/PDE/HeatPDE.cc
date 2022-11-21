@@ -74,6 +74,8 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
   
   //! Always use updated Lagrangian formulation 
   updatedGeo_        = true;
+  isLinFlowPDECoupled_ = false;
+  isCouplingFormulationSymmetric_ = false;
 
   interfaceDrivenHeatSource_ = false;
 
@@ -214,6 +216,11 @@ void HeatPDE::DefineIntegrators() {
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[HEAT_TEMPERATURE];
     feFunc->AddEntityList( actSDList );
 
+    // Create coefficient function T_ref to symmetries the system, by dividing the all  biliniear and linear from integrators
+    PtrCoefFct refTemp = nullptr;
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      refTemp  = actSDMat->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+    }
 
     // ====================================================================
     // Take account for mapping of an infinite domain
@@ -254,6 +261,9 @@ void HeatPDE::DefineIntegrators() {
 
       PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
       PtrCoefFct condNL = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY_SCALAR, Global::REAL, heatCoef);
+      if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+        condNL = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, condNL, refTemp, CoefXpr::OP_DIV));
+      }
 
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
@@ -288,6 +298,9 @@ void HeatPDE::DefineIntegrators() {
       // linear stiffness integrator
       // ====================================================================
       shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType_, Global::REAL );
+      if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+        curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, refTemp, CoefXpr::OP_DIV));
+      }
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
       if(domain->HasDesign())
@@ -365,6 +378,10 @@ void HeatPDE::DefineIntegrators() {
       //BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct capNL = actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL, heatCoef );
       PtrCoefFct nlMassCoeff = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, capNL, density, CoefXpr::OP_MULT));
+      //Symmetries the forumlation by divinding with Temp_ref
+      if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+        nlMassCoeff = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, nlMassCoeff, refTemp, CoefXpr::OP_DIV));
+      }
 
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
@@ -390,6 +407,10 @@ void HeatPDE::DefineIntegrators() {
       PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
       PtrCoefFct massFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity, CoefXpr::OP_MULT));
+      if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+        massFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, massFactor, refTemp, CoefXpr::OP_DIV));
+      }
+
       BiLinearForm *massInt = NULL;
       if(dim_ == 2)
         massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0, updatedGeo_ );
@@ -440,6 +461,9 @@ void HeatPDE::DefineIntegrators() {
         heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
       }
       PtrCoefFct velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity, CoefXpr::OP_MULT ) );
+      if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+        velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, velFactor, refTemp, CoefXpr::OP_DIV));
+      }
 
       // Create the integrators
       BaseBDBInt   *convectiveStiff = NULL;
@@ -481,12 +505,19 @@ void HeatPDE::DefineIntegrators() {
   StdVector<shared_ptr<EntityList> > ent;
   StdVector<PtrCoefFct > coef;
   LinearForm * lin = NULL;
+  StdVector<std::string> volumeRegions;
 
   ReadRhsExcitation( "elecPowerDensity", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
     // check type of entitylist
     if (ent[i]->GetType() == EntityList::NODE_LIST) {
-      EXCEPTION("Electric power density must be defined on elements")
+      EXCEPTION("Electric power density must be defined on elements");
+    }
+
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      RegionIdType entRegion = ent[i]->GetRegion();
+      PtrCoefFct refTemp = materials_[entRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coef[i], refTemp, CoefXpr::OP_DIV));
     }
 
     if( dim_ == 2) {
@@ -515,10 +546,25 @@ void HeatPDE::DefineIntegrators() {
   // Heat flux boundary condition
   // ======================================================================
   ReadRhsExcitation( "heatFlux", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+    ReadVolumeRegions("heatFlux", volumeRegions);
+    if( ent.GetSize() != volumeRegions.GetSize()){
+      EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+    }
+  }
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
     // check type of entitylist
     if (ent[i]->GetType() == EntityList::NODE_LIST) {
       EXCEPTION("Heat flux must be defined on elements")
+    }
+
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      if(volumeRegions[i] == ""){
+        EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+      }
+      RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+      PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coef[i], refTemp, CoefXpr::OP_DIV));
     }
 
     if( dim_ == 2) {
@@ -770,6 +816,12 @@ void HeatPDE::HeatTransferBC(){
         std::string volRegName = xml->Get("volumeRegion")->As<std::string>();
         RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
 
+        // Get the reference Temperatur to make the system symmetric
+        PtrCoefFct refTemp = nullptr;
+        if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+          refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+        }
+
         // check if volume region has mapping or PML...should already be catched
         if( dampingList_[volRegion] == MAPPING ){
           EXCEPTION("Infinite mapping and heat transfer BC not yet verified and tested, therefore it's disabled");
@@ -784,6 +836,10 @@ void HeatPDE::HeatTransferBC(){
         PtrCoefFct factor1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
         PtrCoefFct coeffMass = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor1, alphaCoef, CoefXpr::OP_MULT ) );
+        if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+          coeffMass = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffMass, refTemp, CoefXpr::OP_DIV));
+        }
+
         if (coeffMass->IsComplex()) {
           EXCEPTION("HeatPDE: Complex coefficient for mass matrix not implemented");
         } else {
@@ -809,7 +865,9 @@ void HeatPDE::HeatTransferBC(){
         PtrCoefFct factor2 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
         PtrCoefFct bulkTimesAlpha = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, bulkCoef, alphaCoef, CoefXpr::OP_MULT ));
         PtrCoefFct coeffRHS = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor2, bulkTimesAlpha, CoefXpr::OP_MULT ) );
-
+        if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+          coeffRHS = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffRHS, refTemp, CoefXpr::OP_DIV));
+        }
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
         } else  {
@@ -895,6 +953,13 @@ void HeatPDE::ThermalRadiationBC(){
 	  PtrCoefFct T0Coef = CoefFunction::Generate(mp_, Global::REAL, T0);
 	  PtrCoefFct sigmaCoef = CoefFunction::Generate(mp_, Global::REAL, sigma);
 
+    // Get the reference Temperatur to make the system symmetric
+    RegionIdType entRegion = ent[i]->GetRegion();
+    PtrCoefFct refTemp = nullptr;
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      refTemp = materials_[entRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+    }
+
 	  //========================================================================================
 	  // First part of thermal radiation boundary condition  4 * \epsilon \sigma * (T_{k-1})^3 \int_{\Gamma} T' T_k dS
 	  //========================================================================================
@@ -920,6 +985,10 @@ void HeatPDE::ThermalRadiationBC(){
 	  // coefficient function of LHS : 4 * \epsilon \sigma * (T_{k-1})^3
 	  PtrCoefFct coeffLHS = CoefFunction::Generate(mp_, Global::REAL,
 	  				CoefXprBinOp(mp_, TPow3, FourTimesSigmaTimesEpsilon, CoefXpr::OP_MULT));
+    
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      coeffLHS = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffLHS, refTemp, CoefXpr::OP_DIV));
+    }
 
 	  if (dim_ == 2) {
 		thermRadInt = new BBInt<>(new IdentityOperator<FeH1, 2, 1>(),
@@ -957,6 +1026,10 @@ void HeatPDE::ThermalRadiationBC(){
 	  // coefficient function of RHS : \epsilon * \sigma  (3 *T_{k-1}^4 + T0^4)
 	  PtrCoefFct coeffRHS = CoefFunction::Generate(mp_, Global::REAL,
 				CoefXprBinOp(mp_, SigmaTimesEpsilon, ThreeTimesTPow4PlusT0Pow4, CoefXpr::OP_MULT));
+    // Make system symmetric by dividing with the reference Temperature
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      coeffRHS = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffRHS, refTemp, CoefXpr::OP_DIV));
+    }
 	  if (isComplex_) {
 	    lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1>(),
 					Complex(1.0), coeffRHS, coefUpdateGeo);
@@ -993,7 +1066,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
   StdVector<PtrCoefFct > coef;
   LinearForm * lin = NULL;
   StdVector<std::string> dofNames;
-
+  StdVector<std::string> volumeRegions;
     
 
   bool coefUpdateGeo = true;
@@ -1003,6 +1076,13 @@ void HeatPDE::DefineRhsLoadIntegrators() {
   LOG_DBG(heatcondpde) << "Reading heat source density";
 
   ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo );
+  if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+    ReadVolumeRegions("heatSourceDensity", volumeRegions);
+    if( ent.GetSize() != volumeRegions.GetSize()){
+      EXCEPTION("If the system matrix should symmetric, for every heatSourceDensity a volumeRegion has to be specified.");
+    }
+  }
+  
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
     // check type of entitylist
     if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -1010,6 +1090,15 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     }
     EntityIterator it = ent[i]->GetIterator();
     it.Begin();
+
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      if(volumeRegions[i] == ""){
+        EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+      }
+      RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+      PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coef[i], refTemp, CoefXpr::OP_DIV));
+    }
 
     if(isComplex_) {
       //pure complex case (harmonic simulation)
@@ -1040,6 +1129,13 @@ void HeatPDE::DefineRhsLoadIntegrators() {
   coefUpdateGeo = false;
 
   ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
+  if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+    ReadVolumeRegions("heatSource", volumeRegions);
+    if( ent.GetSize() != volumeRegions.GetSize()){
+      EXCEPTION("If the system matrix should symmetric, for every heatSource a volumeRegion has to be specified.");
+    }
+  }
+
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
     // assume that we have elem list due to specification of a region instead of named nodes in xml file
     if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
@@ -1050,6 +1146,15 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     if(numNodes > 1 && coef[i]->DoNormalize()) {
       Global::ComplexPart part = Global::REAL;
       coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
+    }
+
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      if(volumeRegions[i] == ""){
+        EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+      }
+      RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+      PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp( mp_, coef[i], refTemp, CoefXpr::OP_DIV));
     }
 
     lin = new SingleEntryInt(coef[i]);
@@ -1078,6 +1183,10 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     {
       CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
       coef[i].reset(tmpFnc);
+    }
+
+    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+      EXCEPTION("Design dependent heat sources are not implememtated for a symmetric coupling with the LinFlowPDE.");
     }
 
     lin = new SingleEntryInt(coef[i]);
