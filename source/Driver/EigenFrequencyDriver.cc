@@ -457,7 +457,7 @@ namespace CoupledField {
       }
       bool complexEV = eigenSolver->HasComplexEigenvalues();
       if (minVal_!=0 || maxVal_!=0) { // we have an interval
-        if (complexEV) {
+        if (complexEV || ((solverType==BaseEigenSolver::FEAST)&&(isQuadratic_))) {
           Vector<Complex> evals,errs;
           sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
           eigsRe_.Resize(evals.GetSize());

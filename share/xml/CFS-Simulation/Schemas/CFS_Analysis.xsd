@@ -595,7 +595,22 @@
         <!-- Arpack sometimes presents unsorted evs. 
              By this option the evs are sorted by magnitude. For quadratic problems with real complex evs
             this makes not sense. For bloch it is ok as the imaginary part is only spurious (Hermitian system)  -->
-        <xsd:attribute name="sort" use="optional" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="sort" use="optional" default="abs">
+          <xsd:simpleType>
+            <xsd:annotation>
+              <xsd:documentation>
+                Choose in what order complex-valued eigenvalues should be sorted. 
+                They can be sorted by increasing magnitude, real part or imaginary part.
+                Default is sorting by magnitude.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="abs"/>
+              <xsd:enumeration value="real"/>
+              <xsd:enumeration value="imag"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

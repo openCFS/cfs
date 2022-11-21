@@ -31,9 +31,7 @@ namespace CoupledField {
     void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
 
     //! Setup for a quadratic EVP
-    virtual void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
-        EXCEPTION("not yet implemented")
-    };
+    void Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M);        
 
     /* Setup routine for standard eigenvalue problem
      * @see BaseEigenSolver::Setup() */
@@ -89,24 +87,43 @@ namespace CoupledField {
     double freqShift_;
 
     /** the stiffness matrix we setup for all cases */
-    //const StdMatrix* a_;
+    const StdMatrix* a_;
 
-    /** the mass matrix for generalized problems */
+    /** the mass matrix for generalized and quadratic problems */
     const StdMatrix* b_;
+
+    /** the damping matrix for quadratic problems */
+    const StdMatrix* c_;
 
     /** feast wants a 1-based row pointer of size n+1 with nnz as last value. As OLAS is 0-based we copy in Setup() */
     StdVector<int> ia_;
     StdVector<int> ib_;
+    StdVector<int> ic_;
+    StdVector<int> isa_; // Stacked vector for quadratic EVP
 
     /** the copied column indices converted to 1-based */
     StdVector<int> ja_;
     StdVector<int> jb_;
+    StdVector<int> jc_;
+    StdVector<int> jsa_; // Stacked vector for quadratic EVP
+
 
     /** this is the feastinit parameter space of 128 MKL_INT */
     StdVector<int> fpm_;
 
     /** size of the symmetric matrix */
     int n_;
+
+    /** number of non-zero elements for quadratic EVP 
+     *  according to FEAST documentation it must be equal 
+     *  to size of column index vectors in CSR format
+    */
+    int nnza_; //stiffness matrix
+    int nnzb_; //mass matrix
+    int nnzc_; //damping matrix
+
+    /** maximum number of non-zero elements for quadratic EVP */
+    int nnzmax_;
 
     /** number of actually computed eigenvalues */
     int m_;
@@ -123,6 +140,12 @@ namespace CoupledField {
 
     /** set by Setup() */
     bool generalized_;
+
+    /** set by Setup() */
+    bool quadratic_;
+
+    /** polynomial grade */
+    int p_;
 
     /** set by Setup() */
     bool bloch_;

@@ -217,6 +217,14 @@ void EigenValueDriver::Init(bool restart) {
   // set definition of PDE relevant matrices
   InitializePDEs();
 
+  // read sorting information
+  Enum<SortingMethodType> sortingMethod;
+  sortingMethod.SetName("EigenValueDriver::SortingMethodType");
+  sortingMethod.Add(ABS,"abs");
+  sortingMethod.Add(REAL,"real");
+  sortingMethod.Add(IMAG,"imag");
+  sortingMethod_ = sortingMethod.Parse(param_->Get("sort")->As<std::string>());
+
 }
 // ***************
 //   Solve problem step
@@ -479,7 +487,7 @@ unsigned int EigenValueDriver::StoreResults(unsigned int stepNum, double step_va
       // stupid paraview needs an increasing series of save_value :(
 
       double save_value = -1.0;
-      save_value =std::abs(eigenValuesComplex_[modeOrder_[fi]]);
+      save_value = GetSortValue(eigenValuesComplex_[modeOrder_[fi]]);
 
       LOG_DBG(evd) <<  "fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
 
@@ -551,7 +559,7 @@ void EigenValueDriver::SortModes() {
 	  std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&] {return n++;});
 	  // sort it by value
 	  std::sort(std::begin(modeOrder_), std::end(modeOrder_), [&](int i1, int i2) {
-	  return std::abs(ComplexeigenValues[i1]) < std::abs(ComplexeigenValues[i2]);});
+	  return GetSortValue(ComplexeigenValues[i1]) < GetSortValue(ComplexeigenValues[i2]);});
   }
   }
 
@@ -565,6 +573,21 @@ void EigenValueDriver::SetToStepValue(UInt stepNum, Double stepVal) {
   domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", stepNum);
 
 }
+
+double EigenValueDriver::GetSortValue(Complex entry)
+{
+  switch (sortingMethod_) {
+    case REAL:
+      return entry.real();
+    case IMAG:
+      return entry.imag();
+    case ABS:
+      return std::abs(entry);
+    default:
+      return std::abs(entry);
+  }
+}
+
 }
 
 

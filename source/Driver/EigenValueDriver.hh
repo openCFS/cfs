@@ -87,6 +87,9 @@ class EigenValueDriver: public virtual SingleDriver {
     // calculate eigenmodes for a given eigenvalue
     void CalcModes();
 
+    // return the part of a complex-valued eigenvalue for which we want to sort 
+    double GetSortValue(Complex entry);
+
     //! input parameter for input method 2, number of modes to be calculated
     unsigned int numValue_;
 
@@ -130,7 +133,15 @@ class EigenValueDriver: public virtual SingleDriver {
     //! input parameter, set method of Mode sizing
     BaseEigenSolver::ModeNormalization modeNormalization_;
 
+    //! options for sorting the eigenmodes
+    std::string sortString_;
+    
+    //! define type for sorting method of eigenvalues
+    typedef enum { ABS, REAL, IMAG } SortingMethodType;
 
+    //! instance of sorting method 
+    SortingMethodType  sortingMethod_;
+    
 };
 
 }

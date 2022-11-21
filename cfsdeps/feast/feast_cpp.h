@@ -49,6 +49,12 @@
 # define zfeast_hcsrgv zfeast_hcsrgv_
 # define dfeast_scsrev dfeast_scsrev_
 # define dfeast_scsrgv dfeast_scsrgv_
+# define dfeast_scsrpev dfeast_scsrpev_
+# define zfeast_hcsrpev zfeast_hcsrpev_
+# define zfeast_scsrpev zfeast_scsrpev_
+# define dfeast_gcsrpev dfeast_gcsrpev_
+# define zfeast_gcsrpev zfeast_gcsrpev_
+
 #endif
 
 extern "C" {
@@ -123,9 +129,17 @@ extern "C" {
   void dfeast_gcsrevx(int *N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *q,int *mode,double *res,int *info,double *Zne,double *Wne);
 
   void dfeast_gcsrev(int *N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *q,int *mode,double *res,int *info);
+  
+  void dfeast_scsrpev(char *UPLO,int *dmax,int* N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int* loop,double* Emid,double* r,int *M0,double *lambda, double* q,int *mode,double *res,int* info);
 
+  void zfeast_hcsrpev(char *UPLO,int *dmax,int* N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int* loop,double* Emid,double* r,int *M0,double *lambda, double* q,int *mode,double *res,int* info);
 
-}
+  void zfeast_scsrpev(char *UPLO,int *dmax,int* N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int* loop,double* Emid,double* r,int *M0,double *lambda, double* q,int *mode,double *res,int* info);
+   
+  void dfeast_gcsrpev(int *dmax,int* N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int* loop,double* Emid,double* r,int *M0,double *lambda, double* q,int *mode,double *res,int* info);
+
+  void zfeast_gcsrpev(int *dmax,int* N,double *sa,int *isa,int *jsa,int *feastparam,double *epsout,int* loop,double* Emid,double* r,int *M0,double *lambda, double* q,int *mode,double *res,int* info);
+} 
 
 #endif
 

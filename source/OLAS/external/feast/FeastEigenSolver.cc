@@ -1,5 +1,7 @@
 #include <string.h>
 #include <def_use_feast.hh>
+#include <algorithm>
+
 #ifdef USE_FEAST_COMMUNITY
 // include the needed community FEAST libraries (which are C)
 #ifndef WIN32
@@ -36,9 +38,12 @@ FeastEigenSolver::FeastEigenSolver(shared_ptr<SolStrategy> strat,
   : BaseEigenSolver(strat, xml, solverList, precondList, eigenInfo)
 {
   this->generalized_ = false;
+  this->quadratic_ = false;
+  this->p_ = 0;
   this->bloch_ = false;
   this->a_ = NULL;
   this->b_ = NULL;
+  this->c_ = NULL;
   this->numFreq_ = 0;
   this->freqShift_ = 0;
   this->fpm_.Resize(128, 0);
@@ -76,7 +81,14 @@ void FeastEigenSolver::Setup(const BaseMatrix & A, bool isHermitian){
 
     n_ = A.GetNumRows(); // size of the problem
     UInt m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
-    assert(m0_ <= n_);
+    if (quadratic_)
+    {
+      assert(m0_ <= 2*n_); // QEVPS yield up to 2n eigenvalues, but FEAST might not support that...
+    }
+    else
+    {
+      assert(m0_ <= n_);
+    }
     vr_.Resize(m0_ * n_, 0.0);
 
     // store the matrix
@@ -124,6 +136,66 @@ void FeastEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool is
     assert(a_->GetEntryType() == b_->GetEntryType());
 }
 
+void FeastEigenSolver::Setup(const BaseMatrix & K, const BaseMatrix & C, const BaseMatrix & M){
+    quadratic_ = true;
+    // currently no hermitian quadratic EVP can appear in CFS
+    bool isHermitian = false;
+    p_ = 2;
+    // set K,M as for generalized EVP -> vectors a_,ia_,ja_,b_,ib_,jb_
+    Setup(K, M, isHermitian);
+    
+    // check the C matrix
+    this->SetProblemType(C,isHermitian); //check if problem type is same for C and K
+    // setup C-matrix
+    // store matrix
+    c_ = &dynamic_cast<const StdMatrix&>(C);
+    assert(c_ != NULL);
+    // copy the indices and transform to 1-based
+    c_->ExportCRSColumns(jc_, 1); // 1 for 1-based
+    c_->ExportCRSRows(ic_, 1, true); // nzz = tailing number of non-zeros
+    ic_[ic_.GetSize()-1] = ic_[ic_.GetSize()-1] + 1; // according to doc this must be nzz+1
+    // check if size is equal
+    assert(a_->GetNumRows() == c_->GetNumRows());
+    assert((int) c_->GetNumRows() == n_);
+    assert(a_->GetStorageType() == c_->GetStorageType());
+    assert(a_->GetStructureType() == c_->GetStructureType());
+    assert(a_->GetEntryType() == c_->GetEntryType());
+
+    // Determine maximum of nonzero elements (according to feast)
+    nnza_ = ja_.GetSize();
+    nnzc_ = jc_.GetSize();
+    nnzb_ = jb_.GetSize();
+    nnzmax_ = std::max(nnza_,nnzc_);
+    nnzmax_ = std::max(nnzmax_,nnzb_);
+    
+    /*Stack row and column vectors of CSR format
+    * the stacked row array has size 3*(n_ + 1) (system size)
+    * the stacked column array has size 3*nnzmax_ (maximum number of non-zero elements)
+    * indexing by increasing degree: block 1 = stiffness, block 2 = damping, block 3 = mass
+    * refer to FEAST Eigenvalue Solver v4.0 User Guide, section 3.4
+    */ 
+    isa_.Resize(3*(n_+1));
+    for (int i=0; i < n_+1; i++)
+    {
+      isa_[i] = ia_[i];
+      isa_[i+n_+1] = ic_[i]; 
+      isa_[i+2*(n_+1)] = ib_[i];
+    }
+    jsa_.Resize(3*nnzmax_);
+    for (int i=0;i<nnza_;i++) 
+    {
+      jsa_[i] = ja_[i];
+    }
+    for (int i=0;i<nnzc_;i++) 
+    {
+      jsa_[i+nnzmax_] = jc_[i];
+    }
+    for (int i=0;i<nnzb_;i++) 
+    {
+      jsa_[i+2*nnzmax_] = jb_[i];
+    }
+}
+
 void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal){
     assert(a_ != NULL);
     assert(a_->GetStructureType() == BaseMatrix::SPARSE_MATRIX);
@@ -141,6 +213,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     double I2;
 
     int loop; // # of feast subspace iteration
+ 
     switch (eigenProblemType_) {
 
     case REAL_GENERAL : {
@@ -167,7 +240,37 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         Vector<double> res; res.Resize(2*m0_,0.0); // factor 2 for complex
         Vector<double> X; X.Resize(2*n_*m0_*2);// eigenvectors (if needed) //factor 2 for complex // factor 2 for L and R
         //assert((int) vr_.Capacity() >= 4 * n_ * m0_);
-        if(!generalized_) // solve standard EVP
+        if(quadratic_)
+        {
+          const CRS_Matrix<double>* c_const = dynamic_cast<const CRS_Matrix<double>*>(c_);
+          CRS_Matrix<double>* c = const_cast<CRS_Matrix<double>*>(c_const);
+          const CRS_Matrix<double>* b_const = dynamic_cast<const CRS_Matrix<double>*>(b_);
+          CRS_Matrix<double>* b = const_cast<CRS_Matrix<double>*>(b_const);
+          LOG_DBG3(fes) << "CEF ic: " << ic_.ToString();
+          LOG_DBG3(fes) << "CEF jc: " << jc_.ToString();
+          LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
+          LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
+          LOG_DBG3(fes) << "Size of stacked vectors: 3x" << nnzmax_;
+          
+          // store all non-zero values of the system matrices in a stacked vector
+          Vector<double> sa;
+          sa.Resize(3*nnzmax_);
+          for (int i=0;i<nnza_;i++) 
+          {
+            sa[i] = a->GetDataPointer()[i];
+          }
+          for (int i=0;i<nnzc_;i++) 
+          {
+            sa[i+nnzmax_] = c->GetDataPointer()[i];
+          }
+          for (int i=0;i<nnzb_;i++) 
+          {
+            sa[i+2*nnzmax_] = b->GetDataPointer()[i];
+          }
+          dfeast_gcsrpev(&p_,&n_,sa.GetPointer(),isa_.GetPointer(),jsa_.GetPointer(),fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
+                        E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+        }
+        else if(!generalized_) // solve standard EVP
         {
             dfeast_gcsrev(&n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(),
                         fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
@@ -214,11 +317,16 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         // setup A-matrix
         const SCRS_Matrix<Complex>* a_const = dynamic_cast<const SCRS_Matrix<Complex>*>(a_);
         SCRS_Matrix<Complex>* a = const_cast<SCRS_Matrix<Complex>*>(a_const);
-        Vector<double> aDouble; aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
-        for (int i=0;i<(int)a->GetNnz();i++) {
-          aDouble[2*i] = a->GetDataPointer()[i].real();
-          aDouble[2*i+1] = a->GetDataPointer()[i].imag();
+        Vector<double> aDouble; 
+        if (!quadratic_)
+        {
+          aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
+          for (int i=0;i<(int)a->GetNnz();i++) {
+            aDouble[2*i] = a->GetDataPointer()[i].real();
+            aDouble[2*i+1] = a->GetDataPointer()[i].imag();
+          }
         }
+        
         LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
         LOG_DBG3(fes) << "CEF a: " << StdVector<Complex>::ToString(a->GetNumEntries(), a->GetDataPointer());
         LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
@@ -230,7 +338,42 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         Vector<Complex>& res_c = dynamic_cast<Vector<Complex>&>(err); // Relative residual
         Vector<double> res; res.Resize(2*m0_,0.0); // factor 2 for complex
         Vector<double> X; X.Resize(2*n_*m0_);// eigenvectors (if needed) //factor 2 for complex
-        if(!generalized_) // solve standard EVP
+        if(quadratic_)
+        { 
+          const SCRS_Matrix<Complex>* c_const = dynamic_cast<const SCRS_Matrix<Complex>*>(c_);
+          SCRS_Matrix<Complex>* c = const_cast<SCRS_Matrix<Complex>*>(c_const);
+          const SCRS_Matrix<Complex>* b_const = dynamic_cast<const SCRS_Matrix<Complex>*>(b_);
+          SCRS_Matrix<Complex>* b = const_cast<SCRS_Matrix<Complex>*>(b_const);
+          LOG_DBG3(fes) << "CEF mc: " << StdVector<Complex>::ToString(nnzc_, c->GetDataPointer());
+          LOG_DBG3(fes) << "CEF ic: " << ic_.ToString();
+          LOG_DBG3(fes) << "CEF jc: " << jc_.ToString();
+          LOG_DBG3(fes) << "CEF mm: " << StdVector<Complex>::ToString(nnzb_, b->GetDataPointer());
+          LOG_DBG3(fes) << "CEF im: " << ib_.ToString();
+          LOG_DBG3(fes) << "CEF jm: " << jb_.ToString();
+          LOG_DBG3(fes) << "Size of stacked vectors: 3x" << nnzmax_;
+          
+          // store all non-zero values of the system matrices in a stacked vector
+          Vector<double> sa;
+          sa.Resize(6*nnzmax_); // 2*3*nnzmax_ for complex
+          for (int i=0;i<nnza_;i++) 
+          {
+            sa[2*i] = a->GetDataPointer()[i].real();
+            sa[2*i+1] = a->GetDataPointer()[i].imag();
+          }
+          for (int i=0;i<nnzc_;i++) 
+          {
+            sa[2*i+2*nnzmax_] = c->GetDataPointer()[i].real();
+            sa[2*i+1+2*nnzmax_] = c->GetDataPointer()[i].imag();
+          }
+          for (int i=0;i<nnzb_;i++) 
+          {
+            sa[2*i+4*nnzmax_] = b->GetDataPointer()[i].real();
+            sa[2*i+1+4*nnzmax_] = b->GetDataPointer()[i].imag();
+          }
+          zfeast_scsrpev(&uplo,&p_,&n_,sa.GetPointer(),isa_.GetPointer(),jsa_.GetPointer(),fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
+                         E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+        }  
+        else if(!generalized_) // solve standard EVP
         {
           zfeast_scsrev(&uplo, &n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(),
               fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
@@ -281,10 +424,14 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         // setup A-matrix
         const CRS_Matrix<Complex>* a_const = dynamic_cast<const CRS_Matrix<Complex>*>(a_);
         CRS_Matrix<Complex>* a = const_cast<CRS_Matrix<Complex>*>(a_const);
-        Vector<double> aDouble; aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
-        for (int i=0;i<(int)a->GetNnz();i++) {
-          aDouble[2*i] = a->GetDataPointer()[i].real();
-          aDouble[2*i+1] = a->GetDataPointer()[i].imag();
+        Vector<double> aDouble;
+        if (!quadratic_)
+        {
+          aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
+          for (int i=0;i<(int)a->GetNnz();i++) {
+            aDouble[2*i] = a->GetDataPointer()[i].real();
+            aDouble[2*i+1] = a->GetDataPointer()[i].imag();
+          }
         }
         //LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
         //LOG_DBG3(fes) << "CEF a: " << StdVector<double>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
@@ -301,7 +448,40 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         Vector<double> res; res.Resize(2*m0_,0.0); // factor 2 for complex
         Vector<double> X; X.Resize(2*n_*m0_*2);// eigenvectors (if needed) //factor 2 for complex // factor 2 for L and R
         //assert((int) vr_.Capacity() >= 4 * n_ * m0_);
-        if(!generalized_) // solve standard EVP
+        if(quadratic_)
+        {
+          const CRS_Matrix<Complex>* c_const = dynamic_cast<const CRS_Matrix<Complex>*>(c_);
+          CRS_Matrix<Complex>* c = const_cast<CRS_Matrix<Complex>*>(c_const);
+          const CRS_Matrix<Complex>* b_const = dynamic_cast<const CRS_Matrix<Complex>*>(b_);
+          CRS_Matrix<Complex>* b = const_cast<CRS_Matrix<Complex>*>(b_const);
+          LOG_DBG3(fes) << "CEF ic: " << ic_.ToString();
+          LOG_DBG3(fes) << "CEF jc: " << jc_.ToString();
+          LOG_DBG3(fes) << "CEF im: " << ib_.ToString();
+          LOG_DBG3(fes) << "CEF jm: " << jb_.ToString();
+          LOG_DBG3(fes) << "Size of stacked vectors: 3x" << nnzmax_;
+          
+          // store all non-zero values of the system matrices in a stacked vector
+          Vector<double> sa;
+          sa.Resize(6*nnzmax_); // 2*3*nnzmax_ for complex
+          for (int i=0;i<nnza_;i++) 
+          {
+            sa[2*i] = a->GetDataPointer()[i].real();
+            sa[2*i+1] = a->GetDataPointer()[i].imag();
+          }
+          for (int i=0;i<nnzc_;i++) 
+          {
+            sa[2*i+2*nnzmax_] = c->GetDataPointer()[i].real();
+            sa[2*i+1+2*nnzmax_] = c->GetDataPointer()[i].imag();
+          }
+          for (int i=0;i<nnzb_;i++) 
+          {
+            sa[2*i+4*nnzmax_] = b->GetDataPointer()[i].real();
+            sa[2*i+1+4*nnzmax_] = b->GetDataPointer()[i].imag();
+          }
+          zfeast_gcsrpev(&p_,&n_,sa.GetPointer(),isa_.GetPointer(),jsa_.GetPointer(),fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
+                         E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+        }  
+        else if(!generalized_) // solve standard EVP
         {
           zfeast_gcsrev(&n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(),
               fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
@@ -373,8 +553,11 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         //assert((int) X.Capacity() >= n_ * m0_);
         res.Resize(m0_); // the first m get the relative residuals
 
-
-        if(!generalized_) // solve standard EVP
+        if(quadratic_)
+        {
+          EXCEPTION("Quadratic hermitian EVP is not implemented");
+        }
+        else if(!generalized_) // solve standard EVP
         {
             zfeast_hcsrev(&uplo, &n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(),
                         fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
@@ -420,24 +603,89 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
         LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
 
-        // output parameters
+        // declare FEAST output variables that are independent of result type
         double epsout;
-        Vector<double>& E = dynamic_cast<Vector<double>&>(sol); // eigenvalues
-        Vector<double>& res = dynamic_cast<Vector<double>&>(err); // Relative residual
-        E.Resize(m0_); // e: m found eigenvalues
-        Vector<double> X; X.Resize(n_*m0_);
-        //assert((int) X.Capacity() >= n_ * m0_);
-        res.Resize(m0_); // the first m get the relative residuals
-
-
-        if(!generalized_) // solve standard EVP
+        Vector<double> X;
+        
+        if(quadratic_)
+        { 
+          // complex output parameters (eigenvalues for quadratic case can become complex)
+          assert(sol.IsComplex());
+          Vector<Complex>& E_c = dynamic_cast<Vector<Complex>&>(sol); // eigenvalues
+          Vector<double> E; E.Resize(2*m0_,0.0); // factor 2 for complex
+          assert(err.IsComplex());
+          Vector<Complex>& res_c = dynamic_cast<Vector<Complex>&>(err); // Relative residual
+          Vector<double> res;res.Resize(2*m0_,0.0); // factor 2 for complex
+          X.Resize(2*n_*m0_*2);// eigenvectors (if needed) //factor 2 for complex // factor 2 for L and R
+          const SCRS_Matrix<double>* c_const = dynamic_cast<const SCRS_Matrix<double>*>(c_);
+          SCRS_Matrix<double>* c = const_cast<SCRS_Matrix<double>*>(c_const);
+          const SCRS_Matrix<double>* b_const = dynamic_cast<const SCRS_Matrix<double>*>(b_);
+          SCRS_Matrix<double>* b = const_cast<SCRS_Matrix<double>*>(b_const);
+          LOG_DBG3(fes) << "CEF cm: " << StdVector<double>::ToString(nnzc_, c->GetDataPointer());
+          LOG_DBG3(fes) << "CEF ic: " << ic_.ToString();
+          LOG_DBG3(fes) << "CEF jc: " << jc_.ToString();
+          LOG_DBG3(fes) << "CEF mm: " << StdVector<double>::ToString(nnzb_, b->GetDataPointer());
+          LOG_DBG3(fes) << "CEF im: " << ib_.ToString();
+          LOG_DBG3(fes) << "CEF jm: " << jb_.ToString();
+          LOG_DBG3(fes) << "Size of stacked vectors: 3x" << nnzmax_;
+          
+          // store all non-zero values of the system matrices in a stacked vector
+          Vector<double> sa;
+          sa.Resize(3*nnzmax_);
+          for (int i=0;i<nnza_;i++) 
+          {
+            sa[i] = a->GetDataPointer()[i];
+          }
+          for (int i=0;i<nnzc_;i++) 
+          {
+            sa[i+nnzmax_] = c->GetDataPointer()[i];
+          }
+          for (int i=0;i<nnzb_;i++) 
+          {
+            sa[i+2*nnzmax_] = b->GetDataPointer()[i];
+          }
+          dfeast_scsrpev(&uplo, &p_,&n_,sa.GetPointer(),isa_.GetPointer(),jsa_.GetPointer(),fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
+                         E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+          // put the solution into the complex vectors
+          E_c.Resize(m_);
+          res_c.Resize(m_);
+          vr_.Resize(m_*n_);
+          vl_.Resize(m_*n_);
+          LOG_DBG3(fes) << "CEF # of found eigen values =  " << m_;
+          LOG_DBG3(fes) << "CEF # elements in X: "<<X.GetSize();
+          for (int i=0;i<m_;i++){
+            E_c[i] = Complex( E[2*i],E[2*i+1] );
+            res_c[i] = Complex( res[2*i], res[2*i+1] );
+            for (int j=0;j<n_;j++){
+                vr_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
+                vl_[i*n_+j] = Complex( X[2*n_*m_+i*n_*2+2*j], X[2*n_*m_+i*n_*2+2*j+1]);
+            }
+          }
+        }
+        else if(!generalized_) // solve standard EVP
         {
+            // output parameters
+            Vector<double>& E = dynamic_cast<Vector<double>&>(sol); // eigenvalues
+            Vector<double>& res = dynamic_cast<Vector<double>&>(err); // Relative residual
+            E.Resize(m0_); // e: m found eigenvalues
+            X.Resize(n_*m0_);
+            res.Resize(m0_); // the first m get the relative residuals
             dfeast_scsrev(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(),
                         fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
                         E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+            // save over the eigenvector
+            for (int i=0;i<n_*m_;i++) {
+                vr_[i] = Complex( X[i], 0.0 );
+            }
         }
         else // generalized EVP
-        {
+        {   
+            // output parameters
+            Vector<double>& E = dynamic_cast<Vector<double>&>(sol); // eigenvalues
+            Vector<double>& res = dynamic_cast<Vector<double>&>(err); // Relative residual
+            E.Resize(m0_); // e: m found eigenvalues
+            X.Resize(n_*m0_);
+            res.Resize(m0_); // the first m get the relative residuals
             const SCRS_Matrix<double>* bc = dynamic_cast<const SCRS_Matrix<double>*>(b_);
             SCRS_Matrix<double>* b = const_cast<SCRS_Matrix<double>*>(bc);
             assert((int) ib_.GetSize() == n_ + 1);
@@ -449,12 +697,12 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             dfeast_scsrgv(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(), b->GetDataPointer(), ib_.GetPointer(), jb_.GetPointer(),
                           fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
                           E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+            // save over the eigenvector
+            for (int i=0;i<n_*m_;i++) {
+                vr_[i] = Complex( X[i], 0.0 );
+            }
         }
         LOG_DBG(fes) << "CEF epsout -> " << epsout;
-        // save over the eigenvector
-        for (int i=0;i<n_*m_;i++) {
-            vr_[i] = Complex( X[i], 0.0 );
-        }
     } break;;
     default: {
         EXCEPTION("Did you set the Problem Type? Use Setup(...)")
