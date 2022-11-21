@@ -195,6 +195,11 @@ namespace CoupledField
     // assert that Integrator is set
     assert( biLinContext->GetIntegrator() != NULL );
 
+    // change the destination matrix based on integrator dependency
+    // e.g. if it is time/frequency dependent re-assign to the *_UPDATE matrix
+    FEMatrixType origDestMat = biLinContext->GetDestMat();
+    biLinContext->SetDestMat(origDestMat);
+
     // assert that some entities are set
     assert( biLinContext->GetFirstEntities() != NULL );
     assert( biLinContext->GetSecondEntities() != NULL );
