@@ -16,8 +16,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(hdf5_c_flags " -Wno-implicit-function-declaration ") # Apple clang version 12.0.0
-  set(hdf5_cxx_flags " -Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
+  # Apple clang version 12.0.0 needs -Wno-implicit-function-declaration
+  # Linux clang version 15.0.4 needs -Wno-int-conversion
+  set(hdf5_c_flags " -Wno-implicit-function-declaration -Wno-int-conversion")
+  set(hdf5_cxx_flags " -Wno-implicit-function-declaration -Wno-int-conversion")
 endif()
 
 #-------------------------------------------------------------------------------
