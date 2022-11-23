@@ -1094,6 +1094,7 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::Import(const std::string& fname)
   {
+    std::cout << "Import Olivia \n";
     // Determine expected entry Type of the imported file
     std::string matrixType;
     if(GetEntryType() == BaseMatrix::DOUBLE)
@@ -1151,8 +1152,15 @@ namespace CoupledField {
     // Depending on the format type, import the data
     if(std::string(formatType) == "array")
     {
-      //skipping the comment section
-      while(fgets( line, lineLength, fp) == "%");
+      // skipping the comment section
+      // THIS CODE IS FUCKED UP!. Original code is while(fgets( line, lineLength, fp) == "%");
+      // But this does NOT skip the comment section, as the comparison fails. It just reads a single line
+      // The reason is the following fgets() which read the next lines and if this loop would really skip
+      // comment lines, then one may not do a fgets() blindly!!!!
+      while((fgets( line, lineLength, fp) != NULL) && (line[0] != '%'))
+        std::cout << "Hans = " << line << " first " << (line[0] == '%');
+
+      std::cout << "Processing line: " << line ;
 
       //Determine the amount of rows and columbs
       UInt rows;
@@ -1184,7 +1192,10 @@ namespace CoupledField {
     else if(std::string(formatType) == "coordinate")
     {
       //skipping the comment section
-      while(fgets( line, lineLength, fp) == "%");
+      // SEE COMMENT ABOVE
+      // while(fgets( line, lineLength, fp) == "%");
+      while((fgets( line, lineLength, fp) != NULL) && (line[0] != '%'))
+        std::cout << "Hans = " << line << " first " << (line[0] == '%');
 
       //Determine the amount of rows, columbs and non-zero entries
       UInt rows;

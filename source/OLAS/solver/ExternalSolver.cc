@@ -235,7 +235,7 @@ namespace CoupledField {
   std::string ExternalSolver<T>::FormatedTimeFreq(std::string formatString){
     // Getting the analysis id because it contains information about the current time, frequency,
     AnalysisID& id = domain->GetDriver()->GetAnalysisId();
-    double timeFreq;
+    double timeFreq = 0.0;
     char buffer[30];
     if(id.time != -1)
       timeFreq = id.time;
