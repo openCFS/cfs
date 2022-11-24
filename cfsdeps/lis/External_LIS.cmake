@@ -30,6 +30,10 @@ IF(UNIX)
 
   if(USE_OPENMP)
     list(APPEND LIS_CONFIG_OPTIONS "--enable-omp")
+    #Clang and gfortran under Linux need this to avoid linking error: undefined reference to `__kmpc_fork_call'
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+      list(APPEND LIS_CONFIG_OPTIONS "LDFLAGS=-lomp")
+    endif()
   endif()
 
 ELSE()
