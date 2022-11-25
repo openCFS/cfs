@@ -43,6 +43,16 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${muparser_prefix}/muparser-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+# Determine paths of MUPARSER libraries.
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
+IF(WIN32)
+  SET(MUPARSER_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/muparser.lib" CACHE FILEPATH "MUPARSER library.")
+ELSE(WIN32)
+  SET(MUPARSER_LIBRARY "${LD}/libmuparser.a" CACHE FILEPATH "MUPARSER library.")
+ENDIF(WIN32)
+
+SET(MUPARSER_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+
 #-------------------------------------------------------------------------------
 # The muparser external project
 #-------------------------------------------------------------------------------
@@ -58,6 +68,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${MUPARSER_LIBRARY}
   )
 ELSE()
   # on mac with clang omp.h is not found. This is no issue for cfs itself
@@ -89,6 +100,7 @@ ELSE()
       -DBUILD_TESTING:BOOL=OFF
       -DENABLE_OPENMP:BOOL=OFF # makes problems when precompiled is parallel and cfs is serial
       -DENABLE_SAMPLES:BOOL=OFF
+    BUILD_BYPRODUCTS ${MUPARSER_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -117,16 +129,6 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 
 # Add project to global list of CFSDEPS
 SET(CFSDEPS ${CFSDEPS} muparser)
-
-# Determine paths of MUPARSER libraries.
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-IF(WIN32)
-  SET(MUPARSER_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/muparser.lib" CACHE FILEPATH "MUPARSER library.")
-ELSE(WIN32)
-  SET(MUPARSER_LIBRARY "${LD}/libmuparser.a" CACHE FILEPATH "MUPARSER library.")
-ENDIF(WIN32)
-
-SET(MUPARSER_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 MARK_AS_ADVANCED(MUPARSER_INCLUDE_DIR)
 MARK_AS_ADVANCED(MUPARSER_LIBRARY)
