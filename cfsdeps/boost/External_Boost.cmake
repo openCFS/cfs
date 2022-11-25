@@ -210,7 +210,8 @@ SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOS
 SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX}")
 SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX}")
 SET(BOOST_LOG_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_log${BOOST_LIB_SUFFIX}")
-
+# put all in a list
+SET(BOOST_LIBS ${BOOST_DATE_TIME_LIB} ${BOOST_FILESYSTEM_LIB} ${BOOST_IOSTREAMS_LIB} ${BOOST_PRG_EXEC_MONITOR_LIB} ${BOOST_PROGRAM_OPTIONS_LIB} ${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_SERIALIZATION_LIB} ${BOOST_SERIALIZATION_HDF5_LIB} ${BOOST_TEST_EXEC_MONITOR_LIB} ${BOOST_THREAD_LIB} ${BOOST_UNIT_TEST_FRAMEWORK_LIB} ${BOOST_WSERIALIZATION_LIB} ${BOOST_LOG_LIB})
 # in case someone manages to break cross-compilation again, this is how it works:
 # echo "using gcc : mingw : x86_64-w64-mingw32-gcc ;" > user-config.jam
 # ./bootstrap.sh --without-libraries=python --prefix=<path> --with-toolset=gcc target-os=windows architecture=x86 address-model=64 release
@@ -232,7 +233,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS "${BOOST_DATE_TIME_LIB}"
+    BUILD_BYPRODUCTS ${BOOST_LIBS}
     LOG 1
   )
 ELSE()
@@ -251,7 +252,7 @@ ELSE()
       CONFIGURE_COMMAND ./bootstrap.sh --with-libraries=date_time,filesystem,iostreams,log,program_options,regex,serialization,thread,chrono,test --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} 
       BUILD_COMMAND ./b2  ${BOOST_B2_PARAMS} define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX link=static threading=multi runtime-link=static install --no-cmake-config
       INSTALL_COMMAND ""
-      BUILD_BYPRODUCTS "${BOOST_DATE_TIME_LIB}"
+      BUILD_BYPRODUCTS ${BOOST_LIBS}
       # Wrap buil-step in script to log output, since it's super long and clutters the pipeline
       # see https://cmake.org/cmake/help/v3.0/module/ExternalProject.html
       LOG_BUILD 1
