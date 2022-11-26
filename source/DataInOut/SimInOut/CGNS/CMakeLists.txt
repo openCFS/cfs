@@ -13,6 +13,8 @@ SET(TARGET_LL
 
 ADD_LIBRARY(siminoutcgns STATIC ${SIMINOUTCGNS_SRCS})
 
+add_dependencies(siminoutcgns cfsdeps)
+
 TARGET_LINK_LIBRARIES(siminoutcgns
   ${TARGET_LL}
   )
