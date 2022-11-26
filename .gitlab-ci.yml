@@ -650,6 +650,7 @@ linux:gcc10:
     - docker
   variables:
     BUILD_NAME: "GCC10"
+    CMAKE_GENERATOR: Ninja
   <<: *build_rules
   <<: *gcc_before
   needs: ["cfsdeps:gcc10"]
@@ -709,8 +710,7 @@ linux:gcc10:ninja:
   script:
     # configure with correct generator
     - cmake -G Ninja ..
-    # build in 2 steps necessary
-    - ninja -j1 cfsdeps
+    # build
     - ninja
     # create artifacts
     - cpack -G TGZ
