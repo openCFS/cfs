@@ -66,6 +66,7 @@ namespace CoupledField {
 
   SimInputCDB::~SimInputCDB()
   {
+    delete[] ans2FEType_;
     CloseCDBFile();
   }
 

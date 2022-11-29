@@ -2480,6 +2480,11 @@ void ErsatzMaterial::CalcEigenvalueDerivativeBuckling(Excitation& excite, Functi
     factor *= -ev;
   Double sumSecTerm = CalcU1KU2(tf, complex_elem_adjoints, App::MECH, complex_elem_mech_displs, NULL, factor, STANDARD, f, -1, ev);
 
+  for(UInt i = 0; i < complex_elem_adjoints.GetSize(); i++)
+  {
+    delete complex_elem_adjoints[i];
+    delete complex_elem_mech_displs[i];
+  }
   LOG_DBG2(em) << "CE: ev = " << ev << ", sum dev = " << sumFirstTerm << " + " << sumSecTerm;
 }
 
@@ -2559,6 +2564,9 @@ double ErsatzMaterial::CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, F
     // calc lambda^T *  K' * u
     int idx =lc->GetCurrentRelativePosition();
     StdVector<SingleVector*>& u1 = adjoint.Get(excite, f, idx)->elem[App::MECH];
+    if(u1.GetSize() == 0)
+      EXCEPTION("No adjoint calculated for gradients of local buckling load factors.\n"
+                "Try <evaluate objective_gradient=\"true\"/>.");
     StdVector<SingleVector*>& u2 = forward.Get(excite)->elem[App::MECH];
 
     // we use a cache to store K' * u

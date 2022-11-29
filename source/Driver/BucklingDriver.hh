@@ -30,7 +30,6 @@ class BucklingDriver: public virtual SingleDriver {
                   PtrParamNode paramNode,
                   PtrParamNode infoNode);
 
-    //! Destructor
     ~BucklingDriver();
 
     //! Initialization method
@@ -68,8 +67,8 @@ class BucklingDriver: public virtual SingleDriver {
 
     StdVector<unsigned int> GetModeOrder() { return modeOrder_; }
 
-    SingleVector* eigenValues;
-    SingleVector* errors;
+    SingleVector* eigenValues = nullptr;
+    SingleVector* errors = nullptr;
 
   private:
 
@@ -92,7 +91,7 @@ class BucklingDriver: public virtual SingleDriver {
     // if loadFactors_ is already real, this is just a cheap cast operation
     Vector<Double> GetRealPartOfVector(SingleVector* vec);
 
-    BaseEigenSolver* solver;
+    BaseEigenSolver* solver  = nullptr;
 
     BaseEigenSolver::EigenSolverType solverType_;
 
@@ -120,7 +119,7 @@ class BucklingDriver: public virtual SingleDriver {
     bool calcModes_;
 
     //! = eigenvalues for original problem, 1/eigenvalues for reformulated one
-    SingleVector* loadFactors_;
+    SingleVector* loadFactors_ = nullptr;
 
     UInt numEV_;
 

@@ -89,7 +89,7 @@ def get_rot_3x3_3d(alpha, beta, gamma, axes = 'xyz'):
   
 ## This rotates a 6x6 3D tensor counterclockwise around last axis by gamma,
 #  then midde axis by beta and last first axis by alpha. By default 'xyz' this
-#  ist last gamma around z, then beta around y and last alpha around x
+#  is first gamma around z, then beta around y and last alpha around x
 def get_rot_6x6(alpha, beta, gamma, axes = 'xyz'):
 
   R = get_rot_3x3_3d(alpha, beta, gamma, axes)

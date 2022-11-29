@@ -96,7 +96,9 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
 }
 
 BucklingDriver::~BucklingDriver() {
-
+  delete eigenValues;
+  delete errors;
+  delete loadFactors_;
 }
 
 void BucklingDriver::Init(bool restart) {
@@ -258,6 +260,9 @@ void BucklingDriver::SetupSolver() {
  */
 
   if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
+    delete eigenValues;
+    delete errors;
+    delete loadFactors_;
     eigenValues = new Vector<Double>();
     errors = new Vector<Double>();
     loadFactors_ = new Vector<Double>();

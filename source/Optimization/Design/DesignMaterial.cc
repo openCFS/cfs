@@ -528,9 +528,33 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 }
 
+DesignMaterial::~DesignMaterial() {
+  if(interpolator11_) { delete interpolator11_; }
+  if(interpolator12_) { delete interpolator12_; }
+  if(interpolator13_) { delete interpolator13_; }
+  if(interpolator14_) { delete interpolator14_; }
+  if(interpolator15_) { delete interpolator15_; }
+  if(interpolator16_) { delete interpolator16_; }
+  if(interpolator22_) { delete interpolator22_; }
+  if(interpolator23_) { delete interpolator23_; }
+  if(interpolator24_) { delete interpolator24_; }
+  if(interpolator25_) { delete interpolator25_; }
+  if(interpolator26_) { delete interpolator26_; }
+  if(interpolator33_) { delete interpolator33_; }
+  if(interpolator34_) { delete interpolator34_; }
+  if(interpolator35_) { delete interpolator35_; }
+  if(interpolator36_) { delete interpolator36_; }
+  if(interpolator44_) { delete interpolator44_; }
+  if(interpolator45_) { delete interpolator45_; }
+  if(interpolator46_) { delete interpolator46_; }
+  if(interpolator55_) { delete interpolator55_; }
+  if(interpolator56_) { delete interpolator56_; }
+  if(interpolator66_) { delete interpolator66_; }
+}
+
 ApproxData* DesignMaterial::CreateInterpolator(StdVector<double>& a, StdVector<double>& b, StdVector<double>& c, Matrix<double>& coeff) {
   StdVector<double> dummy_data;
-  ApproxData* interpolator;
+  ApproxData* interpolator = nullptr;
 
   if (coeff.NormL2() == 0)
     return NULL;

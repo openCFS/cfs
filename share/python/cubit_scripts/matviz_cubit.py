@@ -20,10 +20,10 @@ except ImportError:
   # environment variables below.                                         #
   #                                                                      #
   #    PATHS HAVE TO BE SET BEFORE OTHER IMPORTS (especially numpy)!     #
-  
+
   cubit_search_path = sys.executable
   pillow_search_path = sys.path
-  
+
   # find the path of a file
   def find_path(file, search_path=None):
     out = subprocess.run(["locate", "-b", "\\" + file], capture_output=True)
@@ -36,13 +36,13 @@ except ImportError:
       for root, _, files in os.walk(search_path):
         if file in files:
           return root
-  
+
   CUBIT_PATH = find_path('coreform_cubit', cubit_search_path)
   PILLOW_PATH = find_path('_imaging.cpython-38-x86_64-linux-gnu.so', pillow_search_path)
-  
+
   assert(CUBIT_PATH)
   assert(PILLOW_PATH)
-  
+
   # this will evaluate to false, if matviz_cubit is imported inside of cubit
   # gui/journal editor and if paths are set before starting cubit, see wiki
   if not CUBIT_PATH in os.environ['LD_LIBRARY_PATH']:
@@ -63,15 +63,17 @@ except ImportError:
 
   import cubit
   cubit_version = cubit.get_version()
-  
+
   # add Cubit libraries to your path
   try:
     sys.path.index('/opt/Coreform-Cubit-{}/bin'.format(cubit_version))
   except ValueError:
     sys.path.append('/opt/Coreform-Cubit-{}/bin'.format(cubit_version))
-  
+
   # start cubit - this step is key if not working inside cubit gui/journal editor!
   cubit.init(['cubit', '-nographics', '-nojournal', '-batch', '-noecho', '-information', 'off', '-warning', 'off'])
+
+print('running on Cubit version {}'.format(cubit.get_version()))
 
 import time
 import numpy as np
@@ -180,7 +182,7 @@ def show_triangle_grad(coords, design, grad, samples, thres, equilateral=True, r
   # not tested otherwise
   assert(equilateral == True)
 
-  if design is not None:  
+  if design is not None:
     homogeneousDesign = abs(max(design) - min(design)) < 1e-12
   else:
     homogeneousDesign = False

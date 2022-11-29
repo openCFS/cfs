@@ -68,6 +68,8 @@ public:
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
 
+    ~DesignMaterial();
+
     bool GetTensor(MaterialTensor<double>& mt, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, MaterialTensorNotation notation, bool pure = false);
 
     /** Calculate the derivative tensor from the given material parameters
@@ -416,27 +418,27 @@ private:
     Interpolation interpolation_;
     unsigned int level_;
 
-    ApproxData* interpolator11_;
-    ApproxData* interpolator12_;
-    ApproxData* interpolator13_;
-    ApproxData* interpolator14_;
-    ApproxData* interpolator15_;
-    ApproxData* interpolator16_;
-    ApproxData* interpolator22_;
-    ApproxData* interpolator23_;
-    ApproxData* interpolator24_;
-    ApproxData* interpolator25_;
-    ApproxData* interpolator26_;
-    ApproxData* interpolator33_;
-    ApproxData* interpolator34_;
-    ApproxData* interpolator35_;
-    ApproxData* interpolator36_;
-    ApproxData* interpolator44_;
-    ApproxData* interpolator45_;
-    ApproxData* interpolator46_;
-    ApproxData* interpolator55_;
-    ApproxData* interpolator56_;
-    ApproxData* interpolator66_;
+    ApproxData* interpolator11_ = nullptr;
+    ApproxData* interpolator12_ = nullptr;
+    ApproxData* interpolator13_ = nullptr;
+    ApproxData* interpolator14_ = nullptr;
+    ApproxData* interpolator15_ = nullptr;
+    ApproxData* interpolator16_ = nullptr;
+    ApproxData* interpolator22_ = nullptr;
+    ApproxData* interpolator23_ = nullptr;
+    ApproxData* interpolator24_ = nullptr;
+    ApproxData* interpolator25_ = nullptr;
+    ApproxData* interpolator26_ = nullptr;
+    ApproxData* interpolator33_ = nullptr;
+    ApproxData* interpolator34_ = nullptr;
+    ApproxData* interpolator35_ = nullptr;
+    ApproxData* interpolator36_ = nullptr;
+    ApproxData* interpolator44_ = nullptr;
+    ApproxData* interpolator45_ = nullptr;
+    ApproxData* interpolator46_ = nullptr;
+    ApproxData* interpolator55_ = nullptr;
+    ApproxData* interpolator56_ = nullptr;
+    ApproxData* interpolator66_ = nullptr;
 
 #ifdef USE_SGPP
     /** members for SGPP interpolation */

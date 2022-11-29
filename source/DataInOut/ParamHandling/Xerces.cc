@@ -9,6 +9,7 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/make_shared.hpp>
 
 #include "General/Exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
@@ -216,7 +217,7 @@ namespace CoupledField
       ParamNode::NodeType type = ParamNode::ELEMENT;
       if ( node->getNodeType() == DOMNode::ATTRIBUTE_NODE  ) 
         type = ParamNode::ATTRIBUTE;
-      PtrParamNode newNode(new ParamNode(ParamNode::EX, type));
+      PtrParamNode newNode = boost::make_shared<ParamNode>(ParamNode::EX, type);
       parent->AddChildNode( newNode );
       pn = newNode;
       // we work with the this just added element - here we avoid any

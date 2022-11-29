@@ -14,6 +14,8 @@ def interpret_value(val):
     return int(val)
   if isfloat(val):
     return float(val)
+  if val.is_text:
+    return val.__str__().split() # converts a vector or matrix into an array
   if val == '':
     return 0
   return val
@@ -26,9 +28,15 @@ def add_key(xml, dic, query, key = None, quiet = True):
     if query.count('@') == 1:
       key = query.split('@')[1]
     if query.count('@') > 1:
-      key = label(query)  
+      key = label(query)
   if len(value) >= 1:
-    dic[key] = interpret_value(value[0])
+    val = interpret_value(value[0])
+    if not isinstance(val, (list, tuple, np.ndarray)):
+      dic[key] = val
+    else:
+      for idx, elem in enumerate(val):
+        dic[key + '_' + str(idx)] = elem
+    
 
 def read_general_info(xml, dic):
   add_key(xml, dic, '//cfsInfo/@status')

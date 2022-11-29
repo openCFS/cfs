@@ -258,7 +258,7 @@ def has_element(hdf5_file, name, given_step=99999):
 
   return False
           
-# returns a deep copied numpy array of element results by regioin and step          
+# returns a deep copied numpy array of element results by region and step          
 def get_element(hdf5_file, name, region, given_step=99999):
   step = min((given_step, last_h5_step(hdf5_file)))
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"

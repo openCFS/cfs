@@ -10,6 +10,8 @@ import datetime
 import numpy as np
 from itertools import cycle
 
+known_functions = ('abs', 'sqrt', 'pi', 'sin', 'cos')
+
 # when we use plotviz from postproc.py, we don't need this stuff
 if __name__ == '__main__':
   import argparse
@@ -304,6 +306,8 @@ def eval_expression(meta, data, key, bars):
   # extract column numbers/labels which we want the data for
   k = []
   for kk in exp:
+    if kk in known_functions:
+      continue
     if kk[0] == '$':
       k.append(kk[1:])
     if re.search('[a-zA-Z]', kk):
@@ -319,6 +323,9 @@ def eval_expression(meta, data, key, bars):
   exp_idx = 0
   for i in range(len(exp)):
     if exp[i][0] == '$' or re.search('[a-zA-Z]', exp[i]):
+      if exp[i] in known_functions:
+        exp[i] = 'np.' + exp[i] # use numpy functions
+        continue
       exp[i] = 'd[{:d}]'.format(exp_idx)
       label[i] = l[exp_idx]
       exp_idx += 1
@@ -406,7 +413,7 @@ def process(input):
 # @param args either args.ylabel or args.y2label. If not None this is returned
 # @oaram legend array of legends. Returns a list of unique entries
 def label(args, legends):
-  if args:
+  if args is not None:
     return args
   else:
     # we make manually unique without list(set(legends)) to keep order
@@ -698,7 +705,7 @@ if __name__ == '__main__':
           #print(-fiy2[i]-1,x[-fiy2[i]-1],y2[i])
           lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i], linestyle=args.linestyle)))
       if args.y2lim:
-        ax.set_ylim(args.y2lim)
+        ax2.set_ylim(args.y2lim)
 
     labels = fix_labels(ylabel, fiy, args.input) + fix_labels(y2lbl, fiy2, args.input)
     if args.legend:
@@ -706,9 +713,6 @@ if __name__ == '__main__':
         print('Error: more entries given with --legend', len(args.legend), ' than lines', len(labels))
         sys.exit()
       labels[0:len(args.legend)] = args.legend
-    if args.legend_loc:
-      if not len(args.legend_loc) == 2:
-        print('Error: --legend_loc requires two values (e.g. 1.05 1) to form the bbox_to_anchor attribute to plt.legend()')
     plt.legend(lines, labels, loc=args.legend_loc, ncol=args.legend_ncol)
 
   else: # here comes the z-case
