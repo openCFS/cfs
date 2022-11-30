@@ -7,6 +7,8 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionCache.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
+  CoefFunctionContactForceDensity.cc
+  CoefFunctionDistance.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
   CoefFunctionGridNodal.cc

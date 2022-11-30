@@ -31,6 +31,7 @@
 
 // new postprocessing concept
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionContactForceDensity.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -161,7 +162,7 @@ namespace CoupledField {
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
-      
+
       
       // ====================================================================
       //  Standard Linear Stiffness
@@ -650,8 +651,128 @@ namespace CoupledField {
     DefineFieldResult( strainFunc, strain );
     stiffFormCoefs_.insert(strainFunc);
 
+    // === SMOOTH CONTACT FORCE DENSITY ===
+    shared_ptr<ResultInfo> contactForceDensity(new ResultInfo);
+    contactForceDensity->resultType = SMOOTH_CONTACT_FORCE_DENSITY;
+    contactForceDensity->dofNames = dispDofNames;
+    contactForceDensity->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE_DENSITY);
+    contactForceDensity->entryType = ResultInfo::VECTOR;
+    contactForceDensity->definedOn = ResultInfo::SURF_ELEM;
+    availResults_.insert( contactForceDensity );
 
+    StdVector<std::string> surfList1;
+    StdVector<std::string> surfList2;
+    StdVector<std::string> volumeList;
+    StdVector<std::string> contactLawList;
+    StdVector<bool> useSurfaceMidpointsList;
+    ReadContact(surfList1, surfList2, volumeList, contactLawList, useSurfaceMidpointsList);
+
+    shared_ptr<CoefFunctionContactForceDensity> contactForceDensityFunc;
+    contactForceDensityFunc.reset(new CoefFunctionContactForceDensity(feFct, surfList1, surfList2, volumeList, contactLawList, useSurfaceMidpointsList));
+    
+    DefineFieldResult( contactForceDensityFunc, contactForceDensity );
   }
+
+
+  void SmoothPDE::ReadContact(StdVector<std::string>& surfList1,
+                                  StdVector<std::string>& surfList2,
+                                  StdVector<std::string>& volumeList,
+                                  StdVector<std::string>& contactLawList,
+                                  StdVector<bool>& useSurfaceMidpointsList) {
+
+    // Check if the node is defined
+    PtrParamNode bcNode = myParam_->Get("contactList", ParamNode::PASS);
+    if (bcNode) {
+      StdVector<shared_ptr<EntityList> > ent;
+      StdVector<PtrCoefFct > coef;
+      std::string elemName = "contact";
+      ParamNodeList elems = myParam_->Get("contactList")->GetList(elemName);
+      
+      ent.Resize(elems.GetSize());
+      coef.Resize(elems.GetSize());
+      
+      // Define xml input
+      std::string surfName1;
+      std::string surfName2;
+      std::string volumeName;
+      std::string contactLaw;
+      bool useSurfaceMidpoints;
+
+      surfList1.Clear();
+      surfList2.Clear();
+      volumeList.Clear();
+      contactLawList.Clear();
+      useSurfaceMidpointsList.Clear();
+      
+      //std::vector<std::pair<std::string,std::string>> surfList;
+      for (UInt i = 0; i < elems.GetSize(); ++i) {
+        PtrParamNode xml = elems[i];
+        try {
+          // read xml input
+          surfName1 = xml->Get("Surface1")->As<std::string>();
+          surfName2 = xml->Get("Surface2")->As<std::string>();
+          volumeName = xml->Get("Volume")->As<std::string>();
+          contactLaw = xml->Get("contactLaw")->As<std::string>();
+          useSurfaceMidpoints = xml->Get("useSurfaceMidpoints")->As<bool>();
+          
+          // check if we only have surface elements in the given region
+          EntityList::ListType listType = EntityList::ELEM_LIST;
+          if( ptGrid_->GetEntityDim(surfName1) == ptGrid_->GetDim()-1 && ptGrid_->GetEntityDim(surfName2) == ptGrid_->GetDim()-1 ) {
+          listType = EntityList::SURF_ELEM_LIST;
+          } else {
+            throw Exception("contactForce can only be evaluated on surface regions");
+          }
+
+          // finish checks
+          switch( ptGrid_->GetEntityType(surfName1) ) {
+            case EntityList::NAMED_NODES:
+            ent[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, surfName1);
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            ent[i] = ptGrid_->GetEntityList( listType, surfName1 );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << surfName1 << "' known");
+            break;
+          }
+          // check just defined type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION("contactForce must be defined on elements")
+          }
+          switch( ptGrid_->GetEntityType(surfName2) ) {
+            case EntityList::NAMED_NODES:
+            ent[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, surfName2);
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            ent[i] = ptGrid_->GetEntityList( listType, surfName2 );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << surfName2 << "' known");
+            break;
+          }
+          // check just defined type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION("contactForce must be defined on elements")
+          }
+
+          // add everything to the lists
+          surfList1.push_back(surfName1);
+          surfList2.push_back(surfName2);
+          volumeList.push_back(volumeName);
+          contactLawList.push_back(contactLaw);
+          useSurfaceMidpointsList.push_back(useSurfaceMidpoints);
+
+
+        } catch (Exception &e) {
+          RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                                      << "' on entities '" << surfName1 << "' and' " << surfName2 <<"'");
+        }
+      }
+    }
+  }
+
   
   std::map<SolutionType, shared_ptr<FeSpace> > SmoothPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode)
   {

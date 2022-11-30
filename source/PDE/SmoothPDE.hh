@@ -94,6 +94,13 @@ protected:
     // set solution information
     // ========================
 
+    //! Define contact between two surfaces
+    void ReadContact(StdVector<std::string>& surfList1,
+                          StdVector<std::string>& surfList2,
+                          StdVector<std::string>& volumeList,
+                          StdVector<std::string>& contactLawList,
+                          StdVector<bool>& useSurfaceMidpointsList);
+
   private:
 
     //! Initialize time stepping method

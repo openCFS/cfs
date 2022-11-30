@@ -148,6 +148,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_ACCELERATION, "smoothAcceleration");
     SolutionTypeEnum.Add(SMOOTH_ZERO_PRESSURE, "smoothZeroStress");
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
+    SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY, "smoothContactForceDensity");
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
@@ -963,6 +964,7 @@ namespace CoupledField {
       case MAG_FORCE_MAXWELL_DENSITY:
       case MAG_NORMALFORCE_MAXWELL_DENSITY:
       case MAG_TANGENTIALFORCE_MAXWELL_DENSITY:
+      case SMOOTH_CONTACT_FORCE_DENSITY:
         return "N/m^2";
 
       case DIV_MEAN_FLUIDMECH_VELOCITY:

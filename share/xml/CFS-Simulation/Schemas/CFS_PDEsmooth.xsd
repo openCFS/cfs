@@ -60,6 +60,28 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining contact surface couples -->
+          <xsd:element name="contactList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                List defining surface pairs which get into (quasi) contact.
+              </xsd:documentation>
+            </xsd:annotation>              
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="contact" type="DT_SmoothContactIF"
+                  minOccurs="0" maxOccurs="unbounded">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      Describes which surface pair gets tracked for eventual contact. The contact itself can be described with the math parser. It has to be noted that this is no true contact since the smoothPDE can't handle full contact but only offset contact, where the surfaces get very close but do not touch.
+                    </xsd:documentation>
+                  </xsd:annotation>              
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+           
+
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -242,10 +264,17 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Definition of nodal result types of smooth PDE -->
+  <!-- Definition of element result types of smooth PDE -->
   <xsd:simpleType name="DT_SmoothElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value=""/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of surface element result types of smooth PDE -->
+  <xsd:simpleType name="DT_SmoothSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="smoothContactForceDensity"/> 
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -280,8 +309,63 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_SmoothSurfElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
       </xsd:choice>
     </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ********************************************************************
+  Data type for specification of a non-conforming interface
+  ********************************************************************
+  This defines only the geometrical part of the interface.
+  Formulation specific options (e.g. Mortar/Nitsche) are defined in
+  CFS_PDEbasic.xsd (DT_NcInterfaceList). -->
+  <xsd:complexType name="DT_SmoothContactIF">
+    <xsd:attribute name="Surface1" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          First surface used for the offset contact problem.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>   
+    <xsd:attribute name="Surface2" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Second surface used for the offset contact problem.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="Volume" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Volume in between the two surfaces.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="contactLaw" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Analytical description of the contact law. Use "u" as a variable for the normal distance between the contact surfaces.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="useSurfaceMidpoints" type="xsd:boolean" use="optional" default="true">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Flag if either the midpoints of the target surface or the nodes themselves should be used for the contact.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
 
