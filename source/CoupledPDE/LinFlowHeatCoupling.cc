@@ -44,9 +44,9 @@ namespace CoupledField {
     // determine subtype
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
-		// determine whether symmetric or non ymmetric formulation should be used
-		isCouplingFormulationSymmetric_ = false;
-		paramNode->GetValue("symmetric",isCouplingFormulationSymmetric_,ParamNode::PASS);
+    // determine whether symmetric or non symmetric formulation should be used
+    isCouplingFormulationSymmetric_ = true;
+    paramNode->GetValue("symmetric",isCouplingFormulationSymmetric_,ParamNode::PASS);
 
     nonLin_ = false;
     
@@ -139,10 +139,12 @@ namespace CoupledField {
     	heatToFlowDescr->SetFeFunctions( flowFct, heatFct );
     	heatToFlowDescr->SetCounterPart(false);
 
-			assemble_->AddBiLinearForm( heatToFlowDescr );
+      assemble_->AddBiLinearForm( heatToFlowDescr );
 
     	// bilinear form for coupling from flow to heat: coefThermalExpansion*refTemp \frac{\partial p_\ra}{\partial t}
     	// The coefficient "ThermalExpansion*refTemp" is necessary for a general fluid.
+      // For an ideal gas: ThermalExpansion*refTemp = 1
+      // In case the coupling is symmetric the coefficent function is divied by refTemp
       PtrCoefFct coefFlowToHeat;
       if (isCouplingFormulationSymmetric_) {
         coefFlowToHeat = coefThermalExpansion;
@@ -165,7 +167,7 @@ namespace CoupledField {
     	flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
     	flowToHeatDescr->SetCounterPart(false);
 
-			assemble_->AddBiLinearForm( flowToHeatDescr );
+      assemble_->AddBiLinearForm( flowToHeatDescr );
     }
   }
 }
