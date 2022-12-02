@@ -437,7 +437,7 @@ namespace CoupledField {
       // ====================================================================
 
       // set up intermediate BB coefficient
-      PtrCoefFct coefIntermediateBB;
+      PtrCoefFct coefViscosityTensor;
       PtrCoefFct shearViscosity = materials_[actRegion]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
       PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
           CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
@@ -450,12 +450,12 @@ namespace CoupledField {
           tensorComponents[5] = shearViscosityDouble;
           tensorComponents[10] = shearViscosity;
           tensorComponents[15] = shearViscosityDouble;
-          coefIntermediateBB = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
+          coefViscosityTensor = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
         } else if( subType_ == "plane" ) {
           tensorComponents[0] = shearViscosityDouble;
           tensorComponents[4] = shearViscosityDouble;
           tensorComponents[8] = shearViscosity;
-          coefIntermediateBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+          coefViscosityTensor = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
         }
       } else {
         tensorComponents[0] = shearViscosityDouble;
@@ -464,7 +464,7 @@ namespace CoupledField {
         tensorComponents[21] = shearViscosity;
         tensorComponents[28] = shearViscosity;
         tensorComponents[35] = shearViscosity;
-        coefIntermediateBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
+        coefViscosityTensor = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
       }
 
       // set up the BB cofficient in K_VV dependent on possible coupling
@@ -472,9 +472,9 @@ namespace CoupledField {
       // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
       if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
         coefBB = CoefFunction::Generate(mp_, Global::REAL,
-                      CoefXprTensScalOp(mp_, coefIntermediateBB, constMinusOne, CoefXpr::OP_MULT));
+                      CoefXprTensScalOp(mp_, coefViscosityTensor, constMinusOne, CoefXpr::OP_MULT));
       } else {
-        coefBB = coefIntermediateBB;
+        coefBB = coefViscosityTensor;
       }
 
       // set up integrator based on dimension and (geometry) aub type
