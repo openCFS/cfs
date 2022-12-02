@@ -53,7 +53,7 @@ workflow:
 #################################################
 # the jobs in this stage are purely informational at the moment
 # some only get created in certain cases (pipeline-changes) and then fail 
-# to generate a warning (they are allowd to fail)
+# to generate a warning (they are allowed to fail)
 
 # Check the revision of the testsuite submodule
 testsuite-revision:
@@ -62,7 +62,7 @@ testsuite-revision:
     - docker
   image: opencfs/fedora32
   variables:
-    # we clone to make sure we have everyting (including current names of the SHAs)
+    # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
   rules:
     # only run the job for merge requests if there are changes in the Testsuite submodule
@@ -378,6 +378,8 @@ rhel:9:
   - rm -f CMakeCache.txt # clear old cache
   # show the contents of the cfsdeps cache
   - ls -l cfsdeps/cache/precompiled || ls #debug
+  # remove precompiled when we finde clear-cache in the commit message
+  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache/precompiled ) || echo "no clear-cache requested in commit message"
   - ls -l cfsdeps/cache/sources || ls # debug
 
 # if testsuite_ignore is there, restore it
