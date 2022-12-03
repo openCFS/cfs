@@ -124,12 +124,12 @@ namespace CoupledField {
         if( dim_ == 2  ) {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                          new IdentityOperatorNormal<FeH1,2>(),
-                                         coefFuncs, -1.0, acouRegions);
+                                         coefFuncs, 1.0, acouRegions);
         }
         else  {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                          new IdentityOperatorNormal<FeH1,3>(),
-                                         coefFuncs, -1.0, acouRegions);
+                                         coefFuncs, 1.0, acouRegions);
         }
         cplInt1->SetName("LinFlowAcouCouplingInt1");
         BiLinFormContext *context1 = new BiLinFormContext(cplInt1, DAMPING);
@@ -179,13 +179,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
           ncCplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
                                                 new IdentityOperatorNormal<FeH1,2>(),
-                                                coefFuncs, -1.0, mortarIf->IsPlanar(),
+                                                coefFuncs, 1.0, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         else {
           ncCplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
                                                 new IdentityOperatorNormal<FeH1,3>(),
-                                                coefFuncs, -1.0, mortarIf->IsPlanar(),
+                                                coefFuncs, 1.0, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         ncCplInt1->SetName("LinFlowAcouCouplingNCInt1");
@@ -243,12 +243,12 @@ namespace CoupledField {
         if( dim_ == 2  ) {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                          new IdentityOperatorNormal<FeH1,2>(),
-                                         constOne, -1.0, acouRegions);
+                                         constOne, 1.0, acouRegions);
         }
         else  {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                          new IdentityOperatorNormal<FeH1,3>(),
-                                         constOne, -1.0, acouRegions);
+                                         constOne, 1.0, acouRegions);
         }
         cplInt1->SetName("LinFlowAcouCouplingInt");
         BiLinFormContext *context1 = new BiLinFormContext(cplInt1, STIFFNESS);
@@ -297,13 +297,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
           cplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
                                                 new IdentityOperatorNormal<FeH1,2>(),
-                                                constOne, -1.0, mortarIf->IsPlanar(),
+                                                constOne, 1.0, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         else {
           cplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
                                                 new IdentityOperatorNormal<FeH1,3>(),
-                                                constOne, -1.0, mortarIf->IsPlanar(),
+                                                constOne, 1.0, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         cplInt1->SetName("LinFlowAcouCouplingNCInt");
