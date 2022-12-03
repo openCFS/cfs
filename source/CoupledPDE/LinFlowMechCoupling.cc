@@ -354,7 +354,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),sNSOp2,
-              coefOne, 1.0, BiLinearForm::SLAVE_MASTER, false, true, false);
+              coefOne, -1.0, BiLinearForm::SLAVE_MASTER, false, true, false);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
@@ -362,7 +362,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),sNSOp2,
-              coefOne, 1.0, BiLinearForm::SLAVE_MASTER, false, true, false);
+              coefOne, -1.0, BiLinearForm::SLAVE_MASTER, false, true, false);
         }
         else
         {
@@ -370,7 +370,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),sNSOp2,
-              coefOne, 1.0, BiLinearForm::SLAVE_MASTER, false, false, false);
+              coefOne, -1.0, BiLinearForm::SLAVE_MASTER, false, false, false);
         }
         // ====================================================================
         //  PART FOUR
@@ -383,21 +383,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              coefOne, beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
+              coefOne, -beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              coefOne, beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
+              coefOne, -beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
         }
         else
         {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              coefOne, beta, BiLinearForm::SLAVE_SLAVE, false, false, true);
+              coefOne, -beta, BiLinearForm::SLAVE_SLAVE, false, false, true);
         }
         // --------------------------
         // Term 6 : -beta*Psi.du/dt
@@ -408,21 +408,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              coefMinusOne, beta, BiLinearForm::SLAVE_MASTER, false, true, true);
+              coefMinusOne, -beta, BiLinearForm::SLAVE_MASTER, false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              coefMinusOne, beta, BiLinearForm::SLAVE_MASTER, false, true, true);
+              coefMinusOne, -beta, BiLinearForm::SLAVE_MASTER, false, true, true);
         }
         else
         {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              coefMinusOne, beta, BiLinearForm::SLAVE_MASTER, false, false, true);
+              coefMinusOne, -beta, BiLinearForm::SLAVE_MASTER, false, false, true);
         }
 
         int_PhiM_duM->SetName("int_PhiM_duM");
