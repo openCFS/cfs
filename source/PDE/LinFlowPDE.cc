@@ -222,7 +222,7 @@ namespace CoupledField {
     shared_ptr<FeSpace> meanVelSpace = meanVelFct->GetFeSpace();
 
     // Create coefficient functions for all fluid densities
-    std::map< RegionIdType, PtrCoefFct > coefsSurfaceVP;
+    std::map< RegionIdType, PtrCoefFct > oneFuncs;
     std::set< RegionIdType > flowRegions;
 
     shared_ptr<BaseFeFunction> lagrangeMultFct = NULL;
@@ -284,18 +284,11 @@ namespace CoupledField {
 
       PtrCoefFct density =
               materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
-      
-      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-      PtrCoefFct constMinusOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefsSurfaceVP[actRegion] = constMinusOne;
-      } else {
-        coefsSurfaceVP[actRegion] = constOne;
-      }
+      oneFuncs[actRegion] = 
+        CoefFunction::Generate( mp_, Global::REAL, lexical_cast<std::string>(1.0) );
 
       // ====================================================================
       // stiffness integrators: conservation of mass
@@ -303,6 +296,7 @@ namespace CoupledField {
       //  K_PV Integrator (lower off-diagonal integrator):
       //  \int_{\Omega_f} phi div(v') d\Omega
       // ===================================================================
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
         if( isaxi_ ) {
@@ -365,24 +359,13 @@ namespace CoupledField {
       // M_VV mass integrator, conservation of momentum
       // j omega rho v'.v (=inertia term)
       // ====================================================================
-
-      // set up M_VV coefficient dependent on possible coupling
-      PtrCoefFct coefMVV;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefMVV = CoefFunction::Generate(mp_, Global::REAL,
-                      CoefXprBinOp(mp_, constMinusOne, density, CoefXpr::OP_MULT));
-      } else {
-        coefMVV = density;
-      }
-
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
         dampIntvv = new BBInt<>(new IdentityOperator<FeH1,2,2>(),
-                                coefMVV, 1.0, updatedGeo_ );
+                                density, -1.0, updatedGeo_ );
       } else {
         dampIntvv = new BBInt<>(new IdentityOperator<FeH1,3,3>(),
-                                coefMVV, 1.0, updatedGeo_ );
+                                density, -1.0, updatedGeo_ );
       }
       dampIntvv->SetName("FlowDampIntVV");
 
@@ -398,28 +381,19 @@ namespace CoupledField {
       //  Div(v') p = Grad(v'):(pI) ... the pressure term of the stress tensor
       // TODO: write as scalar DivOp = more efficient
       // ====================================================================
-      
-      // set up K_VP coefficient dependent on possible coupling
-      PtrCoefFct coefKVP;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefKVP = constMinusOne;
-      } else {
-        coefKVP = constOne;
-      }
-
+      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         if( isaxi_ ) {
           stiffIntVP = new ABInt<>( new DivOperatorAxi<FeH1>(),
-                                      new MultiIdOp<FeH1,2>(), coefKVP, -1.0, updatedGeo_ );
+                                      new MultiIdOp<FeH1,2>(), coeffKVP, 1.0, updatedGeo_ );
         } else if(subType_ == "plane") {
           stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
-                                    new MultiIdOp<FeH1,2>(), coefKVP, -1.0, updatedGeo_ );
+                                    new MultiIdOp<FeH1,2>(), coeffKVP, 1.0, updatedGeo_ );
         }
       } else {
         stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
-                                  new MultiIdOp<FeH1,3>(), coefKVP, -1.0, updatedGeo_ );
+                                  new MultiIdOp<FeH1,3>(), coeffKVP, 1.0, updatedGeo_ );
       }
       stiffIntVP->SetName("LinFlowStiffIntVP");
       BiLinFormContext *stiffContVP = NULL;
@@ -435,13 +409,11 @@ namespace CoupledField {
       //  diagonal integrator - partially integrated
       //  2*mu*B(v'):B(v) ... the total strain-rate term
       // ====================================================================
-
-      // set up intermediate BB coefficient
-      PtrCoefFct coefViscosityTensor;
       PtrCoefFct shearViscosity = materials_[actRegion]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
       PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
           CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
       PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
+      BaseBDBInt * stiffIntLaplace = NULL;
       StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? (isaxi_ == true ? 16 : 9) : 36);
       tensorComponents.Init(coefZero);
       if( dim_ == 2 ) {
@@ -450,12 +422,14 @@ namespace CoupledField {
           tensorComponents[5] = shearViscosityDouble;
           tensorComponents[10] = shearViscosity;
           tensorComponents[15] = shearViscosityDouble;
-          coefViscosityTensor = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
+          PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
+          stiffIntLaplace = new BDBInt<>( new StrainOperatorAxi<FeH1>(), coefBB, -1.0, updatedGeo_ );
         } else if( subType_ == "plane" ) {
           tensorComponents[0] = shearViscosityDouble;
           tensorComponents[4] = shearViscosityDouble;
           tensorComponents[8] = shearViscosity;
-          coefViscosityTensor = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+          PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+          stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, -1.0, updatedGeo_ );
         }
       } else {
         tensorComponents[0] = shearViscosityDouble;
@@ -464,29 +438,8 @@ namespace CoupledField {
         tensorComponents[21] = shearViscosity;
         tensorComponents[28] = shearViscosity;
         tensorComponents[35] = shearViscosity;
-        coefViscosityTensor = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
-      }
-
-      // set up the BB cofficient in K_VV dependent on possible coupling
-      PtrCoefFct coefBB;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefBB = CoefFunction::Generate(mp_, Global::REAL,
-                      CoefXprTensScalOp(mp_, coefViscosityTensor, constMinusOne, CoefXpr::OP_MULT));
-      } else {
-        coefBB = coefViscosityTensor;
-      }
-
-      // set up integrator based on dimension and (geometry) aub type
-      BaseBDBInt * stiffIntLaplace = NULL;
-      if( dim_ == 2 ) {
-        if( isaxi_ ) {
-          stiffIntLaplace = new BDBInt<>( new StrainOperatorAxi<FeH1>(), coefBB, 1.0, updatedGeo_ );
-        } else if( subType_ == "plane" ) {
-          stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, 1.0, updatedGeo_ );
-        }
-      } else {
-        stiffIntLaplace = new BDBInt<>( new StrainOperator3D<FeH1>(), coefBB, 1.0, updatedGeo_ );
+        PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
+        stiffIntLaplace = new BDBInt<>( new StrainOperator3D<FeH1>(), coefBB, -1.0, updatedGeo_ );
       }
       stiffIntLaplace->SetName("LinFlowStiffIntViscous");
       BiLinFormContext *stiffContLaplace;
@@ -504,31 +457,21 @@ namespace CoupledField {
 
       if ( isCompressible_ ) { // we need to subtract 2*mu/3 Div(v)I and add the bulk part lambda*Div(v)I
         PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
-        PtrCoefFct coefDivDivViscosity = CoefFunction::Generate( mp_,  Global::REAL,
+        PtrCoefFct coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
             CoefXprBinOp(mp_,
                 bulkViscosity,
                 CoefXprBinOp(mp_,shearViscosityDouble,CoefFunction::Generate( mp_, Global::REAL, "3"),CoefXpr::OP_DIV),
             CoefXpr::OP_SUB ));
-        
-        // set up the DivDiv cofficient in K_VV dependent on possible coupling
-        PtrCoefFct coefDivDiv;
-        // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-        if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-          coefDivDiv = CoefFunction::Generate(mp_, Global::REAL,
-                        CoefXprBinOp(mp_, constMinusOne, coefDivDivViscosity, CoefXpr::OP_MULT));
-        } else {
-          coefDivDiv = coefDivDivViscosity;
-        }
 
         BaseBDBInt * stiffIntDivDiv = NULL;
         if( dim_ == 2 ) {
           if( isaxi_ ) {
-            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperatorAxi<FeH1>(), coefDivDiv, 1.0, updatedGeo_ );
+            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperatorAxi<FeH1>(), coefDivDiv, -1.0, updatedGeo_ );
           } else if(subType_ == "plane") {
-            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, 1.0, updatedGeo_);
+            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, -1.0, updatedGeo_);
           }         
         } else {
-          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(), coefDivDiv, 1.0, updatedGeo_);
+          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(), coefDivDiv, -1.0, updatedGeo_);
         }
         stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscous");
         BiLinFormContext *stiffContDivDiv;
@@ -573,35 +516,24 @@ namespace CoupledField {
 
         // first convective term in balance of momentum
         // v' . ( rho0 v0.Grad(v) )
-
-        // set up first convective coefficient dependent on possible coupling
-        PtrCoefFct coefConvectiveVv;
-        // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-        if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-          coefConvectiveVv = CoefFunction::Generate(mp_, Global::REAL,
-                        CoefXprBinOp(mp_, constMinusOne, density, CoefXpr::OP_MULT));
-        } else {
-          coefConvectiveVv = density;
-        }
-
         BiLinearForm *convectiveVv = NULL;
         if( dim_ == 2 ) {
           if(isComplex_) 
           {
-            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2,Complex>(), coefConvectiveVv, 1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2,Complex>(), density, -1.0, coefUpdateGeo );
           }
           else
           {
-            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2>(), coefConvectiveVv, 1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2>(), density, -1.0, coefUpdateGeo );
           }
         } else {
           if(isComplex_) 
           {
-            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3,Complex>(), coefConvectiveVv, 1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3,Complex>(), density, -1.0, coefUpdateGeo );
           }
           else
           {
-            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3>(), coefConvectiveVv, 1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3>(), density, -1.0, coefUpdateGeo );
           }
         }
         // here we set the velocity vector used in the ConvectiveOperator above
@@ -652,23 +584,12 @@ namespace CoupledField {
             bOpId = new IdentityOperator<FeH1,3,3>();
           }
           //now create the integrators
-
-          // set up second convective coefficient dependent on possible coupling
-          PtrCoefFct coefConvectivevV;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefConvectivevV = CoefFunction::Generate(mp_, Global::REAL,
-                          CoefXprBinOp(mp_, constMinusOne, rho0GradV0, CoefXpr::OP_MULT));
-          } else {
-            coefConvectivevV = rho0GradV0;
-          }
-
           BiLinearForm *convectivevV = NULL;
           PtrCoefFct coeffConvec;
           if(isComplex_) {
-            convectivevV = new BDBInt<Complex,Complex>( bOpId, coefConvectivevV, 1.0 );
+            convectivevV = new BDBInt<Complex,Complex>( bOpId, rho0GradV0, -1.0 );
           } else {
-            convectivevV = new BDBInt<Double,Double>( bOpId, coefConvectivevV, 1.0 );
+            convectivevV = new BDBInt<Double,Double>( bOpId, rho0GradV0, -1.0 );
           }
           convectivevV->SetName("LinFlowStiffIntConvectivevV");
           // assign to context
@@ -732,28 +653,18 @@ namespace CoupledField {
           // This would be the fast way, but fails with index error - no idea why
           //PtrCoefFct coefPv = CoefFunction::Generate( mp_,  Global::COMPLEX, CoefXprTensScalOp(mp_,tensor,rho0OverKappaP0,CoefXpr::OP_MULT));
 
-          // set up third convective coefficient dependent on possible coupling
-          PtrCoefFct coefConvectiveVp;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefConvectiveVp = CoefFunction::Generate(mp_, Global::REAL,
-                          CoefXprBinOp(mp_, constMinusOne, coefPv, CoefXpr::OP_MULT));
-          } else {
-            coefConvectiveVp = coefPv;
-          }
-
           BiLinearForm *convectiveVp = NULL;
           if(isComplex_) {
             if(dim_==2){
-              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,2,Complex>(), new MultiIdOp<FeH1,2,1,Complex>(), coefConvectiveVp, 1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,2,Complex>(), new MultiIdOp<FeH1,2,1,Complex>(), coefPv, -1.0, coefUpdateGeo );
             } else {
-              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,3,Complex>(), new MultiIdOp<FeH1,3,1,Complex>(), coefConvectiveVp, 1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,3,Complex>(), new MultiIdOp<FeH1,3,1,Complex>(), coefPv, -1.0, coefUpdateGeo );
             }
           } else {
             if(dim_==2){
-              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefConvectiveVp, 1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefPv, -1.0, coefUpdateGeo );
             } else {
-              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefConvectiveVp, 1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefPv, -1.0, coefUpdateGeo );
             }
           }
           convectiveVp->SetName("LinFlowStiffIntConvectiveVp");
@@ -879,26 +790,26 @@ namespace CoupledField {
             {
               stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
                                                   new ConvectiveOperator<FeH1,2,2,Complex>(),
-                                                  density, -1.0, updatedGeo_ );
+                                                  density, 1.0, updatedGeo_ );
             }
             else
             {
               stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(),
                                                 new ConvectiveOperator<FeH1,2,2>(),
-                                                density, -1.0, updatedGeo_ );
+                                                density, 1.0, updatedGeo_ );
             }
           } else {
             if(isComplex_)
             {
               stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
                                                   new ConvectiveOperator<FeH1,3,3,Complex>(),
-                                                  density, -1.0, updatedGeo_ );
+                                                  density, 1.0, updatedGeo_ );
             }
             else
             {
               stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(),
                                                 new ConvectiveOperator<FeH1,3,3>(),
-                                                density, -1.0, updatedGeo_ );
+                                                density, 1.0, updatedGeo_ );
             }
           }
 
@@ -941,11 +852,11 @@ namespace CoupledField {
             if( dim_ == 2 ) {
                 stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                      new IdentityOperatorNormal<FeH1,2>(),
-                                     coefsSurfaceVP, 1.0, flowRegions, updatedGeo_);
+                                     oneFuncs, -1.0, flowRegions, updatedGeo_);
             } else {
                 stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                      new IdentityOperatorNormal<FeH1,3>(),
-                                     coefsSurfaceVP, 1.0, flowRegions, updatedGeo_);
+                                     oneFuncs, -1.0, flowRegions, updatedGeo_);
             }
             stiffIntVPSurf->SetName("LinFlowStiffIntVPSurf");
             BiLinFormContext *stiffContVP = NULL;
@@ -975,10 +886,6 @@ namespace CoupledField {
     LinearForm * lin = NULL;
     StdVector<std::string> dispDofNames = velFct->GetResultInfo()->dofNames;
     bool coefUpdateGeo = false;
-
-    // minus one is needed in symmetric coupling to HeatPDE
-    PtrCoefFct constMinusOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
-
     // ==================
     //  SURFACE TRACTION
     // ==================
@@ -996,32 +903,21 @@ namespace CoupledField {
       if( elemDim != (dim_-1) ) {
         EXCEPTION("Surface traction can only be defined on surface elements");
       }
-
-      // set up surface traction rhs coefficient dependent on possible coupling
-      PtrCoefFct coefSurfaceTraction;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefSurfaceTraction = CoefFunction::Generate(mp_, Global::REAL,
-                      CoefXprBinOp(mp_, constMinusOne, coef[i], CoefXpr::OP_MULT));
-      } else {
-        coefSurfaceTraction = coef[i];
-      }
-
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
-              Complex(1.0), coefSurfaceTraction, coefUpdateGeo);
+              Complex(-1.0), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
-              1.0, coefSurfaceTraction,coefUpdateGeo);
+              -1.0, coef[i],coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
-              Complex(1.0), coefSurfaceTraction, coefUpdateGeo);
+              Complex(-1.0), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
-              1.0, coefSurfaceTraction, coefUpdateGeo);
+              -1.0, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("TractionIntegrator");
@@ -1049,34 +945,24 @@ namespace CoupledField {
       // to have correct normal direction
       const Double tracFac = -1.0;
 
-      // set up normal traction rhs coefficient dependent on possible coupling
-      PtrCoefFct coefNormalTraction;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefNormalTraction = CoefFunction::Generate(mp_, Global::REAL,
-                      CoefXprBinOp(mp_, constMinusOne, coef[i], CoefXpr::OP_MULT));
-      } else {
-        coefNormalTraction = coef[i];
-      }
-
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
-              Complex(tracFac), coefNormalTraction,
+              Complex(-tracFac), coef[i],
               volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
-              tracFac, coefNormalTraction, volRegions,
+              -tracFac, coef[i], volRegions,
               coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
-              Complex(tracFac), coefNormalTraction,
+              Complex(-tracFac), coef[i],
               volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
-              tracFac, coefNormalTraction,
+              -tracFac, coef[i],
               volRegions, coefUpdateGeo);
         }
       }
@@ -1151,31 +1037,21 @@ namespace CoupledField {
               // since this is dependent on the grid velocity we will always have a geometry update
               PtrCoefFct gridVelCoefRegion = gridVelCoef_->GetRegionCoef(aRegion);
 
-              // set up no penetration rhs coefficient dependent on possible coupling
-              PtrCoefFct coefNoPenetration;
-              // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-              if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-                coefNoPenetration = CoefFunction::Generate(mp_, Global::REAL,
-                              CoefXprBinOp(mp_, constMinusOne, gridVelCoefRegion, CoefXpr::OP_MULT));
-              } else {
-                coefNoPenetration = gridVelCoefRegion;
-              }
-
               if( dim_ == 2) {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormal<FeH1,2,1>(),
-                      Complex(1.0,0), coefNoPenetration, volRegion, true, true);
+                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormal<FeH1,2,1>(),
-                      1.0, coefNoPenetration, volRegion, true, true);
+                      -1.0, gridVelCoefRegion, volRegion, true, true);
                 }
               } else  {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormal<FeH1,3,1>(),
-                      Complex(1.0,0), coefNoPenetration, volRegion, true, true);
+                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormal<FeH1,3,1>(),
-                      1.0, coefNoPenetration, volRegion, true, true);
+                      -1.0, gridVelCoefRegion, volRegion, true, true);
                 }
               }
               lin->SetName("noPenetrationInt");
@@ -1234,31 +1110,21 @@ namespace CoupledField {
               // since this is dependent on the grid velocity we will always have a geometry update
               PtrCoefFct gridVelCoefRegion = gridVelCoef_->GetRegionCoef(aRegion);
 
-              // set up slip rhs coefficient dependent on possible coupling
-              PtrCoefFct coefSlip;
-              // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-              if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-                coefSlip = CoefFunction::Generate(mp_, Global::REAL,
-                              CoefXprBinOp(mp_, constMinusOne, gridVelCoefRegion, CoefXpr::OP_MULT));
-              } else {
-                coefSlip = gridVelCoefRegion;
-              }
-
               if( dim_ == 2) {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperator<FeH1,2,2>(),
-                      Complex(1.0,0), coefSlip, volRegion, true, true);
+                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double,true> ( new IdentityOperator<FeH1,2,2>(),
-                      1.0, coefSlip, volRegion, true, true);
+                      -1.0, gridVelCoefRegion, volRegion, true, true);
                 }
               } else  {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperator<FeH1,3,3>(),
-                      Complex(1.0,0), coefSlip, volRegion, true, true);
+                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double, true> ( new IdentityOperator<FeH1,3,3>(),
-                      1.0, coefSlip, volRegion, true, true);
+                      -1.0, gridVelCoefRegion, volRegion, true, true);
                 }
               }
               lin->SetName("SlipInt");
@@ -1291,10 +1157,6 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> lagrangeMultFct_1 = NULL;
     shared_ptr<FeSpace> lagrangeMultSpace_1 = NULL;
 
-    PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-    // minus one is needed in symmetric coupling to HeatPDE
-    PtrCoefFct constMinusOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
-
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
       StdVector<shared_ptr<EntityList> > ent;
@@ -1314,30 +1176,19 @@ namespace CoupledField {
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
           EXCEPTION("normalSurfaceMass must be defined on (surface) elements")
         }
-
-        // set up normal surface mass BC coefficient dependent on possible coupling
-        PtrCoefFct coefNormalSurfaceMass;
-        // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-        if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-          coefNormalSurfaceMass = CoefFunction::Generate(mp_, Global::REAL,
-                        CoefXprBinOp(mp_, constMinusOne, kCoef[i], CoefXpr::OP_MULT));
-        } else {
-          coefNormalSurfaceMass = kCoef[i];
-        }
-
         // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
         BiLinearForm * surfMassInt = NULL;
         if(isComplex_) {
           if (dim_ == 2){
-            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), coefNormalSurfaceMass, Complex(1.0,0), volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
           } else {
-            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), coefNormalSurfaceMass, Complex(1.0,0), volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
           }
         } else {
           if (dim_ == 2){
-            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), coefNormalSurfaceMass, 1.0, volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
           } else {
-            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), coefNormalSurfaceMass, 1.0, volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
           }
         }
         surfMassInt->SetName("surfMassIntegrator");
@@ -1363,30 +1214,19 @@ namespace CoupledField {
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
           EXCEPTION("normalImpedance must be defined on (surface) elements")
         }
-
-        // set up normal impendance BC coefficient dependent on possible coupling
-        PtrCoefFct coefNormalImpedance;
-        // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-        if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-          coefNormalImpedance = CoefFunction::Generate(mp_, Global::REAL,
-                        CoefXprBinOp(mp_, constMinusOne, kCoef[i], CoefXpr::OP_MULT));
-        } else {
-          coefNormalImpedance = kCoef[i];
-        }
-
         // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
         BiLinearForm * impedanceInt = NULL;
         if(isComplex_) {
           if (dim_ == 2){
-            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), coefNormalImpedance, Complex(1.0,0), volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
           } else {
-            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), coefNormalImpedance, Complex(1.0,0), volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
           }
         } else {
           if (dim_ == 2){
-            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), coefNormalImpedance, 1.0, volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
           } else {
-            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), coefNormalImpedance, 1.0, volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
           }
         }
         impedanceInt->SetName("ImpedanceIntegrator");
@@ -1512,29 +1352,19 @@ namespace CoupledField {
                 CoefXpr::OP_ADD)),
                 CoefXpr::OP_DIV));
 
-        // set up absorbing boundary condition coefficient dependent on possible coupling
-        PtrCoefFct coefABC;
-        // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-        if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-          coefABC = CoefFunction::Generate(mp_, Global::REAL,
-                        CoefXprBinOp(mp_, constMinusOne, impCoeff, CoefXpr::OP_MULT));
-        } else {
-          coefABC = impCoeff;
-        }
-
         // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = z_0 u'*n u*n
         BiLinearForm * abcInt = NULL;
         if(isComplex_) {
           if (dim_ == 2){
-            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), coefABC, Complex(1.0,0), volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), impCoeff, Complex(-1.0,0), volRegion, updatedGeo_ );
           } else {
-            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), coefABC, Complex(1.0,0), volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), impCoeff, Complex(-1.0,0), volRegion, updatedGeo_ );
           }
         } else {
           if (dim_ == 2){
-            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), coefABC, 1.0, volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), impCoeff, -1.0, volRegion, updatedGeo_ );
           } else {
-            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), coefABC, 1.0, volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), impCoeff, -1.0, volRegion, updatedGeo_ );
           }
         }
         abcInt->SetName("abcIntegrator");
@@ -1620,14 +1450,6 @@ namespace CoupledField {
           // similar to the noPenetration BC we only add the pressure term, otherwise stuff gets unstable for the noSlip BC
           AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
 
-          // set up velocity constraint balance of momentum coefficient dependent on possible coupling
-          PtrCoefFct coefVelocityConstraintVL;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefVelocityConstraintVL = constMinusOne;
-          } else {
-            coefVelocityConstraintVL = constOne;
-          }
 
           // conservation of momentum: \int_\Gamma_D v' \lambda
           BiLinearForm * surfVelocityConstraintIntVL = NULL;
@@ -1636,21 +1458,21 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                               new IdentityOperator<FeH1,2,2>(),
-                                                                              coefVelocityConstraintVL, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
                                                                               new IdentityOperator<FeH1,3,3>(),
-                                                                              coefVelocityConstraintVL, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                 new IdentityOperator<FeH1,2,2>(),
-                                                                coefVelocityConstraintVL, 1.0, volRegion, updatedGeo_ );
+                                                                constOne, -1.0, volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                                                 new IdentityOperator<FeH1,3,3>(),
-                                                                coefVelocityConstraintVL, 1.0, volRegion, updatedGeo_ );
+                                                                constOne, -1.0, volRegion, updatedGeo_ );
             }
           }
           surfVelocityConstraintIntVL->SetName("velocityConstraintIntVL");
@@ -1661,14 +1483,6 @@ namespace CoupledField {
           feFunctions_[LAGRANGE_MULT]->AddEntityList( actSDList );
           assemble_->AddBiLinearForm( surfVelocityConstraintContextVL );
 
-          // set up velocity constraint equation coefficient dependent on possible coupling
-          PtrCoefFct coefVelocityConstraintLV;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefVelocityConstraintLV = constMinusOne;
-          } else {
-            coefVelocityConstraintLV = constOne;
-          }
 
           // constraint equation: \int_\Gamma_D \lambda' \cdot  v 
           BiLinearForm * surfVelocityConstraintIntLV = NULL;
@@ -1676,21 +1490,21 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                               new IdentityOperator<FeH1,2,2>(),
-                                                                              coefVelocityConstraintLV, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
                                                                               new IdentityOperator<FeH1,3,3>(),
-                                                                              coefVelocityConstraintLV, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                 new IdentityOperator<FeH1,2,2>(),
-                                                                coefVelocityConstraintLV, 1.0, volRegion, updatedGeo_ );
+                                                                constOne, -1.0, volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                                                 new IdentityOperator<FeH1,3,3>(),
-                                                                coefVelocityConstraintLV, 1.0, volRegion, updatedGeo_ );
+                                                                constOne, -1.0, volRegion, updatedGeo_ );
             }
           }
           surfVelocityConstraintIntLV->SetName("velocityConstraintIntLV");
@@ -1728,23 +1542,12 @@ namespace CoupledField {
           // here M() denotes the operator used for the calculation of the slip velocity based on the normal derivative of the velocity 
           // to be consistent with the derivation we also set the counterpart for this integrator
           // since we used the weak noSlip BC as a basis and the Maxwell part only acts in the tangential plane, we also enforce a noPenetration BC
-
-          // set up velocity constraint maxwell coefficient dependent on possible coupling
-          PtrCoefFct coefVelocityConstraintMaxwellLV;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefVelocityConstraintMaxwellLV = CoefFunction::Generate(mp_, Global::REAL,
-                          CoefXprBinOp(mp_, constMinusOne, coefMaxwellBC, CoefXpr::OP_MULT));
-          } else {
-            coefVelocityConstraintMaxwellLV = coefMaxwellBC;
-          }
-
           BiLinearForm * surfVelocityConstraintMaxwellIntLV = NULL;
           if(isComplex_) {
             if (dim_ == 2){
               surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                                       new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
-                                                                                      coefVelocityConstraintMaxwellLV, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                                      coefMaxwellBC, Complex(-1.0,0), volRegion, updatedGeo_ );
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
@@ -1752,7 +1555,7 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                       new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
-                                                                      coefVelocityConstraintMaxwellLV, 1.0, volRegion, updatedGeo_ );
+                                                                      coefMaxwellBC, -1.0, volRegion, updatedGeo_ );
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
@@ -1823,36 +1626,27 @@ namespace CoupledField {
 
         if( isNoPenetrationBC ) {
           // conservation of momentum: \int_\Gamma_D v' \cdot n \lambda
-
-          // set up scalar velocity balance of momentum coefficient dependent on possible coupling
-          PtrCoefFct coefScalarVelocityConstraintVL;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefScalarVelocityConstraintVL = constMinusOne;
-          } else {
-            coefScalarVelocityConstraintVL = constOne;
-          }
-
           BiLinearForm * surfScalarVelocityConstraintIntVL = NULL;
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
           if(isComplex_) {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                                     new IdentityOperatorNormal<FeH1,2,1>(),
-                                                                                    coefScalarVelocityConstraintVL, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
                                                                                     new IdentityOperatorNormal<FeH1,3,1>(),
-                                                                                    coefScalarVelocityConstraintVL, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                       new IdentityOperatorNormal<FeH1,2,1>(),
-                                                                      coefScalarVelocityConstraintVL, 1.0, volRegion, updatedGeo_ );
+                                                                      constOne, -1.0, volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                                                       new IdentityOperatorNormal<FeH1,3,1>(),
-                                                                      coefScalarVelocityConstraintVL, 1.0, volRegion, updatedGeo_ );
+                                                                      constOne, -1.0, volRegion, updatedGeo_ );
             }
           }
           surfScalarVelocityConstraintIntVL->SetName("scalarVelocityConstraintIntVL");
@@ -1863,36 +1657,27 @@ namespace CoupledField {
           feFunctions_[LAGRANGE_MULT_1]->AddEntityList( actSDList );
           assemble_->AddBiLinearForm( surfScalarVelocityConstraintContextVL );
 
-          // set up scalar velocity balance of momentum coefficient dependent on possible coupling
-          PtrCoefFct coefScalarVelocityConstraintLV;
-          // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-          if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-            coefScalarVelocityConstraintLV = constMinusOne;
-          } else {
-            coefScalarVelocityConstraintLV = constOne;
-          }
-
           // constraint equation: \int_\Gamma_D \lambda' n \cdot v
           BiLinearForm * surfScalarVelocityConstraintIntLV = NULL;
           if(isComplex_) {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperatorNormal<FeH1,2,1>(),
                                                                                     new IdentityOperator<FeH1,2,2>(),
-                                                                                    coefScalarVelocityConstraintLV, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperatorNormal<FeH1,3,1>(),
                                                                                     new IdentityOperator<FeH1,3,3>(),
-                                                                                    coefScalarVelocityConstraintLV, Complex(1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,2,1>(),
                                                                       new IdentityOperator<FeH1,2,2>(),
-                                                                      coefScalarVelocityConstraintLV, 1.0, volRegion, updatedGeo_ );
+                                                                      constOne, -1.0, volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,3,1>(),
                                                                       new IdentityOperator<FeH1,3,3>(),
-                                                                      coefScalarVelocityConstraintLV, 1.0, volRegion, updatedGeo_ );
+                                                                      constOne, -1.0, volRegion, updatedGeo_ );
             }
           }
           surfScalarVelocityConstraintIntLV->SetName("surfScalarVelocityConstraintIntLV");
@@ -2327,9 +2112,9 @@ namespace CoupledField {
       availResults_.insert(vdpd1);  
       shared_ptr<CoefFunctionFormBased> vdpd1Func;    
       if( isComplex_ ) {
-        vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, 0.5));
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, -0.5));
       } else {
-        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, 0.5));
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, -0.5));
       }
       // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
       vdpd1Func->SetIntegratorName("LinFlowStiffIntBulkViscous"); // coefFunctionBOp acts on strain part
@@ -2347,9 +2132,9 @@ namespace CoupledField {
       availResults_.insert( vdpd2 );
       shared_ptr<CoefFunctionFormBased> vdpd2Func;
       if( isComplex_ ) {
-        vdpd2Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, 0.5));
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, -0.5));
       } else {
-        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, 0.5));
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, -0.5));
       }
       // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
       vdpd2Func->SetIntegratorName("LinFlowStiffIntViscous");
@@ -2508,8 +2293,6 @@ namespace CoupledField {
     }
     PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
     PtrCoefFct constTwo = CoefFunction::Generate( mp_, Global::REAL, "2.0");
-    // minus one is needed in symmetric coupling to HeatPDE
-    PtrCoefFct constMinusOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
 
     PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
         CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
@@ -2585,25 +2368,15 @@ namespace CoupledField {
       //  K_VP Surface Integrator - part 1 - pressure part
       //  (upper off-diagonal integrators - partially integrated, surface)
       // --------------------------------------------------------------------
-
-      // set up K_VP surface part 1 coefficient dependent on possible coupling
-      PtrCoefFct coefKVP1Surface;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefKVP1Surface = constMinusOne;
-      } else {
-        coefKVP1Surface = constOne;
-      }
-
       BiLinearForm * stiffIntVP1Surf = NULL;
       if( dim_ == 2 ) {
           stiffIntVP1Surf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                 new IdentityOperatorNormal<FeH1,2>(),
-                                coefKVP1Surface, 1.0, volRegion, updatedGeo_);
+                                constOne, -1.0, volRegion, updatedGeo_);
       } else {
           stiffIntVP1Surf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                 new IdentityOperatorNormal<FeH1,3>(),
-                                coefKVP1Surface, 1.0, volRegion, updatedGeo_);
+                                constOne, -1.0, volRegion, updatedGeo_);
       }
       stiffIntVP1Surf->SetName("LinFlowStiffIntVP1Surf");
       BiLinFormContext *stiffContVP1 = NULL;
@@ -2619,16 +2392,6 @@ namespace CoupledField {
       //  K_VP Surface Integrator - part 2 - strain part
       //  (upper off-diagonal integrators - partially integrated, surface)
       // --------------------------------------------------------------------
-
-      // set up K_VP surface part 2 coefficient dependent on possible coupling
-      PtrCoefFct coefKVP2Surface;
-      // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-      if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-        coefKVP2Surface = constMinusOne;
-      } else {
-        coefKVP2Surface = constOne;
-      }
-
       BiLinearForm * stiffIntVP2Surf = NULL;
       BaseBOperator * sNSOp1 = NULL;
       if( dim_ == 2 ) {
@@ -2637,13 +2400,13 @@ namespace CoupledField {
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                coefKVP2Surface, -1.0, volRegion, updatedGeo_);
+                                constOne, 1.0, volRegion, updatedGeo_);
         } else {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,2,2,Double>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                coefKVP2Surface, -1.0, volRegion, updatedGeo_);
+                                constOne, 1.0, volRegion, updatedGeo_);
         }
       } else {
         if( isComplex_ ) {
@@ -2651,13 +2414,13 @@ namespace CoupledField {
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                coefKVP2Surface, -1.0, volRegion, updatedGeo_);
+                                constOne, 1.0, volRegion, updatedGeo_);
         } else {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,3,3,Double>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                coefKVP2Surface, -1.0, volRegion, updatedGeo_);
+                                constOne, 1.0, volRegion, updatedGeo_);
         }
       }
       stiffIntVP2Surf->SetName("LinFlowStiffIntVP2Surf");
@@ -2679,15 +2442,6 @@ namespace CoupledField {
       //  (upper off-diagonal integrators - partially integrated, surface)
       // --------------------------------------------------------------------
       if ( isCompressible_ ) {
-        // set up K_VP surface part 3 coefficient dependent on possible coupling
-        PtrCoefFct coefKVP3Surface;
-        // for symmetric HeatPDE coupling a factor -1 needs to be multiplied on top
-        if (isHeatPDECoupled_ && isCouplingFormulationSymmetric_) {
-          coefKVP3Surface = constMinusOne;
-        } else {
-          coefKVP3Surface = constOne;
-        }
-
         BiLinearForm * stiffIntVP3Surf = NULL;
         BaseBOperator * sNDOp1 = NULL;
         if( dim_ == 2 ) {
@@ -2696,13 +2450,13 @@ namespace CoupledField {
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  coefKVP3Surface, -1.0, volRegion, updatedGeo_);
+                                  constOne, 1.0, volRegion, updatedGeo_);
           } else {
             sNDOp1 = new SurfaceNormalDivOperator<FeH1,2,Double>();
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  coefKVP3Surface, -1.0, volRegion, updatedGeo_);
+                                  constOne, 1.0, volRegion, updatedGeo_);
           }
         } else {
           if( isComplex_ ) {
@@ -2710,13 +2464,13 @@ namespace CoupledField {
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  coefKVP3Surface, -1.0, volRegion, updatedGeo_);
+                                  constOne, 1.0, volRegion, updatedGeo_);
           } else {
             sNDOp1 = new SurfaceNormalDivOperator<FeH1,3,Double>();
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  coefKVP3Surface, -1.0, volRegion, updatedGeo_);
+                                  constOne, 1.0, volRegion, updatedGeo_);
           }
         }
         stiffIntVP3Surf->SetName("LinFlowStiffIntVP3Surf");
