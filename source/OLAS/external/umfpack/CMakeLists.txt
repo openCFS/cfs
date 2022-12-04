@@ -13,4 +13,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(umfpack-olas ${TARGET_LL})
 
-ADD_DEPENDENCIES(umfpack-olas boost)
+ADD_DEPENDENCIES(umfpack-olas cfsdeps)

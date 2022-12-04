@@ -9,4 +9,4 @@ ADD_LIBRARY(lis-olas STATIC ${LIS_SRCS})
 
 TARGET_LINK_LIBRARIES(lis-olas ${LIS_LIBRARY})
 
-ADD_DEPENDENCIES(lis-olas boost)
+ADD_DEPENDENCIES(lis-olas cfsdeps)

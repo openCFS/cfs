@@ -20,3 +20,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(arpack-olas ${TARGET_LL})
 
+ADD_DEPENDENCIES(arpack-olas cfsdeps)

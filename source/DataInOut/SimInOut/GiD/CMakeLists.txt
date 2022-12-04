@@ -2,11 +2,8 @@ SET(SIMOUTGID_SRCS SimOutGiD.cc)
 
 ADD_LIBRARY(simoutgid STATIC ${SIMOUTGID_SRCS})
 
-ADD_DEPENDENCIES(simoutgid boost)
-
-IF(TARGET cgal)
-  ADD_DEPENDENCIES(simoutgid cgal)
-ENDIF()
+# make sure cfsdeps are available (could be more specific, but this needs IFs)
+ADD_DEPENDENCIES(simoutgid cfsdeps)
 
 TARGET_LINK_LIBRARIES(simoutgid
   ${GIDPOST_LIBRARY}

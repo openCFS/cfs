@@ -14,12 +14,8 @@ SET(TARGET_LL
   ${ILUPACK_LIBRARY}
   )
 
-SET(TARGET_LL
-  ${TARGET_LL}
- )
-
 TARGET_LINK_LIBRARIES(ilupack-olas ${TARGET_LL} )
 
-ADD_DEPENDENCIES(ilupack-olas boost)
+ADD_DEPENDENCIES(ilupack-olas cfsdeps)
 ADD_DEPENDENCIES(ilupack-olas ilupack-double)
 ADD_DEPENDENCIES(ilupack-olas ilupack-complex)

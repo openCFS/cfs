@@ -16,10 +16,12 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(superlu-olas ${TARGET_LL})
 
-ADD_DEPENDENCIES(superlu-olas boost)
+ADD_DEPENDENCIES(superlu-olas cfsdeps)
 
+# I think this is just an example and could be removed ...
 ADD_EXECUTABLE(dlinsolx2 dlinsolx2.cc)
 TARGET_LINK_LIBRARIES(dlinsolx2 ${TARGET_LL})
+ADD_DEPENDENCIES(dlinsolx2 superlu)
 
 # ADD_EXECUTABLE(pzrepeat pzrepeat.cc)
 # TARGET_LINK_LIBRARIES(pzrepeat ${SUPERLU_MT_LIBRARY} ${TARGET_LL})
