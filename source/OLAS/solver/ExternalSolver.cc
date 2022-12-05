@@ -232,16 +232,22 @@ namespace CoupledField {
   }
 
   template<typename T>
-  std::string ExternalSolver<T>::FormatedTimeFreq(std::string formatString){
+  std::string ExternalSolver<T>::FormatedTimeFreq(const std::string& formatString){
     // Getting the analysis id because it contains information about the current time, frequency,
     AnalysisID& id = domain->GetDriver()->GetAnalysisId();
-    double timeFreq = 0.0;
     char buffer[30];
     if(id.time != -1)
-      timeFreq = id.time;
+    {
+      std::snprintf(buffer, 20, formatString.c_str(),id.time);
+    }
     else if(id.freq != -1)
-      timeFreq = id.freq;
-    std::snprintf(buffer, 20, formatString.c_str(),timeFreq);
+    {
+      std::snprintf(buffer, 20, formatString.c_str(),id.freq);
+    }
+    else
+    {
+      std::snprintf(buffer, 20, " ");
+    }
     std::string formatedTimeFreq = buffer;
     return formatedTimeFreq;
   }

@@ -42,7 +42,7 @@ namespace CoupledField {
 
     /** This function returns the time or frequency of the current step in a specified format, based on the
      * @param formatString using formaters based on the one used in @see sprintf() */
-    std::string FormatedTimeFreq(std::string formatString);
+    std::string FormatedTimeFreq(const std::string& formatString);
 
     /** Deletes the file @param filename */
     void DeleteFile(std::string filename);
