@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cfloat>
-
+#include <fstream>
 
 namespace CoupledField {
 
@@ -1092,7 +1092,7 @@ namespace CoupledField {
   //   Import vector
   // ********************
   template<typename T>
-  void Vector<T>::Import(const std::string& fname)
+  void Vector<T>::Import(const std::string& fname, bool checkSize)
   {
     std::cout << "Import Olivia \n";
     // Determine expected entry Type of the imported file
@@ -1107,30 +1107,30 @@ namespace CoupledField {
     //adding the ending to the fileName
     std::stringstream sstr;
     sstr << fname << ".mtx";
+
     // open input file
-    FILE *fp = fopen( sstr.str().c_str(), "r" );
-    if(fp == NULL)
+    std::ifstream file(sstr.str());
+    if(!file)
     {
       EXCEPTION( "Cannot open file '" << fname << "' for reading!" );
     }
 
     // Determine the matrix format
     int lineLength = 1024;
-    char line[lineLength];
-    char fileType[64];
-    char objectType[64];
-    char formatType[64];
-    char firstQualifier[64];
+    std::string line;
+    std::string fileType;
+    std::string objectType;
+    std::string formatType;
+    std::string firstQualifier;
 
     //reading the header
-    if(fgets( line, lineLength, fp) == NULL)
-    {
-      EXCEPTION("The first line of the input file '" << fname << "' could not be read");
-    }
-    if(sscanf(line,"%s %s %s %s",fileType, objectType, formatType, firstQualifier) != 4)
+    if(!(file >> fileType >> objectType >> formatType >> firstQualifier))
     {
       EXCEPTION("The header of the input file '" << fname << "'could not be read properly");
     }
+
+    //jump to the next line
+    file.ignore(lineLength, '\n');
 
     //check if the file is of type MatrixMarket format
     if(std::string(fileType) != "%%MatrixMarket")
@@ -1138,101 +1138,115 @@ namespace CoupledField {
       EXCEPTION("The Input File '" << fname << "'has not the MatrixMarket format, first line must start with %%MatrixMarket");
     }
 
-    if(std::string(objectType) != "matrix")
+    if(objectType != "matrix")
     {
       EXCEPTION("Only object type 'matrix' of the MatrixMarket format is supported");
     }
 
     //Check if entry Type of the Matrix match with the entry type of the imported matrix
-    if(std::string(firstQualifier) != matrixType)
+    if(firstQualifier != matrixType)
     {
       EXCEPTION("Entry Type does not match the type of the imported file");
     }
 
-    // Depending on the format type, import the data
-    if(std::string(formatType) == "array")
+    // Ignore comments
+    while (file.peek() == '%')
     {
-      // skipping the comment section
-      // THIS CODE IS FUCKED UP!. Original code is while(fgets( line, lineLength, fp) == "%");
-      // But this does NOT skip the comment section, as the comparison fails. It just reads a single line
-      // The reason is the following fgets() which read the next lines and if this loop would really skip
-      // comment lines, then one may not do a fgets() blindly!!!!
-      while((fgets( line, lineLength, fp) != NULL) && (line[0] != '%'))
-        std::cout << "Hans = " << line << " first " << (line[0] == '%');
-
-      std::cout << "Processing line: " << line ;
-
-      //Determine the amount of rows and columbs
-      UInt rows;
-      UInt columbs;
-      if(fgets( line, lineLength, fp) == NULL)
-      {
-        EXCEPTION("Error reading input file '" << fname << "'");
-      }
-      if(sscanf(line,"%i %i",&rows,&columbs) != 2)
-      {
-        EXCEPTION("Unable to read the amount of rows and columbs in the input file '" << fname << "'");
-      }
-      if((columbs != 1) || (rows != size_))
-      {
-        EXCEPTION("Input Matrix should be a [" << size_ << " x 1] - matrix");
-      }
-      //reading the entries
-      for( UInt i = 0; i < rows; i++)
-      {
-        if(fgets( line, lineLength, fp) == NULL)
-        {
-          EXCEPTION("Imported File " << fname << " contains not enough entries");
-        }
-        T entry;
-        ReadSingleEntry(&entry,line,false);
-        SetEntry(i,entry);
-      }
+      file.ignore(lineLength, '\n');
     }
-    else if(std::string(formatType) == "coordinate")
-    {
-      //skipping the comment section
-      // SEE COMMENT ABOVE
-      // while(fgets( line, lineLength, fp) == "%");
-      while((fgets( line, lineLength, fp) != NULL) && (line[0] != '%'))
-        std::cout << "Hans = " << line << " first " << (line[0] == '%');
 
-      //Determine the amount of rows, columbs and non-zero entries
-      UInt rows;
-      UInt columbs;
-      UInt nonZero;
-      if(fgets( line, lineLength, fp) == NULL)
+    // Read in the line containing size info
+    UInt rows;
+    UInt columns;
+    std::string lineInfo;
+    if (file.peek() == EOF)
+    {
+      EXCEPTION("Imported File " << fname << " contains not enough entries");
+    }
+    std::getline(file, lineInfo);
+    std::stringstream ssInfo(lineInfo);
+
+    // Import the matrix entries depending on format type
+    if(formatType == "array")
+    {
+      // Determine number of rows and columns
+      if (!(ssInfo >> rows >> columns))
       {
-        EXCEPTION("Error reading input file '" << fname << "'");
+        EXCEPTION("Unable to read the amount of rows and columns in the input file '" << fname << "'");
       }
-      if(sscanf(line,"%i %i %i",&rows,&columbs,&nonZero) != 3)
+
+      // Handle the case when the size of the vector is initially unknown
+      if (checkSize)
       {
-        EXCEPTION("Unable to read the amount of rows and columbs in the input file '" << fname << "'");
+        if ((columns != 1) || (rows != size_))
+        {
+          EXCEPTION("Input Matrix should be a [" << size_ << " x 1] - matrix");
+        }
       }
-      if((columbs != 1) || (rows != size_))
+      else
       {
-        EXCEPTION("Input Matrix should be a [" << size_ << " x 1] - matrix");
+        if (columns != 1)
+        {
+          EXCEPTION("Input Matrix should have only 1 column");
+        }
+        Resize(rows);
       }
-      //Initialize vector
-      Init();
-      //reading the entries
-      for( UInt i = 0; i < nonZero; i++)
+
+      T entry;
+      for ( UInt i = 0; i < rows; i++)
       {
-        UInt row;
-        if(fgets( line, lineLength, fp) == NULL)
+        if (file.peek() == EOF)
         {
           EXCEPTION("Imported File " << fname << " contains not enough entries");
         }
-        if(sscanf(line,"%i %*i",&row) != 1)
-        {
-          EXCEPTION("Couldn't read the row, of the " << i << ". non-zero Entry");
-        }
+        std::getline(file, line);
+        std::stringstream ssline(line);
+        ReadSingleEntry(&entry,ssline);
+        SetEntry(i, entry);
+      }
 
-        T entry;
-        //reading in the entry value
-        ReadSingleEntry(&entry,line,true);
-        // setting the entry row-1 (0-based array) to the entry value
-        SetEntry(row-1,entry);
+    }
+    else if(formatType == "coordinate")
+    {
+      //Determine number of rows, columns and non-zero entries
+      UInt nonZero;
+      if (!(ssInfo >> rows >> columns >> nonZero))
+      {
+        EXCEPTION("Unable to read the amount of rows, columns and non-zero entries in the input file '" << fname << "'");
+      }
+
+      // Handle the case when the size of the vector is initially unknown
+      if (checkSize)
+      {
+        if ((columns != 1) || (rows != size_))
+        {
+          EXCEPTION("Input Matrix should be a [" << size_ << " x 1] - matrix");
+        }
+      }
+      else
+      {
+        if (columns != 1)
+        {
+          EXCEPTION("Input Matrix should have only 1 column");
+        }
+        Resize(rows);
+      }
+
+      Init();
+      UInt row;
+      UInt column;
+      T entry;
+      for ( UInt i = 0; i < nonZero; i++)
+      {
+        if (file.peek() == EOF)
+        {
+          EXCEPTION("Imported File " << fname << " contains not enough entries");
+        }
+        std::getline(file, line);
+        std::stringstream ssline(line);
+        ssline >> row >> column;
+        ReadSingleEntry(&entry,ssline);
+        SetEntry(row-1, entry);
       }
     }
     else
@@ -1241,10 +1255,7 @@ namespace CoupledField {
     }
 
     // close input file
-    if(fclose( fp ) == EOF)
-    {
-      WARN("Could not close file '" << fname << "' after reading!");
-    }
+    file.close();
   }
 
   // ********************

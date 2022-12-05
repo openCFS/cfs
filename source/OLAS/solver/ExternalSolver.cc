@@ -200,7 +200,7 @@ namespace CoupledField {
     {
       // Reading in the Solution
       importTimer_->Start();
-      sol.Import(solutionFileName_);
+      sol.Import(solutionFileName_, true);
       importTimer_->Stop();
     }
 

@@ -68,7 +68,7 @@ namespace CoupledField {
      * Information about the MatrixMarket format can be found here:
      * https://math.nist.gov/MatrixMarket/formats.html
      */
-    virtual void Import(const std::string& fname)
+    virtual void Import(const std::string& fname, bool checkSize)
     {
       EXCEPTION( "Class not implemented by derived class" );
     }

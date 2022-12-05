@@ -6,6 +6,11 @@
 #include "TypeDefs.hh"
 #include "General/Exception.hh"
 
+
+#include <sstream>
+#include <iostream>
+#include <string>
+
 //! \file opdefs.hh
 
 //! This file contains specialized implementations for the 
@@ -171,43 +176,25 @@ namespace CoupledField {
   }
 
   template <typename T>
-  inline void ReadSingleEntry( T *val, const char * line, bool coordinates) {
+  inline void ReadSingleEntry( T *val, std::stringstream& line) {
     EXCEPTION("ReadSingleEntry not implemented for this data type ");
   }
 
   //! Read a single double value from a file
-  //! coordinates input specifies if there are coordinates before the entry
   template<>
-  inline void ReadSingleEntry<Double>( Double *val, const char * line, bool coordinates) {
-    //switching between array and coordinate format
-    if(coordinates)
-    {
-      if(sscanf( line, "%*i %*i %lf", val ) != 1)
-        EXCEPTION("Error reading the matrix/vector entry");
-    }
-    else
-    {
-      if(sscanf( line, " %lf", val ) != 1)
-        EXCEPTION("Error reading the matrix/vector entry");
-    }
+  inline void ReadSingleEntry<Double>( Double *val, std::stringstream& line) {
+    double RealPart;
+    if(!(line >> RealPart))
+      EXCEPTION("Error reading the matrix/vector entry");
+    *val = RealPart;
   }
   //! Read a single complex value from a file
-  //! coordinates input specifies if there are coordinates before the entry
   template<>
-  inline void ReadSingleEntry<Complex>( Complex *val, const char * line, bool coordinates) {
+  inline void ReadSingleEntry<Complex>( Complex *val, std::stringstream& line) {
     double RealPart;
     double ImagPart;
-    //switching between array and coordinate format
-    if(coordinates)
-    {
-      if(sscanf( line, "%*i %*i %lf %lf", &RealPart, &ImagPart ) != 2)
-        EXCEPTION("Error reading the matrix/vector entry");
-    }
-    else
-    {
-      if(sscanf( line, "%lf %lf", &RealPart, &ImagPart ) != 2)
-        EXCEPTION("Error reading the matrix/vector entry");
-    }
+    if (!(line >> RealPart >> ImagPart))
+      EXCEPTION("Error reading the matrix/vector entry");
     val->real(RealPart);
     val->imag(ImagPart);
   }
