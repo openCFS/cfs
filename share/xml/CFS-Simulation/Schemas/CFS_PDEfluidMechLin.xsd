@@ -214,17 +214,28 @@
                           <xsd:annotation>
                             <xsd:documentation>
                               Applies the first order Maxwell slip BC which is valid for higher Knudsen numbers than the standard noSlip BC. 
-                              The slip velocity is calculated as follows: 
+                              The slip velocity is calculated as follows (hollowIncompressibleNormalStress - standard formulation): 
+                              $\bm{v} = \bm{v}_\mathrm{wall} - C \frac{\lambda}{\mu} (\bm{n} \cdot (\bm{\Pi}-diag(\bm{\Pi})) ) \cdot (\bm{I}-\bm{n} \otimes \bm{n})$ 
+                              For the incompressibleNormalStress formulation (NOT STABLE!) the slip velocity is given by:
                               $\bm{v} = \bm{v}_\mathrm{wall} - C \frac{\lambda}{\mu} (\bm{n} \cdot \bm{\Pi} ) \cdot (\bm{I}-\bm{n} \otimes \bm{n})$ 
                               As it can be seen, the slip velocity is proportional to the normal derivative of the velocity which gets projected in the tangential plane.
                               Futhermore, the stress tensor $\Pi$ is scaled with the inverse of the viscosity in order to get the strain, which is scaled with $C$ and $\lambda$.
                               The factor $C$ is used to model the surface influence - a value of 1.1466 seems to be a good value for air according to experiments in the literature. 
                               The mean free path $\lambda$ of air molecules under normal circumstances is about 68 nm.
+                              Currently only incompressible variants are implemented, hence, $\bm{Pi} = \mu (\nabla \bm{v} + (\nabla \bm{v})^{\mathrm{T}})$
                             </xsd:documentation>
                           </xsd:annotation>
                           <xsd:complexType>
                             <xsd:attribute name="meanFreePath" type="xsd:token" use="required"/>
                             <xsd:attribute name="C1" type="xsd:token" use="required"/>
+                            <xsd:attribute name="formulation" use="optional" default="hollowIncompressibleStress">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="hollowIncompressibleStress"/>
+                                  <xsd:enumeration value="incompressibleStress"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:choice>

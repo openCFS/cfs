@@ -1512,8 +1512,10 @@ namespace CoupledField {
         if( isMaxwellBC ){
           std::string maxwellMeanFreePathString;
           std::string maxwellC1String;
+          std::string maxwellFormulationString;
           velConstNode->Get("MaxwellFirstOrderSlip")->GetValue( "meanFreePath", maxwellMeanFreePathString );
           velConstNode->Get("MaxwellFirstOrderSlip")->GetValue( "C1", maxwellC1String );
+          velConstNode->Get("MaxwellFirstOrderSlip")->GetValue( "formulation", maxwellFormulationString );
 
           //double meanFreePath = std::stod(maxwellMeanFreePathString);
           //double maxwellC1 = std::stod(maxwellC1String);
@@ -1537,17 +1539,33 @@ namespace CoupledField {
           BiLinearForm * surfVelocityConstraintMaxwellIntLV = NULL;
           if(isComplex_) {
             if (dim_ == 2){
-              surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
-                                                                                      new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
-                                                                                      coefMaxwellBC, Complex(1.0,0), volRegion, updatedGeo_ );
+              if (maxwellFormulationString == "hollowIncompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                                        new SurfaceTangentialHollowIncompressibleStrainOperator2D<FeH1,2,2>(),
+                                                                                        coefMaxwellBC, Complex(1.0,0), volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "incompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                                        new SurfaceTangentialIncompressibleStrainOperator2D<FeH1,2,2>(),
+                                                                                        coefMaxwellBC, Complex(1.0,0), volRegion, updatedGeo_ );
+              } else {
+                EXCEPTION("Unknown formulation for the Maxwell slip BC!");
+              }
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
           } else {
             if (dim_ == 2){
-              surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
-                                                                      new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
-                                                                      coefMaxwellBC, 1.0, volRegion, updatedGeo_ );
+              if (maxwellFormulationString == "hollowIncompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                        new SurfaceTangentialHollowIncompressibleStrainOperator2D<FeH1,2,2>(),
+                                                                        coefMaxwellBC, 1.0, volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "incompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                        new SurfaceTangentialIncompressibleStrainOperator2D<FeH1,2,2>(),
+                                                                        coefMaxwellBC, 1.0, volRegion, updatedGeo_ );
+              } else {
+                EXCEPTION("Unknown formulation for the Maxwell slip BC!");
+              }
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }

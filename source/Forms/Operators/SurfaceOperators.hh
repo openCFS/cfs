@@ -1155,7 +1155,7 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> 
 
 
 template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
-class SurfaceNormalStressOperatorProjected2D : public BaseBOperator{
+class SurfaceTangentialIncompressibleStrainOperator2D : public BaseBOperator{
 
 public:
 
@@ -1182,19 +1182,19 @@ public:
   //@}
 
   
-  SurfaceNormalStressOperatorProjected2D(){
+  SurfaceTangentialIncompressibleStrainOperator2D(){
     return;
   }
 
-  SurfaceNormalStressOperatorProjected2D(const SurfaceNormalStressOperatorProjected2D & other)
+  SurfaceTangentialIncompressibleStrainOperator2D(const SurfaceTangentialIncompressibleStrainOperator2D & other)
     : BaseBOperator(other){
   }
 
-  virtual SurfaceNormalStressOperatorProjected2D * Clone(){
-    return new SurfaceNormalStressOperatorProjected2D(*this);
+  virtual SurfaceTangentialIncompressibleStrainOperator2D * Clone(){
+    return new SurfaceTangentialIncompressibleStrainOperator2D(*this);
   }
 
-  virtual ~SurfaceNormalStressOperatorProjected2D(){
+  virtual ~SurfaceTangentialIncompressibleStrainOperator2D(){
     return;
   }
 
@@ -1246,7 +1246,7 @@ protected:
 };
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>
-void SurfaceNormalStressOperatorProjected2D<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+void SurfaceTangentialIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
 {
   //check if lp is surface and ptFe is volume
   assert(lp.isSurface);
@@ -1256,8 +1256,8 @@ void SurfaceNormalStressOperatorProjected2D<FE, D, D_DOF, TYPE>::CalcOpMat(Matri
 
   UInt numFncs = ptFe->GetNumFncs();
 
-  // here we calculate (I - n x n) \cdot ((\nabla u) \cdot n)
-  // This is essentially a projection into the tangential plane of hte normal derivative of the surface velocity
+  // here we calculate (I - n x n) \cdot ((\nabla u + (\nabla u)^T) \cdot n)
+  // This is essentially a projection into the tangential plane of the normal derivative of the surface velocity plus its transposed part
 
   // E.g. for x entry of 3D version
   /*for(UInt i = 0; i < numFncs; ++i) {
@@ -1288,7 +1288,7 @@ void SurfaceNormalStressOperatorProjected2D<FE, D, D_DOF, TYPE>::CalcOpMat(Matri
 }
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>
-void SurfaceNormalStressOperatorProjected2D<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+void SurfaceTangentialIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
 {
   Matrix<Double> dummyMat;
   CalcOpMat(dummyMat, lp, ptFe);
@@ -1297,7 +1297,144 @@ void SurfaceNormalStressOperatorProjected2D<FE, D, D_DOF, TYPE>::CalcOpMatTransp
 }
 
 
+template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
+class SurfaceTangentialHollowIncompressibleStrainOperator2D : public BaseBOperator{
 
+public:
+
+  // ------------------
+  //  STATIC CONSTANTS
+  // ------------------
+  //@{
+  //! \name Static constants
+
+  //! Order of differentiation
+  static const UInt ORDER_DIFF = 1;
+
+  //! Number of components of the problem (scalar, vector)
+  static const UInt DIM_DOF = D_DOF;
+
+  //! Dimension of the underlying domain / space
+  static const UInt DIM_SPACE = D;
+
+  //! Dimension of the finite element
+  static const UInt DIM_ELEM = D;
+
+  //! Dimension of the related material
+  static const UInt DIM_D_MAT = 1;
+  //@}
+
+  
+  SurfaceTangentialHollowIncompressibleStrainOperator2D(){
+    return;
+  }
+
+  SurfaceTangentialHollowIncompressibleStrainOperator2D(const SurfaceTangentialHollowIncompressibleStrainOperator2D & other)
+    : BaseBOperator(other){
+  }
+
+  virtual SurfaceTangentialHollowIncompressibleStrainOperator2D * Clone(){
+    return new SurfaceTangentialHollowIncompressibleStrainOperator2D(*this);
+  }
+
+  virtual ~SurfaceTangentialHollowIncompressibleStrainOperator2D(){
+    return;
+  }
+
+  virtual void CalcOpMat(Matrix<Double> & bMat,
+                          const LocPointMapped& lp, BaseFE* ptFe );
+
+  virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                    const LocPointMapped& lp, BaseFE* ptFe );
+
+  //avoid reimplementation of complex operator by making the bas class function
+  //available
+  using BaseBOperator::CalcOpMat;
+
+  using BaseBOperator::CalcOpMatTransposed;
+
+  // ===============
+  //  QUERY METHODS
+  // ===============
+  //@{ \name Query Methods
+  //! \copydoc BaseBOperator::GetDiffOrder
+  virtual UInt GetDiffOrder() const {
+    return ORDER_DIFF;
+  }
+
+  //! \copydoc BaseBOperator::GetDimDof()
+  virtual UInt GetDimDof() const {
+    return DIM_DOF;
+  }
+
+  //! \copydoc BaseBOperator::GetDimSpace()
+  virtual UInt GetDimSpace() const {
+    return DIM_SPACE;
+  }
+
+  //! \copydoc BaseBOperator::GetDimElem()
+  virtual UInt GetDimElem() const {
+    return DIM_ELEM;
+  }
+
+  //! \copydoc BaseBOperator::GetDimDMat()
+  virtual UInt GetDimDMat() const {
+    return DIM_D_MAT;
+  }
+  //@}
+
+
+protected:
+
+};
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+{
+  //check if lp is surface and ptFe is volume
+  assert(lp.isSurface);
+  assert(D == ptFe->shape_.dim);
+  assert(D==D_DOF);
+  assert(D==2);
+
+  UInt numFncs = ptFe->GetNumFncs();
+
+  // here we calculate (I - n x n) \cdot (((\nabla u + (\nabla u)^T) - diag(\nabla u +  (\nabla u)^T)) \cdot n)
+  // This is essentially a projection into the tangential plane of the normal derivative of the surface velocity plus its transposed part without the diagonal part (--> hollow matrix)
+
+  //-ny*(2*nx^2 - 1)*(Nx*uy + Ny*ux)
+  //-nx*(2*ny^2 - 1)*(Nx*uy + Ny*ux)
+
+  Matrix<Double> xiDx;
+  FE *fe = (static_cast<FE*>(ptFe));
+  bMat.Resize(D, D_DOF*numFncs);
+  fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+  Vector<Double> nVec = lp.normal;
+
+  for(UInt i = 0; i < numFncs; ++i) {
+    // x entry scaled with u_x
+    //-ny*(2*nx^2 - 1)*(Ny*ux)
+    bMat[0][i*D_DOF] = -nVec[1]*(2*nVec[0]*nVec[0]-1)*xiDx[i][1];
+    // x entry scaled with u_y
+    //-ny*(2*nx^2 - 1)*(Nx*uy)
+    bMat[0][i*D_DOF+1] = -nVec[1]*(2*nVec[0]*nVec[0]-1)*xiDx[i][0];
+    // y entry scaled with u_x
+    //-nx*(2*ny^2 - 1)*(Ny*ux)
+    bMat[1][i*D_DOF] = -nVec[0]*(2*nVec[1]*nVec[1]-1)*xiDx[i][1];
+    // y entry scaled with u_y
+    //-nx*(2*ny^2 - 1)*(Nx*uy)
+    bMat[1][i*D_DOF+1] = -nVec[0]*(2*nVec[1]*nVec[1]-1)*xiDx[i][0];
+  }
+}
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+{
+  Matrix<Double> dummyMat;
+  CalcOpMat(dummyMat, lp, ptFe);
+
+  dummyMat.Transpose(bMat);
+}
 
 
 }
