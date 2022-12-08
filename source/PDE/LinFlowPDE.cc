@@ -202,6 +202,8 @@ namespace CoupledField {
     isCouplingFormulationSymmetric_= useSymmtericForm;
   }
   
+  double LinFlowPDE::GetBalanceOfMomentumSign() const { return balanceOfMomentumSign_; }
+  
   void LinFlowPDE::InitNonLin() {
     SinglePDE::InitNonLin();
   }
@@ -362,10 +364,10 @@ namespace CoupledField {
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
         dampIntvv = new BBInt<>(new IdentityOperator<FeH1,2,2>(),
-                                density, -1.0, updatedGeo_ );
+                                density, balanceOfMomentumSign_, updatedGeo_ );
       } else {
         dampIntvv = new BBInt<>(new IdentityOperator<FeH1,3,3>(),
-                                density, -1.0, updatedGeo_ );
+                                density, balanceOfMomentumSign_, updatedGeo_ );
       }
       dampIntvv->SetName("FlowDampIntVV");
 
@@ -386,14 +388,14 @@ namespace CoupledField {
       if( dim_ == 2 ) {
         if( isaxi_ ) {
           stiffIntVP = new ABInt<>( new DivOperatorAxi<FeH1>(),
-                                      new MultiIdOp<FeH1,2>(), coeffKVP, 1.0, updatedGeo_ );
+                                      new MultiIdOp<FeH1,2>(), coeffKVP, -balanceOfMomentumSign_, updatedGeo_ );
         } else if(subType_ == "plane") {
           stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
-                                    new MultiIdOp<FeH1,2>(), coeffKVP, 1.0, updatedGeo_ );
+                                    new MultiIdOp<FeH1,2>(), coeffKVP, -balanceOfMomentumSign_, updatedGeo_ );
         }
       } else {
         stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
-                                  new MultiIdOp<FeH1,3>(), coeffKVP, 1.0, updatedGeo_ );
+                                  new MultiIdOp<FeH1,3>(), coeffKVP, -balanceOfMomentumSign_, updatedGeo_ );
       }
       stiffIntVP->SetName("LinFlowStiffIntVP");
       BiLinFormContext *stiffContVP = NULL;
@@ -423,13 +425,13 @@ namespace CoupledField {
           tensorComponents[10] = shearViscosity;
           tensorComponents[15] = shearViscosityDouble;
           PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,4,4,tensorComponents);
-          stiffIntLaplace = new BDBInt<>( new StrainOperatorAxi<FeH1>(), coefBB, -1.0, updatedGeo_ );
+          stiffIntLaplace = new BDBInt<>( new StrainOperatorAxi<FeH1>(), coefBB, balanceOfMomentumSign_, updatedGeo_ );
         } else if( subType_ == "plane" ) {
           tensorComponents[0] = shearViscosityDouble;
           tensorComponents[4] = shearViscosityDouble;
           tensorComponents[8] = shearViscosity;
           PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
-          stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, -1.0, updatedGeo_ );
+          stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, balanceOfMomentumSign_, updatedGeo_ );
         }
       } else {
         tensorComponents[0] = shearViscosityDouble;
@@ -439,7 +441,7 @@ namespace CoupledField {
         tensorComponents[28] = shearViscosity;
         tensorComponents[35] = shearViscosity;
         PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
-        stiffIntLaplace = new BDBInt<>( new StrainOperator3D<FeH1>(), coefBB, -1.0, updatedGeo_ );
+        stiffIntLaplace = new BDBInt<>( new StrainOperator3D<FeH1>(), coefBB, balanceOfMomentumSign_, updatedGeo_ );
       }
       stiffIntLaplace->SetName("LinFlowStiffIntViscous");
       BiLinFormContext *stiffContLaplace;
@@ -466,12 +468,12 @@ namespace CoupledField {
         BaseBDBInt * stiffIntDivDiv = NULL;
         if( dim_ == 2 ) {
           if( isaxi_ ) {
-            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperatorAxi<FeH1>(), coefDivDiv, -1.0, updatedGeo_ );
+            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperatorAxi<FeH1>(), coefDivDiv, balanceOfMomentumSign_, updatedGeo_ );
           } else if(subType_ == "plane") {
-            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, -1.0, updatedGeo_);
+            stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, balanceOfMomentumSign_, updatedGeo_);
           }         
         } else {
-          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(), coefDivDiv, -1.0, updatedGeo_);
+          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(), coefDivDiv, balanceOfMomentumSign_, updatedGeo_);
         }
         stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscous");
         BiLinFormContext *stiffContDivDiv;
@@ -520,20 +522,20 @@ namespace CoupledField {
         if( dim_ == 2 ) {
           if(isComplex_) 
           {
-            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2,Complex>(), density, -1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2,Complex>(), density, balanceOfMomentumSign_, coefUpdateGeo );
           }
           else
           {
-            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2>(), density, -1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(), new ConvectiveOperator<FeH1,2,2>(), density, balanceOfMomentumSign_, coefUpdateGeo );
           }
         } else {
           if(isComplex_) 
           {
-            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3,Complex>(), density, -1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3,Complex>(), density, balanceOfMomentumSign_, coefUpdateGeo );
           }
           else
           {
-            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3>(), density, -1.0, coefUpdateGeo );
+            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(), new ConvectiveOperator<FeH1,3,3>(), density, balanceOfMomentumSign_, coefUpdateGeo );
           }
         }
         // here we set the velocity vector used in the ConvectiveOperator above
@@ -587,9 +589,9 @@ namespace CoupledField {
           BiLinearForm *convectivevV = NULL;
           PtrCoefFct coeffConvec;
           if(isComplex_) {
-            convectivevV = new BDBInt<Complex,Complex>( bOpId, rho0GradV0, -1.0 );
+            convectivevV = new BDBInt<Complex,Complex>( bOpId, rho0GradV0, balanceOfMomentumSign_ );
           } else {
-            convectivevV = new BDBInt<Double,Double>( bOpId, rho0GradV0, -1.0 );
+            convectivevV = new BDBInt<Double,Double>( bOpId, rho0GradV0, balanceOfMomentumSign_ );
           }
           convectivevV->SetName("LinFlowStiffIntConvectivevV");
           // assign to context
@@ -656,15 +658,15 @@ namespace CoupledField {
           BiLinearForm *convectiveVp = NULL;
           if(isComplex_) {
             if(dim_==2){
-              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,2,Complex>(), new MultiIdOp<FeH1,2,1,Complex>(), coefPv, -1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,2,Complex>(), new MultiIdOp<FeH1,2,1,Complex>(), coefPv, balanceOfMomentumSign_, coefUpdateGeo );
             } else {
-              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,3,Complex>(), new MultiIdOp<FeH1,3,1,Complex>(), coefPv, -1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Complex>( new MultiIdOp<FeH1,1,3,Complex>(), new MultiIdOp<FeH1,3,1,Complex>(), coefPv, balanceOfMomentumSign_, coefUpdateGeo );
             }
           } else {
             if(dim_==2){
-              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefPv, -1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefPv, balanceOfMomentumSign_, coefUpdateGeo );
             } else {
-              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefPv, -1.0, coefUpdateGeo );
+              convectiveVp = new ADBInt<Double>( new MultiIdOp<FeH1,1,3,Double>(), new MultiIdOp<FeH1,3,1,Double>(), coefPv, balanceOfMomentumSign_, coefUpdateGeo );
             }
           }
           convectiveVp->SetName("LinFlowStiffIntConvectiveVp");
@@ -790,26 +792,26 @@ namespace CoupledField {
             {
               stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
                                                   new ConvectiveOperator<FeH1,2,2,Complex>(),
-                                                  density, 1.0, updatedGeo_ );
+                                                  density, -balanceOfMomentumSign_, updatedGeo_ );
             }
             else
             {
               stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(),
                                                 new ConvectiveOperator<FeH1,2,2>(),
-                                                density, 1.0, updatedGeo_ );
+                                                density, -balanceOfMomentumSign_, updatedGeo_ );
             }
           } else {
             if(isComplex_)
             {
               stiffIntMovingGridVV = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
                                                   new ConvectiveOperator<FeH1,3,3,Complex>(),
-                                                  density, 1.0, updatedGeo_ );
+                                                  density, -balanceOfMomentumSign_, updatedGeo_ );
             }
             else
             {
               stiffIntMovingGridVV = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(),
                                                 new ConvectiveOperator<FeH1,3,3>(),
-                                                density, 1.0, updatedGeo_ );
+                                                density, -balanceOfMomentumSign_, updatedGeo_ );
             }
           }
 
@@ -852,11 +854,11 @@ namespace CoupledField {
             if( dim_ == 2 ) {
                 stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                      new IdentityOperatorNormal<FeH1,2>(),
-                                     oneFuncs, -1.0, flowRegions, updatedGeo_);
+                                     oneFuncs, balanceOfMomentumSign_, flowRegions, updatedGeo_);
             } else {
                 stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                      new IdentityOperatorNormal<FeH1,3>(),
-                                     oneFuncs, -1.0, flowRegions, updatedGeo_);
+                                     oneFuncs, balanceOfMomentumSign_, flowRegions, updatedGeo_);
             }
             stiffIntVPSurf->SetName("LinFlowStiffIntVPSurf");
             BiLinFormContext *stiffContVP = NULL;
@@ -906,18 +908,18 @@ namespace CoupledField {
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
-              Complex(-1.0), coef[i], coefUpdateGeo);
+              Complex(balanceOfMomentumSign_), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
-              -1.0, coef[i],coefUpdateGeo);
+              balanceOfMomentumSign_, coef[i],coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
-              Complex(-1.0), coef[i], coefUpdateGeo);
+              Complex(balanceOfMomentumSign_), coef[i], coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
-              -1.0, coef[i], coefUpdateGeo);
+              balanceOfMomentumSign_, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("TractionIntegrator");
@@ -948,21 +950,21 @@ namespace CoupledField {
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
-              Complex(-tracFac), coef[i],
+              Complex(balanceOfMomentumSign_*tracFac), coef[i],
               volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
-              -tracFac, coef[i], volRegions,
+              balanceOfMomentumSign_*tracFac, coef[i], volRegions,
               coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
-              Complex(-tracFac), coef[i],
+              Complex(balanceOfMomentumSign_*tracFac), coef[i],
               volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
-              -tracFac, coef[i],
+              balanceOfMomentumSign_*tracFac, coef[i],
               volRegions, coefUpdateGeo);
         }
       }
@@ -1040,18 +1042,18 @@ namespace CoupledField {
               if( dim_ == 2) {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormal<FeH1,2,1>(),
-                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
+                      Complex(balanceOfMomentumSign_,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormal<FeH1,2,1>(),
-                      -1.0, gridVelCoefRegion, volRegion, true, true);
+                      balanceOfMomentumSign_, gridVelCoefRegion, volRegion, true, true);
                 }
               } else  {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormal<FeH1,3,1>(),
-                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
+                      Complex(balanceOfMomentumSign_,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormal<FeH1,3,1>(),
-                      -1.0, gridVelCoefRegion, volRegion, true, true);
+                      balanceOfMomentumSign_, gridVelCoefRegion, volRegion, true, true);
                 }
               }
               lin->SetName("noPenetrationInt");
@@ -1113,18 +1115,18 @@ namespace CoupledField {
               if( dim_ == 2) {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperator<FeH1,2,2>(),
-                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
+                      Complex(balanceOfMomentumSign_,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double,true> ( new IdentityOperator<FeH1,2,2>(),
-                      -1.0, gridVelCoefRegion, volRegion, true, true);
+                      balanceOfMomentumSign_, gridVelCoefRegion, volRegion, true, true);
                 }
               } else  {
                 if(isComplex_) {
                   lin = new BUIntegrator<Complex, true> ( new IdentityOperator<FeH1,3,3>(),
-                      Complex(-1.0,0), gridVelCoefRegion, volRegion, true, true);
+                      Complex(balanceOfMomentumSign_,0), gridVelCoefRegion, volRegion, true, true);
                 } else {
                   lin = new BUIntegrator<Double, true> ( new IdentityOperator<FeH1,3,3>(),
-                      -1.0, gridVelCoefRegion, volRegion, true, true);
+                      balanceOfMomentumSign_, gridVelCoefRegion, volRegion, true, true);
                 }
               }
               lin->SetName("SlipInt");
@@ -1180,15 +1182,15 @@ namespace CoupledField {
         BiLinearForm * surfMassInt = NULL;
         if(isComplex_) {
           if (dim_ == 2){
-            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
           } else {
-            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
           }
         } else {
           if (dim_ == 2){
-            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], balanceOfMomentumSign_, volRegion, updatedGeo_ );
           } else {
-            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
+            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], balanceOfMomentumSign_, volRegion, updatedGeo_ );
           }
         }
         surfMassInt->SetName("surfMassIntegrator");
@@ -1218,15 +1220,15 @@ namespace CoupledField {
         BiLinearForm * impedanceInt = NULL;
         if(isComplex_) {
           if (dim_ == 2){
-            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
           } else {
-            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(-1.0,0), volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
           }
         } else {
           if (dim_ == 2){
-            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], balanceOfMomentumSign_, volRegion, updatedGeo_ );
           } else {
-            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], -1.0, volRegion, updatedGeo_ );
+            impedanceInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], balanceOfMomentumSign_, volRegion, updatedGeo_ );
           }
         }
         impedanceInt->SetName("ImpedanceIntegrator");
@@ -1356,15 +1358,15 @@ namespace CoupledField {
         BiLinearForm * abcInt = NULL;
         if(isComplex_) {
           if (dim_ == 2){
-            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), impCoeff, Complex(-1.0,0), volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), impCoeff, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
           } else {
-            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), impCoeff, Complex(-1.0,0), volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), impCoeff, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
           }
         } else {
           if (dim_ == 2){
-            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), impCoeff, -1.0, volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), impCoeff, balanceOfMomentumSign_, volRegion, updatedGeo_ );
           } else {
-            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), impCoeff, -1.0, volRegion, updatedGeo_ );
+            abcInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), impCoeff, balanceOfMomentumSign_, volRegion, updatedGeo_ );
           }
         }
         abcInt->SetName("abcIntegrator");
@@ -1458,21 +1460,21 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                               new IdentityOperator<FeH1,2,2>(),
-                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
                                                                               new IdentityOperator<FeH1,3,3>(),
-                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                 new IdentityOperator<FeH1,2,2>(),
-                                                                constOne, -1.0, volRegion, updatedGeo_ );
+                                                                constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                                                 new IdentityOperator<FeH1,3,3>(),
-                                                                constOne, -1.0, volRegion, updatedGeo_ );
+                                                                constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             }
           }
           surfVelocityConstraintIntVL->SetName("velocityConstraintIntVL");
@@ -1490,21 +1492,21 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                               new IdentityOperator<FeH1,2,2>(),
-                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
                                                                               new IdentityOperator<FeH1,3,3>(),
-                                                                              constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                              constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                 new IdentityOperator<FeH1,2,2>(),
-                                                                constOne, -1.0, volRegion, updatedGeo_ );
+                                                                constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             } else {
               surfVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                                                 new IdentityOperator<FeH1,3,3>(),
-                                                                constOne, -1.0, volRegion, updatedGeo_ );
+                                                                constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             }
           }
           surfVelocityConstraintIntLV->SetName("velocityConstraintIntLV");
@@ -1547,7 +1549,7 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                                       new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
-                                                                                      coefMaxwellBC, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                                      coefMaxwellBC, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
@@ -1555,7 +1557,7 @@ namespace CoupledField {
             if (dim_ == 2){
               surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                       new SurfaceNormalStressOperatorProjected2D<FeH1,2,2>(),
-                                                                      coefMaxwellBC, -1.0, volRegion, updatedGeo_ );
+                                                                      coefMaxwellBC, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
@@ -1632,21 +1634,21 @@ namespace CoupledField {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                                     new IdentityOperatorNormal<FeH1,2,1>(),
-                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
                                                                                     new IdentityOperatorNormal<FeH1,3,1>(),
-                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                       new IdentityOperatorNormal<FeH1,2,1>(),
-                                                                      constOne, -1.0, volRegion, updatedGeo_ );
+                                                                      constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntVL = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                                                       new IdentityOperatorNormal<FeH1,3,1>(),
-                                                                      constOne, -1.0, volRegion, updatedGeo_ );
+                                                                      constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             }
           }
           surfScalarVelocityConstraintIntVL->SetName("scalarVelocityConstraintIntVL");
@@ -1663,21 +1665,21 @@ namespace CoupledField {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperatorNormal<FeH1,2,1>(),
                                                                                     new IdentityOperator<FeH1,2,2>(),
-                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperatorNormal<FeH1,3,1>(),
                                                                                     new IdentityOperator<FeH1,3,3>(),
-                                                                                    constOne, Complex(-1.0,0), volRegion, updatedGeo_ );
+                                                                                    constOne, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
             }
           } else {
             if (dim_ == 2){
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,2,1>(),
                                                                       new IdentityOperator<FeH1,2,2>(),
-                                                                      constOne, -1.0, volRegion, updatedGeo_ );
+                                                                      constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             } else {
               surfScalarVelocityConstraintIntLV = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,3,1>(),
                                                                       new IdentityOperator<FeH1,3,3>(),
-                                                                      constOne, -1.0, volRegion, updatedGeo_ );
+                                                                      constOne, balanceOfMomentumSign_, volRegion, updatedGeo_ );
             }
           }
           surfScalarVelocityConstraintIntLV->SetName("surfScalarVelocityConstraintIntLV");
@@ -2112,9 +2114,9 @@ namespace CoupledField {
       availResults_.insert(vdpd1);  
       shared_ptr<CoefFunctionFormBased> vdpd1Func;    
       if( isComplex_ ) {
-        vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, -0.5));
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, balanceOfMomentumSign_*0.5));
       } else {
-        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, -0.5));
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, balanceOfMomentumSign_*0.5));
       }
       // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
       vdpd1Func->SetIntegratorName("LinFlowStiffIntBulkViscous"); // coefFunctionBOp acts on strain part
@@ -2132,9 +2134,9 @@ namespace CoupledField {
       availResults_.insert( vdpd2 );
       shared_ptr<CoefFunctionFormBased> vdpd2Func;
       if( isComplex_ ) {
-        vdpd2Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, -0.5));
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, balanceOfMomentumSign_*0.5));
       } else {
-        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, -0.5));
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, balanceOfMomentumSign_*0.5));
       }
       // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
       vdpd2Func->SetIntegratorName("LinFlowStiffIntViscous");
@@ -2188,6 +2190,20 @@ namespace CoupledField {
   LinFlowPDE::CreateFeSpaces(const std::string& formulation,
                                    PtrParamNode infoNode) 
   {
+
+    // Set sign of integrators
+    // The originally implemented sign was 1.0, this was globally changed to
+    // -1.0 except for the case of the eigenValue analysis type
+    if (analysistype_ == AnalysisType::EIGENVALUE) {
+      if( isHeatPDECoupled_ && isCouplingFormulationSymmetric_ ) {
+          EXCEPTION("Eigenvalue analysis type is currently not implemented for symmetric LinFlowHeatCoupling!" \
+            "\nPlease use the asymetric LinFlowHeatCoupling or consider implementing it for the symmetric LinFlowHeatCoupling.");
+      }
+      balanceOfMomentumSign_ = 1.0;
+    } else {
+      balanceOfMomentumSign_ = -1.0;
+    }
+
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
 
     if(formulation == "default" || formulation == "H1"){
@@ -2372,11 +2388,11 @@ namespace CoupledField {
       if( dim_ == 2 ) {
           stiffIntVP1Surf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                 new IdentityOperatorNormal<FeH1,2>(),
-                                constOne, -1.0, volRegion, updatedGeo_);
+                                constOne, balanceOfMomentumSign_, volRegion, updatedGeo_);
       } else {
           stiffIntVP1Surf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                 new IdentityOperatorNormal<FeH1,3>(),
-                                constOne, -1.0, volRegion, updatedGeo_);
+                                constOne, balanceOfMomentumSign_, volRegion, updatedGeo_);
       }
       stiffIntVP1Surf->SetName("LinFlowStiffIntVP1Surf");
       BiLinFormContext *stiffContVP1 = NULL;
@@ -2400,13 +2416,13 @@ namespace CoupledField {
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                constOne, 1.0, volRegion, updatedGeo_);
+                                constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
         } else {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,2,2,Double>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                constOne, 1.0, volRegion, updatedGeo_);
+                                constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
         }
       } else {
         if( isComplex_ ) {
@@ -2414,13 +2430,13 @@ namespace CoupledField {
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                constOne, 1.0, volRegion, updatedGeo_);
+                                constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
         } else {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,3,3,Double>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
           stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
-                                constOne, 1.0, volRegion, updatedGeo_);
+                                constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
         }
       }
       stiffIntVP2Surf->SetName("LinFlowStiffIntVP2Surf");
@@ -2450,13 +2466,13 @@ namespace CoupledField {
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  constOne, 1.0, volRegion, updatedGeo_);
+                                  constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
           } else {
             sNDOp1 = new SurfaceNormalDivOperator<FeH1,2,Double>();
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  constOne, 1.0, volRegion, updatedGeo_);
+                                  constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
           }
         } else {
           if( isComplex_ ) {
@@ -2464,13 +2480,13 @@ namespace CoupledField {
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  constOne, 1.0, volRegion, updatedGeo_);
+                                  constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
           } else {
             sNDOp1 = new SurfaceNormalDivOperator<FeH1,3,Double>();
             sNDOp1->SetCoefFunction(coefDivDiv);
             stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                   sNDOp1,
-                                  constOne, 1.0, volRegion, updatedGeo_);
+                                  constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
           }
         }
         stiffIntVP3Surf->SetName("LinFlowStiffIntVP3Surf");

@@ -44,6 +44,9 @@ namespace CoupledField
     //! set coupling to Heat PDE and whteher to use a symmetric form
     void SetHeatPDECouplingFlags(bool useSymmetricForm);
 
+    //! Return the integrator sign
+    double GetBalanceOfMomentumSign() const;
+
   protected:
 
     //! Initialize NonLinearities
@@ -177,6 +180,9 @@ namespace CoupledField
     bool isHeatPDECoupled_;
     //! Whether to use a symmetric formulation or not in coupling (to HeatPDE)
     bool isCouplingFormulationSymmetric_;
+
+    //! Sign of the integrators (used to controll the sign of the balance of momentum terms)
+    double balanceOfMomentumSign_;
 
   private:
 
