@@ -292,33 +292,41 @@ namespace CoupledField {
       oneFuncs[actRegion] = 
         CoefFunction::Generate( mp_, Global::REAL, lexical_cast<std::string>(1.0) );
 
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
       // ====================================================================
       // stiffness integrators: conservation of mass
       //
       //  K_PV Integrator (lower off-diagonal integrator):
       //  \int_{\Omega_f} phi div(v') d\Omega
       // ===================================================================
-      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-      BiLinearForm * stiffIntPV = NULL;
-      if( dim_ == 2 ) {
-        if( isaxi_ ) {
-          stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
-                                  new DivOperatorAxi<FeH1>(), constOne, 1.0, updatedGeo_ );
-        } else if(subType_ == "plane") {
-          stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
-                                  new DivOperator<FeH1,2>(), constOne, 1.0, updatedGeo_ );
-        }
-      } else {
-        stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,3>(),
-                                  new DivOperator<FeH1,3>(), constOne, 1.0, updatedGeo_ );
-      }
-      stiffIntPV->SetName("LinFlowStiffIntPV");
-      BiLinFormContext *stiffContPV = NULL;
-      stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
+      // This integrator is not created if the LinFlowPDE is coupled to the HeatPDE in symmetric form as only one of the
+      // two symmteric integrators is needed and the counter part in the balance of momentum will be created instead of
+      // this one
+      if(!(isHeatPDECoupled_ && isCouplingFormulationSymmetric_)) {
 
-      stiffContPV->SetEntities( actSDList, actSDList );
-      stiffContPV->SetFeFunctions( presFct, velFct);
-      assemble_->AddBiLinearForm( stiffContPV );
+        BiLinearForm * stiffIntPV = NULL;
+        if( dim_ == 2 ) {
+          if( isaxi_ ) {
+            stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
+                                    new DivOperatorAxi<FeH1>(), constOne, 1.0, updatedGeo_ );
+          } else if(subType_ == "plane") {
+            stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
+                                    new DivOperator<FeH1,2>(), constOne, 1.0, updatedGeo_ );
+          }
+        } else {
+          stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,3>(),
+                                    new DivOperator<FeH1,3>(), constOne, 1.0, updatedGeo_ );
+        }
+        stiffIntPV->SetName("LinFlowStiffIntPV");
+        BiLinFormContext *stiffContPV = NULL;
+        stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
+
+        stiffContPV->SetEntities( actSDList, actSDList );
+        stiffContPV->SetFeFunctions( presFct, velFct);
+        assemble_->AddBiLinearForm( stiffContPV );
+      }
+
       PtrCoefFct adiabaticExp = materials_[actRegion]->GetScalCoefFnc(
           FLUID_ADIABATIC_EXPONENT, Global::REAL);
       PtrCoefFct compressionModulus = materials_[actRegion]->GetScalCoefFnc( FLUID_BULK_MODULUS, Global::REAL );
@@ -403,6 +411,9 @@ namespace CoupledField {
 
       stiffContVP->SetEntities( actSDList, actSDList );
       stiffContVP->SetFeFunctions( velFct, presFct );
+      // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
+      // create the other symmteric integrator in the balance of mass
+      stiffContVP->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
       assemble_->AddBiLinearForm( stiffContVP );
 
 
@@ -866,6 +877,9 @@ namespace CoupledField {
 
             stiffContVP->SetEntities( actSDList, actSDList );
             stiffContVP->SetFeFunctions( velFct, presFct );
+            // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
+            // create symmetric counterpart
+            stiffContVP->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
             assemble_->AddBiLinearForm( stiffContVP );
         }
     }
@@ -2399,6 +2413,9 @@ namespace CoupledField {
       stiffContVP1 = new BiLinFormContext(stiffIntVP1Surf, STIFFNESS );
       stiffContVP1->SetEntities( actSDList, actSDList );
       stiffContVP1->SetFeFunctions( velFct, presFct );
+      // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
+      // create symmetric counterpart
+      stiffContVP1->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
       assemble_->AddBiLinearForm( stiffContVP1 );
     }
 
@@ -2448,6 +2465,9 @@ namespace CoupledField {
       stiffContVP2 = new BiLinFormContext(stiffIntVP2Surf, STIFFNESS );
       stiffContVP2->SetEntities( actSDList, actSDList );
       stiffContVP2->SetFeFunctions( velFct, velFct );
+      // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
+      // create symmetric counterpart
+      stiffContVP2->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
       assemble_->AddBiLinearForm( stiffContVP2 );
     }
 
@@ -2498,6 +2518,9 @@ namespace CoupledField {
         stiffContVP3 = new BiLinFormContext(stiffIntVP3Surf, STIFFNESS );
         stiffContVP3->SetEntities( actSDList, actSDList );
         stiffContVP3->SetFeFunctions( velFct, velFct );
+        // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
+        // create symmetric counterpart
+        stiffContVP3->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
         assemble_->AddBiLinearForm( stiffContVP3 );
       }
     }

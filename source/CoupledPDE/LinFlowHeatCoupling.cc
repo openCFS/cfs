@@ -137,37 +137,38 @@ namespace CoupledField {
 
     	heatToFlowDescr->SetEntities( actSDList, actSDList );
     	heatToFlowDescr->SetFeFunctions( flowFct, heatFct );
-    	heatToFlowDescr->SetCounterPart(false);
+      // In case the Coupling is written in a symmetric form the counterpart needs to be set, to also
+      // create the other symmteric integrator
+    	heatToFlowDescr->SetCounterPart(isCouplingFormulationSymmetric_);
 
       assemble_->AddBiLinearForm( heatToFlowDescr );
 
     	// bilinear form for coupling from flow to heat: coefThermalExpansion*refTemp \frac{\partial p_\ra}{\partial t}
     	// The coefficient "ThermalExpansion*refTemp" is necessary for a general fluid.
       // For an ideal gas: ThermalExpansion*refTemp = 1
-      // In case the coupling is symmetric the coefficent function is divied by refTemp
-      PtrCoefFct coefFlowToHeat;
-      if (isCouplingFormulationSymmetric_) {
-        coefFlowToHeat = coefThermalExpansion;
-      } else {
-        coefFlowToHeat = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
+      // In case the coupling is symmetric the coefficent function is in theory divied by refTemp, but
+      // as it is symmetric only one of the two symmetric integrators is needed, therefore this integrator is not
+      // created in the symmteric formulation
+      if (!isCouplingFormulationSymmetric_) {
+        PtrCoefFct coefFlowToHeat = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
+
+        BiLinearForm *flowToHeat = NULL;
+        if( dim_ == 2 ) {
+          flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefFlowToHeat, -1.0 );
+        } else {
+          flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefFlowToHeat, -1.0 );
+        }
+
+        heatToFlow->SetName("LinFlowToHeatCoupling");
+
+        BiLinFormContext * flowToHeatDescr = new BiLinFormContext(flowToHeat, DAMPING );
+
+        flowToHeatDescr->SetEntities( actSDList, actSDList );
+        flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
+        flowToHeatDescr->SetCounterPart(false);
+
+        assemble_->AddBiLinearForm( flowToHeatDescr );
       }
-
-      BiLinearForm *flowToHeat = NULL;
-      if( dim_ == 2 ) {
-        flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefFlowToHeat, -1.0 );
-      } else {
-        flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefFlowToHeat, -1.0 );
-      }
-
-    	heatToFlow->SetName("LinFlowToHeatCoupling");
-
-    	BiLinFormContext * flowToHeatDescr = new BiLinFormContext(flowToHeat, DAMPING );
-
-    	flowToHeatDescr->SetEntities( actSDList, actSDList );
-    	flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
-    	flowToHeatDescr->SetCounterPart(false);
-
-      assemble_->AddBiLinearForm( flowToHeatDescr );
     }
   }
 }
