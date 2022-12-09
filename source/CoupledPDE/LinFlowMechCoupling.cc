@@ -44,7 +44,7 @@ LinFlowMechCoupling::LinFlowMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
     shared_ptr<SimState> simState,
     Domain* domain)
 : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain ),
-  lmOrderSameAsVel_(true), IsLagrangeMultiplierMethod_(false){
+  lmOrderSameAsVel_(true), IsLagrangeMultiplierMethod_(false), hasMortarIface_(false){
 
   couplingName_ = "linFlowMechDirect";
   materialClass_ = FLOW;
@@ -58,11 +58,35 @@ LinFlowMechCoupling::LinFlowMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
 
   // Initialize nonlinearities
   InitNonLin();
+
   if( paramNode->Has("IsLagrangeMultiplierMethod") ) {
     IsLagrangeMultiplierMethod_ =  paramNode->Get("IsLagrangeMultiplierMethod")->As<bool>();
     if( paramNode->Has("lmOrderSameAsVel") ) {
       lmOrderSameAsVel_ =  paramNode->Get("lmOrderSameAsVel")->As<bool>();
     }
+  }
+
+  PtrParamNode ncIfListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS);
+  if(ncIfListNode) {
+    ParamNodeList ncListMortar =
+        ncIfListNode->GetListByVal("ncInterface", "formulation", "Mortar");
+    hasMortarIface_ = (ncListMortar.GetSize() > 0);
+  }
+
+  // LinFlow FE basis functions
+  presPolyId_ = pde1_->GetParamNode()->Get("presPolyId")->As<std::string>();
+  velPolyId_  = pde1_->GetParamNode()->Get("velPolyId")->As<std::string>();
+  // LinFlow integration order
+  presIntegId_ = pde1_->GetParamNode()->Get("presIntegId")->As<std::string>();
+  velIntegId_  = pde1_->GetParamNode()->Get("velIntegId")->As<std::string>();
+
+  if( lmOrderSameAsVel_ ) {
+	lagrangeMultPolyId_ = velPolyId_;
+	lagrangeMultIntegId_ = velIntegId_;
+  }
+  else {
+	lagrangeMultPolyId_ = presPolyId_;
+	lagrangeMultIntegId_ = presIntegId_;
   }
 }
 
@@ -131,15 +155,10 @@ void LinFlowMechCoupling::DefineIntegrators() {
       dispFct->AddEntityList(actSDList);
       lagrangeMultFct->AddEntityList(actSDList);
 
-      velSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
-      presSpace->SetRegionApproximation(region, "presPolyId", "presIntegId");
+      velSpace->SetRegionApproximation(region, velPolyId_, velIntegId_);
+      presSpace->SetRegionApproximation(region, presPolyId_, presIntegId_);
       dispSpace->SetRegionApproximation(region, "default", "default");
-      if(lmOrderSameAsVel_) {
-        lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
-      }
-      else {
-        lagrangeMultSpace->SetRegionApproximation(region, "presPolyId", "velIntegId");
-      }
+      lagrangeMultSpace->SetRegionApproximation(region, lagrangeMultPolyId_, lagrangeMultIntegId_);
 
       // Integrator being assembled into damping (first time deriv.) matrix; first part
       // of additional equation guaranteeing continuity of velocities
@@ -153,7 +172,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           actSDList, oneFuncs, oneFuncs, oneFuncs, flowRegions);
     }
   }
-  else{ //Non conforming integrations for Nitsche coupling
+  else{ //Non conforming integrations for Nitsche or Mortar coupling
     ParamNodeList ncList = myParam_->Get("ncInterfaceList", ParamNode::PASS)->GetList("ncInterface");
     for(UInt i = 0; i < ncList.GetSize(); i++){
       //      std::cout<< ncList[i]->Get("ncInterface/name")->As<std::string>() <<std::endl;
@@ -469,8 +488,47 @@ void LinFlowMechCoupling::DefineIntegrators() {
       }
       else if (formulation == "Mortar")
       {
-        // we do nothing here
-      } // end mortar
+        shared_ptr<BaseFeFunction> presFct = pde1_->GetFeFunction(FLUIDMECH_PRESSURE);
+        shared_ptr<BaseFeFunction> lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
+        shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+        shared_ptr<FeSpace> lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
+
+        MortarInterface * mortarIf = dynamic_cast<MortarInterface*>(ncIf.get());
+        assert(mortarIf);
+
+        RegionIdType surfMasterId = mortarIf->GetMasterSurfRegion();
+        RegionIdType surfSlaveId = mortarIf->GetSlaveSurfRegion();
+
+        // create ElemLists for master & slave surfaces
+        shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
+                                 elSlave(new SurfElemList(ptGrid_));
+        elMaster->SetRegion(surfMasterId);
+        elSlave->SetRegion(surfSlaveId);
+
+        velFct->AddEntityList(elSlave);
+        presFct->AddEntityList(elSlave);
+        dispFct->AddEntityList(elMaster);
+        lagrangeMultFct->AddEntityList(elSlave);
+
+        velSpace->SetRegionApproximation(surfSlaveId, velPolyId_, velIntegId_);
+        presSpace->SetRegionApproximation(surfSlaveId, presPolyId_, presIntegId_);
+        dispSpace->SetRegionApproximation(surfMasterId, "default", "default");
+        lagrangeMultSpace->SetRegionApproximation(surfSlaveId, lagrangeMultPolyId_, lagrangeMultIntegId_);
+
+
+        PtrCoefFct coefOne = CoefFunction::Generate( mp, Global::REAL, "1");
+
+        // Coupling across NC interface -> SurfaceMortarABInt
+        DefineMortarIntNC("LinFlowMechDampingLMDispCouplingIntNC", lagrangeMultFct, dispFct,
+                          mortarIf, 1.0, coefOne, DAMPING, BiLinearForm::SLAVE_MASTER);
+        DefineMortarIntNC("LinFlowMechStiffDispLMCouplingIntNC", dispFct, lagrangeMultFct,
+                          mortarIf, 1.0, coefOne, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+        // Coupling on secondary (slave) side -> BBInt
+        DefineMortarIntNCSecondary("LinFlowMechStiffLMVelCouplingIntNC", lagrangeMultFct, velFct,
+                          elSlave, -1.0, coefOne, STIFFNESS);
+        DefineMortarIntNCSecondary("LinFlowMechStiffVelLMCouplingIntNC", velFct, lagrangeMultFct,
+                          elSlave, -linFlowBalanceOfMomentumSign, coefOne, STIFFNESS);
+      }
       else
       {
         EXCEPTION("Unknown formulation: '" << formulation << "'!");
@@ -629,25 +687,97 @@ void LinFlowMechCoupling::DefineStiffnessIntegrators(const std::string& name,
 
 }
 
+void LinFlowMechCoupling::DefineMortarIntNC(const std::string& name,
+    shared_ptr<BaseFeFunction>& fct1,
+    shared_ptr<BaseFeFunction>& fct2,
+    MortarInterface* mortarIf,
+    Double factor,
+    PtrCoefFct scalCoef,
+    FEMatrixType matType,
+    BiLinearForm::CouplingDirection cplDir){
+
+  shared_ptr<ElemList> actSDList = mortarIf->GetElemList();
+
+  RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
+  RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
+  bool coplanar = mortarIf->IsPlanar();
+
+  BiLinearForm * cplInt = NULL;
+
+  if( subType_ == "axi" || subType_ == "planeStrain" || subType_ == "planeStress" ) {
+    cplInt = new SurfaceMortarABInt<>(new IdentityOperator<FeH1,2,2>(),
+        new IdentityOperator<FeH1,2,2>(),
+        scalCoef, factor, volMasterId, volSlaveId, coplanar, false, cplDir);
+  } else if( subType_ == "3d") {
+    cplInt = new SurfaceMortarABInt<>(new IdentityOperator<FeH1,3,3>(),
+        new IdentityOperator<FeH1,3,3>(),
+        scalCoef, factor, volMasterId, volSlaveId, coplanar, false, cplDir);
+  } else {
+    EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+  }
+
+  cplInt->SetName(name);
+  NcBiLinFormContext * context =
+      new NcBiLinFormContext( cplInt, matType );
+
+  context->SetEntities( actSDList, actSDList );
+  context->SetFeFunctions( fct1, fct2 );
+  context->SetCounterPart(false);
+
+  assemble_->AddBiLinearForm( context );
+  mortarIf->RegisterIntegrator( context );
+}
+
+void LinFlowMechCoupling::DefineMortarIntNCSecondary(const std::string& name,
+    shared_ptr<BaseFeFunction>& fct1,
+    shared_ptr<BaseFeFunction>& fct2,
+    shared_ptr<SurfElemList>& actSDList,
+    Double factor,
+    PtrCoefFct scalCoef,
+    FEMatrixType matType){
+
+  BiLinearForm * cplInt = NULL;
+
+  if( subType_ == "axi" || subType_ == "planeStrain" || subType_ == "planeStress" ) {
+    cplInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(),
+        scalCoef, factor, false);
+  } else if( subType_ == "3d") {
+    cplInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(),
+        scalCoef, factor, false);
+  } else {
+    EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+  }
+
+  cplInt->SetName(name);
+  BiLinFormContext * context =
+      new BiLinFormContext( cplInt, matType );
+
+  context->SetEntities( actSDList, actSDList );
+  context->SetFeFunctions( fct1, fct2 );
+  context->SetCounterPart(false);
+
+  assemble_->AddBiLinearForm( context );
+}
+
 void LinFlowMechCoupling::DefineAvailResults() {
   REFACTOR
 }
 
 void LinFlowMechCoupling::DefinePrimaryResults() {
   // Check for subType
-  if (IsLagrangeMultiplierMethod_){// === LAGRANGE MULTIPLIER ===
-  StdVector<std::string> velDofNames;
+  if(IsLagrangeMultiplierMethod_ || hasMortarIface_) {// === LAGRANGE MULTIPLIER ===
+    StdVector<std::string> velDofNames;
 
-  std::string geometryType;
-  domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
+    std::string geometryType;
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
-  if( geometryType == "3d" ) {
-    velDofNames = "x", "y", "z";
-  } else if( geometryType == "plane" ) {
-    velDofNames = "x", "y";
-  } else if( geometryType == "axi" ) {
-    velDofNames = "r", "z";
-  }
+    if( geometryType == "3d" ) {
+      velDofNames = "x", "y", "z";
+    } else if( geometryType == "plane" ) {
+      velDofNames = "x", "y";
+    } else if( geometryType == "axi" ) {
+      velDofNames = "r", "z";
+    }
     shared_ptr<ResultInfo> res1( new ResultInfo);
     res1->resultType = LAGRANGE_MULT;
 
@@ -669,10 +799,12 @@ void LinFlowMechCoupling::CreateFeSpaces( const std::string&  type,
     PtrParamNode infoNode,
     std::map<SolutionType, shared_ptr<FeSpace> >& crSpaces) {
 
-  if (IsLagrangeMultiplierMethod_){// if the coupling is conforming via lagrange multiplier
-    //we need a lagrange multiplier
+  // coupling via Lagrange multiplier (conforming or non-conforming Mortar)
+  if (IsLagrangeMultiplierMethod_ || hasMortarIface_) {
     formulation_ = LAGRANGE_MULT;
     PtrParamNode spaceNode;
+    // for the Mortar method, the LM space must be on the "slave" side (LinFlow)
+    PtrParamNode ParamNodeLM = IsLagrangeMultiplierMethod_ ? myParam_ : pde1_->GetParamNode();
 
     if(lmOrderSameAsVel_) {
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
@@ -680,12 +812,14 @@ void LinFlowMechCoupling::CreateFeSpaces( const std::string&  type,
     else {
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
     }
+    
     crSpaces[formulation_] =
-        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        FeSpace::CreateInstance(ParamNodeLM, spaceNode, FeSpace::H1, ptGrid_);
 
     crSpaces[formulation_]->SetLagrSurfSpace();
 
     crSpaces[formulation_]->Init(solStrat_);
   }
 }
+
 }

@@ -17,6 +17,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField {
 class BaseResult;
@@ -28,6 +29,7 @@ template <class TYPE> class Vector;
 class BaseMaterial;
 class SinglePDE;
 class BiLinearForm;
+class MortarInterface;
 
   //! Implements the definition of pairwise piezo-coupling
   
@@ -85,6 +87,25 @@ class BiLinearForm;
                                     const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                     const std::set< RegionIdType >& flowRegions);
 
+    //! Define Mortar integrator (coupling across NC interface)
+    void DefineMortarIntNC(const std::string& name,
+                           shared_ptr<BaseFeFunction>& fct1,
+                           shared_ptr<BaseFeFunction>& fct2,
+                           MortarInterface* mortarIf,
+                           Double factor,
+                           PtrCoefFct scalCoef,
+                           FEMatrixType matType,
+                           BiLinearForm::CouplingDirection cplDir);
+
+    //! Define Mortar integrator (FeFunctions on same surface)
+    void DefineMortarIntNCSecondary(const std::string& name,
+                              shared_ptr<BaseFeFunction>& fct1,
+                              shared_ptr<BaseFeFunction>& fct2,
+                              shared_ptr<SurfElemList>& actSDList,
+                              Double factor,
+                              PtrCoefFct scalCoef,
+                              FEMatrixType matType);
+
    //! Subtype of related mechanical PDE
     std::string subType_;
     
@@ -98,6 +119,16 @@ class BiLinearForm;
     //! Lagrange multiplier order is same as velocity?
     bool lmOrderSameAsVel_;
     bool IsLagrangeMultiplierMethod_;
+    bool hasMortarIface_;
+
+	//! polyIds for the LinFlow side
+    std::string presPolyId_;
+    std::string velPolyId_;
+    std::string lagrangeMultPolyId_;
+    
+    std::string presIntegId_;
+    std::string velIntegId_;
+    std::string lagrangeMultIntegId_;
   };
 
 

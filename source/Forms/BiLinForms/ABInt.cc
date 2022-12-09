@@ -493,7 +493,7 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
   // Obtain FE element from feSpace and integration scheme
   BaseFE* ptFeMaster = this->ptFeSpaceField_->GetFe(ptSurfMaster->elemNum);
-  BaseFE* ptFeSlave = this->ptFeSpaceField_->GetFe(ptSurfSlave->elemNum);
+  BaseFE* ptFeSlave = this->ptFeSpaceLM_->GetFe(ptSurfSlave->elemNum);
   assert(ptFeMaster);
   assert(ptFeSlave);
 
