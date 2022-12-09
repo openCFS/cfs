@@ -137,10 +137,10 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
         break;
 
     case BaseEigenSolver::QUADRATIC:
-      #ifdef BUILD_QUADEIGENSOLVER
+      #if defined(USE_ARPACK) || defined(USE_FEAST) || defined(USE_PHIST_EV)
         retSolver = new QuadraticEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo,eSolverList);
       #else
-        EXCEPTION( "compiled without Quadratic Eigenvalue solver: set BUILD_QUADEIGENSOLVER=ON to use the Quadratic Eigenvalue solver" );
+        EXCEPTION( "compiled without Quadratic Eigenvalue solver: enable an eigenvalue solver like ARPACK, FEAST or PHIST_EV" );
       #endif
         break;
 

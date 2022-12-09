@@ -138,7 +138,6 @@ option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TEST
 option(BUILD_HDFVIEW "Build the HDF5 file viewer from the hdf5lib" ${BUILD_HDFVIEW_DEFAULT}) # advanced
 
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
-option(BUILD_QUADEIGENSOLVER "Build the Quadratic Eigenvalue Solver to linearise the problem, requires another solver for the resulting generalised EVP" ${BUILD_QUADEIGENSOLVER_DEFAULT})
 
 # USE_* triggers more or less optional external dependencies.
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
@@ -251,11 +250,6 @@ if(NOT USE_METIS)
   endif() 
 endif()
 
-if(BUILD_QUADEIGENSOLVER AND NOT (USE_FEAST OR USE_ARPACK OR USE_PHIST ))
-  message(WARNING "BUILD_QUADEIGENSOLVER=ON but not solver for the resulting generalised EVP is present\n
-                   switch on FEAST (tested), ARPACK or PHIST (untested).")
-endif()
-
 #-----------------------------------------------------------------------------
 # Do conditional settings after sanity checks have passed
 #-----------------------------------------------------------------------------
@@ -326,7 +320,6 @@ mark_as_advanced(CMAKE_INSTALL_PREFIX)
 mark_as_advanced(BUILD_HDFVIEW)
 mark_as_advanced(BUILD_GHOST)
 mark_as_advanced(BUILD_HWLOC)
-mark_as_advanced(BUILD_QUADEIGENSOLVER)
 mark_as_advanced(XMLSCHEMA)
 mark_as_advanced(USE_XERCES)
 mark_as_advanced(USE_LIBXML2)
