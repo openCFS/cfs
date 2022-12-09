@@ -953,11 +953,8 @@ void HeatPDE::ThermalRadiationBC(){
 	  PtrCoefFct T0Coef = CoefFunction::Generate(mp_, Global::REAL, T0);
 	  PtrCoefFct sigmaCoef = CoefFunction::Generate(mp_, Global::REAL, sigma);
 
-    // Get the reference Temperatur to make the system symmetric
-    RegionIdType entRegion = ent[i]->GetRegion();
-    PtrCoefFct refTemp = nullptr;
     if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
-      refTemp = materials_[entRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
+      EXCEPTION("Thermal Radiation is not implemented for the symmetric formulation of the LinFLow-Heat-Coupling.")
     }
 
 	  //========================================================================================
@@ -985,10 +982,6 @@ void HeatPDE::ThermalRadiationBC(){
 	  // coefficient function of LHS : 4 * \epsilon \sigma * (T_{k-1})^3
 	  PtrCoefFct coeffLHS = CoefFunction::Generate(mp_, Global::REAL,
 	  				CoefXprBinOp(mp_, TPow3, FourTimesSigmaTimesEpsilon, CoefXpr::OP_MULT));
-    
-    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
-      coeffLHS = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffLHS, refTemp, CoefXpr::OP_DIV));
-    }
 
 	  if (dim_ == 2) {
 		thermRadInt = new BBInt<>(new IdentityOperator<FeH1, 2, 1>(),
@@ -1026,10 +1019,6 @@ void HeatPDE::ThermalRadiationBC(){
 	  // coefficient function of RHS : \epsilon * \sigma  (3 *T_{k-1}^4 + T0^4)
 	  PtrCoefFct coeffRHS = CoefFunction::Generate(mp_, Global::REAL,
 				CoefXprBinOp(mp_, SigmaTimesEpsilon, ThreeTimesTPow4PlusT0Pow4, CoefXpr::OP_MULT));
-    // Make system symmetric by dividing with the reference Temperature
-    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
-      coeffRHS = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffRHS, refTemp, CoefXpr::OP_DIV));
-    }
 	  if (isComplex_) {
 	    lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1>(),
 					Complex(1.0), coeffRHS, coefUpdateGeo);
