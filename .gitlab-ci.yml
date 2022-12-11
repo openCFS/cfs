@@ -652,7 +652,6 @@ linux:gcc10:
     - docker
   variables:
     BUILD_NAME: "GCC10"
-    CMAKE_GENERATOR: Ninja
   <<: *build_rules
   <<: *gcc_before
   needs: ["cfsdeps:gcc10"]
@@ -691,7 +690,7 @@ linux:Clang-debug:
     - !reference [.build_rules, rules]
   before_script:
     # mitigate `detected dubious ownership in repository at ...` issue (see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/29022)
-    - git config --global --add safe.directory $CI_PROJECT_DIR # needed because gitlab runner checks ot as root and conteiner runs as user
+    - git config --global --add safe.directory $CI_PROJECT_DIR # needed because gitlab runner checks out as root and container runs as user
     # ensure clang is installed
     - clang --version
     # general build before script
@@ -707,12 +706,12 @@ linux:gcc10:ninja:
   tags:
     - docker
   before_script:
-    - mkdir -p build # create if it does not exist
-    - cd build # descend in build
+    # general build before script
+    - *before-script-build
   script:
     # configure with correct generator
     - cmake -G Ninja ..
-    # build
+    # build - note that we depend on cfsdeps:gcc10, hence the dependencies are already built with make
     - ninja
     # create artifacts
     - cpack -G TGZ
