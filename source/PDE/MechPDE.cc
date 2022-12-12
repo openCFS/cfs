@@ -1916,18 +1916,18 @@ namespace CoupledField {
       // check if we are iteratively coupled to the LinFlow-PDE and adapt sign if necessary
       std::string couplName;
       // go through the paramNodes to get the name of the coupled quantity (if there is any)
-      PtrParamNode bcNode = myParam_->Get("bcsAndLoads",ParamNode::PASS);
-      if( bcNode ) {
-        PtrParamNode tracNode = bcNode->Get("traction",ParamNode::PASS);
-        if( tracNode ) {
-          PtrParamNode couplNode = tracNode->Get("coupling",ParamNode::PASS);
-          if( couplNode ) {
-            PtrParamNode quantNode = couplNode->Get("quantity",ParamNode::PASS);
-            if( quantNode ) {
-              quantNode->GetValue("name", couplName );
-            }
+      ParamNodeList tracNodeList = myParam_->Get("bcsAndLoads")->GetList("traction");
+      // ensure we have the correct node - preceeding checks are not necessary because this has already been handled by SinglePDE::ReadEntities
+      PtrParamNode tracNode = tracNodeList[i];
+      if( tracNode ) {
+        PtrParamNode couplNode = tracNode->Get("coupling",ParamNode::PASS);
+        if( couplNode ) {
+          PtrParamNode quantNode = couplNode->Get("quantity",ParamNode::PASS);
+          if( quantNode ) {
+            quantNode->GetValue("name", couplName );
           }
         }
+        
       }
       // for the fluidMechSurfaceTraction we have to multiply by -1 to be consistent with the normal vectors
       Double tracFac;

@@ -1964,6 +1964,8 @@ namespace CoupledField {
       // we define the stressViscCoef in the next section since we have to differ between compressible / incompressible formulation
 
 
+      PtrCoefFct constZeroSolDepend = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+      constZeroSolDepend->SetSolDependent(); //we use this coefFunction later on to fill in the gaps for coefFunctionDiagTensorFromScalar - but here we need similar depend types, hence we use this trick
       if ( isCompressible_ ) {
         // === FLUID-MECHANIC STRESS (COMPRESSIBLE) ===
         // (lambda - 2/3 mu) div(v) I
@@ -1983,9 +1985,18 @@ namespace CoupledField {
         }
         // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
         stressCompFunc->SetIntegratorName("LinFlowStiffIntBulkViscous"); // coefFunctionFlux acts on strain part
-        StdVector<PtrCoefFct> stressCompDiagValues = StdVector<PtrCoefFct>(dim_);
+        StdVector<PtrCoefFct> stressCompDiagValues;
+        if( subType_ == "axi" ) {
+          stressCompDiagValues = StdVector<PtrCoefFct>(2*dim_);
+        } else {
+          stressCompDiagValues = StdVector<PtrCoefFct>(dim_);
+        }
         for(UInt i = 0; i < dim_; i++){
           stressCompDiagValues[i] = stressCompFunc;
+        }
+        if( subType_ == "axi" ) {
+          stressCompDiagValues[2] = constZeroSolDepend;
+          stressCompDiagValues[3] = stressCompFunc;
         }
         shared_ptr<CoefFunction> stressCompTensor (new CoefFunctionDiagTensorFromScalar(stressCompDiagValues,subType_));
         DefineFieldResult( stressCompTensor, stressComp );
@@ -2014,9 +2025,21 @@ namespace CoupledField {
       presTens->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
       availResults_.insert( presTens );
       PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
-      StdVector<PtrCoefFct> presTensDiagValues = StdVector<PtrCoefFct>(dim_);
+      StdVector<PtrCoefFct> presTensDiagValues;
+      PtrCoefFct zeroPres = CoefFunction::Generate( mp_,  Global::REAL,
+          CoefXprBinOp(mp_, presFnc, CoefFunction::Generate( mp_, Global::REAL, "0"), CoefXpr::OP_MULT));
+      if( subType_ == "axi" ) {
+        presTensDiagValues = StdVector<PtrCoefFct>(2*dim_);
+      } else {
+        presTensDiagValues = StdVector<PtrCoefFct>(dim_);
+      }
       for(UInt i = 0; i < dim_; i++){
         presTensDiagValues[i] = presFnc;
+      }
+      
+      if( subType_ == "axi" ) {
+        presTensDiagValues[2] = zeroPres; //evaluates to zero but is needed to get the same depend type
+        presTensDiagValues[3] = presFnc;
       }
       shared_ptr<CoefFunction> presTensCoef (new CoefFunctionDiagTensorFromScalar(presTensDiagValues,subType_));
       DefineFieldResult( presTensCoef, presTens );
