@@ -79,7 +79,7 @@ configure_file("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
 set(ILUPACK_LIBRARY
-  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${AMD_LIBRARY}"
+  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${AMD_LIBRARY}" # AMD_LIBRARY already has the path
   CACHE FILEPATH "ILUPACK library.")
 set(ILUPACK_DOUBLE_LIBRARY "${LD}/libDilupack.a")
 set(ILUPACK_COMPLEX_LIBRARY "${LD}/libZilupack.a")
@@ -95,7 +95,8 @@ if("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
   ExternalProject_Add(ilupack-double
-    PREFIX "${ARPACK_prefix}"
+    DEPENDS lapack metis suitesparse
+    PREFIX "${ilupack_prefix}"
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
@@ -103,7 +104,7 @@ if("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND "" )
   ExternalProject_Add(ilupack-complex
-    PREFIX "${ARPACK_prefix}"
+    PREFIX "${ilupack_prefix}"
     DOWNLOAD_COMMAND ""
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
@@ -138,7 +139,7 @@ else()
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     LIST_SEPARATOR "^"
     CMAKE_ARGS ${CMAKE_ARGS} -DFLOAT_TYPE:STRING=DOUBLE_REAL
-    BUILD_BYPRODUCTS ${ILUPACK_DOUBLE_LIBRARY} ${ILUPACK_BLASLIKE_LIBRARY} ${ILUPACK_SPARSPAK_LIBRARY} ) #${AMD_LIBRARY}
+    BUILD_BYPRODUCTS ${ILUPACK_DOUBLE_LIBRARY} ${ILUPACK_BLASLIKE_LIBRARY} ${ILUPACK_SPARSPAK_LIBRARY}) 
 
   ExternalProject_Add(ilupack-complex
     DEPENDS ilupack-double

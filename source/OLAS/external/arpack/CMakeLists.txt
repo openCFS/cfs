@@ -18,6 +18,8 @@ SET(TARGET_LL
   matvec
   )
 
+ADD_DEPENDENCIES(arpack-olas arpack)
+
 TARGET_LINK_LIBRARIES(arpack-olas ${TARGET_LL})
 
-ADD_DEPENDENCIES(arpack-olas cfsdeps)
+

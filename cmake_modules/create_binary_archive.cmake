@@ -35,14 +35,14 @@ if(EXISTS "${CFS_BINARY}")
   # define which files to keep
   set(FILES_TO_KEEP 
     "${CTEST_BINARY_DIRECTORY}/bin"
-    "${CTEST_BINARY_DIRECTORY}/lib64"
+    "${CTEST_BINARY_DIRECTORY}/lib"
     "${CTEST_BINARY_DIRECTORY}/share"
   )
   # copy to subfolder
   message("  Copy to subfolder '${CTEST_BINARY_DIRECTORY}/${ARCHIVE_NAME}' ...")
   file(COPY ${FILES_TO_KEEP} DESTINATION "${CTEST_BINARY_DIRECTORY}/${ARCHIVE_NAME}")
   # find static archives and remove them
-  file(GLOB_RECURSE STATIC_ARCHIVES "${CTEST_BINARY_DIRECTORY}/${ARCHIVE_NAME}/lib64/*.a")
+  file(GLOB_RECURSE STATIC_ARCHIVES "${CTEST_BINARY_DIRECTORY}/${ARCHIVE_NAME}/lib/*.a")
   if(STATIC_ARCHIVES)
     file(REMOVE ${STATIC_ARCHIVES})
   endif(STATIC_ARCHIVES)

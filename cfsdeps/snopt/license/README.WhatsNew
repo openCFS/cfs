@@ -1,0 +1,68 @@
+README.WhatsNew                      Philip E. Gill,  April 4, 2008.
+
+
+Version 7.2-7                        Philip E. Gill,  April 4, 2008.
+
+  o Control interface added.
+
+  o Various bug fixes, including a corrected cmex Submakefile.
+
+  o snadiopt is no longer a default module.
+
+
+Version 7.2-6                        Philip E. Gill,  September 8, 2007.
+
+  o Sticky parameter option added.
+
+  o mex interface updated for Matlab 7.4 (R2007a).
+
+  o f2c libraries updates.
+
+Version 7.2-5                        Philip E. Gill,  April 4, 2007.
+
+  o Matlab mex interface for Intel Mac is now included.
+
+
+Version 7.2-4                        Philip E. Gill,  May 21, 2006.
+
+  o Matlab mex interfaces updated.  Mex executables for Linux x86_64,
+    Linux i686, Mac and Windows are now included in the distribution.
+
+  o x64 support comments updated. (see INSTALL.x86-64)
+
+  o Ampl SNOPT executables for Windows, Linux x86_64 and i686 are
+    now included in the distribution.
+
+  o Ampl files for generating the Ampl libraries amplsolver.a and
+    amplsolv.lib are now distributed with Snopt.
+
+  o User's guides for SNOPT and SQOPT updated.
+
+
+Version 7.1                          Philip E. Gill, July 5, 2005.
+
+The SNOPT 7 package has several new features:
+
+  o No restriction on the number of degrees of freedom.
+
+  o Basis repair using LU factorization with sparse rook and complete pivoting.
+
+  o Cholesky, quasi-Newton and conjugate-gradient QP solvers.
+
+  o An interfaces to the C++ programming language.
+
+  o Routines for running models in the CUTEr test environment.
+
+  o C and C++ interfaces to the Ampl modeling language.
+
+  o New Matlab mex interfaces.
+
+  o The f2c package is distributed with SNOPT.
+
+
+Warning for users upgrading from SNOPT 6
+----------------------------------------
+Because of changes to the output values of the integer argument
+inform, routines calling the SNOPT interfaces from SNOPT 6 must be
+modified for use with SNOPT 7.  Please see the documentation in
+$SNOPT/doc and the numerous examples in $SNOPT/examples.

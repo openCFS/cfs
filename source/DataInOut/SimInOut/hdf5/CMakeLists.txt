@@ -7,9 +7,11 @@ SET(SIMINOUTHDF5_SRCS
 
 ADD_LIBRARY(siminouthdf5 STATIC ${SIMINOUTHDF5_SRCS})
 
+add_dependencies(siminouthdf5 hdf5 zlib)
+
 TARGET_LINK_LIBRARIES(siminouthdf5
   mesh
-  ${HDF5_CPP_LIBRARY}
-  ${HDF5_LIBRARY}
+  ${HDF5_LIBRARY} 
   ${ZLIB_LIBRARY}
   ${BOOST_DATE_TIME_LIB})
+

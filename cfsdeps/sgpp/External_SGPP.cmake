@@ -98,7 +98,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     #PATCH_COMMAND tar -xzf ${SGPP_TGZ}
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
-    # the libs will be created in lib/sgpp and we manually copy them to lib64
+    # the libs will be created in lib/sgpp and we manually copy them to lib
     BUILD_COMMAND scons -j 4 -s OMP=yes USE_UMFPACK=yes USE_EIGEN=yes USE_ARMADILLO=yes USE_GMMPP=no NO_UNIT_TESTS=yes
   )
   
@@ -157,7 +157,7 @@ SET(SGPP_LIBRARY
   ${LD}/libsgppbase.so;
   libarmadillo.so;
   libsatlas.so;
-  ${UMFPACK_LIBRARY};
+  ${SUITESPARSE_LIBRARY};
   ${ARPACK_LIBRARY}
   CACHE FILEPATH "SGPP library."
   )

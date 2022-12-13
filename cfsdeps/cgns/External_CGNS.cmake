@@ -131,7 +131,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
   ExternalProject_Add(cgns
-    DEPENDS hdf5-shared zlib
+    DEPENDS hdf5 zlib
     PREFIX ${cgns_prefix}
     SOURCE_DIR ${cgns_source}
     URL ${LOCAL_FILE}

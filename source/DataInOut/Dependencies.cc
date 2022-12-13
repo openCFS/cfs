@@ -55,6 +55,10 @@
 #include <H5public.h>
 #include <H5Ppublic.h>
 
+#ifdef USE_IPOPT
+#include <coin-or/IpoptConfig.h>
+#endif
+
 #ifdef USE_METIS
 #include <defs.h>
 #endif
@@ -80,7 +84,6 @@
 #ifdef USE_GIDPOST
 #include <gidpost.h>
 #endif
-
 
 #ifdef USE_CGNS
 #include <cgnslib.h>
@@ -257,7 +260,13 @@ void Dependencies::ReadSetting()
  #endif
   data.Push_back(ilp);
 
-  Dependency suite("SuiteSparse", "USE_SUITESPARSE", LGPL);
+ // we can configure variant with or without gpl. With gpl cholmod is faster for highly populated systems
+ #ifdef USE_SUITESPARSE_GPL
+   bool sp_gpl = true;
+ #else
+   bool sp_gpl = false;
+ #endif
+  Dependency suite("SuiteSparse", "USE_SUITESPARSE", sp_gpl ? LGPL : GPL);
  #ifdef USE_SUITESPARSE
   suite.SetVersion(SUITESPARSE_MAIN_VERSION,SUITESPARSE_SUB_VERSION,SUITESPARSE_SUBSUB_VERSION);
   suite.date = SUITESPARSE_DATE;
@@ -419,7 +428,7 @@ void Dependencies::ReadSetting()
   // https://projects.coin-or.org/Ipopt/wiki/FAQ
   Dependency ipopt("IPOPT", "USE_IPOPT", ECLIPSE);
 #ifdef USE_IPOPT
-  ipopt.SetVersion(IPOPT_VER);
+  ipopt.SetVersion(IPOPT_VERSION);
 #endif
   data.Push_back(ipopt);
 

@@ -5,5 +5,5 @@ IF(WIN32)
   FILE(COPY "@lis_source@/include/lisf.h" DESTINATION "@lis_install@/include")
 
   # lib
-  FILE(COPY "@lis_source@/win/lis.lib" DESTINATION "@lis_install@/lib64")
+  FILE(COPY "@lis_source@/win/lis.lib" DESTINATION "@lis_install@/lib")
 ENDIF()

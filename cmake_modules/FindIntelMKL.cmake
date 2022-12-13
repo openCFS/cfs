@@ -290,7 +290,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
   set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_gf_lp64.a")
   if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-    message(STATUS "Unsing intel Fortran compiler: use libmkl_intel_lp64.a")
+    message(STATUS "Using intel Fortran compiler: use libmkl_intel_lp64.a")
     set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_intel_lp64.a")
   endif()
   set(MKL_BLAS_LIB

@@ -99,7 +99,7 @@ ShapeMapDesign::ShapeParam* ShapeMapDesign::InduceSymmetryNodeHelper(ShapeParam&
   ind->idx = shape_.GetSize()-1;
   ind->CopyProperties(&ref_node);
 
-  // don't forget to set further ind.incude flags
+  // don't forget to set further ind.induce flags
   return ind;
 }
 

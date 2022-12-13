@@ -58,7 +58,7 @@ LIST(APPEND TARGET_LL simoutunv)
 # Target link libraries for cfstool target.
 # add optimization to avoid a strange linke problem introduced in @13977 
 LIST(APPEND TARGET_LL
-  ${HDF5_LT_LIBRARY}
+  ${HDF5_LIBRARY}
   siminouthdf5
   siminmesh
   domain
@@ -75,8 +75,7 @@ LIST(APPEND TARGET_LL
   logging
   simouttext
   ${BOOST_SERIALIZATION_LIB}
-  ${BOOST_FILESYSTEM_LIB}
-  )
+  ${BOOST_FILESYSTEM_LIB} )
 
 IF(NOT WIN32)
   LIST(APPEND TARGET_LL -lpthread ${CFS_FORTRAN_DYNRT_LIBS} )

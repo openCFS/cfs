@@ -7,6 +7,64 @@ More detailed information about incremental changes can be found in the
 
 ## 3.14
 
+### 3.14.10 (2022-10-11)
+
+- Added option `grad_f_constant` to specify that objective function is linear.
+  If set, the gradient of the objective will be requested by Ipopt only once. [#597]
+- Added `OrigIpoptNLP::orig_d_L()` and `OrigIpoptNLP::orig_d_U()` to get
+  original constraint sides (before relaxation due to bound_relax_factor > 0).
+- `TNLP::get_curr_violations()` now returns the constraint violation and
+  complementarity w.r.t. the original (non-relaxed) constraint sides. [#603]
+
+### 3.14.9 (2022-07-21)
+
+- Fixed mapping of meta data for variable bounds, e.g., variable names,
+  from TNLP to Ipopts internal NLP [#590].
+
+### 3.14.8 (2022-07-13)
+
+- Added options ma27_print_level, ma57_print_level, and mumps_print_level
+  to enable output from these linear solvers.
+
+### 3.14.7 (2022-06-24)
+
+- Fixed that ComputeSensitivityMatrix() of sIpopt assumed that there are
+  no more than two parameters [#578, by Andrea Vescovini].
+- For completeness, added option `gradient_approximation` to enable approximation
+  of gradient of objective function by finite differences. Do not use. [#573]
+- Added function `IPSETPROBLEMSCALING` to Fortran interface to set problem
+  scaling [#577, by Steven R. Hall]
+
+### 3.14.6 (2022-05-02)
+
+- Fixed mapping of meta data for inequalities, e.g., constraint names,
+  from TNLP to Ipopts internal NLP [#570, by Daniel Oliveira].
+- Fixed that MC68 ordering time was not accounted in symbolic factorization
+  time of HSL MA86 [#571].
+- Include more header files in IpIpoptCalculatedQuantities.hpp for setups
+  where forward declarations are not sufficients [#572].
+
+### 3.14.5 (2022-02-09)
+
+- Tried to fix recognition of JNI headers on macOS >= 11 [#516].
+- Fixed that only primal variable values where passed to `finalize_solution()`
+  when a timelimit was reached [#552].
+
+### 3.14.4 (2021-09-20)
+
+- Skip build of Java interface if either java or jar is not found [#510].
+  Only give warning if javac and jar are found, but no java or javadoc.
+- Fixed that `--with-lapack-lflags` was ignored if `--with-lapack` was not
+  specified explicitly [#512,#515].
+
+### 3.14.3 (2021-09-03)
+
+- Fixed timing for iterate initialization if initialization fails due to
+  an evaluation error.
+- Fixed possible integer overflow when reserving space for indices of Jacobian
+  belonging to fixed variables (introduced with 3.14.0) and reduced memory
+  usage for indices of Jacobian belonging to fixed variables.
+
 ### 3.14.2 (2021-07-21)
 
 - Added `OptionsList::UnsetValue()` to remove an option setting.

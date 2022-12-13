@@ -7,7 +7,6 @@ ADD_DEPENDENCIES(simoutgid cfsdeps)
 
 TARGET_LINK_LIBRARIES(simoutgid
   ${GIDPOST_LIBRARY}
-  ${HDF5_LT_LIBRARY}
   ${HDF5_LIBRARY}
   ${ZLIB_LIBRARY}
   )

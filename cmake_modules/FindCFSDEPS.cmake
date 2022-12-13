@@ -5,24 +5,12 @@
 # 
 # This module finds and builds libs that openCFS depends upon and determines
 # where the include files and libraries are. 
-#  
-# AUTHORS
-# - Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
-# - Simon Triebenbacher simon.triebenbacher@tuwien.ac.at (01/2013)
 #
 #=============================================================================
 
-#-----------------------------------------------------------------------------
-# Include external project build capability of CMake 2.8, cf.
-# http://www.kitware.com/media/html/BuildingExternalProjectsWithCMake2.8.html
-#-----------------------------------------------------------------------------
-INCLUDE(ExternalProject)
+include(ExternalProject) # cmake external project
+include("cmake_modules/DependencyTools.cmake") # or own helper
 
-#-----------------------------------------------------------------------------
-# Include external data capability of CMake 2.8.11, cf.
-# http://www.kitware.com/source/home/post/107
-#-----------------------------------------------------------------------------
-INCLUDE(ExternalData)
 
 SET(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
 SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
@@ -183,12 +171,6 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
-# Note that newer versions require rather new cmakes:
-# 3.10 for 1.8.21 and 3.12 for 1.8.22
-set(HDF5_VER "1.8.20")
-set(HDF5_MD5 "23078d57975903e9536d1e7b299cc39c") 
-  
-set(HDF5_BZ2 "hdf5-${HDF5_VER}.tar.bz2")
 include("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 
 #-------------------------------------------------------------------------------
@@ -273,17 +255,9 @@ IF(USE_PARDISO)
   INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
 ENDIF(USE_PARDISO)
   
-#-----------------------------------------------------------------------------
-# If USE_ARPACK option is defined find ARPACK library
-#-----------------------------------------------------------------------------
-IF(USE_ARPACK)
-  # remove --std=legacy in External_ARPACK when > 3.7.0
-  SET(ARPACK_VER "3.7.0")
-  SET(ARPACK_GZ "${ARPACK_VER}.tar.gz")
-  SET(ARPACK_MD5 "6fc6c6bf78dbd4f144595ef0675c8430")
-  
-  INCLUDE("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
-ENDIF(USE_ARPACK)
+if(USE_ARPACK)
+  include("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
+endif()
   
 #-----------------------------------------------------------------------------
 # Find SuiteSparse/CholMod/UMFPACK/AMD library
@@ -316,16 +290,10 @@ ELSEIF(USE_ILUPACK)
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
 ENDIF()
 
-#-------------------------------------------------------------------------------
 # Find Library of Iterative Solvers
-#-------------------------------------------------------------------------------
-IF(USE_LIS)
-  SET(LIS_VER "2.0.24")
-  SET(LIS_ZIP "lis-${LIS_VER}.zip")
-  SET(LIS_MD5 "1c7a84d3204dcefb3af2627eba58e97f")
-  
-  INCLUDE("${CFSDEPS_DIR}/lis/External_LIS.cmake")
-ENDIF(USE_LIS)
+if(USE_LIS)
+  include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
+endif(USE_LIS)
 
 #-------------------------------------------------------------------------------
 # Find Library for FFT and IFFT 
@@ -486,24 +454,15 @@ endif(USE_SCPIP)
 # Find SNOPT - A commercial general purpose commercial optimizer 
 #-----------------------------------------------------------------------------
 if(USE_SNOPT)
-  # you need to have a license for the source. 
-  # with keys for CFS_DOWNLOAD_SNOPT and CFS_KEY_SNOPT a special licsence can be used
-  set(SNOPT_VER "7.2.8")
-  set(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196")
-  set(SNOPT_ZIP "snopt-${SNOPT_VER}-cfsdeps.zip")
   include("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
 endif(USE_SNOPT)
 
 #-----------------------------------------------------------------------------
-# Find IPOPT - A general purpos open source optimizer 
+# Find IPOPT - A general purpose open source optimizer 
 #-----------------------------------------------------------------------------
-IF(USE_IPOPT)
-  SET(IPOPT_VER "3.14.2")
-  SET(IPOPT_ZIP "Ipopt-${IPOPT_VER}.zip")
-  SET(IPOPT_MD5 "83b94837024ef3a30688cf094cff86d7") 
- 
-  INCLUDE("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
-ENDIF(USE_IPOPT)
+if(USE_IPOPT)
+  include("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find SGPP - A toolbox for sparse grid interpolation 
@@ -516,13 +475,6 @@ IF(USE_SGPP)
   SET(SGPP_ZIP "sgopt_${SGPP_VER}.zip")
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
 ENDIF(USE_SGPP)
-
-#-----------------------------------------------------------------------------
-# Find HDF file viewer
-#-----------------------------------------------------------------------------
-IF(BUILD_HDFVIEW)
-  MESSAGE(FATAL_ERROR "HDFView has not been ported to CMake externals yet.")
-ENDIF(BUILD_HDFVIEW)
 
 # PETSc requires mpi
 if(USE_PETSC)

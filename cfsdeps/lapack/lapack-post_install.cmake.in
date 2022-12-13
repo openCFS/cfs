@@ -1,12 +1,10 @@
 # move the lib stuff from lib (mac) or lib64 (linux)
-if(EXISTS "@lapack_install@/lib/libblas.a")
-  file(COPY "@lapack_install@/lib/libblas.a" DESTINATION "@lapack_install@/lib64/")
-  file(COPY "@lapack_install@/lib/liblapack.a" DESTINATION "@lapack_install@/lib64/")
-else()
-  file(COPY "@lapack_install@/lib64/libblas.a" DESTINATION "@lapack_install@/lib64/")
-  file(COPY "@lapack_install@/lib64/liblapack.a" DESTINATION "@lapack_install@/lib64/")
+if(EXISTS "@lapack_install@/lib64/libblas.a")
+  file(COPY "@lapack_install@/lib64/libblas.a" DESTINATION "@lapack_install@/lib/")
+  file(COPY "@lapack_install@/lib64/liblapack.a" DESTINATION "@lapack_install@/lib/")
+  message("copied libblas.a and liblapack.a to @lapack_install@/lib/")
 endif()  
-message("copied libblas.a and liblapack.a to @lapack_install@/lib64/")
+
 
 # remove also the cmake and pkgconfig subfolders
 file(REMOVE_RECURSE "@lapack_install@/lib/")

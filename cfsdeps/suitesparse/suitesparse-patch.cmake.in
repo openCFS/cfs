@@ -1,34 +1,11 @@
-# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
-# kate: indent-width 2; encoding utf-8; auto-brackets on;
-# kate: mixedindent on; indent-mode cstyle; line-numbers on;
-# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
-# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+set(CFS_SOURCE_DIR  "@CFS_SOURCE_DIR@")
+set(DEPS_PREFIX  "@DEPS_PREFIX@")
+set(PACKAGE_NAME "@PACKAGE_NAME@")
 
-#=============================================================================
-# Set global variables, configured from the external build.
-#=============================================================================
-SET(suitesparse_source "@suitesparse_source@")
-SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CMAKE_Fortran_COMPILER_ID "@CMAKE_Fortran_COMPILER_ID@")
+include("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
-#=============================================================================
-# Include some convenient macros (e.g. for applying patches).
-#=============================================================================
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+assert_set(DEPS_PREFIX)
+assert_set(PACKAGE_NAME)
 
-#=============================================================================
-# Apply some patches.
-#=============================================================================
-SET(patches
-  # Patch for adding basic CMake support to SuiteSparse
-  # http://www.zeuux.com/group/scipython/bbs/content/52045/
-  "suitesparse-cmake.patch"
-  # Patch for adding openCFS specifics to CMake for SuiteSparse
-  "suitesparse-cmake-for-cfs.patch"
-  # Patch for automatically detecting proper Fortran name mangling for BLAS
-  "suitesparse-fortran-iface.patch"
-  # Use getrusage function if sys/time.h and sys/resource.h can be found
-  "suitesparse-getrusage.patch"
-)
-
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/suitesparse")
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/suitesparse_install.cmake.in" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")

@@ -2,4 +2,3 @@
 
 #cmakedefine USE_IPOPT
 
-#define IPOPT_VER "@IPOPT_VER@"

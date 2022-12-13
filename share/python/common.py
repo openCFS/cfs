@@ -21,7 +21,7 @@ class CFS:
         
         lib_options = {
             'I386'   : 'lib',
-            'X86_64' : 'lib64',
+            'X86_64' : 'lib',
             'IA64'   : 'lib',
             }
         self.lib_suffix = lib_options[self.getArch()]

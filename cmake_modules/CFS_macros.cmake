@@ -291,7 +291,7 @@ ENDMACRO()
 #-------------------------------------------------------------------------------
 MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
   IF(EXISTS "${ZIP_FILE}")
-    MESSAGE("Found precompiled version ${ZIP_FILE}.")
+    MESSAGE("Found precompiled version ${ZIP_FILE}")
     EXECUTE_PROCESS(
       COMMAND "${CMAKE_COMMAND}" -E tar xzf "${ZIP_FILE}"
       WORKING_DIRECTORY "${TARGET_DIR}"
@@ -299,17 +299,17 @@ MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
       RESULT_VARIABLE rv
       )
     IF(NOT "${rv}" STREQUAL "0")
-      MESSAGE(SEND_ERROR "Could not extract ${ZIP_FILE}.")
+      MESSAGE(SEND_ERROR "Could not extract ${ZIP_FILE}")
     ENDIF()
   ELSE()
-    MESSAGE(SEND_ERROR "Could not find precompiled ${ZIP_FILE}.")
+    MESSAGE(SEND_ERROR "Could not find precompiled ${ZIP_FILE}")
   ENDIF()
 ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
 # If a TMP_DIR/src/*-build/install_manifest.txt exists (when built with cmake), we zip all files listed in there.
-# Else we try to be smart on TMP_DIR (move libs from lib64 to lib64/@CFS_ARCH), make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
+# Else we try to be smart on TMP_DIR (move libs from lib64 to lib), make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
@@ -327,15 +327,16 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     message("ZIP_TO_CACHE: zip ${TMP_DIR} as manifest ${TMP_DIR}/src/*-build/install_manifest.txt was not found")
     # No manifests exists -> zip TMP_DIR
 
-    # standard make or configure does not necessarily know about lib64
-    IF(NOT EXISTS "${TMP_DIR}/lib64")
-      FILE(MAKE_DIRECTORY "${TMP_DIR}/lib64")
+    # standard make or configure does not necessarily know about lib
+    IF(NOT EXISTS "${TMP_DIR}/lib")
+      FILE(MAKE_DIRECTORY "${TMP_DIR}/lib")
     ENDIF()
 
-    # move any lib to lib64. Extend to lib64/files if necessary
-    IF(EXISTS "${TMP_DIR}/lib")
-	    FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64")
-      FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
+    # move any lib64 to lib. Extend to lib/files if necessary
+    IF(EXISTS "${TMP_DIR}/lib64")
+      message(STATUS "move files from ${TMP_DIR}/lib64 to lib")
+	    FILE(COPY "${TMP_DIR}/lib64/" DESTINATION "${TMP_DIR}/lib")
+      FILE(REMOVE_RECURSE "${TMP_DIR}/lib64")
     ENDIF()
 
     file(GLOB_RECURSE files_to_zip RELATIVE "${TMP_DIR}" "${TMP_DIR}/*")
@@ -360,7 +361,7 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     # if the build user does not own the target directory (but is allowed to write into it)
     file(GLOB files LIST_DIRECTORIES true RELATIVE "${TMP_DIR}" "${TMP_DIR}/*")
     FOREACH(file ${files})
-      message(STATUS "installing contents of ${file}")
+      # message(STATUS "installing contents of ${file}")
       FILE(INSTALL "${TMP_DIR}/${file}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
     ENDFOREACH()
   ELSE()
@@ -489,6 +490,13 @@ macro(assert_set test)
   endif()
 endmacro()
 
+# This simple assert checks if a string or similar is not "")
+macro(assert_not_empty test)
+  if(${test} STREQUAL "")
+    message(FATAL_ERROR "assert failed, string is empty")
+  endif()
+endmacro()
+
 # This is a simple assert to check if a cmake variable is unset.
 # see assert_set() 
 macro(assert_unset test)
@@ -497,16 +505,12 @@ macro(assert_unset test)
   endif()
 endmacro()
 
-# simple headline macro. Prints emptly line, ======, text, ===== empty line
-# use like headline("Starting nightly tests on ${DATE_OUT}...")
-macro(headline text)
-  message("")
-  message("=============================================================================")
-  message("${text}")
-  message("=============================================================================")
-  message("")
+# Assert a value is different from a required one
+macro(assert_not test compare)
+  if(${test} STREQUAL ${compare})
+    message(FATAL_ERROR "assert failed, string is ${test} but shall be different")
+  endif()
 endmacro()
-
 
 #-------------------------------------------------------------------------------
 # Run a program with optional logging and throw error if return code is non-zero

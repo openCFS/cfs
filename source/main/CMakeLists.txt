@@ -10,6 +10,8 @@ SET(CFS_SRCS CFS.cc)
 # Main openCFS executable target.
 ADD_EXECUTABLE(cfs ${CFS_SRCS})
 
+add_dependencies(cfs cfsdeps)
+
 # Define a list of libraries openCFS depends upon. At the moment there
 # are some nasty circular dependencies which should be resolved in
 # the future (see e.g. pde <-> domain, domain <-> gridcfs !!!)

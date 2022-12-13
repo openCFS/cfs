@@ -1,8 +1,8 @@
 # clean up ghost installation
 
 # copy the static lib
-# message("copy @GHOST_INSTALL@/lib/ghost/libghost.a to @GHOST_INSTALL@/lib64")
-FILE(COPY "@GHOST_INSTALL@/lib/ghost/libghost.a" DESTINATION "@GHOST_INSTALL@/lib64")
+# message("copy @GHOST_INSTALL@/lib/ghost/libghost.a to @GHOST_INSTALL@/lib")
+FILE(COPY "@GHOST_INSTALL@/lib/ghost/libghost.a" DESTINATION "@GHOST_INSTALL@/lib")
 
 # copy the ghost-config.stuff to share
 # ghost-config-version.cmake is required
@@ -13,6 +13,6 @@ FILE(RENAME "@GHOST_INSTALL@/lib/ghost/ghost-config.cmake" "@GHOST_INSTALL@/shar
 # remove the lib directory with the pgconfig stuff
 FILE(REMOVE_RECURSE "@GHOST_INSTALL@/lib")
 
-# copy data from install dir to the target (share, lib64 and include)
+# copy data from install dir to the target (share, lib and include)
 # message("copy @GHOST_INSTALL@/ to @CMAKE_CURRENT_BINARY_DIR@/")
 FILE(COPY "@GHOST_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

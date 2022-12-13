@@ -1,18 +1,13 @@
-INCLUDE_DIRECTORIES(${CHOLMOD_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${SUITESPARSE_INCLUDE_DIR})
 
 SET(CHOLMOD_SRCS CholMod.cc)
-
-#SET_SOURCE_FILES_PROPERTIES(${ILUPACK_SRCS}
-#  PROPERTIES COMPILE_FLAGS "-fno-strict-aliasing")
 
 ADD_LIBRARY(cholmod-olas STATIC ${CHOLMOD_SRCS})
 
 # CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
-SET(TARGET_LL
-  ${CHOLMOD_LIBRARY}
-  )
+set(TARGET_LL ${SUITESPARSE_LIBRARY} ) # has also umpfpack what we don't need here
 
 SET(TARGET_LL
   ${TARGET_LL}

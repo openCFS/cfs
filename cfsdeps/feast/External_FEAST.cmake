@@ -19,11 +19,11 @@ IF(UNIX)
     # this precompiled stuff seems not to work with new mkl (dependency to _intel_fast_memcpy/set, check with nm)
     SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
   ELSE()
-    # separate target to make difference to precompiled. Will be copied to lib64 finally
+    # separate target to make difference to precompiled. Will be copied to lib finally
     SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
   ENDIF()
 ELSE()
-  SET(FEAST_LIB_DIR "${feast_install}/lib64")
+  SET(FEAST_LIB_DIR "${feast_install}/lib")
 ENDIF()
 
 #-----------------------------------------------------------------------------

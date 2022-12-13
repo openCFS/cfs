@@ -1,9 +1,3 @@
-# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
-# kate: indent-width 2; encoding utf-8; auto-brackets on;
-# kate: mixedindent on; indent-mode cstyle; line-numbers on;
-# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
-# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
-
 #=============================================================================
 # Set global variables, configured from the external build.
 #=============================================================================
@@ -17,7 +11,7 @@ SET(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(files
-  "source/CMakeLists.txt"
+	"source/CMakeLists.txt" 
   "source/gidpost.c"
   "source/gidpostforAPI.c"
   "source/gidpostfor.c"
@@ -51,18 +45,12 @@ CHANGE_NEWLINE_STYLE("${files}" ${gidpost_source}/dummy.txt UNIX)
 SET(patches
   # Add append parameter to GiD_OpenPostResultFile for restart capability.
   "gidpost-file-append.patch"
-
-  # Make sure GiDpost gets installed to the correct location.
-  "gidpost-install.patch"
-
-  # Make sure GiDpost can find all openCFS Fortran libs for linking its
-  # Fortran example.
-  "gidpost-fortran.patch"
-
-  # Depreciated: What do we need hdf5 for??
-  # Remove HDF5 lite functions from source/hdf5c.c and add dependency to
-  # HDF5_LT_LIBRARY to targets in examples/CMakeLists.txt
-  # "gidpost-hdf5-lite.patch"
   )
+
+# for some very strange reason, all attempts for a patch of CMakeLists.txt to
+# remove examples are rejected. This is possibly to the CRLF style of the original source
+# but very mysterious. Hence brutaly remove examples/CMakeLists.txt and life with the warning
+file(REMOVE "${gidpost_source}/examples/CMakeLists.txt")
+
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gidpost")

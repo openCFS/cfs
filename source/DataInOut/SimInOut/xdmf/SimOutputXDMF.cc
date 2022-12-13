@@ -6,8 +6,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-#include <def_cfs_stats.hh>
-
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Exception.hh"

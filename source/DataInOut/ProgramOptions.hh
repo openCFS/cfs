@@ -39,7 +39,7 @@ namespace CoupledField
 
     /** static general purpose helper function which tries to obtain the root of the
      * cfs installation.
-     * @return absolute file path to root of bin/share/lib64 or exception */
+     * @return absolute file path to root of bin/share/lib or exception */
     static boost::filesystem::path ObtainCFSRootFromSystem();
 
     // =======================================================================

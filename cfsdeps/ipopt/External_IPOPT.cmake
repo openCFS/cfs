@@ -1,128 +1,90 @@
-#-------------------------------------------------------------------------------
-# IPOPT (interior point optimizer) is a general purpose open source optimizer
-#
-# IPOPT needs a linear solver, there are several options but almost all have
-# own license agreements to be fulfilled before they can be downloaded
-# https://coin-or.github.io/Ipopt/INSTALL.html
-# Therefore we restrict ourselves to use MKL pardiso, which was not possible in
-# (much) older version of ipopt
-#-------------------------------------------------------------------------------
+# IPOPT is a general purpose open source optimizer 
+# https://coin-or.github.io/Ipopt/
+# https://github.com/coin-or/Ipopt
 
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
 
-set(IPOPT_PREFIX  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/ipopt")
-set(IPOPT_SOURCE  "${IPOPT_PREFIX}/src/ipopt")
-# we use this as temporary install directory to alllow packing for precompiled cfsdeps
-set(IPOPT_INSTALL  "${IPOPT_PREFIX}/install")
+if(WIN32)
+  message(FATAL_ERROR "Compiling IPOPT from source is currently not implemented for Windows.")
+endif()
 
-# ipopt is build by configure, therefore no cmake args needed
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "ipopt")
+set(PACKAGE_VER "3.14.10")
+set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "f22da4b75d9c936e607febe1f7e63815")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-SET(MIRRORS
-  "http://www.coin-or.org/download/source/Ipopt/${IPOPT_ZIP}"
-  "${CFS_DS_SOURCES_DIR}/ipopt/${IPOPT_ZIP}"
-)
+# the mirrors can point to arbitrary file names. 
+set(PACKAGE_MIRRORS "https://github.com/coin-or/Ipopt/archive/refs/tags/releases/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ipopt/${IPOPT_ZIP}")
-SET(MD5_SUM ${IPOPT_MD5})
+ # we'll disable fortran for ipopt as it is not needed
+use_c_and_fortran(ON OFF)
 
-# this handles the mirrors and cfsdepscache source stuff.  
-SET(DLFN "${IPOPT_PREFIX}/ipopt-download.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
 
-SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-post_install.cmake.in")
-SET(PI "${IPOPT_PREFIX}/ipopt-post_install.cmake")
-CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
+# determine paths of libraries and make it visible (and editable) via ccmake
+set_package_library_default()
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+# this is the standard target for configure projects (builds in source). This directory will be zipped
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/ipopt/license/" DESTINATION "${CFS_BINARY_DIR}/license/ipopt" )
+# org legacy for 3.14.2 mkl only   CONFIGURE_COMMAND env "CXXFLAGS=${CFS_CXX_FLAGS}" env "LIBRARY_PATH=${MKL_LIB_DIR}" ${IPOPT_SOURCE}/configure --with-lapack-lflags="-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm"  --prefix=${IPOPT_INSTALL} --exec-prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64 --enable-shared=no --enable-static --disable-java --disable-sipopt F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3
+set_configure_default()
+set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --disable-f77 --enable-static=on --enable-shared=off --disable-java --disable-sipopt)    
 
-file(MAKE_DIRECTORY ${IPOPT_INSTALL})
+# it is a little tricky to add quoted blocks to CONFIGURE_COMMAND .. --with-lapack="-L... -l..." as the " confuse cmake a lot :(
+# therefore we need to create a string for every quoted block
+if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
+  string(CONCAT LAPACK_STR "-L${CMAKE_BINARY_DIR}/lib -lopenblas")
+elseif(USE_BLAS_LAPACK STREQUAL "MKL")
+  # see https://coin-or.github.io/Ipopt/INSTALL.html howecver --with-lapack seems also to work instead of --with-lapack-lflags
+  string(CONCAT LAPACK_STR "-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm")
+endif()
 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "ipopt" "${IPOPT_VER}")  
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${IPOPT_INSTALL}")
+# for blas and Accelerate hope for the best, it is just to get over configure
+if(NOT ${LAPACK_STR} STREQUAL "")
+  set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --with-lapack=${LAPACK_STR})
+endif()
 
-SET(ZIPFROMCACHE "${IPOPT_PREFIX}/ipopt-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-SET(ZIPTOCACHE "${IPOPT_PREFIX}/ipopt-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
+     DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# Determine paths of IPOPT libraries. We have only libs include/coin
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-SET(IPOPT_LIBRARY "${LD}/libipopt.a" CACHE FILEPATH "IPOPT library.")
+assert_unset(PATCHES_SCRIPT)
 
-#-------------------------------------------------------------------------------
-# The IPOPT external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(ipopt
-    PREFIX "${IPOPT_PREFIX}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${IPOPT_LIBRARY}
-  )
-ELSE()
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(ipopt
-    PREFIX "${IPOPT_PREFIX}"
-    SOURCE_DIR "${IPOPT_SOURCE}"
-    # the step cfsdeps_download ensures the file will be found in cfsdepscache
-    URL ${LOCAL_FILE}
-    URL_MD5 ${IPOPT_MD5}
-    BUILD_IN_SOURCE 1
-    
-    # if on mac it complains for missing stdio.h, do export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-    # https://stackoverflow.com/questions/51761599/cannot-find-stdio-h
-    
-    # ipopt 3.14.2 has a but ignoring --with-lapack-lflags and searching mkl by itself. This works only when mklvars.sh is sourced
-    # therefore we give LIBRARY_PATH manually, simulating sourcing mkl, what is not done on most gitlab runners
-    CONFIGURE_COMMAND env "CXXFLAGS=${CFS_CXX_FLAGS}" env "LIBRARY_PATH=${MKL_LIB_DIR}" ${IPOPT_SOURCE}/configure --with-lapack-lflags="-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm"  --prefix=${IPOPT_INSTALL} --exec-prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64 --enable-shared=no --enable-static --disable-java --disable-sipopt F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3
-    BUILD_BYPRODUCTS ${IPOPT_LIBRARY}
-  )
-  
-  ExternalProject_Add_Step(ipopt cfsdeps_download 
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}" 
-    DEPENDERS download 
-    DEPENDS "${DLFN}" 
-    WORKING_DIRECTORY ${ipopt_prefix} 
-  ) 
+# generate package ceation script. We get the files from an install_manifest.txt
+generate_packing_script_install_dir()
 
-  ExternalProject_Add_Step(ipopt post_install
-    COMMAND ${CMAKE_COMMAND} -P "${PI}"
-    DEPENDEES install
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(ipopt cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES post_install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-# Add project to global list of CFSDEPS, this allows "make snopt"
-SET(CFSDEPS ${CFSDEPS} ipopt)
+#dump_depencency_variables()
 
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-#The ipopt depends on the metis libraries and the metis library are built by ilupack when its on.
-#In this case one needs both metis and metisomp libs to be linked along with ipopt 
+# if not, build newly and possibly pack the stuff
+else()
+  # add external project step actually building an cmake package including a patch 
+  # also genearate the patch script via generate_patches_script()
+  create_external_configure()  
 
-SET(IPOPT_INCLUDE_DIR "${CFS_BINARY_DIR}/include" CACHE FILEPATH "IPOPT library.")
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()  
+endif()
 
-MARK_AS_ADVANCED(IPOPT_LIBRARY)
-MARK_AS_ADVANCED(IPOPT_INCLUDE_DIR)
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

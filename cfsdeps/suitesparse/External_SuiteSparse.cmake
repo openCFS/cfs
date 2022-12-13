@@ -1,245 +1,88 @@
-#-------------------------------------------------------------------------------
-# SuiteSparse:
+# SuiteSparse contains the directl solvers CHOLMOD (extremely fast!) and UMFPACK
+# https://github.com/DrTimothyAldenDavis/SuiteSparse
 #
-#      SuiteSparse is a single archive that contains all packages that I have
-#      authored or co-authored that are available at this site. This gives you
-#      a simple way of getting and installing all of my software packages.
-#      Currently, this includes:
-#          o AMD: symmetric approximate minimum degree
-#          o BTF: permutation to block triangular form
-#          o CAMD: symmetric approximate minimum degree
-#          o CCOLAMD: constrained column approximate minimum degree
-#          o COLAMD: column approximate minimum degree
-#          o CHOLMOD: sparse supernodal Cholesky factorization and update/downdate
-#          o CSparse: a concise sparse matrix package
-#          o CXSparse: an extended version of CSparse
-#          o KLU: sparse LU factorization, for circuit simulation
-#          o LDL: a simple LDL^T factorization
-#          o UMFPACK: sparse multifrontal LU factorization
-#          o RBio: MATLAB toolbox for reading/writing sparse matrices
-#          o UFconfig: common configuration for all but CSparse
-#          o LINFACTOR: solve Ax=b using LU or CHOL
-#          o MESHND: 2D and 3D mesh generation and nested dissection
-#          o SSMULT: sparse matrix times sparse matrix
-#          o SuiteSparseQR: multifrontal sparse QR 
-#
-# Project Homepage
-#
-# http://www.cise.ufl.edu/research/sparse/SuiteSparse/
-#-------------------------------------------------------------------------------
+# SuiteSparse 6.0.1 is now CMake based, but has not root CMakeLists.txt which we add ourselves
+# see also https://github.com/Fabian188/SuiteSparse-root-cmake
+clear_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Set paths to suitesparse sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(suitesparse_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/suitesparse")
-set(suitesparse_source  "${suitesparse_prefix}/src/suitesparse")
-set(suitesparse_install  "${CMAKE_CURRENT_BINARY_DIR}")
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "suitesparse")
+set(PACKAGE_VER "6.0.1")
+set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "3bb660ac217791c7e9fabac944c8ee07")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${suitesparse_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
-  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
-  -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DCMAKE_LINKER:FILEPATH=${CMAKE_LINKER}
-  -DCMAKE_Fortran_COMPILER_ID=${CMAKE_Fortran_COMPILER_ID}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  -DCFS_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
-  )
+set(PACKAGE_MIRRORS "https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/${PACKAGE_FILE}") 
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
+ # we only have a fortran compiler
+use_c_and_fortran(ON OFF)
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+if(USE_SUITESPARSE_GPL)
+  set(DEPS_ID "GPL")
+else()
+ set(DEPS_ID "NOGPL")
+endif() 
+set_precompiled_pckg_file()
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
+set_static_cache_lib("AMD_LIBRARY" "amd" "AMD lib from SuiteSparse")
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/suitesparse/suitesparse-patch.cmake.in")
-SET(PFN "${suitesparse_prefix}/suitesparse-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# generate PACKAGE_LIBARAY with os specific list of static libs
+set_package_library_list("umfpack;cholmod;camd;ccolamd;colamd;amd;suitesparseconfig")
+# creates SUITESPARSE_LIBARAY as CACHE variable, hence it will not be overwritten once in cache!
+set_standard_variables() 
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "http://faculty.cse.tamu.edu/davis/SuiteSparse/${SUITESPARSE_GZ}"
-  "${CFS_DS_SOURCES_DIR}/suitesparse/${SUITESPARSE_GZ}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/suitesparse/${SUITESPARSE_GZ}")
-SET(MD5_SUM ${SUITESPARSE_MD5})
+# we have no trustworthy install_manifest.txt, hence use install dir
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-SET(DLFN "${suitesparse_prefix}/suitesparse-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-) 
-
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/suitesparse/license/" DESTINATION "${CFS_BINARY_DIR}/license/suitesparse" )
-
-
-
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "suitesparse" "${SUITESPARSE_VER}")
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default() 
+# add the specific settings for the packge which comes in cmake style
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  -DBUILD_STATIC:BOOL=ON
+  -DALLOW_64BIT_BLAS:BOOL=ON
+  -DALLOW_GPL_EXTENSIONS=${USE_SUITESPARSE_GPL} )
+if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
+  set(DEPS_ARGS ${DEPS_ARGS} -DSUGGEST_BLAS_LIBRARIES=${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libopenblas.a) # we assue mkl to be used for Windows
+elseif(USE_BLAS_LAPACK STREQUAL "MKL")
+  set(DEPS_ARGS ${DEPS_ARGS} -DSUGGEST_BLAS_LIBRARIES=${MKL_LIB_DIR}/libmkl_intel_lp64.a) # add windows
+endif()  
   
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${suitesparse_prefix}")
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-SET(ZIPFROMCACHE "${suitesparse_prefix}/suitesparse-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
+     DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-SET(ZIPTOCACHE "${suitesparse_prefix}/suitesparse-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# copies your CMakeLists.txt
+generate_patches_script()
 
-#-------------------------------------------------------------------------------
-# Determine paths of CholMod libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
+# generate package ceation script. Somehow the install_manifest.txt fails for snopt. It is not unacked to lib. Possibly EOL issue?!
+generate_packing_script_install_dir()
 
-SET(AMD_LIBS
-  amd_dint
-  amd_dlong
-  amd)
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-SET(AMD_LIBRARY "")
+# dump_depencency_variables()
 
-foreach(lib IN LISTS AMD_LIBS)
-  LIST(APPEND AMD_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-endforeach()
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-SET(CHOLMOD_LIBS
-  cholmod_dlong
-  cholmod_dint
-  colamd_dint
-  colamd_dlong
-  colamd
-  camd_dint
-  camd_dlong
-  camd
-  ccolamd_dint
-  ccolamd_dlong
-  ccolamd
-  SuiteSparse_config
-  )
+# if not, build newly and possibly pack the stuff
+else()
+  create_external_cmake_patched()  
 
-SET(CHOLMOD_LIBRARY "")
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()  
+endif()
 
-foreach(lib IN LISTS CHOLMOD_LIBS)
-  LIST(APPEND CHOLMOD_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-endforeach()
-
-IF(NOT CFS_DISTRO STREQUAL "MACOSX")
-  LIST(APPEND CHOLMOD_LIBRARY "-lrt")
-ENDIF()
-
-LIST(APPEND CHOLMOD_LIBRARY
-  ${AMD_LIBRARY}
-  ${LAPACK_LIBRARY}
-  )
-SET(UMFPACK_LIBS
-  umfpack_dlong
-  umfpack_dint
-  umfpack_zlong
-  umfpack_zint
-  umfpack
-  )
-
-SET(UMFPACK_LIBRARY "")
-
-foreach(lib IN LISTS UMFPACK_LIBS)
-  LIST(APPEND UMFPACK_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-endforeach()
-
-#LIST(APPEND UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
-
-#-------------------------------------------------------------------------------
-# The suitesparse external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(suitesparse
-    PREFIX "${suitesparse_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${UMFPACK_LIBRARY} ${CHOLMOD_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(suitesparse
-    DEPENDS metis
-    PREFIX "${suitesparse_prefix}"
-    SOURCE_DIR "${suitesparse_source}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${SUITESPARSE_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-      -DBUILD_SHARED_LIBS:BOOL=OFF
-    BUILD_BYPRODUCTS ${UMFPACK_LIBRARY} ${CHOLMOD_LIBRARY}
-  )
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(suitesparse cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${suitesparse_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(suitesparse cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  suitesparse
-)
-
-LIST(APPEND CHOLMOD_LIBRARY ${METIS_LIBRARY})
-
-SET(CHOLMOD_INCLUDE_DIR "${CFSDEPS_INCLUDE_DIR}")
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

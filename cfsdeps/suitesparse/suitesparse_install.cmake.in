@@ -1,0 +1,14 @@
+# Perform install for all modulues by going into each module's build directory and callint make install
+# See root CMakeLists.txt. Generated via suitesparse_install.cmake.in
+
+set(INSTALL_TARGETS "@INSTALL_LIST@")
+
+message(${INSTALL_TARGETS})
+
+foreach(ITEM ${INSTALL_TARGETS})
+  message(${ITEM})
+  execute_process(
+    COMMAND make install
+    WORKING_DIRECTORY ${ITEM} 
+    COMMAND_ECHO STDOUT )              
+endforeach()

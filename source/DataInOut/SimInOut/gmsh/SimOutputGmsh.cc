@@ -8,8 +8,6 @@
 #include <complex>
 #include <ctime>
 
-#include <def_cfs_stats.hh>
-
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

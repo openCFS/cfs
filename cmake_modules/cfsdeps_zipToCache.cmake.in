@@ -1,7 +1,14 @@
-INCLUDE("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+# this file generates the call for package extraction from precompiled 
+
+include("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
 
 # this variables are needed by ZIP_TO_CACHE() in the case of no given manifest
-SET(CFS_ARCH_STR @CFS_ARCH_STR@)
-SET(CMAKE_CURRENT_BINARY_DIR @CMAKE_CURRENT_BINARY_DIR@)
+assert_not_empty(@CFS_ARCH_STR@)
+assert_not_empty(@TMP_DIR@) # @TMP_DIR@ is just a replacement, no variable to test
+assert_not_empty(@PRECOMPILED_PCKG_FILE@)
 
+set(CMAKE_CURRENT_BINARY_DIR @CMAKE_CURRENT_BINARY_DIR@)
+
+# TMP_DIR shall bei either DEPS_PREFIX (install manifest is used for zipping)
+# or DEPS_INSTALL (install directory will be zipped)
 ZIP_TO_CACHE(@PRECOMPILED_PCKG_FILE@ @TMP_DIR@)

@@ -7,7 +7,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(patches 
   # cgnstools are guarded by CGNS_BUILD_CGNSTOOLS, but not tools. Remove them.
-  # also change hardcoded lib to lib64 and target cgns-config.cmake to share/cmake
+  # Target cgns-config.cmake to share/cmake
   "remove-tools-correct-targets.patch" )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgns")

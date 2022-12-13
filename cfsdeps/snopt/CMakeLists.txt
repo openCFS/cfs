@@ -1,102 +1,96 @@
-cmake_minimum_required(VERSION 2.8.6)
+cmake_minimum_required(VERSION 2.8.6...3.22)
 
-#IF(NOT DEFINED CMAKE_BUILD_TYPE)
-#  SET (CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
-#ENDIF()
-
-PROJECT(SNOPT Fortran)
-SET(SNOPT_DIR snopt7)
+PROJECT(snopt Fortran)
 
 SET(SNOPT_SRCS 
-     ${SNOPT_DIR}/src/sqopt.f
-     ${SNOPT_DIR}/src/snopta.f
-     ${SNOPT_DIR}/src/snoptb.f
-     ${SNOPT_DIR}/src/snoptc.f
-     ${SNOPT_DIR}/src/snoptq.f
-     ${SNOPT_DIR}/src/npopt.f
-     ${SNOPT_DIR}/src/sq02lib.f
-     ${SNOPT_DIR}/src/sn02lib.f
-     ${SNOPT_DIR}/src/np02lib.f
-     ${SNOPT_DIR}/src/sn05wrpa.f
-     ${SNOPT_DIR}/src/sn05wrpb.f
-     ${SNOPT_DIR}/src/sn05wrpc.f
-     ${SNOPT_DIR}/src/sn05wrpn.f
-     ${SNOPT_DIR}/src/sn10mach.f
-     ${SNOPT_DIR}/src/sn12ampl.f
-     ${SNOPT_DIR}/src/sn17util.f
-     ${SNOPT_DIR}/src/sn20amat.f
-     ${SNOPT_DIR}/src/sn25bfac.f
-     ${SNOPT_DIR}/src/sn27lu.f
-     ${SNOPT_DIR}/src/sn30spec.f
-     ${SNOPT_DIR}/src/sn35mps.f
-     ${SNOPT_DIR}/src/sn37wrap.f
-     ${SNOPT_DIR}/src/sn40bfil.f
-     ${SNOPT_DIR}/src/sn50lp.f
-     ${SNOPT_DIR}/src/sn55qp.f
-     ${SNOPT_DIR}/src/sn56qncg.f
-     ${SNOPT_DIR}/src/sn57qopt.f
-     ${SNOPT_DIR}/src/sn60srch.f
-     ${SNOPT_DIR}/src/sn65rmod.f
-     ${SNOPT_DIR}/src/sn70nobj.f
-     ${SNOPT_DIR}/src/sn80ncon.f
-     ${SNOPT_DIR}/src/sn85hess.f
-     ${SNOPT_DIR}/src/sn87sopt.f
-     ${SNOPT_DIR}/src/sn90lmqn.f
-     ${SNOPT_DIR}/src/sn95fmqn.f
+     src/sqopt.f
+     src/snopta.f
+     src/snoptb.f
+     src/snoptc.f
+     src/snoptq.f
+     src/npopt.f
+     src/sq02lib.f
+     src/sn02lib.f
+     src/np02lib.f
+     src/sn05wrpa.f
+     src/sn05wrpb.f
+     src/sn05wrpc.f
+     src/sn05wrpn.f
+     src/sn10mach.f
+     src/sn12ampl.f
+     src/sn17util.f
+     src/sn20amat.f
+     src/sn25bfac.f
+     src/sn27lu.f
+     src/sn30spec.f
+     src/sn35mps.f
+     src/sn37wrap.f
+     src/sn40bfil.f
+     src/sn50lp.f
+     src/sn55qp.f
+     src/sn56qncg.f
+     src/sn57qopt.f
+     src/sn60srch.f
+     src/sn65rmod.f
+     src/sn70nobj.f
+     src/sn80ncon.f
+     src/sn85hess.f
+     src/sn87sopt.f
+     src/sn90lmqn.f
+     src/sn95fmqn.f
+     src/sn03prnt.f # print stuff
    )
-SET(BLAS_SRCS ${SNOPT_DIR}/src/sn15blas.f)
-SET(SNPRNT_SRCS ${SNOPT_DIR}/src/sn03prnt.f)
+SET(BLAS_SRCS src/sn15blas.f)
 
 SET(SNOPTAD_SRCS
-     ${SNOPT_DIR}/src/snopta.f
-     ${SNOPT_DIR}/src/sq02lib.f
-     ${SNOPT_DIR}/src/sn02lib.f
-     ${SNOPT_DIR}/src/sn10mach.f
-     ${SNOPT_DIR}/src/sn12ampl.f
-     ${SNOPT_DIR}/src/sn17util.f
-     ${SNOPT_DIR}/src/sn20amat.f
-     ${SNOPT_DIR}/src/sn25bfac.f
-     ${SNOPT_DIR}/src/sn27lu.f
-     ${SNOPT_DIR}/src/sn30spec.f
-     ${SNOPT_DIR}/src/sn37wrap.f
-     ${SNOPT_DIR}/src/sn40bfil.f
-     ${SNOPT_DIR}/src/sn50lp.f
-     ${SNOPT_DIR}/src/sn55qp.f
-     ${SNOPT_DIR}/src/sn56qncg.f
-     ${SNOPT_DIR}/src/sn57qopt.f
-     ${SNOPT_DIR}/src/sn60srch.f
-     ${SNOPT_DIR}/src/sn65rmod.f
-     ${SNOPT_DIR}/src/sn70nobj.f
-     ${SNOPT_DIR}/src/sn80ncon.f
-     ${SNOPT_DIR}/src/sn85hess.f
-     ${SNOPT_DIR}/src/sn87sopt.f
-     ${SNOPT_DIR}/src/sn90lmqn.f
-     ${SNOPT_DIR}/src/sn95fmqn.f
+     src/snopta.f
+     src/sq02lib.f
+     src/sn02lib.f
+     src/sn10mach.f
+     src/sn12ampl.f
+     src/sn17util.f
+     src/sn20amat.f
+     src/sn25bfac.f
+     src/sn27lu.f
+     src/sn30spec.f
+     src/sn37wrap.f
+     src/sn40bfil.f
+     src/sn50lp.f
+     src/sn55qp.f
+     src/sn56qncg.f
+     src/sn57qopt.f
+     src/sn60srch.f
+     src/sn65rmod.f
+     src/sn70nobj.f
+     src/sn80ncon.f
+     src/sn85hess.f
+     src/sn87sopt.f
+     src/sn90lmqn.f
+     src/sn95fmqn.f
    )
 
 SET(SNADIOPT_GEN_SRCS
-     ${SNOPT_DIR}/snadiopt/common_lib_src/ad.f
-     ${SNOPT_DIR}/snadiopt/common_lib_src/mtx.f
-     ${SNOPT_DIR}/snadiopt/lib_src/nlp.f
+     snadiopt/common_lib_src/ad.f
+     snadiopt/common_lib_src/mtx.f
+     snadiopt/lib_src/nlp.f
    )
 
 SET(SNADIOPT_DENSE_SRCS
-     ${SNOPT_DIR}/snadiopt/common_lib_src/dad.f 
-     ${SNOPT_DIR}/snadiopt/lib_src/daduserfg.f
+     snadiopt/common_lib_src/dad.f 
+     snadiopt/lib_src/daduserfg.f
    )
 
 SET(SNADIOPT_SPARSE_SRCS
-     ${SNOPT_DIR}/snadiopt/common_lib_src/sad.f 
-     ${SNOPT_DIR}/snadiopt/lib_src/saduserfg.f
+     snadiopt/common_lib_src/sad.f 
+     snadiopt/lib_src/saduserfg.f
    )
 
-SET(SNADIOPT_SNADFUN_SRCS ${SNOPT_DIR}/snadiopt/common_lib_src/sn05adwrp.f)
+SET(SNADIOPT_SNADFUN_SRCS snadiopt/common_lib_src/sn05adwrp.f)
 
 ADD_LIBRARY(snopt STATIC ${SNOPT_SRCS})
-ADD_LIBRARY(snoptad STATIC ${SNOPTAD_SRCS})
-ADD_LIBRARY(snprint STATIC ${SNPRNT_SRCS})
-ADD_LIBRARY(blas_snopt STATIC ${BLAS_SRCS})
-ADD_LIBRARY(snadiopt STATIC ${SNADIOPT_GEN_SRCS} ${SNADIOPT_DENSE_SRCS} ${SNADIOPT_SPARSE_SRCS}
-	${SNADIOPT_SNADFUN_SRCS})
 
-INSTALL(TARGETS snopt snoptad snadiopt snprint ARCHIVE DESTINATION "${LIB_SUFFIX}")
+# for some very strange reason, the precompiled package containing only lib/libsnopt.a is unpacked flat to CMAKE_BINARY_DIR/libsnopt.a
+# but only when executed by execute_process "${CMAKE_COMMAND}" -E tar xzf
+# with another file all works?! cmake version 3.22.2 on macOS
+install(FILES README.FAQ DESTINATION "include")
+install(TARGETS snopt ARCHIVE DESTINATION "${LIB_SUFFIX}")

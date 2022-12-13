@@ -2,7 +2,7 @@
 
 # copy the static libs
 file(GLOB PHIST_STATIC_LIBS "@PHIST_INSTALL@/lib/*.a")
-file(COPY ${PHIST_STATIC_LIBS} DESTINATION "@PHIST_INSTALL@/lib64")
+file(COPY ${PHIST_STATIC_LIBS} DESTINATION "@PHIST_INSTALL@/lib")
 
 # we may now remove the old lib directory
 file(REMOVE_RECURSE "@PHIST_INSTALL@/lib")
@@ -12,5 +12,5 @@ file(REMOVE_RECURSE "@PHIST_INSTALL@/bin")
 
 # keep the share directory with share/doc/phist/README.md and share/doc/phist/LICENSE.txt
 
-# copy data from install dir to the target (share, lib64 and include)
+# copy data from install dir to the target (share, lib and include)
 file(COPY "@PHIST_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

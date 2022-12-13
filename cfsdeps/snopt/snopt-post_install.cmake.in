@@ -1,9 +1,0 @@
-# Hint: for the libblas.a and precompiled stuff snopt is built a tempory folder
-
-# remove libblas.a, we have own blas in cfs
-if(UNIX)
-  file(REMOVE "@SNOPT_INSTALL@/lib64/libblas.a")
-endif()
-
-# avoid copying to @CMAKE_CURRENT_BINARY_DIR@ directly due to rare permission issues on some runners
-file(COPY "@SNOPT_INSTALL@/lib64" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64")

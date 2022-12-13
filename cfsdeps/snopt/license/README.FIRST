@@ -1,0 +1,137 @@
+This is file README.FIRST:                           4 April 2008
+
+This  directory contains SNOPT,  a sparse  nonlinear optimization
+package, and  SNADIOPT, a package that integrates  SNOPT with the
+automatic differentiation system ADIFOR.
+
+Suggested README/INSTALL guide:
+
+  README.FIRST              This file
+
+  INSTALL.ALL               Complete linux/unix installation
+  INSTALL.SNADIOPT          If you only want snAdiOpt
+  INSTALL.x86-64            Installing SNOPT on a 64bit architecture
+  INSTALL.OSX               Installing SNOPT on an Apple running OSX
+
+  README.USER               Compiling and running simple problems
+  README.MATLAB             Calling the SNOPT package from Matlab
+  README.AMPL               Calling the SNOPT package from AMPL
+  README.win32              Using the SNOPT package on a Windows PC
+  README.CPP                Using SNOPT with C++
+  README.FAQ                Some frequently asked questions
+  $SNOPT/snopt-ampl/README  A C++ interface to the AMPL modeling language
+  $SNOPT/snopt-cuter/README Running problems in the CUTEr test environment
+
+
+WARNING for users upgrading from SNOPT 6
+----------------------------------------
+Because of changes  to the output values of  the integer argument
+inform, routines  calling the SNOPT interfaces from  SNOPT 6 must
+be  modified  for  use  with  SNOPT  7.   Please  see  the  SNOPT
+documentation in $SNOPT/doc, and the numerous example programs in
+$SNOPT/examples.
+
+
+SNOPT
+-----
+
+The SNOPT  package implements a  sequential quadratic programming
+(SQP)  method  for   large-scale  optimization  with  linear  and
+nonlinear  constraints.   SNOPT  uses  the sparse  linear  system
+package LUSOL, which is included in the distribution.
+
+The SNOPT package has five user interfaces that allow the user to
+provide  the  problem  and   data  in  different  formats.   Each
+interface is a self-contained  program with its own documentation
+(see the  general user documentation  in $SNOPT/doc/sndoc.pdf and
+$SNOPT/doc/sqdoc.pdf).  However,  every interface calls  the same
+SNOPT library routines at some level.
+
+The currently available user-interfaces are:
+
+ 1.  snOptA -- is a new  interface with version 6.0.  The problem
+     format does not require  the variables and constraints to be
+     defined in any special order.
+
+ 2.  snOptB  (aka snOpt)  -- this  is the  "basic" user-interface
+     employed by  versions of SNOPT up to  5.3-4.  This interface
+     requires  the problem  to  be formulated  so that  nonlinear
+     constraints and variables come first.
+
+     Defining  the  model so  that  the  nonlinear variables  and
+     constraints appear first allows  SNOPT to optimize the model
+     in the most efficient  way.  However, ordering the variables
+     and constraints  by hand is time-consuming  and error prone.
+     In addition,  the model is  difficult to modify.   New users
+     are recommended to use the snOptA interface (with or without
+     the SNADIOPT package), which does not impose restrictions on
+     the order of the data.
+
+ 3.  snOptC  --  is the  same  as  snOptB  except that  the  user
+     provides  one routine  to  compute both  the constraint  and
+     objective functions.
+
+     As above, snOptA  or SNADIOPT are preferable if  you are new
+     to the SNOPT package.
+
+ 4.  NPOPT  -- is  an  interface that  accepts  the same  problem
+     format  as  the  solver   NPSOL.   This  interface  is  only
+     appropriate for small dense problems (as is NPSOL!)
+
+ 5.  SQOPT  -- is an interface for large-scale linear and
+     quadratic programming.
+
+
+SNADIOPT
+--------
+
+The  SNADIOPT package  allows  users to  formulate their  problem
+without having to provide code  to compute the derivatives of the
+functions in  the model.  The derivatives provided  by ADIFOR are
+typically much more accurate than  ones that may be obtained by a
+numerical differentiation scheme, and  may often be obtained more
+quickly. In order  to make use of SNADIOPT, you  will need a copy
+of ADIFOR.  Information about ADIFOR  may be found on the web at:
+http://www.mcs.anl.gov/autodiff/ADIFOR/
+
+
+INTERFACES TO OTHER SYSTEMS
+---------------------------
+
+The libraries libsnopt.a and libblas.a  may be used with the AMPL
+modelling language and the CUTEr testing environment.
+
+ For further details about AMPL see the AMPL web site:
+http://www.ampl.com and the Netlib website:
+http://www.netlib.org/ampl/solvers.
+
+The CUTEr testing environment can be obtained via ftp from either
+Nick  Gould  at  ftp.numerical.rl.ac.uk,  or  Philippe  Toint  at
+thales.math.fundp.ac.be.
+
+
+CREDITS
+-------
+SNOPT is maintained by Philip E. Gill
+Department of Mathematics, University of California, San Diego
+http://www.cam.ucsd.edu/~peg
+
+LUSOL is maintained by Michael A. Saunders
+Systems Optimization Laboratory
+Dept of Management Science & Engineering, Stanford University
+http://www.stanford.edu/~saunders/
+
+SNADIOPT is maintained by Mike Gertz
+Mathematics and Computer Science Division
+Argonne National Laboratory
+http://www-unix.mcs.anl.gov/~gertz/
+
+INSTALL scripts and documentation maintained by Mike Gertz
+and Philip Gill.
+
+SNOPT, LUSOL (C) COPYRIGHT 1992--2008. Regents of the University of California,
+                                       Board of Trustees of Stanford University
+
+SNADIOPT     (C) COPYRIGHT 2000--2004. Regents of the University of California,
+                                       University of Chicago
+

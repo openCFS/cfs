@@ -1,160 +1,78 @@
-#-------------------------------------------------------------------------------
-# ARnoldi PACKage -  ARPACK is a collection of  Fortran77 subroutines designed
-# to solve large scale eigenvalue problems. 
-# We use the maintained arpack-ng variant
-#
-# Project Homepage
+# Arpack is the standard eigenvalue solver
 # https://github.com/opencollab/arpack-ng
-#-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-# Set paths to ARPACK sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(ARPACK_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/arpack")
-set(ARPACK_source  "${ARPACK_prefix}/src/arpack")
-set(ARPACK_install  "${CMAKE_CURRENT_BINARY_DIR}")
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
-  -DCMAKE_INSTALL_LIBDIR:PATH=${ARPACK_install}/${LIB_SUFFIX}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
-  -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  # for our 3.7.0 patch only
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "arpack")
+set(PACKAGE_VER "3.7.0")
+set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "6fc6c6bf78dbd4f144595ef0675c8430")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+
+# the mirrors can point to arbitrary file names. 
+set(PACKAGE_MIRRORS "https://github.com/opencollab/arpack-ng/archive/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
+
+ # we only have a fortran compiler
+use_c_and_fortran(OFF ON)
+
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
+
+# determine paths of libraries and make it visible (and editable) via ccmake
+set_package_library_default()
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+# this is the standard target for cmake projects. The files to package come from the install_manifest.txt
+set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
+
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default() 
+# add the specific settings for the packge which comes in cmake style
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+   # for our 3.7.0 patch only
   -DSYSTEM_BLAS:BOOL=OFF
   -DSYSTEM_LAPACK:BOOL=OFF
-  -DTESTS:BOOL=OFF
-)
+  -DTESTS:BOOL=OFF )
 
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
+     DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/arpack/arpack-patch.cmake.in")
-SET(PFN "${ARPACK_prefix}/arpack-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
+generate_patches_script() # sets PATCHES_SCRIPT
 
+# generate package ceation script. We get the files from an install_manifest.txt
+generate_packing_script_manifest()
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "https://github.com/opencollab/arpack-ng/archive/${ARPACK_GZ}"
-  "${CFS_DS_SOURCES_DIR}/arpack/${ARPACK_GZ}"
-)
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}")
-SET(MD5_SUM ${ARPACK_MD5})
+#dump_depencency_variables()
 
-SET(DLFN "${ARPACK_prefix}/arpack-download.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/arpack/arpack-post_install.cmake.in")
-SET(PI "${ARPACK_prefix}/arpack-post_install.cmake")
-CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
+# if not, build newly and possibly pack the stuff
+else()
+  # add external project step actually building an cmake package including a patch 
+  # also genearate the patch script via generate_patches_script()
+  create_external_cmake_patched()  
 
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/arpack/license/" DESTINATION "${CFS_BINARY_DIR}/license/arpack" )
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()  
+endif()
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "arpack" "${ARPACK_VER}") 
-
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${ARPACK_prefix}")
-
-SET(ZIPFROMCACHE "${ARPACK_prefix}/arpack-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
-
-SET(ZIPTOCACHE "${ARPACK_prefix}/arpack-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
-
-#-------------------------------------------------------------------------------
-# Determine paths of ARPACK libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-IF(WIN32)
-  SET(ARPACK_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/arpack.lib" CACHE FILEPATH "ARPACK library.")
-ELSE(WIN32)
-  SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
-ENDIF(WIN32)
-MARK_AS_ADVANCED(ARPACK_LIBRARY)
-
-#-------------------------------------------------------------------------------
-# The ARPACK external project
-#-------------------------------------------------------------------------------
-
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(arpack
-    PREFIX "${ARPACK_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
-  )
-ELSE()
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(arpack
-    PREFIX "${ARPACK_prefix}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${ARPACK_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
-    WORKING_DIRECTORY ${ARPACK_prefix}
-  )
-
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(arpack cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${ARPACK_prefix}
-  )
-  
-  ExternalProject_Add_Step(arpack post_install
-    COMMAND ${CMAKE_COMMAND} -P "${PI}"
-    DEPENDEES install
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(arpack cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF()
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS ${CFSDEPS} arpack)
-
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

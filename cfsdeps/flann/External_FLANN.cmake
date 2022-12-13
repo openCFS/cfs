@@ -155,7 +155,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
   ExternalProject_Add(flann
-    DEPENDS hdf5-static
+    DEPENDS hdf5
     PREFIX ${flann_prefix}
     SOURCE_DIR ${flann_source}
     URL ${LOCAL_FILE}

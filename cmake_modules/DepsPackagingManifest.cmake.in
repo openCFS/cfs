@@ -1,0 +1,69 @@
+# create a zip for cfsdeps cache precompiled by install_manifest.txt
+
+# the .cmake.in file is converted to .cmake  by DendencyTools.cmake with 
+# generate_packing_scripts_manifest() by the use of configure_file()
+# 
+# configure_file() replaces @*@ variables. The resulting .cmake is called
+# as post-install step of a cmake external project via cmake -P ...cmake,
+# hence there is no context of the cmake variables and we need to "import" all via @*@.
+
+# for the asserts
+include("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+include(CMakePrintHelpers)
+
+assert_not_empty(@CFS_DEPS_CACHE_DIR@)
+assert_not_empty(@DEPS_PREFIX@) # ${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}
+assert_not_empty(@PRECOMPILED_PCKG_FILE@)
+assert_not_empty(@DEPS_PREFIX@)
+
+set(CMAKE_BINARY_DIR @CMAKE_BINARY_DIR@)
+# e.g. /Users/fwein/code/cfsdeps_refactor/precompiled/arpack_3.7.0_MACOSX_12.6_ARM64_F-GNU-11.2.0.zip
+set(PRECOMPILED_PCKG_FILE @PRECOMPILED_PCKG_FILE@)
+# e.g. /Users/fwein/code/master/refactor/cfsdeps/arpack
+set(DEPS_PREFIX @DEPS_PREFIX@)
+set(CFS_DEPS_CACHE_DIR @CFS_DEPS_CACHE_DIR@)
+
+message(STATUS "create ${PRECOMPILED_PCKG_FILE} ...")
+
+if(NOT EXISTS "${CFS_DEPS_CACHE_DIR}/precompiled}")
+  file(MAKE_DIRECTORY "${CFS_DEPS_CACHE_DIR}/precompiled")
+endif()
+
+#cmake_print_variables(PRECOMPILED_PCKG_FILE)
+#cmake_print_variables(DEPS_PREFIX)
+#cmake_print_variables(TARGET_DIR)
+
+file(GLOB MANIFESTS "${DEPS_PREFIX}/src/*/install_manifest.txt")
+#cmake_print_variables(MANIFESTS)
+
+if("${MANIFESTS}" STREQUAL "")
+  message(FATAL_ERROR "cannot find install_manifest.txt in ${DEPS_PREFIX}")
+endif()  
+
+# Manifests exists -> zip files listed therein
+file(WRITE "${DEPS_PREFIX}/files_to_zip.txt" "") # create empty file
+foreach(ITEM ${MANIFESTS})
+  file(READ ${ITEM} manifest_string)
+  #remove the leading path, i.e. make relative
+  string(REPLACE "${CMAKE_BINARY_DIR}/" "" manifest_string "${manifest_string}")
+  #change to semicolon-seperated list
+  string(REPLACE "\n" ";" manifest_string "${manifest_string}")
+  foreach(file ${manifest_string})
+     #message("file=${file}")
+    file(APPEND "${DEPS_PREFIX}/files_to_zip.txt" "${file}\n")
+    #message("files_to_zip=${files_to_zip}")
+  endforeach()
+endforeach()  
+#message("files_to_zip=${files_to_zip}")
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar "cf" ${PRECOMPILED_PCKG_FILE} --files-from=${DEPS_PREFIX}/files_to_zip.txt --format=zip
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  # OUTPUT_QUIET
+  RESULT_VARIABLE rv
+  OUTPUT_VARIABLE ov
+  ERROR_VARIABLE ev )
+  
+#ckeck if it went well
+if(NOT "${rv}" STREQUAL "0")
+  message(FATAL_ERROR "could not create ${PRECOMPILED_PCKG_FILE}: out=${ov} err=${ev}")
+endif()

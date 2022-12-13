@@ -31,7 +31,7 @@ IF(WIN32)
   # ----------------------------------------------------------------------------
   # 2) Copy python libraries 
   # ----------------------------------------------------------------------------
-  INSTALL(DIRECTORY ${CFS_BINARY_DIR}/lib64 DESTINATION . 
+  INSTALL(DIRECTORY ${CFS_BINARY_DIR}/lib DESTINATION . 
 	  PATTERN "*-gd-*" EXCLUDE
 	  )
 

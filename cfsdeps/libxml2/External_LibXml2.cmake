@@ -58,7 +58,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
 ELSE()
   #-------------------------------------------------------------------------------
   # we make a standard configure build in a TMP_DIR target. ZIPTOCACHE uses this and
-  # copies lib to lib64/BUILD.
+  # copies lib to lib/BUILD.
   #-------------------------------------------------------------------------------
   ExternalProject_Add(libxml2
     PREFIX "${libxml2_prefix}"

@@ -1,2 +1,0 @@
-# we don't the lib/cmake/arpack-ng-config* stuff
-file(REMOVE_RECURSE "@ARPACK_install@/lib")

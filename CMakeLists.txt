@@ -1,16 +1,21 @@
 cmake_minimum_required(VERSION 3.6.0 FATAL_ERROR)
 
+message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
+
 # Include global definitions for openCFS development server (host name, etc.)
 include("cmake_modules/DevelopmentServer.cmake")
+include(CMakePrintHelpers)
 
-# Set CMake policies for newer versions of CMake.
-# Enter 'cmake --help-policy CMP000X' to get information about the meaning
-# of a certain policy.
-if(COMMAND CMAKE_POLICY)
-  if(POLICY CMP0038)
-    cmake_policy(SET CMP0038 NEW)
-  endif(POLICY CMP0038)
-endif(COMMAND CMAKE_POLICY)
+# the newer CMake gets, the more policies it demands
+if(POLICY CMP0038)
+  cmake_policy(SET CMP0038 NEW)
+endif()
+if(POLICY CMP0135)
+  #>= cmake 3.24 wants a policy for DOWNLOAD_EXTRACT_TIMESTAMP with external projects. is demanded
+  # howerver, setting this to NEW makes make always build the complete source
+  cmake_policy(SET CMP0135 OLD)
+endif()
+
 # Note: "Policy CMP0077 is not set: option() honors normal variables." 
 # is likely when the USE_* option is set, e.g. in .cfs_platform_defaults.cmake
 # then the variable is preused before option() - better set USE_*_DEFAULT!
@@ -135,7 +140,6 @@ set(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the openCFS 
 option(BUILD_CFSTOOL "Build openCFS converter and testing tool (cfstool)."  ${BUILD_CFSTOOL_DEFAULT})
 option(BUILD_CFSDAT "Build openCFS data analysis tool (cfsdat)."  ${BUILD_CFSDAT_DEFAULT})
 option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TESTS_DEFAULT})
-option(BUILD_HDFVIEW "Build the HDF5 file viewer from the hdf5lib" ${BUILD_HDFVIEW_DEFAULT}) # advanced
 
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
 
@@ -155,7 +159,11 @@ option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approxi
 option(USE_FEAST "Use the FEAST eigenvalue solver." ${USE_FEAST_DEFAULT})
 option(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners." ${USE_ILUPACK_DEFAULT})
 option(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." OFF) # advanced
-option(USE_SUITESPARSE "Use CholMod and UMFPACK direct solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
+option(USE_SUITESPARSE "Use CHOLMOD and UMFPACK direct solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
+if(USE_SUITESPARSE)
+  # CHOLMOD can use optional features compiled by SuiteSparse which are much faster for highly populated systems
+  option(USE_SUITESPARSE_GPL "Add optional GPL features for SuiteSparse" ${USE_SUITESPARSE_GPL_DEFAULT})
+endif()
 option(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
 option(USE_SUPERLU "Use SuperLU direct solver and ILUs. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_SUPERLU_DEFAULT})
 option(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
@@ -188,10 +196,6 @@ set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
 
 if(USE_FEAST AND NOT USE_BLAS_LAPACK STREQUAL "MKL" )
   message(FATAL_ERROR "USE_FEAST requires Intel MKL! Set USE_BLAS_LAPACK=MKL")
-endif()
-
-if(USE_IPOPT AND NOT USE_BLAS_LAPACK STREQUAL "MKL" )
-  message(FATAL_ERROR "USE_IPTOPT requires Intel MKL! Set USE_BLAS_LAPACK=MKL or implement usage of external solvers")
 endif()
 
 if(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
@@ -317,7 +321,6 @@ mark_as_advanced(CFS_REORDERING)
 mark_as_advanced(CMAKE_BUILD_TYPE)
 mark_as_advanced(CMAKE_BACKWARDS_COMPATIBILITY)
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
-mark_as_advanced(BUILD_HDFVIEW)
 mark_as_advanced(BUILD_GHOST)
 mark_as_advanced(BUILD_HWLOC)
 mark_as_advanced(XMLSCHEMA)
@@ -349,8 +352,8 @@ include("cmake_modules/CheckFortranRuntime.cmake")
 # Perform some configure checks
 include("cmake_modules/ConfigureChecks.cmake")
 
-# Set path where shared/static libraries should go. We only have lib64
-set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64 CACHE INTERNAL "Single output directory for building all libraries.")
+# Set path where shared/static libraries should go. We only have lib
+set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output directory for building all libraries.")
 
 # set RPATH to a relative path (Linux and theoretically but not pracically macOS)
 # this ensures dynamically linked libraries are found
@@ -380,7 +383,7 @@ TODAY(CFS_CONF_DATE)
 # and other informations from working copy
 include("cmake_modules/DetermineWorkingCopyInfos.cmake")
 
-endif() # this is the end of the non indent else() for the if(PIPELINE_TEST_STAGE_CONFIG) case
+endif(PIPELINE_TEST_STAGE_CONFIG) # this is the end of the non indent else() for the if(PIPELINE_TEST_STAGE_CONFIG) case
 
 # Configure Dart testing support.  This should be done before any
 # message(FATAL_ERROR ...) commands are invoked (???) and after the languages
@@ -599,7 +602,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # since project() sets a
 string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
 if(CFS_WC_MODIFIED)
   set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
-endif(CFS_WC_MODIFIED)
+endif()
 set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run preinstall target for..." which seems to be only done for "Unix Makefiles"
 
 # choose what to install
@@ -609,12 +612,12 @@ if(UNIX)
   # tailing / in source leads to rename to destionation
   #install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
   install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS)
-  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64" USE_SOURCE_PERMISSIONS
+  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISSIONS
     PATTERN "*.a" EXCLUDE
     PATTERN "*.la" EXCLUDE
     PATTERN "*.pc" EXCLUDE
     PATTERN "pkgconfig" EXCLUDE
-    ) # lib64 only works for 64bit ...
+    ) 
   # license install
   file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
   install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)

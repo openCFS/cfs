@@ -6,8 +6,8 @@ ADD_LIBRARY(umfpack-olas STATIC ${UMFPACK_SRCS})
 # CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
-SET(TARGET_LL
-  ${UMFPACK_LIBRARY}
+set(TARGET_LL
+  ${SUITESPARSE_LIBRARY}
   ${BLAS_LIBRARY}
   ${CFS_FORTRAN_LIBS})
 

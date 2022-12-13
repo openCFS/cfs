@@ -151,18 +151,8 @@ endif()
 #MESSAGE("CFS_BUILD_DISTRO ${CFS_BUILD_DISTRO}")
 #MESSAGE("CMAKE_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES}")
 
-#-----------------------------------------------------------------------------
-# Determine name of library directory and system bits.
-#-----------------------------------------------------------------------------
-if(CFS_ARCH STREQUAL "X86_64" OR CFS_ARCH STREQUAL "ARM64")
-  # Set path suffix for system libs
-  set(LIB_SUFFIX "lib64")
-  set(SYSTEM_BITS "64")
-else()
-  message(WARNING "unhandled CFS_ARCH ${CFS_ARCH}")
-endif()
+set(LIB_SUFFIX "lib")
 
-set(SYSTEM_BITS "${SYSTEM_BITS}" CACHE INTERNAL "Determins if this is a '32' or '64' bit system.")
 set(CFS_DISTRO "${CFS_DISTRO}" CACHE INTERNAL "String specifying the distribution CFS is built on.")
 set(CFS_DISTRO_VER "${CFS_DISTRO_VER}" CACHE INTERNAL "Version of the distribution CFS is built on.")
 # CFS_ARCH (set in windows and unix) might have been changed

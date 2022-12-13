@@ -125,10 +125,11 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     #message(WARNING "CFS_ARCH=${CFS_ARCH}")
     #message(WARNING "GFORTRAN_LIBRARY=${GFORTRAN_LIBRARY}")
     #message(WARNING "CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
-    message(WARNING "no static Fortran library found - this build might not run on systems missing compatible Fortran runtime libs!")
+    # make not message(WARING ...) as it either does not happen or cannot be prevented (easily)
+    message(STATUS "Warnig: no static Fortran library found - this build might not run on systems missing compatible Fortran runtime libs!")
     list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}")
     if(CFS_ARCH MATCHES "X86_64")
-      # gfortan for arm64 seems to no know 128 bits https://github.com/Homebrew/homebrew-core/issues/73949
+      # gfortan for arm64 seems to not know 128 bits https://github.com/Homebrew/homebrew-core/issues/73949
       list(APPEND CFS_FORTRAN_LIBS "-lquadmath") 
     endif()
   endif()
@@ -170,7 +171,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 	message(WARNING "no static version of ${IFORT_${lib}_LIBRARY} found in ${inteldir} using dynamic version.\n
 	It will be installed by cpack, but not copied over into the build directory.")
         #one can't simply copy over because cmake will complain about "Cannot generate a safe linker search path ..."
-        install(FILES "${IFORT_${lib}_LIBRARY}" DESTINATION "lib64/LINUX_${CFS_ARCH}")
+        install(FILES "${IFORT_${lib}_LIBRARY}" DESTINATION "lib")
         list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
       else()
 	message(STATUS "  found static lib: ${IFORT_${lib}_LIBRARY_STATIC} and using it.")

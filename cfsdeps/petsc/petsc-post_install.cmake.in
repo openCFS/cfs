@@ -1,17 +1,12 @@
 # we copy only include and lib
 
-FILE(COPY "@PETSC_INSTALL@/lib/" DESTINATION "@PETSC_INSTALL@/lib64")
-
-# we can now delete lib with libpetsc.so, libpetsc.so.3.8, libpetsc.so.3.8.3 and dirs petsc and pkgconfig.
-FILE(REMOVE_RECURSE "@PETSC_INSTALL@/lib/")
-
 # we don't need the share/petsc stuff with datafiles, examples, matlab, saws and xml 
 FILE(REMOVE_RECURSE "@PETSC_INSTALL@/share/")
 
 # we don't need the bin stuff
 FILE(REMOVE_RECURSE "@PETSC_INSTALL@/bin/")
 
-# copy remaining lib64 and include from install dir to the target.
+# copy remaining lib and include from install dir to the target.
 FILE(COPY "@PETSC_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
 
 # this directory shall now be also fine for zipping
