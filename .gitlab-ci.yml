@@ -711,8 +711,11 @@ linux:gcc10:ninja:
   script:
     # configure with correct generator
     - cmake -G Ninja ..
-    # build - note that we depend on cfsdeps:gcc10, hence the dependencies are already built with make
-    - ninja
+    # build - note that we depend on cfsdeps:gcc10, hence the dependencies might already be built with make
+    # e.g. suitesparse cannot be build in parallel with ninja
+    - ninja -j1 cfsdeps
+    # build cfs in parallel   
+    - ninja  
     # create artifacts
     - cpack -G TGZ
   after_script:
