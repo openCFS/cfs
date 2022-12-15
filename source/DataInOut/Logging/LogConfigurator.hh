@@ -2,12 +2,16 @@
 #define CFS_LOG_HH
 
 // include files of BOOST's log library
+// disble warnings within boost files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall" 
 #include <boost/log/common.hpp>
 #include <boost/log/sinks.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/core/null_deleter.hpp>
 #include <boost/limits.hpp>
+#pragma GCC diagnostic pop
 
 #include <memory>
 

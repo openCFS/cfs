@@ -2,7 +2,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <random>
+#include <boost/random.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -171,9 +171,8 @@ namespace CoupledField {
   // generate vector with random numbers
   StdVector<double> GenerateRandomVector(size_t size, double first, double last) {
     // create random generator with uniform distribution
-    std::random_device rd;
-    std::mt19937 mersenne_engine(rd());
-    std::uniform_real_distribution<> dis(first, last);
+    boost::random::mt19937 mersenne_engine;
+    boost::random::uniform_real_distribution<> dis(first,last);
 
     // create vector and fill with random values
     StdVector<double> vec(size);

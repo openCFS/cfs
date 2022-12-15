@@ -93,6 +93,17 @@ macro(set_package_library_list IN_LIST)
   endforeach()   
 endmacro()
 
+# set package library for a given list always with lib as prefix, which is not standard for Windows
+macro(set_package_library_list_lib_prefix IN_LIST)
+  assert_set(PACKAGE_NAME)
+  assert_set(LIB_SUFFIX)
+  assert_unset(PACKAGE_LIBRARY)
+  
+  foreach(ITEM ${IN_LIST})
+    list(APPEND PACKAGE_LIBRARY ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/lib${ITEM}${CMAKE_STATIC_LIBRARY_SUFFIX})
+  endforeach()   
+endmacro()
+
 
 # set standard variables. Kind of late destructor.
 #
@@ -113,7 +124,7 @@ macro(set_standard_variables)
 
   # almost all packages go to CMAKE_BINARY_DIR/include. Even fortran packages like arpack have includes
   set(${_UPPER_PACKAGE_NAME}_INCLUDE_DIR "${CMAKE_BINARY_DIR}/include" CACHE FILEPATH "${PACKAGE_NAME} include dir.")
-  mark_as_advanced(${_UPPER_PACKAGE_NAME}_LIBRARY)
+  mark_as_advanced(${_UPPER_PACKAGE_NAME}_INCLUDE_DIR)
  
   # cmake package building directly to cfs build. precompiled package via manifest
   set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
@@ -246,6 +257,7 @@ endmacro()
 macro(set_precompiled_pckg_file)
   assert_set(PACKAGE_NAME)
   assert_set(PACKAGE_VER)
+  assert_set(CFS_ARCH_STR)
   # DEPS_VER might be "" which is unset
   assert_unset(PRECOMPILED_PCKG_FILE)
    
@@ -366,8 +378,7 @@ macro(create_external_cmake_patched)
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
     COMMAND ${CMAKE_COMMAND} -E echo "will build ${PRECOMPILED_PCKG_FILE}"
     CMAKE_ARGS ${DEPS_ARGS}
-    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
-    WORKING_DIRECTORY ${DEPS_PREFIX} )
+    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()
@@ -395,8 +406,7 @@ macro(create_external_cmake)
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON
     CMAKE_ARGS ${DEPS_ARGS}
-    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
-    WORKING_DIRECTORY ${DEPS_PREFIX} )
+    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()
@@ -447,7 +457,7 @@ macro(create_external_encrypted_cmake_patched)
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()
 
-
+# packages witch are note cmake based but which use the configure command
 macro(create_external_configure)
 
   assert_set(PACKAGE_NAME)
@@ -458,7 +468,7 @@ macro(create_external_configure)
 
   set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
-  # we need to build the package - here in cmake style
+  # we need to build the package - here in configur style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
     URL "${PACKAGE_MIRRORS}"
@@ -468,38 +478,57 @@ macro(create_external_configure)
     # in case the mirrors have different file names we always store to the same
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON 
-    CONFIGURE_COMMAND  ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
-    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
-    WORKING_DIRECTORY ${DEPS_PREFIX} )
+    CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
+    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
     
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()
 
-
-
+# for packages having a manual cleanup
 macro(add_postinstall_step)
   assert_set(PACKAGE_NAME)
 
   if(POSTINSTALL_SCRIPT)
     ExternalProject_Add_Step(${PACKAGE_NAME} post_install
       COMMAND ${CMAKE_COMMAND} -P "${POSTINSTALL_SCRIPT}"
+      # COMMAND ${CMAKE_COMMAND} -E echo  post_install ${POSTINSTALL_SCRIPT}
       DEPENDEES install )
   endif()   
 endmacro()
 
-# add custom step to zip a precompiled package to the cache
+# add custom step to zip a precompiled package to the cache and also to cmake_binary_dir
 macro(add_external_storage_step)
 
   assert_set(PACKAGE_NAME)
   assert_set(ZIPTOCACHE_SCRIPT)
   assert_set(DEPS_INSTALL)
 
+  if(POSTINSTALL_SCRIPT)
+    set(PI_STEP post_install)
+  endif()
+
   ExternalProject_Add_Step(${PACKAGE_NAME} cfsdeps_packaging
     COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE_SCRIPT}"
-    DEPENDEES install
+    # COMMAND ${CMAKE_COMMAND} -E echo cfsdeps_packaging ${ZIPTOCACHE_SCRIPT}
+    DEPENDEES install ${PI_STEP} 
     DEPENDS "${ZIPTOCACHE_SCRIPT}"
     WORKING_DIRECTORY ${DEPS_INSTALL} )
 endmacro()
 
+# add install to to binary_dir copy in case we have no add_external_storage_step()
+# only needed for install_dir packages, manifest packages already build into binary_dir
+macro(add_install_dir_to_binary_step)
+  assert_set(DEPS_INSTALL)
+
+  set(INSTALL_DIR_TO_BINARY_SCRIPT "${DEPS_PREFIX}/${PACKAGE_NAME}-DepsCopyInstallDirToBinary.cmake")
+  configure_file("${CMAKE_SOURCE_DIR}/cmake_modules/DepsCopyInstallDirToBinary.cmake.in"
+                 "${INSTALL_DIR_TO_BINARY_SCRIPT}" @ONLY)  
+
+  ExternalProject_Add_Step(${PACKAGE_NAME} install_dir_to_binary_dir
+    COMMAND ${CMAKE_COMMAND} -P "${INSTALL_DIR_TO_BINARY_SCRIPT}"
+    DEPENDEES install
+    DEPENDS "${INSTALL_DIR_TO_BINARY_SCRIPT}"
+    WORKING_DIRECTORY ${DEPS_INSTALL} )
+endmacro()
 
 

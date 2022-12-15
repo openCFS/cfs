@@ -7,6 +7,12 @@
 #include <set>
 #include <time.h>
 
+// icl on Windows does not know not/and/.. as in boosts return not af.test_and_set()
+#if defined(WIN32) && defined(__INTEL_COMPILER)
+  #include <ciso646>
+#endif
+#include <boost/sort/sort.hpp>
+
 #include "GridCFS.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"

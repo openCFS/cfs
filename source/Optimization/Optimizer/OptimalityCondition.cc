@@ -529,7 +529,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   // elements but the first have old and new elements in their filter
   // stencil. Hence we store in evaluate_tmp_
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-  for(unsigned int i = 0; i < data.GetSize(); i++)
+  for(int i = 0; i < (int) data.GetSize(); i++)
   {
     DesignElement* de = &data[i];
     // rho_e is the old rho
@@ -581,7 +581,7 @@ double OptimalityCondition::Evaluate(double lambda)
   // elements but the first have old and new elements in their filter
   // stencil. Hence we store in evaluate_tmp_
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-  for(unsigned int i = 0; i < data.GetSize(); i++)
+  for(int i = 0; i < (int) data.GetSize(); i++)
   {
     DesignElement* de = &data[i];
     // rho_e is the old rho
@@ -599,7 +599,7 @@ double OptimalityCondition::Evaluate(double lambda)
     double b_e = -1.0 * smart_obj_grad;
 
     // ill posed problems have a problem here!
-    if((boost::math::isnan)(b_e)) EXCEPTION("b_e is nan");
+    if(std::isnan(b_e)) EXCEPTION("b_e is nan");
 
     // for compliant mechanism and eigenvalue optimization the gradient can be positive, this is cut
     // -> Bendsoe/Sigmund. p 74, p 97

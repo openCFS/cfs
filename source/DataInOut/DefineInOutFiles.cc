@@ -57,13 +57,14 @@
 #endif
 
 #ifdef USE_EMBEDDED_PYTHON
-#include "DataInOut/SimInOut/python/SimInputPython.hh"
+  #include "DataInOut/SimInOut/python/SimInputPython.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
-#include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
-
+#ifdef USE_STREAMING
+  #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
+#endif
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
 
 #include "DataInOut/ProgramOptions.hh"
@@ -507,7 +508,11 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fNam
 
   if (fFormat == "streaming")
   {
+#ifdef USE_STREAMING
     aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, infoNode, isRestart));
+#else
+   throw Exception("not compiled with USE_STREAMING");
+#endif
   }
 
   return aOutput;

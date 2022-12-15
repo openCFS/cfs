@@ -23,8 +23,9 @@ use_c_and_fortran(ON OFF)
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-# generate PACKAGE_LIBARAY with os specific list of static libs
-set_package_library_list("hdf5_hl_cpp;hdf5_cpp;hdf5_hl;hdf5")
+# generates PACKAGE_LIBARAY with lib<package>.a/.dll - on Windows also the prefix lib is used, what is uncommon.
+set_package_library_list_lib_prefix("hdf5_hl_cpp;hdf5_cpp;hdf5_hl;hdf5")
+
 # creates HDF5_LIBARAY as CACHE variable, hence it will not be overwritten once in cache!
 set_standard_variables() 
 
@@ -34,20 +35,20 @@ set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default() 
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang") 
-  # Linux clang version 15.0.4 needs -Wno-int-conversion for hdf5-1.8.20
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") 
+  # Linux clang version 15.0.4 and IntelLLVM need -Wno-int-conversion for hdf5-1.8.20
+  # IntelLLVM needs -Wno-implicit-function-declaration
   list(REMOVE_ITEM DEPS_ARGS "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}") 
-  list(APPEND DEPS_ARGS "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} -Wno-int-conversion")
+  list(APPEND DEPS_ARGS "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
   
   list(REMOVE_ITEM DEPS_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}") 
-  list(APPEND DEPS_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS} -Wno-int-conversion")
+  list(APPEND DEPS_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
   # almost all of hdf5 is C, so probably not necessary for CFSDEPS_CXX_FLAGS
 endif()
 
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
-  # we must not set -DHDF5_EXTERNAL_LIB_PREFIX:STRING, this would result e.g. in liblibhdf5.a
   -DHDF5_INSTALL_BIN_DIR:PATH=bin
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DBUILD_TESTING:BOOL=OFF
@@ -62,18 +63,18 @@ set(DEPS_ARGS
   -DHDF5_BUILD_TOOLS:BOOL=OFF # no binaries wanted, use system hdf5 tools
   -DH5_HAVE_STRDUP:BOOL=OFF ) # On macOS X we can get problems with the system strdup function.
 
+
 if(POLICY CMP0075)
   list(APPEND DEPS_ARGS -DCMAKE_POLICY_DEFAULT_CMP0075=NEW)# prevent Policy CMP0075 is not set: Include file check macros honor
 endif()  
 
-# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+# --- it follows generic final block for cmake packages with no patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
      DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# copies your CMakeLists.txt
-generate_patches_script()
+assert_unset(PATCHES_SCRIPT)
 
 # generate package ceation script. 
 generate_packing_script_manifest()
@@ -90,7 +91,7 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  create_external_cmake_patched()  
+  create_external_cmake()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})

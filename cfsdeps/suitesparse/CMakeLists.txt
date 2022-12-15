@@ -6,6 +6,7 @@ include(CMakePrintHelpers) # cmake_print_variables()
 project (SuiteSparse LANGUAGES C )
 
 option(BUILD_STATIC "build static libraries" ON)
+option(USE_OPENMP "enable OpenMP" ON)
 # inspired by https://github.com/sergiud/SuiteSparse
 option(ALLOW_GPL_EXTENSIONS "let the solvers use optional GPL features" ON)
 option(ALLOW_64BIT_BLAS "look for 32-bit BLAS only or concurrent 32- and 64-bit BLAS" OFF)
@@ -26,6 +27,12 @@ else()
   list(APPEND CMAKE_ARGS -DNSTATIC:BOOL=ON)
 endif()
 
+if(USE_OPENMP)
+  set(OPENMP -DNOPENMP:BOOL=OFF)
+else()
+  set(OPENMP -DNOPENMP:BOOL=ON)
+endif()
+
 # overwriting these values is actually wrong, as the first find( BLAS x) is true
 if(NOT SUGGEST_BLAS_LIBRARIES STREQUAL "")
   set(BLAS_LIB -DBLAS_LIBRARIES=${SUGGEST_BLAS_LIBRARIES} -DLAPACK_LIBRARIES=${SUGGEST_BLAS_LIBRARIES})
@@ -34,7 +41,7 @@ endif()
 
 # the CMAKE_SOURCE_DIR points to the root directory, independent from where it's CMakeLists.txt is called
 # the add the desired subpackages. Via DEPENDS the proper order is guaranteed
-set(ARGS ${CMAKE_ARGS})
+set(ARGS ${CMAKE_ARGS} ${OPENMP})
 if(NOT SUGGEST_BLAS_LIBRARIES STREQUAL "")
   list(APPEND ARGS ${BLAS_LIB})
 endif()
@@ -49,7 +56,7 @@ ExternalProject_Add(SuiteSparse_config
 # instant installation. Via this list a make install install in the build directory performes this
 # by calling make install in all modules build directories. The install target is set via CMAKE_INSTALL_PREFIX
 # in ExternalProject_Add()
-set(INSTALL_LIST "${CMAKE_SOURCE_DIR}/SuiteSparse_config/build")
+set(INSTALL_LIST ${CMAKE_SOURCE_DIR}/SuiteSparse_config/build)
 
 if (ENABLE_AMD OR ENABLE_CHOLMOD OR ENABLE_UMFPACK)
   if (NOT ENABLE_AMD)
@@ -63,7 +70,7 @@ if (ENABLE_AMD OR ENABLE_CHOLMOD OR ENABLE_UMFPACK)
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""
     CMAKE_ARGS ${CMAKE_ARGS} )
-  set(INSTALL_LIST ${INSTALL_LIST} "${CMAKE_SOURCE_DIR}/AMD/build")   
+  list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/AMD/build)   
 endif()
 
 if (ENABLE_CAMD OR ENABLE_CHOLMOD)
@@ -77,7 +84,7 @@ if (ENABLE_CAMD OR ENABLE_CHOLMOD)
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""    
     CMAKE_ARGS ${CMAKE_ARGS} )
-  set(INSTALL_LIST ${INSTALL_LIST} "${CMAKE_SOURCE_DIR}/CAMD/build")    
+  list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/CAMD/build)    
 endif()
 
 if (ENABLE_CCOLAMD OR ENABLE_CHOLMOD)
@@ -91,7 +98,7 @@ if (ENABLE_CCOLAMD OR ENABLE_CHOLMOD)
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""    
     CMAKE_ARGS ${CMAKE_ARGS} )
-  set(INSTALL_LIST ${INSTALL_LIST} "${CMAKE_SOURCE_DIR}/CCOLAMD/build")    
+  list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/CCOLAMD/build)    
 endif()
 
 if (ENABLE_COLAMD OR ENABLE_CHOLMOD)
@@ -105,11 +112,11 @@ if (ENABLE_COLAMD OR ENABLE_CHOLMOD)
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""    
     CMAKE_ARGS ${CMAKE_ARGS} )
-  set(INSTALL_LIST ${INSTALL_LIST} "${CMAKE_SOURCE_DIR}/COLAMD/build")    
+  list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/COLAMD/build)    
 endif()
 
 if (ENABLE_CHOLMOD)
-  set(ARGS ${CMAKE_ARGS})
+  set(ARGS ${CMAKE_ARGS} ${OPENMP})
   if(NOT SUGGEST_BLAS_LIBRARIES STREQUAL "")
     list(APPEND ARGS ${BLAS_LIB})
   endif()
@@ -123,11 +130,11 @@ if (ENABLE_CHOLMOD)
     DEPENDS SuiteSparse_config COLAMD CCOLAMD AMD
     INSTALL_COMMAND ""    
     CMAKE_ARGS ${ARGS} -DALLOW_64BIT_BLAS=${ALLOW_64BIT_BLAS} )
-  set(INSTALL_LIST ${INSTALL_LIST} "${CMAKE_SOURCE_DIR}/CHOLMOD/build")    
+  list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/CHOLMOD/build)    
 endif()
 
 if (ENABLE_UMFPACK)
-  set(ARGS ${CMAKE_ARGS})
+  set(ARGS ${CMAKE_ARGS} ${OPENMP})
   if(NOT SUGGEST_BLAS_LIBRARIES STREQUAL "")
     list(APPEND ARGS ${BLAS_LIB})
   endif()
@@ -139,9 +146,11 @@ if (ENABLE_UMFPACK)
     DEPENDS SuiteSparse_config 
     INSTALL_COMMAND ""    
     CMAKE_ARGS ${ARGS} -DALLOW_64BIT_BLAS=${ALLOW_64BIT_BLAS} )
-  set(INSTALL_LIST ${INSTALL_LIST} "${CMAKE_SOURCE_DIR}/UMFPACK/build")      
+  list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/UMFPACK/build)      
 endif()
 
-# generate suitsparse_install.cmake for root make install
+cmake_print_variables(CMAKE_MAKE_PROGRAM)
+
+# generate suitsparse_install.cmake for root make install with INSTALL_LIST
 configure_file("${CMAKE_SOURCE_DIR}/suitesparse_install.cmake.in" "${CMAKE_BINARY_DIR}/suitesparse_install.cmake" @ONLY)
 install(SCRIPT "${CMAKE_BINARY_DIR}/suitesparse_install.cmake")

@@ -1324,9 +1324,21 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if((boost::math::isnan)(data_[k]))
+      if(std::isnan(data_[k]))
         return true;
 
+    return false;
+  }
+
+  template<>
+  bool Vector<int>::ContainsNaN() const
+  {
+    return false;
+  }
+
+  template<>
+  bool Vector<unsigned int>::ContainsNaN() const
+  {
     return false;
   }
 
@@ -1335,9 +1347,9 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if((boost::math::isnan)(data_[k].real()))
+      if(std::isnan(data_[k].real()))
         return true;
-      if((boost::math::isnan)(data_[k].imag()))
+      if(std::isnan(data_[k].imag()))
         return true;
     }
     return false;
@@ -1348,9 +1360,21 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if((boost::math::isinf)(data_[k]))
+      if(std::isinf(data_[k]))
         return true;
 
+    return false;
+  }
+
+  template<>
+  bool Vector<int>::ContainsInf() const
+  {
+    return false;
+  }
+
+  template<>
+  bool Vector<unsigned int>::ContainsInf() const
+  {
     return false;
   }
 
@@ -1359,13 +1383,14 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if((boost::math::isinf)(data_[k].real()))
+      if(std::isinf(data_[k].real()))
         return true;
-      if((boost::math::isinf)(data_[k].imag()))
+      if(std::isinf(data_[k].imag()))
         return true;
     }
     return false;
   }
+
 
   template<typename T>
   inline bool Vector<T>::operator==(const Vector<T> &x) const {

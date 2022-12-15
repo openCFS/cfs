@@ -1,7 +1,0 @@
---- install/include/lis_config.h	2020-12-01 17:33:00.206916746 +0100
-+++ install/include/lis_config.h	2020-12-01 18:32:41.270770324 +0100
-@@ -24,3 +24,3 @@
- /* Define to 1 if you have the <complex.h> header file. */
--#define HAVE_COMPLEX_H 1
-+// do not define HAVE_COMPLEX_H 1
- 

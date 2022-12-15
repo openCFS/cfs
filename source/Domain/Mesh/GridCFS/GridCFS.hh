@@ -4,11 +4,6 @@
 
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#ifdef __GNUG__
-#endif
-#include <boost/sort/sort.hpp>
-#ifdef __GNUG__
-#endif
 
 namespace CoupledField
 {

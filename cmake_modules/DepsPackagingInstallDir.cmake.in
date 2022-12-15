@@ -24,17 +24,16 @@ set(PRECOMPILED_PCKG_FILE @PRECOMPILED_PCKG_FILE@)
 set(DEPS_INSTALL @DEPS_INSTALL@)
 set(LIB_SUFFIX @LIB_SUFFIX@) # shall be "lib"
 
-if(NOT EXISTS "${CFS_DEPS_CACHE_DIR}/precompiled}")
-  message("create ${CFS_DEPS_CACHE_DIR}/precompiled")
+if(NOT IS_DIRECTORY "${CFS_DEPS_CACHE_DIR}/precompiled}")
   file(MAKE_DIRECTORY "${CFS_DEPS_CACHE_DIR}/precompiled")
 endif()
 
-cmake_print_variables(CFS_DEPS_CACHE_DIR)
-cmake_print_variables(PRECOMPILED_PCKG_FILE)
-cmake_print_variables(DEPS_INSTALL)
+#cmake_print_variables(CFS_DEPS_CACHE_DIR)
+#cmake_print_variables(PRECOMPILED_PCKG_FILE)
+#cmake_print_variables(DEPS_INSTALL)
 
 # standard make or configure does not necessarily know about lib
-if(NOT EXISTS "${DEPS_INSTALL}/${LIB_SUFFIX}")
+if(NOT IS_DIRECTORY "${DEPS_INSTALL}/${LIB_SUFFIX}")
   FILE(MAKE_DIRECTORY "${DEPS_INSTALL}/${LIB_SUFFIX}")
 endif()
 

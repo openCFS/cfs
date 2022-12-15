@@ -1,13 +1,8 @@
 #=============================================================================
-# Set global variables, configured from the external build.
-#=============================================================================
-set(ARPACK_source  "@ARPACK_source@")
-set(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-
-#=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+set(CMAKE_SOURCE_DIR "@CMAKE_SOURCE_DIR@")
+INCLUDE("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 
 # arpack org CMake wants always system blas, what is not necessary for us
@@ -17,5 +12,5 @@ set(patches
   "arpack_no_system_blas.patch"
 )
 
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/arpack")
+APPLY_PATCHES("${patches}" "${CMAKE_SOURCE_DIR}/cfsdeps/arpack")
 

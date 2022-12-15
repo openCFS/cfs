@@ -760,7 +760,7 @@ void MMA::HessianOfDual(const Vector<double>& lambda_in, const Vector<double>& m
 
 
   #pragma omp parallel for num_threads(CFS_NUM_THREADS) reduction(+:pj_x_lambda,qj_x_lambda)
-  for(unsigned int i=0; i<n; ++i)
+  for(int i=0; i < (int) n; ++i)
   {
     pj_x_lambda = p_0j[i];
     qj_x_lambda = q_0j[i];
@@ -1136,7 +1136,7 @@ int DualSolver::FallbackHessianSolver()
     while(ft > fgoal + mma->sub_solve_tol/100)
     {
       // two reductions from Hessian are not trustworthy
-      if(do_hess and step < .1)
+      if(do_hess && step < .1)
       {
          dir = grad;
          step = 1;

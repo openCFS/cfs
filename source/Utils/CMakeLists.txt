@@ -30,9 +30,7 @@ SET(TARGET_LL
   datainout
   matvec
   coordsystems
-  ${BOOST_SERIALIZATION_LIB}
-  ${BOOST_REGEX_LIB}
-)
+  ${BOOST_LIBRARY} )
 
 TARGET_LINK_LIBRARIES(utils 
   ${TARGET_LL}

@@ -3,9 +3,9 @@
 option(BUILD_PYMUPARSER "Build Python binding for muParser" OFF)
 mark_as_advanced(BUILD_PYMUPARSER)
 
-if(NOT PYTHON_EXECUTABLE)
+if(BUILD_PYMUPARSER AND NOT PYTHON_EXECUTABLE)
     message(WARNING "Cannot build PyMuParser without a Python interpreter.\nPlease set PYTHON_EXECUTABLE")
-endif(NOT PYTHON_EXECUTABLE)
+endif()
 
 if(BUILD_PYMUPARSER AND PYTHON_EXECUTABLE)
 

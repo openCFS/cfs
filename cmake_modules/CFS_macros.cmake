@@ -501,7 +501,7 @@ endmacro()
 # see assert_set() 
 macro(assert_unset test)
   if(${test})
-     message(FATAL_ERROR  "assertion failed, the variable ${test} is already set to '${test}'")
+     message(FATAL_ERROR  "assertion failed: variable ${test} is already set")
   endif()
 endmacro()
 
@@ -511,6 +511,21 @@ macro(assert_not test compare)
     message(FATAL_ERROR "assert failed, string is ${test} but shall be different")
   endif()
 endmacro()
+
+# assert that a file exists
+macro(assert_file_exists test)
+  if(NOT EXISTS ${test})
+     message(FATAL_ERROR "file ${test} not found")
+  endif()
+endmacro()      
+
+# assert that a directorx exists
+macro(assert_dir_exists test)
+  if(NOT IS_DIRECTORY ${test})
+     message(FATAL_ERROR "directory ${test} not found")
+  endif()
+endmacro()      
+
 
 #-------------------------------------------------------------------------------
 # Run a program with optional logging and throw error if return code is non-zero

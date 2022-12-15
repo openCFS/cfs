@@ -83,6 +83,9 @@ else()
   if(${CFS_DEPS_PRECOMPILED})
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
+  else()
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()  
   endif()  
 endif()
 

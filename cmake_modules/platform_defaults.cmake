@@ -81,10 +81,13 @@ IF(WIN32)
 ELSE()
   set(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOME}/.cfs_platform_defaults.cmake") 
 ENDIF(WIN32)
+
 # message(DEBUG "local file is ${CMAKE_HOST_DEFAULTS_INC_HOME}") # VERBOSE-TRACE are only supported from cmake 3.15
 if(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME}")
   message(STATUS "including ${CMAKE_HOST_DEFAULTS_INC_HOME}")
   include("${CMAKE_HOST_DEFAULTS_INC_HOME}")
+else()
+  message(STATUS "no personal configuration ${CMAKE_HOST_DEFAULTS_INC_HOME} found")
 endif()
 
 set(CMAKE_HOST_DEFAULTS_INC_HOME_HOST "$ENV{HOME}/.cfs_platform_defaults_${CFS_BUILD_HOST}.cmake") 

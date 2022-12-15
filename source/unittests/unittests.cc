@@ -7,6 +7,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/mpl/list.hpp>
 
+#undef max // prevet Windows issue
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 
@@ -19,7 +20,7 @@
  * ./cfstest --color_output --log_level=message
  *
  * More output with runtimes of individual test cases:
- * ./cfstest --color_output --log_level=unit_scope
+ * ./cfstest --color_output --log_level=ut_scope
  *
  * Even more output with passed tests:
  * ./cfstest --color_output --log_level=success

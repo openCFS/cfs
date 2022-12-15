@@ -47,17 +47,16 @@ function(MKL_VERSION_FROM_HEADER)
 
 endfunction(MKL_VERSION_FROM_HEADER)
 
-IF(MSVC)
+if(MSVC)
   #-----------------------------------------------------------------------------
   # If not specified by the user, try to determine proper MKL root directory.
   #-----------------------------------------------------------------------------
-  IF(NOT MKL_ROOT_DIR)
-    SET(MKL_POSSIBLE_ROOT_DIRS
+  if(NOT MKL_ROOT_DIR)
+    set(MKL_POSSIBLE_ROOT_DIRS
       "e:/dev/intel/MKL/composer_xe_2013"
       "e:/dev/intel/MKL/10.0.5.025"
       "$ENV{MKLROOT}"
-      "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.228/windows/mkl"
-    )
+      "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.228/windows/mkl" )
 
     find_file(MKL_H
       "include/mkl.h"
@@ -68,13 +67,14 @@ IF(MSVC)
       NO_CMAKE_PATH
       NO_SYSTEM_ENVIRONMENT_PATH
       NO_CMAKE_SYSTEM_PATH
-      NO_CMAKE_FIND_ROOT_PATH
-      )
+      NO_CMAKE_FIND_ROOT_PATH )
 
     STRING(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
     #  MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
-  ENDIF()
-
+  endif()
+ 
+  # e.g. MKL_ROOT_DIR=C:/Program Files (x86)/Intel/oneAPI/mkl/latest
+  assert_dir_exists(${MKL_ROOT_DIR})
 
   #---------------------------------------------------------------------------
   # Read mkl version from header files
@@ -87,65 +87,52 @@ IF(MSVC)
   else()
     set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64" CACHE PATH "here we assume the mkl libs")
   endif()
+  assert_dir_exists(${MKL_LIB_DIR})
+  set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL.")
 
   # mkl_solver* libs are deprecated as of v10
   # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
 
-  SET(MKL_BLAS_LIB
+  set(MKL_BLAS_LIB
     ${MKL_LIB_DIR}/mkl_intel_lp64_dll.lib
     ${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
-    ${MKL_LIB_DIR}/mkl_core_dll.lib
-  )
-  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
-    SET(MKL_BLAS_LIB 
-      ${MKL_BLAS_LIB}
-      ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
-    )
-  ELSE()
-    SET(MKL_BLAS_LIB 
-      ${MKL_BLAS_LIB}
-      ${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win/libiomp5md.lib
-    )
-  ENDIF()
+    ${MKL_LIB_DIR}/mkl_core_dll.lib )
+	
+  if(USE_OPENMP)	
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
+      set(LIBOMP ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib) 
+      assert_file_exists(${LIBOMP})
+    else() 
+      # there seems to be bo static openmp-lib ?!
+      # set(LIBOMP "${MKL_ROOT_DIR}/../../compiler/latest/windows/redist/intel64_win/compiler/libiomp5md.dll")
+    endif()
+    list(APPEND MKL_BLAS_LIB ${LIBOMP})
+  endif() 	
 
-  SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+  set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
-  SET(DEPS_SEQUENTIAL
+  set(DEPS_SEQUENTIAL
     ${MKL_LIB_DIR}/mkl_intel_lp64.lib
     ${MKL_LIB_DIR}/mkl_intel_thread.lib
     ${MKL_LIB_DIR}/mkl_core.lib
     ${MKL_LIB_DIR}/mkl_sequential.lib
-  )
-  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
-    SET(DEPS_SEQUENTIAL
-      ${DEPS_SEQUENTIAL}
-      ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib
-    )
-  ELSE()
-    SET(DEPS_SEQUENTIAL
-      ${DEPS_SEQUENTIAL}
-      ${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win/libiomp5md.lib
-    )
-  ENDIF()
+    ${LIBOMP} ) # LIBOMP is empty without openMP and with too new MSVC
 
-  SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
-
-  #-------------------------------------------------------------------------------
   # Copy MKL redistributable dlls to bin/ directory
-  #-------------------------------------------------------------------------------
-  SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
   
   # redistributable directory
-  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
-    SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
-  ELSE()
-    SET(MKL_REDIST_DIR "${MKL_ROOT_DIR}/redist/intel64/")
-  ENDIF()
-  
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
+    set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+  else()
+    # C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\redist\intel64_win\compiler>
+    set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/redist/intel64/")
+  endif()
+  assert_dir_exists(${MKL_REDIST_DIR})
+
+  set(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
   # copy all dlls to binary dir
-  MESSAGE(STATUS "Copying MKL redistributable files from ${MKL_REDIST_DIR} to ${LIB_DEST_DIR}")
-  FILE(COPY ${MKL_REDIST_DIR} DESTINATION ${LIB_DEST_DIR}
-       FILES_MATCHING PATTERN "*.dll")
+  message(STATUS "Copying MKL redistributable files from ${MKL_REDIST_DIR} to ${LIB_DEST_DIR}")
+  file(COPY ${MKL_REDIST_DIR} DESTINATION ${LIB_DEST_DIR} FILES_MATCHING PATTERN "*.dll")
 
 # END MSVC
 elseif(APPLE) # note tha APPLE is ALSO UNIX! 

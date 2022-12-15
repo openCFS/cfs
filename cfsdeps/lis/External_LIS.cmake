@@ -11,6 +11,12 @@ set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "5a666ee5bd8af29d3d171771ead78a36")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
+if(USE_OPENMP)
+  set(DEPS_ID "OPENMP")
+else()
+  set(DEPS_ID "NO_OPENMP")
+endif()
+
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://www.ssisc.org/lis/dl/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
@@ -26,20 +32,29 @@ set_precompiled_pckg_file()
 set_package_library_default()
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
-# this is the standard target for configure projects (builds in source). This directory will be zipped
-set(DEPS_INSTALL "${DEPS_PREFIX}/install")
+# standard for UNIX, for WIN32 we need to build in source
+set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}") # we need to set it manually in the win case
+if(UNIX)
+  set(DEPS_INSTALL "${DEPS_PREFIX}/install")
+else()
+  set(DEPS_INSTALL "${DEPS_SOURCE}/win/my_install")
+endif()
 
-# lis has a configure.bat for Windows. There is also a cmake project for lis which seems to be outdated
+# these settings are for UNIX only. For configure.bat we have only a reduced set
 set_configure_default()
-set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --enable-omp=yes --enable-test=no --enable-fma=yes --enable-complex=yes --enable-saamg=no --enable-static --enable-shared=no )
-
-# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+if(USE_OPENMP) # don't combine with setting DEPS_ID - mixes up order of called macros.
+  list(APPEND DEPS_CONFIGURE --enable-omp=yes)
+else()
+  list(APPEND DEPS_CONFIGURE --enable-omp=no)
+endif()
+list(APPEND DEPS_CONFIGURE --enable-test=no --enable-fma=yes --enable-complex=yes --enable-saamg=no --enable-static --enable-shared=no )
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
-file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
-     DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-assert_unset(PATCHES_SCRIPT)
+if(WIN32)
+  generate_patches_script() # for UNIX create_external_configure() asserts this not to be set
+endif()
 
 # generate package ceation script. 
 generate_packing_script_install_dir()
@@ -56,11 +71,32 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  # add external project step actually building an cmake package including a patch
-  # also genearate the patch script via generate_patches_script()
-  create_external_configure()
-
-  assert_set(DEPS_SOURCE)
+  if(WIN32)
+    assert_set(PATCHES_SCRIPT)
+    # the standard DEPS_INSTALL has issues with Windows, stay in build dir	    
+    set(WIN_CONFIGURE --disable-test --enable-complex --prefix my_install ) 
+    if(USE_OPENMP)
+      list(APPEND WIN_CONFIGURE --enable-omp)
+    endif()
+    if(CMAKE_C_COMPILER_ID MATCHES "Intel")
+      list(APPEND WIN_CONFIGURE --enable-intelc) # for IntelLLVM we need to patch Makefile.in icl -> icx
+    endif()
+    ExternalProject_Add("${PACKAGE_NAME}"
+      PREFIX "${DEPS_PREFIX}"
+      # Windows needs to have condigure.bat and successive nmake exececuted in <source>/win
+      BINARY_DIR ${DEPS_SOURCE}/win
+      URL "${PACKAGE_MIRRORS}"
+      URL_MD5 "${PACKAGE_MD5}"
+      DOWNLOAD_DIR "${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}"
+      DOWNLOAD_NAME "${PACKAGE_FILE}"
+      DOWNLOAD_NO_PROGRESS ON 
+      PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
+      CONFIGURE_COMMAND ${DEPS_SOURCE}/win/configure.bat ${WIN_CONFIGURE}
+      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
+  else()
+    # standard configure works for macOS and Linux
+    create_external_configure()
+  endif()
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
@@ -76,6 +112,9 @@ else()
     ExternalProject_Add_Step(${PACKAGE_NAME} copy_lis_precond
       COMMAND ${CMAKE_COMMAND} -E copy ${DEPS_SOURCE}/include/lis_precon.h ${CMAKE_BINARY_DIR}/include
       DEPENDEES install )
+
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()  
   endif()
 endif()
 

@@ -3,7 +3,6 @@
 include("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
 
 # this variables are needed by ZIP_TO_CACHE() in the case of no given manifest
-assert_not_empty(@CFS_ARCH_STR@)
 assert_not_empty(@TMP_DIR@) # @TMP_DIR@ is just a replacement, no variable to test
 assert_not_empty(@PRECOMPILED_PCKG_FILE@)
 

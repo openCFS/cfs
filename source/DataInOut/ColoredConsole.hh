@@ -12,58 +12,57 @@
 #include <iomanip>
 
 #if defined(WIN32)
+#define NOMINMAX
 #include <windows.h>
 #endif
-
-#include <General/Environment.hh>
 
 namespace CoupledField
 {
 
 #if defined(WIN32)
-  static const UInt bgMask( BACKGROUND_BLUE      |
+  static const unsigned int bgMask( BACKGROUND_BLUE      |
                             BACKGROUND_GREEN     |
                             BACKGROUND_RED       |
                             BACKGROUND_INTENSITY   );
-  static const UInt fgMask( FOREGROUND_BLUE      |
+  static const unsigned int fgMask( FOREGROUND_BLUE      |
                             FOREGROUND_GREEN     |
                             FOREGROUND_RED       |
                             FOREGROUND_INTENSITY   );
 
-  static const UInt fgBlack    ( 0 );
-  static const UInt fgLoRed    ( FOREGROUND_RED   );
-  static const UInt fgLoGreen  ( FOREGROUND_GREEN );
-  static const UInt fgLoBlue   ( FOREGROUND_BLUE  );
-  static const UInt fgLoCyan   ( fgLoGreen   | fgLoBlue );
-  static const UInt fgLoMagenta( fgLoRed     | fgLoBlue );
-  static const UInt fgLoYellow ( fgLoRed     | fgLoGreen );
-  static const UInt fgLoWhite  ( fgLoRed     | fgLoGreen | fgLoBlue );
-  static const UInt fgGray     ( fgBlack     | FOREGROUND_INTENSITY );
-  static const UInt fgHiWhite  ( fgLoWhite   | FOREGROUND_INTENSITY );
-  static const UInt fgHiBlue   ( fgLoBlue    | FOREGROUND_INTENSITY );
-  static const UInt fgHiGreen  ( fgLoGreen   | FOREGROUND_INTENSITY );
-  static const UInt fgHiRed    ( fgLoRed     | FOREGROUND_INTENSITY );
-  static const UInt fgHiCyan   ( fgLoCyan    | FOREGROUND_INTENSITY );
-  static const UInt fgHiMagenta( fgLoMagenta | FOREGROUND_INTENSITY );
-  static const UInt fgHiYellow ( fgLoYellow  | FOREGROUND_INTENSITY );
-  static const UInt bgBlack    ( 0 );
-  static const UInt bgLoRed    ( BACKGROUND_RED   );
-  static const UInt bgLoGreen  ( BACKGROUND_GREEN );
-  static const UInt bgLoBlue   ( BACKGROUND_BLUE  );
-  static const UInt bgLoCyan   ( bgLoGreen   | bgLoBlue );
-  static const UInt bgLoMagenta( bgLoRed     | bgLoBlue );
-  static const UInt bgLoYellow ( bgLoRed     | bgLoGreen );
-  static const UInt bgLoWhite  ( bgLoRed     | bgLoGreen | bgLoBlue );
-  static const UInt bgGray     ( bgBlack     | BACKGROUND_INTENSITY );
-  static const UInt bgHiWhite  ( bgLoWhite   | BACKGROUND_INTENSITY );
-  static const UInt bgHiBlue   ( bgLoBlue    | BACKGROUND_INTENSITY );
-  static const UInt bgHiGreen  ( bgLoGreen   | BACKGROUND_INTENSITY );
-  static const UInt bgHiRed    ( bgLoRed     | BACKGROUND_INTENSITY );
-  static const UInt bgHiCyan   ( bgLoCyan    | BACKGROUND_INTENSITY );
-  static const UInt bgHiMagenta( bgLoMagenta | BACKGROUND_INTENSITY );
-  static const UInt bgHiYellow ( bgLoYellow  | BACKGROUND_INTENSITY );
+  static const unsigned int fgBlack    ( 0 );
+  static const unsigned int fgLoRed    ( FOREGROUND_RED   );
+  static const unsigned int fgLoGreen  ( FOREGROUND_GREEN );
+  static const unsigned int fgLoBlue   ( FOREGROUND_BLUE  );
+  static const unsigned int fgLoCyan   ( fgLoGreen   | fgLoBlue );
+  static const unsigned int fgLoMagenta( fgLoRed     | fgLoBlue );
+  static const unsigned int fgLoYellow ( fgLoRed     | fgLoGreen );
+  static const unsigned int fgLoWhite  ( fgLoRed     | fgLoGreen | fgLoBlue );
+  static const unsigned int fgGray     ( fgBlack     | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiWhite  ( fgLoWhite   | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiBlue   ( fgLoBlue    | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiGreen  ( fgLoGreen   | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiRed    ( fgLoRed     | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiCyan   ( fgLoCyan    | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiMagenta( fgLoMagenta | FOREGROUND_INTENSITY );
+  static const unsigned int fgHiYellow ( fgLoYellow  | FOREGROUND_INTENSITY );
+  static const unsigned int bgBlack    ( 0 );
+  static const unsigned int bgLoRed    ( BACKGROUND_RED   );
+  static const unsigned int bgLoGreen  ( BACKGROUND_GREEN );
+  static const unsigned int bgLoBlue   ( BACKGROUND_BLUE  );
+  static const unsigned int bgLoCyan   ( bgLoGreen   | bgLoBlue );
+  static const unsigned int bgLoMagenta( bgLoRed     | bgLoBlue );
+  static const unsigned int bgLoYellow ( bgLoRed     | bgLoGreen );
+  static const unsigned int bgLoWhite  ( bgLoRed     | bgLoGreen | bgLoBlue );
+  static const unsigned int bgGray     ( bgBlack     | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiWhite  ( bgLoWhite   | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiBlue   ( bgLoBlue    | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiGreen  ( bgLoGreen   | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiRed    ( bgLoRed     | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiCyan   ( bgLoCyan    | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiMagenta( bgLoMagenta | BACKGROUND_INTENSITY );
+  static const unsigned int bgHiYellow ( bgLoYellow  | BACKGROUND_INTENSITY );
 
-  static const UInt fgbgReset ( (bgMask  | fgMask) + 1);
+  static const unsigned int fgbgReset ( (bgMask  | fgMask) + 1);
 
 #endif
 
@@ -72,9 +71,9 @@ namespace CoupledField
 #if defined(WIN32)
   private:
     HANDLE                      hCon;
-    UInt                        cCharsWritten;
+    unsigned int                        cCharsWritten;
     CONSOLE_SCREEN_BUFFER_INFO  csbi;
-    UInt                        dwConSize;
+    unsigned int                        dwConSize;
 	WORD                        wDefaultAttributes;
 #endif
 
@@ -120,8 +119,8 @@ namespace CoupledField
    #endif
     }
 
-    void SetColor( UInt wRGBI,
-                   UInt Mask,
+    void SetColor( unsigned int wRGBI,
+                   unsigned int Mask,
                    std::string modif,
                    std::ostream& os )
     {
@@ -393,7 +392,6 @@ namespace CoupledField
 
  // HACK to prevent name clashes while compiling WriteInfo.cc
 #undef CONST
-#undef max
 #undef CreateFile
 
 //------------------------------------------------------------------------------

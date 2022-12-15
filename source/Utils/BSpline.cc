@@ -1,10 +1,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "MatVec/Matrix.hh"
 #include "Utils/BSpline.hh"
-#ifdef WIN32
-  #include <ciso646>
-#endif
-
 
 namespace CoupledField {
 
@@ -88,7 +84,7 @@ Matrix<double> BSpline::BasisFuncDg0(StdVector<double>* t, StdVector<double> kno
   // B_i,0(t) = 1 if knots_i <= t < knots_i+1 else 0
   for(unsigned int i = 0; i < numIntervals; ++i) {
     for(unsigned int j = 0; j < t->GetSize(); ++j) {
-      if(knots[i] <= (*t)[j] and (*t)[j] < knots[i+1]) {
+      if(knots[i] <= (*t)[j] && (*t)[j] < knots[i+1]) {
         bfun[j][i] = 1;
       }
     }

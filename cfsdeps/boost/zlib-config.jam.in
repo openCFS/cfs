@@ -1,0 +1,3 @@
+using zlib : @ZLIB_VER@ :
+  <include>"@ZLIB_INCLUDE_DIR@"
+  <search>"@CMAKE_BINARY_DIR@/lib" ;

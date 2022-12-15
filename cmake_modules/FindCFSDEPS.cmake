@@ -320,14 +320,7 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
-SET(BOOST_MAJOR_VER 1)
-SET(BOOST_MINOR_VER 73)
-SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
-SET(BOOST_GZ "boost_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
-SET(BOOST_MD5 "b2dfbd6c717be4a7bb2d88018eaccf75") #1.66
-#SET(BOOST_MD5 "7fbd1890f571051f2a209681d57d486a") # 1.68
-SET(BOOST_MD5 "9273c8c4576423562bbe84574b07b2bd") # 1.73
-INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
+include("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
 # Build MuParser library

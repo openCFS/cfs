@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <stdlib.h>
 
 #include "Environment.hh"
 #include "Utils/tools.hh"
@@ -2010,24 +2011,32 @@ namespace CoupledField {
     }
   }
 
+  // on windows we have no setenv() but putenv() which demands a non-local string space
+  #if defined(USE_OPENMP) && defined(WIN32)
+    static char omp_threads[1024];
+    static char mkl_threads[1024];
+  #endif
+
   void SetNumberOfThreads(int cfs, bool homogenize, bool quiet)
   {
     using std::cout;
+
+    CFS_NUM_THREADS = cfs; // this is a global int variable
+
 #if defined(_MSC_VER) && (!defined(__INTEL_COMPILER))
-    if(!quiet)
+    if(!quiet && cfs > 1)
     {
       cout << "==================================================================================" << std::endl;
       cout << "  WARNING:This version of openCFS has been compiled using Microsoft C++ compilers." << std::endl;
       cout << "  Due to limited support for OpenMP (Version 2.0), the number of parallel CFS threads is limited to 1." << std::endl;
-      cout << "  The number of CFS threads for this run has been specified to " << numThreads << ", either\n\tby using commandline argument \"-t " << numThreads << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
+      cout << "  The number of CFS threads for this run has been specified to " << cfs << ", either" << std::endl;
+      cout << "  by using command line argument \"-t " << cfs << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
       cout << "  Due to these compiler limitations, this has been reset to a single thread." << std::endl;
       cout << "  Note that the settings for OMP_NUM_THREADS and/or MKL_NUM_THREADS are not involved." << std::endl;
       cout << "==================================================================================" << std::endl;
     }
     CFS_NUM_THREADS=1;
 #endif
-
-    CFS_NUM_THREADS = cfs; // this is a global int variable
 
 #ifdef USE_OPENMP
     assert(cfs >= 1); // programOptions has this as fallback
@@ -2039,11 +2048,22 @@ namespace CoupledField {
     // note that this change is only for this process and child processes, it does not change the system settings.
     if(omp <= 0) {
       omp = cfs; // for later comparison
-      setenv("OMP_NUM_THREADS",to_string(omp).c_str(),1); // libs read it there
+      #ifndef WIN32
+        setenv("OMP_NUM_THREADS",to_string(omp).c_str(),1); // libs read it there
+      #else
+        // there is no setenv() on Windows and ancient POSIX putenv needs a static string source
+        strncpy(omp_threads, string("OMP_NUM_THREADS=" + to_string(omp)).c_str(), 1022);
+        putenv(omp_threads);
+      #endif
     }
     if(mkl <= 0) {
       mkl = cfs;
-      setenv("MKL_NUM_THREADS",to_string(mkl).c_str(),1); // 1 = overwrite but it shall not have been there before
+      #ifndef WIN32
+        setenv("MKL_NUM_THREADS",to_string(mkl).c_str(),1); // 1 = overwrite but it shall not have been there before
+      #else
+        strncpy(mkl_threads, string("MKL_NUM_THREADS=" + to_string(mkl)).c_str(), 1022);
+        putenv(mkl_threads);
+     #endif
     }
 
     // now some hints if OMP and MKL were set to something different than CFS

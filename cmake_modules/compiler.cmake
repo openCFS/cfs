@@ -36,6 +36,9 @@ find_package(OpenMP)
 
 if(USE_OPENMP)
   set(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
+  if(WIN32)
+    cmake_print_variables(OpenMP_CXX_FLAGS)
+  endif()  
   set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
   if(APPLE)
     # best is to use homebrew llvm: https://stackoverflow.com/questions/43555410/enable-openmp-support-in-clang-in-mac-os-x-sierra-mojave
@@ -44,13 +47,15 @@ if(USE_OPENMP)
   endif()   
 endif() # USE_OPENMP
 
-#-------------------------------------------------------------------------------
-# Check if we are using the GNU C++ or clang compiler
-#-------------------------------------------------------------------------------
+# Clang can be UNIX (macOS as AppleClang or Linxu) or Windows (MSVC bundled). 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # we assue C++14 for CFS for any compiler (including icc below)
   set(CFS_CXX_FLAGS "-std=c++14 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   set(CFS_C_FLAGS "-std=c11")
+
+  if(WIN32)
+   set(CFS_CXX_FLAGS " -D_WIN32_WINNT=0x0A00")
+  endif()
 
   IF(CFS_FSANITIZE)
     SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
@@ -167,6 +172,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations")
   ENDIF()
 
+  if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # no need for AppleClang
+    # we are in the strict Linux case
+    # clang 15 on openSUSE would otherwise not compile sniot
+    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS$} -no-pie")
+  endif()
+
   if(APPLE)
     # Check wether the compiler has the -sysroot= flag.
     # note that in the first run this is executed before distro.cmake where the architecture might be defined!
@@ -207,10 +218,6 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   #-------------------------------------------------------------------------------
   # Check for Visual Studio C++ compiler
   #-------------------------------------------------------------------------------
-#  include(CMakeDetermineVSServicePack)
-#  DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
-#  string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
-#  SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
 
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
@@ -228,18 +235,30 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # const/volatile qualifiers
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4373")
 
-  # this is for WINDOWS 10
+  # this is for WINDOWS 10. It is essential to have the same version for the boost libs see External_Boost.cmake
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
-
+  
   # support for alternative tokens requires the following
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /permissive- /Zc:twoPhase-")
 
-#  MESSAGE(FATAL_ERROR "CMAKE_CXX_COMPILER_ID ${CMAKE_CXX_COMPILER_ID} Compiler")
+  # This flag is mandatory on any Winwdows variant, otherwise you get cannot find "libboost_serialization-clangw16-mt-x64-1_81.lib"
+  # see https://www.boost.org/doc/libs/1_81_0/libs/config/doc/html/index.html
+  # issue: https://discourse.cmake.org/t/linking-on-windows-requires-versioned-boost-libraries/7119/3
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /DBOOST_ALL_NO_LIB")
 
-#  MESSAGE(FATAL_ERROR "MSVC Compiler")
-#-------------------------------------------------------------------------------
-# Check for Intel C++ compiler
-#-------------------------------------------------------------------------------
+# check for Intel oneAPI llvm based compiler
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). Interface seems compatible
+  # mandatoy for Windows, correct but not necessary on UNIX
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
+
+  if(WIN32)
+   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D_WIN32_WINNT=0x0A00")
+  endif()
+
+  # also ixc win Windows with MSVC command line interface seems to understand gcc style  
+  set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment")
+
+# Check for Intel C++ compiler (classic compiler) - to be depreciated mid 2023
 ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
@@ -260,7 +279,7 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   ELSE()
     # this is for WINDOWS 10
     SET(CFS_C_FLAGS "${CFS_C_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c99")
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++14")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /DBOOST_ALL_NO_LIB /Qstd=c++14")
     SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++14")
     IF(DEBUG)
       SET(CFS_C_FLAGS "/Z7 /w1 /Wcheck /Werror ${CFS_C_FLAGS}")
@@ -271,7 +290,8 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
       # release case
       SET(CFS_CXX_FLAGS "/W0 ${CFS_CXX_FLAGS}")
       SET(CFSDEPS_CXX_FLAGS "/W0 ${CFSDEPS_CXX_FLAGS}")
-      SET(CFS_SUPPRESSIONS "/Qdiag-disable1125,654,980")
+      # remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023.
+      SET(CFS_SUPPRESSIONS "/Qdiag-disable1125,654,980,10441")
     ENDIF()
   ENDIF()
 
@@ -299,8 +319,7 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   #---------------------------------------------------------------------------
   IF(UNIX)
     SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
 
   #---------------------------------------------------------------------------
@@ -358,6 +377,9 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 #    )
 
   IF(WIN32)
+   
+    # TODO: this block could be doubled with FindIntelMKL.cmake ! 
+    
     #-----------------------------------------------------------------------------
     # Copy compiler runtime .dlls to bin directory
     #-----------------------------------------------------------------------------
@@ -379,13 +401,8 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
     GET_FILENAME_COMPONENT(INTEL_COMPILER_DIR ${CMAKE_Fortran_COMPILER} PATH)    
 
-    IF(CMAKE_Fortran_COMPILER_VERSION MATCHES "20\\.")
-      # intel oneApi
-      SET(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64_win/compiler/")
-    ELSE()
-      #intel parallel studio pre oneApi
-      SET(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64/compiler/")
-    ENDIF()
+	  set(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64_win/compiler/")
+    # for  parallel studio pre oneApi was set(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64/compiler/")
     
     MESSAGE(STATUS "Copying INTEL redistributable files from ${ICC_REDIST_DIR} to ${LIB_DEST_DIR}")
     FOREACH(lib IN LISTS INTEL_DLLS)
@@ -408,10 +425,7 @@ STRING(STRIP "${CMAKE_MODULE_LINKER_FLAGS}" CMAKE_MODULE_LINKER_FLAGS)
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
 STRING(STRIP "${CMAKE_SHARED_LINKER_FLAGS}" CMAKE_SHARED_LINKER_FLAGS)
 
-# MESSAGE("C++ name: ${CMAKE_CXX_COMPILER_ID}")
-# MESSAGE("C++ version: ${CMAKE_CXX_COMPILER_VERSION}")
-# MESSAGE("FORTRAN Compiler ${CMAKE_Fortran_COMPILER_ID}")
-# MESSAGE("FORTRAN Compiler version ${CMAKE_Fortran_COMPILER_VERSION}")
-# MESSAGE("CMAKE BUILD TYPE: ${CMAKE_BUILD_TYPE}")
-# MESSAGE("CFS_ARCH_STR: ${CFS_ARCH_STR}")
-
+if(WIN32)
+  cmake_print_variables(CMAKE_CXX_FLAGS)
+  cmake_print_variables(CFS_SUPPRESSIONS)
+endif()

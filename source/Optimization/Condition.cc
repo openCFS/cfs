@@ -28,6 +28,10 @@
 #include "Utils/tools.hh"
 #include <boost/lexical_cast.hpp>
 
+#if defined(WIN32) && defined(__INTEL_COMPILER)
+  #include <ciso646>
+#endif
+
 using std::string;
 using std::pair;
 

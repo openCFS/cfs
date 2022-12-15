@@ -43,15 +43,14 @@ SET(DATAINOUT_SRCS
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 
-SET(TARGET_LL
-  simouttext
-  simoutinfo
-  simoutstreaming
-)
+set(TARGET_LL simouttext simoutinfo)
+
+if(USE_STREAMING)
+  list(APPEND TARGET_LL simoutstreaming)
+endif()
 
 LIST(APPEND TARGET_LL
-  ${BOOST_PROGRAM_OPTIONS_LIB}
-  ${BOOST_FILESYSTEM_LIB}
+  ${BOOST_LIBRARY}
   ${BZIP2_LIBRARY}
   ${ZIP_LIBRARY_SHARED}
   )

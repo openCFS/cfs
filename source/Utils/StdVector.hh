@@ -273,7 +273,8 @@ namespace CoupledField {
     //! Get the length of the vector
     inline size_type size() const {return size_;}
 
-    //! Get maximal length of vector
+    /** Get maximal length of vector.
+     * On Windows max() could be a macro, so call #undef max in some header or #define NOMINMAX #include <windows.h> */
     inline size_type max_size() const {return std::numeric_limits<size_type>::max();}
 
     /** Set the length of the vector but might keep the capacity!

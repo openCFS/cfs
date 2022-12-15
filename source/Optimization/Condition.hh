@@ -199,11 +199,11 @@ namespace CoupledField
 
       /** This is only needed for biisotropy constraints, meaning that both permittitvity and permeability shall be isotropic
        *  biisotropy == true indicates isotropy constraints on the permeability  */
-      bool biisotropy_;
+      bool biisotropy_ = false;
 
       /** Information if the constraint is set for the imaginary part
        *  default=false  */
-      bool imag_;
+      bool imag_ = false;
 
       /** this is the virtual base index of this condition w.r.t. all conditions.
        * For normal condition this is simple the virtual index, for local conditions this is the base*/

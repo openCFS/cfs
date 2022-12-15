@@ -12,6 +12,7 @@ add_dependencies(siminouthdf5 hdf5 zlib)
 TARGET_LINK_LIBRARIES(siminouthdf5
   mesh
   ${HDF5_LIBRARY} 
-  ${ZLIB_LIBRARY}
-  ${BOOST_DATE_TIME_LIB})
+  ${BOOST_LIBRARY}  
+  ${ZLIB_LIBRARY} )
+
 

@@ -25,6 +25,14 @@ if(USE_SUITESPARSE_GPL)
 else()
  set(DEPS_ID "NOGPL")
 endif() 
+
+# we cannot link a parallel compiled suitesparse with debug without openmp
+if(USE_OPENMP)
+  set(DEPS_ID "${DEPS_ID}-OPENMP")
+else()
+  set(DEPS_ID "${DEPS_ID}-NO_OPENMP")
+endif()
+
 set_precompiled_pckg_file()
 
 set_static_cache_lib("AMD_LIBRARY" "amd" "AMD lib from SuiteSparse")
@@ -43,6 +51,7 @@ set_deps_args_default()
 set(DEPS_ARGS
   ${DEPS_ARGS}
   -DBUILD_STATIC:BOOL=ON
+  -DUSE_OPENMP:BOOL=${USE_OPENMP}
   -DALLOW_64BIT_BLAS:BOOL=ON
   -DALLOW_GPL_EXTENSIONS=${USE_SUITESPARSE_GPL} )
 if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
@@ -81,6 +90,9 @@ else()
   if(${CFS_DEPS_PRECOMPILED})
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
+  else()
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()  
   endif()  
 endif()
 

@@ -44,7 +44,9 @@ project(CFS C CXX Fortran)
 message(STATUS "CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID} CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "CMAKE_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID} CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_Fortran_COMPILER_ID=${CMAKE_Fortran_COMPILER_ID} CMAKE_Fortran_COMPILER_VERSION=${CMAKE_Fortran_COMPILER_VERSION}")
-
+if(WIN32)
+  cmake_print_variables(CMAKE_LINKER)	
+endif()
 
 # Make sure that output of started programs is in English, so that we can
 # grep for defined messages.
@@ -60,7 +62,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "22")
-set(CFS_VERSION_MONTH "11")
+set(CFS_VERSION_MONTH "12")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -188,6 +190,12 @@ option(USE_FLANN "Enable support for FLANN - Fast Library for Approximate Neares
 # we choose here and hande USE_XERCES and USE_LIBXML2 in the conditional options
 set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces' or 'libxml2' as xml reader.")
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
+
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  set(USE_STREAMING OFF)
+else()
+  set(USE_STREAMING ON)
+endif()    
 
 #-----------------------------------------------------------------------------
 # Do sanitiy checks after all the settings are done
@@ -464,7 +472,7 @@ endif()
 
 # Make sure the compiler can find include files from CFS.
 include_directories(
-  ${Boost_INCLUDE_DIR} 
+  ${BOOST_INCLUDE_DIR} 
   ${CFS_BINARY_DIR}/include
   ${CFS_SOURCE_DIR}/source)
 
@@ -547,7 +555,9 @@ endif(USE_EMBEDDED_PYTHON)
 
 add_subdirectory(source/DataInOut/SimInOut/TextOutput)
 add_subdirectory(source/DataInOut/SimInOut/InfoResultOutput)
-add_subdirectory(source/DataInOut/SimInOut/Streaming)
+if(USE_STREAMING)
+  add_subdirectory(source/DataInOut/SimInOut/Streaming)
+endif()
 add_subdirectory(source/DataInOut/ScatteredDataInOut)
 add_subdirectory(source/Domain)
 add_subdirectory(source/Domain/CoefFunction)
@@ -608,21 +618,17 @@ set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run 
 # choose what to install
 # see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
 
-if(UNIX)
-  # tailing / in source leads to rename to destionation
-  #install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
-  install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS)
-  install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISSIONS
-    PATTERN "*.a" EXCLUDE
-    PATTERN "*.la" EXCLUDE
-    PATTERN "*.pc" EXCLUDE
-    PATTERN "pkgconfig" EXCLUDE
-    ) 
-  # license install
-  file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
-  install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)
-else(UNIX)
-  message("Install currently restricted to UNIX")
-endif(UNIX)
+# tailing / in source leads to rename to destionation
+#install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
+install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS)
+install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISSIONS
+  PATTERN "*.a" EXCLUDE
+  PATTERN "*.la" EXCLUDE
+  PATTERN "*.pc" EXCLUDE
+  PATTERN "*.lib" EXCLUDE
+  PATTERN "pkgconfig" EXCLUDE )
+# license install
+file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
+install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)
 
 include(CPack)

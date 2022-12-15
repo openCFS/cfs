@@ -8,7 +8,7 @@
 # hence there is no context of the cmake variables and we need to "import" all via @*@.
 
 # for the asserts
-include("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
 include(CMakePrintHelpers)
 
 assert_not_empty(@CFS_DEPS_CACHE_DIR@)

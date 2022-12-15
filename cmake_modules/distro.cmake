@@ -135,9 +135,8 @@ else()
     MESSAGE(FATAL_ERROR "Unsupported machine architecture '${TARGET_ARCH}' on Windows!")
   ENDIF()
       
-  #SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_ARCH}")
-  SET(CFS_ARCH_STR "")
-
+  set(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_ARCH}")
+  
   SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
   SET(CFS_FULL_DISTRO_VER "${CMAKE_C_COMPILER_VERSION}")
 

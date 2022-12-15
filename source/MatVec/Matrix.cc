@@ -3935,29 +3935,53 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if((boost::math::isnan)(data_[0][k])) return true;
+      if(std::isnan(data_[0][k])) return true;
 
     return false;
   }
+
+  template<>
+  bool Matrix<int>::ContainsNaN() const
+  {
+    return false;
+  }
+
+  template<>
+  bool Matrix<unsigned int>::ContainsNaN() const
+  {
+    return false;
+  }
+
 
   template<>
   bool Matrix<Complex>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if((boost::math::isnan)(data_[0][k].real())) return true;
-      if((boost::math::isnan)(data_[0][k].imag())) return true;
+      if(std::isnan(data_[0][k].real())) return true;
+      if(std::isnan(data_[0][k].imag())) return true;
     }
     return false;
   }
-
 
   template<class TYPE>
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if((boost::math::isinf)(data_[0][k])) return true;
+      if(std::isinf(data_[0][k])) return true;
 
+    return false;
+  }
+
+  template<>
+  bool Matrix<int>::ContainsInf() const
+  {
+    return false;
+  }
+
+  template<>
+  bool Matrix<unsigned int>::ContainsInf() const
+  {
     return false;
   }
 
@@ -3966,8 +3990,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if((boost::math::isinf)(data_[0][k].real())) return true;
-      if((boost::math::isinf)(data_[0][k].imag())) return true;
+      if(std::isinf(data_[0][k].real())) return true;
+      if(std::isinf(data_[0][k].imag())) return true;
     }
     return false;
   }

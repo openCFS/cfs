@@ -4,3 +4,6 @@
 // the muparser is always included
 // this define will only be needed starting with muparser 2.3.2
 // #define MUP_VERSION "@MUPARSER_VER@"
+
+// issue with boost and intel classic
+#cmakedefine USE_STREAMING @USE_STREAMING@

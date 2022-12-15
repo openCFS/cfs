@@ -83,19 +83,20 @@ namespace CoupledField {
 #if (BOOST_OS_WINDOWS)
     char *exePath;
     if(_get_pgmptr(&exePath) != 0)
-      exePath = "";
+      exePath = const_cast<char*>("");
     LOG_DBG(progopts) << "OCR: win get_pgmptr=" << exePath;
 #endif
-assert(PATH_MAX > 10);
 #if (BOOST_OS_LINUX)
-     char exePath[PATH_MAX];
-     ssize_t l_len = ::readlink("/proc/self/exe", exePath, sizeof(exePath));
-     if(l_len == -1 || l_len == sizeof(exePath))
-       l_len = 0;
-     exePath[l_len] = '\0';
-     LOG_DBG(progopts) << "OCR: /proc/self/exe=" << exePath;
+	assert(PATH_MAX > 10);
+    char exePath[PATH_MAX];
+    ssize_t l_len = ::readlink("/proc/self/exe", exePath, sizeof(exePath));
+    if(l_len == -1 || l_len == sizeof(exePath))
+      l_len = 0;
+    exePath[l_len] = '\0';
+    LOG_DBG(progopts) << "OCR: /proc/self/exe=" << exePath;
 #endif
 #if (BOOST_OS_MACOS)
+	assert(PATH_MAX > 10);
     char exePath[PATH_MAX];
     // in case of a link _NSGetExecutablePath does not resolve the link
     uint32_t len = sizeof(exePath);

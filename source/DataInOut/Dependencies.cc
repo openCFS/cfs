@@ -100,6 +100,10 @@
 #include <fstream>
 #include <muParserBase.h>
 
+#if _WIN32
+  #undef max
+#endif
+
 #include "DataInOut/Dependencies.hh"
 #include "General/Environment.hh"
 
