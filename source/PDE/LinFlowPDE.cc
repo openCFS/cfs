@@ -303,7 +303,7 @@ namespace CoupledField {
       // This integrator is not created if the LinFlowPDE is coupled to the HeatPDE in symmetric form as only one of the
       // two symmteric integrators is needed and the counter part in the balance of momentum will be created instead of
       // this one
-      if(!(isHeatPDECoupled_ && isCouplingFormulationSymmetric_)) {
+      if(!isHeatPDECoupled_) {
 
         BiLinearForm * stiffIntPV = NULL;
         if( dim_ == 2 ) {
@@ -413,7 +413,7 @@ namespace CoupledField {
       stiffContVP->SetFeFunctions( velFct, presFct );
       // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
       // create the other symmteric integrator in the balance of mass
-      stiffContVP->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
+      stiffContVP->SetCounterPart(isHeatPDECoupled_);
       assemble_->AddBiLinearForm( stiffContVP );
 
 
@@ -879,7 +879,7 @@ namespace CoupledField {
             stiffContVP->SetFeFunctions( velFct, presFct );
             // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
             // create symmetric counterpart
-            stiffContVP->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
+            stiffContVP->SetCounterPart(isHeatPDECoupled_);
             assemble_->AddBiLinearForm( stiffContVP );
         }
     }
@@ -2415,7 +2415,7 @@ namespace CoupledField {
       stiffContVP1->SetFeFunctions( velFct, presFct );
       // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
       // create symmetric counterpart
-      stiffContVP1->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
+      stiffContVP1->SetCounterPart(isHeatPDECoupled_);
       assemble_->AddBiLinearForm( stiffContVP1 );
     }
 
@@ -2467,7 +2467,7 @@ namespace CoupledField {
       stiffContVP2->SetFeFunctions( velFct, velFct );
       // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
       // create symmetric counterpart
-      stiffContVP2->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
+      stiffContVP2->SetCounterPart(isHeatPDECoupled_);
       assemble_->AddBiLinearForm( stiffContVP2 );
     }
 
@@ -2520,7 +2520,7 @@ namespace CoupledField {
         stiffContVP3->SetFeFunctions( velFct, velFct );
         // In case the LinFLowPDE is coupled to the HeatPDE in a symmetric form the counterpart needs to be set, to also
         // create symmetric counterpart
-        stiffContVP3->SetCounterPart(isHeatPDECoupled_ && isCouplingFormulationSymmetric_);
+        stiffContVP3->SetCounterPart(isHeatPDECoupled_);
         assemble_->AddBiLinearForm( stiffContVP3 );
       }
     }
