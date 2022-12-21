@@ -79,6 +79,9 @@ namespace CoupledField {
     /** print setup information */
     void ToInfo();
 
+    /** pointer for info xml */
+    PtrParamNode eigenInfo_;
+
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
 
@@ -138,17 +141,14 @@ namespace CoupledField {
     StdVector<Complex> vr_;
     StdVector<Complex> vl_;
 
-    /** set by Setup() */
-    bool generalized_;
-
-    /** set by Setup() */
-    bool quadratic_;
-
-    /** polynomial grade */
+    /** order of the polynomial EVP */
     int p_;
 
     /** set by Setup() */
     bool bloch_;
+
+    /**compute only the stochastic estimate for the number of eigenvalues*/
+    bool stochasticEstimate_=false;
 
   }; // end of class
 } // end of namespace

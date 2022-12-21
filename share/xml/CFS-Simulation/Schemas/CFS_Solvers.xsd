@@ -1596,6 +1596,11 @@
 	            <xsd:documentation>specifies the initial guess for subspace dimension to be used, [m0,n]. Set m0 â¥ m where m is the total number of eigenvalues located in the interval [emin, emax]Maximum number of Extended Eigensolver refinement loops allowed.</xsd:documentation>
             </xsd:annotation>         
           </xsd:element>
+          <xsd:element name="stochasticEstimate" type="DT_CFSBool"  minOccurs="0">
+	          <xsd:annotation>
+	            <xsd:documentation>If true, a fast stochastic estimate for the number of eigenvalues will be computed. The estimate can be used to resize the contour or as a guidance for m0.</xsd:documentation>
+            </xsd:annotation>         
+          </xsd:element>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
         </xsd:all>
