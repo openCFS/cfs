@@ -1,8 +1,7 @@
 #include "FeFunctions.hh"
 
 #include <boost/bind/bind.hpp>
-
-
+#include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"

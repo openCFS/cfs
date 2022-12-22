@@ -8,6 +8,7 @@
 #include "PDE/BasePDE.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "ScatteredDataReaderCSVT.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 
 namespace CoupledField 

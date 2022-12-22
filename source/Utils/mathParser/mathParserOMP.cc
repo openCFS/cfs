@@ -35,11 +35,11 @@ MathParserOMP::MathParserOMP(){
 MathParserOMP::~MathParserOMP(){
 }
 
-MathParser::HandleType MathParserOMP::GetNewHandle( bool setDefaults ){
+unsigned int MathParserOMP::GetNewHandle( bool setDefaults ){
   if(omp_get_num_threads()>1){
     EXCEPTION("MathParserOMP::GetNewHandle called from parallel region. Not safe!");
   }
-  MathParser::HandleType masterHandle = MathParser::GetNewHandle(setDefaults);
+  unsigned int masterHandle = MathParser::GetNewHandle(setDefaults);
   //assign thread 0 the first handle
   threadHandles_[masterHandle].Mine(0) = masterHandle;
 
@@ -51,7 +51,7 @@ MathParser::HandleType MathParserOMP::GetNewHandle( bool setDefaults ){
   return masterHandle;
 }
 
-void MathParserOMP::ReleaseHandle( HandleType handle ){
+void MathParserOMP::ReleaseHandle( unsigned int handle ){
   if(omp_get_num_threads()>1){
     EXCEPTION("MathParserOMP::GetNewHandle called from parallel region. Not safe!");
   }
@@ -62,7 +62,7 @@ void MathParserOMP::ReleaseHandle( HandleType handle ){
   }
 }
 
-void MathParserOMP::SetExpr( HandleType handle, const std::string &expr ){
+void MathParserOMP::SetExpr( unsigned int handle, const std::string &expr ){
   if(omp_get_num_threads()>1){
     EXCEPTION("MathParserOMP::GetNewHandle called from parallel region. Not safe!");
   }
@@ -72,19 +72,19 @@ void MathParserOMP::SetExpr( HandleType handle, const std::string &expr ){
   }
 }
 
-Double MathParserOMP::Eval( HandleType handle ){
+Double MathParserOMP::Eval( unsigned int handle ){
   return MathParser::Eval(threadHandles_[handle].Mine());
 }
 
-void MathParserOMP::EvalVector( HandleType handle, Vector<Double>& vec ){
+void MathParserOMP::EvalVector( unsigned int handle, Vector<Double>& vec ){
   MathParser::EvalVector(threadHandles_[handle].Mine(),vec);
 }
 
-void MathParserOMP::EvalDivVector( HandleType handle, Double& divergence ){
+void MathParserOMP::EvalDivVector( unsigned int handle, Double& divergence ){
   MathParser::EvalDivVector(threadHandles_[handle].Mine(),divergence);
 }
 
-void MathParserOMP::EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+void MathParserOMP::EvalMatrix( unsigned int handle, Matrix<Double>& matrix,
              UInt numRows, UInt numCols ){
   MathParser::EvalMatrix(threadHandles_[handle].Mine(),matrix,numRows,numCols);
 }
@@ -96,7 +96,7 @@ void MathParserOMP::Dump( std::ostream& os ){
   MathParser::Dump(os);
 }
 
-void MathParserOMP::SetValue( HandleType handle,
+void MathParserOMP::SetValue( unsigned int handle,
            const std::string &varName,
            Double val ){
   if(omp_get_num_threads() == 1){
@@ -110,7 +110,7 @@ void MathParserOMP::SetValue( HandleType handle,
   }
 }
 
-void MathParserOMP::RegisterExternalVar( HandleType handle,
+void MathParserOMP::RegisterExternalVar( unsigned int handle,
                       const std::string& varName,
                       Double * ptVar ){
   if(omp_get_num_threads() == 1){
@@ -124,7 +124,7 @@ void MathParserOMP::RegisterExternalVar( HandleType handle,
   }
 }
 
-void MathParserOMP::SetCoordinates( HandleType handle,
+void MathParserOMP::SetCoordinates( unsigned int handle,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord ){
   if(omp_get_num_threads() == 1){
@@ -141,7 +141,7 @@ void MathParserOMP::SetCoordinates( HandleType handle,
 boost::signals2::connection
 MathParserOMP::AddExpChangeCallBack( const MathParserSignal::slot_function_type
                           &subscriber,
-                          HandleType handle ){
+                          unsigned int handle ){
   //only master
   if(omp_get_num_threads() != 1)
     EXCEPTION("Trying to add mathParser callback from parallel region. Not Supported!");

@@ -7,6 +7,7 @@
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Results/BaseResults.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Utils/EvalIntegrals/BiotSavart.hh"
 #include "Utils/Timer.hh"
 #include "Driver/SingleDriver.hh"

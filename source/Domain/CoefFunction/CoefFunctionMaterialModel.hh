@@ -14,13 +14,13 @@
 #include "FeBasis/FeFunctions.hh"
 
 #include "Materials/BaseMaterial.hh"
-#include "Utils/mathParser/mathParser.hh"
-
 #include "Materials/Models/Jiles.hh"
 #include "Materials/Models/EBHysteresis.hh"
 #include "Materials/Models/Model.hh"
 
 namespace CoupledField  {
+
+class MathParser;
 
 /* Idea behind this ceoffunction:
  *

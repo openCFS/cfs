@@ -13,6 +13,7 @@
 //================================================================================================
 
 #include "GLMSchemeLib.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 
 namespace CoupledField{
@@ -56,6 +57,8 @@ Double GLMScheme::TransformBC(const StdVector< SingleVector* > & glm,
     return retVal;
   }
 }
+
+
 
 //================================================================
 //TRAPEZOIDAL SCHEME
@@ -275,6 +278,12 @@ void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
 
   }
 }
+
+void Newmark::PrepareStage(UInt i,Double aTime, Domain* domain){
+ domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
+                                    "t", aTime+(alpha_*curTStepSize_) );
+}
+
 
 //================================================================
 //BDF2 SCHEME
@@ -509,5 +518,28 @@ void RungeKutta4::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
 
   }
 }
+
+void RungeKutta4::PrepareStage(UInt i,Double aTime){
+  //obtain current time
+  switch(i){
+    case 0:
+    case 2:
+      break;
+    case 3:
+      //set current time to t+dt
+      domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
+                                         "t", aTime+curTStepSize_ );
+      break;
+    case 1:
+      //set current time to t+dt/2
+      domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
+                                         "t", aTime+(0.5*curTStepSize_) );
+      break;
+    default:
+      EXCEPTION("RK4 Called with invalid stage number!");
+      break;
+   }
+};
+
 
 }

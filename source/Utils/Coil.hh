@@ -27,13 +27,12 @@
 #include "MatVec/Vector.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
-#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
   // Forward class definition
   class Grid;
-  
+  class MathParser;
   class CoordSystem;
   class MathParser;
   class EntityList;

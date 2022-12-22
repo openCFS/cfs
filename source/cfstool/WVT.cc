@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"

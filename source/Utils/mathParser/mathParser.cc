@@ -68,7 +68,7 @@ namespace CoupledField {
     dynamicPool_.clear();
     
     // Clear registered callback functions
-    std::map< HandleType, PtSig >::iterator sigIt = exprChangeSignal_.begin(),
+    std::map< unsigned int, PtSig >::iterator sigIt = exprChangeSignal_.begin(),
                                             itEnd = exprChangeSignal_.end();
     for ( ; sigIt != itEnd; ++sigIt ) {
       sigIt->second->disconnect_all_slots();
@@ -76,12 +76,12 @@ namespace CoupledField {
     exprChangeSignal_.clear();
   }
 
-  MathParser::HandleType MathParser::GetNewHandle( bool setDefaults ) {
+  unsigned int MathParser::GetNewHandle( bool setDefaults ) {
     
     // Obtain new handle
-    HandleType newHandle = GLOB_HANDLER;
+    unsigned int newHandle = GLOB_HANDLER;
     if( activeHandles_.size() > 0 ) {
-      std ::set<HandleType>::iterator it = activeHandles_.end();
+      std ::set<unsigned int>::iterator it = activeHandles_.end();
       newHandle = *(--it);
     }
 
@@ -107,7 +107,7 @@ namespace CoupledField {
 
   }
 
-  void MathParser::ReleaseHandle( HandleType handle) {
+  void MathParser::ReleaseHandle( unsigned int handle) {
 
     // Check if handle is the global one
     if( handle == GLOB_HANDLER ) {
@@ -136,7 +136,7 @@ namespace CoupledField {
 
   }
 
-  void MathParser::SetValue( HandleType handler,
+  void MathParser::SetValue( unsigned int handler,
                              const std::string & varName,
                              Double val) {
 
@@ -163,7 +163,7 @@ namespace CoupledField {
       
       // if we have global parser instance, notify
       // the depending instances as well for callback
-      std::set<HandleType> notifyParser;
+      std::set<unsigned int> notifyParser;
       
       // always insert current handler
       notifyParser.insert( handler );
@@ -176,10 +176,10 @@ namespace CoupledField {
       
       //Iterate over all parser instances and check, if
       // variable is in use
-      std::set<HandleType>::const_iterator handleIt = notifyParser.begin();
+      std::set<unsigned int>::const_iterator handleIt = notifyParser.begin();
       for( ; handleIt != notifyParser.end(); ++handleIt ) {
         
-        HandleType actHandle = *handleIt;
+        unsigned int actHandle = *handleIt;
         // check, if variable is in use
         if( varsInUse_[actHandle].find( varName) 
             != varsInUse_[actHandle].end() ) {
@@ -215,7 +215,7 @@ namespace CoupledField {
         it++;
         for (; it != parsers_.end(); it++ ) {
           
-          HandleType actHandle = it->first;
+          unsigned int actHandle = it->first;
           MATHPARSER_EXEC(
               it->second.DefineVar(  varName,&( poolsIt->second[varName]) );
           )
@@ -235,7 +235,7 @@ namespace CoupledField {
     }
   }
   
-  void MathParser::RegisterExternalVar(  HandleType handle,
+  void MathParser::RegisterExternalVar(  unsigned int handle,
                                          const std::string& varName,
                                          Double * ptVar ) {
     LOG_DBG(math) << "registering '" << varName << "'\n";
@@ -253,7 +253,7 @@ namespace CoupledField {
       it++;
       for (; it != parsers_.end(); it++ ) {
 
-        HandleType actHandle = it->first;
+        unsigned int actHandle = it->first;
         MATHPARSER_EXEC(
             it->second.DefineVar( varName, ptVar );
         )
@@ -273,7 +273,7 @@ namespace CoupledField {
   }
 
 
-  void MathParser::SetCoordinates( HandleType handler,
+  void MathParser::SetCoordinates( unsigned int handler,
                                    const CoordSystem & coosy,
                                    const Vector<Double> & globCoord ) {
 
@@ -297,7 +297,7 @@ namespace CoupledField {
 
   }
 
-  void MathParser::SetExpr( HandleType handler, const std::string & expr) {
+  void MathParser::SetExpr( unsigned int handler, const std::string & expr) {
 
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
@@ -347,7 +347,7 @@ namespace CoupledField {
   }
 
 
-  Double MathParser::Eval( HandleType handler )
+  Double MathParser::Eval( unsigned int handler )
   {
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
@@ -370,7 +370,7 @@ namespace CoupledField {
     }
   }
   
-  void MathParser::EvalVector( HandleType handle, Vector<Double>& vec ) {
+  void MathParser::EvalVector( unsigned int handle, Vector<Double>& vec ) {
     
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handle );
@@ -387,7 +387,7 @@ namespace CoupledField {
 
   }
 
-  Double MathParser::DiffVectorEntry(HandleType handle, std::string varName, Integer VecPos){
+  Double MathParser::DiffVectorEntry(unsigned int handle, std::string varName, Integer VecPos){
     //basically a mod of the original diff implementation
     mu::Parser & myParser = GetParser( handle );
     VarPool &  curPool = pools_[handle];
@@ -427,7 +427,7 @@ namespace CoupledField {
     return (-f1 + 8*f2 - 8*f3 + f4 ) / (12*eps);
   }
 
-  void MathParser::EvalDivVector( HandleType handle, Double& divergence ){
+  void MathParser::EvalDivVector( unsigned int handle, Double& divergence ){
 
     //loop over variable pool and compute divergence
     divergence = 0.0;
@@ -450,7 +450,7 @@ namespace CoupledField {
   }
 
      
-  void MathParser::EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+  void MathParser::EvalMatrix( unsigned int handle, Matrix<Double>& matrix,
                                UInt numRows , UInt numCols ) {
     
     // Get parser related to handler
@@ -565,7 +565,7 @@ namespace CoupledField {
   boost::signals2::connection MathParser::
   AddExpChangeCallBack( const MathParserSignal::slot_function_type
                         &subscriber,
-                        HandleType handle ) {
+                        unsigned int handle ) {
     
     if(  exprChangeSignal_.find( handle ) == exprChangeSignal_.end() ) {
       exprChangeSignal_[handle] = shared_ptr<MathParserSignal>(new MathParserSignal());
@@ -574,7 +574,7 @@ namespace CoupledField {
   }
 
   
-  std::string MathParser::GetExpr( HandleType handle ) {
+  std::string MathParser::GetExpr( unsigned int handle ) {
     // Get the map with the variables
     mu::Parser & actParser = GetParser( handle );
     std::string expr;
@@ -582,7 +582,7 @@ namespace CoupledField {
     return expr;
   }
   
-  bool MathParser::IsExprConstant( HandleType handle ) {
+  bool MathParser::IsExprConstant( unsigned int handle ) {
     // Get all depending variables of this expression
     //mu::Parser & actParser = GetParser( handle );
     
@@ -595,7 +595,7 @@ namespace CoupledField {
     return isConstant;
   }
   
-  bool MathParser::IsExprVariable( HandleType handle, const std::string& var ) {
+  bool MathParser::IsExprVariable( unsigned int handle, const std::string& var ) {
     StdVector<std::string> usedVars;
     //GetExprVars( handle, usedVars );
     bool found = false;
@@ -606,7 +606,7 @@ namespace CoupledField {
   }
   
   
-  void MathParser::GetExprVars( HandleType handle, 
+  void MathParser::GetExprVars( unsigned int handle, 
                                 StdVector<std::string>& varNames ) {
 
     // Get the map with the variables
@@ -624,7 +624,7 @@ namespace CoupledField {
     }
   }
 
-  Double MathParser::GetExprVars( HandleType handle, 
+  Double MathParser::GetExprVars( unsigned int handle, 
                                 std::string varName ) {
 
     // Get the map with the variables
@@ -652,7 +652,7 @@ namespace CoupledField {
   }
   
   
-  UInt MathParser::GetNumExprs( HandleType handle ) {
+  UInt MathParser::GetNumExprs( unsigned int handle ) {
     
     // Get parser related to handle
     mu::Parser & myParser = GetParser( handle );
@@ -666,7 +666,7 @@ namespace CoupledField {
   }
   
   
-  StdVector<std::pair<std::string, double> > MathParser::GetRegisteredValues(HandleType handle) const
+  StdVector<std::pair<std::string, double> > MathParser::GetRegisteredValues(unsigned int handle) const
   {
     StdVector<std::pair<std::string, double> > res;
 
@@ -680,7 +680,7 @@ namespace CoupledField {
     return res;
   }
 
-  std::string MathParser::ToString(HandleType handle) const
+  std::string MathParser::ToString(unsigned int handle) const
   {
     std::stringstream ss;
 
@@ -689,7 +689,7 @@ namespace CoupledField {
     return ss.str();
   }
 
-  std::string MathParser::GetRegisteredVariables(HandleType handle) const
+  std::string MathParser::GetRegisteredVariables(unsigned int handle) const
   {
     std::stringstream ss;
 
@@ -704,7 +704,7 @@ namespace CoupledField {
   }
 
 
-  void MathParser::ToInfo(PtrParamNode pn, HandleType handle) const
+  void MathParser::ToInfo(PtrParamNode pn, unsigned int handle) const
   {
     StdVector<std::pair<std::string, double> > res = GetRegisteredValues(handle);
     for(unsigned int i = 0; i < res.GetSize(); i++)
@@ -721,7 +721,7 @@ namespace CoupledField {
     // iterate over all active Handles
     out << " 1) Active Handles\n"
            " -----------------\n";
-    std::set<HandleType>::const_iterator handleIt = activeHandles_.begin();
+    std::set<unsigned int>::const_iterator handleIt = activeHandles_.begin();
     for( ; handleIt != activeHandles_.end(); ++handleIt ) {
       out << "\t" << *handleIt << std::endl;
     }
@@ -781,11 +781,11 @@ namespace CoupledField {
     out << "3) Map: global variables <-> parser instances:\n"
         << "--------------------------------------------\n";
     
-    std::map<std::string, std::set<HandleType> >::const_iterator gIt;
+    std::map<std::string, std::set<unsigned int> >::const_iterator gIt;
     gIt = globVarsInUse_.begin();
     for( ; gIt != globVarsInUse_.end(); ++gIt) {
       out << "\tvar '"  << gIt->first << "' used in Parser handles: ";
-      std::set<HandleType>::const_iterator hIt =  gIt->second.begin();
+      std::set<unsigned int>::const_iterator hIt =  gIt->second.begin();
       for( ; hIt != gIt->second.end(); ++hIt ) {
         out << *hIt << ",";
       }
@@ -797,7 +797,7 @@ namespace CoupledField {
   }
   
 
-  mu::Parser& MathParser::GetParser( HandleType handler ) {
+  mu::Parser& MathParser::GetParser( unsigned int handler ) {
     
     ParserMap::iterator it = parsers_.find( handler );
 

@@ -4,7 +4,7 @@
 
 #include "StaticDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "PDE/StdPDE.hh"

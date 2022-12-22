@@ -15,11 +15,13 @@
 #ifndef MATHPARSEROMP_HH_
 #define MATHPARSEROMP_HH_
 
-#include "mathParser.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Utils/ThreadLocalStorage.hh"
 #include <omp.h>
 
 namespace CoupledField{
+
+class MathParser;
 
 
 /* This path of making the Mathparser calls more thread safe is
@@ -42,42 +44,42 @@ public:
 
   virtual ~MathParserOMP();
 
-  virtual HandleType GetNewHandle( bool setDefaults = false);
+  virtual unsigned int GetNewHandle( bool setDefaults = false);
 
-  virtual void ReleaseHandle( HandleType handle );
+  virtual void ReleaseHandle( unsigned int handle );
 
-  virtual void SetExpr( HandleType handle, const std::string &expr );
+  virtual void SetExpr( unsigned int handle, const std::string &expr );
 
-  virtual Double Eval( HandleType handle );
+  virtual Double Eval( unsigned int handle );
 
-  virtual void EvalVector( HandleType handle, Vector<Double>& vec );
+  virtual void EvalVector( unsigned int handle, Vector<Double>& vec );
 
-  virtual void EvalDivVector( HandleType handle, Double& divergence );
+  virtual void EvalDivVector( unsigned int handle, Double& divergence );
 
-  virtual void EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+  virtual void EvalMatrix( unsigned int handle, Matrix<Double>& matrix,
                        UInt numRows = 0, UInt numCols = 0 );
 
   virtual void Dump( std::ostream& os );
 
-  virtual void SetValue( HandleType handle,
+  virtual void SetValue( unsigned int handle,
                      const std::string &varName,
                      Double val );
 
-  virtual void RegisterExternalVar( HandleType handle,
+  virtual void RegisterExternalVar( unsigned int handle,
                                 const std::string& varName,
                                 Double * ptVar );
 
-  virtual void SetCoordinates( HandleType handle,
+  virtual void SetCoordinates( unsigned int handle,
                                    const CoordSystem &coosy,
                                    const Vector<Double> &globCoord );
 
   virtual boost::signals2::connection
       AddExpChangeCallBack( const MathParserSignal::slot_function_type
                             &subscriber,
-                            HandleType handle );
+                            unsigned int handle );
 private:
 
-  std::map<HandleType, CfsTLS<HandleType> > threadHandles_;
+  std::map<unsigned int, CfsTLS<unsigned int> > threadHandles_;
 
   bool isShared_;
 

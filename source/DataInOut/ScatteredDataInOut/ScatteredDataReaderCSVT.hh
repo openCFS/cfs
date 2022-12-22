@@ -1,12 +1,12 @@
 #ifndef SCATTERED_DATA_READER_CSVT_H
 #define SCATTERED_DATA_READER_CSVT_H
 
+#include <boost/signals2.hpp>
 #include "ScatteredDataReader.hh"
-
-#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField 
 {
+  class MathParser;
   /**
    * Class for reading scattered data from comma separated files.
    */  
@@ -49,10 +49,10 @@ namespace CoupledField
     Integer step_;
 
     //! Pointer to math parser instance
-    MathParser* mp_;
+    MathParser* mp_ = nullptr;
 
     //! Handle for expression determines current time/freq value
-    MathParser::HandleType mHandleStep_;
+    unsigned int mHandleStep_ = 0;
 
     //! Handle callback time/freq value changed
     boost::signals2::connection connReal_;

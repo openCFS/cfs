@@ -19,9 +19,9 @@
 
 #include "CoefFunction.hh"
 
-#include "Utils/mathParser/mathParser.hh"
-
 namespace CoupledField{
+
+class MathParser;
 
 //! Base class for real- and complex valued coefficient functions
 template<class DATA_TYPE>
@@ -137,7 +137,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     CoordSystem* coordSysDefault_ = NULL;
     
     //! Handle for expression
-    MathParser::HandleType mHandle_;
+    unsigned int mHandle_;
 };
 
 // ===========================================================================
@@ -261,8 +261,8 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
     
     //@{
     //! Handle for expression
-    MathParser::HandleType mHandleReal_;
-    MathParser::HandleType mHandleImag_;
+    unsigned int mHandleReal_;
+    unsigned int mHandleImag_;
     //@}
 };
 

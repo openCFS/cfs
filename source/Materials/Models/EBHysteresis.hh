@@ -5,12 +5,13 @@
 #include <boost/utility.hpp>
 
 #include "MatVec/Vector.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "Model.hh"
 
 
 namespace CoupledField {
+
+class MathParser;
 
 class EBHysteresis : public Model {
 

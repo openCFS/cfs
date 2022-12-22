@@ -24,12 +24,11 @@ namespace CoupledField {
 
   public:
 
-    //! Datatype for identifying a specific mathParser
-    typedef UInt HandleType;
+    //! The handle type for the muParser is simply unsigned int
 
-    //! Abbreviation for global handle
-    enum {GLOB_HANDLER=0};
-    
+    // This is the same as MathParser_GLOB_HANDLER in EnvironmentTypes.hh
+    enum { GLOB_HANDLER = 0 };
+
     //! Constructor
     MathParser();
     
@@ -48,7 +47,7 @@ namespace CoupledField {
     //!                    parser instance, this value will be taken. 
     //! \return New MathParser handle
     
-    virtual HandleType GetNewHandle( bool setDefaults = false);
+    virtual unsigned int GetNewHandle( bool setDefaults = false);
 
     //! Free the memory and parameters associated with a certain handle
 
@@ -56,7 +55,7 @@ namespace CoupledField {
     //! associated with this handle.
     //! \param handle Parser handle identifying an internal parser(context)
     //!               to be freed.
-    virtual void ReleaseHandle( HandleType handle );
+    virtual void ReleaseHandle( unsigned int handle );
 
     //! Pass the expression to be evaluated to the parser
     
@@ -69,7 +68,7 @@ namespace CoupledField {
     //! retrieved using either EvalVector() or EvalMatrix().
     //! \param handle MathParser handle for identifying specific parser
     //! \param expr Expression to be parsed
-    virtual void SetExpr( HandleType handle, const std::string &expr );
+    virtual void SetExpr( unsigned int handle, const std::string &expr );
     
     //! Retrieve the expression of the related parser
 
@@ -77,7 +76,7 @@ namespace CoupledField {
     //! instance.
     //! \param handle MathParser handle for identifying specific parser
     //! \return Expression of the parser
-    std::string GetExpr( HandleType handle );
+    std::string GetExpr( unsigned int handle );
 
     //! Query if current expression is constant
     
@@ -85,7 +84,7 @@ namespace CoupledField {
     //! is constant (not depending on any variables)
     //! \param handle MathParser handle for identifying specific parser
     //! \return Flag is expression is constant
-    bool IsExprConstant( HandleType handle );
+    bool IsExprConstant( unsigned int handle );
     
     //! Query if current expression uses specified variable \a var
     
@@ -94,7 +93,7 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param var Variable name the expression is questioned for
     //! \return Flag if expression contains variable
-    bool IsExprVariable( HandleType handle, const std::string& var );
+    bool IsExprVariable( unsigned int handle, const std::string& var );
     
     //! Get all variables the expression of the parser instance depends on
     
@@ -102,21 +101,21 @@ namespace CoupledField {
     //! expression of the specified parser instance.
     //! \param handle MathParser handle for identifying specific parser
     //! \param varNames List of variables the expression depends on
-    void GetExprVars( HandleType handle, StdVector<std::string>& varNames );
+    void GetExprVars( unsigned int handle, StdVector<std::string>& varNames );
 
     //! Get variable of expression of the parser instance depends on
     
     //! This method returns value of a certain variable.
     //! \param handle MathParser handle for identifying specific parser
     //! \param varName variable to het value of
-    Double GetExprVars( HandleType handle, std::string varName );
+    Double GetExprVars( unsigned int handle, std::string varName );
     
     
     //! Return number of expressions set
     
     //! This method returns the number of expression set for the parser
     //! denoted by #handle. 
-    UInt GetNumExprs( HandleType handle );
+    UInt GetNumExprs( unsigned int handle );
     
     //! Evaluate mathematical expression previously set by SetExpr()
 
@@ -124,7 +123,7 @@ namespace CoupledField {
     //! If several, comma separated expressions are set, only the last
     //! one is taken.
     //! \param handle MathParser handle for identifying specific parser
-    virtual Double Eval( HandleType handle );
+    virtual Double Eval( unsigned int handle );
     
     //! Evaluate list of mathematical expression, set by SetExpr()
     
@@ -132,7 +131,7 @@ namespace CoupledField {
     //! and stores the values in the vector.
     //! \param handle MathParser handle for identifying specific parser
     //! \param vec Vector to be filled
-    virtual void EvalVector( HandleType handle, Vector<Double>& vec );
+    virtual void EvalVector( unsigned int handle, Vector<Double>& vec );
     
     //! Evaluate list of mathematical expression, set by SetExpr()
 
@@ -140,7 +139,7 @@ namespace CoupledField {
     //! and computes the divergence of it
     //! \param handle MathParser handle for identifying specific parser
     //! \param divergence result of computation
-    virtual void EvalDivVector( HandleType handle, Double& divergence );
+    virtual void EvalDivVector( unsigned int handle, Double& divergence );
 
     //! Evaluate expressions to matrix, previously set by SetExpr()
     
@@ -159,23 +158,23 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param matrix A matrix where the values get stored into
     //! \param numRows Number of rows, if 
-    virtual void EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+    virtual void EvalMatrix( unsigned int handle, Matrix<Double>& matrix,
                      UInt numRows = 0, UInt numCols = 0 ); 
     
     /** gives all variables and their values for a handle. This is part of the information given by Dump().
-     * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle
+     * @param handle most interesting probably for MathParser_GLOB_HANDLER. Nothing done for invalid handle
      * It would be nice to have a noexept but an icc bug forbids it :( https://software.intel.com/en-us/node/629136 */
-    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const; // icc bug prevents noexcept
+    StdVector<std::pair<std::string, double> > GetRegisteredValues(unsigned int handle) const; // icc bug prevents noexcept
 
     /** for debug purpose: comma separated list of GetRegisteredValues() content */
-    std::string ToString(HandleType handle) const;
+    std::string ToString(unsigned int handle) const;
 
     /** creates a comma separated list of registered variables */
-    std::string GetRegisteredVariables(HandleType handle) const; // icc bug prevents noexcept
+    std::string GetRegisteredVariables(unsigned int handle) const; // icc bug prevents noexcept
 
     /** reports the variables and value
      * @param handle nothing done for invalid handle */
-    void ToInfo(PtrParamNode pn, HandleType handle) const;
+    void ToInfo(PtrParamNode pn, unsigned int handle) const;
 
     //! Dump all parser instances, their variables and expression
     virtual void Dump( std::ostream& os );
@@ -197,7 +196,7 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param varName Name of variable to be set
     //! \param val Value of variable
-    virtual void SetValue( HandleType handle,
+    virtual void SetValue( unsigned int handle,
                    const std::string &varName,
                    Double val );
     
@@ -213,7 +212,7 @@ namespace CoupledField {
     //! \param ptVal 
     //! \note It is the responsibility of the user to guarantee, that the 
     //!       pointer to the variable is valid throughout the execution. 
-    virtual void RegisterExternalVar( HandleType handle,
+    virtual void RegisterExternalVar( unsigned int handle,
                               const std::string& varName,
                               Double * ptVar );
     
@@ -230,7 +229,7 @@ namespace CoupledField {
     //! \param coosy Local coordinate system, for which the coordinate components
     //!              are to be registered within the given parser
     //! \param globCoord Global coordinates (x,y,z) of the given point
-    virtual void SetCoordinates( HandleType handle,
+    virtual void SetCoordinates( unsigned int handle,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord );
     //@}
@@ -248,7 +247,7 @@ namespace CoupledField {
     boost::signals2::connection 
     virtual AddExpChangeCallBack( const MathParserSignal::slot_function_type
                           &subscriber,
-                          HandleType handle );
+                          unsigned int handle );
     //@}
     
   protected:
@@ -257,10 +256,10 @@ namespace CoupledField {
     typedef std::map<std::string, Double>  VarPool;
     
     //! Typedef for mapping handle to variable pool
-    typedef std::map<HandleType, VarPool> PoolMap;
+    typedef std::map<unsigned int, VarPool> PoolMap;
     
     //! Typedef for parser pool
-    typedef std::map<HandleType, mu::Parser> ParserMap;
+    typedef std::map<unsigned int, mu::Parser> ParserMap;
     
     //! Initialize parser
     void InitParser( mu::Parser &parser, VarPool &pool, 
@@ -268,7 +267,7 @@ namespace CoupledField {
                      bool setDefaults );
 
     //! Get parser by handle
-    mu::Parser & GetParser( HandleType handle );
+    mu::Parser & GetParser( unsigned int handle );
     
     //! Factory function for adding variables
     static Double * AddVariable( const char *varName );
@@ -288,7 +287,7 @@ namespace CoupledField {
                               Double x, Double y);
 
         
-    Double DiffVectorEntry(HandleType handle, std::string varName, Integer VecPos);
+    Double DiffVectorEntry(unsigned int handle, std::string varName, Integer VecPos);
 
     //! Pool of math parsers
     ParserMap parsers_;
@@ -297,13 +296,13 @@ namespace CoupledField {
     PoolMap pools_;
     
     //! Map for every global variable parser instance which uses this variable
-    std::map<std::string, std::set<HandleType> > globVarsInUse_;
+    std::map<std::string, std::set<unsigned int> > globVarsInUse_;
     
     //! Set with used variables in each expression 
-    std::map<HandleType, std::set<std::string > > varsInUse_;
+    std::map<unsigned int, std::set<std::string > > varsInUse_;
 
     //! Set with currently active handles
-    std::set<HandleType> activeHandles_;
+    std::set<unsigned int> activeHandles_;
 
     //! Memory for implicitly allocated variables
     static std::list<Double> dynamicPool_;
@@ -316,7 +315,7 @@ namespace CoupledField {
     typedef shared_ptr<MathParserSignal> PtSig;
     
     //! Callback signals if value of expression changes
-    std::map<HandleType, PtSig > exprChangeSignal_;
+    std::map<unsigned int, PtSig > exprChangeSignal_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

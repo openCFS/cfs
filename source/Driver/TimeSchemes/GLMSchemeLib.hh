@@ -17,9 +17,10 @@
 
 #include "MatVec/Matrix.hh"
 #include "Domain/Domain.hh"
-#include "Utils/mathParser/mathParser.hh"
 
-namespace CoupledField{
+namespace CoupledField {
+
+class MathParser;
 
 /*! \class GLMScheme
  *    \brief The base class defining all variable necessary to define a GLM
@@ -257,10 +258,8 @@ class Newmark : public GLMScheme{
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
 
-    virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
-     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                        "t", aTime+(alpha_*curTStepSize_) );
-    }
+    virtual void PrepareStage(UInt i,Double aTime, Domain* domain);
+
   private:
     /*!parameter for switching between implicit and explicit scheme
      * for gamma = 0.5 the scheme is second order accurate */
@@ -298,7 +297,7 @@ class Bdf2 : public GLMScheme{
 
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
-     /// domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+     /// domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
      ///                                    "t", aTime+(alpha_*curTStepSize_) );
     }
   private:
@@ -324,29 +323,7 @@ class RungeKutta4 : public GLMScheme{
                        UInt valDerivOrder,
                        Integer eqnNumber);
 
-    virtual void PrepareStage(UInt i,Double aTime){
-      //obtain current time
-      switch(i){
-        case 0:
-        case 2:
-          break;
-        case 3:
-          //set current time to t+dt
-          domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                             "t", aTime+curTStepSize_ );
-          break;
-        case 1:
-          //set current time to t+dt/2
-          domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                             "t", aTime+(0.5*curTStepSize_) );
-          break;
-        default:
-          EXCEPTION("RK4 Called with invalid stage number!");
-          break;
-       }
-    };
-  private:
-
+    virtual void PrepareStage(UInt i,Double aTime);
 
 };
 

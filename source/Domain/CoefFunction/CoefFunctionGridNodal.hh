@@ -210,7 +210,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     MathParser* mp_;
 
     //! Handle for expression determines current time/freq value 
-    MathParser::HandleType mHandleStep_;
+    unsigned int mHandleStep_;
     
     //! shared pointer to coefFunction representing multiplicative factor
     shared_ptr<CoefFunction> factorFnc_;

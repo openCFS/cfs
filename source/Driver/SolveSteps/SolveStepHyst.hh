@@ -11,7 +11,6 @@
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/BaseMaterial.hh"
 #include "DataInOut/ResultHandler.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 
 namespace CoupledField
@@ -26,6 +25,7 @@ namespace CoupledField
   class BaseIDBC_Handler;
   class FeSpace;
   class SolStrategy;
+  class MathParser;
 
   /*
    * Local enums

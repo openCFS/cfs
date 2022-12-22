@@ -4,6 +4,7 @@
 
 #include "PostProc.hh"
 
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Results/BaseResults.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Results/ResultInfo.hh"

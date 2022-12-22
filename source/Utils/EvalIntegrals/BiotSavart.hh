@@ -3,12 +3,13 @@
 #include "Utils/StdVector.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "PDE/SinglePDE.hh"
-#include "Utils/mathParser/mathParser.hh"
 
 #ifndef FILE_CFS_BIOTSAVART_HH
 #define FILE_CFS_BIOTSAVART_HH
 
 namespace CoupledField{
+
+  class MathParser;
 
   //! Class implementing fundamental solution of magnetic field in air.
   
@@ -81,7 +82,7 @@ public:
       Vector<Double> fieldNormalized_;
 
       //! Handle for MathParser object
-      MathParser::HandleType mHandle_;
+      unsigned int mHandle_;
     };
 
     

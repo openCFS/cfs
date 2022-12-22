@@ -23,6 +23,7 @@
 #include "MatVec/SBM_Matrix.hh"
 
 #include "Utils/Timer.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"

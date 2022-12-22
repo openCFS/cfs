@@ -16,13 +16,14 @@
 #include "FeBasis/BaseFE.hh"
 #include "Materials/BaseMaterial.hh"
 #include "FeBasis/FeFunctions.hh"
-#include "Utils/mathParser/mathParser.hh"
 
 // To switch between time- and frequency domain
 #include "Domain/Results/MHTimeFreqResult.hh"
 
 
 namespace CoupledField  {
+
+class MathParser;
 
 // ==========================================================================
 //  COEFFICIENT FUNCTION HARMONIC BALANCE
@@ -131,13 +132,13 @@ protected:
   MathParser* mp_;
 
   //! Handle for the cashing callback-mechanism
-  MathParser::HandleType cashHandle_;
+  unsigned int cashHandle_;
 
   //! Handle for the solution cache callback-mechanism
-  MathParser::HandleType solHandle_;
+  unsigned int solHandle_;
 
   //! Handle for the harmonic callback-mechanism
-  MathParser::HandleType harmonicHandle_;
+  unsigned int harmonicHandle_;
 
   //! Pointer to grid object
   Grid * ptGrid_;

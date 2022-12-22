@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <boost/algorithm/string.hpp>
-
+#include "Utils/mathParser/mathParser.hh"
 #include "StdSolveStep.hh"
 #include "Driver/Assemble.hh"
 #include "PDE/StdPDE.hh"

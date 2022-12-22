@@ -10,6 +10,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/tools.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 using std::string;
 using std::to_string;
@@ -2751,7 +2752,7 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamEle
   ShapeMapVariable* spe = dynamic_cast<ShapeMapVariable*>(shape_param_.Last());
 
   MathParser* mp = domain->GetMathParser();
-  MathParser::HandleType handle = mp->GetNewHandle();
+  unsigned int handle = mp->GetNewHandle();
 
   // the value might be a formula like "0.5*xi/nx", to evaluate this we set xi to the free variable. Note: in 2D for dof=x the free_idx variable are the y-nodes
   // TODO this has limitations in 3D with surfacs

@@ -13,11 +13,12 @@
 #include <boost/utility.hpp>
 
 #include "MatVec/Vector.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 
 namespace CoupledField {
+
+class MathParser;
 
 class Model {
 

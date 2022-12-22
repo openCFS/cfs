@@ -14,6 +14,7 @@
 
 
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include "Utils/mathParser/mathParser.hh"
 #include <DataInOut/ParamHandling/ParamNode.hh>
 #include <DataInOut/ResultHandler.hh>
 #include <DataInOut/SimState.hh>

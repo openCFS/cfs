@@ -3,6 +3,7 @@
 #include <boost/tokenizer.hpp>
 
 #include "BiotSavart.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 

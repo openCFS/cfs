@@ -13,6 +13,7 @@
 //=================================
 
 #include "Coil.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
@@ -230,7 +231,7 @@ namespace CoupledField {
       if(actPartNode->Has("wireCrossSection"))
       {
         std::string areaStr = actPartNode->Get("wireCrossSection/area")->As<std::string>();
-        MathParser::HandleType handle = mParser_->GetNewHandle();
+        unsigned int handle = mParser_->GetNewHandle();
         mParser_->SetExpr(handle,areaStr);
         actPart.wireCrossSect = mParser_->Eval(handle);
         //actPart.fillFactor =

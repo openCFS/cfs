@@ -1,5 +1,6 @@
 #include "FormsContexts.hh"
 
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "PDE/SinglePDE.hh"
 #include "Domain/Mesh/Grid.hh"

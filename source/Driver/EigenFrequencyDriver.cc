@@ -4,8 +4,7 @@
 #include <iomanip>
 #include <cmath>
 #include <boost/filesystem.hpp>
-
-
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -15,11 +14,7 @@
 #include "Domain/Domain.hh"
 #include "MatVec/SBM_Matrix.hh"
 #include "OLAS/solver/BaseEigenSolver.hh"
-//#include "OLAS/algsys/AlgebraicSys.hh"
-//#include "Optimization/ErsatzMaterial.hh"
-//#include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
-
 #include "PDE/StdPDE.hh"
 
 using std::cout;
@@ -134,6 +129,23 @@ namespace CoupledField {
     eigenFreqs = & frequency_;
     InitializePDEs();
   }
+
+  void EigenFrequencyDriver::SetToStepValue(UInt stepNum, Double stepVal )
+  {
+    // ensure that this method is only called if simState has input
+    if( false ) { // ! simState_->HasInput()
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+
+    //actFreqStep_ = stepNum;;
+    //actFreq_ = stepVal;
+
+    // Set current frequency value in the mathParser
+    domain_->GetMathParser()->SetValue( MathParser_GLOB_HANDLER, "f", stepVal );
+    domain_->GetMathParser()->SetValue( MathParser_GLOB_HANDLER, "step", stepNum );
+  }
+
 
   void EigenFrequencyDriver::SetupBlochPlot()
   {

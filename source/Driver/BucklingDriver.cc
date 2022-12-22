@@ -12,6 +12,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/SimState.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "MatVec/SBM_Matrix.hh"
@@ -208,6 +209,17 @@ void BucklingDriver::SolveProblem() {
   if (writeAllSteps_ || isPartOfSequence_)
     simState_->FinishMultiSequenceStep(true);
 }
+
+void BucklingDriver::SetToStepValue(UInt stepNum, Double stepVal) {
+  // ensure that this method is only called if simState has input
+  if (! simState_->HasInput()) {
+    EXCEPTION("Can only set external time step, if simulation state " << "is read from external file");
+  }
+  // Set current eigenvalue in the mathParser
+  domain_->GetMathParser()->SetValue(MathParser_GLOB_HANDLER, "f", stepVal);
+  domain_->GetMathParser()->SetValue(MathParser_GLOB_HANDLER, "step", stepNum);
+}
+
 
 void BucklingDriver::SetupSolver() {
   BaseSolveStep *step = ptPDE_->GetSolveStep();

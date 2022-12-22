@@ -46,18 +46,17 @@ bool TemporalBlendFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
   Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
 
-  MathParser::HandleType hand;
-  hand = mp_->GetNewHandle();
-  mp_->SetExpr(hand, expr_);
+  unsigned int mp_hand = mp_->GetNewHandle();
+  mp_->SetExpr(mp_hand, expr_);
   // get variables in xml-string, if there is anything different than "t" then exception
   StdVector<std::string> vars;
-  mp_->GetExprVars(hand, vars);
+  mp_->GetExprVars(mp_hand, vars);
   if(vars.GetSize() != 1 || vars[0] != "t"){
     EXCEPTION("Wrong variable in temporalBlending...only time dependent functions f(t) are allowed!!");
   }
-  mp_->SetValue(hand, "t", aTF);
-  const Double ev = mp_->Eval(hand);
-  mp_->ReleaseHandle(hand);
+  mp_->SetValue(mp_hand, "t", aTF);
+  const Double ev = mp_->Eval(mp_hand);
+  mp_->ReleaseHandle(mp_hand);
   const UInt size = inVec.GetSize();
   
   #pragma omp parallel for num_threads(CFS_NUM_THREADS)

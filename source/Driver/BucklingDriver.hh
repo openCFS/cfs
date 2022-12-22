@@ -55,15 +55,7 @@ class BucklingDriver: public virtual SingleDriver {
      *  step_val has no effect! */
     unsigned int StoreResults(UInt stepNum, double step_val);
 
-    void SetToStepValue(UInt stepNum, Double stepVal) {
-      // ensure that this method is only called if simState has input
-      if (! simState_->HasInput()) {
-        EXCEPTION("Can only set external time step, if simulation state " << "is read from external file");
-      }
-      // Set current eigenvalue in the mathParser
-      domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", stepVal);
-      domain_->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", stepNum);
-    }
+    void SetToStepValue(UInt stepNum, Double stepVal);
 
     StdVector<unsigned int> GetModeOrder() { return modeOrder_; }
 

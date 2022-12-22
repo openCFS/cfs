@@ -6,7 +6,6 @@
 #include <list>
 #include <map>
 
-#include "Utils/mathParser/mathParser.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Results/BaseResults.hh"
@@ -20,13 +19,14 @@ namespace CoupledField
   class BiLinearForm;
   class BaseBDBInt;
   class ResultFunctor;
-class BaseFieldFunctor;
+  class BaseFieldFunctor;
   class LinearFormContext;
   class CoefFunction;
   class CoefFunctionSurf;
   class CoefFunctionMulti;
   class CoefFunctionFormBased;
   class IterCoupledPDE;
+  class MathParser;
   
   //! Base class for all kinds of single field problems.
 

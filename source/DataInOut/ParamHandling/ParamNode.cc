@@ -638,7 +638,7 @@ TYPE ParamNode::MathParse() const
 
   // obtain handle
   MathParser* parser = domain->GetMathParser();
-  MathParser::HandleType handle = parser->GetNewHandle(false);
+  unsigned int handle = parser->GetNewHandle(false);
 
   std::string expr = "";
   if(value_.type() == typeid(std::string))

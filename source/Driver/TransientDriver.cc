@@ -9,7 +9,7 @@
 #include <signal.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
-
+#include "Utils/mathParser/mathParser.hh"
 #include "TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Timer.hh"

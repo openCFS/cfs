@@ -1,6 +1,7 @@
 #include "CoefFunctionCompound.hh"
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 

@@ -4,14 +4,12 @@
 
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
 
   //! Forward class declarations
-  //class LinearForm;
   class EntityList;
   class SinglePDE;
   class EqnMap;
@@ -20,7 +18,7 @@ namespace CoupledField
   class FeSpace;
   class BaseFeFunction;
   class LinearForm;
-  //class BiLinearForm;
+  class MathParser;
 
 
 
@@ -200,7 +198,7 @@ namespace CoupledField
     FEMatrixType secDestMat_;
 
     //! Handle for secondary matrix factor
-    MathParser::HandleType secMatFacHandle_;
+    unsigned int secMatFacHandle_;
     
     //! Pointer to math parser instance
     MathParser* mathParser_;

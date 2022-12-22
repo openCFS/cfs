@@ -5,6 +5,7 @@
 
 #include <limits>
 
+#include "Utils/mathParser/mathParser.hh"
 #include "CoefFunctionComplexToReal.hh"
 #include <boost/lexical_cast.hpp>
 #include "Domain/Mesh/Grid.hh"

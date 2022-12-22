@@ -14,7 +14,7 @@
 #include "Driver/Assemble.hh"
 #include "DataInOut/SimState.hh"
 #include "Utils/Timer.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ProgramOptions.hh"

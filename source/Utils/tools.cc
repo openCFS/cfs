@@ -668,7 +668,7 @@ namespace CoupledField {
   {
     // obtain handle
     MathParser* parser = domain->GetMathParser();
-    MathParser::HandleType handle = parser->GetNewHandle(false);
+    unsigned int handle = parser->GetNewHandle(false);
 
     // Set expression and evaluate
     parser->SetExpr(handle, expr);

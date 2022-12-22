@@ -4,7 +4,7 @@
 #include "muParser.h"
 #include "Materials/AcousticMaterial.hh"
 #include "Materials/BaseMaterial.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include <boost/math/special_functions/hankel.hpp>
 #include <boost/math/special_functions/bessel.hpp>
 
@@ -56,7 +56,7 @@ namespace CoupledField{
     if (dimType_ == SCALAR) {
       //calc Z_mpp
       //    i*2*pi*f*1/(1-tanh(2*pi*f/c*sqrt(i))/(2*pi*f/c*sqrt(i)))
-      MathParser::HandleType h = mp_->GetNewHandle();
+      unsigned int h = mp_->GetNewHandle();
       const Double pi = mp_->GetExprVars(h, "_pi");
       const Double f = mp_->GetExprVars(h, "f");
       mp_->ReleaseHandle(h);
@@ -139,7 +139,7 @@ namespace CoupledField{
     if (dimType_ == SCALAR) {
       //calc Z_mpp
       //    i*2*pi*f*1/(1-tanh(2*pi*f/c*sqrt(i))/(2*pi*f/c*sqrt(i)))
-      MathParser::HandleType h = mp_->GetNewHandle();
+      unsigned int h = mp_->GetNewHandle();
       const Double pi = mp_->GetExprVars(h, "_pi");
       const Double f = mp_->GetExprVars(h, "f");
       mp_->ReleaseHandle(h);
@@ -257,7 +257,7 @@ namespace CoupledField{
     {
 #pragma omp critical (CoefFunctionImpedanceModel_Complex)
       {
-        MathParser::HandleType h = mp_->GetNewHandle();
+        unsigned int h = mp_->GetNewHandle();
         const Double f = mp_->GetExprVars(h, "f");
         mp_->ReleaseHandle(h);
         if (f != currFrequ_) // Already calculated value for this frequency

@@ -1194,7 +1194,7 @@ void Domain::RegisterVariables()
    ParamNodeList & varNodes = varListNode->GetChildren();
    ParamNodeList::iterator it = varNodes.Begin();
    std::string varName, valString;
-   MathParser::HandleType handle;
+   unsigned int handle;
    handle = mathParser_->GetNewHandle();
    Double value = 0.0;
    for(; it != varNodes.End(); it++ ) {

@@ -11,7 +11,6 @@
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/BaseMaterial.hh"
 #include "DataInOut/ResultHandler.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
 
@@ -28,6 +27,7 @@ namespace CoupledField
   class FeSpace;
   class SolStrategy;
   class MHTimeFreqResult;
+  class MathParser;
 
   //  class Domain;
   
@@ -276,7 +276,7 @@ namespace CoupledField
     Timer static_non_lin_step_timer_;
 
     std::ofstream logFile_;
-    MathParser::HandleType mHandle_;
+    unsigned int mHandle_;
     MathParser* mParser_;
 
 private:

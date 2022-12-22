@@ -19,8 +19,6 @@
 #include <cmath>
 
 #include "CoefFunction.hh"
-#include "Utils/mathParser/mathParser.hh"
-
 
 namespace CoupledField{
 
@@ -282,9 +280,7 @@ protected:
     //                          UInt dir);
     //
     //! Call-back method for re-calculation
-    void UpdateOmega(){
-      omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
-    }
+    void UpdateOmega();
 
     void SetPosPML(Matrix<Double> & inner,
                    Matrix<Double> & outer);
@@ -316,7 +312,7 @@ protected:
     MathParser* mp_;
 
     //! Handle for expression
-    MathParser::HandleType mHandle_;
+    unsigned int mHandle_;
 
     //! storing the current frequency
     Double omega_;

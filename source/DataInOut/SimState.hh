@@ -12,7 +12,6 @@
 
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
-#include "Utils/mathParser/mathParser.hh"
 
 namespace fs = boost::filesystem;
 
@@ -23,6 +22,7 @@ namespace CoupledField {
   class Domain;  
   class SimOutputHDF5;
   class SimInputHDF5;
+  class MathParser;
 
   //! Class for data handling of internal simulation state
   
@@ -194,10 +194,10 @@ namespace CoupledField {
     //! The math parser of the parent / main domain is neeeded to register
     //! a callback function, which is called everytime the time / frequency
     //! value of the main domain is changed.
-    MathParser * parentParser_;
+    MathParser* parentParser_ = nullptr;
     
     //! Math parser handle for parser of parent domain
-    MathParser::HandleType parentHandle_;
+    unsigned int parentHandle_;
     
     //! Store stepNumbers
     StdVector<UInt> stepNums_;

@@ -10,6 +10,7 @@
 // include hdf5 cpp file
 #include "H5Cpp.h"
 
+#include "Utils/mathParser/mathParser.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"

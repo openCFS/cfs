@@ -1,9 +1,11 @@
+
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionTimeFreq.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
 
@@ -36,7 +38,7 @@ CoefFunction::Generate( MathParser * mp,
                         const std::string& realVal, 
                         const std::string& imagVal  ) {
 
-  MathParser::HandleType handle = mp->GetNewHandle(true);
+  unsigned int handle = mp->GetNewHandle(true);
 
 
   PtrCoefFct ret;
@@ -107,7 +109,7 @@ CoefFunction::Generate( MathParser * mp,
                         const StdVector<std::string>& realVal, 
                         const StdVector<std::string>& imagVal ) {
   
-  MathParser::HandleType handle = mp->GetNewHandle(true);
+  unsigned int handle = mp->GetNewHandle(true);
 
   PtrCoefFct ret;
 
@@ -243,7 +245,7 @@ CoefFunction::Generate( MathParser * mp,
                         UInt numRows, UInt numCols,
                         const StdVector<std::string>& realVal,
                         const StdVector<std::string>& imagVal ) {
-   MathParser::HandleType handle = mp->GetNewHandle(true);
+   unsigned int handle = mp->GetNewHandle(true);
 
    PtrCoefFct ret;
 
@@ -535,7 +537,7 @@ PtrCoefFct CoefFunction::Generate( MathParser * mp,
 
 
 bool CoefFunction::ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr) {
-  MathParser::HandleType handle = mp->GetNewHandle(true);
+  unsigned int handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
   bool depends = false;
   if ( mp->IsExprVariable(handle, "t") ||
@@ -556,7 +558,7 @@ bool CoefFunction::ExprDependsOnTimeFreq(MathParser* mp, const StdVector<std::st
 }
 
 bool CoefFunction::ExprDependsOnSpace(MathParser* mp, const std::string& expr) {
-  MathParser::HandleType handle = mp->GetNewHandle(true);
+  unsigned int handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
   bool depends = false;
   if ( mp->IsExprVariable(handle, "x") ||
@@ -1031,7 +1033,7 @@ void CoefCompoundTest() {
 //  // ========================================================================
 //  {
 //    MathParser * mp = myDom->GetMathParser();
-//    MathParser::HandleType h = mp->GetNewHandle();
+//    unsigned int h = mp->GetNewHandle();
 //    
 //    Double var = 42.0;
 //    mp->RegisterExternalVar( h, "var", &var );

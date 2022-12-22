@@ -10,7 +10,6 @@
 
 #include "FormsContexts.hh"
 #include "Domain/BCs.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "PDE/BasePDE.hh"
 
 #include "def_use_openmp.hh"
@@ -26,6 +25,7 @@ namespace CoupledField {
   class Timer;
   class StdPDE;
   class AlgebraicSys;
+  class MathParser;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble {
@@ -234,7 +234,7 @@ namespace CoupledField {
     MathParser* mp_;
     
     //! Handle for expression
-    MathParser::HandleType mHandle_;
+    unsigned int mHandle_;
 
     //! Flag indicating if system was already assembled
     bool isFirstTime_;

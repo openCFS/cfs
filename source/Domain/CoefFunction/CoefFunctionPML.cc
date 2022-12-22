@@ -15,7 +15,7 @@
 
 
 #include "CoefFunctionPML.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include "boost/bind/bind.hpp"
 #include "boost/lexical_cast.hpp"
 #include "Domain/Mesh/Grid.hh"
@@ -169,6 +169,11 @@ void CoefFunctionPML<T>::GetVector(Vector<Double>& vec,
       vec[i] = 0.0;
     }
   }
+}
+
+template<typename T>
+void CoefFunctionPML<T>::UpdateOmega(){
+  omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
 }
 
 template<typename T>

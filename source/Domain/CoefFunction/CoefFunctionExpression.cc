@@ -1,5 +1,5 @@
 #include "CoefFunctionExpression.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 

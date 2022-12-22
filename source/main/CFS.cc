@@ -10,6 +10,7 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/DefineInOutFiles.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"

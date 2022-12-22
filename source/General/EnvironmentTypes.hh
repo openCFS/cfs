@@ -27,6 +27,10 @@ namespace CoupledField {
   static const double NORM_EPS = 1e-6;  // needed e.g. for lower bounds of norms in iteration loops
   static const double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
 
+  // Abbreviation for global handle
+  static const int MathParser_GLOB_HANDLER = 0;
+
+
   //! number of threads for parallel CFS loops
   extern unsigned int CFS_NUM_THREADS;
 

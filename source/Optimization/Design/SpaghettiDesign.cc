@@ -5,6 +5,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Utils/PythonKernel.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/TransferFunction.hh"
 
@@ -718,7 +719,7 @@ void SpaghettiDesign::Variable::Parse(PtrParamNode pn, int noodle_idx)
   this->noodle = noodle_idx;
 
   MathParser* mp = domain->GetMathParser();
-  MathParser::HandleType handle = mp->GetNewHandle();
+  unsigned int handle = mp->GetNewHandle();
   // there are not much additional variables stored.
 
   string value;

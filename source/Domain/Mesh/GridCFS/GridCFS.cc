@@ -253,7 +253,7 @@ namespace CoupledField {
 
     // fetch math parser and register coordinate names
     MathParser * parser = domain->GetMathParser();
-    StdVector<MathParser::HandleType> handles(dim_);
+    StdVector<unsigned int> handles(dim_);
     StdVector<Vector<Double> > sampleVals(dim_);
     for( UInt iDim = 0; iDim < dim_; iDim++ ) {
       if( !coords[iDim].isFree ) {

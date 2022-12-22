@@ -148,21 +148,7 @@ class SingleVector;
     /** for multi sequence optimization we need some information before driver instantiation */
     static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
 
-    void SetToStepValue(UInt stepNum, Double stepVal )  {
-      // ensure that this method is only called if simState has input
-      if( false ) { // ! simState_->HasInput()
-        EXCEPTION( "Can only set external time step, if simulation state "
-                << "is read from external file" );
-      }
-
-      //actFreqStep_ = stepNum;;
-      //actFreq_ = stepVal;
-
-      // Set current frequency value in the mathParser
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", stepVal );
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", stepNum );
-
-    }
+    void SetToStepValue(UInt stepNum, Double stepVal);
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs; //ToDo: remove due to new structure -> frequency_

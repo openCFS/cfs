@@ -12,8 +12,6 @@
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 
-#include "Utils/mathParser/mathParser.hh"
-
 namespace CoupledField {
 
 
@@ -331,7 +329,7 @@ protected:
   Grid* grid_;
   
   //! Handle for MathParser object
-  MathParser::HandleType mHandle_;
+  unsigned int mHandle_;
 
   //! pointer to algebraic system
   AlgebraicSys* algsys_;

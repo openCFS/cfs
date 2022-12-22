@@ -79,9 +79,9 @@ namespace CoupledField {
     //! Pointer to math parser instance
     MathParser* mp_;
     //! Handle for expression
-    MathParser::HandleType mHandleStep_;
-    MathParser::HandleType mHandleTime_;
-    MathParser::HandleType mHandleDt_;
+    unsigned int mHandleStep_;
+    unsigned int mHandleTime_;
+    unsigned int mHandleDt_;
     //Double t_; // current time
     Double tau_; // relaxation time
     Double lam_; // ratio of dt/tau

@@ -79,8 +79,8 @@ protected:
   //boost::unordered_map<UInt, std::pair<Vector<Double> , Vector<TYPE> > > cached_data_boost_;
   //typename boost::unordered_map<UInt, std::pair<Vector<Double>, Vector<TYPE> > >::iterator it_boost_;
 
-  MathParser* mp_;
-  MathParser::HandleType mHandleTime_;
+  MathParser* mp_ = nullptr;
+  unsigned int mHandleTime_;
 
 };
 } //end of namespace

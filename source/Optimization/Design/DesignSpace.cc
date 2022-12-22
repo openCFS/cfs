@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <sstream>
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
@@ -22,7 +23,6 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
-//#include "Driver/EigenFrequencyDriver.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -298,7 +298,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double initial = -1;
 
             MathParser* mp = domain->GetMathParser();
-            MathParser::HandleType mHandle = 4711;
+            unsigned int mHandle = 4711;
             std::string expr = curr_design_pn->Get("initial")->As<std::string>();
             bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
             if (initDependsOnSpace) {

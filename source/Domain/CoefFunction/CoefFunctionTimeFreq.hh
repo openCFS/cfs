@@ -180,7 +180,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
     MathParser* mp_;
 
     //! Handle for expression
-    MathParser::HandleType mHandle_;
+    unsigned int mHandle_;
     //@}
     
     
@@ -371,10 +371,10 @@ protected:
   MathParser* mp_;
 
   //! Handle for expression (real)
-  MathParser::HandleType mHandleReal_;
+  unsigned int mHandleReal_;
   
   //! Handle for expression (imag)
-  MathParser::HandleType mHandleImag_;
+  unsigned int mHandleImag_;
   //@}
   
   // =====================================

@@ -10,13 +10,13 @@
 #include "MatVec/Vector.hh"
 
 #include "Utils/ApproxData.hh"
-#include "Utils/mathParser/mathParser.hh"
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 
 namespace CoupledField {
 
   // forward class declarations
+  class MathParser;
   class CoordSystem;
   class Hysteresis;
   class ElemList;

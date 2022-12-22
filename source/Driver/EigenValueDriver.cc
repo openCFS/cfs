@@ -9,7 +9,7 @@
 #include "Driver/SingleDriver.hh"
 #include "Domain/Domain.hh"
 #include "Optimization/Optimization.hh"
-
+#include "Utils/mathParser/mathParser.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ResultHandler.hh"

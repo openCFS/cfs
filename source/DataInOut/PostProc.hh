@@ -4,7 +4,6 @@
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
 #include "Domain/Results/ResultInfo.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "MatVec/Vector.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -14,6 +13,7 @@ namespace CoupledField {
   // forward class declarations
   class Grid;
   class BaseResult;
+  class MathParser;
 
   //! Base class for defining interface for operations on result objects
   class PostProc {
@@ -231,10 +231,10 @@ namespace CoupledField {
     StdVector<std::string> iFuncs_;
 
     //! vector with related handles for math parser (real part)
-    StdVector<MathParser::HandleType> rHandles_;
+    StdVector<unsigned int> rHandles_;
 
     //! vector with related handles for math parser (imag part)
-    StdVector<MathParser::HandleType> iHandles_;
+    StdVector<unsigned int> iHandles_;
 
     //! vector containing values for registered variables (real part)
     Vector<Double> rVals_;
@@ -308,10 +308,10 @@ namespace CoupledField {
     StdVector<std::string> iFuncsSorted_;
 
     //! vector with related handles for math parser (real part)
-    StdVector<MathParser::HandleType> rHandles_;
+    StdVector<unsigned int> rHandles_;
 
     //! vector with related handles for math parser (imag part)
-    StdVector<MathParser::HandleType> iHandles_;
+    StdVector<unsigned int> iHandles_;
 
     //! vector containing values for registered variables (real part)
     Vector<Double> rVals_;

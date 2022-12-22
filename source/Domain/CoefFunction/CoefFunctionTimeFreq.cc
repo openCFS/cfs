@@ -1,6 +1,7 @@
 #include "CoefFunctionTimeFreq.hh"
 #include "boost/bind/bind.hpp"
 #include "boost/lexical_cast.hpp"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
 

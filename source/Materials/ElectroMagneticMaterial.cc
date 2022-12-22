@@ -2,6 +2,7 @@
 
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Materials/Models/Preisach.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
@@ -932,7 +933,7 @@ namespace CoupledField
 
             //compute an averaged starting value directly from the string
             Double B_init = 0.0;
-            MathParser::HandleType handle = mp_->GetNewHandle();
+            unsigned int handle = mp_->GetNewHandle();
             mp_->RegisterExternalVar(handle,"B_R",&B_init);
             mp_->SetExpr(handle,nuStr);
             Double nuInit = mp_->Eval(handle);

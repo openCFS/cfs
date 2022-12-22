@@ -9,12 +9,13 @@
 #include "CoefFunction.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Utils/ThreadLocalStorage.hh"
 //#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 namespace CoupledField {
+
+class MathParser;
 
 //! Coefficient class, which is formed by a compound of several others
 
@@ -181,7 +182,7 @@ protected:
   std::string expr_;
   
   //! Mathparser handle
-  MathParser::HandleType handle_;
+  unsigned int handle_;
   
   //! Mathparser object
   MathParser* parser_;
@@ -323,10 +324,10 @@ protected:
   std::string exprImag_;
   
   //! Mathparser handle (real part)
-  MathParser::HandleType handleReal_;
+  unsigned int handleReal_;
   
   //! Mathparser handle (imag part)
-  MathParser::HandleType handleImag_;
+  unsigned int handleImag_;
   
   //! Mathparser object
   MathParser* parser_;

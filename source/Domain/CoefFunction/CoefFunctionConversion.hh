@@ -30,10 +30,10 @@
 #include "FeBasis/BaseFE.hh"
 #include "Materials/BaseMaterial.hh"
 #include "FeBasis/FeFunctions.hh"
-#include "Utils/mathParser/mathParser.hh"
-
 
 namespace CoupledField  {
+
+class MathParser;
 
 template <class T>
 class CoefFunctionVectorToTensor : public CoefFunction {
