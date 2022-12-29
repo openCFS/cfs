@@ -20,16 +20,6 @@ namespace CoupledField {
 
   public:
 
-    //! Shortcut for an STL vector of unsigned integers (UInt)
-    typedef std::vector<UInt> NodeList;
-
-    //! Shortcut for an boost unordered UInt set
-    typedef boost::unordered_set<UInt> NodeSet;
-
-    //! Shortcut for an iterator over an STL vector of unsigned integers (UInt)
-    typedef NodeList::iterator NodeListIterator;
-
-
     // =======================================================================
     // CONSTRUCTORS
     // =======================================================================
@@ -248,29 +238,10 @@ namespace CoupledField {
     //@}
 
 
-    // =======================================================================
-    // DEBUGGING methods
-    // =======================================================================
-
-    //@{
-    //! \name Methods for debugging
-
-    std::string ToString() const
-    {
-      std::ostringstream os;
-      Print(os);
-      return os.str();
-    }
-    
-    //! prints the complete Graph for Debugging
-    void Print(std::ostream &os) const;
-  
-    //@}
-
   protected:
 
     //! Counts the number of edges
-    
+
     //! While the graph is uncompressed this function can be used
     //! to count how many edges are in the node lists
     //! the result is stored in the nne_ member
@@ -283,8 +254,17 @@ namespace CoupledField {
     //! the indices in each list unique.
     void SortLists();
 
+    /** returns a debug string of the system with the comple graph for debugging
+     * @see PrintCRS() */
+    std::string ToString() const;
+  
+    /** print a crs structure to a debug string
+     * @param structure row by row, otherwise one line with rows and one with column
+     * @param level 0 = each rows by line, 1 = one line for row and col, 2 = metis 5 graph file formant for ndmetis */
+    std::string PrintCRS(unsigned int numNodes, unsigned int* rows, unsigned int* cols, int level = 0) const;
+    
     //! Uncompressed matrix graph, consisting of STL lists
-    NodeList *element_;
+    std::vector<unsigned int>* element_;
 
     //! Number of nodes/vertices in the matrix graph
     UInt numNodes_;
@@ -325,13 +305,12 @@ namespace CoupledField {
     //! Keep track of wether the graph has been reordered
     bool amReordered_;
 
-    //! Compute a fill-reducing ordering of the graph. 
+    /** Compute a fill-reducing ordering of the graph.
 
-    //! The result is stored in order_, the inverse mapping 
-    //! in iorder_. Currently, the ordering is obtained using Metis.
-    //! If METIS is not defined, the ordering will be identity. 
-    //! If the graph is not compressed, it will be compressed now.
-    void Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order );
+    * The result is stored in order_, the inverse mapping in iorder_.
+    * If the graph is not compressed, it will be compressed now.
+    * @newOrder METIS, SLOAN  */
+    void Reorder(BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order);
 
 
     //! Create reordering to get consecutive arranges blocks
@@ -343,6 +322,9 @@ namespace CoupledField {
     //! \param order 1-based reordering array
     void ReorderForBlocks( StdVector<UInt>& order );
     
+    //! function for converting set contents to vector
+    void MapSetToVector();
+
     // =======================================================================
     // CRS FORMAT stuff
     // =======================================================================
@@ -357,20 +339,6 @@ namespace CoupledField {
     //! lexicographically with increasing column index.
     void ConvertToCRS();
 
-    //! Convert the linked list data structure to CRS format
-
-    //! This method can be used to generate a representation of the graph as a
-    //! CRS data structure. It is different from ConvertToCRS in the respect
-    //! that the self-reference of a node (i.e. the edge connecting the node
-    //! to itself / the diagonal matrix entry) is not stored. This is the
-    //! format expected e.g. by Metis. The method will handle dynamic
-    //! allocation of memory for the CRS structure.
-    //! \param rptr on return stores adress of row pointer array of CRS
-    //!             structure
-    //! \param cidx on return stores adress of column index array of CRS
-    //!             structure
-    void ConvertToMetisCRS( UInt **rptr, UInt **cidx );
-
     //! This array contains the indices of connected nodes (column array)
 
     //! For every node we have a list of node indices of the nodes to which
@@ -381,16 +349,16 @@ namespace CoupledField {
 
     //! This array points to the start of the rows in cs_edges
 
-    //! This array contains for every node the starting index of its neighbour
+    //! This array contains for every node the starting index of its neighbor
     //! list in the cs_edgdes_ array. This corresponds to the row pointer
     //! vector in compressed row storage format.
     UInt *csNodes_;
 
-    //! Keep track of whether assembly of the graph was finalised
+    //! Keep track of whether assembly of the graph was finalized
 
-    //! This attribute keeps track of the status of the graph. It is initialy
+    //! This attribute keeps track of the status of the graph. It is initially
     //! set to false and switched to true, once the assembly of the graph was
-    //! finalised and it was converted to the CRS structure.
+    //! finalized and it was converted to the CRS structure.
     bool amAssembled_;
 
     //! Default Constructor
@@ -423,13 +391,10 @@ namespace CoupledField {
     StdVector<std::pair<UInt,UInt> > sortedBlocks_;
 
     //! set for faster add of element neighbors
-    NodeSet* setElements_ = NULL;
+    boost::unordered_set<UInt>* setElements_ = NULL;
 
     //! flag to check if element_ pointer is ready
     bool setToElemDone_;
-
-    //! function for converting set contents to vector
-    void MapSetToVector();
 
   };
 

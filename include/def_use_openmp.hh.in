@@ -1,3 +1,5 @@
 // Define used to check if OpenMP parallelization is activated 
 
 #cmakedefine USE_OPENMP
+
+#cmakedefine OpenMP_CXX_VERSION @OpenMP_CXX_VERSION@

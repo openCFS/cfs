@@ -47,7 +47,7 @@ if(USE_OPENMP)
   endif()   
 endif() # USE_OPENMP
 
-# Clang can be UNIX (macOS as AppleClang or Linxu) or Windows (MSVC bundled). 
+# Clang can be UNIX (macOS as AppleClang or Linux) or Windows (MSVC bundled).
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # we assue C++14 for CFS for any compiler (including icc below)
   set(CFS_CXX_FLAGS "-std=c++14 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
@@ -255,8 +255,8 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx
    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D_WIN32_WINNT=0x0A00")
   endif()
 
-  # also ixc win Windows with MSVC command line interface seems to understand gcc style  
-  set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment")
+  # also ixc on Windows with MSVC command line interface seems to understand gcc style
+  set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment -Wno-enum-constexpr-conversion -Wno-deprecated-builtins")
 
 # Check for Intel C++ compiler (classic compiler) - to be depreciated mid 2023
 ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")

@@ -1,3 +1,4 @@
+include(CMakePrintHelpers)
 # easy check if already loaded
 set(CFS_macros "1")
 #

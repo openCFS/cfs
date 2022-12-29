@@ -45,7 +45,7 @@ namespace CoupledField {
     // numbers of the free dofs
     if ( doReorder == true ) {
 
-      StdVector<NodeList> newElement(numNodes_);
+      StdVector<std::vector<unsigned int>> newElement(numNodes_);
 
       for ( UInt i=0; i< numNodes_; i++ ) {
         UInt n = (*newEqn)[i];

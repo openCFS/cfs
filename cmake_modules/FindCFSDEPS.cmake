@@ -184,16 +184,9 @@ IF(USE_CGNS)
   INCLUDE("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
 ENDIF(USE_CGNS)
 
-#-------------------------------------------------------------------------------
-# Search for METIS library
-#-------------------------------------------------------------------------------
-IF(USE_METIS)
-  SET(METIS_VER "4.0.3")
-  SET(METIS_GZ "metis-${METIS_VER}.tar.gz")
-  SET(METIS_MD5 "d3848b454532ef18dc83e4fb160d1e10")
-
-  INCLUDE("${CFSDEPS_DIR}/metis/External_METIS.cmake")
-ENDIF(USE_METIS)
+if(USE_METIS)
+  include("${CFSDEPS_DIR}/metis/External_METIS.cmake")
+endif()
 
 #-------------------------------------------------------------------------------
 # Search for GiDpost library
@@ -259,16 +252,9 @@ if(USE_ARPACK)
   include("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
 endif()
   
-#-----------------------------------------------------------------------------
-# Find SuiteSparse/CholMod/UMFPACK/AMD library
-#-----------------------------------------------------------------------------
-IF(USE_SUITESPARSE OR USE_ILUPACK)
-  SET(SUITESPARSE_VER "4.2.1")
-  SET(SUITESPARSE_GZ "SuiteSparse-${SUITESPARSE_VER}.tar.gz")
-  SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
-
-  INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-ENDIF()
+if(USE_SUITESPARSE)
+  include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
@@ -294,17 +280,6 @@ ENDIF()
 if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
 endif(USE_LIS)
-
-#-------------------------------------------------------------------------------
-# Find Library for FFT and IFFT 
-#-------------------------------------------------------------------------------
-IF(USE_FFTW)
-  SET(FFTW_VER "3.3.4")
-  SET(FFTW_GZ "fftw-${FFTW_VER}.tar.gz")
-  SET(FFTW_MD5 "2edab8c06b24feeb3b82bbb3ebf3e7b3")
-  
-  INCLUDE("${CFSDEPS_DIR}/fftw/External_FFTW.cmake")
-ENDIF(USE_FFTW)
 
 #-------------------------------------------------------------------------------
 # Find SuperLU
@@ -423,32 +398,25 @@ IF(USE_FEAST_COMMUNITY)
   INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
 ENDIF()
 
-#-----------------------------------------------------------------------------
 # FLANN - Fast Library for Approximate Nearest Neighbors
-#-----------------------------------------------------------------------------
-IF(USE_FLANN)
-  SET(FLANN_VER "1.9.1")
-  SET(FLANN_ZIP "flann-${FLANN_VER}.zip")
-  SET(FLANN_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
-  INCLUDE("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
-ENDIF(USE_FLANN)
+if(USE_FLANN)
+  include("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find SCPIP - A special optimizer for topology optimization. 
 # This is not open source, so check with Christoph Zillober, Uni-Wuerzburg first 
 #-----------------------------------------------------------------------------
 if(USE_SCPIP)
-  set(SCPIP_ZIP "scpip-cfsdeps.zip")
-  set(SCPIP_MD5 "a2767521596ed925e53b9fea6df4d77e")  
   include("${CFSDEPS_DIR}/scpip/External_SCPIP.cmake")
-endif(USE_SCPIP)
+endif()
 
 #-----------------------------------------------------------------------------
 # Find SNOPT - A commercial general purpose commercial optimizer 
 #-----------------------------------------------------------------------------
 if(USE_SNOPT)
   include("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
-endif(USE_SNOPT)
+endif()
 
 #-----------------------------------------------------------------------------
 # Find IPOPT - A general purpose open source optimizer 

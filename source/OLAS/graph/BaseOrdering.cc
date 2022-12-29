@@ -23,7 +23,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BaseOrdering::BaseOrdering( NodeList *graph, StdVector<UInt>& order ) :
+  BaseOrdering::BaseOrdering( std::vector<UInt>* graph, StdVector<UInt>& order ) :
     graph_(graph),
     order_(order)
   {

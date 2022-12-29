@@ -237,7 +237,7 @@ namespace CoupledField {
     TYPE *help;
 
     // perform memory allocation
-    capacity_ = (size_ == 0)? 1 : 2 * size_;
+    capacity_ = (size_ == 0) ? 1 : 2 * size_;
     help = new TYPE[ capacity_ ];
 
     // copy old entries into new buffer if we have data

@@ -1,5 +1,0 @@
-// Define used to check if LIS Library of Iterative Solvers is used
-
-#cmakedefine USE_FFTW
-
-#define FFTW_VER "@FFTW_VER@"

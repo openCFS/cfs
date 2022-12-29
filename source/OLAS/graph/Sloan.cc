@@ -10,7 +10,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  Sloan::Sloan( NodeList* agraph, StdVector<UInt>& order ) :
+  Sloan::Sloan( std::vector<UInt>* agraph, StdVector<UInt>& order ) :
     BaseOrdering( agraph, order ),
     profOldRem_(0),
     profNewRem_(0),
@@ -193,7 +193,7 @@ namespace CoupledField {
 
     Integer nc, lstrt, lstop, lwdth, node, nbr;
     StdVector<UInt> mask = order_;
-    NodeList::iterator liter;
+    std::vector<UInt>::iterator liter;
 
     // initialisation
     mask[root-1] = 1;
@@ -285,7 +285,7 @@ namespace CoupledField {
     s[snode-1] = -1;
 
     Integer addres, maxprt, prty, next, nabor, nbr;
-    NodeList::iterator liter, liter1;
+    std::vector<UInt>::iterator liter, liter1;
 
     // loop while queue is not empty
     while ( nn>0 ) {
@@ -400,7 +400,7 @@ namespace CoupledField {
   void Sloan::CalcProfile() {
 
 
-    NodeList::iterator liter;
+    std::vector<UInt>::iterator liter;
     UInt node, oldMin, newMin;
     UInt profOld = 0;
     UInt profNew = 0;

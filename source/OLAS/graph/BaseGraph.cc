@@ -67,8 +67,8 @@ namespace CoupledField {
 
     // Allocate memory for linked lists
     if ( numNodes_ > 0 ) {
-      NEWARRAY( element_, NodeList, numNodes_ );
-      NEWARRAY( setElements_, NodeSet, numNodes_ );
+      element_ = new std::vector<UInt>[numNodes_];
+      setElements_ = new boost::unordered_set<UInt>[numNodes_];
     }
     else {
       element_ = NULL;
@@ -249,7 +249,7 @@ namespace CoupledField {
     UInt i;
     nne_ = 0;
     numNonDiagEntries_ = 0;
-    NodeListIterator iter;
+    std::vector<unsigned int>::iterator iter;
     for ( i = 0; i < numNodes_; i++ ) {
       nne_ += element_[i].size();
       bool diagFound = false;
@@ -267,38 +267,65 @@ namespace CoupledField {
     }
   }
 
+  std::string BaseGraph::ToString() const
+  {
+    std::stringstream os;
 
-  // ***********************************
-  //   Print graph to an output stream
-  // ***********************************
-  void BaseGraph::Print(std::ostream &os) const {
-    UInt i;
-    NodeListIterator j;
-        
-    os << "printing auxiliary graph" << std::endl;
-
-    // uncompressed graph
-    if (amAssembled_ == false) {
+    if (amAssembled_ == false) // uncompressed graph
+    {
       os << "Graph is in uncompressed state" << std::endl;
-      for (i=0; i<numNodes_; i++) {
+      for(unsigned int i=0; i<numNodes_; i++) {
         os << "line " << i << ", " << element_[i].size() << " entries:\t";
-        for (j=element_[i].begin();j!=element_[i].end();j++)
+        for (std::vector<unsigned int>::iterator j=element_[i].begin();j!=element_[i].end();j++)
           os << *j << "\t";
         os << std::endl;
       }
     }
-
-    // compressed graph
-    else if (csNodes_){
+    else if (csNodes_ != nullptr) // compressed graph
+    {
       os << "Graph is in compressed state" << std::endl;
-      for (i=0;i<numNodes_;i++) {
-        os << "line " << i << ", " << csNodes_[i+1]-csNodes_[i]
-           << " entries:\t";
+      for(unsigned int i=0;i<numNodes_;i++) {
+        os << "line " << i << ", " << csNodes_[i+1]-csNodes_[i] << " entries:\t";
         for (UInt k=csNodes_[i];k<csNodes_[i+1];k++)
           os << csEdges_[k] << "\t";
         os << std::endl;
       }
     }
+    return os.str();
+  }
+
+  std::string BaseGraph::PrintCRS(unsigned int numNodes, unsigned int* rows, unsigned int* cols, int level) const
+  {
+    std::stringstream os;
+
+    switch(level)
+    {
+    case 0:
+      for(unsigned int i = 0; i < numNodes; i++ )
+      {
+        os << " row " << i << ": ";
+        for(unsigned int j = rows[i]; j < rows[i+1]; j++)
+          os << cols[j] << " ";
+        os << std::endl;
+      }
+      break;
+    case 1:
+      os << "rows: " << ::ToString<unsigned int>(rows, numNodes + 1) << " (" << numNodes << "+1)" << std::endl;
+      os << "cols: " << ::ToString<unsigned int>(cols, rows[numNodes_]) << " (" << rows[numNodes] << ")";
+      break;
+    case 2: // metis graph file format (1-based)
+      os << numNodes << std::endl;
+      for(unsigned int i = 0; i < numNodes; i++ )
+      {
+        for(unsigned int j = rows[i]; j < rows[i+1]; j++)
+          os << cols[j]+1 << " "; // 1-based
+        os << std::endl;
+      }
+      break;
+    default:
+      EXCEPTION("invalid output level");
+    }
+    return os.str();
   }
 
 
@@ -313,7 +340,7 @@ namespace CoupledField {
 
     newOrder_ = reorder;
     assert(vertexOrder != NULL);
-    NodeListIterator iter;
+    std::vector<unsigned int>::iterator iter;
     
     // Store requested ordering scheme
     newOrder_ = reorder;
@@ -401,7 +428,7 @@ namespace CoupledField {
       }
     }
 
-    StdVector<NodeList> newElement(numNodes_);
+    StdVector<std::vector<unsigned int>> newElement(numNodes_);
     for ( UInt i=0; i< numNodes_; i++ ) {
       UInt n = (*vertexOrder)[i];
       newElement[n-1] = element_[i];
@@ -451,8 +478,8 @@ namespace CoupledField {
 
 #ifndef NDEBUG
     LOG_DBG(graphLogger) << "SL: statistics";
-    LOG_DBG(graphLogger) << "\ttotal number of entries (unsorted): " << totalSize << std::endl;
-    LOG_DBG(graphLogger) << "\ttotal capacity: " << totalCapacity << std::endl;
+    LOG_DBG(graphLogger) << "\ttotal number of entries (unsorted): " << totalSize;
+    LOG_DBG(graphLogger) << "\ttotal capacity: " << totalCapacity;
     LOG_DBG(graphLogger) << "\tmemory over-estimation: "<< double(totalCapacity/totalSize*100) << " %\n";
     LOG_DBG(graphLogger) << "\taverage row size: " << mean(size) << "\n";
 #endif
@@ -463,97 +490,34 @@ namespace CoupledField {
   // ****************
   //   ConvertToCRS
   // ****************
-  void BaseGraph::ConvertToCRS() {
-
-
-    UInt i, j;
-
+  void BaseGraph::ConvertToCRS()
+  {
     // Allocate memory for CRS structure
-    if ( csNodes_ == NULL ) {
-      NEWARRAY( csNodes_, UInt, numNodes_ + 1 );
-      NEWARRAY( csEdges_, UInt, nne_ );
+    if(csNodes_ == nullptr) { // for Metis already called and overwritten reordered
+      csNodes_ = new unsigned int[numNodes_+1];
+      csEdges_ = new unsigned int[nne_];
     }
 
     csNodes_[0] = 0;
 
-    NodeListIterator iter;
-    for ( i = 0; i < numNodes_; i++ ) {
-
+    std::vector<unsigned int>::iterator iter;
+    for(unsigned int i = 0; i < numNodes_; i++ )
+    {
       // set number of edges for current node
       csNodes_[i+1] = csNodes_[i] + element_[i].size();
 
       // set adjacent nodes
-      j = csNodes_[i];
+      unsigned int j = csNodes_[i];
       for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ) {
         csEdges_[j] = (*iter);
         j++;
       }
     }
 
-    /** Please leave here if someone needs a debug
-      LOG_DBG3(graphLogger) << "Graph in CRS format:";
-      for ( i = 0; i < numNodes_; i++ ) {
-        LOG_DBG3(graphLogger) << " Row " << i << ": ";
-        for ( j = csNodes_[i]; j < csNodes_[i+1]; j++ ) {
-          LOG_DBG3(graphLogger) << csEdges_[j] << " ";
-        }
-        LOG_DBG3(graphLogger) << std::endl;
-      }*/
-
+    // LOG_DBG3(graphLogger) << "C2CRS\n" << PrintCRS(numNodes_, csNodes_, csEdges_);
+    // LOG_DBG3(graphLogger) << "C2CRS\n" << PrintCRS(numNodes_, csNodes_, csEdges_, 1);
   }
 
-
-  // *********************
-  //   ConvertToMetisCRS
-  // *********************
-  void BaseGraph::ConvertToMetisCRS( UInt **rptr, UInt **cidx ) {
-
-    MapSetToVector();
-
-    UInt i, j;
-
-    // Make sure nne_ is up-to-date
-    CountNNE();
-
-    // Allocate memory for CRS structure
-    NEWARRAY( (*rptr), UInt, numNodes_ + 1 );
-    NEWARRAY( (*cidx), UInt, nne_ - numNodes_ + numNonDiagEntries_ );
-
-    // the first col and first row start with index 1 
-    // to be consistent with Metis
-
-    (*rptr)[0] = 1;
-
-    NodeListIterator iter;
-    UInt pos;
-
-    for ( i = 0; i < numNodes_; i++ ) {
-      // set number of edges for current node (minus self-reference of node)
-      // insert edge information (minus self-reference of node)
-      j = (*rptr)[i];
-      for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ) {
-        pos = (*iter);
-        if ( pos != i ) {
-          (*cidx)[j-1] = pos+1;
-          j++;
-        }
-      }
-
-      // Set start of next CRS row
-      (*rptr)[i+1] = j;
-    }
-        
-    // Debugging output
-    #ifdef DEBUG_BASEGRAPH
-      LOG_DBG3(graphLogger) << "Graph in CRS format (minus self references): " << std::endl;
-      for ( i = 0; i < numNodes_; i++ ) {
-        for ( j = (*rptr)[i]; j < (*rptr)[i+1]; j++ ) {
-          LOG_DBG3(graphLogger) << (*cidx)[j-1] << " ";
-        }
-        LOG_DBG3(graphLogger) << std::endl;
-      }
-    #endif
-  }
 
 
   // *************************
@@ -562,6 +526,9 @@ namespace CoupledField {
   void BaseGraph::Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order )
   {
     std::string name = BaseOrdering::reorderingType.ToString(newOrder);
+
+    LOG_DBG(graphLogger) << "R: type=" << name << " order capacity=" << order.GetCapacity();
+
     PtrParamNode pn = domain->GetInfoRoot()->GetList("sequenceStep").Last();
     shared_ptr<Timer> timer = pn->Get("OLAS")->Get("reorder_"  + name + "/timer")->AsTimer();
     timer->SetSub();
@@ -574,67 +541,67 @@ namespace CoupledField {
     case BaseOrdering::METIS:
       {
 #ifdef USE_METIS
+        // metis can be compiled with configurable layout
+        assert(IDXTYPEWIDTH == 32);
+        assert(sizeof(int) == sizeof(idx_t)); // idx_t is signed int
+        assert(sizeof(int*) == sizeof(idx_t*));
 
-        // Generate auxilliary CRS representation of the graph for
-        // Metis. We cannot use ConvertToCRS() here, since this
-        // contains self-references of the nodes
-        UInt *rptr = NULL;
-        UInt *cidx = NULL;
-        ConvertToMetisCRS( &rptr, &cidx );
+        assert(csNodes_ == nullptr && csEdges_ == nullptr);
+        ConvertToCRS();
 
-        // Allocate memory for the ordering
-        Integer *iorder = NULL;
-        //iorder = new Integer [numNodes_];
-        NEWARRAY( iorder, Integer, numNodes_ );
+        // convert CSR mesh to graph
+        idx_t* xadj = nullptr; // graph rows
+        idx_t* adjncy = nullptr; // graph data
+        idx_t numflag = 0; // c-style
+        int ret = METIS_MeshToNodal((idx_t*) &numNodes_, (idx_t*) &nne_, (idx_t*) csNodes_, (idx_t*) csEdges_, &numflag, &xadj, &adjncy);
+        if(ret != METIS_OK)
+          EXCEPTION("cannot convert mesh to metis graph: " << ret);
+
+        // LOG_DBG3(graphLogger) << "R: metis graph\n" << PrintCRS(numNodes_, (unsigned int*) xadj, (unsigned int*) adjncy, 1);
 
         // Set parameters for Metis
-        Integer options[8];
-        options[0] = 0; // (use defaults)
+        idx_t options[METIS_NOPTIONS];
+        METIS_SetDefaultOptions(options);
+        options[METIS_OPTION_NUMBERING] = 0; // C-style
+        options[METIS_OPTION_DBGLVL] = 0; // 1 for standard status output
 
-        // options[1] = 3;  // default
-        // options[2] = 1;  // default
-        // options[3] = 2;  // default
-        // options[4] = 0;  // default
-        // options[5] = 1;  // default
-        // options[6] = 0;  // default
-        // options[7] = 5;
+        // Allocate memory for the ordering
+        idx_t* perm = new idx_t[numNodes_];
+        // for iperm we use the argument order.
+        // Note that what for metis is the inverse permutation vector is for us the re-ordering vector.
+        assert(order.GetCapacity() == numNodes_);
 
-        Integer numflag = 1;
-        int nNodes = (int)numNodes_;
+        ret = METIS_NodeND((idx_t*) &numNodes_, xadj, adjncy, nullptr, options, perm, (idx_t*) order.GetPointer());
+        //ret = METIS_NodeND((idx_t*) &numNodes_, (idx_t*) csNodes_, (idx_t*) csEdges_, nullptr, options, perm, (idx_t*) order.GetPointer());
+        if(ret != METIS_OK)
+          EXCEPTION("cannot reorder metis graph: " << ret);
 
-        // Note that what for metis is the inverse permutation vector,
-        // for us is the re-ordering vector
-        METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
-                      options, iorder, (Integer*) order.GetPointer() );
+        // TODO cfs seems to assume 1-based reodering and corrects this. So this shall be set to 0-based also for Sloan!
+        for(unsigned int i = 0; i < order.GetSize(); i++)
+          order[i]++; // would be nicer if order would be a Vector
 
-        // We don't need the inverse mapping and the auxilliary CRS structure
-        // anymore, so free the memory
-        delete [] ( iorder );  iorder  = NULL;
-        delete [] ( rptr );  rptr  = NULL;
-        delete [] ( cidx );  cidx  = NULL;
-
+        // We don't need the inverse mapping and the graph structure any more
+        delete[] perm;
+        METIS_Free(xadj); // just a C free
+        METIS_Free(adjncy);
         // Generate log message
-        LOG_DBG(graphLogger) << " Reordering: Re-ordered graph using Metis" << std::endl;
-
+        // LOG_DBG3(graphLogger) << "R: metis reordering: " << order.ToString();
 #else
-        EXCEPTION("Re-compile with USE_METIS = yes to get Metis support");
+        EXCEPTION("Re-compile with USE_METIS = ON to get Metis support");
 #endif
       }
       break;
 
     case BaseOrdering::SLOAN:
       {
-
         MapSetToVector();
 
         // Generate log message
-        LOG_DBG(graphLogger) << " -----------------------------------------------\n"
-               << " Sloan Reordering:"
-               << std::endl;
+        LOG_DBG(graphLogger) << " Sloan Reordering";
 
         // Remove form the neighboring nodes the node itself 
         // ararys are zero based, the equation number however starts by one
-        NodeList::iterator it;
+        std::vector<unsigned int>::iterator it;
         for ( i = 0; i < numNodes_; i++ ) {
 
           for ( it = element_[i].begin(); it != element_[i].end(); it++ ) {
@@ -643,7 +610,6 @@ namespace CoupledField {
               break;
             }
           }
-
         }
 
         // put it to one based
@@ -663,30 +629,17 @@ namespace CoupledField {
         reorder.GetProfile( profOld, profNew );
 
         // Start report
-        LOG_DBG(graphLogger) << "\n --> Old Profile: " << profOld
-                       << "\n --> New Profile: " << profNew
-                        << std::endl;
+        LOG_DBG(graphLogger) << "\n --> Old Profile: " << profOld  << "\n --> New Profile: " << profNew;
 
         // If new ordering does not improve the profile, discard it
         if ( profOld <= profNew ) {
-
-          LOG_DBG(graphLogger) << " Discarded re-ordering, since new profile >="
-                         << " old one\n";
-
-          for ( i = 0; i < numNodes_; i++ ) {
+          LOG_DBG(graphLogger) << " Discarded re-ordering, since new profile >=" << " old one\n";
+          for ( i = 0; i < numNodes_; i++ )
             order[i] = i+1;
-          }
         }
-
         else {
-          LOG_DBG(graphLogger) << " --> Profile reduced to "
-                         << profNew/profOld * 100.0 << "%\n\n"
-                         << " Accepted re-ordering\n";
+          LOG_DBG(graphLogger) << " --> Profile reduced to " << profNew/profOld * 100.0 << "%\n\n" << " Accepted re-ordering\n";
         }
-
-        // Finish report
-        LOG_DBG(graphLogger)  << " -----------------------------------------------"
-                        << std::endl;
 
         // put it to zero based
         for ( i = 0; i < numNodes_; i++ ) {
@@ -700,10 +653,6 @@ namespace CoupledField {
           //element_[i].insert( i );
         }
       }
-      break;
-
-    case BaseOrdering::NOREORDERING:
-      // nothing to do
       break;
 
     default:

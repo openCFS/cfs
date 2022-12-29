@@ -31,9 +31,6 @@ namespace CoupledField {
 
   public:
     
-    //! Shortcut for an STL vector of unsigned integers (UInt)
-    typedef std::vector<UInt> NodeList;
-
     //! \name Constructors and Destructors
     //@{
   
@@ -42,7 +39,7 @@ namespace CoupledField {
     //!              lists
     //! \param order contains for global node i the mapped index
     //! \param asize number of elements (nodes) in the graph
-    BaseOrdering( NodeList *graph, StdVector<UInt>& order );
+    BaseOrdering(std::vector<UInt>* graph, StdVector<UInt>& order );
 
     //! Destructor
     virtual ~BaseOrdering();
@@ -62,7 +59,7 @@ namespace CoupledField {
 
   protected:
 
-    NodeList* graph_;  //!< Uncompressed matrix graph (STL list)
+    std::vector<UInt>* graph_;  //!< Uncompressed matrix graph (STL list)
     StdVector<UInt>& order_;   //!< stores for global node i the mapped index
 
   };

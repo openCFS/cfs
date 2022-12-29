@@ -1,11 +1,13 @@
 set(CMAKE_SOURCE_DIR  "@CMAKE_SOURCE_DIR@")
 set(DEPS_PREFIX  "@DEPS_PREFIX@")
 set(PACKAGE_NAME "@PACKAGE_NAME@")
+set(USE_SUITESPARSE  "@USE_SUITESPARSE@")
 
 include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 assert_set(DEPS_PREFIX)
 assert_set(PACKAGE_NAME)
+assert_set(USE_SUITESPARSE)
 
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/suitesparse_install.cmake.in" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")

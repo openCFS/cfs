@@ -5,6 +5,7 @@ include(CMakePrintHelpers) # cmake_print_variables()
 
 project (SuiteSparse LANGUAGES C )
 
+# we expecitly set here a default, as for MSVC unset results in Debug and for all other system it is Release
 option(BUILD_STATIC "build static libraries" ON)
 option(USE_OPENMP "enable OpenMP" ON)
 # inspired by https://github.com/sergiud/SuiteSparse
@@ -19,8 +20,8 @@ option(ENABLE_COLAMD "column approximate minimum degree ordering" ON)
 option(ENABLE_CHOLMOD "sparse CHOLesky MODification package" ON)
 option(ENABLE_UMFPACK "routines solving sparse linear systems via LU factorization" ON)
 
-# this are the common arguments for all individual cmake projects
-set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX})
+# this are the common arguments for all individual cmake projects. On Windows default build type is Debug
+set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 if(BUILD_STATIC)
   list(APPEND CMAKE_ARGS -DNSTATIC:BOOL=OFF)
 else()
@@ -37,7 +38,6 @@ endif()
 if(NOT SUGGEST_BLAS_LIBRARIES STREQUAL "")
   set(BLAS_LIB -DBLAS_LIBRARIES=${SUGGEST_BLAS_LIBRARIES} -DLAPACK_LIBRARIES=${SUGGEST_BLAS_LIBRARIES})
 endif()
-
 
 # the CMAKE_SOURCE_DIR points to the root directory, independent from where it's CMakeLists.txt is called
 # the add the desired subpackages. Via DEPENDS the proper order is guaranteed
@@ -148,8 +148,6 @@ if (ENABLE_UMFPACK)
     CMAKE_ARGS ${ARGS} -DALLOW_64BIT_BLAS=${ALLOW_64BIT_BLAS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/UMFPACK/build)      
 endif()
-
-cmake_print_variables(CMAKE_MAKE_PROGRAM)
 
 # generate suitsparse_install.cmake for root make install with INSTALL_LIST
 configure_file("${CMAKE_SOURCE_DIR}/suitesparse_install.cmake.in" "${CMAKE_BINARY_DIR}/suitesparse_install.cmake" @ONLY)

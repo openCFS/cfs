@@ -2,7 +2,6 @@
 
 
 include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
-include(CMakePrintHelpers)
 
 assert_not_empty(@CMAKE_C_COMPILER_ID@)
 assert_not_empty(@DEPS_SOURCE@)

@@ -1,8 +1,6 @@
 #ifndef CHOLMOD_HH
 #define CHOLMOD_HH
 
-
-
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
 

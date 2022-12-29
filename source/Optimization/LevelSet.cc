@@ -715,8 +715,8 @@ void LevelSet::SetupSpace()
   cout << "Levelset space... " << flush;
 
   // next we create a levelset node for every gridnode in the correct region
-  StdVector<RegionIdType> reg;
-  reg.Push_back(optimization->GetDesign()->GetRegionId());
+  StdVector<RegionIdType> reg(1);
+  reg[0] = optimization->GetDesign()->GetRegionId();
   const unsigned int region_size(domain->GetGrid()->GetNumNodes(reg));
   // if we do not reserve enough, we risk to generate a copy of this vector
   // which would invalidate all pointers! 

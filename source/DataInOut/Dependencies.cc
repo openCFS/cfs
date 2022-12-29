@@ -5,7 +5,6 @@
 #include <def_use_embedded_python.hh>
 #include <def_use_ensight.hh>
 #include <def_use_feast.hh>
-#include <def_use_fftw.hh>
 #include <def_use_flann.hh>
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
@@ -60,7 +59,7 @@
 #endif
 
 #ifdef USE_METIS
-#include <defs.h>
+#include <metis.h>
 #endif
 
 #ifdef USE_SUITESPARSE
@@ -170,7 +169,7 @@ void Dependencies::ReadSetting()
 
   Dependency omp("OpenMP", "USE_OPENMP", EASY);
 #ifdef USE_OPENMP
-  omp.active = true;
+  omp.SetVersion(OpenMP_CXX_VERSION);
   ss.clear();
   ss << "OMP_NUM_THREADS=" << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-") << ", ";
   ss << "MKL_NUM_THREADS=" << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-") << ", ";
@@ -264,22 +263,17 @@ void Dependencies::ReadSetting()
  #endif
   data.Push_back(ilp);
 
- // we can configure variant with or without gpl. With gpl cholmod is faster for highly populated systems
- #ifdef USE_SUITESPARSE_GPL
-   bool sp_gpl = true;
- #else
-   bool sp_gpl = false;
- #endif
-  Dependency suite("SuiteSparse", "USE_SUITESPARSE", sp_gpl ? LGPL : GPL);
+  // we can configure variant with or without gpl. With gpl cholmod is faster for highly populated systems
+  Dependency suite("SuiteSparse", "USE_SUITESPARSE", GPL);
  #ifdef USE_SUITESPARSE
   suite.SetVersion(SUITESPARSE_MAIN_VERSION,SUITESPARSE_SUB_VERSION,SUITESPARSE_SUBSUB_VERSION);
   suite.date = SUITESPARSE_DATE;
 
   data.Push_back(Dependency("AMD", "", "", LGPL, "part of SuiteSparse", AMD_DATE));
   data.Last().SetVersion(AMD_MAIN_VERSION, AMD_SUB_VERSION, AMD_SUBSUB_VERSION);
-  data.Push_back(Dependency("CHOLMOD", "", "", LGPL, "part of SuiteSparse", CHOLMOD_DATE));
+  data.Push_back(Dependency("CHOLMOD", "", "", GPL, "part of SuiteSparse", CHOLMOD_DATE));
   data.Last().SetVersion(CHOLMOD_MAIN_VERSION, CHOLMOD_SUB_VERSION, CHOLMOD_SUBSUB_VERSION);
-  data.Push_back(Dependency("UMFPACK", "", "", LGPL, "part of SuiteSparse", UMFPACK_DATE));
+  data.Push_back(Dependency("UMFPACK", "", "", GPL, "part of SuiteSparse", UMFPACK_DATE));
   data.Last().SetVersion(UMFPACK_MAIN_VERSION, UMFPACK_MAIN_VERSION, UMFPACK_MAIN_VERSION);
  #endif
   data.Push_back(suite);
@@ -328,18 +322,11 @@ void Dependencies::ReadSetting()
 
   // technical stuff
 
-  Dependency metis("METIS", "USE_METIS", NOT_KNOWN);
+  Dependency metis("METIS", "USE_METIS", APACHE2);
 #ifdef USE_METIS
-  metis.SetVersion(METIS_VER);
+  metis.SetVersion(METIS_VER_MAJOR, METIS_VER_MINOR, METIS_VER_SUBMINOR);
 #endif
   data.Push_back(metis);
-
-  // https://en.wikipedia.org/wiki/FFTW
-  Dependency fftw("FFTW", "USE_FFTW", GPL);
-#ifdef USE_FFTW
-  fftw.SetVersion(FFTW_VER);
-#endif
-  data.Push_back(fftw);
 
   Dependency cgal("CGAL", "USE_CGAL", GPL);
 #ifdef USE_CGAL
@@ -357,7 +344,7 @@ void Dependencies::ReadSetting()
 #ifdef USE_FLANN
   flann.SetVersion(FLANN_VERSION_);
 #endif
-
+  data.Push_back(flann);
 
   Dependency expr("XPRT", "USE_EXPRESSION_TEMPLATES", NOT_KNOWN);
 #ifdef USE_EXPRESSION_TEMPLATES
@@ -419,7 +406,7 @@ void Dependencies::ReadSetting()
 
   Dependency scpip("SCPIP", "USE_SCPIP",CLOSED);
 #ifdef USE_SCPIP
-  scpip.active = true;
+  scpip.SetVersion(SCPIP_VER);
 #endif
   data.Push_back(scpip);
 

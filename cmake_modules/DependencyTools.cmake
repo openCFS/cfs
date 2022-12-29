@@ -9,12 +9,14 @@ macro(dump_depencency_variables)
   cmake_print_variables(PACKAGE_MD5)
   cmake_print_variables(PACKAGE_LIBRARY) # e.g. libarpack.a, see set_package_library_default()
   cmake_print_variables(PACKAGE_MIRRORS) # e.g. the original download, see add_standard_mirrors()
+  cmake_print_variables(PACKAGE_KEY)   # for encrypted closed source
   # DEPS variables for building the package. Most important is DEPS_ARGS for cmake packages
   cmake_print_variables(DEPS_ARGS)    # for cmake projects, see set_deps_args_default(), add compiler and specific settings     
   cmake_print_variables(DEPS_CONFIGURE) # for configure projects, see set_configure_default()
   cmake_print_variables(DEPS_VER)     # either "" or "-a", ... to trigger new precompiles when PACKAGE_VER does not change
   cmake_print_variables(DEPS_ID)      # optional package id like "openmp" or "no_openmp"
   cmake_print_variables(DEPS_PREFIX)  # usuallay "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}"
+  cmake_print_variables(DEPS_SOURCE)  # usuallay "${DEPS_PREFIX}/src/${PACKAGE_NAME}"
   cmake_print_variables(DEPS_INSTALL) # with install_manifest.txt directly ${CMAKE_BINARY_DIR}
 
   # kind of internal "class attributes" of DependencyTools. Check with DepsPackaging*.cmake.in
@@ -38,11 +40,13 @@ macro(clear_depencency_variables)
   unset(PACKAGE_MD5)
   unset(PACKAGE_LIBRARY)
   unset(PACKAGE_MIRRORS)
+  unset(PACKAGE_KEY)
   unset(DEPS_ARGS)
   unset(DEPS_CONFIGURE)
   unset(DEPS_VER)
   unset(DEPS_ID)
   unset(DEPS_PREFIX)
+  unset(DEPS_SOURCE)
   unset(DEPS_INSTALL)
   unset(USE_C_CXX)
   unset(USE_FORTRAN)
@@ -128,6 +132,7 @@ macro(set_standard_variables)
  
   # cmake package building directly to cfs build. precompiled package via manifest
   set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
+  set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
   # the clean-<package> target deletes everything to allow a clean make <package>
   add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
@@ -376,7 +381,6 @@ macro(create_external_cmake_patched)
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
-    COMMAND ${CMAKE_COMMAND} -E echo "will build ${PRECOMPILED_PCKG_FILE}"
     CMAKE_ARGS ${DEPS_ARGS}
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
@@ -420,9 +424,9 @@ macro(create_external_encrypted_cmake_patched)
   assert_set(DEPS_ARGS)
   assert_set(DEPS_PREFIX)
   assert_set(PACKAGE_LIBRARY)
-  assert_set(CFS_KEY_PACKAGE)
+  assert_set(PACKAGE_KEY)
   assert_set(DEPS_SOURCE) # is non-standard for snopt
-  assert_unset(PATCHES_SCRIPT)
+  assert_set(PATCHES_SCRIPT)
 
   # URL can take a list of mirrors but when there is a file, it needs to be the only one.
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
@@ -443,9 +447,10 @@ macro(create_external_encrypted_cmake_patched)
     DOWNLOAD_NO_EXTRACT 1
     # after download comes update, then patch. 
     # usually we unpack into ${DEPS_PREFIX}/src/${PACKAGE_NAME}, however manual unzip adds a /snopt7
-    UPDATE_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}/${PACKAGE_FILE} -d ${DEPS_PREFIX}/src/${PACKAGE_NAME} 
-    # patch is after update. Copy our own CMakeLists.txt. The manual generated DEPS_SOURCE needs to know the snopt7 where unzip extracts
-    PATCH_COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" "${DEPS_SOURCE}"
+    UPDATE_COMMAND unzip -q -u -P ${PACKAGE_KEY} ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}/${PACKAGE_FILE} -d ${DEPS_PREFIX}/src/${PACKAGE_NAME} 
+    # now patch the unpacked source
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
+
     CMAKE_ARGS ${DEPS_ARGS}
     
     LOG_CONFIGURE 1
@@ -465,8 +470,6 @@ macro(create_external_configure)
   assert_set(PACKAGE_LIBRARY)
   assert_set(DEPS_CONFIGURE)
   assert_unset(PATCHES_SCRIPT)
-
-  set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
   # we need to build the package - here in configur style
   ExternalProject_Add("${PACKAGE_NAME}"
@@ -503,13 +506,13 @@ macro(add_external_storage_step)
   assert_set(ZIPTOCACHE_SCRIPT)
   assert_set(DEPS_INSTALL)
 
+  unset(PI_STEP) # could otherwise have side effects for a package which does not have POSTINSTALL_SCRIPT
   if(POSTINSTALL_SCRIPT)
     set(PI_STEP post_install)
   endif()
 
   ExternalProject_Add_Step(${PACKAGE_NAME} cfsdeps_packaging
     COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE_SCRIPT}"
-    # COMMAND ${CMAKE_COMMAND} -E echo cfsdeps_packaging ${ZIPTOCACHE_SCRIPT}
     DEPENDEES install ${PI_STEP} 
     DEPENDS "${ZIPTOCACHE_SCRIPT}"
     WORKING_DIRECTORY ${DEPS_INSTALL} )

@@ -16,27 +16,25 @@ BSpline::BSpline(const unsigned int degree, const unsigned int numKnots, double 
 
 Matrix<double> BSpline::Eval(StdVector<double>* t) {
   if(t == NULL) {
-    StdVector<double> t;
-    t.Reserve(100);
-    for(unsigned int i = 0; i < 100; ++i) {
-      t[i] = i*0.01;
-    }
-    t[99] -= 5*std::numeric_limits<double>::epsilon();
+    StdVector<double> tmp(100);
+    for(unsigned int i = 0; i < 100; ++i)
+      tmp[i] = i*0.01;
 
-    return BasisFuncDg(degree_, &t, knots_, numKnots_ - degree_ - 1);
+    tmp[99] -= 5*std::numeric_limits<double>::epsilon();
+
+    return BasisFuncDg(degree_, &tmp, knots_, numKnots_ - degree_ - 1);
   }
 
   for(StdVector<double>::iterator it = t->Begin(); it != t->End(); ++it) {
-    if(*it == knots_.Last()) {
+    if(*it == knots_.Last())
       *it -= 5*std::numeric_limits<double>::epsilon();
-    }
   }
   return BasisFuncDg(degree_, t, knots_, numKnots_ - degree_ - 1);
 }
 
 Matrix<double> BSpline::Eval(double t) {
   StdVector<double> temp(1);
-  temp[1] = t;
+  temp[0] = t;
   return Eval(&temp);
 }
 

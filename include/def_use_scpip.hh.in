@@ -1,3 +1,5 @@
 // Define used to check if SCPIP optimization library is used
 
 #cmakedefine USE_SCPIP
+
+#define SCPIP_VER "@SCPIP_VER@"

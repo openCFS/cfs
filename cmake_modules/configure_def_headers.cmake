@@ -100,9 +100,6 @@ ENDIF()
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libfbi.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_libfbi.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_fftw.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_fftw.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
 

@@ -591,7 +591,6 @@ namespace CoupledField {
       WriteColoredString(out, trim_size, "XMLSCHEMA", XMLSCHEMA);
     
     WriteColoredString(out, trim_size, "CFS_BUILD_HOST", CFS_BUILD_HOST);
-    WriteColoredString(out, trim_size, "CFS_BUILD_USER", CFS_BUILD_USER);
     WriteColoredString(out, trim_size, "CFS_BUILD_DISTRO", CFS_BUILD_DISTRO);
     WriteColoredString(out, trim_size, "CFS_GIT_COMMIT", CFS_GIT_COMMIT);
     WriteColoredString(out, trim_size, "CFS_GIT_BRANCH", CFS_GIT_BRANCH);
@@ -651,7 +650,7 @@ namespace CoupledField {
     out << endl;
 
     WriteColoredString(out, trim_size, "sizeof(int)", sizeof(int));
-    WriteColoredString(out, trim_size, "sizeof(Integer)", sizeof(Integer));
+    WriteColoredString(out, trim_size, "sizeof(long)", sizeof(long));
     WriteColoredString(out, trim_size, "sizeof(size_t)", sizeof(size_t));
     WriteColoredString(out, trim_size, "sizeof(void*)", sizeof(void*));
     

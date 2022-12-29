@@ -1,210 +1,84 @@
-#-------------------------------------------------------------------------------
 # FLANN - Fast Library for Approximate Nearest Neighbors
-# 
-# Needed as a BSD-licensed alternative to CGAL for finding nearest neighbors
-# in CoefFunctionScatteredData.
-#
-# Project Homepage
-# http://www.cs.ubc.ca/research/flann/
-#-------------------------------------------------------------------------------
+# https://github.com/flann-lib/flann
 
-#-------------------------------------------------------------------------------
-# Set prefix path and path to flann sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(flann_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/flann")
-set(flann_source  "${flann_prefix}/src/flann")
-set(flann_install  "${CMAKE_CURRENT_BINARY_DIR}")
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
 
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/flann/flann-patch.cmake.in")
-SET(PFN "${flann_prefix}/flann-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "flann")
+# 1.9.2 has the issues that is requires liblz4.a (cmake in build cmake) and that it failes on Windows "Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE)"
+set(PACKAGE_VER "1.9.1")
+set(PACKAGE_FILE "${PACKAGE_VER}.zip")
+set(PACKAGE_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-STRING(REPLACE ";" "," FLANN_HDF5_LIBRARY "${HDF5_LIBRARY};${ZLIB_LIBRARY}")
+if(USE_OPENMP)
+  set(DEPS_ID "OPENMP")
+else()
+  set(DEPS_ID "NO_OPENMP")
+endif()
 
-# set flann suffix
-string(REPLACE "lib" "" FLANN_LIB_SUFFIX "${LIB_SUFFIX}")
-#-------------------------------------------------------------------------------
-# Set common CMake arguments
-#-------------------------------------------------------------------------------
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${flann_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DLIB_SUFFIX:STRING=${FLANN_LIB_SUFFIX}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DUSE_OPENMP:BOOL=${USE_OPENMP}
-  -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}/cmake/hdf5
-  -DHDF5_C_LIBRARY:PATH=${FLANN_HDF5_LIBRARY}
-  -DHDF5_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
-)
+# the mirrors can point to arbitrary file names. 
+set(PACKAGE_MIRRORS "https://github.com/flann-lib/flann/archive/refs/tags/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+ # we only have a fortran compiler
+use_c_and_fortran(ON OFF)
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/flann/flann-patch.cmake.in")
-SET(PFN "${flann_prefix}/flann-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+set_package_library_list_lib_prefix("flann_cpp_s")
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "https://github.com/mariusmuja/flann/archive/${FLANN_VER}.zip"
-  #"http://distfiles.macports.org/flann/${FLANN_ZIP}"
-  #"http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_ZIP}/${FLANN_MD5}/${FLANN_ZIP}"
-  #"http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_ZIP}"
-  "${CFS_DS_SOURCES_DIR}/flann/${FLANN_ZIP}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_ZIP}")
-SET(MD5_SUM ${FLANN_MD5})
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+# this is the standard target for cmake projects but we don't want to use install_manifest.txt but pick the stuff
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-SET(DLFN "${flann_prefix}/flann-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default() 
+# add the specific settings for the packge which comes in cmake style
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  -DBUILD_DOC:BOOL=OFF
+  -DBUILD_EXAMPLES:BOOL=OFF
+  -DBUILD_C_BINDINGS:BOOL=OFF
+  -DBUILD_MATLAB_BINDINGS:BOOL=OFF
+  -DBUILD_PYTHON_BINDINGS:BOOL=OFF
+  -DBUILD_TESTS:BOOL=OFF
+  -DUSE_MPI:BOOL=OFF
+  -DUSE_OPENMP:BOOL=${USE_OPENMP})
 
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/flann/license/" DESTINATION "${CFS_BINARY_DIR}/license/flann" )
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
+# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
+generate_patches_script() # sets PATCHES_SCRIPT
 
+# generate package ceation script. We get the files from an install directory
+generate_packing_script_install_dir()
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "flann" "${FLANN_VER}") 
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${flann_prefix}")
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-SET(ZIPFROMCACHE "${flann_prefix}/flann-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+#dump_depencency_variables()
 
-SET(ZIPTOCACHE "${flann_prefix}/flann-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-#-------------------------------------------------------------------------------
-# Determine paths of FLANN libraries.
-#-------------------------------------------------------------------------------
-IF(UNIX)
-  SET(FLANN_LIB flann_cpp_s)
-  SET(FLANN_SHARED_LIB flann_cpp_s)
-ELSE()
-  SET(FLANN_LIB flann_cpp_s)
-  SET(FLANN_SHARED_LIB flann)
-  IF(DEBUG)
-    SET(FLANN_LIB "${FLANN_LIB}d")
-    SET(FLANN_SHARED_LIB "${FLANN_SHARED_LIB}d")
-  ENDIF()
-ENDIF()
+# if not, build newly and possibly pack the stuff
+else()
+  create_external_cmake_patched()  
 
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-IF(WIN32)
-  SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
-  SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-ELSE(WIN32)
-  SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
-  SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-ENDIF(WIN32)
-SET(FLANN_SHARED_LIBRARY ${FLANN_SHARED_LIBRARY} CACHE FILEPATH "flann shared library")
-SET(FLANN_INCLUDE_DIR "${CFS_BINARY_DIR}/include/flann" CACHE PATH "flann include directory")
-MARK_AS_ADVANCED(FLANN_LIBRARY)
-MARK_AS_ADVANCED(FLANN_SHARED_LIBRARY)
-MARK_AS_ADVANCED(FLANN_INCLUDE_DIR)
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()  
+endif()
 
-#-------------------------------------------------------------------------------
-# The flann external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(flann
-    PREFIX "${flann_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${FLANN_LIBRARY} ${FLANN_SHARED_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(flann
-    DEPENDS hdf5
-    PREFIX ${flann_prefix}
-    SOURCE_DIR ${flann_source}
-    URL ${LOCAL_FILE}
-    URL_MD5 ${FLANN_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    LIST_SEPARATOR ,
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-      -DBUILD_CUDA_LIB:BOOL=OFF
-      -DBUILD_C_BINDINGS=OFF
-      -DBUILD_MATLAB_BINDINGS=OFF
-      -DBUILD_PYTHON_BINDINGS=OFF
-      -DBUILD_DOC:BOOL=OFF
-      -DBUILD_EXAMPLES:BOOL=OFF
-      -DBUILD_TESTS:BOOL=OFF
-    BUILD_BYPRODUCTS ${FLANN_LIBRARY} ${FLANN_SHARED_LIBRARY}
-  )
-  
-  ADD_DEPENDENCIES(flann zlib)
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(flann cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${flann_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(flann cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  flann
-)
-
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

@@ -57,7 +57,6 @@ set(BOOST_THREAD_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_thread${CMAKE_ST
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
-set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}") 
 
 # create user-config.jam which is either zlib-config.jam.in or zlib-toolset-config.jam.in
 assert_set(ZLIB_VER)

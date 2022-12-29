@@ -1,168 +1,79 @@
-#-------------------------------------------------------------------------------
 # METIS - Serial Graph Partitioning and Fill-reducing Matrix Ordering
-# Needed by Ilupack
-#
-# Project Homepage
-# http://glaros.dtc.umn.edu/gkhome/views/metis
-#-------------------------------------------------------------------------------
+# we do not use the original http://glaros.dtc.umn.edu/gkhome/metis/metis/download which has also cmake
+# but the variant which works on Windows: https://github.com/scivision/METIS
+# used by cfs and some dependencies. Suitesparse >= 6 has its own copy
 
-#-------------------------------------------------------------------------------
-# Set paths to metis sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(metis_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/metis")
-set(metis_source  "${metis_prefix}/src/metis")
-set(metis_install  "${CMAKE_CURRENT_BINARY_DIR}")
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
 
-set(metis_c_flags ${CFS_SUPPRESSIONS})
-if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-  set(metis_c_flags "-Wno-implicit-function-declaration ") # Apple clang version 12.0.0 
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "metis")
+set(PACKAGE_VER "5.1.0.3")
+set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "bf58fe7bbae6b399ddc4b3f8daaf5dca")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+
+# this is the original version. There are variants on gitlab 
+set(PACKAGE_MIRRORS "https://github.com/scivision/METIS/archive/refs/tags/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
+
+# pure C
+use_c_and_fortran(ON OFF)
+
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
+
+# determine paths of libraries and make it visible (and editable) via ccmake
+set_package_library_default()
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+# we don't want executabls, so go for install_dir
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
+
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default() 
+# add the specific settings for the packge which comes in cmake style
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  -DBUILD_TESTING:BOOL=OFF ) # seems to be ignored in current version?!
+  # -DGKLIB_PATH:PATH=${DEPS_SOURCE}/GKlib ) kind of bug that this needs to be set for the original version.
+
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
+
+# no patch needed
+assert_unset(PATCHES_SCRIPT)
+
+# the forked metis insists onb bulding executables to bin. Sort them out automatically
+generate_packing_script_install_dir()
+
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
+
+#dump_depencency_variables()
+
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
+
+# if not, build newly and possibly pack the stuff
+else()
+  # standard cmake build without patch
+  create_external_cmake()  
+
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  else()  
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()      
+  endif() 
 endif()
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${metis_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-   -DCMAKE_C_FLAGS:STRING=${metis_c_flags}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX})
-
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT})
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
-ENDIF()
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/metis/metis-patch.cmake.in")
-SET(PFN "${metis_prefix}/metis-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "ftp://ftp1.rrzn.uni-hannover.de/pub/mirror/bsd/FreeBSD/ports/distfiles/${METIS_GZ}"
-  "http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/${METIS_GZ}"
-  "${CFS_DS_SOURCES_DIR}/metis/${METIS_GZ}")
-  
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/metis/${METIS_GZ}")
-SET(MD5_SUM ${METIS_MD5})
-
-SET(DLFN "${metis_prefix}/metis-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY)
-
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/metis/license/" DESTINATION "${CFS_BINARY_DIR}/license/metis" )
-
-
-
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "metis" "${METIS_VER}")
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${metis_prefix}")
-
-SET(ZIPFROMCACHE "${metis_prefix}/metis-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
-
-SET(ZIPTOCACHE "${metis_prefix}/metis-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
-
-#-------------------------------------------------------------------------------
-# Determine paths of METIS libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-IF(NOT USE_ILUPACK_PARALLEL)
-SET(METIS_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX};"
-    CACHE FILEPATH "METIS library.")
-ENDIF()
-MARK_AS_ADVANCED(METIS_LIBRARY)
-
-#-------------------------------------------------------------------------------
-# The metis external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(metis
-    PREFIX "${metis_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${METIS_LIBRARY}
-  )
-  # This is still required for the build to work properly since we need to replace the metis related files from ilupack with old metis
-  IF(USE_ILUPACK_PARALLEL)
-    add_dependencies(metis ilupack)
-  ENDIF()
-
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(metis
-    PREFIX "${metis_prefix}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${METIS_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${METIS_LIBRARY}    
-  )
-
-  # The ilupack has a metis.h from a newer version of metis which is not compatible with CFS, so building it in this way 
-  # replaces the ilupack metis.h with the older metis library's metis.h.
-  IF(USE_ILUPACK_PARALLEL)
-    add_dependencies(metis ilupack)
-  ENDIF()
-
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(metis cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${metis_prefix}
-  )
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(metis cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS ${CFSDEPS} metis)
-
-SET(METIS_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-MARK_AS_ADVANCED(METIS_INCLUDE_DIR)
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

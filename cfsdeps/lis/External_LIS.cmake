@@ -32,8 +32,6 @@ set_precompiled_pckg_file()
 set_package_library_default()
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
-# standard for UNIX, for WIN32 we need to build in source
-set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}") # we need to set it manually in the win case
 if(UNIX)
   set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 else()

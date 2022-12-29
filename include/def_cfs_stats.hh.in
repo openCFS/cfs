@@ -11,8 +11,6 @@
 
 // Hostname on which the source tree has been configured
 #define CFS_BUILD_HOST "@CFS_BUILD_HOST@"
-// User name who configured the build dir
-#define CFS_BUILD_USER "@CFS_BUILD_USER@"
 
 // Type of working copy SVN or git
 #define CFS_WC_TYPE "@CFS_WC_TYPE@"

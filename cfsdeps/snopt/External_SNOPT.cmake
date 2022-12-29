@@ -37,6 +37,8 @@ set_package_library_default()
 set_standard_variables()
 # this is the standard target for cmake projects. The files to package come from the install_manifest.txt
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
+# not standard!
+set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}/snopt7")
 
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default() 
@@ -49,16 +51,13 @@ set(DEPS_ARGS
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
-file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
-     DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
-
-assert_unset(PATCHES_SCRIPT)
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"  DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
 # generate package ceation script. Somehow the install_manifest.txt fails for snopt. It is not unacked to lib. Possibly EOL issue?!
 generate_packing_script_install_dir()
 
-# we have no postinstall, so don't call generate_postinstall_script()
-assert_unset(POSTINSTALL_SCRIPT)
+# copy CMakeLists.txt
+generate_patches_script()
 
 #dump_depencency_variables()
 
@@ -78,8 +77,7 @@ else()
   if(NOT CFS_KEY_SNOPT)
     message(FATAL_ERROR "to build the commerical snopt7 you need CFS_KEY_SNOPT to be set or have the original code and remove decryption")
   endif()
-  set(CFS_KEY_PACKAGE ${CFS_KEY_SNOPT})
-  set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}/snopt7")
+  set(PACKAGE_KEY ${CFS_KEY_SNOPT})
 
   create_external_encrypted_cmake_patched()  
 

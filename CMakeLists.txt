@@ -75,38 +75,6 @@ colormsg(HIBLUE "Configuration for openCFS ${CFS_VERSION}: ${CFS_NAME} starting"
 site_name(CFS_BUILD_HOST)
 set(CFS_BUILD_HOST "${CFS_BUILD_HOST}" CACHE INTERNAL "CFS_BUILD_HOST")
 
-# Set user who builds openCFS, in order to be able to track back who built a
-# given binary.
-if(WIN32)
-  set(REG_KEY "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows")
-  set(REG_KEY "${REG_KEY}\\CurrentVersion\\Explorer")
-  execute_process(
-    COMMAND reg query "${REG_KEY}" /v "Logon User Name"
-    WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE OUTPUT)
-
-  string(REPLACE "\n" ";" OUTPUT "${OUTPUT}")
-
-  foreach(line IN LISTS OUTPUT)
-    if(line MATCHES "Logon User Name")
-      string(REPLACE "Logon User Name" "" line "${line}")
-      string(REPLACE "REG_SZ" "" line "${line}")
-      string(STRIP "${line}" CFS_BUILD_USER)
-    endif()
-  endforeach()
-
-elseif(UNIX) # includes APPLE
-  execute_process(
-    COMMAND id -unr # get user name (possibly DOMAIN\user)
-    COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
-    WORKING_DIRECTORY "."
-    RESULT_VARIABLE res OUTPUT_VARIABLE out)
-  if(res)
-    message("could not determine user: ${res}, ${out}")
-  endif(res)
-  string(STRIP "${out}" CFS_BUILD_USER)
-endif()
-
 set(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 
 #-----------------------------------------------------------------------------
@@ -161,19 +129,13 @@ option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approxi
 option(USE_FEAST "Use the FEAST eigenvalue solver." ${USE_FEAST_DEFAULT})
 option(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners." ${USE_ILUPACK_DEFAULT})
 option(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." OFF) # advanced
-option(USE_SUITESPARSE "Use CHOLMOD and UMFPACK direct solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
-if(USE_SUITESPARSE)
-  # CHOLMOD can use optional features compiled by SuiteSparse which are much faster for highly populated systems
-  option(USE_SUITESPARSE_GPL "Add optional GPL features for SuiteSparse" ${USE_SUITESPARSE_GPL_DEFAULT})
-endif()
+option(USE_SUITESPARSE "CHOLMOD/UMPFACK direct solvers with GPL configuration" ${USE_SUITESPARSE_DEFAULT} )
 option(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
 option(USE_SUPERLU "Use SuperLU direct solver and ILUs. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_SUPERLU_DEFAULT})
 option(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
 option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 option(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
-# FFTW - Fastest Fourier Transform in the West (C subroutine library) 
-option(USE_FFTW "Activate DFT and filtering capabilities of cfstool." ${USE_FFTW_DEFAULT})
 # CGNS - CFD General Notation System
 option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
 # SCPIP optimizer library.
@@ -191,6 +153,7 @@ option(USE_FLANN "Enable support for FLANN - Fast Library for Approximate Neares
 set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces' or 'libxml2' as xml reader.")
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
 
+# icc has issues with boost asio, so simply disable this rare feature
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(USE_STREAMING OFF)
 else()
@@ -256,11 +219,9 @@ if(BUILD_TESTING AND NOT BUILD_CFSTOOL)
   message(FATAL_ERROR "BUILD_CFSTOOL required for BUILD_TESTING")
 endif()
 
-if(NOT USE_METIS)
-  if(USE_ILUPACK OR USE_SUITESPARSE)
-    message(FATAL_ERROR "USE_METIS required for ILUPACK and SUITESPARSE")
-  endif() 
-endif()
+if(NOT USE_SUITESPARSE AND USE_ILUPACK)
+  message(FATAL_ERROR "ILUPACK requires any version of SuiteSparse")
+endif() 
 
 #-----------------------------------------------------------------------------
 # Do conditional settings after sanity checks have passed
