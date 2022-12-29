@@ -774,7 +774,8 @@ namespace CoupledField
 
   PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                            Global::ComplexPart matDataType,
-                                                           PtrCoefFct fluxCoef ) {
+                                                           PtrCoefFct fluxCoef,
+                                                           PtrCoefFct tempCoef ) {
     //This method allocates the objects handling the nonlinear BH curve; thereby, we allow
     //approximation with smooth splines and analytically defined functions
     //
@@ -784,7 +785,7 @@ namespace CoupledField
     //             reluctivity(magFluxDensity) = nu(B)
     //
     //The core loss factor is also handled here because it needs to be approximated.
-	//Also the temperature-dependent conductivity is processed here via a call to the BaseMaterial
+	  //Also the temperature-dependent conductivity is processed here via a call to the BaseMaterial
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
     if( matType != MAG_RELUCTIVITY_SCALAR &&
@@ -801,6 +802,8 @@ namespace CoupledField
     }
 
     PtrCoefFct ret;
+
+    // TODO: There is so much C&P code, please refactor that!
 
     if( matType == MAG_RELUCTIVITY_SCALAR ){
       // -----------
@@ -835,7 +838,7 @@ namespace CoupledField
           shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
           coef->Init( startVal, sp, fluxCoef);
           ret = coef;
-
+          
         }
         else if( matNl.approxType == ANALYTIC ) {
           // this is for describing the reluctivity directly in the xml as analytic formula
@@ -971,6 +974,107 @@ namespace CoupledField
         shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
         coef->Init( startValAveraged, approx, angles, zScalings, fluxCoef );
         baseCoefAniso_ = coef;
+        ret = coef;
+      }
+      else if( nonlinIsoTempDependBHParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinIsoTempDependBHParams_.end() ) {
+        // ---------------------------
+        // ISOTROPIC TEMP-DEPEND BH CURVES VERSION: here we allow for different BH-curves as a function of temperature!
+        // ---------------------------
+        StdVector<MatDescriptorNl> & matNl = nonlinIsoTempDependBHParams_[MAG_PERMEABILITY_SCALAR];
+        UInt numCurves = matNl.GetSize();
+        StdVector<Double> temperatures(numCurves);
+        StdVector<shared_ptr<CoefFunction> > approx(numCurves);
+        Double startValAveraged = 0.0;
+
+        // Loop over all entries
+        for( UInt i = 0; i < matNl.GetSize(); ++i ) {
+          MatDescriptorNl & actNl = matNl[i];
+          temperatures[i] = actNl.temperature;
+          
+          //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
+          if( actNl.approxType == SMOOTH_SPLINES ) {
+            // Check, if smooth spline approximation was already created
+            // and initialized
+            if( !actNl.approxData ) {
+              SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY_SCALAR );
+              sp->SetAccuracy( actNl.measAccuracy );
+              sp->SetMaxY( actNl.maxVal );
+              sp->CalcBestParameter();
+              sp->CalcApproximation();
+              sp->Print();
+              actNl.approxData = sp;
+            }
+
+            ApproxData * sp = actNl.approxData;
+            // get linear starting value
+
+            Double startVal;
+            this->GetScalar( startVal, matType, Global::REAL );
+            shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
+            coef->Init( startVal, sp, fluxCoef);
+
+            //compute an averaged starting value
+            startValAveraged += startVal / (Double)numCurves;
+
+            //store in array
+            approx[i] = coef;
+          }
+          else if( actNl.approxType == ANALYTIC ) {
+            // this is for describing the reluctivity directly in the xml as analytic formula
+            // idea: the string from the xml describes a function with the same notation as
+            // described in CoefFunctionCompound.hh
+            // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+            // note: a good starting value for B->0 works miracles!
+
+            // get Euclidean norm of B
+            CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+            PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+
+            // get function of B
+            std::string nuStr = actNl.analyticExpr;
+            shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
+            std::map<std::string,PtrCoefFct> symbolsNu;
+            symbolsNu["B"] = fluxDensAbs;
+
+            nuStr.insert(0,"( ");
+            nuStr.append(" )");
+            nuFnc->SetScalar(nuStr,symbolsNu);
+
+            //compute an averaged starting value directly from the string
+            Double B_init = 0.0;
+            unsigned int handle = mp_->GetNewHandle();
+            mp_->RegisterExternalVar(handle,"B_R",&B_init);
+            mp_->SetExpr(handle,nuStr);
+            Double nuInit = mp_->Eval(handle);
+            startValAveraged += nuInit / (Double)numCurves;
+
+            //store in array
+            approx[i] = nuFnc;
+          }
+        }
+        // -------------------------
+        // Insertion sort algorithm: we sort the BH-curves starting with the smallest temperature
+        // ------------------------
+        Double compTemperature;
+        shared_ptr<CoefFunction> compApprox;
+        UInt j;
+        for( UInt i = 1; i < numCurves; i++ ) {
+          compTemperature = temperatures[i];
+          compApprox = approx[i];
+          j = i;
+          while( ( j > 0 ) && ( temperatures[j - 1] > compTemperature ) ) {
+            temperatures[j] = temperatures[j - 1];
+            approx[j] = approx[j - 1];
+            j = j - 1;
+          }
+          temperatures[j] = compTemperature;
+          approx[j] = compApprox;
+        }
+
+        shared_ptr<CoefFunctionApproxIsotropicTemperatureDependent> coef( new CoefFunctionApproxIsotropicTemperatureDependent());
+        // initialize the coef function not only with the flux density but also with the temperature
+        coef->Init( startValAveraged, approx, temperatures, fluxCoef, tempCoef ); 
+        baseCoefIsoTempDependBH_ = coef;
         ret = coef;
       }
 

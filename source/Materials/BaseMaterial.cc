@@ -36,6 +36,7 @@ namespace CoupledField
     measAccuracy = 0.0;
     maxVal = 0.0;
     angle = 0.0;
+    temperature = 0.0;
     zScaling = 0.0;
     factor = 0.0;
     approxData = NULL;
@@ -430,6 +431,14 @@ namespace CoupledField
                  << "' was already set");
     }
     nonlinAnisoParams_[matType] = data;
+  }
+
+  void BaseMaterial::SetNonLinMatIsoTempDependBH( MaterialType matType, StdVector<MatDescriptorNl>& data ) {
+    if( nonlinIsoTempDependBHParams_.find(matType) != nonlinIsoTempDependBHParams_.end() ) {
+      EXCEPTION( "Nonlinear material parameter '" << MaterialTypeEnum.ToString(matType)
+                 << "' was already set");
+    }
+    nonlinIsoTempDependBHParams_[matType] = data;
   }
 
   void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
@@ -1540,7 +1549,8 @@ namespace CoupledField
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                  Global::ComplexPart matDataType,
-                                                 PtrCoefFct dependency)
+                                                 PtrCoefFct dependency,
+                                                 PtrCoefFct temperature_dependency)
    {
      shared_ptr<CoefFunctionApprox> coef;
      

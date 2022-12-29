@@ -121,6 +121,11 @@
                     <xsd:documentation>Electric conductivity as function of temperature</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="permeability" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Magnetic permeability as function of temperature</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

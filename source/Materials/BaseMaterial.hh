@@ -55,6 +55,9 @@ namespace CoupledField {
       
       //! Angle, for which this curve is defined (0 for no angular dependency)
       Double angle;
+
+      //! Temperature, for which this curve is defined
+      Double temperature;
       
       //! Scaling factor of anisotropic behavior in z-direction 
       //! Explanation: we assume the same material behavior in z-direction as in xy-plane 
@@ -80,6 +83,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, PtrCoefFct> CoefMap;
     typedef std::map<MaterialType, MatDescriptorNl> NonLinIsoMap;
     typedef std::map<MaterialType, StdVector<MatDescriptorNl> > NonLinAnisoMap;
+    typedef std::map<MaterialType, StdVector<MatDescriptorNl> > NonLinIsoMapTempDependBHcurves;
 
     //! Denote the symmetry type 
     typedef enum {
@@ -172,7 +176,8 @@ namespace CoupledField {
     //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency );
+                                            PtrCoefFct dependency,
+                                            PtrCoefFct temperature_dependency = NULL );
                                             
     //! Return scalar-valued coefficient function for nonlinear function (only for magstrict nu)
     virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
@@ -244,7 +249,10 @@ namespace CoupledField {
     
     //! Set a nonlinear anisotropic approximation
     virtual void SetNonLinMatAniso( MaterialType matType, StdVector<MatDescriptorNl>& data );
-
+    
+    //! Set a nonlinear isotropic approximation for temperature dependent BH-curves
+    virtual void SetNonLinMatIsoTempDependBH( MaterialType matType, StdVector<MatDescriptorNl>& data );
+    
     //! get a string material parameter
     virtual void GetString( std::string& param, MaterialType matType) const;
     
@@ -505,6 +513,9 @@ namespace CoupledField {
     
     //! map storing the anisotropic nonlinear material parameters
     NonLinAnisoMap nonlinAnisoParams_;
+
+    //! map storing the temperature-dependent nonlinear material parameters
+    NonLinIsoMapTempDependBHcurves nonlinIsoTempDependBHParams_;
 
     // ========================================================
     //  New coefficient based material representation

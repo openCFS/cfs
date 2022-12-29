@@ -411,5 +411,63 @@ protected:
   shared_ptr<CoefFunctionApproxAniso> baseCoef_;
 };
 
+
+// ============================================================================
+//  ISOTROPIC TEMP-DEPENDENT BH CURVES VERSIONS
+// ============================================================================
+//! Provide a coefficient for approximated isotropic temperature-dependent sampled data (scalar)
+
+class CoefFunctionApproxIsotropicTemperatureDependent : public CoefFunction{
+  //friend class CoefFunctionApproxDerivAniso;
+public:
+
+  //! Constructor
+  CoefFunctionApproxIsotropicTemperatureDependent();
+
+  //! Destructor
+  virtual ~CoefFunctionApproxIsotropicTemperatureDependent();
+
+  std::string GetName() const { return "CoefFunctionApproxIsotropicTemperatureDependent"; }
+
+  //! Initialize with data
+  void Init( Double coefScalar, 
+             StdVector<shared_ptr<CoefFunction> > nLinFnc,
+             StdVector<Double> temperatures,
+             PtrCoefFct dependCoef,
+             PtrCoefFct tempCoef );
+
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm );
+
+protected:
+
+  //! Vector containing the approximations of the curves
+  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
+  
+  //! Constant initial value of the curve
+  Double coefScalar_;
+
+  //! Vector containing the approximations of the curve
+  StdVector<Double> temperatures_;
+
+  //! Scaling factor of anisotropic behavior in z-direction
+  //! -> Since we do not yet have nonlinear curves in z direction we use the same
+  //! curves as given for the xy-plane but scale it with an appropriate factor.
+  //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
+  StdVector<Double> zScalings_;
+  
+  //! Coefficient function magnetic flux coef function
+  PtrCoefFct dependCoef_;
+
+  //! Coefficient function temperature dependency
+  PtrCoefFct tempCoef_;
+
+  //! To prevent the output of the temperature-extrapolation warning for every element,
+  //! check if this is false, then write the warning and set it to true
+  bool isTemperatureExtrapolated_;
+};
+
+
 }
 #endif

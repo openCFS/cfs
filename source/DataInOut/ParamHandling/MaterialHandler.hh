@@ -24,6 +24,7 @@ namespace CoupledField
       fileName_ = fileName;
       domain_ = NULL;
       mp_ = NULL;
+      tempDependBH_ = false;
     }
     
     //! Destructor
@@ -63,6 +64,9 @@ namespace CoupledField
     
     //! Pointer to MathParser
     MathParser* mp_;
+
+    //! flag for temperature dependent permeabilities
+    bool tempDependBH_;
 
   };
 

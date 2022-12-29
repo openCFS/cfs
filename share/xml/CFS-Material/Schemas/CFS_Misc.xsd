@@ -227,7 +227,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="dataName" type="xsd:string">
+      <xsd:element name="dataName" type="xsd:string" minOccurs="0">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             This value is only necessary for the smoothSplines approxType. File name of the data to be approximated.
@@ -253,4 +253,3 @@
   </xsd:simpleType>
   
 </xsd:schema>
-

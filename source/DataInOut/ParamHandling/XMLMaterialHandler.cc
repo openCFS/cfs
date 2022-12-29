@@ -781,117 +781,178 @@ namespace CoupledField {
       } // end of nonlinear section
     } // end of permittivity
 
-
-
     // read magnetic permeability
-    if (mag->Has("permeability")) {
-      PtrParamNode perm = mag->Get("permeability");
-      PtrParamNode model;
+    if (mag->Has("permeability"))
+    {
+      // check if there is more than one permeability definition. If so, then we have the case of temperature-dependent BH-curves
+      ParamNodeList permNodes = mag->GetList("permeability");
+      UInt numPermNodes = permNodes.GetSize();
 
-      if (perm->Has("linear")) {
-        MaterialType orthoProps[3] = {
-            MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3
-        };
-        ReadSquare3x3Tensor(perm->Get("linear"), material, MAG_PERMEABILITY_SCALAR,
-                            orthoProps, MAG_PERMEABILITY_TENSOR, Global::COMPLEX);
-      }
-      
-      // we know only nonlinear isotropic material
-      if (perm->Has("nonlinear") ) {
-        PtrParamNode permNl = perm->Get("nonlinear");
+      if (numPermNodes > 1)
+      {
+        // case of temperature-dependent permeabilities
+        tempDependBH_ = true;
+        StdVector<BaseMaterial::MatDescriptorNl> nlData;
+        nlData.Resize(numPermNodes);
+        // loop over every permeability node and extract relevant data
+        for (UInt i = 0; i < numPermNodes; i++)
+        {
+          // Let's start with some checks
+          if (!permNodes[i]->Has("temperature"))
+          {
+            EXCEPTION("In the case of temperature-dependent permeabilities, every permeability needs a temperature attribute");
+          }
+          if (!permNodes[i]->Has("nonlinear"))
+          {
+            EXCEPTION("In the case of temperature-dependent permeabilities, every permeability needs a nonlinear node");
+          }
+          if (!permNodes[i]->Get("nonlinear")->Has("isotropic"))
+          {
+            EXCEPTION("In the case of temperature-dependent permeabilities, every nonlinear permeability definition needs an isotropic definition");
+          }
+          if (permNodes[i]->Get("nonlinear")->Has("anisotropic"))
+          {
+            EXCEPTION("In the case of temperature-dependent permeabilities, only isotropic definition are implemented");
+          }
 
-        if (permNl->Has("isotropic")) {
+          // TODO: Currently, every permeability needs a linear node. In the case of temperature-dependent permeabilities we only
+          // need to define this once, however, every linear definition is read in
+          PtrParamNode perm = permNodes[i];
+          if (perm->Has("linear"))
+          {
+            MaterialType orthoProps[3] = {
+                MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3};
+            ReadSquare3x3Tensor(perm->Get("linear"), material, MAG_PERMEABILITY_SCALAR,
+                                orthoProps, MAG_PERMEABILITY_TENSOR, Global::COMPLEX);
+          }
           
-          PtrParamNode iso = permNl->Get("isotropic");
-          
-          BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
-          
+          // read parameters
+          BaseMaterial::MatDescriptorNl &info = nlData[i];
+          info = ReadNonlinDescriptor(permNodes[i]->Get("nonlinear/isotropic"), material);
+          info.temperature = 0.0;
+          info.analyticExpr = "";
+          info.analyticExprDeriv = "";
+
+          // read temperature for which the current BH curve is defined
+          info.temperature = permNodes[i]->Get("temperature")->As<Double>();
           // read analytic function of material parameter
-          if (iso->Has("nuExpr")) {
-            info.analyticExpr = iso->Get("nuExpr")->As<std::string>();
+          if(permNodes[i]->Has("nonlinear/isotropic/nuExpr")){
+            info.analyticExpr = permNodes[i]->Get("nonlinear/isotropic/nuExpr")->As<std::string>().c_str();
           }
-          
           // read analytic derivative of material parameter
-          if (iso->Has("nuDerivExpr")) {
-            info.analyticExprDeriv = iso->Get("nuDerivExpr")->As<std::string>();
+          if(permNodes[i]->Has("nonlinear/isotropic/nuDerivExpr")){
+            info.analyticExprDeriv = permNodes[i]->Get("nonlinear/isotropic/nuDerivExpr")->As<std::string>().c_str();
           }
-          
-          if (iso->Has("muExpr")) {
-            info.analyticExpr = iso->Get("muExpr")->As<std::string>();
-          }
-          
-          // read analytic derivative of material parameter
-          if (iso->Has("muDerivExpr")) {
-            info.analyticExprDeriv = iso->Get("muDerivExpr")->As<std::string>();
-          }
+        }
+        material->SetNonLinMatIsoTempDependBH(MAG_PERMEABILITY_SCALAR, nlData);
+      }
+      else
+      {
+        // Classical case with just one permeability
+        PtrParamNode perm = mag->Get("permeability");
+        PtrParamNode model;
 
-          // pass info to material class
-          material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);
-        } // nonlinear isotropic material   
-        else if (permNl->Has("anisotropic")) {
-          
-          //anisotropic case: bundle of nonlinear curves
-          PtrParamNode aniso = permNl->Get("anisotropic");
-          
-          // fetch paramnodes for hdbc
-          ParamNodeList anIsoNodes = aniso->GetList("data");
-          
-          if ( anIsoNodes.GetSize() > 0 ) {
-            StdVector<BaseMaterial::MatDescriptorNl> nlData;
-            nlData.Resize(anIsoNodes.GetSize());
-            
-            // iterate over all parameter nodes
-            for ( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
-              // read parameters
-              BaseMaterial::MatDescriptorNl &info = nlData[i];
-              info = ReadNonlinDescriptor(anIsoNodes[i], material);
-              info.angle = 0.0;
-              info.zScaling= 1.0;
-              info.analyticExpr = "";
-              info.analyticExprDeriv = "";
-              
-              // read angle  
-              if (anIsoNodes[i]->Has("angle")) {
-                info.angle = anIsoNodes[i]->Get("angle")->As<Double>();
-              }
-              
-              // read z-scaling factor
-              if (anIsoNodes[i]->Has("zScaling")) {
-                info.zScaling = anIsoNodes[i]->Get("zScaling")->As<Double>();
-              }
-              
-              // read analytic function of material parameter
-              if (anIsoNodes[i]->Has("nuExpr")) {
-                info.analyticExpr = anIsoNodes[i]->Get("nuExpr")->As<std::string>().c_str();
-              }
+        if (perm->Has("linear"))
+        {
+          MaterialType orthoProps[3] = {
+              MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3};
+          ReadSquare3x3Tensor(perm->Get("linear"), material, MAG_PERMEABILITY_SCALAR,
+                              orthoProps, MAG_PERMEABILITY_TENSOR, Global::COMPLEX);
+        }
 
-              // read analytic derivative of material parameter
-              if (anIsoNodes[i]->Has("nuDerivExpr")) {
-                info.analyticExprDeriv = anIsoNodes[i]->Get("nuDerivExpr")->As<std::string>().c_str();
-              }
+        // we know only nonlinear isotropic material
+        if (perm->Has("nonlinear"))
+        {
+          PtrParamNode permNl = perm->Get("nonlinear");
+          if (permNl->Has("isotropic"))
+          {
+            PtrParamNode iso = permNl->Get("isotropic");
+            BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(iso, material);
+            // read analytic function of material parameter
+            if (iso->Has("nuExpr"))
+            {
+              info.analyticExpr = iso->Get("nuExpr")->As<std::string>();
             }
+            // read analytic derivative of material parameter
+            if (iso->Has("nuDerivExpr"))
+            {
+              info.analyticExprDeriv = iso->Get("nuDerivExpr")->As<std::string>();
+            }
+            if (iso->Has("muExpr"))
+            {
+              info.analyticExpr = iso->Get("muExpr")->As<std::string>();
+            }
+            // read analytic derivative of material parameter
+            if (iso->Has("muDerivExpr"))
+            {
+              info.analyticExprDeriv = iso->Get("muDerivExpr")->As<std::string>();
+            }
+            // pass info to material class
+            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);
+          } // nonlinear isotropic material
+          else if (permNl->Has("anisotropic"))
+          {
+            // anisotropic case: bundle of nonlinear curves
+            PtrParamNode aniso = permNl->Get("anisotropic");
+            // fetch paramnodes for hdbc
+            ParamNodeList anIsoNodes = aniso->GetList("data");
+            if (anIsoNodes.GetSize() > 0)
+            {
+              StdVector<BaseMaterial::MatDescriptorNl> nlData;
+              nlData.Resize(anIsoNodes.GetSize());
+              // iterate over all parameter nodes
+              for (UInt i = 0; i < anIsoNodes.GetSize(); i++)
+              {
+                // read parameters
+                BaseMaterial::MatDescriptorNl &info = nlData[i];
+                info = ReadNonlinDescriptor(anIsoNodes[i], material);
+                info.angle = 0.0;
+                info.zScaling = 1.0;
+                info.analyticExpr = "";
+                info.analyticExprDeriv = "";
 
-            material->SetNonLinMatAniso( MAG_PERMEABILITY_SCALAR, nlData );
-          }        
-          
-        } // end of anisotropic nonlinear material
-      } // end of nonlinear section
+                // read angle
+                if (anIsoNodes[i]->Has("angle"))
+                {
+                  info.angle = anIsoNodes[i]->Get("angle")->As<Double>();
+                }
+                // read z-scaling factor
+                if (anIsoNodes[i]->Has("zScaling"))
+                {
+                  info.zScaling = anIsoNodes[i]->Get("zScaling")->As<Double>();
+                }
+                // read analytic function of material parameter
+                if (anIsoNodes[i]->Has("nuExpr"))
+                {
+                  info.analyticExpr = anIsoNodes[i]->Get("nuExpr")->As<std::string>().c_str();
+                }
+                // read analytic derivative of material parameter
+                if (anIsoNodes[i]->Has("nuDerivExpr"))
+                {
+                  info.analyticExprDeriv = anIsoNodes[i]->Get("nuDerivExpr")->As<std::string>().c_str();
+                }
+              }
+              material->SetNonLinMatAniso(MAG_PERMEABILITY_SCALAR, nlData);
+            }
+          } // end of anisotropic nonlinear material
+        }   // end of nonlinear section
+        if (perm->Has("model") && perm->Get("model")->Has("isotropic"))
+        {
+          if (perm->Get("model")->Get("isotropic")->Has("EBHysteresisModel"))
+          {
+            model = perm->Get("model")->Get("isotropic")->Get("EBHysteresisModel");
 
-      if (perm->Has("model") && perm->Get("model")->Has("isotropic")){
-        if (perm->Get("model")->Get("isotropic")->Has("EBHysteresisModel")){
-          model = perm->Get("model")->Get("isotropic")->Get("EBHysteresisModel");
-
-          material->SetScalar(model->Get("Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL );
-          material->SetScalar(model->Get("A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL );
-          material->SetScalar(model->Get("mu0")->As<Double>(), MaterialType(MAG_MU0_EB), Global::REAL );
-          material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL );
-          material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL );
+            material->SetScalar(model->Get("Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL);
+            material->SetScalar(model->Get("A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL);
+            material->SetScalar(model->Get("mu0")->As<Double>(), MaterialType(MAG_MU0_EB), Global::REAL);
+            material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL);
+            material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);
+          }
         }
       }
-
     } // end of permeability
-	
-	// read in prescribed magnetization
+
+  // read in prescribed magnetization
     if(mag->Has("prescribedMagnetization"))
     {
       hasFixedMagnetization = true;

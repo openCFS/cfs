@@ -171,10 +171,31 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           bool nL = (nonLinTypes.GetSize() > 0)? true : false;
           nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity", nL, actSDList);
         }else{
-          // ========================================
-          //  Classic Nonlinear Stiffness Integrator
-          // ========================================
-          nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
+          if( nonLinTypes.Find(PERMEABILITY) != -1 && matDepenTypes.Find(PERMEABILITY) != -1){
+            // case of temperature-dependent BH-curves (solution-dependent BH curve AND temperature-dependency!)
+            // ========================================
+            //  Temperature dependent BH curves - Nonlinear Stiffness Integrator
+            // ========================================
+            if ( analysistype_ != TRANSIENT ) {
+              EXCEPTION("Temperature-dependent BH-curves only implemented for transient magnetic analysis");
+            }
+            //CoefFct for temperature dependent permeability
+            PtrCoefFct tempcoef;
+            
+            //get coeff-Fnc to evaluate the temperature
+            StdVector<std::string> dispDofNames = feFunc->GetResultInfo()->dofNames;
+            shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+            ReadMaterialDependency( "permeability", dispDofNames, ResultInfo::SCALAR, false,
+                                    ent, tempcoef, updatedGeo_ );
+            
+            // inform the ElectroMagneticMaterial about the flux density and also the temperature-dependency
+            nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef, tempcoef);
+          }else{
+            // ========================================
+            //  Classic Nonlinear Stiffness Integrator
+            // ========================================
+            nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
+          }
         }
 
         // replace in optimization case
@@ -829,9 +850,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     permeability->definedOn = ResultInfo::ELEMENT;
     permeability->entryType = ResultInfo::SCALAR;
 
-    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-    matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-    DefineFieldResult(permFct, permeability);
+    if(analysistype_ == MULTIHARMONIC){
+      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, true));
+      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+      DefineFieldResult(permFct, permeability);
+    }else{
+      //In multiharmonic analysis we have complex permeability
+      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+      DefineFieldResult(permFct, permeability);
+    }
 
     //creates the velocity
     StdVector<std::string> vecDofNames;
@@ -859,17 +887,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     results_.Push_back( velocity );
     availResults_.insert( velocity );
-
-    // In multiharmonic analysis we have complex permeability
-    if(analysistype_ == MULTIHARMONIC){
-      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, true));
-      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-      DefineFieldResult(permFct, permeability);
-    }else{
-      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-      DefineFieldResult(permFct, permeability);
-    }
   }
 
   void MagEdgePDE::DefinePostProcResults() {
@@ -1132,19 +1149,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       lfFunc.reset(new ResultFunctorIntegrate<Double>(lfdFunc, feFct, lf ) );
     }
     resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
-
-
-    // === PERMEABILITY  ===
-    shared_ptr<ResultInfo> perm(new ResultInfo);
-    perm->resultType = MAG_ELEM_PERMEABILITY;
-    perm->dofNames = "";
-    perm->unit = "Vs/Am";
-    perm->definedOn = ResultInfo::ELEMENT;
-    perm->entryType = ResultInfo::SCALAR;
-
-    PtrCoefFct muFunc = CoefFunction::Generate( mp_, part,
-        CoefXprUnaryOp( mp_, reluc_, CoefXpr::OP_INV ) );
-    DefineFieldResult( muFunc, perm );
 
     // === RELUCTIVITY  ===
     shared_ptr<ResultInfo> reluc(new ResultInfo);
@@ -1427,7 +1431,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // however, this function does not consider bRHSRegions_
       // > if B is set on rhs, redefine H by setting new flag
       bool allowReplacement = true;
-//          std::cout << "FINALIZE H-FIELD" << std::endl;
       // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
       // the remanence is the RHS load flux density
       shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
@@ -1444,10 +1447,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           PtrCoefFct hPM = CoefFunction::Generate( mp_, part, CoefXprVecScalOp( mp_, bPM, reluc_, CoefXpr::OP_MULT ) );
           hCoef->AddRegion(*regIt,hPM,allowReplacement);
         } 
-//        else {
-//          PtrCoefFct h = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, reluc_, this->GetCoefFct(MAG_FLUX_DENSITY), CoefXpr::OP_MULT ) );
-//          hCoef->AddRegion(*regIt,h,allowReplacement);
-//        }
       }
     }
 

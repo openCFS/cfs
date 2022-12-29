@@ -20,11 +20,11 @@
   <xsd:complexType name="DT_MatMagnetic">
     <xsd:sequence>
       <xsd:element name="electricConductivity" type="DT_ElecConductivity"/>
-      <xsd:element name="permeability" type="DT_MagnPermeability"/>
+      <xsd:element name="permeability" type="DT_MagnPermeability" minOccurs="1" maxOccurs="unbounded"/>
       <xsd:element name="reluctivity_MagStrict" type="DT_MagstrictReluctivity" minOccurs="0"/>
       <xsd:element name="magnetoStrictionTensor_h_mag" type="DT_TensorGeneralType" minOccurs="0"/>
       <xsd:element name="hystModel" type="DT_HystModelMag" minOccurs="0"/>
-	  <xsd:element name="prescribedMagnetization" type="DT_fixedMagnetization" minOccurs="0"/>
+	    <xsd:element name="prescribedMagnetization" type="DT_fixedMagnetization" minOccurs="0"/>
       <xsd:element name="density" type="DT_MagneticScalarLinear" minOccurs="0"/>
       <xsd:element name="coreLoss" type="DT_CoreLoss" minOccurs="0"/>
       <xsd:element name="permittivity" type="DT_MagnPermittivity" minOccurs="0"/>
@@ -69,6 +69,14 @@
       <xsd:element name="nonlinear" type="DT_NonLinMagnPermeability" minOccurs="0"/>
       <xsd:element name="model" type="DT_ElecPermeabilityHyst" minOccurs="0"/>
     </xsd:sequence>
+    <xsd:attribute name="temperature" type="xsd:float" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          This attribute is only to be used if there are several BH-curves for different
+          temperatures (temperature-dependent BH-curves)
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
   
 
@@ -178,7 +186,9 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>  
-  
+
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of nonlinear magnetic reluctivity (only for magstrict coupling) -->
   <!-- ******************************************************************* -->

@@ -939,24 +939,112 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     coefMat.DyadicMult( eB );
     coefMat *= nuPrime * fieldAbs;
     
-    
-#ifndef NDEBUG
-    // some debug output... TODO-avolk: weg damit!
-    std::cerr << "GetTensor(): statistics of element " << lpm.ptEl->elemNum;
-    std::cerr << ": angleBPhi=" << angleBPhi;
-    std::cerr << ", angleBTheta=" << angleBTheta;
-    std::cerr << ", zScaling(end)=" << zScalings_[kend];
-//    std::cerr << ", startAngle=" << angles_[klo]; 
-//    std::cerr << ", stopAngle=" << angles_[khi];
-//    std::cerr << ", ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
-    std::cerr << ", nuPrimeXY=" << nuPrimeXY;
-    std::cerr << ", nuPrimeZ=" << nuPrimeZ;
-    std::cerr << ", nuPrime=" << nuPrime;
-//    std::cerr << std::setprecision(4); 
-    std::cerr << std::endl;
-#endif
-    
+    LOG_DBG(coeffctapprox) << "GetTensor(): statistics of element " << lpm.ptEl->elemNum;
+    LOG_DBG(coeffctapprox) << ": angleBPhi=" << angleBPhi;
+    LOG_DBG(coeffctapprox) << ", angleBTheta=" << angleBTheta;
+    LOG_DBG(coeffctapprox) << ", zScaling(end)=" << zScalings_[kend];
+    LOG_DBG(coeffctapprox) << ", nuPrimeXY=" << nuPrimeXY;
+    LOG_DBG(coeffctapprox) << ", nuPrimeZ=" << nuPrimeZ;
+    LOG_DBG(coeffctapprox) << ", nuPrime=" << nuPrime;
   }
 }
 
+
+
+
+
+
+
+// ============================================================================
+//  ISOTROPIC TEMP-DEPENDENT BH CURVES VERSIONS
+// ============================================================================
+
+CoefFunctionApproxIsotropicTemperatureDependent::CoefFunctionApproxIsotropicTemperatureDependent() : CoefFunction() {
+  // this type of coefficient is nonlinear (i.e. solution dependend)
+  dependType_ = SOLUTION;
+  isAnalytic_ = false;
+  isComplex_ = false;
+  isTemperatureExtrapolated_ = false;
+}
+
+//! Destructor
+CoefFunctionApproxIsotropicTemperatureDependent::~CoefFunctionApproxIsotropicTemperatureDependent(){
+  ;
+}
+
+//! Initialize with data
+void CoefFunctionApproxIsotropicTemperatureDependent::Init( Double coefScalar, 
+                                    StdVector<shared_ptr<CoefFunction> > nLinFnc,
+                                    StdVector<Double> temperatures,
+                                    PtrCoefFct dependCoef,
+                                    PtrCoefFct tempCoef ) {
+
+  // set type to scalar
+  dimType_ = SCALAR;
+  coefScalar_ = coefScalar;
+  nLinFnc_ = nLinFnc;
+  temperatures_ = temperatures;
+  dependCoef_ = dependCoef;
+  tempCoef_ = tempCoef;
+  isTemperatureExtrapolated_ = false;
+}
+
+void CoefFunctionApproxIsotropicTemperatureDependent::GetScalar(Double& coefScalar, 
+                                        const LocPointMapped& lpm ) {
+
+  // evaluate vector of dependency
+  Vector<Double> elemSol;
+  dependCoef_->GetVector( elemSol, lpm);
+
+  Double temperature;
+  tempCoef_->GetScalar(temperature, lpm);
+
+  //==============================================================================
+  // T-dependent BH curve approach:
+  // Evaluate the BH-curves, which are next to the current temperature, for the current 
+  // absolute value of the flux density (evaluate two BH-curves).
+  // Then linear interpolate between them to get the value at the current temperature.
+  const UInt kend = temperatures_.GetSize() - 1;
+  Double coefLower = 0.0;
+  Double coefUpper = 0.0;
+  Double tempLower = 0.0;
+  Double tempUpper = 0.0;
+  if( temperature <= temperatures_[0]){
+    // temperature is lower than the smallest temperature for which a BH-curve is defined
+    // => select the lowest temperature BH-curve
+    nLinFnc_[0]->GetScalar(coefScalar, lpm );
+    if(!isTemperatureExtrapolated_){
+      WARN("The actual temperature lies outside of the defined BH-curves! The smallest/largest value is used instead");
+      isTemperatureExtrapolated_ = true;
+    }
+  }else if( temperature >= temperatures_[kend]){
+    // temperature is larger than the largest temperature for which a BH-curve is defined
+    // => select the highest temperature BH-curve
+    nLinFnc_[kend]->GetScalar(coefScalar, lpm );
+    if(!isTemperatureExtrapolated_){
+      WARN("The actual temperature lies outside of the defined BH-curves! The smallest/largest value is used instead");
+      isTemperatureExtrapolated_ = true;
+    }
+  }else{
+    for( UInt i = 1; i < temperatures_.GetSize(); ++i){
+      if(temperature >= temperatures_[i-1] && temperature <= temperatures_[i]){
+        nLinFnc_[i-1]->GetScalar(coefLower, lpm );
+        nLinFnc_[i]->GetScalar(coefUpper, lpm );
+        tempLower = temperatures_[i-1];
+        tempUpper = temperatures_[i];
+        break;
+      }
+    }
+    // linear interpolation
+    coefScalar = coefLower + (temperature - tempLower)*(coefUpper-coefLower)/(tempUpper-tempLower);
+
+    LOG_DBG(coeffctapprox) << " List of temperatures: "<< temperatures_.ToString();
+    LOG_DBG(coeffctapprox) << " Actual temperature: "<< temperature;
+    LOG_DBG(coeffctapprox) << " Current flux density value: "<< elemSol.ToString();
+    LOG_DBG(coeffctapprox) << " Lower bound evaluation of BH curve: "<< coefLower;
+    LOG_DBG(coeffctapprox) << " Upper bound evaluation of BH curve: "<< coefUpper;
+    LOG_DBG(coeffctapprox) << " Interpolated value: " << coefScalar;     
+  }
+  
+}
 } // namespace
