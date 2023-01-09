@@ -204,7 +204,10 @@ namespace CoupledField{
 
   void AcousticPDE::DefineIntegrators(){
 
-    RegionIdType actRegion;
+    RegionIdType actRegion;;
+
+     // flag that states if we are in a PML region while performing a harmonic analysis
+    bool harmonicPML = false;
 
     //type of geometry
     isaxi_ = ptGrid_->IsAxi();
@@ -212,9 +215,6 @@ namespace CoupledField{
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[formulation_]->GetFeSpace();
-
-    //flag indicating frequency PML formulation
-    bool harmonicPML = false;
 
     for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
       actRegion = regions_[iRegion];
@@ -276,8 +276,8 @@ namespace CoupledField{
       PtrCoefFct factor;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
-    	if ( complexFluidFormulation_ )
-    		EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
+        if ( complexFluidFormulation_ )
+          EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
 
         // Important: In case of a general / quadratic EV problem, we must
         // ensure to have a "positive definite" matrix, i.e. we are not allowed
@@ -294,13 +294,13 @@ namespace CoupledField{
       PtrCoefFct coeffM, coeffK;
 
       if ( formulation_ == ACOU_PRESSURE && sosAtLaplace_ == true ) {
-    	  if ( complexFluidFormulation_ )
-    		  EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
+        if ( complexFluidFormulation_ )
+          EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
 
-    	  //pressure formulation with temperature depend speed of sound
-    	  coeffM = constOne;
-    	  coeffK = CoefFunction::Generate( mp_,  Global::REAL,
-    	                         CoefXprBinOp(mp_, c0, c0, CoefXpr::OP_MULT ) );
+        //pressure formulation with temperature depend speed of sound
+        coeffM = constOne;
+        coeffK = CoefFunction::Generate( mp_,  Global::REAL,
+                               CoefXprBinOp(mp_, c0, c0, CoefXpr::OP_MULT ) );
       }
       else {
     	  if ( complexFluidFormulation_ ) {
@@ -328,48 +328,87 @@ namespace CoupledField{
       }
 
       // ====================================================================
-      // Take account for pml (frequency domain only)
+      // Take account for pml
       // ====================================================================
       shared_ptr<CoefFunction> coeffPMLScal, coeffPMLVec;
       shared_ptr<CoefFunction> coeffPMLStiff;
       shared_ptr<CoefFunction> coeffPMLMass;
 
-      if( dampingList_[actRegion] == PML ) {
+      if( dampingList_[actRegion] == PML ) 
+      {
         std::string dampId;
         curRegNode->GetValue("dampingId",dampId);
-        if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE){
-          //in case of complexFluid, speed of sound is complex; so compute a real valued one
+
+        // check for PML formulation: classic(=Cartesian) or curvilinear
+        std::string pmlFormul;
+        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
+        pmlFormul = pmlNode->Get("formulation")->As<std::string>();
+
+        //check if harmonic or inverse-source analysis is performed
+        if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
+        {
+          harmonicPML = true;
           shared_ptr<CoefFunction> densR, blkR, c0R;
-          if ( complexFluidFormulation_ ) {
+          if (complexFluidFormulation_ == true) //in case of complexFluid, speed of sound is complex; so we need to compute a real-valued one for the PML definition
+          {
             densR = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
             blkR = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
-	        c0R  = CoefFunction::Generate( mp_,  Global::REAL,
-					  CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blkR, densR, CoefXpr::OP_DIV),
-				      CoefXpr::OP_SQRT) );
+            c0R  = CoefFunction::Generate( mp_,  Global::REAL,
+              CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blkR, densR, CoefXpr::OP_DIV),
+              CoefXpr::OP_SQRT) );
           }
-	      else
-	    	c0R = c0;
-
-          PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
-          coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
-          coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
-          // store pml factor
-          matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
-          coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                            CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
-
-          coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                            CoefXprBinOp(mp_, coeffPMLScal, coeffM, CoefXpr::OP_MULT));
-          harmonicPML = true;
-        }else{
-          if(dim_==2)
-            DefineTransientPMLInts<2>(actSDList,dampId, actRegion, tempId);
           else
-            DefineTransientPMLInts<3>(actSDList,dampId, actRegion, tempId);
+            c0R = c0;
+          
+          if (pmlFormul == "classic")
+          {
+            coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
+            // store pml factor
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
+            coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                              CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
+
+            coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                              CoefXprBinOp(mp_, coeffPMLScal, coeffM, CoefXpr::OP_MULT));
+          }
+          else if (pmlFormul == "curvilinear")
+          {
+            EXCEPTION("Formulation '" << pmlFormul << "' for AcousticPDE " 
+                      << "is not implemented yet!")
+            // here, I need to define my PML coefficients....
+
+
+            // at first, I need to determine the geometry...
+
+            // somehow, I need to take account for the new Jakobi matrix, as this one will not be diagonal..
+
+            // the Jakobi determinant will likely have the same properties as the Cartesian one (but is different in its value)
+
+
+          }
+          else // when pmlFormul is invalid...
+          {
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. " 
+                      << "Possible formulations are: 'classic' (default), 'curvilinear';")
+          }
         }
-      }else{
+        else // if not harmonic, define the transient integrators
+        {
+          harmonicPML = false;
+          if (pmlFormul == "classic")
+          {
+            if(dim_==2)
+              DefineTransientPMLInts<2>(actSDList,dampId, actRegion, tempId);
+            else
+              DefineTransientPMLInts<3>(actSDList,dampId, actRegion, tempId);
+          }
+          else
+            EXCEPTION("Transient PML is currently only implemented in 'classic' formulation.")
+        }
+      }
+      else // (re-)set harmonicPML to false if we are not currently in a PML region
         harmonicPML = false;
-      } // damping == PML
 
       // ====================================================================
       // standard stiffness integrator
@@ -2583,3 +2622,4 @@ template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::
     RegionIdType actRegion, std::string tempId);
 template void AcousticPDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string,
     RegionIdType actRegion, std::string tempId);
+    

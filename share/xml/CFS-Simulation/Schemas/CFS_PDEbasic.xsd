@@ -841,6 +841,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="classic"/>
       <xsd:enumeration value="shifted"/>
+      <xsd:enumeration value="curvilinear"/>
     </xsd:restriction>
   </xsd:simpleType>
 
