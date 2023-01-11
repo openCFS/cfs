@@ -30,6 +30,7 @@
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 
 // new postprocessing concept
+#include "Domain/Results/ResultFunctor.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionContactForceDensity.hh"
 
@@ -671,6 +672,24 @@ namespace CoupledField {
     contactForceDensityFunc.reset(new CoefFunctionContactForceDensity(feFct, surfList1, surfList2, volumeList, contactLawList, useSurfaceMidpointsList));
     
     DefineFieldResult( contactForceDensityFunc, contactForceDensity );
+
+
+    // === SMOOTH CONTACT FORCE (= integral of contact force density) ===
+    shared_ptr<ResultInfo> contactForce;
+    contactForce.reset(new ResultInfo);
+    contactForce->resultType = SMOOTH_CONTACT_FORCE;
+    contactForce->dofNames = dispDofNames;
+    contactForce->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE);
+    contactForce->entryType = ResultInfo::VECTOR;
+    contactForce->definedOn = ResultInfo::SURF_REGION;
+    // Integrate surface traction
+    shared_ptr<ResultFunctor> contactForceFct;
+    if(isComplex_)
+        contactForceFct.reset(new ResultFunctorIntegrate<Complex>(contactForceDensityFunc, feFct, contactForce));
+    else
+        contactForceFct.reset(new ResultFunctorIntegrate<Double>(contactForceDensityFunc, feFct, contactForce));
+    resultFunctors_[SMOOTH_CONTACT_FORCE] = contactForceFct;
+    availResults_.insert(contactForce);
   }
 
 

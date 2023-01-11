@@ -149,6 +149,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_ZERO_PRESSURE, "smoothZeroStress");
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY, "smoothContactForceDensity");
+    SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE, "smoothContactForce");
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
@@ -792,6 +793,7 @@ namespace CoupledField {
       case MAG_FORCE_VWP:
       case MECH_RHS_LOAD:
       case ELEC_FORCE:
+      case SMOOTH_CONTACT_FORCE:
         return "N";
         break;
 
