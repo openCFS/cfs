@@ -378,6 +378,25 @@ public:
                          StdVector<RegionIdType> pdeDomains);
   // destructor
   virtual ~CoefFunctionCurvilinearPML();
+
+  // get name of coeffFunction
+  virtual string GetName() const { return "CoefFunctionCurvilinearPML"; }
+
+  // Triggers the computation of the tensor's determinant and
+  // assigns it to the passed CoefFct 
+  // .......... currently, this function simply sets a scalar-valued coefFctPML 
+  void GetScalarCoeffFct(PtrCoefFct scalarCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+                                    shared_ptr<EntityList> EntList,
+                                    StdVector<RegionIdType> pdeDomains);
+
+  // Triggers the computation of the tensor itself and
+  // assigns it to the passed CoefFct 
+  // .......... currently, this function simply sets a vector-valued coefFctPML 
+  void GetTensorCoeffFct(PtrCoefFct tensorCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+                                    shared_ptr<EntityList> EntList,
+                                    StdVector<RegionIdType> pdeDomains);
+
+
 };
 
 

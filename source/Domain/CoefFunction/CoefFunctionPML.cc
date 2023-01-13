@@ -270,6 +270,7 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
   //  std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
   //}
 
+  // type of PML damping function
   std::string typeOfPml;
   pmlDef->GetValue("type",typeOfPml);
 
@@ -553,6 +554,20 @@ CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, P
 
 template<typename T>
 CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
+
+template<typename T>
+void CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct(PtrCoefFct tensorCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+                                    shared_ptr<EntityList> EntList,
+                                    StdVector<RegionIdType> pdeDomains) {
+  tensorCoefFct.reset(new CoefFunctionPML<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
+}
+
+template<typename T>
+void CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct(PtrCoefFct scalarCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+                                    shared_ptr<EntityList> EntList,
+                                    StdVector<RegionIdType> pdeDomains) {
+  scalarCoefFct.reset(new CoefFunctionPML<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
+}
 
 
 
