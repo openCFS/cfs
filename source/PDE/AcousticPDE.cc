@@ -206,8 +206,10 @@ namespace CoupledField{
 
     RegionIdType actRegion;;
 
-     // flag that states if we are in a PML region while performing a harmonic analysis
-    bool harmonicPML = false;
+    //variables used for PML
+    bool harmonicPML = false;    // flag that states if we are in a PML region while performing a harmonic analysis
+    std::string pmlDampId = "";  // dampId of a PML region
+    std::string pmlFormul = "";  // formulation of the PML region ("classic" or "curvilinear")
 
     //type of geometry
     isaxi_ = ptGrid_->IsAxi();
@@ -346,14 +348,11 @@ namespace CoupledField{
 
       if( dampingList_[actRegion] == PML ) 
       {
-        std::string dampId;
-        curRegNode->GetValue("dampingId",dampId);
-
-        // check for PML formulation: classic(=Cartesian) or curvilinear
-        std::string pmlFormul;
-        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
+        // get the dampingId of the current PML region
+        curRegNode->GetValue("dampingId",pmlDampId);
+        // check for PML formulation of current region: classic(=Cartesian) or curvilinear
+        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",pmlDampId.c_str());
         pmlFormul = pmlNode->Get("formulation")->As<std::string>();
-
         //check if harmonic or inverse-source analysis is performed
         if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
         {
@@ -409,9 +408,9 @@ namespace CoupledField{
           if (pmlFormul == "classic")
           {
             if(dim_==2)
-              DefineTransientPMLInts<2>(actSDList,dampId, actRegion, tempId);
+              DefineTransientPMLInts<2>(actSDList,pmlDampId, actRegion, tempId);
             else
-              DefineTransientPMLInts<3>(actSDList,dampId, actRegion, tempId);
+              DefineTransientPMLInts<3>(actSDList,pmlDampId, actRegion, tempId);
           }
           else
             EXCEPTION("Transient PML is currently only implemented in 'classic' formulation.")
@@ -425,31 +424,44 @@ namespace CoupledField{
       // ====================================================================
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
-        if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
-                                        coeffPMLStiff, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+        if(harmonicPML) {
+          if(pmlFormul == "classic") {
+            stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
+                                          coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+          }
+          else if (pmlFormul == "curvilinear") {
+            // define curvilinear integrators in 2D
+            //
+            //
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
         else if ( complexFluidFormulation_ ) {
           stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,2>(), coeffK,
-        	                           1.0, updatedGeo_ );
-        }
-        else{
+                                       1.0, updatedGeo_ );
+        } else {
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 
                                        1.0, updatedGeo_ );
         }
-      }
-      else{
+      } else { //dim_ == 3
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
-                                        coeffPMLStiff, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+          if(pmlFormul == "classic") {
+            stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
+                                         coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+          }
+          else if (pmlFormul == "curvilinear") {
+            // define curvilinear integrators in 3D
+            //
+            //
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
         else if ( complexFluidFormulation_ ) {
           stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK,
-        	                           1.0, updatedGeo_ );
-        }
-        else{
+                                     1.0, updatedGeo_ );
+        } else {
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK,
                                        1.0, updatedGeo_ );
         }
@@ -486,23 +498,39 @@ namespace CoupledField{
 
       BaseBDBInt *massInt = NULL;
       
-      if(dim_==2){
-        if( harmonicPML )
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
-                                       coeffPMLMass, 1.0, updatedGeo_ );
+      if(dim_==2) {
+        if( harmonicPML ) {
+          if(pmlFormul == "classic") 
+            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
+                                         coeffPMLMass, 1.0, updatedGeo_ );
+          else if (pmlFormul == "curvilinear") {
+            // define curvilinear integrators in 2D
+            //
+            //
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
+        }
         else if ( complexFluidFormulation_ )
-        	massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM,
-        	                                      1.0, updatedGeo_ );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM,
+                                                1.0, updatedGeo_ );
         else
           massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 
                                       1.0, updatedGeo_ );
-      }else{
-        if(harmonicPML)
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 
-                                       1.0, updatedGeo_ );
+      } else { // dim_==3
+        if(harmonicPML) {
+          if(pmlFormul == "classic") 
+            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(),
+                                         coeffPMLMass, 1.0, updatedGeo_ );
+          else if (pmlFormul == "curvilinear") {
+            // define curvilinear integrators in 2D
+            //
+            //
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
+        }
         else if  ( complexFluidFormulation_ )
-        	massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM,
-        	                                      1.0, updatedGeo_ );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM,
+                                                1.0, updatedGeo_ );
         else
           massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 
                                       1.0, updatedGeo_ );
