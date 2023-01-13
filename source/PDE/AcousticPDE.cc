@@ -342,9 +342,10 @@ namespace CoupledField{
       // ====================================================================
       // Take account for pml
       // ====================================================================
-      shared_ptr<CoefFunction> coeffPMLScal, coeffPMLVec;
-      shared_ptr<CoefFunction> coeffPMLStiff;
-      shared_ptr<CoefFunction> coeffPMLMass;
+      PtrCoefFct coeffPMLScal, coeffPMLVec; // attention! coeffPMLVec is a tensor if we are in curvilinear formulation. I need to stick with this declaration due to the many if/else querries that produce out-of-scope errors otherwise. 
+      PtrCoefFct coeffPMLTens; // pointer to coeffunction that stores the tensor at integration points
+      PtrCoefFct coeffPMLStiff;
+      PtrCoefFct coeffPMLMass;
 
       if( dampingList_[actRegion] == PML ) 
       {
@@ -383,18 +384,21 @@ namespace CoupledField{
           }
           else if (pmlFormul == "curvilinear")
           {
-            EXCEPTION("Formulation '" << pmlFormul << "' for AcousticPDE " 
-                      << "is not implemented yet!")
-            // here, I need to define my PML coefficients....
+            //EXCEPTION("Formulation '" << pmlFormul << "' for AcousticPDE " 
+            //          << "is not implemented yet!")
 
-
-            // at first, I need to determine the geometry...
-
-            // somehow, I need to take account for the new Jakobi matrix, as this one will not be diagonal..
-
-            // the Jakobi determinant will likely have the same properties as the Cartesian one (but is different in its value)
-
-
+            // pointer to object that handles the computation of the curvilinear PML damping tensor
+            shared_ptr<CoefFunctionCurvilinearPML<Complex>> coeffCurvilinearPML; 
+            coeffCurvilinearPML.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_));
+            coeffCurvilinearPML->GetScalarCoeffFct(coeffPMLScal, pmlNode, c0R, actSDList, regions_);
+            coeffCurvilinearPML->GetTensorCoeffFct(coeffPMLTens, pmlNode, c0R, actSDList, regions_);
+            
+            // store pml factor
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
+            coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                              CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
+            coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                              CoefXprBinOp(mp_, coeffPMLScal, coeffM, CoefXpr::OP_MULT));
           }
           else // when pmlFormul is invalid...
           {
