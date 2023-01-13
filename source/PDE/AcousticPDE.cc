@@ -384,9 +384,6 @@ namespace CoupledField{
           }
           else if (pmlFormul == "curvilinear")
           {
-            //EXCEPTION("Formulation '" << pmlFormul << "' for AcousticPDE " 
-            //          << "is not implemented yet!")
-
             // pointer to object that handles the computation of the curvilinear PML damping tensor
             shared_ptr<CoefFunctionCurvilinearPML<Complex>> coeffCurvilinearPML; 
             coeffCurvilinearPML.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_));
