@@ -209,7 +209,7 @@ class CoefFunctionPML : public CoefFunction{
 public:
 
   //! Enumeration data type describing formulations of PML
-  typedef enum{ CLASSIC, SHIFTED } PMLFormulType;
+  typedef enum{ CLASSIC, SHIFTED, CURVILINEAR } PMLFormulType;
 
   CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                   shared_ptr<EntityList> EntList,
@@ -359,6 +359,53 @@ protected:
 
   shared_ptr<DampFunction> scalingFunc_, shiftFunc_;
 };
+
+
+
+/* A curvilinear PML that is supposed to function in arbitrarily-shaped, convex 
+ * domains. 
+ * The CoefFunctionCurvilinearPML triggers the automatic layer creation and the 
+ * computation of the geometry (normal vectors, principal-direction vectors and 
+ * principal curvatures) in the grid class. 
+ * Further, it assembles the Jakobi matrix for each node within the layer and 
+ * computes its determinant.
+ */
+template<typename T>
+class CoefFunctionCurvilinearPML : public CoefFunctionPML<T> {
+public:
+  // constructor
+  CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                         StdVector<RegionIdType> pdeDomains);
+  // destructor
+  virtual ~CoefFunctionCurvilinearPML();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
 #endif /* COEFFUNCTIONPML_HH_ */

@@ -384,6 +384,10 @@ void CoefFunctionPML<T>::GetThicknessAtPoint(Double& thickness, Double & positio
 
 }
 
+//================================================================================================
+// DampFunction
+//================================================================================================
+
 // Definition of types of pml function
 static EnumTuple dampTypeTubles[] = {
   EnumTuple(DampFunction::CONSTANT,      "constant"),
@@ -400,6 +404,10 @@ Enum<DampFunction::DampingType> DampFunction::DampingTypeEnum = \
    Enum<DampFunction::DampingType>("Types of damping",
        sizeof(dampTypeTubles) / sizeof(EnumTuple),
        dampTypeTubles);
+
+//================================================================================================
+// Shifted PML
+//================================================================================================
 
 template<typename T>
 CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
@@ -534,9 +542,25 @@ void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped&
   }
 }
 
+//================================================================================================
+// Curvilinear PML
+//================================================================================================
+
+template<typename T>
+CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                      StdVector<RegionIdType> pdeDomains) : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, true) {}
+
+
+template<typename T>
+CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
+
+
+
 // Explicit template instantiation
 template class CoefFunctionPML<Double>;
 template class CoefFunctionPML<Complex>;
 template class CoefFunctionShiftedPML<Double>;
 template class CoefFunctionShiftedPML<Complex>;
+template class CoefFunctionCurvilinearPML<Double>;
+template class CoefFunctionCurvilinearPML<Complex>;
 }
