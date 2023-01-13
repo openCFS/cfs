@@ -432,7 +432,7 @@ namespace CoupledField{
             stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
           }
           else if (pmlFormul == "curvilinear") {
-            // define curvilinear integrators in 2D
+            // define integrators for curvilinear PML in 2D
             //
             //
           } else // we should never reach here, but just to be sure
@@ -453,7 +453,7 @@ namespace CoupledField{
             stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
           }
           else if (pmlFormul == "curvilinear") {
-            // define curvilinear integrators in 3D
+            // define integrators for curvilinear PML in 3D
             //
             //
           } else // we should never reach here, but just to be sure
@@ -505,7 +505,7 @@ namespace CoupledField{
             massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
                                          coeffPMLMass, 1.0, updatedGeo_ );
           else if (pmlFormul == "curvilinear") {
-            // define curvilinear integrators in 2D
+            // define integrators for curvilinear PML in 2D
             //
             //
           } else // we should never reach here, but just to be sure
@@ -523,7 +523,7 @@ namespace CoupledField{
             massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(),
                                          coeffPMLMass, 1.0, updatedGeo_ );
           else if (pmlFormul == "curvilinear") {
-            // define curvilinear integrators in 2D
+            // define integrators for curvilinear PML in 3D
             //
             //
           } else // we should never reach here, but just to be sure
