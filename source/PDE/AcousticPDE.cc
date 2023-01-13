@@ -387,8 +387,8 @@ namespace CoupledField{
             // pointer to object that handles the computation of the curvilinear PML damping tensor
             shared_ptr<CoefFunctionCurvilinearPML<Complex>> coeffCurvilinearPML; 
             coeffCurvilinearPML.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_));
-            coeffCurvilinearPML->GetScalarCoeffFct(coeffPMLScal, pmlNode, c0R, actSDList, regions_);
-            coeffCurvilinearPML->GetTensorCoeffFct(coeffPMLTens, pmlNode, c0R, actSDList, regions_);
+            coeffPMLScal = coeffCurvilinearPML->GetScalarCoeffFct(pmlNode, c0R, actSDList, regions_);
+            coeffPMLTens = coeffCurvilinearPML->GetTensorCoeffFct(pmlNode, c0R, actSDList, regions_);
             
             // store pml factor
             matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
@@ -433,8 +433,9 @@ namespace CoupledField{
           }
           else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 2D
-            //
-            //
+            stiffInt = new BBInt<Complex>(new TensorScaledGradientOperator<FeH1,3,Complex>(),
+                                         coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLTens);
           } else // we should never reach here, but just to be sure
             EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
@@ -454,8 +455,9 @@ namespace CoupledField{
           }
           else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 3D
-            //
-            //
+            stiffInt = new BBInt<Complex>(new TensorScaledGradientOperator<FeH1,3,Complex>(),
+                                         coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLTens);
           } else // we should never reach here, but just to be sure
             EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
@@ -506,8 +508,9 @@ namespace CoupledField{
                                          coeffPMLMass, 1.0, updatedGeo_ );
           else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 2D
-            //
-            //
+            // actually, I think we use  the same integrator here.... so I could also revert this if/else
+            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
+                                         coeffPMLMass, 1.0, updatedGeo_ );
           } else // we should never reach here, but just to be sure
             EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
@@ -524,8 +527,9 @@ namespace CoupledField{
                                          coeffPMLMass, 1.0, updatedGeo_ );
           else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 3D
-            //
-            //
+            // actually, I think we use  the same integrator here.... so I could also revert this if/else
+            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), 
+                                         coeffPMLMass, 1.0, updatedGeo_ );
           } else // we should never reach here, but just to be sure
             EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
