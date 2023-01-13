@@ -556,17 +556,21 @@ template<typename T>
 CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
 
 template<typename T>
-void CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct(PtrCoefFct tensorCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains) {
+  PtrCoefFct tensorCoefFct;
   tensorCoefFct.reset(new CoefFunctionPML<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
+  return tensorCoefFct;
 }
 
 template<typename T>
-void CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct(PtrCoefFct scalarCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains) {
+  PtrCoefFct scalarCoefFct;
   scalarCoefFct.reset(new CoefFunctionPML<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
+  return scalarCoefFct;
 }
 
 

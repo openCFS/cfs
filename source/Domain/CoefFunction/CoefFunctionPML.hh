@@ -385,14 +385,14 @@ public:
   // Triggers the computation of the tensor's determinant and
   // assigns it to the passed CoefFct 
   // .......... currently, this function simply sets a scalar-valued coefFctPML 
-  void GetScalarCoeffFct(PtrCoefFct scalarCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+  PtrCoefFct GetScalarCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains);
 
   // Triggers the computation of the tensor itself and
   // assigns it to the passed CoefFct 
   // .......... currently, this function simply sets a vector-valued coefFctPML 
-  void GetTensorCoeffFct(PtrCoefFct tensorCoefFct, PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+  PtrCoefFct GetTensorCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains);
 
