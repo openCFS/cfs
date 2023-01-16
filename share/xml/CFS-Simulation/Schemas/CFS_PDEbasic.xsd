@@ -951,6 +951,22 @@
             </xsd:complexType>
           </xsd:element>
 
+           <!-- Automatic layer generation for CFS-PML -->
+           <xsd:element name="autoLayerGeneration" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Define the parameters for automatic layer generation via mesh extrusion.
+                The elements of the layer are prismatic. 
+                - elemHeight defines the height of each element in 'm', passed as a positive float; 
+                - numLayers is the number of extrusion steps and must be a positive integer;
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="elemHeight" type="xsd:token" default="1" use="optional"/>
+              <xsd:attribute name="numLayers" type="xsd:token" default="2" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+
           <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
 
