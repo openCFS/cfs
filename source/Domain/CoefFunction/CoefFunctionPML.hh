@@ -238,7 +238,9 @@ public:
   void UpdateOmega();
 
   //! dummy function to read the PML data. Must be implemented in the child classes 
-  virtual void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains) {};
+  virtual void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains) {
+    EXCEPTION( "CoefFunction::ReadDataPML not overwritten by " << GetName());
+  };
 
   //! Set the type of damping function in the damping-function object 
   void CreateDampFunction();
@@ -404,7 +406,7 @@ protected:
  * computes its determinant.
  */
 template<typename T>
-class CoefFunctionCurvilinearPML : public CoefFunctionPML<T> {
+class CoefFunctionCurvilinearPML : public CoefFunctionPMLBase<T> {
 public:
   // constructor
   CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
@@ -412,52 +414,17 @@ public:
   // destructor
   virtual ~CoefFunctionCurvilinearPML();
 
-  // get name of coeffFunction
-  virtual string GetName() const { return "CoefFunctionCurvilinearPML"; }
-
   // Triggers the computation of the tensor's determinant and
   // assigns it to the passed CoefFct 
   // .......... currently, this function simply sets a scalar-valued coefFctPML 
-  PtrCoefFct GetScalarCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-                                    shared_ptr<EntityList> EntList,
-                                    StdVector<RegionIdType> pdeDomains);
+  PtrCoefFct GetScalarCoeffFct();
 
   // Triggers the computation of the tensor itself and
   // assigns it to the passed CoefFct 
   // .......... currently, this function simply sets a vector-valued coefFctPML 
-  PtrCoefFct GetTensorCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-                                    shared_ptr<EntityList> EntList,
-                                    StdVector<RegionIdType> pdeDomains);
+  PtrCoefFct GetTensorCoeffFct();
 
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 #endif /* COEFFUNCTIONPML_HH_ */

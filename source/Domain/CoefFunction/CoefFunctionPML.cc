@@ -557,7 +557,15 @@ void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped&
 
 template<typename T>
 CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                      StdVector<RegionIdType> pdeDomains) : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, true) {
+                      StdVector<RegionIdType> pdeDomains) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
+  
+  this->name__ = "CoefFunctionCurvilinearPML";
+  this->formulationType_ = CURVILINEAR;
+  
+
+
+
+
 }
 
 template<typename T>
@@ -568,7 +576,7 @@ PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct(PtrParamNode pmlDef,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains) {
   PtrCoefFct tensorCoefFct;
-  tensorCoefFct.reset(new CoefFunctionPML<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
+//  tensorCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
   return tensorCoefFct;
 }
 
@@ -577,7 +585,7 @@ PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct(PtrParamNode pmlDef,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains) {
   PtrCoefFct scalarCoefFct;
-  scalarCoefFct.reset(new CoefFunctionPML<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
+//  scalarCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
   return scalarCoefFct;
 }
 
