@@ -22,6 +22,11 @@
 
 namespace CoupledField{
 
+//================================================================================================
+// DampFunction
+//================================================================================================
+/* Class to define damping functions used within the coefFunction*PML* classes
+ */
 class DampFunction{
 
 public:
@@ -39,7 +44,6 @@ public:
 
   virtual Double ComputeFactor(Double pos, Double thickness)=0;
 
-
   DampingType GetType(){return functionType;}
 
   Double DampFactor;
@@ -48,8 +52,6 @@ protected:
   Double constFactor;
   Double ReflectionCoefficient;
   DampingType functionType;
-
-
 };
 
 class DampFunctionConst : public DampFunction{
@@ -62,7 +64,6 @@ public:
   Double ComputeFactor(Double pos, Double thickness){
     return DampFactor * constFactor / thickness;
   }
-
 };
 
 class DampFunctionQuad : public DampFunction{
@@ -75,7 +76,6 @@ public:
   Double ComputeFactor(Double pos, Double thickness){
     return DampFactor*constFactor * pos * pos / (thickness * thickness*thickness);
   }
-
 };
 
 class DampFunctionInvDist : public DampFunction{
@@ -96,7 +96,6 @@ public:
     }
     return val*DampFactor;
   }
-
 };
 
 class DampFunctionSmooth : public DampFunction{
@@ -111,7 +110,6 @@ public:
     value *= ( (pos / thickness) - ((sin(2*M_PI*pos / thickness)/(8*atan(1.0))) ) );
     return value*DampFactor;
   }
-
 };
 
 class DampFunctionTangens : public DampFunction{
@@ -129,7 +127,6 @@ public:
     Double c = cos(z/constFactor);
     return c*c/L; // same but possibly faster
   }
-
 };
 
 class DampFunctionRational : public DampFunction{
@@ -145,7 +142,6 @@ public:
     Double x = z*L/(1.0 - z); // x-coordinate
     return L/((x+L)*(x+L)); // dz/dx=eta(x)=eta(x(z))
   }
-
 };
 
 class DampFunctionExponential : public DampFunction{
@@ -160,7 +156,6 @@ public:
     Double L = DampFactor*sos;
     return (1-z)/L;
   }
-
 };
 
 class DampFunctionPolyDirect : public DampFunction
@@ -203,14 +198,86 @@ public:
   }
 };
 
+
+//================================================================================================
+// PML Base Class
+//================================================================================================
+/* Base class to define a CoefFunction that triggers the computation of the 
+/* damping functions and creates the tensors/vectors/scalar values for the 
+/* PML damping
+ */
+
+//! Enumeration data type describing formulations of PML
+typedef enum{ CLASSIC, SHIFTED, CURVILINEAR } PMLFormulType;
+
 template<typename T>
-class CoefFunctionPML : public CoefFunction{
+class CoefFunctionPMLBase : public CoefFunction{
+public:
+  //! base constructor
+  CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+                  shared_ptr<EntityList> EntList,
+                  StdVector<RegionIdType> pdeDomains);
+
+  //! destructor
+  virtual ~CoefFunctionPMLBase();
+
+  //! get object name as a string
+  string GetName() const { return name_; }
+
+  //! disable manually adding an entity list, as the entity list is set in the constructor
+  void AddEntityList(shared_ptr<EntityList>){
+    EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
+  }
+
+  //! return if this instance is called as complex
+  bool IsComplex(){
+    return std::is_same<T,Complex>::value;
+  }
+
+  //! check for current angular frequency
+  void UpdateOmega();
+
+  //! dummy function to read the PML data. Must be implemented in the child classes 
+  virtual void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains) {};
+
+  //! Set the type of damping function in the damping-function object 
+  void CreateDampFunction();
+protected:
+    //! name of the CoefFunctionPML
+    std::string name_;
+    //! PML formulation type
+    PMLFormulType formulationType_;
+    //! Support of the CoefFunction. Only needed for grid/solution results
+    StdVector<shared_ptr<EntityList> > entities_;
+    //! pointer to an instance of the DampFunction class
+    shared_ptr<DampFunction> dampFunction_;
+    //! type of the damping function
+    DampFunction::DampingType pmlType_;
+    //! speed of sound
+    PtrCoefFct speedOfSound_;
+    //! Pointer to math parser instance
+    MathParser* mp_;
+    //! Handle for expression
+    unsigned int mHandle_;
+    //! storing the current frequency
+    Double omega_;
+    //! dimension of the problem
+    UInt dim_;
+    //! order of the coeff function: 0->scalar, 1->vector, 2->tensor
+    UInt orderCoefFct_;
+};
+
+
+//================================================================================================
+// Classic (=Cartesian) PML
+//================================================================================================
+/* This class represents the original 'classic' PML coefFunction, 
+/* which computes the damping vectors/scalars for the Cartesian PML
+ */
+template<typename T>
+class CoefFunctionPML : public CoefFunctionPMLBase<T> {
 
 public:
-
-  //! Enumeration data type describing formulations of PML
-  typedef enum{ CLASSIC, SHIFTED, CURVILINEAR } PMLFormulType;
-
   CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                   shared_ptr<EntityList> EntList,
                   StdVector<RegionIdType> pdeDomains,
@@ -218,12 +285,9 @@ public:
 
   virtual ~CoefFunctionPML();
 
-  virtual string GetName() const { return "CoefFunctionPML"; }
-
-
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Complex>& tensor,
-                 const LocPointMapped& lpm );
+                 const LocPointMapped& lpm ); 
 
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Double>& tensor,
@@ -231,100 +295,69 @@ public:
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Complex>& vec,
-                 const LocPointMapped& lpm ) ;
+                 const LocPointMapped& lpm );
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec,
-                 const LocPointMapped& lpm ) ;
+                 const LocPointMapped& lpm );
 
 
- //! Return real-valued scalar at integration point
+  //! Return real-valued scalar at integration point
   // this is little bit of a hack,
   // seeing that the jacobian is transformed according to the changed
   // derivatives, we pass this function as a scalar function to the bilinearform
   // an transform the jacobian with it....
   virtual void GetScalar(Double& val,
-                const LocPointMapped& lpm ) ;
+                const LocPointMapped& lpm );
 
- //! Return cpmplex-valued scalar at integration point
+  //! Return cpmplex-valued scalar at integration point
   virtual void GetScalar(Complex& val,
-                const LocPointMapped& lpm ) ;
+                const LocPointMapped& lpm );
 
- //! \copydoc CoefFunction::GetVecSize
- UInt GetVecSize() const {
-   assert(this->dimType_ == VECTOR );
-   return dim_;
- }
- 
-
-  void AddEntityList(shared_ptr<EntityList>){
-    EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
+  //! \copydoc CoefFunction::GetVecSize
+  UInt GetVecSize() const {
+    assert(this->dimType_ == CoefFunction::VECTOR );
+    return this->dim_;
   }
 
-  virtual bool IsComplex(){
-    return std::is_same<T,Complex>::value;
-  }
-
+  //! return name in string format...
   std::string ToString() const {
-      std::string out = "CoefFunctionPML";
+      std::string out = this->name_;
       return out;
   };
+  //! use the base functions
+  using CoefFunctionPMLBase<T>::UpdateOmega;
+  using CoefFunctionPMLBase<T>::CreateDampFunction;
 
 protected:
-    //void ComputeDampingFactor( Vector<Double>& factors,
-    //                           const LocPointMapped& lpm,
-    //                           UInt dir);
-    //
-    //void ComputeDampingFactor(Vector<Complex>& factors,
-    //                          const LocPointMapped& lpm,
-    //                          UInt dir);
-    //
-    //! Call-back method for re-calculation
-    void UpdateOmega();
+  //void ComputeDampingFactor( Vector<Double>& factors,
+  //                           const LocPointMapped& lpm,
+  //                           UInt dir);
+  //
+  //void ComputeDampingFactor(Vector<Complex>& factors,
+  //                          const LocPointMapped& lpm,
+  //                          UInt dir);
 
-    void SetPosPML(Matrix<Double> & inner,
-                   Matrix<Double> & outer);
+  void SetPosPML(Matrix<Double> & inner,
+                  Matrix<Double> & outer);
 
-    void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains);
+  void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains);
 
-    void CreateDampFunction();
+  void GuessLayerData(StdVector<RegionIdType> pdeDomains);
 
-    void GuessLayerData(StdVector<RegionIdType> pdeDomains);
+  void GetThicknessAtPoint(Double& thickness,Double& position, LocPointMapped lpm,UInt dir);
 
-    void GetThicknessAtPoint(Double& thickness,Double& position, LocPointMapped lpm,UInt dir);
+  Matrix<Double> innerMinMaxComp_;
+  Matrix<Double> outerMinMaxComp_;
 
-    PMLFormulType formulationType_;
-
-    Matrix<Double> innerMinMaxComp_;
-    Matrix<Double> outerMinMaxComp_;
-
-    //! Support of the CoefFunction. Only needed for grid/solution results
-    StdVector<shared_ptr<EntityList> > entities_;
-    
-    shared_ptr<DampFunction> dampFunction_;
-
-    DampFunction::DampingType pmlType_;
-
-    //! should be coefFunction in future...
-    PtrCoefFct speedOfSound_;
-
-    //! Pointer to math parser instance
-    MathParser* mp_;
-
-    //! Handle for expression
-    unsigned int mHandle_;
-
-    //! storing the current frequency
-    Double omega_;
-    
-    //! dimension of the problem
-    UInt dim_;
-
-    //! flag, if PML coefficient functions describes the vector 
-    bool isVector_;
-
+  //! flag, if PML coefficient functions describes the vector 
+  bool isVector_;
 };
 
+
+//================================================================================================
+// Shifted PML
+//================================================================================================
 template<typename T>
 class CoefFunctionShiftedPML : public CoefFunctionPML<T>
 {
@@ -335,8 +368,6 @@ public:
                          StdVector<RegionIdType> pdeDomains, bool isVector);
 
   virtual ~CoefFunctionShiftedPML();
-
-  virtual string GetName() const { return "CoefFunctionShiftedPML"; }
 
   //! \copydoc CoeffFunctionPML::GetTensor
   virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm);
@@ -361,7 +392,9 @@ protected:
 };
 
 
-
+//================================================================================================
+// Curvilinear PML
+//================================================================================================
 /* A curvilinear PML that is supposed to function in arbitrarily-shaped, convex 
  * domains. 
  * The CoefFunctionCurvilinearPML triggers the automatic layer creation and the 
