@@ -962,8 +962,8 @@
               </xsd:documentation>
             </xsd:annotation>
             <xsd:complexType>
-              <xsd:attribute name="elemHeight" type="xsd:token" default="1" use="optional"/>
-              <xsd:attribute name="numLayers" type="xsd:token" default="2" use="optional"/>
+              <xsd:attribute name="elemHeight" type="xsd:float" default="1" use="optional"/>
+              <xsd:attribute name="numLayers" type="xsd:positiveInteger" default="2" use="optional"/>
             </xsd:complexType>
           </xsd:element>
 
