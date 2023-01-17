@@ -385,10 +385,12 @@ namespace CoupledField{
           else if (pmlFormul == "curvilinear")
           {
             // pointer to object that handles the computation of the curvilinear PML damping tensor
-            shared_ptr<CoefFunctionCurvilinearPML<Complex>> coeffCurvilinearPML; 
+            shared_ptr<CoefFunctionCurvilinearPML<Complex>> coeffCurvilinearPML;
             coeffCurvilinearPML.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_));
-            coeffPMLScal = coeffCurvilinearPML->GetScalarCoeffFct(pmlNode, c0R, actSDList, regions_);
-            coeffPMLTens = coeffCurvilinearPML->GetTensorCoeffFct(pmlNode, c0R, actSDList, regions_);
+            //coeffPMLScal = coeffCurvilinearPML->GetScalarCoeffFct();
+            //coeffPMLTens = coeffCurvilinearPML->GetTensorCoeffFct();
+            coeffPMLTens.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
             
             // store pml factor
             matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
