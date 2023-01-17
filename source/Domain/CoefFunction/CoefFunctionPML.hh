@@ -424,6 +424,22 @@ public:
   // .......... currently, this function simply sets a vector-valued coefFctPML 
   PtrCoefFct GetTensorCoeffFct();
 
+  //! use the base functions
+  using CoefFunctionPMLBase<T>::UpdateOmega;
+  using CoefFunctionPMLBase<T>::CreateDampFunction;
+
+private:
+  //! read data from the paramNode and store
+  void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains);
+  
+  //! pointer to the current grid class, needed for automatic layer generation and
+  //! to determine the geometry
+  Grid* grid_;
+
+  //! node to store auto-mesh-generation parameters (elemHeight and numLayers)
+  PtrParamNode layerGenNode_;
+
+
 
 };
 }

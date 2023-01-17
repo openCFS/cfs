@@ -559,35 +559,91 @@ template<typename T>
 CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
                       StdVector<RegionIdType> pdeDomains) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
   
-  this->name__ = "CoefFunctionCurvilinearPML";
+  this->name_ = "CoefFunctionCurvilinearPML";
   this->formulationType_ = CURVILINEAR;
-  
+  grid_ = this->entities_[0]->GetGrid();
+  ReadDataPML(pmlDef,pdeDomains);
+  // set the DampingFunction object to the corresponding type 
+  CreateDampFunction();
 
 
 
 
+  //
 }
 
 template<typename T>
 CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
 
 template<typename T>
-PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-                                    shared_ptr<EntityList> EntList,
-                                    StdVector<RegionIdType> pdeDomains) {
+PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct() {
   PtrCoefFct tensorCoefFct;
-//  tensorCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
+  //tensorCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
   return tensorCoefFct;
 }
 
 template<typename T>
-PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-                                    shared_ptr<EntityList> EntList,
-                                    StdVector<RegionIdType> pdeDomains) {
+PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct() {
   PtrCoefFct scalarCoefFct;
-//  scalarCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
+  //scalarCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
   return scalarCoefFct;
 }
+
+
+
+
+
+
+
+template<typename T>
+void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains){
+  // read and set coordinate system 
+  std::string cSysId;
+  pmlDef->GetValue("coordSysId",cSysId,ParamNode::PASS);
+  // currently this type wil only be implemented to work in Cartesian coordinates
+  // to work with other coordinate systems we need to compute different transformation matrices
+  if(cSysId == "" || cSysId == "default")
+    cSysId = "default";
+  else
+    EXCEPTION("Curvilinear PML currently only works in the default Cartesian coordinate system!");
+  this->SetCoordinateSystem(domain->GetCoordSystem(cSysId));
+
+  // type of PML damping function
+  std::string typeOfPml;
+  pmlDef->GetValue("type",typeOfPml);
+  this->pmlType_ = DampFunction::DampingTypeEnum.Parse(typeOfPml);
+
+  // check for damping factor
+  Double dampFactor;
+  pmlDef->GetValue("dampFactor",dampFactor);
+  this->dampFunction_->DampFactor = dampFactor;
+
+  // check for scaling or frequency shift coeff in the xml
+  PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
+  if (scalingNode)
+  {
+    WARN("scalingCoef is currently not implemented for curvilinear PML and will be ignored!");
+  }
+  PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
+  if (shiftNode)
+  {
+    WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
+  }
+
+  // check for auto-mesh-generation parameters in the xml
+  layerGenNode_ = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
+  if (layerGenNode_) {
+    // in the xml it is still possible to specify a negative height, so check for it
+    Double elemHeight = 0.0;
+    layerGenNode_->GetValue("elemHeight", elemHeight);
+    if (elemHeight < 0)
+      EXCEPTION("'elemHeight' must be >= 0 in the XML!");
+  } else
+    // todo: implement possibility to read geometry without auto-layer generation
+    EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
+}
+
+
 
 // Explicit template instantiation
 template class CoefFunctionPMLBase<Double>;
