@@ -2898,6 +2898,28 @@ namespace CoupledField {
     }
   }
 
+  void GridCFS::generateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+    std::cout<<"finally reached here!";
+
+
+
+
+    /*    
+    // check if the specified surface region is actually in the passed EntityList...
+    // name of the surface region where the layer should be built on
+    std::string surfRegionToActOn;
+    layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
+    // get the name of the specified propagation domain
+    std::string regionName;
+    regionName = this->entities_[0]->GetName();
+
+
+    //std::string actRegion = this->entities_.ToString(GetRegion());
+    //actRegion = grid_->GetRegion().ToString();
+*/
+  };
+
+
   // =======================================================================
   // Helper Methods
   // =======================================================================

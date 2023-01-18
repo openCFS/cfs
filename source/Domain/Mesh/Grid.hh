@@ -798,6 +798,12 @@ namespace CoupledField
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
     StdVector<UInt> GetRegularDiscretization(RegionIdType region);
 
+    //! Computes an external grid layer that can be used as a PML region. 
+    //! The actual function is implemented in GridCFS 
+    virtual void generateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::generateExternalLayer not overwritten by child class");
+    };
+
     // =======================================================================
     // FINITE VOLUME REPRESENTATION SECTION
     // =======================================================================
