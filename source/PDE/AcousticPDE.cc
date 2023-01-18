@@ -342,7 +342,7 @@ namespace CoupledField{
       // ====================================================================
       // Take account for pml
       // ====================================================================
-      PtrCoefFct coeffPMLScal, coeffPMLVec; // attention! coeffPMLVec is a tensor if we are in curvilinear formulation. I need to stick with this declaration due to the many if/else querries that produce out-of-scope errors otherwise. 
+      PtrCoefFct coeffPMLScal, coeffPMLVec; 
       PtrCoefFct coeffPMLTens; // pointer to coeffunction that stores the tensor at integration points
       PtrCoefFct coeffPMLStiff;
       PtrCoefFct coeffPMLMass;
@@ -1064,7 +1064,13 @@ namespace CoupledField{
 
         //check, if region has complex fluid
         PtrParamNode curRegNode =
+<<<<<<< HEAD
         		myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+=======
+            myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+        if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" )
+          EXCEPTION("Absorbing BC at complex fluid region not allowed");
+>>>>>>> 5c13de00a (temporary commit: deleted an unnecessary comment that I added previously; some minor changes)
 
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens;
