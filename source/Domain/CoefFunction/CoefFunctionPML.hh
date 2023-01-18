@@ -22,6 +22,9 @@
 
 namespace CoupledField{
 
+// forward class declaration, needed in CoefFunctionCurvilinearPML
+class GridCFS;
+
 //================================================================================================
 // DampFunction
 //================================================================================================
@@ -224,6 +227,12 @@ public:
   //! get object name as a string
   string GetName() const { return name_; }
 
+  //! return name in string format...
+  std::string ToString() const {
+      std::string out = this->name_;
+      return out;
+  };
+
   //! disable manually adding an entity list, as the entity list is set in the constructor
   void AddEntityList(shared_ptr<EntityList>){
     EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
@@ -250,7 +259,7 @@ protected:
     //! PML formulation type
     PMLFormulType formulationType_;
     //! Support of the CoefFunction. Only needed for grid/solution results
-    StdVector<shared_ptr<EntityList> > entities_;
+    StdVector<shared_ptr<EntityList>> entities_;
     //! pointer to an instance of the DampFunction class
     shared_ptr<DampFunction> dampFunction_;
     //! type of the damping function
@@ -303,7 +312,6 @@ public:
   virtual void GetVector(Vector<Double>& vec,
                  const LocPointMapped& lpm );
 
-
   //! Return real-valued scalar at integration point
   // this is little bit of a hack,
   // seeing that the jacobian is transformed according to the changed
@@ -322,11 +330,6 @@ public:
     return this->dim_;
   }
 
-  //! return name in string format...
-  std::string ToString() const {
-      std::string out = this->name_;
-      return out;
-  };
   //! use the base functions
   using CoefFunctionPMLBase<T>::UpdateOmega;
   using CoefFunctionPMLBase<T>::CreateDampFunction;
@@ -439,7 +442,18 @@ private:
   //! node to store auto-mesh-generation parameters (elemHeight and numLayers)
   PtrParamNode layerGenNode_;
 
+  //! state if the PML layer should be generated automatically
+  bool generateLayer_ = false;
 
+  //! store the specified surfaces where the layer is built upon in a separate 
+  //! entity list
+  StdVector<shared_ptr<EntityList>> surfEntities_;
+
+  //! store if the damping function must be computed (true) or not (false)
+  //! For the propagation region a unity tensor is passed to the 
+  //! tensorScaledGradientOperator. For the PML regions the full transformation
+  //! tensor is passed
+  StdVector<bool> isPmlRegion_;
 
 };
 }

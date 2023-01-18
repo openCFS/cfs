@@ -322,6 +322,16 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
 
   this->dampFunction_->DampFactor = dampFactor;
 
+  // check for auto-mesh-generation parameters in the xml because it is not implemented for 
+  // classic and shifted PML
+  PtrParamNode layerGenNode = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
+  if (layerGenNode){
+    std::string layerGenFormul; 
+    layerGenNode->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
+    if (layerGenFormul != "curvilinear")
+      EXCEPTION("Automatic layer generation currently not implemented for 'classic' PML!"<<
+                "Use 'curvilinear' instead.");
+  }
 }
 
 template<typename T>
@@ -561,11 +571,30 @@ CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, P
   
   this->name_ = "CoefFunctionCurvilinearPML";
   this->formulationType_ = CURVILINEAR;
-  grid_ = this->entities_[0]->GetGrid();
+  grid_ =  this->entities_[0]->GetGrid();
   ReadDataPML(pmlDef,pdeDomains);
-  // set the DampingFunction object to the corresponding type 
-  CreateDampFunction();
+  
+  
+  // trigger mesh generation
+  if (generateLayer_ == true)
+  {
+    
+    grid_->generateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
+    
+    /*
+    int aaaa = surfRegList->GetRegion();*/
+  }
 
+
+
+
+//in some cases we can have a propagation node
+ /* PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
+  if(propNode){
+    //read data from prop node
+    ParamNodeList dirNodes = propNode->GetChildren();
+*/
+//std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>()
 
 
 
@@ -612,37 +641,60 @@ void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<Re
   std::string typeOfPml;
   pmlDef->GetValue("type",typeOfPml);
   this->pmlType_ = DampFunction::DampingTypeEnum.Parse(typeOfPml);
+  // set the DampingFunction object to the corresponding type 
+  CreateDampFunction();
 
   // check for damping factor
   Double dampFactor;
   pmlDef->GetValue("dampFactor",dampFactor);
   this->dampFunction_->DampFactor = dampFactor;
 
-  // check for scaling or frequency shift coeff in the xml
+  // check for propRegion, scaling or frequency shift coeff in the xml
+  PtrParamNode propRegionNode = pmlDef->Get("propRegion", ParamNode::PASS);
+  if (propRegionNode) {
+    std::string propRegionNodeFormul; 
+    propRegionNode->GetParent()->GetValue("formulation", propRegionNodeFormul, ParamNode::PASS);
+    if (propRegionNodeFormul == "curvilinear")
+      WARN("propRegion is currently not implemented for curvilinear PML and will be ignored!");
+  }
   PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
-  if (scalingNode)
-  {
-    WARN("scalingCoef is currently not implemented for curvilinear PML and will be ignored!");
+  if (scalingNode) {
+    std::string scalingNodeFormul; 
+    scalingNode->GetParent()->GetValue("formulation", scalingNodeFormul, ParamNode::PASS);
+    if (scalingNodeFormul == "curvilinear")
+      WARN("scalingCoef is currently not implemented for curvilinear PML and will be ignored!");
   }
   PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
-  if (shiftNode)
-  {
-    WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
+  if (shiftNode) {
+    std::string shiftNodeFormul; 
+    shiftNode->GetParent()->GetValue("formulation", shiftNodeFormul, ParamNode::PASS);
+    if (shiftNodeFormul == "curvilinear")
+      WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
   }
 
   // check for auto-mesh-generation parameters in the xml
   layerGenNode_ = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
   if (layerGenNode_) {
+    generateLayer_ = true;
+
     // in the xml it is still possible to specify a negative height, so check for it
     Double elemHeight = 0.0;
     layerGenNode_->GetValue("elemHeight", elemHeight);
     if (elemHeight < 0)
       EXCEPTION("'elemHeight' must be >= 0 in the XML!");
+
+    // add the specified surface entity list to entities_
+    std::string surfRegionToActOn;
+    layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
+    shared_ptr<EntityList> surfEntity = grid_->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionToActOn );
+    surfEntities_.Push_back(surfEntity);
+
   } else
     // todo: implement possibility to read geometry without auto-layer generation
     EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
 }
 
+  
 
 
 // Explicit template instantiation
