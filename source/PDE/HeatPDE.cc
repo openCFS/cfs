@@ -546,10 +546,11 @@ void HeatPDE::DefineIntegrators() {
   // Heat flux boundary condition
   // ======================================================================
   ReadRhsExcitation( "heatFlux", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
-    if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+  if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+    // Get the volumeRegions for the heatFlux, because the reference temperature of the volumeRegion is needed to make the system symmetric
     ReadVolumeRegions("heatFlux", volumeRegions);
     if( ent.GetSize() != volumeRegions.GetSize()){
-      EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+      EXCEPTION("Define a volumeRegion for the heatFlux or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
     }
   }
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -560,7 +561,7 @@ void HeatPDE::DefineIntegrators() {
 
     if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
       if(volumeRegions[i] == ""){
-        EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+        EXCEPTION("Define a volumeRegion for the heatFlux or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
       }
       RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
       PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
@@ -1066,9 +1067,10 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
   ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo );
   if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+    // Get the volumeRegions for the heatSourceDensity, because the reference temperature of the volumeRegion is needed to make the system symmetric
     ReadVolumeRegions("heatSourceDensity", volumeRegions);
     if( ent.GetSize() != volumeRegions.GetSize()){
-      EXCEPTION("If the system matrix should symmetric, for every heatSourceDensity a volumeRegion has to be specified.");
+      EXCEPTION("Define a volumeRegion for the heatSourceDensity or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
     }
   }
   
@@ -1082,7 +1084,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
     if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
       if(volumeRegions[i] == ""){
-        EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+        EXCEPTION("Define a volumeRegion for the heatSourceDensity or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
       }
       RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
       PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
@@ -1119,9 +1121,10 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
   ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
   if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+    // Get the volumeRegions for the heatSource, because the reference temperature of the volumeRegion is needed to make the system symmetric
     ReadVolumeRegions("heatSource", volumeRegions);
     if( ent.GetSize() != volumeRegions.GetSize()){
-      EXCEPTION("If the system matrix should symmetric, for every heatSource a volumeRegion has to be specified.");
+      EXCEPTION("Define a volumeRegion for the heatSource or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
     }
   }
 
@@ -1139,7 +1142,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
     if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
       if(volumeRegions[i] == ""){
-        EXCEPTION("If the system matrix should symmetric, for every heatFlux a volumeRegion has to be specified.");
+        EXCEPTION("Define a volumeRegion for the heatSource or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
       }
       RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
       PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
