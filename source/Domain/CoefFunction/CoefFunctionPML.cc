@@ -329,8 +329,7 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
     std::string layerGenFormul; 
     layerGenNode->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
     if (layerGenFormul != "curvilinear")
-      EXCEPTION("Automatic layer generation currently not implemented for 'classic' PML!"<<
-                "Use 'curvilinear' instead.");
+      WARN("autoLayerGeneration  is currently not implemented for classic PML and will be ignored!");
   }
 }
 
@@ -690,7 +689,7 @@ void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<Re
     surfEntities_.Push_back(surfEntity);
 
   } else
-    // todo: implement possibility to read geometry without auto-layer generation
+    // todo: implement possibility to read geometry without autoLayerGeneration
     EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
 }
 
