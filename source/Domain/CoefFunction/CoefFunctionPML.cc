@@ -22,690 +22,682 @@
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 
 namespace CoupledField{
-//================================================================================================
-// Base Class
-//================================================================================================
-template<typename T>
-CoefFunctionPMLBase<T>::CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-                                  shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains): 
-                                  CoefFunction() {
-  isAnalytic_ = false;
-  isComplex_ =  std::is_same<T,Complex>::value;
-  dependType_ = GENERAL;
-  this->entities_.Push_back(EntList);
-  dim_ = entities_[0]->GetGrid()->GetDim();
-  //orderCoefFct_ = orderCoefFct;
-  name_ = "CoefFunctionPMLBase";
-  pmlType_ = DampFunction::NO_TYPE;
+  //================================================================================================
+  // Base Class
+  //================================================================================================
+  template<typename T>
+  CoefFunctionPMLBase<T>::CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+                                    shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains): 
+                                    CoefFunction() {
+    isAnalytic_ = false;
+    isComplex_ =  std::is_same<T,Complex>::value;
+    dependType_ = GENERAL;
+    this->entities_.Push_back(EntList);
+    dim_ = entities_[0]->GetGrid()->GetDim();
+    //orderCoefFct_ = orderCoefFct;
+    name_ = "CoefFunctionPMLBase";
+    pmlType_ = DampFunction::NO_TYPE;
 
-  //check if the coefficient function of the speed of sound is real valued and scalar
-  if(speedOfSound->GetDimType() != CoefFunction::SCALAR || speedOfSound->IsComplex()){
-    EXCEPTION("The PML coefficient function needs a real valued scalar coeffunction as speed of sound");
-  }
-  speedOfSound_ = speedOfSound;
- 
-  //this is just to be up to date with the desired frequency!
-  // obtain handle from internal variable coefficient function
-  mp_ = domain->GetMathParser();
-  mHandle_ = mp_->GetNewHandle(true);
-
-  mp_->SetExpr(mHandle_,"f");
-
-  // register callback mechanism if expression changes
-  mp_->AddExpChangeCallBack(
-      boost::bind(&CoefFunctionPMLBase<T>::UpdateOmega, this ),
-      mHandle_ );
-  // important: Trigger first-time calculation
-  UpdateOmega();
-}
-
-template<typename T>
-CoefFunctionPMLBase<T>::~CoefFunctionPMLBase() {
-  //std::cout<<"DESRUC"<<std::endl;
-  //It might be necessary to just disconnect the callback instead of releasing the handle
-  mp_->ReleaseHandle( mHandle_ );
-}
-
-template<typename T>
-void CoefFunctionPMLBase<T>::UpdateOmega() {
-  omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
-}
-
-template<typename T>
-void CoefFunctionPMLBase<T>::CreateDampFunction(){
-
-  switch(pmlType_){
-    case DampFunction::CONSTANT:
-      dampFunction_.reset(new DampFunctionConst(1.0));
-      break;
-    case DampFunction::INVERSE_DIST:
-      dampFunction_.reset(new DampFunctionInvDist(1.0));
-      break;
-    case DampFunction::QUADRATIC:
-      dampFunction_.reset(new DampFunctionQuad(1.0));
-      break;
-    case DampFunction::SMOOTH:
-      dampFunction_.reset(new DampFunctionSmooth(1.0));
-      break;
-    case DampFunction::TANGENS:
-      dampFunction_.reset(new DampFunctionTangens());
-      break;
-    case DampFunction::RATIONAL:
-      dampFunction_.reset(new DampFunctionRational());
-      break;
-    case DampFunction::EXPONENTIAL:
-          dampFunction_.reset(new DampFunctionExponential());
-          break;
-    default:
-      EXCEPTION("PML type "<< DampFunction::DampingTypeEnum.ToString(pmlType_) << " not supported");
-      break;
-  }
-}
-
-//================================================================================================
-// Classic (=Cartesian) PML
-//================================================================================================
-template<typename T>
-CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-            shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains, bool isVector) : 
-                CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
-  this->name_ = "CoefFunctionPML";
-  //prepare dimenstions of propagation region
-  innerMinMaxComp_.Resize(3,2);
-  innerMinMaxComp_.Init();
-
-  outerMinMaxComp_.Resize(3,2);
-  outerMinMaxComp_.Init();
-
-  isVector_ = isVector;
-  this->formulationType_ = CLASSIC;
-  ReadDataPML(pmlDef,pdeDomains);
-
-  if (isVector_ ) {
-    this->dimType_ = CoefFunction::VECTOR;
-  } else {
-    this->dimType_ = CoefFunction::SCALAR;
-  }
-}
-
-template<typename T>
-CoefFunctionPML<T>::~CoefFunctionPML(){}
-
-
-template<typename T>
-void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
-                              const LocPointMapped& lpm ){
-  //this is diagonal tensor with the coefficients
+    //check if the coefficient function of the speed of sound is real valued and scalar
+    if(speedOfSound->GetDimType() != CoefFunction::SCALAR || speedOfSound->IsComplex()){
+      EXCEPTION("The PML coefficient function needs a real valued scalar coeffunction as speed of sound");
+    }
+    speedOfSound_ = speedOfSound;
   
-  tensor.Resize(this->dim_, this->dim_);
-  tensor.Init();
-  Double locThick=0.0;
-  Double position=0.0;
-  Complex one(1.0,0.0);
-  Double sos;
-  this->speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<this->dim_;++i){
-    GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      Complex fac(0.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick));
-      tensor[i][i] = this->omega_ / (this->omega_ + fac);
-    }else{
-      tensor[i][i] = one;
+    //this is just to be up to date with the desired frequency!
+    // obtain handle from internal variable coefficient function
+    mp_ = domain->GetMathParser();
+    mHandle_ = mp_->GetNewHandle(true);
+
+    mp_->SetExpr(mHandle_,"f");
+
+    // register callback mechanism if expression changes
+    mp_->AddExpChangeCallBack(
+        boost::bind(&CoefFunctionPMLBase<T>::UpdateOmega, this ),
+        mHandle_ );
+    // important: Trigger first-time calculation
+    UpdateOmega();
+  }
+
+  template<typename T>
+  CoefFunctionPMLBase<T>::~CoefFunctionPMLBase() {
+    //std::cout<<"DESRUC"<<std::endl;
+    //It might be necessary to just disconnect the callback instead of releasing the handle
+    mp_->ReleaseHandle( mHandle_ );
+  }
+
+  template<typename T>
+  void CoefFunctionPMLBase<T>::UpdateOmega() {
+    omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
+  }
+
+  template<typename T>
+  void CoefFunctionPMLBase<T>::CreateDampFunction(){
+
+    switch(pmlType_){
+      case DampFunction::CONSTANT:
+        dampFunction_.reset(new DampFunctionConst(1.0));
+        break;
+      case DampFunction::INVERSE_DIST:
+        dampFunction_.reset(new DampFunctionInvDist(1.0));
+        break;
+      case DampFunction::QUADRATIC:
+        dampFunction_.reset(new DampFunctionQuad(1.0));
+        break;
+      case DampFunction::SMOOTH:
+        dampFunction_.reset(new DampFunctionSmooth(1.0));
+        break;
+      case DampFunction::TANGENS:
+        dampFunction_.reset(new DampFunctionTangens());
+        break;
+      case DampFunction::RATIONAL:
+        dampFunction_.reset(new DampFunctionRational());
+        break;
+      case DampFunction::EXPONENTIAL:
+            dampFunction_.reset(new DampFunctionExponential());
+            break;
+      default:
+        EXCEPTION("PML type "<< DampFunction::DampingTypeEnum.ToString(pmlType_) << " not supported");
+        break;
     }
   }
-}
 
-template<typename T>
-void CoefFunctionPML<T>::GetTensor(Matrix<Double>& tensor,
-                              const LocPointMapped& lpm ){
-  //this is diagonal tensor with the coefficients
-  tensor.Resize(this->dim_,this->dim_);
-  tensor.Init();
-  Double locThick=0.0;
-  Double position=0.0;
-  Double sos;
-  this->speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<this->dim_;++i){
-    GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
-    }else{
-      tensor[i][i] = 0.0;
+  //================================================================================================
+  // Classic (=Cartesian) PML
+  //================================================================================================
+  template<typename T>
+  CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+              shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains, bool isVector) : 
+                  CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
+    this->name_ = "CoefFunctionPML";
+    //prepare dimenstions of propagation region
+    innerMinMaxComp_.Resize(3,2);
+    innerMinMaxComp_.Init();
+
+    outerMinMaxComp_.Resize(3,2);
+    outerMinMaxComp_.Init();
+
+    isVector_ = isVector;
+    this->formulationType_ = CLASSIC;
+    ReadDataPML(pmlDef,pdeDomains);
+
+    if (isVector_ ) {
+      this->dimType_ = CoefFunction::VECTOR;
+    } else {
+      this->dimType_ = CoefFunction::SCALAR;
     }
   }
-}
 
-template<typename T>
-void CoefFunctionPML<T>::GetVector(Vector<Complex>& vec,
-                              const LocPointMapped& lpm ){
-  //this is diagonal tensor with the coefficients
-  vec.Resize(this->dim_);
-  vec.Init();
-  Double locThick=0.0;
-  Double position=0.0;
-  Complex dummy(1.0,0.0);
-  Double sos;
-  this->speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<this->dim_;++i){
-    GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      Complex fac(1.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
-      vec[i] = dummy / fac;
-    }else{
-      vec[i] = dummy;
+  template<typename T>
+  CoefFunctionPML<T>::~CoefFunctionPML(){}
+
+
+  template<typename T>
+  void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
+                                const LocPointMapped& lpm ){
+    //this is diagonal tensor with the coefficients
+    
+    tensor.Resize(this->dim_, this->dim_);
+    tensor.Init();
+    Double locThick=0.0;
+    Double position=0.0;
+    Complex one(1.0,0.0);
+    Double sos;
+    this->speedOfSound_->GetScalar(sos,lpm);
+    for(UInt i=0;i<this->dim_;++i){
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        Complex fac(0.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick));
+        tensor[i][i] = this->omega_ / (this->omega_ + fac);
+      }else{
+        tensor[i][i] = one;
+      }
     }
   }
-}
 
-template<typename T>
-void CoefFunctionPML<T>::GetVector(Vector<Double>& vec,
-                              const LocPointMapped& lpm ){
-
-  //first loop over every entry and determine the factor
-  vec.Resize(this->dim_,0.0);
-  Double locThick=0.0;
-  Double position=0.0;
-  Double sos;
-  this->speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<this->dim_;++i){
-    GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      vec[i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
-    }else{
-      vec[i] = 0.0;
+  template<typename T>
+  void CoefFunctionPML<T>::GetTensor(Matrix<Double>& tensor,
+                                const LocPointMapped& lpm ){
+    //this is diagonal tensor with the coefficients
+    tensor.Resize(this->dim_,this->dim_);
+    tensor.Init();
+    Double locThick=0.0;
+    Double position=0.0;
+    Double sos;
+    this->speedOfSound_->GetScalar(sos,lpm);
+    for(UInt i=0;i<this->dim_;++i){
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
+      }else{
+        tensor[i][i] = 0.0;
+      }
     }
   }
-}
 
-template<typename T>
-void CoefFunctionPML<T>::GetScalar(Complex& val,
-                              const LocPointMapped& lpm ){
-  //computes (1-j pml_x/omega) *(1-j pml_y/omega)*(1-j pml_z/omega))
-  Double locThick=0.0;
-  Double position=0.0;
-  Complex dummy(1.0,0.0);
-  val = dummy;
-  Double sos;
-  this->speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<this->dim_;++i){
-    GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      Complex fac(1.0,-1.0  *  sos * this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
-      val *=  fac;
-    }else{
-      val *= dummy;
+  template<typename T>
+  void CoefFunctionPML<T>::GetVector(Vector<Complex>& vec,
+                                const LocPointMapped& lpm ){
+    //this is diagonal tensor with the coefficients
+    vec.Resize(this->dim_);
+    vec.Init();
+    Double locThick=0.0;
+    Double position=0.0;
+    Complex dummy(1.0,0.0);
+    Double sos;
+    this->speedOfSound_->GetScalar(sos,lpm);
+    for(UInt i=0;i<this->dim_;++i){
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        Complex fac(1.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
+        vec[i] = dummy / fac;
+      }else{
+        vec[i] = dummy;
+      }
     }
   }
-}
 
-template<typename T>
-void CoefFunctionPML<T>::GetScalar(Double& val,
-                              const LocPointMapped& lpm ){
+  template<typename T>
+  void CoefFunctionPML<T>::GetVector(Vector<Double>& vec,
+                                const LocPointMapped& lpm ){
 
-  //computes 1/(pml_x*pml_y*pml_z)
-  //right now we ust return 1...
-  EXCEPTION("GETSCALAR IS INVALID")
-  val = 1.0;
-  return;
-
-  //UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  //Double locThick=0.0;
-  //Double position=0.0;
-  //val = 1.0;
-  //for(UInt i=0;i<gridDim;++i){
-  //  GetThicknessAtPoint(locThick,position,lpm,i);
-  //  if(abs(locThick)>0.0){
-  //    val *= this->dampFunction_->ComputeFactor(position,locThick);
-  //  }else{
-  //    val *= 1.0;
-  //  }
-  //}
-}
-
-
-template<typename T>
-void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains){
-
-  std::string cSysId;
-  pmlDef->GetValue("coordSysId",cSysId,ParamNode::PASS);
-
-  if(cSysId == ""){
-    cSysId = "default";
+    //first loop over every entry and determine the factor
+    vec.Resize(this->dim_,0.0);
+    Double locThick=0.0;
+    Double position=0.0;
+    Double sos;
+    this->speedOfSound_->GetScalar(sos,lpm);
+    for(UInt i=0;i<this->dim_;++i){
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        vec[i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
+      }else{
+        vec[i] = 0.0;
+      }
+    }
   }
 
-  this->SetCoordinateSystem(domain->GetCoordSystem(cSysId));
+  template<typename T>
+  void CoefFunctionPML<T>::GetScalar(Complex& val,
+                                const LocPointMapped& lpm ){
+    //computes (1-j pml_x/omega) *(1-j pml_y/omega)*(1-j pml_z/omega))
+    Double locThick=0.0;
+    Double position=0.0;
+    Complex dummy(1.0,0.0);
+    val = dummy;
+    Double sos;
+    this->speedOfSound_->GetScalar(sos,lpm);
+    for(UInt i=0;i<this->dim_;++i){
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        Complex fac(1.0,-1.0  *  sos * this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
+        val *=  fac;
+      }else{
+        val *= dummy;
+      }
+    }
+  }
+
+  template<typename T>
+  void CoefFunctionPML<T>::GetScalar(Double& val,
+                                const LocPointMapped& lpm ){
+
+    //computes 1/(pml_x*pml_y*pml_z)
+    //right now we ust return 1...
+    EXCEPTION("GETSCALAR IS INVALID")
+    val = 1.0;
+    return;
+
+    //UInt gridDim = entities_[0]->GetGrid()->GetDim();
+    //Double locThick=0.0;
+    //Double position=0.0;
+    //val = 1.0;
+    //for(UInt i=0;i<gridDim;++i){
+    //  GetThicknessAtPoint(locThick,position,lpm,i);
+    //  if(abs(locThick)>0.0){
+    //    val *= this->dampFunction_->ComputeFactor(position,locThick);
+    //  }else{
+    //    val *= 1.0;
+    //  }
+    //}
+  }
+
+
+  template<typename T>
+  void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains){
+
+    std::string cSysId;
+    pmlDef->GetValue("coordSysId",cSysId,ParamNode::PASS);
+
+    if(cSysId == ""){
+      cSysId = "default";
+    }
+
+    this->SetCoordinateSystem(domain->GetCoordSystem(cSysId));
+
+    //in some cases we can have a propagation node
+    PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
+    if(propNode){
+      //read data from prop node
+      ParamNodeList dirNodes = propNode->GetChildren();
+      std::string dirName;
+      UInt dirIndex = 0;
+      for( UInt iDir = 0; iDir < dirNodes.GetSize(); ++iDir ) {
+        dirNodes[iDir]->GetValue( "comp", dirName );
+        dirIndex = this->coordSys_->GetVecComponent( dirName );
+        PtrParamNode ppNode;
+        ppNode = dirNodes[iDir]->Get("min");       
+        innerMinMaxComp_[dirIndex-1][0] = ppNode->MathParse<Double>();
+        ppNode = dirNodes[iDir]->Get("max");       
+        innerMinMaxComp_[dirIndex-1][1] = ppNode->MathParse<Double>();
+      }
+      if(dirNodes.GetSize() != this->dim_)
+        GuessLayerData(pdeDomains);
+    }else{
+      //try to guess the data from grid
+      GuessLayerData(pdeDomains);
+    }
+
+    //in any case we determine the layer data for the outer bounds
+    this->entities_[0]->GetGrid()->CalcBoundingBoxOfRegion(this->entities_[0]->GetRegion(),outerMinMaxComp_,this->coordSys_);
+
+    // => Put the following information to the info xml
+    //std::cout << "computed boundingbox of pml region:" << std::endl;
+    //for(UInt i=0;i<this->dim_;++i){
+    //  std::string vComp = coordSys_->GetDofName(i+1);
+    //  std::cout << vComp << "_min: " << outerMinMaxComp_[i][0] << std::endl;
+    //  std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
+    //}
+
+    // type of PML damping function
+    std::string typeOfPml;
+    pmlDef->GetValue("type",typeOfPml);
+
+    this->pmlType_ = DampFunction::DampingTypeEnum.Parse(typeOfPml);
+
+    CreateDampFunction();
+
+    Double dampFactor;
+    pmlDef->GetValue("dampFactor",dampFactor);
+
+    this->dampFunction_->DampFactor = dampFactor;
+
+    // check for auto-mesh-generation parameters in the xml because it is not implemented for 
+    // classic and shifted PML
+    PtrParamNode layerGenNode = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
+    if (layerGenNode){
+      std::string layerGenFormul; 
+      layerGenNode->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
+      if (layerGenFormul != "curvilinear")
+        WARN("autoLayerGeneration  is currently not implemented for classic PML and will be ignored!");
+    }
+  }
+
+  template<typename T>
+  void CoefFunctionPML<T>::GuessLayerData(StdVector<RegionIdType> pdeDomains){
+    StdVector<RegionIdType> propReg;
+    for(UInt aDom = 0; aDom < pdeDomains.GetSize();++aDom){
+      if(pdeDomains[aDom] != this->entities_[0]->GetRegion()){
+        propReg.Push_back(pdeDomains[aDom]);
+      }
+    }
+
+    if( propReg.GetSize() == 0 ){
+      EXCEPTION("The PDE  has only PML damped regions. \nThus the "
+          << "automatic calculation of damping parameters does not work!\n"
+          << "Use the <propRegion> element instead do define the propagation "
+          << "region explicitly!");
+    }
+
+    //now we check which dimensions are missing and determine from grid
+    UInt gridDim = this->entities_[0]->GetGrid()->GetDim();
+    Matrix<Double> regBound;
+    Double bigVal = 1e40;
+    for(UInt i=0;i<gridDim;++i){
+      innerMinMaxComp_[i][0] = bigVal;
+      innerMinMaxComp_[i][1] = -bigVal;
+    }
+    for(UInt aDom = 0; aDom < propReg.GetSize();++aDom){
+      // ok so we compute the boundingbox of each region
+      this->entities_[0]->GetGrid()->CalcBoundingBoxOfRegion(propReg[aDom],regBound,this->coordSys_);
+      for(UInt i=0;i<gridDim;++i){
+        if(innerMinMaxComp_[i][0]>regBound[i][0])
+          innerMinMaxComp_[i][0] = regBound[i][0];
+
+        if(innerMinMaxComp_[i][1]<regBound[i][1])
+          innerMinMaxComp_[i][1] = regBound[i][1];
+
+      }
+    }
+    // Put the following definition to the info xml.
+  // std::cout << "computed boundingbox of propagation region:" << std::endl;
+  // for(UInt i=0;i<gridDim;++i){
+  //   std::string vComp = coordSys_->GetDofName(i+1);
+  //   std::cout << vComp << "_min: " << innerMinMaxComp_[i][0] << std::endl;
+  //   std::cout << vComp << "_max: " << innerMinMaxComp_[i][1] << std::endl;
+  // }
+  }
+
+  template<typename T>
+  void CoefFunctionPML<T>::GetThicknessAtPoint(Double& thickness, Double & position, LocPointMapped lpm,UInt dir){
+    //try to guess where we are at
+    thickness = 0.0;
+    Vector<Double> globPoint;
+    Vector<Double> coordLocalPoint;
+    position = 0.0;
+    lpm.shapeMap->Local2Global(globPoint,lpm.lp.coord);
+    this->coordSys_->Global2LocalCoord(coordLocalPoint,globPoint);
+
+    if(coordLocalPoint[dir] > innerMinMaxComp_[dir][1] &&
+      coordLocalPoint[dir] < outerMinMaxComp_[dir][1]){
+      thickness = abs(outerMinMaxComp_[dir][1] - innerMinMaxComp_[dir][1]);
+      position = abs( coordLocalPoint[dir] - innerMinMaxComp_[dir][1]);
+    }
+    if(coordLocalPoint[dir] < innerMinMaxComp_[dir][0] &&
+      coordLocalPoint[dir] > outerMinMaxComp_[dir][0]){
+      thickness = abs(outerMinMaxComp_[dir][0] - innerMinMaxComp_[dir][0]);
+      position = abs(coordLocalPoint[dir] - innerMinMaxComp_[dir][0] );
+    }
+
+  }
+
+  //================================================================================================
+  // DampFunction
+  //================================================================================================
+
+  // Definition of types of pml function
+  static EnumTuple dampTypeTubles[] = {
+    EnumTuple(DampFunction::CONSTANT,      "constant"),
+    EnumTuple(DampFunction::INVERSE_DIST,  "inverseDist"),
+    EnumTuple(DampFunction::QUADRATIC,     "quadDist"),
+    EnumTuple(DampFunction::SMOOTH,        "smoothDamp"),
+    EnumTuple(DampFunction::TANGENS,        "tangens"),
+    EnumTuple(DampFunction::RATIONAL,        "rational"),
+    EnumTuple(DampFunction::EXPONENTIAL,        "exponential")
+  };
+
+
+  Enum<DampFunction::DampingType> DampFunction::DampingTypeEnum = \
+    Enum<DampFunction::DampingType>("Types of damping",
+        sizeof(dampTypeTubles) / sizeof(EnumTuple),
+        dampTypeTubles);
+
+  //================================================================================================
+  // Shifted PML
+  //================================================================================================
+
+  template<typename T>
+  CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                                                    StdVector<RegionIdType> pdeDomains, bool isVector)
+    : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, isVector)
+  {
+    this->name_ = "CoefFunctionShiftedPML";
+    std::string scalingCoefStr, shiftCoefStr;
+    Double scalingPow = 0.0, shiftPow = 0.0;
+
+    PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
+    if (scalingNode)
+    {
+      scalingNode->GetValue("value", scalingCoefStr);
+      scalingNode->GetValue("power", scalingPow);
+      scalingFunc_.reset(new DampFunctionPolyDirect(scalingPow));
+      scalingCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, scalingCoefStr);
+    }
+
+    PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
+    if (shiftNode)
+    {
+      shiftNode->GetValue("value", shiftCoefStr);
+      shiftNode->GetValue("power", shiftPow);
+      shiftFunc_.reset(new DampFunctionPolyInverse(shiftPow));
+      shiftCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, shiftCoefStr);
+    }
+
+    this->formulationType_ = SHIFTED;
+  }
+
+  template<typename T>
+  CoefFunctionShiftedPML<T>::~CoefFunctionShiftedPML() { }
+
+  template<typename T>
+  void CoefFunctionShiftedPML<T>::GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm)
+  {
+    // this is diagonal tensor with the coefficients 1/s
+
+    tensor.Resize(this->dim_, this->dim_);
+    tensor.Init();
+    Vector<Complex> vector;
+    GetVector(vector, lpm);
+
+    for (UInt i = 0; i < this->dim_; ++i)
+    {
+      tensor[i][i] = vector[i];
+    }
+  }
+
+  template<typename T>
+  void CoefFunctionShiftedPML<T>::GetVector(Vector<Complex>& vector, const LocPointMapped& lpm)
+  {
+    // vector of the form { 1/sx, 1/sy, 1/sz }
+
+    vector.Resize(this->dim_);
+    vector.Init();
+    Double locThick = 0.0;
+    Double position = 0.0;
+    Complex dummy(1.0, 0.0);
+
+    // s = kappa + sigma/(alpha + i*w) =
+    //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
+    Double sos, alpha, kappa, sigma, frac;
+    this->speedOfSound_->GetScalar(sos, lpm);
+
+    Double kappa0 = 0.0, alpha0 = 0.0;
+    scalingCoef_->GetScalar(kappa0, lpm);
+    shiftCoef_->GetScalar(alpha0, lpm);
+    // These two values are to be used as coefficients in scaling and frequency shifting functions:
+    // kappa(x) = 1 + kappa0*Fk(x); alpha(x) = alpha0*Fa(x)
+    scalingFunc_->DampFactor = kappa0;
+    shiftFunc_->DampFactor = alpha0;;
+
+    for (UInt i = 0; i < this->dim_; ++i)
+    {
+      this->GetThicknessAtPoint(locThick, position, lpm, i);
+      if (abs(locThick) > 0.0)
+      {
+        sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
+        kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
+        alpha = shiftFunc_->ComputeFactor(position, locThick);
+        frac = sigma/(alpha*alpha + this->omega_*this->omega_);
+        Complex fac(kappa + alpha*frac, -1.0*this->omega_*frac);
+        vector[i] = dummy/fac;
+      }
+      else
+      {
+        vector[i] = dummy;
+      }
+    }
+  }
+
+  template<typename T>
+  void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped& lpm)
+  {
+    // computes sx*sy*sz
+
+    Double locThick = 0.0;
+    Double position = 0.0;
+    Complex dummy(1.0, 0.0);
+    scalar = dummy;
+
+    // s = kappa + sigma/(alpha + i*w) =
+    //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
+    Double sos, alpha, kappa, sigma, frac;
+    this->speedOfSound_->GetScalar(sos, lpm);
+
+    Double kappa0 = 0.0, alpha0 = 0.0;
+    scalingCoef_->GetScalar(kappa0, lpm);
+    shiftCoef_->GetScalar(alpha0, lpm);
+    // These two values are to be used as coefficients in scaling and frequency shifting functions:
+    // kappa(x) = 1 + kappa0*Fk(x); alpha(x) = alpha0*Fa(x)
+    scalingFunc_->DampFactor = kappa0;
+    shiftFunc_->DampFactor = alpha0;
+
+    for (UInt i = 0; i < this->dim_; ++i)
+    {
+      this->GetThicknessAtPoint(locThick, position, lpm, i);
+      if (abs(locThick) > 0.0)
+      {
+        sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
+        kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
+        alpha = shiftFunc_->ComputeFactor(position, locThick);
+        frac = sigma/(alpha*alpha + this->omega_*this->omega_);
+        Complex fac(kappa + alpha*frac, -1.0*this->omega_*frac);
+        scalar *= fac;
+      }
+      else
+      {
+        scalar *= dummy;
+      }
+    }
+  }
+
+  //================================================================================================
+  // Curvilinear PML
+  //================================================================================================
+
+  template<typename T>
+  CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                        StdVector<RegionIdType> pdeDomains) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
+    
+    this->name_ = "CoefFunctionCurvilinearPML";
+    this->formulationType_ = CURVILINEAR;
+    grid_ =  this->entities_[0]->GetGrid();
+    ReadDataPML(pmlDef,pdeDomains);
+    
+    
+    // trigger mesh generation
+    if (generateLayer_ == true) {
+      grid_->generateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
+      
+      /*
+      int aaaa = surfRegList->GetRegion();*/
+    }
+
+
+
 
   //in some cases we can have a propagation node
-  PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
-  if(propNode){
-    //read data from prop node
-    ParamNodeList dirNodes = propNode->GetChildren();
-    std::string dirName;
-    UInt dirIndex = 0;
-    for( UInt iDir = 0; iDir < dirNodes.GetSize(); ++iDir ) {
-       dirNodes[iDir]->GetValue( "comp", dirName );
-       dirIndex = this->coordSys_->GetVecComponent( dirName );
-       PtrParamNode ppNode;
-       ppNode = dirNodes[iDir]->Get("min");       
-       innerMinMaxComp_[dirIndex-1][0] = ppNode->MathParse<Double>();
-       ppNode = dirNodes[iDir]->Get("max");       
-       innerMinMaxComp_[dirIndex-1][1] = ppNode->MathParse<Double>();
-    }
-    if(dirNodes.GetSize() != this->dim_)
-      GuessLayerData(pdeDomains);
-  }else{
-    //try to guess the data from grid
-    GuessLayerData(pdeDomains);
+  /* PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
+    if(propNode){
+      //read data from prop node
+      ParamNodeList dirNodes = propNode->GetChildren();
+  */
+  //std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>()
+
+
+
+    //
   }
 
-  //in any case we determine the layer data for the outer bounds
-  this->entities_[0]->GetGrid()->CalcBoundingBoxOfRegion(this->entities_[0]->GetRegion(),outerMinMaxComp_,this->coordSys_);
+  template<typename T>
+  CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
 
-  // => Put the following information to the info xml
-  //std::cout << "computed boundingbox of pml region:" << std::endl;
-  //for(UInt i=0;i<this->dim_;++i){
-  //  std::string vComp = coordSys_->GetDofName(i+1);
-  //  std::cout << vComp << "_min: " << outerMinMaxComp_[i][0] << std::endl;
-  //  std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
-  //}
-
-  // type of PML damping function
-  std::string typeOfPml;
-  pmlDef->GetValue("type",typeOfPml);
-
-  this->pmlType_ = DampFunction::DampingTypeEnum.Parse(typeOfPml);
-
-  CreateDampFunction();
-
-  Double dampFactor;
-  pmlDef->GetValue("dampFactor",dampFactor);
-
-  this->dampFunction_->DampFactor = dampFactor;
-
-  // check for auto-mesh-generation parameters in the xml because it is not implemented for 
-  // classic and shifted PML
-  PtrParamNode layerGenNode = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
-  if (layerGenNode){
-    std::string layerGenFormul; 
-    layerGenNode->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
-    if (layerGenFormul != "curvilinear")
-      WARN("autoLayerGeneration  is currently not implemented for classic PML and will be ignored!");
-  }
-}
-
-template<typename T>
-void CoefFunctionPML<T>::GuessLayerData(StdVector<RegionIdType> pdeDomains){
-  StdVector<RegionIdType> propReg;
-  for(UInt aDom = 0; aDom < pdeDomains.GetSize();++aDom){
-    if(pdeDomains[aDom] != this->entities_[0]->GetRegion()){
-      propReg.Push_back(pdeDomains[aDom]);
-    }
+  template<typename T>
+  PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct() {
+    PtrCoefFct tensorCoefFct;
+    //tensorCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
+    return tensorCoefFct;
   }
 
-  if( propReg.GetSize() == 0 ){
-    EXCEPTION("The PDE  has only PML damped regions. \nThus the "
-        << "automatic calculation of damping parameters does not work!\n"
-        << "Use the <propRegion> element instead do define the propagation "
-        << "region explicitly!");
+  template<typename T>
+  PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct() {
+    PtrCoefFct scalarCoefFct;
+    //scalarCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
+    return scalarCoefFct;
   }
 
-  //now we check which dimensions are missing and determine from grid
-  UInt gridDim = this->entities_[0]->GetGrid()->GetDim();
-  Matrix<Double> regBound;
-  Double bigVal = 1e40;
-  for(UInt i=0;i<gridDim;++i){
-    innerMinMaxComp_[i][0] = bigVal;
-    innerMinMaxComp_[i][1] = -bigVal;
-  }
-  for(UInt aDom = 0; aDom < propReg.GetSize();++aDom){
-    // ok so we compute the boundingbox of each region
-    this->entities_[0]->GetGrid()->CalcBoundingBoxOfRegion(propReg[aDom],regBound,this->coordSys_);
-    for(UInt i=0;i<gridDim;++i){
-      if(innerMinMaxComp_[i][0]>regBound[i][0])
-        innerMinMaxComp_[i][0] = regBound[i][0];
-
-      if(innerMinMaxComp_[i][1]<regBound[i][1])
-        innerMinMaxComp_[i][1] = regBound[i][1];
-
-    }
-  }
-  // Put the following definition to the info xml.
- // std::cout << "computed boundingbox of propagation region:" << std::endl;
- // for(UInt i=0;i<gridDim;++i){
- //   std::string vComp = coordSys_->GetDofName(i+1);
- //   std::cout << vComp << "_min: " << innerMinMaxComp_[i][0] << std::endl;
- //   std::cout << vComp << "_max: " << innerMinMaxComp_[i][1] << std::endl;
- // }
-}
-
-template<typename T>
-void CoefFunctionPML<T>::GetThicknessAtPoint(Double& thickness, Double & position, LocPointMapped lpm,UInt dir){
-  //try to guess where we are at
-  thickness = 0.0;
-  Vector<Double> globPoint;
-  Vector<Double> coordLocalPoint;
-  position = 0.0;
-  lpm.shapeMap->Local2Global(globPoint,lpm.lp.coord);
-  this->coordSys_->Global2LocalCoord(coordLocalPoint,globPoint);
-
-  if(coordLocalPoint[dir] > innerMinMaxComp_[dir][1] &&
-     coordLocalPoint[dir] < outerMinMaxComp_[dir][1]){
-    thickness = abs(outerMinMaxComp_[dir][1] - innerMinMaxComp_[dir][1]);
-    position = abs( coordLocalPoint[dir] - innerMinMaxComp_[dir][1]);
-  }
-  if(coordLocalPoint[dir] < innerMinMaxComp_[dir][0] &&
-     coordLocalPoint[dir] > outerMinMaxComp_[dir][0]){
-    thickness = abs(outerMinMaxComp_[dir][0] - innerMinMaxComp_[dir][0]);
-    position = abs(coordLocalPoint[dir] - innerMinMaxComp_[dir][0] );
-  }
-
-}
-
-//================================================================================================
-// DampFunction
-//================================================================================================
-
-// Definition of types of pml function
-static EnumTuple dampTypeTubles[] = {
-  EnumTuple(DampFunction::CONSTANT,      "constant"),
-  EnumTuple(DampFunction::INVERSE_DIST,  "inverseDist"),
-  EnumTuple(DampFunction::QUADRATIC,     "quadDist"),
-  EnumTuple(DampFunction::SMOOTH,        "smoothDamp"),
-  EnumTuple(DampFunction::TANGENS,        "tangens"),
-  EnumTuple(DampFunction::RATIONAL,        "rational"),
-  EnumTuple(DampFunction::EXPONENTIAL,        "exponential")
-};
-
-
-Enum<DampFunction::DampingType> DampFunction::DampingTypeEnum = \
-   Enum<DampFunction::DampingType>("Types of damping",
-       sizeof(dampTypeTubles) / sizeof(EnumTuple),
-       dampTypeTubles);
-
-//================================================================================================
-// Shifted PML
-//================================================================================================
-
-template<typename T>
-CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                                                  StdVector<RegionIdType> pdeDomains, bool isVector)
-  : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, isVector)
-{
-  this->name_ = "CoefFunctionShiftedPML";
-  std::string scalingCoefStr, shiftCoefStr;
-  Double scalingPow = 0.0, shiftPow = 0.0;
-
-  PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
-  if (scalingNode)
-  {
-    scalingNode->GetValue("value", scalingCoefStr);
-    scalingNode->GetValue("power", scalingPow);
-    scalingFunc_.reset(new DampFunctionPolyDirect(scalingPow));
-    scalingCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, scalingCoefStr);
-  }
-
-  PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
-  if (shiftNode)
-  {
-    shiftNode->GetValue("value", shiftCoefStr);
-    shiftNode->GetValue("power", shiftPow);
-    shiftFunc_.reset(new DampFunctionPolyInverse(shiftPow));
-    shiftCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, shiftCoefStr);
-  }
-
-  this->formulationType_ = SHIFTED;
-}
-
-template<typename T>
-CoefFunctionShiftedPML<T>::~CoefFunctionShiftedPML() { }
-
-template<typename T>
-void CoefFunctionShiftedPML<T>::GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm)
-{
-  // this is diagonal tensor with the coefficients 1/s
-
-  tensor.Resize(this->dim_, this->dim_);
-  tensor.Init();
-  Vector<Complex> vector;
-  GetVector(vector, lpm);
-
-  for (UInt i = 0; i < this->dim_; ++i)
-  {
-    tensor[i][i] = vector[i];
-  }
-}
-
-template<typename T>
-void CoefFunctionShiftedPML<T>::GetVector(Vector<Complex>& vector, const LocPointMapped& lpm)
-{
-  // vector of the form { 1/sx, 1/sy, 1/sz }
-
-  vector.Resize(this->dim_);
-  vector.Init();
-  Double locThick = 0.0;
-  Double position = 0.0;
-  Complex dummy(1.0, 0.0);
-
-  // s = kappa + sigma/(alpha + i*w) =
-  //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
-  Double sos, alpha, kappa, sigma, frac;
-  this->speedOfSound_->GetScalar(sos, lpm);
-
-  Double kappa0 = 0.0, alpha0 = 0.0;
-  scalingCoef_->GetScalar(kappa0, lpm);
-  shiftCoef_->GetScalar(alpha0, lpm);
-  // These two values are to be used as coefficients in scaling and frequency shifting functions:
-  // kappa(x) = 1 + kappa0*Fk(x); alpha(x) = alpha0*Fa(x)
-  scalingFunc_->DampFactor = kappa0;
-  shiftFunc_->DampFactor = alpha0;;
-
-  for (UInt i = 0; i < this->dim_; ++i)
-  {
-    this->GetThicknessAtPoint(locThick, position, lpm, i);
-    if (abs(locThick) > 0.0)
-    {
-      sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
-      kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
-      alpha = shiftFunc_->ComputeFactor(position, locThick);
-      frac = sigma/(alpha*alpha + this->omega_*this->omega_);
-      Complex fac(kappa + alpha*frac, -1.0*this->omega_*frac);
-      vector[i] = dummy/fac;
-    }
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains){
+    // read and set coordinate system 
+    std::string cSysId;
+    pmlDef->GetValue("coordSysId",cSysId,ParamNode::PASS);
+    // currently this type wil only be implemented to work in Cartesian coordinates
+    // to work with other coordinate systems we need to compute different transformation matrices
+    if(cSysId == "" || cSysId == "default")
+      cSysId = "default";
     else
-    {
-      vector[i] = dummy;
+      EXCEPTION("Curvilinear PML currently only works in the default Cartesian coordinate system!");
+    this->SetCoordinateSystem(domain->GetCoordSystem(cSysId));
+
+    // type of PML damping function
+    std::string typeOfPml;
+    pmlDef->GetValue("type",typeOfPml);
+    this->pmlType_ = DampFunction::DampingTypeEnum.Parse(typeOfPml);
+    // set the DampingFunction object to the corresponding type 
+    CreateDampFunction();
+
+    // check for damping factor
+    Double dampFactor;
+    pmlDef->GetValue("dampFactor",dampFactor);
+    this->dampFunction_->DampFactor = dampFactor;
+
+    // check for propRegion, scaling or frequency shift coeff in the xml
+    // if these are set for curvilinear PML, ignore and warn
+    PtrParamNode propRegionNode = pmlDef->Get("propRegion", ParamNode::PASS);
+    if (propRegionNode) {
+      std::string propRegionNodeFormul; 
+      propRegionNode->GetParent()->GetValue("formulation", propRegionNodeFormul, ParamNode::PASS);
+      if (propRegionNodeFormul == "curvilinear")
+        WARN("propRegion is currently not implemented for curvilinear PML and will be ignored!");
     }
-  }
-}
-
-template<typename T>
-void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped& lpm)
-{
-  // computes sx*sy*sz
-
-  Double locThick = 0.0;
-  Double position = 0.0;
-  Complex dummy(1.0, 0.0);
-  scalar = dummy;
-
-  // s = kappa + sigma/(alpha + i*w) =
-  //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
-  Double sos, alpha, kappa, sigma, frac;
-  this->speedOfSound_->GetScalar(sos, lpm);
-
-  Double kappa0 = 0.0, alpha0 = 0.0;
-  scalingCoef_->GetScalar(kappa0, lpm);
-  shiftCoef_->GetScalar(alpha0, lpm);
-  // These two values are to be used as coefficients in scaling and frequency shifting functions:
-  // kappa(x) = 1 + kappa0*Fk(x); alpha(x) = alpha0*Fa(x)
-  scalingFunc_->DampFactor = kappa0;
-  shiftFunc_->DampFactor = alpha0;
-
-  for (UInt i = 0; i < this->dim_; ++i)
-  {
-    this->GetThicknessAtPoint(locThick, position, lpm, i);
-    if (abs(locThick) > 0.0)
-    {
-      sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
-      kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
-      alpha = shiftFunc_->ComputeFactor(position, locThick);
-      frac = sigma/(alpha*alpha + this->omega_*this->omega_);
-      Complex fac(kappa + alpha*frac, -1.0*this->omega_*frac);
-      scalar *= fac;
+    PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
+    if (scalingNode) {
+      std::string scalingNodeFormul; 
+      scalingNode->GetParent()->GetValue("formulation", scalingNodeFormul, ParamNode::PASS);
+      if (scalingNodeFormul == "curvilinear")
+        WARN("scalingCoef is currently not implemented for curvilinear PML and will be ignored!");
     }
-    else
-    {
-      scalar *= dummy;
+    PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
+    if (shiftNode) {
+      std::string shiftNodeFormul; 
+      shiftNode->GetParent()->GetValue("formulation", shiftNodeFormul, ParamNode::PASS);
+      if (shiftNodeFormul == "curvilinear")
+        WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
     }
-  }
-}
 
-//================================================================================================
-// Curvilinear PML
-//================================================================================================
+    // check for auto-mesh-generation parameters in the xml
+    layerGenNode_ = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
+    if (layerGenNode_) {
+      // assure that autoLayerGeneration is indeed set for the curvilinear PML
+      std::string layerGenFormul; 
+      layerGenNode_->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
+      if (layerGenFormul == "curvilinear") {
+        generateLayer_ = true;
 
-template<typename T>
-CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                      StdVector<RegionIdType> pdeDomains) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
-  
-  this->name_ = "CoefFunctionCurvilinearPML";
-  this->formulationType_ = CURVILINEAR;
-  grid_ =  this->entities_[0]->GetGrid();
-  ReadDataPML(pmlDef,pdeDomains);
-  
-  
-  // trigger mesh generation
-  if (generateLayer_ == true) {
-    grid_->generateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
-    
-    /*
-    int aaaa = surfRegList->GetRegion();*/
-  }
+        // in the xml it is still possible to specify a negative height, so check for it
+        Double elemHeight = 0.0;
+        layerGenNode_->GetValue("elemHeight", elemHeight);
+        if (elemHeight < 0)
+          EXCEPTION("'elemHeight' must be >= 0 in the XML!");
 
-
-
-
-//in some cases we can have a propagation node
- /* PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
-  if(propNode){
-    //read data from prop node
-    ParamNodeList dirNodes = propNode->GetChildren();
-*/
-//std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>()
-
-
-
-  //
-}
-
-template<typename T>
-CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
-
-template<typename T>
-PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct() {
-  PtrCoefFct tensorCoefFct;
-  //tensorCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, true));
-  return tensorCoefFct;
-}
-
-template<typename T>
-PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct() {
-  PtrCoefFct scalarCoefFct;
-  //scalarCoefFct.reset(new CoefFunctionPMLBase<Complex>(pmlDef, speedOfSound, EntList, pdeDomains, false));
-  return scalarCoefFct;
-}
-
-
-
-
-
-
-
-template<typename T>
-void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains){
-  // read and set coordinate system 
-  std::string cSysId;
-  pmlDef->GetValue("coordSysId",cSysId,ParamNode::PASS);
-  // currently this type wil only be implemented to work in Cartesian coordinates
-  // to work with other coordinate systems we need to compute different transformation matrices
-  if(cSysId == "" || cSysId == "default")
-    cSysId = "default";
-  else
-    EXCEPTION("Curvilinear PML currently only works in the default Cartesian coordinate system!");
-  this->SetCoordinateSystem(domain->GetCoordSystem(cSysId));
-
-  // type of PML damping function
-  std::string typeOfPml;
-  pmlDef->GetValue("type",typeOfPml);
-  this->pmlType_ = DampFunction::DampingTypeEnum.Parse(typeOfPml);
-  // set the DampingFunction object to the corresponding type 
-  CreateDampFunction();
-
-  // check for damping factor
-  Double dampFactor;
-  pmlDef->GetValue("dampFactor",dampFactor);
-  this->dampFunction_->DampFactor = dampFactor;
-
-  // check for propRegion, scaling or frequency shift coeff in the xml
-  // if these are set for curvilinear PML, ignore and warn
-  PtrParamNode propRegionNode = pmlDef->Get("propRegion", ParamNode::PASS);
-  if (propRegionNode) {
-    std::string propRegionNodeFormul; 
-    propRegionNode->GetParent()->GetValue("formulation", propRegionNodeFormul, ParamNode::PASS);
-    if (propRegionNodeFormul == "curvilinear")
-      WARN("propRegion is currently not implemented for curvilinear PML and will be ignored!");
-  }
-  PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
-  if (scalingNode) {
-    std::string scalingNodeFormul; 
-    scalingNode->GetParent()->GetValue("formulation", scalingNodeFormul, ParamNode::PASS);
-    if (scalingNodeFormul == "curvilinear")
-      WARN("scalingCoef is currently not implemented for curvilinear PML and will be ignored!");
-  }
-  PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
-  if (shiftNode) {
-    std::string shiftNodeFormul; 
-    shiftNode->GetParent()->GetValue("formulation", shiftNodeFormul, ParamNode::PASS);
-    if (shiftNodeFormul == "curvilinear")
-      WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
+        // add the specified surface entity list to entities_
+        std::string surfRegionToActOn;
+        layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
+        shared_ptr<EntityList> surfEntity = grid_->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionToActOn );
+        surfEntities_.Push_back(surfEntity);
+      }
+    } else
+      // todo: implement possibility to read geometry without autoLayerGeneration
+      EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
   }
 
-  // check for auto-mesh-generation parameters in the xml
-  layerGenNode_ = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
-  if (layerGenNode_) {
-    // assure that autoLayerGeneration is indeed set for the curvilinear PML
-    std::string layerGenFormul; 
-    layerGenNode_->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
-    if (layerGenFormul == "curvilinear") {
-      generateLayer_ = true;
 
-      // in the xml it is still possible to specify a negative height, so check for it
-      Double elemHeight = 0.0;
-      layerGenNode_->GetValue("elemHeight", elemHeight);
-      if (elemHeight < 0)
-        EXCEPTION("'elemHeight' must be >= 0 in the XML!");
-
-      // add the specified surface entity list to entities_
-      std::string surfRegionToActOn;
-      layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
-      shared_ptr<EntityList> surfEntity = grid_->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionToActOn );
-      surfEntities_.Push_back(surfEntity);
-    }
-  } else
-    // todo: implement possibility to read geometry without autoLayerGeneration
-    EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
-}
-
-  
-
-
-// Explicit template instantiation
-template class CoefFunctionPMLBase<Double>;
-template class CoefFunctionPMLBase<Complex>;
-template class CoefFunctionPML<Double>;
-template class CoefFunctionPML<Complex>;
-template class CoefFunctionShiftedPML<Double>;
-template class CoefFunctionShiftedPML<Complex>;
-template class CoefFunctionCurvilinearPML<Double>;
-template class CoefFunctionCurvilinearPML<Complex>;
+  // Explicit template instantiation
+  template class CoefFunctionPMLBase<Double>;
+  template class CoefFunctionPMLBase<Complex>;
+  template class CoefFunctionPML<Double>;
+  template class CoefFunctionPML<Complex>;
+  template class CoefFunctionShiftedPML<Double>;
+  template class CoefFunctionShiftedPML<Complex>;
+  template class CoefFunctionCurvilinearPML<Double>;
+  template class CoefFunctionCurvilinearPML<Complex>;
 }
