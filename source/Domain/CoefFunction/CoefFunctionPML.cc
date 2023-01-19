@@ -575,9 +575,7 @@ CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, P
   
   
   // trigger mesh generation
-  if (generateLayer_ == true)
-  {
-    
+  if (generateLayer_ == true) {
     grid_->generateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
     
     /*
@@ -649,6 +647,7 @@ void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<Re
   this->dampFunction_->DampFactor = dampFactor;
 
   // check for propRegion, scaling or frequency shift coeff in the xml
+  // if these are set for curvilinear PML, ignore and warn
   PtrParamNode propRegionNode = pmlDef->Get("propRegion", ParamNode::PASS);
   if (propRegionNode) {
     std::string propRegionNodeFormul; 
@@ -674,20 +673,24 @@ void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<Re
   // check for auto-mesh-generation parameters in the xml
   layerGenNode_ = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
   if (layerGenNode_) {
-    generateLayer_ = true;
+    // assure that autoLayerGeneration is indeed set for the curvilinear PML
+    std::string layerGenFormul; 
+    layerGenNode_->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
+    if (layerGenFormul == "curvilinear") {
+      generateLayer_ = true;
 
-    // in the xml it is still possible to specify a negative height, so check for it
-    Double elemHeight = 0.0;
-    layerGenNode_->GetValue("elemHeight", elemHeight);
-    if (elemHeight < 0)
-      EXCEPTION("'elemHeight' must be >= 0 in the XML!");
+      // in the xml it is still possible to specify a negative height, so check for it
+      Double elemHeight = 0.0;
+      layerGenNode_->GetValue("elemHeight", elemHeight);
+      if (elemHeight < 0)
+        EXCEPTION("'elemHeight' must be >= 0 in the XML!");
 
-    // add the specified surface entity list to entities_
-    std::string surfRegionToActOn;
-    layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
-    shared_ptr<EntityList> surfEntity = grid_->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionToActOn );
-    surfEntities_.Push_back(surfEntity);
-
+      // add the specified surface entity list to entities_
+      std::string surfRegionToActOn;
+      layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
+      shared_ptr<EntityList> surfEntity = grid_->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionToActOn );
+      surfEntities_.Push_back(surfEntity);
+    }
   } else
     // todo: implement possibility to read geometry without autoLayerGeneration
     EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
