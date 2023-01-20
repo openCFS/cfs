@@ -18,8 +18,6 @@
 #include <CGAL/box_intersection_d.h>
 #include <CGAL/Bbox_2.h>
 #include <CGAL/Bbox_3.h>
-#include <CGAL/Cartesian.h>
-#include <CGAL/Polygon_2_algorithms.h>
 #endif
 
 #include "Domain/ElemMapping/Elem.hh"
@@ -81,6 +79,25 @@ namespace CoupledField
     virtual ~Grid();
 
     enum RegionType { NOT_SET, VOLUME_REGION, SURFACE_REGION };
+    
+    // enums for 
+    enum SurfGeomType { NORMAL_DIRECTION, MIN_PRINCIPAL_DIRECTION, 
+            MAX_PRINCIPAL_DIRECTION, MIN_PRINCIPAL_CURVATURE, MAX_PRINCIPAL_CURVATURE};
+
+    //! datatype to store surface geometry parameters: normal vector, 
+    //! principal-direction vectors, and principal curvatures
+    //! \param T defines the dimension of the problem
+    //! \param D defines the number of entries
+    template <UInt T, UInt D>
+    struct SurfGeometryParamType{
+      UInt dimension = T;
+      UInt numPoints = D;
+      StdVector<Vector<Double>> normalVector = StdVector<Vector<Double>>(numPoints);
+      StdVector<Vector<Double>> minPrincipalVector = StdVector<Vector<Double>>(numPoints);      
+      StdVector<Vector<Double>> maxPrincipalVector = StdVector<Vector<Double>>(numPoints);
+      StdVector<Double> minPrincipalCurvature = StdVector<Double>(numPoints);
+      StdVector<Double> maxPrincipalCurvature = StdVector<Double>(numPoints);
+    };
 
 
     //! Trigger mapping of elements' faces
@@ -800,7 +817,7 @@ namespace CoupledField
 
     //! Computes an external grid layer that can be used as a PML region. 
     //! The actual function is implemented in GridCFS 
-    virtual void generateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+    virtual void CreateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
       EXCEPTION("Grid::generateExternalLayer not overwritten by child class");
     };
 
@@ -1173,7 +1190,7 @@ namespace CoupledField
                                   UInt *id,
                                   Double tol = 0.0 );
 
-#elif USE_LIBFBI // USE_CGAL
+    #elif USE_LIBFBI // USE_CGAL
 
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
