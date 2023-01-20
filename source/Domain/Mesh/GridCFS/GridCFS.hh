@@ -517,9 +517,12 @@ namespace CoupledField
      * Slow implementation with linear search */
     Elem* SearchFistRegionElement(RegionIdType reg) const;
 
-    //! Computes an external grid layer that can be used as a PML region. 
+    //! Computes an external grid layer that is used as a PML region. 
     //! Assigns the new region to the grid
-    void generateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) override;
+    //! \param innerRegion pointer to the inner volume region
+    //! \param surfaceRegion pointer to the surfaceRegion where the layer should be built upon
+    //! \param layerGenNode pointer to the autoLayerGeneration parameters that are specified in the XML
+    void CreateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) override;
 
   private:
 
