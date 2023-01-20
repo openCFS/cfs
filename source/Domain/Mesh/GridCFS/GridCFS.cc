@@ -2898,7 +2898,87 @@ namespace CoupledField {
     }
   }
 
-  void GridCFS::generateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+  void GridCFS::CreateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+    // extract parameters from layerGenNode
+    Double elemHeight = 0;
+    Double numLayers = 0;
+    layerGenNode->GetValue("numLayers", numLayers);
+    layerGenNode->GetValue("elemHeight", elemHeight);
+    // in the xml it is still possible to specify a negative height, so check for it
+    if (elemHeight < 0) {
+      WARN("You specified a negative 'elemHeight' that will be treated as positive value!");
+      elemHeight = elemHeight * -1;
+    }
+    // 
+
+    // extract region names and Ids
+    std::string innerRegionName, surfRegionName;
+    innerRegionName = innerRegion->GetName();
+    surfRegionName = surfaceRegion->GetName();
+    RegionIdType innerRegionId, surfRegionId;
+    innerRegionId = innerRegion->GetRegion();
+    surfRegionId = surfaceRegion->GetRegion();
+
+    // extract nodes and check if the passed surfaceRegion is actually a part of the volume
+    StdVector<UInt> innerRegionNodes, surfRegionNodes;
+    GetNodesByRegion(innerRegionNodes, innerRegionId);
+    GetNodesByRegion(surfRegionNodes, surfRegionId);
+    // first, check if there are nodes at all in both regions
+    if (innerRegionNodes.IsEmpty()) {
+      EXCEPTION("Surface region '" << innerRegionName << "' does not contain nodes!");
+    }
+    else if (surfRegionNodes.IsEmpty()) {
+      EXCEPTION("Surface region '" << surfRegionName << "' does not contain nodes!");
+    } else {
+      // assuming that the node vectors are sorted, only check the first and last elements of the vectors
+      if (surfRegionNodes[0] < innerRegionNodes[0] || surfRegionNodes.Last() > innerRegionNodes.Last())
+        EXCEPTION("Surface region '" << surfRegionName << "' contains nodes outside of region '" << innerRegionName << "'!");
+    }
+
+    // get node coordinates
+    StdVector<Vector<Double>> nodeCoords;
+    GetNodeCoordinates( nodeCoords, surfRegionNodes, false );
+
+    UInt numPoints = surfRegionNodes.GetSize();
+    
+    SurfGeometryParamType<3, 3> surfGeom;
+
+    // compute normal vectors on nodes
+     /*UInt degreePolyFit = 4;
+    UInt degreeMongeCoeff = 4;
+    this->SetUpMongeForm(degreePolyFit, degreeMongeCoeff, nodeCoords);*/
+
+
+
+
+
+
+
+    // get surface elements
+//    StdVector<Elem*> surfRegionElems;
+//    GetElems(surfRegionElems, surfRegionId);
+    
+    
+
+
+    // check for updated geometry, which is also not implemented --------------------------------------------should I allow this or not??
+    /*bool isUpdated = this->GetElemShapeMap()->IsUpdated();
+    if (isUpdated)
+       EXCEPTION("'autoLayerGeneration' currently not implemented for use with updated geometry!");*/ 
+
+   
+
+    
+
+
+
+
+
+
+
+  
+
+
     std::cout<<"finally reached here!";
 
 
