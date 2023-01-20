@@ -576,7 +576,7 @@ namespace CoupledField{
     
     // trigger mesh generation
     if (generateLayer_ == true) {
-      grid_->generateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
+      grid_->CreateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
       
       /*
       int aaaa = surfRegList->GetRegion();*/
@@ -672,12 +672,6 @@ namespace CoupledField{
       layerGenNode_->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
       if (layerGenFormul == "curvilinear") {
         generateLayer_ = true;
-
-        // in the xml it is still possible to specify a negative height, so check for it
-        Double elemHeight = 0.0;
-        layerGenNode_->GetValue("elemHeight", elemHeight);
-        if (elemHeight < 0)
-          EXCEPTION("'elemHeight' must be >= 0 in the XML!");
 
         // add the specified surface entity list to entities_
         std::string surfRegionToActOn;
