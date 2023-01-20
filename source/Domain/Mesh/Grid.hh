@@ -18,6 +18,13 @@
 #include <CGAL/box_intersection_d.h>
 #include <CGAL/Bbox_2.h>
 #include <CGAL/Bbox_3.h>
+#include <CGAL/Cartesian.h>
+#include <CGAL/Polygon_2_algorithms.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Monge_via_jet_fitting.h>
+#include <CGAL/Eigen_svd.h>
+#include <CGAL/Eigen_matrix.h>
+#include <CGAL/Eigen_vector.h>
 #endif
 
 #include "Domain/ElemMapping/Elem.hh"
@@ -1190,7 +1197,56 @@ namespace CoupledField
                                   UInt *id,
                                   Double tol = 0.0 );
 
-    #elif USE_LIBFBI // USE_CGAL
+    //!
+    void SetUpMongeForm(UInt& degreePolynomFitting, UInt& degreeMongeCoeffs, 
+                        const StdVector<Vector<Double>>& nodeCoordinates) {
+                              std::cout<<"finally reached here!";
+      // create Monge Form and 
+      MongeForm mongeForm;
+
+      MongeViaJetFitting mongeFit;
+                        };
+
+    void ComputeSurfaceNodeGeometry(const StdVector<Vector<Double>>& normalVectors, 
+                                   const StdVector<Vector<Double>>& nodeCoordinates) {};
+
+   /* void ComputeSurfaceNodeMaxPrincipalDirections(const StdVector<Vector<Double>>& normalVectors, 
+                                                  const StdVector<Vector<Double>>& nodeCoordinates);
+    void ComputeSurfaceNodeMaxPrincipalCurvatures(const StdVector<Vector<Double>>& normalVectors, 
+                                                  const StdVector<Vector<Double>>& nodeCoordinates);
+
+    void ComputeSurfaceNodeMinPrincipalDirections(const StdVector<Vector<Double>>& normalVectors, 
+                                                  const StdVector<Vector<Double>>& nodeCoordinates);
+    void ComputeSurfaceNodeMinPrincipalCurvatures(const StdVector<Vector<Double>>& normalVectors, 
+                                                  const StdVector<Vector<Double>>& nodeCoordinates);
+    void ComputeSurfaceNodeNormals(const StdVector<Vector<Double>>& normalVectors, 
+                                  const StdVector<Vector<Double>>& nodeCoordinates);
+
+                                  */
+
+    // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
+    // implemented for use in the curvilinear PML formulation
+    //! data type used in the data kernel
+    typedef Double                                     DFT;
+    //! cartesian data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                DataKernel;
+    //! cartesian local data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                LocalKernel;
+    //! define algebra type to solve linear system
+    typedef CGAL::Eigen_svd                            SVD;
+    //! representation of a point in 3D Euclidean space
+    typedef DataKernel::Point_3                        DPoint;
+    //! class to estimate local differential quantities at a given point
+    typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
+    //! class to store the Monge coordinate system
+    typedef MongeViaJetFitting::Monge_form             MongeForm;
+
+
+
+
+
+
+#elif USE_LIBFBI // USE_CGAL
 
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
