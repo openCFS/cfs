@@ -444,6 +444,15 @@ cfsdeps:gcc10:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
+cfsdeps:intel:
+  image: opencfs/centos7-intel
+  <<: *cfsdeps_default
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*Intel*.zip
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    expire_in: 6 hours
+
 #######################################################################
 # BUILD STAGE definitions
 #######################################################################
@@ -671,7 +680,7 @@ linux:intel:
       allow_failure: true
     - !reference [.build_rules, rules]
   <<: *intel_before
-  needs: []
+  needs: ["cfsdeps:intel"]
 
 # LLVM clang compiler builds
 linux:Clang-debug:
