@@ -85,8 +85,10 @@ namespace CoupledField
     //! two- and three-dimensional meshes are supported.
     UInt GetDim() const;  
 
+    //! Add a number of nodes to the grid;
+    //! Resizes coords_ and increases numNodes_, but does not assign
+    //! coordinates or Ids 
     virtual void AddNodes(const UInt numNodes);
-      
 
     /** @see Grid::GetNumNodes() */
     UInt GetNumNodes(RegionIdType reg_id = ALL_REGIONS) const;
@@ -94,11 +96,20 @@ namespace CoupledField
     //! Returns the number of nodes in the given nodelist
     UInt GetNumNodes( const std::string & nodesName ) const;
 
+    //! increases the counter 'numElems_' by 'nElems';
+    //! creates 'nElems' new 'Elem()' objects and adds them to
+    //! orderedElems_.
+    //! \param nElems number of elements to add
     virtual void AddElems(UInt nElems);
       
     //! Reserve memory for a number of elements without adding them
     virtual void ReserveElems(UInt nElems);
     
+    //! assign data to the elements with id 'ielem';
+    //! \param ielem is the id of the element
+    //! \param type is the element type (e.g. Elem::ET_HEXA8)
+    //! \param region is the region ID where the element gets assigned to
+    //! \param connect is a pointer to the connectivity list
     virtual void SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,
@@ -517,12 +528,16 @@ namespace CoupledField
      * Slow implementation with linear search */
     Elem* SearchFistRegionElement(RegionIdType reg) const;
 
+    //! Check if autoLayerGeneration parameters are specified for a region and call
+    //! CreateExternalLayer if so. Return otherwise.
+    virtual void TriggerAutoLayerGeneration() override;
+
     //! Computes an external grid layer that is used as a PML region. 
     //! Assigns the new region to the grid
     //! \param innerRegion pointer to the inner volume region
     //! \param surfaceRegion pointer to the surfaceRegion where the layer should be built upon
     //! \param layerGenNode pointer to the autoLayerGeneration parameters that are specified in the XML
-    void CreateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) override;
+    void GenerateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) override;
 
   private:
 
