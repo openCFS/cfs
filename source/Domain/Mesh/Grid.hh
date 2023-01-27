@@ -86,7 +86,187 @@ namespace CoupledField
     virtual ~Grid();
 
     enum RegionType { NOT_SET, VOLUME_REGION, SURFACE_REGION };
+
+
+    //! datatype to store surface geometry parameters: normal vector, 
+    //! principal-direction vectors, and principal curvatures
+    //! \param T defines the dimension of the problem
+    //! \param D defines the number of entries
+    struct GeometryDescription{
+      // enums to name the geometry parameters
+      enum DescriptionType { NORMAL_VECTOR, MIN_PRINCIPAL_VECTOR, 
+        MAX_PRINCIPAL_VECTOR, MIN_PRINCIPAL_CURVATURE, MAX_PRINCIPAL_CURVATURE};
+
+      GeometryDescription(const StdVector<UInt>& globalNodeNumbers, 
+                          const StdVector<Vector<Double>>& nodeCoordinates) {
+        nodesSet_ = false;
+        numNodes_ = globalNodeNumbers.GetSize();
+        nodeCoordinates_ = StdVector<Vector<Double>>(numNodes_);
+        normalVectors_ = StdVector<Vector<Double>>(numNodes_);
+        minPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+        maxPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+        minPrincipalCurvatures_ = StdVector<Vector<Double>>(numNodes_);
+        maxPrincipalCurvatures_ = StdVector<Vector<Double>>(numNodes_);
+        SetNodes(globalNodeNumbers, nodeCoordinates);
+      };
+      
+      
+      //! add new points in terms of node ID and coordinates and store them in a map.
+      //! clears all data before storing the new nodes
+      //! \param globalNodeNumbers vector containing node IDs
+      //! \param nodeCoordinates vector containing corresponding coordinates
+      void SetNodes(const StdVector<UInt>& globalNodeNumbers, 
+                    const StdVector<Vector<Double>>& nodeCoordinates) {
+        // check for equal size
+        if (globalNodeNumbers.GetSize() != nodeCoordinates.GetSize())
+          EXCEPTION("Passed StdVectors contain " << globalNodeNumbers.GetSize() << " and " <<
+                    nodeCoordinates.GetSize() << " elements but must have equal size!");
+        // clear old data
+        if (nodesSet_ == true) {
+          nodeIdToIndexMap_.clear();
+          nodeCoordinates_.Clear();
+        }
+        // set number of contained nodes
+        numNodes_ = globalNodeNumbers.GetSize();
+        // set a map for being able to find entries later
+        for (size_t i = 0; i < numNodes_; ++i) {
+          nodeIdToIndexMap_[globalNodeNumbers[i]] = i;
+          // add node coordinates
+          nodeCoordinates_.Push_back(nodeCoordinates[i]);
+        }
+        // set the flag to enable setting the geometry
+        nodesSet_ = true;
+      };
+
+      //! add new points in terms of node ID and coordinates and store them in a map.
+      //! clears all data before storing the new nodes
+      //! \param globalNodeNumbers vector containing node IDs
+      //! \param nodeCoordinates vector containing corresponding coordinates
+      /*void SetNodesByRegion(const shared_ptr<EntityList> entitiesOfRegion, 
+               const StdVector<Vector<Double>>& nodeCoordinates) {
+        if (globalNodeNumbers.GetSize() != nodeCoordinates.GetSize())
+          EXCEPTION("Passed StdVectors contain " << globalNodeNumbers.GetSize() << " and " <<
+                    nodeCoordinates.GetSize() << " elements but must have equal size!");
+        // clear all old data
+        nodeIdToIndexMap_.clear();
+        nodeCoordinates_.Clear();
+         // set number of contained nodes
+        numNodes_ = globalNodeNumbers.GetSize();
+        // set a map for being able to find entries later
+        for (size_t i = 0; i < numNodes_; ++i) {
+          nodeIdToIndexMap_[globalNodeNumbers[i]] = i;
+          // add node coordinates
+          nodeCoordinates_.Push_back(nodeCoordinates[i]);
+        }
+        // set the flag to enable setting the geometry
+        nodesSet_ = true;
+      };*/
+
+      //! add geometry and store into the respective map. 
+      //! nodes must be set previously
+      //! \param geometryData vector containing the geometry data corresponding to the previously set nodes
+      //! \param type DescriptionType to specify which data is added
+      void SetGeometryByName(const StdVector<Vector<Double>>& geometryData,
+                        DescriptionType type) {
+        if (nodeCoordinates_.GetSize() != geometryData.GetSize())
+          EXCEPTION("Passed StdVectors contain " << nodeCoordinates_.GetSize() << " and " <<
+                    geometryData.GetSize() << " elements but must have equal size!");
+        
+        if (nodesSet_ == true) {
+          switch (type)
+          {
+          case NORMAL_VECTOR:
+            normalVectors_.Clear();
+            for (size_t i = 0; i < numNodes_; ++i)
+              normalVectors_.Push_back(geometryData[i]);
+            break;
+          case MIN_PRINCIPAL_VECTOR:
+            minPrincipalVectors_.Clear();
+            for (size_t i = 0; i < numNodes_; ++i)
+              minPrincipalVectors_.Push_back(geometryData[i]);
+            break;
+          case MAX_PRINCIPAL_VECTOR:
+            maxPrincipalVectors_.Clear();
+            for (size_t i = 0; i < numNodes_; ++i)
+              maxPrincipalVectors_.Push_back(geometryData[i]);
+            break;
+          case MIN_PRINCIPAL_CURVATURE:
+            minPrincipalCurvatures_.Clear();
+            for (size_t i = 0; i < numNodes_; ++i)
+              minPrincipalCurvatures_.Push_back(geometryData[i]);
+            break;
+          case MAX_PRINCIPAL_CURVATURE:
+            maxPrincipalVectors_.Clear();
+            for (size_t i = 0; i < numNodes_; ++i)
+              maxPrincipalCurvatures_.Push_back(geometryData[i]);
+            break;
+          default:
+            EXCEPTION("Unknown description type " << type << "!");
+            break;
+          }
+        } else {
+          EXCEPTION("Nodes must be set before adding geometry data!");
+        }
+      };
+
+      void GetGeometryOfNodesByName (StdVector<Vector<Double>>& geometryData,
+                                     const StdVector<UInt>& nodeIdList,
+                                     const DescriptionType type) {
+                              
+      };
+      /*
+      AddPointsOfEntityList(shared_ptr<EntityList> regionToAdd) {
+      // extract region names and Ids
+        std::string regionName;
+        regionName = regionToAdd->GetName();
+        RegionIdType regionId;
+        regionId = regionToAdd->GetRegion();
+
+        // extract nodes and check if the passed surfaceRegion is actually a part of the volume
+        StdVector<UInt> regionNodes;
+        GetNodesByRegion(regionNodes, regionId);
+        globalNodeNumbers_.Push_back(regionNodes);
+
+
+
+
+        StdVector<UInt> newNodeIds;
+RegionIdType innerRegionId;
+         innerRegionId = innerRegion->GetRegion();
+        this->GetNodesByRegion(newNodeIds, innerRegionId);
+
+innerRegionId
+
+
     
+        GetNodeCoordinates( nodeCoords, surfRegionNodes, false );
+
+    UInt numPoints = surfRegionNodes.GetSize();
+
+
+
+    nodeCoordinates_.Push_back()
+      }
+*/
+      
+      UInt GetNumberOfNodes() {return numNodes_;};
+
+      private:
+        // number of contained nodes
+        UInt numNodes_;
+        // map to find index by global nodeID
+        std::map<UInt, UInt> nodeIdToIndexMap_;
+        // bool that states if there are nodes added
+        bool nodesSet_;
+        // vectors to store the data
+        StdVector<Vector<Double>> nodeCoordinates_;
+        StdVector<Vector<Double>> normalVectors_;
+        StdVector<Vector<Double>> minPrincipalVectors_;
+        StdVector<Vector<Double>> maxPrincipalVectors_;
+        StdVector<Vector<Double>> minPrincipalCurvatures_;
+        StdVector<Vector<Double>> maxPrincipalCurvatures_;
+    };
+
     //! Trigger mapping of elements' faces
 
     //! This method calculates global surface numbers and
