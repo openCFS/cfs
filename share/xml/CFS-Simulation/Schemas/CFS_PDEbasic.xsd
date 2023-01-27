@@ -952,7 +952,7 @@
           </xsd:element>
 
           <!-- Automatic layer generation for CFS-PML -->
-          <xsd:element name="autoLayerGeneration" minOccurs="0" maxOccurs="1">
+          <!--xsd:element name="autoLayerGeneration" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>
                 Define the parameters for automatic layer generation via mesh extrusion.
@@ -970,7 +970,7 @@
                 <xsd:element  name="surfRegionToActOn" type="xsd:token" minOccurs="1" maxOccurs="1"/>
               </xsd:sequence>
             </xsd:complexType>
-          </xsd:element>
+          </xsd:element-->
           <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
 
