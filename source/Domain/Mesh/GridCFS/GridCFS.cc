@@ -2898,10 +2898,123 @@ namespace CoupledField {
     }
   }
 
-  void GridCFS::CreateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
-    // extract parameters from layerGenNode
+
+  void GridCFS::TriggerAutoLayerGeneration() {
+    // if no param object is present, just leave
+    if (!param_)
+      return;
+
+    PtrParamNode layerGenNode = param_->Get("domain")->Get("autoLayerGenerationList", ParamNode::PASS);
+    // if autoLayerGeneration is not specified, leave
+    if (!layerGenNode) 
+      return;
+    // initialize variables...
+    // specified regions to act on
+    std::string innerRegionName;
+    std::string surfRegionName;
+    // regions on grid
+    PtrParamNode actLayerGenNode;
+    std::string regionNameOnGrid;
+    // nodeIds of a region
+    StdVector<UInt> innerRegionNodeIds, surfRegionNodeIds;
+    //number of layer generations specified
+    UInt numGenLayers = layerGenNode->GetChildren().size();
+    // bools to check if surf and volume regions are also on the grid
+    bool innerRegionFound = false;
+    bool surfRegionFound = false;
+    // entity lists
+    shared_ptr<EntityList> surfEntityList;
+    shared_ptr<EntityList> innerEntityList;
+
+    // check if specified surface region and inner volume region actually exist
+    for (UInt iLayers = 0; iLayers < numGenLayers; iLayers++) {
+      actLayerGenNode = layerGenNode->GetChildren()[iLayers];
+      
+      for (RegionIdType iRegion = 0; iRegion < this->GetNumVolRegions(); iRegion++) {
+        // get name of specified inner region and compare with available volume regions
+        actLayerGenNode->GetValue("innerRegion", innerRegionName);
+        regionNameOnGrid = this->GetRegion().ToString(volRegionIds_[iRegion]);
+
+        // if correct volume region is there, also check for surface region
+        if (innerRegionName == regionNameOnGrid) {
+          innerRegionFound = true;
+          for (RegionIdType iSurfRegion = 0; iSurfRegion < this->GetNumSurfRegions(); iSurfRegion++) {
+            actLayerGenNode->GetValue("surfRegionToActOn", surfRegionName);
+            regionNameOnGrid = this->GetRegion().ToString(surfRegionIds_[iSurfRegion]);
+            
+            // if correct surface region is also there, take the next step
+            if (surfRegionName == regionNameOnGrid) {
+              surfRegionFound = true;
+
+              // next, we need to check if the surfaceRegion is actually contained in the innerRegion
+              // and if both contain nodes at all
+              this->GetNodesByRegion(innerRegionNodeIds, volRegionIds_[iRegion]);
+              this->GetNodesByRegion(surfRegionNodeIds, surfRegionIds_[iSurfRegion]);
+              // first, check if there are nodes at all in both regions
+              if (innerRegionNodeIds.IsEmpty()) {
+                EXCEPTION("Region '" << innerRegionName << "' does not contain nodes!");
+              }
+              else if (surfRegionNodeIds.IsEmpty()) {
+                EXCEPTION("Surface region '" << surfRegionName << "' does not contain nodes!");
+              } else {
+                // assuming that the node vectors are sorted, only check the first and last elements of the vectors
+                if (surfRegionNodeIds[0] < innerRegionNodeIds[0] || surfRegionNodeIds.Last() > innerRegionNodeIds.Last())
+                  EXCEPTION("Surface region '" << surfRegionName << "' contains nodes outside of region '" << innerRegionName << "'!"
+                    << "\n Layer generation might not work correctly!");
+              }
+              surfEntityList = this->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionName );
+              innerEntityList = this->GetEntityList( EntityList::ELEM_LIST,innerRegionName );
+              this->GenerateExternalLayer(innerEntityList, surfEntityList, actLayerGenNode);
+            }
+          }
+        }
+      }
+      // throw exception if specified layers are not on the grid
+      if (!innerRegionFound)
+        EXCEPTION("Region " << innerRegionName << " not found on the specified Grid!");
+      if (!surfRegionFound)
+        EXCEPTION("SurfaceRegion " << surfRegionName << " not found on the specified Grid!");
+      // reset the bools
+      innerRegionFound = false;
+      surfRegionFound = false;
+    }
+    // finally, we need to trigger FinishInit() to include the new regions
+    //this->FinishInit();
+  }
+
+
+  void GridCFS::GenerateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+    // declare variables...
+    // layer generation parameters
     Double elemHeight = 0;
     Double numLayers = 0;
+    // Id of regions, nodes, and coordinates of nodes
+    RegionIdType surfRegionId;
+    RegionIdType innerRegionId;
+    StdVector<UInt> surfRegionNodeIds;
+    StdVector<UInt> innerRegionNodeIds;
+    StdVector<Vector<Double>> surfNodeCoords;
+    StdVector<Vector<Double>> innerNodeCoords;
+    UInt numSurfNodes;
+    // elements on regions
+    StdVector<SurfElem*> surfRegionElems;
+    UInt numSurfElems;
+    StdVector<UInt> surfElemConnectivity;
+    StdVector<Elem*> innerRegionElems;
+    UInt numInnerElems;
+    StdVector<UInt> innerElemConnectivity;
+    // name, id, and elems of new region
+    std::string layerName;
+    RegionIdType layerRegionId;
+    UInt numLayerElems;
+    StdVector<Elem*> layerElems;
+    // normal vectors on surface nodes
+    StdVector<Vector<Double>> surfNormalVectors;
+    // parameters for Monge fitting
+    UInt degreePolyFit = 4;
+    UInt degreeMongeCoeff = 4;
+
+    // extract parameters from layerGenNode
     layerGenNode->GetValue("numLayers", numLayers);
     layerGenNode->GetValue("elemHeight", elemHeight);
     // in the xml it is still possible to specify a negative height, so check for it
@@ -2909,80 +3022,215 @@ namespace CoupledField {
       WARN("You specified a negative 'elemHeight' that will be treated as positive value!");
       elemHeight = elemHeight * -1;
     }
-    // 
+
+    // get node Ids of surface region
+    surfRegionId = surfaceRegion->GetRegion();
+    innerRegionId = innerRegion->GetRegion();
+    // get, node Ids, coordinates and elements
+    this->GetNodesByRegion(surfRegionNodeIds, surfRegionId);
+    this->GetNodeCoordinates(surfNodeCoords, surfRegionNodeIds, false);
+    this->GetNodesByRegion(innerRegionNodeIds, innerRegionId);
+    this->GetNodeCoordinates(innerNodeCoords, innerRegionNodeIds, false);
+    this->GetSurfElems(surfRegionElems, surfRegionId);
+    this->GetVolElems(innerRegionElems, innerRegionId);
+    numSurfElems = this->GetNumElems(surfRegionId);
+    numSurfNodes = surfRegionNodeIds.GetSize();
+
+    // extract specified name of new region and add to grid
+    layerGenNode->GetValue("name", layerName);
+    layerRegionId = this->AddRegion(layerName, VOLUME_REGION);
+
+
+    surfNormalVectors = surfNodeCoords;
+
+    // set up monge form to compute surface normals
+//    this->SetUpMongeForm(degreePolyFit, degreeMongeCoeff, nodeCoords);*/
+    // compute surface normals
+  
+
+    // compute new nodes iteratively
+    // temporary node coords for iterative computation
+    StdVector<Vector<Double>> currNodeCoords = surfNodeCoords;
+    StdVector<Vector<Double>> allLayerNodeCoords = surfNodeCoords;
+    StdVector<StdVector<UInt>> allLayerNodeIds = StdVector<StdVector<UInt>>(numLayers+1);
+    allLayerNodeIds[0] = surfRegionNodeIds;
+    UInt newNodeId;
+    for (UInt iLayers = 1; iLayers <= numLayers; iLayers++) {
+      allLayerNodeIds[iLayers].Resize(numSurfNodes);
+
+      for (UInt iNodes = 0; iNodes < numSurfNodes; iNodes++) {
+        // compute new node coordinates
+        currNodeCoords[iNodes] = currNodeCoords[iNodes] + surfNormalVectors[iNodes] * elemHeight;
+        allLayerNodeCoords.Push_back(currNodeCoords[iNodes]);
+        // add new node to grid
+        this->AddNode( currNodeCoords[iNodes], newNodeId );
+        // store iD
+        allLayerNodeIds[iLayers][iNodes] = newNodeId;
+      }
+    }
+
+
+    // parameters of elements in new layer
+    //StdVector<StdVector<UInt>> layerConnectivity;
+    StdVector<UInt> layerConnectivity;
+    Elem::FEType elemType;
+    elemType = Elem::FEType::ET_WEDGE6;
+    StdVector<Elem*> addedElems;
+    StdVector<UInt> addedElemIds;
+
+    // add new elems to grid...
+    // as the new elems are prismatic, there will be one (linear) element 
+    // per layer or two quadratic elements per layer
+    if (this->IsQuadratic() ==true) { 
+      EXCEPTION("Layer Generation for quadratic elements not implemented yet!")
+    } else {
+      numLayerElems = numSurfElems * numLayers;
+      layerConnectivity.Resize(numLayerElems);
+      addedElems.Resize(numLayerElems);
+      for (UInt i = 0; i< numLayerElems; i++) {
+        addedElems[i] = new Elem;
+      }
+      AddVolumeElems( layerRegionId, addedElems,addedElemIds);
+
+
+      // now we need to set up all the information for the new elements...
+      for (UInt iLayers = 1; iLayers <= numLayers; iLayers++) {
+        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
+          // get connectivity of corresponding surface element
+          surfElemConnectivity = surfRegionElems[iSurfElems]->connect; //surfRegionElems[iSurfElems][0].connect;
+          
+          UInt numNodesInSurfElement = surfElemConnectivity.GetSize();
+
+          //layerConnectivity[(iSurfElems+1)*(iLayers+1)-1].Resize(numNodesInSurfElement*2);
+          layerConnectivity.Resize(numNodesInSurfElement*2);
+          
+          
+          for (UInt i = 0; i < numNodesInSurfElement; i++) {
+          
+            UInt connectNodeIdx = allLayerNodeIds[0].Find(surfElemConnectivity[i]);
+            layerConnectivity[i] = allLayerNodeIds[iLayers-1][connectNodeIdx];
+            layerConnectivity[i+numNodesInSurfElement] = allLayerNodeIds[iLayers][connectNodeIdx];
+
+            //layerConnectivity[(iSurfElems+1)*(iLayers+1)-1][i] = allLayerNodeIds[connectNodeIdx];
+            //layerConnectivity[(iSurfElems+1)*(iLayers+1)-1][i+numNodesInSurfElement] = allLayerNodeIds[connectNodeIdx+(iLayers+1)*numSurfNodes-1];
+          }
+          // add a new element to grid
+          
+          UInt *nnn  = &layerConnectivity[0];
+
+          // set properties to element
+          this->SetElemData(addedElemIds[iLayers*(iSurfElems+1)-1], elemType, layerRegionId,nnn);
+          
+          //orderedElems_.Erase(numElems_-1);
+        }
+      }
+    }
+
+    
+
+    CorrectElementConnectivities();
+    this->FinishInit();
+   // StdVector<UInt> newRegNodeList;
+    //this->GetNodesByRegion(newRegNodeList, layerRegionId);
+    
+
+    // now that the nodes are set, we need to assign the material to the region
+   // std::string material;
+    //layerGenNode->GetValue("material", material);
+
+
+//CreateSurfaceElements( StdVector<Elem*>& elems,
+  //                                     StdVector<SurfElem*>& surfElems )
+
+
+
+
+
+
+
+
+/*
+
+      GetElemNodes(surfElemConnectivity, surfElemId);
+
+elemId = 3;
+GetElemNodes(connect,elemId);
+UInt surfElemId = surfRegionNodeIds[0];
+GetElemNodes(connect, surfElemId);
+*/
+
+/*mi_->AddElems( readElemSet.size() );
+
+ mi_->SetElemData( f2GElemNumMap_[elemNum], type, actRegionId, connect );
+
+ SetElemRegion(UInt ielem, RegionIdType region)*/
+
+
+
+
+/*
+
+Elem::FEType typ;
+RegionIdType reg;
+UInt* connect;
+ GetElemData(ielem, typ, reg, connect);
+*/
+//allLayerCoords[(iLayers+1)*(iNodes+1)-1][0]
+
+
 
     // extract region names and Ids
-    std::string innerRegionName, surfRegionName;
+   /* std::string innerRegionName, surfaceRegionName;
     innerRegionName = innerRegion->GetName();
-    surfRegionName = surfaceRegion->GetName();
-    RegionIdType innerRegionId, surfRegionId;
+    surfaceRegionName = surfaceRegion->GetName();
+    RegionIdType innerRegionId, surfaceRegionId;
     innerRegionId = innerRegion->GetRegion();
-    surfRegionId = surfaceRegion->GetRegion();
+    surfaceRegionId = surfaceRegion->GetRegion();
 
     // extract nodes and check if the passed surfaceRegion is actually a part of the volume
-    StdVector<UInt> innerRegionNodes, surfRegionNodes;
-    GetNodesByRegion(innerRegionNodes, innerRegionId);
-    GetNodesByRegion(surfRegionNodes, surfRegionId);
-    // first, check if there are nodes at all in both regions
-    if (innerRegionNodes.IsEmpty()) {
-      EXCEPTION("Surface region '" << innerRegionName << "' does not contain nodes!");
-    }
-    else if (surfRegionNodes.IsEmpty()) {
-      EXCEPTION("Surface region '" << surfRegionName << "' does not contain nodes!");
-    } else {
-      // assuming that the node vectors are sorted, only check the first and last elements of the vectors
-      if (surfRegionNodes[0] < innerRegionNodes[0] || surfRegionNodes.Last() > innerRegionNodes.Last())
-        EXCEPTION("Surface region '" << surfRegionName << "' contains nodes outside of region '" << innerRegionName << "'!");
-    }
+    StdVector<UInt> innerRegionNodeIds, surfaceRegionNodeIds;
+    GetNodesByRegion(innerRegionNodeIds, innerRegionId);
+    GetNodesByRegion(surfaceRegionNodeIds, surfaceRegionId);
 
-    // get node coordinates
-    StdVector<Vector<Double>> nodeCoords;
-    GetNodeCoordinates( nodeCoords, surfRegionNodes, false );
 
-    UInt numPoints = surfRegionNodes.GetSize();
     
-    SurfGeometryParamType<3, 3> surfGeom;
+    // loop over the wanted number of layers to create new layers iteratively...
+    // first, declare some variables
+    UInt numNodes = surfaceRegionNodeIds.GetSize();
+    StdVector<Vector<Double>> nodeCoords;
+    StdVector<UInt> currentNodeIds = surfaceRegionNodeIds;
+    StdVector<Vector<Double>> currentNormVecs;
+    for (size_t i = 0; i < numLayers; ++i)
+    {
+      // get node coordinates
+      GetNodeCoordinates( nodeCoords, currentNodeIds, false );
+      // compute surface normals on each node
+      currentNormVecs = StdVector<Vector<Double>>(numNodes); // currently only a dummy vector
+      // create new points
+
+    }
+
+    // create object that holds the surface description of all nodes
+    //shared_ptr<GeometryDescription> surfGeom = new GeometryDescription(surfRegionNodeIds, nodeCoords);
+
+    // compute surface geometry and assign to points on region
+
+    // compute new points on the layer
 
     // compute normal vectors on nodes
      /*UInt degreePolyFit = 4;
     UInt degreeMongeCoeff = 4;
     this->SetUpMongeForm(degreePolyFit, degreeMongeCoeff, nodeCoords);*/
 
-
-
-
-
-
-
     // get surface elements
 //    StdVector<Elem*> surfRegionElems;
 //    GetElems(surfRegionElems, surfRegionId);
-    
-    
-
 
     // check for updated geometry, which is also not implemented --------------------------------------------should I allow this or not??
     /*bool isUpdated = this->GetElemShapeMap()->IsUpdated();
     if (isUpdated)
        EXCEPTION("'autoLayerGeneration' currently not implemented for use with updated geometry!");*/ 
-
-   
-
-    
-
-
-
-
-
-
-
-  
-
-
     std::cout<<"finally reached here!";
-
-
-
 
     /*    
     // check if the specified surface region is actually in the passed EntityList...
