@@ -576,7 +576,7 @@ namespace CoupledField{
     
     // trigger mesh generation
     if (generateLayer_ == true) {
-      grid_->CreateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
+      //grid_->CreateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
       
       /*
       int aaaa = surfRegList->GetRegion();*/
