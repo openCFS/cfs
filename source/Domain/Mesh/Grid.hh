@@ -87,26 +87,6 @@ namespace CoupledField
 
     enum RegionType { NOT_SET, VOLUME_REGION, SURFACE_REGION };
     
-    // enums for 
-    enum SurfGeomType { NORMAL_DIRECTION, MIN_PRINCIPAL_DIRECTION, 
-            MAX_PRINCIPAL_DIRECTION, MIN_PRINCIPAL_CURVATURE, MAX_PRINCIPAL_CURVATURE};
-
-    //! datatype to store surface geometry parameters: normal vector, 
-    //! principal-direction vectors, and principal curvatures
-    //! \param T defines the dimension of the problem
-    //! \param D defines the number of entries
-    template <UInt T, UInt D>
-    struct SurfGeometryParamType{
-      UInt dimension = T;
-      UInt numPoints = D;
-      StdVector<Vector<Double>> normalVector = StdVector<Vector<Double>>(numPoints);
-      StdVector<Vector<Double>> minPrincipalVector = StdVector<Vector<Double>>(numPoints);      
-      StdVector<Vector<Double>> maxPrincipalVector = StdVector<Vector<Double>>(numPoints);
-      StdVector<Double> minPrincipalCurvature = StdVector<Double>(numPoints);
-      StdVector<Double> maxPrincipalCurvature = StdVector<Double>(numPoints);
-    };
-
-
     //! Trigger mapping of elements' faces
 
     //! This method calculates global surface numbers and
@@ -822,10 +802,15 @@ namespace CoupledField
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
     StdVector<UInt> GetRegularDiscretization(RegionIdType region);
 
+    //! Check if autoLayerGeneration parameters are specified for a region and call
+    //! CreateExternalLayer if so. Return otherwise.
+    virtual void TriggerAutoLayerGeneration() {
+      EXCEPTION("Grid::TriggerAutoLayerGeneration not overwritten by child class");
+    }
     //! Computes an external grid layer that can be used as a PML region. 
     //! The actual function is implemented in GridCFS 
-    virtual void CreateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
-      EXCEPTION("Grid::generateExternalLayer not overwritten by child class");
+    virtual void GenerateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::GenerateExternalLayer not overwritten by child class");
     };
 
     // =======================================================================
