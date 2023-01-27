@@ -100,6 +100,32 @@
     </xsd:attribute>
   </xsd:complexType>
 
+  <!-- ******************************************************************** >
+    Data type for specifying the parameters for automatically generating an 
+    external layer that can be used as a PML region
+  < ******************************************************************** -->
+  <xsd:complexType name="DT_AutoLayerGeneration">
+    <xsd:annotation>
+      <xsd:documentation>
+      Define the parameters for automatic layer generation via mesh extrusion.
+      The elements of the layer are prismatic (wedge for inner tet-mesh and hex for inner hex mesh). 
+      - name:               specifies the name of the newly created region
+      - elemHeight:         defines the height of each element in 'm', passed as a positive float; 
+      - numLayers:          is the number of extrusion steps and must be a positive integer;
+      - surfRegiontoActOn:  defines the surface where the layer will be built onto; 
+                            should be the the outer boundary of the propagation domain or a part of it;
+      - innerRegion:        specifies the inner (volume) region to assure that the layer is built outside.
+      - material:           specifies the material that is assigned to the new region
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="elemHeight" type="xsd:float" default="1" use="optional"/>
+    <xsd:attribute name="numLayers" type="xsd:positiveInteger" default="2" use="optional"/>
+    <xsd:attribute name="surfRegionToActOn" type="xsd:token" use="required"/>
+    <xsd:attribute name="innerRegion" type="xsd:token" use="required"/>
+    <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
+  </xsd:complexType>
+
   <!-- ********************************************************************
     Data type for specification of a non-conforming interface
     ********************************************************************
@@ -503,7 +529,23 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      
+
+      <!-- AutoLayerGenerationList. Tells CFS to automatically generate an
+           external layer that is used for the curvilinear PML. -->
+      <xsd:element name="autoLayerGenerationList" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            List to specify automatically generated external layers (regions)
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="newRegion" type="DT_AutoLayerGeneration"
+              minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+      </xsd:complexType>
+    </xsd:element>
+
       <!-- Non-conforming interface region list -->
       <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
