@@ -2999,7 +2999,7 @@ namespace CoupledField {
     // elements on regions
     StdVector<SurfElem*> surfRegionElems;
     UInt numSurfElems;
-    StdVector<UInt> surfElemConnectivity;
+    StdVector<StdVector<UInt>> surfElemConnectivity;
     StdVector<Elem*> innerRegionElems;
     UInt numInnerElems;
     StdVector<UInt> innerElemConnectivity;
@@ -3073,178 +3073,97 @@ namespace CoupledField {
     // parameters of elements in new layer
     //StdVector<StdVector<UInt>> layerConnectivity;
     StdVector<UInt> layerConnectivity;
-    Elem::FEType elemType;
-    elemType = Elem::FEType::ET_WEDGE6;
-    StdVector<Elem*> addedElems;
-    StdVector<UInt> addedElemIds;
+    Elem::FEType currLayerElemType;
+    Elem::FEType currSurfElemType;
+    StdVector<StdVector<Elem*>> addedElems;
+    StdVector<StdVector<UInt>> addedElemIds;
+    UInt numNodesInSurfElement;
+    UInt numNodesInLayerElement;
+    StdVector<StdVector<UInt>> connectNodeIdx;
+    UInt *ptrLayerConnectivity;
 
     // add new elems to grid...
-    // as the new elems are prismatic, there will be one (linear) element 
-    // per layer or two quadratic elements per layer
-    if (this->IsQuadratic() ==true) { 
+    // as the new elems are prismatic, there will be one layer per linear element 
+    // or two layers per quadratic element
+    if (this->IsQuadratic() ==true) {
       EXCEPTION("Layer Generation for quadratic elements not implemented yet!")
+
     } else {
       numLayerElems = numSurfElems * numLayers;
-      layerConnectivity.Resize(numLayerElems);
-      addedElems.Resize(numLayerElems);
-      for (UInt i = 0; i< numLayerElems; i++) {
-        addedElems[i] = new Elem;
-      }
-      AddVolumeElems( layerRegionId, addedElems,addedElemIds);
-
-
-      // now we need to set up all the information for the new elements...
-      for (UInt iLayers = 1; iLayers <= numLayers; iLayers++) {
+      
+      
+      surfElemConnectivity.Resize(numSurfElems);
+      connectNodeIdx.Resize(numSurfElems);
+      addedElems.Resize(numLayers);
+      addedElemIds.Resize(numLayers);
+      for (UInt iLayers = 0; iLayers < numLayers; iLayers++) {
+        addedElems[iLayers].Resize(numSurfElems);
+        addedElemIds[iLayers].Resize(numSurfElems);
+        // first, add new elements
         for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
-          // get connectivity of corresponding surface element
-          surfElemConnectivity = surfRegionElems[iSurfElems]->connect; //surfRegionElems[iSurfElems][0].connect;
-          
-          UInt numNodesInSurfElement = surfElemConnectivity.GetSize();
+          // create new elements. They will (hopefully!) be deleted in the end of the simulation
+          addedElems[iLayers][iSurfElems] = new Elem;
+        }
+        // add new elements of current layer to the grid
+        AddVolumeElems( layerRegionId, addedElems[iLayers],addedElemIds[iLayers]);
 
-          //layerConnectivity[(iSurfElems+1)*(iLayers+1)-1].Resize(numNodesInSurfElement*2);
-          layerConnectivity.Resize(numNodesInSurfElement*2);
-          
-          
-          for (UInt i = 0; i < numNodesInSurfElement; i++) {
-          
-            UInt connectNodeIdx = allLayerNodeIds[0].Find(surfElemConnectivity[i]);
-            layerConnectivity[i] = allLayerNodeIds[iLayers-1][connectNodeIdx];
-            layerConnectivity[i+numNodesInSurfElement] = allLayerNodeIds[iLayers][connectNodeIdx];
+        // now, set all the necessary information for the new elements
+        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
+          // get the connectivity of the corresponding surface element and store for later use
+          // we only need to do this once for each surface element
+          if (iLayers == 0) {
+            // check for type of the surface element and assine type of layer element accordingly
+            currSurfElemType = surfRegionElems[iSurfElems]->type;
+            switch (currSurfElemType) {
+              case Elem::FEType::ET_TRIA3:
+                  currLayerElemType = Elem::FEType::ET_WEDGE6;
+                  numNodesInSurfElement = 3;
+                  break;
+              case Elem::FEType::ET_QUAD4:
+                  currLayerElemType = Elem::FEType::ET_HEXA8;
+                  numNodesInSurfElement = 4;
+                  break;
+              default:
+                  EXCEPTION("Layer Generation for surface element type "<< currSurfElemType <<" not implemented yet!" <<
+                            "use linear triangles or quadrangles instead!");
+            }
+            surfElemConnectivity[iSurfElems].Resize(numNodesInSurfElement);
+            surfElemConnectivity[iSurfElems] = surfRegionElems[iSurfElems]->connect;
 
-            //layerConnectivity[(iSurfElems+1)*(iLayers+1)-1][i] = allLayerNodeIds[connectNodeIdx];
-            //layerConnectivity[(iSurfElems+1)*(iLayers+1)-1][i+numNodesInSurfElement] = allLayerNodeIds[connectNodeIdx+(iLayers+1)*numSurfNodes-1];
+            numNodesInLayerElement = numNodesInSurfElement*2;
+            layerConnectivity.Resize(numNodesInLayerElement);
+            connectNodeIdx[iSurfElems].Resize(numNodesInSurfElement);
+            // find the indices of the connection list of the surface elements as we need them 
+            // to assign the connections in the new layer elements
+            for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {
+              connectNodeIdx[iSurfElems][iNode] = allLayerNodeIds[0].Find(surfElemConnectivity[iSurfElems][iNode]);
+            }
+            // check if the new elements have more nodes as elements in the original grid and set 
+            // the globally maximum occurring nodes
+            maxNumElemNodes_ = (numNodesInLayerElement > maxNumElemNodes_) ? numNodesInLayerElement : maxNumElemNodes_;
           }
-          // add a new element to grid
-          
-          UInt *nnn  = &layerConnectivity[0];
 
-          // set properties to element
-          this->SetElemData(addedElemIds[iLayers*(iSurfElems+1)-1], elemType, layerRegionId,nnn);
-          
-          //orderedElems_.Erase(numElems_-1);
+          // assign connectivity to current layer element
+          for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {     
+            layerConnectivity[iNode] = allLayerNodeIds[iLayers][connectNodeIdx[iSurfElems][iNode]];
+            layerConnectivity[iNode+numNodesInSurfElement] = allLayerNodeIds[iLayers+1][connectNodeIdx[iSurfElems][iNode]];
+          }
+          // convert from StdVector to UInt* as SetElemData() only takes UInt*
+          ptrLayerConnectivity  = &layerConnectivity[0];
+
+          // assign type, region, and connectivity to element
+          this->SetElemData(addedElemIds[iLayers][iSurfElems], currLayerElemType, layerRegionId, ptrLayerConnectivity);
         }
       }
     }
-
-    
-
+    // check if Jakobi determinants of the new region are positive and try correct if not
     CorrectElementConnectivities();
-    this->FinishInit();
-   // StdVector<UInt> newRegNodeList;
-    //this->GetNodesByRegion(newRegNodeList, layerRegionId);
-    
-
-    // now that the nodes are set, we need to assign the material to the region
-   // std::string material;
-    //layerGenNode->GetValue("material", material);
-
-
-//CreateSurfaceElements( StdVector<Elem*>& elems,
-  //                                     StdVector<SurfElem*>& surfElems )
-
-
-
-
-
-
-
-
-/*
-
-      GetElemNodes(surfElemConnectivity, surfElemId);
-
-elemId = 3;
-GetElemNodes(connect,elemId);
-UInt surfElemId = surfRegionNodeIds[0];
-GetElemNodes(connect, surfElemId);
-*/
-
-/*mi_->AddElems( readElemSet.size() );
-
- mi_->SetElemData( f2GElemNumMap_[elemNum], type, actRegionId, connect );
-
- SetElemRegion(UInt ielem, RegionIdType region)*/
-
-
-
-
-/*
-
-Elem::FEType typ;
-RegionIdType reg;
-UInt* connect;
- GetElemData(ielem, typ, reg, connect);
-*/
-//allLayerCoords[(iLayers+1)*(iNodes+1)-1][0]
-
-
-
-    // extract region names and Ids
-   /* std::string innerRegionName, surfaceRegionName;
-    innerRegionName = innerRegion->GetName();
-    surfaceRegionName = surfaceRegion->GetName();
-    RegionIdType innerRegionId, surfaceRegionId;
-    innerRegionId = innerRegion->GetRegion();
-    surfaceRegionId = surfaceRegion->GetRegion();
-
-    // extract nodes and check if the passed surfaceRegion is actually a part of the volume
-    StdVector<UInt> innerRegionNodeIds, surfaceRegionNodeIds;
-    GetNodesByRegion(innerRegionNodeIds, innerRegionId);
-    GetNodesByRegion(surfaceRegionNodeIds, surfaceRegionId);
-
-
-    
-    // loop over the wanted number of layers to create new layers iteratively...
-    // first, declare some variables
-    UInt numNodes = surfaceRegionNodeIds.GetSize();
-    StdVector<Vector<Double>> nodeCoords;
-    StdVector<UInt> currentNodeIds = surfaceRegionNodeIds;
-    StdVector<Vector<Double>> currentNormVecs;
-    for (size_t i = 0; i < numLayers; ++i)
-    {
-      // get node coordinates
-      GetNodeCoordinates( nodeCoords, currentNodeIds, false );
-      // compute surface normals on each node
-      currentNormVecs = StdVector<Vector<Double>>(numNodes); // currently only a dummy vector
-      // create new points
-
-    }
-
-    // create object that holds the surface description of all nodes
-    //shared_ptr<GeometryDescription> surfGeom = new GeometryDescription(surfRegionNodeIds, nodeCoords);
-
-    // compute surface geometry and assign to points on region
-
-    // compute new points on the layer
-
-    // compute normal vectors on nodes
-     /*UInt degreePolyFit = 4;
-    UInt degreeMongeCoeff = 4;
-    this->SetUpMongeForm(degreePolyFit, degreeMongeCoeff, nodeCoords);*/
-
-    // get surface elements
-//    StdVector<Elem*> surfRegionElems;
-//    GetElems(surfRegionElems, surfRegionId);
-
-    // check for updated geometry, which is also not implemented --------------------------------------------should I allow this or not??
-    /*bool isUpdated = this->GetElemShapeMap()->IsUpdated();
-    if (isUpdated)
-       EXCEPTION("'autoLayerGeneration' currently not implemented for use with updated geometry!");*/ 
-    std::cout<<"finally reached here!";
-
-    /*    
-    // check if the specified surface region is actually in the passed EntityList...
-    // name of the surface region where the layer should be built on
-    std::string surfRegionToActOn;
-    layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
-    // get the name of the specified propagation domain
-    std::string regionName;
-    regionName = this->entities_[0]->GetName();
-
-
-    //std::string actRegion = this->entities_.ToString(GetRegion());
-    //actRegion = grid_->GetRegion().ToString();
-*/
+    /*
+    // check if the new region is regular
+    CheckForRegularRegion(layerRegionId);
+    // add regular grid discretization (I am not sure if this is actually needed here.
+    // It is done in FinishInit() for the input grid, so I do it here for the new layer as well.)
+    CalcRegulardGridDiscretization() */
   };
 
 
