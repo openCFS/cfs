@@ -50,7 +50,23 @@ namespace CoupledField
     //! be used for higher order elements or edge functions.
     void MapEdges();
 
-
+    //! Triggers CheckPatternRegion() to check if there is a region 
+    //! pattern set in the regionList. Assigns the pattern to respective elements.
+    //! Determines the maximum nodes occuring in any element of the grid and
+    //! stores it into maxNumElemNodes_.
+    //! Assigns a dimension to each region if not set already.
+    //! Adds all surface elements to surfElems_, adds all volume elements 
+    //! volElems_.
+    //! Adds all volRegionIds_. Sets the numVolElemNodes_ for each region.
+    //! Discovers which element is a surface element and sets it in orderedElems_.
+    //! Sets the surfRegionIds_. Sets the numSurfElemNodes_.
+    //! Checks if every region contains at least one volume or surface element.
+    //! Calls CheckForRegularRegion() for each region.
+    //! Calls CorrectElementConnectivities().
+    //! Calls makeNameNodesFromLines().
+    //! Calls CreateUserDefinedNodesElems().
+    //! Calls CalcRegulardGridDiscretization() and assigns to the mathparser if the 
+    //! grid is regular.
     virtual void FinishInit();
     
     //! Create result for grid information (local directions etc., Jacobian
