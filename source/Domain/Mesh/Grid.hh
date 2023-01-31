@@ -1340,6 +1340,24 @@ innerRegionId
     typedef CGAL::Box_intersection_d
         ::Box_d<double,3> IdBox;
 
+    
+    // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
+    // implemented for use in the curvilinear PML formulation
+    //! data type used in the data kernel
+    typedef Double                                     DFT;
+    //! cartesian data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                DataKernel;
+    //! cartesian local data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                LocalKernel;
+    //! define algebra type to solve linear system
+    typedef CGAL::Eigen_svd                            SVD;
+    //! representation of a point in 3D Euclidean space
+    typedef DataKernel::Point_3                        DPoint;
+    //! class to estimate local differential quantities at a given point
+    typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
+    //! class to store the Monge coordinate system
+    typedef MongeViaJetFitting::Monge_form             MongeForm;
+
   protected:
     //! Return list of potential elements containing global points
 
@@ -1362,54 +1380,65 @@ innerRegionId
                                   UInt *id,
                                   Double tol = 0.0 );
 
-    //!
-    void SetUpMongeForm(UInt& degreePolynomFitting, UInt& degreeMongeCoeffs, 
-                        const StdVector<Vector<Double>>& nodeCoordinates) {
-                              std::cout<<"finally reached here!";
-      // create Monge Form and 
-      MongeForm mongeForm;
+    //! Function that instantiates a MongeForm, i.e., a surface description or the form z = F(x,y)
+    //! The MongeForm can then be used to compute surface parameters, e.g. normal vectors, 
+    //! principal directions, or principal curvatures
+    void SetUpMongeForm(MongeForm& mongeForm, UInt& degreePolynomFitting, UInt& degreeMongeCoeffs, 
+                        const std::vector<DPoint>& nodeCoordinates) {
+      // create Monge Form and fit
 
       MongeViaJetFitting mongeFit;
-                        };
+      mongeForm = mongeFit(nodeCoordinates.begin(), nodeCoordinates.end(), degreePolynomFitting, degreeMongeCoeffs);
+    };
 
-    void ComputeSurfaceNodeGeometry(const StdVector<Vector<Double>>& normalVectors, 
-                                   const StdVector<Vector<Double>>& nodeCoordinates) {};
+    //! function that converts a StdVector of Vectors into the Point_3 format that is used by CGAL
+    //! \param pointsAsPoint_3Format (out) representation as Point_3 
+    //! \param pointsAsCfsVectors (in) representation as CFS Vector
+    void ConvertVectorToPoint_3Format(std::vector<DPoint>& pointsAsPoint_3Format, StdVector<Vector<Double>>& pointsAsCfsVectors) {
+      UInt numPoints = pointsAsCfsVectors.GetSize();
+      pointsAsPoint_3Format.resize(numPoints);
+      if (numPoints > 0) {
+        UInt dim = pointsAsCfsVectors[0].GetSize();
+        if (dim == 1) {
+          for (UInt i = 0; i < numPoints; i++) {
+            DPoint p(pointsAsCfsVectors[i][0],0,0);
+            pointsAsPoint_3Format[i] = p;
+          }
+        }
+        else if (dim == 2) {
+          for (UInt i = 0; i < numPoints; i++) {
+            DPoint p(pointsAsCfsVectors[i][0],pointsAsCfsVectors[i][1],0);
+            pointsAsPoint_3Format[i] = p;
+          }
+        } 
+        else if (dim == 3) {
+          for (UInt i = 0; i < numPoints; i++) {
+            DPoint p(pointsAsCfsVectors[i][0],pointsAsCfsVectors[i][1],pointsAsCfsVectors[i][2]);
+            pointsAsPoint_3Format[i] = p;
+          }
+        } else
+          EXCEPTION("Please provide 1, 2, or 3 dimensions in 'pointsAsCfsVectors'");
+      } else
+        EXCEPTION("No entries for conversion provided!");
+    };
 
-   /* void ComputeSurfaceNodeMaxPrincipalDirections(const StdVector<Vector<Double>>& normalVectors, 
-                                                  const StdVector<Vector<Double>>& nodeCoordinates);
-    void ComputeSurfaceNodeMaxPrincipalCurvatures(const StdVector<Vector<Double>>& normalVectors, 
-                                                  const StdVector<Vector<Double>>& nodeCoordinates);
-
-    void ComputeSurfaceNodeMinPrincipalDirections(const StdVector<Vector<Double>>& normalVectors, 
-                                                  const StdVector<Vector<Double>>& nodeCoordinates);
-    void ComputeSurfaceNodeMinPrincipalCurvatures(const StdVector<Vector<Double>>& normalVectors, 
-                                                  const StdVector<Vector<Double>>& nodeCoordinates);
-    void ComputeSurfaceNodeNormals(const StdVector<Vector<Double>>& normalVectors, 
-                                  const StdVector<Vector<Double>>& nodeCoordinates);
-
-                                  */
-
-    // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
-    // implemented for use in the curvilinear PML formulation
-    //! data type used in the data kernel
-    typedef Double                                     DFT;
-    //! cartesian data kernel to represent the geometric objects
-    typedef CGAL::Simple_cartesian<DFT>                DataKernel;
-    //! cartesian local data kernel to represent the geometric objects
-    typedef CGAL::Simple_cartesian<DFT>                LocalKernel;
-    //! define algebra type to solve linear system
-    typedef CGAL::Eigen_svd                            SVD;
-    //! representation of a point in 3D Euclidean space
-    typedef DataKernel::Point_3                        DPoint;
-    //! class to estimate local differential quantities at a given point
-    typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
-    //! class to store the Monge coordinate system
-    typedef MongeViaJetFitting::Monge_form             MongeForm;
-
-
-
-
-
+    //! function that converts the Point_3 format that is used by CGAL into a StdVector of Vectors
+    //! always outputs 3 dimensional Vecors
+    //! \param pointsAsCfsVectors (out) representation as Point_3 
+    //! \param pointsAsPoint_3Format (in) representation as CFS Vector
+    void ConvertVectorFromPoint_3Format(StdVector<Vector<Double>>& pointsAsCfsVectors, std::vector<DPoint>& pointsAsPoint_3Format) {
+      size_t numPoints = pointsAsPoint_3Format.size();
+      pointsAsCfsVectors.Resize(numPoints);
+      if (numPoints > 0) {
+        for (UInt i = 0; i < numPoints; i++) {
+          pointsAsCfsVectors[i].Resize(3);
+          pointsAsCfsVectors[i][0] = pointsAsPoint_3Format[i].x();
+          pointsAsCfsVectors[i][1] = pointsAsPoint_3Format[i].y();
+          pointsAsCfsVectors[i][2] = pointsAsPoint_3Format[i].z();
+        }
+      } else
+        EXCEPTION("No entries for conversion provided!");
+    };
 
 #elif USE_LIBFBI // USE_CGAL
 
