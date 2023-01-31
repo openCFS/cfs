@@ -2978,8 +2978,6 @@ namespace CoupledField {
       innerRegionFound = false;
       surfRegionFound = false;
     }
-    // finally, we need to trigger FinishInit() to include the new regions
-    //this->FinishInit();
   }
 
 
@@ -3010,9 +3008,6 @@ namespace CoupledField {
     StdVector<Elem*> layerElems;
     // normal vectors on surface nodes
     StdVector<Vector<Double>> surfNormalVectors;
-    // parameters for Monge fitting
-    UInt degreePolyFit = 4;
-    UInt degreeMongeCoeff = 4;
 
     // extract parameters from layerGenNode
     layerGenNode->GetValue("numLayers", numLayers);
@@ -3041,16 +3036,115 @@ namespace CoupledField {
     layerRegionId = this->AddRegion(layerName, VOLUME_REGION);
 
 
-    surfNormalVectors = surfNodeCoords;
+#ifdef USE_CGAL
+    Vector<Double> tempNormVec = Vector<Double>(3,0);
+    StdVector<Vector<Double>> currNodeCoords;
+    StdVector<Vector<Double>> tempNodeCoords;
+    StdVector<UInt> currNodeIds;
+    StdVector<const Elem*> currElemsNextToNode;
+    StdVector<RegionIdType> searchRegionIds;
+    Vector<Double> innerPoint = Vector<Double>(3,0);
+    Vector<Double> tempVec = Vector<Double>(3,0);
+    searchRegionIds.Push_back(surfRegionId);
+    Double factor;
+    UInt tempId;
+    UInt vertexIdx;
+    // parameters for Monge fitting
+    UInt degreePolyFit = 4;
+    UInt degreeMongeCoeff = 4;
+    // minimum required points
+    UInt minNumPoints = (degreePolyFit + 1) * (degreePolyFit + 2) / 2;
 
-    // set up monge form to compute surface normals
-//    this->SetUpMongeForm(degreePolyFit, degreeMongeCoeff, nodeCoords);*/
-    // compute surface normals
-  
+    // compute the average of all points in the current point cloud representing an inner point
+    for (UInt iSurfNodes = 0; iSurfNodes < numSurfNodes; iSurfNodes++) {
+      innerPoint[0] += surfNodeCoords[iSurfNodes][0];
+      innerPoint[1] += surfNodeCoords[iSurfNodes][1];
+      innerPoint[2] += surfNodeCoords[iSurfNodes][2];
+    }
+    innerPoint /= Double(numSurfNodes);
+
+
+    // compute surface normals. We need to iterate ofer every surface node and 
+    // gather at least the 1-ring neighbourhood for approximation
+    for (UInt iSurfNodes = 0; iSurfNodes < numSurfNodes; iSurfNodes++) {
+      currNodeIds.Clear();
+      currNodeIds.Push_back(surfRegionNodeIds[iSurfNodes]);
+      // gather enough points for monge fitting
+      while (currNodeIds.GetSize() < minNumPoints) {
+        // get elements 
+        this->GetElemsNextToNodes(currElemsNextToNode, currNodeIds, searchRegionIds);
+        // get node ids of elements
+        this->GetNodesOfElemList(currNodeIds, currElemsNextToNode);
+      }
+      // assure that the vertex ID is the first entry in the vector so that CGAL uses it as vertex
+      tempId = currNodeIds[0];
+      vertexIdx = currNodeIds.Find(surfRegionNodeIds[iSurfNodes]);
+      currNodeIds[0] = currNodeIds[vertexIdx];
+      currNodeIds[vertexIdx] = tempId;
+      // get coordinates
+      this->GetNodeCoordinates(currNodeCoords, currNodeIds, false);
+      // first, we need to switch the format of out point-coordinate representation
+      std::vector<DPoint> coordsPoint_3;
+      this->ConvertVectorToPoint_3Format(coordsPoint_3, currNodeCoords);
+      // then, set up the monge form
+      MongeForm mongeForm;
+      this->SetUpMongeForm(mongeForm, degreePolyFit, degreeMongeCoeff, coordsPoint_3);
+    
+      // compute vector between inner point and vertex point to approximate normal-vector direction
+      
+      //mongeForm.comply_wrt_given_normal(normal_mesh);
+
+      //this->ConvertVectorFromPoint_3Format(tempNormVec, mongeForm.normal_direction());
+      // store
+      tempNormVec[0] = mongeForm.normal_direction().x();
+      tempNormVec[1] = mongeForm.normal_direction().y();
+      tempNormVec[2] = mongeForm.normal_direction().z();
+
+      
+
+      // check if normal points in correct direction...
+      tempVec = innerPoint - surfNodeCoords[iSurfNodes];
+
+      tempNormVec.Inner(tempVec, factor);
+      if (factor >= 0)
+        factor = -1;
+      else
+        factor = 1;
+
+      tempNormVec.ScalarMult(factor);
+
+
+      surfNormalVectors.Push_back(tempNormVec);
+
+
+      WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-surfNormalVectors[iSurfNodes][0] << " in x, \n"
+      << surfNodeCoords[iSurfNodes][1]-surfNormalVectors[iSurfNodes][1] << " in y, \n"
+      << surfNodeCoords[iSurfNodes][2]-surfNormalVectors[iSurfNodes][2] << " in z, \n"
+      << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
+      WARN("Monge Origin is at: \n"<< mongeForm.origin().x() << " in x, \n"
+      << mongeForm.origin().y() << " in y, \n"
+      << mongeForm.origin().z() << " in z, \n"
+      << "compared to the desired vertex at \n" << surfNodeCoords[iSurfNodes][0] << " in x, \n"
+      << surfNodeCoords[iSurfNodes][1] << " in y, \n"
+      << surfNodeCoords[iSurfNodes][2] << " in z");
+      WARN("The number of points used is " << currNodeIds.GetSize());
+      WARN("The first point id in data is " << currNodeIds[0] <<
+          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);
+    }
+#else
+  WARN("Missing dependencies for computing surface normals on nodes!");
+  surfNormalVectors = surfNodeCoords;
+#endif  
+
+
+
+
+    
 
     // compute new nodes iteratively
     // temporary node coords for iterative computation
-    StdVector<Vector<Double>> currNodeCoords = surfNodeCoords;
+    currNodeCoords.Clear();
+    currNodeCoords = surfNodeCoords;
     StdVector<Vector<Double>> allLayerNodeCoords = surfNodeCoords;
     StdVector<StdVector<UInt>> allLayerNodeIds = StdVector<StdVector<UInt>>(numLayers+1);
     allLayerNodeIds[0] = surfRegionNodeIds;
@@ -3069,9 +3163,7 @@ namespace CoupledField {
       }
     }
 
-
     // parameters of elements in new layer
-    //StdVector<StdVector<UInt>> layerConnectivity;
     StdVector<UInt> layerConnectivity;
     Elem::FEType currLayerElemType;
     Elem::FEType currSurfElemType;
@@ -3090,8 +3182,6 @@ namespace CoupledField {
 
     } else {
       numLayerElems = numSurfElems * numLayers;
-      
-      
       surfElemConnectivity.Resize(numSurfElems);
       connectNodeIdx.Resize(numSurfElems);
       addedElems.Resize(numLayers);
@@ -3144,7 +3234,7 @@ namespace CoupledField {
           }
 
           // assign connectivity to current layer element
-          for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {     
+          for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {
             layerConnectivity[iNode] = allLayerNodeIds[iLayers][connectNodeIdx[iSurfElems][iNode]];
             layerConnectivity[iNode+numNodesInSurfElement] = allLayerNodeIds[iLayers+1][connectNodeIdx[iSurfElems][iNode]];
           }
