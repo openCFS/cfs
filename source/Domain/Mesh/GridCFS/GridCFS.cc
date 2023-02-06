@@ -3063,7 +3063,6 @@ namespace CoupledField {
     }
     innerPoint /= Double(numSurfNodes);
 
-
     // compute surface normals. We need to iterate ofer every surface node and 
     // gather at least the 1-ring neighbourhood for approximation
     for (UInt iSurfNodes = 0; iSurfNodes < numSurfNodes; iSurfNodes++) {
@@ -3090,34 +3089,25 @@ namespace CoupledField {
       MongeForm mongeForm;
       this->SetUpMongeForm(mongeForm, degreePolyFit, degreeMongeCoeff, coordsPoint_3);
     
-      // compute vector between inner point and vertex point to approximate normal-vector direction
-      
-      //mongeForm.comply_wrt_given_normal(normal_mesh);
-
-      //this->ConvertVectorFromPoint_3Format(tempNormVec, mongeForm.normal_direction());
       // store
       tempNormVec[0] = mongeForm.normal_direction().x();
       tempNormVec[1] = mongeForm.normal_direction().y();
       tempNormVec[2] = mongeForm.normal_direction().z();
 
-      
-
-      // check if normal points in correct direction...
+      // compute vector between inner point and vertex point to approximate normal-vector direction
       tempVec = innerPoint - surfNodeCoords[iSurfNodes];
-
+      // check if normal points in correct direction
       tempNormVec.Inner(tempVec, factor);
       if (factor >= 0)
         factor = -1;
       else
         factor = 1;
+      tempNormVec *= factor;
 
-      tempNormVec.ScalarMult(factor);
-
-
+      // store in StdVector
       surfNormalVectors.Push_back(tempNormVec);
 
-
-      WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-surfNormalVectors[iSurfNodes][0] << " in x, \n"
+      /*WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-surfNormalVectors[iSurfNodes][0] << " in x, \n"
       << surfNodeCoords[iSurfNodes][1]-surfNormalVectors[iSurfNodes][1] << " in y, \n"
       << surfNodeCoords[iSurfNodes][2]-surfNormalVectors[iSurfNodes][2] << " in z, \n"
       << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
@@ -3129,17 +3119,12 @@ namespace CoupledField {
       << surfNodeCoords[iSurfNodes][2] << " in z");
       WARN("The number of points used is " << currNodeIds.GetSize());
       WARN("The first point id in data is " << currNodeIds[0] <<
-          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);
+          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);*/
     }
 #else
-  WARN("Missing dependencies for computing surface normals on nodes!");
+  EXCEPTION("Missing dependencies for computing surface normals on nodes!");
   surfNormalVectors = surfNodeCoords;
 #endif  
-
-
-
-
-    
 
     // compute new nodes iteratively
     // temporary node coords for iterative computation
