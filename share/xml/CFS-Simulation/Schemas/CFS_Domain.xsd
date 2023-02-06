@@ -115,7 +115,6 @@
       - surfRegiontoActOn:  defines the surface where the layer will be built onto; 
                             should be the the outer boundary of the propagation domain or a part of it;
       - innerRegion:        specifies the inner (volume) region to assure that the layer is built outside.
-      - material:           specifies the material that is assigned to the new region
       </xsd:documentation>
     </xsd:annotation>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
