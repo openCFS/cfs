@@ -60,6 +60,9 @@ class BiLinearForm;
     
   private:
 
+    //! Whether to use a symmetric formulation or not
+    bool isCouplingFormulationSymmetric_;
+
   };
 
 

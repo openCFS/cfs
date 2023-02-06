@@ -44,10 +44,19 @@ namespace CoupledField {
     // determine subtype
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
+    // determine whether symmetric or non symmetric formulation should be used
+    isCouplingFormulationSymmetric_ = true;
+    paramNode->GetValue("symmetric",isCouplingFormulationSymmetric_,ParamNode::PASS);
+
     nonLin_ = false;
     
     // Initialize nonlinearities
     InitNonLin();
+
+		// inform linFlowPDE about coupling to HeatPDE and vice versa
+    dynamic_cast<LinFlowPDE*> (pde1)->SetHeatPDECouplingFlags(isCouplingFormulationSymmetric_);
+    dynamic_cast<HeatPDE*> (pde2)->SetLinFlowPDECouplingFlags(isCouplingFormulationSymmetric_);
+
   }
 
 
@@ -128,29 +137,38 @@ namespace CoupledField {
 
     	heatToFlowDescr->SetEntities( actSDList, actSDList );
     	heatToFlowDescr->SetFeFunctions( flowFct, heatFct );
-    	heatToFlowDescr->SetCounterPart(false);
+      // In case the Coupling is written in a symmetric form the counterpart needs to be set, to also
+      // create the other symmteric integrator
+    	heatToFlowDescr->SetCounterPart(isCouplingFormulationSymmetric_);
 
-		assemble_->AddBiLinearForm( heatToFlowDescr );
+      assemble_->AddBiLinearForm( heatToFlowDescr );
 
     	// bilinear form for coupling from flow to heat: coefThermalExpansion*refTemp \frac{\partial p_\ra}{\partial t}
     	// The coefficient "ThermalExpansion*refTemp" is necessary for a general fluid.
-		// For an ideal gas: ThermalExpansion*refTemp = 1
-        PtrCoefFct coefThermalExpansionT  = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
-    	BiLinearForm *flowToHeat = NULL;
-    	if( dim_ == 2 ) {
-    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefThermalExpansionT, -1.0 );
-    	} else {
-    		flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefThermalExpansionT, -1.0 );
-    	}
-    	heatToFlow->SetName("LinFlowToHeatCoupling");
+      // For an ideal gas: ThermalExpansion*refTemp = 1
+      // In case the coupling is symmetric the coefficent function is in theory divied by refTemp, but
+      // as it is symmetric only one of the two symmetric integrators is needed, therefore this integrator is not
+      // created in the symmteric formulation
+      if (!isCouplingFormulationSymmetric_) {
+        PtrCoefFct coefFlowToHeat = CoefFunction::Generate( mp, Global::REAL,CoefXprBinOp(mp,coefThermalExpansion,refTemp,CoefXpr::OP_MULT));
 
-    	BiLinFormContext * flowToHeatDescr = new BiLinFormContext(flowToHeat, DAMPING );
+        BiLinearForm *flowToHeat = NULL;
+        if( dim_ == 2 ) {
+          flowToHeat = new ABInt<>(new IdentityOperator<FeH1,2,1>(), new IdentityOperator<FeH1,2,1>(), coefFlowToHeat, -1.0 );
+        } else {
+          flowToHeat = new ABInt<>(new IdentityOperator<FeH1,3,1>(), new IdentityOperator<FeH1,3,1>(), coefFlowToHeat, -1.0 );
+        }
 
-    	flowToHeatDescr->SetEntities( actSDList, actSDList );
-    	flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
-    	flowToHeatDescr->SetCounterPart(false);
+        heatToFlow->SetName("LinFlowToHeatCoupling");
 
-		assemble_->AddBiLinearForm( flowToHeatDescr );
+        BiLinFormContext * flowToHeatDescr = new BiLinFormContext(flowToHeat, DAMPING );
+
+        flowToHeatDescr->SetEntities( actSDList, actSDList );
+        flowToHeatDescr->SetFeFunctions( heatFct, flowFct );
+        flowToHeatDescr->SetCounterPart(false);
+
+        assemble_->AddBiLinearForm( flowToHeatDescr );
+      }
     }
   }
 }

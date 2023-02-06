@@ -1024,8 +1024,6 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       coupling = new LinFlowHeatCoupling(pde1, pde2, pairNodes[i], info_,
     		                             simState_, this );
-      // inform linFlowPDE about coupling to heatConduction
-      dynamic_cast<LinFlowPDE*> (pde1)->SetHeatCoupling();
     }
     // *** Linear flow coupled with acoustic wave equation***
     else if (couplingName == "linFlowAcouDirect")

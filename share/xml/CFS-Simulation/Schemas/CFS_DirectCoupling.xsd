@@ -483,6 +483,7 @@
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
+          <xsd:attribute name="symmetric" default="yes" type="DT_CFSBool"/>
         </xsd:extension>
       </xsd:complexContent>
     </xsd:complexType>

@@ -35,6 +35,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~HeatPDE(){};
 
+    //! set coupling to LinFlow PDE and whteher to use a symmetric form
+    void SetLinFlowPDECouplingFlags(bool useSymmetricForm);
+
     /** constants for test temperature gradients (rhs), used for homogenization. We depend on the int values! */
     typedef enum {X=0, Y=1, Z=2} TestStrain;
 
@@ -145,6 +148,11 @@ namespace CoupledField {
 
     //! store convective bilinear forms
     std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
+
+    //! true, if coupled to LinFlow PDE
+    bool isLinFlowPDECoupled_;
+    //! Whether to use a symmetric formulation or not in coupling (to LinFlowPDE)
+    bool isCouplingFormulationSymmetric_;
 
   };
 

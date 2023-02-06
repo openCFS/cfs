@@ -41,10 +41,11 @@ namespace CoupledField
     //! Destructor
     virtual ~LinFlowPDE(){};
 
-    //! set coupling to Heat PDE true
-    void SetHeatCoupling() {
-    	isHeatCoupled_ = true;
-    }
+    //! set coupling to Heat PDE and whteher to use a symmetric form
+    void SetHeatPDECouplingFlags(bool useSymmetricForm);
+
+    //! Return the integrator sign
+    double GetBalanceOfMomentumSign() const;
 
   protected:
 
@@ -176,7 +177,12 @@ namespace CoupledField
     Double factorC1_;
 
     //! true, if coupled to Heat PDE
-    bool isHeatCoupled_;
+    bool isHeatPDECoupled_;
+    //! Whether to use a symmetric formulation or not in coupling (to HeatPDE)
+    bool isCouplingFormulationSymmetric_;
+
+    //! Sign of the integrators (used to controll the sign of the balance of momentum terms)
+    double balanceOfMomentumSign_;
 
   private:
 

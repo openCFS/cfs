@@ -71,6 +71,9 @@ namespace CoupledField {
     // get math parser
     MathParser * mp = domain_->GetMathParser();
 
+    // Get balance of momentum sign of LinFlowPDE
+    double linFlowBalanceOfMomentumSign = linflowPDE->GetBalanceOfMomentumSign();
+
     // get hold of all feFunctions (depending on the acoustic formulation)
     shared_ptr<BaseFeFunction> velFct = linflowPDE->GetFeFunction(FLUIDMECH_VELOCITY);
     shared_ptr<BaseFeFunction> presFct = linflowPDE->GetFeFunction(FLUIDMECH_PRESSURE);
@@ -124,12 +127,12 @@ namespace CoupledField {
         if( dim_ == 2  ) {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                          new IdentityOperatorNormal<FeH1,2>(),
-                                         coefFuncs, -1.0, acouRegions);
+                                         coefFuncs, -linFlowBalanceOfMomentumSign, acouRegions);
         }
         else  {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                          new IdentityOperatorNormal<FeH1,3>(),
-                                         coefFuncs, -1.0, acouRegions);
+                                         coefFuncs, -linFlowBalanceOfMomentumSign, acouRegions);
         }
         cplInt1->SetName("LinFlowAcouCouplingInt1");
         BiLinFormContext *context1 = new BiLinFormContext(cplInt1, DAMPING);
@@ -179,13 +182,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
           ncCplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
                                                 new IdentityOperatorNormal<FeH1,2>(),
-                                                coefFuncs, -1.0, mortarIf->IsPlanar(),
+                                                coefFuncs, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         else {
           ncCplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
                                                 new IdentityOperatorNormal<FeH1,3>(),
-                                                coefFuncs, -1.0, mortarIf->IsPlanar(),
+                                                coefFuncs, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         ncCplInt1->SetName("LinFlowAcouCouplingNCInt1");
@@ -243,12 +246,12 @@ namespace CoupledField {
         if( dim_ == 2  ) {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                          new IdentityOperatorNormal<FeH1,2>(),
-                                         constOne, -1.0, acouRegions);
+                                         constOne, -linFlowBalanceOfMomentumSign, acouRegions);
         }
         else  {
             cplInt1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
                                          new IdentityOperatorNormal<FeH1,3>(),
-                                         constOne, -1.0, acouRegions);
+                                         constOne, -linFlowBalanceOfMomentumSign, acouRegions);
         }
         cplInt1->SetName("LinFlowAcouCouplingInt");
         BiLinFormContext *context1 = new BiLinFormContext(cplInt1, STIFFNESS);
@@ -297,13 +300,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
           cplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
                                                 new IdentityOperatorNormal<FeH1,2>(),
-                                                constOne, -1.0, mortarIf->IsPlanar(),
+                                                constOne, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         else {
           cplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
                                                 new IdentityOperatorNormal<FeH1,3>(),
-                                                constOne, -1.0, mortarIf->IsPlanar(),
+                                                constOne, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
                                                 geoUpdate_);
         }
         cplInt1->SetName("LinFlowAcouCouplingNCInt");
