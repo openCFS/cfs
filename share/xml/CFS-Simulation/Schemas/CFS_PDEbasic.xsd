@@ -950,28 +950,6 @@
               <xsd:attribute name="power" type="xsd:token" default="0" use="optional"/>
             </xsd:complexType>
           </xsd:element>
-
-          <!-- Automatic layer generation for CFS-PML -->
-          <!--xsd:element name="autoLayerGeneration" minOccurs="0" maxOccurs="1">
-            <xsd:annotation>
-              <xsd:documentation>
-                Define the parameters for automatic layer generation via mesh extrusion.
-                The elements of the layer are prismatic. 
-                - elemHeight: defines the height of each element in 'm', passed as a positive float; 
-                - numLayers: is the number of extrusion steps and must be a positive integer;
-                - surfRegiontoActOn: defines the surface where the layer will be built onto; 
-                      should be the the outer boundary of the propagation domain or a part of it;
-              </xsd:documentation>
-            </xsd:annotation>
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="elemHeight" type="xsd:float" default="1" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="numLayers" type="xsd:positiveInteger" default="2" minOccurs="0" maxOccurs="1"/>
-                <xsd:element  name="surfRegionToActOn" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element-->
-          <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
 
         <xsd:attribute name="formulation" type="DT_PMLFormulation" default="classic" use="optional"
