@@ -101,6 +101,12 @@ protected:
                           StdVector<std::string>& contactLawList,
                           StdVector<bool>& useSurfaceMidpointsList);
 
+    //! Define list of forces to be balanced
+    void ReadForceBalance(StdVector<std::string>& surfList1,
+                          StdVector<std::string>& surfList2,
+                          StdVector<std::string>& volumeList,
+                          StdVector<Vector<double>>& balanceVec);
+
   private:
 
     //! Initialize time stepping method

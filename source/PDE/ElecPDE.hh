@@ -144,6 +144,12 @@ namespace CoupledField
     //! Calculate electric charges
     template <class TYPE>
     void CalcCharges( shared_ptr<BaseResult> vals );
+
+    //! Define list of forces to be balanced
+    void ReadForceBalance(StdVector<std::string>& surfList1,
+                          StdVector<std::string>& surfList2,
+                          StdVector<std::string>& volumeList,
+                          StdVector<Vector<double>>& balanceVec);
     
     //! Contains the (Volume) subdomains next to the surface
     //! elements where the charges are computed

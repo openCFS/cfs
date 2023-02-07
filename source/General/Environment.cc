@@ -128,12 +128,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
     SolutionTypeEnum.Add(ELEC_FORCE, "elecForce");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
+    SolutionTypeEnum.Add(ELEC_FORCE_BALANCED, "elecForceBalanced");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
     SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
     SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
     SolutionTypeEnum.Add(ELEC_FORCE_DENSITY, "elecForceDensity");
+    SolutionTypeEnum.Add(ELEC_FORCE_DENSITY_BALANCED, "elecForceDensityBalanced");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
     SolutionTypeEnum.Add(ELEC_ELEM_PERMITTIVITY, "elecElemPermittivity");
 
@@ -150,6 +152,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY, "smoothContactForceDensity");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE, "smoothContactForce");
+    SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY_BALANCED, "smoothContactForceDensityBalanced");
+    SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_BALANCED, "smoothContactForceBalanced");
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
@@ -793,7 +797,9 @@ namespace CoupledField {
       case MAG_FORCE_VWP:
       case MECH_RHS_LOAD:
       case ELEC_FORCE:
+      case ELEC_FORCE_BALANCED:
       case SMOOTH_CONTACT_FORCE:
+      case SMOOTH_CONTACT_FORCE_BALANCED:
         return "N";
         break;
 
@@ -963,10 +969,12 @@ namespace CoupledField {
         break;
 
       case ELEC_FORCE_DENSITY:
+      case ELEC_FORCE_DENSITY_BALANCED:
       case MAG_FORCE_MAXWELL_DENSITY:
       case MAG_NORMALFORCE_MAXWELL_DENSITY:
       case MAG_TANGENTIALFORCE_MAXWELL_DENSITY:
       case SMOOTH_CONTACT_FORCE_DENSITY:
+      case SMOOTH_CONTACT_FORCE_DENSITY_BALANCED:
         return "N/m^2";
 
       case DIV_MEAN_FLUIDMECH_VELOCITY:

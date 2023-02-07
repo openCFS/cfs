@@ -80,6 +80,28 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
+
+
+          <!-- List defining balancing surface couples -->
+          <xsd:element name="forceBalancingList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                List defining surface pairs which are balanced to fulfill $(\bm{F_1}+\bm{F_2} \cdot \bm{\eta} = 0)$.
+              </xsd:documentation>
+            </xsd:annotation>              
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="forceBalance" type="DT_forceBalanceIF"
+                  minOccurs="0" maxOccurs="unbounded">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      Defines the surface pairs getting balanced as well as the balancing direction $\bm{\eta}$. This direction is defined via setting weights for the axis of the coordinate system.
+                    </xsd:documentation>
+                  </xsd:annotation>              
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
            
 
           <!-- Initial conditions (optional) -->
@@ -275,6 +297,7 @@
   <xsd:simpleType name="DT_SmoothSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothContactForceDensity"/> 
+      <xsd:enumeration value="smoothContactForceDensityBalanced"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -282,6 +305,7 @@
   <xsd:simpleType name="DT_SmoothSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothContactForce"/>
+      <xsd:enumeration value="smoothContactForceBalanced"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -381,6 +405,61 @@
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Flag if either the midpoints of the target surface or the nodes themselves should be used for the contact.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <!-- ********************************************************************
+  Data type for specification of a force balanced surface pair
+  ********************************************************************* -->
+  <xsd:complexType name="DT_forceBalanceIF">
+    <xsd:attribute name="Surface1" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          First surface used for force balancing. This is also the surface that gets evaluated.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>   
+    <xsd:attribute name="Surface2" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Second surface used for force balancing. This surface does not get evaluated in is just used for internal calculations.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="Volume" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Volume in between the two surfaces.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="balancingWeightX" type="xsd:double" use="optional" default="1">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Factor used to weigh the sum of the two froces in x-direction.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="balancingWeightY" type="xsd:double" use="optional" default="0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Factor used to weigh the sum of the two froces in y-direction.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="balancingWeightZ" type="xsd:double" use="optional" default="0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Factor used to weigh the sum of the two froces in z-direction.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="balancingWeightR" type="xsd:double" use="optional" default="0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Factor used to weigh the sum of the two froces in r-direction.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>

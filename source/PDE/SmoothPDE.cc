@@ -33,6 +33,7 @@
 #include "Domain/Results/ResultFunctor.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionContactForceDensity.hh"
+#include "Domain/CoefFunction/CoefFunctionSurfaceForceBalance.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -690,6 +691,58 @@ namespace CoupledField {
         contactForceFct.reset(new ResultFunctorIntegrate<Double>(contactForceDensityFunc, feFct, contactForce));
     resultFunctors_[SMOOTH_CONTACT_FORCE] = contactForceFct;
     availResults_.insert(contactForce);
+    iterUpdateResults_.insert(contactForce);
+
+    
+    // === SMOOTH CONTACT FORCE DENSITY BALANCED ===
+    shared_ptr<ResultInfo> contactForceDensityBalanced(new ResultInfo);
+    contactForceDensityBalanced->resultType = SMOOTH_CONTACT_FORCE_DENSITY_BALANCED;
+    contactForceDensityBalanced->dofNames = dispDofNames;
+    contactForceDensityBalanced->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE_DENSITY_BALANCED);
+    contactForceDensityBalanced->entryType = ResultInfo::VECTOR;
+    contactForceDensityBalanced->definedOn = ResultInfo::SURF_ELEM;
+    availResults_.insert( contactForceDensityBalanced );
+
+    StdVector<std::string> surfListBalance1;
+    StdVector<std::string> surfListBalance2;
+    StdVector<std::string> volumeListBalance;
+    StdVector<Vector<double>> balanceVec;
+    ReadForceBalance(surfListBalance1, surfListBalance2, volumeListBalance, balanceVec);
+
+    // here we need to use the new coefFct and pass 
+    // CoefFunctionContactForceDensity
+    // contactForceFct
+    // surface region list with surface partner
+    // direction for averaging
+    shared_ptr<CoefFunctionSurfaceForceBalance> contactForceDensityBalancedFunc;
+    contactForceDensityBalancedFunc.reset(new CoefFunctionSurfaceForceBalance(contactForceDensityFunc, 
+                                                                                contactForceFct,
+                                                                                feFct,
+                                                                                surfListBalance1,
+                                                                                surfListBalance2,
+                                                                                volumeListBalance,
+                                                                                balanceVec));
+
+    DefineFieldResult( contactForceDensityBalancedFunc, contactForceDensityBalanced );
+    
+    
+    // === SMOOTH CONTACT FORCE BALANCED (= integral of balanced contact force density) ===
+    shared_ptr<ResultInfo> contactForceBalanced;
+    contactForceBalanced.reset(new ResultInfo);
+    contactForceBalanced->resultType = SMOOTH_CONTACT_FORCE_BALANCED;
+    contactForceBalanced->dofNames = dispDofNames;
+    contactForceBalanced->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE_BALANCED);
+    contactForceBalanced->entryType = ResultInfo::VECTOR;
+    contactForceBalanced->definedOn = ResultInfo::SURF_REGION;
+    // Integrate surface traction
+    shared_ptr<ResultFunctor> contactForceBalancedFct;
+    if(isComplex_)
+        contactForceBalancedFct.reset(new ResultFunctorIntegrate<Complex>(contactForceDensityBalancedFunc, feFct, contactForceBalanced));
+    else
+        contactForceBalancedFct.reset(new ResultFunctorIntegrate<Double>(contactForceDensityBalancedFunc, feFct, contactForceBalanced));
+    resultFunctors_[SMOOTH_CONTACT_FORCE_BALANCED] = contactForceBalancedFct;
+    availResults_.insert(contactForceBalanced);
+    
   }
 
 
@@ -782,6 +835,122 @@ namespace CoupledField {
           volumeList.push_back(volumeName);
           contactLawList.push_back(contactLaw);
           useSurfaceMidpointsList.push_back(useSurfaceMidpoints);
+
+
+        } catch (Exception &e) {
+          RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                                      << "' on entities '" << surfName1 << "' and' " << surfName2 <<"'");
+        }
+      }
+    }
+  }
+
+  void SmoothPDE::ReadForceBalance(StdVector<std::string>& surfList1,
+                                    StdVector<std::string>& surfList2,
+                                    StdVector<std::string>& volumeList,
+                                    StdVector<Vector<double>>& balanceVec) {
+    // Read in list defining which forces should be balanced
+    // We retunr a list of surface pairs as well as the 
+    // Check if the node is defined
+    PtrParamNode bcNode = myParam_->Get("forceBalancingList", ParamNode::PASS);
+    if (bcNode) {
+      StdVector<shared_ptr<EntityList> > ent;
+      std::string elemName = "forceBalance";
+      ParamNodeList elems = myParam_->Get("forceBalancingList")->GetList(elemName);
+      
+      ent.Resize(elems.GetSize());
+      
+      // Define xml input
+      std::string surfName1;
+      std::string surfName2;
+      std::string volumeName;
+
+      double xComp;
+      double yComp;
+      double zComp;
+      double rComp;
+
+      // TODO
+
+      surfList1.Clear();
+      surfList2.Clear();
+      balanceVec.Clear();
+      
+      //std::vector<std::pair<std::string,std::string>> surfList;
+      for (UInt i = 0; i < elems.GetSize(); ++i) {
+        PtrParamNode xml = elems[i];
+        try {
+          // read xml input
+          surfName1 = xml->Get("Surface1")->As<std::string>();
+          surfName2 = xml->Get("Surface2")->As<std::string>();
+          volumeName = xml->Get("Volume")->As<std::string>();
+          xComp = xml->Get("balancingWeightX")->As<double>();
+          yComp = xml->Get("balancingWeightY")->As<double>();
+          zComp = xml->Get("balancingWeightZ")->As<double>();
+          rComp = xml->Get("balancingWeightR")->As<double>();
+
+          // check which subtype we have and define the balancing vector accordingly
+          Vector<double> tempVec;
+          tempVec.Clear();
+          if( subType_ == "3d" || subType_ == "2.5d") {
+            tempVec.Push_back(xComp);
+            tempVec.Push_back(yComp);
+            tempVec.Push_back(zComp);
+          } else if( subType_ == "planeStrain" || subType_ == "planeStress") {
+            tempVec.Push_back(xComp);
+            tempVec.Push_back(yComp);
+          } else if( subType_ == "axi" ) {
+            tempVec.Push_back(rComp);
+            tempVec.Push_back(zComp);
+          }  
+          
+          // check if we only have surface elements in the given region
+          EntityList::ListType listType = EntityList::ELEM_LIST;
+          if( ptGrid_->GetEntityDim(surfName1) == ptGrid_->GetDim()-1 && ptGrid_->GetEntityDim(surfName2) == ptGrid_->GetDim()-1 ) {
+          listType = EntityList::SURF_ELEM_LIST;
+          } else {
+            throw Exception("contactForce can only be evaluated on surface regions");
+          }
+
+          // finish checks
+          switch( ptGrid_->GetEntityType(surfName1) ) {
+            case EntityList::NAMED_NODES:
+            ent[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, surfName1);
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            ent[i] = ptGrid_->GetEntityList( listType, surfName1 );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << surfName1 << "' known");
+            break;
+          }
+          // check just defined type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION("contactForce must be defined on elements")
+          }
+          switch( ptGrid_->GetEntityType(surfName2) ) {
+            case EntityList::NAMED_NODES:
+            ent[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, surfName2);
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            ent[i] = ptGrid_->GetEntityList( listType, surfName2 );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << surfName2 << "' known");
+            break;
+          }
+          // check just defined type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION("contactForce must be defined on elements")
+          }
+
+          // add everything to the lists
+          surfList1.push_back(surfName1);
+          surfList2.push_back(surfName2);
+          volumeList.push_back(volumeName);
+          balanceVec.push_back(tempVec);
 
 
         } catch (Exception &e) {

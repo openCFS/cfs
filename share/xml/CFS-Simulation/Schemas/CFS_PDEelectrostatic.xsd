@@ -106,6 +106,27 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
+
+          <!-- List defining balancing surface couples -->
+          <xsd:element name="forceBalancingList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                List defining surface pairs which are balanced to fulfill $(\bm{F_1}+\bm{F_2} \cdot \bm{\eta} = 0)$.
+              </xsd:documentation>
+            </xsd:annotation>              
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="forceBalance" type="DT_forceBalanceIF"
+                  minOccurs="0" maxOccurs="unbounded">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      Defines the surface pairs getting balanced as well as the balancing direction $\bm{\eta}$. This direction is defined via setting weights for the axis of the coordinate system.
+                    </xsd:documentation>
+                  </xsd:annotation>              
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
           
            <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
@@ -339,6 +360,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecChargeDensity"/>
       <xsd:enumeration value="elecForceDensity"/>
+      <xsd:enumeration value="elecForceDensityBalanced"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -347,6 +369,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecCharge"/>
       <xsd:enumeration value="elecForce"/>
+      <xsd:enumeration value="elecForceBalanced"/>
     </xsd:restriction>
   </xsd:simpleType>
 
