@@ -32,6 +32,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionDiagTensorFromScalar.cc
   CoefFunctionMaterialModel.cc
   CoefFunctionConversion.hh
+  CoefFunctionSurfaceForceBalance.cc
 )
 
 if(USE_EMBEDDED_PYTHON)
