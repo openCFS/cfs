@@ -165,6 +165,23 @@ namespace CoupledField {
     }
   }
 
+  void ResultHandler::DefineNeededResults() {
+    LOG_DBG(resHandler) << "Manually defining needed results ";
+
+    // check all result contexts, which one of them has to be updated
+    // (determined by saveBegin, saveEnd and saveInc )
+    isNeeded_.clear();
+    isUpdated_.clear();
+    for(auto contextIt = contexts_.begin(); contextIt != contexts_.end(); contextIt++) {
+      BaseResult& actResult  = *((*contextIt)->result);
+      LOG_DBG(resHandler) << "IsNeeded for '" << actResult.GetResultInfo()->resultName
+                          << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
+                          << (IsOutput( **contextIt ) == true ? "true" : "false") << "'";
+      if(IsOutput( **contextIt))
+        isNeeded_.insert((*contextIt)->result);
+    }
+  }
+
   void ResultHandler::BeginStep( UInt stepNum, Double stepVal ) {
 
     LOG_DBG(resHandler) << "Begin step " << stepNum;
@@ -236,6 +253,32 @@ namespace CoupledField {
 
         actContext.functor->EvalResult(actContext.result);
         UpdateResult(actContext.result);
+      }
+    }
+  }
+
+  void ResultHandler::UpdateResultType(SolutionType solType) {
+    // clear entities and result vectors
+    for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++) {
+      ResultContext& actContext = *(resultContexts_[*it]);
+      if(actContext.functor) {
+        if(actContext.functor->GetResultInfo()->resultType == solType) {
+          actContext.functor->ResetResultEnt();
+          actContext.functor->ResetResultVec();
+        }
+      }
+    }
+
+    // iterate over all results, which are needed
+    for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++)
+    {
+      ResultContext& actContext = *(resultContexts_[*it]);
+      std::string tempName = actContext.result->GetEntityList()->GetName();
+      //std::cout << tempName;
+      if(actContext.functor) {
+        if(actContext.functor->GetResultInfo()->resultType == solType) {
+          actContext.functor->EvalResult(actContext.result);
+        }
       }
     }
   }
@@ -897,7 +940,38 @@ namespace CoupledField {
     return inFiles_[readerId]->GetFeFunction<TYPE>(sequenceStep, stepValue, solType, regionNames);
   }
   
-  
+  shared_ptr<ResultFunctor> ResultHandler::GetResFunctor(SolutionType fnctResName, std::string regionName)
+  {
+    // iterate over all results, which are needed
+    for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++)
+    {
+      ResultContext& actContext = *(resultContexts_[*it]);
+
+      if(actContext.functor) {
+        SolutionType curResName = actContext.functor->GetResultInfo()->resultType;
+
+        // check if we found the right result
+        if(fnctResName==curResName)
+        {
+          //shared_ptr<EntityList> curEntityList = actContext.functor->GetResultEnt();
+          shared_ptr<EntityList> curEntityList = actContext.result->GetEntityList();
+          EntityIterator nameIt = curEntityList->GetIterator();
+          for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)
+          {
+            // check if we found the correct region
+            std::string testname = nameIt.GetName();
+            if(nameIt.GetName()==regionName)
+            {
+              // we have a match!
+              return actContext.functor;
+            }
+          }
+        }
+      }
+    }
+    // no match until now? Return an exception
+    EXCEPTION("Did not find a suitable result for result number " << fnctResName << " on " << regionName);
+  }
   
   void ResultHandler::InterpolateRes( ResultContext& actContext, Grid* destGrid, shared_ptr<BaseResult>& res)
   {

@@ -83,6 +83,9 @@ namespace CoupledField {
     //! Begin new multisequence step
     void BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps );
 
+    //! Manually set the needed results
+    void DefineNeededResults();
+    
     //! Begin new step in analyisis
     void BeginStep( UInt stepNum, Double stepVal );
 
@@ -91,6 +94,9 @@ namespace CoupledField {
 
     //! New update method, which is just called once
     void UpdateResults();
+
+    //! Variant of UpdateResults where only one specific result type is updated
+    void UpdateResultType(SolutionType solType);
 
     //! Finish single analysis step
     void FinishStep( );
@@ -171,6 +177,8 @@ namespace CoupledField {
     /** this switch is needed for Optimization to force streaming on every step.
      * If this is set to try, only Outputs with "isStreaming() == true" are being called */
     bool streamOnly = false;
+
+    shared_ptr<ResultFunctor> GetResFunctor(SolutionType fnctResName, std::string regionName);
 
   private:
     

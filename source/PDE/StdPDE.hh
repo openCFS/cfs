@@ -69,6 +69,9 @@ namespace CoupledField {
     
     //! Return vector with resultInfo types
     ResultInfoList& GetResultInfos() { return results_;}
+
+    //! Return set with results which need to be intermediately updated
+    std::set<shared_ptr<ResultInfo> > GetIterUpdateResults() {return iterUpdateResults_;}
     
     //! Return result for given solutionType
     
@@ -425,6 +428,9 @@ namespace CoupledField {
     //! Set containing the types of possible results
     ResultSet availResults_;
     //!
+
+    //! Set containing the types of results that need intermediate evaluation (important for iteratively coupled PDEs)
+    ResultSet iterUpdateResults_;
     
     //! flag indicating if this PDE needs the algebraic system
     bool needsAlgsys_;

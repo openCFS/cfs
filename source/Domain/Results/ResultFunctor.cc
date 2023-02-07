@@ -517,7 +517,19 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
     }
     pos+= numDofs;
   } // loop regions
+
+  
+  // finally, pass entities and result vec to internal functions to make them available via GetResultVec
+  // we only do this in the real case since it is currently only used in iterative coupling schemes
+  if ( std::is_floating_point<TYPE>::value ) {
+    curEntityList_.push_back(actSol.GetEntityList());
+    Vector<Double> vecDouble;
+    vecDouble = actSol.GetVector();
+    
+    curResVec_.push_back(vecDouble);
+  }
 }
+
 
 template class ResultFunctorIntegrate<Complex>;
 template class ResultFunctorIntegrate<Double>;

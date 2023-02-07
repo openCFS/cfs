@@ -67,6 +67,23 @@ public:
     EXCEPTION("Base Class ResultFunctor has no Coef-Function");
   }
 
+  //! Return result with the according entity list
+  virtual StdVector<Vector<Double>> GetResultVec() {
+    return curResVec_;
+  }
+
+  void ResetResultVec() {
+    curResVec_.Clear();
+  }
+
+  virtual StdVector<shared_ptr<EntityList>> GetResultEnt() {
+    return curEntityList_;
+  }
+
+  void ResetResultEnt() {
+    curEntityList_.Clear();
+  }
+
 protected:
     
   //! Type of result (primary, field, integrated etc.)
@@ -83,6 +100,9 @@ protected:
 
   //! Store coefficient function
   PtrCoefFct coef_;
+
+  StdVector<shared_ptr<EntityList>> curEntityList_;
+  StdVector<Vector<Double>> curResVec_;
 };
 
 // --------------------------------------------------------------------------
@@ -147,6 +167,15 @@ public:
   }
   void SetAveraged(bool average) {
     average_ = average;
+  }
+
+  //! Return result with the according entity list
+  StdVector<Vector<Double>> GetResultVec(){
+    return curResVec_;
+  }
+
+  StdVector<shared_ptr<EntityList>> GetResultEnt(){
+    return curEntityList_;
   }
 
 private:

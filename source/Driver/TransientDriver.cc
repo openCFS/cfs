@@ -245,6 +245,10 @@ namespace CoupledField {
       analysis_id_.time = actTime_;
       analysis_id_.step = actTimeStep_;
 
+      if( actTimeStep_ == startStep) {
+        resHandler->DefineNeededResults();
+      }
+
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(actTime_);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);

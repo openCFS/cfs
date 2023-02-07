@@ -1015,6 +1015,19 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
+
+        // update the results which might be needed for intermediate computations (see CoefFunctionSurfaceForceBalance)
+        std::set<shared_ptr<ResultInfo> > resultsToUpdate = rPDE_.PDEs_[i]->GetIterUpdateResults();
+        std::set<shared_ptr<ResultInfo>>::iterator curResIter;
+        shared_ptr<ResultInfo> curRes;
+        for (curResIter = resultsToUpdate.begin(); curResIter != resultsToUpdate.end(); curResIter++) {
+          curRes = *curResIter;
+          rPDE_.PDEs_[i]->GetDomain()->GetResultHandler()->UpdateResultType(curRes->resultType);
+        }
+        /* if( id.pdeName=="smooth" || id.pdeName=="electrostatic" ) {
+          ResultHandler *resHandler = rPDE_.PDEs_[i]->GetDomain()->GetResultHandler();
+          resHandler->UpdateResults();
+        } */
       } // end of for-loop
 
       // -----------------------------------
