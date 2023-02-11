@@ -127,6 +127,7 @@ public:
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
     OP_SQRT,                  /*!< Unary square root operation */
+	OP_SQRT_NEGATIVE,		  /*!< Unary square root operation that returns the root with leading negative sign */
     OP_TRACE,                 /*!< Unary trace of tensor operation  */
     OP_INV,                   /*!< Unary inversion operation */
     OP_DET,                   /*!< Unary operation, returning the determinant of a square tensor*/

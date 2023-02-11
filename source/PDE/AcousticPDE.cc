@@ -242,8 +242,8 @@ namespace CoupledField{
       PtrCoefFct blk;
 
       if ( complexFluidFormulation_ ) {
-    	  dens = materials_[actRegion]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
-    	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS_COMPLEX, Global::COMPLEX );
+    	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
+    	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
       }
       else {
     	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );

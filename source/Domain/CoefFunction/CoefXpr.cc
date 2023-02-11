@@ -39,6 +39,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     // UNARY FUNCTIONS
     case OP_NORM:
     case OP_SQRT:
+    case OP_SQRT_NEGATIVE:
     case OP_TRACE:
     case OP_INV:
     case OP_DET:
@@ -281,6 +282,11 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, const std::string& argReal,
       retReal = B(args.Serialize(' '));
       break;
       
+    case OP_SQRT_NEGATIVE:
+      args = "-sqrt(", B(argReal), ")";
+      retReal = B(args.Serialize(' '));
+      break;
+
     case OP_INV:
       args = "1.0/(", B(argReal), ")";
       retReal = B(args.Serialize(' '));
@@ -303,6 +309,7 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, std::string& retImag,
                               const std::string& argImag,
                               OpType op ) {
   StdVector<std::string> args;
+  StdVector<std::string> args_imag;
   switch( op ) {
     case OP_NORM:
       args = "sqrt(", B(argReal), "*", B(argReal), "+", B(argImag), "*", B(argImag), ")";
@@ -322,11 +329,33 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, std::string& retImag,
       retImag = "0.0";
       break;
 
-
     case OP_SQRT:
-      EXCEPTION( "Complex square root not implemented" );
+      // sqrt(z) = sqrt(a+i*b) = +-[ sqrt( (|z|+a)/2 )  +  i * b/|b| * sqrt( (|z|-a)/2 ) ]
+      if (IsZero(argImag)) {
+      args = "sqrt(", B(argReal), ")";
+      args_imag = "0.0";
+      }
+      else {
+        args = "sqrt((sqrt(", B(argReal), "*", B(argReal), "+", B(argImag), "*", B(argImag), ")+", B(argReal), ")/2)";
+        args_imag = "", B(argImag), "/abs(", B(argImag), ")*sqrt((sqrt(", B(argReal), "*", B(argReal), "+", B(argImag), "*", B(argImag), ")-", B(argReal), ")/2)";
+      }
+      retReal = B(args.Serialize(' '));
+      retImag = B(args_imag.Serialize(' '));
       break;
       
+    case OP_SQRT_NEGATIVE:
+      if (IsZero(argImag)) {
+      args = "-sqrt(", B(argReal), ")";
+      args_imag = "0.0";
+      }
+      else {
+        args = "-sqrt((sqrt(", B(argReal), "*", B(argReal), "+", B(argImag), "*", B(argImag), ")+", B(argReal), ")/2)";
+        args_imag = "-", B(argImag), "/abs(", B(argImag), ")*sqrt((sqrt(", B(argReal), "*", B(argReal), "+", B(argImag), "*", B(argImag), ")-", B(argReal), ")/2)";
+      }
+      retReal = B(args.Serialize(' '));
+      retImag = B(args_imag.Serialize(' '));
+      break;
+
     case OP_INV:
       // Simply apply binary function
       ApplyBinaryFunc( retReal, retImag, "1.0", argReal, "0.0" , argImag, OP_DIV );

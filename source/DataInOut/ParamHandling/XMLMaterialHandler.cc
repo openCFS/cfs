@@ -550,15 +550,10 @@ namespace CoupledField {
     //! [Read PtrParamNode]
     // read density
     if (acou->Has("density")) { // check if PtrParamNode acou has <density> tag
-      PtrCoefFct densFct = ReadScalarLin(acou, "density", Global::REAL); // generate a real valued coefficient function
+    	PtrCoefFct densFct;
+      // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
+      densFct = ReadScalarLin(acou, "density", Global::COMPLEX);
       material->SetCoefFct( DENSITY, densFct ); // set it to the material
-    }
-    //! [Read PtrParamNode]
-
-    // check for complex valued density
-    if ( acou->Has("densityComplex") ) {
-    	PtrCoefFct densFct = ReadScalarLin(acou, "densityComplex", Global::COMPLEX);
-      material->SetCoefFct( ACOU_DENSITY_COMPLEX, densFct );
     }
     
     // read adiabatic exponent
@@ -569,15 +564,8 @@ namespace CoupledField {
     
     // read compression modulus
     if (acou->Has("compressionModulus")) {
-    	PtrCoefFct blkFct = ReadScalarLin(acou, "compressionModulus", Global::REAL);
+    	PtrCoefFct blkFct = ReadScalarLin(acou, "compressionModulus", Global::COMPLEX);
     	material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
-    }
-
-    // check for complex valued density
-    if ( acou->Has("compressionModulusComplex") ) {
-    	PtrCoefFct compFct = ReadScalarLin(acou, "compressionModulusComplex",
-    	                                   Global::COMPLEX);
-      material->SetCoefFct( ACOU_BULK_MODULUS_COMPLEX, compFct );
     }
     
     // read kinematic viscosity
