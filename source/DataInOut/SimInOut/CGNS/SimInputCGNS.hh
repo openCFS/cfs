@@ -157,7 +157,6 @@ namespace CoupledField{
                     bool isHistory = false );
     //@}
 
-
   protected:
 
     //! Open a CGNS file
@@ -220,6 +219,9 @@ namespace CoupledField{
  
     //! File handle to be used with calls to the CGNS library
     Integer fileHandle_;
+
+    //! File version of the CGNS file
+    float fileVersion_ = -1.0;
 
     //! Dimension of the cells; 3 for volume cells, 2 for surface cells and 1
     //! for line cells. 

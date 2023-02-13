@@ -194,23 +194,31 @@ namespace CoupledField {
     
     if (!fs::exists(fileName)) {
       EXCEPTION("File not found: " << fileName);
-      return;
     }
     
     Integer fileType;
     if (cg_is_cgns(fileName.c_str(), &fileType) != CG_OK) {
       EXCEPTION("Not a valid CGNS file: " << fileName);
-      return;
     }
     
     if (cg_open(fileName.c_str(), CG_MODE_READ, &fileHandle_) != CG_OK) {
       EXCEPTION("Failed to open file: " << fileName << ",\n" << cg_get_error());
-      return;
     }
     
     fileName_ = fileName;
     
-    LOG_TRACE(simInputCGNS) << "Successfully opened file " << fileName << std::endl;
+    LOG_TRACE(simInputCGNS) << "Successfully opened file " << fileName;
+
+    // Check CGNS version of opened file
+    if (cg_version(fileHandle_, &fileVersion_) != CG_OK) {
+      EXCEPTION("Failed to read CGNS version of file: " << fileName << ",\n" << cg_get_error());
+    }
+    LOG_TRACE(simInputCGNS) << "CGNS version: " << fileVersion_;
+    if (fileVersion_ <= CGNS_VERSION/1000.0)
+    {
+      WARN("Old CGNS version: " << fileVersion_ << " (current: " << CGNS_VERSION/1000.0 << "), of file: " << fileName << std::endl
+      << "If you encounter issues, use 'cgnsupdate' to update input file to supported version!");
+    }
   }
   
   void SimInputCGNS::ReadFileContents(const std::string &fileName) {
@@ -804,6 +812,7 @@ namespace CoupledField {
     cgsize_t elemArraySize;
     Integer numElems, vertsPerElem;
     StdVector<cgsize_t> elems;
+    StdVector<cgsize_t> connectOffset;    
     RegionIdType regionId;
     UInt elemOffset;
     Elem::FEType feType;
@@ -835,12 +844,13 @@ namespace CoupledField {
       LOG_TRACE(simInputCGNS) << "Boundary number: " << nBoundary << std::endl;
       LOG_TRACE(simInputCGNS) << "ParentFlag: " << parentFlag << std::endl << std::endl;
       
-      // Resize connectivity buffer
+      // Resize connectivity and offset buffer
       elems.Resize(elemArraySize);
+      connectOffset.Resize(elemArraySize);
       
       // Ignore parental Data field for now and give NULL to function
-      CGNS_CHECK_EX( cg_elements_read(fileHandle_, base, zone, secOrder[sec],
-                                      elems.GetPointer(), NULL) );
+      CGNS_CHECK_EX( cg_poly_elements_read(fileHandle_, base, zone, secOrder[sec],
+                                      elems.GetPointer(), connectOffset.GetPointer(), NULL) );
 
       if (Elem::shapes[elemTypeMap_[eType]].dim == dim_) {
         regionId = mi_->AddRegion(std::string(sectionName));
