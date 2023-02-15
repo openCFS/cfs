@@ -550,10 +550,9 @@ namespace CoupledField
 
     //! Computes an external grid layer that is used as a PML region. 
     //! Assigns the new region to the grid
-    //! \param innerRegion pointer to the inner volume region
     //! \param surfaceRegion pointer to the surfaceRegion where the layer should be built upon
     //! \param layerGenNode pointer to the autoLayerGeneration parameters that are specified in the XML
-    void GenerateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) override;
+    void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) override;
 
   private:
 
@@ -669,6 +668,13 @@ namespace CoupledField
      * line. This may be needed if you want only the interior nodes of a line.
      */
     void makeNameNodesFromLines();
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param surfRegionId (in) the surface region on which the computation is performed
+    //! \param paramToCompute (in) is an enum that defines which type of geometry should be computed
+     void ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute=ALL);
 
     //@}
 
