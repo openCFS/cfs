@@ -2908,106 +2908,102 @@ namespace CoupledField {
     // if autoLayerGeneration is not specified, leave
     if (!layerGenNode) 
       return;
+
+    // number of layer generations specified
+    UInt numGenLayers = layerGenNode->GetChildren().size();
+    // leave if there is no layer generations specified
+    if (numGenLayers < 1)
+      return;
+
     // initialize variables...
-    // specified regions to act on
-    std::string innerRegionName;
+    // specified region to act on
     std::string surfRegionName;
-    // regions on grid
+    // ID of surface region
+    RegionIdType surfRegionId;
+    // region on grid
     PtrParamNode actLayerGenNode;
     std::string regionNameOnGrid;
     // nodeIds of a region
-    StdVector<UInt> innerRegionNodeIds, surfRegionNodeIds;
-    //number of layer generations specified
-    UInt numGenLayers = layerGenNode->GetChildren().size();
-    // bools to check if surf and volume regions are also on the grid
-    bool innerRegionFound = false;
+    StdVector<UInt> surfRegionNodeIds;
+    // bools to check if the specified surface region is on the grid
     bool surfRegionFound = false;
-    // entity lists
-    shared_ptr<EntityList> surfEntityList;
-    shared_ptr<EntityList> innerEntityList;
 
-    // check if specified surface region and inner volume region actually exist
+    // check if specified surface region actually exist..
+    // loop over specified layer generations
     for (UInt iLayers = 0; iLayers < numGenLayers; iLayers++) {
       actLayerGenNode = layerGenNode->GetChildren()[iLayers];
-      
-      for (RegionIdType iRegion = 0; iRegion < this->GetNumVolRegions(); iRegion++) {
-        // get name of specified inner region and compare with available volume regions
-        actLayerGenNode->GetValue("innerRegion", innerRegionName);
-        regionNameOnGrid = this->GetRegion().ToString(volRegionIds_[iRegion]);
 
-        // if correct volume region is there, also check for surface region
-        if (innerRegionName == regionNameOnGrid) {
-          innerRegionFound = true;
-          for (RegionIdType iSurfRegion = 0; iSurfRegion < this->GetNumSurfRegions(); iSurfRegion++) {
-            actLayerGenNode->GetValue("surfRegionToActOn", surfRegionName);
-            regionNameOnGrid = this->GetRegion().ToString(surfRegionIds_[iSurfRegion]);
-            
-            // if correct surface region is also there, take the next step
-            if (surfRegionName == regionNameOnGrid) {
-              surfRegionFound = true;
+      // loop over surface regions on grid and compare
+      for (RegionIdType iSurfRegion = 0; iSurfRegion < this->GetNumSurfRegions(); iSurfRegion++) {
+        actLayerGenNode->GetValue("surfRegionToActOn", surfRegionName);
+        regionNameOnGrid = this->GetRegion().ToString(surfRegionIds_[iSurfRegion]);
+        
+        // if correct surface region is there, take the next step...
+        if (surfRegionName == regionNameOnGrid) {
+          surfRegionFound = true;
 
-              // next, we need to check if the surfaceRegion is actually contained in the innerRegion
-              // and if both contain nodes at all
-              this->GetNodesByRegion(innerRegionNodeIds, volRegionIds_[iRegion]);
-              this->GetNodesByRegion(surfRegionNodeIds, surfRegionIds_[iSurfRegion]);
-              // first, check if there are nodes at all in both regions
-              if (innerRegionNodeIds.IsEmpty()) {
-                EXCEPTION("Region '" << innerRegionName << "' does not contain nodes!");
-              }
-              else if (surfRegionNodeIds.IsEmpty()) {
-                EXCEPTION("Surface region '" << surfRegionName << "' does not contain nodes!");
-              } else {
-                // assuming that the node vectors are sorted, only check the first and last elements of the vectors
-                if (surfRegionNodeIds[0] < innerRegionNodeIds[0] || surfRegionNodeIds.Last() > innerRegionNodeIds.Last())
-                  EXCEPTION("Surface region '" << surfRegionName << "' contains nodes outside of region '" << innerRegionName << "'!"
-                    << "\n Layer generation might not work correctly!");
-              }
-              surfEntityList = this->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionName );
-              innerEntityList = this->GetEntityList( EntityList::ELEM_LIST,innerRegionName );
-              this->GenerateExternalLayer(innerEntityList, surfEntityList, actLayerGenNode);
-            }
+          // check if the surfaceRegion contains nodes at all
+          this->GetNodesByRegion(surfRegionNodeIds, surfRegionIds_[iSurfRegion]);
+          if (surfRegionNodeIds.IsEmpty()) {
+            EXCEPTION("Surface region '" << surfRegionName << "' does not contain nodes!");
           }
+          // now we know everything is fine, so start layer generation
+          surfRegionId = GetRegionId(surfRegionName);
+          this->GenerateExternalLayer(surfRegionId, actLayerGenNode);
         }
       }
       // throw exception if specified layers are not on the grid
-      if (!innerRegionFound)
-        EXCEPTION("Region " << innerRegionName << " not found on the specified Grid!");
       if (!surfRegionFound)
         EXCEPTION("SurfaceRegion " << surfRegionName << " not found on the specified Grid!");
-      // reset the bools
-      innerRegionFound = false;
+      // reset the bool to start with next layer
       surfRegionFound = false;
     }
   }
 
 
-  void GridCFS::GenerateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
+  void GridCFS::GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) {
     // declare variables...
     // layer generation parameters
     Double elemHeight = 0;
     Double numLayers = 0;
-    // Id of regions, nodes, and coordinates of nodes
-    RegionIdType surfRegionId;
-    RegionIdType innerRegionId;
+    // Id of region nodes and coordinates of nodes
     StdVector<UInt> surfRegionNodeIds;
-    StdVector<UInt> innerRegionNodeIds;
     StdVector<Vector<Double>> surfNodeCoords;
-    StdVector<Vector<Double>> innerNodeCoords;
     UInt numSurfNodes;
     // elements on regions
     StdVector<SurfElem*> surfRegionElems;
     UInt numSurfElems;
     StdVector<StdVector<UInt>> surfElemConnectivity;
-    StdVector<Elem*> innerRegionElems;
-    UInt numInnerElems;
-    StdVector<UInt> innerElemConnectivity;
     // name, id, and elems of new region
     std::string layerName;
     RegionIdType layerRegionId;
     UInt numLayerElems;
     StdVector<Elem*> layerElems;
-    // normal vectors on surface nodes
-    StdVector<Vector<Double>> surfNormalVectors;
+
+    // parameters of elements in new layer...
+    // connectivity the current element that is created within the layer
+    StdVector<UInt> layerConnectivity;
+    // type of created element 
+    Elem::FEType currLayerElemType;
+    // type of element on the surface region
+    Elem::FEType currSurfElemType;
+    // pointers to created elements in the layer
+    StdVector<StdVector<Elem*>> addedElems;
+    // corresponding IDs
+    StdVector<StdVector<UInt>> addedElemIds;
+    // number of nodes of a element on the surface region
+    UInt numNodesInSurfElement;
+    // and of the newly created element
+    UInt numNodesInLayerElement;
+    // store the node connectivity of the surface region and every subsequent isosurface
+    StdVector<StdVector<UInt>> connectNodeIdx;
+    // helper variable to pass layer connectivity to function
+    UInt *ptrLayerConnectivity;
+    // coordinates of the current node (where the new node is created upon)
+    StdVector<Vector<Double>> currNodeCoords;
+    // coordinates and IDs within the new layer
+    StdVector<Vector<Double>> allLayerNodeCoords;
+    StdVector<StdVector<UInt>> allLayerNodeIds;
 
     // extract parameters from layerGenNode
     layerGenNode->GetValue("numLayers", numLayers);
@@ -3018,16 +3014,10 @@ namespace CoupledField {
       elemHeight = elemHeight * -1;
     }
 
-    // get node Ids of surface region
-    surfRegionId = surfaceRegion->GetRegion();
-    innerRegionId = innerRegion->GetRegion();
     // get, node Ids, coordinates and elements
     this->GetNodesByRegion(surfRegionNodeIds, surfRegionId);
     this->GetNodeCoordinates(surfNodeCoords, surfRegionNodeIds, false);
-    this->GetNodesByRegion(innerRegionNodeIds, innerRegionId);
-    this->GetNodeCoordinates(innerNodeCoords, innerRegionNodeIds, false);
     this->GetSurfElems(surfRegionElems, surfRegionId);
-    this->GetVolElems(innerRegionElems, innerRegionId);
     numSurfElems = this->GetNumElems(surfRegionId);
     numSurfNodes = surfRegionNodeIds.GetSize();
 
@@ -3035,111 +3025,23 @@ namespace CoupledField {
     layerGenNode->GetValue("name", layerName);
     layerRegionId = this->AddRegion(layerName, VOLUME_REGION);
 
+    // compute normal vectors
+    ComputeGeometryOnSurfaceRegionNodes(surfRegionId);
 
-#ifdef USE_CGAL
-    Vector<Double> tempNormVec = Vector<Double>(3,0);
-    StdVector<Vector<Double>> currNodeCoords;
-    StdVector<Vector<Double>> tempNodeCoords;
-    StdVector<UInt> currNodeIds;
-    StdVector<const Elem*> currElemsNextToNode;
-    StdVector<RegionIdType> searchRegionIds;
-    Vector<Double> innerPoint = Vector<Double>(3,0);
-    Vector<Double> tempVec = Vector<Double>(3,0);
-    searchRegionIds.Push_back(surfRegionId);
-    Double factor;
-    UInt tempId;
-    UInt vertexIdx;
-    // parameters for Monge fitting
-    UInt degreePolyFit = 4;
-    UInt degreeMongeCoeff = 4;
-    // minimum required points
-    UInt minNumPoints = (degreePolyFit + 1) * (degreePolyFit + 2) / 2;
-
-    // compute the average of all points in the current point cloud representing an inner point
-    for (UInt iSurfNodes = 0; iSurfNodes < numSurfNodes; iSurfNodes++) {
-      innerPoint[0] += surfNodeCoords[iSurfNodes][0];
-      innerPoint[1] += surfNodeCoords[iSurfNodes][1];
-      innerPoint[2] += surfNodeCoords[iSurfNodes][2];
-    }
-    innerPoint /= Double(numSurfNodes);
-
-    // compute surface normals. We need to iterate ofer every surface node and 
-    // gather at least the 1-ring neighbourhood for approximation
-    for (UInt iSurfNodes = 0; iSurfNodes < numSurfNodes; iSurfNodes++) {
-      currNodeIds.Clear();
-      currNodeIds.Push_back(surfRegionNodeIds[iSurfNodes]);
-      // gather enough points for monge fitting
-      while (currNodeIds.GetSize() < minNumPoints) {
-        // get elements 
-        this->GetElemsNextToNodes(currElemsNextToNode, currNodeIds, searchRegionIds);
-        // get node ids of elements
-        this->GetNodesOfElemList(currNodeIds, currElemsNextToNode);
-      }
-      // assure that the vertex ID is the first entry in the vector so that CGAL uses it as vertex
-      tempId = currNodeIds[0];
-      vertexIdx = currNodeIds.Find(surfRegionNodeIds[iSurfNodes]);
-      currNodeIds[0] = currNodeIds[vertexIdx];
-      currNodeIds[vertexIdx] = tempId;
-      // get coordinates
-      this->GetNodeCoordinates(currNodeCoords, currNodeIds, false);
-      // first, we need to switch the format of out point-coordinate representation
-      std::vector<DPoint> coordsPoint_3;
-      this->ConvertVectorToPoint_3Format(coordsPoint_3, currNodeCoords);
-      // then, set up the monge form
-      MongeForm mongeForm;
-      this->SetUpMongeForm(mongeForm, degreePolyFit, degreeMongeCoeff, coordsPoint_3);
-    
-      // store
-      tempNormVec[0] = mongeForm.normal_direction().x();
-      tempNormVec[1] = mongeForm.normal_direction().y();
-      tempNormVec[2] = mongeForm.normal_direction().z();
-
-      // compute vector between inner point and vertex point to approximate normal-vector direction
-      tempVec = innerPoint - surfNodeCoords[iSurfNodes];
-      // check if normal points in correct direction
-      tempNormVec.Inner(tempVec, factor);
-      if (factor >= 0)
-        factor = -1;
-      else
-        factor = 1;
-      tempNormVec *= factor;
-
-      // store in StdVector
-      surfNormalVectors.Push_back(tempNormVec);
-
-      /*WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-surfNormalVectors[iSurfNodes][0] << " in x, \n"
-      << surfNodeCoords[iSurfNodes][1]-surfNormalVectors[iSurfNodes][1] << " in y, \n"
-      << surfNodeCoords[iSurfNodes][2]-surfNormalVectors[iSurfNodes][2] << " in z, \n"
-      << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
-      WARN("Monge Origin is at: \n"<< mongeForm.origin().x() << " in x, \n"
-      << mongeForm.origin().y() << " in y, \n"
-      << mongeForm.origin().z() << " in z, \n"
-      << "compared to the desired vertex at \n" << surfNodeCoords[iSurfNodes][0] << " in x, \n"
-      << surfNodeCoords[iSurfNodes][1] << " in y, \n"
-      << surfNodeCoords[iSurfNodes][2] << " in z");
-      WARN("The number of points used is " << currNodeIds.GetSize());
-      WARN("The first point id in data is " << currNodeIds[0] <<
-          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);*/
-    }
-#else
-  EXCEPTION("Missing dependencies for computing surface normals on nodes!");
-  surfNormalVectors = surfNodeCoords;
-#endif  
-
-    // compute new nodes iteratively
+    // compute new nodes iteratively...
     // temporary node coords for iterative computation
     currNodeCoords.Clear();
     currNodeCoords = surfNodeCoords;
-    StdVector<Vector<Double>> allLayerNodeCoords = surfNodeCoords;
-    StdVector<StdVector<UInt>> allLayerNodeIds = StdVector<StdVector<UInt>>(numLayers+1);
+    allLayerNodeCoords = surfNodeCoords;
+    allLayerNodeIds = StdVector<StdVector<UInt>>(numLayers+1);
     allLayerNodeIds[0] = surfRegionNodeIds;
     UInt newNodeId;
     for (UInt iLayers = 1; iLayers <= numLayers; iLayers++) {
       allLayerNodeIds[iLayers].Resize(numSurfNodes);
-
       for (UInt iNodes = 0; iNodes < numSurfNodes; iNodes++) {
         // compute new node coordinates
-        currNodeCoords[iNodes] = currNodeCoords[iNodes] + surfNormalVectors[iNodes] * elemHeight;
+        currNodeCoords[iNodes] = currNodeCoords[iNodes] + 
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes] * elemHeight;
         allLayerNodeCoords.Push_back(currNodeCoords[iNodes]);
         // add new node to grid
         this->AddNode( currNodeCoords[iNodes], newNodeId );
@@ -3148,21 +3050,10 @@ namespace CoupledField {
       }
     }
 
-    // parameters of elements in new layer
-    StdVector<UInt> layerConnectivity;
-    Elem::FEType currLayerElemType;
-    Elem::FEType currSurfElemType;
-    StdVector<StdVector<Elem*>> addedElems;
-    StdVector<StdVector<UInt>> addedElemIds;
-    UInt numNodesInSurfElement;
-    UInt numNodesInLayerElement;
-    StdVector<StdVector<UInt>> connectNodeIdx;
-    UInt *ptrLayerConnectivity;
-
     // add new elems to grid...
     // as the new elems are prismatic, there will be one layer per linear element 
     // or two layers per quadratic element
-    if (this->IsQuadratic() ==true) {
+    if (this->IsQuadratic() == true) {
       EXCEPTION("Layer Generation for quadratic elements not implemented yet!")
 
     } else {
@@ -3241,6 +3132,173 @@ namespace CoupledField {
     CalcRegulardGridDiscretization() */
   };
 
+  // =======================================================================
+  // CGAL Functions
+  // =======================================================================
+#ifdef USE_CGAL
+  void GridCFS::ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute) {
+    // declare variables...
+    // parameters for Monge fitting
+    UInt degreePolyFit = 4; // for now, I use hard-coded values. Can be replaced in future, e.g. by making the parameters available in the xsd scheme.
+    UInt degreeMongeCoeff = 4;
+    // a monge form that is computed for every node
+    MongeForm mongeForm;
+    // minimum required points for fitting the monge base
+    UInt minNumPoints = (degreePolyFit + 1) * (degreePolyFit + 2) / 2;
+
+    // all node IDs of the surface region
+    StdVector<UInt> nodeIds;
+    this->GetNodesByRegion(nodeIds, surfRegionId);
+    // Node IDs and coordinates of the surface region
+    StdVector<UInt> surfRegionNodeIds;
+    StdVector<Vector<Double>> surfNodeCoords;
+    this->GetNodesByRegion(surfRegionNodeIds, surfRegionId);
+    this->GetNodeCoordinates(surfNodeCoords, surfRegionNodeIds, false);
+
+    // number of nodes on surface
+    UInt numNodes = nodeIds.GetSize();
+    // vector that holds the coordinates of the point set for which the form is computed 
+    StdVector<Vector<Double>> currNodeCoords;
+    // a vector in Point_3 format. This data format is used by CGAL, so I need to convert the currNodeCoords.
+    std::vector<DPoint> coordsPoint_3;
+    // corresponding node IDs of the current point set
+    StdVector<UInt> currNodeIds;
+    // surface elements surrounding the vertex node on which the monge base is fitted
+    StdVector<const Elem*> currElemsNextToNode;
+    // StdVector needed to call GetElemsNextToNodes()
+    StdVector<RegionIdType> searchRegionIds;
+    searchRegionIds.Push_back(surfRegionId);
+
+    // variables needed to ensure consistent orientation of the monge base 
+    // so that normal vectors point outwards the (presumably convex) surface
+    Vector<Double> innerPoint = Vector<Double>(3,0);
+    // compute the average of all points in the current point cloud to obtain a 
+    // point inside the convex layer (needed for orienting the normal vectors)
+    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; iSurfNodes++) {
+      innerPoint[0] += surfNodeCoords[iSurfNodes][0];
+      innerPoint[1] += surfNodeCoords[iSurfNodes][1];
+      innerPoint[2] += surfNodeCoords[iSurfNodes][2];
+    }
+    innerPoint /= Double(numNodes);
+    DPoint innerPoint_3(innerPoint[0], innerPoint[1], innerPoint[2]);
+    // variable to store previous inner vector (from a vertex to an inner point)
+    // for a (nearly) flat surface, the outwards normal is defined into the +x/y/z direction
+    DVector oldInnerVec(-1,-1,-1);
+    
+    // variables needed to put the vertex onto the [0] position for each point set
+    UInt zeroId;
+    UInt vertexIdx;
+    // vector to extract current geometry vector from vector_3 format before storing
+    Vector<Double> tempVec = Vector<Double>(3,0);
+    // temporarily store double value
+    Double tempVar;
+
+    // add new entry in the geometryRegionMap_ to store geometry
+    geometryRegionMap_[surfRegionId] = shared_ptr<NodeGeometry>(new NodeGeometry(numNodes));
+    // set the node Ids to the struct
+    geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds; 
+    
+    // compute surface normals. We need to iterate ofer every surface node and 
+    // gather at least the 1-ring neighbourhood for approximation
+    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; iSurfNodes++) {
+      currNodeIds.Clear();
+      currNodeIds.Push_back(nodeIds[iSurfNodes]);
+      // gather enough points for monge fitting
+      while (currNodeIds.GetSize() < minNumPoints) {
+        // get elements 
+        this->GetElemsNextToNodes(currElemsNextToNode, currNodeIds, searchRegionIds);
+        // get node ids of elements
+        this->GetNodesOfElemList(currNodeIds, currElemsNextToNode);
+      }
+      // assure that the vertex ID is the first entry in the vector so that CGAL uses it as vertex
+      zeroId = currNodeIds[0];
+      vertexIdx = currNodeIds.Find(nodeIds[iSurfNodes]);
+      currNodeIds[0] = currNodeIds[vertexIdx];
+      currNodeIds[vertexIdx] = zeroId;
+      // get coordinates of the current nodeset
+      this->GetNodeCoordinates(currNodeCoords, currNodeIds, false);
+      // first, we need to switch the format of out point-coordinate representation
+      this->ConvertVectorToPoint_3Format(coordsPoint_3, currNodeCoords);
+      // then, set up the monge form
+      this->SetUpMongeForm(mongeForm, degreePolyFit, degreeMongeCoeff, coordsPoint_3);
+
+      // vector from inner point to current vertex in the DVector format that is used by CGAL.
+      DVector innerVec(innerPoint_3, coordsPoint_3[0]);
+      // if the scalar product of innerVec and the normal vector is very small (surface is not curved),
+      // use a vector in positive (x,y,z) direction for the very first entry and previous normal vectors
+      // for every other.
+      if ( abs(innerVec * mongeForm.normal_direction()) < 10E-3) {
+        innerVec = oldInnerVec;
+      }
+      // now that we have defined our desired direction, orient the monge base accordingly
+      mongeForm.comply_wrt_given_normal(innerVec);
+      // store the innerVec for possible use in the next loop
+      oldInnerVec = innerVec;
+
+      // extract geometry from MongeForm and store...
+      switch (paramToCompute) {
+        case ALL:
+          // extract normal vector and store
+          tempVec[0] = mongeForm.normal_direction().x();
+          tempVec[1] = mongeForm.normal_direction().y();
+          tempVec[2] = mongeForm.normal_direction().z();
+          geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes] = tempVec;
+          // minimum principal directions
+          tempVec[0] = mongeForm.minimal_principal_direction().x();
+          tempVec[1] = mongeForm.minimal_principal_direction().y();
+          tempVec[2] = mongeForm.minimal_principal_direction().z();
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iSurfNodes] = tempVec;
+          // maximum principal directions
+          tempVec[0] = mongeForm.maximal_principal_direction().x();
+          tempVec[1] = mongeForm.maximal_principal_direction().y();
+          tempVec[2] = mongeForm.maximal_principal_direction().z();
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iSurfNodes] = tempVec;
+          // minimum principal curvatures
+          tempVar = mongeForm.principal_curvatures(1);
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
+          // maximum principal curvatures
+          tempVar = mongeForm.principal_curvatures(0);
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
+          break;
+        default:
+            EXCEPTION("Currently only storing all parameters is possible (paramToCompute=ALL)");
+      }
+
+
+     /* // extract normal vector and store
+      tempNormVec[0] = mongeForm.normal_direction().x();
+      tempNormVec[1] = mongeForm.normal_direction().y();
+      tempNormVec[2] = mongeForm.normal_direction().z();
+
+      // store normal vectors in StdVector
+      surfNormalVectors.Push_back(tempNormVec);*/
+
+       /* // store to which isosurface the node belongs within the layer. 
+        // Needed for computing the geometry on the isosurfaces within the layer
+        // (used eg. for curvilinear PML)
+        isoSurfaceMap_[iLayers].Push_back(newNodeId);*/
+      WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
+      << surfNodeCoords[iSurfNodes][1]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][1] << " in y, \n"
+      << surfNodeCoords[iSurfNodes][2]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][2] << " in z, \n"
+      << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
+      WARN("Monge Origin is at: \n"<< mongeForm.origin().x() << " in x, \n"
+      << mongeForm.origin().y() << " in y, \n"
+      << mongeForm.origin().z() << " in z, \n"
+      << "compared to the desired vertex at \n" << surfNodeCoords[iSurfNodes][0] << " in x, \n"
+      << surfNodeCoords[iSurfNodes][1] << " in y, \n"
+      << surfNodeCoords[iSurfNodes][2] << " in z");
+      WARN("The number of points used is " << currNodeIds.GetSize());
+      WARN("The first point id in data is " << currNodeIds[0] <<
+          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);
+    }
+  };
+
+#else
+  void GridCFS::ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute) {
+    // this function is a dummy for a future implementation that does not require CGAL
+    EXCEPTION("Missing dependencies for GridCFS::ComputeGeometryOnSurfaceRegionNodes!")
+  };
+#endif
 
   // =======================================================================
   // Helper Methods
