@@ -121,7 +121,6 @@
     <xsd:attribute name="elemHeight" type="xsd:float" default="1" use="optional"/>
     <xsd:attribute name="numLayers" type="xsd:positiveInteger" default="2" use="optional"/>
     <xsd:attribute name="surfRegionToActOn" type="xsd:token" use="required"/>
-    <xsd:attribute name="innerRegion" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- ********************************************************************
