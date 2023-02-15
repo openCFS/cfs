@@ -87,185 +87,10 @@ namespace CoupledField
 
     enum RegionType { NOT_SET, VOLUME_REGION, SURFACE_REGION };
 
+    // enums to name the geometry parameters
+    enum GeometryType { NORMAL_VECTOR, MIN_PRINCIPAL_VECTOR, MAX_PRINCIPAL_VECTOR, 
+      MIN_PRINCIPAL_CURVATURE, MAX_PRINCIPAL_CURVATURE, ALL};
 
-    //! datatype to store surface geometry parameters: normal vector, 
-    //! principal-direction vectors, and principal curvatures
-    //! \param T defines the dimension of the problem
-    //! \param D defines the number of entries
-    struct GeometryDescription{
-      // enums to name the geometry parameters
-      enum DescriptionType { NORMAL_VECTOR, MIN_PRINCIPAL_VECTOR, 
-        MAX_PRINCIPAL_VECTOR, MIN_PRINCIPAL_CURVATURE, MAX_PRINCIPAL_CURVATURE};
-
-      GeometryDescription(const StdVector<UInt>& globalNodeNumbers, 
-                          const StdVector<Vector<Double>>& nodeCoordinates) {
-        nodesSet_ = false;
-        numNodes_ = globalNodeNumbers.GetSize();
-        nodeCoordinates_ = StdVector<Vector<Double>>(numNodes_);
-        normalVectors_ = StdVector<Vector<Double>>(numNodes_);
-        minPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
-        maxPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
-        minPrincipalCurvatures_ = StdVector<Vector<Double>>(numNodes_);
-        maxPrincipalCurvatures_ = StdVector<Vector<Double>>(numNodes_);
-        SetNodes(globalNodeNumbers, nodeCoordinates);
-      };
-      
-      
-      //! add new points in terms of node ID and coordinates and store them in a map.
-      //! clears all data before storing the new nodes
-      //! \param globalNodeNumbers vector containing node IDs
-      //! \param nodeCoordinates vector containing corresponding coordinates
-      void SetNodes(const StdVector<UInt>& globalNodeNumbers, 
-                    const StdVector<Vector<Double>>& nodeCoordinates) {
-        // check for equal size
-        if (globalNodeNumbers.GetSize() != nodeCoordinates.GetSize())
-          EXCEPTION("Passed StdVectors contain " << globalNodeNumbers.GetSize() << " and " <<
-                    nodeCoordinates.GetSize() << " elements but must have equal size!");
-        // clear old data
-        if (nodesSet_ == true) {
-          nodeIdToIndexMap_.clear();
-          nodeCoordinates_.Clear();
-        }
-        // set number of contained nodes
-        numNodes_ = globalNodeNumbers.GetSize();
-        // set a map for being able to find entries later
-        for (size_t i = 0; i < numNodes_; ++i) {
-          nodeIdToIndexMap_[globalNodeNumbers[i]] = i;
-          // add node coordinates
-          nodeCoordinates_.Push_back(nodeCoordinates[i]);
-        }
-        // set the flag to enable setting the geometry
-        nodesSet_ = true;
-      };
-
-      //! add new points in terms of node ID and coordinates and store them in a map.
-      //! clears all data before storing the new nodes
-      //! \param globalNodeNumbers vector containing node IDs
-      //! \param nodeCoordinates vector containing corresponding coordinates
-      /*void SetNodesByRegion(const shared_ptr<EntityList> entitiesOfRegion, 
-               const StdVector<Vector<Double>>& nodeCoordinates) {
-        if (globalNodeNumbers.GetSize() != nodeCoordinates.GetSize())
-          EXCEPTION("Passed StdVectors contain " << globalNodeNumbers.GetSize() << " and " <<
-                    nodeCoordinates.GetSize() << " elements but must have equal size!");
-        // clear all old data
-        nodeIdToIndexMap_.clear();
-        nodeCoordinates_.Clear();
-         // set number of contained nodes
-        numNodes_ = globalNodeNumbers.GetSize();
-        // set a map for being able to find entries later
-        for (size_t i = 0; i < numNodes_; ++i) {
-          nodeIdToIndexMap_[globalNodeNumbers[i]] = i;
-          // add node coordinates
-          nodeCoordinates_.Push_back(nodeCoordinates[i]);
-        }
-        // set the flag to enable setting the geometry
-        nodesSet_ = true;
-      };*/
-
-      //! add geometry and store into the respective map. 
-      //! nodes must be set previously
-      //! \param geometryData vector containing the geometry data corresponding to the previously set nodes
-      //! \param type DescriptionType to specify which data is added
-      void SetGeometryByName(const StdVector<Vector<Double>>& geometryData,
-                        DescriptionType type) {
-        if (nodeCoordinates_.GetSize() != geometryData.GetSize())
-          EXCEPTION("Passed StdVectors contain " << nodeCoordinates_.GetSize() << " and " <<
-                    geometryData.GetSize() << " elements but must have equal size!");
-        
-        if (nodesSet_ == true) {
-          switch (type)
-          {
-          case NORMAL_VECTOR:
-            normalVectors_.Clear();
-            for (size_t i = 0; i < numNodes_; ++i)
-              normalVectors_.Push_back(geometryData[i]);
-            break;
-          case MIN_PRINCIPAL_VECTOR:
-            minPrincipalVectors_.Clear();
-            for (size_t i = 0; i < numNodes_; ++i)
-              minPrincipalVectors_.Push_back(geometryData[i]);
-            break;
-          case MAX_PRINCIPAL_VECTOR:
-            maxPrincipalVectors_.Clear();
-            for (size_t i = 0; i < numNodes_; ++i)
-              maxPrincipalVectors_.Push_back(geometryData[i]);
-            break;
-          case MIN_PRINCIPAL_CURVATURE:
-            minPrincipalCurvatures_.Clear();
-            for (size_t i = 0; i < numNodes_; ++i)
-              minPrincipalCurvatures_.Push_back(geometryData[i]);
-            break;
-          case MAX_PRINCIPAL_CURVATURE:
-            maxPrincipalVectors_.Clear();
-            for (size_t i = 0; i < numNodes_; ++i)
-              maxPrincipalCurvatures_.Push_back(geometryData[i]);
-            break;
-          default:
-            EXCEPTION("Unknown description type " << type << "!");
-            break;
-          }
-        } else {
-          EXCEPTION("Nodes must be set before adding geometry data!");
-        }
-      };
-
-      void GetGeometryOfNodesByName (StdVector<Vector<Double>>& geometryData,
-                                     const StdVector<UInt>& nodeIdList,
-                                     const DescriptionType type) {
-                              
-      };
-      /*
-      AddPointsOfEntityList(shared_ptr<EntityList> regionToAdd) {
-      // extract region names and Ids
-        std::string regionName;
-        regionName = regionToAdd->GetName();
-        RegionIdType regionId;
-        regionId = regionToAdd->GetRegion();
-
-        // extract nodes and check if the passed surfaceRegion is actually a part of the volume
-        StdVector<UInt> regionNodes;
-        GetNodesByRegion(regionNodes, regionId);
-        globalNodeNumbers_.Push_back(regionNodes);
-
-
-
-
-        StdVector<UInt> newNodeIds;
-RegionIdType innerRegionId;
-         innerRegionId = innerRegion->GetRegion();
-        this->GetNodesByRegion(newNodeIds, innerRegionId);
-
-innerRegionId
-
-
-    
-        GetNodeCoordinates( nodeCoords, surfRegionNodes, false );
-
-    UInt numPoints = surfRegionNodes.GetSize();
-
-
-
-    nodeCoordinates_.Push_back()
-      }
-*/
-      
-      UInt GetNumberOfNodes() {return numNodes_;};
-
-      private:
-        // number of contained nodes
-        UInt numNodes_;
-        // map to find index by global nodeID
-        std::map<UInt, UInt> nodeIdToIndexMap_;
-        // bool that states if there are nodes added
-        bool nodesSet_;
-        // vectors to store the data
-        StdVector<Vector<Double>> nodeCoordinates_;
-        StdVector<Vector<Double>> normalVectors_;
-        StdVector<Vector<Double>> minPrincipalVectors_;
-        StdVector<Vector<Double>> maxPrincipalVectors_;
-        StdVector<Vector<Double>> minPrincipalCurvatures_;
-        StdVector<Vector<Double>> maxPrincipalCurvatures_;
-    };
 
     //! Trigger mapping of elements' faces
 
@@ -815,7 +640,6 @@ innerRegionId
     virtual Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                            bool updated = false ) = 0;
 
-
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++ NAMED NODES INFORMATION ++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -980,7 +804,7 @@ innerRegionId
     /** Computes for regular grid number of elements in each direction for specified region
         by using maximal and minimal values of barycenters
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
-    StdVector<UInt> GetRegularDiscretization(RegionIdType region);
+    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
 
     //! Check if autoLayerGeneration parameters are specified for a region and call
     //! CreateExternalLayer if so. Return otherwise.
@@ -1213,42 +1037,101 @@ innerRegionId
     * Note that the name is also a key for entityDim_ and GridCFS::namedNodeNames_, namedElemNames_, ...
     * The entity structure is split over nameTypeMap_, entityDim_ and GridCFS::namedNodeNames_, GridCFS::namedNodes_ */
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
-    
+
     //! Store dimension for each region / element / node group (name).
     
     //! This map stores for each region / element / node group the dimension.
     //! Node groups have dimension 0 by definition.
     std::map<std::string, UInt> entityDim_;
 
-   // =======================================================================
-   // Cached Data for element shape mapping (THREAD VERSION)
-   // =======================================================================
-   //@{
+    // =======================================================================
+    // Cached Data for element shape mapping (THREAD VERSION)
+    // =======================================================================
+    //@{
 
-   //! Pointer to element shape map (original grid)
-   CfsTLS< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
+    //! Pointer to element shape map (original grid)
+    CfsTLS< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
 
-   //! Pointer to element shape map (updated grid)
-   CfsTLS<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
+    //! Pointer to element shape map (updated grid)
+    CfsTLS<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
 
-   //! Last accessed elements for updated grid
-   CfsTLS< StdVector<UInt> > lastShapeElemNumUpdated_;
+    //! Last accessed elements for updated grid
+    CfsTLS< StdVector<UInt> > lastShapeElemNumUpdated_;
 
-   //! Last accessed secondary element map for original grid
-   CfsTLS< StdVector<UInt> > lastShapeElemNumOrig_;
+    //! Last accessed secondary element map for original grid
+    CfsTLS< StdVector<UInt> > lastShapeElemNumOrig_;
 
-   ////! Pointer to seoncary element shape map (original grid)
-   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;
-   //
-   ////! Last accessed secondary element map for original grid
-   //StdVector< UInt > lastShapeElemNumOrig2nd_;
-   //
-   ////! Pointer to secondary element shape map (updated grid)
-   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapUpdated2nd_;
-   //
-   ////! Last accessed secondary element map for updated grid
-   //StdVector< UInt > lastShapeElemNumUpdated2nd_;
-   //@}
+    ////! Pointer to seoncary element shape map (original grid)
+    //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;
+    //
+    ////! Last accessed secondary element map for original grid
+    //StdVector< UInt > lastShapeElemNumOrig2nd_;
+    //
+    ////! Pointer to secondary element shape map (updated grid)
+    //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapUpdated2nd_;
+    //
+    ////! Last accessed secondary element map for updated grid
+    //StdVector< UInt > lastShapeElemNumUpdated2nd_;
+    //@}
+
+    // =======================================================================
+    // Automatic Layer Generation and Geometry Computation
+    // =======================================================================
+  public:
+    //! Check if autoLayerGeneration parameters are specified for a region and call
+    //! CreateExternalLayer if so. Return otherwise.
+    virtual void TriggerAutoLayerGeneration() {
+      EXCEPTION("Grid::TriggerAutoLayerGeneration not overwritten by child class");
+    };
+  protected:
+    //! Computes an external grid layer that can be used as a PML region. 
+    //! The actual function is implemented in GridCFS 
+    virtual void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::GenerateExternalLayer not overwritten by child class");
+    };
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param surfRegionId (in) the surface region on which the computation is performed
+    //! \param paramToCompute (in) is an enum that defines which type of geometry should be computed
+    virtual void ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute=ALL) {
+      EXCEPTION("Grid::ComputeGeometryOnSurfaceRegionNodes not overwritten by child class");
+    };
+
+
+    //! struct that collects StdVectors to store the node geometry 
+    //! for a desired node set.
+    //! resizes the vectors to a size numNodes when constructed.
+    struct NodeGeometry{
+      public:
+        // constructor
+        NodeGeometry(UInt numNodes) {
+          numNodes_ = numNodes;
+          nodeIds_ = StdVector<UInt>(numNodes_);
+          normalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          minPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          maxPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          minPrincipalCurvatures_ = StdVector<Double>(numNodes_);
+          maxPrincipalCurvatures_ = StdVector<Double>(numNodes_);
+        };
+
+        // number of contained nodes
+        UInt numNodes_;
+        // vectors to store the data
+        StdVector<UInt> nodeIds_;
+        StdVector<Vector<Double>> normalVectors_;
+        StdVector<Vector<Double>> minPrincipalVectors_;
+        StdVector<Vector<Double>> maxPrincipalVectors_;
+        StdVector<Double> minPrincipalCurvatures_;
+        StdVector<Double> maxPrincipalCurvatures_;
+    };
+
+    //! map that stores the node geometry for a desired surface region
+    //! the RegionIdType is intended to be the key holding the ID of the 
+    //! surface region. The NodeGeometry is the struct that holds the data
+    std::map<RegionIdType, shared_ptr<NodeGeometry>> geometryRegionMap_;
+
 
     // =======================================================================
     // Interation Scheme
@@ -1340,7 +1223,6 @@ innerRegionId
     typedef CGAL::Box_intersection_d
         ::Box_d<double,3> IdBox;
 
-    
     // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
     // implemented for use in the curvilinear PML formulation
     //! data type used in the data kernel
@@ -1353,6 +1235,8 @@ innerRegionId
     typedef CGAL::Eigen_svd                            SVD;
     //! representation of a point in 3D Euclidean space
     typedef DataKernel::Point_3                        DPoint;
+    //! representation of a vector in 3D Euclidean space
+    typedef DataKernel::Vector_3                       DVector;
     //! class to estimate local differential quantities at a given point
     typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
     //! class to store the Monge coordinate system
@@ -1383,12 +1267,25 @@ innerRegionId
     //! Function that instantiates a MongeForm, i.e., a surface description or the form z = F(x,y)
     //! The MongeForm can then be used to compute surface parameters, e.g. normal vectors, 
     //! principal directions, or principal curvatures
-    void SetUpMongeForm(MongeForm& mongeForm, UInt& degreePolynomFitting, UInt& degreeMongeCoeffs, 
+    //! \param mongeForm (out) created monge form
+    //! \param degreePolynomFitting (in) degree of the fitted polynomial to approximate the surface
+    //! \param degreeMongeCoeffs (in) degree of the monge coefficients
+    //! \param nodeCoordinates (in) coordinates of the vertex (position 0 in vector) and surrounding nodes in DPoint format.
+    void SetUpMongeForm(MongeForm& mongeForm, const UInt& degreePolynomFitting, const UInt& degreeMongeCoeffs, 
                         const std::vector<DPoint>& nodeCoordinates) {
       // create Monge Form and fit
-
       MongeViaJetFitting mongeFit;
       mongeForm = mongeFit(nodeCoordinates.begin(), nodeCoordinates.end(), degreePolynomFitting, degreeMongeCoeffs);
+    };
+
+    //! Function that computes a MongeForm on each node within given surface regions.
+    //! \param mongeForms (out) vector containing a monge form for each node in the surface region
+    //! \param surfRegionId (in) ID of the surface region
+    //! \param degreePolynomFitting (in) degree of the fitted polynomial to approximate the surface
+    //! \param degreeMongeCoeffs (in) degree of the monge coefficients
+    virtual void GetMongeFormsOnSurfaceRegion(StdVector<MongeForm>& mongeForms, const RegionIdType& surfRegionId, 
+      const UInt& degreePolynomFitting, UInt degreeMongeCoeffs) {
+        EXCEPTION("Grid::GetMongeFormsOnSurfaceRegion not overwritten by child class");
     };
 
     //! function that converts a StdVector of Vectors into the Point_3 format that is used by CGAL
