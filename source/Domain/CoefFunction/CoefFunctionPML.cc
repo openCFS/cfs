@@ -570,32 +570,10 @@ namespace CoupledField{
     
     this->name_ = "CoefFunctionCurvilinearPML";
     this->formulationType_ = CURVILINEAR;
-    grid_ =  this->entities_[0]->GetGrid();
     ReadDataPML(pmlDef,pdeDomains);
-    
-    
-    // trigger mesh generation
-    if (generateLayer_ == true) {
-      //grid_->CreateExternalLayer(this->entities_[0], surfEntities_[0], layerGenNode_);
-      
-      /*
-      int aaaa = surfRegList->GetRegion();*/
-    }
-
-
-
-
-  //in some cases we can have a propagation node
-  /* PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
-    if(propNode){
-      //read data from prop node
-      ParamNodeList dirNodes = propNode->GetChildren();
-  */
-  //std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>()
-
-
-
-    //
+    grid_ =  this->entities_[0]->GetGrid();
+    // trigger computation of geometry
+    //grid_->ComputeGeometryOnRegionNodes(pdeDomains);
   }
 
   template<typename T>
@@ -663,25 +641,6 @@ namespace CoupledField{
       if (shiftNodeFormul == "curvilinear")
         WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
     }
-
-    // check for auto-mesh-generation parameters in the xml
-    layerGenNode_ = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
-    if (layerGenNode_) {
-      // assure that autoLayerGeneration is indeed set for the curvilinear PML
-      std::string layerGenFormul; 
-      layerGenNode_->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
-      if (layerGenFormul == "curvilinear") {
-        generateLayer_ = true;
-
-        // add the specified surface entity list to entities_
-        std::string surfRegionToActOn;
-        layerGenNode_->GetValue("surfRegionToActOn", surfRegionToActOn);
-        shared_ptr<EntityList> surfEntity = grid_->GetEntityList( EntityList::SURF_ELEM_LIST,surfRegionToActOn );
-        surfEntities_.Push_back(surfEntity);
-      }
-    } else
-      // todo: implement possibility to read geometry without autoLayerGeneration
-      EXCEPTION("Element 'autoLayerGeneration' must be specified in the XML!");
   }
 
 
