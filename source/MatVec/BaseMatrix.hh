@@ -47,14 +47,11 @@ namespace CoupledField {
     //! - NOENTRYTYPE
     //! - INTEGER
     //! - DOUBLE
-    //! - FLOAT
     //! - COMPLEX
     //! - UINT
-    //! - SHORTINT
     //! - F77REAL8
     //! - F77COMPLEX16
-    typedef enum { NOENTRYTYPE, INTEGER, DOUBLE, FLOAT, COMPLEX,
-    	UINT, BOOL, SHORTINT, F77REAL8, F77COMPLEX16 } EntryType;
+    typedef enum { NOENTRYTYPE, INTEGER, DOUBLE, COMPLEX,	UINT, F77REAL8, F77COMPLEX16 } EntryType;
     static Enum<EntryType> entryType;
 
     //! Storage type of the matrix.
@@ -220,23 +217,13 @@ namespace CoupledField {
   template<class T>
   class EntryType{
   public:
-    //static const MatrixEntryType M_EntryType = NOENTRYTYPE;
+    static const BaseMatrix::EntryType M_EntryType = BaseMatrix::NOENTRYTYPE;
   };
 
-#define DEFINE_ENTRY_TYPE(M_TYPE,ENTRYTYPE)                         \
-template<>                                                          \
-class EntryType<M_TYPE>{                                            \
-public:                                                             \
-  static const BaseMatrix::EntryType M_EntryType = ENTRYTYPE; \
-}
-
-  DEFINE_ENTRY_TYPE( Double   , BaseMatrix::DOUBLE);
-  DEFINE_ENTRY_TYPE( Float    , BaseMatrix::FLOAT);
-  DEFINE_ENTRY_TYPE( Complex  , BaseMatrix::COMPLEX);
-  DEFINE_ENTRY_TYPE( Integer  , BaseMatrix::INTEGER);
-  DEFINE_ENTRY_TYPE( UInt     , BaseMatrix::UINT);
-  DEFINE_ENTRY_TYPE( ShortInt , BaseMatrix::SHORTINT);
-  DEFINE_ENTRY_TYPE( bool     , BaseMatrix::BOOL);
+  template<> class EntryType<double> { public: static const BaseMatrix::EntryType M_EntryType = BaseMatrix::DOUBLE; };
+  template<> class EntryType<Complex> { public: static const BaseMatrix::EntryType M_EntryType = BaseMatrix::COMPLEX; };
+  template<> class EntryType<int> { public: static const BaseMatrix::EntryType M_EntryType = BaseMatrix::INTEGER; };
+  template<> class EntryType<unsigned int> { public: static const BaseMatrix::EntryType M_EntryType = BaseMatrix::UINT; };
 
 } // namespace
 

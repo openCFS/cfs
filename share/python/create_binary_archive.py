@@ -9,12 +9,21 @@ from zipfile import ZIP_FILECOUNT_LIMIT
 ## the purpose of this file is to create a cfs binary arcive. 
 # Similar to create_binary_archive.cmake but including share/python and less noise
 parser = argparse.ArgumentParser(description = 'create a distributable cfs zip archive')
-parser.add_argument('--archive', help="explicitly give archive name")
-parser.add_argument('--password', help="optional encryption of arcive by password",)
+parser.add_argument('--filename', help="optionally give the full archive name")
+parser.add_argument('--arch', help="optionally give architecture info for the the archive name")
+parser.add_argument('--target', help="root directory name within archive (default 'openCFS')", default='openCFS')
+parser.add_argument('--password', help="optional encryption of arcive by password")
 
 args = parser.parse_args()
 
-# is tested to be a build direcotry within cfs
+if args.filename and args.arch:
+  print("warning: --filename overwrites --arch")
+
+date = str(datetime.now().year) + '_' + str(datetime.now().month)  + '_' + str(datetime.now().day)
+arch = ('_' + args.arch + '_') if args.arch else '_' 
+zip_file = args.target + arch + date if not args.filename else args.filename
+
+# will be tested to be a build direcotry within cfs
 pwd = os.getcwd()
 
 # the cfs main directory
@@ -27,8 +36,6 @@ with open("CMakeCache.txt") as config_file:
 if not cfs:
   cfs = input('Could not find cfs source directory. Please enter:')
 
-#cfs = os.path.abspath(os.path.join(pwd, os.pardir))
-
 if not os.path.exists(cfs + '/share'): 
   print('The cfs directory seems to be wrong.')
   os.sys.exit()
@@ -38,35 +45,34 @@ if not os.path.exists(pwd + '/bin'):
   os.sys.exit()
 
 # here we copy the stuff, delete afterwards
-tmp = os.path.abspath(os.path.join(pwd,'tmp_create_binary_archive'))
+tmp = os.path.abspath(os.path.join(pwd,'tmp_' + zip_file))
 shutil.rmtree(tmp, ignore_errors=True)
 os.mkdir(tmp)
-# share
-
 
 print('pwd=', pwd)
 print('cfs=', cfs)
 print('tmp=', tmp)
 
-shutil.copytree(cfs + '/share', tmp + '/cfs/share')
-# one might consider to remove the cfs script in /share/scripts/cfs   
-os.remove(tmp + '/cfs/share/scripts/cfs')
-shutil.rmtree(tmp + '/cfs/share/doc')
-shutil.copytree('bin/', tmp + '/cfs/bin/')
-shutil.copytree('lib/', tmp + '/cfs/lib/')
+base = tmp + '/' + args.target
 
-# construct zipfile name
-name = os.path.basename(pwd)
-zip_file = 'cfs_' + name + '_' + str(datetime.now().year) + '_' + str(datetime.now().month)  + '_' + str(datetime.now().day) + '.zip' if not args.archive else args.archive
+shutil.copytree(cfs + '/share', base + '/share')
+if os.path.exists(base + '/share/python/__pycache__'):
+  shutil.rmtree(base + '/share/python/__pycache__')
+shutil.rmtree(base + '/share/doc')
+shutil.copytree('bin/', base + '/bin/')
+shutil.copytree('lib/', base + '/lib/')
+shutil.copytree('license/', base + '/license/')
 
-call = ['zip', '-r']
+# we use python when we need not encryption
 if args.password:
+  call = ['zip', '-r'] # requires the command zip!
   call.append('--password')
   call.append(args.password)
-call.append(pwd + '/' + zip_file)
-call.append('.')  
-
-subprocess.call(call, cwd=tmp)
-print('created cfs archive ', zip_file)
-if args.password:
+  call.append(pwd + '/' + zip_file + '.zip')
+  call.append('.')  
+  subprocess.call(call, cwd=tmp)
   print("password to decrypt: '" + args.password + "'")
+else:
+  shutil.make_archive(zip_file, 'zip', base)
+
+print('created cfs archive', zip_file + '.zip')

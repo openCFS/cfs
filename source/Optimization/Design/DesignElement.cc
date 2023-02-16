@@ -1358,7 +1358,7 @@ string SIMPElement::ToString(int level) const
   std::stringstream ss;
   const Filter& f = filter[DetermineFilterIndex()];
   ss << "el=" << de_->elem->elemNum << " #n=" << f.neighborhood.GetSize() << "(";
-  for(unsigned int i = 0; i < !filter.IsEmpty() && f.neighborhood.GetSize(); i++)
+  for(unsigned int i = 0; !filter.IsEmpty() && i < f.neighborhood.GetSize(); i++)
   {
     if(level == 0)
       ss << " " << f.neighborhood[i].neighbour->elem->elemNum;

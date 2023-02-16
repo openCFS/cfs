@@ -235,6 +235,9 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # const/volatile qualifiers
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4373")
 
+  # prevent warning about data loss when converting size_t
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4267")
+
   # this is for WINDOWS 10. It is essential to have the same version for the boost libs see External_Boost.cmake
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
   
