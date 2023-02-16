@@ -601,6 +601,46 @@ namespace CoupledField
     }
   }
 
+  // =======================================================================
+  // Automatic Layer Generation and Geometry Computation
+  // =======================================================================
+  void Grid::GetGeometryOnRegionNodes(shared_ptr<NodeGeometry> geometry, const RegionIdType& regionId, bool isVolumeRegion) {
+    // check if geometry already exists for given region
+    if (geometryRegionMap_.count(regionId) == 0) {
+      // if not, check for volume or surface region
+      if (isVolumeRegion == false) {
+        // directly compute geometry of passed surface region
+        this->ComputeGeometryOnSurfaceRegionNodes(regionId);
+      } else {
+        // add new entry for the volume region in the geometryRegionMap_ to store geometry
+        geometryRegionMap_[regionId] = shared_ptr<NodeGeometry>(new NodeGeometry(0));
+        StdVector<RegionIdType> surfRegionIds;
+        RegionIdType currSurfRegion;
+        this->GetConnectedSurfaceRegions(surfRegionIds, regionId);
+        for (UInt iSurfRegion = 0; iSurfRegion < surfRegionIds.GetSize(); iSurfRegion++) {
+          currSurfRegion = surfRegionIds[iSurfRegion];
+          // check for every connected iso surface if the geometry is already computed. If not, compute.
+          if (geometryRegionMap_.count(currSurfRegion) == 0) {
+            this->ComputeGeometryOnSurfaceRegionNodes(currSurfRegion);
+          }
+          // pass already computed geometry to the key of the volume region
+          geometryRegionMap_[regionId]->AddNodes(geometryRegionMap_[currSurfRegion]);
+        }
+        // finally, pass geometry
+        geometry = geometryRegionMap_[regionId];
+      }
+    }
+  };
+
+  void Grid::GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId) {
+    // check if the connection has been set
+    if (volumeSurfaceRegionMap_.count(volumeRegionId) == 0) {
+      EXCEPTION("Connection map must be set manually before calling Grid::GetConnectedSurfaceRegions().");
+    } else {
+      connecedSurfRegionIds = volumeSurfaceRegionMap_[volumeRegionId];
+    }
+  };
+
 
   // =======================================================================
   // FINITE VOLUME REPRESENTATION SECTION

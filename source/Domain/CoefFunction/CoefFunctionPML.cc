@@ -321,16 +321,6 @@ namespace CoupledField{
     pmlDef->GetValue("dampFactor",dampFactor);
 
     this->dampFunction_->DampFactor = dampFactor;
-
-    // check for auto-mesh-generation parameters in the xml because it is not implemented for 
-    // classic and shifted PML
-    PtrParamNode layerGenNode = pmlDef->Get("autoLayerGeneration", ParamNode::PASS);
-    if (layerGenNode){
-      std::string layerGenFormul; 
-      layerGenNode->GetParent()->GetValue("formulation", layerGenFormul, ParamNode::PASS);
-      if (layerGenFormul != "curvilinear")
-        WARN("autoLayerGeneration  is currently not implemented for classic PML and will be ignored!");
-    }
   }
 
   template<typename T>
@@ -567,13 +557,12 @@ namespace CoupledField{
   template<typename T>
   CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
                         StdVector<RegionIdType> pdeDomains) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
-    
     this->name_ = "CoefFunctionCurvilinearPML";
     this->formulationType_ = CURVILINEAR;
-    ReadDataPML(pmlDef,pdeDomains);
     grid_ =  this->entities_[0]->GetGrid();
+    ReadDataPML(pmlDef,pdeDomains);
     // trigger computation of geometry
-    //grid_->ComputeGeometryOnRegionNodes(pdeDomains);
+    grid_->GetGeometryOnRegionNodes(nodeGeom_, volRegion_, true);
   }
 
   template<typename T>
@@ -617,6 +606,9 @@ namespace CoupledField{
     Double dampFactor;
     pmlDef->GetValue("dampFactor",dampFactor);
     this->dampFunction_->DampFactor = dampFactor;
+
+    // extract the ID of the PML volume region
+    volRegion_ = this->entities_[0]->GetRegion();
 
     // check for propRegion, scaling or frequency shift coeff in the xml
     // if these are set for curvilinear PML, ignore and warn

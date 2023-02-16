@@ -2719,7 +2719,7 @@ namespace CoupledField {
     const UInt maxIdx = nodeElemMapIndices_[node]; // node numbers are 1-based
     elemList.Clear();
     
-    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
+    for (UInt idx = nodeElemMapIndices_[node-1]; idx < maxIdx; idx++) {
       const Elem* elem = GetElem(nodeElemMap_[idx]);
       elemList.Push_back(elem);
     }
@@ -2734,7 +2734,7 @@ namespace CoupledField {
     const UInt nRegions = regionIds.GetSize();
     elemList.Clear();
     
-    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
+    for (UInt idx = nodeElemMapIndices_[node-1]; idx < maxIdx; idx++) {
       const Elem* elem = GetElem(nodeElemMap_[idx]);
       for (UInt iR = 0; iR < nRegions; iR++) {
         if (regionIds[iR] == elem->regionId) {

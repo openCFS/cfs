@@ -1078,11 +1078,65 @@ namespace CoupledField
     // Automatic Layer Generation and Geometry Computation
     // =======================================================================
   public:
+    //! struct that collects StdVectors to store the node geometry 
+    //! for a desired node set.
+    //! resizes the vectors to a size numNodes when constructed.
+    struct NodeGeometry{
+      public:
+        //! constructor
+        NodeGeometry(UInt numNodes) {
+          numNodes_ = numNodes;
+          nodeIds_ = StdVector<UInt>(numNodes_);
+          normalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          minPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          maxPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          minPrincipalCurvatures_ = StdVector<Double>(numNodes_);
+          maxPrincipalCurvatures_ = StdVector<Double>(numNodes_);
+        };
+
+        //! add additional nodes from other NodeGeometry
+        void AddNodes(shared_ptr<NodeGeometry> newNodes) {
+          UInt numNewNodes = newNodes->numNodes_;
+          numNodes_ += numNewNodes;
+          for (UInt iNodes = 0; iNodes < numNewNodes; iNodes++) {
+            nodeIds_.Push_back(newNodes->nodeIds_[iNodes]);
+            normalVectors_.Push_back(newNodes->normalVectors_[iNodes]);
+            minPrincipalVectors_.Push_back(newNodes->minPrincipalVectors_[iNodes]);
+            maxPrincipalVectors_.Push_back(newNodes->maxPrincipalVectors_[iNodes]);
+            minPrincipalCurvatures_.Push_back(newNodes->minPrincipalCurvatures_[iNodes]);
+            maxPrincipalCurvatures_.Push_back(newNodes->maxPrincipalCurvatures_[iNodes]);
+          }
+        };
+
+        // number of contained nodes
+        UInt numNodes_;
+        // vectors to store the data
+        StdVector<UInt> nodeIds_;
+        StdVector<Vector<Double>> normalVectors_;
+        StdVector<Vector<Double>> minPrincipalVectors_;
+        StdVector<Vector<Double>> maxPrincipalVectors_;
+        StdVector<Double> minPrincipalCurvatures_;
+        StdVector<Double> maxPrincipalCurvatures_;
+    };
     //! Check if autoLayerGeneration parameters are specified for a region and call
     //! CreateExternalLayer if so. Return otherwise.
     virtual void TriggerAutoLayerGeneration() {
       EXCEPTION("Grid::TriggerAutoLayerGeneration not overwritten by child class");
     };
+
+    //! Returns the geometry data for a given region if it is already computed, triggers the computation if not.
+    //! If a surface region is passed, computes on this surface region. 
+    //! If a volume region is passed, checks for assigned iso surfaces via GetConnectedSurfaceRegions()
+    //! and computes the geometry for every connected isosurface.
+    //! \param geometry (out) pointer to the struct containing the geometry
+    //! \param surfRegionId (in) the surface region on which the computation is performed
+    //! \param isVolumeRegion (in) states if the passed regionId is a volume region (true) or a surface region(false)
+    void GetGeometryOnRegionNodes(shared_ptr<NodeGeometry> geometry, const RegionIdType& regionId, bool isVolumeRegion);
+
+    //! checks if there are assigned surface regions to a passed volume region.
+    //! Raises exception if the connection has not been set yet. 
+    void GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId);
+
   protected:
     //! Computes an external grid layer that can be used as a PML region. 
     //! The actual function is implemented in GridCFS 
@@ -1099,38 +1153,17 @@ namespace CoupledField
       EXCEPTION("Grid::ComputeGeometryOnSurfaceRegionNodes not overwritten by child class");
     };
 
-
-    //! struct that collects StdVectors to store the node geometry 
-    //! for a desired node set.
-    //! resizes the vectors to a size numNodes when constructed.
-    struct NodeGeometry{
-      public:
-        // constructor
-        NodeGeometry(UInt numNodes) {
-          numNodes_ = numNodes;
-          nodeIds_ = StdVector<UInt>(numNodes_);
-          normalVectors_ = StdVector<Vector<Double>>(numNodes_);
-          minPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
-          maxPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
-          minPrincipalCurvatures_ = StdVector<Double>(numNodes_);
-          maxPrincipalCurvatures_ = StdVector<Double>(numNodes_);
-        };
-
-        // number of contained nodes
-        UInt numNodes_;
-        // vectors to store the data
-        StdVector<UInt> nodeIds_;
-        StdVector<Vector<Double>> normalVectors_;
-        StdVector<Vector<Double>> minPrincipalVectors_;
-        StdVector<Vector<Double>> maxPrincipalVectors_;
-        StdVector<Double> minPrincipalCurvatures_;
-        StdVector<Double> maxPrincipalCurvatures_;
-    };
-
     //! map that stores the node geometry for a desired surface region
     //! the RegionIdType is intended to be the key holding the ID of the 
     //! surface region. The NodeGeometry is the struct that holds the data
     std::map<RegionIdType, shared_ptr<NodeGeometry>> geometryRegionMap_;
+
+    //! map that allows to store connected surface and volume regions. 
+    //! one volume (key) can hold multiple surface regions (value)
+    //! the key is thus the RegionIdType of the volume
+    //! the value is the StdVector<RegionIdType>> containing the connected
+    //! surfaces.
+    std::map<RegionIdType, StdVector<RegionIdType>> volumeSurfaceRegionMap_;
 
 
     // =======================================================================

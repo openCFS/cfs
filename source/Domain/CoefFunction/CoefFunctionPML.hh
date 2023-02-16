@@ -19,11 +19,12 @@
 #include <cmath>
 
 #include "CoefFunction.hh"
+#include "Domain/Mesh/Grid.hh"
 
 namespace CoupledField{
 
 // forward class declaration, needed in CoefFunctionCurvilinearPML
-class GridCFS;
+//class GridCFS;
 
 //================================================================================================
 // DampFunction
@@ -442,18 +443,11 @@ private:
   //! node to store auto-mesh-generation parameters (elemHeight and numLayers)
   PtrParamNode layerGenNode_;
 
-  //! state if the PML layer should be generated automatically
-  bool generateLayer_ = false;
+  //! the volume region to act on
+  RegionIdType volRegion_;
 
-  //! store the specified surfaces where the layer is built upon in a separate 
-  //! entity list
-  StdVector<shared_ptr<EntityList>> surfEntities_;
-
-  //! store if the damping function must be computed (true) or not (false)
-  //! For the propagation region a unity tensor is passed to the 
-  //! tensorScaledGradientOperator. For the PML regions the full transformation
-  //! tensor is passed
-  StdVector<bool> isPmlRegion_;
+  //! 
+  shared_ptr<Grid::NodeGeometry> nodeGeom_;
 
 };
 }

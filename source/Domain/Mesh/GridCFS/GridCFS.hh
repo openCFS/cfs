@@ -544,17 +544,6 @@ namespace CoupledField
      * Slow implementation with linear search */
     Elem* SearchFistRegionElement(RegionIdType reg) const;
 
-    //! Check if autoLayerGeneration parameters are specified for a region and call
-    //! CreateExternalLayer if so. Return otherwise.
-    virtual void TriggerAutoLayerGeneration() override;
-
-    //! Computes an external grid layer that is used as a PML region. 
-    //! Assigns the new volume region to the grid. 
-    //! Additionally, assigns one surface region for each iso-surface layer within the new volume region.
-    //! \param surfaceRegion pointer to the surfaceRegion where the layer should be built upon
-    //! \param layerGenNode pointer to the autoLayerGeneration parameters that are specified in the XML
-    void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) override;
-
   private:
 
     /** checks the domain in the xml file for a pattern region.
@@ -600,10 +589,36 @@ namespace CoupledField
     };
 
     // =======================================================================
+    // Automatic Layer Generation and Geometry Computation
+    // =======================================================================
+  public:
+    //! Check if autoLayerGeneration parameters are specified for a region and call
+    //! CreateExternalLayer if so. Return otherwise.
+    virtual void TriggerAutoLayerGeneration() override;
+
+    //! use parent implementation
+    using Grid::GetGeometryOnRegionNodes;
+
+  protected:
+    //! Computes an external grid layer that is used as a PML region. 
+    //! Assigns the new volume region to the grid. 
+    //! Additionally, assigns one surface region for each iso-surface layer within the new volume region.
+    //! \param surfaceRegion pointer to the surfaceRegion where the layer should be built upon
+    //! \param layerGenNode pointer to the autoLayerGeneration parameters that are specified in the XML
+    void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) override;
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param surfRegionId (in) the surface region on which the computation is performed
+    //! \param paramToCompute (in) is an enum that defines which type of geometry should be computed
+    void ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute=ALL) override;
+
+    // =======================================================================
     // Helper Methods
     // =======================================================================
+  private:
     //@{ \name Helper Methods
-
     //! Creates the surface elements
 
     //! This method creates the surface elements, by assigning each surface 
@@ -669,14 +684,6 @@ namespace CoupledField
      * line. This may be needed if you want only the interior nodes of a line.
      */
     void makeNameNodesFromLines();
-
-    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
-    //! and principal curvatures) on every node in a surface region.
-    //! Stores the computed data into the geometryRegionMap_
-    //! \param surfRegionId (in) the surface region on which the computation is performed
-    //! \param paramToCompute (in) is an enum that defines which type of geometry should be computed
-     void ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute=ALL);
-
     //@}
 
     // =======================================================================
