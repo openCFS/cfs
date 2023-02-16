@@ -549,7 +549,8 @@ namespace CoupledField
     virtual void TriggerAutoLayerGeneration() override;
 
     //! Computes an external grid layer that is used as a PML region. 
-    //! Assigns the new region to the grid
+    //! Assigns the new volume region to the grid. 
+    //! Additionally, assigns one surface region for each iso-surface layer within the new volume region.
     //! \param surfaceRegion pointer to the surfaceRegion where the layer should be built upon
     //! \param layerGenNode pointer to the autoLayerGeneration parameters that are specified in the XML
     void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) override;
