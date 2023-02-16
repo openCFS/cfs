@@ -2716,7 +2716,7 @@ namespace CoupledField {
                                      const UInt & node) {
     SetNodesToElemsMap();
     
-    const UInt maxIdx = nodeElemMapIndices_[node + 1];
+    const UInt maxIdx = nodeElemMapIndices_[node]; // node numbers are 1-based
     elemList.Clear();
     
     for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
@@ -2730,7 +2730,7 @@ namespace CoupledField {
                                      const StdVector<RegionIdType>& regionIds) {
     SetNodesToElemsMap();
     
-    const UInt maxIdx = nodeElemMapIndices_[node + 1];
+    const UInt maxIdx = nodeElemMapIndices_[node]; // node numbers are 1-based
     const UInt nRegions = regionIds.GetSize();
     elemList.Clear();
     
