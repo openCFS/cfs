@@ -2148,7 +2148,7 @@ namespace CoupledField {
                    << " nodes in the grid. You requested coordinates for "
                    << "node number " << nodeList[i] <<". Go check your mesh file!" );
       }
-      nodeCoords[i] = coords_[nodeList[i]-1];
+      nodeCoords[i] = coords_[nodeList[i]];
       if (updated && deltCoords_.GetSize() > 0) {
         nodeCoords[i] += deltCoords_[nodeList[i]];
       }
@@ -3131,7 +3131,11 @@ namespace CoupledField {
           ptrLayerConnectivity  = &layerConnectivity[numNodesInSurfElement];
           this->SetElemData(addedSurfElemIds[iLayers][iSurfElems], currSurfElemType, newSurfRegionId, ptrLayerConnectivity);
         }
+        // assign surface region to the volume region in order to find the connected regions lateron
+        volumeSurfaceRegionMap_[layerRegionId].Push_back(newSurfRegionId);
       }
+      // finally, also add the interface surface region to the map
+      volumeSurfaceRegionMap_[layerRegionId].Push_back(surfRegionId);
     }
     // Depending on the direction of layer generation and orientation of the interface surface elements,
     // the volume elements might not be oriented correctly. Hence, check if Jakobi determinants of the 
