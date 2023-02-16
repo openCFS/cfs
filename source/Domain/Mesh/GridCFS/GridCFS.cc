@@ -2148,9 +2148,9 @@ namespace CoupledField {
                    << " nodes in the grid. You requested coordinates for "
                    << "node number " << nodeList[i] <<". Go check your mesh file!" );
       }
-      nodeCoords[i] = coords_[nodeList[i]];
+      nodeCoords[i] = coords_[nodeList[i]-1];
       if (updated && deltCoords_.GetSize() > 0) {
-        nodeCoords[i] += deltCoords_[nodeList[i]];
+        nodeCoords[i] += deltCoords_[nodeList[i]-1];
       }
     }
   }
