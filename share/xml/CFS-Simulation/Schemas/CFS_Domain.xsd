@@ -110,11 +110,11 @@
       Define the parameters for automatic layer generation via mesh extrusion.
       The elements of the layer are prismatic (wedge for inner tet-mesh and hex for inner hex mesh). 
       - name:               specifies the name of the newly created region
-      - elemHeight:         defines the height of each element in 'm', passed as a positive float; 
+      - elemHeight:         defines the height of each element in 'm'. The sign of elemHeight controls 
+                            the direction in which the layer is created.
       - numLayers:          is the number of extrusion steps and must be a positive integer;
       - surfRegiontoActOn:  defines the surface where the layer will be built onto; 
                             should be the the outer boundary of the propagation domain or a part of it;
-      - innerRegion:        specifies the inner (volume) region to assure that the layer is built outside.
       </xsd:documentation>
     </xsd:annotation>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
