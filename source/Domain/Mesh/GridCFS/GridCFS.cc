@@ -2977,8 +2977,6 @@ namespace CoupledField {
     // name, id, and elems of new region
     std::string layerName;
     RegionIdType layerRegionId;
-    UInt numLayerElems;
-    StdVector<Elem*> layerElems;
 
     // parameters of elements in new layer...
     // connectivity the current element that is created within the layer
@@ -2998,21 +2996,22 @@ namespace CoupledField {
     // store the node connectivity of the surface region and every subsequent isosurface
     StdVector<StdVector<UInt>> connectNodeIdx;
     // helper variable to pass layer connectivity to function
-    UInt *ptrLayerConnectivity;
+    UInt* ptrLayerConnectivity;
     // coordinates of the current node (where the new node is created upon)
     StdVector<Vector<Double>> currNodeCoords;
-    // coordinates and IDs within the new layer
-    StdVector<Vector<Double>> allLayerNodeCoords;
+    // IDs within the new layer
     StdVector<StdVector<UInt>> allLayerNodeIds;
+    // name and ID of newly created surface regions (each new iso surface within the layer)
+    // we create these new iso-surface regions for being able to compute surface geometry
+    // later on
+    std::string newSurfRegionName;
+    RegionIdType newSurfRegionId;
+    StdVector<StdVector<SurfElem*>> addedSurfElems;
+    StdVector<StdVector<UInt>> addedSurfElemIds;
 
     // extract parameters from layerGenNode
     layerGenNode->GetValue("numLayers", numLayers);
     layerGenNode->GetValue("elemHeight", elemHeight);
-    // in the xml it is still possible to specify a negative height, so check for it
-    if (elemHeight < 0) {
-      WARN("You specified a negative 'elemHeight' that will be treated as positive value!");
-      elemHeight = elemHeight * -1;
-    }
 
     // get, node Ids, coordinates and elements
     this->GetNodesByRegion(surfRegionNodeIds, surfRegionId);
@@ -3025,24 +3024,20 @@ namespace CoupledField {
     layerGenNode->GetValue("name", layerName);
     layerRegionId = this->AddRegion(layerName, VOLUME_REGION);
 
-    // compute normal vectors
+    // compute normal vectors (next to other geometry) and store
     ComputeGeometryOnSurfaceRegionNodes(surfRegionId);
 
-    // compute new nodes iteratively...
-    // temporary node coords for iterative computation
-    currNodeCoords.Clear();
+    // prepare computation of new nodes
     currNodeCoords = surfNodeCoords;
-    allLayerNodeCoords = surfNodeCoords;
     allLayerNodeIds = StdVector<StdVector<UInt>>(numLayers+1);
     allLayerNodeIds[0] = surfRegionNodeIds;
     UInt newNodeId;
+    // compute new nodes iteratively...
     for (UInt iLayers = 1; iLayers <= numLayers; iLayers++) {
       allLayerNodeIds[iLayers].Resize(numSurfNodes);
       for (UInt iNodes = 0; iNodes < numSurfNodes; iNodes++) {
         // compute new node coordinates
-        currNodeCoords[iNodes] = currNodeCoords[iNodes] + 
-          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes] * elemHeight;
-        allLayerNodeCoords.Push_back(currNodeCoords[iNodes]);
+        currNodeCoords[iNodes] += geometryRegionMap_[surfRegionId]->normalVectors_[iNodes] * elemHeight;
         // add new node to grid
         this->AddNode( currNodeCoords[iNodes], newNodeId );
         // store iD
@@ -3054,82 +3049,96 @@ namespace CoupledField {
     // as the new elems are prismatic, there will be one layer per linear element 
     // or two layers per quadratic element
     if (this->IsQuadratic() == true) {
-      EXCEPTION("Layer Generation for quadratic elements not implemented yet!")
-
+      EXCEPTION("Layer Generation for quadratic elements not implemented yet. Use linear elements instead.");
     } else {
-      numLayerElems = numSurfElems * numLayers;
+      // prepare computation
       surfElemConnectivity.Resize(numSurfElems);
       connectNodeIdx.Resize(numSurfElems);
       addedElems.Resize(numLayers);
       addedElemIds.Resize(numLayers);
+      addedSurfElems.Resize(numLayers);
+      addedSurfElemIds.Resize(numLayers);
+      // iteratively create layer (volume) elements, iso-surface regions and surface elements
       for (UInt iLayers = 0; iLayers < numLayers; iLayers++) {
         addedElems[iLayers].Resize(numSurfElems);
         addedElemIds[iLayers].Resize(numSurfElems);
-        // first, add new elements
+        addedSurfElems[iLayers].Resize(numSurfElems);
+        addedSurfElemIds[iLayers].Resize(numSurfElems);
+        
+        // add a new surface region for every new iso surface
+        newSurfRegionName = layerName + "_IsoSurface_" + std::to_string(iLayers+1);
+        newSurfRegionId = this->AddRegion(newSurfRegionName, SURFACE_REGION);
+
+        // add new elements...
         for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
           // create new elements. They will (hopefully!) be deleted in the end of the simulation
           addedElems[iLayers][iSurfElems] = new Elem;
+          addedSurfElems[iLayers][iSurfElems] = new SurfElem;
         }
-        // add new elements of current layer to the grid
-        AddVolumeElems( layerRegionId, addedElems[iLayers],addedElemIds[iLayers]);
+        // add new elements of current layer to the grid and obtain element IDs
+        AddVolumeElems( layerRegionId, addedElems[iLayers], addedElemIds[iLayers]);
+        AddSurfaceElems( newSurfRegionId, addedSurfElems[iLayers], addedSurfElemIds[iLayers]);
 
-        // now, set all the necessary information for the new elements
+        // next, we need to set all the necessary information for the new elements...
         for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
+          // get type of current surface element
+          currSurfElemType = surfRegionElems[iSurfElems]->type;
+          // check for type of the surface element and assign type of layer element accordingly
+          switch (currSurfElemType) {
+            case Elem::FEType::ET_TRIA3:
+                currLayerElemType = Elem::FEType::ET_WEDGE6;
+                numNodesInSurfElement = 3;
+                break;
+            case Elem::FEType::ET_QUAD4:
+                currLayerElemType = Elem::FEType::ET_HEXA8;
+                numNodesInSurfElement = 4;
+                break;
+            default:
+                EXCEPTION("Layer Generation for surface element type "<< currSurfElemType <<" not implemented yet!" <<
+                          "use linear triangles or quadrangles instead!");
+          }
+          // set the number of nodes in the current layer element
+          numNodesInLayerElement = numNodesInSurfElement*2;
+
           // get the connectivity of the corresponding surface element and store for later use
-          // we only need to do this once for each surface element
+          // we only need to do this once for each surface element on the interface
           if (iLayers == 0) {
-            // check for type of the surface element and assine type of layer element accordingly
-            currSurfElemType = surfRegionElems[iSurfElems]->type;
-            switch (currSurfElemType) {
-              case Elem::FEType::ET_TRIA3:
-                  currLayerElemType = Elem::FEType::ET_WEDGE6;
-                  numNodesInSurfElement = 3;
-                  break;
-              case Elem::FEType::ET_QUAD4:
-                  currLayerElemType = Elem::FEType::ET_HEXA8;
-                  numNodesInSurfElement = 4;
-                  break;
-              default:
-                  EXCEPTION("Layer Generation for surface element type "<< currSurfElemType <<" not implemented yet!" <<
-                            "use linear triangles or quadrangles instead!");
-            }
             surfElemConnectivity[iSurfElems].Resize(numNodesInSurfElement);
             surfElemConnectivity[iSurfElems] = surfRegionElems[iSurfElems]->connect;
-
-            numNodesInLayerElement = numNodesInSurfElement*2;
-            layerConnectivity.Resize(numNodesInLayerElement);
             connectNodeIdx[iSurfElems].Resize(numNodesInSurfElement);
             // find the indices of the connection list of the surface elements as we need them 
             // to assign the connections in the new layer elements
             for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {
               connectNodeIdx[iSurfElems][iNode] = allLayerNodeIds[0].Find(surfElemConnectivity[iSurfElems][iNode]);
             }
-            // check if the new elements have more nodes as elements in the original grid and set 
-            // the globally maximum occurring nodes
+            // check if the new elements have more nodes than elements in the original grid and set 
+            // the maximum number of nodes occurring in any global element
             maxNumElemNodes_ = (numNodesInLayerElement > maxNumElemNodes_) ? numNodesInLayerElement : maxNumElemNodes_;
-          }
+          } // if (iLayers == 0)
 
-          // assign connectivity to current layer element
+          // assign connectivity to current layer element...
+          layerConnectivity.Resize(numNodesInLayerElement);
           for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {
             layerConnectivity[iNode] = allLayerNodeIds[iLayers][connectNodeIdx[iSurfElems][iNode]];
             layerConnectivity[iNode+numNodesInSurfElement] = allLayerNodeIds[iLayers+1][connectNodeIdx[iSurfElems][iNode]];
           }
           // convert from StdVector to UInt* as SetElemData() only takes UInt*
+          // point on the volume-element connectivity
           ptrLayerConnectivity  = &layerConnectivity[0];
-
           // assign type, region, and connectivity to element
           this->SetElemData(addedElemIds[iLayers][iSurfElems], currLayerElemType, layerRegionId, ptrLayerConnectivity);
+          // point on the surface-element connectivity
+          ptrLayerConnectivity  = &layerConnectivity[numNodesInSurfElement];
+          this->SetElemData(addedSurfElemIds[iLayers][iSurfElems], currSurfElemType, newSurfRegionId, ptrLayerConnectivity);
         }
       }
     }
-    // check if Jakobi determinants of the new region are positive and try correct if not
+    // Depending on the direction of layer generation and orientation of the interface surface elements,
+    // the volume elements might not be oriented correctly. Hence, check if Jakobi determinants of the 
+    // new region are positive and try correct if not.
+    // Note: calling CorrectElementConnectivities() produces an overshoot since it is already called in
+    // FinishInit() and it checks all elements on the grid.
     CorrectElementConnectivities();
-    /*
-    // check if the new region is regular
-    CheckForRegularRegion(layerRegionId);
-    // add regular grid discretization (I am not sure if this is actually needed here.
-    // It is done in FinishInit() for the input grid, so I do it here for the new layer as well.)
-    CalcRegulardGridDiscretization() */
   };
 
   // =======================================================================
@@ -3183,7 +3192,7 @@ namespace CoupledField {
     DPoint innerPoint_3(innerPoint[0], innerPoint[1], innerPoint[2]);
     // variable to store previous inner vector (from a vertex to an inner point)
     // for a (nearly) flat surface, the outwards normal is defined into the +x/y/z direction
-    DVector oldInnerVec(-1,-1,-1);
+    DVector oldInnerVec(1,1,1);
     
     // variables needed to put the vertex onto the [0] position for each point set
     UInt zeroId;
@@ -3264,20 +3273,8 @@ namespace CoupledField {
             EXCEPTION("Currently only storing all parameters is possible (paramToCompute=ALL)");
       }
 
-
-     /* // extract normal vector and store
-      tempNormVec[0] = mongeForm.normal_direction().x();
-      tempNormVec[1] = mongeForm.normal_direction().y();
-      tempNormVec[2] = mongeForm.normal_direction().z();
-
-      // store normal vectors in StdVector
-      surfNormalVectors.Push_back(tempNormVec);*/
-
-       /* // store to which isosurface the node belongs within the layer. 
-        // Needed for computing the geometry on the isosurfaces within the layer
-        // (used eg. for curvilinear PML)
-        isoSurfaceMap_[iLayers].Push_back(newNodeId);*/
-      WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
+      // debug...
+      /*WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
       << surfNodeCoords[iSurfNodes][1]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][1] << " in y, \n"
       << surfNodeCoords[iSurfNodes][2]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][2] << " in z, \n"
       << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
@@ -3289,7 +3286,7 @@ namespace CoupledField {
       << surfNodeCoords[iSurfNodes][2] << " in z");
       WARN("The number of points used is " << currNodeIds.GetSize());
       WARN("The first point id in data is " << currNodeIds[0] <<
-          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);
+          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);*/
     }
   };
 
