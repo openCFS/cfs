@@ -374,8 +374,6 @@ namespace CoupledField {
 
     // -- ACOUSTIC --
     MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "Acoustic_Bulk_Modulus" );
-    MaterialTypeEnum.Add( ACOU_BULK_MODULUS_COMPLEX, "Acoustic_Bulk_Modulus_Complex" );
-    MaterialTypeEnum.Add( ACOU_DENSITY_COMPLEX, "Acoustic_Density_Complex" );
     MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_Sound_Speed" );
     MaterialTypeEnum.Add( ACOU_BOVERA, "BoverA" );
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_REAL_VAL, "acouImpedanceRealValue");

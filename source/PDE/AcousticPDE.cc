@@ -216,6 +216,8 @@ namespace CoupledField{
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[formulation_]->GetFeSpace();
 
+    LOG_DBG(acousticpde) << "DefineIntegrators BEGIN" <<  "\n" ;
+
     for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
       actRegion = regions_[iRegion];
 
@@ -240,13 +242,17 @@ namespace CoupledField{
       PtrCoefFct blk;
 
       if ( complexFluidFormulation_ ) {
-    	  dens = materials_[actRegion]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
-    	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS_COMPLEX, Global::COMPLEX );
+    	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
+    	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
       }
       else {
     	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
     	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
       }
+
+      LOG_DBG(acousticpde) << "DefineIntegrators : dens   = " << dens->ToString() << "\n";
+      LOG_DBG(acousticpde) << "DefineIntegrators : blk    = " << blk->ToString() << "\n";
+
 
       // ====================================================================
       // check for temperature field, which effects the speed of sound
@@ -326,6 +332,10 @@ namespace CoupledField{
                 		      CoefXprBinOp(mp_, factor, coeffb, CoefXpr::OP_MULT) );
     	  }
       }
+
+      LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffK = " << coeffK->ToString() << "\n";
+      LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffM = " << coeffM->ToString() << "\n";
+
 
       // ====================================================================
       // Take account for pml
@@ -1003,25 +1013,39 @@ namespace CoupledField{
     // ABC boundaries
     //========================================================================================
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    LOG_DBG(acousticpde) << "Define Surface Integrator BEGIN"<< "\n";
+
     if( bcNode ) {
       ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
+      LOG_DBG(acousticpde) << "ABCs count :  " << abcNodes.GetSize() <<  "\n" ;
 
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
         std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
+        LOG_DBG(acousticpde) << "ABCs volRegName :  " << volRegName <<  "\n" ;
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
 
         //check, if region has complex fluid
         PtrParamNode curRegNode =
         		myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
-        if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" )
-        	EXCEPTION("Absorbing BC at complex fluid region not allowed");
 
         // c0 = sqrt(bulk_modulus / density)
-        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
-        PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        PtrCoefFct dens;
+        PtrCoefFct blk;
+        if( complexFluidFormulation_) {
+          dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
+          blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
+        }
+        else {
+          dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+          blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        }
+
+        LOG_DBG(acousticpde) << "ABC: dens = " << dens->ToString() << "\n";
+        LOG_DBG(acousticpde) << "ABC: blk  = " << blk->ToString() << "\n";
+
         PtrCoefFct c0;
         
         //check for temperature dependency
@@ -1046,14 +1070,15 @@ namespace CoupledField{
           c0 = CoefFunction::Generate( mp_,  Global::REAL,
                            CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, constVal, regionTemp, CoefXpr::OP_MULT),
                            CoefXpr::OP_SQRT) );
+          LOG_DBG(acousticpde) << "Define Surface Integrators standard c0 =" << c0->ToString() << "\n";
         }
         else {
         	if (complexFluidFormulation_ ) {
         		// correct factor is 1/(density*c0) = 1/sqrt(dens*compressModulus)
-        		// so we modify c0 to : density*compressModulus
-        		// division is done later!!
-        		c0 = CoefFunction::Generate( mp_,  Global::REAL,
-                   	         CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
+        		// so we modify c0 to : sqrt(density*compressModulus)
+        		// division is done later
+        		// note that c0 in this case does not represent the speed of sound
+        		c0 = CoefFunction::Generate( mp_,  Global::COMPLEX, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
                                             CoefXpr::OP_MULT), CoefXpr::OP_SQRT) );
         	}
         	else
@@ -1061,6 +1086,8 @@ namespace CoupledField{
                                    CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
                                                   CoefXpr::OP_DIV), CoefXpr::OP_SQRT) );
         }
+        LOG_DBG(acousticpde) << "Def Surface Integrator:  c0 =" << c0->ToString() << "\n";
+
 
         // the following part was missing which is why abc did not function for acouPotential + mechanic
 	  // if pde couples with mechanic, we have to multiply the density by -1
@@ -1076,6 +1103,7 @@ namespace CoupledField{
 	  } else {
 	    factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 	  }
+	  LOG_DBG(acousticpde) << "Def Surface Integrator: factor =" << factor->ToString() << "\n";
 
         PtrCoefFct coeffDamp;
         if ( sosAtLaplace_ ) {
@@ -1085,16 +1113,28 @@ namespace CoupledField{
         }
         else {
           // factor for damping matrix: factor / c0
-          coeffDamp = CoefFunction::Generate( mp_, Global::REAL,
-                         			CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+         if (complexFluidFormulation_ )
+           coeffDamp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+         else
+           coeffDamp = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+
         }
+        LOG_DBG(acousticpde) << "Define Surface Integrator: coeffDamp =" << coeffDamp->ToString() << "\n";
         
         BiLinearForm * abcInt = NULL;
-        if( dim_ == 2 ) {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
-        } 
+        if (complexFluidFormulation_) {
+          if( dim_ == 2 )
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), coeffDamp, 1.0, updatedGeo_ );
+          else
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), coeffDamp, 1.0, updatedGeo_ );
+        }
+
         else {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
+          if( dim_ == 2 )
+            abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
+          else
+        	abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
+
         }
 
         FEMatrixType targetMatrix = DAMPING;
@@ -1208,6 +1248,12 @@ namespace CoupledField{
         PtrCoefFct nu = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("nu")->As<std::string>() );
         PtrCoefFct k = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("k")->As<std::string>() );
 
+        LOG_DBG(acousticpde) << "Define Surface Integrator: regionName =" << regionName << "\n";
+        LOG_DBG(acousticpde) << "Define Surface Integrator: volRegName =" << volRegName << "\n";
+        LOG_DBG(acousticpde) << "Define Surface Integrator: rho0       =" << rho0->ToString() << "\n";
+        LOG_DBG(acousticpde) << "Define Surface Integrator: K          =" << K->ToString() << "\n";
+        LOG_DBG(acousticpde) << "Define Surface Integrator: k          =" << k->ToString() << "\n";
+
         PtrCoefFct omegaHalv = CoefFunction::Generate( mp_,  Global::REAL, "pi*f");//
         // deltaV = sqrt( 2*nu/omega )
         PtrCoefFct deltaV = CoefFunction::Generate(mp_,Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, nu, omegaHalv, CoefXpr::OP_DIV ) , CoefXpr::OP_SQRT));
@@ -1246,6 +1292,8 @@ namespace CoupledField{
         feFunctions_[formulation_]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(blmContext);
 
+        LOG_DBG(acousticpde) << "Define Surface Integrator boundary layer: coefM =" << coefM->ToString() << "\n";
+
         // Stiffness matrix
         PtrCoefFct coefK = CoefFunction::Generate(mp_,Global::COMPLEX, CoefXprBinOp(mp_, deltaV, oneMinusI, CoefXpr::OP_MULT) );
         BiLinearForm * blkInt = NULL;
@@ -1263,8 +1311,10 @@ namespace CoupledField{
         feFunctions_[formulation_]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(blkContext);
 
+        LOG_DBG(acousticpde) << "Define Surface Integrator boundary layer: coefK =" << coefK->ToString() << "\n";
       } // boundary Layers
     } // end if ( bcNode )
+    LOG_DBG(acousticpde) << "Define Surface Integrator END"<< "\n";
   } // DefineSurfaceIntegrators
 
   void AcousticPDE::DefineRhsLoadIntegrators() {

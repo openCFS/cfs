@@ -4004,7 +4004,7 @@ namespace CoupledField {
     else if ( solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL ) {
        factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
        if ( isMaterialComplex_ ) {
-    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
+    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
     	   factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
        }
     }

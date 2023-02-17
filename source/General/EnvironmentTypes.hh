@@ -277,7 +277,7 @@ namespace CoupledField {
     // ==========
     //  ACOUSTIC
     // ==========
-    ACOU_BULK_MODULUS, ACOU_BULK_MODULUS_COMPLEX, ACOU_DENSITY_COMPLEX,
+    ACOU_BULK_MODULUS,
     ACOU_SOUND_SPEED, ACOU_IMPEDANCE_REAL_VAL, ACOU_IMPEDANCE_IMAG_VAL, ACOU_BOVERA,
 
     // These seem to be unused
