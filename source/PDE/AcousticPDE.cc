@@ -1030,12 +1030,19 @@ namespace CoupledField{
         //check, if region has complex fluid
         PtrParamNode curRegNode =
         		myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
-        if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" )
-        	EXCEPTION("Absorbing BC at complex fluid region not allowed");
 
         // c0 = sqrt(bulk_modulus / density)
-        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
-        PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        PtrCoefFct dens;
+        PtrCoefFct blk;
+        if( complexFluidFormulation_) {
+          dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
+          blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
+        }
+        else {
+          dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+          blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        }
+
         LOG_DBG(acousticpde) << "ABC: dens = " << dens->ToString() << "\n";
         LOG_DBG(acousticpde) << "ABC: blk  = " << blk->ToString() << "\n";
 
@@ -1068,10 +1075,10 @@ namespace CoupledField{
         else {
         	if (complexFluidFormulation_ ) {
         		// correct factor is 1/(density*c0) = 1/sqrt(dens*compressModulus)
-        		// so we modify c0 to : density*compressModulus
-        		// division is done later!!
-        		c0 = CoefFunction::Generate( mp_,  Global::REAL,
-                   	         CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
+        		// so we modify c0 to : sqrt(density*compressModulus)
+        		// division is done later
+        		// note that c0 in this case does not represent the speed of sound
+        		c0 = CoefFunction::Generate( mp_,  Global::COMPLEX, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
                                             CoefXpr::OP_MULT), CoefXpr::OP_SQRT) );
         	}
         	else
@@ -1106,17 +1113,28 @@ namespace CoupledField{
         }
         else {
           // factor for damping matrix: factor / c0
-          coeffDamp = CoefFunction::Generate( mp_, Global::REAL,
-                         			CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+         if (complexFluidFormulation_ )
+           coeffDamp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+         else
+           coeffDamp = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+
         }
         LOG_DBG(acousticpde) << "Define Surface Integrator: coeffDamp =" << coeffDamp->ToString() << "\n";
         
         BiLinearForm * abcInt = NULL;
-        if( dim_ == 2 ) {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
-        } 
+        if (complexFluidFormulation_) {
+          if( dim_ == 2 )
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), coeffDamp, 1.0, updatedGeo_ );
+          else
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), coeffDamp, 1.0, updatedGeo_ );
+        }
+
         else {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
+          if( dim_ == 2 )
+            abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
+          else
+        	abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
+
         }
 
         FEMatrixType targetMatrix = DAMPING;
