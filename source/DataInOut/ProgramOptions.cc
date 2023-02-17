@@ -534,6 +534,7 @@ namespace CoupledField {
     in_cfs->Get("build")->SetValue(CMAKE_BUILD_TYPE);
     in_cfs->Get("git_commit")->SetValue(CFS_GIT_COMMIT);
     in_cfs->Get("git_branch")->SetValue(CFS_GIT_BRANCH);
+    in_cfs->Get("compiled")->SetValue(__DATE__);
     in_cfs->Get("exe")->SetValue(exe_);
 
     // openmp information

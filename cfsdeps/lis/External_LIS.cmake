@@ -9,7 +9,7 @@ set(LIS_VER "2.0.34") # for Dependencies.cc which cannot easily inlcude lis.h (f
 set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "5a666ee5bd8af29d3d171771ead78a36")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -45,7 +45,8 @@ if(USE_OPENMP) # don't combine with setting DEPS_ID - mixes up order of called m
 else()
   list(APPEND DEPS_CONFIGURE --enable-omp=no)
 endif()
-list(APPEND DEPS_CONFIGURE --enable-test=no --enable-fma=yes --enable-complex=yes --enable-saamg=no --enable-static --enable-shared=no )
+# enabling complex makes lis computations fail.
+list(APPEND DEPS_CONFIGURE --enable-test=no --enable-fma=yes --enable-complex=no --enable-saamg=no --enable-static --enable-shared=no )
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
@@ -71,8 +72,8 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 else()
   if(WIN32)
     assert_set(PATCHES_SCRIPT)
-    # the standard DEPS_INSTALL has issues with Windows, stay in build dir	    
-    set(WIN_CONFIGURE --disable-test --enable-complex --prefix my_install ) 
+    # the standard DEPS_INSTALL has issues with Windows, stay in build dir. enabling complex breaks computations	    
+    set(WIN_CONFIGURE --disable-test --prefix my_install ) 
     if(USE_OPENMP)
       list(APPEND WIN_CONFIGURE --enable-omp)
     endif()
