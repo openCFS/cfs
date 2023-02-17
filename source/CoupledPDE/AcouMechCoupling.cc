@@ -95,7 +95,14 @@ namespace CoupledField {
 
       // Get bulk density for acoustics
       BaseMaterial * acouMat = acouMaterials[volRegId];
-      coefFuncs[volRegId] = acouMat->GetScalCoefFnc(DENSITY,Global::REAL);
+      // For a complex fluid formulation, the coupling term is multiplied with 1/density,
+      // which cancels out the coefficient of the coupling term (as this coefficient  is the density in
+      // non-complex formulation
+      if (acouPDE->IsMaterialComplex())
+        coefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, lexical_cast<std::string>(1.0));
+      else
+        coefFuncs[volRegId] = acouMat->GetScalCoefFnc(DENSITY,Global::REAL);
+
       oneCoefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
                                                    lexical_cast<std::string>(1.0));
     }
