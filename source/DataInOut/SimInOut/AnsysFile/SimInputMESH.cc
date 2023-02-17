@@ -36,7 +36,7 @@ namespace CoupledField {
     
     inFile_.open( fileName_.c_str(), std::ios::binary );
     if ( !inFile_.good() ) {
-      EXCEPTION("I am unable to open mesh file " << fileName_);
+      EXCEPTION("Cannot open mesh file " << fileName_);
     }
 
     inFile_.seekg(0, std::ios::end);

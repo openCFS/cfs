@@ -21,6 +21,7 @@
     <xsd:complexType name="DT_MatHeatConduction">
     <xsd:sequence>
       <xsd:element name="density" type="DT_HeatScalar"/>
+      <!-- unit for heat capacity is J/(kg*K), some sources give J/(g*K), take care! -->
       <xsd:element name="heatCapacity" type="DT_HeatCapacity"/>
       <xsd:element name="heatConductivity" type="DT_HeatConductivity"/>
       <xsd:element name="refTemperature" minOccurs="0" type="DT_HeatScalarLinear">       
@@ -57,6 +58,7 @@
 
   <!-- ******************************************************************* -->
   <!--   Definition of heat capacity-->
+  <!-- unit for heat capacity is J/(kg*K), some sources give J/(g*K), take care! -->  
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_HeatCapacity">
     <xsd:sequence>

@@ -39,7 +39,9 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
     return;
   }
 
-// TODO element based interpolation from elemResults to nodeResults very slow
+  LOG_DBG(resfunc) << "ER " << res->ToString();
+
+  // TODO element based interpolation from elemResults to nodeResults very slow
   // check for (combination of node list and fefunction) or coil list
   // since the coil list is used with the FeSpaceConst which does not have elements
   if( ( entityListType == EntityList::NODE_LIST && typeid(*coef_) == typeid(FeFunction<TYPE>) )
@@ -77,7 +79,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
 
   case EntityList::NODE_LIST:
     {
-      WARN("Evaluation of nodal values is very inefficient at the moment.")
+      // WARN("Evaluation of nodal values is very inefficient at the moment.")
 
       StdVector<Vector<double> > globCoords;
       StdVector< LocPoint > localCoords;
@@ -98,21 +100,24 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
 
       UInt numElems = elems.GetSize();
 
+
+      LOG_DBG2(resfunc) << "ER NL numElemes=" << numElems << " globCoords " << globCoords.ToString();
+
+
       if(numElems != globCoords.GetSize()) 
-      {
-        EXCEPTION("Element and node vectors have different size. "
-                  << "Cannot perform evaluation of node results.");
-      }
+        EXCEPTION("Element and node vectors have different size. Cannot perform evaluation of node results.");
       
       // loop over elems
       for ( UInt i=0; i < numElems; i++ ) {
-        const Elem * el = elems[i];
+        const Elem* el = elems[i];
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
-        shared_ptr<ElemShapeMap> esm =
-          it.GetGrid()->GetElemShapeMap( el, updatedGeo );
+        shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap( el, updatedGeo );
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
+
+        LOG_DBG3(resfunc) << "ER NT e=" << el->elemNum << " temField=" << tempField.ToString();
+
         // loop over dofs
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
           vec[i*dim_ + iDim] = tempField[iDim];

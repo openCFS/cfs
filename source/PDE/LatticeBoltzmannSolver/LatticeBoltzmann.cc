@@ -707,7 +707,7 @@ void LatticeBoltzmann::AdjointPropagation(int next)
           double value = 0.0;
           int id1 =  GetIndex(x,y,z);
           int rows1 = GetPdfIndex(id1,dir);
-          int id2 = GetIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z);
+          int id2 = GetIndex(x + transform.off_x, y + transform.off_y, z + transform.off_z);
           int rows2 = GetPdfIndex(id2, dir);
           // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
           if (!PointsToBoundary(x,y,z,dir)) {

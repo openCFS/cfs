@@ -582,21 +582,14 @@ Grid* Domain::GetGrid(const std::string& id)
 }
 
 
-CoordSystem* Domain::GetCoordSystem(const std::string & name)
+CoordSystem* Domain::GetCoordSystem(const std::string& name)
 {
-
-  std::map<std::string, CoordSystem*>::iterator it;
-
-  it = coordSys_.find(name);
+  auto it =coordSys_.find(name);
 
   if (it == coordSys_.end())
-  {
-    EXCEPTION( "Domain::GetCoordSystem: A coordinate system with name '"
-        << name << "' is not registered!" );
-  }
+    EXCEPTION("A coordinate system with name '" << name << "' is not registered!" );
 
   return (*it).second;
-
 }
 
 StdVector<std::string> Domain::GetCoordSystems() const
@@ -1303,7 +1296,7 @@ void Domain::Dump()
 }
 
 
-void Domain::ToInfo(PtrParamNode in)
+void Domain::ToInfo(PtrParamNode in, bool force_default)
 {
   PtrParamNode in_ = in->Get("coordinateSystems");
   for(std::map<std::string, CoordSystem*>::iterator it = coordSys_.begin(); it != coordSys_.end(); ++it)
@@ -1313,7 +1306,9 @@ void Domain::ToInfo(PtrParamNode in)
     it->second->ToInfo(s);
   }
 
-  if(progOpts->DoDetailedInfo()) {
+  // CalcGridBoundingBox() takes some time and most people are not interested in the information
+  if(force_default || progOpts->DoDetailedInfo())
+  {
     // Get bounding box of the grid
     Matrix<double> m = this->GetGrid()->CalcGridBoundingBox();
     PtrParamNode s = in_->Get("domain", ParamNode::APPEND);

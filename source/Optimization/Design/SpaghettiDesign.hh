@@ -149,6 +149,7 @@ private:
 
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;
+  double rhomax = -1;
 
   /** in the 'python' element, the 'option' elements. See PythonKernel::CreatePythonDict */
   StdVector<std::pair<std::string, std::string> > pyopts;

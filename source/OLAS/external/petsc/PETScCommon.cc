@@ -206,7 +206,7 @@ void PETScCommon::GetGridInfoMG(int &nx,int &ny,int &nz,int &dimension){
   //Number of nodes in x y and z directions respectively in case of structured with hex elem it is always elemNum in one direction +1
    nx=1,ny=1,nz=1;
   for (unsigned int j=0;j<regionIds.GetSize();j++){
-    StdVector<unsigned int> dim =grid->GetBoundaries(regionIds[j]); //returns number of elements in each direction
+    StdVector<unsigned int> dim =grid->GetRegularDiscretization(regionIds[j]); //returns number of elements in each direction
     nx+=dim[0];
     ny+=dim[1];
     nz+=dim[2];

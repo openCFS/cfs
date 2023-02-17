@@ -304,15 +304,6 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
 
-   /*if(this->space_->IsRegular())
-   {
-     StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
-     PtrParamNode mesh = in_->Get("mesh");
-     mesh->Get("x")->SetValue(grid[0]);
-     mesh->Get("y")->SetValue(grid[1]);
-     mesh->Get("z")->SetValue(grid[2]);
-   }*/
-
    // design space can be regular, but grid is probably not
    StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
    if(!grid.IsEmpty())
@@ -333,6 +324,8 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    if(regularize)
      in_->Get("dummy")->SetValue(regularize, true);
+
+   domain->ToInfo(in_, true); // coordinateSystems and enforce min_x, max_x, ...
 
    // off the design space to add stuff to the header. Done by SpaghettiDesing
    space_->AddToDensityHeader(in_);

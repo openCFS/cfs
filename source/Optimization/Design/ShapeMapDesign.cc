@@ -1416,13 +1416,15 @@ void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
 }
 
 
+// also used by LatticeBoltzmannPDE !
 Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem)
 {
   // for 2D n_z_=1
 
   // TODO use FeaturedDesign:SetupMeshStructure()
 
-  StdVector<unsigned int> t = grid->GetBoundaries(design_reg);
+  StdVector<unsigned int> t = grid->GetRegularDiscretization(design_reg);
+  LOG_DBG(SMD) << "SLM r=" << design_reg << " -> " << t.ToString();
   Vector<unsigned int> n(3);
   Copy(t, n);
 

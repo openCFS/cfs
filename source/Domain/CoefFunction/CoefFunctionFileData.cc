@@ -17,6 +17,8 @@ CoefFunctionFileData::CoefFunctionFileData(PtrParamNode pn, int dim) : CoefFunct
 {
   Init(dim);
   filename_ = pn->Get("file")->As<string>();
+  missing_  = missing.Parse(pn->Get("missing")->As<string>());
+
   std::ifstream file(filename_);
   if(!file.good())
     throw Exception("Cannot open fileData file '" + filename_ + "'");
@@ -40,18 +42,36 @@ void CoefFunctionFileData::Init(int dim)
   supportDerivative_ = false;
   dimType_ = dim == 1 ? SCALAR : VECTOR;
   dependType_ = SPACE;
-
   node_guess_.Set(0);
+
+  // no need to have this static
+  missing.SetName("CoefFunctionFileData");
+  missing.Add(THROW_EXCEPTION, "exception");
+  missing.Add(WARNING_ZERO, "warning");
+  missing.Add(ZERO, "zero");
 }
 
-unsigned int CoefFunctionFileData::GetIndex(const LocPointMapped& lpm)
+int CoefFunctionFileData::GetIndex(const LocPointMapped& lpm)
 {
-  assert(this->dimType_ == VECTOR);
   assert(lpm.lp.number != LocPoint::NOT_SET);
 
   unsigned int number = lpm.lp.number;
-  unsigned int idx = node_.Find(number, node_guess_.Mine());
-  assert(idx < data_.GetNumRows());
+  int idx = node_.Find(number, node_guess_.Mine());
+
+  LOG_DBG2(cfd) << "GI: number=" << number << " idx=" << idx << " rows=" << data_.GetNumRows();
+
+  if(idx == -1)
+  {
+    if(missing_ == THROW_EXCEPTION)
+      throw Exception("fileData: element number " + std::to_string(number) + " not given in file '" + filename_ + "' and 'missing' set to 'exception'");
+    if(missing_ == WARNING_ZERO && !warning_issued_) {
+      PtrParamNode pn = domain->GetInfoRoot()->Get(ParamNode::PROCESS);
+      pn->SetWarning("fileData: at least element number " + std::to_string(number) + " not given in file '" + filename_ + "' and set to zero");
+      warning_issued_ = true;
+    }
+  }
+
+  assert(idx < (int) data_.GetNumRows());
   return idx;
 }
 

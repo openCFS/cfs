@@ -74,7 +74,9 @@ def enrich_lbm2d(mesh, type):
 
   eps = 1e-4
   nx = mesh.nx 
-  ny = mesh.ny 
+  ny = mesh.ny
+  nxx = nx+1 # for boundary conditions
+  nyy = ny+1 
 
   if type == 'pipe_bend':
     mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
@@ -103,6 +105,172 @@ def enrich_lbm2d(mesh, type):
     sys.exit(-1)
 
   return mesh
+
+# create a lvm 2d solar heater with chimney
+# @param chimney height in m
+def enrich_solar_heater_2d(mesh, chimney):
+
+  eps = 1e-4
+  nx = mesh.nx 
+  ny = mesh.ny
+  nxx = nx+1 # for boundary conditions
+  nyy = ny+1 
+
+  # rename to design to not take over legacy mech name for lbm
+  mesh.rename_region('mech', 'design', 1)
+  set_ghost_region(mesh, 'boundary')
+  
+  # ----------------------|outlet|
+  # |  obstacle           |      | chimney height chimney
+  # |                     |      | 
+  # -----------------------      |
+  # i                            |
+  # n                            |
+  # l   design                   |
+  # e                            |
+  # t                            |
+  # ------------------------------
+  
+  inlet = []
+  outlet = []
+  inlet_nodes = [] # need to be made unique, but a set is not ordered
+  outlet_nodes = []
+  
+  surf = []
+  
+  assert mesh.dy is not None
+  height = mesh.dy * ny
+  assert height > chimney + .05 # we have 10 for the chimney
+  
+  total_ny = ny
+  wall_ny  = int(chimney / mesh.dy)
+  coll_ny  = total_ny - wall_ny # collector including boundary
+  print('total_ny',total_ny,'wall_ny',wall_ny,'coll_ny',coll_ny)
+  
+  n_outlet = .1 * nx 
+  assert .8 * coll_ny <= coll_ny - 2 # ensure space for boundary
+  
+  for i, e in enumerate(mesh.elements):
+    x, y = mesh.element_idx_by_pos(i)
+    if x == 0:
+      if y >= .2 * coll_ny and y <= .8 * coll_ny:
+        inlet.append(i)
+        assert len(e.nodes) == 4
+        inlet_nodes.append(e.nodes[0]) # left lower
+        inlet_nodes.append(e.nodes[3]) # left upper
+      
+        se = Element('inlet_surf', Ansys.LINE, 1)
+        se.nodes = [e.nodes[0], e.nodes[3]]
+        surf.append(se) 
+    if y >= coll_ny and y != total_ny -1 and x > 0 and x < nx - n_outlet -1:
+      e.region = 'obstacle'
+    if y == ny-1 and x >= nx - n_outlet -2:  
+      if x > nx - n_outlet -2 and x < nx-1:
+        outlet.append(i)
+        outlet_nodes.append(e.nodes[2])
+        outlet_nodes.append(e.nodes[3])
+
+        se = Element('outlet_surf', Ansys.LINE, 1)
+        se.nodes = [e.nodes[2], e.nodes[3]]
+        surf.append(se) 
+
+  outlet_nodes.sort()
+  inlet_nodes.sort()
+
+  mesh.elements.extend(surf)
+  mesh.ne.append(('inlet', inlet))
+  mesh.ne.append(('outlet', outlet))
+  mesh.bc.append(('inlet_nodes', list(dict.fromkeys(inlet_nodes))))
+  mesh.bc.append(("outlet_nodes", list(dict.fromkeys(outlet_nodes))))
+  return mesh
+
+# create a lvm 2d solar heater with chimney
+# @param chimney height in m
+def enrich_solar_heater_2d_old(mesh, chimney = .1):
+
+  eps = 1e-4
+  nx = mesh.nx 
+  ny = mesh.ny
+  nxx = nx+1 # for boundary conditions
+  nyy = ny+1 
+
+  # rename to design to not take over legacy mech name for lbm
+  mesh.rename_region('mech', 'design', 1)
+  
+  #                       |outlet|
+  #    wall               |      | chimney height chimney
+  #                       |      | 
+  # -----------------------      |
+  # i                            |
+  # n                            |
+  # l   design                   |
+  # e                            |
+  # t                            |
+  # ------------------------------
+  
+  inlet = []
+  outlet = []
+  inlet_nodes = [] # need to be made unique, but a set is not ordered
+  outlet_nodes = []
+  
+  surf = []
+  
+  assert mesh.dy is not None
+  height = mesh.dy * ny
+  assert height > chimney + .05 # we have 10 for the chimney
+  
+  total_ny = ny
+  wall_ny  = int(chimney / mesh.dy)
+  coll_ny  = total_ny - wall_ny # collector including boundary
+  print('total_ny',total_ny,'wall_ny',wall_ny,'coll_ny',coll_ny)
+  
+  n_outlet = .1 * nx 
+  assert .8 * coll_ny <= coll_ny - 2 # ensure space for boundary
+  
+  for i, e in enumerate(mesh.elements):
+    x, y = mesh.element_idx_by_pos(i)
+    if x == 0:
+      if y <= coll_ny:
+        e.region = 'boundary'
+      if y >= .2 * coll_ny and y < .8 * coll_ny:
+        inlet.append(i)
+        assert len(e.nodes) == 4
+        inlet_nodes.append(e.nodes[0]) # left lower
+        inlet_nodes.append(e.nodes[3]) # left upper
+      
+        se = Element('inlet_surf', Ansys.LINE, 1)
+        se.nodes = [e.nodes[0], e.nodes[3]]
+        surf.append(se) 
+    if x == nx-1:        
+      e.region = 'boundary'
+    if x == nx-n_outlet-2 and y >= coll_ny-1:
+      e.region = 'boundary'
+      
+    if y == 0:
+      e.region = 'boundary'
+    if y == coll_ny-1 and x < nx - n_outlet -2:
+      e.region = 'boundary'
+    if y > coll_ny-1 and x < nx - n_outlet -2:
+      e.region = 'obstacle'
+    if y == ny-1 and x >= nx - n_outlet -2:  
+      e.region = 'boundary'
+      if x > nx - n_outlet -2 and x < nx-1:
+        outlet.append(i)
+        outlet_nodes.append(e.nodes[2])
+        outlet_nodes.append(e.nodes[3])
+
+        se = Element('outlet_surf', Ansys.LINE, 1)
+        se.nodes = [e.nodes[2], e.nodes[3]]
+        surf.append(se) 
+
+  mesh.elements.extend(surf)
+
+  mesh.ne.append(('inlet', inlet))
+  mesh.ne.append(('outlet', outlet))
+  mesh.bc.append(('inlet_nodes', list(dict.fromkeys(inlet_nodes))))
+  mesh.bc.append(("outlet_nodes", list(dict.fromkeys(outlet_nodes))))
+  return mesh
+
 
 
 # see enrich_lbm2d
@@ -204,6 +372,9 @@ if __name__ == "__main__":
   parser.add_argument("--type", help="if not lbm, select here and configure with height and depth", choices=['bulk2d', 'bulk3d'])  
   parser.add_argument("--lbm2d", help="2D flow settings, inclusion works", choices=['pipe_bend','two_inlet_one_outlet','two_inlet_two_outlet','pipe','diffuser','low_in_high_out'])
   parser.add_argument("--lbm3d", help="3D flow settings, inclusion works", choices=['pipe','pipe_bend','diffuser','distributor'])
+
+  parser.add_argument("--solar2d", help="2D solar heater", action='store_true')
+  parser.add_argument("--solar_wall", help="wall size im m for solar2d", type=float, default = 0.2)
   
   parser.add_argument("--ghost", help="set a one element ghost region. 2D/3D", action='store_true')
   
@@ -244,6 +415,11 @@ if __name__ == "__main__":
       name = args.lbm3d
     else:
       name = args.type    
+
+  if args.solar2d:
+    mesh = create_2d_mesh(args.res, width = args.width, height = args.height)
+    enrich_solar_heater_2d(mesh, args.solar_wall)
+    name = 'solar-wall_' + str(args.solar_wall) + '-nx' # chimney
 
   if mesh == None:
     print('Error: give either type or a lbm')

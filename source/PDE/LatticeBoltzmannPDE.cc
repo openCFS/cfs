@@ -472,6 +472,8 @@ namespace CoupledField {
     in->Get("u_max_x")->SetValue(u_max_x_);
     in->Get("u_max_y")->SetValue(u_max_y_);
     in->Get("u_max_z")->SetValue(u_max_z_);
+    // we divide the input velocity by inlet.GetSize()
+    in->Get("u_max_scaling")->SetValue(inlet.GetSize());
 
     // in the constructor we don't have the densities yet
     SetupElements();
@@ -1626,9 +1628,9 @@ void LatticeBoltzmannPDE::create_output(const char * file)
   for (unsigned int i = 0; i < n_elems;i++)
   {
     for (unsigned int j = 0; j < n_q_;j++) {
-      f<<GetPdf(i,j)<<" ";
+      f << GetPdf(i,j)<<" ";
     }
-    f<<std::endl;
+    f << std::endl;
   }
   f.close();
 }
@@ -1641,10 +1643,8 @@ void LatticeBoltzmannPDE::ToFile(const std::string& file, const mapped_matrix<do
   double val;
   std::stringstream ss;
   ss.precision(16);
-  // for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it)
   for(mapped_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it)
   {
-    // for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
     for(mapped_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
     {
       val = M(it2.index1(),it2.index2());
@@ -1659,7 +1659,7 @@ void LatticeBoltzmannPDE::ToFile(const std::string& file, const mapped_matrix<do
 
   f << "%%MatrixMarket matrix coordinate real general\n";
   f << "%\n";
-  f << "% Matrix extracted from boost::sparse_matrix\n";
+  f << "% Matrix extracted from boost::mapped_matrix\n";
   f << "%\n";
   f << M.size1() << "\t" << M.size2() << "\t" << number <<  "\n";
   f << ss.str() << std::endl;

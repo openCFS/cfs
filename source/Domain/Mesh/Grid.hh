@@ -378,12 +378,9 @@ namespace CoupledField
     //!                       for the element search. If the set is empty,
     //!                       all (volume) regions are considered. 
     //! \return Element at global coordinate position.
-    const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
-                                     LocPoint& locCoord,
-                                     const StdVector<shared_ptr<EntityList> >& srcEntities =
-                                     StdVector<shared_ptr<EntityList> >(),
-                                     bool printWarnings = true,
-                                     bool updatedGeo = false);
+    const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord, LocPoint& locCoord,
+                                     const StdVector<shared_ptr<EntityList> >& srcEntities =StdVector<shared_ptr<EntityList> >(),
+                                     bool printWarnings = true, bool updatedGeo = false);
     
     //! Return a list of elements and local coordinate for global coordinates
     void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
@@ -623,8 +620,7 @@ namespace CoupledField
     //!             first column for minimum and second entry for maximum value
     virtual void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                           Matrix<Double>& minMax,
-                                          CoordSystem* cSys) = 0;
-
+                                          CoordSystem* cSys = nullptr) = 0;
 
     /** if the grid is regular gives the element discretization, e.g. 20, 20, 1 for 2D.
      * Is reasonable fast but the result is not cached by itself.
@@ -800,8 +796,7 @@ namespace CoupledField
     /** Computes for regular grid number of elements in each direction for specified region
         by using maximal and minimal values of barycenters
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
-    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
-
+    StdVector<UInt> GetRegularDiscretization(RegionIdType region);
 
     // =======================================================================
     // FINITE VOLUME REPRESENTATION SECTION

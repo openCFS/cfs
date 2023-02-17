@@ -5,7 +5,7 @@
 import os.path
 import sys
 import re
-
+import glob
 import datetime
 import numpy as np
 from itertools import cycle
@@ -18,7 +18,7 @@ if __name__ == '__main__':
   import matplotlib
   import matplotlib.pyplot as plt
   from matplotlib.ticker import MaxNLocator
-  import snopt # our snopt.py helper for process
+  import snopt # our snopt.py helper fticklabel_formator process
 
   # in case we have --dashed we use c_cms_y and c_cms_y2
   # https://stackoverflow.com/questions/7358118/matplotlib-black-white-colormap-with-dashes-dots-etc
@@ -137,7 +137,9 @@ def print_header(meta,data,inputs):
     for li, l in enumerate(m):
       # at time of printing we did not smooth or grad yet
       val = '*' if 'grad_' in l or 'smooth_' in l else str(data[mi][0][li]) 
-      print('{:3d}'.format(cnt) + ': ' + l.ljust(ml) + ' : ' + str(val).ljust(19) + ' : ' + inputs[mi])
+      # file = inputs[mi-1] if mi > 0 else '-' # first pseudo input is index
+      file = inputs[mi]
+      print('{:3d}'.format(cnt) + ': ' + l.ljust(ml) + ' : ' + str(val).ljust(19) + ' : ' + file) 
       cnt += 1
 
 
@@ -201,14 +203,18 @@ def content(body):
           r[i] = 0 if r[i] == '' else float(r[i])
         except ValueError as ve:
           pass
-  #print(data)
+  # print(data)
   return data
 
 # validate datetime by try and except
 def check(format, test):
   try:
-    datetime.datetime.strptime(test, format)
-    return True
+    time = datetime.datetime.strptime(test, format)
+    #  8.9819 -> 9819-08-01 00:00:00 9819
+    if time.year == 0 or (time.year >= 2010 and time.year <= 2030):
+      return True
+    else:
+      return False
   except ValueError:
     return False
   
@@ -234,9 +240,10 @@ def find_index(meta, key):
   else:
     for file, m in enumerate(meta):
       for i, t in enumerate(m):
-        if t.startswith(key):
+        contained = t.startswith(key) if not noautocomplete else t == key  
+        if contained:
           if idx > -1:
-            print("Error: key not unique '", key, "'")
+            print("Error: key not unique '", key, "' consider using --noautocomplete")
             sys.exit()
           idx = i
           fi = file
@@ -405,9 +412,56 @@ def process(input):
 
   data = content(body)
   meta = header(data,comments)
-  
+  #print(data, len(data), len(data[0]), type(data))
+  #print(meta, len(meta))
   return meta, data        
 
+# process results from a .info.xml - not optimization iterations!
+# adds pairs of key/value for any result > 1 element
+def process_info_xml_results(input):
+  import lxml
+  import lxml.etree
+  xml = lxml.etree.parse(input, lxml.etree.XMLParser(remove_comments=True))
+  results = xml.xpath('//result')
+
+  meta = [] # list of headers  
+  tmp_data = [] # list of data corresponding to meta but probably inconsistent length
+  max_len = 0 # to fill up for all results
+  
+  for r in results:
+    items = r.xpath('item')
+    if len(items) > 1:
+      type  = r.attrib['data'] # heatTemperature
+      loc   = r.attrib['location'] # outlet_nodes
+      defon = r.attrib['definedOn'] # 'node', 'element'
+      key = type + '_' + loc
+      if 'step_val' in items[0].attrib and items[0].attrib['step_val'] != items[-1].attrib['step_val']:
+        meta.append(key + '-step')
+        tmp_data.append([float(x.attrib['step_val']) for x in items])  
+      meta.append(key + '-' + defon)
+      tmp_data.append([int(x.attrib['id']) for x in items])
+      if 'value' in items[0].attrib:
+        meta.append(key + '-value')
+        tmp_data.append([float(x.attrib['value']) for x in items])
+      if 'x' in items[0].attrib:
+        meta.append(key + '-x')
+        tmp_data.append([float(x.attrib['x']) for x in items])
+      if 'y' in items[0].attrib:
+        meta.append(key + '-y')
+        tmp_data.append([float(x.attrib['y']) for x in items])
+      if 'z' in items[0].attrib:
+        meta.append(key + '-z')
+        tmp_data.append([float(x.attrib['z']) for x in items])
+      max_len = max(max_len, len(items))  
+  
+  # we need to fill up data which might not be constant when defined on different entitites
+  data = []
+  for r in range(max_len):
+    row = []
+    for c in tmp_data:
+      row.append(c[r] if r < len(c) else np.nan) # pyplot skips nan which is very nice
+    data.append(row)  
+  return meta, data        
 
 # convenience function which gives a y(2)-axis label. 
 # @param args either args.ylabel or args.y2label. If not None this is returned
@@ -494,7 +548,7 @@ def apply_grad(fi, data, labels, all_x):
 # plotviz.py is imported by postproc.py, so guard argparse
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Simple gnuplot replacement for standard plots. Needs a header comment')
-  parser.add_argument("input", nargs='+', help="one or more .plot.dat or similar tabular text files")
+  parser.add_argument("input", nargs='+', help="one or more .plot.dat or similar tabular text files. Also .info.xml (result) or .snopt")
   parser.add_argument("-x", nargs='*',  help="index or label for the abscissa (optional). Space separated list for multiple inputs")
   parser.add_argument("-y", nargs='+',  help="indices or labels for the ordinate. Multiple separated by space.\
                                               Expressions are possible in single quotes (e.g. '0.5*compliance -$3/ 2') with references to columns prefixed with $.")
@@ -508,7 +562,7 @@ if __name__ == '__main__':
   parser.add_argument("--ylabel", help='optional label for the primary ordinate')
   parser.add_argument("--y2label", help='optional label for the secondary ordinate')
   parser.add_argument("--zlabel", help='optional label for the 3d data')
-  parser.add_argument("--marker", help='optional matplotlib marker: e.g. . , o v')
+  parser.add_argument("--marker", help="optional matplotlib marker: e.g. . , o or ' ' to disable marker")
   parser.add_argument("--linestyle", help='optional matplotlib linestyle: e.g. - dashed')
   parser.add_argument("--legend", nargs='*', help="(partially) overwrite labels in the legend as space separated list of strings")
   parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc)")
@@ -525,9 +579,13 @@ if __name__ == '__main__':
   parser.add_argument("--dashed", help="cylce through different line styles. Use with --black for b/w",action='store_true')
   parser.add_argument("--black", help="change all line colors to black. Use with --dashed",action='store_true')
   parser.add_argument("--save", help='write to given filename using the extension')
+  parser.add_argument("--noautocomplete", help='supress searching only for beginning of key',action='store_true')
   parser.add_argument("--noshow", help='supress popping up the image window', action='store_true')
     
   args = parser.parse_args()
+  
+  global noautocomplete 
+  noautocomplete = args.noautocomplete
   
   if args.black:
     colors = ['black'] * 20
@@ -537,7 +595,10 @@ if __name__ == '__main__':
   # matrix of data per file
   data = []
   
-  for input in args.input: # we do NOT apply glob.glob() to allow wildcards for Windows
+  # handle Windows and macOS debugging
+  if len(args.input) == 1:
+    args.input = glob.glob(args.input[0]) # replace with more content in case there are Wildcards
+  for input in args.input:
     if not os.path.exists(input):
       print('Error: no valid .dat or .snopt file given', input)
       sys.exit()
@@ -547,10 +608,20 @@ if __name__ == '__main__':
       comments, body = snopt.process(input)
       d = content(body)
       m = header(d,comments)
+    elif input.endswith('.info.xml'):
+      m, d = process_info_xml_results(input)  
     else:    
       m, d = process(input)
     meta.append(m)
     data.append(d)  
+  
+  # insert artificial index for linspace x-axis as 0th file
+  #meta.insert(0,['index']) # for each file a list of header names
+  # the index 'file' are row column lists
+  #index_file = []
+  #for row in range(len(data[0])): # for each file a list of column vector
+  #  index_file.append([row+1]) # 1-based index
+  #data.insert(0,index_file)              
 
   # if one of the arguments is a multiple key in meta, it is replaced by multiple ids (argument becomes larger)
   # we first do this for artificial data
@@ -702,7 +773,6 @@ if __name__ == '__main__':
         if fiy2[i] > 0:
           lines.append(ax2.plot(x[fiy2[i]-1],y2[i], color=colors[13+i], marker=args.marker if args.marker else next(markercycler), linestyle=args.linestyle)[0]) # start with gold
         else:
-          #print(-fiy2[i]-1,x[-fiy2[i]-1],y2[i])
           lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i], linestyle=args.linestyle)))
       if args.y2lim:
         ax2.set_ylim(args.y2lim)
@@ -719,6 +789,7 @@ if __name__ == '__main__':
     # https://towardsdatascience.com/an-easy-introduction-to-3d-plotting-with-matplotlib-801561999725
     fig = plt.figure()
     ax = plt.axes(projection="3d")
+    #print(len(x), len(y), len(y2), len(z))
     if not (len(x) == 1 and len(y) == 1 and len(y2) == 0 and len(z) > 0):
       print('Error: 3D plots require one -x and -y, no -y2 and at least one -z')
       sys.exit(1)
@@ -764,10 +835,10 @@ if __name__ == '__main__':
     
   # common stuff for 2D and 3D  
   ax.set_yscale(args.yscale)
-  ax.ticklabel_format(useOffset=False)
+  # ax.ticklabel_format(useOffset=False)  causes AttributeError: This method only works with the ScalarFormatter
   if args.y2:
     ax2.set_yscale(args.y2scale)
-    ax2.ticklabel_format(useOffset=False)
+    # ax2.ticklabel_format(useOffset=False) causes AttributeError: This method only works with the ScalarFormatter
  
   # when the timespan is too short, we skip the day information squeezed in by matplotlib
   if has_dt:

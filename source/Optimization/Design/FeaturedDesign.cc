@@ -266,26 +266,31 @@ void FeaturedDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 void FeaturedDesign::SetupMeshStructure()
 {
   Grid* grid = domain->GetGrid();
-  assert(GetRegionIds().GetSize() == 1);
 
-  StdVector<unsigned int> t = grid->GetBoundaries(GetRegionIds().First());
+  LOG_DBG(FD) << "SMS: regions=" << GetRegionIds().ToString();
+
+  assert(GetRegionIds().GetSize() == 1);
+  StdVector<unsigned int> t = grid->GetRegularDiscretization(GetRegionIds().First());
   assert(t.GetSize() == 3);
 
+  // note that spaghetti.py assumes its domain to be rectangular and start from (0,0,0) with a dx stepping
+  // that implies that the point coordinates are not necessarily the mesh coordinates.
+  // also nx_*ny_*nz might be larger than the data size for density!
+  // @see SetupMapping()
   n_.Fill(t.GetPointer(), t.GetSize());
   nx_ = n_[0];
   ny_ = n_[1];
   nz_ = n_[2];
+  LOG_DBG(FD) << "SMS: n=" << n_.ToString() << " #=" << (nx_ * ny_ * nz_) << " #data=" << data.GetSize();
 
   // We need the spacing of an element
-  Matrix<double> box = domain->GetGrid()->CalcGridBoundingBox(NULL, true); // force 3d (0 size for z)
-  assert(n_.GetSize() == box.GetNumRows());
-  assert(box.GetNumCols() == 2); // min and max for every dim
-
-  Vector<double> spacing(3);
-  for(unsigned int i = 0; i < 3; i++)
-    spacing[i] = (box[i][1] - box[i][0]) / n_[i];
-  assert(spacing[0] == spacing[1]);
-  dx_ = spacing[0];
+  assert(data[0].elem != nullptr);
+  shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(data[0].elem);
+  double minEdge, maxEdge;
+  esm->GetMaxMinEdgeLength(maxEdge,minEdge);
+  LOG_DBG(FD) << "SMS: dx_=min=" << minEdge << " max=" << maxEdge;
+  assert(close(minEdge, maxEdge));
+  dx_ = minEdge;
 
   assert(!(dim_ == 2 && nz_ != 1));
 }
@@ -295,15 +300,17 @@ void FeaturedDesign::SetupMapping()
   // set physical design, which is usually the density but for spaghetti also angles.
   map_.Resize(data.GetSize());
   StdVector<Elem*> designElems;
-  assert(GetRegionIds().GetSize() == 1);
 
+  assert(GetRegionIds().GetSize() == 1);
   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
-  //assert(map_.GetSize() == designElems.GetSize());
+
+  LOG_DBG(FD) << "SM: #map=" << map_.GetSize() << " #designElems=" << designElems.GetSize();
 
   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
   {
     Item& item = map_[i];
     item.elemval = &data[i]; // this could be the location to add an arbitrary element ordering layer towards the mesh
+    item.lexicographic_pos = i; // this means we have a 1:1 map=data to tmp=virtual rectangular mesh for spaghetti -> corrected a few lines below
     //item.elemval = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
     item.min_corner_value.Resize(1);
     item.max_corner_value.Resize(1);
@@ -311,6 +318,49 @@ void FeaturedDesign::SetupMapping()
     LOG_DBG3(FD) << "SM i=" << i << " elem=" << item.elemval->elem->elemNum << " de_elem=" << designElems[i]->elemNum
                  << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.elemval->elem).ToString();
   }
+
+  // #designElems can be smaller nx_*ny_*ny_ -> see comment in SetupMeshStructure()
+  assert(!(designElems.GetSize() > n_.Product()));
+  assert(elements == designElems.GetSize());
+  assert(design.GetSize() * designElems.GetSize() == map_.GetSize()); // # slack is in aux design
+
+  if(designElems.GetSize() < n_.Product())
+  {
+    // size of map_ and designElems differer for density + angles
+    Matrix<double> mm;
+    domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
+    LOG_DBG(FD) << "SM: bb=" << mm.ToString();
+    assert(mm.GetNumRows() == dim_);
+    Vector<double> lower(dim_);
+    for(unsigned int i = 0; i < dim_; i++)
+      lower[i] = mm[i][0];
+    LOG_DBG(FD) << "SM: lower=" << lower.ToString();
+    Vector<double>  glob(dim_);
+    LocPoint loc;
+    unsigned int virt_size = n_.Product();
+    for(unsigned int z = 0; z < nz_; z++) {
+      for(unsigned int y = 0; y < ny_; y++) {
+        for(unsigned int x = 0; x < nx_; x++) {
+          glob[0] = lower[0] + x * dx_ + .5*dx_;
+          glob[1] = lower[1] + y * dx_ + .5*dx_;
+          if(dim_ == 3)
+            glob[2] = lower[2] + z * dx_ + .5*dx_;
+          const Elem* elem = domain->GetGrid()->GetElemAtGlobalCoord(glob, loc);
+          assert(elem != nullptr);
+          int idx = Find(elem, false); // design index or -1
+          int pos = LexicographicPos(x,y,z);
+          LOG_DBG3(FD) << "(" << x << "," << y << "," << z << ") g=" << glob.ToString() << " l=" << loc.coord.ToString() << " e=" << elem->elemNum << " idx=" << idx << " pos=" << pos;
+          assert(pos < virt_size);
+          if(idx > -1)
+            for(unsigned int d = 0; d < design.GetSize(); d++) // such that it also works for design/angle
+              map_[d * elements + idx].lexicographic_pos = d * virt_size + pos;
+        }
+      }
+    }
+  }
+
+
+
 }
 
 

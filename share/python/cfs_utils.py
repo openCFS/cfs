@@ -17,6 +17,19 @@ import os
 import string
 import numpy
 
+# helper to write values and coordinates to a csv (comma separated values) file
+# see element_to_node_2d in hdf5_tools
+def write_cvs_file(filename, nodes, values):
+  import pandas
+
+  nodes_dim = len(nodes[0]) 
+  val_dim = len(values[0])
+
+  if nodes_dim == 2 and val_dim == 2:  
+    df = pandas.DataFrame(list(zip(*[nodes[:, 0], nodes[:, 1], values[:,0], values[:,1]])))
+    df.to_csv(filename, header=False, index=False)
+  else:
+    raise "implemented generic write_cvs_file"  
 
 
 ## trivial helper which only helps to avoid lxml.etree stuff
@@ -28,12 +41,14 @@ def open_xml(file):
   return xml
 
 
-# helper to get namespace for a lxml query. if 'cfs:' is in the query a mapping is returned, else None
+# helper to get namespace for a lxml query. if 'cfs:' or 'mat:' is in the query a mapping is returned, else None
 def namespace(query):
-  if query.find('cfs:') == -1:
-    return None
-  else:
+  if 'cfs:' in query:
     return {'cfs':'http://www.cfs++.org/simulation'}
+  elif 'mat:' in query:
+    return {'mat':'http://www.cfs++.org/material'}
+  else:
+    return None
 
 # replace a single xpath value -> must exist once!
 # the xpath shall contain a single result. e.g. '//cfs:materialData/@file
@@ -47,7 +62,7 @@ def replace(xml, path, value, unique = True):
     if len(res) == 0:
       raise RuntimeError(path + " not found")
     if len(res) > 1:
-      raise RuntimeError(path + " has " + str(len(res)) + " hits")
+      raise RuntimeError(path + " not unique, has " + str(len(res)) + " hits")
 
   # in the attribute case we have to fake
   idx = path.rfind('/@')
@@ -61,7 +76,7 @@ def replace(xml, path, value, unique = True):
       return len(elem)   
   else:
       for e in res:
-          e.text = value
+          e.text = str(value)
       return len(res)
   
 ## removes the defined xml entity.
@@ -98,7 +113,7 @@ def xpath(xml, path):
       raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
 
   
-# does at leas one element exist
+# does at least one element exist
 def has(xml, path):
   try:
     res = xml.xpath(path, namespaces = namespace(path)) 

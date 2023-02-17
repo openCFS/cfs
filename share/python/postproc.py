@@ -116,6 +116,11 @@ def read_info_xml_input(args, input):
       xml = open_xml(f)
       dic = collections.OrderedDict()
 
+      if args.skipaborted:
+        status = xml.xpath('//cfsInfo/@status')
+        if len(status) == 1 and status[0] == 'aborted':
+          continue
+
       if args.query:
         for query in args.query:
           add_key(xml, dic, query, quiet = False)
@@ -232,6 +237,7 @@ parser.add_argument("--revsort", help="sort reversly for the key")
 parser.add_argument("--extract", help="extract only a single column. With sort, two columns are written")
 parser.add_argument("--first", help="extract first iteration data instead of default last", action='store_true')
 parser.add_argument('--failsafe', help="continue on errors", action='store_true')
+parser.add_argument('--skipaborted', help="skip .info.xml files which are aborted", action='store_true')
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
 args = parser.parse_args()
 

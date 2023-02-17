@@ -324,10 +324,35 @@
   <xsd:complexType name="DT_FileData">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-         Provide a text file with node number and node value. Must match mesh.              
+        Provide a text file with node number and node value in separate lines. See attribute 'missing' to control what shall happen
+        when there is not information for every node in the text file.
       </xsd:documentation>
     </xsd:annotation>
-    <xsd:attribute name="file" type="xsd:token" use="required" />
+    <xsd:attribute name="file" type="xsd:token" use="required" >
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Text file with node 'number separator value' lines. See 'missing' if necessary for all nodes in the simulation.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="missing" use="optional" default="warning">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          In case the file does not contain content for every node for right hand side, 'missing' controls the behavior.
+          Either cfs breaks with an error, issues a warning (and uses zero) or simply uses zero silently.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <!-- throw an exception about incomplete file -->
+          <xsd:enumeration value="exception"/>
+          <!-- issue an single warning and set value to zero -->
+          <xsd:enumeration value="warning"/>
+          <!-- silently set value to zero -->
+          <xsd:enumeration value="zero"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- ************************************************************************ -->
@@ -450,6 +475,16 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- text file with node number and values to be applied for the nodes
+               See CoefFunctionFileData -->
+          <xsd:element name="fileData" maxOccurs="1" type="DT_FileData">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Text file with node number and values to be applied for the nodes.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <!-- Same Simulation, other sequenceStep -->
           <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
         </xsd:choice>
@@ -544,13 +579,8 @@
 
           <!-- text file with node number and values to be applied for the nodes
                See CoefFunctionFileData -->
-          <xsd:element name="fileData" maxOccurs="1" type="DT_FileData">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                Text file with node number and values to be applied for the nodes.
-              </xsd:documentation>
-            </xsd:annotation>
-          </xsd:element>
+          <xsd:element name="fileData" maxOccurs="1" type="DT_FileData"/>
+
           
           <!-- python function which calculates the properties -->
           <xsd:element name="python" maxOccurs="1" type="DT_PythonCoef">

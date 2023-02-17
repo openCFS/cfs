@@ -41,7 +41,17 @@ SingleEntryInt::SingleEntryInt(PtrCoefFct& val) : LinearForm()
     // we then set the coordinate and hope the coef::GetVector() can handle it
     // (implemented for CoefFunctionExp::GetVector())
 
-    LocPointMapped lpm; 
+    LocPointMapped lpm;
+
+    // if we have design dependent loads for optimization we need to set the lp number
+    // for spatial displacement we set the coordinate
+    if(typeid(*val_) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent())
+    {
+      assert(ent1.GetType() == EntityList::NODE_LIST);
+      lpm.lp.number = ent1.GetNode();
+      assert(!lpm.shapeMap); // having no shapeMap makes usage of lpm.lp
+    }
+
     if(val_->GetDimType() == CoefFunction::SCALAR)
     {
       elemVec.Resize(1);
@@ -50,14 +60,6 @@ SingleEntryInt::SingleEntryInt(PtrCoefFct& val) : LinearForm()
     }
     if(val_->GetDimType() == CoefFunction::VECTOR)
     {
-      // if we have design dependent loads for optimization we need to set the lp number
-      // for spatial displacement we set the coordinate
-      if(typeid(*val_) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent())
-      {
-        assert(ent1.GetType() == EntityList::NODE_LIST);
-        lpm.lp.number = ent1.GetNode();
-        assert(!lpm.shapeMap); // having no shapeMap makes usage of lpm.lp
-      }
       val_->GetVector(elemVec, lpm); // gets nodal coordinate from lp.number via lpm::GetCoord() with fallbac
 
       LOG_DBG2(entryint) << "SEI:CEV: res=" << elemVec.ToString() << " coord=" << lpm.lp.coord.ToString();

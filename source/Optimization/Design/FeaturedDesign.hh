@@ -146,7 +146,11 @@ protected:
   struct Item
   {
     /** our Design Element, which is almost always the density (rho) but might also be an angle */
-    DesignElement* elemval;
+    DesignElement* elemval = nullptr;
+
+    /** this is the index of the element within the rectangular lexicographic n_ domain.
+     * usually often the position of Item within map_ but not for complex designs as in solar heater */
+    int lexicographic_pos = -1;
 
     /** This is the minimal corner value of all corners. Set by EvalAllCorners() */
     Vector<double> min_corner_value;
@@ -186,6 +190,9 @@ protected:
    * straight: follows the spaghetti direction extended to the round endings */
   typedef enum {STRAIGHT, ROUNDED} Orientation;
 
+  /** for a full virtual lexicographic mesh, the position from coordinates */
+  unsigned int LexicographicPos(unsigned int x, unsigned int y, unsigned int z) const { return z * (ny_*nx_) + y * nx_ + x; }
+
   Boundary GetBoundary() const { return boundary_; }
 
   /** no need for static */
@@ -211,7 +218,7 @@ protected:
   unsigned int nz_ = 0; // 1 for 2D
 
   /** discrectization spacing (assumed regular!) */
-  Float dx_ = 0;
+  double dx_ = 0;
 
   /** repeats nx_, ny_ and nz_ */
   Vector<unsigned int> n_;

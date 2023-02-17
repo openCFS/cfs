@@ -432,7 +432,7 @@ namespace CoupledField
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                   Matrix<Double> & minMax,
-                                  CoordSystem* cSys);
+                                  CoordSystem* cSys = nullptr);
 
     /** @see Grid::CalcRegulardGridDiscretization() */
     StdVector<unsigned int> CalcRegulardGridDiscretization();

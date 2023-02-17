@@ -10,6 +10,9 @@
 #include "Optimization/TransferFunction.hh"
 
 using std::string;
+using std::pair;
+using std::make_pair;
+using std::to_string;
 
 namespace CoupledField {
 
@@ -54,6 +57,7 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   assert(!data.IsEmpty());
   const DesignElement& de = data.First();
   rhomin = de.GetLowerBound(); // at least in python use for all
+  rhomax = de.GetUpperBound();
 
   py_timer = info_->Get("spaghetti/python/timer")->AsTimer();
   py_timer->SetSub(); // we are in design_setup and in the eval timers
@@ -152,24 +156,29 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   PyObject* func = PyObject_GetAttrString(module_, "cfs_init");
   PythonKernel::CheckPythonFunction(func, "cfs_init");
 
-  PyObject* arg = PyTuple_New(12);
-  PyTuple_SetItem(arg, 0, PyFloat_FromDouble(rhomin));
-  PyTuple_SetItem(arg, 1, PyFloat_FromDouble(radius));
-  PyTuple_SetItem(arg, 2, PyUnicode_FromString(boundary.ToString(boundary_).c_str()));
-  PyTuple_SetItem(arg, 3, PyFloat_FromDouble(transition));
-  PyTuple_SetItem(arg, 4, PyUnicode_FromString(combine.ToString(combine_).c_str()));
-  PyTuple_SetItem(arg, 5, PyLong_FromLong(nx_));
-  PyTuple_SetItem(arg, 6, PyLong_FromLong(ny_));
-  PyTuple_SetItem(arg, 7, PyLong_FromLong(nz_));
-  PyTuple_SetItem(arg, 8, PyFloat_FromDouble(dx_));
-  PyTuple_SetItem(arg, 9, PyUnicode_FromString(orientation.ToString(orientation_).c_str()));
+  PyObject* arg = PyTuple_New(3);
+
+  StdVector<pair<string, string> > settings;
+  settings.Push_back(make_pair("rhomin", to_string(rhomin)));
+  settings.Push_back(make_pair("rhomax", to_string(rhomax)));
+  settings.Push_back(make_pair("radius", to_string(radius)));
+  settings.Push_back(make_pair("boundary", boundary.ToString(boundary_)));
+  settings.Push_back(make_pair("transition", to_string(transition)));
+  settings.Push_back(make_pair("combine", combine.ToString(combine_)));
+  settings.Push_back(make_pair("nx", to_string(nx_)));
+  settings.Push_back(make_pair("ny", to_string(ny_)));
+  settings.Push_back(make_pair("nz", to_string(nz_)));
+  settings.Push_back(make_pair("dx", to_string(dx_)));
+  settings.Push_back(make_pair("orientation", orientation.ToString(orientation_)));
+  PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonDict(settings));
 
   PyObject* des = PyTuple_New(design.GetSize());
   for(unsigned int i = 0; i < design.GetSize(); i++)
     PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
-  PyTuple_SetItem(arg, 10, des); // steals the reference, so no need to decref
+  PyTuple_SetItem(arg, 1, des); // steals the reference, so no need to decref
 
-  PyTuple_SetItem(arg, 11, PythonKernel::CreatePythonDict(pyopts));
+  PyTuple_SetItem(arg, 2, PythonKernel::CreatePythonDict(pyopts));
+
   PyObject* ret = PyObject_CallObject(func, arg);
   PythonKernel::CheckPythonReturn(ret);
 
@@ -249,10 +258,10 @@ void SpaghettiDesign::MapFeatureToDensity()
   Py_XDECREF(func);
 
   assert(!map_.IsEmpty());
-  assert(tmp.GetSize() == map_.GetSize());
+  assert(tmp.GetSize() >= map_.GetSize()); // map_ can be smaller if the domain is not convex
 
-  for(unsigned int i = 0; i < tmp.GetSize(); i++)
-    map_[i].elemval->SetDesign(tmp[i]);
+  for(auto& item : map_)
+    item.elemval->SetDesign(tmp[item.lexicographic_pos]);
 
   LOG_DBG(pasta)  << "MFTD: old mid=" << mapped_design_ << " current did=" << design_id << " size=" << tmp.GetSize();
   LOG_DBG2(pasta) << "MFTD: rho=" << tmp.ToString();

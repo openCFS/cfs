@@ -473,7 +473,7 @@ PyObject* PythonOptimizer::GetDims(PyObject* args)
 
 
   assert(regids.GetSize() == 1);
-  StdVector<unsigned int> bounds = domain->GetGrid()->GetBoundaries(regids.First());
+  StdVector<unsigned int> bounds = domain->GetGrid()->GetRegularDiscretization(regids.First());
   assert(bounds.GetSize() == 3);
 
   PyObject* res = PyTuple_New(4);

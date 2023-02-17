@@ -209,22 +209,39 @@ def read_mesh_info(filename, silent = True):
 
 
 # similar to read_mesh_info(filename) but with a already parsed xml DOM element
+# @param domain if set reads domain min_x ... as and returns it as argument 4 [min_x, min_x] and 5 [max_x, max_z]. 
+#               If not found return None, None
 # note that for very huge files, the DOM parsing can be too large (already density.xml with 4 million elements)
-def read_mesh_info_xml(xml):
+def read_mesh_info_xml(xml, domain = False):
 
-  mesh = xml.xpath('//cfsErsatzMaterial/header/mesh')
+  mesh = xml.xpath('/cfsErsatzMaterial/header/mesh')
   
-  if len(mesh) == 0:
-    return None, None, None
+  nx = None
+  ny = None
+  nz = None
+  min = None
+  max = None
   
-  else:
+  if len(mesh) > 0:
     assert(len(mesh) == 1)
     nx = int(mesh[0].get("x"))
     ny = int(mesh[0].get("y"))
     nz = int(mesh[0].get("z"))
-    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
-    return nx, ny, nz    
 
+    if domain:
+      elem = xml.xpath('/cfsErsatzMaterial/header/coordinateSystems/domain')
+      if len(elem) == 1:
+        ea = elem[0].attrib
+        min = [float(ea['min_x']), float(ea['min_y'])]
+        max = [float(ea['max_x']), float(ea['max_y'])]
+        if 'min_z' in ea:
+          min.append(flot(ea['min_z']))
+          max.append(flot(ea['max_z']))
+   
+  if domain:
+    return nx, ny, nz, min, max
+  else:
+    return nx, ny, nz
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design", set=None):
@@ -465,7 +482,7 @@ def write_multi_design_file(filename, data, designs, elemnr=None):
   for d in range(len(designs)):
     for e in range(len(data)):
       enr = e + 1 if elemnr == None else int(elemnr[e])
-      out.write('    <element nr="' + str(enr) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
+      out.write('    <element nr="' + str(enr) + '" type="' + designs[d] + '" design="' + str(data[e] if len(designs) == 1 else data[e, d]) + '"/>\n')
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   out.close()

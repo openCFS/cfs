@@ -433,9 +433,8 @@ void HeatPDE::DefineIntegrators() {
     // ====================================================================
     std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
     if(velocityId != "") {
-      std::cout << "Considering moving material" << std::endl << std::endl;
-
-      if(isMapping) EXCEPTION("Infinite mapping, applied to a region with defined velocity is permitted!!");
+      if(isMapping)
+        EXCEPTION("Infinite mapping, applied to a region with defined velocity is permitted!!");
 
       // Get result info object for flow
       shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
@@ -491,6 +490,10 @@ void HeatPDE::DefineIntegrators() {
       convectiveContextStiff->SetEntities( actSDList, actSDList );
       convectiveContextStiff->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunc);
       assemble_->AddBiLinearForm( convectiveContextStiff );
+
+      PtrParamNode in = infoNode_->Get("velocity");
+      in->Get("id")->SetValue(velocityId);
+
     } //end convective term
   } //end loop over materials_
 
@@ -1119,7 +1122,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
   coefUpdateGeo = false;
 
-  ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
+  ReadRhsExcitation( "heatSource", dofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo);
   if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
     // Get the volumeRegions for the heatSource, because the reference temperature of the volumeRegion is needed to make the system symmetric
     ReadVolumeRegions("heatSource", volumeRegions);
@@ -1134,11 +1137,10 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       EXCEPTION("Heat source must be defined on nodes!")
     }
 
-    UInt numNodes = ent[i]->GetSize();
-    if(numNodes > 1 && coef[i]->DoNormalize()) {
-      Global::ComplexPart part = Global::REAL;
-      coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
-    }
+    unsigned int numNodes = ent[i]->GetSize();
+    const std::string numNodes_str = std::to_string(numNodes);
+    if(numNodes > 1 && coef[i]->DoNormalize())
+      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coef[i], numNodes_str, CoefXpr::OP_DIV));
 
     if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
       if(volumeRegions[i] == ""){
@@ -1146,7 +1148,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       }
       RegionIdType volRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
       PtrCoefFct refTemp = materials_[volRegion]->GetScalCoefFnc(HEAT_REF_TEMPERATURE, Global::REAL);
-      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp( mp_, coef[i], refTemp, CoefXpr::OP_DIV));
+      coef[i] = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coef[i], refTemp, CoefXpr::OP_DIV));
     }
 
     lin = new SingleEntryInt(coef[i]);

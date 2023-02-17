@@ -112,11 +112,11 @@ def elem_dim_ansys(type):
 
 # gid element
 class Element:
-  def __init__(self):
+  def __init__(self, region = None, type = Ansys.UNDEFINED, density = 1):
     self.nodes = []  # list of zero based node indices. counter-clock wise
-    self.region = None  # region name
-    self.density = 1  # from lower_bound to 1, not necessarily used, can be used to set the region name. see Mesh.set_density()
-    self.type = Ansys.UNDEFINED # this is for historical reasons the Ansys type!
+    self.region = region  # region name
+    self.density = density  # from lower_bound to 1, not necessarily used, can be used to set the region name. see Mesh.set_density()
+    self.type = type # this is for historical reasons the Ansys type!
 
   def dump(self):
     print(self.nodes)
@@ -143,6 +143,9 @@ class Mesh:
    self.nx = nx
    self.ny = ny
    self.nz = nz
+   self.dx = None # with by nx. Set in create_[2/3]d_mesh
+   self.dy = None
+   self.dz = None
    
    self.row_major = row_major
 
@@ -309,6 +312,17 @@ class Mesh:
         
     return [(k,v) for k,v in dic.items()] # note that order will be arbitrary   
         
+  # rename region from old name to new name
+  # @minimum_elements if less elements are replaced, an error is raised
+  def rename_region(self, old_name, new_name, minimum_elements = 0):      
+    cnt = 0
+    for e in self.elements:   
+      if e.region == old_name:  
+        e.region = new_name
+        cnt += 1
+    if cnt < minimum_elements:
+      raise ValueError("replaced " + str(cnt) + " element.region from '" + old_name + "' to '" + new_name + "' but minimum_elements is " + str(minimum_elements))
+        
 # node1/2: coordinates of respective node
 def calc_edge_length(mesh,node1,node2):
   return np.linalg.norm(np.array(node1)-np.array(node2))
@@ -361,7 +375,7 @@ def calc_barycenter(mesh):
   return .5 * (max + min)        
         
 ## creates a 2D mesh 
-def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False):
+def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False, silent=False):
 
   assert x_res is not None
   if width is None: # e.g. for the PythonMesher the external parameters might be None
@@ -381,14 +395,14 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
     
   mesh = Mesh(nx, ny, row_major=row_major)
 
-  dx = round(width / nx,15) # usually we round with 14 digits, but then the base shall be finer!
-  dy = round(height / ny,15)
+  mesh.dx = round(width / nx,15) # usually we round with 14 digits, but then the base shall be finer!
+  mesh.dy = round(height / ny,15)
 
   # set nodes
   for y in range(ny+1):
     for x in range(nx+1):
       #print('x',x,'y',y,mesh.nodeindex(x, y))
-      mesh.nodes[mesh.node_idx(x, y)] = [round(x * dx,14), round(y * dy,14)] # nodeindex is row_major sensitive
+      mesh.nodes[mesh.node_idx(x, y)] = [round(x * mesh.dx,14), round(y * mesh.dy,14)] # nodeindex is row_major sensitive
 
   # create volume (2d) elements
   for l1 in range(ny if row_major else nx):
@@ -461,7 +475,8 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
     mesh.bc.append(("top_left", [ny]))
     mesh.bc.append(("top_right", [(ny+1)*(nx+1)-1]))
 
-  print('width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy))
+  if not silent:
+    print('width=' + str(width) + ' height=' + str(height) + ' dx=' + str(mesh.dx) + ' dy=' + str(mesh.dy))
 
   return mesh
 
@@ -517,17 +532,17 @@ def create_3d_mesh(x_res, y_res = None, z_res = None, width = 1.0, height = None
   
   assert ny is not None and nz is not None and height is not None and depth is not None  
 
-  dx = round(width  / nx,15) # see create_2d_mesh for comment on 15 vs. 14 digits
-  dy = round(height / ny,15)
-  dz = round(depth  / nz,15)
-
   mesh = Mesh(nx, ny, nz)
+
+  mesh.dx = round(width  / nx,15) # see create_2d_mesh for comment on 15 vs. 14 digits
+  mesh.dy = round(height / ny,15)
+  mesh.dz = round(depth  / nz,15)
 
   nnx = nx + 1
   nny = ny + 1
   nnz = nz + 1
 
-  print('width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz))
+  print('width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(mesh.dx) + ' dy=' + str(mesh.dy) + ' dz=' + str(mesh.dz))
 
   # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer
   #
@@ -556,7 +571,7 @@ def create_3d_mesh(x_res, y_res = None, z_res = None, width = 1.0, height = None
   for z in range(nnz):  # slowest variable
     for y in range(nny):
       for x in range(nnx):  # fastest variable
-        mesh.nodes[mesh.node_idx(x, y, z)] = [round(x * dx,14), round(y * dy,14), round(z * dz,14)] # round coarser than dx, ...
+        mesh.nodes[mesh.node_idx(x, y, z)] = [round(x * mesh.dx,14), round(y * mesh.dy,14), round(z * mesh.dz,14)] # round coarser than dx, ...
 
   for z in range(nz):
     for y in range(ny):
@@ -993,7 +1008,6 @@ def write_ansys_mesh(mesh, filename, scale = 1):
 
   out.write("\n \n")
   out.close()
-
 
 # this is for being called via embedded python from cfs via the python input reader.
 # cfs calls set_cfs_mesh() which creates a mesh and then calls this function to call the SimInputPython interface functions

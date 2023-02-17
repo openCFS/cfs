@@ -7,6 +7,7 @@ import os
 import cfs_utils as ut
 from itertools import product
 from operator import itemgetter
+import copy
 
 # for automatic differentiation, replaced with normal numpy for testcase to work with cfs runners
 #  import autograd
@@ -37,10 +38,13 @@ class Global:
   def __init__(self):
     self.shapes = []         # array of Spaghetti 
     self.rhomin = 1e-30
+    self.rhomax = 1 
     self.radius = 0.25       # up to now constant for all spaghetti for arc
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
     self.transition = 0.05   # paramter for boundary: 2*h
+    self.p = 3
     self.combine= 'max'      # up to now only 'max'
+    self.orientation = 'rounded' # or 'straight'
     self.n = [10,10,1]       # [nx, ny, nz]
     self.opts = {} # there is an optional dictionary in xml in the python element
     
@@ -79,25 +83,28 @@ glob = Global()
     
 ## This functions are called from openCFS via SpaghettiDesign.cc
 
-# called from SpaghettiDesign.cc constructor
-# @radius a constant in meter, e.g. .15
-# @boundary 'poly' or 'linear'
-# @transition transition zone which is 2*h
-# @combine how to combine? 'max', 'KS' (Kreisselmeier-Steinhauser), 'p-norm'
-# @nx, ny, nz are for rho. Currently nx == ny and nz == 1
+# called from SpaghettiDesign.cc constructor or via --cfseval
+# @settings dict of key/string fro openCFS or from command line
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(rhomin, radius, boundary, transition, combine, nx, ny, nz, dx, orientation, design, dict):
+def cfs_init(settings, design, dict):
   # non-zero value avoids divide by 0 in autograd. Seems to also work with 0 though
-  glob.rhomin = rhomin
-  glob.radius = radius
-  glob.boundary = boundary
-  glob.transition = transition
-  glob.combine = combine
-  glob.orientation = orientation
-  assert nz == 1
-  glob.n = [nx, ny, 1]
-  glob.dx = round(dx,8)
+  glob.rhomin = float(settings['rhomin'])
+  glob.rhomax = float(settings['rhomax']) if 'rhomax' in settings else 1.0
+  if 'radius' in settings: # not set when called via --cfseval
+    glob.radius = float(settings['radius'])
+  glob.boundary = settings['boundary']
+  glob.transition = float(settings['transition'])
+  glob.combine =  settings['combine']
+  if 'orientation' in settings:
+    glob.orientation = settings['orientation']
+  assert not ('nz' in settings and int(settings['nz']) != 1)
+  if 'nx' in settings:
+    glob.n = [int(settings['nx']), int(settings['ny']), 1]
+  if 'dx' in settings:
+    glob.dx = round(float(settings['dx']),8)
+  else:
+    glob.dx = 1./glob.n[0]
   glob.design = design
   glob.opts = dict
   
@@ -144,12 +151,12 @@ def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):
       print('cfs_set_spaghetti: update ', glob.shapes[id])
   
 ## give back the density as 1D numpy arry with the current spaghetti setting
-def cfs_map_to_design():
-  if not glob.silent:
+# @res [nx, ny] if given, otherwise glob.n is used
+def cfs_map_to_design(res = None):
+  if not glob.silent and hasattr(glob, 'design'):
     print('cfs_map_to_design: called for designs',glob.design)
-  
-  nx = glob.n[0]
-  ny = glob.n[1]
+  nx = res[0] if res else glob.n[0] 
+  ny = res[1] if res else glob.n[1]
   
   if glob.idx_field is None or glob.dist_field is None:
     glob.idx_field, glob.dist_field, glob.idx_field_shapes_only = create_idx_field() 
@@ -426,7 +433,7 @@ def dof(val):
 # minimal and maximal are vectors.
 def create_figure(res, minimal, maximal):
 
-  dpi_x = res / 100.0 
+  dpi_x = res / ((maximal[0] - minimal[0]) * 100.0)
 
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x*round(max(1,maximal[0])), dpi_x*round(max(1,maximal[1]))))
   ax = fig.add_subplot(111)
@@ -1007,14 +1014,15 @@ def boundary(dist, derivative=False):
   phi = -dist if not derivative and type(dist) is float or type(dist) is np.float64 else  -dist[0] # positive inside, negative outside
   h = glob.transition/2.0
   rm = glob.rhomin
+  rmx = glob.rhomax
   if phi <= -h:
     rho = rm
   elif phi >= h:
-    rho = 1.0
+    rho = rmx
   elif glob.boundary == 'linear':
-    rho = .5*((1-rm)*phi/h+1+rm)
+     rho = .5*((rmx-rm)*phi/h+rmx+rm)
   elif glob.boundary == 'poly':
-    rho = 3.0/4.0*(1.0 - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (1+rm)
+    rho = 3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm)
   else:
     print("Error: boundary type '" + glob.boundary + "' not implemented!")
     os.sys.exit()
@@ -1024,9 +1032,10 @@ def boundary(dist, derivative=False):
     if phi <= -h or phi >= h:
       return (rho, 0*dist[1])
     elif glob.boundary == 'linear':
-      return (rho, .5*((1-rm)/h)*dist[1])
+      return (rho, .5*((rmx-rm)/h) * dist[1])
     elif glob.boundary == 'poly':
-      return (rho, -3.0/4.0*(1.0 - rm)*(1/h - phi**2/(h**3)) * dist[1])
+       # return (rho, -3.0/4.0*(1.0 - rm)*(1/h - phi**2/(h**3)) *  dist[1])
+       return (rho, -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3)) *  dist[1])
    
 # returns the nodal density value, is ad_differentiable
 # the fast is not for performant calculation (it is NOT) but for having the idx given
@@ -1103,7 +1112,7 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
   idx_field = glob.idx_field
   order = glob.order
   
-  # we take the indices 
+  # we take the indices  -2 far outside, -1 far inside
   idx1 = idx_field[i,j][shape_num]
   idx2 = idx_field[i+1,j][shape_num]
   idx3 = idx_field[i,j+1][shape_num]
@@ -1112,7 +1121,7 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
   # we quickly deal with elements inside of or far away from single shapes
   if idx1 == idx2 == idx3 == idx4 == -1:
     if derivative != True:
-      return agnp.ones((order*order))
+      return agnp.ones((order*order)) * glob.rhomax
     else:
       return (agnp.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
   elif idx1 == idx2 == idx3 == idx4 == -2:
@@ -1533,16 +1542,11 @@ def combine_designs_fd(var,i, j, which = 'rotAngle'):
  
 # generates a density map for a unit square. 
 # this is a trivial implementation, serving for reference which whall be deleted in near future     
-def density(nx):
-  if len(glob.shapes) != 1: 
-    print("Warnung: density(nx) only implemented for first shape")    
-  assert nx == glob.n[0]
-
-  s = glob.shapes[0]
+def density(size):
+  assert len(size) == 2 # [nx, ny]
+  rho = cfs_map_to_design(size)
   
-  rho = cfs_map_to_design()
-  
-  return rho.reshape((nx,nx),order='F')
+  return rho.reshape(size,order='F')
 #      
 #   # the serial element list in cfs is row wise orderd with lower left first and upper right last
 #   
@@ -1574,8 +1578,9 @@ def density(nx):
 #   
 #   return rho    
       
-# reads 2D and returns list of Shaghettis
+# reads 2D and returns list of Shaghettis and domain. Also sets some values to glob!
 # @param radius if given overwrites the value from the xml header
+# @return list of spaghettis and either [[min_x, min_y], [max_x, max_y]] if in density.xml or None
 def read_xml(filename, set = None, radius = None, cfseval = False):
  
   xml = ot.open_xml(filename)
@@ -1584,12 +1589,23 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
   sq = 'last()' if set == None else '@id="' + str(set) + '"'
 
   if not radius:
-    radius = float(ot.xpath(xml, '//header/spaghetti/@radius')) 
+    glob.radius = float(ot.xpath(xml, '//header/spaghetti/@radius')) 
+    radius = glob.radius
 
-  glob.n[0] = float(ot.xpath(xml, '//header/mesh/@x'))
-  glob.n[1] = float(ot.xpath(xml, '//header/mesh/@y'))
-  glob.n[2] = float(ot.xpath(xml, '//header/mesh/@z'))
+  glob.n[0] = int(ot.xpath(xml, '//header/mesh/@x'))
+  glob.n[1] = int(ot.xpath(xml, '//header/mesh/@y'))
+  glob.n[2] = int(ot.xpath(xml, '//header/mesh/@z'))
   assert(glob.n[2] == 1)
+
+  domain = None # this feature is only written by modern cfs (solar_heater, 12.2022) but we also want to read old files
+  pn = xml.xpath('//header/coordinateSystems/domain')
+  if len(pn) == 1: # we assume a single coordinate system
+    dic = pn[0].attrib
+    domain = [[float(dic['min_x']),float(dic['min_y'])],[float(dic['max_x']),float(dic['max_y'])]]
+
+  glob.design = ['density']
+  if len(xml.xpath('//element[@type="rotAngle"]')) > 0:
+    glob.design.append('rotAngle')
 
   while True: # exit with break
     idx = len(shapes)
@@ -1624,17 +1640,22 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
       cfs_set_spaghetti(idx, Px, Py, Qx, Qy, a, p)
     print('# read noodle', noodle)
       
-  return shapes   
-
+  return shapes, domain
     
 # creates a matplotlib figure     
+# @domain is [[min_x, min_y],[max_x,max_y]] which is in modern density.xml
 # return fig
-def plot_data(res, shapes, detail):
+def plot_data(res, shapes, detail, domain = None):
 
-  # could respect non-unit regions and out of bounds movement
-  minimal = [0,0]
-  min_dim = min((glob.n[0],glob.n[1]))
-  maximal = [glob.n[0]/min_dim,glob.n[1]/min_dim] # normalize smaller dimension to 1, as there is no other element information in .density.xml
+  if domain:
+    assert len(domain) == 2
+    minimal = domain[0]
+    maximal = domain[1]
+  else:
+    # could respect non-unit regions and out of bounds movement
+    minimal = [0,0]
+    min_dim = min((glob.n[0],glob.n[1]))
+    maximal = [glob.n[0]/min_dim,glob.n[1]/min_dim] # normalize smaller dimension to 1, as there is no other element information in .density.xml
   
   fig, sub = create_figure(res, minimal, maximal)
   
@@ -1960,6 +1981,7 @@ if __name__ == '__main__':
   parser.add_argument('--saveall', help="save all sets as image with the given format. Might be png, pdf, eps, vtp", action='store_true')
   parser.add_argument('--detail', help="level of technical details for spaghetti plot", choices=[0, 1, 2, 3, 4], default=1, type=int)
   parser.add_argument('--rhomin', help="void outside the feature", type=float, default=1e-6)
+  parser.add_argument('--rhomax', help="density of solid inside feature", type=float, default=1.0)  
   parser.add_argument('--transition', help="size of the transition zone (2*h)", type=float, default=.1)
   parser.add_argument('--boundary', help="type of boundary modelling ('poly' or 'linear')", choices=['poly', 'linear'], default='poly')
   parser.add_argument('--combine', help="type of (smooth) maximum function for combination of shapes", choices=['max', 'KS', 'p-norm'], default='max')
@@ -1981,10 +2003,12 @@ if __name__ == '__main__':
     print("error: cannot find '" + args.input + "'")
     os.sys.exit()
   
-  shapes = read_xml(args.input, args.set, args.radius, args.cfseval)
+  # sets some values in glob!
+  shapes, domain = read_xml(args.input, args.set, args.radius, args.cfseval)
   
   glob.shapes = shapes
   glob.rhomin = args.rhomin
+  glob.rhomax = args.rhomax
   glob.transition = args.transition
   glob.boundary = args.boundary
   glob.combine = args.combine
@@ -1998,25 +2022,31 @@ if __name__ == '__main__':
       os.sys.exit()
     lineplot(args.lineplot)
 
-  if args.density:
-    rho = density(args.density_res)
-    ot.write_density_file(args.density,rho)
-
   if args.vtk:
     write_vtk(args.vtk, args.vtk_res, args.vtk_detailed, args.vtk_sens)
 
-  if args.cfseval:
-    dict = {
-      "order": args.order,
-      "silent": 1}
-    design = ['density', 'rotAngle']
-    cfs_init(args.rhomin, args.radius, args.boundary, args.transition, args.combine, glob.n[0], glob.n[1], glob.n[2], design, dict)
-    des = cfs_map_to_design()
-    #if len(design)>1:
+  if args.density or args.cfseval:
+    tmp = copy.deepcopy(vars(args)) # many settings are same from cfs as from command line
+    settings = dict((k,v) for k, v in tmp.items() if v) # remove key with None value
+    # we have already read nx and ny from spaghetti.py
+    scale = args.density_res / glob.n[0] # rescale, eather fine for --density or corarse for debugging --cfseval
+    glob.n = [int(scale * glob.n[0]), int(scale * glob.n[1])]
+    glob.dx = 1.0/glob.n[0]
+    
+    dict = { "order": args.order, "silent": 1}
+
+    cfs_init(settings, glob.design, dict)
+    
+    if args.density:
+      rho = density(glob.n)
+      ot.write_density_file(args.density,rho)
+    else:
+      des = cfs_map_to_design()
+      #if len(design)>1:
       #des = np.reshape(des, (args.density_res*args.density_res,len(design)), 'C')
-    ot.write_multi_design_file(args.input[0:-12] + '.eval.density.xml', des, ['density', 'rotAngle'])
-    dummy_drho_vec = np.ones(args.density_res*args.density_res)
-    drho = cfs_get_gradient(dummy_drho_vec, 'compliance')
+      ot.write_multi_design_file(args.input[0:-12] + '.eval.density.xml', des, glob.design)
+      dummy_drho_vec = np.ones(glob.n[0] * glob.n[1])
+      drho = cfs_get_gradient(dummy_drho_vec, 'compliance')
 
   if args.saveall:
     xml = ut.open_xml(args.input)
@@ -2031,13 +2061,13 @@ if __name__ == '__main__':
       os.mkdir(dir)
     for i in sets:
       print(i,' ',end='' if i < sets[-1] else '\n',flush=True)
-      shapes = read_xml(args.input, i, args.radius, args.cfseval)
+      shapes, domain = read_xml(args.input, i, args.radius, args.cfseval)
       glob.shapes = shapes
-      fig = plot_data(800,shapes,args.detail)
+      fig = plot_data(800,shapes,args.detail, domain)
       fig.savefig('giffiles/' + str(i).zfill(4) + '.png')
       plt.close(fig)
 
-  fig = plot_data(800,shapes,args.detail)
+  fig = plot_data(800,shapes,args.detail, domain)
   if args.save:
     print("write '" + args.save + "'")
     fig.savefig(args.save)

@@ -346,10 +346,6 @@ private:
 
   StdVector<unsigned int> obstacles;
 
-
-//  /** these are the indices of the elements og the region 'inclusion'*/
-//  StdVector<unsigned int> obstacle;
-
   double omega_; /** molecular collision frequency */
   double Re_; /** Reynold's number of flow problem */
   double maxWallTime_;

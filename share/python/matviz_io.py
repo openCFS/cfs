@@ -143,7 +143,8 @@ def read_hom_tensor_from_info_xml(infoXmlName):
     assert(dim == '3')
     dim_2D = False
     res = res.reshape(6,6)         # reshaping array
-    hom_tensor = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
+    hom_tensor = [res[0][0],res[1][1],res[2][2],res[3][3],res[4][4],res[5][5],res[1][2],res[0][2],res[0][1],res[2][3],res[1][3],res[0][3],res[3][4],res[2][4],res[1][4],res[0][4],res[4][5],res[3][5],res[2][5],res[1][5],res[0][5]]
+    # hom_tensor = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
 
   return hom_tensor, dim_2D
 

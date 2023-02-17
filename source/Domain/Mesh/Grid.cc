@@ -903,10 +903,10 @@ namespace CoupledField
 
   }
 
-  StdVector<UInt> Grid::GetBoundaries(RegionIdType region)
+  StdVector<UInt> Grid::GetRegularDiscretization(RegionIdType region)
   {
     StdVector<UInt> n(3);
-    n.Init(0.0);
+    n.Init(0);
     if(!IsRegionRegular(region))
       return n;
 

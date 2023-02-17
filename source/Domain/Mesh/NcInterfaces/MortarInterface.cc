@@ -195,10 +195,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   if (mutualProjection_) {
     translationVector_.Resize(ptGrid_->GetDim());
     Matrix<Double> bboxMas, bboxSla;
-    ptGrid_->CalcBoundingBoxOfRegion(masterSurfRegion_, bboxMas,
-        domain->GetCoordSystem("default"));
-    ptGrid_->CalcBoundingBoxOfRegion(slaveSurfRegion_, bboxSla,
-        domain->GetCoordSystem("default"));
+    ptGrid_->CalcBoundingBoxOfRegion(masterSurfRegion_, bboxMas);
+    ptGrid_->CalcBoundingBoxOfRegion(slaveSurfRegion_, bboxSla);
     // calculate the vector along which the master side was translated from the slave side
     // as the difference between the centres of master's and slave's bounding boxes
     for (UInt i = 0; i < ptGrid_->GetDim(); ++i)

@@ -2583,8 +2583,7 @@ namespace CoupledField {
       for(;eIter != nameTypeMap_.end(); ++eIter){
         std::cerr << eIter->first << std::endl;
       }
-      EXCEPTION( "There are no entities with name '" << elemName
-                 << "' in the grid");
+      throw Exception("There are no entities with name '" + elemName + "' in the grid");
     }
     
     Integer idx = -1;
@@ -2643,7 +2642,7 @@ namespace CoupledField {
         break;
         
       default:
-        EXCEPTION( "GetElemNumsByName cannot be called for named nodes" );
+        EXCEPTION( "GetElemNumsByName(" + elemName + ") cannot be called for named nodes" );
         break;
     }
   }
@@ -3089,18 +3088,11 @@ namespace CoupledField {
     gridNode->Get("elements")->SetValue(GetNumElems()); 
     gridNode->Get("nodes")->SetValue(GetNumNodes()); 
     
-    //in->Get("grids")->Get("grid")->Get("gridId")->SetValue(gridId_); 
-    //in->Get("grids")->Get("grid")->Get("dimensions")->SetValue(GetDim()); 
-    //in->Get("grids")->Get("grid")->Get("elements")->SetValue(GetNumElems()); 
-    //in->Get("grids")->Get("grid")->Get("nodes")->SetValue(GetNumNodes()); 
-
     // we only have this info when doing homogenization
     if (progOpts->DoDetailedInfo()) {
       in->Get("hull_volume")->SetValue(CalcHullVolume());
       in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
     }
-
-
 
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
     if(!reg.IsEmpty()) {
@@ -3451,6 +3443,10 @@ namespace CoupledField {
   void GridCFS::CalcBoundingBoxOfRegion (const RegionIdType regId,
                                          Matrix<Double> & minMax,
                                          CoordSystem* cSys){
+    if(!cSys)
+      cSys = domain->GetCoordSystem();
+
+    assert(cSys != nullptr);
     StdVector<Elem*> elemssd;
 
     minMax.Resize(dim_,2);

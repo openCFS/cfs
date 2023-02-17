@@ -186,7 +186,7 @@ namespace CoupledField
     StdVector<std::string> GetCoordSystems() const;
 
     //! Return local coordinate system by name
-    CoordSystem* GetCoordSystem( const std::string & name = std::string("default") );
+    CoordSystem* GetCoordSystem(const std::string& name = std::string("default"));
 
     //! Return Math Parser object for evaluating math expressions
     MathParser* GetMathParser() { return mathParser_; }
@@ -220,8 +220,9 @@ namespace CoupledField
 
     //@}
 
-    /** e.g. coordinate systems */
-    void ToInfo(PtrParamNode info);
+    /** e.g. coordinate systems
+     * Is also used by DensityFile which can enforce the defaults (min_x, max_x, ...) */
+    void ToInfo(PtrParamNode info, bool force_default = false);
 
     /** has any of the single pdes perdiodic boundary conditions set? */
     bool HasPerdiodicBC() const;

@@ -35,7 +35,11 @@ public:
 
   void GetScalar(double& scal, const LocPointMapped& lpm) override {
     assert(data_.GetNumCols() == 1);
-    data_.GetEntry(GetIndex(lpm),0, scal);
+    int idx = GetIndex(lpm);
+    if(idx == -1)
+      scal = 0.0;
+    else
+      data_.GetEntry((unsigned int) idx,0, scal);
   }
 
   void GetScalar(Complex& scal, const LocPointMapped& lpm)  override{
@@ -44,7 +48,11 @@ public:
 
   /** the node of interest is transported in lpm.pl.number */
   void GetVector(Vector<double>& vec, const LocPointMapped& lpm)  override {
-    data_.GetRow(vec, GetIndex(lpm));
+    int idx = GetIndex(lpm);
+    if(idx == -1)
+      vec.Init();
+    else
+      data_.GetRow(vec, (unsigned int) idx);
   }
 
   void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm)  override {
@@ -67,11 +75,19 @@ private:
    * @param input e.g. an open ifstream or something like a strstream for testing */
   void ReadData(std::istream& input, int dim);
 
-  /** common helper for GetScalar/GetVector */
-  unsigned int GetIndex(const LocPointMapped& lpm);
-
+  /** common helper for GetScalar/GetVector. -1 is not found.
+   * Handles THROW_EXCEPTION and WARNING */
+  int GetIndex(const LocPointMapped& lpm);
 
   std::string filename_;
+
+  /** how to handle node numbers not given in the file */
+  typedef enum { THROW_EXCEPTION, WARNING_ZERO, ZERO } Missing;
+  Enum<Missing> missing;
+  Missing missing_ = THROW_EXCEPTION;
+
+  /** helper for Missing::WARNING_ZERO */
+  bool warning_issued_ = false;
 
   /** map of node numbers */
   StdVector<unsigned int> node_;
@@ -81,7 +97,6 @@ private:
 
   /** rows is number of nodes, cols is dim (1 for scalar, 2/3 for vector, tensor would be flat if one imlements it*/
   Matrix<double> data_;
-
 
 };
 

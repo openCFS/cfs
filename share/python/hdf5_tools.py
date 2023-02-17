@@ -267,6 +267,32 @@ def get_element(hdf5_file, name, region, given_step=99999):
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
 
+# transforms element values to nodal data
+# needs to be extended to 3d - scipy.interpolate makes problems here
+# @return numpy array with coordinated (2D) and numpy array with value (scalar or vectorial)  
+def element_to_node_2d(hdf5_file, name, region, step = 'last'):
+  from scipy.interpolate import griddata
+  from scipy import interpolate
+  import scipy
+
+  cell    = get_result(hdf5_file, name, region=region, step=step)
+  centers = get_centroids(hdf5_file, region=region)
+  nodes   = get_coordinates(hdf5_file, region=region)[:,[0,1]] # restrict to 2D
+  assert len(nodes[0]) == 2
+  
+  dim = len(cell[0]) # 1 for scalar
+  values = np.zeros((len(nodes), dim)) # interpolated values at nodal points
+  for d in range(dim):
+    # interpolate from centers to nodes for each scalar of the element data
+    dat_linear  = scipy.interpolate.griddata(centers[:,[0,1]], cell[:,d], nodes, method='linear') # 2d only
+    dat_nearest = scipy.interpolate.griddata(centers[:,[0,1]], cell[:,d], nodes, method='nearest')
+    # take linear if possible, otherwise (not in convex hull) the nearest neighbor
+    assert(len(dat_linear) == len(nodes) == len(dat_nearest))
+    for i in range(len(nodes)):
+      values[i,d] = dat_linear[i] if not np.isnan(dat_linear[i]) else dat_nearest[i]
+
+  return nodes, values 
+
 def get_step_values(hdf5_file) :
     """
     return the step values as a list of arrays for each multi-sequence step
