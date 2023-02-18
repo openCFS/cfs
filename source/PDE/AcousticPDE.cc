@@ -1066,13 +1066,7 @@ namespace CoupledField{
 
         //check, if region has complex fluid
         PtrParamNode curRegNode =
-<<<<<<< HEAD
-        		myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
-=======
             myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
-        if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" )
-          EXCEPTION("Absorbing BC at complex fluid region not allowed");
->>>>>>> 5c13de00a (temporary commit: deleted an unnecessary comment that I added previously; some minor changes)
 
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens;
