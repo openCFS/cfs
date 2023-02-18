@@ -604,7 +604,7 @@ namespace CoupledField
   // =======================================================================
   // Automatic Layer Generation and Geometry Computation
   // =======================================================================
-  void Grid::GetGeometryOnRegionNodes(shared_ptr<NodeGeometry> geometry, const RegionIdType& regionId, bool isVolumeRegion) {
+  void Grid::GetGeometryOnRegionNodes(shared_ptr<NodeGeometry>& geometry, const RegionIdType& regionId, bool isVolumeRegion) {
     // check if geometry already exists for given region
     if (geometryRegionMap_.count(regionId) == 0) {
       // if not, check for volume or surface region
@@ -626,10 +626,10 @@ namespace CoupledField
           // pass already computed geometry to the key of the volume region
           geometryRegionMap_[regionId]->AddNodes(geometryRegionMap_[currSurfRegion]);
         }
-        // finally, pass geometry
-        geometry = geometryRegionMap_[regionId];
       }
     }
+    // finally, pass geometry
+    geometry = geometryRegionMap_[regionId];
   };
 
   void Grid::GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId) {
