@@ -2716,10 +2716,10 @@ namespace CoupledField {
                                      const UInt & node) {
     SetNodesToElemsMap();
     
-    const UInt maxIdx = nodeElemMapIndices_[node]; // node numbers are 1-based
+    const UInt maxIdx = nodeElemMapIndices_[node+1];
     elemList.Clear();
     
-    for (UInt idx = nodeElemMapIndices_[node-1]; idx < maxIdx; idx++) {
+    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
       const Elem* elem = GetElem(nodeElemMap_[idx]);
       elemList.Push_back(elem);
     }
@@ -2730,11 +2730,11 @@ namespace CoupledField {
                                      const StdVector<RegionIdType>& regionIds) {
     SetNodesToElemsMap();
     
-    const UInt maxIdx = nodeElemMapIndices_[node]; // node numbers are 1-based
+    const UInt maxIdx = nodeElemMapIndices_[node+1];
     const UInt nRegions = regionIds.GetSize();
     elemList.Clear();
     
-    for (UInt idx = nodeElemMapIndices_[node-1]; idx < maxIdx; idx++) {
+    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
       const Elem* elem = GetElem(nodeElemMap_[idx]);
       for (UInt iR = 0; iR < nRegions; iR++) {
         if (regionIds[iR] == elem->regionId) {
@@ -3135,7 +3135,7 @@ namespace CoupledField {
         volumeSurfaceRegionMap_[layerRegionId].Push_back(newSurfRegionId);
       }
       // finally, also add the interface surface region to the map
-      volumeSurfaceRegionMap_[layerRegionId].Push_back(surfRegionId);
+      volumeSurfaceRegionMap_[layerRegionId].Insert(0, surfRegionId);
     }
     // Depending on the direction of layer generation and orientation of the interface surface elements,
     // the volume elements might not be oriented correctly. Hence, check if Jakobi determinants of the 
@@ -3143,6 +3143,10 @@ namespace CoupledField {
     // Note: calling CorrectElementConnectivities() produces an overshoot since it is already called in
     // FinishInit() and it checks all elements on the grid.
     CorrectElementConnectivities();
+
+    // finally, as the grid now contains new nodes and elements, reset mappedNodeToElems_ so that 
+    // SetNodesToElemsMap() will be called once more when needed in future.
+    mappedNodeToElems_ = false;
   };
 
   // =======================================================================
