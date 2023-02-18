@@ -804,18 +804,7 @@ namespace CoupledField
     /** Computes for regular grid number of elements in each direction for specified region
         by using maximal and minimal values of barycenters
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
-    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
-
-    //! Check if autoLayerGeneration parameters are specified for a region and call
-    //! CreateExternalLayer if so. Return otherwise.
-    virtual void TriggerAutoLayerGeneration() {
-      EXCEPTION("Grid::TriggerAutoLayerGeneration not overwritten by child class");
-    }
-    //! Computes an external grid layer that can be used as a PML region. 
-    //! The actual function is implemented in GridCFS 
-    virtual void GenerateExternalLayer(shared_ptr<EntityList> innerRegion, shared_ptr<EntityList> surfaceRegion, PtrParamNode layerGenNode) {
-      EXCEPTION("Grid::GenerateExternalLayer not overwritten by child class");
-    };
+    virtual StdVector<UInt> GetRegularDiscretization(RegionIdType region);
 
     // =======================================================================
     // FINITE VOLUME REPRESENTATION SECTION
