@@ -392,8 +392,9 @@ namespace CoupledField{
             coeffPMLTens.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
             coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
             
-            // store pml factor
+            // the Jakobi matrix gets passed to the material coefficients and will later scale the gradient operation
             matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
+            // the Jakobi determinant is used as scaling coefficient for the BBIntegrators
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
                                               CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
             coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
@@ -434,6 +435,7 @@ namespace CoupledField{
             stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
           }
           else if (pmlFormul == "curvilinear") {
+            EXCEPTION("Curvilinear PML currently only implemented for 3D problems!");
             // define integrators for curvilinear PML in 2D
             stiffInt = new BBInt<Complex>(new TensorScaledGradientOperator<FeH1,3,Complex>(),
                                          coeffPMLStiff, 1.0, updatedGeo_ );
