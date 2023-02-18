@@ -136,7 +136,7 @@ namespace CoupledField{
   void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
                                 const LocPointMapped& lpm ){
     //this is diagonal tensor with the coefficients
-    
+
     tensor.Resize(this->dim_, this->dim_);
     tensor.Init();
     Double locThick=0.0;
@@ -560,13 +560,68 @@ namespace CoupledField{
     this->name_ = "CoefFunctionCurvilinearPML";
     this->formulationType_ = CURVILINEAR;
     grid_ =  this->entities_[0]->GetGrid();
-    ReadDataPML(pmlDef,pdeDomains);
-    // trigger computation of geometry
-    grid_->GetGeometryOnRegionNodes(nodeGeom_, volRegion_, true);
+    ReadDataPML(pmlDef);
+    CheckForInvalidParams(pmlDef);
+    CheckForLayerGenerationNode(pmlDef);
+
+    // trigger computation of geometry and get pointer to it
+    grid_->GetGeometryOnRegionNodes(ptrNodeGeom_, volRegion_, true);
+
+    // compute distances
+    ComputeNodeThicknessMap();
   }
 
   template<typename T>
   CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { }
+
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetTensorOnNode(Matrix<Complex>& tensor, const UInt& nodeId) {
+    // get the index of the node
+    UInt nodeIdx = GetIdxByNodeId(nodeId);
+
+    // get the distance of the node to the interface
+    Double dist = nodeThicknessMap_[nodeId];
+
+    // get the damp function evaluated at current node
+    Double dampFunc = this->dampFunction_->ComputeFactor(dist, layerThickness_);
+    // and its integral from the interface to the node
+    Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(dist, layerThickness_);
+
+    // the orthogonal part of the Jakobi matrix that holds the curvilinear base vectors
+    Matrix<Complex> orthoMat = Matrix<Complex>(3, 3);
+    Matrix<Complex> orthoMatT = Matrix<Complex>(3,3); // transposed
+    
+    // the diagonal part that does the metric stretching
+    Matrix<Complex> stretchMat = Matrix<Complex>(3, 3);
+
+    // set the helper damping part
+    StdVector<Double> dampingPart = StdVector<Double>(3);
+    dampingPart[0] = dampFunc;
+    dampingPart[1] = intDampFunc * ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx] / (1 + dist * ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx]);
+    dampingPart[2] = intDampFunc * ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx] / (1 + dist * ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx]);
+    // another helper variable
+    Double denominator;
+    
+    // fill the matrices with entries
+    for (UInt iColumn = 0; iColumn < 3; iColumn++) {
+      orthoMat[0][iColumn] = Complex(ptrNodeGeom_->normalVectors_[nodeIdx][iColumn], 0.0); // imaginary part is 0
+      orthoMat[1][iColumn] = Complex(ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iColumn], 0.0);
+      orthoMat[2][iColumn] = Complex(ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iColumn], 0.0);
+
+      denominator = 1 + pow(dampingPart[iColumn] / this->omega_, 2);
+      stretchMat[iColumn][iColumn] = Complex(1 / denominator, -1 * (dampingPart[iColumn] / this->omega_) / denominator);
+    }
+    orthoMat.Transpose(orthoMatT);
+
+    tensor = orthoMatT * stretchMat * orthoMat;
+  };
+
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetScalarOnNode(Complex& scalar, const UInt& nodeId) {
+
+  };
 
   template<typename T>
   PtrCoefFct CoefFunctionCurvilinearPML<T>::GetTensorCoeffFct() {
@@ -575,6 +630,7 @@ namespace CoupledField{
     return tensorCoefFct;
   }
 
+
   template<typename T>
   PtrCoefFct CoefFunctionCurvilinearPML<T>::GetScalarCoeffFct() {
     PtrCoefFct scalarCoefFct;
@@ -582,8 +638,17 @@ namespace CoupledField{
     return scalarCoefFct;
   }
 
+
   template<typename T>
-  void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains){
+  UInt CoefFunctionCurvilinearPML<T>::GetIdxByNodeId(const UInt& nodeId) {
+    // should be made more efficient in future!!
+    UInt idx = ptrNodeGeom_->nodeIds_.Find(nodeId);
+    return idx;
+  };
+
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::ReadDataPML(PtrParamNode pmlDef){
     // read and set coordinate system 
     std::string cSysId;
     pmlDef->GetValue("coordSysId",cSysId,ParamNode::PASS);
@@ -609,7 +674,11 @@ namespace CoupledField{
 
     // extract the ID of the PML volume region
     volRegion_ = this->entities_[0]->GetRegion();
+  }
 
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::CheckForInvalidParams(PtrParamNode pmlDef) {
     // check for propRegion, scaling or frequency shift coeff in the xml
     // if these are set for curvilinear PML, ignore and warn
     PtrParamNode propRegionNode = pmlDef->Get("propRegion", ParamNode::PASS);
@@ -633,7 +702,74 @@ namespace CoupledField{
       if (shiftNodeFormul == "curvilinear")
         WARN("frqShiftCoef is currently not implemented for curvilinear PML and will be ignored!");
     }
-  }
+  };
+
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::CheckForLayerGenerationNode(PtrParamNode pmlDef) {
+    // check wether the PML layer has been generated using autoLayerGenerationList and store the parameter node
+    PtrParamNode layerGenNode = pmlDef->GetParent()->GetParent()->GetParent()->
+                                        GetParent()->GetParent()->Get("domain")->
+                                        Get("autoLayerGenerationList", ParamNode::PASS);
+    // check if the autoLayerGenerationList has actually generated the PML region
+    if (layerGenNode) {
+      std::string generatedLayerName;
+      RegionIdType generatedLayerId;
+      PtrParamNode actLayerGenNode;
+      // iterate over the autoLayerGenerationList...
+      UInt numGenLayers = layerGenNode->GetChildren().size();
+      bool nodeFound = false;
+      for (UInt iLayers = 0; iLayers < numGenLayers; iLayers++) {
+        PtrParamNode actLayerGenNode = layerGenNode->GetChildren()[iLayers];
+        // get name of generated region
+        actLayerGenNode->GetValue("name", generatedLayerName);
+        // get its ID
+        generatedLayerId = grid_->GetRegionId(generatedLayerName);
+        // check if generated ID fits to the PML region
+        if (volRegion_ == generatedLayerId) {
+          layerGenNode_ = actLayerGenNode;
+          nodeFound = true;
+        }
+      }
+      if (nodeFound == false) {
+        EXCEPTION("Specified PML layer not found in autoLayerGenerationList");
+      }
+    } else {
+      EXCEPTION("Curvilinear PML currently only works with an autonatically generated layer in autoLayerGenerationList");
+    }
+  };
+
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::ComputeNodeThicknessMap() {
+    if (layerGenNode_) {
+      // get parameters from layer generation node
+      Double numLayers, elemHeight;
+      std::string surfRegionName;
+      RegionIdType surfRegionId;
+      layerGenNode_->GetValue("numLayers", numLayers);
+      layerGenNode_->GetValue("elemHeight", elemHeight);
+      layerGenNode_->GetValue("surfRegionToActOn", surfRegionName);
+      surfRegionId = grid_->GetRegionId(surfRegionName);
+
+      // set the total layer thickness
+      layerThickness_ = numLayers * elemHeight;
+
+      // obtain the number of nodes on the interface region
+      UInt numSurfNodes = grid_->GetNumNodes(surfRegionId);
+      // every iso surface in the automatically generated layer has the 
+      // same number of nodes. Hence, finding the thickness at nodes is easy...
+      // iterate over all surface layers (generated and the interface) and assign
+      for (UInt iLayers = 0; iLayers <= numLayers; iLayers++) {
+        for (UInt iNodes = 0; iNodes < numSurfNodes; iNodes++) {
+          nodeThicknessMap_.Push_back(elemHeight * iLayers);
+        }
+      }
+    } else {
+      // room for future implementation that e.g. reads data from a file
+      EXCEPTION("Curvilinear PML currently only works with an autonatically generated layer in autoLayerGenerationList");
+    }
+  };
 
 
   // Explicit template instantiation
