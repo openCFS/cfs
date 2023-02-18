@@ -46,7 +46,16 @@ public:
 
   virtual ~DampFunction() {};
 
-  virtual Double ComputeFactor(Double pos, Double thickness)=0;
+  //! returns the damping function evaluated at position 'pos' in a PML layer with 
+  //! thickness 'thickness'
+  virtual Double ComputeFactor(Double pos, Double thickness) {
+    EXCEPTION("ComputeFactor not overridden by child class " << functionType << "!");
+  };
+
+  //! returns the integral of the damping function from 0 to the position 'pos'
+  virtual Double ComputeIntegralFactor(Double pos, Double thickness) {
+    EXCEPTION("ComputeIntegralFactor not overridden by child class " << functionType << "!");
+  };
 
   DampingType GetType(){return functionType;}
 
@@ -89,7 +98,7 @@ public:
     functionType = INVERSE_DIST;
   }
 
-  Double ComputeFactor(Double pos, Double thickness){
+  Double ComputeFactor(Double pos, Double thickness) {
     //check for sigular position
     Double val = 0.0;
     if(thickness == pos){
@@ -99,6 +108,19 @@ public:
       val = constFactor * (1.0 / (thickness - pos));
     }
     return val*DampFactor;
+  }
+
+  Double ComputeIntegralFactor(Double pos, Double thickness) {
+    Double val = 0.0;
+    Double a = -log(thickness);
+    Double b;
+    if(thickness == pos) {
+      b = 1.0/1e-10;
+    } else {
+      b = -log(thickness-pos);
+    }
+    val = constFactor * (b-a);
+    return val*DampFactor; // why would I need this DampFactor that is a constant 1???
   }
 };
 
@@ -428,26 +450,55 @@ public:
   // .......... currently, this function simply sets a vector-valued coefFctPML 
   PtrCoefFct GetTensorCoeffFct();
 
+
+  //! computes and returns the inverse Jakobi matrix of the curvilinear coordinate stretch operation on a given node
+  void GetTensorOnNode(Matrix<Complex>& tensor, const UInt& nodeId);
+
+  //! computes and returns the Jakobi determinant of the curvilinear coordinate stretch operation on a given node
+  void GetScalarOnNode(Complex& scalar, const UInt& nodeId);
+
   //! use the base functions
   using CoefFunctionPMLBase<T>::UpdateOmega;
   using CoefFunctionPMLBase<T>::CreateDampFunction;
 
 private:
   //! read data from the paramNode and store
-  void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains);
-  
+  void ReadDataPML(PtrParamNode pmlDef);
+
+  //! check if autoLayerGeneration is specified and if it fits to the current PML region
+  void CheckForLayerGenerationNode(PtrParamNode pmlDef);
+
+  //! check if invalid parameters are set and warn the user
+  void CheckForInvalidParams(PtrParamNode pmlDef);
+
+  //! compute distances of every node in the layer to its closest point on the PML interface.
+  //! also, sets the layerThickness_
+  void ComputeNodeThicknessMap();
+
+  //! returns the position of a given nodeId in the NodeGeometry struct (which is supposed to 
+  //! equal its index in the PML region)
+  UInt GetIdxByNodeId(const UInt& nodeId);
+
   //! pointer to the current grid class, needed for automatic layer generation and
   //! to determine the geometry
   Grid* grid_;
 
-  //! node to store auto-mesh-generation parameters (elemHeight and numLayers)
+  //! pointer to the layer generation node that keeps auto-mesh-generation parameters 
+  //! (elemHeight and numLayers). Is set in ReadDataPML(). Is empty if not specified.
   PtrParamNode layerGenNode_;
 
   //! the volume region to act on
   RegionIdType volRegion_;
 
-  //! 
-  shared_ptr<Grid::NodeGeometry> nodeGeom_;
+  //! pointer to the stored geometry of every node in the PML layer
+  shared_ptr<Grid::NodeGeometry> ptrNodeGeom_;
+
+  //! vector containing the relative distance of every node to its closest 
+  //! point on the PML interface
+  StdVector<Double> nodeThicknessMap_;
+
+  //! total thickness of the PML layer
+  Double layerThickness_;
 
 };
 }
