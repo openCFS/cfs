@@ -1097,15 +1097,51 @@ namespace CoupledField
         //! add additional nodes from other NodeGeometry
         void AddNodes(shared_ptr<NodeGeometry> newNodes) {
           UInt numNewNodes = newNodes->numNodes_;
-          numNodes_ += numNewNodes;
-          for (UInt iNodes = 0; iNodes < numNewNodes; iNodes++) {
-            nodeIds_.Push_back(newNodes->nodeIds_[iNodes]);
-            normalVectors_.Push_back(newNodes->normalVectors_[iNodes]);
-            minPrincipalVectors_.Push_back(newNodes->minPrincipalVectors_[iNodes]);
-            maxPrincipalVectors_.Push_back(newNodes->maxPrincipalVectors_[iNodes]);
-            minPrincipalCurvatures_.Push_back(newNodes->minPrincipalCurvatures_[iNodes]);
-            maxPrincipalCurvatures_.Push_back(newNodes->maxPrincipalCurvatures_[iNodes]);
+          // check if there are already nodes inserted
+          if (numNodes_ > 0) {
+            // append new nodes sorted by node Id, assuming that the new nodes and
+            // old nodes are already sorted and that every node is contained only once
+            if (newNodes->nodeIds_[0] > nodeIds_[numNodes_-1]) {
+              nodeIds_.Append(newNodes->nodeIds_);
+              normalVectors_.Append(newNodes->normalVectors_);
+              minPrincipalVectors_.Append(newNodes->minPrincipalVectors_);
+              maxPrincipalVectors_.Append(newNodes->maxPrincipalVectors_);
+              minPrincipalCurvatures_.Append(newNodes->minPrincipalCurvatures_);
+              maxPrincipalCurvatures_.Append(newNodes->maxPrincipalCurvatures_);
+            }
+            else if (newNodes->nodeIds_[numNewNodes-1] < nodeIds_[0]) {
+              StdVector<UInt> oldNodeIds = nodeIds_;
+              StdVector<Vector<Double>> oldNormalVectors = normalVectors_;
+              StdVector<Vector<Double>> oldMinPrincipalVectors = minPrincipalVectors_;
+              StdVector<Vector<Double>> oldMaxPrincipalVectors = maxPrincipalVectors_;
+              StdVector<Double> oldMinPrincipalCurvatures = minPrincipalCurvatures_;
+              StdVector<Double> oldMaxPrincipalCurvatures = maxPrincipalCurvatures_;
+
+              nodeIds_ = newNodes->nodeIds_;
+              normalVectors_ = newNodes->normalVectors_;
+              minPrincipalVectors_ = newNodes->minPrincipalVectors_;
+              maxPrincipalVectors_ = newNodes->maxPrincipalVectors_;
+              minPrincipalCurvatures_ = newNodes->minPrincipalCurvatures_;
+              maxPrincipalCurvatures_ = newNodes->maxPrincipalCurvatures_;
+
+              nodeIds_.Append(oldNodeIds);
+              normalVectors_.Append(oldNormalVectors);
+              minPrincipalVectors_.Append(oldMinPrincipalVectors);
+              maxPrincipalVectors_.Append(oldMaxPrincipalVectors);
+              minPrincipalCurvatures_.Append(oldMinPrincipalCurvatures);
+              maxPrincipalCurvatures_.Append(oldMaxPrincipalCurvatures);
+            } else {
+              EXCEPTION("NodeGeometry::AddNodes: Inserted nodes must be unique!")
+            }
+          } else {
+            nodeIds_= newNodes->nodeIds_;
+            normalVectors_ = newNodes->normalVectors_;
+            minPrincipalVectors_ = newNodes->minPrincipalVectors_;
+            maxPrincipalVectors_ = newNodes->maxPrincipalVectors_;
+            minPrincipalCurvatures_ = newNodes->minPrincipalCurvatures_;
+            maxPrincipalCurvatures_ = newNodes->maxPrincipalCurvatures_;
           }
+          numNodes_ += numNewNodes;
         };
 
         // number of contained nodes
@@ -1131,7 +1167,7 @@ namespace CoupledField
     //! \param geometry (out) pointer to the struct containing the geometry
     //! \param surfRegionId (in) the surface region on which the computation is performed
     //! \param isVolumeRegion (in) states if the passed regionId is a volume region (true) or a surface region(false)
-    void GetGeometryOnRegionNodes(shared_ptr<NodeGeometry> geometry, const RegionIdType& regionId, bool isVolumeRegion);
+    void GetGeometryOnRegionNodes(shared_ptr<NodeGeometry>& geometry, const RegionIdType& regionId, bool isVolumeRegion);
 
     //! checks if there are assigned surface regions to a passed volume region.
     //! Raises exception if the connection has not been set yet. 
