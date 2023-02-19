@@ -964,7 +964,8 @@ namespace CoupledField {
             writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
             if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
                  candidate->resultType == MAG_FORCE_MAXWELL ||
-               candidate->resultType == MAG_FORCE_VWP) {
+                 candidate->resultType == MAG_FORCE_VWP
+                 candidate->resultType == MAG_FORCE_VWP_DENSITY) {
               neighborRegions.Push_back( regionNodes[i]->Get("neighborRegion")->As<std::string>());
             }
           }
@@ -1017,12 +1018,22 @@ namespace CoupledField {
 
           if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
                candidate->resultType == MAG_FORCE_MAXWELL ||
-             candidate->resultType == MAG_FORCE_VWP) {
+               candidate->resultType == MAG_FORCE_VWP ||
+               candidate->resultType == MAG_FORCE_VWP_DENSITY) {
             std::string neighborReg =  neighborRegions[iRegion];
             RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( regionNames[iRegion] );
             RegionIdType volNeighborRegionId = ptGrid_->GetRegion().Parse( neighborReg );
             fnc->GetCoefFct()->SetVolNeighborRegionId(surfRegionId,volNeighborRegionId);
+          
+            //check for surfCoefFunctions
+            shared_ptr<CoefFunctionSurf> surfFct =
+                    boost::dynamic_pointer_cast<CoefFunctionSurf>(fnc->GetCoefFct());
+            if (surfFct) {
+              if (surfCoefFcts_.find(surfFct) != surfCoefFcts_.end()) {
+                surfFct->AddEntity(actList);
+              }
             }
+          }
 
           // update sequence step for result handler (also done in ResultHandler::BeginMultiSequenceStep, but AFTER reading the xml for the current step, hence we would be one step behind regarding reading e.g. postproc results from the xml)
           // nevertheless, it appears that we have to keep it in ResultHandler::BeginMultiSequenceStep as well since not setting the sequence step in this routine breaks stuff

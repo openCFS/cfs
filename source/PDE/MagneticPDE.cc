@@ -1597,48 +1597,82 @@ namespace CoupledField {
 
 
   if( analysistype_ != HARMONIC ) {
-	// === MAXWELL FORCE (TOTAL) ===
-	shared_ptr<ResultInfo> mf(new ResultInfo);
-	mf->resultType = MAG_FORCE_MAXWELL;
-	mf->dofNames = vecComponents;
-	mf->unit = "N";
-	mf->definedOn = ResultInfo::SURF_REGION;
-	mf->entryType = ResultInfo::VECTOR;
-	availResults_.insert( mf );
+	  // === MAXWELL FORCE (TOTAL) ===
+	  shared_ptr<ResultInfo> mf(new ResultInfo);
+	  mf->resultType = MAG_FORCE_MAXWELL;
+	  mf->dofNames = vecComponents;
+	  mf->unit = "N";
+	  mf->definedOn = ResultInfo::SURF_REGION;
+	  mf->entryType = ResultInfo::VECTOR;
+	  availResults_.insert( mf );
 
-	// build result functor for integration
-	shared_ptr<ResultFunctor> mfFunc;
-	if( isComplex_ ) {
-		mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
-	} else {
-		mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
-	}
-	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
+	  // build result functor for integration
+	  shared_ptr<ResultFunctor> mfFunc;
+	  if( isComplex_ ) {
+		  mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
+	  } else {
+		  mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
+	  }
+	  resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
 
 
-	// === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
-	shared_ptr<ResultInfo> vwp(new ResultInfo);
-	vwp->resultType = MAG_FORCE_VWP;
-	vwp->dofNames = vecComponents;
-	vwp->unit = "N";
-	vwp->definedOn = ResultInfo::SURF_REGION;
-	vwp->entryType = ResultInfo::VECTOR;
-	availResults_.insert( vwp );
+    // === VIRTUAL WORK PRINCIPLE FORCE DENSITY ===
+    shared_ptr<ResultInfo> vwpDensity(new ResultInfo());
+    vwpDensity->resultType = MAG_FORCE_VWP_DENSITY;
+    vwpDensity->dofNames = vecComponents;
+    vwpDensity->unit = "N/m^2";
+    vwpDensity->definedOn = ResultInfo::SURF_ELEM;
+    vwpDensity->entryType = ResultInfo::VECTOR;
+    availResults_.insert(vwpDensity );
 
-	// define and save coefFunction
-	shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_,
-              1.0, vwp));
-	surfCoefFcts_[vwpForce] = bFunc;
+    shared_ptr< CoefFunctionSurfVWPnew<FeH1> > vwpForceDens(
+            new CoefFunctionSurfVWPnew<FeH1>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+                                             ptGrid_, feFct));
+    DefineFieldResult(vwpForceDens, vwpDensity);
+    surfCoefFcts_[vwpForceDens] = bFunc;
 
-	// build result functor for integration
-	shared_ptr<ResultFunctor> vwpFunc;
-	if( isComplex_ ) {
-		vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
-	} else {
-		vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
-	}
-	resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
-    }
+	  // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
+	  shared_ptr<ResultInfo> vwp(new ResultInfo);
+	  vwp->resultType = MAG_FORCE_VWP;
+	  vwp->dofNames = vecComponents;
+	  vwp->unit = "N";
+	  vwp->definedOn = ResultInfo::SURF_REGION;
+	  vwp->entryType = ResultInfo::VECTOR;
+	  availResults_.insert( vwp );
+
+	  // build result functor for integration
+	  shared_ptr<ResultFunctor> vwpFunc;
+	  if( isComplex_ ) {
+		  vwpFunc.reset(new ResultFunctorVWPnew<FeH1>(vwpForceDens, vwp ) );
+	  } else {
+		  vwpFunc.reset(new ResultFunctorVWPnew<FeH1>(vwpForceDens, vwp ) );
+	  }
+	  resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
+
+    // // === VIRTUAL WORK PRINCIPLE FORCE DENSITY OLD===
+	  // shared_ptr<ResultInfo> vwp(new ResultInfo);
+	  // vwp->resultType = MAG_FORCE_VWP;
+	  // vwp->dofNames = vecComponents;
+	  // vwp->unit = "N";
+	  // vwp->definedOn = ResultInfo::SURF_REGION;
+	  // vwp->entryType = ResultInfo::VECTOR;
+	  // availResults_.insert( vwp );
+
+	  // // define and save coefFunction
+	  // shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_,
+    //           1.0, vwp));
+	  // surfCoefFcts_[vwpForce] = bFunc;
+
+	  // // build result functor for integration
+	  // shared_ptr<ResultFunctor> vwpFunc;
+	  // if( isComplex_ ) {
+		//   vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
+	  // } else {
+		//   vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
+  	// }
+	  // resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
+
+  }
 
     // === MAGNETIC ENERGY ===
 //    if( isMixed_)

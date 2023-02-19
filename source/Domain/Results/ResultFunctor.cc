@@ -3,7 +3,7 @@
 #include "Domain/Domain.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-
+#include "FeBasis/HCurl/HCurlElems.hh"
 namespace CoupledField {
 
 DEFINE_LOG(resfunc, "resultFunctor")
@@ -563,7 +563,6 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
   for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)  {
     shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
     		                                                            nameIt.GetName());
-
     //get correct volume neighbor region id
     neighborIds[0] = coef->GetVolNeighborRegionId(actSDList->GetRegion());
 
@@ -581,7 +580,6 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
     isBoundaryNode.Init();
     elemNodeToCouplingNode.Resize(elemList.GetSize());
     elemNodeToCouplingNode.Init();
-
 
     for (UInt ielem=0; ielem<elemList.GetSize(); ielem++) {
     	isBoundaryNode[ielem].Resize(elemList[ielem]->connect.GetSize());
@@ -649,7 +647,6 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
     order.SetIsoOrder(2);
-    //IntScheme::IntegMethod method;
 
     shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
     // Get shape map from grid
@@ -672,7 +669,6 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     for(UInt i = 0; i < intPoints.GetSize(); i++) {
     	// Calculate for each integration point the LocPointMapped
     	lpm.Set(intPoints[i], esm, weights[i]);
-    	//lpm.SetCheckJacobi(false);
     	// get field vector scaled by square of material parameter
     	coef_->GetVector(field, lpm );
 
@@ -743,6 +739,46 @@ template<class TYPE> Double ResultFunctorVWP<TYPE>::CalcDetJDr(Matrix<Double> &J
   return det;
 }
 
+// --------------------------------------------------------------------------
+//   Calculate the result by integration and sums up to total force: VWP
+// --------------------------------------------------------------------------
+
+template<class FE>
+ResultFunctorVWPnew<FE>::ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE> > coef,
+                                             shared_ptr<ResultInfo> inf)
+: ResultFunctor(inf)
+{
+  derivType_ = INTEGRATED;
+  coef_      = coef;
+  surfCoef_  = coef;
+}
+
+template<class FE> ResultFunctorVWPnew<FE>::~ResultFunctorVWPnew() {
+
+}
+
+template<class FE>
+void ResultFunctorVWPnew<FE>::EvalResult(shared_ptr<BaseResult> res ) {
+  Result<Double>& actSol = static_cast< Result<Double>& >(*res);
+  Vector<Double>& vec = actSol.GetVector();
+  Vector<Double> force;
+  EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
+
+  vec.Resize( nameIt.GetSize() * dim_ );
+  vec.Init();
+
+  // Loop over names (= regions / surface regions / named elements)
+  for (nameIt.Begin(); !nameIt.IsEnd(); nameIt++)  {
+    surfCoef_->GetTotalForce(nameIt.GetName(), force);
+    for (UInt dof = 0; dof < dim_; ++dof) {
+      vec[nameIt.GetPos()*dim_+dof] = force[dof];
+    }
+  }
+}
+
 template class ResultFunctorVWP<Complex>;
 template class ResultFunctorVWP<Double>;
+
+template class ResultFunctorVWPnew<FeH1>;
+template class ResultFunctorVWPnew<FeHCurl>;
 } // end of namespace

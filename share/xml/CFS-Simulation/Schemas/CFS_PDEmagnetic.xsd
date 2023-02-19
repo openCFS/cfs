@@ -396,6 +396,7 @@
       <xsd:enumeration value="magForceMaxwellDensity"/>
       <xsd:enumeration value="magNormalForceMaxwellDensity"/>
       <xsd:enumeration value="magTangentialForceMaxwellDensity"/>
+      <xsd:enumeration value="magForceVWPDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   
