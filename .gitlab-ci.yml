@@ -17,6 +17,8 @@ variables:
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON"
+  # default unstable tests (moved from .stable_tests to here in order to specify compiler specific tests that should be excluded)
+  UNSTABLE_TESTS_DEFAULT: "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|CFSdat_cell2Node_3D_Ensight|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential|ParallelPlateCapacitor_doubleL|Abc2d|Abc2dcsvt" # we do not need the testsuite for building
 
 # stages in the pipeline run in succession
 stages:
@@ -819,7 +821,7 @@ linux:gcc10:ninja:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|CFSdat_cell2Node_3D_Ensight|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential|ParallelPlateCapacitor_doubleL|Abc2d|Abc2dcsvt" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "${UNSTABLE_TESTS}" --track $CDASH_TRACK # exclude the install step and the failing tests
 
 # test everything (but python, which is tested seperately)
 .test_all_multicore: &test_all_multicore
@@ -841,6 +843,7 @@ stable:gcc5:linux:
   stage: test
   variables:
     BUILD_NAME: GCC5 / stable
+    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   retry: 1
   <<: *test_stable
   needs:
@@ -852,6 +855,7 @@ testsuite:gcc5:linux:
   stage: test
   variables:
     BUILD_NAME: GCC5 / all_multicore
+    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
@@ -864,6 +868,7 @@ stable:gcc7min:linux:
   stage: test
   variables:
     BUILD_NAME: GCC7 minimal / stable
+    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   retry: 1
   <<: *test_stable
   needs:
@@ -890,6 +895,7 @@ stable:gcc7max:linux:
     - when: on_success
   variables:
     BUILD_NAME: GCC7 maximal / stable
+    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   <<: *test_stable
   needs:
     - linux:gcc7max
@@ -937,6 +943,8 @@ stable:gcc10:linux:
   stage: test
   variables:
     BUILD_NAME: GCC10 / stable
+    # some tests sporadically fail which might be a GCC10 bug, since it only happens here. Therefore, we overwrite this variable to exclude additional tests specifically failing in the GCC10 build
+    UNSTABLE_TESTS: "${UNSTABLE_TESTS_DEFAULT}|PlaneWave2DPostProc|MaxwellSlipBC2D" # we do not need the testsuite for building
   retry: 1
   <<: *test_stable
   needs:
