@@ -1,4 +1,4 @@
-Driver   ([back to main page](/source/CFS_Library_Documentation.md))
+Driver   ([back to main page](/source/README.md))
 ===
 
 In CFS++ we differ between the different analysis types, which are implemented as *drivers*:

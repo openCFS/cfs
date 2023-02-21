@@ -3,7 +3,7 @@ doxygen {#doxygen_README}
 
 Usage Tipps
 ----------------
-* read the [doxygen manual](https://www.stack.nl/~dimitri/doxygen/manual/)
+* read the [doxygen manual](https://doxygen.nl/manual)
 * look at the examples given in [main.md](@ref mainpage)
 
 
@@ -30,7 +30,7 @@ For production use on our webserver we use a local copy.
 
 ### Doxygen Output
 Doxygen output is controlled by the config file `doxy-config.in`.
-For all config options see the [documentation](https://www.stack.nl/~dimitri/doxygen/manual/).
+For all config options see the [documentation](https://doxygen.nl/manual/).
 
 The output can be influenced by a `DoxygenLayout.xml` file.
 The default is created by `doxygen -l`.
@@ -46,7 +46,7 @@ The class page has the following elements:
 ### Styling of Specific Doxygen Elements
 
 #### Navbar and Menu
-One can add custom items via doxygen's configurable [layout](https://www.stack.nl/~dimitri/doxygen/manual/customize.html#layout).
+One can add custom items via doxygen's configurable [layout](https://doxygen.nl/manual/customize.html#layout).
 This allows to add specific menur items.
 
 The [bootstrap navbar](http://getbootstrap.com/docs/3.3/components/#navbar) is then defined in `header.html.in`.

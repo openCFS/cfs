@@ -102,6 +102,10 @@ markdown-link-check:
   script:
     - markdown-link-check README.md
     - markdown-link-check CONTRIBUTING.md
+    # check all in source, share/doc/developer/build-dependencies and .gitlab
+    - find source -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
+    - find share/doc/developer/build-dependencies -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
+    - find .gitlab -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
   allow_failure: true
   cache: {} # disable
 

@@ -1,4 +1,4 @@
-PDE    ([back to main page](/source/CFS_Library_Documentation.md))
+PDE    ([back to main page](/source/README.md))
 ===
 
 The PDE class is responsible to connect numerics with physics. Please not that for each PDE we generate an own class being derived from **SinglePDE** and it is stored in an own .hh and .cc file. Thereby, we have the following hierarchy:
@@ -31,4 +31,4 @@ Each PDE class contains at least the following methods
 
 >
 
-Example link to [AcousticPDE-doxygen](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
+Example link to [AcousticPDE-doxygen](https://opencfs.gitlab.io/cfs/doxygen/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)

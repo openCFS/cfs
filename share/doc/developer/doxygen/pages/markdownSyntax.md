@@ -4,14 +4,14 @@ Markdown Syntax {#randomentryintoc}
 
 Quickstart
 ----------------
-Like in LaTeX, paragraphs are staretd by inserting a blank line.
-To increase the readability in ASCII, put each sentance on a seperate line.
+Like in LaTeX, paragraphs are started by inserting a blank line.
+To increase the readability in ASCII, put each sentence on a separate line.
 This also allows for better change tracking.
 Code can be marked by a single quotation mark for `inline code`.
-One can also create code blocks by starting the lines in a prargraph by an indentation of a least four spaces 
+One can also create code blocks by starting the lines in a paragraph by an indentation of a least four spaces 
 
     code block
-    with multiple, ununumbered lines
+    with multiple, unnumbered lines
     use the correct tick. i.e. ` to mark code
 
 Or one can use triple quotation marks
@@ -22,7 +22,7 @@ with numbered lines
 
 ### Headings
 
-You can structure your texts by using heasings of differnet levels.
+You can structure your texts by using headings of different levels.
 ```
 # H1
 ## H2
@@ -30,7 +30,7 @@ You can structure your texts by using heasings of differnet levels.
 #### H4
 ```
 
-For the first tow levels you may also use:
+For the first two levels you may also use:
 ```
 Top level heading H1
 ====================
@@ -40,7 +40,7 @@ Subheading H2
 
 ### Lists and Enumerations
 
-To define lists simply start a line with any *list caracter*
+To define lists simply start a line with any *list character*
 * a star
 + a plus
 - a minus
@@ -55,18 +55,17 @@ To start an enumeration
 The last important points are links.
 There are two types of links: *inline* and *reference*.
 Both are created by text in square brackets, i.e. `[link]`.
-An inline link is directly followed by the url, i.e. `[link](https://cfs.mdmt.tuwien.ac.at)`.
+An inline link is directly followed by the url, i.e. `[link](https://opencfs.org)`.
 For reference links like [cfs] or [cfs-doc] the url can be given later in the document, like so
 ```
-[cfs]: https://cfs.mdmt.tuwien.ac.at
+[cfs]: https://opencfs.org
 ```
 Links within the documentation [md](@ref Markdown_Syntax)
 [md](@ref CoefFunctionExpression)
-[md](/Markdown_Syntax/)
 
 
-[cfs]: https://cfs.mdmt.tuwien.ac.at
-[cfs-doc]: https://cfs-doc.mdmt.tuwien.ac.at 
+[cfs]: https://opencfs.org
+[cfs-doc]: https://opencfs.gitlab.io/userdocu
 
 
 Links within the documentation [md](@ref Markdown_Syntax)

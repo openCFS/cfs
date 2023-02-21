@@ -1,14 +1,10 @@
-Eigensolver
+FEAST Eigensolver
 =================
 
 [MKL](https://software.intel.com/en-us/mkl-developer-reference-c-extended-eigensolver-naming-conventions)
 implements [FEAST](http://www.feast-solver.org/).
 
-Implementation from fwein into `Fabian_Wein_TopOpt_0415`, added in r14332, removed in r14409
-
-(before remove)[https://cfs.mdmt.tuwien.ac.at/trac/browser/CFS%2B%2B/branches/Fabian_Wein_TopOpt_0415?rev=14395]
-
-there is a method to estimate the search-interval for feast:
+there is a method to estimate the search interval for feast:
 https://arxiv.org/abs/1308.4275
 
 [brief-feastdescription](https://software.intel.com/en-us/mkl-developer-reference-c-the-feast-algorithm)
@@ -22,11 +18,11 @@ EigenFrequencyDriver does the reading in of parameters
 ToDo
 ==================
 
-Implement differnt matrix types
+Implement different matrix types
 -------------------------------
 
-* just use the differnt versions of the FEAST function
-* distingish between complex and real valued
+* just use the different versions of the FEAST function
+* distinguish between complex and real-valued
 
 Input Structure for the EigenFrequencyDriver
 --------------------------------------------
@@ -47,6 +43,6 @@ Make FEAST work with num-freq
 -----------------------------
 One needs to [estimate the search interval](https://arxiv.org/abs/1308.4275).
 
-Use the community based FEAST
+Use the community-based FEAST
 -----------------------------
 * it offers routines for non symmetric/hermitian problems.

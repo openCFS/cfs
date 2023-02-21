@@ -1,5 +1,5 @@
-Tour through CFS++  ([back to main page](/source/CFS_Library_Documentation.md))
-===
+Tour through CFS++
+==================
 
 We perform a simple static mechanical computation and explain, which objects are created at which instant of time during the computation! For this purpose, we model a plate in 3D with one computational domain named *compDomain* and a surface *surfLoad*, where we apply a pressure load. The plate is fully supported by fixing all degrees of freedom at the boundary to zero.
 

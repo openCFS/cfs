@@ -67,4 +67,5 @@ Resources
 * [related projects](https://gitlab.com/openCFS)
 * [developer wiki](https://gitlab.com/openCFS/cfs/-/wikis/home)
 * [issue tracker](https://gitlab.com/openCFS/cfs/-/issues)
+* [Doxygen](https://opencfs.gitlab.io/cfs/doxygen/) documentation
 * [Developer documentation](share/doc/developer/README.md) in the source tree

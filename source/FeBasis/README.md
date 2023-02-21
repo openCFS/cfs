@@ -1,4 +1,4 @@
-Finite Element Space and FE  ([back to main page](/source/CFS_Library_Documentation.md))
+Finite Element Space and FE  ([back to main page](/source/README.md))
 ===
 
 Capabilities of FESpace
@@ -23,7 +23,7 @@ Relation to geometric element
 
 >
 
-[See doygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1FeSpace.html);
+[See doygen documentation](https://opencfs.gitlab.io/cfs/doxygen/classCoupledField_1_1FeSpace.html);
 
 FeFunction 
 ----------
@@ -38,4 +38,4 @@ This class represents a physical quantity used in the PDE
 ![](/share/doc/developer/pages/pics/FeFunctionExample1.png)
 
 
-[See doygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1FeFunction.html);
+[See doygen documentation](https://opencfs.gitlab.io/cfs/doxygen/classCoupledField_1_1FeFunction.html);

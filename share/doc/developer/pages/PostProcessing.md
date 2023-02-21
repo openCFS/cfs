@@ -1,4 +1,4 @@
-Define a postprocessing result  ([back to main page](/source/CFS_Library_Documentation.md))
+Define a postprocessing result  ([back to main page](/source/README.md))
 ===
 
 This section shows which steps are necessary to define a postprocessing result. The steps are illustrated by an example called "Maxwell Force Density". The easiest way is:

@@ -1,4 +1,4 @@
-CoefFunction  ([back to main page](/source/CFS_Library_Documentation.md))
+CoefFunction  ([back to main page](/source/README.md))
 ===
 
 The CoefFunction concept is based on the idea, that it represents given data
@@ -13,4 +13,4 @@ The CoefFunction concept is based on the idea, that it represents given data
 
 >
 
-Link to [CoefFunction-doxygen](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1CoefFunction.html); for the methods see [CoefFunction-Source](/source/Domain/CoefFunction/CoefFunction.hh)
+Link to [CoefFunction-doxygen](https://opencfs.gitlab.io/cfs/doxygen/classCoupledField_1_1CoefFunction.html); for the methods see [CoefFunction-Source](/source/Domain/CoefFunction/CoefFunction.hh)
