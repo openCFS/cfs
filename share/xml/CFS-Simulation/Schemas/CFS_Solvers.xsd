@@ -1673,6 +1673,162 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    EXTERNAL EIGENVALUE SOLVER                 == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  <xsd:element name="external" type="DT_EigenSolverExternal" substitutionGroup="EigenSolverBasic"/>
+  
+  <xsd:complexType name="DT_EigenSolverExternal">
+    <xsd:complexContent>
+      <xsd:extension base="DT_EigenSolverBasic">
+        <xsd:sequence>
+          <xsd:element name= "logging" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+            <xsd:annotation>
+              <xsd:documentation>
+                Specifies if output of external Eigensolver is shown in terminal. Default is false.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name= "cmd" type="xsd:string" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Contains the command to call the external program, e.g. python or matlab.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="deleteFiles" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="yes">
+            <xsd:annotation>
+              <xsd:documentation>
+                Specifies if the input (system matrices of the EVP) and output files 
+                (eigenvalues and eigenvectors) of the external eigensolver are deleted.
+                Default is true.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="arguments" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Additional arguments for the external eigensolver.
+                The order of appearance of the arguments in the terminal command 
+                will be the same as the one given by the user in the xml file.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice minOccurs="1" maxOccurs="unbounded">
+                <xsd:element name="min" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      If given, the value for the lower bound of the computation interval is passed as an argument in this position.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="max" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      If given, the value for the upper bound of the computation interval is passed as an argument in this position.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="shiftPoint" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      If given, the value of the shift point is passed as an argument in this position. 
+                      The output format for complex numbers can also be specified, 
+                      using strings with placeholders as used in the printf() function in C++.
+                      Default is Python complex number format with 6 digits after the decimal point.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:attribute name="formatString" type="xsd:string" use="optional"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="number" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      If given, the number of eigenvalues to compute is passed as argument in this position.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="tolerance" type="xsd:float" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Specifies the desired tolerance for the solution of the EVP. Default is machine precision.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="arg" type="xsd:string" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Add additional string type arguments to the eigensolver, e.g. -s. 
+                      There is no limit to the use of this element.  
+                    </xsd:documentation>
+                  </xsd:annotation> 
+                </xsd:element> 
+                <xsd:element name="AFileName" type = "xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Name for the matrix A of the standard EVP A@x=w*x or 
+                      the generalized EVP A@x=w*B@x. 
+                      Default: 'JOB_AMatrix', e.g. resulting in 
+                      output file 'myjob_AMatrix.mtx' for job 'myjob'.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="BFileName" type = "xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Name for the matrix B of the generalized EVP A@x=w*B@x. 
+                      Default: 'JOB_BMatrix', e.g. resulting in 
+                      output file 'myjob_BMatrix.mtx' for job 'myjob'.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="EigenValuesFileName" type = "xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Name for the Matrix Market style formated result file of the eigenvalues.
+                      Default: 'JOB_EigenValues', e.g. resulting in 
+                      output file 'myjob_EigenValues.mtx' for job 'myjob'.
+                      The extension '.mtx' is appended to the given string when reading in the file!
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="EigenVectorsFileName" type = "xsd:string" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Name for the Matrix Market style formated result file of the eigenvectors.
+                      Default: 'JOB_EigenVectors', e.g. resulting in 
+                      output file 'myjob_EigenVectors.mtx' for job 'myjob'.
+                      The extension '.mtx' is appended to the given string when reading in the file!
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>  
+            <!-- Make sure filenames are unique -->
+            <xsd:unique name="unique-AFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:AFileName"/>
+            </xsd:unique>
+            <xsd:unique name="unique-BFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:BFileName"/>
+            </xsd:unique>
+            <xsd:unique name="unique-EigenValuesFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:EigenValuesFileName"/>
+            </xsd:unique>
+            <xsd:unique name="unique-EigenVectorsFileName-element">
+              <xsd:selector xpath="."/>
+              <xsd:field xpath="cfs:EigenVectorsFileName"/>
+            </xsd:unique>
+          </xsd:element>
+        </xsd:sequence>         
+      </xsd:extension>       
+    </xsd:complexContent>
+  </xsd:complexType>
   
   
   

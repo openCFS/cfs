@@ -404,7 +404,7 @@ namespace CoupledField {
 
 
 
-      if (maxVal_>0 || solverType==BaseEigenSolver::PALM || solverType==BaseEigenSolver::QUADRATIC) { // use only for feast and PALM -> TODO: remove this if
+      if (maxVal_>0 || solverType==BaseEigenSolver::PALM || solverType==BaseEigenSolver::QUADRATIC || solverType==BaseEigenSolver::EXTERNAL) { // use only for feast and PALM -> TODO: remove this if
       // here we should - do the necessary computation depending on the problem type
       StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
       BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
@@ -456,10 +456,17 @@ namespace CoupledField {
 
       }
       bool complexEV = eigenSolver->HasComplexEigenvalues();
-      if (minVal_!=0 || maxVal_!=0) { // we have an interval
+      if ((minVal_!=0 || maxVal_!=0) || solverType==BaseEigenSolver::EXTERNAL) { // we have an interval
         if (complexEV || ((solverType==BaseEigenSolver::FEAST)&&(isQuadratic_))) {
           Vector<Complex> evals,errs;
-          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          if (numFreq_ > 0 || freqShift_ != 0) // case for the external eigensolver
+          {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,numFreq_, 2*M_PI*freqShift_);
+          }
+          else
+          {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          }
           eigsRe_.Resize(evals.GetSize());
           eigsIm_.Resize(evals.GetSize());
           for (int i=0;i<(int)evals.GetSize();i++) {
@@ -476,7 +483,14 @@ namespace CoupledField {
         }
         else {
           Vector<Double> evals,errs;
-          sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          if (numFreq_ > 0 || freqShift_ != 0) // case for the external eigensolver
+          {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,numFreq_, 2*M_PI*freqShift_);
+          }
+          else
+          {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+          }
           eigsRe_.Resize(evals.GetSize());
           eigsRe_ = evals;
           eigsIm_.Resize(evals.GetSize(),0.0);

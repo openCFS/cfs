@@ -4,6 +4,7 @@ SET(SOLVER_SRCS
     generateEigensolver.cc    
     generatesolver.cc
     QuadraticEigenSolver.cc
+    ExternalEigenSolver.cc
     )
 
 SET(SOLVER_SRCS

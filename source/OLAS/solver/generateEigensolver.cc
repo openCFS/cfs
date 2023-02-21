@@ -31,7 +31,7 @@
   #include "PALMSolver.hh"
 #endif
 
-
+#include "ExternalEigenSolver.hh"
 #include "QuadraticEigenSolver.hh"
 
 
@@ -137,12 +137,12 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
         break;
 
     case BaseEigenSolver::QUADRATIC:
-      #if defined(USE_ARPACK) || defined(USE_FEAST) || defined(USE_PHIST_EV)
-        retSolver = new QuadraticEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo,eSolverList);
-      #else
-        EXCEPTION( "compiled without Quadratic Eigenvalue solver: enable an eigenvalue solver like ARPACK, FEAST or PHIST_EV" );
-      #endif
-        break;
+      retSolver = new QuadraticEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo,eSolverList);
+      break;
+
+    case BaseEigenSolver::EXTERNAL:
+      retSolver = new ExternalEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
+      break;
 
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
