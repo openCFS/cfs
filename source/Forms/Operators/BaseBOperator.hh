@@ -69,7 +69,15 @@ public:
     bMat.SetPart(Global::REAL, realMat, true);
   }
 
-  //! Apply the operator matrix on a vector
+
+  //! Apply the operator matrix on a vector.
+  //! The vector consists of the weights for the operator matrix
+  //! and is stacked for non-scalar values
+  //! For example: using identityOperator at numFcns = 4 and N_DOF = 3:
+  //! [x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4]^T
+  //! \param retVec (out) vector containing the operation result at the local point mapped
+  //! \param lp (in) the local point mapped
+  //! \param solVec (in) the stacked input vector
   virtual void ApplyOp(Vector<Double>& retVec,
                        const LocPointMapped& lp,
                        BaseFE* ptFe,
@@ -80,7 +88,7 @@ public:
     retVec = bOp * solVec;
 
   }
-  
+
   virtual void ApplyOp(Vector<Complex>& retVec,
                        const LocPointMapped& lp,
                        BaseFE* ptFe,
