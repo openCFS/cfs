@@ -20,6 +20,9 @@
 
 #include "CoefFunction.hh"
 #include "Domain/Mesh/Grid.hh"
+#include "Forms/Operators/IdentityOperator.hh"
+#include "FeBasis/H1/H1Elems.hh"
+//#include "FeBasis/FeSpace.hh"
 
 namespace CoupledField{
 
@@ -256,15 +259,46 @@ public:
       return out;
   };
 
+  //! Return complex-valued tensor at integration point.
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunctionPMLBase::GetTensor() not overwritten by child class.");
+  }; 
+
+  //! Return a real-valued tensor at integration point.
+  virtual void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunctionPMLBase::GetTensor() not overwritten by child class.");
+  };
+
+  //! Return complex-valued vector at integration point.
+  virtual void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm )  {
+    EXCEPTION("CoefFunctionPMLBase::GetVector() not overwritten by child class.");
+  };
+
+  //! Return real-valued vector at integration point.
+  virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm )  {
+    EXCEPTION("CoefFunctionPMLBase::GetVector() not overwritten by child class.");
+  };
+
+  //! Return complex-valued scalar at integration point.
+  virtual void GetScalar(Complex& val, const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunctionPMLBase::GetScalar() not overwritten by child class.");
+  };
+
+  //! Return real-valued scalar at integration point. This is not implemented as the 
+  //! Jakobi determinant will always be complex-valued here
+  virtual void GetScalar(Double& val, const LocPointMapped& lpm )  {
+    EXCEPTION("CoefFunctionPMLBase::GetScalar() not overwritten by child class.");
+  };
+
   //! disable manually adding an entity list, as the entity list is set in the constructor
   void AddEntityList(shared_ptr<EntityList>){
     EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
-  }
+  };
 
   //! return if this instance is called as complex
   bool IsComplex(){
     return std::is_same<T,Complex>::value;
-  }
+  };
 
   //! check for current angular frequency
   void UpdateOmega();
@@ -321,19 +355,19 @@ public:
 
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Complex>& tensor,
-                 const LocPointMapped& lpm ); 
+                 const LocPointMapped& lpm ) override; 
 
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Double>& tensor,
-                 const LocPointMapped& lpm );
+                 const LocPointMapped& lpm ) override;
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Complex>& vec,
-                 const LocPointMapped& lpm );
+                 const LocPointMapped& lpm ) override;
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec,
-                 const LocPointMapped& lpm );
+                 const LocPointMapped& lpm ) override;
 
   //! Return real-valued scalar at integration point
   // this is little bit of a hack,
@@ -341,11 +375,11 @@ public:
   // derivatives, we pass this function as a scalar function to the bilinearform
   // an transform the jacobian with it....
   virtual void GetScalar(Double& val,
-                const LocPointMapped& lpm );
+                const LocPointMapped& lpm ) override;
 
   //! Return cpmplex-valued scalar at integration point
   virtual void GetScalar(Complex& val,
-                const LocPointMapped& lpm );
+                const LocPointMapped& lpm ) override;
 
   //! \copydoc CoefFunction::GetVecSize
   UInt GetVecSize() const {
@@ -436,20 +470,47 @@ class CoefFunctionCurvilinearPML : public CoefFunctionPMLBase<T> {
 public:
   // constructor
   CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                         StdVector<RegionIdType> pdeDomains);
+                         StdVector<RegionIdType> pdeDomains, bool isTensor);
   // destructor
   virtual ~CoefFunctionCurvilinearPML();
 
-  // Triggers the computation of the tensor's determinant and
-  // assigns it to the passed CoefFct 
-  // .......... currently, this function simply sets a scalar-valued coefFctPML 
-  PtrCoefFct GetScalarCoeffFct();
+  //! Return complex-valued tensor at integration point. The Tensor will be used in 
+  //! TensorScaledGradientOperator() to compute the scaled derivative (for AcousticPDE).
+  //! \param tensor (out) the tensor holding the complex-valued inverse Jakobi matrix of
+  //!                     the curvilinear coordinate stretch
+  //! \param lpm (in) the local point for which the tensor is returned
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) override; 
 
-  // Triggers the computation of the tensor itself and
-  // assigns it to the passed CoefFct 
-  // .......... currently, this function simply sets a vector-valued coefFctPML 
-  PtrCoefFct GetTensorCoeffFct();
+  //! Return a real-valued tensor at integration point. This is not implemented as the 
+  //! coordinate stretching operation is generally complex-valued.
+  virtual void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm ) override {
+    EXCEPTION("CoefFunctionCurvilinearPML::GetTensor() is only implemented for Complex values.");
+  }
 
+  //! Return complex-valued vector at integration point. This is not implemented for the
+  //! curvilinear PML as the stretching tensor is potentially non-diagonal
+  virtual void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm ) override {
+    EXCEPTION("CoefFunctionCurvilinearPML::GetVector() is not implemented. Use GetTensor() instead.");
+  };
+
+  //! Return real-valued vector at integration point. This is not implemented for the
+  //! curvilinear PML as the stretching tensor is potentially non-diagonal
+  virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) override {
+    EXCEPTION("CoefFunctionCurvilinearPML::GetVector() is not implemented. Use GetTensor() instead.");
+  };
+
+  //! Return complex-valued scalar at integration point. The scalar will be used as a
+  //! scaling coefficient for the integrators.
+  //! \param val (out) the scalar holding the complex-valued Jakobi determinant of the 
+  //!                  curvilinear coordinate stretch
+  //! \param lpm (in) the local point for which the scalar is returned
+  virtual void GetScalar(Complex& val, const LocPointMapped& lpm ) override;
+
+  //! Return real-valued scalar at integration point. This is not implemented as the 
+  //! Jakobi determinant will always be complex-valued here
+  virtual void GetScalar(Double& val, const LocPointMapped& lpm ) override {
+    EXCEPTION("CoefFunctionCurvilinearPML::GetScalar() is only implemented for Complex values.");
+  };
 
   //! computes and returns the inverse Jakobi matrix of the curvilinear coordinate stretch operation on a given node
   void GetTensorOnNode(Matrix<Complex>& tensor, const UInt& nodeId);
@@ -472,12 +533,23 @@ private:
   void CheckForInvalidParams(PtrParamNode pmlDef);
 
   //! compute distances of every node in the layer to its closest point on the PML interface.
-  //! also, sets the layerThickness_
-  void ComputeNodeThicknessMap();
+  //! Stores the values in thicknessOnNodes_. Also, sets the layerThickness_;
+  void GetThicknessOnNodes();
+
+  //! compute the factorized tensors (Jakobi matrices) and scalars (determinants) of the curvilinear coordinate 
+  //! transformation and complex stretching. Assigns tensors and scalars to tensorsOnNodes_ and scalarsOnNodes_
+  void ComputeTensorsAndScalarsOnNodes();
 
   //! returns the position of a given nodeId in the NodeGeometry struct (which is supposed to 
   //! equal its index in the PML region)
-  UInt GetIdxByNodeId(const UInt& nodeId);
+  UInt GetIdxByNodeId(const UInt& nodeId) const;
+
+  //!
+  void GetParamsAtLocalPoint(const LocPointMapped& lpm);
+
+  //! Create identity operators for mapping the nodal values (e.g. geometry data) to local points.
+  //! Defines one operator for vectors: vectorMappingOperator_; and one for scalars: scalarMappingOperator_;
+  void CreateMappingOperators();
 
   //! pointer to the current grid class, needed for automatic layer generation and
   //! to determine the geometry
@@ -495,10 +567,39 @@ private:
 
   //! vector containing the relative distance of every node to its closest 
   //! point on the PML interface
-  StdVector<Double> nodeThicknessMap_;
+  StdVector<Double> thicknessOnNodes_;
 
-  //! total thickness of the PML layer
-  Double layerThickness_;
+  //! member to hold the computed Jakobi matrices on every node within the layer
+  StdVector<Matrix<Complex>> tensorsOnNodes_;
+
+  //! member to hold the computed Jakobi determinants on every node within the layer
+  StdVector<Complex> scalarsOnNodes_;
+
+  //! BOperator to map solutions to arbitrary points. Right now, hardcoded identity operator,
+  //! defined vor interpolating Double-valued vectors and scalars
+  shared_ptr<BaseBOperator > vectorMappingOperator_;
+  shared_ptr<BaseBOperator > scalarMappingOperator_;
+
+  //! Layer generation parameters
+  Double numLayers_;      //number of generated surface regions within the layer
+  Double elemHeight_;     //height of a generated element
+  Double numSurfNodes_;   //number of nodes on every surface
+  Double layerThickness_; //total thickness of the PML layer
+  
+
+
+
+  //! variables to store quantities on lpm
+  Vector<Double> n_;    //normal vector
+  Vector<Double> tmin_; //min principal vector
+  Vector<Double> tmax_; //max principal vector
+  Double kmin_;         //min principal curvature
+  Double kmax_;         //max principal curvature
+  Double dist_;         //distance to interface
+  Double sos_;          //speed of sound
+  Double dampFunc_;     //damping function
+  Double intDampFunc_;  //integral over damping function
+  
 
 };
 }
