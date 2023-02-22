@@ -76,6 +76,18 @@ namespace CoupledField{
       return;
     }
 
+    //! compute the identity operation matrix. 
+    //! The matrix is blockwise diagonal and has the form:
+    //! (example for N_DOF = 1 and numFcns = 4):
+    //! [s1 s2 s3 s4]
+    //!
+    //! (example for N_DOF = 3 and numFncs = 4):
+    //! / s1  0  0 s2  0  0 s3  0  0 s4  0  0 \ 
+    //! |  0 s1  0  0 s2  0  0 s4  0  0 s4  0 |
+    //! \  0  0 s1  0  0 s2  0  0 s3  0  0 s4 /
+    //! \param bMat (out) the output matrix
+    //! \param lp (in) the local point mapped
+    //! \param ptFe (in) pointer to the Fe function space
     virtual void CalcOpMat(Matrix<Double> & bMat,
                            const LocPointMapped& lp, BaseFE* ptFe );
 
