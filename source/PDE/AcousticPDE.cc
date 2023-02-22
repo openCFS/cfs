@@ -342,8 +342,7 @@ namespace CoupledField{
       // ====================================================================
       // Take account for pml
       // ====================================================================
-      PtrCoefFct coeffPMLScal, coeffPMLVec; 
-      PtrCoefFct coeffPMLTens; // pointer to coeffunction that stores the tensor at integration points
+      PtrCoefFct coeffPMLScal, coeffPMLTens;
       PtrCoefFct coeffPMLStiff;
       PtrCoefFct coeffPMLMass;
 
@@ -372,10 +371,10 @@ namespace CoupledField{
           
           if (pmlFormul == "classic")
           {
-            coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+            coeffPMLTens.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
             coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
             // store pml factor
-            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
                                               CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
 
@@ -385,15 +384,11 @@ namespace CoupledField{
           else if (pmlFormul == "curvilinear")
           {
             // pointer to object that handles the computation of the curvilinear PML damping tensor
-            shared_ptr<CoefFunctionCurvilinearPML<Complex>> coeffCurvilinearPML;
-            coeffCurvilinearPML.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_));
-            //coeffPMLScal = coeffCurvilinearPML->GetScalarCoeffFct();
-            //coeffPMLTens = coeffCurvilinearPML->GetTensorCoeffFct();
-            coeffPMLTens.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
-            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
+            coeffPMLTens.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+            coeffPMLScal.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
             
-            // the Jakobi matrix gets passed to the material coefficients and will later scale the gradient operation
-            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
+            // the Jakobi matrix gets passed to the material coefficients for postprocessing
+            //matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
             // the Jakobi determinant is used as scaling coefficient for the BBIntegrators
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
                                               CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
@@ -432,7 +427,7 @@ namespace CoupledField{
           if(pmlFormul == "classic") {
             stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
                                           coeffPMLStiff, 1.0, updatedGeo_ );
-            stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+            stiffInt->SetBCoefFunctionOpB(coeffPMLTens);
           }
           else if (pmlFormul == "curvilinear") {
             EXCEPTION("Curvilinear PML currently only implemented for 3D problems!");
@@ -455,7 +450,7 @@ namespace CoupledField{
           if(pmlFormul == "classic") {
             stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                          coeffPMLStiff, 1.0, updatedGeo_ );
-            stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+            stiffInt->SetBCoefFunctionOpB(coeffPMLTens);
           }
           else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 3D
@@ -800,11 +795,11 @@ namespace CoupledField{
     }
 
     PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
-    shared_ptr<CoefFunction> coeffPMLVec;
-    coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
+    shared_ptr<CoefFunction> coeffPMLTens;
+    coeffPMLTens.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
 
     // store pml factor
-    matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVec);
+    matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLTens);
 
     shared_ptr<CoefFunctionCompound<Double> > coefA(new CoefFunctionCompound<Double>(mp_));
     shared_ptr<CoefFunctionCompound<Double> > coefB(new CoefFunctionCompound<Double>(mp_));
@@ -824,9 +819,9 @@ namespace CoupledField{
     // ===> DEFINE PML DAMPINGFUNCTIONS
     std::map<std::string, PtrCoefFct> vars;
     std::map<std::string, PtrCoefFct> var;
-    vars["a"] = coeffPMLVec;
+    vars["a"] = coeffPMLTens;
     vars["b"] = coeffc;
-    var["a"]  = coeffPMLVec;
+    var["a"]  = coeffPMLTens;
 
     StdVector<std::string> matAReal;
     StdVector<std::string> matBReal;
