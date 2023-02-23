@@ -512,12 +512,6 @@ public:
     EXCEPTION("CoefFunctionCurvilinearPML::GetScalar() is only implemented for Complex values.");
   };
 
-  //! computes and returns the inverse Jakobi matrix of the curvilinear coordinate stretch operation on a given node
-  void GetTensorOnNode(Matrix<Complex>& tensor, const UInt& nodeId);
-
-  //! computes and returns the Jakobi determinant of the curvilinear coordinate stretch operation on a given node
-  void GetScalarOnNode(Complex& scalar, const UInt& nodeId);
-
   //! use the base functions
   using CoefFunctionPMLBase<T>::UpdateOmega;
   using CoefFunctionPMLBase<T>::CreateDampFunction;
@@ -526,37 +520,37 @@ private:
   //! read data from the paramNode and store
   void ReadDataPML(PtrParamNode pmlDef);
 
-  //! check if autoLayerGeneration is specified and if it fits to the current PML region
+  //! check if autoLayerGeneration is specified and if it fits to the current PML region.
+  //! If true, sets the layerGenNode_, numLayers_, elemHeight_, numSurfNodes_, and layerThickness_.
   void CheckForLayerGenerationNode(PtrParamNode pmlDef);
 
   //! check if invalid parameters are set and warn the user
   void CheckForInvalidParams(PtrParamNode pmlDef);
 
   //! compute distances of every node in the layer to its closest point on the PML interface.
-  //! Stores the values in thicknessOnNodes_. Also, sets the layerThickness_;
+  //! Stores the values in thicknessOnNodes_.
   void GetThicknessOnNodes();
 
-  //! compute the factorized tensors (Jakobi matrices) and scalars (determinants) of the curvilinear coordinate 
-  //! transformation and complex stretching. Assigns tensors and scalars to tensorsOnNodes_ and scalarsOnNodes_
-  void ComputeTensorsAndScalarsOnNodes();
-
   //! returns the position of a given nodeId in the NodeGeometry struct (which is supposed to 
-  //! equal its index in the PML region)
+  //! equal its index in the PML region). Exploits the knowledge of the auto layer generation params
+  //! so speed up the search.
   UInt GetIdxByNodeId(const UInt& nodeId) const;
 
-  //!
+  //! Interpolates the nodal quantities to the given local point mapped. 
+  //! sets: n_, tmin_, tmax_, kmin_, kmax_, dist_, sos_, dampFunc_, and intDampFunc_; (for Tensor in 3D)
+  //! If the CoefFunction is used as Scalar, only kmin_, kmax_, sos_, dist_, dampFunc_, and intDampFunc are set.
+  //! In 2D, tmin_ and kmax_ are used for tangential vector and curvature, tmax_ and kmax_ are not set.
   void GetParamsAtLocalPoint(const LocPointMapped& lpm);
 
   //! Create identity operators for mapping the nodal values (e.g. geometry data) to local points.
   //! Defines one operator for vectors: vectorMappingOperator_; and one for scalars: scalarMappingOperator_;
   void CreateMappingOperators();
 
-  //! pointer to the current grid class, needed for automatic layer generation and
-  //! to determine the geometry
+  //! pointer to the current grid
   Grid* grid_;
 
   //! pointer to the layer generation node that keeps auto-mesh-generation parameters 
-  //! (elemHeight and numLayers). Is set in ReadDataPML(). Is empty if not specified.
+  //! (elemHeight and numLayers). Is empty if not specified.
   PtrParamNode layerGenNode_;
 
   //! the volume region to act on
@@ -569,12 +563,6 @@ private:
   //! point on the PML interface
   StdVector<Double> thicknessOnNodes_;
 
-  //! member to hold the computed Jakobi matrices on every node within the layer
-  StdVector<Matrix<Complex>> tensorsOnNodes_;
-
-  //! member to hold the computed Jakobi determinants on every node within the layer
-  StdVector<Complex> scalarsOnNodes_;
-
   //! BOperator to map solutions to arbitrary points. Right now, hardcoded identity operator,
   //! defined vor interpolating Double-valued vectors and scalars
   shared_ptr<BaseBOperator > vectorMappingOperator_;
@@ -585,9 +573,6 @@ private:
   Double elemHeight_;     //height of a generated element
   Double numSurfNodes_;   //number of nodes on every surface
   Double layerThickness_; //total thickness of the PML layer
-  
-
-
 
   //! variables to store quantities on lpm
   Vector<Double> n_;    //normal vector
@@ -599,8 +584,6 @@ private:
   Double sos_;          //speed of sound
   Double dampFunc_;     //damping function
   Double intDampFunc_;  //integral over damping function
-  
-
 };
 }
 #endif /* COEFFUNCTIONPML_HH_ */
