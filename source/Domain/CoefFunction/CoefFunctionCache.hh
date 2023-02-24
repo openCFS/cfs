@@ -39,7 +39,7 @@ public:
 
   void EmptyCache();
 
-  std::string GetName() const { return "CoefFunctionAccumulator"; }
+  std::string GetName() const { return "CoefFunctionCache"; }
 
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec, const LocPointMapped& lpm);
