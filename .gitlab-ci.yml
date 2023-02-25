@@ -859,7 +859,6 @@ testsuite:gcc5:linux:
   stage: test
   variables:
     BUILD_NAME: GCC5 / all_multicore
-    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
@@ -973,6 +972,7 @@ stable:intel:linux:
   stage: test
   variables:
     BUILD_NAME: Intel2021 / stable
+    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   <<: *test_stable
   except:
     variables:
