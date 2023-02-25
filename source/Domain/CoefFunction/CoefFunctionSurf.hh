@@ -273,7 +273,7 @@ private:
 //! This class represents coefficient functions, which are defined just on a
 //! surface and computes the force defined by virtual work principle
 //! It's derived from CoefFunctionSurf
-template<class FE>
+template<class FE, class DATA_TYPE>
 class CoefFunctionSurfVWPnew : public CoefFunctionSurf {
   public:
 
@@ -291,40 +291,40 @@ class CoefFunctionSurfVWPnew : public CoefFunctionSurf {
     virtual ~CoefFunctionSurfVWPnew();
 
     //! \copydoc CoefFunction::GetTensor
-    void GetTensor(Matrix<Double>& coefMat,
+    void GetTensor(Matrix<DATA_TYPE>& coefMat,
                    const LocPointMapped& lpm ) {
-      EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+      EXCEPTION("CoefFunctionSurfVWPnew:GetTensor not implemented");
     }
 
-    //! \copydoc CoefFunction::GetTensor
-    void GetTensor(Matrix<Complex>& coefMat,
-        const LocPointMapped& lpm ) {
-        EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
-    }
+    // //! \copydoc CoefFunction::GetTensor
+    // void GetTensor(Matrix<Complex>& coefMat,
+    //     const LocPointMapped& lpm ) {
+    //     EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+    // }
 
     //! \copydoc CoefFunction::GetVector
-    void GetVector(Vector<Double>& coefVec,
+    void GetVector(Vector<DATA_TYPE>& coefVec,
                    const LocPointMapped& lpm );
 
-    //! \copydoc CoefFunction::GetVector
-    void GetVector(Vector<Complex>& coefVec,
-                   const LocPointMapped& lpm );
+    // //! \copydoc CoefFunction::GetVector
+    // void GetVector(Vector<Complex>& coefVec,
+    //                const LocPointMapped& lpm );
 
     //! \copydoc CoefFunction::GetScalar
-    void GetScalar(Double& coefScalar,
+    void GetScalar(DATA_TYPE& coefScalar,
                    const LocPointMapped& lpm ) {
         EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
     }
 
-    //! \copydoc CoefFunction::GetScalar
-    void GetScalar(Complex& coefScalar,
-        const LocPointMapped& lpm ) {
-        EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
-    };
+    // //! \copydoc CoefFunction::GetScalar
+    // void GetScalar(Complex& coefScalar,
+    //     const LocPointMapped& lpm ) {
+    //     EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+    // };
 
     //! Returns the total force summing up all nodal forces over a group
     void GetTotalForce(const std::string & entityName,
-                       Vector<Double> & totalForce);
+                       Vector<DATA_TYPE> & totalForce);
 
   private:
 
@@ -335,7 +335,7 @@ class CoefFunctionSurfVWPnew : public CoefFunctionSurf {
     //! \param dim            (input)  number of dofs = dim
     //! \param isBoundaryNode (input)  contains 1, if corresponding node is a
     //!                                boundary node, otherwise 0
-    void CalcElemForce(Matrix<Double>& force, const Elem * ptElement,
+    void CalcElemForce(Matrix<DATA_TYPE>& force, const Elem * ptElement,
                        const std::vector<bool> & isBoundaryNode);
 
     //! Update the cache with nodal forces
@@ -359,13 +359,16 @@ class CoefFunctionSurfVWPnew : public CoefFunctionSurf {
     shared_ptr<BaseFeFunction> FeFunction_;
 
     //! Cache for nodal forces (maps node number to force vector)
-    boost::unordered_map< UInt, Vector<Double> > nodalForces_;
+    boost::unordered_map< UInt, Vector<DATA_TYPE> > nodalForces_;
 
     //! Cache for total force per group
-    std::map< std::string, Vector<Double> > totalForces_;
+    std::map< std::string, Vector<DATA_TYPE> > totalForces_;
 
     //! Step number of cached data
     UInt cacheStep_;
+
+    //! if true, data type is complex
+    bool isComplex_;
 };
 
 } // end of namespace

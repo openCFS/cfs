@@ -743,8 +743,8 @@ template<class TYPE> Double ResultFunctorVWP<TYPE>::CalcDetJDr(Matrix<Double> &J
 //   Calculate the result by integration and sums up to total force: VWP
 // --------------------------------------------------------------------------
 
-template<class FE>
-ResultFunctorVWPnew<FE>::ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE> > coef,
+template<class FE, class DATA_TYPE>
+ResultFunctorVWPnew<FE, DATA_TYPE>::ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE, DATA_TYPE> > coef,
                                              shared_ptr<ResultInfo> inf)
 : ResultFunctor(inf)
 {
@@ -753,15 +753,16 @@ ResultFunctorVWPnew<FE>::ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<
   surfCoef_  = coef;
 }
 
-template<class FE> ResultFunctorVWPnew<FE>::~ResultFunctorVWPnew() {
+template<class FE, class DATA_TYPE> 
+ResultFunctorVWPnew<FE, DATA_TYPE>::~ResultFunctorVWPnew() {
 
 }
 
-template<class FE>
-void ResultFunctorVWPnew<FE>::EvalResult(shared_ptr<BaseResult> res ) {
-  Result<Double>& actSol = static_cast< Result<Double>& >(*res);
-  Vector<Double>& vec = actSol.GetVector();
-  Vector<Double> force;
+template<class FE, class DATA_TYPE>
+void ResultFunctorVWPnew<FE,DATA_TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
+  Result<DATA_TYPE>& actSol = static_cast< Result<DATA_TYPE>& >(*res);
+  Vector<DATA_TYPE>& vec = actSol.GetVector();
+  Vector<DATA_TYPE> force;
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
 
   vec.Resize( nameIt.GetSize() * dim_ );
@@ -779,6 +780,8 @@ void ResultFunctorVWPnew<FE>::EvalResult(shared_ptr<BaseResult> res ) {
 template class ResultFunctorVWP<Complex>;
 template class ResultFunctorVWP<Double>;
 
-template class ResultFunctorVWPnew<FeH1>;
-template class ResultFunctorVWPnew<FeHCurl>;
+template class ResultFunctorVWPnew<FeH1,Double>;
+template class ResultFunctorVWPnew<FeHCurl,Double>;
+template class ResultFunctorVWPnew<FeH1,Complex>;
+template class ResultFunctorVWPnew<FeHCurl,Complex>;
 } // end of namespace

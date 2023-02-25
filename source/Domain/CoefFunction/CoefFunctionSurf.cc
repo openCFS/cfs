@@ -5,6 +5,7 @@
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "PDE/SinglePDE.hh"
 #include "Domain/Results/ResultInfo.hh"
+#include <type_traits>
 namespace CoupledField {
 
 
@@ -517,8 +518,8 @@ CoefFunctionSurfVWP::~CoefFunctionSurfVWP() {
 
 
 //===================Virtual Work Principle NEW =================================================
-template<class FE>
-CoefFunctionSurfVWPnew<FE>::CoefFunctionSurfVWPnew(PtrCoefFct matCoef,
+template<class FE, class DATA_TYPE>
+CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CoefFunctionSurfVWPnew(PtrCoefFct matCoef,
                                                    shared_ptr<ResultInfo> surfInfo,
                                                    Grid* ptGrid,
                                                    shared_ptr<BaseFeFunction> feFnc)
@@ -528,16 +529,19 @@ CoefFunctionSurfVWPnew<FE>::CoefFunctionSurfVWPnew(PtrCoefFct matCoef,
   ptGrid_ = ptGrid;
   FeFunction_ = feFnc; 
   cacheStep_ = 0;
+  isComplex_ = false;
+  if (std::is_same<DATA_TYPE, Complex>::value)
+    isComplex_ = true;
 }
 
-template<class FE>
-CoefFunctionSurfVWPnew<FE>::~CoefFunctionSurfVWPnew() {
+template<class FE, class DATA_TYPE>
+CoefFunctionSurfVWPnew<FE,DATA_TYPE>::~CoefFunctionSurfVWPnew() {
 }
 
 // Returns the total force summing up all nodal forces over a group
-template<class FE>
-void CoefFunctionSurfVWPnew<FE>::GetTotalForce(const std::string & entityName,
-                                               Vector<Double> & totalForce)
+template<class FE, class DATA_TYPE>
+void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetTotalForce(const std::string & entityName,
+                                                         Vector<DATA_TYPE> & totalForce)
 {
     UpdateCache();
 
@@ -548,14 +552,20 @@ void CoefFunctionSurfVWPnew<FE>::GetTotalForce(const std::string & entityName,
     totalForce = totalForces_[entityName];
 }
 
-template<>
-void CoefFunctionSurfVWPnew<FeH1>::GetVector(Vector<Double>& coefVec,
-                                             const LocPointMapped& lpm ) {
+template<class FE, class DATA_TYPE>
+void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector(Vector<DATA_TYPE>& coefVec,
+                                                     const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
 
   UpdateCache();
 
-  FeH1 * fe =  static_cast<FeH1*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
+  BaseFE * fe;
+  if (std::is_same<FE, FeH1>::value)
+    fe =  static_cast<FeH1*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
+  else if (std::is_same<FE, FeHCurl>::value)
+    fe =  static_cast<FeHCurl*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
+  else  
+    EXCEPTION("CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector: FE-Type unknown");
 
   Vector<Double> shapeFncs;
   fe->GetShFnc(shapeFncs, lpm.lp, lpm.ptEl);
@@ -575,48 +585,9 @@ void CoefFunctionSurfVWPnew<FeH1>::GetVector(Vector<Double>& coefVec,
   coefVec.ScalarDiv(lpm.shapeMap->CalcVolume(true));
 }
 
-template<>
-void CoefFunctionSurfVWPnew<FeHCurl>::GetVector(Vector<Double>& coefVec,
-                                                const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
-
-  UpdateCache();
-
-  FeHCurl * fe =  static_cast<FeHCurl*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
-
-  Matrix<Double> shapeFncs;
-  fe->GetShFnc(shapeFncs, lpm, lpm.ptEl);
-
-  coefVec.Resize(numDofs_);
-  coefVec.Init();
-
-  const StdVector<UInt> & connect = lpm.ptEl->connect;
-  UInt numElemNodes = connect.size();
-  for (UInt node = 0; node < numElemNodes; ++node) {
-    if (nodalForces_.find(connect[node]) == nodalForces_.end()) {
-      EXCEPTION("Nodal force of node " << connect[node] << " not found in cache.");
-    }
-
-    const Vector<Double> & nodeForce = nodalForces_[connect[node]];
-
-    for (UInt dof = 0; dof < numDofs_; ++dof) {
-      coefVec[dof] += nodeForce[dof] * shapeFncs[dof][node];
-    }
-  }
-
-  coefVec.ScalarDiv(lpm.shapeMap->CalcVolume(true));
-}
-
-template<class FE>
-void CoefFunctionSurfVWPnew<FE>::GetVector(Vector<Complex>& coefVec,
-                                           const LocPointMapped& lpm ) {
-  EXCEPTION("Virtual work principle for harmonic analysis is not implemented");
-
-}
-
-
 // Update the cache with nodal forces 
-template<class FE> void CoefFunctionSurfVWPnew<FE>::UpdateCache() {
+template<class FE, class DATA_TYPE> 
+void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::UpdateCache() {
   if (FeFunction_->GetPDE()->GetSolveStep()->GetActStep() == cacheStep_) {
     return;
   }
@@ -628,7 +599,7 @@ template<class FE> void CoefFunctionSurfVWPnew<FE>::UpdateCache() {
   StdVector<const Elem*> elemList;
   StdVector< StdVector<UInt> > elemNodeToCouplingNode;
   StdVector< std::vector<bool> > isBoundaryNode;
-  Matrix<Double> elemForce;
+  Matrix<DATA_TYPE> elemForce;
   StdVector<RegionIdType> neighborIds(1);
 
   // Loop over groups
@@ -675,7 +646,7 @@ template<class FE> void CoefFunctionSurfVWPnew<FE>::UpdateCache() {
 
       // Add the element force to the according coupling node
       for (UInt iElemNode = 0; iElemNode < numElemNodes; ++iElemNode) {
-        Vector<Double> & nodeForce = nodalForces_[connect[iElemNode]];
+        Vector<DATA_TYPE> & nodeForce = nodalForces_[connect[iElemNode]];
         if (nodeForce.size() == 0) {
           nodeForce.Resize(numDofs_);
           nodeForce.Init();
@@ -693,24 +664,30 @@ template<class FE> void CoefFunctionSurfVWPnew<FE>::UpdateCache() {
   cacheStep_ = FeFunction_->GetPDE()->GetSolveStep()->GetActStep();
 }
 
-template<class FE>
-void CoefFunctionSurfVWPnew<FE>::CalcElemForce(Matrix<Double>& force,
+template<class FE, class DATA_TYPE>
+void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CalcElemForce(Matrix<DATA_TYPE>& force,
                                             const Elem* ptElement,
                                             const std::vector<bool> & isBoundaryNode)
 {
     UInt numNodes = ptElement->connect.GetSize();
 
-    Double permeability, fieldSqr, jDet, DetdJ_dr;
-    Vector<Double> field;
-    Vector<Double> JInvTimesdJdr(numDofs_);
+    Double permeability, jDet, DetdJ_dr;
+    DATA_TYPE fieldSqr;
+    Vector<DATA_TYPE> field, conjField;
+    Vector<DATA_TYPE> JInvTimesdJdr(numDofs_), JInvTimesdJdrConj(numDofs_);
     Matrix<Double> J, JinvT, J_r_Trans;
     Matrix<Double> SpecCornerCoords(numDofs_, numNodes);
+
+    //if complex, we have to multiply by 1/4, since we are interested in the time averaged force!
+    Double preFactor = 1.0;
+    if ( isComplex_ )
+      preFactor = 0.25;
 
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
     order.SetIsoOrder(2);
 
-    shared_ptr<FeSpace> feSpace = FeFunction_->GetFeSpace(); //feFct_.lock()->GetFeSpace();
+    shared_ptr<FeSpace> feSpace = FeFunction_->GetFeSpace(); 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = FeFunction_->GetGrid()->GetElemShapeMap(ptElement, true);
 
@@ -739,7 +716,11 @@ void CoefFunctionSurfVWPnew<FE>::CalcElemForce(Matrix<Double>& force,
 
       // Scale field by square root of material parameter
       field /= std::sqrt(permeability);
-      fieldSqr = field.Inner(field);
+      fieldSqr = field.Inner();
+
+      //in complex case, we also need the conjugate complex
+      if ( isComplex_ ) 
+        conjField = field.Conj();
 
       jDet = lpm.jacDet;
       J = lpm.jac;
@@ -763,9 +744,18 @@ void CoefFunctionSurfVWPnew<FE>::CalcElemForce(Matrix<Double>& force,
           DetdJ_dr = CalcDetJDr(J, lpm.jac, lpm);
           lpm.jac.Transpose(J_r_Trans);
           JInvTimesdJdr = JinvT * J_r_Trans * field;
+          if ( isComplex_ )
+            JInvTimesdJdrConj = JInvTimesdJdr.Conj(); //JinvT * J_r_Trans * conjField;       
 
-          force(nNode,idim) -= (field.Inner(JInvTimesdJdr) * jDet
-                                - 0.5 * fieldSqr * DetdJ_dr) * weights[i];
+          if ( isComplex_ ) {
+            force(nNode,idim) -= preFactor * ( ( conjField.Inner(JInvTimesdJdr)
+                                                 + field.Inner(JInvTimesdJdrConj)) * jDet
+                                  - fieldSqr * DetdJ_dr) * weights[i];
+          }
+          else {
+            force(nNode,idim) -= (field.Inner(JInvTimesdJdr) * jDet
+                                  - 0.5 * fieldSqr * DetdJ_dr) * weights[i];
+          }
 
         } // loop over dimension
       } // loop over boundary nodes
@@ -773,8 +763,8 @@ void CoefFunctionSurfVWPnew<FE>::CalcElemForce(Matrix<Double>& force,
 
 }
 
-template<class FE>
-Double CoefFunctionSurfVWPnew<FE>::CalcDetJDr(const Matrix<Double> &J,
+template<class FE, class DATA_TYPE>
+Double CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CalcDetJDr(const Matrix<Double> &J,
                                               const Matrix<Double> &dJ_dr,
                                               const LocPointMapped &lpm) {
   Double det;
@@ -782,7 +772,7 @@ Double CoefFunctionSurfVWPnew<FE>::CalcDetJDr(const Matrix<Double> &J,
   if (J.GetNumRows() == 2) {
     det = dJ_dr[0][0] * J[1][1] + dJ_dr[1][1] * J[0][0]
           - dJ_dr[0][1] * J[1][0] - dJ_dr[1][0] * J[0][1];
-    // has to be done!!!!!!!!!!!!!
+    // has to be done ????????
     // if (lpm.shapeMap->IsAxi()) {
     //   det *= 2 * M_PI * lpm.globPoint[0];
     // }
@@ -802,5 +792,7 @@ Double CoefFunctionSurfVWPnew<FE>::CalcDetJDr(const Matrix<Double> &J,
 }
 
 // explicit template instantiation
-template class CoefFunctionSurfVWPnew<FeH1>;
-template class CoefFunctionSurfVWPnew<FeHCurl>;
+template class CoefFunctionSurfVWPnew<FeH1, Double>;
+template class CoefFunctionSurfVWPnew<FeHCurl, Double>;
+template class CoefFunctionSurfVWPnew<FeH1, Complex>;
+template class CoefFunctionSurfVWPnew<FeHCurl, Complex>;

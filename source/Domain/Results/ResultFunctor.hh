@@ -213,12 +213,12 @@ private:
 //  Virtual Work Principle
 // --------------------------------------------------------------------------
 
-template<class FE>
+template<class FE, class DATA_TYPE>
 class ResultFunctorVWPnew : public ResultFunctor {
 public:
 
   //! Constructor
-  ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE> > coef, shared_ptr<ResultInfo> inf);
+  ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE, DATA_TYPE> > coef, shared_ptr<ResultInfo> inf);
 
   //! Destructor
   virtual ~ResultFunctorVWPnew();
@@ -234,7 +234,7 @@ public:
 private:
 
   //! Pointer to underlying CoefFunctionSurfVWP
-  shared_ptr< CoefFunctionSurfVWPnew<FE> > surfCoef_;
+  shared_ptr< CoefFunctionSurfVWPnew<FE, DATA_TYPE> > surfCoef_;
 };
 
 // --------------------------------------------------------------------------
