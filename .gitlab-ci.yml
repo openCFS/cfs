@@ -773,7 +773,7 @@ linux:gcc10:ninja:
 
 # test for cmake or install it
 .cmake_test_or_install: &cmake_test_or_install
-  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.15/cmake-3.15.7-Linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.15.7-Linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
+  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
@@ -788,6 +788,14 @@ linux:gcc10:ninja:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # save buidid
     - *save_cdash_buildid
+    # create JUnit output from cdash data
+    - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
+    - cp "${BUILD_ID}.xml" "${CI_JOB_ID}_junit.xml" # save under expected name for artifacts
+  artifacts:
+    # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
+    reports:
+      junit: build/${CI_JOB_ID}_junit.xml
+    when: always
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
@@ -812,7 +820,6 @@ linux:gcc10:ninja:
     key: cmake
     paths:
       - build/cmake
-  artifacts: {}
 
 # this is the config that has to pass (excludes PYTHON since they do not need to be tested for every GCCx)
 .test_stable: &test_stable
@@ -836,7 +843,7 @@ linux:gcc10:ninja:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E Install -R $TYPE. --track $CDASH_TRACK # exclude the install step
+    - ctest -D ExperimentalTest -E Install -R $TYPE. --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml # exclude the install step
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -1030,10 +1037,9 @@ python:linux:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
+    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
-  artifacts: {}
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
