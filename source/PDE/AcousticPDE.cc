@@ -297,7 +297,7 @@ namespace CoupledField{
       // ====================================================================
       // Take account for pml
       // ====================================================================
-      PtrCoefFct coeffPMLScal, coeffPMLTens;
+      PtrCoefFct coeffPMLScal, coeffPMLVec, coeffPMLTens;
       PtrCoefFct coeffPMLStiff;
       PtrCoefFct coeffPMLMass;
 
@@ -326,10 +326,10 @@ namespace CoupledField{
           
           if (pmlFormul == "classic")
           {
-            coeffPMLTens.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+            coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
             coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
             // store pml factor
-            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
                                               CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
 
@@ -339,11 +339,32 @@ namespace CoupledField{
           else if (pmlFormul == "curvilinear")
           {
             // pointer to object that handles the computation of the curvilinear PML damping tensor
-            coeffPMLTens.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
-            coeffPMLScal.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
-            
-            // the Jakobi matrix gets passed to the material coefficients for postprocessing
-            //matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLTens);
+            coeffPMLTens.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::TENSOR));
+            coeffPMLScal.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DETERMINANT));
+            // create some more CoefFunctionCurvilinearPMLs to store info about the PML parameters
+            PtrCoefFct coeffPMLDampFac, coeffPMLNORM_VEC, coeffPMLMinPrincVec, coeffPMLMinPrincCurv, coeffPMLDistance;
+            coeffPMLDampFac.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DAMP_FACTOR));
+            coeffPMLNORM_VEC.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::NORM_VEC));
+            coeffPMLMinPrincVec.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::MIN_PRINC_VEC));
+            coeffPMLMinPrincCurv.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::MIN_PRINC_CURV));
+            coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DISTANCE));
+
+            // assign the coefFunctions to the matCoefs_ to make them available in the DefinePostProcResults()
+            matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTens); // whole PML tensor
+            matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLScal); // determinant of the PML tensor
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLDampFac); // eigenvalues (=diagonal elements of the stretching/damping matrix)
+            matCoefs_[PML_NORM_VEC]->AddRegion(actRegion, coeffPMLNORM_VEC); // normal vectors of the coordinate trans
+            matCoefs_[PML_MIN_PRINC_VEC]->AddRegion(actRegion, coeffPMLMinPrincVec); // min principal vectors of the coordinate trans
+            matCoefs_[PML_MIN_PRINC_CURV]->AddRegion(actRegion, coeffPMLMinPrincCurv); // min principal curvatures of the coordinate trans
+            matCoefs_[PML_DISTANCE]->AddRegion(actRegion, coeffPMLDistance); // distance between points and their closest point on the PML interface
+            // in 2D only the 'min' curvature and vector are set as curvature and tangential vector
+            if (dim_==3) {
+              PtrCoefFct coeffPMLMaxPrincVec, coeffPMLMaxPrincCurv;
+              coeffPMLMaxPrincVec.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::MAX_PRINC_VEC));
+              coeffPMLMaxPrincCurv.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::MAX_PRINC_CURV));
+              matCoefs_[PML_MAX_PRINC_VEC]->AddRegion(actRegion, coeffPMLMaxPrincVec); // max principal vectors of the coordinate trans
+              matCoefs_[PML_MAX_PRINC_CURV]->AddRegion(actRegion, coeffPMLMaxPrincCurv); // max principal curvatures of the coordinate trans
+            }
             // the Jakobi determinant is used as scaling coefficient for the BBIntegrators
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
                                               CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
@@ -382,7 +403,7 @@ namespace CoupledField{
           if(pmlFormul == "classic") {
             stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
                                           coeffPMLStiff, 1.0, updatedGeo_ );
-            stiffInt->SetBCoefFunctionOpB(coeffPMLTens);
+            stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
           }
           else if (pmlFormul == "curvilinear") {
             EXCEPTION("Curvilinear PML currently only implemented for 3D problems!");
@@ -405,7 +426,7 @@ namespace CoupledField{
           if(pmlFormul == "classic") {
             stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                          coeffPMLStiff, 1.0, updatedGeo_ );
-            stiffInt->SetBCoefFunctionOpB(coeffPMLTens);
+            stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
           }
           else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 3D
@@ -2105,49 +2126,6 @@ namespace CoupledField{
     		                             complexFluidFormulation_));
     matCoefs_[ACOU_ELEM_SPEED_OF_SOUND] = sosFct;
     DefineFieldResult(sosFct, sos);
-    
-    // === PML DAMPING FACTORS ===
-    //if( matCoefs_.find(PML_DAMP_FACTOR) != matCoefs_.end() ) {
-    shared_ptr<ResultInfo> pml ( new ResultInfo );
-    pml->resultType = PML_DAMP_FACTOR;
-    pml->dofNames = vecDofNames;
-    //pml->dofNames = "";
-    pml->unit = "";
-    pml->definedOn = ResultInfo::ELEMENT;
-    pml->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 
-                                                               isComplex_));
-    matCoefs_[PML_DAMP_FACTOR] = pmlFct;
-    DefineFieldResult(pmlFct, pml);
-    //}
-
-    // === PML AUX Variables ===
-    if(this->isTimeDomPML_){
-      if(!this->isAPML_ && dim_ == 3){
-        shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
-        pmlScal->resultType = ACOU_PMLAUXSCALAR;
-        pmlScal->dofNames = "";
-        pmlScal->unit = "-";
-        pmlScal->definedOn = ResultInfo::NODE;
-        pmlScal->entryType = ResultInfo::SCALAR;
-        feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
-        results_.Push_back( pmlScal );
-        pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
-        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
-      }
-
-      shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
-      pmlVec->resultType = ACOU_PMLAUXVEC;
-      pmlVec->dofNames = vecDofNames;
-      pmlVec->unit = "-";
-      pmlVec->definedOn = ResultInfo::NODE;
-      pmlVec->entryType = ResultInfo::VECTOR;
-      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
-      results_.Push_back( pmlVec );
-      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
-      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
-    }
-
   }
   
   void AcousticPDE::FinalizePostProcResults(){
@@ -2171,7 +2149,7 @@ namespace CoupledField{
         vecDofNames = "x", "y";
       }
     }
-    
+
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
@@ -2545,7 +2523,149 @@ namespace CoupledField{
 
     acousticSourceDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
     DefineFieldResult( acousticSourceDensityCoef_,loadDensity );
+
+    // === PML Output Parameters ===
+    // Vector holding the eigenvalues of the PML matrix
+    // this are the diagonal elements for CLASSIC formulation, 
+    // or the diagonal elements of the inner (stretching) matrix 
+    // for the CURVILINEAR PML formulation 
+    shared_ptr<ResultInfo> pmlDampFactor ( new ResultInfo );
+    pmlDampFactor->resultType = PML_DAMP_FACTOR;
+    pmlDampFactor->dofNames = vecDofNames;
+    pmlDampFactor->unit = "";
+    pmlDampFactor->definedOn = ResultInfo::ELEMENT;
+    pmlDampFactor->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> pmlDampFactorCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    matCoefs_[PML_DAMP_FACTOR] = pmlDampFactorCoefFct;
+    DefineFieldResult(pmlDampFactorCoefFct, pmlDampFactor);
+
+    // Tensor holding the complete the PML matrix. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlTensor ( new ResultInfo );
+    pmlTensor->resultType = PML_TENSOR;
+    pmlTensor->dofNames = ""; // todo: set correct dofNames for Tensor
+    pmlTensor->unit = "";
+    pmlTensor->definedOn = ResultInfo::ELEMENT;
+    pmlTensor->entryType = ResultInfo::TENSOR;
+    shared_ptr<CoefFunctionMulti> pmlTensorCoefFct(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
+    matCoefs_[PML_TENSOR] = pmlTensorCoefFct;
+    DefineFieldResult(pmlTensorCoefFct, pmlTensor);
+
+    // Scalar holding the determinant of the PML matrix. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlDeterminant ( new ResultInfo );
+    pmlDeterminant->resultType = PML_DETERMINANT;
+    pmlDeterminant->dofNames = "";
+    pmlDeterminant->unit = "";
+    pmlDeterminant->definedOn = ResultInfo::ELEMENT;
+    pmlDeterminant->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> pmlDetCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
+    matCoefs_[PML_DETERMINANT] = pmlDetCoefFct;
+    DefineFieldResult(pmlDetCoefFct, pmlDeterminant);
+
+    // Vector holding normal vectors used in the curvilinear coordinate transformation. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlNORM_VEC ( new ResultInfo );
+    pmlNORM_VEC->resultType = PML_NORM_VEC;
+    pmlNORM_VEC->dofNames = vecDofNames;
+    pmlNORM_VEC->unit = "";
+    pmlNORM_VEC->definedOn = ResultInfo::ELEMENT;
+    pmlNORM_VEC->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> pmlNORM_VECCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    matCoefs_[PML_NORM_VEC] = pmlNORM_VECCoefFct;
+    DefineFieldResult(pmlNORM_VECCoefFct, pmlNORM_VEC);
+
+    // Vector holding minimum principal direction vectors used in the curvilinear coordinate transformation.
+    // In 2D, this is used for the tangential vectors 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlMinPrincVec ( new ResultInfo );
+    pmlMinPrincVec->resultType = PML_MIN_PRINC_VEC;
+    pmlMinPrincVec->dofNames = vecDofNames;
+    pmlMinPrincVec->unit = "";
+    pmlMinPrincVec->definedOn = ResultInfo::ELEMENT;
+    pmlMinPrincVec->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> pmlMinPrincVecCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    matCoefs_[PML_MIN_PRINC_VEC] = pmlMinPrincVecCoefFct;
+    DefineFieldResult(pmlMinPrincVecCoefFct, pmlMinPrincVec);
+
+    // Vector holding maximum principal direction vectors used in the curvilinear coordinate transformation.
+    // In 2D, this is unused
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlMaxPrincVec ( new ResultInfo );
+    pmlMaxPrincVec->resultType = PML_MAX_PRINC_VEC;
+    pmlMaxPrincVec->dofNames = vecDofNames;
+    pmlMaxPrincVec->unit = "";
+    pmlMaxPrincVec->definedOn = ResultInfo::ELEMENT;
+    pmlMaxPrincVec->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> pmlMaxPrincVecCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    matCoefs_[PML_MAX_PRINC_VEC] = pmlMaxPrincVecCoefFct;
+    DefineFieldResult(pmlMaxPrincVecCoefFct, pmlMaxPrincVec);
+
+    // Scalar holding minimum principal curvatures used in the curvilinear coordinate transformation.
+    // In 2D, this is used for the curvatures 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlMinPrincCurv ( new ResultInfo );
+    pmlMinPrincCurv->resultType = PML_MIN_PRINC_CURV;
+    pmlMinPrincCurv->dofNames = "";
+    pmlMinPrincCurv->unit = "";
+    pmlMinPrincCurv->definedOn = ResultInfo::ELEMENT;
+    pmlMinPrincCurv->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> pmlMinPrincCurvCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    matCoefs_[PML_MIN_PRINC_CURV] = pmlMinPrincCurvCoefFct;
+    DefineFieldResult(pmlMinPrincCurvCoefFct, pmlMinPrincCurv);
+
+    // Scalar holding maximum principal curvatures used in the curvilinear coordinate transformation. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlMaxPrincCurv ( new ResultInfo );
+    pmlMaxPrincCurv->resultType = PML_MAX_PRINC_CURV;
+    pmlMaxPrincCurv->dofNames = "";
+    pmlMaxPrincCurv->unit = "";
+    pmlMaxPrincCurv->definedOn = ResultInfo::ELEMENT;
+    pmlMaxPrincCurv->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> pmlMaxPrincCurvCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    matCoefs_[PML_MAX_PRINC_CURV] = pmlMaxPrincCurvCoefFct;
+    DefineFieldResult(pmlMaxPrincCurvCoefFct, pmlMaxPrincCurv);
+
+    // Scalar holding the distance between points and the PML interface. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlDistance ( new ResultInfo );
+    pmlDistance->resultType = PML_DISTANCE;
+    pmlDistance->dofNames = "";
+    pmlDistance->unit = "";
+    pmlDistance->definedOn = ResultInfo::ELEMENT;
+    pmlDistance->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> pmlDistanceCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    matCoefs_[PML_DISTANCE] = pmlDistanceCoefFct;
+    DefineFieldResult(pmlDistanceCoefFct, pmlDistance);
+
+    // === AUX Variables for transient PML===
+    if(this->isTimeDomPML_){
+      if(!this->isAPML_ && dim_ == 3){
+        shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
+        pmlScal->resultType = ACOU_PMLAUXSCALAR;
+        pmlScal->dofNames = "";
+        pmlScal->unit = "-";
+        pmlScal->definedOn = ResultInfo::NODE;
+        pmlScal->entryType = ResultInfo::SCALAR;
+        feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
+        results_.Push_back( pmlScal );
+        pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
+        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
+      }
+
+      shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
+      pmlVec->resultType = ACOU_PMLAUXVEC;
+      pmlVec->dofNames = vecDofNames;
+      pmlVec->unit = "-";
+      pmlVec->definedOn = ResultInfo::NODE;
+      pmlVec->entryType = ResultInfo::VECTOR;
+      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
+      results_.Push_back( pmlVec );
+      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
+      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
+    }
   }
+
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
      //// === MEAN FLUIDMECH VELOCITY ===
