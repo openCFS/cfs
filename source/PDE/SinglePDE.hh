@@ -529,7 +529,8 @@ namespace CoupledField
     
     //! This map holds the coefficient functions for the different material
     //! parameters. As material parameters are typically defined per region,
-    //! we store them in a CoefFunctionMulti object
+    //! we store them in a CoefFunctionMulti object. 
+    //! Also stores the PML coef functions for writing out as result
     std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs_;
     
     //! Map storing functors for calculating general results
