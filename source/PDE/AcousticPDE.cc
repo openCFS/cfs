@@ -1267,7 +1267,7 @@ namespace CoupledField{
       //========================================================================================
       // boundary Layers
       //========================================================================================
-      ParamNodeList blNodes = bcNode->GetList( "boundaryLayer" );
+      ParamNodeList blNodes = bcNode->GetList( "acousticBoundaryLayer" );
 
       for( UInt i = 0; i < blNodes.GetSize(); ++i ) {
         if ( !(formulation_ == ACOU_PRESSURE) || !(this->analysistype_ == HARMONIC) ) EXCEPTION("bounadryLayer only available for harmonic pressure formulation");
@@ -1281,14 +1281,10 @@ namespace CoupledField{
         PtrCoefFct K = materials_[volRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
         PtrCoefFct cp = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("cp")->As<std::string>() );
         PtrCoefFct cv = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("cv")->As<std::string>() );
-        PtrCoefFct nu = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("nu")->As<std::string>() );
+        PtrCoefFct dynamicViscosity = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("dynamicViscosity")->As<std::string>() );
         PtrCoefFct k = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("k")->As<std::string>() );
 
-        LOG_DBG(acousticpde) << "Define Surface Integrator: regionName =" << regionName << "\n";
-        LOG_DBG(acousticpde) << "Define Surface Integrator: volRegName =" << volRegName << "\n";
-        LOG_DBG(acousticpde) << "Define Surface Integrator: rho0       =" << rho0->ToString() << "\n";
-        LOG_DBG(acousticpde) << "Define Surface Integrator: K          =" << K->ToString() << "\n";
-        LOG_DBG(acousticpde) << "Define Surface Integrator: k          =" << k->ToString() << "\n";
+        PtrCoefFct nu = CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_, dynamicViscosity, rho0, CoefXpr::OP_DIV ));
 
         PtrCoefFct omegaHalv = CoefFunction::Generate( mp_,  Global::REAL, "pi*f");//
         // deltaV = sqrt( 2*nu/omega )
@@ -1315,6 +1311,9 @@ namespace CoupledField{
                     gammaMinusOne,
                     CoefXpr::OP_MULT)
         );
+
+
+
         BiLinearForm * blmInt = NULL;
         if( dim_ == 2 ) {
           blmInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), coefM, 0.5, updatedGeo_ );
@@ -1328,17 +1327,18 @@ namespace CoupledField{
         feFunctions_[formulation_]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(blmContext);
 
-        LOG_DBG(acousticpde) << "Define Surface Integrator boundary layer: coefM =" << coefM->ToString() << "\n";
 
-        // Stiffness matrix
+
+
+        // Stiffness matrix (My Implementation with my operator)
         PtrCoefFct coefK = CoefFunction::Generate(mp_,Global::COMPLEX, CoefXprBinOp(mp_, deltaV, oneMinusI, CoefXpr::OP_MULT) );
         BiLinearForm * blkInt = NULL;
         std::set<RegionIdType> volRegions;
         volRegions.insert(volRegion);
         if( dim_ == 2 ) {
-          blkInt = new BBInt<Complex>(new GradientOperator<FeH1,2,1, Complex>(), coefK, -0.5, updatedGeo_ );
+          blkInt = new SurfaceBBInt<Complex>(new SurfaceTangentialGradientOperator<FeH1,2,1>(), coefK, -0.5, volRegions, updatedGeo_ );
         } else {
-          blkInt = new BBInt<Complex>(new GradientOperator<FeH1,3,1, Complex>(), coefK, -0.5, updatedGeo_ );
+          blkInt = new SurfaceBBInt<Complex>(new SurfaceTangentialGradientOperator<FeH1,3,1>(), coefK, -0.5, volRegions, updatedGeo_ );
         }
         blkInt->SetName("blStiffnessIntegrator");
         BiLinFormContext *blkContext = new BiLinFormContext(blkInt, STIFFNESS);
@@ -1347,10 +1347,29 @@ namespace CoupledField{
         feFunctions_[formulation_]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(blkContext);
 
-        LOG_DBG(acousticpde) << "Define Surface Integrator boundary layer: coefK =" << coefK->ToString() << "\n";
+
+        // //Stiffness matrix (Florian's implementation)
+        // PtrCoefFct coefK = CoefFunction::Generate(mp_,Global::COMPLEX, CoefXprBinOp(mp_, deltaV, oneMinusI, CoefXpr::OP_MULT) );
+        // BiLinearForm * blkInt = NULL;
+        // std::set<RegionIdType> volRegions;
+        // volRegions.insert(volRegion);
+        // if( dim_ == 2 ) {
+        //   blkInt = new BBInt<Complex>(new GradientOperator<FeH1,2,1, Complex>(), coefK, -0.5, updatedGeo_ );
+        // } else {
+        //   blkInt = new BBInt<Complex>(new GradientOperator<FeH1,3,1, Complex>(), coefK, -0.5, updatedGeo_ );
+        // }
+        // blkInt->SetName("blStiffnessIntegrator");
+        // BiLinFormContext *blkContext = new BiLinFormContext(blkInt, STIFFNESS);
+        // blkContext->SetEntities(actSDList, actSDList);
+        // blkContext->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+        // feFunctions_[formulation_]->AddEntityList(actSDList);
+        // assemble_->AddBiLinearForm(blkContext);
+
+
+
+
       } // boundary Layers
     } // end if ( bcNode )
-    LOG_DBG(acousticpde) << "Define Surface Integrator END"<< "\n";
   } // DefineSurfaceIntegrators
 
   void AcousticPDE::DefineRhsLoadIntegrators() {

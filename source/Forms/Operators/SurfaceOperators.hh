@@ -17,10 +17,17 @@
 #ifndef SURFACEOPERATORS_HH
 #define SURFACEOPERATORS_HH
 
+//#include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "BaseBOperator.hh"
+// declare logging stream
+//DEFINE_LOG(opmat, "opmat")
 
 namespace CoupledField{
 
+  
+
+  
 template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
 class SurfaceIdentityOperator : public BaseBOperator{
 
@@ -1612,6 +1619,1268 @@ void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::
 
   dummyMat.Transpose(bMat);
 }
+
+
+
+
+
+
+                          /////////      Operators implemented by Arun       //////////
+
+
+
+// Surface tangential operator of a vector unknown for 2D and 3D cases For eg.,Displacement, velocity
+
+  template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
+    class SurfaceTangentialIdentityOperator : public BaseBOperator{
+      public:
+
+      // ------------------
+      //  STATIC CONSTANTS
+      // ------------------
+      //@{
+      //! \name Static constants
+
+      //! Order of differentiation
+      static const UInt ORDER_DIFF = 1;
+
+      //! Number of components of the problem (scalar, vector)
+      static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
+
+      //! Dimension of the underlying domain / space
+      static const UInt DIM_SPACE = D; // n=2,3
+
+      // Gradient normal: n x m, DIM_SPACE x DIM_DOF
+      // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise fuer Gradient
+
+      //! Dimension of the finite element
+      static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+      //! Dimension of the related material
+      static const UInt DIM_D_MAT = D;
+      //@}
+
+
+      SurfaceTangentialIdentityOperator(){
+        this->name_ = "SurfaceTangentialIdentityOperator";
+      }
+
+      //! Copy constructor
+      SurfaceTangentialIdentityOperator(const SurfaceTangentialIdentityOperator & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual SurfaceTangentialIdentityOperator * Clone(){
+        return new SurfaceTangentialIdentityOperator(*this);
+      }
+
+      virtual ~SurfaceTangentialIdentityOperator(){
+
+      }
+
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp,
+                             BaseFE* ptFe );
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp,
+                                       BaseFE* ptFe );
+
+      using BaseBOperator::CalcOpMat;
+
+      using BaseBOperator::CalcOpMatTransposed;
+
+      // ===============
+      //  QUERY METHODS
+      // ===============
+      //@{ \name Query Methods
+      //! \copydoc BaseBOperator::GetDiffOrder
+      virtual UInt GetDiffOrder() const {
+        return ORDER_DIFF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDof()
+      virtual UInt GetDimDof() const {
+        return DIM_DOF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimSpace()
+      virtual UInt GetDimSpace() const {
+        return DIM_SPACE;
+      }
+
+      //! \copydoc BaseBOperator::GetDimElem()
+      virtual UInt GetDimElem() const {
+        return DIM_ELEM;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDMat()
+      virtual UInt GetDimDMat() const {
+        return DIM_D_MAT;
+      }
+      //@}
+
+      protected:
+
+    };
+
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialIdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+     //check if lp is surface and ptFe is volume
+    //  assert(lp.isSurface);
+     
+
+     UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize( DIM_SPACE, numFncs  * DIM_DOF );
+     bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+     FE *fe = (static_cast<FE*>(ptFe));
+     Vector<Double> nVec = lp.normal;
+     Vector<Double> s;
+     fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , 1 );
+
+    
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i*DIM_DOF] += (1-nVec[0]*nVec[0])*(s[i]);
+
+         bMat[0][i*DIM_DOF+1] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[1][i*DIM_DOF] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[1][i*DIM_DOF+1] += (1-nVec[1]*nVec[1])*(s[i]);
+
+
+       }
+     }
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i*DIM_DOF] += (1-nVec[0]*nVec[0])*(s[i]);
+
+         bMat[0][i*DIM_DOF+1] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[0][i*DIM_DOF+2] += -nVec[0]*nVec[2]*(s[i]);
+
+
+         bMat[1][i*DIM_DOF] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[1][i*DIM_DOF+1] += (1-nVec[1]*nVec[1])*(s[i]);
+
+         bMat[1][i*DIM_DOF+2] += -nVec[1]*nVec[2]*(s[i]);
+
+
+         bMat[2][i*DIM_DOF] += -nVec[0]*nVec[2]*(s[i]);
+
+         bMat[2][i*DIM_DOF+1] += -nVec[1]*nVec[2]*(s[i]);
+
+         bMat[2][i*DIM_DOF+2] += (1-nVec[2]*nVec[2])*(s[i]);
+
+
+       }
+    }
+
+  }
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialIdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+    // assert(lp.isSurface);
+
+    UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( numFncs * DIM_DOF , DIM_SPACE );
+    bMat.InitValue(0.0);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+     FE *fe = (static_cast<FE*>(ptFe));
+     Vector<Double> nVec = lp.normal;
+     Vector<Double> s;
+     fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , 1 );
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0] += (1-nVec[0]*nVec[0])*(s[i]);
+
+         bMat[i*DIM_DOF+1][0] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[i*DIM_DOF][1] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[i*DIM_DOF+1][1] += (1-nVec[1]*nVec[1])*(s[i]);
+
+
+       }
+     }
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0] += (1-nVec[0]*nVec[0])*(s[i]);
+
+         bMat[i*DIM_DOF+1][0] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[i*DIM_DOF+2][0] += -nVec[0]*nVec[2]*(s[i]);
+
+
+         bMat[i*DIM_DOF][1] += -nVec[0]*nVec[1]*(s[i]);
+
+         bMat[i*DIM_DOF+1][1] += (1-nVec[1]*nVec[1])*(s[i]);
+
+         bMat[i*DIM_DOF+2][1] += -nVec[1]*nVec[2]*(s[i]);
+
+
+         bMat[i*DIM_DOF][2] += -nVec[0]*nVec[2]*(s[i]);
+
+         bMat[i*DIM_DOF+1][2] += -nVec[1]*nVec[2]*(s[i]);
+
+         bMat[i*DIM_DOF+2][2] += (1-nVec[2]*nVec[2])*(s[i]);
+
+
+       }
+    }
+
+   }
+
+
+
+
+ // Surface tangential gradient of a single degree of freedom unknown for 2D and 3D cases For eg.,Pressure
+
+      //  Delta_t(P)
+
+  template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
+    class SurfaceTangentialGradientOperator : public BaseBOperator{
+      public:
+
+      // ------------------
+      //  STATIC CONSTANTS
+      // ------------------
+      //@{
+      //! \name Static constants
+
+      //! Order of differentiation
+      static const UInt ORDER_DIFF = 1;
+
+      //! Number of components of the problem (scalar, vector)
+      static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
+
+      //! Dimension of the underlying domain / space
+      static const UInt DIM_SPACE = D; // n=2,3
+
+      // Gradient normal: n x m, DIM_SPACE x DIM_DOF
+      // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise fuer Gradient
+
+      //! Dimension of the finite element
+      static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+      //! Dimension of the related material
+      static const UInt DIM_D_MAT = D;
+      //@}
+
+
+      SurfaceTangentialGradientOperator(){
+        this->name_ = "SurfaceTangentialGradientOperator";
+      }
+
+      //! Copy constructor
+      SurfaceTangentialGradientOperator(const SurfaceTangentialGradientOperator & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual SurfaceTangentialGradientOperator * Clone(){
+        return new SurfaceTangentialGradientOperator(*this);
+      }
+
+      virtual ~SurfaceTangentialGradientOperator(){
+
+      }
+
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp,
+                             BaseFE* ptFe );
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp,
+                                       BaseFE* ptFe );
+
+      using BaseBOperator::CalcOpMat;
+
+      using BaseBOperator::CalcOpMatTransposed;
+
+      // ===============
+      //  QUERY METHODS
+      // ===============
+      //@{ \name Query Methods
+      //! \copydoc BaseBOperator::GetDiffOrder
+      virtual UInt GetDiffOrder() const {
+        return ORDER_DIFF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDof()
+      virtual UInt GetDimDof() const {
+        return DIM_DOF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimSpace()
+      virtual UInt GetDimSpace() const {
+        return DIM_SPACE;
+      }
+
+      //! \copydoc BaseBOperator::GetDimElem()
+      virtual UInt GetDimElem() const {
+        return DIM_ELEM;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDMat()
+      virtual UInt GetDimDMat() const {
+        return DIM_D_MAT;
+      }
+      //@}
+
+      protected:
+
+    };
+
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialGradientOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+     //check if lp is surface and ptFe is volume
+    assert(lp.isSurface);
+
+    //  assert(DIM_DOF==1); 
+
+     UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize( DIM_SPACE, numFncs  * DIM_DOF );
+     bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     Vector<Double> nVec = lp.normal;
+
+    if (this->isSurfOpt_)
+      fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+    else
+      fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i] += (1-nVec[0]*nVec[0])*(xiDx[i][0]) -xiDx[i][1]*nVec[0]*nVec[1];
+
+         bMat[1][i] += (1-nVec[1]*nVec[1])*(xiDx[i][1]) -xiDx[i][0]*nVec[0]*nVec[1];
+
+
+       }
+     }
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i] += (1-nVec[0]*nVec[0])*(xiDx[i][0]) -xiDx[i][1]*nVec[0]*nVec[1] -xiDx[i][2]*nVec[0]*nVec[2];
+
+         bMat[1][i] += (1-nVec[1]*nVec[1])*(xiDx[i][1]) -xiDx[i][0]*nVec[1]*nVec[0] -xiDx[i][2]*nVec[1]*nVec[2];
+
+         bMat[2][i] += (1-nVec[2]*nVec[2])*(xiDx[i][2]) -xiDx[i][0]*nVec[2]*nVec[0] -xiDx[i][1]*nVec[2]*nVec[1];
+
+
+       }
+    }
+
+  }
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialGradientOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+    // assert(lp.isSurface);
+    assert(DIM_DOF==1);  
+    UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( numFncs * DIM_DOF,  DIM_SPACE );
+    bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    Vector<Double> nVec = lp.normal;
+
+    if (this->isSurfOpt_)
+      fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+    else
+      fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i][0] += (1-nVec[0]*nVec[0])*(xiDx[i][0]) -xiDx[i][1]*nVec[0]*nVec[1];
+
+         bMat[i][1] += (1-nVec[1]*nVec[1])*(xiDx[i][1]) -xiDx[i][0]*nVec[0]*nVec[1];
+
+       }
+     }
+      else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i][0] += (1-nVec[0]*nVec[0])*(xiDx[i][0]) -xiDx[i][1]*nVec[0]*nVec[1] -xiDx[i][2]*nVec[0]*nVec[2];
+
+         bMat[i][1] += (1-nVec[1]*nVec[1])*(xiDx[i][1]) -xiDx[i][0]*nVec[1]*nVec[0] -xiDx[i][2]*nVec[1]*nVec[2];
+
+         bMat[i][2] += (1-nVec[2]*nVec[2])*(xiDx[i][2]) -xiDx[i][0]*nVec[2]*nVec[0] -xiDx[i][1]*nVec[2]*nVec[1];
+
+
+       }
+    }
+
+   }
+
+
+
+
+
+ // Surface tangential gradient of normal component of vector unknowns. Eg.,Displacment, velocity
+    // Delta_t (v.n)
+
+  template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
+    class SurfaceTangentialGradientOfNormalVector : public BaseBOperator{
+      public:
+
+      // ------------------
+      //  STATIC CONSTANTS
+      // ------------------
+      //@{
+      //! \name Static constants
+
+      //! Order of differentiation
+      static const UInt ORDER_DIFF = 1;
+
+      //! Number of components of the problem (scalar, vector)
+      static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
+
+      //! Dimension of the underlying domain / space
+      static const UInt DIM_SPACE = D; // n=2,3
+
+      // Gradient normal: n x m, DIM_SPACE x DIM_DOF
+      // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise fuer Gradient
+
+      //! Dimension of the finite element
+      static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+      //! Dimension of the related material
+      static const UInt DIM_D_MAT = D;
+      //@}
+
+
+      SurfaceTangentialGradientOfNormalVector(){
+        this->name_ = "SurfaceTangentialGradientOfNormalVector";
+      }
+
+      //! Copy constructor
+      SurfaceTangentialGradientOfNormalVector(const SurfaceTangentialGradientOfNormalVector & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual SurfaceTangentialGradientOfNormalVector * Clone(){
+        return new SurfaceTangentialGradientOfNormalVector(*this);
+      }
+
+      virtual ~SurfaceTangentialGradientOfNormalVector(){
+
+      }
+
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp,
+                             BaseFE* ptFe );
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp,
+                                       BaseFE* ptFe );
+
+      using BaseBOperator::CalcOpMat;
+
+      using BaseBOperator::CalcOpMatTransposed;
+
+      // ===============
+      //  QUERY METHODS
+      // ===============
+      //@{ \name Query Methods
+      //! \copydoc BaseBOperator::GetDiffOrder
+      virtual UInt GetDiffOrder() const {
+        return ORDER_DIFF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDof()
+      virtual UInt GetDimDof() const {
+        return DIM_DOF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimSpace()
+      virtual UInt GetDimSpace() const {
+        return DIM_SPACE;
+      }
+
+      //! \copydoc BaseBOperator::GetDimElem()
+      virtual UInt GetDimElem() const {
+        return DIM_ELEM;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDMat()
+      virtual UInt GetDimDMat() const {
+        return DIM_D_MAT;
+      }
+      //@}
+
+      protected:
+
+    };
+
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialGradientOfNormalVector<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+     //check if lp is surface and ptFe is volume
+    assert(lp.isSurface);
+     
+
+     UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize( DIM_SPACE, numFncs  * DIM_DOF );
+     bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     Vector<Double> nVec = lp.normal;
+
+     if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+    
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i*DIM_DOF]   += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - nVec[0]*xiDx[i][1]*nVec[0]*nVec[1];
+
+         bMat[0][i*DIM_DOF+1] += nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - nVec[1]*xiDx[i][1]*nVec[0]*nVec[1]; 
+
+         bMat[1][i*DIM_DOF]   += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[0]*xiDx[i][0]*nVec[0]*nVec[1];
+
+         bMat[1][i*DIM_DOF+1] += nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[1]*xiDx[i][0]*nVec[0]*nVec[1];
+
+
+       }
+     }
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+
+         bMat[0][i*DIM_DOF] += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) -nVec[0]*xiDx[i][1]*nVec[0]*nVec[1] -nVec[0]*xiDx[i][2]*nVec[0]*nVec[2];
+
+         bMat[0][i*DIM_DOF+1] += nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) -nVec[1]*xiDx[i][1]*nVec[0]*nVec[1] -nVec[1]*xiDx[i][2]*nVec[0]*nVec[2];
+
+         bMat[0][i*DIM_DOF+2] += nVec[2]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) -nVec[2]*xiDx[i][1]*nVec[0]*nVec[1] -nVec[2]*xiDx[i][2]*nVec[0]*nVec[2];
+
+
+
+         bMat[1][i*DIM_DOF] += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[0]*xiDx[i][0]*nVec[1]*nVec[0] - nVec[0]*xiDx[i][2]*nVec[1]*nVec[2];
+
+         bMat[1][i*DIM_DOF+1] += nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[1]*xiDx[i][0]*nVec[1]*nVec[0] - nVec[1]*xiDx[i][2]*nVec[1]*nVec[2];
+
+         bMat[1][i*DIM_DOF+2] += nVec[2]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[2]*xiDx[i][0]*nVec[1]*nVec[0] - nVec[2]*xiDx[i][2]*nVec[1]*nVec[2];
+
+
+
+         bMat[2][i*DIM_DOF] += nVec[0]*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - nVec[0]*xiDx[i][0]*nVec[2]*nVec[0] - nVec[0]*xiDx[i][1]*nVec[2]*nVec[1];
+
+         bMat[2][i*DIM_DOF+1] += nVec[1]*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - nVec[1]*xiDx[i][0]*nVec[2]*nVec[0] - nVec[1]*xiDx[i][1]*nVec[2]*nVec[1];
+
+         bMat[2][i*DIM_DOF+2] += nVec[2]*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - nVec[2]*xiDx[i][0]*nVec[2]*nVec[0] - nVec[2]*xiDx[i][1]*nVec[2]*nVec[1];
+
+
+       }
+    }
+
+  }
+
+
+
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialGradientOfNormalVector<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+    assert(lp.isSurface);
+
+    UInt numFncs = ptFe->GetNumFncs();
+
+     // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( numFncs  * DIM_DOF , DIM_SPACE );
+    bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    Vector<Double> nVec = lp.normal;
+
+     if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0]   += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - nVec[0]*xiDx[i][1]*nVec[0]*nVec[1];
+
+         bMat[i*DIM_DOF+1][0] += nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - nVec[1]*xiDx[i][1]*nVec[0]*nVec[1]; 
+
+         bMat[i*DIM_DOF][1]   += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[0]*xiDx[i][0]*nVec[0]*nVec[1];
+
+         bMat[i*DIM_DOF+1][1] += nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[1]*xiDx[i][0]*nVec[0]*nVec[1];
+
+       }
+     }
+      else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0] += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) -nVec[0]*xiDx[i][1]*nVec[0]*nVec[1] -nVec[0]*xiDx[i][2]*nVec[0]*nVec[2];
+
+         bMat[i*DIM_DOF+1][0] += nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) -nVec[1]*xiDx[i][1]*nVec[0]*nVec[1] -nVec[1]*xiDx[i][2]*nVec[0]*nVec[2];
+
+         bMat[i*DIM_DOF+2][0] += nVec[2]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) -nVec[2]*xiDx[i][1]*nVec[0]*nVec[1] -nVec[2]*xiDx[i][2]*nVec[0]*nVec[2];
+
+
+         bMat[i*DIM_DOF][1] += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[0]*xiDx[i][0]*nVec[1]*nVec[0] - nVec[0]*xiDx[i][2]*nVec[1]*nVec[2];
+
+         bMat[i*DIM_DOF+1][1] += nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[1]*xiDx[i][0]*nVec[1]*nVec[0] - nVec[1]*xiDx[i][2]*nVec[1]*nVec[2];
+
+         bMat[i*DIM_DOF+2][1] += nVec[2]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - nVec[2]*xiDx[i][0]*nVec[1]*nVec[0] - nVec[2]*xiDx[i][2]*nVec[1]*nVec[2];
+
+
+         bMat[i*DIM_DOF][2] += nVec[0]*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - nVec[0]*xiDx[i][0]*nVec[2]*nVec[0] - nVec[0]*xiDx[i][1]*nVec[2]*nVec[1];
+
+         bMat[i*DIM_DOF+1][2] += nVec[1]*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - nVec[1]*xiDx[i][0]*nVec[2]*nVec[0] - nVec[1]*xiDx[i][1]*nVec[2]*nVec[1];
+
+         bMat[i*DIM_DOF+2][2] += nVec[2]*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - nVec[2]*xiDx[i][0]*nVec[2]*nVec[0] - nVec[2]*xiDx[i][1]*nVec[2]*nVec[1];
+
+
+       }
+    }
+
+   }
+
+
+
+ // Surface normal derivative of the tangential component of vector unknowns. Eg.,Displacement
+          //  d/dn (v_t)
+ 
+  template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
+    class SurfaceNormalDerOfTangentialVector : public BaseBOperator{
+      public:
+
+
+      // ------------------
+      //  STATIC CONSTANTS
+      // ------------------
+      //@{
+      //! \name Static constants
+
+      //! Order of differentiation
+      static const UInt ORDER_DIFF = 1;
+
+      //! Number of components of the problem (scalar, vector)
+      static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
+
+      //! Dimension of the underlying domain / space
+      static const UInt DIM_SPACE = D; // n=2,3
+
+      // Gradient normal: n x m, DIM_SPACE x DIM_DOF
+      // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise fuer Gradient
+
+      //! Dimension of the finite element
+      static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+      //! Dimension of the related material
+      static const UInt DIM_D_MAT = D;
+      //@}
+
+
+      SurfaceNormalDerOfTangentialVector(){
+        this->name_ = "SurfaceNormalDerOfTangentialVector";
+      }
+
+      //! Copy constructor
+      SurfaceNormalDerOfTangentialVector(const SurfaceNormalDerOfTangentialVector & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual SurfaceNormalDerOfTangentialVector * Clone(){
+        return new SurfaceNormalDerOfTangentialVector(*this);
+      }
+
+      virtual ~SurfaceNormalDerOfTangentialVector(){
+
+      }
+
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp,
+                             BaseFE* ptFe );
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp,
+                                       BaseFE* ptFe );
+
+      using BaseBOperator::CalcOpMat;
+
+      using BaseBOperator::CalcOpMatTransposed;
+
+      // ===============
+      //  QUERY METHODS
+      // ===============
+      //@{ \name Query Methods
+      //! \copydoc BaseBOperator::GetDiffOrder
+      virtual UInt GetDiffOrder() const {
+        return ORDER_DIFF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDof()
+      virtual UInt GetDimDof() const {
+        return DIM_DOF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimSpace()
+      virtual UInt GetDimSpace() const {
+        return DIM_SPACE;
+      }
+
+      //! \copydoc BaseBOperator::GetDimElem()
+      virtual UInt GetDimElem() const {
+        return DIM_ELEM;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDMat()
+      virtual UInt GetDimDMat() const {
+        return DIM_D_MAT;
+      }
+      //@}
+
+      protected:
+
+    };
+
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceNormalDerOfTangentialVector<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+     //check if lp is surface and ptFe is volume
+    assert(lp.isSurface);
+     
+
+     UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize( DIM_SPACE, numFncs  * DIM_DOF );
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     Vector<Double> nVec = lp.normal;
+
+     if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+
+         bMat[0][i*DIM_DOF]   += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) + nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][1]);
+
+         bMat[0][i*DIM_DOF+1] += -xiDx[i][0]*nVec[0]*nVec[0]*nVec[1] - xiDx[i][1]*nVec[0]*nVec[1]*nVec[1]; 
+
+         bMat[1][i*DIM_DOF]   += -xiDx[i][0]*nVec[0]*nVec[0]*nVec[1] - xiDx[i][1]*nVec[0]*nVec[1]*nVec[1]; 
+
+         bMat[1][i*DIM_DOF+1] += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][0]) + nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]);
+
+
+
+
+       }
+     }
+
+     
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i*DIM_DOF] += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) + nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][1]) + nVec[2]*(1-nVec[0]*nVec[0])*(xiDx[i][2]);
+
+         bMat[0][i*DIM_DOF+1] += -nVec[1]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[1]*xiDx[i][1] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][2];
+
+         bMat[0][i*DIM_DOF+2] += -nVec[2]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[0]*nVec[2]*nVec[2]*xiDx[i][2];
+
+
+
+         bMat[1][i*DIM_DOF] += -nVec[1]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[1]*xiDx[i][1] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][2];
+
+         bMat[1][i*DIM_DOF+1] += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][0]) + nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) + nVec[2]*(1-nVec[1]*nVec[1])*(xiDx[i][2]);
+
+         bMat[1][i*DIM_DOF+2] += -nVec[2]*nVec[1]*nVec[0]*xiDx[i][0] - nVec[1]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[1]*nVec[2]*nVec[2]*xiDx[i][2];
+
+
+
+         bMat[2][i*DIM_DOF] += -nVec[2]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[0]*nVec[2]*nVec[2]*xiDx[i][2];
+
+         bMat[2][i*DIM_DOF+1] += -nVec[0]*nVec[1]*nVec[2]*xiDx[i][0] - nVec[1]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[1]*nVec[2]*nVec[2]*xiDx[i][2];
+
+         bMat[2][i*DIM_DOF+2] += nVec[0]*(1-nVec[2]*nVec[0])*(xiDx[i][0]) + nVec[1]*(1-nVec[2]*nVec[2])*(xiDx[i][1]) + nVec[2]*(1-nVec[2]*nVec[2])*(xiDx[i][2]);
+
+
+       }
+    }
+      //LOG_DBG3(opmat) << "Matrix =" << bMat.ToString();
+  }
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceNormalDerOfTangentialVector<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+    assert(lp.isSurface);
+
+    UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( numFncs  * DIM_DOF , DIM_SPACE );
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    Vector<Double> nVec = lp.normal;
+     if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0]   += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) + nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][1]);
+
+         bMat[i*DIM_DOF+1][0] += -xiDx[i][0]*nVec[0]*nVec[0]*nVec[1] - xiDx[i][1]*nVec[0]*nVec[1]*nVec[1]; 
+
+         bMat[i*DIM_DOF][1]   += -xiDx[i][0]*nVec[0]*nVec[0]*nVec[1] - xiDx[i][1]*nVec[0]*nVec[1]*nVec[1]; 
+
+         bMat[i*DIM_DOF+1][1] += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][0]) + nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]);
+
+       }
+     }
+      else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0] += nVec[0]*(1-nVec[0]*nVec[0])*(xiDx[i][0]) + nVec[1]*(1-nVec[0]*nVec[0])*(xiDx[i][1]) + nVec[2]*(1-nVec[0]*nVec[0])*(xiDx[i][2]);
+
+         bMat[i*DIM_DOF+1][0] += -nVec[1]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[1]*xiDx[i][1] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][2];
+
+         bMat[i*DIM_DOF+2][0] += -nVec[2]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[0]*nVec[2]*nVec[2]*xiDx[i][2];
+
+
+
+         bMat[i*DIM_DOF][1] += -nVec[1]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[1]*xiDx[i][1] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][2];
+
+         bMat[i*DIM_DOF+1][1] += nVec[0]*(1-nVec[1]*nVec[1])*(xiDx[i][0]) + nVec[1]*(1-nVec[1]*nVec[1])*(xiDx[i][1]) + nVec[2]*(1-nVec[1]*nVec[1])*(xiDx[i][2]);
+
+         bMat[i*DIM_DOF+2][1] += -nVec[2]*nVec[1]*nVec[0]*xiDx[i][0] - nVec[1]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[1]*nVec[2]*nVec[2]*xiDx[i][2];
+
+
+
+         bMat[i*DIM_DOF][2] = -nVec[2]*nVec[0]*nVec[0]*xiDx[i][0] - nVec[0]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[0]*nVec[2]*nVec[2]*xiDx[i][2];
+
+         bMat[i*DIM_DOF+1][2] = -nVec[0]*nVec[1]*nVec[2]*xiDx[i][0] - nVec[1]*nVec[1]*nVec[2]*xiDx[i][1] - nVec[1]*nVec[2]*nVec[2]*xiDx[i][2];
+
+         bMat[i*DIM_DOF+2][2] = nVec[0]*(1-nVec[2]*nVec[0])*(xiDx[i][0]) + nVec[1]*(1-nVec[2]*nVec[2])*(xiDx[i][1]) + nVec[2]*(1-nVec[2]*nVec[2])*(xiDx[i][2]);
+
+
+       }
+    }
+   }
+
+
+
+
+ // Surface tangential divergence of the tangential component of vector unknowns. Eg.,Displacment, velocity
+                             // Delta_t . (v_t)
+
+  template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
+    class SurfaceTangentialDivergenceOfTangentialVector : public BaseBOperator{
+      public:
+
+      // ------------------
+      //  STATIC CONSTANTS
+      // ------------------
+      //@{
+      //! \name Static constants
+
+      //! Order of differentiation
+      static const UInt ORDER_DIFF = 1;
+
+      //! Number of components of the problem (scalar, vector)
+      static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
+
+      //! Dimension of the underlying domain / space
+      static const UInt DIM_SPACE = D; // n=2,3
+
+      // Gradient normal: n x m, DIM_SPACE x DIM_DOF
+      // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise fuer Gradient
+
+      //! Dimension of the finite element
+      static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+      //! Dimension of the related material
+      static const UInt DIM_D_MAT = D;
+      //@}
+
+
+      SurfaceTangentialDivergenceOfTangentialVector(){
+        this->name_ = "SurfaceTangentialDivergenceOfTangentialVector";
+      }
+
+      //! Copy constructor
+      SurfaceTangentialDivergenceOfTangentialVector(const SurfaceTangentialDivergenceOfTangentialVector & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual SurfaceTangentialDivergenceOfTangentialVector * Clone(){
+        return new SurfaceTangentialDivergenceOfTangentialVector(*this);
+      }
+
+      virtual ~SurfaceTangentialDivergenceOfTangentialVector(){
+
+      }
+
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp,
+                             BaseFE* ptFe );
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp,
+                                       BaseFE* ptFe );
+
+      using BaseBOperator::CalcOpMat;
+
+      using BaseBOperator::CalcOpMatTransposed;
+
+      // ===============
+      //  QUERY METHODS
+      // ===============
+      //@{ \name Query Methods
+      //! \copydoc BaseBOperator::GetDiffOrder
+      virtual UInt GetDiffOrder() const {
+        return ORDER_DIFF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDof()
+      virtual UInt GetDimDof() const {
+        return DIM_DOF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimSpace()
+      virtual UInt GetDimSpace() const {
+        return DIM_SPACE;
+      }
+
+      //! \copydoc BaseBOperator::GetDimElem()
+      virtual UInt GetDimElem() const {
+        return DIM_ELEM;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDMat()
+      virtual UInt GetDimDMat() const {
+        return DIM_D_MAT;
+      }
+      //@}
+
+      protected:
+
+    };
+
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialDivergenceOfTangentialVector<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+     //check if lp is surface and ptFe is volume
+    assert(lp.isSurface);
+     
+
+     UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize( 1, numFncs  * DIM_DOF );
+     bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     Vector<Double> nVec = lp.normal;
+
+     if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    
+
+     if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i*DIM_DOF]   += (1-nVec[0]*nVec[0])*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - (xiDx[i][1])*(1-nVec[0]*nVec[0])*nVec[0]*nVec[1] - (1-nVec[1]*nVec[1])*nVec[0]*nVec[1]*(xiDx[i][1]) + (xiDx[i][0])*nVec[0]*nVec[0]*nVec[1]*nVec[1];  
+
+         bMat[0][i*DIM_DOF+1] += -(1-nVec[0]*nVec[0])*nVec[0]*nVec[1]*(xiDx[i][0]) + (xiDx[i][1])*nVec[0]*nVec[0]*nVec[1]*nVec[1] + (1-nVec[1]*nVec[1])*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - (xiDx[i][0])*(1-nVec[1]*nVec[1])*nVec[0]*nVec[1]; 
+
+
+       }
+     }
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[0][i*DIM_DOF]   += (1-nVec[0]*nVec[0])*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - (xiDx[i][1])*(1-nVec[0]*nVec[0])*nVec[0]*nVec[1] - (xiDx[i][2])*(1-nVec[0]*nVec[0])*nVec[0]*nVec[2]  - (1-nVec[1]*nVec[1])*nVec[0]*nVec[1]*(xiDx[i][1]) + (xiDx[i][0])*nVec[0]*nVec[0]*nVec[1]*nVec[1] + (xiDx[i][2])*nVec[0]*nVec[1]*nVec[1]*nVec[2] - (1-nVec[2]*nVec[2])*nVec[0]*nVec[2]*(xiDx[i][2]) + (xiDx[i][0])*nVec[0]*nVec[0]*nVec[2]*nVec[2] + (xiDx[i][1])*nVec[0]*nVec[1]*nVec[2]*nVec[2];  
+
+         bMat[0][i*DIM_DOF+1]  += -(1-nVec[0]*nVec[0])*nVec[0]*nVec[1]*(xiDx[i][0]) + (xiDx[i][1])*nVec[0]*nVec[1]*nVec[0]*nVec[1] + (xiDx[i][2])*nVec[0]*nVec[1]*nVec[0]*nVec[2]  + (1-nVec[1]*nVec[1])*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - (xiDx[i][0])*(1-nVec[1]*nVec[1])*nVec[0]*nVec[1] - (xiDx[i][2])*(1-nVec[1]*nVec[1])*nVec[1]*nVec[2] - (1-nVec[2]*nVec[2])*nVec[1]*nVec[2]*(xiDx[i][2]) + (xiDx[i][0])*nVec[0]*nVec[1]*nVec[2]*nVec[2] + (xiDx[i][1])*nVec[1]*nVec[1]*nVec[2]*nVec[2];  
+
+         bMat[0][i*DIM_DOF+2]   += -(1-nVec[0]*nVec[0])*nVec[0]*nVec[2]*(xiDx[i][0]) + (xiDx[i][1])*nVec[0]*nVec[0]*nVec[1]*nVec[2] + (xiDx[i][2])*nVec[0]*nVec[0]*nVec[2]*nVec[2]  - (1-nVec[1]*nVec[1])*nVec[1]*nVec[2]*(xiDx[i][1]) + (xiDx[i][0])*nVec[0]*nVec[1]*nVec[1]*nVec[2] + (xiDx[i][2])*nVec[1]*nVec[1]*nVec[2]*nVec[2] + (1-nVec[2]*nVec[2])*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - (xiDx[i][0])*(1-nVec[2]*nVec[2])*nVec[0]*nVec[2] - (xiDx[i][1])*(1-nVec[2]*nVec[2])*nVec[1]*nVec[2];  
+
+
+       }
+    }
+
+  }
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+   void SurfaceTangentialDivergenceOfTangentialVector<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                 const LocPointMapped& lp,
+                                                 BaseFE* ptFe ){
+
+
+    assert(lp.isSurface);
+
+    UInt numFncs = ptFe->GetNumFncs();
+     // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( numFncs  * DIM_DOF, 1 );
+    bMat.InitValue(0.0);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    Vector<Double> nVec = lp.normal;
+
+     if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+      if(DIM_SPACE == 2){
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0]   += (1-nVec[0]*nVec[0])*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - (xiDx[i][1])*(1-nVec[0]*nVec[0])*nVec[0]*nVec[1] - (1-nVec[1]*nVec[1])*nVec[0]*nVec[1]*(xiDx[i][1]) + (xiDx[i][0])*nVec[0]*nVec[0]*nVec[1]*nVec[1];  
+
+         bMat[i*DIM_DOF+1][0] += -(1-nVec[0]*nVec[0])*nVec[0]*nVec[1]*(xiDx[i][0]) + (xiDx[i][1])*nVec[0]*nVec[0]*nVec[1]*nVec[1] + (1-nVec[1]*nVec[1])*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - (xiDx[i][0])*(1-nVec[1]*nVec[1])*nVec[0]*nVec[1]; 
+
+
+       }
+     }
+     else{
+       for(UInt i = 0; i < numFncs; ++i) {
+
+         bMat[i*DIM_DOF][0]     += (1-nVec[0]*nVec[0])*(1-nVec[0]*nVec[0])*(xiDx[i][0]) - (xiDx[i][1])*(1-nVec[0]*nVec[0])*nVec[0]*nVec[1] - (xiDx[i][2])*(1-nVec[0]*nVec[0])*nVec[0]*nVec[2]  - (1-nVec[1]*nVec[1])*nVec[0]*nVec[1]*(xiDx[i][1]) + (xiDx[i][0])*nVec[0]*nVec[0]*nVec[1]*nVec[1] + (xiDx[i][2])*nVec[0]*nVec[1]*nVec[1]*nVec[2] - (1-nVec[2]*nVec[2])*nVec[0]*nVec[2]*(xiDx[i][2]) + (xiDx[i][0])*nVec[0]*nVec[0]*nVec[2]*nVec[2] + (xiDx[i][1])*nVec[0]*nVec[1]*nVec[2]*nVec[2];  
+
+         bMat[i*DIM_DOF+1][0]   += -(1-nVec[0]*nVec[0])*nVec[0]*nVec[1]*(xiDx[i][0]) + (xiDx[i][1])*nVec[0]*nVec[1]*nVec[0]*nVec[1] + (xiDx[i][2])*nVec[0]*nVec[1]*nVec[0]*nVec[2]  + (1-nVec[1]*nVec[1])*(1-nVec[1]*nVec[1])*(xiDx[i][1]) - (xiDx[i][0])*(1-nVec[1]*nVec[1])*nVec[0]*nVec[1] - (xiDx[i][2])*(1-nVec[1]*nVec[1])*nVec[1]*nVec[2] - (1-nVec[2]*nVec[2])*nVec[1]*nVec[2]*(xiDx[i][2]) + (xiDx[i][0])*nVec[0]*nVec[1]*nVec[2]*nVec[2] + (xiDx[i][1])*nVec[1]*nVec[1]*nVec[2]*nVec[2];  
+
+         bMat[i*DIM_DOF+2][0]   += -(1-nVec[0]*nVec[0])*nVec[0]*nVec[2]*(xiDx[i][0]) + (xiDx[i][1])*nVec[0]*nVec[0]*nVec[1]*nVec[2] + (xiDx[i][2])*nVec[0]*nVec[0]*nVec[2]*nVec[2]  - (1-nVec[1]*nVec[1])*nVec[1]*nVec[2]*(xiDx[i][1]) + (xiDx[i][0])*nVec[0]*nVec[1]*nVec[1]*nVec[2] + (xiDx[i][2])*nVec[1]*nVec[1]*nVec[2]*nVec[2] + (1-nVec[2]*nVec[2])*(1-nVec[2]*nVec[2])*(xiDx[i][2]) - (xiDx[i][0])*(1-nVec[2]*nVec[2])*nVec[0]*nVec[2] - (xiDx[i][1])*(1-nVec[2]*nVec[2])*nVec[1]*nVec[2];  
+
+
+       }
+    }
+
+   }
+// template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
+// class SurfaceNormalGradOperator : public BaseBOperator{
+
+// public:
+
+//    // ------------------
+//    //  STATIC CONSTANTS
+//    // ------------------
+//    //@{
+//    //! \name Static constants
+
+//    //! Order of differentiation
+//    static const UInt ORDER_DIFF = 1;
+
+//    //! Number of components of the problem (scalar, vector)
+//    static const UInt DIM_DOF = D_DOF;
+
+//    //! Dimension of the underlying domain / space
+//    static const UInt DIM_SPACE = D;
+
+//    //! Dimension of the finite element
+//    static const UInt DIM_ELEM = D;
+
+//    //! Dimension of the related material
+//    static const UInt DIM_D_MAT = D_DOF;
+//    //@}
+
+//    SurfaceNormalGradOperator(){
+//       return;
+//     }
+
+//    SurfaceNormalGradOperator(const SurfaceNormalGradOperator & other)
+//     : BaseBOperator(other){
+//    }
+
+//    virtual SurfaceNormalGradOperator * Clone(){
+//      return new SurfaceNormalGradOperator(*this);
+//    }
+
+
+//     virtual ~SurfaceNormalGradOperator(){
+//       return;
+//     }
+
+//     virtual void CalcOpMat(Matrix<Double> & bMat,
+//                            const LocPointMapped& lp, BaseFE* ptFe );
+
+//     virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+//                                      const LocPointMapped& lp, BaseFE* ptFe );
+
+//     //avoid reimplementation of complex operator by making the bas class function
+//     //available
+//     using BaseBOperator::CalcOpMat;
+
+//     using BaseBOperator::CalcOpMatTransposed;
+
+//     // ===============
+//     //  QUERY METHODS
+//     // ===============
+//     //@{ \name Query Methods
+//     //! \copydoc BaseBOperator::GetDiffOrder
+//     virtual UInt GetDiffOrder() const {
+//       return ORDER_DIFF;
+//     }
+
+//     //! \copydoc BaseBOperator::GetDimDof()
+//     virtual UInt GetDimDof() const {
+//       return DIM_DOF;
+//     }
+
+//     //! \copydoc BaseBOperator::GetDimSpace()
+//     virtual UInt GetDimSpace() const {
+//       return DIM_SPACE;
+//     }
+
+//     //! \copydoc BaseBOperator::GetDimElem()
+//     virtual UInt GetDimElem() const {
+//       return DIM_ELEM;
+//     }
+
+//     //! \copydoc BaseBOperator::GetDimDMat()
+//     virtual UInt GetDimDMat() const {
+//       return DIM_D_MAT;
+//     }
+//     //@}
+
+//   protected:
+
+// };
+
+// template<class FE,  UInt D, UInt D_DOF, class TYPE>
+// void SurfaceNormalGradOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+//                                               const LocPointMapped& lp,
+//                                               BaseFE* ptFe ){
+//   //check if lp is surface and ptFe is volume
+//   assert(lp.isSurface);
+
+//   UInt numFncs = ptFe->GetNumFncs();
+//   // Set correct size of matrix B and initialise with zeros
+//   bMat.Resize( DIM_SPACE, numFncs  * DIM_DOF );
+
+
+//   // Get derivatives of local shape functions with respect to global
+//   // coords (format: nrNodes x spaceDim)
+//   Matrix<Double> xiDx;
+//   FE *fe = (static_cast<FE*>(ptFe));
+//   if (this->isSurfOpt_)
+//     fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+//   else
+//     fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+//   //perform scalar mult with surface normal
+//   for(UInt d = 0; d < DIM_DOF ; ++d){
+//     for(UInt d1 = 0; d1 < DIM_SPACE ; ++d1){
+//       for(UInt sh = 0; sh < numFncs; ++sh){
+//         //bMat[d][sh*DIM_DOF + d] += xiDx[sh][d1] * lp.normal[d1];
+//         bMat[d][sh*DIM_DOF + d] +=  xiDx[sh][d1] * lp.normal[d1] ;
+
+//       }
+//     }
+//   }
+// }
+
+// template<class FE,  UInt D, UInt D_DOF, class TYPE>
+// void SurfaceNormalGradOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+//                                                         const LocPointMapped& lp,
+//                                                         BaseFE* ptFe ){
+//   //check if lp is surface and ptFe is volume
+//   assert(lp.isSurface);
+//   Matrix<Double> tmpMat;
+//   this->CalcOpMat(tmpMat,lp,ptFe);
+//   bMat = Transpose(tmpMat);
+// }
 
 
 }

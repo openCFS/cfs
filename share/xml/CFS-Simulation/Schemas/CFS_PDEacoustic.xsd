@@ -161,7 +161,7 @@
                 <xsd:element name="rhsMassTimeDeriv" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsMassConvective" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
-                <xsd:element name="boundaryLayer" type="DT_AcouBoundaryLayer"/>
+                <xsd:element name="acousticBoundaryLayer" type="DT_AcouBoundaryLayer"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
               </xsd:choice>
             </xsd:complexType>
@@ -501,7 +501,8 @@
     <xsd:attribute name="impedanceId" type="xsd:token" use="optional" default="id"/>
   </xsd:complexType>
 
-  <!-- Element type for specifying an acoustic boundary layer -->
+  <!-- Element type for specifying an acoustic boundary layer in Acou PDE -->
+
   <xsd:complexType name="DT_AcouBoundaryLayer">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="volumeRegion" type="xsd:token" use="required">
@@ -519,14 +520,38 @@
         <xsd:documentation>Specific heat capacity as constant volume</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="nu" type="xsd:token" use="required">
+    <xsd:attribute name="dynamicViscosity" type="xsd:token" use="required">
       <xsd:annotation>
-        <xsd:documentation>Kinematic viscosity</xsd:documentation>
+        <xsd:documentation>Dynamic viscosity</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="k" type="xsd:token" use="required">
       <xsd:annotation>
         <xsd:documentation>Thermal conductivity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+
+
+
+
+   <!-- Element type for specifying an acoustic boundary layer in Acou-mech coupling -->
+
+   <xsd:complexType name="DT_AcouMechBoundaryLayer">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="volumeRegion" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Specify the dynamic viscosity and density of the fluid on the coupling surface where viscous boundary layer effects of a fluid needs to be simulated</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="rho0" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Thermal conductivity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="dynamicViscosity" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Kinematic viscosity</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>

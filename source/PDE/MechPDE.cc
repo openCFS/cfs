@@ -32,9 +32,12 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdOpNormalStrain.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
+#include "Forms/Operators/IdentityOperatorNormal.hh"
+#include "Forms/Operators/IdentityOperatorTangential.hh"
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/GradientOperator.hh"
 #include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 
 // new postprocessing concept
@@ -862,6 +865,105 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( abcContext );
       }
 
+       //
+      // //========================================================================================
+      // // boundary Layers
+      // //========================================================================================
+
+      ParamNodeList blNodes = bcNode->GetList( "viscousFluidBoundaryLayer" );
+
+      for( UInt i = 0; i < blNodes.GetSize(); ++i ) {
+
+        std::string regionName = blNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
+
+        std::string volRegName = blNodes[i]->Get("volumeRegion")->As<std::string>();
+        RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+
+        PtrCoefFct dynamicViscosity = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("dynamicViscosity")->As<std::string>() );
+
+        PtrCoefFct fluidDensity=  CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("fluidDensity")->As<std::string>() );
+
+
+        PtrCoefFct omegaHalv = CoefFunction::Generate( mp_,  Global::REAL, "pi*f");
+        
+        // Kinematic viscosity
+        PtrCoefFct nu = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_, dynamicViscosity, fluidDensity, CoefXpr::OP_DIV ));
+        
+        // deltaV = sqrt( 2*nu/omega )
+        PtrCoefFct deltaV = CoefFunction::Generate(mp_,Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, nu, omegaHalv, CoefXpr::OP_DIV ) , CoefXpr::OP_SQRT));
+   
+
+        //    1+i ... common factor for both terms
+        PtrCoefFct onePlusI =  CoefFunction::Generate( mp_,  Global::COMPLEX, "1","1");
+
+        // Coefficients for integrators
+        
+        PtrCoefFct coefDampBL1 =  CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,CoefXprBinOp(mp_, dynamicViscosity, deltaV, CoefXpr::OP_DIV), onePlusI, CoefXpr::OP_MULT));
+
+
+        BiLinearForm * BlDampInt1 = NULL;
+        BiLinearForm * BlDampInt2 = NULL;
+        BiLinearForm * BlDampInt3 = NULL;
+
+
+        std::set<RegionIdType> volRegions;
+        volRegions.insert(volRegion);
+        
+
+         if( dim_ == 2 ) {
+          BlDampInt1 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,2,2>(), new SurfaceTangentialIdentityOperator<FeH1,2,2>(), coefDampBL1, 1.0, volRegions);
+         } else {
+          BlDampInt1 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceTangentialIdentityOperator<FeH1,3,3>(), coefDampBL1, 1.0, volRegions);
+        }
+
+
+
+
+         if( dim_ == 2 ) {
+          BlDampInt2 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,2,2>(), new SurfaceNormalDerOfTangentialVector<FeH1,2,2>(), dynamicViscosity, -1.0, volRegions);
+         } else {
+          BlDampInt2 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceNormalDerOfTangentialVector<FeH1,3,3>(), dynamicViscosity, -1.0, volRegions);
+         } 
+
+
+
+
+         if( dim_ == 2 ) {
+          BlDampInt3 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,2,2>(), new SurfaceTangentialGradientOfNormalVector<FeH1,2,2>(), dynamicViscosity, -1.0, volRegions);
+         }else {
+          BlDampInt3 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceTangentialGradientOfNormalVector<FeH1,3,3>(), dynamicViscosity, -1.0, volRegions);
+         }
+
+
+        BlDampInt1->SetName("BLDampIntegrator1");
+        BiLinFormContext *BlDampInt1Context = new BiLinFormContext(BlDampInt1, DAMPING );
+        BlDampInt1Context->SetEntities(actSDList, actSDList);
+        BlDampInt1Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
+        feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
+        assemble_->AddBiLinearForm(BlDampInt1Context);
+
+
+
+        BlDampInt2->SetName("BLDampIntegrator2");
+        BiLinFormContext *BlDampInt2Context = new BiLinFormContext(BlDampInt2, DAMPING );
+        BlDampInt2Context->SetEntities(actSDList, actSDList);
+        BlDampInt2Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
+        feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
+        assemble_->AddBiLinearForm(BlDampInt2Context);
+
+
+        BlDampInt3->SetName("BLDampIntegrator3");
+        BiLinFormContext *BlDampInt3Context = new BiLinFormContext(BlDampInt3, DAMPING );
+        BlDampInt3Context->SetEntities(actSDList, actSDList);
+        BlDampInt3Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
+        feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
+        assemble_->AddBiLinearForm(BlDampInt3Context);
+        
+      }
+
+      
       //========================================================================================
       // Normal X : assumes a normal traction proportional to the normal Y
       // X/Y = Stiffness/Displacement or Damping/Velocity or Mass/Acceleration
