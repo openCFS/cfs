@@ -198,9 +198,6 @@ namespace CoupledField{
 
     //! need wave-PDE for changing density
     bool complexFluidFormulation_;
-
-    // formulation of the PML regions. Needed for result definition of the PML parameters
-    std::map<RegionIdType, PMLFormulType> pmlFormulOnRegion_;
   };
 
 }
