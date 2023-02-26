@@ -556,20 +556,16 @@ namespace CoupledField{
 
   template<typename T>
   CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                        StdVector<RegionIdType> pdeDomains, bool isTensor) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
+                        StdVector<RegionIdType> pdeDomains, OutputType outputType) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
     // set name and type
     this->name_ = "CoefFunctionCurvilinearPML";
     this->formulationType_ = CURVILINEAR;
-    
     // get the grid pointer
     grid_ =  this->entities_[0]->GetGrid();
-    
-    // set if the CoefFunction is used as scalar or tensor
-    if (isTensor == true)
-      this->dimType_ = CoefFunction::TENSOR;
-    else
-      this->dimType_ = CoefFunction::SCALAR;
-
+    // set the type of output
+    outputType_ = outputType;
+    // assign the dimType_ of the coefFunction according to the output type
+    SetDimType();
     // read from PML node
     ReadDataPML(pmlDef);
     // check for valid declaration in XML
@@ -589,86 +585,216 @@ namespace CoupledField{
 
     template<typename T>
   void CoefFunctionCurvilinearPML<T>::GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) {
-    if (this->dim_ == 3) {
-      // interpolate nodal values to local point
-      GetParamsAtLocalPoint(lpm);
+    switch(outputType_) {
+      case OutputType::TENSOR:
+        // compute parameters at lpm
+        GetTensorParams(lpm);
+        if (this->dim_ == 3) {
+          // compute the current wave number
+          Double K = this->omega_ / sos_;
 
-      // compute the current wave number
-      Double K = this->omega_ / sos_;
+          // helper functions
+          Vector<Double> h = Vector<Double>(3);
+          h[0] = dampFunc_;
+          h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
+          h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
+          Double denominator;
+          Double K2 = pow(K,2);  //square of wave number
 
-      // helper functions
-      Vector<Double> h = Vector<Double>(3);
-      h[0] = dampFunc_;
-      h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
-      h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
-      Double denominator;
-      Double K2 = pow(K,2);  //square of wave number
+          // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
+          Vector<Complex> s = Vector<Complex>(3);
+          for (UInt iDim = 0; iDim < 3; ++iDim) {
+            denominator = 1.0 + h[iDim] / K2;
+            s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator);
+          }
 
-      // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
-      Vector<Complex> s = Vector<Complex>(3);
-      for (UInt iDim = 0; iDim < 3; ++iDim) {
-        denominator = 1.0 + h[iDim] / K2;
-        s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator);
-      }
+          // compute the tensor as the inverse of the Jakobi matrix. The matrix can be factorized in three parts:
+          // J^-1 = A^T  * (I + jD)^-1 * A.
+          // A is an orthogonal (rotation) matrix containing the curvilinear base vectors (n, t1, t2)
+          // I is the identity matrixm, j the imaginary number
+          // D is a diagonal matrix containing i.a. the damping functions
+          // Inverting (I+jD) is hence simply inverting its entries. Inverting A results in its transpose.
+          // Here the matrix is assembled directly in the multiplied version. The result is a symmetric matrix of the form:
+          // 
+          // / n1^2/s1  + t21^2/s2   + t31^2/s3       |    ...                                    |    ...                           \
+          // |
+          // | n1*n2/s1 + t21*t22/s2 + t31*t32/s3     |    n2^2/s1  + t22^2/s2   + t32^2/s3       |    ...                           |
+          // |
+          // \ n1*n3/s1 + t21*t23/s2 + t31*t33/s3     |    n2*n3/s1 + t22*t23/s2 + t32*t33/s3     |    n3^2/s1 + t23^2/s2 + t33^2/s3 /
+          tensor.Resize(3, 3);
+          tensor[0][0] = pow(n_[0],2)*s[0] + pow(tmin_[0],2)*s[1] + pow(tmax_[0],2)*s[2];
+          tensor[1][1] = pow(n_[1],2)*s[0] + pow(tmin_[1],2)*s[1] + pow(tmax_[1],2)*s[2];
+          tensor[2][2] = pow(n_[2],2)*s[0] + pow(tmin_[2],2)*s[1] + pow(tmax_[2],2)*s[2];
+          tensor[1][0] = n_[0]*n_[1]*s[0] + tmin_[0]*tmin_[1]*s[1] + tmax_[0]*tmax_[1]*s[2];
+          tensor[2][0] = n_[0]*n_[2]*s[0] + tmin_[0]*tmin_[2]*s[1] + tmax_[0]*tmax_[2]*s[2];
+          tensor[2][1] = n_[1]*n_[2]*s[0] + tmin_[1]*tmin_[2]*s[1] + tmax_[1]*tmax_[2]*s[2];
+          tensor[0][1] = tensor[1][0];
+          tensor[0][2] = tensor[2][0];
+          tensor[1][2] = tensor[2][1];
 
-      // compute the tensor as the inverse of the Jakobi matrix. The matrix can be factorized in three parts:
-      // J^-1 = A^T  * (I + jD)^-1 * A.
-      // A is an orthogonal (rotation) matrix containing the curvilinear base vectors (n, t1, t2)
-      // I is the identity matrixm, j the imaginary number
-      // D is a diagonal matrix containing i.a. the damping functions
-      // Inverting (I+jD) is hence simply inverting its entries. Inverting A results in its transpose.
-      // Here the matrix is assembled directly in the multiplied version. The result is a symmetric matrix of the form:
-      // 
-      // / n1^2/s1  + t21^2/s2   + t31^2/s3       |    ...                                    |    ...                           \
-      // |
-      // | n1*n2/s1 + t21*t22/s2 + t31*t32/s3     |    n2^2/s1  + t22^2/s2   + t32^2/s3       |    ...                           |
-      // |
-      // \ n1*n3/s1 + t21*t23/s2 + t31*t33/s3     |    n2*n3/s1 + t22*t23/s2 + t32*t33/s3     |    n3^2/s1 + t23^2/s2 + t33^2/s3 /
-      tensor.Resize(3, 3);
-      tensor[0][0] = pow(n_[0],2)*s[0] + pow(tmin_[0],2)*s[1] + pow(tmax_[0],2)*s[2];
-      tensor[1][1] = pow(n_[1],2)*s[0] + pow(tmin_[1],2)*s[1] + pow(tmax_[1],2)*s[2];
-      tensor[2][2] = pow(n_[2],2)*s[0] + pow(tmin_[2],2)*s[1] + pow(tmax_[2],2)*s[2];
-      tensor[1][0] = n_[0]*n_[1]*s[0] + tmin_[0]*tmin_[1]*s[1] + tmax_[0]*tmax_[1]*s[2];
-      tensor[2][0] = n_[0]*n_[2]*s[0] + tmin_[0]*tmin_[2]*s[1] + tmax_[0]*tmax_[2]*s[2];
-      tensor[2][1] = n_[1]*n_[2]*s[0] + tmin_[1]*tmin_[2]*s[1] + tmax_[1]*tmax_[2]*s[2];
-      tensor[0][1] = tensor[1][0];
-      tensor[0][2] = tensor[2][0];
-      tensor[1][2] = tensor[2][1];
-
-    } else {
-      EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
+        } else {
+          EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
+        }
+        break;
+      default:
+        EXCEPTION("CoefFunctionCurvilinearPML::GetTensor(Complex...) is used for OutputType: " <<
+                  "TENSOR only.");
     }
   };
 
   template<typename T>
   void CoefFunctionCurvilinearPML<T>::GetScalar(Complex& val, const LocPointMapped& lpm ) {
-    if (this->dim_ == 3)
-    {
-      // interpolate nodal values to local point
-      GetParamsAtLocalPoint(lpm);
+    switch(outputType_) {
+      case OutputType::DETERMINANT:
+        // compute parameters at lpm
+        GetDeterminantParams(lpm);
+        if (this->dim_ == 3)
+        {
+          // compute the current wave number
+          Double K = this->omega_ / sos_;
 
-      // compute the current wave number
-      Double K = this->omega_ / sos_;
+          // helper functions
+          Vector<Double> h = Vector<Double>(3);
+          h[0] = dampFunc_;
+          h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
+          h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
+          Double K2 = pow(K,2);  //square of wave number
 
-      // helper functions
-      Vector<Double> h = Vector<Double>(3);
-      h[0] = dampFunc_;
-      h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
-      h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
-      Double K2 = pow(K,2);  //square of wave number
-
-      // compute the determinant...
-      // the eigenvalues are of the form s_i = (1 + 1i/K * h[i]). 
-      // Hence, the determinant J = s_0*s_1*s_2 computes after multiplication and separation of real/imaginary part:
-      val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] - h[0]*h[1]) / K2, 
-                          (h[0]+h[1]+h[2]) / K -  (h[0]*h[1]*h[2])) / pow(K, 3);
-    } else {
-      EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
+          // compute the determinant...
+          // the eigenvalues are of the form s_i = (1 + 1i/K * h[i]). 
+          // Hence, the determinant J = s_0*s_1*s_2 computes after multiplication and separation of real/imaginary part:
+          val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] - h[0]*h[1]) / K2, 
+                              (h[0]+h[1]+h[2]) / K -  (h[0]*h[1]*h[2])) / pow(K, 3);
+        } else {
+          EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
+        }
+        break;
+      case OutputType::MIN_PRINC_CURV:
+        GetMinPrincCurvParams(lpm);
+        // convert to complex format
+        val = Complex(kmin_, 0);
+        break;
+      case OutputType::MAX_PRINC_CURV:
+        assert(this->dim_ == 3);
+        GetMaxPrincCurvParams(lpm);
+        // convert to complex format
+        val = Complex(kmax_, 0);
+        break;
+      case OutputType::DISTANCE:
+        GetDistParams(lpm);
+        // convert to complex format
+        val = Complex(dist_, 0);
+        break;
+      default:
+        EXCEPTION("CoefFunctionCurvilinearPML::GetScalar(Complex...) is used for OutputType: " <<
+                  "DETERMINANT, MIN_PRINC_CURV, MAX_PRINC_CURV, and DISTANCE only.");
     }
   };
 
   template<typename T>
-  void CoefFunctionCurvilinearPML<T>::GetParamsAtLocalPoint(const LocPointMapped& lpm) {
+  void CoefFunctionCurvilinearPML<T>::GetScalar(Double& val, const LocPointMapped& lpm ) {
+    // distinguish which output type is set and compute / interpolate only required parameters
+    switch(outputType_) {
+      case OutputType::MIN_PRINC_CURV:
+        GetMinPrincCurvParams(lpm);
+        val = kmin_;
+        break;
+      case OutputType::MAX_PRINC_CURV:
+        assert(this->dim_ == 3);
+        GetMaxPrincCurvParams(lpm);
+        val = kmax_;
+        break;
+      case OutputType::DISTANCE:
+        GetDistParams(lpm);
+        val = dist_;
+        break;
+      default:
+        EXCEPTION("CoefFunctionCurvilinearPML::GetScalar(Double...) is used for OutputType: " <<
+                  "MIN_PRINC_CURV, MAX_PRINC_CURV, and DISTANCE only.");
+    }
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetVector(Vector<Double>& val, const LocPointMapped& lpm ) {
+    // distinguish which output type is set and compute / interpolate only required parameters
+    switch(outputType_) {
+      case OutputType::NORM_VEC:
+        GetNormVecParams(lpm);
+        val = n_;
+        break;
+      case OutputType::MIN_PRINC_VEC:
+        GetMinPrincVecParams(lpm);
+        val = tmin_;
+        break;
+      case OutputType::MAX_PRINC_VEC:
+        assert(this->dim_ == 3);
+        GetMaxPrincVecParams(lpm);
+        val = tmax_;
+        break;
+      default:
+        EXCEPTION("CoefFunctionCurvilinearPML::GetVector(Vector<Double>...) is used for OutputType: " <<
+                  "NORM_VEC, MIN_PRINC_VEC, and MAX_PRINC_VEC only.");
+    }
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetVector(Vector<Complex>& val, const LocPointMapped& lpm ) {
+    // distinguish which output type is set and compute / interpolate only required parameters
+    // resize output vector
+    val.Resize(this->dim_);
+    switch(outputType_) {
+      case OutputType::DAMP_FACTOR:
+        // get the required parameters
+        GetDampFactorParams(lpm);
+        // compute eigenvalues of the PML matrix
+        if (this->dim_ == 3) {
+          // compute the current wave number
+          Double K = this->omega_ / sos_;
+          // helper functions
+          Vector<Double> h = Vector<Double>(3);
+          h[0] = dampFunc_;
+          h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
+          h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
+
+          // get the diagonal entries of (I+jD) with separated real- and imaginary part
+          for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+            val[iDim] = Complex(1, h[iDim] / K);
+          }
+        } else {
+          EXCEPTION("CoefFunctionCurvilinearPML::GetVector(Complex...) in 2D not implemented yet");
+        }
+        break;
+      case OutputType::NORM_VEC:
+        GetNormVecParams(lpm);
+        // convert to complex format
+        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+          val[iDim] = Complex(n_[iDim], 0);
+        }
+        break;
+      case OutputType::MIN_PRINC_VEC:
+        GetMinPrincVecParams(lpm);
+        // convert to complex format
+        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+          val[iDim] = Complex(tmin_[iDim], 0);
+        }
+        break;
+      case OutputType::MAX_PRINC_VEC:
+        assert(this->dim_ == 3);
+        GetMaxPrincVecParams(lpm);
+        // convert to complex format
+        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+          val[iDim] = Complex(tmax_[iDim], 0);
+        }
+        break;
+      default:
+        EXCEPTION("CoefFunctionCurvilinearPML::GetVector(Vector<Complex>...) is used for OutputType: " <<
+                  "DAMP_FACTOR, NORM_VEC, MIN_PRINC_VEC, and MAX_PRINC_VEC only.");
+    }
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetTensorParams(const LocPointMapped& lpm) {
+    // here we need all quantites...
     // get a pointer to the considered element from the lpm
     const Elem* ptrElem = NULL;
     ptrElem = lpm.ptEl;
@@ -690,153 +816,476 @@ namespace CoupledField{
     // get Base Fe, which provides the shape functions for interpolating with the identity operator 
     BaseFE* ptrFe = ptrEsm->GetBaseFE();
 
-    // distinguish how many params we require...
-    // when we compute a tensor we require for the whole geometry
-    if (this->dimType_ == CoefFunction::TENSOR) {
-      // in 2D we only use the tmin_ as tangential vector and kmin_ as curvature
-      if (this->dim_ == 2) {
-        Vector<Double> normVec(numElemNodes * this->dim_);
-        Vector<Double> tangVec(numElemNodes * this->dim_);
-        Vector<Double> curv(numElemNodes);
-        // and on node-to-interface distances
-        Vector<Double> dist(numElemNodes);
-
-        // loop over element nodes and get quantities
-        for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-          nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-          // loop over vector entries and store in stacked vector
-          for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-            vecIdx = iDim + this->dim_ * iNodes;
-            normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
-            tangVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
-          }
-          curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
-          dist[iNodes] = thicknessOnNodes_[nodeIdx];
-        }
-
-        // create helper variables for scalars because ApplyOp only takes Vectors
-        Vector<Double> k(1);
-        Vector<Double> d(1);
-
-        // interpolate from nodes to the local point mapped
-        this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
-        this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,tangVec);
-        this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
-        this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
-        // extract from vector
-        kmin_ = k[0];
-        dist_ = d[0];
-      } // dim_ == 2
-
-      else if (this->dim_ == 3) {
-        // vectors with extracted geometry data
-        Vector<Double> normVec(numElemNodes * this->dim_);
-        Vector<Double> minPrincVec(numElemNodes * this->dim_);
-        Vector<Double> maxPrincVec(numElemNodes * this->dim_);
-        Vector<Double> minPrincCurv(numElemNodes);
-        Vector<Double> maxPrincCurv(numElemNodes);
-        // and on node-to-interface distances
-        Vector<Double> dist(numElemNodes);
-
-        // loop over element nodes and get quantities
-        for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-          nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-          // loop over vector entries and store in stacked vector
-          for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-            vecIdx = iDim + this->dim_ * iNodes;
-            normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
-            minPrincVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
-            maxPrincVec[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iDim];
-          }
-          minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
-          maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
-          dist[iNodes] = thicknessOnNodes_[nodeIdx];
-        }
-
-        // create helper variables for scalars because ApplyOp only takes Vectors
-        Vector<Double> kmin(1);
-        Vector<Double> kmax(1);
-        Vector<Double> d(1);
-
-        // interpolate from nodes to the local point mapped
-        this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
-        this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,minPrincVec);
-        this->vectorMappingOperator_->ApplyOp(tmax_,lpm,ptrFe,maxPrincVec);
-        this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
-        this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
-        this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
-        // extract from vector
-        kmin_ = kmin[0];
-        kmax_ = kmax[0];
-        dist_ = dist[0];
-      } // dim_ == 3
-    } // dimType_ == CoefFunction::TENSOR
-
-    // for the scalar (=Jakobi determinant), we only need of the some parameters
-    else if (this->dimType_ == CoefFunction::SCALAR) {
     // in 2D we only use the tmin_ as tangential vector and kmin_ as curvature
-      if (this->dim_ == 2) {
-        // vectors with extracted geometry data
-        Vector<Double> curv(numElemNodes);
-        // and on node-to-interface distances
-        Vector<Double> dist(numElemNodes);
+    if (this->dim_ == 2) {
+      Vector<Double> normVec(numElemNodes * this->dim_);
+      Vector<Double> tangVec(numElemNodes * this->dim_);
+      Vector<Double> curv(numElemNodes);
+      // and on node-to-interface distances
+      Vector<Double> dist(numElemNodes);
 
-        // loop over element nodes and get quantities
-        for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-          nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-          curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
-          dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      // loop over element nodes and get quantities
+      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+        // loop over vector entries and store in stacked vector
+        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+          vecIdx = iDim + this->dim_ * iNodes;
+          normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
+          tangVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
         }
+        curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+        dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      }
 
-        // create helper variables for scalars because ApplyOp only takes Vectors
-        Vector<Double> k(1);
-        Vector<Double> d(1);
+      // create helper variables for scalars because ApplyOp only takes Vectors
+      Vector<Double> k(1);
+      Vector<Double> d(1);
 
-        // interpolate from nodes to the local point mapped
-        this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
-        this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
-        // extract from vector
-        kmin_ = k[0];
-        dist_ = d[0];
-      } // dim_ == 2
-      else if (this->dim_ == 3) {
-        // vectors with extracted geometry data
-        Vector<Double> minPrincCurv(numElemNodes);
-        Vector<Double> maxPrincCurv(numElemNodes);
-        // and on node-to-interface distances
-        Vector<Double> dist(numElemNodes);
+      // interpolate from nodes to the local point mapped
+      this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
+      this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,tangVec);
+      this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
+      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+      // extract from vector
+      kmin_ = k[0];
+      dist_ = d[0];
+    } // dim_ == 2
 
-        // loop over element nodes and get quantities
-        for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-          nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-          minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
-          maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
-          dist[iNodes] = thicknessOnNodes_[nodeIdx];
+    else if (this->dim_ == 3) {
+      // vectors with extracted geometry data
+      Vector<Double> normVec(numElemNodes * this->dim_);
+      Vector<Double> minPrincVec(numElemNodes * this->dim_);
+      Vector<Double> maxPrincVec(numElemNodes * this->dim_);
+      Vector<Double> minPrincCurv(numElemNodes);
+      Vector<Double> maxPrincCurv(numElemNodes);
+      // and on node-to-interface distances
+      Vector<Double> dist(numElemNodes);
+
+      // loop over element nodes and get quantities
+      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+        // loop over vector entries and store in stacked vector
+        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+          vecIdx = iDim + this->dim_ * iNodes;
+          normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
+          minPrincVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
+          maxPrincVec[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iDim];
         }
+        minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+        maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
+        dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      }
 
-        // create helper variables for scalars because ApplyOp only takes Vectors
-        Vector<Double> kmin(1);
-        Vector<Double> kmax(1);
-        Vector<Double> d(1);
+      // create helper variables for scalars because ApplyOp only takes Vectors
+      Vector<Double> kmin(1);
+      Vector<Double> kmax(1);
+      Vector<Double> d(1);
 
-        // interpolate from nodes to the local point mapped
-        this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
-        this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
-        this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
-        // extract from vector
-        kmin_ = kmin[0];
-        kmax_ = kmax[0];
-        dist_ = dist[0];
-      } // dim_ == 3
-    } // dimType_ == CoefFunction::SCALAR
-
+      // interpolate from nodes to the local point mapped
+      this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
+      this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,minPrincVec);
+      this->vectorMappingOperator_->ApplyOp(tmax_,lpm,ptrFe,maxPrincVec);
+      this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
+      this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
+      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+      // extract from vector
+      kmin_ = kmin[0];
+      kmax_ = kmax[0];
+      dist_ = dist[0];
+    } // dim_ == 3
     // get the damping function and its integral at the mapped distance
     dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
     intDampFunc_ = this->dampFunction_->ComputeIntegralFactor(dist_, layerThickness_);
 
     // finally, get the speed of sound at current lpm
     this->speedOfSound_->GetScalar(sos_,lpm);
-  }
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetDeterminantParams(const LocPointMapped& lpm) {
+    // here we only need curvarute and distances...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+    // in 2D we only use the tmin_ as tangential vector and kmin_ as curvature
+    if (this->dim_ == 2) {
+      // vectors with extracted geometry data
+      Vector<Double> curv(numElemNodes);
+      // and on node-to-interface distances
+      Vector<Double> dist(numElemNodes);
+
+      // loop over element nodes and get quantities
+      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+        curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+        dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      }
+
+      // create helper variables for scalars because ApplyOp only takes Vectors
+      Vector<Double> k(1);
+      Vector<Double> d(1);
+
+      // interpolate from nodes to the local point mapped
+      this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
+      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+      // extract from vector
+      kmin_ = k[0];
+      dist_ = d[0];
+    } // dim_ == 2
+    else if (this->dim_ == 3) {
+      // vectors with extracted geometry data
+      Vector<Double> minPrincCurv(numElemNodes);
+      Vector<Double> maxPrincCurv(numElemNodes);
+      // and on node-to-interface distances
+      Vector<Double> dist(numElemNodes);
+
+      // loop over element nodes and get quantities
+      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+        minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+        maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
+        dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      }
+
+      // create helper variables for scalars because ApplyOp only takes Vectors
+      Vector<Double> kmin(1);
+      Vector<Double> kmax(1);
+      Vector<Double> d(1);
+
+      // interpolate from nodes to the local point mapped
+      this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
+      this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
+      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+      // extract from vector
+      kmin_ = kmin[0];
+      kmax_ = kmax[0];
+      dist_ = dist[0];
+    } // dim_ == 3
+    // get the damping function and its integral at the mapped distance
+    dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
+    intDampFunc_ = this->dampFunction_->ComputeIntegralFactor(dist_, layerThickness_);
+
+    // finally, get the speed of sound at current lpm
+    this->speedOfSound_->GetScalar(sos_,lpm);
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetDampFactorParams(const LocPointMapped& lpm) {
+    // here we don't need to interpolate the geometry vectors...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+    
+    // in 2D we only use the kmin_ as curvature
+    if (this->dim_ == 2) {
+      Vector<Double> curv(numElemNodes);
+      // and on node-to-interface distances
+      Vector<Double> dist(numElemNodes);
+
+      // loop over element nodes and get quantities
+      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+        curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+        dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      }
+
+      // create helper variables for scalars because ApplyOp only takes Vectors
+      Vector<Double> k(1);
+      Vector<Double> d(1);
+
+      // interpolate from nodes to the local point mapped
+      this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
+      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+      // extract from vector
+      kmin_ = k[0];
+      dist_ = d[0];
+    } // dim_ == 2
+
+    else if (this->dim_ == 3) {
+      // vectors with extracted geometry data
+      Vector<Double> minPrincCurv(numElemNodes);
+      Vector<Double> maxPrincCurv(numElemNodes);
+      // and on node-to-interface distances
+      Vector<Double> dist(numElemNodes);
+
+      // loop over element nodes and get quantities
+      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+        minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+        maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
+        dist[iNodes] = thicknessOnNodes_[nodeIdx];
+      }
+
+      // create helper variables for scalars because ApplyOp only takes Vectors
+      Vector<Double> kmin(1);
+      Vector<Double> kmax(1);
+      Vector<Double> d(1);
+
+      // interpolate from nodes to the local point mapped
+      this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
+      this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
+      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+      // extract from vector
+      kmin_ = kmin[0];
+      kmax_ = kmax[0];
+      dist_ = dist[0];
+    } // dim_ == 3
+    // get the damping function and its integral at the mapped distance
+    dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
+    intDampFunc_ = this->dampFunction_->ComputeIntegralFactor(dist_, layerThickness_);
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetNormVecParams(const LocPointMapped& lpm) {
+    // here we need to interpolate only the normal vectors...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // index for vectorial quantities on nodes stored in Vector
+    UInt vecIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+    Vector<Double> normVec(numElemNodes * this->dim_);
+    // loop over element nodes and get quantities
+    for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+      nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+      // loop over vector entries and store in stacked vector
+      for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+        vecIdx = iDim + this->dim_ * iNodes;
+        normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
+      }
+    }
+    // interpolate from nodes to the local point mapped
+    this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetMinPrincVecParams(const LocPointMapped& lpm) {
+    // here we need to interpolate only the minimum principal vectors...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // index for vectorial quantities on nodes stored in Vector
+    UInt vecIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+    Vector<Double> minPrincVec(numElemNodes * this->dim_);
+    // loop over element nodes and get quantities
+    for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+      nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+      // loop over vector entries and store in stacked vector
+      for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+        vecIdx = iDim + this->dim_ * iNodes;
+        minPrincVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
+      }
+    }
+    // interpolate from nodes to the local point mapped
+    this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,minPrincVec);
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetMinPrincCurvParams(const LocPointMapped& lpm) {
+    // here we need to interpolate only the minimum principal curvatures...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+    Vector<Double> curv(numElemNodes);
+    // loop over element nodes and get quantities
+    for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+      nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+      curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+    }
+    // create helper variables for scalars because ApplyOp only takes Vectors
+    Vector<Double> k(1);
+    // interpolate from nodes to the local point mapped
+    this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
+    // extract from vector
+    kmin_ = k[0];
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetMaxPrincVecParams(const LocPointMapped& lpm) {
+    // here we need to interpolate only the maximum principal vectors...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // index for vectorial quantities on nodes stored in Vector
+    UInt vecIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+    Vector<Double> maxPrincVec(numElemNodes * this->dim_);
+    // loop over element nodes and get quantities
+    for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+      nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+      // loop over vector entries and store in stacked vector
+      for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+        vecIdx = iDim + this->dim_ * iNodes;
+        maxPrincVec[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iDim];
+      }
+    }
+    // interpolate from nodes to the local point mapped
+    this->vectorMappingOperator_->ApplyOp(tmax_,lpm,ptrFe,maxPrincVec);
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetMaxPrincCurvParams(const LocPointMapped& lpm) {
+    // here we need to interpolate only the maximum principal curvatures...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+    Vector<Double> curv(numElemNodes);
+    // loop over element nodes and get quantities
+    for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+      nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+      curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+    }
+    // create helper variables for scalars because ApplyOp only takes Vectors
+    Vector<Double> k(1);
+    // interpolate from nodes to the local point mapped
+    this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
+    // extract from vector
+    kmax_ = k[0];
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetDistParams(const LocPointMapped& lpm) {
+    // here we need to interpolate only the nodal distances to the interface...
+    // get a pointer to the considered element from the lpm
+    const Elem* ptrElem = NULL;
+    ptrElem = lpm.ptEl;
+    // the global element ID
+    UInt elemId = ptrElem->GetElemNum();
+    // get the nodes connected to the element
+    StdVector<UInt> nodeIds;
+    grid_->GetElemNodes(nodeIds, elemId);
+    // index of a node id
+    UInt nodeIdx;
+    // number of nodes in element
+    UInt numElemNodes = nodeIds.GetSize();
+
+    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+
+    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+    BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+    Vector<Double> dist(numElemNodes);
+    // loop over element nodes and get quantities
+    for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+      nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+      dist[iNodes] = thicknessOnNodes_[nodeIdx];
+    }
+    // create helper variables for scalars because ApplyOp only takes Vectors
+    Vector<Double> d(1);
+    // interpolate from nodes to the local point mapped
+    this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+    // extract from vector
+    dist_ = d[0];
+  };
 
   template<typename T>
   UInt CoefFunctionCurvilinearPML<T>::GetIdxByNodeId(const UInt& nodeId) const {
@@ -865,10 +1314,93 @@ namespace CoupledField{
       }
     } else {
       // should be made more efficient in future!!
-      int tmpIdx2 = ptrNodeGeom_->nodeIds_.Find(nodeId, 0, false);
+      unsigned int guess = 0;
+      int tmpIdx2 = ptrNodeGeom_->nodeIds_.Find(nodeId, guess, false);
       idx = tmpIdx2;
     }
     return idx;
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::GetThicknessOnNodes() {
+    if (layerGenNode_) {
+      // every iso surface in the automatically generated layer has the 
+      // same number of nodes. Hence, finding the thickness at nodes is easy...
+      // iterate over all surface layers (generated and the interface) and assign
+      for (UInt iLayers = 0; iLayers <= numLayers_; iLayers++) {
+        for (UInt iNodes = 0; iNodes < numSurfNodes_; iNodes++) {
+          thicknessOnNodes_.Push_back(elemHeight_ * iLayers);
+        }
+      }
+    } else {
+      // room for future implementation that e.g. reads data from a file
+      EXCEPTION("CoefFunctionCurvilinearPML::GetThicknessOnNodes currently only implemented with auto layer generation specified.");
+    }
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::CreateMappingOperators(){
+    // create identity operators for 2D or 3D problems
+    if (this->dim_ == 2) {
+      this->scalarMappingOperator_.reset(new IdentityOperator<FeH1,2,1,Double>());
+      // in the tensor or vector case we also need to interpolate vector quantites
+      if (this->dimType_ == CoefFunction::TENSOR || this->dimType_ == CoefFunction::VECTOR)
+        this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,2,3,Double>());
+    }
+    else if (this->dim_ == 3) {
+      this->scalarMappingOperator_.reset(new IdentityOperator<FeH1,3,1,Double>());
+      // in the tensor or vector case we also need to interpolate vector quantites
+      if (this->dimType_ == CoefFunction::TENSOR || this->dimType_ == CoefFunction::VECTOR)
+        this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,3,3,Double>());
+    }
+  };
+
+  template<typename T>
+  void CoefFunctionCurvilinearPML<T>::SetDimType() {
+    switch (outputType_) {
+      case OutputType::TENSOR:
+        this->dimType_ = CoefFunction::TENSOR;
+        break;
+      case OutputType::DETERMINANT:
+        this->dimType_ = CoefFunction::SCALAR;
+        break;
+      case OutputType::DAMP_FACTOR:
+        this->dimType_ = CoefFunction::VECTOR;
+        break;
+      case OutputType::NORM_VEC:
+        this->dimType_ = CoefFunction::VECTOR;
+        break;
+      case OutputType::MIN_PRINC_VEC:
+        this->dimType_ = CoefFunction::VECTOR;
+        break;
+      case OutputType::MIN_PRINC_CURV:
+        this->dimType_ = CoefFunction::SCALAR;
+        break;
+      case OutputType::MAX_PRINC_VEC:
+        // not used in 2D
+        if (this->dim_ != 3) {
+          EXCEPTION("In CoefFunctionCurvilinearPML: outputType '" << outputType_ <<
+                    "' is only valid for 3D problems.");
+        } else {
+          this->dimType_ = CoefFunction::VECTOR;
+          break;
+        }
+      case OutputType::MAX_PRINC_CURV:
+        // not used in 2D
+        if (this->dim_ != 3) {
+          EXCEPTION("In CoefFunctionCurvilinearPML: outputType '" << outputType_ <<
+                    "' is only valid for 3D problems.");
+        } else {
+          this->dimType_ = CoefFunction::SCALAR;
+          break;
+        }
+      case OutputType::DISTANCE:
+        this->dimType_ = CoefFunction::SCALAR;
+        break;
+      default:
+        EXCEPTION("In CoefFunctionCurvilinearPML: outputType '" << outputType_ <<
+                        "' is invalid.");
+    }
   };
 
   template<typename T>
@@ -970,40 +1502,6 @@ namespace CoupledField{
       if (nodeFound == false) {
         EXCEPTION("Specified PML layer not found in autoLayerGenerationList");
       }
-    }
-  };
-
-  template<typename T>
-  void CoefFunctionCurvilinearPML<T>::GetThicknessOnNodes() {
-    if (layerGenNode_) {
-      // every iso surface in the automatically generated layer has the 
-      // same number of nodes. Hence, finding the thickness at nodes is easy...
-      // iterate over all surface layers (generated and the interface) and assign
-      for (UInt iLayers = 0; iLayers <= numLayers_; iLayers++) {
-        for (UInt iNodes = 0; iNodes < numSurfNodes_; iNodes++) {
-          thicknessOnNodes_.Push_back(elemHeight_ * iLayers);
-        }
-      }
-    } else {
-      // room for future implementation that e.g. reads data from a file
-      EXCEPTION("CoefFunctionCurvilinearPML::GetThicknessOnNodes currently only implemented with auto layer generation specified.");
-    }
-  };
-
-  template<typename T>
-  void CoefFunctionCurvilinearPML<T>::CreateMappingOperators(){
-    // create identity operators for 2D or 3D problems
-    if (this->dim_ == 2) {
-      this->scalarMappingOperator_.reset(new IdentityOperator<FeH1,2,1,Double>());
-      // in the tensor case we also need to interpolate vector quantites
-      if (this->dimType_ == CoefFunction::TENSOR)
-        this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,2,3,Double>());
-    }
-    else if (this->dim_ == 3) {
-      this->scalarMappingOperator_.reset(new IdentityOperator<FeH1,3,1,Double>());
-      // in the tensor case we also need to interpolate vector quantites
-      if (this->dimType_ == CoefFunction::TENSOR)
-        this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,3,3,Double>());
     }
   };
 
