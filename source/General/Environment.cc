@@ -346,7 +346,25 @@ namespace CoupledField {
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL_DERIV1, "gradElecPotentialD1");
     SolutionTypeEnum.Add(ELEM_DENSITY, "density");
-    SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");
+
+    // PML parameters for all formulations
+    SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor"); // eigenvalues of the PML tensor, stacked in a vector 
+                                                            // (=diagonal entries for classic and shifted PML, and 
+                                                            // diagonal entries of the 'inner' tensor for curvilinear PML)
+    // PML parameters for curvilinear PML only
+    SolutionTypeEnum.Add(PML_TENSOR, "pmlTensor"); // whole PML operation tensor of the curvilinear PML
+    SolutionTypeEnum.Add(PML_DETERMINANT, "pmlDeterminant"); // the determinant of the PML tensor
+    SolutionTypeEnum.Add(PML_NORM_VEC, "pmlNORM_VEC"); // normal vectors of the curvilinear PML
+    SolutionTypeEnum.Add(PML_MIN_PRINC_VEC, "pmlMinPrincVec"); // minimum principal direction vectors of the curvilinear PML
+                                                               // (in 2D used as the tangential vector)
+    SolutionTypeEnum.Add(PML_MAX_PRINC_VEC, "pmlMaxPrincVec"); // maximum principal direction vectors of the curvilinear PML
+                                                               // (in 2D not set)
+    SolutionTypeEnum.Add(PML_MIN_PRINC_CURV, "pmlMinPrincCurv"); // minimum principal curvatures of the curvilinear PML
+                                                                 // (in 2D used as the curvature)
+    SolutionTypeEnum.Add(PML_MAX_PRINC_CURV, "pmlMaxPrincCurv"); // maximum principal curvatures of the curvilinear PML
+                                                                 // (in 2D not set)
+    SolutionTypeEnum.Add(PML_DISTANCE, "pmlDistance"); // distance between point and the PML interface
+
 
     // General (grid related) results
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
