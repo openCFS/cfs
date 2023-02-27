@@ -62,12 +62,12 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "23")
-set(CFS_VERSION_MONTH "02")
+set(CFS_VERSION_MONTH "03")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
 # shall be updated less frequently than VERSION
-set(CFS_NAME "Welcome World")
+set(CFS_NAME "Heavy Headache")
 
 colormsg(HIBLUE "Configuration for openCFS ${CFS_VERSION}: ${CFS_NAME} starting")
 

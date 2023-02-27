@@ -1182,12 +1182,12 @@ release:
     assets:
       # add links to downloads
       # format: https://gitlab.com/openCFS/cfs/-/releases/:release/downloads/:filepath
-      # or permanent link to latest version: https://gitlab.com/openCFS/cfs/-/releases/permalink/latest/downloads/:filepath
+      # or permanent link to the latest version: https://gitlab.com/openCFS/cfs/-/releases/permalink/latest/downloads/:filepath
       links:
         - name: 'Linux binary (tar.gz)'
           url: "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}" # uploaded by 'package' job before
-          filepath: '/CFS-Linux.tar.gz' # optional, but requred for 'latest', defines the url (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
-          link_type: 'package' # optional, defines the section aind icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
+          filepath: '/CFS-Linux.tar.gz' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
+          link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
 
 copy_to_draco:
   dependencies:
