@@ -220,7 +220,7 @@ namespace CoupledField{
   template<typename T>
   void CoefFunctionPML<T>::GetScalar(Complex& val,
                                 const LocPointMapped& lpm ){
-    //computes (1-j pml_x/omega) *(1-j pml_y/omega)*(1-j pml_z/omega))
+    //computes (1-j pml_x/K) *(1-j pml_y/K)*(1-j pml_z/K))
     Double locThick=0.0;
     Double position=0.0;
     Complex dummy(1.0,0.0);
@@ -605,7 +605,8 @@ namespace CoupledField{
           Vector<Complex> s = Vector<Complex>(3);
           for (UInt iDim = 0; iDim < 3; ++iDim) {
             denominator = 1.0 + h[iDim] / K2;
-            s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator);
+            s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
+            //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
           }
 
           // compute the tensor as the inverse of the Jakobi matrix. The matrix can be factorized in three parts:
@@ -631,7 +632,6 @@ namespace CoupledField{
           tensor[0][1] = tensor[1][0];
           tensor[0][2] = tensor[2][0];
           tensor[1][2] = tensor[2][1];
-
         } else {
           EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
         }
@@ -661,10 +661,15 @@ namespace CoupledField{
           Double K2 = pow(K,2);  //square of wave number
 
           // compute the determinant...
-          // the eigenvalues are of the form s_i = (1 + 1i/K * h[i]). 
+          // the eigenvalues are of the form s_i = (1 + 1i/K * h[i]).
+          val = Complex(1.0, -h[0]/K) * Complex(1.0, -h[1]/K) * Complex(1.0, -h[2]/K); //inv
+          //val = Complex(1.0, h[0]/K) * Complex(1.0, h[1]/K) * Complex(1.0, h[2]/K); //orig
+
           // Hence, the determinant J = s_0*s_1*s_2 computes after multiplication and separation of real/imaginary part:
-          val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] - h[0]*h[1]) / K2, 
-                              (h[0]+h[1]+h[2]) / K -  (h[0]*h[1]*h[2])) / pow(K, 3);
+          //val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] + h[0]*h[1]) / K2, 
+          //                   -(h[0]+h[1]+h[2]) / K + (h[0]*h[1]*h[2]) / pow(K, 3)); //inv
+          //val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] + h[0]*h[1]) / K2, 
+          //                    (h[0]+h[1]+h[2]) / K - (h[0]*h[1]*h[2]) / pow(K, 3)); //orig
         } else {
           EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
         }
@@ -891,7 +896,16 @@ namespace CoupledField{
       // extract from vector
       kmin_ = kmin[0];
       kmax_ = kmax[0];
-      dist_ = dist[0];
+      dist_ = d[0];
+
+      // test nodal principal vectors to avoid interpolation error....
+      tmin_[0] = minPrincVec[0];
+      tmin_[1] = minPrincVec[1];
+      tmin_[2] = minPrincVec[2];
+      tmax_[0] = maxPrincVec[0];
+      tmax_[1] = maxPrincVec[1];
+      tmax_[2] = maxPrincVec[2];
+      //...
     } // dim_ == 3
     // get the damping function and its integral at the mapped distance
     dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
@@ -975,7 +989,7 @@ namespace CoupledField{
       // extract from vector
       kmin_ = kmin[0];
       kmax_ = kmax[0];
-      dist_ = dist[0];
+      dist_ = d[0];
     } // dim_ == 3
     // get the damping function and its integral at the mapped distance
     dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
@@ -1031,7 +1045,6 @@ namespace CoupledField{
       kmin_ = k[0];
       dist_ = d[0];
     } // dim_ == 2
-
     else if (this->dim_ == 3) {
       // vectors with extracted geometry data
       Vector<Double> minPrincCurv(numElemNodes);
@@ -1059,11 +1072,13 @@ namespace CoupledField{
       // extract from vector
       kmin_ = kmin[0];
       kmax_ = kmax[0];
-      dist_ = dist[0];
+      dist_ = d[0];
     } // dim_ == 3
     // get the damping function and its integral at the mapped distance
     dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
     intDampFunc_ = this->dampFunction_->ComputeIntegralFactor(dist_, layerThickness_);
+    // finally, get the speed of sound at current lpm
+    this->speedOfSound_->GetScalar(sos_,lpm);
   };
 
   template<typename T>
@@ -1290,7 +1305,8 @@ namespace CoupledField{
   template<typename T>
   UInt CoefFunctionCurvilinearPML<T>::GetIdxByNodeId(const UInt& nodeId) const {
     UInt idx = 0;
-    if (layerGenNode_) {
+    // todo: fix searching algorithm
+    if (false) { //(layerGenNode_) {
       UInt tmpIdx, tmpId;
       // assume ordered nodes and use the knowledge of the layer generation params to obtain the index
       // loop over surface regions in layer and check if id lies on current surface
@@ -1327,8 +1343,8 @@ namespace CoupledField{
       // every iso surface in the automatically generated layer has the 
       // same number of nodes. Hence, finding the thickness at nodes is easy...
       // iterate over all surface layers (generated and the interface) and assign
-      for (UInt iLayers = 0; iLayers <= numLayers_; iLayers++) {
-        for (UInt iNodes = 0; iNodes < numSurfNodes_; iNodes++) {
+      for (UInt iLayers = 0; iLayers <= numLayers_; ++iLayers) {
+        for (UInt iNodes = 0; iNodes < numSurfNodes_; ++iNodes) {
           thicknessOnNodes_.Push_back(elemHeight_ * iLayers);
         }
       }
