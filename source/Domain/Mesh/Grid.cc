@@ -617,7 +617,7 @@ namespace CoupledField
         StdVector<RegionIdType> surfRegionIds;
         RegionIdType currSurfRegion;
         this->GetConnectedSurfaceRegions(surfRegionIds, regionId);
-        for (UInt iSurfRegion = 0; iSurfRegion < surfRegionIds.GetSize(); iSurfRegion++) {
+        for (UInt iSurfRegion = 0; iSurfRegion < surfRegionIds.GetSize(); ++iSurfRegion) {
           currSurfRegion = surfRegionIds[iSurfRegion];
           // check for every connected iso surface if the geometry is already computed. If not, compute.
           if (geometryRegionMap_.count(currSurfRegion) == 0) {
