@@ -2930,11 +2930,11 @@ namespace CoupledField {
 
     // check if specified surface region actually exist..
     // loop over specified layer generations
-    for (UInt iLayers = 0; iLayers < numGenLayers; iLayers++) {
+    for (UInt iLayers = 0; iLayers < numGenLayers; ++iLayers) {
       actLayerGenNode = layerGenNode->GetChildren()[iLayers];
 
       // loop over surface regions on grid and compare
-      for (RegionIdType iSurfRegion = 0; iSurfRegion < this->GetNumSurfRegions(); iSurfRegion++) {
+      for (RegionIdType iSurfRegion = 0; iSurfRegion < this->GetNumSurfRegions(); ++iSurfRegion) {
         actLayerGenNode->GetValue("surfRegionToActOn", surfRegionName);
         regionNameOnGrid = this->GetRegion().ToString(surfRegionIds_[iSurfRegion]);
         
@@ -3033,13 +3033,14 @@ namespace CoupledField {
     allLayerNodeIds[0] = surfRegionNodeIds;
     UInt newNodeId;
     // compute new nodes iteratively...
-    for (UInt iLayers = 1; iLayers <= numLayers; iLayers++) {
+    for (UInt iLayers = 1; iLayers <= numLayers; ++iLayers) {
       allLayerNodeIds[iLayers].Resize(numSurfNodes);
-      for (UInt iNodes = 0; iNodes < numSurfNodes; iNodes++) {
+      for (UInt iNodes = 0; iNodes < numSurfNodes; ++iNodes) {
         // compute new node coordinates
         currNodeCoords[iNodes] += geometryRegionMap_[surfRegionId]->normalVectors_[iNodes] * elemHeight;
         // add new node to grid
         this->AddNode( currNodeCoords[iNodes], newNodeId );
+        // WARN("Added Node with ID " << newNodeId << " on layer " << iLayers);
         // store iD
         allLayerNodeIds[iLayers][iNodes] = newNodeId;
       }
@@ -3059,7 +3060,7 @@ namespace CoupledField {
       addedSurfElems.Resize(numLayers);
       addedSurfElemIds.Resize(numLayers);
       // iteratively create layer (volume) elements, iso-surface regions and surface elements
-      for (UInt iLayers = 0; iLayers < numLayers; iLayers++) {
+      for (UInt iLayers = 0; iLayers < numLayers; ++iLayers) {
         addedElems[iLayers].Resize(numSurfElems);
         addedElemIds[iLayers].Resize(numSurfElems);
         addedSurfElems[iLayers].Resize(numSurfElems);
@@ -3070,7 +3071,7 @@ namespace CoupledField {
         newSurfRegionId = this->AddRegion(newSurfRegionName, SURFACE_REGION);
 
         // add new elements...
-        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
+        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; ++iSurfElems) {
           // create new elements. They will (hopefully!) be deleted in the end of the simulation
           addedElems[iLayers][iSurfElems] = new Elem;
           addedSurfElems[iLayers][iSurfElems] = new SurfElem;
@@ -3080,7 +3081,7 @@ namespace CoupledField {
         AddSurfaceElems( newSurfRegionId, addedSurfElems[iLayers], addedSurfElemIds[iLayers]);
 
         // next, we need to set all the necessary information for the new elements...
-        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; iSurfElems++) {
+        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; ++iSurfElems) {
           // get type of current surface element
           currSurfElemType = surfRegionElems[iSurfElems]->type;
           // check for type of the surface element and assign type of layer element accordingly
@@ -3108,7 +3109,7 @@ namespace CoupledField {
             connectNodeIdx[iSurfElems].Resize(numNodesInSurfElement);
             // find the indices of the connection list of the surface elements as we need them 
             // to assign the connections in the new layer elements
-            for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {
+            for (UInt iNode = 0; iNode < numNodesInSurfElement; ++iNode) {
               connectNodeIdx[iSurfElems][iNode] = allLayerNodeIds[0].Find(surfElemConnectivity[iSurfElems][iNode]);
             }
             // check if the new elements have more nodes than elements in the original grid and set 
@@ -3118,7 +3119,7 @@ namespace CoupledField {
 
           // assign connectivity to current layer element...
           layerConnectivity.Resize(numNodesInLayerElement);
-          for (UInt iNode = 0; iNode < numNodesInSurfElement; iNode++) {
+          for (UInt iNode = 0; iNode < numNodesInSurfElement; ++iNode) {
             layerConnectivity[iNode] = allLayerNodeIds[iLayers][connectNodeIdx[iSurfElems][iNode]];
             layerConnectivity[iNode+numNodesInSurfElement] = allLayerNodeIds[iLayers+1][connectNodeIdx[iSurfElems][iNode]];
           }
@@ -3191,7 +3192,7 @@ namespace CoupledField {
     Vector<Double> innerPoint = Vector<Double>(3,0);
     // compute the average of all points in the current point cloud to obtain a 
     // point inside the convex layer (needed for orienting the normal vectors)
-    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; iSurfNodes++) {
+    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; ++iSurfNodes) {
       innerPoint[0] += surfNodeCoords[iSurfNodes][0];
       innerPoint[1] += surfNodeCoords[iSurfNodes][1];
       innerPoint[2] += surfNodeCoords[iSurfNodes][2];
@@ -3213,11 +3214,11 @@ namespace CoupledField {
     // add new entry in the geometryRegionMap_ to store geometry
     geometryRegionMap_[surfRegionId] = shared_ptr<NodeGeometry>(new NodeGeometry(numNodes));
     // set the node Ids to the struct
-    geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds; 
+    geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds;
     
     // compute surface normals. We need to iterate ofer every surface node and 
     // gather at least the 1-ring neighbourhood for approximation
-    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; iSurfNodes++) {
+    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; ++iSurfNodes) {
       currNodeIds.Clear();
       currNodeIds.Push_back(nodeIds[iSurfNodes]);
       // gather enough points for monge fitting
@@ -3241,10 +3242,11 @@ namespace CoupledField {
 
       // vector from inner point to current vertex in the DVector format that is used by CGAL.
       DVector innerVec(innerPoint_3, coordsPoint_3[0]);
-      // if the scalar product of innerVec and the normal vector is very small (surface is not curved),
+      // if the surface is not curved,
       // use a vector in positive (x,y,z) direction for the very first entry and previous normal vectors
       // for every other.
-      if ( abs(innerVec * mongeForm.normal_direction()) < 10E-3) {
+      if (abs(mongeForm.principal_curvatures(0)) < 10E-3 ||
+          abs(mongeForm.principal_curvatures(1)) < 10E-3) {
         innerVec = oldInnerVec;
       }
       // now that we have defined our desired direction, orient the monge base accordingly
@@ -3271,10 +3273,12 @@ namespace CoupledField {
           tempVec[2] = mongeForm.maximal_principal_direction().z();
           geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iSurfNodes] = tempVec;
           // minimum principal curvatures
-          tempVar = mongeForm.principal_curvatures(1);
+          //tempVar = mongeForm.principal_curvatures(1);      // signed curvature
+          tempVar = -mongeForm.principal_curvatures(1); // invert directions
           geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
           // maximum principal curvatures
-          tempVar = mongeForm.principal_curvatures(0);
+          //tempVar = mongeForm.principal_curvatures(0);      // signed curvature
+          tempVar = -mongeForm.principal_curvatures(0);     // invert directions
           geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
           break;
         default:
@@ -3282,19 +3286,48 @@ namespace CoupledField {
       }
 
       // debug...
-      /*WARN("Diff is: \n"<< surfNodeCoords[iSurfNodes][0]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
+      /*LOG_DBG2(gridcfs) << "Computed geometry on surface with ID " << surfRegionId << ". \n";
+      LOG_DBG2(gridcfs) << "Difference to position vectors is: \n"
+      << surfNodeCoords[iSurfNodes][0]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
       << surfNodeCoords[iSurfNodes][1]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][1] << " in y, \n"
       << surfNodeCoords[iSurfNodes][2]-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][2] << " in z, \n"
+      << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".";
+      LOG_DBG2(gridcfs) << "Monge Origin is at: \n"
+      << mongeForm.origin().x() << " in x, \n"
+      << mongeForm.origin().y() << " in y, \n"
+      << mongeForm.origin().z() << " in z, \n"Complex
+      << "compared to the desired vertex at \n" 
+      << surfNodeCoords[iSurfNodes][0] << " in x, \n"
+      << surfNodeCoords[iSurfNodes][1] << " in y, \n"
+      << surfNodeCoords[iSurfNodes][2] << " in z";
+      LOG_DBG2(gridcfs) << "The number of points used is " << currNodeIds.GetSize();
+      LOG_DBG2(gridcfs) << "The first point id in data is " << currNodeIds[0] <<
+                           ", the vertex id is " << surfRegionNodeIds[iSurfNodes];*/
+/*
+      // normalize node coords for debugging 
+      Double nor = sqrt(pow(surfNodeCoords[iSurfNodes][0],2)+ pow(surfNodeCoords[iSurfNodes][1],2)+ pow(surfNodeCoords[iSurfNodes][2],2));
+      WARN( "Computed geometry on surface with ID " << surfRegionId << ". \n");
+      WARN( "Difference to position vectors is: \n"
+      << surfNodeCoords[iSurfNodes][0]/nor-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
+      << surfNodeCoords[iSurfNodes][1]/nor-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][1] << " in y, \n"
+      << surfNodeCoords[iSurfNodes][2]/nor-geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][2] << " in z, \n"
       << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
-      WARN("Monge Origin is at: \n"<< mongeForm.origin().x() << " in x, \n"
+      WARN( "The normal vector is: \n"
+      << geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][0] << " in x, \n"
+      << geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][1] << " in y, \n"
+      << geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes][2] << " in z, \n"
+      << "for point nr. " << surfRegionNodeIds[iSurfNodes] << ".");
+      WARN( "Monge Origin is at: \n"
+      << mongeForm.origin().x() << " in x, \n"
       << mongeForm.origin().y() << " in y, \n"
       << mongeForm.origin().z() << " in z, \n"
-      << "compared to the desired vertex at \n" << surfNodeCoords[iSurfNodes][0] << " in x, \n"
+      << "compared to the desired vertex at \n" 
+      << surfNodeCoords[iSurfNodes][0] << " in x, \n"
       << surfNodeCoords[iSurfNodes][1] << " in y, \n"
       << surfNodeCoords[iSurfNodes][2] << " in z");
-      WARN("The number of points used is " << currNodeIds.GetSize());
-      WARN("The first point id in data is " << currNodeIds[0] <<
-          ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);*/
+      WARN( "The number of points used is " << currNodeIds.GetSize());
+      WARN( "The first point id in data is " << currNodeIds[0] <<
+                           ", the vertex id is " << surfRegionNodeIds[iSurfNodes]);*/
     }
   };
 
