@@ -689,6 +689,15 @@
       <xsd:enumeration value="heatMeanTemperature"/>
       <xsd:enumeration value="splitLamb"/>
       <xsd:enumeration value="splitDivLamb"/>
+      <xsd:enumeration value="pmlDampFactor"/>
+      <xsd:enumeration value="pmlTensor"/>
+      <xsd:enumeration value="pmlDeterminant"/>
+      <xsd:enumeration value="pmlNormVec"/>
+      <xsd:enumeration value="pmlMinPrincVec"/>
+      <xsd:enumeration value="pmlMaxPrincVec"/>
+      <xsd:enumeration value="pmlMinPrincCurv"/>
+      <xsd:enumeration value="pmlMaxPrincCurv"/>
+      <xsd:enumeration value="pmlDistance"/>
 <!--      <xsd:enumeration value="splitDivLambRhsLoad"/>-->
       </xsd:restriction>
   </xsd:simpleType>
@@ -704,15 +713,6 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>
       <xsd:enumeration value="acouRhsLoadDensity"/>
-      <xsd:enumeration value="pmlDampFactor"/>
-      <xsd:enumeration value="pmlTensor"/>
-      <xsd:enumeration value="pmlDeterminant"/>
-      <xsd:enumeration value="pmlNORM_VEC"/>
-      <xsd:enumeration value="pmlMinPrincVec"/>
-      <xsd:enumeration value="pmlMaxPrincVec"/>
-      <xsd:enumeration value="pmlMinPrincCurv"/>
-      <xsd:enumeration value="pmlMaxPrincCurv"/>
-      <xsd:enumeration value="pmlDistance"/>
     </xsd:restriction>
   </xsd:simpleType>
 
