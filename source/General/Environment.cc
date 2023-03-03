@@ -354,7 +354,7 @@ namespace CoupledField {
     // PML parameters for curvilinear PML only
     SolutionTypeEnum.Add(PML_TENSOR, "pmlTensor"); // whole PML operation tensor of the curvilinear PML
     SolutionTypeEnum.Add(PML_DETERMINANT, "pmlDeterminant"); // the determinant of the PML tensor
-    SolutionTypeEnum.Add(PML_NORM_VEC, "pmlNORM_VEC"); // normal vectors of the curvilinear PML
+    SolutionTypeEnum.Add(PML_NORM_VEC, "pmlNormVec"); // normal vectors of the curvilinear PML
     SolutionTypeEnum.Add(PML_MIN_PRINC_VEC, "pmlMinPrincVec"); // minimum principal direction vectors of the curvilinear PML
                                                                // (in 2D used as the tangential vector)
     SolutionTypeEnum.Add(PML_MAX_PRINC_VEC, "pmlMaxPrincVec"); // maximum principal direction vectors of the curvilinear PML
