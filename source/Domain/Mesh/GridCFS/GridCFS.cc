@@ -3157,8 +3157,8 @@ namespace CoupledField {
   void GridCFS::ComputeGeometryOnSurfaceRegionNodes(const RegionIdType& surfRegionId, const GeometryType paramToCompute) {
     // declare variables...
     // parameters for Monge fitting
-    UInt degreePolyFit = 4; // for now, I use hard-coded values. Can be replaced in future, e.g. by making the parameters available in the xsd scheme.
-    UInt degreeMongeCoeff = 4;
+    UInt degreePolyFit = 2; // for now, I use hard-coded values. Can be replaced in future, e.g. by making the parameters available in the xsd scheme.
+    UInt degreeMongeCoeff = 2;
     // a monge form that is computed for every node
     MongeForm mongeForm;
     // minimum required points for fitting the monge base
@@ -3245,10 +3245,15 @@ namespace CoupledField {
       // if the surface is not curved,
       // use a vector in positive (x,y,z) direction for the very first entry and previous normal vectors
       // for every other.
-      if (abs(mongeForm.principal_curvatures(0)) < 10E-3 ||
-          abs(mongeForm.principal_curvatures(1)) < 10E-3) {
+      if (abs(mongeForm.principal_curvatures(0)) < 1E-3 &&
+          abs(mongeForm.principal_curvatures(1)) < 1E-3) {
+        WARN("Point nr. " << currNodeIds[0] << " on surface "<< surfRegionId << 
+             " has curvatures " <<
+             mongeForm.principal_curvatures(0) << " , " <<
+             mongeForm.principal_curvatures(1) << " and is assumed to be flat.");
         innerVec = oldInnerVec;
       }
+
       // now that we have defined our desired direction, orient the monge base accordingly
       mongeForm.comply_wrt_given_normal(innerVec);
       // store the innerVec for possible use in the next loop
@@ -3273,16 +3278,26 @@ namespace CoupledField {
           tempVec[2] = mongeForm.maximal_principal_direction().z();
           geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iSurfNodes] = tempVec;
           // minimum principal curvatures
-          //tempVar = mongeForm.principal_curvatures(1);      // signed curvature
-          tempVar = -mongeForm.principal_curvatures(1); // invert directions
-          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
+          if (abs(mongeForm.principal_curvatures(1)) > 1E-3) {
+            tempVar = -mongeForm.principal_curvatures(1);
+            geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
+          } else {
+            geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = 0;
+            WARN("Minimal curvature on point nr. " << currNodeIds[0] << " on surface "<< surfRegionId << 
+                 " with value " << mongeForm.principal_curvatures(1) << " is set to zero.");
+          }
           // maximum principal curvatures
-          //tempVar = mongeForm.principal_curvatures(0);      // signed curvature
-          tempVar = -mongeForm.principal_curvatures(0);     // invert directions
-          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
+          if (abs(mongeForm.principal_curvatures(0)) > 1E-3) {
+            tempVar = -mongeForm.principal_curvatures(0);
+            geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
+          } else {
+            geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = 0;
+            WARN("Maximal curvature on point nr. " << currNodeIds[0] << " on surface "<< surfRegionId << 
+                 " with value " << mongeForm.principal_curvatures(0) << " is set to zero.");
+          }
           break;
         default:
-            EXCEPTION("Currently only storing all parameters is possible (paramToCompute=ALL)");
+          EXCEPTION("Currently only storing all parameters is possible (paramToCompute=ALL)");
       }
 
       // debug...
