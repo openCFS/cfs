@@ -574,6 +574,12 @@ namespace CoupledField{
     CheckForLayerGenerationNode(pmlDef);
     // trigger computation of geometry data and get pointer to it (is only computed once)
     grid_->GetGeometryOnRegionNodes(ptrNodeGeom_, volRegion_, true);
+    
+    // initialize the member to store the nodal tensors
+    //if (outputType == OutputType::TENSOR)
+      //tensorsOnNodes_.Resize(ptrNodeGeom_->numNodes_);
+      //debug ... todo: store geometry instead of tensor
+    
     // get nodal distances to the PML interface and store in a StdVector
     GetThicknessOnNodes();
     // set identity operators for mapping nodal values to lpm
@@ -583,59 +589,189 @@ namespace CoupledField{
   template<typename T>
   CoefFunctionCurvilinearPML<T>::~CoefFunctionCurvilinearPML() { };
 
-    template<typename T>
+  template<typename T>
   void CoefFunctionCurvilinearPML<T>::GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) {
     switch(outputType_) {
-      case OutputType::TENSOR:
-        // compute parameters at lpm
-        GetTensorParams(lpm);
-        if (this->dim_ == 3) {
-          // compute the current wave number
-          Double K = this->omega_ / sos_;
+      case OutputType::TENSOR: {
+        // get a pointer to the considered element from the lpm
+        const Elem* ptrElem = NULL;
+        ptrElem = lpm.ptEl;
+        // the global element ID
+        UInt elemId = ptrElem->GetElemNum();
+        // get the nodes connected to the element
+        StdVector<UInt> nodeIds;
+        grid_->GetElemNodes(nodeIds, elemId);
+        // index of a node id
+        UInt nodeIdx;
+        // index for vectorial quantities on nodes stored in Vector
+        UInt vecIdx;
+        // number of nodes in element
+        UInt numElemNodes = nodeIds.GetSize();
 
-          // helper functions
-          Vector<Double> h = Vector<Double>(3);
-          h[0] = dampFunc_;
-          h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
-          h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
-          Double denominator;
-          Double K2 = pow(K,2);  //square of wave number
+        // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
+        shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
 
-          // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
-          Vector<Complex> s = Vector<Complex>(3);
-          for (UInt iDim = 0; iDim < 3; ++iDim) {
-            denominator = 1.0 + h[iDim] / K2;
-            s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
-            //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
+        // get Base Fe, which provides the shape functions for interpolating with the identity operator 
+        BaseFE* ptrFe = ptrEsm->GetBaseFE();
+
+        /*// variable to store entries of element tensors
+        Vector<Complex> stackedVec(numElemNodes * pow(this->dim_,2));
+        // variable to store the entries interpolated to lpm
+        Vector<Complex> interpVec(this->dim_);*/
+
+        //debug
+        // variable to store entries of element tensors
+        Vector<Double> nstackedVec(numElemNodes * pow(this->dim_,2));
+        // variable to store the entries interpolated to lpm
+        Vector<Double> ninterpVec(this->dim_);
+        // variable to store entries of element tensors
+        Vector<Double> tminstackedVec(numElemNodes * pow(this->dim_,2));
+        // variable to store the entries interpolated to lpm
+        Vector<Double> tmininterpVec(this->dim_);
+        // variable to store entries of element tensors
+        Vector<Double> tmaxstackedVec(numElemNodes * pow(this->dim_,2));
+        // variable to store the entries interpolated to lpm
+        Vector<Double> tmaxinterpVec(this->dim_);
+
+        Matrix<Double> nMat(3,3);
+        Matrix<Double> tmaxMat(3,3);
+        Matrix<Double> tminMat(3,3);
+
+        //
+
+        // loop over element nodes, get node indices and compute tensor on nodes if not already
+        for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+          nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
+          // check if tensor has already been computed on node
+          if (true) {// (tensorsOnNodes_[nodeIdx].GetNumEntries() == 0 && ) { // debug --- todo: entries in tensorsOnNodes_ must be recomputed for every frequency step
+            // compute if not
+            ComputeTensorOnNode(nodeIdx);
           }
 
-          // compute the tensor as the inverse of the Jakobi matrix. The matrix can be factorized in three parts:
-          // J^-1 = A^T  * (I + jD)^-1 * A.
-          // A is an orthogonal (rotation) matrix containing the curvilinear base vectors (n, t1, t2)
-          // I is the identity matrixm, j the imaginary number
-          // D is a diagonal matrix containing i.a. the damping functions
-          // Inverting (I+jD) is hence simply inverting its entries. Inverting A results in its transpose.
-          // Here the matrix is assembled directly in the multiplied version. The result is a symmetric matrix of the form:
-          // 
-          // / n1^2/s1  + t21^2/s2   + t31^2/s3       |    ...                                    |    ...                           \
-          // |
-          // | n1*n2/s1 + t21*t22/s2 + t31*t32/s3     |    n2^2/s1  + t22^2/s2   + t32^2/s3       |    ...                           |
-          // |
-          // \ n1*n3/s1 + t21*t23/s2 + t31*t33/s3     |    n2*n3/s1 + t22*t23/s2 + t32*t33/s3     |    n3^2/s1 + t23^2/s2 + t33^2/s3 /
-          tensor.Resize(3, 3);
-          tensor[0][0] = pow(n_[0],2)*s[0] + pow(tmin_[0],2)*s[1] + pow(tmax_[0],2)*s[2];
-          tensor[1][1] = pow(n_[1],2)*s[0] + pow(tmin_[1],2)*s[1] + pow(tmax_[1],2)*s[2];
-          tensor[2][2] = pow(n_[2],2)*s[0] + pow(tmin_[2],2)*s[1] + pow(tmax_[2],2)*s[2];
-          tensor[1][0] = n_[0]*n_[1]*s[0] + tmin_[0]*tmin_[1]*s[1] + tmax_[0]*tmax_[1]*s[2];
-          tensor[2][0] = n_[0]*n_[2]*s[0] + tmin_[0]*tmin_[2]*s[1] + tmax_[0]*tmax_[2]*s[2];
-          tensor[2][1] = n_[1]*n_[2]*s[0] + tmin_[1]*tmin_[2]*s[1] + tmax_[1]*tmax_[2]*s[2];
-          tensor[0][1] = tensor[1][0];
-          tensor[0][2] = tensor[2][0];
-          tensor[1][2] = tensor[2][1];
-        } else {
-          EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
+          /*// loop over dimensions of the tensor, store values into a stacked vector, and interpolate to lpm...
+          for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+            for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+              // vector entries: [N1_T11, N1_T12,..., N1_T33, N2_T11, ...], 
+              // where Nx is the node and Txx are entries in respective tensor
+              vecIdx = iCol + this->dim_ * iRow + pow(this->dim_,2) * iNodes;
+              stackedVec[vecIdx] = tensorsOnNodes_[nodeIdx][iRow][iCol];
+            }
+          }*/
+
+          
+          // loop over dimensions of the matrices, store values into a stacked vector, and interpolate to lpm...
+          for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+            for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+              // vector entries: [N1_T11, N1_T12,..., N1_T33, N2_T11, ...], 
+              // where Nx is the node and Txx are entries in respective tensor
+              vecIdx = iCol + this->dim_ * iRow + pow(this->dim_,2) * iNodes;
+              nstackedVec[vecIdx] = nMat_[iRow][iCol];
+              tminstackedVec[vecIdx] = tminMat_[iRow][iCol];
+              tmaxstackedVec[vecIdx] = tmaxMat_[iRow][iCol];
+            }
+          }
+
+          //
         }
+        /*// perform interpolation
+        this->tensorMappingOperator_->ApplyOp(interpVec,lpm,ptrFe,stackedVec);
+        // store interpolated values into tensor
+        tensor.Resize(this->dim_, this->dim_);
+        // assign values of interpolated vector to tensor...
+        for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+          for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+            vecIdx = iCol + this->dim_ * iRow;
+            //tensor[iRow][iCol] = interpVec[vecIdx];
+          }
+        }*/
+
+
+        // perform interpolation
+        this->tensorMappingOperator_->ApplyOp(ninterpVec,lpm,ptrFe,nstackedVec);
+        this->tensorMappingOperator_->ApplyOp(tmininterpVec,lpm,ptrFe,tminstackedVec);
+        this->tensorMappingOperator_->ApplyOp(tmaxinterpVec,lpm,ptrFe,tmaxstackedVec);
+        // assign values of interpolated vector to tensor...
+        for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+          for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+            vecIdx = iCol + this->dim_ * iRow;
+            nMat[iRow][iCol] = ninterpVec[vecIdx];
+            tminMat[iRow][iCol] = tmininterpVec[vecIdx];
+            tmaxMat[iRow][iCol] = tmaxinterpVec[vecIdx];
+          }
+        }
+
+        GetDeterminantParams(lpm);
+        Double K = this->omega_ / sos_;
+        // set the helper function that does the damping
+        Vector<Double> h = Vector<Double>(this->dim_);
+        h[0] = dampFunc_;
+        h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
+        h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
+        // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
+        Vector<Complex> s = Vector<Complex>(this->dim_);
+        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+          //denominator = 1.0 + pow(h[iDim]/K, 2);
+          //s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
+          //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
+          s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K); //inv
+        }
+        // compute tensor
+        tensor.Resize(this->dim_, this->dim_);
+        tensor =  s[0] * nMat + s[1] * tminMat + s[2] * tmaxMat;
+
+        
+        //
+      //debug
+      /*GetDeterminantParams(lpm);
+            Double K = this->omega_ / sos_;
+      Vector<Double> h(3);
+      h[0] = dampFunc_;
+      h[1] = 0;
+      h[2] = 0;
+
+        // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
+      Vector<Complex> s = Vector<Complex>(this->dim_);
+      for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+      //denominator = 1.0 + pow(h[iDim]/K, 2);
+      //s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
+      //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
+      s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K); //inv
+       }
+
+
+        Vector<Double> n(3);
+        Vector<Double> tmin(3);
+        Vector<Double> tmax(3);
+
+        // Debug...
+        n[0] = 1;
+        n[1] = 0;
+        n[2] = 0;
+        tmin[0] = 0;
+        tmin[1] = 1;
+        tmin[2] = 0;
+        tmax[0] = 0;
+        tmax[1] = 0;
+        tmax[2] = 1;
+
+        Matrix<Complex> nMat(3,3);
+        Matrix<Complex> tminMat(3,3);
+        Matrix<Complex> tmaxMat(3,3);
+
+        for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+          for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+            nMat[iRow][iCol] = n[iRow] * n[iCol];
+            tminMat[iRow][iCol] = tmin[iRow] * tmin[iCol];
+            tmaxMat[iRow][iCol] = tmax[iRow] * tmax[iCol];
+          }
+        }
+
+        Matrix<Complex> tensor2;
+        tensor2 =  s[0] * nMat + s[1] * tminMat + s[2] * tmaxMat;
+
+        tensor = tensor2;*/
         break;
+      }
       default:
         EXCEPTION("CoefFunctionCurvilinearPML::GetTensor(Complex...) is used for OutputType: " <<
                   "TENSOR only.");
@@ -658,6 +794,9 @@ namespace CoupledField{
           h[0] = dampFunc_;
           h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
           h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
+          // debug
+          /*h[1] = 0;
+          h[2] = 0;*/
           Double K2 = pow(K,2);  //square of wave number
 
           // compute the determinant...
@@ -798,124 +937,6 @@ namespace CoupledField{
   };
 
   template<typename T>
-  void CoefFunctionCurvilinearPML<T>::GetTensorParams(const LocPointMapped& lpm) {
-    // here we need all quantites...
-    // get a pointer to the considered element from the lpm
-    const Elem* ptrElem = NULL;
-    ptrElem = lpm.ptEl;
-    // the global element ID
-    UInt elemId = ptrElem->GetElemNum();
-    // get the nodes connected to the element
-    StdVector<UInt> nodeIds;
-    grid_->GetElemNodes(nodeIds, elemId);
-    // index of a node id
-    UInt nodeIdx;
-    // index for vectorial quantities on nodes stored in Vector
-    UInt vecIdx;
-    // number of nodes in element
-    UInt numElemNodes = nodeIds.GetSize();
-
-    // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
-    shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
-
-    // get Base Fe, which provides the shape functions for interpolating with the identity operator 
-    BaseFE* ptrFe = ptrEsm->GetBaseFE();
-
-    // in 2D we only use the tmin_ as tangential vector and kmin_ as curvature
-    if (this->dim_ == 2) {
-      Vector<Double> normVec(numElemNodes * this->dim_);
-      Vector<Double> tangVec(numElemNodes * this->dim_);
-      Vector<Double> curv(numElemNodes);
-      // and on node-to-interface distances
-      Vector<Double> dist(numElemNodes);
-
-      // loop over element nodes and get quantities
-      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-        // loop over vector entries and store in stacked vector
-        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-          vecIdx = iDim + this->dim_ * iNodes;
-          normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
-          tangVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
-        }
-        curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
-        dist[iNodes] = thicknessOnNodes_[nodeIdx];
-      }
-
-      // create helper variables for scalars because ApplyOp only takes Vectors
-      Vector<Double> k(1);
-      Vector<Double> d(1);
-
-      // interpolate from nodes to the local point mapped
-      this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
-      this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,tangVec);
-      this->scalarMappingOperator_->ApplyOp(k,lpm,ptrFe,curv);
-      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
-      // extract from vector
-      kmin_ = k[0];
-      dist_ = d[0];
-    } // dim_ == 2
-
-    else if (this->dim_ == 3) {
-      // vectors with extracted geometry data
-      Vector<Double> normVec(numElemNodes * this->dim_);
-      Vector<Double> minPrincVec(numElemNodes * this->dim_);
-      Vector<Double> maxPrincVec(numElemNodes * this->dim_);
-      Vector<Double> minPrincCurv(numElemNodes);
-      Vector<Double> maxPrincCurv(numElemNodes);
-      // and on node-to-interface distances
-      Vector<Double> dist(numElemNodes);
-
-      // loop over element nodes and get quantities
-      for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-        nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-        // loop over vector entries and store in stacked vector
-        for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-          vecIdx = iDim + this->dim_ * iNodes;
-          normVec[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdx][iDim];
-          minPrincVec[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iDim];
-          maxPrincVec[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iDim];
-        }
-        minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
-        maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
-        dist[iNodes] = thicknessOnNodes_[nodeIdx];
-      }
-
-      // create helper variables for scalars because ApplyOp only takes Vectors
-      Vector<Double> kmin(1);
-      Vector<Double> kmax(1);
-      Vector<Double> d(1);
-
-      // interpolate from nodes to the local point mapped
-      this->vectorMappingOperator_->ApplyOp(n_,lpm,ptrFe,normVec);
-      this->vectorMappingOperator_->ApplyOp(tmin_,lpm,ptrFe,minPrincVec);
-      this->vectorMappingOperator_->ApplyOp(tmax_,lpm,ptrFe,maxPrincVec);
-      this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
-      this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
-      this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
-      // extract from vector
-      kmin_ = kmin[0];
-      kmax_ = kmax[0];
-      dist_ = d[0];
-
-      // test nodal principal vectors to avoid interpolation error....
-      tmin_[0] = minPrincVec[0];
-      tmin_[1] = minPrincVec[1];
-      tmin_[2] = minPrincVec[2];
-      tmax_[0] = maxPrincVec[0];
-      tmax_[1] = maxPrincVec[1];
-      tmax_[2] = maxPrincVec[2];
-      //...
-    } // dim_ == 3
-    // get the damping function and its integral at the mapped distance
-    dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
-    intDampFunc_ = this->dampFunction_->ComputeIntegralFactor(dist_, layerThickness_);
-
-    // finally, get the speed of sound at current lpm
-    this->speedOfSound_->GetScalar(sos_,lpm);
-  };
-
-  template<typename T>
   void CoefFunctionCurvilinearPML<T>::GetDeterminantParams(const LocPointMapped& lpm) {
     // here we only need curvarute and distances...
     // get a pointer to the considered element from the lpm
@@ -990,6 +1011,9 @@ namespace CoupledField{
       kmin_ = kmin[0];
       kmax_ = kmax[0];
       dist_ = d[0];
+      // debug
+      /*kmin_ = 0;
+      kmax_ = 0;*/
     } // dim_ == 3
     // get the damping function and its integral at the mapped distance
     dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
@@ -997,6 +1021,8 @@ namespace CoupledField{
 
     // finally, get the speed of sound at current lpm
     this->speedOfSound_->GetScalar(sos_,lpm);
+    // debug
+    sos_ = 343.4000408;
   };
 
   template<typename T>
@@ -1256,7 +1282,7 @@ namespace CoupledField{
     // loop over element nodes and get quantities
     for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
       nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
-      curv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx];
+      curv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx];
     }
     // create helper variables for scalars because ApplyOp only takes Vectors
     Vector<Double> k(1);
@@ -1305,7 +1331,7 @@ namespace CoupledField{
   template<typename T>
   UInt CoefFunctionCurvilinearPML<T>::GetIdxByNodeId(const UInt& nodeId) const {
     UInt idx = 0;
-    // todo: fix searching algorithm
+    // debug .... todo: fix searching algorithm
     if (false) { //(layerGenNode_) {
       UInt tmpIdx, tmpId;
       // assume ordered nodes and use the knowledge of the layer generation params to obtain the index
@@ -1338,6 +1364,130 @@ namespace CoupledField{
   };
 
   template<typename T>
+  void CoefFunctionCurvilinearPML<T>::ComputeTensorOnNode(const UInt& nodeIdx) {
+    /*Double sos = 343.4000408; // debug .... todo: compute from coeffunction
+
+    // compute the current wave number
+    Double K = this->omega_ / sos;
+
+    // get the damp function evaluated at current node
+    Double dampFunc = this->dampFunction_->ComputeFactor(thicknessOnNodes_[nodeIdx], layerThickness_);
+    // and its integral from the interface to the node
+    Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(thicknessOnNodes_[nodeIdx], layerThickness_);
+
+    // set the helper function that does the damping
+    Vector<Double> h = Vector<Double>(this->dim_);
+    h[0] = dampFunc;
+    h[1] = intDampFunc * ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx] / (1.0 + thicknessOnNodes_[nodeIdx] * ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx]);
+    h[2] = intDampFunc * ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx] / (1.0 + thicknessOnNodes_[nodeIdx] * ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx]);
+    
+    // another helper variable
+    Double denominator;
+    Double K2 = pow(K,2);  //square of wave number
+
+    // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
+    Vector<Complex> s = Vector<Complex>(this->dim_);
+    for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+      //denominator = 1.0 + pow(h[iDim]/K, 2);
+      //s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
+      //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
+      s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K); //inv
+    }
+
+    // compute the tensor as the inverse of the Jakobi matrix. The matrix can be factorized in three parts:
+    // J^-1 = A^T  * (I + jD)^-1 * A.
+    // A is an orthogonal (rotation) matrix containing the curvilinear base vectors (n, t1, t2)
+    // I is the identity matrixm, j the imaginary number
+    // D is a diagonal matrix containing i.a. the damping functions
+    // Inverting (I+jD) is hence simply inverting its entries. Inverting A results in its transpose.
+    // Here the matrix is assembled directly in the multiplied version. The result is a symmetric matrix of the form:
+    // 
+    // / n1^2/s1  + t21^2/s2   + t31^2/s3       |    ...                                    |    ...                           \
+    // |
+    // | n1*n2/s1 + t21*t22/s2 + t31*t32/s3     |    n2^2/s1  + t22^2/s2   + t32^2/s3       |    ...                           |
+    // |
+    // \ n1*n3/s1 + t21*t23/s2 + t31*t33/s3     |    n2*n3/s1 + t22*t23/s2 + t32*t33/s3     |    n3^2/s1 + t23^2/s2 + t33^2/s3 /
+    Vector<Double>  n = ptrNodeGeom_->normalVectors_[nodeIdx];
+    Vector<Double>  tmin = ptrNodeGeom_->minPrincipalVectors_[nodeIdx];
+    Vector<Double>  tmax = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx];
+    Matrix<Complex> tensor(3,3);
+
+    tensor[0][0] = pow(n[0],2)*s[0] + pow(tmin[0],2)*s[1] + pow(tmax[0],2)*s[2];
+    tensor[1][1] = pow(n[1],2)*s[0] + pow(tmin[1],2)*s[1] + pow(tmax[1],2)*s[2];
+    tensor[2][2] = pow(n[2],2)*s[0] + pow(tmin[2],2)*s[1] + pow(tmax[2],2)*s[2];
+    tensor[1][0] = n[0]*n[1]*s[0] + tmin[0]*tmin[1]*s[1] + tmax[0]*tmax[1]*s[2];
+    tensor[2][0] = n[0]*n[2]*s[0] + tmin[0]*tmin[2]*s[1] + tmax[0]*tmax[2]*s[2];
+    tensor[2][1] = n[1]*n[2]*s[0] + tmin[1]*tmin[2]*s[1] + tmax[1]*tmax[2]*s[2];
+    tensor[0][1] = tensor[1][0];
+    tensor[0][2] = tensor[2][0];
+    tensor[1][2] = tensor[2][1];
+    tensorsOnNodes_[nodeIdx] = tensor;*/
+
+    Vector<Double>  n = ptrNodeGeom_->normalVectors_[nodeIdx];
+    Vector<Double>  tmin = ptrNodeGeom_->minPrincipalVectors_[nodeIdx];
+    Vector<Double>  tmax = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx];
+
+    nMat_.Resize(3,3);
+    tminMat_.Resize(3,3);
+    tmaxMat_.Resize(3,3);
+
+    // debug
+    for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+      for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+        nMat_[iRow][iCol] = n[iRow] * n[iCol];
+        tminMat_[iRow][iCol] = tmin[iRow] * tmin[iCol];
+        tmaxMat_[iRow][iCol] = tmax[iRow] * tmax[iCol];
+      }
+    }
+
+    // Debug...
+    /*n[0] = 1;
+    n[1] = 0;
+    n[2] = 0;
+    tmin[0] = 0;
+    tmin[1] = 1;
+    tmin[2] = 0;
+    tmax[0] = 0;
+    tmax[1] = 0;
+    tmax[2] = 1;*/
+
+/*    Matrix<Complex> nMat(3,3);
+    Matrix<Complex> tminMat(3,3);
+    Matrix<Complex> tmaxMat(3,3);
+
+    for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+      for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+        nMat[iRow][iCol] = n[iRow] * n[iCol];
+        tminMat[iRow][iCol] = tmin[iRow] * tmin[iCol];
+        tmaxMat[iRow][iCol] = tmax[iRow] * tmax[iCol];
+      }
+    }
+
+    Matrix<Complex> tensor2;
+    tensor2 =  s[0] * nMat + s[1] * tminMat + s[2] * tmaxMat;
+
+    tensorsOnNodes_[nodeIdx] = tensor2;*/
+
+    /*Matrix<Complex> orthoMat = Matrix<Complex>(3,3);
+    Matrix<Complex> stretchMat = Matrix<Complex>(3,3);
+    // fill the matrices with entries
+    for (UInt iColumn = 0; iColumn < 3; iColumn++) {
+      orthoMat[0][iColumn] = Complex(ptrNodeGeom_->normalVectors_[nodeIdx][iColumn], 0.0); // imaginary part is 0
+      orthoMat[1][iColumn] = Complex(ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iColumn], 0.0);
+      orthoMat[2][iColumn] = Complex(ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iColumn], 0.0);
+
+      denominator = 1 + pow(h[iColumn]*sos / this->omega_, 2);
+      stretchMat[iColumn][iColumn] = Complex(1 / denominator, 1 * (h[iColumn]*sos / this->omega_) / denominator);//inv
+      //stretchMat[iColumn][iColumn] = Complex(1 / denominator, -1 * (h[iColumn]*sos / this->omega_) / denominator);//orig
+    }
+    Matrix<Complex> orthoMatT;
+    orthoMat.Transpose(orthoMatT);
+ 
+    tensor2 = orthoMat * stretchMat * orthoMatT;
+    tensorsOnNodes_[nodeIdx] = tensor2;*/
+  };
+
+  template<typename T>
   void CoefFunctionCurvilinearPML<T>::GetThicknessOnNodes() {
     if (layerGenNode_) {
       // every iso surface in the automatically generated layer has the 
@@ -1359,15 +1509,24 @@ namespace CoupledField{
     // create identity operators for 2D or 3D problems
     if (this->dim_ == 2) {
       this->scalarMappingOperator_.reset(new IdentityOperator<FeH1,2,1,Double>());
-      // in the tensor or vector case we also need to interpolate vector quantites
-      if (this->dimType_ == CoefFunction::TENSOR || this->dimType_ == CoefFunction::VECTOR)
-        this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,2,3,Double>());
+      // in the vector case we also need to interpolate vector quantites
+      if (this->dimType_ == CoefFunction::VECTOR)
+        this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,2,2,Double>());
+      // in the tensor case we also need to interpolate tensorial quantites
+      if (this->dimType_ == CoefFunction::TENSOR)
+        this->tensorMappingOperator_.reset(new IdentityOperator<FeH1,2,4,Complex>());
     }
     else if (this->dim_ == 3) {
       this->scalarMappingOperator_.reset(new IdentityOperator<FeH1,3,1,Double>());
-      // in the tensor or vector case we also need to interpolate vector quantites
-      if (this->dimType_ == CoefFunction::TENSOR || this->dimType_ == CoefFunction::VECTOR)
+      // in thevector case we also need to interpolate vector quantites
+      if (this->dimType_ == CoefFunction::VECTOR)
         this->vectorMappingOperator_.reset(new IdentityOperator<FeH1,3,3,Double>());
+      // in the tensor case we also need to interpolate tensorial quantites
+      if (this->dimType_ == CoefFunction::TENSOR)
+        this->tensorMappingOperator_.reset(new IdentityOperator<FeH1,3,9,Double>());
+        //debug
+        //this->ttttensorMappingOperator_.reset(new IdentityOperator<FeH1,3,9,Double>());
+        //
     }
   };
 

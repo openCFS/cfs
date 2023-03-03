@@ -118,7 +118,7 @@ namespace CoupledField{
       Double a = -log(thickness);
       Double b;
       if(thickness == pos) {
-        b = 1e10; // deal with singularity
+        b = -log(1e-10); // deal with singularity
       } else {
         b = -log(thickness-pos);
       }
@@ -594,6 +594,10 @@ namespace CoupledField{
     //! Set the dimType_ of the coefFunction according to the assigned outputType_
     void SetDimType();
 
+    void ComputeTensorOnNode(const UInt& nodeIdx);
+
+    //StdVector<Matrix<Complex>> tensorsOnNodes_;
+
     //! member to set which quantity should be outputted/computed by the coefFunction
     OutputType outputType_;
 
@@ -616,8 +620,12 @@ namespace CoupledField{
 
     //! BOperator to map solutions to arbitrary points. Right now, hardcoded identity operator,
     //! defined vor interpolating Double-valued vectors and scalars
+    shared_ptr<BaseBOperator > tensorMappingOperator_;
     shared_ptr<BaseBOperator > vectorMappingOperator_;
     shared_ptr<BaseBOperator > scalarMappingOperator_;
+    //debug
+    //shared_ptr<BaseBOperator > ttttensorMappingOperator_;
+    //
 
     //! Layer generation parameters
     Double numLayers_;      //number of generated surface regions within the layer
@@ -626,15 +634,20 @@ namespace CoupledField{
     Double layerThickness_; //total thickness of the PML layer
 
     //! variables to store quantities on lpm
-    Vector<Double> n_;    //normal vector
-    Vector<Double> tmin_; //min principal vector
-    Vector<Double> tmax_; //max principal vector
-    Double kmin_;         //min principal curvature
-    Double kmax_;         //max principal curvature
-    Double dist_;         //distance to interface
-    Double sos_;          //speed of sound
-    Double dampFunc_;     //damping function
-    Double intDampFunc_;  //integral over damping function
+    Vector<Double> n_;       //normal vector
+    Vector<Double> tmin_;    //min principal vector
+    Vector<Double> tmax_;    //max principal vector
+    Double kmin_;            //min principal curvature
+    Double kmax_;            //max principal curvature
+    Double dist_;            //distance to interface
+    Double sos_;             //speed of sound
+    Double dampFunc_;        //damping function
+    Double intDampFunc_;     //integral over damping function
+
+    //! store geometry of a current node
+    Matrix<Double> nMat_;
+    Matrix<Double> tminMat_;
+    Matrix<Double> tmaxMat_;
   };
 }
 #endif /* COEFFUNCTIONPML_HH_ */
