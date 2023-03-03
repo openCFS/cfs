@@ -2150,6 +2150,30 @@ namespace CoupledField{
       }
     }
 
+    StdVector<std::string> tensorDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      tensorDofNames.Resize(9);
+      tensorDofNames[0] = "xx";
+      tensorDofNames[1] = "xy";
+      tensorDofNames[2] = "xz";
+      tensorDofNames[3] = "yx";
+      tensorDofNames[4] = "yy";
+      tensorDofNames[5] = "yz";
+      tensorDofNames[6] = "zx";
+      tensorDofNames[7] = "zy";
+      tensorDofNames[8] = "zz";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        EXCEPTION("Tensor DOF names not yet specified for axisymmetric problems");
+      } else {
+        tensorDofNames.Resize(4);
+        tensorDofNames[0] = "xx";
+        tensorDofNames[1] = "xy";
+        tensorDofNames[2] = "yx";
+        tensorDofNames[3] = "yy";
+      }
+    }
+
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
@@ -2533,7 +2557,7 @@ namespace CoupledField{
     pmlDampFactor->resultType = PML_DAMP_FACTOR;
     pmlDampFactor->dofNames = vecDofNames;
     pmlDampFactor->unit = "";
-    pmlDampFactor->definedOn = ResultInfo::ELEMENT;
+    pmlDampFactor->definedOn = ResultInfo::NODE;
     pmlDampFactor->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> pmlDampFactorCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     matCoefs_[PML_DAMP_FACTOR] = pmlDampFactorCoefFct;
@@ -2543,9 +2567,9 @@ namespace CoupledField{
     // only set for CURVILINEAR PML formulation
     shared_ptr<ResultInfo> pmlTensor ( new ResultInfo );
     pmlTensor->resultType = PML_TENSOR;
-    pmlTensor->dofNames = ""; // todo: set correct dofNames for Tensor
+    pmlTensor->dofNames = tensorDofNames; // todo: set correct dofNames for Tensor
     pmlTensor->unit = "";
-    pmlTensor->definedOn = ResultInfo::ELEMENT;
+    pmlTensor->definedOn = ResultInfo::NODE;
     pmlTensor->entryType = ResultInfo::TENSOR;
     shared_ptr<CoefFunctionMulti> pmlTensorCoefFct(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
     matCoefs_[PML_TENSOR] = pmlTensorCoefFct;
@@ -2557,7 +2581,7 @@ namespace CoupledField{
     pmlDeterminant->resultType = PML_DETERMINANT;
     pmlDeterminant->dofNames = "";
     pmlDeterminant->unit = "";
-    pmlDeterminant->definedOn = ResultInfo::ELEMENT;
+    pmlDeterminant->definedOn = ResultInfo::NODE;
     pmlDeterminant->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> pmlDetCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
     matCoefs_[PML_DETERMINANT] = pmlDetCoefFct;
@@ -2569,7 +2593,7 @@ namespace CoupledField{
     pmlNORM_VEC->resultType = PML_NORM_VEC;
     pmlNORM_VEC->dofNames = vecDofNames;
     pmlNORM_VEC->unit = "";
-    pmlNORM_VEC->definedOn = ResultInfo::ELEMENT;
+    pmlNORM_VEC->definedOn = ResultInfo::NODE;
     pmlNORM_VEC->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> pmlNORM_VECCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     matCoefs_[PML_NORM_VEC] = pmlNORM_VECCoefFct;
@@ -2582,7 +2606,7 @@ namespace CoupledField{
     pmlMinPrincVec->resultType = PML_MIN_PRINC_VEC;
     pmlMinPrincVec->dofNames = vecDofNames;
     pmlMinPrincVec->unit = "";
-    pmlMinPrincVec->definedOn = ResultInfo::ELEMENT;
+    pmlMinPrincVec->definedOn = ResultInfo::NODE;
     pmlMinPrincVec->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> pmlMinPrincVecCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     matCoefs_[PML_MIN_PRINC_VEC] = pmlMinPrincVecCoefFct;
@@ -2595,7 +2619,7 @@ namespace CoupledField{
     pmlMaxPrincVec->resultType = PML_MAX_PRINC_VEC;
     pmlMaxPrincVec->dofNames = vecDofNames;
     pmlMaxPrincVec->unit = "";
-    pmlMaxPrincVec->definedOn = ResultInfo::ELEMENT;
+    pmlMaxPrincVec->definedOn = ResultInfo::NODE;
     pmlMaxPrincVec->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> pmlMaxPrincVecCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     matCoefs_[PML_MAX_PRINC_VEC] = pmlMaxPrincVecCoefFct;
@@ -2608,7 +2632,7 @@ namespace CoupledField{
     pmlMinPrincCurv->resultType = PML_MIN_PRINC_CURV;
     pmlMinPrincCurv->dofNames = "";
     pmlMinPrincCurv->unit = "";
-    pmlMinPrincCurv->definedOn = ResultInfo::ELEMENT;
+    pmlMinPrincCurv->definedOn = ResultInfo::NODE;
     pmlMinPrincCurv->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> pmlMinPrincCurvCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
     matCoefs_[PML_MIN_PRINC_CURV] = pmlMinPrincCurvCoefFct;
@@ -2620,7 +2644,7 @@ namespace CoupledField{
     pmlMaxPrincCurv->resultType = PML_MAX_PRINC_CURV;
     pmlMaxPrincCurv->dofNames = "";
     pmlMaxPrincCurv->unit = "";
-    pmlMaxPrincCurv->definedOn = ResultInfo::ELEMENT;
+    pmlMaxPrincCurv->definedOn = ResultInfo::NODE;
     pmlMaxPrincCurv->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> pmlMaxPrincCurvCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
     matCoefs_[PML_MAX_PRINC_CURV] = pmlMaxPrincCurvCoefFct;
@@ -2632,7 +2656,7 @@ namespace CoupledField{
     pmlDistance->resultType = PML_DISTANCE;
     pmlDistance->dofNames = "";
     pmlDistance->unit = "";
-    pmlDistance->definedOn = ResultInfo::ELEMENT;
+    pmlDistance->definedOn = ResultInfo::NODE;
     pmlDistance->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> pmlDistanceCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
     matCoefs_[PML_DISTANCE] = pmlDistanceCoefFct;
