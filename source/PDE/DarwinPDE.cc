@@ -71,7 +71,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       EXCEPTION("DarwinPDE is just implemented for 3D setups!");
 
     // initialize material coef functions covering all regions
-    reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
+    reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
     conduc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
     eps_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
   }
@@ -199,14 +199,14 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
            ============================================== */
         // Magnetic Reluctivity
         PtrCoefFct nuNl = NULL;
-        nuNl = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL);
+        nuNl = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::COMPLEX);
         // Add material to global, distributed reluctivity coefficient function
         reluc_->AddRegion(actRegion, nuNl);
 
         // Magnetic Permeability
         PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
-        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::COMPLEX, CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
+        //matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 
         // Electric Conductivity
         Double conductivity;
@@ -223,7 +223,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
          * nu curl(A) \cdot curl(A)
            ============================================== */
         BaseBDBInt* K_A_A_nu = NULL;
-        K_A_A_nu = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
+        K_A_A_nu = new BBInt<Complex>(new  CurlOperator<FeHCurl,3, Complex>(), nuNl, Complex(1.0) , updatedGeo_) ;
         K_A_A_nu->SetName("K_A_A_nu");
 
         BiLinFormContext * K_A_A_nuContext = new BiLinFormContext(K_A_A_nu, STIFFNESS );
