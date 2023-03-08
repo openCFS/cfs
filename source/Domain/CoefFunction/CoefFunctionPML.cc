@@ -700,6 +700,11 @@ namespace CoupledField{
           }
         }
 
+        // normalize direction tensors (vectors might have non-unitary length after interpolation)
+        nMat /= nMat[0][0] + nMat[1][1] + nMat[2][2];
+        tminMat /= tminMat[0][0] + tminMat[1][1] + tminMat[2][2];
+        tminMat /= tmaxMat[0][0] + tmaxMat[1][1] + tmaxMat[2][2];
+
         GetDeterminantParams(lpm);
         Double K = this->omega_ / sos_;
         // set the helper function that does the damping

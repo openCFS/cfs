@@ -118,7 +118,7 @@ namespace CoupledField{
       Double a = -log(thickness);
       Double b;
       if(thickness == pos) {
-        b = -log(1e-10); // deal with singularity
+        b = 1e10;//-log(1e-10); // deal with singularity
       } else {
         b = -log(thickness-pos);
       }
