@@ -618,15 +618,13 @@ namespace CoupledField{
     //! point on the PML interface
     StdVector<Double> thicknessOnNodes_;
 
-    //! BOperator to map solutions to arbitrary points. Right now, hardcoded identity operator,
-    //! defined vor interpolating Double-valued vectors and scalars
+    //! BOperator to map solutions to arbitrary points. Used is an identity operator,
+    //! defined for interpolating Double-valued vectors and scalars. Tensors must be 
+    //! stacked into one dimension 
     shared_ptr<BaseBOperator > tensorMappingOperator_;
     shared_ptr<BaseBOperator > vectorMappingOperator_;
     shared_ptr<BaseBOperator > scalarMappingOperator_;
-    //debug
-    //shared_ptr<BaseBOperator > ttttensorMappingOperator_;
-    //
-
+  
     //! Layer generation parameters
     Double numLayers_;      //number of generated surface regions within the layer
     Double elemHeight_;     //height of a generated element

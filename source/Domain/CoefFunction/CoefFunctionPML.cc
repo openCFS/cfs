@@ -574,12 +574,7 @@ namespace CoupledField{
     CheckForLayerGenerationNode(pmlDef);
     // trigger computation of geometry data and get pointer to it (is only computed once)
     grid_->GetGeometryOnRegionNodes(ptrNodeGeom_, volRegion_, true);
-    
-    // initialize the member to store the nodal tensors
-    //if (outputType == OutputType::TENSOR)
-      //tensorsOnNodes_.Resize(ptrNodeGeom_->numNodes_);
-      //debug ... todo: store geometry instead of tensor
-    
+
     // get nodal distances to the PML interface and store in a StdVector
     GetThicknessOnNodes();
     // set identity operators for mapping nodal values to lpm
@@ -614,12 +609,6 @@ namespace CoupledField{
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
 
-        /*// variable to store entries of element tensors
-        Vector<Complex> stackedVec(numElemNodes * pow(this->dim_,2));
-        // variable to store the entries interpolated to lpm
-        Vector<Complex> interpVec(this->dim_);*/
-
-        //debug
         // variable to store entries of element tensors
         Vector<Double> nstackedVec(numElemNodes * pow(this->dim_,2));
         // variable to store the entries interpolated to lpm
@@ -637,8 +626,6 @@ namespace CoupledField{
         Matrix<Double> tmaxMat(3,3);
         Matrix<Double> tminMat(3,3);
 
-        //
-
         // loop over element nodes, get node indices and compute tensor on nodes if not already
         for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
           nodeIdx = GetIdxByNodeId(nodeIds[iNodes]);
@@ -647,16 +634,6 @@ namespace CoupledField{
             // compute if not
             ComputeTensorOnNode(nodeIdx);
           }
-
-          /*// loop over dimensions of the tensor, store values into a stacked vector, and interpolate to lpm...
-          for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
-            for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-              // vector entries: [N1_T11, N1_T12,..., N1_T33, N2_T11, ...], 
-              // where Nx is the node and Txx are entries in respective tensor
-              vecIdx = iCol + this->dim_ * iRow + pow(this->dim_,2) * iNodes;
-              stackedVec[vecIdx] = tensorsOnNodes_[nodeIdx][iRow][iCol];
-            }
-          }*/
 
           
           // loop over dimensions of the matrices, store values into a stacked vector, and interpolate to lpm...
@@ -670,21 +647,7 @@ namespace CoupledField{
               tmaxstackedVec[vecIdx] = tmaxMat_[iRow][iCol];
             }
           }
-
-          //
         }
-        /*// perform interpolation
-        this->tensorMappingOperator_->ApplyOp(interpVec,lpm,ptrFe,stackedVec);
-        // store interpolated values into tensor
-        tensor.Resize(this->dim_, this->dim_);
-        // assign values of interpolated vector to tensor...
-        for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
-          for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-            vecIdx = iCol + this->dim_ * iRow;
-            //tensor[iRow][iCol] = interpVec[vecIdx];
-          }
-        }*/
-
 
         // perform interpolation
         this->tensorMappingOperator_->ApplyOp(ninterpVec,lpm,ptrFe,nstackedVec);
@@ -715,66 +678,11 @@ namespace CoupledField{
         // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
         Vector<Complex> s = Vector<Complex>(this->dim_);
         for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-          //denominator = 1.0 + pow(h[iDim]/K, 2);
-          //s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
-          //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
-          s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K); //inv
+          s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K);
         }
         // compute tensor
         tensor.Resize(this->dim_, this->dim_);
         tensor =  s[0] * nMat + s[1] * tminMat + s[2] * tmaxMat;
-
-        
-        //
-      //debug
-      /*GetDeterminantParams(lpm);
-            Double K = this->omega_ / sos_;
-      Vector<Double> h(3);
-      h[0] = dampFunc_;
-      h[1] = 0;
-      h[2] = 0;
-
-        // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
-      Vector<Complex> s = Vector<Complex>(this->dim_);
-      for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-      //denominator = 1.0 + pow(h[iDim]/K, 2);
-      //s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
-      //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
-      s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K); //inv
-       }
-
-
-        Vector<Double> n(3);
-        Vector<Double> tmin(3);
-        Vector<Double> tmax(3);
-
-        // Debug...
-        n[0] = 1;
-        n[1] = 0;
-        n[2] = 0;
-        tmin[0] = 0;
-        tmin[1] = 1;
-        tmin[2] = 0;
-        tmax[0] = 0;
-        tmax[1] = 0;
-        tmax[2] = 1;
-
-        Matrix<Complex> nMat(3,3);
-        Matrix<Complex> tminMat(3,3);
-        Matrix<Complex> tmaxMat(3,3);
-
-        for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
-          for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-            nMat[iRow][iCol] = n[iRow] * n[iCol];
-            tminMat[iRow][iCol] = tmin[iRow] * tmin[iCol];
-            tmaxMat[iRow][iCol] = tmax[iRow] * tmax[iCol];
-          }
-        }
-
-        Matrix<Complex> tensor2;
-        tensor2 =  s[0] * nMat + s[1] * tminMat + s[2] * tmaxMat;
-
-        tensor = tensor2;*/
         break;
       }
       default:
@@ -799,21 +707,11 @@ namespace CoupledField{
           h[0] = dampFunc_;
           h[1] = intDampFunc_ * kmin_ / (1.0 + dist_ * kmin_);
           h[2] = intDampFunc_ * kmax_ / (1.0 + dist_ * kmax_);
-          // debug
-          /*h[1] = 0;
-          h[2] = 0;*/
-          Double K2 = pow(K,2);  //square of wave number
 
           // compute the determinant...
-          // the eigenvalues are of the form s_i = (1 + 1i/K * h[i]).
-          val = Complex(1.0, -h[0]/K) * Complex(1.0, -h[1]/K) * Complex(1.0, -h[2]/K); //inv
-          //val = Complex(1.0, h[0]/K) * Complex(1.0, h[1]/K) * Complex(1.0, h[2]/K); //orig
-
-          // Hence, the determinant J = s_0*s_1*s_2 computes after multiplication and separation of real/imaginary part:
-          //val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] + h[0]*h[1]) / K2, 
-          //                   -(h[0]+h[1]+h[2]) / K + (h[0]*h[1]*h[2]) / pow(K, 3)); //inv
-          //val = Complex(1.0 - (h[0]*h[2] + h[1]*h[2] + h[0]*h[1]) / K2, 
-          //                    (h[0]+h[1]+h[2]) / K - (h[0]*h[1]*h[2]) / pow(K, 3)); //orig
+          // the eigenvalues are of the form s_i = (1 + 1i/K * h[i])
+          // where h[i] contains the damping function and the metric correction for the curvature
+          val = Complex(1.0, -h[0]/K) * Complex(1.0, -h[1]/K) * Complex(1.0, -h[2]/K);
         } else {
           EXCEPTION("CoefFunctionCurvilinearPML::GetTensor in 2D not implemented yet");
         }
@@ -1016,9 +914,6 @@ namespace CoupledField{
       kmin_ = kmin[0];
       kmax_ = kmax[0];
       dist_ = d[0];
-      // debug
-      /*kmin_ = 0;
-      kmax_ = 0;*/
     } // dim_ == 3
     // get the damping function and its integral at the mapped distance
     dampFunc_ = this->dampFunction_->ComputeFactor(dist_, layerThickness_);
@@ -1026,8 +921,6 @@ namespace CoupledField{
 
     // finally, get the speed of sound at current lpm
     this->speedOfSound_->GetScalar(sos_,lpm);
-    // debug
-    sos_ = 343.4000408;
   };
 
   template<typename T>
@@ -1370,63 +1263,6 @@ namespace CoupledField{
 
   template<typename T>
   void CoefFunctionCurvilinearPML<T>::ComputeTensorOnNode(const UInt& nodeIdx) {
-    /*Double sos = 343.4000408; // debug .... todo: compute from coeffunction
-
-    // compute the current wave number
-    Double K = this->omega_ / sos;
-
-    // get the damp function evaluated at current node
-    Double dampFunc = this->dampFunction_->ComputeFactor(thicknessOnNodes_[nodeIdx], layerThickness_);
-    // and its integral from the interface to the node
-    Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(thicknessOnNodes_[nodeIdx], layerThickness_);
-
-    // set the helper function that does the damping
-    Vector<Double> h = Vector<Double>(this->dim_);
-    h[0] = dampFunc;
-    h[1] = intDampFunc * ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx] / (1.0 + thicknessOnNodes_[nodeIdx] * ptrNodeGeom_->minPrincipalCurvatures_[nodeIdx]);
-    h[2] = intDampFunc * ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx] / (1.0 + thicknessOnNodes_[nodeIdx] * ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdx]);
-    
-    // another helper variable
-    Double denominator;
-    Double K2 = pow(K,2);  //square of wave number
-
-    // get the entries of (I+jD)^-1 with separated real- and imaginary part (is named s but resembles 1/s_i)
-    Vector<Complex> s = Vector<Complex>(this->dim_);
-    for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-      //denominator = 1.0 + pow(h[iDim]/K, 2);
-      //s[iDim] = Complex(1.0 / denominator, (h[iDim] / K) / denominator); //inv
-      //s[iDim] = Complex(1.0 / denominator, (-h[iDim] / K) / denominator); //orig
-      s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K); //inv
-    }
-
-    // compute the tensor as the inverse of the Jakobi matrix. The matrix can be factorized in three parts:
-    // J^-1 = A^T  * (I + jD)^-1 * A.
-    // A is an orthogonal (rotation) matrix containing the curvilinear base vectors (n, t1, t2)
-    // I is the identity matrixm, j the imaginary number
-    // D is a diagonal matrix containing i.a. the damping functions
-    // Inverting (I+jD) is hence simply inverting its entries. Inverting A results in its transpose.
-    // Here the matrix is assembled directly in the multiplied version. The result is a symmetric matrix of the form:
-    // 
-    // / n1^2/s1  + t21^2/s2   + t31^2/s3       |    ...                                    |    ...                           \
-    // |
-    // | n1*n2/s1 + t21*t22/s2 + t31*t32/s3     |    n2^2/s1  + t22^2/s2   + t32^2/s3       |    ...                           |
-    // |
-    // \ n1*n3/s1 + t21*t23/s2 + t31*t33/s3     |    n2*n3/s1 + t22*t23/s2 + t32*t33/s3     |    n3^2/s1 + t23^2/s2 + t33^2/s3 /
-    Vector<Double>  n = ptrNodeGeom_->normalVectors_[nodeIdx];
-    Vector<Double>  tmin = ptrNodeGeom_->minPrincipalVectors_[nodeIdx];
-    Vector<Double>  tmax = ptrNodeGeom_->maxPrincipalVectors_[nodeIdx];
-    Matrix<Complex> tensor(3,3);
-
-    tensor[0][0] = pow(n[0],2)*s[0] + pow(tmin[0],2)*s[1] + pow(tmax[0],2)*s[2];
-    tensor[1][1] = pow(n[1],2)*s[0] + pow(tmin[1],2)*s[1] + pow(tmax[1],2)*s[2];
-    tensor[2][2] = pow(n[2],2)*s[0] + pow(tmin[2],2)*s[1] + pow(tmax[2],2)*s[2];
-    tensor[1][0] = n[0]*n[1]*s[0] + tmin[0]*tmin[1]*s[1] + tmax[0]*tmax[1]*s[2];
-    tensor[2][0] = n[0]*n[2]*s[0] + tmin[0]*tmin[2]*s[1] + tmax[0]*tmax[2]*s[2];
-    tensor[2][1] = n[1]*n[2]*s[0] + tmin[1]*tmin[2]*s[1] + tmax[1]*tmax[2]*s[2];
-    tensor[0][1] = tensor[1][0];
-    tensor[0][2] = tensor[2][0];
-    tensor[1][2] = tensor[2][1];
-    tensorsOnNodes_[nodeIdx] = tensor;*/
 
     Vector<Double>  n = ptrNodeGeom_->normalVectors_[nodeIdx];
     Vector<Double>  tmin = ptrNodeGeom_->minPrincipalVectors_[nodeIdx];
@@ -1436,7 +1272,7 @@ namespace CoupledField{
     tminMat_.Resize(3,3);
     tmaxMat_.Resize(3,3);
 
-    // debug
+    // store dyadic products of current node
     for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
       for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
         nMat_[iRow][iCol] = n[iRow] * n[iCol];
@@ -1444,52 +1280,6 @@ namespace CoupledField{
         tmaxMat_[iRow][iCol] = tmax[iRow] * tmax[iCol];
       }
     }
-
-    // Debug...
-    /*n[0] = 1;
-    n[1] = 0;
-    n[2] = 0;
-    tmin[0] = 0;
-    tmin[1] = 1;
-    tmin[2] = 0;
-    tmax[0] = 0;
-    tmax[1] = 0;
-    tmax[2] = 1;*/
-
-/*    Matrix<Complex> nMat(3,3);
-    Matrix<Complex> tminMat(3,3);
-    Matrix<Complex> tmaxMat(3,3);
-
-    for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
-      for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-        nMat[iRow][iCol] = n[iRow] * n[iCol];
-        tminMat[iRow][iCol] = tmin[iRow] * tmin[iCol];
-        tmaxMat[iRow][iCol] = tmax[iRow] * tmax[iCol];
-      }
-    }
-
-    Matrix<Complex> tensor2;
-    tensor2 =  s[0] * nMat + s[1] * tminMat + s[2] * tmaxMat;
-
-    tensorsOnNodes_[nodeIdx] = tensor2;*/
-
-    /*Matrix<Complex> orthoMat = Matrix<Complex>(3,3);
-    Matrix<Complex> stretchMat = Matrix<Complex>(3,3);
-    // fill the matrices with entries
-    for (UInt iColumn = 0; iColumn < 3; iColumn++) {
-      orthoMat[0][iColumn] = Complex(ptrNodeGeom_->normalVectors_[nodeIdx][iColumn], 0.0); // imaginary part is 0
-      orthoMat[1][iColumn] = Complex(ptrNodeGeom_->minPrincipalVectors_[nodeIdx][iColumn], 0.0);
-      orthoMat[2][iColumn] = Complex(ptrNodeGeom_->maxPrincipalVectors_[nodeIdx][iColumn], 0.0);
-
-      denominator = 1 + pow(h[iColumn]*sos / this->omega_, 2);
-      stretchMat[iColumn][iColumn] = Complex(1 / denominator, 1 * (h[iColumn]*sos / this->omega_) / denominator);//inv
-      //stretchMat[iColumn][iColumn] = Complex(1 / denominator, -1 * (h[iColumn]*sos / this->omega_) / denominator);//orig
-    }
-    Matrix<Complex> orthoMatT;
-    orthoMat.Transpose(orthoMatT);
- 
-    tensor2 = orthoMat * stretchMat * orthoMatT;
-    tensorsOnNodes_[nodeIdx] = tensor2;*/
   };
 
   template<typename T>
@@ -1529,9 +1319,6 @@ namespace CoupledField{
       // in the tensor case we also need to interpolate tensorial quantites
       if (this->dimType_ == CoefFunction::TENSOR)
         this->tensorMappingOperator_.reset(new IdentityOperator<FeH1,3,9,Double>());
-        //debug
-        //this->ttttensorMappingOperator_.reset(new IdentityOperator<FeH1,3,9,Double>());
-        //
     }
   };
 
