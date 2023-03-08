@@ -3245,8 +3245,8 @@ namespace CoupledField {
       // if the surface is not curved,
       // use a vector in positive (x,y,z) direction for the very first entry and previous normal vectors
       // for every other.
-      if (abs(mongeForm.principal_curvatures(0)) < 1E-3 &&
-          abs(mongeForm.principal_curvatures(1)) < 1E-3) {
+      if (abs(mongeForm.principal_curvatures(0)) < 1E-20 &&
+          abs(mongeForm.principal_curvatures(1)) < 1E-20) {
         WARN("Point nr. " << currNodeIds[0] << " on surface "<< surfRegionId << 
              " has curvatures " <<
              mongeForm.principal_curvatures(0) << " , " <<
@@ -3261,7 +3261,7 @@ namespace CoupledField {
 
       // extract geometry from MongeForm and store...
       switch (paramToCompute) {
-        case ALL:
+        case ALL: {
           // extract normal vector and store
           tempVec[0] = mongeForm.normal_direction().x();
           tempVec[1] = mongeForm.normal_direction().y();
@@ -3278,22 +3278,11 @@ namespace CoupledField {
           tempVec[2] = mongeForm.maximal_principal_direction().z();
           geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iSurfNodes] = tempVec;
           // minimum principal curvatures
-          if (abs(mongeForm.principal_curvatures(1)) > 1E-3) {
-            tempVar = -mongeForm.principal_curvatures(1);
-            geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
-          } else {
-            geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = 0;
-            WARN("Minimal curvature on point nr. " << currNodeIds[0] << " on surface "<< surfRegionId << 
-                 " with value " << mongeForm.principal_curvatures(1) << " is set to zero.");
-          }
+          tempVar = -mongeForm.principal_curvatures(1);
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
           // maximum principal curvatures
-          if (abs(mongeForm.principal_curvatures(0)) > 1E-3) {
-            tempVar = -mongeForm.principal_curvatures(0);
-            geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
-          } else {
-            geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = 0;
-            WARN("Maximal curvature on point nr. " << currNodeIds[0] << " on surface "<< surfRegionId << 
-                 " with value " << mongeForm.principal_curvatures(0) << " is set to zero.");
+          tempVar = -mongeForm.principal_curvatures(0);
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
           }
           break;
         default:
