@@ -938,11 +938,13 @@ namespace CoupledField {
           if( listNode )
             regionNodes = listNode->GetList("surfRegion");
 
-//          // fetch entry with neighboring regions
-//          for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-//            std::string str = regionNodes[i]->Get("neighborRegion")->As<std::string>();
-//            neighborRegions.Push_back( str );
-//          }
+          if ( candidate->resultType == MAG_FORCE_VWP_DENSITY ) {
+            if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
+              listNode = actResultNode->Get("surfElemList", ParamNode::PASS);
+              if( listNode )
+                regionNodes = listNode->GetList("surfElems");
+            }
+          }
         }
 
         // only enter, at least one region is present

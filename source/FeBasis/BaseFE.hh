@@ -100,6 +100,13 @@ namespace CoupledField
      EXCEPTION("This GetShFnc is not implemented for BaseFE")
     }
     
+    //! Return global curl of shape functions
+    virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                               const LocPointMapped& lp,
+                               const Elem* elem, UInt comp = 1 ) {
+      EXCEPTION("This GetCurlShFnc is not implemented for BaseFE")
+    }                                                             
+
     //! Flag, if element has true nodal permutation
     virtual bool NeedsNodalPermutation() {
       return false;

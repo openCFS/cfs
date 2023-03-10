@@ -925,7 +925,16 @@ namespace CoupledField
 
   void MagBasePDE::GenerateVWPForce(CoupledField::StdVector<std::string> &vecComponents,
     CoupledField::PtrCoefFct &bFunc, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) {
-    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
+    if( (analysistype_ != MULTIHARMONIC) ) {
+      // === VIRTUAL WORK PRINCIPLE FORCE DENSITY ===
+      shared_ptr<ResultInfo> vwpDensity(new ResultInfo());
+      vwpDensity->resultType = MAG_FORCE_VWP_DENSITY;
+      vwpDensity->dofNames = vecComponents;
+      vwpDensity->unit = "N/m^2";
+      vwpDensity->definedOn = ResultInfo::SURF_ELEM;
+      vwpDensity->entryType = ResultInfo::VECTOR;
+      availResults_.insert(vwpDensity );
+      
       // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
       shared_ptr<ResultInfo> vwp(new ResultInfo);
       vwp->resultType = MAG_FORCE_VWP;
@@ -935,18 +944,21 @@ namespace CoupledField
       vwp->entryType = ResultInfo::VECTOR;
       availResults_.insert( vwp );
       
-      // define and save coefFunction
-      shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_, 1.0, vwp));
-      surfCoefFcts_[vwpForce] = bFunc;
       
-      // build result functor for integration
       shared_ptr<ResultFunctor> vwpFunc;
+      shared_ptr< CoefFunctionSurfVWPnew> vwpForceDens(
+            new CoefFunctionSurfVWPnew(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+                                                      ptGrid_, feFct));
+      
+      surfCoefFcts_[vwpForceDens] = bFunc;
       if( isComplex_ ) {
-        vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
+        vwpFunc.reset(new ResultFunctorVWPnew<Complex>(vwpForceDens, vwp ) );
       } else {
-        vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
+        vwpFunc.reset(new ResultFunctorVWPnew<Double>(vwpForceDens, vwp ) );
       }
+      DefineFieldResult(vwpForceDens, vwpDensity);
       resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
+
     }
   }
 

@@ -558,31 +558,51 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector(Vector<DATA_TYPE>& coefVec,
   assert(this->dimType_ == VECTOR);
 
   UpdateCache();
-
-  BaseFE * fe;
-  if (std::is_same<FE, FeH1>::value)
-    fe =  static_cast<FeH1*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
-  else if (std::is_same<FE, FeHCurl>::value)
-    fe =  static_cast<FeHCurl*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
-  else  
-    EXCEPTION("CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector: FE-Type unknown");
-
-  Vector<Double> shapeFncs;
-  fe->GetShFnc(shapeFncs, lpm.lp, lpm.ptEl);
-
+  
   coefVec.Resize(numDofs_);
   coefVec.Init();
 
-  const StdVector<UInt> & connect = lpm.ptEl->connect;
-  UInt numElemNodes = connect.size();
-  for (UInt node = 0; node < numElemNodes; ++node) {
-    if (nodalForces_.find(connect[node]) == nodalForces_.end()) {
-      EXCEPTION("Nodal force of node " << connect[node] << " not found in cache.");
-    }
+  BaseFE * fe;
+  if (std::is_same<FE, FeH1>::value) {
+    //nodal H1 elements
+    fe =  static_cast<FeH1*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
+    
+    Vector<Double> shapeFncs;
+    fe->GetShFnc(shapeFncs, lpm.lp, lpm.ptEl);
 
-    coefVec += nodalForces_[connect[node]] * shapeFncs[node];
+    const StdVector<UInt> & connect = lpm.ptEl->connect;
+    UInt numElemNodes = connect.size();
+    for (UInt node = 0; node < numElemNodes; ++node) {
+      if (nodalForces_.find(connect[node]) == nodalForces_.end()) {
+        EXCEPTION("Nodal force of node " << connect[node] << " not found in cache.");
+      }
+      coefVec += nodalForces_[connect[node]] * shapeFncs[node];
+    }
+    coefVec.ScalarDiv(lpm.shapeMap->CalcVolume(true));
   }
-  coefVec.ScalarDiv(lpm.shapeMap->CalcVolume(true));
+  else if (std::is_same<FE, FeHCurl>::value) {
+    //edge H(curl) elements    
+    fe =  static_cast<FeHCurl*>(FeFunction_->GetFeSpace()->GetFe(lpm.ptEl->elemNum));
+    
+    Matrix<Double> shapeFncs;
+    fe->GetCurlShFnc(shapeFncs, lpm, lpm.ptEl);
+
+    const StdVector<UInt> & connect = lpm.ptEl->connect;
+    UInt numElemNodes = connect.size();
+    for (UInt node = 0; node < numElemNodes; ++node) {
+      if (nodalForces_.find(connect[node]) == nodalForces_.end()) {
+        EXCEPTION("Nodal force of node " << connect[node] << " not found in cache.");
+      }
+
+      const Vector<DATA_TYPE> & nodeForce = nodalForces_[connect[node]];
+      for (UInt dof = 0; dof < numDofs_; ++dof) {
+        coefVec[dof] += nodeForce[dof] * shapeFncs[dof][node];
+     }
+    }
+    coefVec.ScalarDiv(lpm.shapeMap->CalcVolume(true));
+  }
+  else  
+    EXCEPTION("CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector: FE-Type unknown");
 }
 
 // Update the cache with nodal forces 
@@ -601,6 +621,13 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::UpdateCache() {
   StdVector< std::vector<bool> > isBoundaryNode;
   Matrix<DATA_TYPE> elemForce;
   StdVector<RegionIdType> neighborIds(1);
+
+  //make sure, that when array has already be used, zero it!
+  for ( UInt i = 0; i< nodalForces_.size(); i++ ) {
+    Vector<DATA_TYPE> & nodeForce = nodalForces_[i];
+    if ( nodeForce.size() != 0) 
+      nodeForce.Init();
+  }
 
   // Loop over groups
   for (srcIt = entities_.begin(); srcIt != srcEnd; ++srcIt)  {
@@ -653,12 +680,28 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::UpdateCache() {
         }
 
         for (UInt dof = 0; dof < numDofs_; ++dof) {
-          nodeForce[dof] = elemForce(iElemNode, dof);
+          nodeForce[dof] += elemForce(iElemNode, dof);
           totalForces_[srcIt->first][dof] += elemForce(iElemNode, dof);
         }
       }
     } // end elements!
   } // end groups
+
+  // //make check
+  // std::cout << "Num nodal forces: " << nodalForces_.size() << std::endl;
+  // Vector<DATA_TYPE> totForce(numDofs_); totForce.Init(); 
+  // for ( UInt i = 0; i< nodalForces_.size(); i++ ) {
+  //   Vector<DATA_TYPE> & nodeForce = nodalForces_[i];
+  //   if ( nodeForce.size() != 0) {
+  //     for ( UInt j = 0; j < numDofs_; j++ ) {
+  //       totForce[j] +=  nodeForce[j];
+  //     }
+  //   }
+  // }
+  // std::cout << "Total Force:  " << totForce << std::endl;
+  // for (srcIt = entities_.begin(); srcIt != srcEnd; ++srcIt)  {
+  //   std::cout << "Real Total Force: " << totalForces_[srcIt->first] << std::endl;
+  // }
 
   //node forces computed!
   cacheStep_ = FeFunction_->GetPDE()->GetSolveStep()->GetActStep();
