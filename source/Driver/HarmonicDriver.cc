@@ -19,6 +19,8 @@
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "PDE/StdPDE.hh"
 
 #include "Domain/Domain.hh"
@@ -36,6 +38,8 @@ HarmonicDriver * instance = NULL;
 
 namespace CoupledField
 {
+  DEFINE_LOG(harmonicDriver, "harmonicDriver")
+
   // ***************
   //   Constructor
   // ***************
@@ -175,7 +179,20 @@ namespace CoupledField
 
     // read sampling type (optional)
     std::string sampling = "linear";
-    param_->GetValue( "sampling", sampling, ParamNode::PASS );
+    treeStepping_ = false;
+    if(param_->Has("sampling")){
+      PtrParamNode samplingNode = param_->Get( "sampling" );
+      param_->GetValue( "sampling", sampling, ParamNode::PASS );
+
+      treeStepping_ = samplingNode->Get("treeStepping")->As<bool>();
+      maxTreeLevel_ = samplingNode->Get("maxTreeLevel")->As<UInt>();
+    }
+    if (treeStepping_){
+      numSteps_ = std::pow(2,maxTreeLevel_) + 1;
+    }
+    else{
+      numSteps_ = numFreq_;
+    }
     String2Enum( sampling, samplingType_ );
 
     // store only the sampling strategy
@@ -209,6 +226,15 @@ namespace CoupledField
       }
     }
 
+    // When tree stepping is used, tree level must be high enough to contain all steps at least
+    // If not high enough, set such that 1 further refinement level is possible
+    if ( treeStepping_ && numFreq_ > numSteps_){
+        maxTreeLevel_ = (std::ceil(std::log2(numFreq_ - 1)) + 1);
+        numSteps_ = std::pow(2,maxTreeLevel_) + 1;
+        WARN( "Number of Frequencies (" << numFreq_ 
+           << ") exceed number of steps for defined tree level. Setting max tree level to " << maxTreeLevel_);
+    }
+
     // We do not allow smaller stopping than starting frequencies
     if ( startFreq_ > stopFreq_ ) {
       EXCEPTION( "startFreq = " << startFreq_ << " > stopFreq = "
@@ -216,7 +242,7 @@ namespace CoupledField
     }
 
     // Check that starting frequency is positive for non-linear sampling
-    if ( startFreq_ == 0.0 && samplingType_ != LINEAR_SAMPLING ) {
+    if ( startFreq_ == 0.0 && (samplingType_ != LINEAR_SAMPLING) ) {
       EXCEPTION( "You specified sampling = '" << sampling
                << "' which conflicts with startFreq = " << startFreq_ );
     }
@@ -226,6 +252,7 @@ namespace CoupledField
     {
       info_->Get(ParamNode::HEADER)->SetWarning("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
+      numSteps_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
@@ -235,16 +262,44 @@ namespace CoupledField
     }
 
     // pre calculate the list of frequencies
-    freqs.Resize(numFreq_);
+    freqs.Resize(numSteps_);
 
-    for (unsigned int i = 1; i <= numFreq_; i++)
+    for (unsigned int i = 1; i <= numSteps_; i++)
     {
       // Determine next frequency value
       freqs[i-1].step = i; // one based :(
       freqs[i-1].freq = ComputeNextFrequency(i);
       freqs[i-1].weight = 1.0;
     }
-    stopFreqStep_ = numFreq_;
+    // Base List
+    LOG_DBG(harmonicDriver) << "Base Frequency List:" << std::endl;
+    for(auto const & v : freqs)
+      LOG_DBG(harmonicDriver) << v << std::endl;
+    // Sort list of frequencies to obtain list of steps in case of tree sampling
+    if (treeStepping_)
+      {
+        // Copy list of frequency steps for sorting
+        StdVector<Frequency> freqs_tmp(freqs);
+        // Sort list regarding frequency
+        std::sort(freqs_tmp.begin(),freqs_tmp.end(),[](Frequency const & f0, Frequency const & f1){return (f0.freq < f1.freq);});
+        // Sorted list (frequency)
+        LOG_DBG(harmonicDriver) << "Sorted List:" << std::endl;
+        for(auto const & v : freqs_tmp)
+          LOG_DBG(harmonicDriver) << v << std::endl;
+        // Set stepping such that increasing step numbers correspond to increasing frequencies
+        for (UInt i=0;i<freqs.size();i++)
+        {
+          auto f_tmp = std::find_if(freqs_tmp.begin(), freqs_tmp.end(), [&](Frequency const & f_tmp) { return f_tmp.freq == freqs[i].freq; });
+          UInt idx = std::distance(freqs_tmp.begin(), f_tmp);   
+          freqs[i].step = idx+1;
+        }
+        // Reordered step numbering
+        LOG_DBG(harmonicDriver) << "Renumbered Frequency List:" << std::endl;
+        for(auto const & v : freqs)
+          LOG_DBG(harmonicDriver) << v << std::endl;
+      }
+    
+    stopFreqStep_ = freqs[numFreq_-1].step;
 
     return true; // valid values
   }
@@ -268,14 +323,21 @@ namespace CoupledField
     
     // Read restart information
     ReadRestart();
-    numFreq_ = numFreq_ - restartStep_;
-    stopFreqStep_ = numFreq_ + restartStep_;
-    
+    UInt stpIndexStart = 0;
+    // Find stpIndex to start in case of restart
+    if (isRestarted_)
+    {
+      auto lastFreq = std::find_if(freqs.begin(), freqs.end(), [&](Frequency const & f) { return f.step == restartStep_; });
+      stpIndexStart = std::distance(freqs.begin(), lastFreq) +1;
+      numFreq_ = numFreq_ - stpIndexStart;
+      LOG_DBG(harmonicDriver) << "Resuming from Frequency Step: " << freqs[stpIndexStart-1] << std::endl;
+    }   
     //only used if AMG is set
     ptPDE_->GetSolveStep()->SetAuxMat(false);
     // Perform one simulation for each desired frequency
-    for ( actFreqStep_ = restartStep_+1; actFreqStep_ <= numFreq_+restartStep_; actFreqStep_++ )
+    for ( UInt stpIndex = stpIndexStart; stpIndex < numFreq_+stpIndexStart; stpIndex++ )
     {
+      actFreqStep_ = freqs[stpIndex].step;
       // register signal handler only, if it is a child driver
       if( actFreqStep_ > restartStep_+1 && !simState_->HasInput() ) {
         if( signal( SIGINT, HarmonicDriver::SignalHandler) == SIG_ERR ) {
@@ -289,13 +351,13 @@ namespace CoupledField
       }
       
       // Determine next frequency value
-      ComputeFrequencyStep(actFreqStep_);
+      ComputeFrequencyStep(freqs[stpIndex]);
 
       // Log info for this frequency - suppress in Optimization due to search steps
       if(progOpts->IsQuiet())
-        cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl; 
+        cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << actFreq_ << endl; 
       else
-        cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ <<" ======================= " << endl;
+        cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" <<" ======================= " << endl;
 
       analysis_id_.step = actFreqStep_;
       analysis_id_.freq = actFreq_;
@@ -338,18 +400,18 @@ namespace CoupledField
       handler_->Finalize();
   }
 
-  Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep)
+  Double HarmonicDriver::ComputeFrequencyStep(Frequency const& freqStp)
   {
-    assert(actFreqStep >= 1);
-    assert(actFreqStep <= numFreq_+restartStep_);
+    assert(freqStp.step >= 1);
+    if (!treeStepping_)
+      assert(freqStp.step <= stopFreqStep_);
 
-    actFreqStep_ = actFreqStep;
+    actFreqStep_ = freqStp.step;
+    actFreq_ = freqStp.freq;
 
-    // Determine next frequency value from precalculated list
-    actFreq_ = freqs[actFreqStep-1].freq; // 1 based!
-    assert(freqs[actFreqStep-1].step == actFreqStep);
+    LOG_DBG(harmonicDriver) << "Step: " << actFreqStep_ << ", Frequency: " << actFreq_ << std::endl;
 
-    this->analysis_id_.step = actFreqStep;
+    this->analysis_id_.step = actFreqStep_;
     this->analysis_id_.time = actFreq_;
 
     // analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
@@ -405,7 +467,7 @@ namespace CoupledField
         std::cout << " No restart necessary, as the desired number of \n";
         std::cout << " frequency steps are already computed. \n";
         std::cout << "*******************************************************\n\n";
-        restartStep_ = stopFreqStep_ +1; 
+        restartStep_ = stopFreqStep_; 
         return;
 
       } else{
@@ -444,28 +506,82 @@ namespace CoupledField
     }
     else
     {
+      // Functions for tree sampling
+      // calculates the first distance from freqStart
+      auto calc_first_step = [](unsigned int const n)
+      {
+        return 1.0 / (std::pow(2, n));
+      };
+      // calculates the every other distance from freqStart
+      auto calc_further_step = [&calc_first_step](unsigned int const n, unsigned int const idx)
+      {
+        return calc_first_step(n) * (1 + 2 * ((idx - 2) - std::pow(2, (n - 1))));
+      };
+      // calculates step (0.0 to 1.0) based on tree refining (interval splitting)
+      auto calc_tree_step = [&calc_first_step,&calc_further_step](unsigned int const idx)
+      {
+        double step = 0.0;
+        if (idx == 1)
+          step = 0.0;
+        else if (idx == 2)
+          step = 1.0;
+        else
+        {
+          int const n = std::floor(std::log2(idx - 2)) + 1;
+          if (((int(idx) - 2) % int(std::pow(2, n))) == 0)
+            step = calc_first_step(n);
+          else
+            step = calc_further_step(n, idx);
+        }
+        return step;
+      };
+
+
       switch( samplingType_ )
       {
       // Linear sampling
       case LINEAR_SAMPLING:
-        retFreq = (freqIndex - 1) * (stopFreq_ - startFreq_) /  (Double)( numFreq_ - 1 ) + startFreq_;
-        break;
+      {
+        if (treeStepping_){
+          double const interval = (stopFreq_ - startFreq_);
+          double const step = calc_tree_step(freqIndex);
+          retFreq = startFreq_ + step*interval;
+        }
+        else{
+          retFreq = (freqIndex - 1) * (stopFreq_ - startFreq_) /  (Double)( numFreq_ - 1 ) + startFreq_;
+        }
+      }
+      break;
 
-        // Logarithmic sampling
+      // Logarithmic sampling
       case LOG_SAMPLING:
       {
-        Double fac = stopFreq_ / startFreq_;
-        fac = std::pow( fac, (Double)(freqIndex - 1) / (numFreq_ - 1) );
-        retFreq = startFreq_ * fac;
+        if (treeStepping_){
+          double const interval = (stopFreq_ - startFreq_);
+          double const step = calc_tree_step(freqIndex);
+          double const log_start = std::log(startFreq_)/std::log(interval);
+          double const log_interval = std::log(stopFreq_/startFreq_)/std::log(interval);
+          retFreq = std::pow(interval,log_start + log_interval*step);
+        }
+        else{
+          Double fac = stopFreq_ / startFreq_;
+          fac = std::pow( fac, (Double)(freqIndex - 1) / (numFreq_ - 1) );
+          retFreq = startFreq_ * fac;
+        }
       }
       break;
 
       // Reverse logarithmic sampling
       case REVERSE_LOG_SAMPLING:
       {
-        Double fac = stopFreq_ / startFreq_;
-        fac = std::pow( fac, (Double)(numFreq_ - freqIndex) / (numFreq_ - 1));
-        retFreq = stopFreq_ + startFreq_ * ( 1.0 - fac );
+        if (treeStepping_){
+          EXCEPTION("Tree stepping for reverse log sampling not implemented yet.");
+        }
+        else{
+          Double fac = stopFreq_ / startFreq_;
+          fac = std::pow( fac, (Double)(numFreq_ - freqIndex) / (numFreq_ - 1));
+          retFreq = stopFreq_ + startFreq_ * ( 1.0 - fac );
+        }
       }
       break;
 

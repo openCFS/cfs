@@ -829,7 +829,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   if(context->IsHarmonic() && excite != NULL)
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
-    context->GetHarmonicDriver()->ComputeFrequencyStep(excite->f_link->step);
+    context->GetHarmonicDriver()->ComputeFrequencyStep(*(excite->f_link));
   }
   else if(context->DoBloch())
   {

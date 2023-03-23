@@ -61,18 +61,12 @@ public:
   //! Main method, where harmonic analysis is implemented.
   void SolveProblem();
 
-  /** This allows optimization to handle the individual frequency steps, e.g. to compute
-   * objective values. Internally this is is a service function for SolveProblem()
-   * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep);
-
    /** This StoreResults meant for Optimization only */
    unsigned int StoreResults(UInt stepNum, double step_val);
 
   //! \copydoc SingleDriver::SetToStepValue
   virtual void SetToStepValue(UInt stepNum, Double stepVal );
 
-  
   /** This is the list of all frequencies. As long as we have no adaptive
    * frequeceny steps this makes no problem. */
   struct Frequency
@@ -84,9 +78,21 @@ public:
 
     /** The weight is only used in multiple frequency optimization */
     double weight;
+
+    friend std::ostream &
+    operator<<(std::ostream & os, Frequency const & freqStp)
+    {
+       return os << "Frequency: " << freqStp.freq << ", Step: " 
+        << freqStp.step << ", Weight: " << freqStp.weight;
+    }
   };
 
   StdVector<Frequency> freqs;
+
+  /** This allows optimization to handle the individual frequency steps, e.g. to compute
+   * objective values. Internally this is is a service function for SolveProblem()
+   * @param freq sets the actFreq_ and actFreqStep attributes, to start with 1 and not to exceed numFreq_ */
+   Double ComputeFrequencyStep(Frequency const& freqStp);
 
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
@@ -138,6 +144,15 @@ protected:
   //! A attribute storing the type of algorithm used for frequency sampling
   FreqSamplingType samplingType_;
   
+  //! Flag whether stepping strategy is standard or tree based
+  bool treeStepping_;
+
+  //! Number of tree levels in case of tree stepping
+  UInt maxTreeLevel_;
+
+  //! Number of frequency steps, that should be included in the output
+  UInt numSteps_;
+
   // =======================================================================
   //  Restart related data
   // =======================================================================

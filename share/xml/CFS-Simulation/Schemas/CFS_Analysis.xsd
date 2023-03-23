@@ -118,6 +118,25 @@
   <!-- ******************************************************************* -->
   <xsd:element name="harmonic" type="DT_AnalysisHarmonic" substitutionGroup="AnalysisBasic"/>
 
+  <!-- Data type for sampling type, defining optional tree stepping attribute for harmonic analysis -->
+  <xsd:complexType name="DT_sampling">
+    <xsd:simpleContent>
+      <xsd:restriction base="DT_samplingName">
+        <xsd:enumeration value="linear"/>
+        <xsd:enumeration value="log"/>
+        <xsd:enumeration value="reverseLog"/>
+    </xsd:restriction>
+    </xsd:simpleContent>
+  </xsd:complexType>
+  <xsd:complexType name="DT_samplingName">
+    <xsd:simpleContent>
+      <xsd:extension base="xsd:token">
+        <xsd:attribute name="treeStepping" type="xsd:boolean" use="optional" default="false" />
+        <xsd:attribute name="maxTreeLevel" type="xsd:int" use="optional" default="10" />
+      </xsd:extension>
+    </xsd:simpleContent>
+  </xsd:complexType>
+
   <!-- Data type for harmonic section, i.e. parameters required for
        performing a harmonic analysis -->
   <xsd:complexType name="DT_AnalysisHarmonic">
@@ -127,15 +146,7 @@
           <xsd:element name="numFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="startFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="stopFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="sampling" minOccurs="0" maxOccurs="1" default="linear">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="linear"/>
-                <xsd:enumeration value="log"/>
-                <xsd:enumeration value="reverseLog"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
+          <xsd:element name="sampling" minOccurs="0" maxOccurs="1" type="DT_sampling" default="linear"/>
           <xsd:element name="frequencyList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
