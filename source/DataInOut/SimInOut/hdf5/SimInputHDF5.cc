@@ -700,6 +700,15 @@ namespace CoupledField {
     std::string entityTypeString = H5IO::MapUnknownTypeAsString( definedOn );
     H5::Group entityGroup = actResGroup.openGroup( entityTypeString );
 
+    // get stepvalues map of result file to extract step indices
+    std::map<UInt, Double> stepVals;
+    std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+    shared_ptr<ResultInfo> actRes = result->GetResultInfo();
+    this->GetStepValues( sequenceStep, actRes, resultSteps[actRes], true);
+    stepVals.insert( resultSteps[actRes].begin(), resultSteps[actRes].end() );
+    // Get index of step (because in case of missing steps, stepIdx != stepNum-1)
+    UInt stepIdx = std::distance(stepVals.begin(),stepVals.find(stepNum));
+
     // iterate over all entities in the the list
     shared_ptr<EntityList> list = result->GetEntityList();
     EntityIterator it = list->GetIterator();
@@ -751,7 +760,7 @@ namespace CoupledField {
         H5IO::ReadArray( actEntGroup, "Real", vals );
 
         for( UInt i = 0; i < numDofs; i++ ) {
-          resVec[it.GetPos()*numDofs+i] = vals[(stepNum-1)*numDofs+i];
+          resVec[it.GetPos()*numDofs+i] = vals[stepIdx*numDofs+i];
         }
         actEntGroup.close();
       }
@@ -775,8 +784,8 @@ namespace CoupledField {
 
         for( UInt i = 0; i < numDofs; i++ ) {
           resVec[it.GetPos()*numDofs+i] =
-            Complex( realVals[(stepNum-1)*numDofs+i],
-                     imagVals[(stepNum-1)*numDofs+i] );
+            Complex( realVals[stepIdx*numDofs+i],
+                     imagVals[stepIdx*numDofs+i] );
         }
         actEntGroup.close();
       }
