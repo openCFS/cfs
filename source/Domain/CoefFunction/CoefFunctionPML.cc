@@ -635,7 +635,6 @@ namespace CoupledField{
             ComputeTensorOnNode(nodeIdx);
           }
 
-          
           // loop over dimensions of the matrices, store values into a stacked vector, and interpolate to lpm...
           for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
             for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
