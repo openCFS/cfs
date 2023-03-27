@@ -861,6 +861,7 @@ namespace CoupledField {
       // scalar problem, check if only one dof is given and assign
       if( dofNames_.GetSize()==1 ) {
         rFuncsSorted_[0] = rFuncs_[0];
+        iFuncsSorted_[0] = iFuncs_[0];
       } else {
         EXCEPTION("Multiple DOFs defined for a scalar problem, check your xml-file!");
       }
