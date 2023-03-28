@@ -482,7 +482,7 @@ cfsdeps:intel:
   - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
   - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
 
-.default_build_job: &default_build_job
+.default_build_job_no_files: &default_build_job_no_files
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
@@ -527,13 +527,24 @@ cfsdeps:intel:
     - rm -rf _CPack_Packages vtk include source bin lib64
     - df -h # debug
     # save buildid for environment
-    - *save_cdash_buildid
+    - *save_cdash_buildid          
+
+.default_build_job: &default_build_job # the default build job where the files are shared via (downlaodable) artifacts - not suitable for max-builds
+  extends: .default_build_job_no_files
   artifacts:
     paths: # just an example
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 1.2 days            
+    expire_in: 1.2 days 
+
+.cached_build_job: &cached_build_job # cached build job where the files are shared via a non-downloadable cache (suitable for max-builds)
+  extends: .default_build_job_no_files
+  cache:
+    key: ${CI_JOB_NAME}-${CI_COMMIT_REF_SLUG}
+    paths:
+      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - build/CMakeCache_build-stage.txt
 
 .except-skip-gcc: &except-skip-gcc
   # do not add this job if commit message contains 'skip-gcc-builds'
@@ -568,14 +579,25 @@ cfsdeps:intel:
     - *before-script-build
 
 # ensure maximal build is tested only internally
-.max_never_external_rule: &rule_max_never_external_rule
+.max_no_artifacts_rule: &max_no_artifacts_rule
   rules:
-    - if: '$CI_SERVER_HOST != "cfs-dev.mdmt.tuwien.ac.at"'
+    - if: '$DO_MAX_BUILD != "DO_NOT_DISTRIBUTE_CLOSED_SOURCE_DEPENDENCIES"'
       when: never
 
-.max_rules: &max_rules
+.max_rules_artifacts: &max_rules_artifacts
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_no_artifacts_rule, rules]
+    - !reference [.build_rules, rules]
+
+# similar to max_no_artifacts_rule but inverted so that we do not build the max-build twice (either artifact or cached version)
+.max_no_cache_rule: &max_no_cache_rule
+  rules:
+    - if: '$DO_MAX_BUILD == "DO_NOT_DISTRIBUTE_CLOSED_SOURCE_DEPENDENCIES"'
+      when: never
+
+.max_rules_cache: &max_rules_cache
+  rules:
+    - !reference [.max_no_cache_rule, rules]
     - !reference [.build_rules, rules]
 
 # build artifacts expire early
@@ -591,7 +613,23 @@ cfsdeps:intel:
 # BUILD STAGE
 #######################################################################
 
-# maximal build using as many options as possible
+# maximal build using as many options as possible (cached version)
+linux:gcc7max-debug-cached:
+  extends: .cached_build_job
+  stage: build
+  image: opencfs/centos6-gcc7
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC7 maximal debug"
+    CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
+  <<: *max_rules_cache
+  <<: *gcc_before
+  <<: *cache_cfsdeps
+  needs: []
+
+# maximal build using as many options as possible (artifacts version)
+# similar to the cached version but here we make the build downloadable via artifacts (DO NOT DISTRIBUTE CLOSED SOURCE DEPENDENCIES!)
 linux:gcc7max-debug:
   extends: .default_build_job
   stage: build
@@ -601,12 +639,28 @@ linux:gcc7max-debug:
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
-  <<: *max_rules
+  <<: *max_rules_artifacts
   <<: *gcc_before
   <<: *cache_cfsdeps
   needs: []
 
-# maximal build using as many options as possible
+# maximal build using as many options as possible (cached version)
+linux:gcc7max-cached:
+  extends: .cached_build_job
+  stage: build
+  image: opencfs/centos6-gcc7
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+    CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
+  <<: *max_rules_cache
+  <<: *gcc_before
+  <<: *cache_cfsdeps
+  needs: ["cfsdeps:gcc7"]
+
+# maximal build using as many options as possible (artifacts version)
+# similar to the cached version but here we make the build downloadable via artifacts (DO NOT DISTRIBUTE CLOSED SOURCE DEPENDENCIES!)
 linux:gcc7max:
   extends: .default_build_job
   stage: build
@@ -616,7 +670,7 @@ linux:gcc7max:
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
-  <<: *max_rules
+  <<: *max_rules_artifacts
   <<: *gcc_before
   <<: *cache_cfsdeps
   needs: ["cfsdeps:gcc7"]
@@ -773,7 +827,7 @@ linux:gcc10:ninja:
 
 # test for cmake or install it
 .cmake_test_or_install: &cmake_test_or_install
-  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
+  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.15/cmake-3.15.7-Linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.15.7-Linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
@@ -788,14 +842,6 @@ linux:gcc10:ninja:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # save buidid
     - *save_cdash_buildid
-    # create JUnit output from cdash data
-    - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
-    - cp "${BUILD_ID}.xml" "${CI_JOB_ID}_junit.xml" # save under expected name for artifacts
-  artifacts:
-    # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
-    reports:
-      junit: build/${CI_JOB_ID}_junit.xml
-    when: always
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
@@ -820,6 +866,7 @@ linux:gcc10:ninja:
     key: cmake
     paths:
       - build/cmake
+  artifacts: {}
 
 # this is the config that has to pass (excludes PYTHON since they do not need to be tested for every GCCx)
 .test_stable: &test_stable
@@ -843,7 +890,7 @@ linux:gcc10:ninja:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E Install -R $TYPE. --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml # exclude the install step
+    - ctest -D ExperimentalTest -E Install -R $TYPE. --track $CDASH_TRACK # exclude the install step
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -901,7 +948,7 @@ stable:gcc7max:linux:
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_no_artifacts_rule, rules]
     - when: on_success
   variables:
     BUILD_NAME: GCC7 maximal / stable
@@ -910,13 +957,29 @@ stable:gcc7max:linux:
   needs:
     - linux:gcc7max
 
+# cached version (shall always run except if DO_MAX_BUILD is set in the environment, then we create artifacts and start the other job)
+stable:gcc7max-cached:linux:
+  tags:
+    - docker
+  stage: test
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.max_no_cache_rule, rules]
+    - when: on_success
+  variables:
+    BUILD_NAME: GCC7 maximal / stable
+    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
+  <<: *test_stable
+  needs:
+    - linux:gcc7max-cached
+
 testsuite:gcc7max:linux:
   tags:
     - docker
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_no_artifacts_rule, rules]
     - when: on_success
       allow_failure: true # job level definition is ignored when rules are used
   variables:
@@ -931,7 +994,7 @@ debug:gcc7max:linux:
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_no_artifacts_rule, rules]
     - when: on_success
       allow_failure: true # job level definition is ignored when rules are used
   # run a matrix of parallel jobs, with variable TYPE defiend (used to include a specific set of tests)
@@ -945,6 +1008,28 @@ debug:gcc7max:linux:
   <<: *test_all_multicore
   needs:
     - linux:gcc7max-debug
+
+# cached version (shall always run except if DO_MAX_BUILD is set in the environment, then we create artifacts and start the other job
+debug:gcc7max-cached:linux:
+  tags:
+    - docker
+  stage: test
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.max_no_cache_rule, rules]
+    - when: on_success
+      allow_failure: true # job level definition is ignored when rules are used
+  # run a matrix of parallel jobs, with variable TYPE defiend (used to include a specific set of tests)
+  # see https://docs.gitlab.com/ee/ci/jobs/job_control.html#run-a-one-dimensional-matrix-of-parallel-jobs
+  parallel:
+    matrix:
+      - TYPE: [Solver, Singlefield, Coupledfield, Optimization, CFSdat]
+  variables:
+    BUILD_NAME: GCC7 maximal debug / all_multicore / $TYPE
+    TEST_CONFIG_OPTIONS: "-DTESTSUITE_TIMEOUT=1500"
+  <<: *test_all_multicore
+  needs:
+    - linux:gcc7max-debug-cached
 
 stable:gcc10:linux:
   image: opencfs/fedora32
@@ -1037,9 +1122,10 @@ python:linux:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
+  artifacts: {}
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
