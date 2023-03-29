@@ -2199,6 +2199,23 @@ namespace CoupledField {
                                                GetCoefFct(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN), CoefXpr::OP_ADD ) );
         vdpdCoef->AddRegion(*regIt, h);
       }
+
+      // === FLUID-MECHANIC DISSIPATION POWER (= integral of dissipation power density over the volume ) ===
+      shared_ptr<ResultInfo> vdp;
+      vdp.reset(new ResultInfo);
+      vdp->resultType = FLUIDMECH_VISCOUS_DISS_POWER;
+      vdp->dofNames = "";
+      vdp->unit = MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER);
+      vdp->entryType = ResultInfo::SCALAR;
+      vdp->definedOn = ResultInfo::REGION;
+      // Integrate surface traction
+      shared_ptr<ResultFunctor> vdpFct;
+      if(isComplex_)
+          vdpFct.reset(new ResultFunctorIntegrate<Complex>(vdpdCoef, feFct, vdp));
+      else
+          vdpFct.reset(new ResultFunctorIntegrate<Double>(vdpdCoef, feFct, vdp));
+      resultFunctors_[FLUIDMECH_VISCOUS_DISS_POWER] = vdpFct;
+      availResults_.insert(vdp);
     }
   
   void LinFlowPDE::FinalizePostProcResults() {
