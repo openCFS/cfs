@@ -328,6 +328,15 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN, "fluidMechViscousDissipationDensityTotalStrainPart");
     SolutionTypeEnum.Add(FLUIDMECH_VISCOUS_DISS_POWER, "fluidMechViscousDissipation");
 
+    SolutionTypeEnum.Add(FLUIDMECH_INTENSITY, "fluidMechIntensity");
+    SolutionTypeEnum.Add(FLUIDMECH_INTENSITY_PRESSURE_ONLY, "fluidMechIntensityPressureOnly");
+    SolutionTypeEnum.Add(FLUIDMECH_SURFINTENSITY, "fluidMechSurfaceIntensity");
+    SolutionTypeEnum.Add(FLUIDMECH_SURFINTENSITY_PRESSURE_ONLY, "fluidMechSurfaceIntensityPressureOnly");
+    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_INTENSITY, "fluidMechNormalIntensity");
+    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY, "fluidMechNormalIntensityPressureOnly");
+    SolutionTypeEnum.Add(FLUIDMECH_POWER, "fluidMechPower");
+    SolutionTypeEnum.Add(FLUIDMECH_POWER_PRESSURE_ONLY, "fluidMechPowerPressureOnly");
+
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
     // TEST PDE
@@ -827,6 +836,8 @@ namespace CoupledField {
       case MAG_EDDY_POWER:
       case MAG_CORE_LOSS:
       case FLUIDMECH_VISCOUS_DISS_POWER:
+      case FLUIDMECH_POWER:
+      case FLUIDMECH_POWER_PRESSURE_ONLY:
         return "W";
          break;
 
@@ -844,6 +855,12 @@ namespace CoupledField {
       case ACOU_INTENSITY:
       case ACOU_NORMAL_INTENSITY:
       case ACOU_SURFINTENSITY:
+      case FLUIDMECH_INTENSITY:
+      case FLUIDMECH_INTENSITY_PRESSURE_ONLY:
+      case FLUIDMECH_SURFINTENSITY:
+      case FLUIDMECH_SURFINTENSITY_PRESSURE_ONLY:
+      case FLUIDMECH_NORMAL_INTENSITY:
+      case FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY:
       case HEAT_FLUX_DENSITY:
       case HEAT_FLUX_INTENSITY:
         return "W/m^2";

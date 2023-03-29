@@ -2143,7 +2143,7 @@ namespace CoupledField {
       if( isComplex_ ) {
         vdpd1Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, balanceOfMomentumSign_*0.5));
       } else {
-        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, balanceOfMomentumSign_*0.5));
+        vdpd1Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, balanceOfMomentumSign_));
       }
       // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
       vdpd1Func->SetIntegratorName("LinFlowStiffIntBulkViscous"); // coefFunctionBOp acts on strain part
@@ -2163,7 +2163,7 @@ namespace CoupledField {
       if( isComplex_ ) {
         vdpd2Func.reset(new CoefFunctionBdBKernel<Complex>(velFeFct, balanceOfMomentumSign_*0.5));
       } else {
-        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, balanceOfMomentumSign_*0.5));
+        vdpd2Func.reset(new CoefFunctionBdBKernel<Double>(velFeFct, balanceOfMomentumSign_));
       }
       // we add a specific integrator name to ensure that only this integrator gets passed to the coefFunction during the assignment in the SinglePDE during FinalizePostProcResults
       vdpd2Func->SetIntegratorName("LinFlowStiffIntViscous");
@@ -2194,6 +2194,160 @@ namespace CoupledField {
                                                GetCoefFct(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN), CoefXpr::OP_ADD ) );
         vdpdCoef->AddRegion(*regIt, h);
       }
+
+      // === FLUID-MECHANIC DISSIPATION POWER (= integral of dissipation power density over the volume ) ===
+      shared_ptr<ResultInfo> vdp;
+      vdp.reset(new ResultInfo);
+      vdp->resultType = FLUIDMECH_VISCOUS_DISS_POWER;
+      vdp->dofNames = "";
+      vdp->unit = MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER);
+      vdp->entryType = ResultInfo::SCALAR;
+      vdp->definedOn = ResultInfo::REGION;
+      // Integrate surface traction
+      shared_ptr<ResultFunctor> vdpFct;
+      if(isComplex_)
+          vdpFct.reset(new ResultFunctorIntegrate<Complex>(vdpdCoef, feFct, vdp));
+      else
+          vdpFct.reset(new ResultFunctorIntegrate<Double>(vdpdCoef, feFct, vdp));
+      resultFunctors_[FLUIDMECH_VISCOUS_DISS_POWER] = vdpFct;
+      availResults_.insert(vdp);
+
+
+      // === FLUID-MECHAINC INTENSITY SIMPLE (PRESSURE ONLY) ===
+      // Intensity I = p  conj(v)
+      shared_ptr<ResultInfo> intensitySimple;
+      intensitySimple.reset(new ResultInfo);
+      intensitySimple->resultType = FLUIDMECH_INTENSITY_PRESSURE_ONLY;
+      intensitySimple->dofNames = dispDofNames;
+      intensitySimple->unit = MapSolTypeToUnit(FLUIDMECH_INTENSITY_PRESSURE_ONLY);
+      intensitySimple->entryType = ResultInfo::VECTOR;
+      intensitySimple->definedOn = ResultInfo::ELEMENT;
+      PtrCoefFct intensFctSimple;
+      intensFctSimple = 
+          CoefFunction::Generate( mp_, part,
+                                 CoefXprBinOp(mp_, feFunctions_[FLUIDMECH_PRESSURE], feFunctions_[FLUIDMECH_VELOCITY], CoefXpr::OP_MULT_CONJ ) );
+      DefineFieldResult(intensFctSimple, intensitySimple);
+
+
+      // === FLUID-MECHAINC INTENSITY ===
+      // Intensity I = sigma \cdot conj(v)
+      shared_ptr<ResultInfo> intensity;
+      intensity.reset(new ResultInfo);
+      intensity->resultType = FLUIDMECH_INTENSITY;
+      intensity->dofNames = dispDofNames;
+      intensity->unit = MapSolTypeToUnit(FLUIDMECH_INTENSITY);
+      intensity->entryType = ResultInfo::VECTOR;
+      intensity->definedOn = ResultInfo::ELEMENT;
+      PtrCoefFct intensFct;
+      PtrCoefFct velFnc = this->GetCoefFct( FLUIDMECH_VELOCITY );
+      // define temporary function, without the -1 sign
+      PtrCoefFct intensTmp = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, stressTotalCoef, velFnc, CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ));
+      intensFct = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT));
+      DefineFieldResult( intensFct, intensity );
+
+      
+      // === FLUID-MECHAINC SURFACE INTENSITY SIMPLE (PRESSURE ONLY) ===
+      // Intensity I = p  conj(v) (evaluated at the boundary)
+      shared_ptr<ResultInfo> surfIntensitySimple;
+      surfIntensitySimple.reset(new ResultInfo);
+      surfIntensitySimple->resultType = FLUIDMECH_SURFINTENSITY_PRESSURE_ONLY;
+      surfIntensitySimple->dofNames = dispDofNames;
+      surfIntensitySimple->unit = MapSolTypeToUnit(FLUIDMECH_SURFINTENSITY_PRESSURE_ONLY);
+      surfIntensitySimple->entryType = ResultInfo::VECTOR;
+      surfIntensitySimple->definedOn = ResultInfo::SURF_ELEM;
+      shared_ptr<CoefFunctionSurf> sIntensSimple;
+      sIntensSimple.reset(new CoefFunctionSurf(false, 1.0, surfIntensitySimple));
+      DefineFieldResult(sIntensSimple, surfIntensitySimple);
+      surfCoefFcts_[sIntensSimple] = intensFctSimple;
+
+      
+      // === FLUID-MECHAINC SURFACE INTENSITY ===
+      // Intensity I = sigma \cdot conj(v) (evaluated at the boundary)
+      shared_ptr<ResultInfo> surfIntensity;
+      surfIntensity.reset(new ResultInfo);
+      surfIntensity->resultType = FLUIDMECH_SURFINTENSITY;
+      surfIntensity->dofNames = dispDofNames;
+      surfIntensity->unit = MapSolTypeToUnit(FLUIDMECH_SURFINTENSITY);
+      surfIntensity->entryType = ResultInfo::VECTOR;
+      surfIntensity->definedOn = ResultInfo::SURF_ELEM;
+      shared_ptr<CoefFunctionSurf> sIntens;
+      sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
+      DefineFieldResult(sIntens, surfIntensity);
+      surfCoefFcts_[sIntens] = intensFct;
+
+
+      // === FLUID-MECHAINC NORMAL_INTENSITY SIMPLE (PRESSURE ONLY) ===
+      // Normal intensity I_n = (p  conj(v)) \cdot n
+      shared_ptr<ResultInfo> intensNormalSimple;
+      intensNormalSimple.reset(new ResultInfo);
+      intensNormalSimple->resultType = FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY;
+      intensNormalSimple->dofNames = "";
+      intensNormalSimple->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY);
+      intensNormalSimple->entryType = ResultInfo::SCALAR;
+      intensNormalSimple->definedOn = ResultInfo::SURF_ELEM;  
+      shared_ptr<CoefFunctionSurf> sNormIntensSimple;
+      sNormIntensSimple.reset(new CoefFunctionSurf(true, 1.0, intensNormalSimple));
+      DefineFieldResult( sNormIntensSimple, intensNormalSimple );
+      surfCoefFcts_[sNormIntensSimple] = intensFctSimple;
+
+
+      // === FLUID-MECHAINC NORMAL_INTENSITY ===
+      // Normal intensity I_n = (\sigma \cdot conj(v)) \cdot n
+      shared_ptr<ResultInfo> intensNormal;
+      intensNormal.reset(new ResultInfo);
+      intensNormal->resultType = FLUIDMECH_NORMAL_INTENSITY;
+      intensNormal->dofNames = "";
+      intensNormal->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_INTENSITY);
+      intensNormal->entryType = ResultInfo::SCALAR;
+      intensNormal->definedOn = ResultInfo::SURF_ELEM;  
+      shared_ptr<CoefFunctionSurf> sNormIntens;
+      sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
+      DefineFieldResult( sNormIntens, intensNormal );
+      surfCoefFcts_[sNormIntens] = intensFct;
+
+
+      // === FLUID-MECHAINC POWER SIMPLE (PRESSURE ONLY) ===
+      // Power P = \int_Gamma (p  conj(v)) \cdot n dGamma
+      // Integrate normal intensity
+      shared_ptr<ResultInfo> powerSimple;
+      powerSimple.reset(new ResultInfo);
+      powerSimple->resultType = FLUIDMECH_POWER_PRESSURE_ONLY;
+      powerSimple->dofNames = "";
+      powerSimple->unit = MapSolTypeToUnit(FLUIDMECH_POWER_PRESSURE_ONLY);
+      powerSimple->entryType = ResultInfo::SCALAR;
+      powerSimple->definedOn = ResultInfo::SURF_REGION;
+      shared_ptr<ResultFunctor> powerFctSimple;
+      if( isComplex_ ) {
+        powerFctSimple.reset(new ResultFunctorIntegrate<Complex>(sNormIntensSimple, 
+                                                            feFct, powerSimple ) );
+      } else {
+        powerFctSimple.reset(new ResultFunctorIntegrate<Double>(sNormIntensSimple, 
+                                                           feFct, powerSimple ) );
+      }
+      resultFunctors_[FLUIDMECH_POWER_PRESSURE_ONLY] = powerFctSimple;
+      availResults_.insert(powerSimple);
+
+
+      // === FLUID-MECHAINC POWER ===
+      // Power P = \int_Gamma (sigma \cdot conj(v)) \cdot n dGamma
+      // Integrate normal intensity
+      shared_ptr<ResultInfo> power;
+      power.reset(new ResultInfo);
+      power->resultType = FLUIDMECH_POWER;
+      power->dofNames = "";
+      power->unit = MapSolTypeToUnit(FLUIDMECH_POWER);
+      power->entryType = ResultInfo::SCALAR;
+      power->definedOn = ResultInfo::SURF_REGION;
+      shared_ptr<ResultFunctor> powerFct;
+      if( isComplex_ ) {
+        powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
+                                                            feFct, power ) );
+      } else {
+        powerFct.reset(new ResultFunctorIntegrate<Double>(sNormIntens, 
+                                                           feFct, power ) );
+      }
+      resultFunctors_[FLUIDMECH_POWER] = powerFct;
+      availResults_.insert(power);
     }
   
   void LinFlowPDE::FinalizePostProcResults() {

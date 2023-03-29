@@ -483,6 +483,20 @@
       <xsd:enumeration value="fluidMechViscousDissipationDensity"/>
       <xsd:enumeration value="fluidMechViscousDissipationDensityDivergencePart"/> 
       <xsd:enumeration value="fluidMechViscousDissipationDensityTotalStrainPart"/> 
+      <xsd:enumeration value="fluidMechIntensity">
+        <xsd:annotation>
+          <xsd:documentation>
+            Intensity I = sigma \cdot conj(v)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechIntensityPressureOnly">
+        <xsd:annotation>
+          <xsd:documentation>
+            Intensity I = p  conj(v)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -490,6 +504,34 @@
   <xsd:simpleType name="DT_FluidMechLinSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechSurfaceTraction"/> 
+      <xsd:enumeration value="fluidMechSurfaceIntensity">
+        <xsd:annotation>
+          <xsd:documentation>
+            Intensity I = sigma \cdot conj(v) (evaluated at the boundary)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechSurfaceIntensityPressureOnly">
+        <xsd:annotation>
+          <xsd:documentation>
+            Intensity I = p  conj(v) (evaluated at the boundary)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechNormalIntensity">
+        <xsd:annotation>
+          <xsd:documentation>
+            Normal intensity I_n = (\sigma \cdot conj(v)) \cdot n
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechNormalIntensityPressureOnly">
+        <xsd:annotation>
+          <xsd:documentation>
+            Normal intensity I_n = (p  conj(v)) \cdot n
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -505,6 +547,20 @@
   <xsd:simpleType name="DT_FluidMechLinSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechForce"/>
+      <xsd:enumeration value="fluidMechPower">
+        <xsd:annotation>
+          <xsd:documentation>
+            Power P = \int_Gamma (sigma \cdot conj(v)) \cdot n dGamma
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechPowerPressureOnly">
+        <xsd:annotation>
+          <xsd:documentation>
+            Power P = \int_Gamma (p  conj(v)) \cdot n dGamma
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
