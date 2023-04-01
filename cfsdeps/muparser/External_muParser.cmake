@@ -32,7 +32,7 @@ file(COPY "${CFS_SOURCE_DIR}/cfsdeps/muparser/license/" DESTINATION "${CFS_BINAR
 
 
 # do make a difference between debug and release build since we are using cmake now 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "muparser" "${MUPARSER_VER}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "muparser" "${MUPARSER_VER}")
 
 # we need to set TMP_DIR for ZIP_TO_CACHE, read in cfsdeps_zipToCache.cmake.in such that ZIP_TO_CACHE finds  cfsdeps/muparser/src/muparser/install_manifest.txt
 SET(TMP_DIR "${muparser_prefix}")
@@ -80,9 +80,6 @@ ELSE()
   SET(MUPARSER_SHARED_LIBS OFF)
   IF(WIN32)
     SET(MUPARSER_SHARED_LIBS ON)
-    IF(DEBUG)
-      SET(CMAKE_ARGS "${CMAKE_ARGS}" "-DCMAKE_BUILD_TYPE=DEBUG")
-    ENDIF()
   ENDIF()
   ExternalProject_Add(muparser
     PREFIX "${muparser_prefix}"

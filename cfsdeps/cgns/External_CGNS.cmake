@@ -23,7 +23,7 @@ SET(CMAKE_ARGS
   # CMAKE_INSTALL_LIBDIR is ignored (4.3.0), hence we need to patch
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_BUILD_TYPE:STRING=Release
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCGNS_BUILD_CGNSTOOLS:BOOL=OFF # handles only cgnstools, we remove tools by patch
   -DCGNS_BUILD_SHARED:BOOL=OFF
@@ -84,7 +84,7 @@ CONFIGURE_FILE(
 #copy license
 file(COPY "${CFS_SOURCE_DIR}/cfsdeps/cgns/license/" DESTINATION "${CFS_BINARY_DIR}/license/cgns" )
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "cgns" "${CGNS_VER}")  
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "cgns" "${CGNS_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

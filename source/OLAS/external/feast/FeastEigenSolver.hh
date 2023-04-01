@@ -121,28 +121,28 @@ namespace CoupledField {
      *  according to FEAST documentation it must be equal 
      *  to size of column index vectors in CSR format
     */
-    int nnza_; //stiffness matrix
-    int nnzb_; //mass matrix
-    int nnzc_; //damping matrix
+    int nnza_ = -1; //stiffness matrix
+    int nnzb_ = -1; //mass matrix
+    int nnzc_ = -1; //damping matrix
 
     /** maximum number of non-zero elements for quadratic EVP */
-    int nnzmax_;
+    int nnzmax_ = -1;
 
     /** number of actually computed eigenvalues */
-    int m_;
+    int m_ = -1;
 
     /** subspace dimension n >= m0_ >= m_ */
-    int m0_;
+    int m0_ = -1;
 
     /** the last result value -> MKL manual page 1635 */
-    int info_;
+    int info_ = -1;
 
     /** the right and left eigenvectors */
     StdVector<Complex> vr_;
     StdVector<Complex> vl_;
 
     /** order of the polynomial EVP */
-    int p_;
+    int p_ = -1;
 
     /** set by Setup() */
     bool bloch_;

@@ -37,7 +37,7 @@ set_standard_variables()
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default() 
+set_deps_args_default(ON) # set compiler flags 
 # add the specific settings for the packge which comes in cmake style
 assert_set(LIB_SUFFIX)
 set(DEPS_ARGS

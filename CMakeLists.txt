@@ -62,7 +62,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "23")
-set(CFS_VERSION_MONTH "03")
+set(CFS_VERSION_MONTH "04")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -126,7 +126,7 @@ option(USE_EMBEDDED_PYTHON "External Python Optimizer" ${USE_EMBEDDED_PYTHON_DEF
 option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
 option(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_ARPACK_DEFAULT})
-option(USE_FEAST "Use the FEAST eigenvalue solver." ${USE_FEAST_DEFAULT})
+option(USE_FEAST "Use the FEAST eigenvalue solver (commumity edition)." ${USE_FEAST_DEFAULT})
 option(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners." ${USE_ILUPACK_DEFAULT})
 option(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." OFF) # advanced
 option(USE_SUITESPARSE "CHOLMOD/UMPFACK direct solvers with GPL configuration" ${USE_SUITESPARSE_DEFAULT} )
@@ -165,10 +165,6 @@ endif()
 # Note, that dependend options come next
 #-----------------------------------------------------------------------------
 
-if(USE_FEAST AND NOT USE_BLAS_LAPACK STREQUAL "MKL" )
-  message(FATAL_ERROR "USE_FEAST requires Intel MKL! Set USE_BLAS_LAPACK=MKL")
-endif()
-
 if(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
   message(FATAL_ERROR "Either USE_ILUPACK or USE_ILUPACK_PARALLEL. Both cannot be swithed on together")
 endif()
@@ -192,17 +188,6 @@ if(USE_PARDISO)
     message(FATAL_ERROR "CFS_PARDISO=MKL requires USE_BLAS_LAPACK=MKL. Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not using USE_BLAS_LAPACK=MKL.")
   endif()
 endif(USE_PARDISO)
-
-if(USE_FEAST)
-  # the current FEAST implementation can be from MKL (only for symmetric versions)
-  # or from the origninal online source (COMMUNITY).
-  # Both require MKL. To get rid of this dependency one would have to implement
-  # the reverse communication interface to include another lineare solver (default=pardiso).
-  # note that feast has an option to be built w/o mkl
-  if(NOT USE_BLAS_LAPACK STREQUAL "MKL")
-    message(FATAL_ERROR "USE_FEAST requires Intel MKL! Set USE_BLAS_LAPACK=MKL")
-  endif()
-endif()
 
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 if(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
@@ -267,9 +252,6 @@ if(USE_GMV)
   set(USE_GMV_OUTPUT ON CACHE INTERNAL "Use GMV files as output for simulation.")
 endif(USE_GMV)
 
-cmake_dependent_option(USE_FEAST_COMMUNITY "Use the community version of FEAST" ON USE_FEAST OFF)
-cmake_dependent_option(USE_FEAST_COMMUNITY_PRECOMPILED "Use the precompiled FEAST libraries" OFF USE_FEAST_COMMUNITY OFF)
-
 if(DEBUG)
   set(CMAKE_BUILD_TYPE "DEBUG" CACHE STRING "Only DEBUG and RELEASE types are valid." FORCE)
   
@@ -297,8 +279,6 @@ mark_as_advanced(USE_XERCES)
 mark_as_advanced(USE_LIBXML2)
 mark_as_advanced(USE_ILUPACK_PARALLEL)
 mark_as_advanced(USE_PHIST_CG)
-mark_as_advanced(USE_FEAST_COMMUNITY)
-mark_as_advanced(USE_FEAST_COMMUNITY_PRECOMPILED)
 
 #-----------------------------------------------------------------------------
 # Prepare further build
@@ -345,7 +325,7 @@ if(NOT ${MYXMLSCHEMA} STREQUAL "")
   set(XMLSCHEMA ${MYXMLSCHEMA} CACHE STRING "Path where the XML schema for the input files is located." FORCE)
 endif()
 
-# Set date of configure run. TODO: make platform independent!!!
+# Set date of configure run.
 TODAY(CFS_CONF_DATE)
 
 # Determine URL of subversion repository, global revision of working copy

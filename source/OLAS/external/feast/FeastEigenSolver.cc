@@ -2,19 +2,11 @@
 #include <def_use_feast.hh>
 #include <algorithm>
 
-#ifdef USE_FEAST_COMMUNITY
-// include the needed community FEAST libraries (which are C)
-#ifndef WIN32
- extern "C"{
-   #include "feast.h"
-   #include "feast_sparse.h"
- }
-#else
-  #include "feast_cpp.h"
-#endif
-#else
-  #include <mkl_solvers_ee.h>
-#endif
+// MKL FEAST is not supported any more (used functions are not available for MKL 2021)
+// Interestingly we need no name mangling on Linux/macOS?! Usually we include def_cfs_fortran_interface.hh
+// For Linux/macOS we could also include feast.h and feast_sparse.h via extern "C" but this fails for Windows.
+// Our standard mangling does not work with FEAST, therefore we use our own feast_cpp.
+#include "feast_cpp.h" // we maintain this file in cfsdeps/feast
 
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"

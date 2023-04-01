@@ -55,4 +55,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_G
   set(CMAKE_CXX_FLAGS "${CFS_SUPPRESSIONS} -Wno-terminate")
 endif() 
 
+# Even if we did not compile openCFS itself with OpenMP enabled, we may have
+# compiled external libraries like LIS with OpenMP support.
+if(OPENMP_FOUND)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
 SET_TARGET_PROPERTIES(cfstest PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

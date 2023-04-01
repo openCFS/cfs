@@ -80,6 +80,10 @@
 #include <xercesc/util/XercesVersion.hpp>
 #endif
 
+#ifdef USE_LIBXML2
+#include <libxml/xmlversion.h>
+#endif
+
 #ifdef USE_GIDPOST
 #include <gidpost.h>
 #endif
@@ -229,8 +233,7 @@ void Dependencies::ReadSetting()
   Dependency nl("Netlib", "USE_NETLIB", BSD);
   if(!mkl.active && !ob.active)
   {
-    nl.SetVersion(LAPACK_VER);
-    nl.comment = "LAPACK";
+    nl.SetVersion(NETLIB_VER);
   }
   data.Push_back(nl);
 
@@ -381,7 +384,7 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(vtk);
 
-  Dependency cgns("CGNS", "USE_CGNS", LGPL); // close but not exaclty -> https://cgns.github.io/CGNS_docs_current/charter/license.html
+  Dependency cgns("CGNS", "USE_CGNS", LGPL); // close but not exactly -> https://cgns.github.io/CGNS_docs_current/charter/license.html
 #ifdef USE_CGNS
   cgns.SetVersion(CGNS_VERSION/1000, (CGNS_VERSION%1000)/100, (CGNS_VERSION%100)/10);
   ss.clear();
@@ -396,7 +399,7 @@ void Dependencies::ReadSetting()
 
   Dependency libxml2("libxml2", "USE_LIBXML2", MIT);
 #ifdef USE_LIBXML2
-  libxml2.SetVersion(LIBXML2_VER);
+  libxml2.SetVersion(LIBXML_DOTTED_VERSION);
 #endif
   data.Push_back(libxml2);
   assert(xerces.active || libxml2.active);

@@ -206,25 +206,17 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-IF(USE_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
-  SET(LAPACK_VER "3.9.0")
-  SET(LAPACK_GZ "v${LAPACK_VER}.tar.gz")
-  SET(LAPACK_MD5 "0b251e2a8d5f949f99b50dd5e2200ee2")
-    
-  INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
-    
-ENDIF(USE_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
+if(USE_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
+  include("${CFSDEPS_DIR}/netlib/External_Netlib.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find OpenBLAS/LAPACK library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
 if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  set(OPENBLAS_VER "0.3.17")
-  set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-  set(OPENBLAS_MD5 "5429954163bcbaccaa13e11fe30ca5b6")
-  INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
-endif(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
+  include("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find Intel Math Kernel library
@@ -316,22 +308,16 @@ INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 #-------------------------------------------------------------------------------
 # Xerces library or libxml2, triggered by CFS_XML_READER
 #-------------------------------------------------------------------------------
-IF(USE_XERCES)
-  SET(XERCES_VER "3.1.3")
-  SET(XERCES_GZ "xerces-c-${XERCES_VER}.tar.gz")
-  SET(XERCES_MD5 "70320ab0e3269e47d978a6ca0c0e1e2d") 
-  INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
-ENDIF()
+if(USE_XERCES)
+  include("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
+endif()
 
 #-------------------------------------------------------------------------------
 # libxml2 is an alternative for Xerces
 #-------------------------------------------------------------------------------
-IF(USE_LIBXML2)
-  SET(LIBXML2_VER "2.9.4")
-  SET(LIBXML2_GZ "libxml2-${LIBXML2_VER}.tar.gz")
-  SET(LIBXML2_MD5 "ae249165c173b1ff386ee8ad676815f5") 
-  INCLUDE("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
-ENDIF()
+if(USE_LIBXML2)
+  include("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find VTK - used for Ensight only
@@ -394,12 +380,9 @@ INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 #-----------------------------------------------------------------------------
 # FEAST - FEAST Eigenvalue Solver
 #-----------------------------------------------------------------------------
-IF(USE_FEAST_COMMUNITY)
-  SET(FEAST_VER "4.0") # note that this is ignored in feast/CMakeLists.txt
-  SET(FEAST_GZ "feast_${FEAST_VER}.tgz")
-  SET(FEAST_MD5 "e4e6b47de276c203de2c0e9e7d9e5a65")
-  INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
-ENDIF()
+if(USE_FEAST)
+  include("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
+endif()
 
 # FLANN - Fast Library for Approximate Nearest Neighbors
 if(USE_FLANN)

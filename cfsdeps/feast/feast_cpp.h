@@ -27,6 +27,10 @@
 # define zfeast_gcsrgv ZFEAST_GCSRGV
 # define zfeast_hcsrev ZFEAST_HCSREV
 # define zfeast_hcsrgv ZFEAST_HCSRGV
+# define dfeast_scsrpev DFEAST_SCSRPEV
+# define zfeast_scsrpev ZFEAST_SCSRPEV
+# define dfeast_gcsrpev DFEAST_GCSRPEV
+# define zfeast_gcsrpev ZFEAST_GCSRPEV
 #else  // UNIX name mangling
 # define feastinit    feastinit_
 # define dfeast_srci  dfeast_srci_

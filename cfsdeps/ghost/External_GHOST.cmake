@@ -49,7 +49,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 set(PI "${GHOST_PREFIX}/ghost-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/ghost/ghost-post_install.cmake.in" "${PI}" @ONLY) 
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ghost_${GHOST_CUDA}" "${GHOST_REV}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "ghost_${GHOST_CUDA}" "${GHOST_REV}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
@@ -79,7 +79,7 @@ SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${GHOST_INSTALL}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_BUILD_TYPE:STRING=Release
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   # We do not want to see warning messages from external projects

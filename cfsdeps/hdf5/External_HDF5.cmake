@@ -33,15 +33,13 @@ set_standard_variables()
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default() 
+set_deps_args_default(OFF) # don't set compiler flags, we need to add own flags
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") 
   # Linux clang version 15.0.4 and IntelLLVM need -Wno-int-conversion for hdf5-1.8.20
-  # IntelLLVM needs -Wno-implicit-function-declaration
-  list(REMOVE_ITEM DEPS_ARGS "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}") 
+  # IntelLLVM needs -Wno-implicit-function-declaration 
   list(APPEND DEPS_ARGS "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
-  
-  list(REMOVE_ITEM DEPS_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}") 
+   
   list(APPEND DEPS_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
   # almost all of hdf5 is C, so probably not necessary for CFSDEPS_CXX_FLAGS
 endif()

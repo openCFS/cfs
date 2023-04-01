@@ -32,7 +32,7 @@ set_standard_variables()
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default() 
+set_deps_args_default(ON) # set compiler flags 
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}

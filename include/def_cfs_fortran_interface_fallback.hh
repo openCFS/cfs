@@ -75,4 +75,5 @@
 #define snopenappend CFS_FORTRAN_INTERFACE_GLOBAL(snopenappend, SNOPENAPPEND)
 #define snclose CFS_FORTRAN_INTERFACE_GLOBAL(snclose, SNCLOSE)
 
-#endif
+
+#endif // CFS_FORTRAN_INTERFACE_HEADER_INCLUDED

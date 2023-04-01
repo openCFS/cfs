@@ -50,7 +50,7 @@ file(COPY "${CFS_SOURCE_DIR}/cfsdeps/mpfr/license/" DESTINATION "${CFS_BINARY_DI
 
 
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "mpfr" "${MPFR_VER}")  
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "mpfr" "${MPFR_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

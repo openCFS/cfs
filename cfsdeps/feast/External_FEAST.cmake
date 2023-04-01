@@ -1,256 +1,94 @@
-#-------------------------------------------------------------------------------
 # FEAST Eigenvalue Solver
-#
-# Project Homepage
 # http://www.feast-solver.org/
-#-------------------------------------------------------------------------------
+# Originally has only Makefiles, we provide a CMakeLists.txt for Windows and use it always
+clear_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Set paths to FEAST sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-SET(feast_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/feast")
-SET(feast_source  "${feast_prefix}/src/feast")
-SET(feast_install "${feast_prefix}/install")
-SET(feast_include "${feast_source}/${FEAST_VER}/include")
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "feast")
+set(PACKAGE_VER "4.0") # note that the Version is hardcoded in CMakeLists.txt
+set(FEAST_VER ${PACKAGE_VER}) # for --version
+set(PACKAGE_FILE "feast_${PACKAGE_VER}.tgz")
+set(PACKAGE_MD5 "e4e6b47de276c203de2c0e9e7d9e5a65")
+set(PACKAGE_MIRRORS "https://gitlab.com/api/v4/projects/12930334/packages/generic/cfsdeps/sources/${PACKAGE_FILE}")  
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-# determine which feast library to copy over in the install step
-IF(UNIX)
-  IF(USE_FEAST_COMMUNITY_PRECOMPILED)
-    # this precompiled stuff seems not to work with new mkl (dependency to _intel_fast_memcpy/set, check with nm)
-    SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
-  ELSE()
-    # separate target to make difference to precompiled. Will be copied to lib finally
-    SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
-  ENDIF()
-ELSE()
-  SET(FEAST_LIB_DIR "${feast_install}/lib")
-ENDIF()
+# we cannot link a parallel compiled suitesparse with debug without openmp
+# we need to set DEPS_ID before calling set_precompiled_pckg_file()
+if(USE_OPENMP)
+  set(DEPS_ID "OPENMP")
+else()
+  set(DEPS_ID "NO_OPENMP")
+endif()
+# MKL is a special code feature 
+if(USE_BLAS_LAPACK STREQUAL "MKL")
+  set(DEPS_ID "${DEPS_ID}-MKL")
+else()  
+  set(DEPS_ID "${DEPS_ID}-NO_MKL")
+endif()
 
-#-----------------------------------------------------------------------------
-# Determine paths of FEAST includes.
-#-----------------------------------------------------------------------------
-SET(FEAST_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/feast" CACHE PATH "include path for FEAST")
-MARK_AS_ADVANCED(FEAST_INCLUDE_DIR)
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
-#-------------------------------------------------------------------------------
-# Configure FEAST by copying the config file.
-#-------------------------------------------------------------------------------
-IF(UNIX)
-  SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/Makefile.in")
-  SET(CONF "${feast_prefix}/Makefile"	)
-  CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
-ELSE()
-  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/feast-patch.cmake.in")
-  SET(PFN "${feast_prefix}/feast-patch.cmake")
-  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
-ENDIF()
+ # we only have a fortran compiler
+use_c_and_fortran(OFF ON)
 
-#-------------------------------------------------------------------------------
-# Check which compiler is used to set F90
-#-------------------------------------------------------------------------------
-IF(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU") # if gfortran
-  SET(CFS_FEAST_COMPILER "gfortran")
-ELSE() # if intel
-  SET(CFS_FEAST_COMPILER "ifort")
-ENDIF()
+set_precompiled_pckg_file()
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "https://gitlab.com/api/v4/projects/12930334/packages/generic/cfsdeps/sources/feast_4.0.tgz"
-  "${CFS_DS_SOURCES_DIR}/feast/${FEAST_GZ}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/feast/${FEAST_GZ}")
-SET(MD5_SUM ${FEAST_MD5})
+# libfeast.a
+set_package_library_default()
 
-SET(DLFN "${feast_prefix}/feast-download.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+set_standard_variables() 
 
-#-------------------------------------------------------------------------------
-# After the installation we copy to cfs
-#-------------------------------------------------------------------------------
-SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/feast/feast-post_install.cmake.in")
-SET(PI "${feast_prefix}/feast-post_install.cmake")
-CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
+# this is the standard target for cmake projects. The files to package come from the install_manifest.txt
+set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/feast/license/" DESTINATION "${CFS_BINARY_DIR}/license/feast" )
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default(OFF) # don't set compiler flags, we need to change
 
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU") 
+  # this is the original call via Makefile, where -fallow-argument-mismatch is already set in FindCFSDEPS.cmake to CFSDEPS_Fortran_FLAGS
+  # gfortran -O3 -fopenmp -ffree-line-length-none -ffixed-line-length-none -cpp  -DMKL -m64 -O3  -w -fallow-argument-mismatch -c .../dzfeast.f90 -o .../dzfeast.o
+  set(ADDITIONAL_FORTRAN_ARGS "-ffree-line-length-none -ffixed-line-length-none -cpp ")
+  if(USE_OPENMP)
+    set(ADDITIONAL_FORTRAN_ARGS "-fopenmp ${ADDITIONAL_FORTRAN_ARGS}")
+  endif() 
+else()
+  # this is the original call via Makefile
+  # ifort -O3 -qopenmp -cpp -fPIC -DMKL -c .../dzfeast.f90 -o .../dzfeast.o
+  set(ADDITIONAL_FORTRAN_ARGS "-cpp -fPIC ")
+  if(USE_OPENMP)
+    set(ADDITIONAL_FORTRAN_ARGS "-qopenmp ${ADDITIONAL_FORTRAN_ARGS}")
+  endif()  
+endif()
+if(USE_BLAS_LAPACK STREQUAL "MKL")
+  set(ADDITIONAL_FORTRAN_ARGS "${ADDITIONAL_FORTRAN_ARGS} -DMKL")
+endif() 
+list(APPEND DEPS_ARGS "-DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS} ${ADDITIONAL_FORTRAN_ARGS}") 
 
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "feast" "${FEAST_VER}")  
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${feast_prefix}")
+# copies your CMakeLists.txt a
+generate_patches_script()
 
-SET(ZIPFROMCACHE "${feast_prefix}/feast-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+assert_unset(POSTINSTALL_SCRIPT)
 
-SET(ZIPTOCACHE "${feast_prefix}/feast-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# generate package ceation script. We get the files from an install_manifest.txt
+generate_packing_script_manifest()
 
-#-----------------------------------------------------------------------------
-# Determine paths of FEAST libraries.
-#-----------------------------------------------------------------------------
-IF(UNIX)
-  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-  SET(FEAST_LIBS "feast")
-  foreach(LIB IN LISTS FEAST_LIBS)
-    LIST(APPEND LIBS "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  endforeach()
-  SET(FEAST_LIBRARY ${LIBS} CACHE FILEPATH "FEAST library.")
-ELSE()
-  SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-  SET(FEAST_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}feast${CMAKE_STATIC_LIBRARY_SUFFIX}" CACHE FILEPATH "FEAST library.")
-ENDIF()
-MARK_AS_ADVANCED(FEAST_LIBRARY)
-
-IF(WIN32)
-  IF(USE_OPENMP)
-    SET(FEAST_FORTRAN_FLAGS "${FEAST_FORTRAN_FLAGS} /Qopenmp")
-  ENDIF(USE_OPENMP)
-
-  SET(CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${feast_install}
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
-    -DCMAKE_Fortran_FLAGS:STRING=${FEAST_FORTRAN_FLAGS}
-    -DCMAKE_BUILD_TYPE:STRING=Release
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  )
-
-  IF(CMAKE_TOOLCHAIN_FILE)
-    LIST(APPEND CMAKE_ARGS
-      -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-    )
-  ENDIF()
-ENDIF()
-#-------------------------------------------------------------------------------
-# The FEAST external project
-#-------------------------------------------------------------------------------
-
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(feast
-    PREFIX "${feast_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${FEAST_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-    # FEAST does not use CMake but make only: We cannot use the CMake Ninja-generator,
-    # we use make instead to build FEAST
-    find_program(FEAST_MAKE_PROGRAM make)
-  else()
-    set(FEAST_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build FEAST")
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
+# if not, build newly and possibly pack the stuff
+else()
+  create_external_cmake_patched()  
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
   endif()
-  MARK_AS_ADVANCED(FEAST_MAKE_PROGRAM)
-  # here we should decide if we need to build feast, or only copy the pre-compiled libs a below
-  IF(USE_FEAST_COMMUNITY_PRECOMPILED)
-    # only copy over
-    ExternalProject_Add(feast
-      PREFIX "${feast_prefix}"
-      SOURCE_DIR "${feast_source}"
-      URL ${LOCAL_FILE}
-      URL_MD5 "${FEAST_MD5}"
-      BINARY_DIR "${feast_source}/${FEAST_VER}/src"
-      CONFIGURE_COMMAND ""
-      BUILD_COMMAND ""
-      INSTALL_COMMAND ""
-      BUILD_BYPRODUCTS ${FEAST_LIBRARY} )
-  ELSE() # not USE_FEAST_COMMUNITY_PRECOMPILED
-    # compile feast
-    IF(UNIX)
-      ExternalProject_Add(feast
-        PREFIX "${feast_prefix}"
-        SOURCE_DIR "${feast_source}"
-        URL ${LOCAL_FILE}
-        URL_MD5 "${FEAST_MD5}"
-        BINARY_DIR "${feast_source}/${FEAST_VER}/src"
-        CONFIGURE_COMMAND ${CMAKE_COMMAND} -E copy "${CONF}" "${feast_source}/${FEAST_VER}/src" # copy over file
-        # according to https://arxiv.org/pdf/1203.4031.pdf FEAST Eigenvalue Solver v3.0 User Guide 2.3.1 -> 5. x64 is the only valid option for precompiled
-        # however, the precompiled has a dependency on _intel_fast_memcpy/set e.g. in libfeast_sparse.a which we cannot satisfy. 
-        # when we build it by ourselves, the libfeast*.a are much larger and don't have this depenceny (check with nm <lib> | grep intel)
-        # compare <build>/cfsdeps/feast/src/feast/3.0/lib -> x64 and <CFS_ARCH_STR>
-        BUILD_COMMAND ${FEAST_MAKE_PROGRAM} "ARCH=${CFS_ARCH_STR}" "F90=${CFS_FEAST_COMPILER}" "${FEAST_LIBS}"
-        INSTALL_COMMAND ""
-        BUILD_BYPRODUCTS ${FEAST_LIBRARY} 
-      )
-    ELSE()
-      ExternalProject_Add(feast
-        PREFIX "${feast_prefix}"
-        DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/feast
-        URL ${CFS_DS_SOURCES_DIR}/feast/${FEAST_GZ}
-        URL_MD5 ${FEAST_MD5}
-        PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-	      SOURCE_DIR "${feast_source}"
-        CMAKE_ARGS ${CMAKE_ARGS}
-        INSTALL_DIR ${feast_install}
-        LOG_CONFIGURE 1
-        LOG_BUILD 1
-        LOG_INSTALL 1
-      )
-    ENDIF()
-  ENDIF() # switch of USE_FEAST_COMMUNITY_PRECOMPILED
+endif()
 
-  #-------------------------------------------------------------------------------
-  # Add custom patch step, needed for windows
-  #-------------------------------------------------------------------------------
-  #  ExternalProject_Add_Step(feast winpatch
-  #  COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  #  DEPENDERS build
-  #  DEPENDEES download
-  #  DEPENDS "${PFN}"
-  #  WORKING_DIRECTORY ${BOOST_source}
-  #)
-
-  # post install for precompiled
-  ExternalProject_Add_Step(feast post_install
-    COMMAND ${CMAKE_COMMAND} -P "${PI}"
-    DEPENDEES install
-    DEPENDS "${PI}"
-  )
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(feast cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${feast_prefix}
-  )
-
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(feast cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES post_install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-set(CFSDEPS ${CFSDEPS} feast)
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

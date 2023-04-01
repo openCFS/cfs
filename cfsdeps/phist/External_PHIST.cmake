@@ -39,7 +39,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/phist/phist-post_download.cmake.in" "$
 set(PI "${PHIST_PREFIX}/phist-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/phist/phist-post_install.cmake.in" "${PI}" @ONLY) 
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "phist" "${PHIST_REV}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "phist" "${PHIST_REV}")
 
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
@@ -75,7 +75,7 @@ SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${PHIST_INSTALL}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_BUILD_TYPE:STRING=Release
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   #-DPYTHON_EXECUTABLE:FILEPATH=python2 # not yet python3 compatible

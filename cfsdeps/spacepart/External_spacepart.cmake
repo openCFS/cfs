@@ -21,19 +21,13 @@ set(spacepart_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/spacepart")
 set(libfbi_source  "${spacepart_prefix}/src/libfbi")
 set(spacepart_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
-IF(CMAKE_BUILD_TYPE STREQUAL "debug")
-  SET(CMAKE_BUILD_TYPE "Debug")
-ELSE(CMAKE_BUILD_TYPE STREQUAL "debug")
-  SET(CMAKE_BUILD_TYPE "Release")
-ENDIF(CMAKE_BUILD_TYPE STREQUAL "debug")
 
 SET(CMAKE_ARGS
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_INSTALL_PREFIX:PATH=${spacepart_install}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_BUILD_TYPE:STRING=Release
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )
 
@@ -52,7 +46,7 @@ IF(USE_LIBFBI)
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
   # not sure if precompiled makes sense, the lib claims to be c++ header only 
-  PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
+  PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
     
   # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

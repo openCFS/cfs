@@ -56,7 +56,7 @@ file(COPY "${CFS_SOURCE_DIR}/cfsdeps/gmp/license/" DESTINATION "${CFS_BINARY_DIR
 
 
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "gmp" "${GMP_VER}")  
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "gmp" "${GMP_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

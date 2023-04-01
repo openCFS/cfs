@@ -7,6 +7,7 @@ clear_depencency_variables()
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "arpack")
 set(PACKAGE_VER "3.7.0")
+set(ARPACK_VER ${PACKAGE_VER}) # for Dependencies.cc
 set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "6fc6c6bf78dbd4f144595ef0675c8430")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
@@ -30,7 +31,7 @@ set_standard_variables()
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default() 
+set_deps_args_default(ON) # set compiler flags 
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
@@ -42,8 +43,7 @@ set(DEPS_ARGS
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
-file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
-     DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
 # Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
 generate_patches_script() # sets PATCHES_SCRIPT

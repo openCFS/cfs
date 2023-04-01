@@ -11,7 +11,7 @@ macro(dump_depencency_variables)
   cmake_print_variables(PACKAGE_MIRRORS) # e.g. the original download, see add_standard_mirrors()
   cmake_print_variables(PACKAGE_KEY)   # for encrypted closed source
   # DEPS variables for building the package. Most important is DEPS_ARGS for cmake packages
-  cmake_print_variables(DEPS_ARGS)    # for cmake projects, see set_deps_args_default(), add compiler and specific settings     
+  cmake_print_variables(DEPS_ARGS)    # for cmake projects, see set_deps_args_default(ON) # set compiler flags, add compiler and specific settings     
   cmake_print_variables(DEPS_CONFIGURE) # for configure projects, see set_configure_default()
   cmake_print_variables(DEPS_VER)     # either "" or "-a", ... to trigger new precompiles when PACKAGE_VER does not change
   cmake_print_variables(DEPS_ID)      # optional package id like "openmp" or "no_openmp"
@@ -148,7 +148,7 @@ endmacro()
 # set variable DEPS_ARGS with default settings cmake dependencies.
 #
 # The idea is to not set settings, the package complains about not known.
-macro(set_deps_args_default)
+macro(set_deps_args_default SET_COMPILER_FLAGS)
 
   assert_unset(DEPS_ARGS) # shall be cleared by clear_depencency_variables()
   assert_set(DEPS_INSTALL)
@@ -165,25 +165,25 @@ macro(set_deps_args_default)
   if(USE_FORTRAN)
     assert_set(CMAKE_Fortran_COMPILER)
     list(APPEND DEPS_ARGS -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER})
-    if(CFSDEPS_Fortran_FLAGS) # not set for ifort
+    if(${SET_COMPILER_FLAGS} AND CFSDEPS_Fortran_FLAGS) # not set for ifort
       list(APPEND DEPS_ARGS -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS} )
     endif()
   endif() 
 
   if(USE_C_CXX)
     list(APPEND DEPS_ARGS -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER})
-    if(CFSDEPS_C_FLAGS) # nor set for ifc
+    if(${SET_COMPILER_FLAGS} AND CFSDEPS_C_FLAGS)
       list(APPEND DEPS_ARGS -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} )     
     endif()
     list(APPEND DEPS_ARGS -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER} )
-    if(CFSDEPS_CXX_FLAGS) # nor set for ifcpc
+    if(${SET_COMPILER_FLAGS} AND CFSDEPS_CXX_FLAGS) 
       list(APPEND DEPS_ARGS -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS})
     endif()
   endif()
 
   # toolchain is used for crosscompiling. If set, also the (cmake) dependecies are crosscompiled  
   if(CMAKE_TOOLCHAIN_FILE)
-    list(APPEND ${RETVAL} -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE} )
+    list(APPEND DEPS_ARGS -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE} )
   endif()
 endmacro()
 

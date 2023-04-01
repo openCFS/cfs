@@ -1,34 +1,13 @@
-# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
-# kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
-# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
-# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+set(CMAKE_SOURCE_DIR  "@CMAKE_SOURCE_DIR@")
+set(DEPS_PREFIX  "@DEPS_PREFIX@")
+set(PACKAGE_NAME "@PACKAGE_NAME@")
+set(FEAST_VER "@FEAST_VER@")
 
-#=============================================================================
-# Set global variables.
-#=============================================================================
-SET(feast_source "@feast_source@")
-SET(FEAST_VER "@FEAST_VER@")
+include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
-SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+assert_set(DEPS_PREFIX)
+assert_set(PACKAGE_NAME)
+assert_set(FEAST_VER)
 
-#=============================================================================
-# Include macros from CFS.
-#=============================================================================
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
-
-#=============================================================================
-# Apply the patches.
-#=============================================================================
-message("target dir ${feast_source}/${FEAST_VER}/src")
-IF(WIN32)
-  run_program("${CFS_SOURCE_DIR}" "" ${CMAKE_COMMAND} -E copy_if_different
-          "${CFS_SOURCE_DIR}/cfsdeps/feast/CMakeLists.txt"
-	  "${feast_source}/CMakeLists.txt"
-  )
-
-  run_program("${CFS_SOURCE_DIR}" "" ${CMAKE_COMMAND} -E copy_if_different
-          "${CFS_SOURCE_DIR}/cfsdeps/feast/feast_cpp.h"
-	  "${feast_source}/feast_cpp.h"
-  )
-ENDIF()
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/feast_cpp.h" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}/${FEAST_VER}/include")

@@ -17,7 +17,7 @@ set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
- # we only have a fortran compiler
+ # we only have a C compiler
 use_c_and_fortran(ON OFF)
 
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
@@ -51,7 +51,7 @@ set_standard_variables()
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default() 
+set_deps_args_default(ON) # set compiler flags 
 
 set(DEPS_ARGS
   ${DEPS_ARGS}

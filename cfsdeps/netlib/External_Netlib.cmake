@@ -1,62 +1,62 @@
-# FLANN - Fast Library for Approximate Nearest Neighbors
-# https://github.com/flann-lib/flann
+# from the possible BLAS/LAPACK implementations, Netlib is the reference implementation
+# but also very slow as it is not optimized.
+# The lapack package builds blas and lapack
+# http://www.netlib.org/
 
 # make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
 clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
-set(PACKAGE_NAME "flann")
-# 1.9.2 has the issues that is requires liblz4.a (cmake in build cmake) and that it failes on Windows "Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE)"
-set(PACKAGE_VER "1.9.1")
-set(PACKAGE_FILE "${PACKAGE_VER}.zip")
-set(PACKAGE_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
+set(PACKAGE_NAME "netlib")
+set(PACKAGE_VER "3.11.0")
+set(NETLIB_VER  ${PACKAGE_VER}) # for Dependencies.cc
+set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "595b064fd448b161cd711fe346f498a7")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-if(USE_OPENMP)
-  set(DEPS_ID "OPENMP")
-else()
-  set(DEPS_ID "NO_OPENMP")
-endif()
+# this is the original version. There are variants on gitlab 
+set(PACKAGE_MIRRORS "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/${PACKAGE_FILE}")
 
-# the mirrors can point to arbitrary file names. 
-set(PACKAGE_MIRRORS "https://github.com/flann-lib/flann/archive/refs/tags/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
- # we only have a fortran compiler
-use_c_and_fortran(ON OFF)
+# pure C
+use_c_and_fortran(OFF ON)
 
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-set_package_library_list_lib_prefix("flann_cpp_s")
+# we have BLAS and LAPACK as separate libs in netlib
+# BLAS_LIBRARY (and LAPACK_LIBRARY) need to be set for cfs by every BLAS/LAPACK provider
+# we assume CFS_FORTRAN_LIBS to be set target libs whenever we use BLAS/LAPACK
+set(BLAS_LIBRARY ${CMAKE_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}blas${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(LAPACK_LIBRARY ${CMAKE_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}lapack${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(PACKAGE_LIBRARY ${BLAS_LIBRARY};${LAPACK_LIBRARY})
 
-# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
-set_standard_variables()
-# this is the standard target for cmake projects but we don't want to use install_manifest.txt but pick the stuff
+set_standard_variables() # 
+
+# we don't want executabls, so go for install_dir
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(ON) # set compiler flags 
+set_deps_args_default(ON) #  set compiler flags, they still add their own stuff 
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
-  -DBUILD_DOC:BOOL=OFF
-  -DBUILD_EXAMPLES:BOOL=OFF
-  -DBUILD_C_BINDINGS:BOOL=OFF
-  -DBUILD_MATLAB_BINDINGS:BOOL=OFF
-  -DBUILD_PYTHON_BINDINGS:BOOL=OFF
-  -DBUILD_TESTS:BOOL=OFF
-  -DUSE_MPI:BOOL=OFF
-  -DUSE_OPENMP:BOOL=${USE_OPENMP})
+  -DBUILD_TESTING:BOOL=OFF
+  -DBUILD_COMPLEX:BOOL=OFF # single precision complex
+  -DBUILD_SINGLE:BOOL=OFF # single precision
+  -DTEST_FORTRAN_COMPILER:BOOL=OFF) 
+
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
-generate_patches_script() # sets PATCHES_SCRIPT
+# no patch needed
+assert_unset(PATCHES_SCRIPT)
 
-# generate package ceation script. We get the files from an install directory
+# the forked metis insists onb bulding executables to bin. Sort them out automatically
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()
@@ -68,19 +68,18 @@ assert_unset(POSTINSTALL_SCRIPT)
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # copy files from cache
   create_external_unpack_precompiled()
-
 # if not, build newly and possibly pack the stuff
 else()
-  create_external_cmake_patched()  
-
+  # standard cmake build without patch
+  create_external_cmake()  
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
-  else()
+  else()  
     # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
-    add_install_dir_to_binary_step()  
-  endif()  
+    add_install_dir_to_binary_step()      
+  endif() 
 endif()
 
 # add project to global list of CFSDEPS
