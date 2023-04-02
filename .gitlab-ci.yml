@@ -966,6 +966,11 @@ stable:gcc7max-cached:linux:
   rules:
     - !reference [.max_no_cache_rule, rules]
     - when: on_success
+  cache:
+    key: ${CI_JOB_NAME}-${CI_COMMIT_REF_SLUG} # get the cached binaries for this job
+    paths:
+      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - build/CMakeCache_build-stage.txt
   variables:
     BUILD_NAME: GCC7 maximal / stable
     UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
