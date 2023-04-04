@@ -570,7 +570,7 @@ cfsdeps:intel:
 # ensure maximal build is tested only internally
 .max_never_external_rule: &rule_max_never_external_rule
   rules:
-    - if: '$CI_SERVER_HOST != "cfs-dev.mdmt.tuwien.ac.at"'
+    - if: '$CI_PROJECT_NAMESPACE != "openCFS"'
       when: never
 
 .max_rules: &max_rules
