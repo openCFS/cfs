@@ -618,7 +618,7 @@ namespace CoupledField {
                       CoefXprBinOp(mp_,
                           constOne,
                           compressionModulus,
-                      CoefXpr::OP_DIV ));
+                      CoefXpr::OP_DIV ));          
           BiLinearForm *convectivePp = NULL;
           if(isComplex_) {
             if( dim_ == 2 ) { // 2D
@@ -1543,6 +1543,10 @@ namespace CoupledField {
                 surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
                                                                                         new SurfaceTangentialIncompressibleStrainOperator2D<FeH1,2,2>(),
                                                                                         coefMaxwellBC, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "compressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,2,2>(),
+                                                                                        new SurfaceTangentialCompressibleStrainOperator2D<FeH1,2,2>(),
+                                                                                        coefMaxwellBC, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
               } else {
                 EXCEPTION("Unknown formulation for the Maxwell slip BC!");
               }
@@ -1550,7 +1554,7 @@ namespace CoupledField {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
           } else {
-            if (dim_ == 2){
+            if (dim_ == 2) {
               if (maxwellFormulationString == "hollowIncompressibleStress") {
                 surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                         new SurfaceTangentialHollowIncompressibleStrainOperator2D<FeH1,2,2>(),
@@ -1559,18 +1563,37 @@ namespace CoupledField {
                 surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                                                         new SurfaceTangentialIncompressibleStrainOperator2D<FeH1,2,2>(),
                                                                         coefMaxwellBC, balanceOfMomentumSign_, volRegion, updatedGeo_ );
-              } else {
+              } else if (maxwellFormulationString == "compressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                                                        new SurfaceTangentialCompressibleStrainOperator2D<FeH1,2,2>(),
+                                                                        coefMaxwellBC, balanceOfMomentumSign_, volRegion, updatedGeo_ );
+              }
+              else {
                 EXCEPTION("Unknown formulation for the Maxwell slip BC!");
               }
             } else {
               EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
             }
           }
+
           //surfWeakVelocityMaxwellIntLV->SetRequestVolElem();
           surfVelocityConstraintMaxwellIntLV->SetName("velocityConstraintMaxwellIntLV");
           // we set the volume evaluation for the BiLinForm since the context will automatically use the value of the BiLinForm
           // we have to do this before the initialization of the context!
           surfVelocityConstraintMaxwellIntLV->SetUseVolEqnB( true ); 
+
+          //Adding the coefficient lambda/mu to the compressible Term 
+          PtrCoefFct shearViscosity = materials_[aRegion]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL); // mu
+          PtrCoefFct bulkViscosity =  materials_[aRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL); //lambda
+          //PtrCoefFct bulkViscosity = CoefFunction::Generate( mp_, Global::REAL, "0.0"); // Setting lambda to 0 for the incompressible flow forumation
+          // if ( isCompressible_ ) {
+          //  bulkViscosity = materials_[aRegion]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
+          //}
+          
+          //Generating CoefFunktion: lambda/mu
+          PtrCoefFct coefLambdaOverMu = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, bulkViscosity, shearViscosity, CoefXpr::OP_DIV ));
+          surfVelocityConstraintMaxwellIntLV->SetBCoefFunctionOpB(coefLambdaOverMu);
+
           BiLinFormContext *surfVelocityConstraintMaxwellContextLV = new BiLinFormContext(surfVelocityConstraintMaxwellIntLV, STIFFNESS );
           surfVelocityConstraintMaxwellContextLV->SetEntities( actSDList, actSDList);
           surfVelocityConstraintMaxwellContextLV->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[FLUIDMECH_VELOCITY]);
