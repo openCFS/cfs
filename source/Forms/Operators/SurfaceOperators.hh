@@ -558,7 +558,7 @@ void SurfaceNormalDivOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
     normalSum += lp.normal[iDim];
   }
 
-  if( !(abs(normalSum)-1<1e-12) ) {
+  if( !(abs(abs(normalSum)-1)<1e-12) ) {
     EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
   }
 }
@@ -1275,6 +1275,21 @@ void SurfaceTangentialIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOp
   fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
   Vector<Double> nVec = lp.normal;
 
+  // Check if the normal vector is parallel to the coordinate system
+  // In the loop below we check if the sum of all components is equal to 1 in order to check if the normal vector lines up with one coordinate axis
+  // At the moment this check is necessary due to some problems with the doNothing BC
+  // It seems that the already implemented SurfaceNormalStressOperator is not working properly since results differ when rotating a testcase e.g. 30° in plane
+  Double normalSum = 0.0;
+  
+  //Checking the normal vector befor Operator construction
+  for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim) {
+    normalSum += lp.normal[iDim];
+  }
+
+  if( !(abs(abs(normalSum)-1)<1e-12) ) {
+    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+  }
+
   for(UInt i = 0; i < numFncs; ++i) {
     // x entry scaled with u_x
     bMat[0][i*D_DOF] = (1-nVec[0]*nVec[0])*(2*xiDx[i][0]*nVec[0]+xiDx[i][1]*nVec[1])-xiDx[i][1]*nVec[0]*nVec[0]*nVec[1];
@@ -1296,6 +1311,153 @@ void SurfaceTangentialIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOp
   dummyMat.Transpose(bMat);
 }
 
+template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
+class SurfaceTangentialCompressibleStrainOperator2D : public BaseBOperator{
+
+public:
+
+  // ------------------
+  //  STATIC CONSTANTS
+  // ------------------
+  //@{
+  //! \name Static constants
+
+  //! Order of differentiation
+  static const UInt ORDER_DIFF = 1;
+
+  //! Number of components of the problem (scalar, vector)
+  static const UInt DIM_DOF = D_DOF;
+
+  //! Dimension of the underlying domain / space
+  static const UInt DIM_SPACE = D;
+
+  //! Dimension of the finite element
+  static const UInt DIM_ELEM = D;
+
+  //! Dimension of the related material
+  static const UInt DIM_D_MAT = 1;
+  //@}
+
+  
+  SurfaceTangentialCompressibleStrainOperator2D(){
+    return;
+  }
+
+  SurfaceTangentialCompressibleStrainOperator2D(const SurfaceTangentialCompressibleStrainOperator2D & other)
+    : BaseBOperator(other){
+  }
+
+  virtual SurfaceTangentialCompressibleStrainOperator2D * Clone(){
+    return new SurfaceTangentialCompressibleStrainOperator2D(*this);
+  }
+
+  virtual ~SurfaceTangentialCompressibleStrainOperator2D(){
+    return;
+  }
+
+  virtual void CalcOpMat(Matrix<Double> & bMat,
+                          const LocPointMapped& lp, BaseFE* ptFe );
+
+  virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                    const LocPointMapped& lp, BaseFE* ptFe );
+
+  //avoid reimplementation of complex operator by making the bas class function
+  //available
+  using BaseBOperator::CalcOpMat;
+
+  using BaseBOperator::CalcOpMatTransposed;
+
+  // ===============
+  //  QUERY METHODS
+  // ===============
+  //@{ \name Query Methods
+  //! \copydoc BaseBOperator::GetDiffOrder
+  virtual UInt GetDiffOrder() const {
+    return ORDER_DIFF;
+  }
+
+  //! \copydoc BaseBOperator::GetDimDof()
+  virtual UInt GetDimDof() const {
+    return DIM_DOF;
+  }
+
+  //! \copydoc BaseBOperator::GetDimSpace()
+  virtual UInt GetDimSpace() const {
+    return DIM_SPACE;
+  }
+
+  //! \copydoc BaseBOperator::GetDimElem()
+  virtual UInt GetDimElem() const {
+    return DIM_ELEM;
+  }
+
+  //! \copydoc BaseBOperator::GetDimDMat()
+  virtual UInt GetDimDMat() const {
+    return DIM_D_MAT;
+  }
+  //@}
+
+
+protected:
+
+};
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+void SurfaceTangentialCompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe){
+  //check if lp is surface and ptFe is volume
+  assert(lp.isSurface);
+  assert(D == ptFe->shape_.dim);
+  assert(D==D_DOF);
+  assert(D==2);
+
+  UInt numFncs = ptFe->GetNumFncs();
+ 
+  Matrix<Double> xiDx;
+  FE *fe = (static_cast<FE*>(ptFe));
+  bMat.Resize(D, D_DOF*numFncs);
+  fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+  Vector<Double> nVec = lp.normal;
+
+  // Check if the normal vector is parallel to the coordinate system
+  // In the loop below we check if the sum of all components is equal to 1 in order to check if the normal vector lines up with one coordinate axis
+  // At the moment this check is necessary due to some problems with the doNothing BC
+  // It seems that the already implemented SurfaceNormalStressOperator is not working properly since results differ when rotating a testcase e.g. 30° in plane
+  Double normalSum = 0.0;
+  
+  //Checking the normal vector befor Operator construction
+  for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim) {
+    normalSum += lp.normal[iDim];
+  }
+
+  if( !(abs(abs(normalSum)-1)<1e-12) ) {
+    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+  }
+
+  Double coefLambdaOverMu;
+  this->coef_->GetScalar(coefLambdaOverMu,lp);
+
+  // here we calculate (I - n x n) \cdot ((\nabla u + (\nabla u)^T) \cdot n)+(kappa-2/3mu) div(u)I
+  // This is essentially a projection into the tangential plane of the normal derivative of the surface velocity plus its transposed part
+  for(UInt i = 0; i < numFncs; ++i) {
+    // x entry scaled with u_x
+    bMat[0][i*D_DOF] = (1-nVec[0]*nVec[0])*(2*xiDx[i][0]*nVec[0]+xiDx[i][1]*nVec[1])-xiDx[i][1]*nVec[0]*nVec[0]*nVec[1]+(coefLambdaOverMu-2/3)*(1-nVec[0]*nVec[0]-nVec[1]*nVec[1])*nVec[0]*xiDx[i][0];
+    // x entry scaled with u_y
+    bMat[0][i*D_DOF+1] = (1-nVec[0]*nVec[0])*xiDx[i][0]*nVec[1]-nVec[0]*nVec[1]*(xiDx[i][0]*nVec[0]+2*xiDx[i][1]*nVec[1])+(coefLambdaOverMu-2/3)*(1-nVec[0]*nVec[0]-nVec[1]*nVec[1])*nVec[0]*xiDx[i][1];
+    // y entry scaled with u_x
+    bMat[1][i*D_DOF] = (1-nVec[1]*nVec[1])*xiDx[i][1]*nVec[0]-nVec[0]*nVec[1]*(2*xiDx[i][0]*nVec[0]+xiDx[i][1]*nVec[1])+(coefLambdaOverMu-2/3)*(1-nVec[0]*nVec[0]-nVec[1]*nVec[1])*nVec[1]*xiDx[i][0];
+    // y entry scaled with u_y
+    bMat[1][i*D_DOF+1] = (1-nVec[1]*nVec[1])*(xiDx[i][0]*nVec[0]+2*xiDx[i][1]*nVec[1])-xiDx[i][0]*nVec[0]*nVec[1]*nVec[1]+(coefLambdaOverMu-2/3)*(1-nVec[0]*nVec[0]-nVec[1]*nVec[1])*nVec[1]*xiDx[i][1];
+  }
+}
+
+template<class FE, UInt D, UInt D_DOF, class TYPE>
+void SurfaceTangentialCompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+{
+  Matrix<Double> dummyMat;
+  CalcOpMat(dummyMat, lp, ptFe);
+
+  dummyMat.Transpose(bMat);
+}
 
 template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
 class SurfaceTangentialHollowIncompressibleStrainOperator2D : public BaseBOperator{
@@ -1410,6 +1572,21 @@ void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::
   bMat.Resize(D, D_DOF*numFncs);
   fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
   Vector<Double> nVec = lp.normal;
+
+  // Check if the normal vector is parallel to the coordinate system
+  // In the loop below we check if the sum of all components is equal to 1 in order to check if the normal vector lines up with one coordinate axis
+  // At the moment this check is necessary due to some problems with the doNothing BC
+  // It seems that the already implemented SurfaceNormalStressOperator is not working properly since results differ when rotating a testcase e.g. 30° in plane
+  Double normalSum = 0.0;
+  
+  //Checking the normal vector befor Operator construction
+  for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim) {
+    normalSum += lp.normal[iDim];
+  }
+
+  if( !(abs(abs(normalSum)-1)<1e-12) ) {
+    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+  }
 
   for(UInt i = 0; i < numFncs; ++i) {
     // x entry scaled with u_x

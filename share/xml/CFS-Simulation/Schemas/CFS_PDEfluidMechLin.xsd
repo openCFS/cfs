@@ -233,6 +233,7 @@
                                 <xsd:restriction base="xsd:token">
                                   <xsd:enumeration value="hollowIncompressibleStress"/>
                                   <xsd:enumeration value="incompressibleStress"/>
+                                  <xsd:enumeration value="compressibleStress"/>
                                 </xsd:restriction>
                               </xsd:simpleType>
                             </xsd:attribute>
