@@ -66,6 +66,7 @@ namespace CoupledField{
     isTimeDomPML_      = false;
     isAPML_            = false;
     complexFluidFormulation_ = false;
+    
 
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     //check for pressure or potential formulation
