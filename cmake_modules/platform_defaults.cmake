@@ -46,6 +46,7 @@ set(USE_SUPERLU_DEFAULT ON)
 set(USE_CGNS_DEFAULT ON)
 set(USE_METIS_DEFAULT ON)
 set(USE_SGP_DEFAULT ON) # external SGP optimizer 
+set(USE_EIGEN_DEFAULT OFF)
 
 # commercial or condifential code required for the developer building the modules
 set(USE_SUITESPARSE_DEFAULT OFF) # is configured as GPL
