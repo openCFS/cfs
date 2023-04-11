@@ -17,6 +17,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_reordering.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_eigen.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_eigen.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
   "${CFS_BINARY_DIR}/include/def_build_quadeigensolver.hh")
 

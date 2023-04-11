@@ -256,6 +256,10 @@ if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
 endif()
 
+if(USE_EIGEN)
+  include("${CFSDEPS_DIR}/eigen/External_EIGEN.cmake")
+endif()
+
 # Find Library of Iterative Solvers
 if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")

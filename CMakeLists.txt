@@ -145,6 +145,7 @@ option(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEF
 # open source SGP optimizer library.
 option(USE_SGP "Use the external open source SGP optimizer." ${USE_SGP_DEFAULT})
 option(USE_CGAL "Activate fast element mapping using CGAL library." ${USE_CGAL_DEFAULT})
+option(USE_EIGEN "Eigen is a C++ template library for linear algebra: matrices, vectors, numerical solvers, and related algorithms." ${USE_EIGEN_DEFAULT})
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
 # Please note, that either CGAL or libfbi can be used at a time, but not both!
 option(USE_LIBFBI "Use fast box intersection library." ${USE_LIBFBI_DEFAULT})
@@ -165,6 +166,11 @@ endif()
 # Note, that dependend options come next
 #-----------------------------------------------------------------------------
 
+# currently, we use eigen only in CGAL for geometry approximation.
+if (NOT USE_CGAL AND USE_EIGEN)
+  message(WARNING "\nYour configuration USE_EIGEN=ON and USE_CGAL=OFF has no effect. \nEigen is currently only used by CGAL, for surface-geometry approximation in the automatic layer generation and curvilinear PML.")
+endif()
+  
 if(USE_CGAL AND USE_LIBFBI)
   message(FATAL_ERROR "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
 endif()
