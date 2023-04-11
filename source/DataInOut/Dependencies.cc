@@ -1,4 +1,5 @@
 #include <def_use_arpack.hh>
+#include <def_use_eigen.hh>
 #include <def_use_blas.hh>
 #include <def_use_cgal.hh>
 #include <def_use_cgns.hh>
@@ -70,6 +71,10 @@
 
 #ifdef USE_CGAL
 #include <CGAL/version.h>
+#endif
+
+#ifdef USE_EIGEN
+#include <eigen3/Eigen/src/Core/util/Macros.h>
 #endif
 
 #ifdef USE_FLANN
@@ -202,6 +207,12 @@ void Dependencies::ReadSetting()
   arpack.SetVersion(ARPACK_VER);
 #endif
   data.Push_back(arpack);
+
+  Dependency eigen("EIGEN", "USE_EIGEN", EASY);
+#ifdef USE_EIGEN
+  eigen.SetVersion(EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
+#endif
+  data.Push_back(eigen);
 
   Dependency feast("FEAST", "USE_FEAST", BSD);
 #ifdef USE_FEAST
