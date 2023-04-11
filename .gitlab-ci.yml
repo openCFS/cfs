@@ -16,7 +16,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   # build options for the maximal config
-  MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON"
+  MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON"
   # default unstable tests (moved from .stable_tests to here in order to specify compiler specific tests that should be excluded)
   UNSTABLE_TESTS_DEFAULT: "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|CFSdat_cell2Node_3D_Ensight|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential|ParallelPlateCapacitor_doubleL|Abc2d|Abc2dcsvt" # we do not need the testsuite for building
 

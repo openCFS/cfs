@@ -65,9 +65,6 @@ endmacro()
 macro(use_c_and_fortran IN_USE_C_CXX IN_USE_FORTRAN)
   set(USE_C_CXX ${IN_USE_C_CXX})
   set(USE_FORTRAN ${IN_USE_FORTRAN})
-  if(NOT USE_C_CXX AND NOT USE_FORTRAN)
-    message(FATAL_ERROR "set at leas C/C++ and/or Fortran")
-  endif()
 endmacro()
 
 # set os sensitive static lib to given variable in cmake cache
@@ -111,7 +108,7 @@ macro(set_package_library_list_lib_prefix IN_LIST)
 endmacro()
 
 
-# set standard variables. Kind of late destructor.
+# set standard variables. Kind of late constructor.
 #
 # also set some standard (hidden) CACHE variables with uppercase package name.
 # in rare cases <package>_INCLUDE_DIR is not CMAKE_BINARY_DIR/include. Overwrite the setting
@@ -288,7 +285,7 @@ macro(set_precompiled_pckg_file)
     set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
   elseif(USE_C_CXX AND NOT USE_FORTRAN)
     set(_TMP "${_TMP}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
-  else()
+  elseif(USE_C_CXX AND USE_FORTRAN)
     assert_set(USE_C_CXX)
     assert_set(USE_FORTRAN)
     # combine C_F if same version
@@ -343,7 +340,6 @@ macro(create_external_unpack_precompiled)
 
   assert_set(PACKAGE_NAME)
   assert_set(PRECOMPILED_PCKG_FILE)
-  assert_set(PACKAGE_LIBRARY)
 
   ExternalProject_Add(${PACKAGE_NAME}
     PREFIX ${DEPS_PREFIX}
@@ -402,7 +398,6 @@ macro(create_external_cmake)
   assert_set(PACKAGE_NAME)
   assert_set(DEPS_ARGS)
   assert_set(DEPS_PREFIX)
-  assert_set(PACKAGE_LIBRARY)
   assert_unset(PATCHES_SCRIPT)
 
   # URL can take a list of mirrors but when there is a file, it needs to be the only one.

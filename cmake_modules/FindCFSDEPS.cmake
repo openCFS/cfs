@@ -259,6 +259,10 @@ if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
 endif()
 
+if(USE_EIGEN)
+  include("${CFSDEPS_DIR}/eigen/External_EIGEN.cmake")
+endif()
+
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
 #-----------------------------------------------------------------------------
