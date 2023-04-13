@@ -32,6 +32,7 @@
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
+#include "Domain/CoefFunction/CoefFunctionCurvilinearPML.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionImpedanceModel.hh"
@@ -206,8 +207,10 @@ namespace CoupledField{
 
     RegionIdType actRegion;;
 
-     // flag that states if we are in a PML region while performing a harmonic analysis
-    bool harmonicPML = false;
+    //variables used for PML
+    bool harmonicPML = false;    // flag that states if we are in a PML region while performing a harmonic analysis
+    std::string pmlDampId = "";  // dampId of a PML region
+    std::string pmlFormul = "";  // formulation of the PML region ("classic", "shifted" or "curvilinear")
 
     //type of geometry
     isaxi_ = ptGrid_->IsAxi();
@@ -340,20 +343,15 @@ namespace CoupledField{
       // ====================================================================
       // Take account for pml
       // ====================================================================
-      shared_ptr<CoefFunction> coeffPMLScal, coeffPMLVec;
-      shared_ptr<CoefFunction> coeffPMLStiff;
-      shared_ptr<CoefFunction> coeffPMLMass;
+      PtrCoefFct coeffPMLDeterminant, coeffPMLTensor, coeffPMLVector, coeffPMLStiff, coeffPMLMass;
 
       if( dampingList_[actRegion] == PML ) 
       {
-        std::string dampId;
-        curRegNode->GetValue("dampingId",dampId);
-
-        // check for PML formulation: classic(=Cartesian) or curvilinear
-        std::string pmlFormul;
-        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
+        // get the dampingId of the current PML region
+        curRegNode->GetValue("dampingId",pmlDampId);
+        // check for PML formulation of current region: classic(=Cartesian) or curvilinear
+        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",pmlDampId.c_str());
         pmlFormul = pmlNode->Get("formulation")->As<std::string>();
-
         //check if harmonic or inverse-source analysis is performed
         if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
         {
@@ -372,30 +370,43 @@ namespace CoupledField{
           
           if (pmlFormul == "classic")
           {
-            coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
-            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
-            // store pml factor
-            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
+            // here we only have a diagonal Jacobi matrix, so we store values as vector
+            coeffPMLVector.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+            coeffPMLDeterminant.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
+            // store pml factor for the postprocessing result
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVector);
+            // compute factors for the integrators
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                              CoefXprBinOp(mp_, coeffPMLScal,coeffK, CoefXpr::OP_MULT));
+                                              CoefXprBinOp(mp_, coeffPMLDeterminant,coeffK, CoefXpr::OP_MULT));
 
             coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                              CoefXprBinOp(mp_, coeffPMLScal, coeffM, CoefXpr::OP_MULT));
+                                              CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
           }
           else if (pmlFormul == "curvilinear")
           {
-            EXCEPTION("Formulation '" << pmlFormul << "' for AcousticPDE " 
-                      << "is not implemented yet!")
-            // here, I need to define my PML coefficients....
+            if (complexFluidFormulation_ == true)
+              WARN("Curvilinear PML in combination with complex fluid is not tested yet!\n Please check your results and consider adding a testcase to the testsuite.")
+            if (dim_==2)
+              EXCEPTION("Curvilinear PML currently works only in 3D!");
+            // pointer to object that handles the computation of the curvilinear PML damping tensor
+            // here we need the full Jacobi matrix
+            coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::TENSOR));
+            coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DETERMINANT));
+            // create some more CoefFunctionCurvilinearPMLs to store info about the PML parameters
+            PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
+            coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DAMP_FACTOR));
+            coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Double>(pmlNode,c0R,actSDList,regions_,OutputType::DISTANCE));
+            // assign the coefFunctions to the matCoefs_ to make them available in the DefinePostProcResults()
+            matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);           // whole PML tensor
+            matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLDeterminant); // determinant of the PML tensor
+            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLDampFactor);  // eigenvalues (=diagonal elements of the stretching/damping matrix)
+            matCoefs_[PML_DISTANCE]->AddRegion(actRegion, coeffPMLDistance);       // distance between points and their closest point on the PML interface
 
-
-            // at first, I need to determine the geometry...
-
-            // somehow, I need to take account for the new Jakobi matrix, as this one will not be diagonal..
-
-            // the Jakobi determinant will likely have the same properties as the Cartesian one (but is different in its value)
-
-
+            // the Jakobi determinant is used as scaling coefficient for the BBIntegrators
+            coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                              CoefXprBinOp(mp_, coeffPMLDeterminant,coeffK, CoefXpr::OP_MULT));
+            coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                              CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
           }
           else // when pmlFormul is invalid...
           {
@@ -409,9 +420,9 @@ namespace CoupledField{
           if (pmlFormul == "classic")
           {
             if(dim_==2)
-              DefineTransientPMLInts<2>(actSDList,dampId, actRegion, tempId);
+              DefineTransientPMLInts<2>(actSDList,pmlDampId, actRegion, tempId);
             else
-              DefineTransientPMLInts<3>(actSDList,dampId, actRegion, tempId);
+              DefineTransientPMLInts<3>(actSDList,pmlDampId, actRegion, tempId);
           }
           else
             EXCEPTION("Transient PML is currently only implemented in 'classic' formulation.")
@@ -425,31 +436,44 @@ namespace CoupledField{
       // ====================================================================
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
-        if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
-                                        coeffPMLStiff, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+        if(harmonicPML) {
+          if(pmlFormul == "classic") {
+            stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
+                                          coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLVector);
+          }
+          else if (pmlFormul == "curvilinear") {
+            // define integrators for curvilinear PML in 2D
+            EXCEPTION("Curvilinear PML currently only implemented in 3D!");
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
         else if ( complexFluidFormulation_ ) {
           stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,2>(), coeffK,
-        	                           1.0, updatedGeo_ );
-        }
-        else{
+                                       1.0, updatedGeo_ );
+        } else {
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 
                                        1.0, updatedGeo_ );
         }
-      }
-      else{
+      } else { //dim_ == 3
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
-                                        coeffPMLStiff, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+          if(pmlFormul == "classic") {
+            stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
+                                         coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLVector);
+          }
+          else if (pmlFormul == "curvilinear") {
+            // define integrators for curvilinear PML in 3D
+            stiffInt = new BBInt<Complex>(new TensorScaledGradientOperator<FeH1,3,Complex>(),
+                                         coeffPMLStiff, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffPMLTensor);
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
         }
         else if ( complexFluidFormulation_ ) {
           stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK,
-        	                           1.0, updatedGeo_ );
-        }
-        else{
+                                     1.0, updatedGeo_ );
+        } else {
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK,
                                        1.0, updatedGeo_ );
         }
@@ -486,23 +510,33 @@ namespace CoupledField{
 
       BaseBDBInt *massInt = NULL;
       
-      if(dim_==2){
-        if( harmonicPML )
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
-                                       coeffPMLMass, 1.0, updatedGeo_ );
+      if(dim_==2) {
+        if( harmonicPML ) {
+          if(pmlFormul == "classic") 
+            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
+                                         coeffPMLMass, 1.0, updatedGeo_ );
+          else if (pmlFormul == "curvilinear") {
+            EXCEPTION("Curvilinear PML currently only implemented in 3D!");
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
+        }
         else if ( complexFluidFormulation_ )
-        	massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM,
-        	                                      1.0, updatedGeo_ );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM,
+                                                1.0, updatedGeo_ );
         else
           massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 
                                       1.0, updatedGeo_ );
-      }else{
-        if(harmonicPML)
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 
-                                       1.0, updatedGeo_ );
+      } else { // dim_==3
+        if(harmonicPML) {
+          if(pmlFormul == "classic" || "curvilinear") {
+            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(),
+                                         coeffPMLMass, 1.0, updatedGeo_ );
+          } else // we should never reach here, but just to be sure
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "' for AcousticPDE. ")
+        }
         else if  ( complexFluidFormulation_ )
-        	massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM,
-        	                                      1.0, updatedGeo_ );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM,
+                                                1.0, updatedGeo_ );
         else
           massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 
                                       1.0, updatedGeo_ );
@@ -762,12 +796,14 @@ namespace CoupledField{
     	coeffc = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, dens, blk, CoefXpr::OP_DIV) );
     }
 
+    // check the PML node to retrieve information
     PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
-    shared_ptr<CoefFunction> coeffPMLVec;
-    coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
+    // get the diagonal entries of the Jacobi matrix as vector
+    shared_ptr<CoefFunction> coeffPMLVector;
+    coeffPMLVector.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
 
     // store pml factor
-    matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVec);
+    matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVector);
 
     shared_ptr<CoefFunctionCompound<Double> > coefA(new CoefFunctionCompound<Double>(mp_));
     shared_ptr<CoefFunctionCompound<Double> > coefB(new CoefFunctionCompound<Double>(mp_));
@@ -787,9 +823,9 @@ namespace CoupledField{
     // ===> DEFINE PML DAMPINGFUNCTIONS
     std::map<std::string, PtrCoefFct> vars;
     std::map<std::string, PtrCoefFct> var;
-    vars["a"] = coeffPMLVec;
+    vars["a"] = coeffPMLVector;
     vars["b"] = coeffc;
-    var["a"]  = coeffPMLVec;
+    var["a"]  = coeffPMLVector;
 
     StdVector<std::string> matAReal;
     StdVector<std::string> matBReal;
@@ -1029,7 +1065,7 @@ namespace CoupledField{
 
         //check, if region has complex fluid
         PtrParamNode curRegNode =
-        		myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+            myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
 
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens;
@@ -2118,49 +2154,6 @@ namespace CoupledField{
     		                             complexFluidFormulation_));
     matCoefs_[ACOU_ELEM_SPEED_OF_SOUND] = sosFct;
     DefineFieldResult(sosFct, sos);
-    
-    // === PML DAMPING FACTORS ===
-    //if( matCoefs_.find(PML_DAMP_FACTOR) != matCoefs_.end() ) {
-    shared_ptr<ResultInfo> pml ( new ResultInfo );
-    pml->resultType = PML_DAMP_FACTOR;
-    pml->dofNames = vecDofNames;
-    //pml->dofNames = "";
-    pml->unit = "";
-    pml->definedOn = ResultInfo::ELEMENT;
-    pml->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 
-                                                               isComplex_));
-    matCoefs_[PML_DAMP_FACTOR] = pmlFct;
-    DefineFieldResult(pmlFct, pml);
-    //}
-
-    // === PML AUX Variables ===
-    if(this->isTimeDomPML_){
-      if(!this->isAPML_ && dim_ == 3){
-        shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
-        pmlScal->resultType = ACOU_PMLAUXSCALAR;
-        pmlScal->dofNames = "";
-        pmlScal->unit = "-";
-        pmlScal->definedOn = ResultInfo::NODE;
-        pmlScal->entryType = ResultInfo::SCALAR;
-        feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
-        results_.Push_back( pmlScal );
-        pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
-        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
-      }
-
-      shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
-      pmlVec->resultType = ACOU_PMLAUXVEC;
-      pmlVec->dofNames = vecDofNames;
-      pmlVec->unit = "-";
-      pmlVec->definedOn = ResultInfo::NODE;
-      pmlVec->entryType = ResultInfo::VECTOR;
-      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
-      results_.Push_back( pmlVec );
-      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
-      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
-    }
-
   }
   
   void AcousticPDE::FinalizePostProcResults(){
@@ -2184,7 +2177,36 @@ namespace CoupledField{
         vecDofNames = "x", "y";
       }
     }
-    
+
+    StdVector<std::string> tensorDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      tensorDofNames.Resize(9);
+      tensorDofNames[0] = "xx";
+      tensorDofNames[1] = "xy";
+      tensorDofNames[2] = "xz";
+      tensorDofNames[3] = "yx";
+      tensorDofNames[4] = "yy";
+      tensorDofNames[5] = "yz";
+      tensorDofNames[6] = "zx";
+      tensorDofNames[7] = "zy";
+      tensorDofNames[8] = "zz";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        // Tensor DOF names in are not yet used in axisymmetric problems.
+        tensorDofNames.Resize(4);
+        tensorDofNames[0] = "rr";
+        tensorDofNames[1] = "rz";
+        tensorDofNames[2] = "zr";
+        tensorDofNames[3] = "zz";
+      } else { // 2D case
+        tensorDofNames.Resize(4);
+        tensorDofNames[0] = "xx";
+        tensorDofNames[1] = "xy";
+        tensorDofNames[2] = "yx";
+        tensorDofNames[3] = "yy";
+      }
+    }
+
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
@@ -2558,7 +2580,86 @@ namespace CoupledField{
 
     acousticSourceDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
     DefineFieldResult( acousticSourceDensityCoef_,loadDensity );
+
+    // === PML Output Parameters ===
+    // Vector holding the eigenvalues of the PML matrix
+    // this are the diagonal elements for CLASSIC formulation, 
+    // or the diagonal elements of the inner (stretching) matrix 
+    // for the CURVILINEAR PML formulation 
+    shared_ptr<ResultInfo> pmlDampFactor ( new ResultInfo );
+    pmlDampFactor->resultType = PML_DAMP_FACTOR;
+    pmlDampFactor->dofNames = vecDofNames;
+    pmlDampFactor->unit = "";
+    pmlDampFactor->definedOn = ResultInfo::ELEMENT;
+    pmlDampFactor->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> pmlDampFactorCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, true));
+    matCoefs_[PML_DAMP_FACTOR] = pmlDampFactorCoefFct;
+    DefineFieldResult(pmlDampFactorCoefFct, pmlDampFactor);
+
+    // Tensor holding the complete the PML matrix. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlTensor ( new ResultInfo );
+    pmlTensor->resultType = PML_TENSOR;
+    pmlTensor->dofNames = tensorDofNames;
+    pmlTensor->unit = "";
+    pmlTensor->definedOn = ResultInfo::ELEMENT;
+    pmlTensor->entryType = ResultInfo::TENSOR;
+    shared_ptr<CoefFunctionMulti> pmlTensorCoefFct(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, true));
+    matCoefs_[PML_TENSOR] = pmlTensorCoefFct;
+    DefineFieldResult(pmlTensorCoefFct, pmlTensor);
+
+    // Scalar holding the determinant of the PML matrix. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlDeterminant ( new ResultInfo );
+    pmlDeterminant->resultType = PML_DETERMINANT;
+    pmlDeterminant->dofNames = "";
+    pmlDeterminant->unit = "";
+    pmlDeterminant->definedOn = ResultInfo::ELEMENT;
+    pmlDeterminant->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> pmlDetCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
+    matCoefs_[PML_DETERMINANT] = pmlDetCoefFct;
+    DefineFieldResult(pmlDetCoefFct, pmlDeterminant);
+
+    // Scalar holding the distance between points and the PML interface. 
+    // only set for CURVILINEAR PML formulation
+    shared_ptr<ResultInfo> pmlDistance ( new ResultInfo );
+    pmlDistance->resultType = PML_DISTANCE;
+    pmlDistance->dofNames = "";
+    pmlDistance->unit = "";
+    pmlDistance->definedOn = ResultInfo::ELEMENT;
+    pmlDistance->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> pmlDistanceCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
+    matCoefs_[PML_DISTANCE] = pmlDistanceCoefFct;
+    DefineFieldResult(pmlDistanceCoefFct, pmlDistance);
+
+    // === AUX Variables for transient PML===
+    if(this->isTimeDomPML_){
+      if(!this->isAPML_ && dim_ == 3){
+        shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
+        pmlScal->resultType = ACOU_PMLAUXSCALAR;
+        pmlScal->dofNames = "";
+        pmlScal->unit = "-";
+        pmlScal->definedOn = ResultInfo::NODE;
+        pmlScal->entryType = ResultInfo::SCALAR;
+        feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
+        results_.Push_back( pmlScal );
+        pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
+        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
+      }
+
+      shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
+      pmlVec->resultType = ACOU_PMLAUXVEC;
+      pmlVec->dofNames = vecDofNames;
+      pmlVec->unit = "-";
+      pmlVec->definedOn = ResultInfo::NODE;
+      pmlVec->entryType = ResultInfo::VECTOR;
+      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
+      results_.Push_back( pmlVec );
+      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
+      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
+    }
   }
+
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
      //// === MEAN FLUIDMECH VELOCITY ===

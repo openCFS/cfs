@@ -702,9 +702,14 @@
       <xsd:enumeration value="acouVelocity"/>
       <xsd:enumeration value="acouPosition"/>
       <xsd:enumeration value="density"/>
-      <xsd:enumeration value="pmlDampFactor"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>
       <xsd:enumeration value="acouRhsLoadDensity"/>
+      <!-- PML parameters -->
+      <xsd:enumeration value="pmlDampFactor"/>
+      <!-- PML parameters used in curvilinear PML only -->
+      <xsd:enumeration value="pmlTensor"/>
+      <xsd:enumeration value="pmlDeterminant"/>
+      <xsd:enumeration value="pmlDistance"/>
     </xsd:restriction>
   </xsd:simpleType>
 

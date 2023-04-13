@@ -301,8 +301,12 @@ void Domain::ReadGrid(const std::string & gridId,
   actGrid->FinishInit();
 
   // Initialize non-conforming interfaces
-  if (gridId == "default")
+  if (gridId == "default") {
+    // initialize PML layer generation, return if not specified
+    actGrid->TriggerAutoLayerGeneration();
+    // Initialize non-conforming interfaces, return if not specified
     actGrid->InitNcInterfacesFromXML();
+  }
 
 
   // check the grid on regularity

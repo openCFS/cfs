@@ -745,5 +745,322 @@ namespace CoupledField{
     }
   }
 
+  //! Calculate the gradient of the shape functions scaled by a
+  //! 2nd order tensor-valued coefficient function.
+  //!    / (T_11 N_1x + T_12 N_1y + T_13 N_1z) (T_11 N_2x + T_12 N_2y + T_13 N_2z) ...\
+  //! b =| (T_21 N_1x + T_22 N_1y + T_23 N_1z) (T_21 N_2x + T_22 N_2y + T_23 N_2z) ...|
+  //!    \ (T_31 N_1x + T_32 N_1y + T_33 N_1z) (T_31 N_2x + T_32 N_2y + T_33 N_2z) .../
+  //!  here N_1x denotes the x-derivative of the first
+  //!  shape function at a given local point and T_ij is the (i,j)th entry of the tensor
+  //! \tparam FE Type of Finite Element used
+  //! \tparam D Dimension of the problem space
+  //! \tparam TYPE Data type (DOUBLE, COMPLEX)
+  template<class FE, UInt D, class TYPE = Double>
+  class TensorScaledGradientOperator : public GradientOperator<FE,D,1,TYPE>{
+    public:
+
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 1;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D;
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = D;
+    //@}
+
+    // constructor
+    TensorScaledGradientOperator(){
+      this->name_ = "TensorScaledGradientOperator";
+      coefsI_.Resize(D);
+      coefsR_.Resize(D);
+    }
+
+    //! Copy constructor
+    TensorScaledGradientOperator(const TensorScaledGradientOperator & other)
+       : GradientOperator<FE,D,1,TYPE>(other){
+      this->xiDxTmp_ = other.xiDxTmp_;
+      this->rotMat_ = other.rotMat_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual TensorScaledGradientOperator * Clone(){
+      return new TensorScaledGradientOperator(*this);
+    }
+
+    // destructor
+    virtual ~TensorScaledGradientOperator(){
+    }
+
+    //! compute the operation matrix, which is the operation matrix
+    //! of the gradient operation, times the tensor-valued coef function  
+    //! stored in coef_
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                           const LocPointMapped& lp,
+                           BaseFE* ptFe );
+
+    //! a complete copy-and-paste version of CalcOpMat(Matrix<Complex>..), 
+    //! except that the resize operation of bMat and the indices within the 
+    //! tensor multiplication are changed so that the result is transposed
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                     const LocPointMapped& lp,
+                                     BaseFE* ptFe );
+
+    //! a complete copy-and-paste version of CalcOpMat(Matrix<Complex>..), 
+    //! except that the data type of the coefficient tensor is Double (=real valued)
+    virtual void CalcOpMat(Matrix<Complex> & bMat,
+                           const LocPointMapped& lp,
+                           BaseFE* ptFe );
+
+    //! a complete copy-and-paste version of CalcOpMatTransposed(Matrix<Complex>..), 
+    //! except that the data type of the coefficient tensor is Double (=real valued)
+    virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
+                                     const LocPointMapped& lp,
+                                     BaseFE* ptFe );
+
+    protected:
+    Matrix<Double> xiDxTmp_, rotMat_;
+    Vector<Double> coefsR_;
+    Vector<Complex> coefsI_;
+    Vector<Double> globPoint_;
+  };
+
+
+  template<class FE, UInt D, class TYPE>
+  void TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMat(Matrix<Complex> & bMat,
+                                                const LocPointMapped& lp,
+                                                BaseFE* ptFe ){
+    // assure that a coef function was passed to the operator
+    assert(this->coef_ != NULL);
+    // get the total number of base functions associated with the current element
+    const UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B (space dimension, number of base functions * dimension of the solution quantity).
+    bMat.Resize( DIM_SPACE, numFncs * DIM_DOF );
+    // initialise with zeros
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    
+    // If coordinate system is set at the coefficient function, rotate B-matrix
+    if (this->coef_->GetCoordinateSystem() ) {
+      Matrix<Double> xiDxTmp, rotMat;
+      Vector<Double> globPoint;
+      
+      fe->GetGlobDerivShFnc( xiDxTmp, lp, lp.shapeMap->GetElem() , 1 );
+      lp.shapeMap->Local2Global(globPoint,lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp * rotMat;
+    } else { // if not, set derivatives of shape functions directly
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    // get the tensor holding the scaling-coefficients 
+    Matrix<Complex> coefs;
+    this->coef_->GetTensor(coefs,lp);
+
+    // compute the operator matix...
+    if(DIM_DOF == 1){ // for scalar-valued solution quantities
+      for (UInt iFncs = 0; iFncs < numFncs; ++iFncs){ // loop over shape functions
+        for (UInt iDim = 0; iDim < DIM_SPACE; ++iDim){ // loop over dimensions
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) { // second loop over dimensions to compute matrix product and transpose
+            bMat[iDim][iFncs] += coefs[iDim][iDim2] * xiDx[iFncs][iDim2];
+          }
+        }
+      }
+    } else { // for vector-valued quantities ----- this is actually trivial, as DIM_DOF is set to a constant 1 on initialization!!
+      for(UInt iFncs = 0; iFncs < numFncs ; ++iFncs){
+        for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim){
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) {
+            bMat[iDim][iFncs*DIM_DOF + iDim] = coefs[iDim][iDim2] * xiDx[iFncs][iDim2]; // bMat is filled in a blockwise-diagonal structure
+          }
+        }
+      }
+    }
+  }
+
+  //! currently untested!!
+  template<class FE, UInt D, class TYPE>
+  void TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Complex> & bMat,
+                                                          const LocPointMapped& lp,
+                                                          BaseFE* ptFe ){
+    EXCEPTION("TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMatTransposed() is not tested for type Complex yet!\n Consider adding a testcase to the testsuite.");
+    // assure that a coef function was passed to the operator
+    assert(this->coef_ != NULL);
+    // get the total number of base functions associated with the current element
+    const UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B ( number of base functions * dimension of the solution quantity, space dimension).
+    bMat.Resize( numFncs * DIM_DOF, DIM_SPACE  );
+    // initialise with zeros
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    
+    // If coordinate system is set at the coefficient function, rotate B-matrix
+    if (this->coef_->GetCoordinateSystem() ) {
+      Matrix<Double> xiDxTmp, rotMat;
+      Vector<Double> globPoint;
+      
+      fe->GetGlobDerivShFnc( xiDxTmp, lp, lp.shapeMap->GetElem() , 1 );
+      lp.shapeMap->Local2Global(globPoint,lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp * rotMat;
+    } else { // if not, set derivatives of shape functions directly
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    // get the tensor holding the scaling-coefficients 
+    Matrix<Complex> coefs;
+    this->coef_->GetTensor(coefs,lp);
+
+    // compute the operator matix...
+    if(DIM_DOF == 1){ // for scalar-valued solution quantities
+      for (UInt iFncs = 0; iFncs < numFncs; ++iFncs){ // loop over shape functions
+        for (UInt iDim = 0; iDim < DIM_SPACE; ++iDim){ // loop over dimensions
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) { // second loop over dimensions to compute matrix product and transpose
+            bMat[iFncs][iDim] += coefs[iDim][iDim2] * xiDx[iFncs][iDim2];
+          }
+        }
+      }
+    } else { // for vector-valued quantities ----- this is actually trivial, as DIM_DOF is set to a constant 1 on initialization!!
+      for(UInt iFncs = 0; iFncs < numFncs ; ++iFncs){
+        for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim){
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) {
+            bMat[iFncs*DIM_DOF + iDim][iDim] = coefs[iDim][iDim2] * xiDx[iFncs][iDim2]; // bMat is filled in a blockwise-diagonal structure
+          }
+        }
+      }
+    }
+  }
+
+  template<class FE, UInt D, class TYPE>
+  void TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                const LocPointMapped& lp,
+                                                BaseFE* ptFe ){
+    EXCEPTION("TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMat() is not tested for type Double yet!\n Consider adding a testcase to the testsuite.");
+    // assure that a coef function was passed to the operator
+    assert(this->coef_ != NULL);
+    // get the total number of base functions associated with the current element
+    const UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B (space dimension, number of base functions * dimension of the solution quantity).
+    bMat.Resize( DIM_SPACE, numFncs * DIM_DOF );
+    // initialise with zeros
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    
+    // If coordinate system is set at the coefficient function, rotate B-matrix
+    if (this->coef_->GetCoordinateSystem() ) {
+      Matrix<Double> xiDxTmp, rotMat;
+      Vector<Double> globPoint;
+      
+      fe->GetGlobDerivShFnc( xiDxTmp, lp, lp.shapeMap->GetElem() , 1 );
+      lp.shapeMap->Local2Global(globPoint,lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp * rotMat;
+    } else { // if not, set derivatives of shape functions directly
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    // get the tensor holding the scaling-coefficients 
+    Matrix<Double> coefs;
+    this->coef_->GetTensor(coefs,lp);
+
+    // compute the operator matix...
+    if(DIM_DOF == 1){ // for scalar-valued solution quantities
+      for (UInt iFncs = 0; iFncs < numFncs; ++iFncs){ // loop over shape functions
+        for (UInt iDim = 0; iDim < DIM_SPACE; ++iDim){ // loop over dimensions
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) { // second loop over dimensions to compute matrix product and transpose
+            bMat[iDim][iFncs] += coefs[iDim][iDim2] * xiDx[iFncs][iDim2];
+          }
+        }
+      }
+    } else { // for vector-valued quantities ----- this is actually trivial, as DIM_DOF is set to a constant 1 on initialization!!
+      for(UInt iFncs = 0; iFncs < numFncs ; ++iFncs){
+        for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim){
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) {
+            bMat[iDim][iFncs*DIM_DOF + iDim] = coefs[iDim][iDim2] * xiDx[iFncs][iDim2]; // bMat is filled in a blockwise-diagonal structure
+          }
+        }
+      }
+    }
+  }
+
+  //! currently untested!!
+  template<class FE, UInt D, class TYPE>
+  void TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                          const LocPointMapped& lp,
+                                                          BaseFE* ptFe ){
+    EXCEPTION("TensorScaledGradientOperator<FE,D,TYPE>::CalcOpMatTransposed() is not tested for type Double yet!\n Consider adding a testcase to the testsuite.");
+    // assure that a coef function was passed to the operator
+    assert(this->coef_ != NULL);
+    // get the total number of base functions associated with the current element
+    const UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B ( number of base functions * dimension of the solution quantity, space dimension).
+    bMat.Resize( numFncs * DIM_DOF, DIM_SPACE  );
+    // initialise with zeros
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    
+    // If coordinate system is set at the coefficient function, rotate B-matrix
+    if (this->coef_->GetCoordinateSystem() ) {
+      Matrix<Double> xiDxTmp, rotMat;
+      Vector<Double> globPoint;
+      
+      fe->GetGlobDerivShFnc( xiDxTmp, lp, lp.shapeMap->GetElem() , 1 );
+      lp.shapeMap->Local2Global(globPoint,lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp * rotMat;
+    } else { // if not, set derivatives of shape functions directly
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    // get the tensor holding the scaling-coefficients 
+    Matrix<Double> coefs;
+    this->coef_->GetTensor(coefs,lp);
+
+    // compute the operator matix...
+    if(DIM_DOF == 1){ // for scalar-valued solution quantities
+      for (UInt iFncs = 0; iFncs < numFncs; ++iFncs){ // loop over shape functions
+        for (UInt iDim = 0; iDim < DIM_SPACE; ++iDim){ // loop over dimensions
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) { // second loop over dimensions to compute matrix product and transpose
+            bMat[iFncs][iDim] += coefs[iDim][iDim2] * xiDx[iFncs][iDim2];
+          }
+        }
+      }
+    } else { // for vector-valued quantities ----- this is actually trivial, as DIM_DOF is set to a constant 1 on initialization!!
+      for(UInt iFncs = 0; iFncs < numFncs ; ++iFncs){
+        for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim){
+          for (UInt iDim2 = 0; iDim2 < DIM_SPACE; ++iDim2) {
+            bMat[iFncs*DIM_DOF + iDim][iDim] = coefs[iDim][iDim2] * xiDx[iFncs][iDim2]; // bMat is filled in a blockwise-diagonal structure
+          }
+        }
+      }
+    }
+  }
 }
 #endif

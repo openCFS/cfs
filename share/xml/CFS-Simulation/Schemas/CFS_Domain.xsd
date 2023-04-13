@@ -100,6 +100,199 @@
     </xsd:attribute>
   </xsd:complexType>
 
+  <!-- ******************************************************************** >
+    Data types for specifying the parameters for automatically generating an 
+    external layer that can be used as a PML region
+  < ******************************************************************** -->
+  <xsd:complexType name="DT_LayerGeneration">
+    <xsd:annotation>
+      <xsd:documentation>
+        Define the parameters for automatic layer generation via mesh extrusion.
+        The elements of the layer are prismatic (wedge for inner tet-mesh and hex for inner hex mesh).
+        Attributes:
+        - name:                 (required) specifies the name of the newly created region
+        Child elements:
+        - sourceSurfRegion:     (required) specifies the surface where the layer will be built onto; 
+                                           should be the the outer boundary of the propagation domain or a part of it;
+        - extrusionParameters:  (required) specifies the height of the generated elements in m and the number of extrusions
+        - surfGeometry:         (required) specify a geometry type or input file or CGAL surface approximation parameters
+        - outputFile:           (optional) allows to specify a path to a file where the computed geometry should be
+                                           stored in.
+    </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="sourceSurfRegion" type="DT_LayerSurface" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="extrusionParameters" type="DT_LayerExtrusionParams" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="surfGeometry" type="DT_LayerSurfGeometry" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="outputFile" type="DT_LayerOutputFile" minOccurs="0" maxOccurs="1"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_LayerSurface">
+    <xsd:annotation>
+        <xsd:documentation>
+          Specify a surface name
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_LayerExtrusionParams">
+    <xsd:annotation>
+        <xsd:documentation>
+          Required parameters to specify the created layer
+          - elemHeight: (required) defines the height of every created polyhedron (in normal direction).
+                                   The sign of elemHeight controls the direction into which the layer is created.
+                                   On curved boundaries, '+' should extrude the elements outwards
+          - numLayers:  (required) is the number of extrusion steps and must be a positive integer;
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="elemHeight" type="xsd:float" use="required"/>
+    <xsd:attribute name="numLayers" type="xsd:positiveInteger" use="required"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_LayerSurfGeometry">
+    <xsd:annotation>
+        <xsd:documentation>
+          Specify if the geometry is approximated using additional information (e.g., specifying a sphere), use an input file,
+          or use CGAL (GPL-Licenced Dependency) to approximate an arbitrary convex shape.
+          - analyticApproximation:  (choice, required) allows to specify if the surface has a specific simple geometry type.
+                                                       With this additional information, CFS does not need to approximate the geometry, 
+                                                       but can directly reproduce all the information from the node coordinates.
+          - cgalApproximation:      (choice, required) approximation via CGAL
+          - fromInputFile:          (choice, required) allows to specify a path to a file containing the nodal geometry. 
+                                                       If given, CFS does not compute nodal geometry on its own but reads from
+                                                       the file.
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:choice>
+      <xsd:element name="cgalApproximation" type="DT_CgalApproximationParams" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="analyticApproximation" type="DT_GeometryInfo" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="fromInputFile" type="DT_LayerInputFile" minOccurs="1" maxOccurs="1"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_GeometryInfo">
+    <xsd:annotation>
+      <xsd:documentation>
+        Data type for specifying a simple geometry (helper data type for automatic layer generation)
+        Specifies a geometry type to ease the determination of the underlying nodal 
+        surface geometry for the automatic layer generation and the curvilinear PML
+        - sphere:   the surface is spherical
+        - cylinder: the surface is cylindric
+        - plane:    the surface is planar
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:choice>
+      <xsd:element name="plane" type="DT_GeometryPlane" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="cylinder" type="DT_GeometryCylinder" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="sphere" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_GeometryPlane">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type to specify that the surface geometry is planar and has a normal into the x, y or z direction
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="normalDirection" type="DT_CartesianAxis" use="required"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_GeometryCylinder">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type to specify that the surface geometry is cylindric and either x, y or z is its height axis
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="axisDirection" type="DT_CartesianAxis" use="required"/>
+  </xsd:complexType>
+
+  <xsd:simpleType name="DT_CartesianAxis">
+    <xsd:annotation>
+      <xsd:documentation>
+        A restricted token to allow only x, y, or z as output
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_CgalApproximationParams">
+    <xsd:annotation>
+      <xsd:documentation>
+        - degreePolyFit:     (optional) allows to use a custom degree for the polynomial fitted by cgal
+        - degreeMongeCoeff:  (optional) allows to specify a custom degree for the monge coefficients computed by cgal
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="degreePolyFit" type="xsd:positiveInteger" default="2" use="optional"/>
+    <xsd:attribute name="degreeMongeCoeff" type="xsd:positiveInteger" default="2" use="optional"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_LayerOutputFile">
+    <xsd:annotation>
+      <xsd:documentation>
+        Specify writing the geometry to a file.
+        Can be used to avoid re-computing the geometry for every simulation call. 
+        A workflow would be: call layer generation once for a mesh and specify a file path in 'output' to write out the 
+        geometry file. Then use this file as the 'input' for the subsequent simulations.
+        - name:               (required) allows to specify a path to a file where the computed geometry should be
+                                          stored in.
+        - delimiter:          (optional) specifies the delimiting character in the read/write files
+        - commentCharacter:   (optional) specifies the comment character in the read/write files
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="delimiter" default="," type="xsd:token" use="optional"/>
+    <xsd:attribute name="commentCharacter" default="#" type="xsd:token" use="optional"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_LayerInputFile">
+    <xsd:annotation>
+      <xsd:documentation>
+        Specify reading the geometry from a file instead of computing it.
+        Can be used to avoid re-computing the geometry for every simulation call. 
+        A workflow would be: call layer generation once for a mesh and specify a file path in 'output' to write out the 
+        geometry file. Then use this file as the 'input' for the subsequent simulations.
+        stored in.
+        - name:              (required) allows to specify a path to a file containing the nodal geometry. 
+        - delimiter:         (optional) specifies the delimiting character in the read/write files
+        - commentCharacter:  (optional) specifies the comment character in the read/write files
+        - nodeNumberCol:     (optional) column of the corresponding node number
+        - xComp_nVecCol:     (optional) column of the x components of normal vectors
+        - yComp_nVecCol:     (optional) column of the y components of normal vectors
+        - zComp_nVecCol:     (optional) column of the z components of normal vectors
+        - xComp_tMinVecCol:  (optional) column of the x components of min principal vectors
+        - yComp_tMinVecCol:  (optional) column of the y components of min principal vectors
+        - zComp_tMinVecCol:  (optional) column of the z components of min principal vectors
+        - xComp_tMaxVecCol:  (optional) column of the x components of max principal vectors
+        - yComp_tMaxVecCol:  (optional) column of the y components of max principal vectors
+        - zComp_tMaxVecCol:  (optional) column of the z components of max principal vectors
+        - minCurvCol:        (optional) column for scalar values min curvatures
+        - maxCurvCol:        (optional) column for scalar values max curvatures
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="delimiter" default="," type="xsd:token" use="optional"/>
+    <xsd:attribute name="commentCharacter" default="#" type="xsd:token" use="optional"/>
+    <xsd:attribute name="nodeNumberCol" default="1" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="xComp_nVecCol" default="2" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="yComp_nVecCol" default="3" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="zComp_nVecCol" default="4" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="xComp_tMinVecCol" default="5" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="yComp_tMinVecCol" default="6" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="zComp_tMinVecCol" default="7" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="xComp_tMaxVecCol" default="8" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="yComp_tMaxVecCol" default="9" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="zComp_tMaxVecCol" default="10" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="minCurvCol" default="11" type="xsd:positiveInteger" use="optional"/>
+    <xsd:attribute name="maxCurvCol" default="12" type="xsd:positiveInteger" use="optional"/>
+  </xsd:complexType>
+
   <!-- ********************************************************************
     Data type for specification of a non-conforming interface
     ********************************************************************
@@ -500,6 +693,23 @@
           <xsd:sequence>
             <xsd:element name="surfRegion" type="DT_DomainSurface"
             minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- AutoLayerGenerationList. Tells CFS to automatically generate an
+      external layer that is used for the curvilinear PML. -->
+      <xsd:element name="layerGenerationList" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Tells CFS to automatically generate an external layer that is used 
+            for the curvilinear PML. The list specifies all layers (regions)
+            that are to be generated.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="newRegion" type="DT_LayerGeneration" minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>

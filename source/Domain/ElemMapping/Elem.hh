@@ -151,6 +151,8 @@ namespace CoupledField
     //! Get nodes of edge, identified by global edge number
     void GetEdgeNodes( UInt edgeNum, StdVector<UInt>& nodes ) const;
 
+    //! Return the global element number
+    UInt GetElemNum() const {return elemNum;};
     //@}
 
   public:

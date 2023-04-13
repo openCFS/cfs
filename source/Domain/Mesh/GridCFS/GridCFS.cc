@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <boost/algorithm/string.hpp>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -11,8 +12,16 @@
 #if defined(WIN32) && defined(__INTEL_COMPILER)
   #include <ciso646>
 #endif
-#include <boost/sort/sort.hpp>
 
+// includes needed for writing geometry file
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
+#include <def_use_cgal.hh>
+#include <def_use_eigen.hh>
+
+#include <boost/sort/sort.hpp>
 #include "GridCFS.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -2898,6 +2907,872 @@ namespace CoupledField {
     }
   }
 
+  void GridCFS::TriggerAutoLayerGeneration() {
+    // if no param object is present, just leave
+    if (!param_)
+      return;
+
+    PtrParamNode layerGenNode = param_->Get("domain")->Get("layerGenerationList", ParamNode::PASS);
+    // if autoLayerGeneration is not specified, leave
+    if (!layerGenNode) 
+      return;
+    // number of layer generations specified
+    UInt numGenLayers = layerGenNode->GetChildren().size();
+    // leave if there is no layer generations specified
+    if (numGenLayers < 1)
+      return;
+
+    // initialize variables...
+    // specified region to act on
+    std::string surfRegionName;
+    // ID of surface region
+    RegionIdType surfRegionId;
+    // the layer gen node
+    PtrParamNode actLayerGenNode;
+    // region on grid
+    std::string regionNameOnGrid;
+    // nodeIds of a region
+    StdVector<UInt> surfRegionNodeIds;
+    // bools to check if the specified surface region is on the grid
+    bool surfRegionFound = false;
+
+    // check if specified surface region actually exist..
+    // loop over specified layer generations
+    for (UInt iLayers = 0; iLayers < numGenLayers; ++iLayers) {
+      actLayerGenNode = layerGenNode->GetChildren()[iLayers];
+      // loop over surface regions on grid and compare
+      for (UInt iSurfRegion = 0; iSurfRegion < this->GetNumSurfRegions(); ++iSurfRegion) {
+        actLayerGenNode->Get("sourceSurfRegion")->GetValue("name", surfRegionName);
+        regionNameOnGrid = this->GetRegion().ToString(surfRegionIds_[iSurfRegion]);
+        // if correct surface region is there, take the next step...
+        if (surfRegionName == regionNameOnGrid) {
+          surfRegionFound = true;
+          // check if the surfaceRegion contains nodes at all
+          this->GetNodesByRegion(surfRegionNodeIds, surfRegionIds_[iSurfRegion]);
+          if (surfRegionNodeIds.IsEmpty()) {
+            EXCEPTION("Surface region '" << surfRegionName << "' does not contain nodes!");
+          }
+          // now we know everything is fine, so start layer generation
+          surfRegionId = GetRegionId(surfRegionName);
+          this->GenerateExternalLayer(surfRegionId, actLayerGenNode);
+        }
+      }
+      // throw exception if a specified surface is not found
+      if (!surfRegionFound)
+        EXCEPTION("SurfaceRegion " << surfRegionName << " not found on the specified Grid!");
+      // reset the bool to start with next layer
+      surfRegionFound = false;
+    }
+  }
+
+
+  void GridCFS::GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) {
+    // declare variables...
+    // layer generation parameters
+    Double elemHeight = 0;
+    Double numLayers = 0;
+    // Id of region nodes and coordinates of nodes
+    StdVector<UInt> surfRegionNodeIds;
+    StdVector<Vector<Double>> surfNodeCoords;
+    UInt numSurfNodes;
+    // elements on regions
+    StdVector<SurfElem*> surfRegionElems;
+    UInt numSurfElems;
+    StdVector<StdVector<UInt>> surfElemConnectivity;
+    // name, id, and elems of new region
+    std::string layerName;
+    RegionIdType layerRegionId;
+    // filepaths for reading / writing geometry from / to file
+    std::string readFilePath, writeFilePath;
+    // string to store the simple geometry type, if specified
+    std::string analyticGeomType;
+
+    // parameters of elements in new layer...
+    // connectivity the current element that is created within the layer
+    StdVector<UInt> layerConnectivity;
+    // type of created element 
+    Elem::FEType currLayerElemType;
+    // type of element on the surface region
+    Elem::FEType currSurfElemType;
+    // pointers to created elements in the layer
+    StdVector<StdVector<Elem*>> addedElems;
+    // corresponding IDs
+    StdVector<StdVector<UInt>> addedElemIds;
+    // number of nodes of a element on the surface region
+    UInt numNodesInSurfElement;
+    // and of the newly created element
+    UInt numNodesInLayerElement;
+    // store the node connectivity of the surface region and every subsequent isosurface
+    StdVector<StdVector<UInt>> connectNodeIdx;
+    // helper variable to pass layer connectivity to function
+    UInt* ptrLayerConnectivity;
+    // coordinates of the current node (where the new node is created upon)
+    StdVector<Vector<Double>> currNodeCoords;
+    // IDs within the new layer
+    StdVector<StdVector<UInt>> allLayerNodeIds;
+    // name and ID of newly created surface regions (each new iso surface within the layer)
+    // we create these new iso-surface regions for being able to compute surface geometry
+    // later on
+    std::string newSurfRegionName;
+    RegionIdType newSurfRegionId;
+    StdVector<StdVector<SurfElem*>> addedSurfElems;
+    StdVector<StdVector<UInt>> addedSurfElemIds;
+
+    // get children of layer generation node to retrieve info
+    PtrParamNode layerParamsNode, geomParamsNode, writeNode;
+    layerParamsNode = layerGenNode->Get("extrusionParameters");
+    geomParamsNode = layerGenNode->Get("surfGeometry");
+
+    // extract parameters from layerGenNode
+    layerParamsNode->GetValue("numLayers", numLayers);
+    layerParamsNode->GetValue("elemHeight", elemHeight);
+
+    // get, node Ids, coordinates and elements
+    this->GetNodesByRegion(surfRegionNodeIds, surfRegionId);
+    this->GetNodeCoordinates(surfNodeCoords, surfRegionNodeIds, false);
+    this->GetSurfElems(surfRegionElems, surfRegionId);
+    numSurfElems = this->GetNumElems(surfRegionId);
+    numSurfNodes = surfRegionNodeIds.GetSize();
+
+    // extract specified name of new region and add to grid
+    layerGenNode->GetValue("name", layerName);
+    layerRegionId = this->AddRegion(layerName, VOLUME_REGION);
+
+    // if an analytic geometry type is specified, we use a simplified computation
+    if (geomParamsNode->Get("analyticApproximation", ParamNode::PASS)) {
+      ComputeGeometryOfSimpleType(surfRegionId, layerGenNode);
+    }
+    else if (geomParamsNode->Get("fromInputFile", ParamNode::PASS)) {
+      // if a read path is specified, read from file
+      ReadGeometryFromFile(layerGenNode);
+    }
+    else if (geomParamsNode->Get("cgalApproximation", ParamNode::PASS)) {
+      // if cgalApproximation is specified, use cgal to approximate a generic convex boundary
+      ComputeGeometryOnSurfaceRegionNodes(layerGenNode);
+    }
+    // check for specified write files...
+    if (layerGenNode->Get("outputFile", ParamNode::PASS)) {
+      layerGenNode->Get("outputFile")->GetValue("name", writeFilePath);
+      // if a write file path is specified, write the geometry to the file
+      WriteGeometryToFile(layerGenNode);
+    }
+
+    // prepare computation of new nodes
+    currNodeCoords = surfNodeCoords;
+    allLayerNodeIds = StdVector<StdVector<UInt>>(numLayers+1);
+    allLayerNodeIds[0] = surfRegionNodeIds;
+    UInt newNodeId;
+    // compute new nodes iteratively...
+    for (UInt iLayers = 1; iLayers <= numLayers; ++iLayers) {
+      allLayerNodeIds[iLayers].Resize(numSurfNodes);
+      for (UInt iNodes = 0; iNodes < numSurfNodes; ++iNodes) {
+        // compute new node coordinates
+        currNodeCoords[iNodes] += geometryRegionMap_[surfRegionId]->normalVectors_[iNodes] * elemHeight;
+        // add new node to grid
+        this->AddNode( currNodeCoords[iNodes], newNodeId );
+        // WARN("Added Node with ID " << newNodeId << " on layer " << iLayers);
+        // store iD
+        allLayerNodeIds[iLayers][iNodes] = newNodeId;
+      }
+    }
+
+    // add new elems to grid...
+    // as the new elems are prismatic, there will be one layer per linear element
+    if (this->IsQuadratic() == true) {
+      EXCEPTION("Layer Generation for quadratic elements not implemented yet. Use linear elements instead.");
+    } else {
+      // prepare computation
+      surfElemConnectivity.Resize(numSurfElems);
+      connectNodeIdx.Resize(numSurfElems);
+      addedElems.Resize(numLayers);
+      addedElemIds.Resize(numLayers);
+      addedSurfElems.Resize(numLayers);
+      addedSurfElemIds.Resize(numLayers);
+      // iteratively create layer (volume) elements, iso-surface regions and surface elements
+      for (UInt iLayers = 0; iLayers < numLayers; ++iLayers) {
+        addedElems[iLayers].Resize(numSurfElems);
+        addedElemIds[iLayers].Resize(numSurfElems);
+        addedSurfElems[iLayers].Resize(numSurfElems);
+        addedSurfElemIds[iLayers].Resize(numSurfElems);
+        
+        // add a new surface region for every new iso surface
+        newSurfRegionName = layerName + "_IsoSurface_" + std::to_string(iLayers+1);
+        newSurfRegionId = this->AddRegion(newSurfRegionName, SURFACE_REGION);
+
+        // add new elements...
+        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; ++iSurfElems) {
+          // create new elements. They will be assigned to the orderedElems_ AddVolumeElems()
+          // and AddSurfaceElems() functions. So they will be deleted in the GridCFS destructor
+          addedElems[iLayers][iSurfElems] = new Elem;
+          addedSurfElems[iLayers][iSurfElems] = new SurfElem;
+        }
+        // add new elements of current layer to the grid and obtain element IDs
+        AddVolumeElems( layerRegionId, addedElems[iLayers], addedElemIds[iLayers]);
+        AddSurfaceElems( newSurfRegionId, addedSurfElems[iLayers], addedSurfElemIds[iLayers]);
+
+        // next, we need to set all the necessary information for the new elements...
+        for (UInt iSurfElems = 0; iSurfElems < numSurfElems; ++iSurfElems) {
+          // get type of current surface element
+          currSurfElemType = surfRegionElems[iSurfElems]->type;
+          // check for type of the surface element and assign type of layer element accordingly
+          switch (currSurfElemType) {
+            case Elem::FEType::ET_TRIA3:
+                currLayerElemType = Elem::FEType::ET_WEDGE6;
+                numNodesInSurfElement = 3;
+                break;
+            case Elem::FEType::ET_QUAD4:
+                currLayerElemType = Elem::FEType::ET_HEXA8;
+                numNodesInSurfElement = 4;
+                break;
+            default:
+                EXCEPTION("Layer Generation for surface element type "<< currSurfElemType <<" not implemented yet!" <<
+                          "use linear triangles or quadrangles instead!");
+          }
+          // set the number of nodes in the current layer element
+          numNodesInLayerElement = numNodesInSurfElement*2;
+
+          // get the connectivity of the corresponding surface element and store for later use
+          // we only need to do this once for each surface element on the interface
+          if (iLayers == 0) {
+            surfElemConnectivity[iSurfElems].Resize(numNodesInSurfElement);
+            surfElemConnectivity[iSurfElems] = surfRegionElems[iSurfElems]->connect;
+            connectNodeIdx[iSurfElems].Resize(numNodesInSurfElement);
+            // find the indices of the connection list of the surface elements as we need them 
+            // to assign the connections in the new layer elements
+            for (UInt iNode = 0; iNode < numNodesInSurfElement; ++iNode) {
+              connectNodeIdx[iSurfElems][iNode] = allLayerNodeIds[0].Find(surfElemConnectivity[iSurfElems][iNode]);
+            }
+            // check if the new elements have more nodes than elements in the original grid and set 
+            // the maximum number of nodes occurring in any global element
+            maxNumElemNodes_ = (numNodesInLayerElement > maxNumElemNodes_) ? numNodesInLayerElement : maxNumElemNodes_;
+          } // if (iLayers == 0)
+
+          // assign connectivity to current layer element...
+          layerConnectivity.Resize(numNodesInLayerElement);
+          for (UInt iNode = 0; iNode < numNodesInSurfElement; ++iNode) {
+            layerConnectivity[iNode] = allLayerNodeIds[iLayers][connectNodeIdx[iSurfElems][iNode]];
+            layerConnectivity[iNode+numNodesInSurfElement] = allLayerNodeIds[iLayers+1][connectNodeIdx[iSurfElems][iNode]];
+          }
+          // convert from StdVector to UInt* as SetElemData() only takes UInt*
+          // point on the volume-element connectivity
+          ptrLayerConnectivity  = &layerConnectivity[0];
+          // assign type, region, and connectivity to element
+          this->SetElemData(addedElemIds[iLayers][iSurfElems], currLayerElemType, layerRegionId, ptrLayerConnectivity);
+          // point on the surface-element connectivity
+          ptrLayerConnectivity  = &layerConnectivity[numNodesInSurfElement];
+          this->SetElemData(addedSurfElemIds[iLayers][iSurfElems], currSurfElemType, newSurfRegionId, ptrLayerConnectivity);
+        }
+        // assign surface region to the volume region in order to find the connected regions lateron
+        volumeSurfaceRegionMap_[layerRegionId].Push_back(newSurfRegionId);
+      }
+      // finally, also add the interface surface region to the map
+      volumeSurfaceRegionMap_[layerRegionId].Insert(0, surfRegionId);
+    }
+    // Depending on the direction of layer generation and orientation of the interface surface elements,
+    // the volume elements might not be oriented correctly. Hence, we check for negative Jacobi determinants 
+    // and try correcing the orientation if not.
+    CorrectElementConnectivities(layerRegionId);
+    // finally, as the grid now contains new nodes and elements, reset mappedNodeToElems_ so that 
+    // SetNodesToElemsMap() will be called once more when needed in future.
+    mappedNodeToElems_ = false;
+  };
+
+
+  void GridCFS::ReadGeometryFromFile(const PtrParamNode layerGenNode) {
+    // get parameters from the layer generation node...
+    // filepath, delimiter character and comment character
+    std::string readFilePath, delimiter, commentCharacter;
+    // which info is stored in which column
+    UInt nodeNumberCol,
+         xComp_nVecCol, yComp_nVecCol, zComp_nVecCol, 
+         xComp_tMinVecCol, yComp_tMinVecCol, zComp_tMinVecCol,
+         xComp_tMaxVecCol, yComp_tMaxVecCol, zComp_tMaxVecCol, 
+         minCurvCol, maxCurvCol;
+    PtrParamNode layerParamsNode = layerGenNode->Get("extrusionParameters");
+    PtrParamNode readNode = layerGenNode->Get("surfGeometry")->Get("fromInputFile");
+    readNode->GetValue("name", readFilePath);
+    readNode->GetValue("delimiter", delimiter);
+    readNode->GetValue("commentCharacter", commentCharacter);
+    readNode->GetValue("nodeNumberCol", nodeNumberCol);
+    readNode->GetValue("xComp_nVecCol", xComp_nVecCol);
+    readNode->GetValue("yComp_nVecCol", yComp_nVecCol);
+    readNode->GetValue("zComp_nVecCol", zComp_nVecCol);
+    readNode->GetValue("xComp_tMinVecCol", xComp_tMinVecCol);
+    readNode->GetValue("yComp_tMinVecCol", yComp_tMinVecCol);
+    readNode->GetValue("zComp_tMinVecCol", zComp_tMinVecCol);
+    readNode->GetValue("xComp_tMaxVecCol", xComp_tMaxVecCol);
+    readNode->GetValue("yComp_tMaxVecCol", yComp_tMaxVecCol);
+    readNode->GetValue("zComp_tMaxVecCol", zComp_tMaxVecCol);
+    readNode->GetValue("minCurvCol", minCurvCol);
+    readNode->GetValue("maxCurvCol", maxCurvCol);
+
+    // check for valid columns
+    if(xComp_nVecCol==0 || yComp_nVecCol==0 || zComp_nVecCol==0 || 
+       xComp_tMinVecCol==0 || yComp_tMinVecCol==0 || zComp_tMinVecCol==0 ||
+       xComp_tMaxVecCol==0 || yComp_tMaxVecCol==0 || zComp_tMaxVecCol==0 || 
+       minCurvCol==0 || maxCurvCol==0){
+      EXCEPTION("Wrong parameters for reading geometry file: Column indices need to be one based.");
+    }
+    // check for valid delimiter / comment characters
+    if(commentCharacter.size() > 1 || delimiter.size() > 1){
+      EXCEPTION("Wrong parameters for reading geometry file: Comment and delimiter strings need to be single characters!");
+    }
+    // check for correct filepath
+    std::ifstream readFile(readFilePath.c_str());
+    if(!readFile.good()){
+      EXCEPTION("Wrong parameters for reading geometry file: Could not find file \"" + readFilePath + "\"!");
+    }
+    else if (!readFile) {
+      EXCEPTION("Error reading geometry file from the auto layer generation node.")
+    }
+
+    // now we know the parameters fit and the file exists, so initialize the geometryRegionMap_
+    std::string surfRegionName;
+    RegionIdType surfRegionId;
+    StdVector<UInt> nodeIds;
+    UInt numNodes;
+    // get the surface node Ids
+    layerGenNode->Get("sourceSurfRegion")->GetValue("name", surfRegionName);
+    surfRegionId = GetRegionId(surfRegionName);
+    this->GetNodesByRegion(nodeIds, surfRegionId);
+    numNodes = nodeIds.GetSize();
+    // add new entry in the geometryRegionMap_ to store geometry
+    geometryRegionMap_[surfRegionId] = shared_ptr<NodeGeometry>(new NodeGeometry(numNodes));
+    // set the node Ids to the struct
+    geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds;
+
+    // variables for file reading
+    std::string currentLine;
+    UInt lineCounter = 0;
+    string::size_type startPosition;   // position to start reading for each line
+    StdVector<std::string> readColumn; // a single column
+    std::istringstream iss;            // stream for reading
+    std::string readToken;             // a single token
+    readFile >> std::ws;               // remove whitespace
+
+    // variables for storing the data
+    UInt readNodeId;
+    UInt storedNodeIdx = 0;
+    UInt guess = 0;
+
+    // now read the file...
+    while (std::getline(readFile, currentLine)) {
+      ++lineCounter;
+      // skip empty or commented lines
+      if (currentLine.empty() || currentLine[0] == commentCharacter[0]) {
+        continue;
+      }
+      // ignore leading whitespace
+      startPosition = 0;
+      while (startPosition < currentLine.size() && std::isspace(currentLine[startPosition], std::locale()))
+        startPosition++;
+      currentLine.erase(0,startPosition);
+
+      std::istringstream iss(currentLine);
+      readColumn.Clear();
+      // store content line by line into vector
+      while (std::getline(iss, readToken, delimiter[0])) {
+        readColumn.push_back(readToken);
+      }
+      readNodeId = std::stoul(readColumn[0]);
+      // try to find the correct index to store wrong ordered data, with an initial guess of correctly ordered data
+      storedNodeIdx = geometryRegionMap_[surfRegionId]->nodeIds_.Find(readNodeId, guess, false);
+      ++guess;
+      // store the information accordingly
+      geometryRegionMap_[surfRegionId]->normalVectors_[storedNodeIdx].Resize(3);
+      geometryRegionMap_[surfRegionId]->normalVectors_[storedNodeIdx][0] = std::stod(readColumn[xComp_nVecCol-1]);
+      geometryRegionMap_[surfRegionId]->normalVectors_[storedNodeIdx][1] = std::stod(readColumn[yComp_nVecCol-1]);
+      geometryRegionMap_[surfRegionId]->normalVectors_[storedNodeIdx][2] = std::stod(readColumn[zComp_nVecCol-1]);
+      geometryRegionMap_[surfRegionId]->minPrincipalVectors_[storedNodeIdx].Resize(3);
+      geometryRegionMap_[surfRegionId]->minPrincipalVectors_[storedNodeIdx][0] = std::stod(readColumn[xComp_tMinVecCol-1]);
+      geometryRegionMap_[surfRegionId]->minPrincipalVectors_[storedNodeIdx][1] = std::stod(readColumn[yComp_tMinVecCol-1]);
+      geometryRegionMap_[surfRegionId]->minPrincipalVectors_[storedNodeIdx][2] = std::stod(readColumn[zComp_tMinVecCol-1]);
+      geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[storedNodeIdx].Resize(3);
+      geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[storedNodeIdx][0] = std::stod(readColumn[xComp_tMaxVecCol-1]);
+      geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[storedNodeIdx][1] = std::stod(readColumn[yComp_tMaxVecCol-1]);
+      geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[storedNodeIdx][2] = std::stod(readColumn[zComp_tMaxVecCol-1]);
+      geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[storedNodeIdx] = std::stod(readColumn[minCurvCol-1]);
+      geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[storedNodeIdx] = std::stod(readColumn[maxCurvCol-1]);
+    }
+    readFile.close();
+  };
+
+  void GridCFS::WriteGeometryToFile(const PtrParamNode layerGenNode) {
+    // get parameters from the layer generation node...
+    // filepath, delimiter character and comment character
+    std::string writeFilePath, delimiter, commentCharacter;
+    // get children of the layer gen node
+    PtrParamNode layerParamsNode = layerGenNode->Get("extrusionParameters");
+    PtrParamNode writeNode = layerGenNode->Get("outputFile");
+    
+    writeNode->GetValue("name", writeFilePath);
+    writeNode->GetValue("delimiter", delimiter);
+    writeNode->GetValue("commentCharacter", commentCharacter);
+
+    // check for valid delimiter / comment characters
+    if(commentCharacter.size() > 1 || delimiter.size() > 1){
+      EXCEPTION("Wrong parameters for reading geometry file: Comment and delimiter strings need to be single characters!");
+    }
+
+    // check if directory-path for the file exists...
+    // this is done the same way as in SinglePDE::ReadSensorArrayResults()
+    // search for last Slash in fileName
+    int idx_lastSlash = writeFilePath.find_last_of("/");
+    // if idx_lastSlash = -1 -> "/" not found, else position of the last slash
+    // if there is a "/" in the filename -> save directory is not "." -> check if it exists
+    if ( idx_lastSlash != -1){
+      // get directory name
+      std::string directoryName;
+      directoryName = writeFilePath.substr(0,idx_lastSlash);
+      // ensure errno is cleared and call mkdir with the directory name
+      errno = 0;
+      int mkdir_call;
+      #ifndef WIN32
+        mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
+      #else
+        mkdir_call = _mkdir( directoryName.c_str() );
+      #endif
+      if ( mkdir_call == -1 && errno == EEXIST ){
+        // directory exists, do nothing
+        errno = 0;
+      } else if ( mkdir_call == 0 ){
+        // directory didn't exist but was created, do nothing
+      } else{
+        // directory didn't exist, and couldn't be created -> raise exception
+        EXCEPTION("The directory: '" << directoryName << "' to save the geometry file doesn't exist and couldn't be created! Please create it by hand!" );
+      }
+    } else {
+      // no slash in filename -> do nothing
+    }
+
+    // everything seems fine so far, so gather the info for storing...
+    // header names
+    std::vector<std::string> headerStrings = 
+      {"nodeNumber", 
+       "nVecX", "nVecY", "nVecZ", 
+       "tMinVecX", "tMinVecY", "tMinVecZ", 
+       "tMaxVecX", "tMaxVecY", "tMaxVecZ", 
+       "minCurv", "maxCurv", 
+       "xCoord", "yCoord", "zCoord"};
+    // the surface id
+    std::string surfRegionName;
+    RegionIdType surfRegionId;
+    UInt numNodes;
+    layerGenNode->Get("sourceSurfRegion")->GetValue("name", surfRegionName);
+    surfRegionId = GetRegionId(surfRegionName);
+    // node coordinates
+    StdVector<Vector<Double>> nodeCoords;
+    this->GetNodeCoordinates(nodeCoords, geometryRegionMap_[surfRegionId]->nodeIds_, false);
+    // and the number of nodes
+    numNodes = geometryRegionMap_[surfRegionId]->numNodes_;
+
+    // now write the file...
+    // create output stream
+    std::ofstream  writeFile(writeFilePath, std::ios::out);
+    if (!writeFile.is_open()) {
+                EXCEPTION("Failed to open the geometry file for writing. Try to change the specified name.")
+    }
+    // Ensure that no precision is lost
+    writeFile.precision(15);
+
+    // write header
+    writeFile << commentCharacter << " --- Nodal Geometry ---" << std::endl;
+    writeFile << commentCharacter;
+    for (UInt iColumn = 0; iColumn < headerStrings.size()-1; ++iColumn) {
+      writeFile << headerStrings[iColumn] << delimiter;
+    }
+    writeFile << headerStrings[headerStrings.size()-1] << std::endl;
+    writeFile << "# ---------------------------------------------------------------------------";
+    writeFile << std::endl;
+
+    // write data
+    for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+      writeFile << geometryRegionMap_[surfRegionId]->nodeIds_[iNodes] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][2] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] << delimiter;
+      writeFile << geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] << delimiter;
+      writeFile << nodeCoords[iNodes][0] << delimiter;
+      writeFile << nodeCoords[iNodes][1] << delimiter;
+      writeFile << nodeCoords[iNodes][2] << std::endl;
+    }
+    writeFile.close();
+  };
+
+  void GridCFS::ComputeGeometryOfSimpleType(const RegionIdType& surfRegionId, const PtrParamNode layerGenNode) {
+    // declare variables...
+    // Node IDs and coordinates of the surface region
+    StdVector<UInt> nodeIds;
+    StdVector<Vector<Double>> nodeCoords;
+    this->GetNodesByRegion(nodeIds, surfRegionId);
+    this->GetNodeCoordinates(nodeCoords, nodeIds, false);
+    // number of nodes on surface
+    UInt numNodes = nodeIds.GetSize();
+    // add new entry in the geometryRegionMap_ to store geometry
+    geometryRegionMap_[surfRegionId] = shared_ptr<NodeGeometry>(new NodeGeometry(numNodes));
+    // set the node Ids to the struct
+    geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds;
+    // for now, we asume the origin at (0,0,0)
+    Vector<Double> origin = Vector<Double>(this->dim_,0);
+    // get type of geometry
+    std::string geomType = layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->GetChildren()[0]->GetName();
+    // compute geometry based on the passed type
+    if (geomType == "sphere") {
+      // curvatures can be assigned via the sphere radius
+      Double r = sqrt(pow(nodeCoords[0][0]-origin[0],2) + pow(nodeCoords[0][1]-origin[1],2) + pow(nodeCoords[0][2]-origin[2],2));
+      Double curv = 1 / r;
+      // to compute the tangential vectors, we compute the numerical differential where we vary theta and phi by a small portion
+      Double phi, theta, eps, nor, x, y, z, xVar, yVar, zVar;
+      eps = 1e-6; // variation of the angle
+      for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+        x = nodeCoords[iNodes][0] - origin[0];
+        y = nodeCoords[iNodes][1] - origin[1];
+        z = nodeCoords[iNodes][2] - origin[2];
+        // assign normal vectors
+        geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+        geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = x;
+        geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = y;
+        geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = z;
+        // compute angles for getting tangential vectors
+        if (z/r >= 1.0)
+          theta = 0;
+        else if (z/r <= -1.0)
+          theta = M_PI;
+        else
+          theta = acos(z/r);
+        if (x/sqrt(pow(x,2) + pow(y,2)) >= 1.0 || sqrt(pow(x,2) + pow(y,2)) < 1e-15)
+          phi = 0;
+        else if (x/sqrt(pow(x,2) + pow(y,2)) <= -1.0)
+          phi = M_PI;
+        else
+          phi = acos(x/sqrt(pow(x,2) + pow(y,2)));
+        if (y < 0)
+          phi *= -1;
+        // first tangential vector
+        xVar = r * cos(phi) * sin(theta+eps);
+        yVar = r * sin(phi) * sin(theta+eps);
+        zVar = r * cos(theta+eps);
+        nor = sqrt(pow(x-xVar,2) + pow(y-yVar,2) + pow(z-zVar,2));
+        // assign
+        geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
+        geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = (x - xVar)/nor;
+        geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = (y - yVar)/nor;
+        geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][2] = (z - zVar)/nor;
+        // compute second tangential vector via cross product
+        geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].CrossProduct(
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes], 
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes]);
+        // finally, assign curvatures
+        geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = curv;
+        geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curv;
+      }
+    }
+    else if (geomType == "cylinder") {
+      // get the specified h axis
+      std::string axisDirection;
+      layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->GetChildren()[0]->GetValue("axisDirection", axisDirection);
+      if (axisDirection == "x") {
+        // the maximum curvature can be assigned via the cylinder radius
+        Double r = sqrt(pow(nodeCoords[0][1]-origin[1],2) + pow(nodeCoords[0][2]-origin[2],2));
+        Double curv = 1 / r;
+        Double x, y, z, nor;
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          x = 0;
+          y = nodeCoords[iNodes][1] - origin[1];
+          z = nodeCoords[iNodes][2] - origin[2];
+          nor = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+          // assign normal vectors
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = x/nor;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = y/nor;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = z/nor;
+          // minimum principal vector points into h axis
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] = 0.0;
+          // compute maximum principal vector via cross product
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].CrossProduct(
+            geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes], 
+            geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes]);
+          // finally, assign curvatures
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curv;
+        }
+      }
+      else if (axisDirection == "y") {
+        // the maximum curvature can be assigned via the cylinder radius
+        Double r = sqrt(pow(nodeCoords[0][0]-origin[0],2) + pow(nodeCoords[0][2]-origin[2],2));
+        Double curv = 1 / r;
+        Double x, y, z, nor;
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          x = nodeCoords[iNodes][0] - origin[0];
+          y = 0;
+          z = nodeCoords[iNodes][2] - origin[2];
+          nor = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+          // assign normal vectors
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = x/nor;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = y/nor;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = z/nor;
+          // minimum principal vector points into h axis
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] = 0.0;
+          // compute maximum principal vector via cross product
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].CrossProduct(
+            geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes], 
+            geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes]);
+          // finally, assign curvatures
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curv;
+        }
+      }
+      else if (axisDirection == "z") {
+        // the maximum curvature can be assigned via the cylinder radius
+        Double r = sqrt(pow(nodeCoords[0][0]-origin[0],2) + pow(nodeCoords[0][1]-origin[1],2));
+        Double curv = 1 / r;
+        Double x, y, z, nor;
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          x = nodeCoords[iNodes][0] - origin[0];
+          y = nodeCoords[iNodes][1] - origin[1];
+          z = 0;
+          nor = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+          // assign normal vectors
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = x/nor;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = y/nor;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = z/nor;
+          // minimum principal vector points into h axis
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] = 1.0;
+          // compute maximum principal vector via cross product
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].CrossProduct(
+            geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes], 
+            geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes]);
+          // finally, assign curvatures
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curv;
+        }
+      }
+    }
+    else if (geomType == "plane") {
+      // get the specified normal direction
+      std::string normalDirection;
+      layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->GetChildren()[0]->GetValue("normalDirection", normalDirection);
+      if (normalDirection == "x") {
+        // use distance vector to origin for obtaining the sign of the normal vector
+        int nVecSign = (nodeCoords[0][0] > origin[0]) ? 1 : -1;
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = 1.0 * nVecSign;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][2] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = 0.0;
+        }
+      }
+      else if (normalDirection == "y") {
+        // use distance vector to origin for obtaining the sign of the normal vector
+        int nVecSign = (nodeCoords[0][1] > origin[1]) ? 1 : -1;
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = 1.0 * nVecSign;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][2] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = 0.0;
+        }
+      }
+      else if (normalDirection == "z") {
+        // use distance vector to origin for obtaining the sign of the normal vector
+        int nVecSign = (nodeCoords[0][2] > origin[2]) ? 1 : -1;
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][2] = 1.0 * nVecSign;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = 1.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][2] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = 1.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][2] = 0.0;
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = 0.0;
+        }
+      }
+    } else {
+      EXCEPTION("You passed an invalid geometry type.");
+    }
+  };
+
+  // =======================================================================
+  // CGAL Functions
+  // =======================================================================
+#if defined(USE_CGAL) && defined(USE_EIGEN)
+  void GridCFS::ComputeGeometryOnSurfaceRegionNodes(const PtrParamNode layerGenNode) {
+    // declare variables...
+    PtrParamNode cgalParamsNode =  layerGenNode->Get("surfGeometry")->Get("cgalApproximation");
+    // set parameters for Monge fitting
+    UInt degreePolyFit, degreeMongeCoeff;
+    cgalParamsNode->GetValue("degreePolyFit", degreePolyFit);
+    cgalParamsNode->GetValue("degreeMongeCoeff", degreeMongeCoeff);
+    if (degreeMongeCoeff > degreePolyFit || degreeMongeCoeff > 4) {
+      EXCEPTION("Parameter 'degreeMongeCoeff' must be < 'degreePolyFit' and < 4!");
+    }
+    // get the surface id
+    RegionIdType surfRegionId;
+    std::string surfRegionName;
+    layerGenNode->Get("sourceSurfRegion")->GetValue("name", surfRegionName);
+    surfRegionId = GetRegionId(surfRegionName);
+    // a monge form that is computed for every node
+    MongeForm mongeForm;
+    // minimum required points for fitting the monge base (so interpolation is performed instead of approximation)
+    UInt minNumPoints = (degreePolyFit + 1) * (degreePolyFit + 2) / 2;
+    // all node IDs of the surface region
+    StdVector<UInt> nodeIds;
+    this->GetNodesByRegion(nodeIds, surfRegionId);
+    // Node IDs and coordinates of the surface region
+    StdVector<UInt> surfRegionNodeIds;
+    StdVector<Vector<Double>> surfNodeCoords;
+    this->GetNodesByRegion(surfRegionNodeIds, surfRegionId);
+    this->GetNodeCoordinates(surfNodeCoords, surfRegionNodeIds, false);
+
+    // number of nodes on surface
+    UInt numNodes = nodeIds.GetSize();
+    // vector that holds the coordinates of the point set for which the form is computed 
+    StdVector<Vector<Double>> currNodeCoords;
+    // a vector in Point_3 format. This data format is used by CGAL, so I need to convert the currNodeCoords.
+    std::vector<DPoint> coordsPoint_3;
+    // corresponding node IDs of the current point set
+    StdVector<UInt> currNodeIds;
+    // surface elements surrounding the vertex node on which the monge base is fitted
+    StdVector<const Elem*> currElemsNextToNode;
+    // StdVector needed to call GetElemsNextToNodes()
+    StdVector<RegionIdType> searchRegionIds;
+    searchRegionIds.Push_back(surfRegionId);
+
+    // variables needed to ensure consistent orientation of the monge base 
+    // so that normal vectors point outwards the (presumably convex) surface
+    Vector<Double> innerPoint = Vector<Double>(3,0);
+    // compute the average of all points in the current point cloud to obtain a 
+    // point inside the convex layer (needed for orienting the normal vectors)
+    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; ++iSurfNodes) {
+      innerPoint[0] += surfNodeCoords[iSurfNodes][0];
+      innerPoint[1] += surfNodeCoords[iSurfNodes][1];
+      innerPoint[2] += surfNodeCoords[iSurfNodes][2];
+    }
+    innerPoint /= Double(numNodes);
+    DPoint innerPoint_3(innerPoint[0], innerPoint[1], innerPoint[2]);
+    // variables needed to put the vertex onto the [0] position for each point set
+    UInt zeroId;
+    UInt vertexIdx;
+    // vector to extract current geometry vector from vector_3 format before storing
+    Vector<Double> tempVec = Vector<Double>(3,0);
+    // temporarily store double value
+    Double tempVar;
+
+    // add new entry in the geometryRegionMap_ to store geometry
+    geometryRegionMap_[surfRegionId] = shared_ptr<NodeGeometry>(new NodeGeometry(numNodes));
+    // set the node Ids to the struct
+    geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds;
+    
+    // compute surface normals. We need to iterate ofer every surface node and 
+    // gather at least the 1-ring neighbourhood for approximation
+    for (UInt iSurfNodes = 0; iSurfNodes < numNodes; ++iSurfNodes) {
+      currNodeIds.Clear();
+      currNodeIds.Push_back(nodeIds[iSurfNodes]);
+      // gather enough points for monge fitting
+      while (currNodeIds.GetSize() < minNumPoints) {
+        // get elements 
+        this->GetElemsNextToNodes(currElemsNextToNode, currNodeIds, searchRegionIds);
+        // get node ids of elements
+        this->GetNodesOfElemList(currNodeIds, currElemsNextToNode);
+      }
+      // assure that the vertex ID is the first entry in the vector so that CGAL uses it as vertex
+      zeroId = currNodeIds[0];
+      vertexIdx = currNodeIds.Find(nodeIds[iSurfNodes]);
+      currNodeIds[0] = currNodeIds[vertexIdx];
+      currNodeIds[vertexIdx] = zeroId;
+      // get coordinates of the current nodeset
+      this->GetNodeCoordinates(currNodeCoords, currNodeIds, false);
+      // first, we need to switch the format of out point-coordinate representation
+      this->ConvertVectorToPoint_3Format(coordsPoint_3, currNodeCoords);
+      // then, set up the monge form
+      this->SetUpMongeForm(mongeForm, degreePolyFit, degreeMongeCoeff, coordsPoint_3);
+
+      // vector from inner point to current vertex in the DVector format that is used by CGAL.
+      DVector innerVec(innerPoint_3, coordsPoint_3[0]);
+      // orient the monge base accordingly
+      mongeForm.comply_wrt_given_normal(innerVec);
+      // extract geometry from MongeForm and store...
+      // extract normal vector and store
+      tempVec[0] = mongeForm.normal_direction().x();
+      tempVec[1] = mongeForm.normal_direction().y();
+      tempVec[2] = mongeForm.normal_direction().z();
+      geometryRegionMap_[surfRegionId]->normalVectors_[iSurfNodes] = tempVec;
+      // we imply to have only convex surfaces... 
+      // hence, we invert the sign of the CGAL curvatures and exchange the min/max 
+      // curvatures and direction vectors. This way we should get only curvatures >= 0...
+      // store maximum principal directions
+      tempVec[0] = -mongeForm.minimal_principal_direction().x();
+      tempVec[1] = -mongeForm.minimal_principal_direction().y();
+      tempVec[2] = -mongeForm.minimal_principal_direction().z();
+      geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iSurfNodes] = tempVec;
+      // minimum principal directions
+      tempVec[0] = -mongeForm.maximal_principal_direction().x();
+      tempVec[1] = -mongeForm.maximal_principal_direction().y();
+      tempVec[2] = -mongeForm.maximal_principal_direction().z();
+      geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iSurfNodes] = tempVec;
+      // maximum principal curvatures
+      tempVar = -mongeForm.principal_curvatures(1);
+      geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iSurfNodes] = tempVar;
+      // minimum principal curvatures
+      tempVar = -mongeForm.principal_curvatures(0);
+      if (tempVar >= 0)
+        geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iSurfNodes] = tempVar;
+      else
+        EXCEPTION("Only convex surfaces are supported for the layerGeneration!");
+    }
+  };
+#else
+  void GridCFS::ComputeGeometryOnSurfaceRegionNodes(const PtrParamNode layerGenNode) {
+    // this function is a dummy for a future implementation that does not require CGAL
+    EXCEPTION("Missing dependencies for GridCFS::ComputeGeometryOnSurfaceRegionNodes!")
+  };
+#endif
+
+
+
   // =======================================================================
   // Helper Methods
   // =======================================================================
@@ -3735,13 +4610,24 @@ namespace CoupledField {
     }
   }
   
-  void GridCFS::CorrectElementConnectivities() {
-    Matrix<Double> jacobian;   
+  void GridCFS::CorrectElementConnectivities(RegionIdType regionId) {
+    // define variables
+    Matrix<Double> jacobian;
     std::set<const Elem*> corrElems, failedElems;
     Double jacDet = 0;
-    for(UInt i=0; i<numElems_; i++)
-    {
-      Elem* el = orderedElems_[i];
+    UInt numElems;
+    StdVector<Elem*> elems;
+    // if no region id is passed, check all elements on the mesh.
+    // otherwise, check only the specified region elements.
+    if (regionId == -1) {
+      numElems = numElems_;
+      elems = orderedElems_;
+    } else {
+      GetElems(elems, regionId);
+      numElems = elems.GetSize();
+    }
+    for (UInt iElems = 0; iElems < numElems; ++iElems) {
+      Elem* el = elems[iElems];
       shared_ptr<ElemShapeMap> esm = GetElemShapeMap( el, false );
 
       jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);

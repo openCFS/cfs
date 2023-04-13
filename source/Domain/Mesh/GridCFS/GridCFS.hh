@@ -252,8 +252,7 @@ namespace CoupledField
     //! region consists of surface elements, they are up-casted into Elem*.
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
-    void GetElems( StdVector<Elem*> & elems,
-                   const RegionIdType regionId );
+    void GetElems( StdVector<Elem*> & elems, const RegionIdType regionId );
 
     
     //! Get list of volume elements
@@ -590,9 +589,55 @@ namespace CoupledField
       RegionIdType regID;
     };
 
+
+    // =======================================================================
+    // Automatic Layer Generation and Geometry Computation
+    // =======================================================================
+  public:
+    //! Check if autoLayerGeneration parameters are specified for a region and call
+    //! CreateExternalLayer if so. Return otherwise.
+    virtual void TriggerAutoLayerGeneration() override;
+
+    //! use parent implementation
+    using Grid::GetGeometryOnRegionNodes;
+
+  private:
+    //! Computes an external grid layer that is used as a PML region. 
+    //! Assigns the new volume region to the grid. 
+    //! Additionally, assigns one surface region for each iso-surface layer within the new volume region.
+    //! \param surfaceRegion (in) pointer to the surfaceRegion where the layer should be built upon
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) override;
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    void ComputeGeometryOnSurfaceRegionNodes(const PtrParamNode layerGenNode) override;
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! It exploits the knowledge of a simple geometry type to speed up computation and improve robustness.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    void ComputeGeometryOfSimpleType(const RegionIdType& surfRegionId, const PtrParamNode layerGenNode) override;
+
+    //! This function triggers reading the geometry from a file (normal vectors, principal vectors, 
+    //! and principal curvatures on every node in a surface region).
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    void ReadGeometryFromFile(const PtrParamNode layerGenNode) override;
+
+    //! This function triggers writing the geometry that is computed by ComputeGeometryOnSurfaceRegionNodes()
+    //! to a file.
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    void WriteGeometryToFile(const PtrParamNode layerGenNode) override;
+
+
     // =======================================================================
     // Helper Methods
     // =======================================================================
+  private:
     //@{ \name Helper Methods
 
     //! Creates the surface elements
@@ -650,8 +695,11 @@ namespace CoupledField
     //! find entity with minimum distance
     UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
 
-    //! Correct connectivity in case of negative Jacobian determinants
-    void CorrectElementConnectivities();
+    //! Correct the connectivity of elements in the grid.
+    //! The function iterates over elements, checks for a negative Jacobi determinant, 
+    //! and makes some attempts to correct the connectivity to achieve a positive determinant.
+    //! \param regionId (input) allows to specify a region to check. Leaving at default will check all regions
+    void CorrectElementConnectivities(RegionIdType regionId = -1);
 
     /** 
      * makes named nodes from line
@@ -670,9 +718,6 @@ namespace CoupledField
 
     //! ID of grid
     std::string gridId_;
-    
-    //! Dimension of grid
-    UInt dim_;
 
     //! Total number of nodes
     UInt numNodes_;

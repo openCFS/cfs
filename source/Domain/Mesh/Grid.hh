@@ -20,6 +20,11 @@
 #include <CGAL/Bbox_3.h>
 #include <CGAL/Cartesian.h>
 #include <CGAL/Polygon_2_algorithms.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Monge_via_jet_fitting.h>
+#include <CGAL/Eigen_svd.h>
+#include <CGAL/Eigen_matrix.h>
+#include <CGAL/Eigen_vector.h>
 #endif
 
 #include "Domain/ElemMapping/Elem.hh"
@@ -766,11 +771,161 @@ namespace CoupledField
     }
     //@}
 
+    // =======================================================================
+    // Automatic Layer Generation and Geometry Computation
+    // =======================================================================
+  public:
+    //! struct that collects StdVectors to store the node geometry 
+    //! for a desired node set.
+    //! resizes the vectors to a size numNodes when constructed.
+    struct NodeGeometry{
+      public:
+        //! constructor
+        NodeGeometry(UInt numNodes) {
+          numNodes_ = numNodes;
+          nodeIds_ = StdVector<UInt>(numNodes_);
+          normalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          minPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          maxPrincipalVectors_ = StdVector<Vector<Double>>(numNodes_);
+          minPrincipalCurvatures_ = StdVector<Double>(numNodes_);
+          maxPrincipalCurvatures_ = StdVector<Double>(numNodes_);
+        };
+
+        //! add additional nodes from other NodeGeometry
+        void AddNodes(shared_ptr<NodeGeometry> newNodes) {
+          UInt numNewNodes = newNodes->numNodes_;
+          // check if there are already nodes inserted
+          if (numNodes_ > 0) {
+            // append new nodes sorted by node Id, assuming that the new nodes and
+            // old nodes are already sorted and that every node is contained only once
+            if (newNodes->nodeIds_[0] > nodeIds_[numNodes_-1]) {
+              nodeIds_.Append(newNodes->nodeIds_);
+              normalVectors_.Append(newNodes->normalVectors_);
+              minPrincipalVectors_.Append(newNodes->minPrincipalVectors_);
+              maxPrincipalVectors_.Append(newNodes->maxPrincipalVectors_);
+              minPrincipalCurvatures_.Append(newNodes->minPrincipalCurvatures_);
+              maxPrincipalCurvatures_.Append(newNodes->maxPrincipalCurvatures_);
+            }
+            else if (newNodes->nodeIds_[numNewNodes-1] < nodeIds_[0]) {
+              StdVector<UInt> oldNodeIds = nodeIds_;
+              StdVector<Vector<Double>> oldNormalVectors = normalVectors_;
+              StdVector<Vector<Double>> oldMinPrincipalVectors = minPrincipalVectors_;
+              StdVector<Vector<Double>> oldMaxPrincipalVectors = maxPrincipalVectors_;
+              StdVector<Double> oldMinPrincipalCurvatures = minPrincipalCurvatures_;
+              StdVector<Double> oldMaxPrincipalCurvatures = maxPrincipalCurvatures_;
+
+              nodeIds_ = newNodes->nodeIds_;
+              normalVectors_ = newNodes->normalVectors_;
+              minPrincipalVectors_ = newNodes->minPrincipalVectors_;
+              maxPrincipalVectors_ = newNodes->maxPrincipalVectors_;
+              minPrincipalCurvatures_ = newNodes->minPrincipalCurvatures_;
+              maxPrincipalCurvatures_ = newNodes->maxPrincipalCurvatures_;
+
+              nodeIds_.Append(oldNodeIds);
+              normalVectors_.Append(oldNormalVectors);
+              minPrincipalVectors_.Append(oldMinPrincipalVectors);
+              maxPrincipalVectors_.Append(oldMaxPrincipalVectors);
+              minPrincipalCurvatures_.Append(oldMinPrincipalCurvatures);
+              maxPrincipalCurvatures_.Append(oldMaxPrincipalCurvatures);
+            } else {
+              EXCEPTION("NodeGeometry::AddNodes: Inserted nodes must be unique!")
+            }
+          } else {
+            nodeIds_= newNodes->nodeIds_;
+            normalVectors_ = newNodes->normalVectors_;
+            minPrincipalVectors_ = newNodes->minPrincipalVectors_;
+            maxPrincipalVectors_ = newNodes->maxPrincipalVectors_;
+            minPrincipalCurvatures_ = newNodes->minPrincipalCurvatures_;
+            maxPrincipalCurvatures_ = newNodes->maxPrincipalCurvatures_;
+          }
+          numNodes_ += numNewNodes;
+        };
+
+        // number of contained nodes
+        UInt numNodes_;
+        // vectors to store the data
+        StdVector<UInt> nodeIds_;
+        StdVector<Vector<Double>> normalVectors_;
+        StdVector<Vector<Double>> minPrincipalVectors_;
+        StdVector<Vector<Double>> maxPrincipalVectors_;
+        StdVector<Double> minPrincipalCurvatures_;
+        StdVector<Double> maxPrincipalCurvatures_;
+    };
+
+    //! Check if autoLayerGeneration parameters are specified for a region and call
+    //! CreateExternalLayer if so. Return otherwise.
+    virtual void TriggerAutoLayerGeneration() {
+      EXCEPTION("Grid::TriggerAutoLayerGeneration not overwritten by child class");
+    };
+
+    //! Returns the geometry data for a given surface region if it is already computed, triggers the computation if not.
+    //! \param geometry (out) pointer to the struct containing the geometry
+    //! \param layerGenNode (in) the layer generation node that specifies the surface and the coefficients for geometry computation
+    //! \param surfRegionId (in) the surface region on which the computation is performed
+    void GetGeometryOnRegionNodes(shared_ptr<NodeGeometry>& geometry, const PtrParamNode layerGenNode, const RegionIdType& surfRegionId);
+
+    //! checks if there are assigned surface regions to a passed volume region.
+    //! Raises exception if the connection has not been set yet. 
+    void GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId);
+
+  protected:
+    //! Computes an external grid layer that can be used as a PML region. 
+    //! The actual function is implemented in GridCFS
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    virtual void GenerateExternalLayer(const RegionIdType surfRegionId, const PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::GenerateExternalLayer not overwritten by child class");
+    };
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    virtual void ComputeGeometryOnSurfaceRegionNodes(const PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::ComputeGeometryOnSurfaceRegionNodes not overwritten by child class");
+    };
+
+    //! This function triggers the computation of the geometry (normal vectors, principal vectors, 
+    //! and principal curvatures) on every node in a surface region.
+    //! It exploits the knowledge of a simple geometry type to speed up computation and improve robustness.
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    virtual void ComputeGeometryOfSimpleType(const RegionIdType& surfRegionId, const PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::ComputeGeometryOfSimpleType not overwritten by child class");
+    };
+
+    //! This function triggers reading the geometry from a file (normal vectors, principal vectors, 
+    //! and principal curvatures on every node in a surface region).
+    //! Stores the computed data into the geometryRegionMap_
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    virtual void ReadGeometryFromFile(const PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::ReadGeometryFromFile not overwritten by child class");
+    };
+
+    //! This function triggers writing the geometry that is computed by ComputeGeometryOnSurfaceRegionNodes()
+    //! to a file.
+    //! \param layerGenNode (in) the param node to the respective 'newRegion' of the layerGenerationList
+    virtual void WriteGeometryToFile(const PtrParamNode layerGenNode) {
+      EXCEPTION("Grid::WriteGeometryToFile not overwritten by child class");
+    };
+
+    //! map that stores the node geometry for a desired surface region
+    //! the RegionIdType is intended to be the key holding the ID of the 
+    //! surface region. The NodeGeometry is the struct that holds the data
+    std::map<RegionIdType, shared_ptr<NodeGeometry>> geometryRegionMap_;
+
+    //! map that allows to store connected surface and volume regions. 
+    //! one volume (key) can hold multiple surface regions (value)
+    //! the key is thus the RegionIdType of the volume
+    //! the value is the StdVector<RegionIdType>> containing the connected
+    //! surfaces.
+    std::map<RegionIdType, StdVector<RegionIdType>> volumeSurfaceRegionMap_;
+
 
     // =======================================================================
     // MISCELLANEOUS
     // =======================================================================
     //@{ \name Miscellaneous
+  public:
     
     //! Get type of list denoted by string
     EntityList::DefineType GetEntityType( const std::string& name ) const;
@@ -1012,6 +1167,9 @@ namespace CoupledField
     //! Vector with region ids for each surface region
     StdVector<RegionIdType> surfRegionIds_;
 
+    //! Dimension of grid
+    UInt dim_;
+
     /** Map from name to type of entity.
     * Therefore the names need to be unique across all element types
     * (e.g. a name must equal for a region and named nodes).
@@ -1145,6 +1303,25 @@ namespace CoupledField
     typedef CGAL::Box_intersection_d
         ::Box_d<double,3> IdBox;
 
+    // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
+    // implemented for use in the curvilinear PML formulation
+    //! data type used in the data kernel
+    typedef Double                                     DFT;
+    //! cartesian data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                DataKernel;
+    //! cartesian local data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                LocalKernel;
+    //! define algebra type to solve linear system
+    typedef CGAL::Eigen_svd                            SVD;
+    //! representation of a point in 3D Euclidean space
+    typedef DataKernel::Point_3                        DPoint;
+    //! representation of a vector in 3D Euclidean space
+    typedef DataKernel::Vector_3                       DVector;
+    //! class to estimate local differential quantities at a given point
+    typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
+    //! class to store the Monge coordinate system
+    typedef MongeViaJetFitting::Monge_form             MongeForm;
+
   protected:
     //! Return list of potential elements containing global points
 
@@ -1166,6 +1343,29 @@ namespace CoupledField
     HandleBox CreateBoxFromCoord( const Vector<double>& coords,
                                   UInt *id,
                                   Double tol = 0.0 );
+
+    //! Function that instantiates a MongeForm, i.e., a surface description of the form z = F(x,y)
+    //! The MongeForm can then be used to compute surface parameters, e.g. normal vectors, 
+    //! principal directions, or principal curvatures
+    //! \param mongeForm (out) created monge form
+    //! \param degreePolynomFitting (in) degree of the fitted polynomial to approximate the surface
+    //! \param degreeMongeCoeffs (in) degree of the monge coefficients
+    //! \param nodeCoordinates (in) coordinates of the vertex (position 0 in vector) and surrounding nodes in DPoint format.
+    void SetUpMongeForm(MongeForm& mongeForm, const UInt& degreePolynomFitting, const UInt& degreeMongeCoeffs, 
+                        const std::vector<DPoint>& nodeCoordinates);
+
+    //! function that converts a StdVector of Vectors into the Point_3 format that is used by CGAL
+    //! !!currently only tested in 3D!!
+    //! \param pointsAsPoint_3Format (out) representation as Point_3 
+    //! \param pointsAsCfsVectors (in) representation as CFS Vector
+    void ConvertVectorToPoint_3Format(std::vector<DPoint>& pointsAsPoint_3Format, StdVector<Vector<Double>>& pointsAsCfsVectors);
+
+    //! function that converts the Point_3 format used by CGAL into a StdVector of Vectors
+    //! always outputs 3 dimensional Vecors
+    //! !! currently not in use and untested !!
+    //! \param pointsAsCfsVectors (out) representation as Point_3 
+    //! \param pointsAsPoint_3Format (in) representation as CFS Vector
+    void ConvertVectorFromPoint_3Format(StdVector<Vector<Double>>& pointsAsCfsVectors, std::vector<DPoint>& pointsAsPoint_3Format);
 
 #elif USE_LIBFBI // USE_CGAL
 

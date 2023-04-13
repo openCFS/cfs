@@ -369,7 +369,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL_DERIV1, "gradElecPotentialD1");
     SolutionTypeEnum.Add(ELEM_DENSITY, "density");
-    SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");
+    // PML parameters for all formulations
+    SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor"); // eigenvalues of the PML tensor, stacked in a vector 
+                                                            // (=diagonal entries for classic and shifted PML, and 
+                                                            // diagonal entries of the 'inner' tensor for curvilinear PML)
+    SolutionTypeEnum.Add(PML_DISTANCE, "pmlDistance"); // distance between point and the PML interface 
+    // PML parameters for curvilinear PML only
+    SolutionTypeEnum.Add(PML_TENSOR, "pmlTensor"); // whole PML operation tensor of the curvilinear PML
+    SolutionTypeEnum.Add(PML_DETERMINANT, "pmlDeterminant"); // the determinant of the PML tensor
 
     // General (grid related) results
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");

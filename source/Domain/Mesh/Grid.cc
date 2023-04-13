@@ -601,6 +601,27 @@ namespace CoupledField
     }
   }
 
+  // =======================================================================
+  // Automatic Layer Generation and Geometry Computation
+  // =======================================================================
+  void Grid::GetGeometryOnRegionNodes(shared_ptr<NodeGeometry>& geometry, const PtrParamNode layerGenNode, const RegionIdType& surfRegionId) {
+    // check if geometry already exists for given region
+    if (geometryRegionMap_.count(surfRegionId) == 0) {
+      // directly compute geometry of passed surface region
+      this->ComputeGeometryOnSurfaceRegionNodes(layerGenNode);
+    }
+    // pass geometry
+    geometry = geometryRegionMap_[surfRegionId];
+  };
+
+  void Grid::GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId) {
+    // check if the connection has been set
+    if (volumeSurfaceRegionMap_.count(volumeRegionId) == 0) {
+      EXCEPTION("Connection map must be set manually before calling Grid::GetConnectedSurfaceRegions().");
+    } else {
+      connecedSurfRegionIds = volumeSurfaceRegionMap_[volumeRegionId];
+    }
+  };
 
   // =======================================================================
   // FINITE VOLUME REPRESENTATION SECTION
@@ -1342,7 +1363,60 @@ namespace CoupledField
       }
     }
   }
-  
+
+  void Grid::SetUpMongeForm(MongeForm& mongeForm, const UInt& degreePolynomFitting, const UInt& degreeMongeCoeffs, 
+                        const std::vector<DPoint>& nodeCoordinates) {
+    if (dim_ == 2)
+      EXCEPTION("Grid::SetUpMongeForm() is only implemented in 3D!");
+    // create Monge Form and fit
+    MongeViaJetFitting mongeFit;
+    mongeForm = mongeFit(nodeCoordinates.begin(), nodeCoordinates.end(), degreePolynomFitting, degreeMongeCoeffs);
+  };
+
+  void Grid::ConvertVectorToPoint_3Format(std::vector<DPoint>& pointsAsPoint_3Format, StdVector<Vector<Double>>& pointsAsCfsVectors) {
+    UInt numPoints = pointsAsCfsVectors.GetSize();
+    pointsAsPoint_3Format.resize(numPoints);
+    if (numPoints > 0) {
+      UInt dim = pointsAsCfsVectors[0].GetSize();
+      if (dim == 1) {
+        EXCEPTION("ConvertVectorToPoint_3Format() is untested for 1 dimension");
+        for (UInt i = 0; i < numPoints; i++) {
+          DPoint p(pointsAsCfsVectors[i][0],0,0);
+          pointsAsPoint_3Format[i] = p;
+        }
+      }
+      else if (dim == 2) {
+        EXCEPTION("ConvertVectorToPoint_3Format() is untested for 2 dimensions");
+        for (UInt i = 0; i < numPoints; i++) {
+          DPoint p(pointsAsCfsVectors[i][0],pointsAsCfsVectors[i][1],0);
+          pointsAsPoint_3Format[i] = p;
+        }
+      } 
+      else if (dim == 3) {
+        for (UInt i = 0; i < numPoints; i++) {
+          DPoint p(pointsAsCfsVectors[i][0],pointsAsCfsVectors[i][1],pointsAsCfsVectors[i][2]);
+          pointsAsPoint_3Format[i] = p;
+        }
+      } else
+        EXCEPTION("Please provide 1, 2, or 3 dimensions in 'pointsAsCfsVectors'");
+    } else
+      EXCEPTION("No entries for conversion provided!");
+  };
+
+  void Grid::ConvertVectorFromPoint_3Format(StdVector<Vector<Double>>& pointsAsCfsVectors, std::vector<DPoint>& pointsAsPoint_3Format) {
+    EXCEPTION("ConvertVectorFromPoint_3Format() is untested yet.");
+    size_t numPoints = pointsAsPoint_3Format.size();
+    pointsAsCfsVectors.Resize(numPoints);
+    if (numPoints > 0) {
+      for (UInt i = 0; i < numPoints; i++) {
+        pointsAsCfsVectors[i].Resize(3);
+        pointsAsCfsVectors[i][0] = pointsAsPoint_3Format[i].x();
+        pointsAsCfsVectors[i][1] = pointsAsPoint_3Format[i].y();
+        pointsAsCfsVectors[i][2] = pointsAsPoint_3Format[i].z();
+      }
+    } else
+      EXCEPTION("No entries for conversion provided!");
+  };
 
 //  void Grid::ComputeConservativeInterpolationWeights(const ElemList& destElemList,
 //          const NodeList& sourceNodeList,
