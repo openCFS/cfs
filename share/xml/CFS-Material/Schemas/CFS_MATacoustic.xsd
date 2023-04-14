@@ -22,6 +22,8 @@
       <xsd:element name="densityComplex"  minOccurs="0" type="DT_AcousticScalarLinear"/>
       <xsd:element name="compressionModulus" type="DT_AcousticScalarLinear"/>
       <xsd:element name="compressionModulusComplex" type="DT_AcousticScalarLinear" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="densityInvTDEF" type="DT_MultiPole" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="compressionModulusInvTDEF" type="DT_MultiPole" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="damping" type="DT_AcousticDamping" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="nonlinear" type="DT_AcousticNonlinear" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="kinematicViscosity" type="DT_AcousticScalarLinear" minOccurs="0" maxOccurs="1"/>
@@ -77,5 +79,4 @@
       <xsd:element name="y" type="DT_ScalarType"/>
     </xsd:sequence>
   </xsd:complexType>
-
 </xsd:schema>
