@@ -50,7 +50,23 @@ namespace CoupledField
     //! be used for higher order elements or edge functions.
     void MapEdges();
 
-
+    //! Triggers CheckPatternRegion() to check if there is a region 
+    //! pattern set in the regionList. Assigns the pattern to respective elements.
+    //! Determines the maximum nodes occuring in any element of the grid and
+    //! stores it into maxNumElemNodes_.
+    //! Assigns a dimension to each region if not set already.
+    //! Adds all surface elements to surfElems_, adds all volume elements 
+    //! volElems_.
+    //! Adds all volRegionIds_. Sets the numVolElemNodes_ for each region.
+    //! Discovers which element is a surface element and sets it in orderedElems_.
+    //! Sets the surfRegionIds_. Sets the numSurfElemNodes_.
+    //! Checks if every region contains at least one volume or surface element.
+    //! Calls CheckForRegularRegion() for each region.
+    //! Calls CorrectElementConnectivities().
+    //! Calls makeNameNodesFromLines().
+    //! Calls CreateUserDefinedNodesElems().
+    //! Calls CalcRegulardGridDiscretization() and assigns to the mathparser if the 
+    //! grid is regular.
     virtual void FinishInit();
     
     //! Create result for grid information (local directions etc., Jacobian
@@ -85,8 +101,10 @@ namespace CoupledField
     //! two- and three-dimensional meshes are supported.
     UInt GetDim() const;  
 
+    //! Add a number of nodes to the grid;
+    //! Resizes coords_ and increases numNodes_, but does not assign
+    //! coordinates or Ids 
     virtual void AddNodes(const UInt numNodes);
-      
 
     /** @see Grid::GetNumNodes() */
     UInt GetNumNodes(RegionIdType reg_id = ALL_REGIONS) const;
@@ -94,11 +112,20 @@ namespace CoupledField
     //! Returns the number of nodes in the given nodelist
     UInt GetNumNodes( const std::string & nodesName ) const;
 
+    //! increases the counter 'numElems_' by 'nElems';
+    //! creates 'nElems' new 'Elem()' objects and adds them to
+    //! orderedElems_.
+    //! \param nElems (in) number of elements to add
     virtual void AddElems(UInt nElems);
       
     //! Reserve memory for a number of elements without adding them
     virtual void ReserveElems(UInt nElems);
-    
+
+    //! assign data to the elements with id 'ielem';
+    //! \param ielem is the id of the element
+    //! \param type is the element type (e.g. Elem::ET_HEXA8)
+    //! \param region is the region ID where the element gets assigned to
+    //! \param connect is a pointer to the connectivity list
     virtual void SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,
