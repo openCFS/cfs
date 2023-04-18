@@ -66,7 +66,7 @@ namespace CoupledField{
     isTimeDomPML_      = false;
     isAPML_            = false;
     complexFluidFormulation_ = false;
-    timeDomainEqFluidFormul_ = false;
+    timeDomainEqFluidFormulation_ = false;
 
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     //check for pressure or potential formulation
@@ -241,18 +241,23 @@ namespace CoupledField{
       PtrCoefFct c0;
       PtrCoefFct dens;
       PtrCoefFct blk;
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
       if ( complexFluidFormulation_ ) {
     	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
     	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
       }
-      else if (timeDomainEqFluidFormul_) {
+      else if (timeDomainEqFluidFormulation_) {
         // TODO: dens and blk must be the inverse of the high-freq limit of compressibility and spec. volume
-        //       when they become the calssical mass and stiffness terms
-    	  densInvConst = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+        //       when they become the classical mass and stiffness terms
+    	  PtrCoefFct densInvConst;
+        PtrCoefFct blkInvConst;
+        densInvConst = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
     	  blkInvConst = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
-        dens = 1/densInvConst;
-        blk = 1/densInvConst;
+        dens = CoefFunction::Generate( mp_, Global::REAL,
+                                        CoefXprBinOp(mp_, constOne, densInvConst, CoefXpr::OP_DIV ) );
+        blk = CoefFunction::Generate( mp_, Global::REAL,
+                                        CoefXprBinOp(mp_, constOne, blkInvConst, CoefXpr::OP_DIV ) );
 
         // TODO read all paramers for spec. volume and compressibility real+complex poles
         // ATTENTION: c0 is computed from dens and blk -> what is it used for apart from ABC and PML?
@@ -292,9 +297,8 @@ namespace CoupledField{
 
       // if pde couples with mechanic, we have to multiply the density by -1
       PtrCoefFct factor;
-      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
-        if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
+        if ( complexFluidFormulation_ || timeDomainEqFluidFormulation_)
           EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
 
         // Important: In case of a general / quadratic EV problem, we must
@@ -312,7 +316,7 @@ namespace CoupledField{
       PtrCoefFct coeffM, coeffK;
 
       if ( formulation_ == ACOU_PRESSURE && sosAtLaplace_ == true ) {
-        if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
+        if ( complexFluidFormulation_ || timeDomainEqFluidFormulation_)
           EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
 
         //pressure formulation with temperature depend speed of sound
@@ -474,7 +478,7 @@ namespace CoupledField{
 
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-    	  if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
+    	  if ( complexFluidFormulation_ || timeDomainEqFluidFormulation_)
     		  EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
 
         RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
@@ -527,7 +531,7 @@ namespace CoupledField{
 
       // Check for damping (mass part)
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-       	if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
+       	if ( complexFluidFormulation_ || timeDomainEqFluidFormulation_)
        		EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
 
         RaylDampingData & actDamp = regionRaylDamping_[actRegion];
@@ -548,7 +552,7 @@ namespace CoupledField{
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != "") {
     	  std::cout << "DO Convective Wave Operator!!!!!!!!!!!!!!!!!" << std::endl << std::endl;
-    	  if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
+    	  if ( complexFluidFormulation_ || timeDomainEqFluidFormulation_)
     		  EXCEPTION("Complex fluid and flow currently not allowed");
 
         // Get result info object for flow
@@ -723,6 +727,262 @@ namespace CoupledField{
         }
 
       } //end flow (convective terms)
+
+
+      // ====================================================================
+      // check for TDEF formulation
+      // ====================================================================
+      if (timeDomainEqFluidFormulation_ && formulation_ == ACOU_PRESSURE) { // only available for the acou pressure formulation
+        // additional terms in the wave equation
+
+        StdVector<PtrCoefFct> fncAC;
+        StdVector<PtrCoefFct> fncDC;
+        StdVector<PtrCoefFct> fncBC;
+        StdVector<PtrCoefFct> fncGammaC;
+        StdVector<PtrCoefFct> fncAV;
+        StdVector<PtrCoefFct> fncDV;
+        StdVector<PtrCoefFct> fncBV;
+        StdVector<PtrCoefFct> fncGammaV;
+        // TODO set up a vectorial coefFunction so that we can access the coefficient in each iteration of the loop
+        // fnc = 
+
+        for (UInt ii = 0; ii < fncAC.GetSize(); ii++) {
+          // ====================================================================
+          // K_PPHI1 (TDEF): stiffness integrator, TDEF (A_j^C term)
+          // \int_{Omega_1} A_j^C p^\prime \phi_j^C d\Omega
+          // ====================================================================
+          BiLinearForm *stiffIntTDEFPPHI1 = NULL;
+
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPHI1 = new BBInt<Complex>( new IdentityOperator<FeH1,2>(), fncAC[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPHI1 = new BBInt<Double>( new IdentityOperator<FeH1,2>(), fncAC[ii], 1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPHI1 = new BBInt<Complex>( new IdentityOperator<FeH1,3>(), fncAC[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPHI1 = new BBInt<Double>( new IdentityOperator<FeH1,3>(), fncAC[ii], 1.0, updatedGeo_ );
+            }
+          }
+
+          stiffIntTDEFPPHI1->SetName("AcousticStiffIntTDEFPPHI1_"+std::to_string(ii));
+
+          BiLinFormContext *stiffIntTDEFPPHI1Context = NULL;
+          stiffIntTDEFPPHI1Context = new BiLinFormContext(stiffIntTDEFPPHI1, STIFFNESS );
+
+          stiffIntTDEFPPHI1Context->SetEntities( actSDList, actSDList );
+          stiffIntTDEFPPHI1Context->SetFeFunctions( feFunctions_[formulation_], phiFeFunc );
+          assemble_->AddBiLinearForm( stiffIntTDEFPPHI1Context );
+        } // end loop stiffIntTDEFPPHI1
+
+
+        for (UInt ii = 0; ii < fncDC.GetSize(); ii++) {
+          // ====================================================================
+          // K_PPSI1 (TDEF): stiffness integrator, TDEF (D_k^C term)
+          // \int_{Omega_1} D_k^C p^\prime \psi_k^C d\Omega
+          // ====================================================================
+          BiLinearForm *stiffIntTDEFPPSI1 = NULL;
+
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPSI1 = new BBInt<Complex>( new IdentityOperator<FeH1,2>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPSI1 = new BBInt<Double>( new IdentityOperator<FeH1,2>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPSI1 = new BBInt<Complex>( new IdentityOperator<FeH1,3>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPSI1 = new BBInt<Double>( new IdentityOperator<FeH1,3>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+          }
+
+          stiffIntTDEFPPSI1->SetName("AcousticStiffIntTDEFPPSI1_"+std::to_string(ii));
+
+          BiLinFormContext *stiffIntTDEFPPSI1Context = NULL;
+          stiffIntTDEFPPSI1Context = new BiLinFormContext(stiffIntTDEFPPSI1, STIFFNESS );
+
+          stiffIntTDEFPPSI1Context->SetEntities( actSDList, actSDList );
+          stiffIntTDEFPPSI1Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          assemble_->AddBiLinearForm( stiffIntTDEFPPSI1Context );
+
+
+          // ====================================================================
+          // K_PPSI1 (TDEF): stiffness integrator, TDEF (B_k^C / \gamma_k^C term)
+          // \int_{Omega_1} B_k^C / \gamma_k^C p^\prime \dot{\psi}_k^C d\Omega
+          // ====================================================================
+          BiLinearForm *dampIntTDEFPPSI1 = NULL;
+          PtrCoefFct fncBCgammaC;
+          fncBCgammaC = CoefFunction::Generate( mp_, Global::REAL,
+                                      CoefXprBinOp(mp_, fncBC[ii], fncGammaC[ii], CoefXpr::OP_DIV ) );
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              dampIntTDEFPPSI1 = new BBInt<Complex>( new IdentityOperator<FeH1,2>(), fncBCgammaC, 1.0, updatedGeo_ );
+            }
+            else
+            {
+              dampIntTDEFPPSI1 = new BBInt<Double>( new IdentityOperator<FeH1,2>(), fncBCgammaC, 1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              dampIntTDEFPPSI1 = new BBInt<Complex>( new IdentityOperator<FeH1,3>(), fncBCgammaC, 1.0, updatedGeo_ );
+            }
+            else
+            {
+              dampIntTDEFPPSI1 = new BBInt<Double>( new IdentityOperator<FeH1,3>(), fncBCgammaC, 1.0, updatedGeo_ );
+            }
+          }
+
+          dampIntTDEFPPSI1->SetName("AcousticDampIntTDEFPPSI1_"+std::to_string(ii));
+
+          BiLinFormContext *dampIntTDEFPPSI1Context = NULL;
+          dampIntTDEFPPSI1Context = new BiLinFormContext(dampIntTDEFPPSI1, DAMPING );
+
+          dampIntTDEFPPSI1Context->SetEntities( actSDList, actSDList );
+          dampIntTDEFPPSI1Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          assemble_->AddBiLinearForm( dampIntTDEFPPSI1Context );
+        } // end loop stiffIntTDEFPPSI1 and dampIntTDEFPPSI1
+
+
+
+
+        for (UInt ii = 0; ii < fncAV.GetSize(); ii++) {
+          // ====================================================================
+          // K_PPHI2 (TDEF): stiffness integrator, TDEF (A_l^V term)
+          // \int_{Omega_1} A_l^C \nabla p^\prime \nabla \phi_l^C d\Omega
+          // ====================================================================
+          BiLinearForm *stiffIntTDEFPPHI2 = NULL;
+
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPHI2 = new BBInt<Complex>( new GradientOperator<FeH1,2>(), fncAV[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPHI2 = new BBInt<Double>( new GradientOperator<FeH1,2>(), fncAV[ii], 1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPHI2 = new BBInt<Complex>( new GradientOperator<FeH1,3>(), fncAV[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPHI2 = new BBInt<Double>( new GradientOperator<FeH1,3>(), fncAV[ii], 1.0, updatedGeo_ );
+            }
+          }
+
+          stiffIntTDEFPPHI2->SetName("AcousticStiffIntTDEFPPHI2_"+std::to_string(ii));
+
+          BiLinFormContext *stiffIntTDEFPPHI2Context = NULL;
+          stiffIntTDEFPPHI2Context = new BiLinFormContext(stiffIntTDEFPPHI2, STIFFNESS );
+
+          stiffIntTDEFPPHI2Context->SetEntities( actSDList, actSDList );
+          stiffIntTDEFPPHI2Context->SetFeFunctions( feFunctions_[formulation_], phiFeFunc );
+          assemble_->AddBiLinearForm( stiffIntTDEFPPHI2Context );
+        } // end loop stiffIntTDEFPPHI2
+
+
+        for (UInt ii = 0; ii < fncDC.GetSize(); ii++) {
+          // ====================================================================
+          // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^C term)
+          // \int_{Omega_1} D_m^C \nabla p^\prime \nabla \psi_m^C d\Omega
+          // ====================================================================
+          BiLinearForm *stiffIntTDEFPPSI2 = NULL;
+
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPSI2 = new BBInt<Complex>( new GradientOperator<FeH1,2>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPSI2 = new BBInt<Double>( new GradientOperator<FeH1,2>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              stiffIntTDEFPPSI2 = new BBInt<Complex>( new GradientOperator<FeH1,3>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+            else
+            {
+              stiffIntTDEFPPSI2 = new BBInt<Double>( new GradientOperator<FeH1,3>(), fncDC[ii], 1.0, updatedGeo_ );
+            }
+          }
+
+          stiffIntTDEFPPSI2->SetName("AcousticStiffIntTDEFPPSI2_"+std::to_string(ii));
+
+          BiLinFormContext *stiffIntTDEFPPSI2Context = NULL;
+          stiffIntTDEFPPSI2Context = new BiLinFormContext(stiffIntTDEFPPSI2, STIFFNESS );
+
+          stiffIntTDEFPPSI2Context->SetEntities( actSDList, actSDList );
+          stiffIntTDEFPPSI2Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          assemble_->AddBiLinearForm( stiffIntTDEFPPSI2Context );
+
+
+          // ====================================================================
+          // K_PPSI2 (TDEF): stiffness integrator, TDEF (B_k^V / \gamma_k^V term)
+          // \int_{Omega_1} B_m^V / \gamma_m^C p^\prime \dot{\psi}_m^C d\Omega
+          // ====================================================================
+          BiLinearForm *dampIntTDEFPPSI2 = NULL;
+          PtrCoefFct fncBVgammaV;
+          fncBVgammaV = CoefFunction::Generate( mp_, Global::REAL,
+                                      CoefXprBinOp(mp_, fncBV[ii], fncGammaV[ii], CoefXpr::OP_DIV ) );
+          if( dim_ == 2 ) {
+            if(isComplex_)
+            {
+              dampIntTDEFPPSI2 = new BBInt<Complex>( new IdentityOperator<FeH1,2>(), fncBVgammaV, 1.0, updatedGeo_ );
+            }
+            else
+            {
+              dampIntTDEFPPSI2 = new BBInt<Double>( new IdentityOperator<FeH1,2>(), fncBVgammaV, 1.0, updatedGeo_ );
+            }
+          } else {
+            if(isComplex_)
+            {
+              dampIntTDEFPPSI2 = new BBInt<Complex>( new IdentityOperator<FeH1,3>(), fncBVgammaV, 1.0, updatedGeo_ );
+            }
+            else
+            {
+              dampIntTDEFPPSI2 = new BBInt<Double>( new IdentityOperator<FeH1,3>(), fncBVgammaV, 1.0, updatedGeo_ );
+            }
+          }
+
+          dampIntTDEFPPSI2->SetName("AcousticDampIntTDEFPPSI2_"+std::to_string(ii));
+
+          BiLinFormContext *dampIntTDEFPPSI2Context = NULL;
+          dampIntTDEFPPSI2Context = new BiLinFormContext(dampIntTDEFPPSI2, DAMPING );
+
+          dampIntTDEFPPSI2Context->SetEntities( actSDList, actSDList );
+          dampIntTDEFPPSI2Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          assemble_->AddBiLinearForm( dampIntTDEFPPSI2Context );
+        } // end loop stiffIntTDEFPPSI2 and dampIntTDEFPPSI2
+
+
+
+
+        // ADE section
+
+
+
+      }
     }
   }
 
@@ -1171,7 +1431,7 @@ namespace CoupledField{
       ParamNodeList impedNodes = bcNode->GetList( "impedance" );
 
       for( UInt i = 0; i < impedNodes.GetSize(); ++i ) {
-    	if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
+    	if ( complexFluidFormulation_ || timeDomainEqFluidFormulation_)
     		EXCEPTION("Complex fluid and impedance currently not working");
 
         BiLinearForm * impedInt = NULL;
@@ -2051,7 +2311,7 @@ namespace CoupledField{
 		PtrParamNode curRegNode =
 		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
 		if ( curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" ) {
-			timeDomainEqFluidFormul_ = true;
+			timeDomainEqFluidFormulation_ = true;
 			if ( this->analysistype_ != TRANSIENT )
 				EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
 	   		//need an acoustic pressure formulation
@@ -2237,7 +2497,7 @@ namespace CoupledField{
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
-      deriv1->resultType = ACOU_POTEcomplexFluidNTIAL_DERIV_1;
+      deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
       deriv1->dofNames = "";
       deriv1->unit = "m^2/s^2";
     } else {

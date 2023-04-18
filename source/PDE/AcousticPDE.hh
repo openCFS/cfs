@@ -153,6 +153,9 @@ namespace CoupledField{
 
     //! need wave-PDE for changing density
     bool complexFluidFormulation_;
+
+    //! flag indicating if we have a time domain equivalent fluid formulation
+    bool timeDomainEqFluidFormulation_;
   };
 
 }
