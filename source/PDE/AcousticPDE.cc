@@ -66,7 +66,7 @@ namespace CoupledField{
     isTimeDomPML_      = false;
     isAPML_            = false;
     complexFluidFormulation_ = false;
-    
+    timeDomainEqFluidFormul_ = false;
 
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     //check for pressure or potential formulation
@@ -246,6 +246,17 @@ namespace CoupledField{
     	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
     	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
       }
+      else if (timeDomainEqFluidFormul_) {
+        // TODO: dens and blk must be the inverse of the high-freq limit of compressibility and spec. volume
+        //       when they become the calssical mass and stiffness terms
+    	  densInvConst = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+    	  blkInvConst = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        dens = 1/densInvConst;
+        blk = 1/densInvConst;
+
+        // TODO read all paramers for spec. volume and compressibility real+complex poles
+        // ATTENTION: c0 is computed from dens and blk -> what is it used for apart from ABC and PML?
+      }
       else {
     	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
     	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
@@ -283,7 +294,7 @@ namespace CoupledField{
       PtrCoefFct factor;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
-        if ( complexFluidFormulation_ )
+        if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
           EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
 
         // Important: In case of a general / quadratic EV problem, we must
@@ -301,7 +312,7 @@ namespace CoupledField{
       PtrCoefFct coeffM, coeffK;
 
       if ( formulation_ == ACOU_PRESSURE && sosAtLaplace_ == true ) {
-        if ( complexFluidFormulation_ )
+        if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
           EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
 
         //pressure formulation with temperature depend speed of sound
@@ -463,7 +474,7 @@ namespace CoupledField{
 
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-    	  if ( complexFluidFormulation_ )
+    	  if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
     		  EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
 
         RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
@@ -516,7 +527,7 @@ namespace CoupledField{
 
       // Check for damping (mass part)
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-       	if ( complexFluidFormulation_ )
+       	if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
        		EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
 
         RaylDampingData & actDamp = regionRaylDamping_[actRegion];
@@ -537,7 +548,7 @@ namespace CoupledField{
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != "") {
     	  std::cout << "DO Convective Wave Operator!!!!!!!!!!!!!!!!!" << std::endl << std::endl;
-    	  if ( complexFluidFormulation_ )
+    	  if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
     		  EXCEPTION("Complex fluid and flow currently not allowed");
 
         // Get result info object for flow
@@ -1082,6 +1093,7 @@ namespace CoupledField{
         		c0 = CoefFunction::Generate( mp_,  Global::COMPLEX, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
                                             CoefXpr::OP_MULT), CoefXpr::OP_SQRT) );
         	}
+          // TODO: TDEF else if
         	else
         		c0 =  CoefFunction::Generate( mp_,  Global::REAL,
                                    CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
@@ -1159,7 +1171,7 @@ namespace CoupledField{
       ParamNodeList impedNodes = bcNode->GetList( "impedance" );
 
       for( UInt i = 0; i < impedNodes.GetSize(); ++i ) {
-    	if ( complexFluidFormulation_ )
+    	if ( complexFluidFormulation_ || timeDomainEqFluidFormul_)
     		EXCEPTION("Complex fluid and impedance currently not working");
 
         BiLinearForm * impedInt = NULL;
@@ -2022,6 +2034,38 @@ namespace CoupledField{
 		}
 	}
 
+
+
+
+
+
+
+// TODO: adapt this section accordingly (currently just copied and pasted from complex fluid)
+
+	//check for time domain equivalent fluid (TDEF) formulation
+	RegionIdType actRegion;
+	std::map<RegionIdType, BaseMaterial*>::iterator it;
+	for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+		actRegion = it->first;
+		std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+		PtrParamNode curRegNode =
+		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+		if ( curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" ) {
+			timeDomainEqFluidFormul_ = true;
+			if ( this->analysistype_ != TRANSIENT )
+				EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
+	   		//need an acoustic pressure formulation
+			if ( formulation_ != ACOU_PRESSURE )
+				EXCEPTION("Time domain equivalent fluid formulation needs acoustic pressure formulation");
+		}
+	}
+
+
+
+
+
+
+
     // === Primary result according to definition ===
     shared_ptr<ResultInfo> res1( new ResultInfo);
     if ( formulation_ ==  ACOU_PRESSURE) {
@@ -2162,6 +2206,10 @@ namespace CoupledField{
       DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
     }
 
+
+    // TODO introduce AUX variables for TDEF (see PML AUX parames above)
+    // === TDEF AUX Variables ===
+
   }
   
   void AcousticPDE::FinalizePostProcResults(){
@@ -2189,7 +2237,7 @@ namespace CoupledField{
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
-      deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
+      deriv1->resultType = ACOU_POTEcomplexFluidNTIAL_DERIV_1;
       deriv1->dofNames = "";
       deriv1->unit = "m^2/s^2";
     } else {
@@ -2445,7 +2493,7 @@ namespace CoupledField{
       surfCoefFcts_[sNormIntens] = intensFct;
       
       // === ACOU_POWER ===
-      // Power p = \int_Gamma I *n dGamma
+      // Power p = \int_Gamma I *n dGammac
       //  Integrate normal intensity
       powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                          feFct, power ) );
