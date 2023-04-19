@@ -17,8 +17,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "MatVec/SBM_Matrix.hh"
 
-//#include "MatVec/SingleVector.hh"
-
 namespace CoupledField {
 
   /*

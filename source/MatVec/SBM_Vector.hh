@@ -205,6 +205,9 @@ namespace CoupledField {
     //! Compute the Euclidean norm of this vector object
     Double NormL2() const;
 
+    //! Compute the Euclidean norm with respect to the other object
+    Double NormL2(const SBM_Vector& other) const;
+
     //! Divide each vector entry by specified real-valued scalar
     void ScalarDiv( const Double factor );
 

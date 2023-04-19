@@ -73,6 +73,11 @@
                     <xsd:documentation>mass density dependent on temperature</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="heatSource" type="DT_HeatNonLin">
+                  <xsd:annotation>
+                    <xsd:documentation>temperature heat source dependent, see HeatNLPythonSource as example</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <xsd:element name="thermalRadiation" type="DT_HeatNonLinBC">
                   <xsd:annotation>
                     <xsd:documentation>thermal Radiation BC</xsd:documentation>

@@ -1535,8 +1535,8 @@ namespace CoupledField {
   }
   
   template<>
-  void String2Enum<NonLinType>( const std::string &in, NonLinType &out ) {
-
+  void String2Enum<NonLinType>( const std::string &in, NonLinType &out )
+  {
     if ( in == "noNonLinearity" || in == "" ) {
       out = NO_NONLINEARITY;
     } else if( in == "westervelt" ) {
@@ -1567,6 +1567,8 @@ namespace CoupledField {
       out = NLHEAT_CAPACITY;
     } else if( in == "density") {
       out = NLHEAT_DENSITY;
+    } else if( in == "heatSource") {
+      out = NLHEAT_SOURCE;
     } else if( in == "thermalRadiation") {
       out = THERMAL_RADIATION;
     } else if( (in == "elecConductivity") || (in == "electricConductivity") ) {
@@ -1652,9 +1654,12 @@ namespace CoupledField {
       case NLHEAT_DENSITY:
         out = "heat";
         break;
+      case NLHEAT_SOURCE:
+        out = "heatSource";
+        break;
       case THERMAL_RADIATION:
-    	out = "thermalRadiation";
-    	break;
+        out = "thermalRadiation";
+        break;
       case NLELEC_PERMITTIVITY:
         out = "elecPermittivity";
         break;

@@ -333,6 +333,8 @@ void CFS::SolveProblem()
  // Set up Problem
  domain->PostInit();
 
+ python->CallHook(PythonKernel::POST_DOMAIN_INIT);
+
  // Solves the driver or optimization problem
  domain->SolveProblem();
  

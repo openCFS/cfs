@@ -38,3 +38,5 @@ copy(name + '.plot.dat', name + '.ref.plot.dat')
 copy(name + '.density.xml', name + '.ref.density.xml')
 
 copy(name + '.bloch.dat', name + '.ref.bloch.dat')
+
+copy('nonlin.txt', 'nonlin.ref.txt')

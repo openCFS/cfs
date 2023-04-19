@@ -165,14 +165,26 @@ def content(body):
 
   # no tabs mean spaces, or comma and we need to check for date and time splitted
   s = body[0].split(key)
+
   # we expect a date first or second (after counter for co2 data)
   dt0 = len(s) > 1 and check('%Y-%m-%d',s[0]) and check('%H:%M:%S', s[1])
   dt1 = len(s) > 2 and check('%Y-%m-%d',s[1]) and check('%H:%M:%S', s[2])
   # german style
   dt0 = dt0 or (len(s) > 1 and check('%d.%m.%Y',s[0]) and check('%H:%M', s[1]))
   for l in body:
+    if len(l.strip()) == 0:
+      continue # skip empty lines)
+    # handle nasty data where numbers are with , within quotes: 2023/03/11 17:03:15,"18,06","56,3",""
+    if key == ',' and l.count('"') > 0 and l.count('"') % 2 == 0: # we have an even number of quotes
+      s = ''
+      inner = False
+      for c in l: 
+        if c == '"':  
+          inner = True if not inner else False 
+        else: 
+          s += '.' if c == ',' and inner else c 
+      l = s 
     t = [s.strip() for s in l.split(key)]
-
     if dt0:
       data.append([t[0] + ' ' + t[1]] + t[2:]) # combine date and time to datetime in case
     elif dt1:    
@@ -570,6 +582,7 @@ if __name__ == '__main__':
   parser.add_argument("--title", help='optional title for the plot')
   parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit"],default='linear')
+  parser.add_argument("--zscale", help="like --yscale but for z axis", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
   parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
@@ -863,7 +876,8 @@ if __name__ == '__main__':
     ax2.set_ylabel(label(args.y2label,y2lbl))
 
   if args.z:
-    ax.set_zlabel(label(args.zlabel,zlabel)) 
+    ax.set_zlabel(label(args.zlabel,zlabel))
+    ax.set_zscale(args.zscale) 
 
   plt.title(label(args.title,args.input))
  

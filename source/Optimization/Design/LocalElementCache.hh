@@ -24,7 +24,9 @@ class BiLinearForm;
  * via OptimzationMaterial. It is closely related to OptimizationMaterial and handles regular and non-regular
  * meshed.
  * SIMP is easy, more critical are bi-material, multi-material, ParamMat (for the derivatives) and Bloch with the
- * wave vector dependence. Therefore the LocalElementCache can be disabled for not-yet implemented features. */
+ * wave vector dependence. Therefore the LocalElementCache can be disabled for not-yet implemented features.
+ *
+ * Trigger in the .xml via <designSpace local_element_cache="false"/> before design */
 class LocalElementCache
 {
 public:

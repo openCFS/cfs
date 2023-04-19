@@ -31,6 +31,12 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="post_grid" />
                 <xsd:enumeration value="post_solve_problem" />
+                <xsd:enumeration value="post_domain_init" />
+                <xsd:enumeration value="assemble_rhs">
+                  <xsd:annotation>
+                    <xsd:documentation>Called before a new (non) linear rhs is assembled</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>

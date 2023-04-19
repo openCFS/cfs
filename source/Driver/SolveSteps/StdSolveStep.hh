@@ -60,6 +60,9 @@ namespace CoupledField
     //! solves for one nonlinear static step: incremental formulation 
     virtual void StepStaticNonLin();
 
+    /** Solve a simple fixed point nonlinear static problem for nonlinear RHS */
+    void StepStaticNonLinFixedPointSimple();
+
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
 
@@ -186,12 +189,11 @@ namespace CoupledField
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
     
-    /** Checks programOpt->DoDetail()  */
-    void WriteNonLinIterToInfoXML(const std::string& pdeName, UInt solStep,
-                                  UInt iterationCounter, Double residualErr, Double incrementalErr,
-                                  double etaLineSearch, int coupledIterStep = -1);
+    /** Write to info.xml and optional non-lin logging file.
+     *  Checks programOpt->DoDetail()  */
+    void OutputNonLinIterInfo(const std::string& pdeName, UInt solStep, UInt iterationCounter,
+        Double residualErr, Double incrementalErr, double etaLineSearch, int coupledIterStep = -1);
     
-
     //------------- storage vectors for nonlinear analysis --------------
     //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
     SBM_Vector oldRhsLinVal_; //!< external forces (for nonlin simulations)
@@ -207,6 +209,9 @@ namespace CoupledField
     std::string pdename_;            //!< name of PDE 
     bool isaxi_;                  //!< true: axisymmetric problem
     StdVector<RegionIdType> subdoms_;//!< subdomain-levels belonging to PDE
+
+    /** to summarize .info.xml output about nonlineariy */
+    PtrParamNode nonLinInfo_;
 
     //! Pointer to material data of PDE
     std::map<RegionIdType, BaseMaterial*> materialData_;  
@@ -273,7 +278,7 @@ namespace CoupledField
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
-    Timer static_non_lin_step_timer_;
+    boost::shared_ptr<Timer> static_non_lin_step_timer_;
 
     std::ofstream logFile_;
     unsigned int mHandle_;

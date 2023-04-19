@@ -29,7 +29,7 @@ public:
   typedef enum { OPT = 0, ORG = 1, SHADOW = 2, DIRECTION = 3 } State;
 
   /** @param orgMat the CoefFunctionConst that would be originally used to provide the material data. */
-  CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SinglePDE* pde);
+  CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, MaterialType mt, SinglePDE* pde);
 
   virtual ~CoefFunctionOpt() { }
 
@@ -101,6 +101,11 @@ public:
     return formL;
   }
 
+  MaterialType GetMaterialType() const { return materialType; }
+
+  SinglePDE* GetPDE() const { return pde; }
+
+
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
   void SetToOptimization();
 
@@ -124,6 +129,7 @@ public:
   PtrCoefFct orgMat;
 
   SubTensorType subTensor;
+
 protected:
 
   template <class T>
@@ -137,6 +143,12 @@ protected:
 
   template <class T>
   void GetVector(Vector<T>& scal, const LocPointMapped& lpm);
+
+  /** the original material functions seem not to save what they actually are?! */
+  MaterialType materialType = NO_MATERIAL;
+
+  /** the pde we work on */
+  SinglePDE* pde;
 
   /** This is the DesignSpace we use -> could be also requested from domain */
   DesignSpace* design;

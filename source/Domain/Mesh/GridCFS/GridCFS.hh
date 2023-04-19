@@ -176,6 +176,8 @@ namespace CoupledField
                                            StdVector<UInt> & nodeList,
                                            bool updated ) const;
 
+    /** simply gives access to the full 0-based node coordinates. Note that node numbers are 1-based */
+    const StdVector<Vector<double> >& GetNodeCoordinates() const { return coords_;}
 
     //! \see Grid::GetNodeCoordinate3D
     void GetNodeCoordinate3D( Vector<Double> & rfPoint,
@@ -293,8 +295,7 @@ namespace CoupledField
     //!                          nodeList
     //! \param node (in) node for which neighbouring elements
     //!                      are needed
-   void GetElemsNextToNode( StdVector<const Elem*> & elemList,
-                               const UInt & node);
+   void GetElemsNextToNode( StdVector<const Elem*> & elemList, const UInt & node);
     
     //! Get elements associated with given node
 

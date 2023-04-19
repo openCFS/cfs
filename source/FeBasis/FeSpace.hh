@@ -435,6 +435,8 @@ public:
     return feFunction_;
   }
     
+  const SingleEqnMap& GetNodeMap() const { return nodeMap_; }
+
   //! Map equations i.e. intialize object
   virtual void Finalize() = 0;
 

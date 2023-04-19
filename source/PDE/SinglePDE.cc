@@ -515,8 +515,8 @@ namespace CoupledField {
         NonLinType actType;
         String2Enum( actTypeString, actType );
 
-        //std::cout << "actType " << actType << std::endl;
-        //save for each nonlinearity type the id
+        LOG_DBG(singlepde) << pdename_ << ": INL: set nonLinTypes[" << actId << "]";
+        //save for each nonlinearity type the id (Why a map with the string as key?!)
         nonLinTypes_[actId] = actType;
       }
     
@@ -3531,7 +3531,7 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt = 
         feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
-      shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
+      FeSpace* actSpace = fncIt->second->GetFeSpace().get();
       actSpace->UpdateToSolStrategy();
       fncIt++;
     }

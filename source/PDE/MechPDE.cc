@@ -606,7 +606,7 @@ namespace CoupledField {
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
       if(domain->HasDesign())
       {
-        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), densCoeff, this);
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), densCoeff, DENSITY, this);
         densCoeff.reset(tmpFnc);
       }
       
@@ -2050,7 +2050,7 @@ namespace CoupledField {
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
     if(domain->HasDesign())
     {
-      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, MECH_STIFFNESS_TENSOR, this); // takes double and complex
       curCoef.reset(tmpFnc);
     }
     
@@ -3571,7 +3571,7 @@ namespace CoupledField {
 
       if(domain->HasDesign())
       {
-        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef, this);
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef, NO_MATERIAL, this); // pre stress is not really a material type
         coef.reset(tmpFnc);
       }
 

@@ -11,6 +11,7 @@
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 #include "Utils/Container.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include <string>
 #include <utility>
 
@@ -19,6 +20,7 @@ namespace CoupledField
 {
 class SimInputPython;
 class PythonOptimizer;
+class FeaturedDesign;
 class PythonKernel;
 
 /** The PythonKernel always exists as a global instance to be accessed via this pointer. Defined in tools.cc */
@@ -52,7 +54,7 @@ extern PythonKernel* python;
 class PythonKernel
 {
 public:
-  typedef enum { POST_GRID = 0, POST_SOLVE_PROBLEM, OPT_EVAL_FUNC, OPT_EVAL_GRAD} Hook;
+  typedef enum { POST_GRID = 0, POST_DOMAIN_INIT, POST_SOLVE_PROBLEM, OPT_EVAL_FUNC, OPT_EVAL_GRAD, ASSEMBLE_RHS} Hook;
 
   static Enum<Hook> hook;
 
@@ -191,6 +193,9 @@ public:
 
   /** check if the PythonOptimizer is registered */
   static bool CheckPyOpt();
+
+  /** gets a the FeaturedDesign design space or throws an error with readable message */
+  static FeaturedDesign* GetFeaturedDesign();
 
   /** check if we have Optimization at all.
    * @see CheckPyOpt() */

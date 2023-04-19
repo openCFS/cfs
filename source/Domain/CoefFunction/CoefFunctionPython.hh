@@ -39,7 +39,8 @@ public:
 
   std::string ToString() const override { return function_; }
 
-  // not that we do *not* change DoNormalize() to false!
+  /** optional value from xml. If true cfs will add an CoefFunctionCompound */
+  bool DoNormalize() const override { return normalize_; }
 
   unsigned int GetVecSize() const override { return dim_; }
 private:
@@ -54,6 +55,12 @@ private:
 
   /** name of the mandatory evaluation function, Called with a list of coordinates */
   std::string function_;
+
+  /** xml attribute, if true, an CoefFunctionCompound will divide by number of entries */
+  bool normalize_;
+
+  /** xml attribute, if we call the eval Python function by coordinate or lpm.lp.number */
+  bool by_coord_;
 
 #ifdef USE_EMBEDDED_PYTHON
   /** function object to be repeatedly called */

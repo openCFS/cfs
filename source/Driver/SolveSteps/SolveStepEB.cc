@@ -254,7 +254,7 @@ namespace CoupledField
           //WARN("Zero solution vector!! ");
         }
 
-        WriteNonLinIterToInfoXML(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+        OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
 
 
         if ( nonLinLogging_ == true ) { 

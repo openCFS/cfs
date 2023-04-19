@@ -232,7 +232,7 @@ namespace CoupledField {
 
         if(domain->HasDesign())
         {
-          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
+          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, MAG_RELUCTIVITY_SCALAR,  this);
           nuNl.reset(cfo);
         }
         
@@ -350,7 +350,7 @@ namespace CoupledField {
 
 			    if(domain->HasDesign())
 			    {
-			      cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+			      cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, MAG_RELUCTIVITY_TENSOR, this);
 			      curCoef.reset(cfo);
 			    }
 

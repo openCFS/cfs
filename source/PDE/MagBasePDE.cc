@@ -631,7 +631,7 @@ namespace CoupledField
               coilOptimization_ = true;
               if(domain->HasDesign())
               {
-                cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct[0], this);
+                cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct[0], NO_MATERIAL, this); // no explicit material
                 jFct[0].reset(cfoc);
               }
             }

@@ -707,7 +707,7 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
                                          const EntityIterator& it ){
-	LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
+    LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
     Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
 
     StdVector<Integer> eqns;

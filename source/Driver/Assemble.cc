@@ -34,6 +34,8 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 
+#include "Utils/PythonKernel.hh"
+
 namespace CoupledField
 {
   // declare logging stream
@@ -1548,6 +1550,8 @@ namespace CoupledField
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
+
+    python->CallHook(PythonKernel::ASSEMBLE_RHS);
 
     StdVector<Integer> eqnVec;
     FeFctIdType fctId;

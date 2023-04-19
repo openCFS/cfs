@@ -1,7 +1,7 @@
 #include <cmath>
 #include "SBM_Vector.hh"
 #include "generatematvec.hh"
-
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 
@@ -584,6 +584,18 @@ namespace CoupledField {
     }
     return sqrt( norm );
   }
+
+  double SBM_Vector::NormL2(const SBM_Vector& other) const
+  {
+    assert(size_ == other.size_);
+    double norm = 0.0;
+    for(unsigned int i = 0; i < size_; i++)
+      if(subVec_[i] != nullptr)
+        norm += CoupledField::NormL2(subVec_[i], other.subVec_[i]); // need to give namespace to find from tools.hh?!
+
+    return norm;
+  }
+
 
   // *****************
   //   Export vector

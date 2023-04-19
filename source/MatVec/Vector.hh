@@ -332,12 +332,12 @@ template<typename T> class ElemStoreSol;
     virtual double NormL2() const;
     virtual double NormL2_squared() const;
 
+    /** diff norm */
+    double NormL2(const Vector<T>& other) const;
+
     /**  this functions localized the maximal component (absolute value) and returns it with its original sign
 		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
     virtual Double SignedMax() const;
-
-    /** diff norm */
-    double NormL2(const Vector<T>& other) const;
 
     //** evaluate ModalAssuranceCriterion */
     Double MAC(const Vector<T>& other) const;

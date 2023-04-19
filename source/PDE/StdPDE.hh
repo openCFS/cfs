@@ -59,7 +59,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> GetFeFunction(SolutionType solType);
     
     //! Return all solution FeFunctions
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetFeFunctions( ) { return feFunctions_; }
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetFeFunctions() { return feFunctions_; }
     
     //! Return all Rhs FeFunctions
     std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetRhsFeFunctions() { return rhsFeFunctions_;  }

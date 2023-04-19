@@ -92,7 +92,8 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
   assert(this->dimType_ == SCALAR);
   
   // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+  Vector<Double> pointCoord;
+  assert(lpm.shapeMap != nullptr);
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
@@ -100,18 +101,6 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
 
   UpdateXpr( lpm );
   coefScalar = parser_->Eval( handle_ );
-/*  if(lpm.ptEl->elemNum == 113){
-#pragma omp critical
-  {
-#ifdef USE_OPENMP
-    std::cout << omp_get_thread_num() << " "<< lpm.ptEl->elemNum << std::endl;
-#else
-    std::cout << lpm.ptEl->elemNum << std::endl;
-#endif
-  std::cout << lpm.lp.coord << std::endl;
-  std::cout << coefScalar << std::endl  << std::endl;
-  }
-  }*/
 }
 
 void CoefFunctionCompound<Double>::

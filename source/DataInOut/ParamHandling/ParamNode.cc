@@ -852,9 +852,8 @@ void ParamNode::ToString(std::string& ret, int depth) const
     // https://www.w3.org/TR/2006/REC-xml11-20060816/
     std::replace(ret.begin(), ret.end(), '"', '\''); // " -> '
     boost::replace_all(ret, "&", "&amp;");
-    // activate if it really hurts
-    // boost::replace_all(ret, "<", "&lt;");
-    // boost::replace_all(ret, ">", "&gt;");
+    boost::replace_all(ret, "<", "&lt;");
+    boost::replace_all(ret, ">", "&gt;");
     return;
   }
   if (value_.type() == typeid(double))

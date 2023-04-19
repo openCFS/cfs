@@ -201,7 +201,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // replace in optimization case
         if(domain->HasDesign())
         {
-          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
+          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, MAG_RELUCTIVITY_SCALAR, this);
           nuNl.reset(cfo);
         }
 
@@ -306,7 +306,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
           if(domain->HasDesign())
           {
-            cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+            cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, MAG_RELUCTIVITY_SCALAR, this);
             curCoef.reset(cfo);
           }
 

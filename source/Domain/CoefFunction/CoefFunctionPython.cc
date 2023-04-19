@@ -24,9 +24,11 @@ CoefFunctionPython::CoefFunctionPython(PtrParamNode pn, unsigned int dim) : Coef
   if(python->GetKernel() == NULL)
     throw Exception("To use python coef function, define a python kernel module in document root python element.");
 
-  dim_      = dim;
-  init_     = pn->Get("init")->As<string>();
-  function_ = pn->Get("function")->As<string>();
+  dim_       = dim;
+  init_      = pn->Get("init")->As<string>();
+  function_  = pn->Get("function")->As<string>();
+  normalize_ = pn->Get("normalize")->As<bool>();
+  by_coord_  = pn->Get("by_coord")->As<bool>();
 
   auto opt = PythonKernel::ParseOptions(pn->GetList("option"));
   if(opt.GetSize() > 0 && init_ == "")
@@ -61,11 +63,23 @@ CoefFunctionPython::~CoefFunctionPython()
 
 PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
 {
-  Vector<double> pointCoord;
-  lpm.GetGlobal(pointCoord); // either from shapeMap or from lpm.lp.number
-
   PyObject* arg = PyTuple_New(1);
-  PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonList(pointCoord)); // PyTuple_SetItem() steals the reference
+
+  if(by_coord_) {
+    Vector<double> pointCoord;
+    lpm.GetGlobal(pointCoord); // either from shapeMap or from lpm.lp.number
+    PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonList(pointCoord)); // PyTuple_SetItem() steals the reference
+  }
+  else {
+    assert(lpm.lp.number != LocPoint::NOT_SET);
+    unsigned long number = lpm.lp.number;
+    PyTuple_SetItem(arg, 0, PyLong_FromUnsignedLong(number));
+    if(number == 1)
+    {
+      //std::cout << "CoefFunctionPython::CallFunction(" << number << ")\n";
+      assert(arg != nullptr); // to set breakpoint
+    }
+  }
 
   assert(eval_ != NULL);
   PyObject* ret = PyObject_CallObject(eval_, arg);

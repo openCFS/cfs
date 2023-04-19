@@ -114,17 +114,17 @@ namespace CoupledField
      /** Handles ParamMat, including MS-FEM and fallback for SIMP for ApplyPhysicalDesignElementMatrix() if disabled
       * @return true if design and retMat is set */
      template <class T>
-     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T>& retMat, const LocPointMapped* lpm);
+     bool ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& retMat, const LocPointMapped* lpm);
 
      /** Performs the optimization for the scalar case. This
       * @return true if design and retScal is set */
      template <class T>
-     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm);
+     bool ApplyPhysicalDesign(const CoefFunctionOpt* coef, T& retScal, const LocPointMapped* lpm);
 
      /** Performs the optimization for the scalar case. This
       * @return true if design and retScal is set */
      template <class T>
-     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm);
+     bool ApplyPhysicalDesign(const CoefFunctionOpt* coef, Vector<T>& retVec, const LocPointMapped* lpm);
 
      /** Checks if tensor is positive definite. */
      template <class T>
@@ -481,8 +481,9 @@ namespace CoupledField
        bool HasBiMaterial() const;
 
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
-        * easy to be also simple for load ersatz material. Shall be thread-save */
-       PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
+        * easy to be also simple for load ersatz material. Shall be thread-save
+        * @pde for some material we need the SubTensorType. If not given, the pde is obtained slightly more slowely*/
+       PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt, SinglePDE* pde = nullptr);
 
        /** returns existing data, As the other GetBiMaterial() is called, data may be created on the fly. */
        PtrCoefFct GetBiMaterial(const string& integrator);

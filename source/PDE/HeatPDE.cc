@@ -303,9 +303,8 @@ void HeatPDE::DefineIntegrators() {
       }
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-      if(domain->HasDesign())
-      {
-        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
+      if(domain->HasDesign()) {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, HEAT_CONDUCTIVITY_TENSOR, this); // takes double and complex
         curCoef.reset(tmpFnc);
       }
 
@@ -328,7 +327,6 @@ void HeatPDE::DefineIntegrators() {
       }
 
       stiffInt->SetName("HeatConductivity");
-
       // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
       if(domain->HasDesign())
         dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(stiffInt);
@@ -368,11 +366,11 @@ void HeatPDE::DefineIntegrators() {
       PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
       PtrCoefFct density = NULL;
       if(nonLinTypes.Find(NLHEAT_DENSITY) != -1){
-    	  // nonlinear (temperature-dependent) mass density
-          density = actSDMat->GetScalCoefFncNonLin( DENSITY, Global::REAL, heatCoef );
+        // nonlinear (temperature-dependent) mass density
+        density = actSDMat->GetScalCoefFncNonLin( DENSITY, Global::REAL, heatCoef );
       }else{
-    	  // linear mass density
-          density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+        // linear mass density
+        density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
       }
 
       //BaseBOperator * bOp = new IdentityOperator<FeH1>();
@@ -411,6 +409,11 @@ void HeatPDE::DefineIntegrators() {
         massFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, massFactor, refTemp, CoefXpr::OP_DIV));
       }
 
+      if(domain->HasDesign()) {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), massFactor, NO_MATERIAL, this); // No single material property
+        massFactor.reset(tmpFnc);
+      }
+
       BiLinearForm *massInt = NULL;
       if(dim_ == 2)
         massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0, updatedGeo_ );
@@ -418,6 +421,9 @@ void HeatPDE::DefineIntegrators() {
         massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), massFactor,1.0, updatedGeo_ );
 
       massInt->SetName("MassIntegrator");
+      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+      if(domain->HasDesign())
+        dynamic_pointer_cast<CoefFunctionOpt>(massFactor)->SetForm(massInt);
       massInt->SetFeSpace( feFunc->GetFeSpace() );
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
@@ -460,6 +466,10 @@ void HeatPDE::DefineIntegrators() {
         heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
       }
       PtrCoefFct velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity, CoefXpr::OP_MULT ) );
+      if(domain->HasDesign()) {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), velFactor, NO_MATERIAL, this); // takes double and complex
+        velFactor.reset(tmpFnc);
+      }
       if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
         velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, velFactor, refTemp, CoefXpr::OP_DIV));
       }
@@ -480,10 +490,14 @@ void HeatPDE::DefineIntegrators() {
 
       convectiveStiff->SetBCoefFunctionOpB(convecVelCoef_);
       if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
-        convectiveStiff->SetName("convectiveStiffInt-NL");
+        convectiveStiff->SetName("ConvectiveStiffInt-NL");
       }else{
-        convectiveStiff->SetName("convectiveStiffInt");
+        convectiveStiff->SetName("ConvectiveStiffInt");
       }
+      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+      if(domain->HasDesign())
+        dynamic_pointer_cast<CoefFunctionOpt>(velFactor)->SetForm(convectiveStiff);
+
       convectiveInts_[actRegion] = convectiveStiff;
 
       BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveStiff, STIFFNESS );
@@ -1153,6 +1167,10 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
     lin = new SingleEntryInt(coef[i]);
     lin->SetName("NodalHeatInt");
+    if(nonLinTypes_.find("source") != nonLinTypes_.end()) {
+      lin->SetName("NonLinNodalHeatInt");
+      lin->SetSolDependent();
+    }
     LinearFormContext *ctx = new LinearFormContext( lin );
     ctx->SetEntities( ent[i] );
     ctx->SetFeFunction(myFct);
@@ -1175,7 +1193,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
     if(domain->HasDesign())
     {
-      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], NO_MATERIAL, this); // takes double and complex
       coef[i].reset(tmpFnc);
     }
 

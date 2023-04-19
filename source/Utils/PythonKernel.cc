@@ -38,9 +38,12 @@ void PythonKernel::Init(PtrParamNode pn, PtrParamNode info)
 
   hook.SetName("PythonKernel::Hook");
   hook.Add(POST_GRID, "post_grid");
+  hook.Add(POST_DOMAIN_INIT, "post_domain_init");
   hook.Add(POST_SOLVE_PROBLEM, "post_solve_problem");
   hook.Add(OPT_EVAL_FUNC, "opt_eval_func");
   hook.Add(OPT_EVAL_GRAD, "opt_eval_grad");
+  hook.Add(ASSEMBLE_RHS, "assemble_rhs");
+
 
   if(pn)
   {
@@ -219,6 +222,16 @@ bool PythonKernel::CheckOpt()
   return false;
 }
 
+/** try to case the optimization DesignSpace to FeatureMapping or throw an error */
+FeaturedDesign* PythonKernel::GetFeaturedDesign()
+{
+  FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(domain->GetDesign());
+  if(fd == nullptr)
+    throw Exception("no FeaturedDesign defined in openCFS problem");
+  return fd;
+}
+
+
 
 template<class TYPE>
 void PythonKernel::ConvertPythonList(Container<TYPE>& vec, PyObject* list)
@@ -282,6 +295,13 @@ PyObject* PythonKernel::Create<double>(const double& val)
 {
   return PyFloat_FromDouble(val);
 }
+
+template<>
+PyObject* PythonKernel::Create<int>(const int& val)
+{
+  return PyLong_FromLong(val);
+}
+
 
 PyObject* PythonKernel::CreatePythonDict(const StdVector<pair<string, string> > options)
 {
@@ -448,6 +468,7 @@ template void PythonKernel::MatrixToNumpyArray<int>(const Matrix<int>&, PyObject
 
 template PyObject* PythonKernel::CreatePythonList<std::string>(const Container<std::string>&);
 template PyObject* PythonKernel::CreatePythonList<double>(const Container<double>&);
+template PyObject* PythonKernel::CreatePythonList<int>(const Container<int>&);
 
 template void PythonKernel::ConvertPythonList<std::string>(Container<std::string>&, PyObject*);
 template void PythonKernel::ConvertPythonList<double>(Container<double>&, PyObject*);

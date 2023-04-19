@@ -176,6 +176,18 @@ namespace CoupledField {
     patternPool_ = NULL;
   }
 
+  StdVector<std::string> AlgebraicSys::GetFeFunctionsNames()
+  {
+    // std::map<FeFctIdType,std::string> fctNames_;
+    StdVector<std::string> res(fctNames_.size());
+    for(int i = 0; i < (int) res.GetSize(); i++) // we assume the fe functions to be ordered from 0
+    {
+      assert(fctNames_.find(i) != fctNames_.end());
+      res[i] = fctNames_[(FeFctIdType)i];
+    }
+    return res;
+  }
+
   void AlgebraicSys::UpdateToSolStrategy() {
     LOG_DBG(algSys) << "Updating parameters due to solution strategy";
 
@@ -4681,8 +4693,7 @@ namespace CoupledField {
       std::set<UInt>::const_iterator blockIt = blockSet.begin();
       PtrParamNode blockListNode = fctNode->Get("usedInBlocks");
       for( ; blockIt != blockSet.end(); ++blockIt ) {
-        blockListNode->Get("block",ParamNode::APPEND)
-            ->Get("id")->SetValue(*blockIt);
+        blockListNode->Get("block",ParamNode::APPEND)->Get("id")->SetValue(*blockIt);
       }
     }
 

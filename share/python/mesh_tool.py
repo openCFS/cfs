@@ -123,7 +123,6 @@ class Element:
     print(self.region)
     print(self.density)
 
-
 # gid Mesh
 class Mesh:
   # provides the structure of the mesh, does not fill it. Use create_2d_mesh or create_3d_mesh for it
@@ -164,7 +163,14 @@ class Mesh:
   def is2d(self):
     return len(self.nodes[0]) == 2 
 
-
+  # return debug string for element by index
+  def dump_elem(self, elem_idx):
+    e = self.elements[elem_idx]
+    nodes = ''
+    for n in e.nodes:
+      nodes += ' n_' + str(n) + '=' + str(self.nodes[n]) 
+    return 'e=' + str(elem_idx) + ' r=' + e.region + ' d=' + str(e.density) + nodes
+    
   # returns the x, y (,z) coordinates for the position, respect row_major.
   # this is the inverse of element_idx()
   # @param z_dummy if set do also return in 2D three values with the given z_dummy as value

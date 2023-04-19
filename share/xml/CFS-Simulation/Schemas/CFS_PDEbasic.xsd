@@ -381,7 +381,20 @@
            This python function is called on every evaluation for the current coordinates. Does not get other paramters              
         </xsd:documentation>
       </xsd:annotation>
-    
+    </xsd:attribute>
+    <xsd:attribute name="normalize" type="xsd:boolean" default="true" >
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+           Shall openCFS do a normalization by number of entries or not              
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="by_coord" type="xsd:boolean" default="true" >
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+           Shall the function be called by node coordinate or one based node number?              
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
 
@@ -481,6 +494,15 @@
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Text file with node number and values to be applied for the nodes.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <!-- python function which calculates the properties -->
+          <xsd:element name="python" maxOccurs="1" type="DT_PythonCoef">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Python script defined by kernel root python file to calculate right hand side data 
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
@@ -586,7 +608,7 @@
           <xsd:element name="python" maxOccurs="1" type="DT_PythonCoef">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
-                Text file with node number and values to be applied for the nodes.
+                Python script defined by kernel root python file to calculate nodal data 
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>

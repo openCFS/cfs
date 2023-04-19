@@ -220,6 +220,25 @@ def read_displacement(hdf5_file,region = 'mech'):
   u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'][:]
   return u
 
+
+# return all result descriptions by multi sequence step
+# /Results/Mesh/MultiStep_1/ResultDescription/<name>/ has a lot of interesting data:
+# - EntryNames (the regions the result is used), DOFNames, NumDOFs, DefinedOn, ...
+def get_result_descriptions(hdf5_file, multi_sequence = 1):
+  rd = hdf5_file['/Results/Mesh/MultiStep_' + str(multi_sequence) + '/ResultDescription']
+  return list(rd) # ['heatFluxDensity', 'heatFluxIntensity', 'heatRhsLoad',  'heatTemperature', 'mechPseudoDensity']
+
+# return regions a result is defined on
+# @param result e.g. from get_result_descriptions() 
+def get_result_regions(hdf5_file, result, multi_sequence = 1):
+  en = hdf5_file['/Results/Mesh/MultiStep_' + str(multi_sequence) + '/ResultDescription/' + result + '/EntityNames']
+  return [e.decode('utf-8') for e in en]
+
+# return if a result is nodal (True) or element()
+def is_nodal_result(hdf5_file, result, multi_sequence = 1):
+  do = hdf5_file['/Results/Mesh/MultiStep_' + str(multi_sequence) + '/ResultDescription/' + result + '/DefinedOn']
+  return do[0] == 1
+
 # dumps meta data    
 def dump_h5_meta(hdf5_file):   
   print('Steps in "' + hdf5_file.filename + '":')
@@ -266,6 +285,16 @@ def get_element(hdf5_file, name, region, given_step=99999):
     return hdf5_file[key][:]
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
+
+# returns a deep copied numpy array of node results by region and step          
+def get_node_result(hdf5_file, name, region, given_step=99999):
+  step = min((given_step, last_h5_step(hdf5_file)))
+  key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Nodes/Real"
+  try:
+    return hdf5_file[key][:]
+  except:
+    raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
+
 
 # transforms element values to nodal data
 # needs to be extended to 3d - scipy.interpolate makes problems here
@@ -406,6 +435,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
             else :
                 res.append( h5_res_reg[res_type]['Real'][:] )
         return squeeze(array(res))
+
 
 def get_all_results(hdf5_file,region=None,step='last',multistep=1):
   ms = hdf5_file['/Results/Mesh/MultiStep_%i/ResultDescription'%multistep]

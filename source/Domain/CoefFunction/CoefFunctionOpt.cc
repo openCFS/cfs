@@ -11,7 +11,7 @@ namespace CoupledField
 {
 DEFINE_LOG(coef, "coef")
 
-CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SinglePDE* pde) : CoefFunction()
+CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, MaterialType mt, SinglePDE* pde) : CoefFunction()
 {
   isAnalytic_ = false;
   isComplex_ = false;
@@ -21,9 +21,11 @@ CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SingleP
   this->direction = DesignElement::NO_DERIVATIVE;
   this->design  = design;
   this->orgMat  = orgMat;
+  this->materialType = mt;
   this->form    = NULL; // can only be set later
   this->formL   = NULL;
   this->state = OPT;
+  this->pde = pde;
   this->subTensor = pde->GetSubTensorType();
 }
 
@@ -61,7 +63,7 @@ template <class T>
 void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
 {
   assert(this->dimType_ == TENSOR);
-Matrix<T> locMatrix;
+  Matrix<T> locMatrix;
 
   switch(state)
   {
@@ -69,7 +71,7 @@ Matrix<T> locMatrix;
   case OPT:
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
-    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), locMatrix, &lpm))
+    if(!design->ApplyPhysicalDesign<T>(this, locMatrix, &lpm))
      orgMat->GetTensor(locMatrix, lpm);
     //if (coefMat.GetNumCols() > 0) {
      //assert(design->TestTensorPosDef<T>(coefMat, &lpm , shared_from_this()->GetMaterialDerivative()));
@@ -85,7 +87,8 @@ Matrix<T> locMatrix;
 
   TransformTensorByCoordSys(coefMat, locMatrix, lpm);
 
-  LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << coefMat.ToString();
+  LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set")
+                 << " lM=" << locMatrix.ToString() << " -> " << coefMat.ToString();
 }
 
 template <class T>
@@ -99,7 +102,7 @@ void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
   case OPT:
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
-    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), scal, &lpm))
+    if(!design->ApplyPhysicalDesign<T>(this, scal, &lpm))
       orgMat->GetScalar(scal, lpm);
     break;
   case ORG:
@@ -126,7 +129,7 @@ void CoefFunctionOpt::GetVector(Vector<T>& vec, const LocPointMapped& lpm)
   case OPT:
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
-    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), locVec, &lpm))
+    if(!design->ApplyPhysicalDesign<T>(this, locVec, &lpm))
       orgMat->GetVector(locVec, lpm);
     break;
   case ORG:

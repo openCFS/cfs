@@ -94,7 +94,7 @@ namespace CoupledField{
     {
       lp.Set( intPoints[0], esm, weights[0]);
       // it would be nicer to have a separate MS-FEM call
-      if(domain->GetDesign()->ApplyPhysicalDesign<MAT_DATA_TYPE>(dynamic_pointer_cast<CoefFunctionOpt>(dData_), elemMat, &lp))
+      if(domain->GetDesign()->ApplyPhysicalDesign<MAT_DATA_TYPE>(dynamic_cast<const CoefFunctionOpt*>(dData_.get()), elemMat, &lp))
       {
         //LOG_DBG3(bdbint) << "BDBInt: MS-FEM elem=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum << " elemMat=" << elemMat.ToString();
         return;

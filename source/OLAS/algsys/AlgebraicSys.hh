@@ -106,7 +106,14 @@ namespace CoupledField {
     
     //! Update algebraic system in multistep solution strategy
     void UpdateToSolStrategy();
+
+    /** return current list of FeFunction names. We assume them to be ordered and 0-based */
+    StdVector<std::string> GetFeFunctionsNames();
     
+    /** return total number of equations.
+     * If empty, the function is called too early */
+    const StdVector<unsigned int>& GetFeFunctionsTotalEquations() const { return numEqnsPerFct_; }
+
     // ***********************************************************************
     //   Methods for creating and initializing the algebraic system
     // ***********************************************************************
@@ -1185,7 +1192,8 @@ namespace CoupledField {
     //! Last free equation number per fct
     StdVector<UInt> lastFreeEqnPerFct_;
 
-    //! STL map for associating Fct-identifiers with FeFunction name
+    /** STL map for associating Fct-identifiers with FeFunction name
+     * TODO: why is this a map and no a vector as we start with 0?! */
     std::map<FeFctIdType,std::string> fctNames_;
     
     //! Store for each FeFct, if the assoicated system matrix is symmetric
