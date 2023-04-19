@@ -113,6 +113,35 @@ namespace CoupledField{
       crSpaces[ACOU_PMLAUXVEC]->Init(solStrat_);
 
     }
+
+    // ===================================
+    // Check for transient TDEF
+    // ===================================
+    if(this->analysistype_ == TRANSIENT && timeDomainEqFluidFormulation_ && this->formulation_ == ACOU_PRESSURE){
+      // define the additional unknowns (phiC, psiC, phiV, psiV)
+      PtrParamNode spaceNode;
+      for(unsigned int i = 0; i < 15; i++){
+        spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType) (ACOU_TDEF_PHI_C_1 + i)));
+        crSpaces[(SolutionType) (ACOU_TDEF_PHI_C_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[(SolutionType) (ACOU_TDEF_PHI_C_1 + i)]->Init(solStrat_);
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType) (ACOU_TDEF_PSI_C_1 + i)));
+        crSpaces[(SolutionType) (ACOU_TDEF_PSI_C_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[(SolutionType) (ACOU_TDEF_PSI_C_1 + i)]->Init(solStrat_);
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType) (ACOU_TDEF_PHI_V_1 + i)));
+        crSpaces[(SolutionType) (ACOU_TDEF_PHI_V_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[(SolutionType) (ACOU_TDEF_PHI_V_1 + i)]->Init(solStrat_);
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType) (ACOU_TDEF_PSI_V_1 + i)));
+        crSpaces[(SolutionType) (ACOU_TDEF_PSI_V_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[(SolutionType) (ACOU_TDEF_PSI_V_1 + i)]->Init(solStrat_);
+      }
+    }
+
     return crSpaces;
   }
   
@@ -746,6 +775,13 @@ namespace CoupledField{
         // TODO set up a vectorial coefFunction so that we can access the coefficient in each iteration of the loop
         // fnc = 
 
+        // check if all coefFunctions vectors are smaller than 15
+        if (fncAC.GetSize()>15 || fncDC.GetSize()>15 || fncBC.GetSize()>15 || fncGammaC.GetSize()>15 ||
+            fncAV.GetSize()>15 || fncDV.GetSize()>15 || fncBV.GetSize()>15 || fncGammaV.GetSize()>15) {
+              EXCEPTION("TDEF: Only 15 ples are allowed, please reduce the number of poles!");
+            }
+
+
         for (UInt ii = 0; ii < fncAC.GetSize(); ii++) {
           // ====================================================================
           // K_PPHI1 (TDEF): stiffness integrator, TDEF (A_j^C term)
@@ -779,7 +815,7 @@ namespace CoupledField{
           stiffIntTDEFPPHI1Context = new BiLinFormContext(stiffIntTDEFPPHI1, STIFFNESS );
 
           stiffIntTDEFPPHI1Context->SetEntities( actSDList, actSDList );
-          stiffIntTDEFPPHI1Context->SetFeFunctions( feFunctions_[formulation_], phiFeFunc );
+          stiffIntTDEFPPHI1Context->SetFeFunctions( feFunctions_[formulation_], feFunctions_[(SolutionType) (ACOU_TDEF_PHI_C_1 + ii)] );
           assemble_->AddBiLinearForm( stiffIntTDEFPPHI1Context );
         } // end loop stiffIntTDEFPPHI1
 
@@ -817,7 +853,7 @@ namespace CoupledField{
           stiffIntTDEFPPSI1Context = new BiLinFormContext(stiffIntTDEFPPSI1, STIFFNESS );
 
           stiffIntTDEFPPSI1Context->SetEntities( actSDList, actSDList );
-          stiffIntTDEFPPSI1Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          stiffIntTDEFPPSI1Context->SetFeFunctions( feFunctions_[formulation_], feFunctions_[(SolutionType) (ACOU_TDEF_PSI_C_1 + ii)] );
           assemble_->AddBiLinearForm( stiffIntTDEFPPSI1Context );
 
 
@@ -855,7 +891,7 @@ namespace CoupledField{
           dampIntTDEFPPSI1Context = new BiLinFormContext(dampIntTDEFPPSI1, DAMPING );
 
           dampIntTDEFPPSI1Context->SetEntities( actSDList, actSDList );
-          dampIntTDEFPPSI1Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          dampIntTDEFPPSI1Context->SetFeFunctions( feFunctions_[formulation_], feFunctions_[(SolutionType) (ACOU_TDEF_PSI_C_1 + ii)] );
           assemble_->AddBiLinearForm( dampIntTDEFPPSI1Context );
         } // end loop stiffIntTDEFPPSI1 and dampIntTDEFPPSI1
 
@@ -895,7 +931,7 @@ namespace CoupledField{
           stiffIntTDEFPPHI2Context = new BiLinFormContext(stiffIntTDEFPPHI2, STIFFNESS );
 
           stiffIntTDEFPPHI2Context->SetEntities( actSDList, actSDList );
-          stiffIntTDEFPPHI2Context->SetFeFunctions( feFunctions_[formulation_], phiFeFunc );
+          stiffIntTDEFPPHI2Context->SetFeFunctions( feFunctions_[formulation_], feFunctions_[(SolutionType) (ACOU_TDEF_PHI_V_1 + ii)] );
           assemble_->AddBiLinearForm( stiffIntTDEFPPHI2Context );
         } // end loop stiffIntTDEFPPHI2
 
@@ -933,7 +969,7 @@ namespace CoupledField{
           stiffIntTDEFPPSI2Context = new BiLinFormContext(stiffIntTDEFPPSI2, STIFFNESS );
 
           stiffIntTDEFPPSI2Context->SetEntities( actSDList, actSDList );
-          stiffIntTDEFPPSI2Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          stiffIntTDEFPPSI2Context->SetFeFunctions( feFunctions_[formulation_], feFunctions_[(SolutionType) (ACOU_TDEF_PSI_V_1 + ii)] );
           assemble_->AddBiLinearForm( stiffIntTDEFPPSI2Context );
 
 
@@ -971,7 +1007,7 @@ namespace CoupledField{
           dampIntTDEFPPSI2Context = new BiLinFormContext(dampIntTDEFPPSI2, DAMPING );
 
           dampIntTDEFPPSI2Context->SetEntities( actSDList, actSDList );
-          dampIntTDEFPPSI2Context->SetFeFunctions( feFunctions_[formulation_], psiFeFunc );
+          dampIntTDEFPPSI2Context->SetFeFunctions( feFunctions_[formulation_], feFunctions_[(SolutionType) (ACOU_TDEF_PSI_V_1 + ii)] );
           assemble_->AddBiLinearForm( dampIntTDEFPPSI2Context );
         } // end loop stiffIntTDEFPPSI2 and dampIntTDEFPPSI2
 
@@ -2920,6 +2956,25 @@ namespace CoupledField{
         GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
         shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
+      }
+    }
+
+    if(this->timeDomainEqFluidFormulation_){
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<BaseTimeScheme> schemePhiC(new TimeSchemeGLM(new Newmark(0.5,0.25,alpha),0));
+        feFunctions_[(SolutionType) (ACOU_TDEF_PHI_C_1 + i)]->SetTimeScheme(schemePhiC);
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<BaseTimeScheme> schemePsiC(new TimeSchemeGLM(new Newmark(0.5,0.25,alpha),0));
+        feFunctions_[(SolutionType) (ACOU_TDEF_PSI_C_1 + i)]->SetTimeScheme(schemePsiC);
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<BaseTimeScheme> schemePhiV(new TimeSchemeGLM(new Newmark(0.5,0.25,alpha),0));
+        feFunctions_[(SolutionType) (ACOU_TDEF_PHI_V_1 + i)]->SetTimeScheme(schemePhiV);
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<BaseTimeScheme> schemePsiV(new TimeSchemeGLM(new Newmark(0.5,0.25,alpha),0));
+        feFunctions_[(SolutionType) (ACOU_TDEF_PSI_V_1 + i)]->SetTimeScheme(schemePsiV);
       }
     }
   }

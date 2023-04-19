@@ -193,6 +193,19 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
 
+    // TDEF stuff
+    for(unsigned int i = 0; i < 15; i++)
+      SolutionTypeEnum.Add( (SolutionType) (ACOU_TDEF_PHI_C_1 + i), "acouTDEFPhiC_" + std::to_string(i+1));
+    
+    for(unsigned int i = 0; i < 15; i++)
+      SolutionTypeEnum.Add( (SolutionType) (ACOU_TDEF_PSI_C_1 + i), "acouTDEFPsiC_" + std::to_string(i+1));
+    
+    for(unsigned int i = 0; i < 15; i++)
+      SolutionTypeEnum.Add( (SolutionType) (ACOU_TDEF_PHI_V_1 + i), "acouTDEFPhiV_" + std::to_string(i+1));
+    
+    for(unsigned int i = 0; i < 15; i++)
+      SolutionTypeEnum.Add( (SolutionType) (ACOU_TDEF_PSI_V_1 + i), "acouTDEFPsiV_" + std::to_string(i+1));
+
     SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
