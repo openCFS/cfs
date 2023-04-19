@@ -2865,55 +2865,35 @@ namespace CoupledField{
   }
 
   void AcousticPDE::DefinePrimaryResults(){
-	//check for complex fluid formulation
-	RegionIdType actRegion;
-	std::map<RegionIdType, BaseMaterial*>::iterator it;
-	for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-		actRegion = it->first;
-		std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-		PtrParamNode curRegNode =
-		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-		if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
-			complexFluidFormulation_ = true;
-			isMaterialComplex_ = true;
-			if ( this->analysistype_ != HARMONIC )
-				EXCEPTION("Complex fluid region just allowed in harmonic analysis");
-	   		//need an acoustic pressure formulation
-			if ( formulation_ != ACOU_PRESSURE )
-				EXCEPTION("Complex fluid needs acoustic pressure formulation");
-		}
-	}
+	
+    RegionIdType actRegion;
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      //check for complex fluid formulation
+      actRegion = it->first;
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+      PtrParamNode curRegNode =
+              myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
+        complexFluidFormulation_ = true;
+        isMaterialComplex_ = true;
+        if ( this->analysistype_ != HARMONIC )
+          EXCEPTION("Complex fluid region just allowed in harmonic analysis");
+          //need an acoustic pressure formulation
+        if ( formulation_ != ACOU_PRESSURE )
+          EXCEPTION("Complex fluid needs acoustic pressure formulation");
+      }
 
-
-
-
-
-
-
-// TODO: adapt this section accordingly (currently just copied and pasted from complex fluid)
-
-	//check for time domain equivalent fluid (TDEF) formulation
-	RegionIdType actRegion;
-	std::map<RegionIdType, BaseMaterial*>::iterator it;
-	for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-		actRegion = it->first;
-		std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-		PtrParamNode curRegNode =
-		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-		if ( curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" ) {
-			timeDomainEqFluidFormulation_ = true;
-			if ( this->analysistype_ != TRANSIENT )
-				EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
-	   		//need an acoustic pressure formulation
-			if ( formulation_ != ACOU_PRESSURE )
-				EXCEPTION("Time domain equivalent fluid formulation needs acoustic pressure formulation");
-		}
-	}
-
-
-
-
-
+      //check for time domain equivalent fluid (TDEF) formulation
+      if ( curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" ) {
+        timeDomainEqFluidFormulation_ = true;
+        if ( this->analysistype_ != TRANSIENT )
+          EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
+          //need an acoustic pressure formulation
+        if ( formulation_ != ACOU_PRESSURE )
+          EXCEPTION("Time domain equivalent fluid formulation needs acoustic pressure formulation");
+      }
+    }
 
 
     // === Primary result according to definition ===
