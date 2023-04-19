@@ -317,7 +317,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             res_c[i] = Complex( res[2*i], res[2*i+1] );
             for (int j=0;j<n_;j++){
                 vr_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
-                vl_[i*n_+j] = Complex( X[2*n_*m_+i*n_*2+2*j], X[2*n_*m_+i*n_*2+2*j+1]);
+                vl_[i*n_+j] = Complex( X[2*n_*m0_+i*n_*2+2*j], X[2*n_*m0_+i*n_*2+2*j+1]);
             }
           }
           LOG_DBG(fes) << "CEF epsout -> " << epsout;
@@ -569,7 +569,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             res_c[i] = Complex( res[2*i], res[2*i+1] );
             for (int j=0;j<n_;j++){
               vr_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
-              vl_[i*n_+j] = Complex( X[2*n_*m_+i*n_*2+2*j], X[2*n_*m_+i*n_*2+2*j+1]);
+              vl_[i*n_+j] = Complex( X[2*n_*m0_+i*n_*2+2*j], X[2*n_*m0_+i*n_*2+2*j+1]);
             }
           }
           LOG_DBG(fes) << "CEF epsout -> " << epsout;
@@ -726,7 +726,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
             res_c[i] = Complex( res[2*i], res[2*i+1] );
             for (int j=0;j<n_;j++){
                 vr_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
-                vl_[i*n_+j] = Complex( X[2*n_*m_+i*n_*2+2*j], X[2*n_*m_+i*n_*2+2*j+1]);
+                vl_[i*n_+j] = Complex( X[2*n_*m0_+i*n_*2+2*j], X[2*n_*m0_+i*n_*2+2*j+1]);
             }
           }
           break;
