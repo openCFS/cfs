@@ -7,6 +7,7 @@
 #cmakedefine USE_OPENBLAS
 #cmakedefine USE_MKL
 #cmakedefine USE_NETLIB
+#cmakedefine USE_ACCELERATE
 
 #define OPENBLAS_VER "@OPENBLAS_VER@"
 #define NETLIB_VER "@NETLIB_VER@"

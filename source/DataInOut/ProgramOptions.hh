@@ -176,7 +176,7 @@ namespace CoupledField
     /** This gives the head line of openCFS printed to the given string (usually cout) */
     void PrintHeader(std::ostream& out);
 
-    /** prints a line with comprehensive CFS_/OMP_/MKL_NUM_THREADS info.
+    /** prints a line with comprehensive CFS_/OMP_[/MKL_NUM_THREADS] or /VECLIB_... info.
      * In not USE_OPENMP case nothing is written.
      * @param quiet the CFS_QUIET (ProgramOptions::IsQuiet()) value */
     static void PrintNumThreads(std::ostream& out, bool quiet);

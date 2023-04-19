@@ -222,9 +222,14 @@ endif()
 # Find Intel Math Kernel library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
-IF(USE_BLAS_LAPACK STREQUAL "MKL")
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
-ENDIF(USE_BLAS_LAPACK STREQUAL "MKL")
+if(USE_BLAS_LAPACK STREQUAL "MKL")
+  include("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
+endif()
+
+if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
+  include("${CFS_SOURCE_DIR}/cmake_modules/FindAppleAccelerate.cmake")
+endif()
+
 
 #-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-

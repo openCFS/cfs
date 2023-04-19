@@ -140,7 +140,9 @@ CFS::CFS(int argc, const char **argv) :
   // Log program startup
   progOpts->PrintHeader(cout);
 
-  // homogenize CFS_/OMP_/MKL_NUM_THREADS based on command line and environment setting
+  // homogenize CFS_/OMP_/MKL_NUM_THREADS for mkl systems based on command line and environment setting
+  // for openblas and netlib it is CFS_/OMP_/DUMMY_NUN_THREADS.
+  // for Apple's accelerate it is CFS_/OMP_NUM_THREADS and VECLIB_MAXIMUM_THREADS
   SetNumberOfThreads(progOpts->GetNumThreads(), true, false); // yes, homogenize, no, don't be quiet
   
   // when we have the threads num set, we can print them

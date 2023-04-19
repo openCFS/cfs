@@ -190,25 +190,27 @@ shapemapstr = """\
 </cfsSimulation>
 """
 
-parser = argparse.ArgumentParser(description="Run cfs benchmarks with permutations of CFS/OMP/MKL_THREADS for different problems. Use --dry to learn")
-parser.add_argument("input", nargs='+', help="cfs binary and optional second value the comment of the binary (e.g. cfs_rel gcc_mkl)")
+parser = argparse.ArgumentParser(description="Run cfs benchmarks with permutations of CFS/OMP/MKL_THREADS=VECLIB_MAXIMUM_THREADS for different problems.\n" 
+                                           + "Not all cfs executables have mkl, but Setting MKL_THREADS and equally VECLIB_MAXIMUM_THREADS (Apple) works for all.\n"
+                                           + "Use --dry to see what would happen")
+parser.add_argument("cfs", nargs='+', help="cfs binary and optional second value the comment of the binary (e.g. cfs gcc_mkl)")
 parser.add_argument("--res", help="edge resolution of bulk3d_<res>.mesh to scale problem size", type=int, default='30')
-parser.add_argument("--threads", nargs='+', help="space separated list of CFS/OMP/MKL_THREADS to be tested, see --permutate", default=['1','4'])
-parser.add_argument("--permutate", help="perform selected permuation of threads", action='store_true')
+parser.add_argument("--threads", nargs='+', help="space separated list of CFS/OMP/MKL_THREADS=VECLIB_MAXIMUM_THREADS to be tested, see --permutate", default=['1','4'])
+parser.add_argument("--permutate", help="perform  full permuation of threads = more calcuations", action='store_true')
 parser.add_argument("--dry", help="don't execute but print what shall be run", action='store_true')
 parser.add_argument("--log", help="if given, write a summary plot file with the given name")
 parser.add_argument("--hostname", help="overwrite hostname detection")
-parser.add_argument("--skip_cholmod", help="skip the simp linear elasticity OMP/BLAS benchmark", action='store_true')
+parser.add_argument("--skip_cholmod", help="skip the BLAS benchmark which requies USE_SUITESPARSE", action='store_true')
+parser.add_argument("--skip_pardiso", help="skip the BLAS benchmark which requires Intel's MKL", action='store_true')
 parser.add_argument("--skip_shapemap", help="skip the shape map non-blas benchmark", action='store_true')
-
 
 args = parser.parse_args()
 
-if len(args.input) > 2:
+if len(args.cfs) > 2:
   print('Error: usage is benchmark.py <executable> [<comment>] [--<...>]')
   sys.exit(1)
 
-comment = 'default' if len(args.input) == 1 else args.input[1]  
+comment = 'default' if len(args.cfs) == 1 else args.cfs[1]  
 
 mat = open("bench_mat.xml","w")
 mat.write(matstr)
@@ -228,13 +230,18 @@ if not args.skip_cholmod:
   f.write(mech3dstr)
   f.close()
   tests.append('cholmod')
+if not args.skip_pardiso:
+  f = open("bench_pardiso.xml","w")
+  f.write(mech3dstr.replace('<cholmod/>','<pardiso/>'))
+  f.close()
+  tests.append('pardiso')
 if not args.skip_shapemap:
   f = open("bench_shapemap.xml","w")
   f.write(shapemapstr)
   f.close()
   tests.append('shapemap')
   
-# the threads we run with. 0=CFS_NUM_THREADS, 1=OMP_NUM_THREADS, 2=MKL_NUM_THREADS
+# the threads we run with. 0=CFS_NUM_THREADS, 1=OMP_NUM_THREADS, 2=MKL_NUM_THREADS=VECLIB_MAXIMUM_THREADS
 threads = [] 
 t0 = args.threads[0] # there is at least one entry due to nargs='+'
 for i, t in enumerate(args.threads):
@@ -249,7 +256,7 @@ for i, t in enumerate(args.threads):
 log = open(args.log, "w") if args.log else False
 
 # here we store the results
-result = {'test' : [], 'wall' : [], 'cpu' : [], 'CFS_NUM_THREADS' : [], 'OMP_NUM_THREADS' : [], 'MKL_NUM_THREADS' : [], 'res' : []}
+result = {'test' : [], 'wall' : [], 'cpu' : [], 'CFS_NUM_THREADS' : [], 'OMP_NUM_THREADS' : [], 'MKL/VECLIB_THREADS' : [], 'res' : []}
 if comment != 'dummy':
   result['comment'] = []
 
@@ -259,8 +266,8 @@ for tst in tests:
       continue 
 
     problem = 'bench_' + host + '-' + comment + '-' + tst + '-res_' + str(args.res) + '-cfs_' + t[0] + '-omp_' + t[1] + '-mkl_' + t[2]
-    cmd = 'CFS_NUM_THREADS=' + str(t[0]) + ' OMP_NUM_THREADS=' + str(t[1]) + ' MKL_NUM_THREADS=' + str(t[2]) + ' '
-    cmd += args.input[0] + ' -q -m ' + mesh + ' -p bench_' + tst + '.xml ' + problem 
+    cmd = 'CFS_NUM_THREADS=' + str(t[0]) + ' OMP_NUM_THREADS=' + str(t[1]) + ' MKL_NUM_THREADS=' + str(t[2]) + ' VECLIB_MAXIMUM_THREADS=' + str(t[2]) + ' '
+    cmd += args.cfs[0] + ' -q -m ' + mesh + ' -p bench_' + tst + '.xml ' + problem 
     if args.dry:
       print(cmd)
     else:
@@ -275,7 +282,7 @@ for tst in tests:
       result['cpu'].append(cpu)
       result['CFS_NUM_THREADS'].append(str(t[0]))
       result['OMP_NUM_THREADS'].append(str(t[1]))
-      result['MKL_NUM_THREADS'].append(str(t[2]))
+      result['MKL/VECLIB_THREADS'].append(str(t[2]))
       result['res'].append(str(args.res))
       if comment != 'dummy':
         result['comment'].append(comment)

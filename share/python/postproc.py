@@ -53,7 +53,6 @@ def read_perf(xml, dic, extend):
   add_key(xml, dic, '//cfsInfo/summary/timer/@cpu')
   add_key(xml, dic, '//openmp/@CFS_NUM_THREADS','cfs')
   add_key(xml, dic, '//openmp/@OMP_NUM_THREADS','omp')
-  add_key(xml, dic, '//openmp/@MKL_NUM_THREADS','mkl')
   if extend:
     add_key(xml, dic, '//cfsInfo/summary/memory/@peak', 'mem')
     add_key(xml, dic, '//grid/@elements') 

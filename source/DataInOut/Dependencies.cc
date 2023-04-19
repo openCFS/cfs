@@ -173,7 +173,10 @@ void Dependencies::ReadSetting()
   omp.SetVersion(OpenMP_CXX_VERSION);
   ss.clear();
   ss << "OMP_NUM_THREADS=" << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-") << ", ";
-  ss << "MKL_NUM_THREADS=" << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-") << ", ";
+  if(HasBlasThreadsEnvVariable()) { // false for openblas (would be again OMP_NUM_THREADS) or netlib (is serial)
+    const char* otherenv = GetBlasThreadsEnvVariable(); // MKL_NUM_THREADS or VECLIB_MAXIMUM_THREADS
+    ss << otherenv << "=" << (getenv(otherenv) != NULL ? getenv(otherenv) : "-") << ", ";
+  }
   ss << "CFS_NUM_THREADS=" << CFS_NUM_THREADS;
   omp.comment = ss.str();
 #endif
@@ -226,6 +229,13 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(ob);
 
+  Dependency acc("Accelerate", "USE_ACCELERATE", EASY); // dynamically link to Apple's Accelerate Framework
+#ifdef USE_ACCELERATE
+  acc.active = true;
+  acc.comment = "set VECLIB_MAXIMUM_THREADS";
+#endif
+  data.Push_back(acc);
+
   // what we call netlib is actually LAPACK, but mkl and openblas have their own stuff
   Dependency nl("Netlib", "USE_NETLIB", BSD);
   if(!mkl.active && !ob.active)
@@ -240,7 +250,6 @@ void Dependencies::ReadSetting()
 #ifdef USE_PARDISO
   pardiso.active = true;
   pardiso.comment = CFS_PARDISO;
-  //assert(!(CFS_PARDISO == "MKL" && mkl.active));
   if(!mkl.active)
     pardiso.lic = CLOSED;
 #endif

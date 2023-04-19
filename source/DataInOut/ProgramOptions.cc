@@ -541,7 +541,10 @@ namespace CoupledField {
     PtrParamNode in_omp = in->Get("openmp");
     #ifdef USE_OPENMP
       in_omp->Get("CFS_NUM_THREADS")->SetValue(CFS_NUM_THREADS);
-      in_omp->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
+      if(HasBlasThreadsEnvVariable()) {  // Dependencies.cc for comments
+        const char* otherenv = GetBlasThreadsEnvVariable(); // MKL_NUM_THREADS or VECLIB_MAXIMUM_THREADS
+        in_omp->Get(otherenv)->SetValue(getenv(otherenv) != NULL ? getenv(otherenv) : "-");
+      }
       in_omp->Get("OMP_NUM_THREADS")->SetValue(getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-");
     #endif
     #ifndef USE_OPENMP
@@ -763,18 +766,22 @@ namespace CoupledField {
   void ProgramOptions::PrintNumThreads(std::ostream& out, bool quiet)
   {
     string omp = getenv("OMP_NUM_THREADS") != NULL ? string(getenv("OMP_NUM_THREADS")) : "-";
-    string mkl = getenv("MKL_NUM_THREADS") != NULL ? string(getenv("MKL_NUM_THREADS")) : "-";
+    const char* otherenv = GetBlasThreadsEnvVariable(true); // MKL_NUM_THREADS or VECLIB_MAXIMUM_THREADS
+    string other = getenv(otherenv) != NULL ? string(getenv(otherenv)) : "-";
 #ifdef USE_OPENMP
     if(quiet)
     {
-      out << ">> OpenMP *_NUM_THREADS: CFS=" << CFS_NUM_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
+      out << ">> OpenMP *_NUM_THREADS: CFS=" << CFS_NUM_THREADS  << ", OMP=" << omp;
+      if(HasBlasThreadsEnvVariable())
+        out << ", " << GetBlasThreadsEnvVariable(false) << "=" << other; // MKL or VECLIB
+      out << endl;
     }
     else
     {
       out << " openCFS is using " << CFS_NUM_THREADS << " OpenMP threads";
       string cfs = std::to_string(CFS_NUM_THREADS);
-      if((cfs != omp) || (cfs != mkl))
-        out << " and OMP_NUM_THREADS=" << omp << " and MKL_NUM_THREADS=" << mkl;
+      if((cfs != omp) || (cfs != other))
+        out << " and OMP_NUM_THREADS=" << omp << " and " << otherenv << "=" << other;
       out << endl;
       out << "=======================================================================" << endl << endl;
     }

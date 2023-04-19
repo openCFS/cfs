@@ -6,6 +6,7 @@
 #include "Environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
+#include "def_use_blas.hh"
 
 using std::to_string;
 
@@ -2018,10 +2019,32 @@ namespace CoupledField {
     }
   }
 
+
+  const char* GetBlasThreadsEnvVariable(bool full)
+  {
+// see configure_def_headers.cmake and def_use_blas_hh.in
+#if defined(USE_MKL)
+  return full ? "MKL_NUM_THREADS" : "MKL";
+#elif defined(USE_ACCELERATE)
+  return full ? "VECLIB_MAXIMUM_THREADS" : "VECLIB";
+#else
+  return full ? "DUMMY_NUM_THREADS" : "DUMMY";
+#endif
+  }
+
+  bool HasBlasThreadsEnvVariable()
+  {
+#if defined(USE_MKL) || defined(USE_ACCELERATE)
+  return true;
+#else
+  return false;
+#endif
+  }
+
   // on windows we have no setenv() but putenv() which demands a non-local string space
   #if defined(USE_OPENMP) && defined(WIN32)
     static char omp_threads[1024];
-    static char mkl_threads[1024];
+    static char other_threads[1024]; // for Windows on MKL_NUM_THREADS
   #endif
 
   void SetNumberOfThreads(int cfs, bool homogenize, bool quiet)
@@ -2045,11 +2068,17 @@ namespace CoupledField {
     CFS_NUM_THREADS=1;
 #endif
 
+    // on almost all Linux and Windows systems this is MKL_NUM_THREADS.
+    const char* otherenv = GetBlasThreadsEnvVariable(true); // DUMMY_NUM_THREADS for openblas and netlib
+    const std::string otherstr = std::string(otherenv);
+
 #ifdef USE_OPENMP
     assert(cfs >= 1); // programOptions has this as fallback
     // our variables are cfs (command line or CFS_NUM_THREADS) and omp and mkl from environment
     int omp = getenv("OMP_NUM_THREADS") != NULL ? atoi(getenv("OMP_NUM_THREADS")) : -1;
-    int mkl = getenv("MKL_NUM_THREADS") != NULL ? atoi(getenv("MKL_NUM_THREADS")) : -1;
+    // here mostly for MKL_NUM_THREADS or VECLIB_MAXIMUM_THREADS or not used (openblas and netlib) and only DUMMY_NUM_THREADS is used
+    // we set for openblas the dummy as we already have OMP_NUM_THREADS and don't want to double
+    int other = getenv(otherenv) != NULL ? atoi(getenv(otherenv)) : -1;
 
     // set the threads via environment variables, this is how e.g. the external libs (lis, cholmod, mkl) read it.
     // note that this change is only for this process and child processes, it does not change the system settings.
@@ -2063,25 +2092,25 @@ namespace CoupledField {
         putenv(omp_threads);
       #endif
     }
-    if(mkl <= 0) {
-      mkl = cfs;
+    if(other <= 0) {
+      other = cfs;
       #ifndef WIN32
-        setenv("MKL_NUM_THREADS",to_string(mkl).c_str(),1); // 1 = overwrite but it shall not have been there before
+        setenv(otherenv,to_string(other).c_str(),1); // 1 = overwrite but it shall not have been there before
       #else
-        strncpy(mkl_threads, string("MKL_NUM_THREADS=" + to_string(mkl)).c_str(), 1022);
-        putenv(mkl_threads);
+        strncpy(other_threads, string(otherstr + "=" + to_string(other)).c_str(), 1022);
+        putenv(other_threads);
      #endif
     }
 
-    // now some hints if OMP and MKL were set to something different than CFS
+    // now some hints if OMP and MKL/ACCELERATE were set to something different than CFS
     std::string msg = "Hint: openCFS threads (CFS_NUM_THREADS=" + to_string(cfs) + ") differs from ";
     unsigned int org = msg.size();
-    if(cfs != omp && cfs != mkl)
-      msg+= "OMP_NUM_THREADS=" + to_string(omp) + " and MKL_NUM_THREADS=" + to_string(mkl);
-    if(cfs != omp && cfs == mkl)
+    if(cfs != omp && cfs != other)
+      msg+= "OMP_NUM_THREADS=" + to_string(omp) + " and " + otherstr + "=" + to_string(other);
+    if(cfs != omp && cfs == other)
       msg+= "OMP_NUM_THREADS=" + to_string(omp);
-    if(cfs == omp && cfs != mkl)
-      msg+= "MKL_NUM_THREADS=" + to_string(mkl);
+    if(cfs == omp && cfs != other)
+      msg+= otherstr + "=" + to_string(other);
     if(msg.size() != org && !quiet)
       cout << ">> " << msg << std::endl;
 #endif

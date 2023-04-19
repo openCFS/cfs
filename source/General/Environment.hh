@@ -113,6 +113,20 @@ namespace CoupledField {
    * @param quiet suppress command line output when OMP and MKL_NUM_THREADS are set. */
   void SetNumberOfThreads(int numThreads, bool homogenize = false, bool quiet=true);
 
+  /** Return the environment variable for the BLAS implementation.
+   * Almost all Linux and Windows use Intel's MKL (BLAS and Pardiso) und return MKL_NUM_THREADS.
+   * Apple's Accelerate Framework is used as system BLAS (not bundled) uses VECLIB_MAXIMUM_THREADS
+   * OpenBLAS uses as many libs OMP_NUM_THREADS but we return DUMMY_NUM_THREADS to not double OMP_NUM_THREADS
+   * NETLIB is serial so wer return OMP_NUM_THREADS
+   * @param full if false return MKL, VECLIB, DUMMY */
+  const char* GetBlasThreadsEnvVariable(bool full = true);
+
+  /** true for mkl and accelerate (MKL_NUM_THREADS and VECLIB_MAXIMUM_THREADS),
+   * false for openblas and netlib as we have here no environment variable to set (for simplicity DUMMY_NUM_THREADS is used) */
+  bool HasBlasThreadsEnvVariable();
+
+
+
 } // end of namespace
 
 #endif // ENVIRONMENT_HH

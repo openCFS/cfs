@@ -114,8 +114,8 @@ option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TEST
 option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
 
 # USE_* triggers more or less optional external dependencies.
-set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
-set_property(CACHE USE_BLAS_LAPACK PROPERTY STRINGS OPENBLAS MKL NETLIB)
+set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, (Apple) ACCELERATE")
+set_property(CACHE USE_BLAS_LAPACK PROPERTY STRINGS OPENBLAS MKL NETLIB ACCELERATE)
 option(USE_OPENMP "Enable support for OpenMP" ${USE_OPENMP_DEFAULT})
 option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
