@@ -5,8 +5,10 @@
   elementFormDefault="qualified">
 
   <xsd:annotation>
-    <xsd:documentation xml:lang="en"> Coupled Field Solver project CFS++ Schema description for all
-      things that did not fit elsewhere </xsd:documentation>
+    <xsd:documentation xml:lang="en"> 
+      Coupled Field Solver project CFS++ 
+      Schema description for all things that did not fit elsewhere 
+    </xsd:documentation>
   </xsd:annotation>
 
   <!-- ******************************************************************* -->
@@ -201,16 +203,16 @@
             instantaneous response). </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="poleReal" type="DT_PoleDef" minOccurs="0" maxOccurs="15">
+      <xsd:element name="poleListReal" type="DT_RationalTerm" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
-          <xsd:documentation xml:lang="en"> Real pole resulting in a damped response. It is defined
+          <xsd:documentation xml:lang="en"> List of real poles causing in a damped response. It is defined
             by real-valued pole (denomiator) and real-valued residue (numerator of the rational
             function). If provided, the imaginary part is ignored. </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="poleComplex" type="DT_PoleDef" minOccurs="0" maxOccurs="15">
+      <xsd:element name="poleListComplex" type="DT_RationalTerm" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
-          <xsd:documentation xml:lang="en"> Comlex-conjugated pole pair resulting in an oscillatory
+          <xsd:documentation xml:lang="en"> List of comlex-conjugated pole pairs causing in an oscillatory
             response. It is defined by the real and imaginary part of the pole (denominator of the
             rational function) and residue (numerator), respectively. </xsd:documentation>
         </xsd:annotation>
@@ -218,7 +220,17 @@
     </xsd:sequence>
   </xsd:complexType>
 
-  <xsd:complexType name="DT_PoleDef">
+  <xsd:complexType name="DT_RationalTerm">
+    <xsd:sequence>
+      <xsd:element name="rationalTerm" type="DT_RationalTermDef" minOccurs="1" maxOccurs="15">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Denominator (pole) of the rational function. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RationalTermDef">
     <xsd:sequence>
       <xsd:element name="pole" type="DT_ComplexTypeCompact" minOccurs="1" maxOccurs="1">
         <xsd:annotation>

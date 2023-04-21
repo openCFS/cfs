@@ -550,10 +550,85 @@ namespace CoupledField {
     //! [Read PtrParamNode]
     // read density
     if (acou->Has("density")) { // check if PtrParamNode acou has <density> tag
-    	PtrCoefFct densFct;
-      // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
-      densFct = ReadScalarLin(acou, "density", Global::COMPLEX);
-      material->SetCoefFct( DENSITY, densFct ); // set it to the material
+    	PtrParamNode dens = acou->Get("density");
+      if (dens->Has("linear")){
+        
+        PtrCoefFct densFct;
+        // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
+        densFct = ReadScalarLin(acou, "density", Global::COMPLEX);
+        material->SetCoefFct( DENSITY, densFct ); // set it to the material
+      }
+      if (dens->Has("rationalFuncApproxInverse")){
+        if (dens->Get("rationalFuncApproxInverse")->Has("timeDomainEqFluid")){
+          // TODO
+          std::cout << " rational function  provided " << std::endl << std::endl;
+
+          // Read constant (high-freq limit)
+          PtrCoefFct densFct;
+          PtrParamNode rationalInv = dens->Get("rationalFuncApproxInverse");
+          densFct = ReadScalarLin(rationalInv, "timeDomainEqFluid", Global::COMPLEX);
+          material->SetCoefFct( DENSITY, densFct ); // set it to the material
+
+          //###########################################
+          // Read the variable number of real poles
+
+          PtrParamNode invDensPoleRealNode;
+          ParamNodeList invDensPolesReal;
+
+          invDensPoleRealNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListReal", ParamNode::PASS);
+          invDensPolesReal = invDensPoleRealNode->GetChildren();
+
+          UInt numRealP = invDensPolesReal.GetSize();
+          Vector<Double> parNumerRe(numRealP);
+          Vector<Double> parDenomRe(numRealP);
+          for (UInt i = 0; i < numRealP; i++)
+          {
+            std::cout << "Read pole  "<< i+1  << ":" << std::endl << std::endl;
+
+            parNumerRe[i] = invDensPolesReal[i]->Get("pole")->Get("real")->As<Double>();
+            parDenomRe[i] = invDensPolesReal[i]->Get("residue")->Get("real")->As<Double>();
+            std::cout << "pole = "<< parNumerRe[i] << std::endl;
+            std::cout << "residue = "<< parDenomRe[i] << std::endl;
+          }
+
+          // TODO: set material paramsd: Vector (see e.g. "pronyList")
+          // material->SetVector(ACOU_TDEF_INVDENS_A, parNumerRe, Global::REAL);
+          // material->SetVector(ACOU_TDEF_INVDENS_ALPHA, parDenomRe, Global::REAL);
+
+          //###########################################
+          // read the variable number of complex-conj. poles
+
+          PtrParamNode invDensPoleComplNode;
+          ParamNodeList invDensPolesCompl;
+
+          invDensPoleComplNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListComplex", ParamNode::PASS);
+          invDensPolesCompl = invDensPoleComplNode->GetChildren();
+
+          UInt numComplP = invDensPolesCompl.GetSize();
+          //Vector<Double> parNumerRe(numComplP);  REDECLARATION -> TODO: make that clean
+          //Vector<Double> parDenomRe(numComplP);
+          Vector<Double> parNumerIm(numComplP);
+          Vector<Double> parDenomIm(numComplP);
+          for (UInt i = 0; i < numComplP; i++)
+          {
+            std::cout << "Read pole  "<< i+1 << std::endl;
+
+            parNumerRe[i] = invDensPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
+            parDenomRe[i] = invDensPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
+            parNumerIm[i] = invDensPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
+            parDenomIm[i] = invDensPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
+                        
+            std::cout << "pole = "<< parNumerRe[i] << " + " << parNumerIm[i] << " i" << std::endl;
+            std::cout << "residue = "<< parDenomRe[i] << " + "  << parDenomIm[i] << " i" << std::endl;
+          }
+
+          // TODO: set material paramsd: Vector (see e.g. "pronyList")
+          // material->SetVector(ACOU_TDEF_INVDENS_B, parNumerRe, Global::REAL);
+          // material->SetVector(ACOU_TDEF_INVDENS_BETA, parDenomRe, Global::REAL);
+          // material->SetVector(ACOU_TDEF_INVDENS_C, parNumerIm, Global::REAL);
+          // material->SetVector(ACOU_TDEF_INVDENS_GAMMA, parDenomIm, Global::REAL);
+        }
+      }
     }
     
     // read adiabatic exponent
