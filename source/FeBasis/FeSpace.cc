@@ -2047,14 +2047,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                     UInt index = indices[eqn-1];
                     // Assign index and edge-number to the map only if it is not already mapped
                     if(indexGeomMap.find(index) == indexGeomMap.end()){
-                      //don't know why the node-numbering in GetNodeCoordinates is 0-based
-                      //and in the FeSpace it's 1-based ?!
                       nMap.indexNum = index;
-                      edgeNodesC.Resize(2);
-                      edgeNodesC[0] = edgeNodes[0] - 1;
-                      edgeNodesC[1] = edgeNodes[1] - 1;
                       StdVector< Vector<Double> > nCoords;
-                      feFct->GetGrid()->GetNodeCoordinates(nCoords, edgeNodesC, false);
+                      feFct->GetGrid()->GetNodeCoordinates(nCoords, edgeNodes, false);
 
                       nMap.eCoords.Resize(2);
                       nMap.eCoords[0] = nCoords[0];

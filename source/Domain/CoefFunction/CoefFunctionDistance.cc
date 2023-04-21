@@ -57,13 +57,8 @@ namespace CoupledField {
     Vector<Double> sourceVecSum;
     // get the global node numbers of the current element
     feFct_->GetGrid()->GetElemNodes(sourceNodes,srcElem->elemNum);
-    // for whatever reaseon the numbering is different, so we have to subtract 1 to get the correct node number
-    sourceNodesCorr.Resize(sourceNodes.GetSize());
-    for (UInt u = 0; u < sourceNodes.GetSize(); ++u) {
-      sourceNodesCorr[u] = sourceNodes[u]-1;
-    }
     // get the nodal coordinates belonging to the node numbers
-    feFct_->GetGrid()->GetNodeCoordinates(sourceNodeCoords, sourceNodesCorr, true); // always use the updated geometry!
+    feFct_->GetGrid()->GetNodeCoordinates(sourceNodeCoords, sourceNodes, true); // always use the updated geometry!
     //Vector<Double> curMidPoint = targetElems[i]->GetShape().midPointCoord;
     
     // calculate the barycenter
@@ -105,13 +100,8 @@ namespace CoupledField {
       for (UInt i = 0; i < targetElems.GetSize(); ++i) {
         // get the global node numbers of the current element
         feFct_->GetGrid()->GetElemNodes(targetNodes,targetElems[i]->elemNum);
-        // for whatever reaseon the numbering is different, so we have to subtract 1 to get the correct node number
-        targetNodesCorr.Resize(targetNodes.GetSize());
-        for (UInt u = 0; u < targetNodes.GetSize(); ++u) {
-          targetNodesCorr[u] = targetNodes[u]-1;
-        }
         // get the nodal coordinates belonging to the node numbers
-        feFct_->GetGrid()->GetNodeCoordinates(nodeCoords, targetNodesCorr, true); // always use the updated geometry!
+        feFct_->GetGrid()->GetNodeCoordinates(nodeCoords, targetNodes, true); // always use the updated geometry!
         
         // calculate the barycenter
         vecSum.Resize(nodeCoords.GetSize());
@@ -136,16 +126,9 @@ namespace CoupledField {
       StdVector<UInt> targetNodes;
       feFct_->GetGrid()->GetNodesByRegion(targetNodes, targetRegion);
 
-      // for whatever reaseon the numbering is different, so we have to subtract 1 to get the correct node number
-      StdVector<UInt> targetNodesCorrected;
-      targetNodesCorrected.Resize(targetNodes.GetSize());
-      for (UInt u = 0; u < targetNodes.GetSize(); ++u) {
-        targetNodesCorrected[u] = targetNodes[u]-1;
-      }
-
       // get the nodal coordinates belonging to the node numbers
       StdVector<Vector<Double>> nodeCoords;
-      feFct_->GetGrid()->GetNodeCoordinates(nodeCoords, targetNodesCorrected, true); // always use the updated geometry!
+      feFct_->GetGrid()->GetNodeCoordinates(nodeCoords, targetNodes, true); // always use the updated geometry!
 
       // loop over all nodes and add the points
       for (UInt u = 0; u < targetNodes.GetSize(); ++u) {
