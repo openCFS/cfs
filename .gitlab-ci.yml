@@ -17,8 +17,6 @@ variables:
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON"
-  # default unstable tests (moved from .stable_tests to here in order to specify compiler specific tests that should be excluded)
-  UNSTABLE_TESTS_DEFAULT: "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|CFSdat_cell2Node_3D_Ensight|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|1dOscillatorQEVP|DampedBeam2D|Coil3D_Scalar_FixpointB_bestResidualLinesearch|PreStress3dEV|BoundaryAVExcitation|RotationNCAcouPotential|ParallelPlateCapacitor_doubleL|Abc2d|Abc2dcsvt" # we do not need the testsuite for building
 
 # stages in the pipeline run in succession
 stages:
@@ -524,7 +522,7 @@ cfsdeps:intel:
     # rename CMakeCache to avoid conflicts
     - cp CMakeCache.txt CMakeCache_build-stage.txt
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
-    - rm -rf _CPack_Packages vtk include source bin lib64
+    - rm -rf _CPack_Packages vtk include source bin lib
     - df -h # debug
     # save buildid for environment
     - *save_cdash_buildid
@@ -703,7 +701,7 @@ linux:intel:
   needs: ["cfsdeps:intel"]
 
 # LLVM clang compiler builds
-linux:Clang-debug:
+linux:clang-debug:
   extends: .default_build_job
   stage: build
   image: opencfs/fedora37-clang
@@ -762,11 +760,10 @@ linux:gcc10:ninja:
 # the binaries are shared via the gitlab server (artifacts/dependencies)
 #
 # We have the following different test configurations
-# * stable - runs the Testsuite on a single thread and disabling some unstable tests (and python tests)
-# * testsuite - runs the Testsuite on all available cores (disabling python tests)
-# * debug - tests for debug-builds, run in parallel:
-#           we use TYPE to select them with -R
-#           running for the the complete testsuite, i.e. all_multicore
+# * stable - runs the Testsuite on a single thread and disabling some unstable tests via -LE unstable (and python tests)
+# * testsuite - runs the Testsuite on all available cores (disabling python tests) with two threads (multicore_all)
+# * no-slow - run debug builds and skip unstable and slow (bow by label) and no python tests
+#             the tool tests.py supports in setting and checking the slow label for the tests.
 # * python - runs the Python-Tests of the testsuite, independent of the c++ build
 # Both _stable_ and _testsuite_ are run for all build configs (GCCx),
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
@@ -832,7 +829,8 @@ linux:gcc10:ninja:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "${UNSTABLE_TESTS}" --track $CDASH_TRACK # exclude the install step and the failing tests
+    # ctest -LE "unstable|slow" works, ctest -LE unstable -LE slow disables both, -LE unstable|slow fails, -LE "unstable | slow" does not work
+    - ctest -D ExperimentalTest -LE "unstable$CTEST_EXTRA_LE" --track $CDASH_TRACK # exclude the install step and the failing tests
 
 # test everything (but python, which is tested seperately)
 .test_all_multicore: &test_all_multicore
@@ -843,7 +841,7 @@ linux:gcc10:ninja:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E Install -R $TYPE. --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml # exclude the install step
+    - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml # exclude the install step
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -854,7 +852,6 @@ stable:gcc5:linux:
   stage: test
   variables:
     BUILD_NAME: GCC5 / stable
-    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   retry: 1
   <<: *test_stable
   needs:
@@ -878,7 +875,6 @@ stable:gcc7min:linux:
   stage: test
   variables:
     BUILD_NAME: GCC7 minimal / stable
-    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   retry: 1
   <<: *test_stable
   needs:
@@ -905,7 +901,6 @@ stable:gcc7max:linux:
     - when: on_success
   variables:
     BUILD_NAME: GCC7 maximal / stable
-    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   <<: *test_stable
   needs:
     - linux:gcc7max
@@ -925,7 +920,7 @@ testsuite:gcc7max:linux:
   needs:
     - linux:gcc7max
 
-debug:gcc7max:linux:
+no-slow:gcc7max-debug:linux:
   tags:
     - docker
   stage: test
@@ -933,16 +928,12 @@ debug:gcc7max:linux:
   rules:
     - !reference [.max_never_external_rule, rules]
     - when: on_success
-      allow_failure: true # job level definition is ignored when rules are used
-  # run a matrix of parallel jobs, with variable TYPE defiend (used to include a specific set of tests)
-  # see https://docs.gitlab.com/ee/ci/jobs/job_control.html#run-a-one-dimensional-matrix-of-parallel-jobs
-  parallel:
-    matrix:
-      - TYPE: [Solver, Singlefield, Coupledfield, Optimization, CFSdat]
+      allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
   variables:
-    BUILD_NAME: GCC7 maximal debug / all_multicore / $TYPE
-    TEST_CONFIG_OPTIONS: "-DTESTSUITE_TIMEOUT=1500"
-  <<: *test_all_multicore
+    BUILD_NAME: GCC7 maximal debug / no-slow
+    # see comment in .test_stable
+    CTEST_EXTRA_LE: "|slow"
+  <<: *test_stable
   needs:
     - linux:gcc7max-debug
 
@@ -953,8 +944,6 @@ stable:gcc10:linux:
   stage: test
   variables:
     BUILD_NAME: GCC10 / stable
-    # some tests sporadically fail which might be a GCC10 bug, since it only happens here. Therefore, we overwrite this variable to exclude additional tests specifically failing in the GCC10 build
-    UNSTABLE_TESTS: "${UNSTABLE_TESTS_DEFAULT}|PlaneWave2DPostProc|MaxwellSlipBC2D" # we do not need the testsuite for building
   retry: 1
   <<: *test_stable
   needs:
@@ -979,7 +968,6 @@ stable:intel:linux:
   stage: test
   variables:
     BUILD_NAME: Intel2021 / stable
-    UNSTABLE_TESTS: $UNSTABLE_TESTS_DEFAULT
   <<: *test_stable
   except:
     variables:
