@@ -8,7 +8,6 @@
 #include <def_use_flann.hh>
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
-#include <def_use_gmsh.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_ipopt.hh>
@@ -361,13 +360,6 @@ void Dependencies::ReadSetting()
   metis.SetVersion(GIDPOST_VERSION);
 #endif
   data.Push_back(gid);
-
-  // todo: this is actually no dependency but internal code
-  Dependency gmsh("gmsh", "USE_GMSH", EASY);
-#ifdef USE_GMSH
-  gmsh.active = true;
-#endif
-  data.Push_back(gmsh);
 
   Dependency vtk("VTK", "USE_ENSIGHT", BSD);
 #ifdef USE_ENSIGHT

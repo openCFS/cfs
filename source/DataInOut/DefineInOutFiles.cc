@@ -10,7 +10,6 @@
 
 // Include headers which define what types of in/output files openCFS supports
 #include <def_use_gidpost.hh>
-#include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ensight.hh>
@@ -22,11 +21,9 @@
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
 
-#ifdef USE_GMSH
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputParsed.hh"
-#endif
 
 // HDF5 readers and writers
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
@@ -345,15 +342,10 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(string fName
   }
   else if (fFormat == "gmsh")
   {
-#ifdef USE_GMSH
     if(fName.empty()){
       fName += simName + ".msh";
     }
-    aInput = shared_ptr<SimInput> (
-        new SimInputGmsh(fName, configNode, infoNode));
-#else
-    EXCEPTION( "No support for GMSH input file format." );
-#endif // USE_GMSH
+    aInput = shared_ptr<SimInput> (new SimInputGmsh(fName, configNode, infoNode));
   }
   else if (fFormat == "cgns")
   {
@@ -442,23 +434,12 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fNam
 
   if (fFormat == "gmsh")
   {
-#ifdef USE_GMSH
-    aOutput =  shared_ptr<SimOutput> (new SimOutputGmsh(fName, configNode,
-                                                        infoNode, isRestart));
-#else
-    EXCEPTION( "No support for Gmsh output file format." );
-#endif
+    aOutput =  shared_ptr<SimOutput> (new SimOutputGmsh(fName, configNode, infoNode, isRestart));
   }
-
 
   if (fFormat == "gmshParsed")
   {
-#ifdef USE_GMSH
-    aOutput =  shared_ptr<SimOutput> (new SimOutputParsed(fName, configNode,
-                                                          infoNode, isRestart));
-#else
-    EXCEPTION( "No support for Gmsh parsed output file format." );
-#endif
+    aOutput =  shared_ptr<SimOutput> (new SimOutputParsed(fName, configNode, infoNode, isRestart));
   }
 
   if (fFormat == "hdf5")

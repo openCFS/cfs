@@ -118,9 +118,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ensight.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgns.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_cgns.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_gmsh.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
   "${CFS_BINARY_DIR}/include/def_build_quadeigensolver.hh")
 

@@ -5,7 +5,6 @@
 // Include headers which define what types
 // of in/output files openCFS should support
 #include <def_use_gidpost.hh>
-#include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
 #include <def_use_cgns.hh>
 
@@ -29,10 +28,8 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 
-#ifdef USE_GMSH
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
-#endif
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
@@ -149,7 +146,6 @@ namespace CFSTool {
     }
     else if( fileName.find(".msh") != string::npos )
     {
-    #ifdef USE_GMSH
       if(inputNode->Has("gmsh"))
         readerNode = inputNode->Get("gmsh");
       else
@@ -157,11 +153,7 @@ namespace CFSTool {
         readerNode = PtrParamNode(new ParamNode());
         readerNode->SetName("gmsh");
       }
-
       reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, readerNode, info) );
-    #else
-      EXCEPTION( "No support for Gmsh input file format." );
-    #endif
     }
     else if( fileName.find( ".cgns") != string::npos )
     {
@@ -263,8 +255,9 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for GiD output file format." );
 #endif
-    } else if( fileName.find( ".msh") != string::npos ) {
-#ifdef USE_GMSH
+    }
+    else if( fileName.find( ".msh") != string::npos )
+    {
       baseName = std::string(fileName, 0, fileName.find(".msh"));
       PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       binary->SetName("binaryFormat");
@@ -287,12 +280,9 @@ namespace CFSTool {
         writerNode->AddChildNode( binary );
         writerNode->AddChildNode( bigEndian );
       }
-      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, writerNode,
-                                                         info, restart ) );
-#else 
-      EXCEPTION( "No support for GMsh output file format." );
-#endif
-    } else if(fileName.find(".h5") != string::npos || fileName.find(".cfs") != string::npos) {
+      writer = shared_ptr<SimOutput>(new SimOutputGmsh( baseName, writerNode, info, restart));
+    }
+    else if(fileName.find(".h5") != string::npos || fileName.find(".cfs") != string::npos) {
       string ext = fileName.find(".h5") != string::npos ? ".h5" : ".cfs";
       baseName = std::string(fileName, 0, fileName.find(ext));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
