@@ -28,7 +28,6 @@ namespace CoupledField {
     EnumTuple( BaseSolver::LDL_SOLVER2, "directLDL2"),
     EnumTuple( BaseSolver::PARDISO_SOLVER, "pardiso" ),
     EnumTuple( BaseSolver::UMFPACK, "umfpack" ),
-    EnumTuple( BaseSolver::ILUPACK, "ilupack" ),
     EnumTuple( BaseSolver::CHOLMOD, "cholmod"),
     EnumTuple( BaseSolver::LIS, "lis"),
     EnumTuple( BaseSolver::PETSC, "petsc"),

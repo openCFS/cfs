@@ -9,7 +9,6 @@
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_hwloc.hh>
-#include <def_use_ilupack.hh>
 #include <def_use_ipopt.hh>
 #include <def_use_knitro.hh>
 #include <def_use_libfbi.hh>
@@ -246,23 +245,6 @@ void Dependencies::ReadSetting()
     pardiso.lic = CLOSED;
 #endif
   data.Push_back(pardiso);
-
-
-  // ILUPACK libs are freely to be downloaded. We (Fabian Wein) got the code
-  // on a private communication base from the author Matthias Bollhoefer,
-  // hence we cannot give the code but shall be allowed to give the binaries.
-  // There is no license information mentioned on the web page: http://ilupack.tu-bs.de
-  Dependency il("ILUPACK", "USE_ILUPACK", CLOSED );
- #ifdef USE_ILUPACK
-  il.active = true;
- #endif
-  data.Push_back(il);
-
-  Dependency ilp("ILUPACK OpenMP", "USE_ILUPACK_PARALLEL", NOT_KNOWN);
- #ifdef USE_ILUPACK_PARALLEL
-  ilp.active = true;
- #endif
-  data.Push_back(ilp);
 
   // we can configure variant with or without gpl. With gpl cholmod is faster for highly populated systems
   Dependency suite("SuiteSparse", "USE_SUITESPARSE", GPL);

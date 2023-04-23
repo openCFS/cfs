@@ -142,7 +142,7 @@ namespace CoupledField {
     virtual void ExportMatrixMarket( const std::string& fname, const std::string& comment = "") const = 0;
 
     /** Exports in Harwell-Boeing format. This format is used for the
-     * ILUPACK frontend. A benefit is the included RHS, inital guesses, ...
+   * ILUPACK frontend. A benefit is the included RHS, inital guesses, ...
      * are not implemented here. */  
     void ExportHarwellBoeing(const std::string& file, BaseVector* rhs) const; 
 

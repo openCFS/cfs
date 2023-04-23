@@ -279,7 +279,7 @@ testcases, sum = {2})'.format(count, count_undoc, count + count_undoc)
 autotags = ['Homogenization', 'Scpip', 'Snopt', 'OptimalityCondition',
             'Coupled', 'Acoustic', 'Mechanic',
             'ExportLinSys', 'MultiObjective',
-            'Cholmod', 'Ilupack', 'Pardiso']
+            'Cholmod', 'Pardiso']
 
 os.chdir(htmldocdir)
 filename = 'index_tags.html'
@@ -331,9 +331,6 @@ for tag in autotags:
 
     if(tag == 'Cholmod'):
       r = xml.xpathEval('//cfs:solver[@type=\'cholmod\']')
-
-    if(tag == 'Ilupack'):
-      r = xml.xpathEval('//cfs:solver[@type=\'ilupack\']')
 
     if(tag == 'Pardiso'):
       r = xml.xpathEval('//cfs:solver[@type=\'pardiso\']')

@@ -413,7 +413,6 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     case BasePrecond::SYMMLQ:
     case BasePrecond::LAPACK_LU: 
     case BasePrecond::LAPACK_LL:
-    case BasePrecond::ILUPACK:
     case BasePrecond::LU_SOLVER: 
     case BasePrecond::DIAGSOLVER:
       EXCEPTION("Missing cases for solvers as preconditioners");
@@ -661,7 +660,6 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       case BasePrecond::SYMMLQ:
       case BasePrecond::LAPACK_LU: 
       case BasePrecond::LAPACK_LL:
-      case BasePrecond::ILUPACK:
       case BasePrecond::LU_SOLVER: 
       case BasePrecond::DIAGSOLVER:
         EXCEPTION("Missing case statement for solvers as preconditioners");

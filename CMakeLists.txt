@@ -125,8 +125,6 @@ option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_
 option(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_ARPACK_DEFAULT})
 option(USE_FEAST "Use the FEAST eigenvalue solver (commumity edition)." ${USE_FEAST_DEFAULT})
-option(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners." ${USE_ILUPACK_DEFAULT})
-option(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." OFF) # advanced
 option(USE_SUITESPARSE "CHOLMOD/UMPFACK direct solvers with GPL configuration" ${USE_SUITESPARSE_DEFAULT} )
 option(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
 option(USE_SUPERLU "Use SuperLU direct solver and ILUs. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_SUPERLU_DEFAULT})
@@ -163,20 +161,8 @@ endif()
 # Note, that dependend options come next
 #-----------------------------------------------------------------------------
 
-if(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
-  message(FATAL_ERROR "Either USE_ILUPACK or USE_ILUPACK_PARALLEL. Both cannot be swithed on together")
-endif()
-
-#if(BUILD_CFSDAT AND NOT USE_CGAL)
-#  message(FATAL_ERROR "BUILD_CFSDAT requires USE_CGAL, correct your configuration.")
-#endif()
-
 if(USE_CGAL AND USE_LIBFBI)
   message(FATAL_ERROR "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
-endif()
-
-if(USE_PETSC AND USE_ILUPACK_PARALLEL )
-  message(FATAL_ERROR "Using PETSc with ilupack will lead to build error (to be fixed in future), switch either one to  OFF")
 endif()
 
 if(USE_PARDISO)
@@ -201,10 +187,6 @@ endif()
 if(BUILD_TESTING AND NOT BUILD_CFSTOOL)
   message(FATAL_ERROR "BUILD_CFSTOOL required for BUILD_TESTING")
 endif()
-
-if(NOT USE_SUITESPARSE AND USE_ILUPACK)
-  message(FATAL_ERROR "ILUPACK requires any version of SuiteSparse")
-endif() 
 
 #-----------------------------------------------------------------------------
 # Do conditional settings after sanity checks have passed
@@ -270,7 +252,6 @@ mark_as_advanced(BUILD_HWLOC)
 mark_as_advanced(XMLSCHEMA)
 mark_as_advanced(USE_XERCES)
 mark_as_advanced(USE_LIBXML2)
-mark_as_advanced(USE_ILUPACK_PARALLEL)
 mark_as_advanced(USE_PHIST_CG)
 
 #-----------------------------------------------------------------------------
@@ -434,9 +415,6 @@ if(USE_ARPACK)
 endif()
 if(USE_PHIST_CG OR USE_PHIST_EV)
   add_subdirectory(source/OLAS/external/phist)
-endif()
-if(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
-  add_subdirectory(source/OLAS/external/ilupack)
 endif()
 add_subdirectory(source/OLAS/external/lapack)
 if(USE_PARDISO)

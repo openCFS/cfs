@@ -1,4 +1,0 @@
-// Define used to check if ILUPACK library is used
-
-#cmakedefine USE_ILUPACK
-#cmakedefine USE_ILUPACK_PARALLEL

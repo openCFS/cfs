@@ -206,7 +206,7 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-if(USE_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
+if(USE_BLAS_LAPACK STREQUAL "NETLIB")
   include("${CFSDEPS_DIR}/netlib/External_Netlib.cmake")
 endif()
 
@@ -250,26 +250,6 @@ endif()
 if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
 endif()
-
-#-----------------------------------------------------------------------------
-# Find ILUPACK library
-#-----------------------------------------------------------------------------
-# TODO: skip ILUPACK_PARALLEL, it makes not really sense
-IF(USE_ILUPACK_PARALLEL)
-  # TODO: For intel compilers still one needs to figure out the proper compiler versions
-# 
-  SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
-  SET(ILUPACK_VER "2.4_parallel_0831")
-  SET(ILUPACK_ZIP "ilupack-${ILUPACK_VER}_src.tgz")
-  SET(ILUPACK_MD5 "0a5792597f8120d71e221de601440137")
-  INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
-  #ADD_DEPENDENCIES(ilupack metis) # ilupack has its own (parallel) metis additional to cfs-metis
-ELSEIF(USE_ILUPACK)
-  SET(ILUPACK_VER "2.2.1")
-  SET(ILUPACK_ZIP "ilupack-${ILUPACK_VER}-cfsdeps.zip")
-  SET(ILUPACK_MD5 "79887591fb508013d874c97d4b252ed4")
-  INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
-ENDIF()
 
 # Find Library of Iterative Solvers
 if(USE_LIS)

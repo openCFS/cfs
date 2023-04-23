@@ -68,8 +68,8 @@ if(DIFF_EXECUTABLE MATCHES "NOTFOUND")
   message(WARNING "command diff not found, some cfsdeps (e.g. lis) will fail")
 endif()
 
-if(UNZIP_EXECUTABLE MATCHES "NOTFOUND" AND (USE_SNOPT OR USE_SCPIP OR USE_ILUPACK))
-  message(WARNING "command unzip not found, required for snopt, scpip and ilupack")
+if(UNZIP_EXECUTABLE MATCHES "NOTFOUND" AND (USE_SNOPT OR USE_SCPIP))
+  message(WARNING "command unzip not found, required for snopt and scpip")
 endif()
 
 

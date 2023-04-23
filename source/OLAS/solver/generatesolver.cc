@@ -1,4 +1,3 @@
-#include <def_use_ilupack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
@@ -55,12 +54,6 @@
 #include "LDLSolver.hh"
 #include "DiagSolver.hh"
 #include "ExternalSolver.hh"
-
-// include last as strange stuff can happen with Ilupack.hh due to f2c.h
-#if defined (USE_ILUPACK) || defined (USE_ILUPACK_PARALLEL)
-#include "OLAS/external/ilupack/Ilupack.hh"
-#endif
-
 
 namespace CoupledField {
 
@@ -356,34 +349,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 #endif
     break;
 
-  case BaseSolver::ILUPACK:
-
-#if defined(USE_ILUPACK) || defined(USE_ILUPACK_PARALLEL)
-  {
-    // Check suitability of matrix
-    if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
-      EXCEPTION("Ilupack only works with (S)CRS_Matrix class!");
-
-    const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
-    if(stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM
-        && stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  )
-      EXCEPTION("Ilupack only works with (S)CRS_Matrix class!");
-
-    if(eType == BaseMatrix::DOUBLE) {
-      retSolver = new Ilupack<Double>(solverNode, olasInfo, eType);
-      LOG_DBG(genSolver) << " GenerateSolver: Generated real ilupack solver";
-    }
-    if(eType == BaseMatrix::COMPLEX) {
-      retSolver = new Ilupack<Complex>(solverNode, olasInfo, eType);
-      LOG_DBG(genSolver) << " GenerateSolver: Generated complex ilupack solver";
-    }
-
-  }
-#else
-  EXCEPTION("Compile with USE_ILUPACK or USE_ILUPACK_PARALLEL to enable interface to ilupack");
-#endif
-  break;
-  
   case BaseSolver::LIS:
 
 #ifdef USE_LIS
@@ -569,10 +534,6 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
 
-    case BaseSolver::ILUPACK:
-      ret.insert(BaseMatrix::SPARSE_SYM);
-      break;
-
     case BaseSolver::LU_SOLVER:
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
@@ -639,7 +600,6 @@ bool IsSolverSBMCapable(BaseSolver::SolverType st) {
     case BaseSolver::LAPACK_LU:
     case BaseSolver::LAPACK_LL:
     case BaseSolver::PARDISO_SOLVER:  
-    case BaseSolver::ILUPACK: 
     case BaseSolver::LU_SOLVER:
     case BaseSolver::CHOLMOD: 
     case BaseSolver::LDL_SOLVER:

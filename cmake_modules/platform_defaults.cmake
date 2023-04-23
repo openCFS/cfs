@@ -41,7 +41,6 @@ set(USE_PHIST_CG_DEFAULT OFF) # phist and ghost are difficult to build
 set(USE_PHIST_EV_DEFAULT OFF)
 set(BUILD_GHOST_DEFAULT OFF)
 set(USE_FEAST_DEFAULT ON)
-set(USE_ILUPACK_DEFAULT OFF) # is closed soure
 set(USE_SUITESPARSE_DEFAULT OFF) # is configured as GPL
 set(USE_LIS_DEFAULT ON)
 set(USE_SUPERLU_DEFAULT ON)

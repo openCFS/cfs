@@ -20,9 +20,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
   "${CFS_BINARY_DIR}/include/def_build_quadeigensolver.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_lis.hh")
   

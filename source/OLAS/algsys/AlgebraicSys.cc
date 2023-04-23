@@ -5,7 +5,6 @@
 
 #include <def_use_metis.hh>
 #include <def_use_pardiso.hh>
-#include <def_use_ilupack.hh>
 #include <def_use_arpack.hh>
 #include <def_use_phist_cg.hh>
 #include <def_use_phist_ev.hh>
@@ -4335,7 +4334,6 @@ namespace CoupledField {
       // if we are a solver which does not need reordering and if we are default, we switch reordering off
       if((st == BaseSolver::PARDISO_SOLVER ||
           st == BaseSolver::UMFPACK ||
-          st == BaseSolver::ILUPACK ||
           st == BaseSolver::LIS ||
           st == BaseSolver::SUPERLU ||
           st == BaseSolver::SPOOLES ||
@@ -4518,7 +4516,7 @@ namespace CoupledField {
 
         // b) pardiso and most external solvers need no reordering or have their own - switch it off when we have default
         if(canChangeReordering == true &&
-           (st == BaseSolver::PARDISO_SOLVER || st == BaseSolver::UMFPACK || st == BaseSolver::ILUPACK ||
+           (st == BaseSolver::PARDISO_SOLVER || st == BaseSolver::UMFPACK ||
             st == BaseSolver::SUPERLU || st == BaseSolver::SPOOLES /* || st == BaseSolver::LIS */))
         {
           ot = BaseOrdering::NOREORDERING;
