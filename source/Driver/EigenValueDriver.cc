@@ -291,8 +291,28 @@ void EigenValueDriver::SolveProblem() {
   numEV_ = eigenValuesComplex_.GetSize();
   SortModes();
   PrintResult();
+  // store to hdf5
   if (calcModes_) {
 	  StoreResults(1, -1.0);
+  }
+  // store to textfile
+  PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
+  if (els) {
+    if(els->Get("solution")->As<bool>()) {
+      BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+      std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+      if(domain->GetDriver()->GetAnalysisId().ToString(true) != ""){
+        base += "_" + domain->GetDriver()->GetAnalysisId().ToString(true);
+      }
+      for (UInt i=0; i<numEV_; i++) {
+        Vector<Complex> mode;
+        // TU Wien Variant with normalized eigenmodes
+        sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode);
+        mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1), vec_format);
+        sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode,false);
+        mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1), vec_format);
+      }
+    }
   }
 
   // finish step
