@@ -111,7 +111,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0) # there is no >= and also there is no 5.0.0.0
     # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined]
      #if ! DONT_USE_HAS_NEW_OPERATOR
-
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-expansion-to-defined ")
   ENDIF()
 
@@ -153,6 +152,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations ")
     # to prevent (real?) issue use-after-freegmvread.cc:33:121: error: pointer ‘save’ may be used after ‘void* realloc(void*, size_t)’
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wuse-after-free ")
+    # gcc13 complains this about CGAL
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-catch-value -Wno-dangling-reference ")
+    if(DEBUG)
+      # gcc13 spams the console with this output but it might be worse to check first if some
+      # warnings make sense - but disable for debug
+      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-catch-value ")
+    endif() 
   endif()
 
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
