@@ -399,6 +399,22 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ACOU_BOVERA, "BoverA" );
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_REAL_VAL, "acouImpedanceRealValue");
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_IMAG_VAL, "acouImpedanceImagValue");
+
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_CONST, "acouTDEF_invDens_Const");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_A, "acouTDEF_invDens_CoefA");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_ALPHA, "acouTDEF_invDens_CoefAlpha");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_B, "acouTDEF_invDens_CoefB");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_BETA, "acouTDEF_invDens_CoefBeta");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_C, "acouTDEF_invDens_CoefC");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVDENS_GAMMA, "acouTDEF_invDens_CoefGamma");
+
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_CONST, "acouTDEF_invBlk_Const");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_A, "acouTDEF_invBlk_CoefA");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_ALPHA, "acouTDEF_invBlk_CoefAlpha");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_B, "acouTDEF_invBlk_CoefB");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_BETA, "acouTDEF_invBlk_CoefBeta");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_C, "acouTDEF_invBlk_CoefC");
+    MaterialTypeEnum.Add( ACOU_TDEF_INVBLK_GAMMA, "acouTDEF_invBlk_CoefGamma");
 //    MaterialTypeEnum.Add( IMP_HOLE_DIAM, "holeDiam");
 //    MaterialTypeEnum.Add( IMP_PLATE_THICKNESS, "plateThick");
 //    MaterialTypeEnum.Add( IMP_END_CORRECTION, "impEndCorrection");

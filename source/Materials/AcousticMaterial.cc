@@ -30,6 +30,20 @@ namespace CoupledField
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( ACOU_BOVERA );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_CONST );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_A );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_ALPHA );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_B );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_BETA );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_C );
+    isAllowed_.insert( ACOU_TDEF_INVDENS_GAMMA );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_CONST );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_A );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_ALPHA );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_B );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_BETA );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_C );
+    isAllowed_.insert( ACOU_TDEF_INVBLK_GAMMA );
   }
 
   AcousticMaterial::~AcousticMaterial() {
@@ -49,6 +63,8 @@ namespace CoupledField
         EXCEPTION("Cannot not compute'" << MaterialTypeEnum.ToString(ACOU_SOUND_SPEED)
                   << "' for material '" << name_ << "' due to missing data");
       }
+
+      // TODO: care about that for TDEF
     }
   }
 
