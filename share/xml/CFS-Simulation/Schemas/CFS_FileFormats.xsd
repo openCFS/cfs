@@ -84,7 +84,6 @@
   <xsd:group name="InputGroup">
     <xsd:choice>
       <xsd:element name="gmsh" type="DT_InputGmsh"/>
-      <xsd:element name="gmv" type="DT_InputGMV"/>
       <xsd:element name="mesh" type="DT_InputMesh"/>
       <xsd:element name="mphtxt" type="DT_InputComsol"/>
       <xsd:element name="hdf5" type="DT_InputHDF5"/>
@@ -278,22 +277,6 @@
           </xsd:annotation>
         </xsd:attribute>
       </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of GMV  data input type -->
-  <!-- ******************************************************************** -->
-
-  <!-- Data type for specification of input file format -->
-  <xsd:complexType name="DT_InputGMV">
-    <xsd:annotation>
-      <xsd:documentation xml:lang="en">
-        Read (G)eneral (M)esh (V)iewer files (http://www.generalmeshviewer.com)
-      </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexContent>
-      <xsd:extension base="DT_InputBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -878,7 +861,6 @@
     <xsd:choice>
       <xsd:element name="gmsh" type="DT_OutputGMsh" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="gmshParsed" type="DT_OutputGMshParsed" minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="gmv" type="DT_OutputGMV" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="unv" type="DT_OutputUNV" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="gid" type="DT_OutputGiD" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="hdf5" type="DT_OutputHDF5" minOccurs="0" maxOccurs="1"/>
@@ -914,16 +896,6 @@
   <xsd:complexType name="DT_OutputGMshParsed">
     <xsd:attribute name="id" type="xsd:token" default="gmshParsed"/>
     <xsd:attribute name="writeMode" type="xsd:token" default="region"/>
-    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
-  </xsd:complexType>
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of data type for GMV output -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_OutputGMV">
-    <xsd:attribute name="fixedGrid" type="DT_CFSBool" default="yes"/>
-    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
-    <xsd:attribute name="id" type="xsd:token" default="gmv"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
 

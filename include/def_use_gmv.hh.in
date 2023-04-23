@@ -1,3 +1,0 @@
-// Define used to check if GMV in/output is used
-
-#cmakedefine USE_GMV

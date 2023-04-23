@@ -66,7 +66,7 @@ namespace CoupledField
     //! specify the time stepping
     virtual void InitTimeStepping() {;};
 
-    //! Write solutions of postprocessing into gmv/unv ... files
+    //! Write solutions of postprocessing into unv ... files
     void WriteResultsInFile( const UInt kstep,
                              const Double asteptime );
 

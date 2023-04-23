@@ -44,7 +44,7 @@ namespace CoupledField
     virtual void SolveProblem() = 0;
     
     /** Only of interest for optimization, where one might not want to generate
-     * output (gid, hdf5, gmv, ...) for every forward solution. 
+     * output (gid, hdf5, ...) for every forward solution.
      * <p>E.g. because this are linesearch steps of IPOPT. For non-optimization SolveProblem()
      * will have been called with write_results = true.<p>
      * <p>Note that you have to wrap within a multisequencestep and finalize the result handler explicitly,

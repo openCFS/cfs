@@ -8,7 +8,6 @@
   <fileFormats>
     <input>
       <gmsh/>
-      <gmv/>
       <hdf5/>
       <mphtxt debug="false"/>
       <mesh/>
@@ -18,7 +17,6 @@
       <csv/>
       <gid binaryFormat="true"/>
       <gmsh binaryFormat="true" endianness="big"/>
-      <gmv binaryFormat="true" fixedGrid="yes"/>
       <hdf5 externalFiles="false"/>
       <xdmf externalFiles="false"/>
       <unv flavor="ideas"/>

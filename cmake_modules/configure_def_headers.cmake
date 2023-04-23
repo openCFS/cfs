@@ -124,9 +124,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
   "${CFS_BINARY_DIR}/include/def_build_quadeigensolver.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_gmv.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_unv.hh")
 

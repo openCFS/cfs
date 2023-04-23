@@ -10,7 +10,6 @@
 
 // Include headers which define what types of in/output files openCFS supports
 #include <def_use_gidpost.hh>
-#include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
 #include <def_use_cgns.hh>
@@ -22,11 +21,6 @@
 #include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
-
-#ifdef USE_GMV
-#include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
-#include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
-#endif
 
 #ifdef USE_GMSH
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
@@ -214,10 +208,9 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     actId = actNode->Get("id")->As<string>();
 
     // Note: In general, we should ensure, that output writers exist only once
-    // (especially hdf5, gmv ,etc.). But for text-writers, it makes intentionally
+    // (especially hdf5, etc.). But for text-writers, it makes intentionally
     // sense to have several ones (e.g. for collecting over frequency or over
-    // space). We should therefore restrict this check for format like 
-    // gmv and hdf5.
+    // space). We should therefore restrict this check for format like hdf5.
 //    // ensure, that format is unique
 //    if (formatSet.find(actFormat) != formatSet.end())
 //    {
@@ -342,18 +335,6 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(string fName
     }
     aInput = shared_ptr<SimInput>(new SimInputHDF5(fName, configNode, infoNode));
   }
-  else if (fFormat == "gmv")
-  {
-#ifdef USE_GMV
-    if(fName.empty()){
-      fName += simName + ".gmv";
-    }
-    aInput = shared_ptr<SimInput>(new SimInputGMV(fName,
-        configNode, infoNode));
-#else
-    EXCEPTION( "No support for GMV input file format." );
-#endif // USE_GMV
-  }
   else if (fFormat == "refelem")
   {
     if(fName.empty()){
@@ -477,16 +458,6 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fNam
                                                           infoNode, isRestart));
 #else
     EXCEPTION( "No support for Gmsh parsed output file format." );
-#endif
-  }
-
-  if (fFormat == "gmv")
-  {
-#ifdef USE_GMV
-    aOutput = shared_ptr<SimOutput> (new SimOutputGMV(fName, configNode,
-                                                      infoNode, isRestart));
-#else
-    EXCEPTION( "No support for GMV output file format." );
 #endif
   }
 

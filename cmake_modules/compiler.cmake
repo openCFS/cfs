@@ -150,8 +150,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # to prevent error with gcc 12: struct std::unary_function’ is deprecated
     # unary_function is used in cfs and in boost. Shall be removed in cfs when boost is updated
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations ")
-    # to prevent (real?) issue use-after-freegmvread.cc:33:121: error: pointer ‘save’ may be used after ‘void* realloc(void*, size_t)’
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wuse-after-free ")
     # gcc13 complains this about CGAL
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-catch-value -Wno-dangling-reference ")
     if(DEBUG)

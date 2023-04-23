@@ -6,7 +6,6 @@
 // of in/output files openCFS should support
 #include <def_use_gidpost.hh>
 #include <def_use_gmsh.hh>
-#include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_cgns.hh>
 
@@ -33,11 +32,6 @@ namespace fs = boost::filesystem;
 #ifdef USE_GMSH
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
-#endif
-
-#ifdef USE_GMV
-#include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
-#include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
 #endif
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
@@ -185,22 +179,6 @@ namespace CFSTool {
       EXCEPTION( "No support for CGNS .cgns input file format." );
     #endif
     }
-    else if(fileName.find(".gmv") != string::npos )
-    {
-    #ifdef USE_GMV
-      if(inputNode->Has("gmv"))
-        readerNode = inputNode->Get("gmv");
-      else
-      {
-        readerNode = PtrParamNode(new ParamNode());
-        readerNode->SetName("gmv");
-      }
-
-      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, readerNode, info));
-    #else
-      EXCEPTION( "No support for GMV input file format." );
-    #endif
-    }
     else if(fileName.find( ".unv") != string::npos ||
             fileName.find( ".unverg") != string::npos ||
             fileName.find( ".unvref") != string::npos)
@@ -284,36 +262,6 @@ namespace CFSTool {
                                                         info, restart ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
-#endif
-    } else if( fileName.find( ".gmv") != string::npos ) {
-#ifdef USE_GMV
-      baseName = std::string(fileName, 0, fileName.find(".gmv"));
-      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-      binary->SetName("binaryFormat");
-      binary->SetValue( "yes" );
-      PtrParamNode fixedGrid (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-      fixedGrid->SetName("fixedGrid");
-      fixedGrid->SetValue( "yes" );
-
-      if(outputNode->Has("gmv")) {
-        writerNode = outputNode->Get("gmv");
-        if(!writerNode->Has("binaryFormat")) {
-          writerNode->AddChildNode( binary );
-        } 
-        if(!writerNode->Has("fixedGrid")) {
-          writerNode->AddChildNode( fixedGrid );
-        } 
-      } else {
-        writerNode = PtrParamNode(new ParamNode());
-        writerNode->SetName("gmv");
-        writerNode->AddChildNode( binary );
-        writerNode->AddChildNode( fixedGrid );
-      }
-
-      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, writerNode, 
-                                                        info, restart ) );
-#else
-      EXCEPTION( "No support for GMV output file format." );
 #endif
     } else if( fileName.find( ".msh") != string::npos ) {
 #ifdef USE_GMSH

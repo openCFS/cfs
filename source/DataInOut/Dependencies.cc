@@ -8,7 +8,6 @@
 #include <def_use_flann.hh>
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
-#include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ilupack.hh>
@@ -369,13 +368,6 @@ void Dependencies::ReadSetting()
   gmsh.active = true;
 #endif
   data.Push_back(gmsh);
-
-  // internal hard coded code copied from ancient sources
-  Dependency gmv("GMC", "USE_GMV", NOT_KNOWN);
-#ifdef USE_GMV
-  gmv.active = true;
-#endif
-  data.Push_back(gmv);
 
   Dependency vtk("VTK", "USE_ENSIGHT", BSD);
 #ifdef USE_ENSIGHT

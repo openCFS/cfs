@@ -309,10 +309,10 @@ namespace CFSTool
         std::cout <<
           "'convert' converts files from one type to another. The following types of" << std::endl <<
           "\tconversions are supported:" << std::endl <<
-          "\tinput:  .h5 (openCFS), .mesh (openCFS|NACS|CAPA), .msh (Gmsh), .gmv (GMV)," << std::endl <<
+          "\tinput:  .h5 (openCFS), .mesh (openCFS|NACS|CAPA), .msh (Gmsh), " << std::endl <<
           "\t        .unv[erg|ref] (Ideas|CAPA), .mphtxt (COMSOL mesh)," << std::endl <<
           "\t        .refelem (reference elements e.g. HEXA20.refelem)" << std::endl <<
-          "\toutput: .h5 (openCFS++), .post.[res|bin] (GiD), .gmv (GMV), .msh (Gmsh)," << std::endl <<
+          "\toutput: .h5 (openCFS++), .post.[res|bin] (GiD), .msh (Gmsh)," << std::endl <<
           "\t        .xmf (Xdmf2 format for openCFS HDF5), .unv[erg|ref] (Ideas|CAPA)," << std::endl <<
           "\t        .rst (ANSYS)" << std::endl;
         std::cout <<
