@@ -157,7 +157,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     if(DEBUG)
       # gcc13 spams the console with this output but it might be worse to check first if some
       # warnings make sense - but disable for debug
-      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-catch-value ")
+      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-overloaded-virtual ")
     endif() 
   endif()
 

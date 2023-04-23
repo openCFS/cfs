@@ -602,7 +602,7 @@ linux:gcc7max-debug:
   <<: *max_rules
   <<: *gcc_before
   <<: *cache_cfsdeps
-  needs: []
+  needs: ["cfsdeps:gcc7"]
 
 # maximal build using as many options as possible
 linux:gcc7max:
