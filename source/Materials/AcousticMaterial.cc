@@ -60,7 +60,7 @@ namespace CoupledField
                            CoefXpr::OP_SQRT)));
       }
       else {
-        EXCEPTION("Cannot not compute'" << MaterialTypeEnum.ToString(ACOU_SOUND_SPEED)
+        EXCEPTION("Can not compute'" << MaterialTypeEnum.ToString(ACOU_SOUND_SPEED)
                   << "' for material '" << name_ << "' due to missing data");
       }
 

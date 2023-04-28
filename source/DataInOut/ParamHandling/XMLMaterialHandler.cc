@@ -1,6 +1,7 @@
 #include "XMLMaterialHandler.hh"
 
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -567,7 +568,9 @@ namespace CoupledField {
           PtrCoefFct densInf;
           PtrParamNode rationalInv = dens->Get("rationalFuncApproxInverse");
           densInf = ReadScalarLin(rationalInv, "timeDomainEqFluid", Global::COMPLEX);
-          material->SetCoefFct(ACOU_TDEF_INVDENS_CONST, densInf); // set it to the material
+          
+          material->SetCoefFct(DENSITY,CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, "1.0", densInf, CoefXpr::OP_DIV) )); // set it to the material (required for acoustic environment)
+          material->SetCoefFct(ACOU_TDEF_INVDENS_CONST, densInf); // set it to the material (used in coef function)
 
           // ###########################################
           //  Read the variable number of real poles
@@ -654,7 +657,8 @@ namespace CoupledField {
         PtrCoefFct BlkInf;
         PtrParamNode rationalInv = blk->Get("rationalFuncApproxInverse");
         BlkInf = ReadScalarLin(rationalInv, "timeDomainEqFluid", Global::COMPLEX);
-        material->SetCoefFct(ACOU_TDEF_INVBLK_CONST, BlkInf); // set it to the material
+        material->SetCoefFct(ACOU_BULK_MODULUS,CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, "1.0", BlkInf, CoefXpr::OP_DIV) )); // set it to the material (required for acoustic environment)
+        material->SetCoefFct(ACOU_TDEF_INVBLK_CONST, BlkInf); // set it to the material (used in coef function)
 
         // ###########################################
         //  Read the variable number of real poles

@@ -277,8 +277,9 @@ namespace CoupledField{
     	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
       }
       else if (timeDomainEqFluidFormulation_) {
-        // TODO: dens and blk must be the inverse of the high-freq limit of compressibility and spec. volume
-        //       when they become the classical mass and stiffness terms
+        // Attention: 
+        // in case of the TDEF formulation, the high frequency limit is set for ACOU_BULK_MODULUS and DENSITY (for user input checks)
+        // We also created ACOU_TDEF_INVDENS_CONST and ACOU_TDEF_INVBLK_CONST, which have the inverse values (we currently don't use them)
     	  PtrCoefFct densInvConst;
         PtrCoefFct blkInvConst;
         densInvConst = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
