@@ -42,6 +42,12 @@ IF(MKL_BLAS_LIB)
   LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
 ENDIF(MKL_BLAS_LIB)
 
+
+if(USE_BLAS_LAPACK STREQUAL "NETLIB")
+  assert_set(LAPACK_LIBRARY)
+  list(APPEND TARGET_LL ${LAPACK_LIBRARY};${BLAS_LIBRARY})
+endif()
+
 TARGET_LINK_LIBRARIES(cfstest ${TARGET_LL})
 
 # this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)

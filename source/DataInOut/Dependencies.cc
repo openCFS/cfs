@@ -236,12 +236,11 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(acc);
 
-  // what we call netlib is actually LAPACK, but mkl and openblas have their own stuff
+  // All other blas have their own lapack. Netlib contains blas/lapack and is the slow reference implementation
   Dependency nl("Netlib", "USE_NETLIB", BSD);
-  if(!mkl.active && !ob.active)
-  {
-    nl.SetVersion(NETLIB_VER);
-  }
+#ifdef USE_NETLIB
+  nl.SetVersion(NETLIB_VER);
+#endif
   data.Push_back(nl);
 
   // liner system solver
