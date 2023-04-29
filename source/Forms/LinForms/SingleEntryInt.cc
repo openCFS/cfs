@@ -45,7 +45,8 @@ SingleEntryInt::SingleEntryInt(PtrCoefFct& val) : LinearForm()
 
     // if we have design dependent loads for optimization we need to set the lp number
     // for spatial displacement we set the coordinate
-    if(typeid(*val_) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent())
+    auto& t = *val_.get(); // https://stackoverflow.com/questions/46494928/clang-warning-on-expression-side-effects
+    if(typeid(t) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent())
     {
       assert(ent1.GetType() == EntityList::NODE_LIST);
       lpm.lp.number = ent1.GetNode();
@@ -79,7 +80,8 @@ SingleEntryInt::SingleEntryInt(PtrCoefFct& val) : LinearForm()
       elemVec.Resize(1);
       val_->GetScalar(elemVec[0], lpm);
     } else  if( val_->GetDimType() == CoefFunction::VECTOR) {
-      if((typeid(*val_) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent()) && ent1.GetType() == EntityList::NODE_LIST)
+      auto& t = *val_.get(); // https://stackoverflow.com/questions/46494928/clang-warning-on-expression-side-effects  
+      if((typeid(t) == typeid(CoefFunctionOpt) || val_->IsSpacialDependent()) && ent1.GetType() == EntityList::NODE_LIST)
         lpm.lp.number = ent1.GetNode();
       val_->GetVector(elemVec, lpm);
     } else {

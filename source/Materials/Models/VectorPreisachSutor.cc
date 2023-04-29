@@ -1215,7 +1215,7 @@ namespace CoupledField
          */
         if(classical_){
           
-          if((performUpdateWithOldProjectionFirst == true)){
+          if(performUpdateWithOldProjectionFirst == true){
             UpdateSwitchingStates(u_in, idElem);
           }          
           /*
@@ -1951,7 +1951,6 @@ namespace CoupledField
       updateNestedListCounter_++;
     }
     bool listUpdated = false;
-    int cntInner = 0;
 
     //	std::cout << "Overwrite direction? " << overwriteDirection << std::endl;
     //    if((overwriteDirection)&&(needsInsert == true)){
@@ -1969,7 +1968,6 @@ namespace CoupledField
        * Update rotation states
        */
       for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
-        cntInner++;
         curVal = listIt->getVal();
 
         /*
@@ -3919,7 +3917,6 @@ namespace CoupledField
     Double tmp = 0.0;
     Double factor;
     UInt cnt = 0;
-    UInt outercnt = 1;
     UInt outputCNT = 0;
 
     Vector<Double> rotState;
@@ -4005,7 +4002,6 @@ namespace CoupledField
         //        std::cout << "Rect1: " << ltmp << ", " << rtmp << ", " << ttmp << ", " << btmp << std::endl;
         //        rotRect2.getBounds(ltmp,rtmp,ttmp,btmp);
         //        std::cout << "Rect2: " << ltmp << ", " << rtmp << ", " << ttmp << ", " << btmp << std::endl;
-        outercnt++;
 
         /*
          * reset counter (needed to check if we have the first entry of the switch list)

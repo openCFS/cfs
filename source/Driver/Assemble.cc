@@ -620,8 +620,9 @@ namespace CoupledField
                 LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString();
               } else {
                 form->CalcElementMatrix( elemMatrix, it1, it2 );
-                if(it1.IsElemType())
+                if(it1.IsElemType()) {
                   LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+                }
                 LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString();
                 if(actContext.IsSetNegate()){
                   assert(!form->IsComplex());

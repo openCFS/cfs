@@ -728,6 +728,7 @@ bool SCPIPBase::EvaluateGradients()
 
   int ie = 0;
   int eq = 0;
+  (void) eq; // "use" variable to avoid unsued warning as we only use it in an assert
   int ie_nnz = 0; // counter
   int eq_nnz = 0;
   for(unsigned int c = 0; c < shift.GetSize(); c++)

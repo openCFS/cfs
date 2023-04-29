@@ -766,15 +766,11 @@ namespace CoupledField {
     offset = 0;
     UInt colSize;
     
-    UInt numIter = 0;
-    
     // use initial guess for k: multiply row by avg. blockwidth to get good starting value
     k = UInt(oneOverBlockSize_ * row );
     
     // look for row
     while( l <= u ) {
-      numIter++;
-      
       if( bRow_[k] <=  row && bRow_[k+1] > row) {
         rowB = k;
         offset = (row-bRow_[k]);
@@ -790,7 +786,6 @@ namespace CoupledField {
     l = rowPtr_[rowB];
     u = rowPtr_[rowB+1]-1;
     while( l <= u ) {
-      numIter++;
       k = (l+u) >> 1; // half the interval
       if( bCol_[colInd_[k]] <=  col && bCol_[colInd_[k]+1] > col) {
         found = true;

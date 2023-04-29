@@ -11894,7 +11894,7 @@ namespace CoupledField {
       // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
       int isIsotropic = 1;
       material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-      if((isIsotropic == 0)){
+      if(isIsotropic == 0){
 //        if( (dim_ != 2) || (isIsotropic == 0)){
         EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
       }
@@ -12136,7 +12136,7 @@ namespace CoupledField {
           // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
           int isIsotropic = 1;
           material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-          if((isIsotropic == 0)){
+          if(isIsotropic == 0){
 //            if( (dim_ != 2) || (isIsotropic == 0)){
             EXCEPTION("Mayergoyz vector model currently only implemented for isotropic materials");
           }

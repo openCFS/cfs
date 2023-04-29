@@ -70,7 +70,6 @@ int BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   pgc = xc - kk_proj(x_gc, up, lo);
 
   // active index set
-  unsigned int ia=0;
   Vector<int> alist(n);
 
   Vector<double> tst(n);
@@ -79,12 +78,14 @@ int BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   double lim1 = 0.5*tst.Min();
   double epsilon = min(lim1, pgc.NormL2());
 
+  /** interestingly ia is never used - might indicate a bug! TOOD
   // check if the x is on the bounds, if it is on the bounds then increase the number of active index
+  unsigned int ia=0;
   for(unsigned int in =0; in < n; ++in)
   {
     if (xc[in] == up[in] || xc[in] == lo[in])
       ++ia;
-  }
+  } */
 
   for(unsigned int in =0; in < n; ++in)
   {
@@ -146,7 +147,7 @@ int BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
       if(iarm > 10)
       {
         x =xc;
-        std::setprecision(9);
+        (void) std::setprecision(9); // cast to get rid of ignoring return value of function declared with 'nodiscard' attribute
         if(progOpts->DoDetailedInfo())
         {
           bfgs_details.Push_back(BFGSInfo());
@@ -187,14 +188,10 @@ int BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
     for (unsigned int in =0; in <n ; ++in)
       alist[in] = 0;
 
-    int ial = 0;
     for(unsigned int in =0; in<n; ++in)
     {
       if(min(up[in] - xc[in], xc[in] - lo[in]) < epsilon)
-      {
         alist[in] = 1;
-        ++ ial;
-      }
     }
     y = proji(y,alist);
     s = proji(s,alist);

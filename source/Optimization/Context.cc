@@ -266,11 +266,13 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 App::Type Context::ToApp(const SinglePDE* pde)
 {
   if(pde->GetName() == "electrostatic") return App::ELEC;
-  if(pde->GetName() == "mechanic")
+  if(pde->GetName() == "mechanic") 
+  {
     if(pde->GetAnalysisType() == BasePDE::BUCKLING)
       return App::BUCKLING;
     else
       return App::MECH;
+  }
   if(pde->GetName() == "heatConduction") return App::HEAT;
   if(pde->GetName() == "acoustic") return App::ACOUSTIC;
   if(pde->GetName() == "LatticeBoltzmann") return App::LBM;

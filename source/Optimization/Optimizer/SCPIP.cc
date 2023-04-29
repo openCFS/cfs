@@ -162,6 +162,7 @@ void SCPIP::SetConstraintSparsityPattern()
   // beside this the ordering is not changed.
   int ie = 0; // summed up total inequality constraint
   int ie_active = 0; // summed up active inequality constraint
+  (void) ie_active; // "use" the variable to avoid unused warning as we only use it in an assert
   int eq = 0;
 
   int ie_nnz = 0; // counter

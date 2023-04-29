@@ -428,11 +428,9 @@ namespace CoupledField {
         os << "Value (isMin?): " << '\n';
 
         std::list<ListEntryv10>::const_iterator listIt;
-        UInt cnt = 1;
 
         for(listIt = switchingList_.begin(); listIt != switchingList_.end(); listIt++){
           os << listIt->getValConst() << " (" << listIt->isMinConst() << ") -/- ";
-          cnt++;
         }
 
         return os.str();

@@ -4087,7 +4087,7 @@ namespace CoupledField {
         if( (caseK == 2)&&(k == 0)){
           // jump directly to evaluation of A
         } else {
-          if( (caseK == 1) ){
+          if( caseK == 1 ){
             // only one interval known; use midpoint
             alpha = (alpha2+alpha3)/2.0;
             // use midpoint alpha

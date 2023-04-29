@@ -536,27 +536,15 @@ namespace CoupledField
 
   double SmoothSpline::Newton( double f, double start ) const
   {
+    double za  = start; // start value
+    double zn  = xEnd_;
+    double eps = 1e-1;
 
-    double za,zn,rel,eps;
-    Integer k;
-
-    za  = start; // start value
-    zn  = xEnd_;
-    eps = 1e-1;
-    k   = 1;
-
-    if (za == 0) {
-      rel = 1;
-    }
-    else {
-      rel = za;
-    }
+    double rel = za == 0 ? 1 : za;
 
     while ( fabs((za-zn)/rel) > eps ) {
       zn  = za;
       za -= (EvaluateFunc(za)-f)/EvaluateDeriv(za);
-      
-      k++;
     }
 
     return za;
@@ -565,11 +553,9 @@ namespace CoupledField
 
   void SmoothSpline::CalcStart()
   {
-
-    Integer i;
     double start = 0;
 
-    for (i=0; i<ind_; i++) {
+    for (int i=0; i<ind_; i++) {
       g_[i] = Newton( i*theta_, start );
       start = g_[i];
     }
@@ -580,15 +566,13 @@ namespace CoupledField
 
   bool SmoothSpline::MonotoneBH()
   {
-
-    Integer i,j;
     bool monotone = false;
     double f0,f1,f2,f3;
     double c1,c2,c3;
     double x1,x2,x3;
 
-    for ( i=0; i<=node_; i++) {
-      j  = 2*i;
+    for (int i=0; i<=node_; i++) {
+      int j  = 2*i;
       
       f0 = coef_[j] / h_[i];
       f1 = coef_[j+2] / h_[i];

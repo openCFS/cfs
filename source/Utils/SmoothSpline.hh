@@ -167,17 +167,17 @@ namespace CoupledField {
     Vector<double> g_;      //!< contains the starting values for the Newton-iteration
 
 
-    double xStart_;    //!< first measured x-value; should be zero
-    double xEnd_;      //!< last measured x-value
-    double yEnd_;      //!< kast measured y-value
-    double theta_;     //!< increment for y; (y[0] - y[end]) / ind_
-    double delta_;     //!< measurement error
+    double xStart_ = -1.0;    //!< first measured x-value; should be zero
+    double xEnd_ = -1.0;      //!< last measured x-value
+    double yEnd_ = -1.0;      //!< kast measured y-value
+    double theta_ = -1.0;     //!< increment for y; (y[0] - y[end]) / ind_
+    double delta_ = -1.0;     //!< measurement error
 
-    double nuMax_;     //!< maximal value of reluctivity
-    double yMax_;      //!< maximal value for y
+    double nuMax_ = -1.0;     //!< maximal value of reluctivity
+    double yMax_ = -1.0;      //!< maximal value for y
 
-    double extrapolAlpha_;  //!< paramter for extrapolation of reluctivity
-    double extrapolBeta_;   //!< paramter for extrapolation of reluctivity
+    double extrapolAlpha_ = -1.0;  //!< paramter for extrapolation of reluctivity
+    double extrapolBeta_  = -1.0;   //!< paramter for extrapolation of reluctivity
 
     //============================ just for testing
 
