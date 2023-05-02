@@ -94,6 +94,36 @@ namespace CoupledField{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }
 
+    // This check has been moved from DefinePrimaryResults since it is needed earlier for the TDEF formulation
+    RegionIdType actRegion;
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      //check for complex fluid formulation
+      actRegion = it->first;
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+      PtrParamNode curRegNode =
+              myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
+        complexFluidFormulation_ = true;
+        isMaterialComplex_ = true;
+        if ( this->analysistype_ != HARMONIC )
+          EXCEPTION("Complex fluid region just allowed in harmonic analysis");
+          //need an acoustic pressure formulation
+        if ( formulation_ != ACOU_PRESSURE )
+          EXCEPTION("Complex fluid needs acoustic pressure formulation");
+      }
+
+      //check for time domain equivalent fluid (TDEF) formulation
+      if ( curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" ) {
+        timeDomainEqFluidFormulation_ = true;
+        if ( this->analysistype_ != TRANSIENT )
+          EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
+          //need an acoustic pressure formulation
+        if ( formulation_ != ACOU_PRESSURE )
+          EXCEPTION("Time domain equivalent fluid formulation needs acoustic pressure formulation");
+      }
+    }
+
     // ===================================
     // Check for transient PML
     // ===================================
@@ -2867,36 +2897,6 @@ namespace CoupledField{
 
   void AcousticPDE::DefinePrimaryResults(){
 	
-    RegionIdType actRegion;
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      //check for complex fluid formulation
-      actRegion = it->first;
-      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-      PtrParamNode curRegNode =
-              myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-      if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
-        complexFluidFormulation_ = true;
-        isMaterialComplex_ = true;
-        if ( this->analysistype_ != HARMONIC )
-          EXCEPTION("Complex fluid region just allowed in harmonic analysis");
-          //need an acoustic pressure formulation
-        if ( formulation_ != ACOU_PRESSURE )
-          EXCEPTION("Complex fluid needs acoustic pressure formulation");
-      }
-
-      //check for time domain equivalent fluid (TDEF) formulation
-      if ( curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" ) {
-        timeDomainEqFluidFormulation_ = true;
-        if ( this->analysistype_ != TRANSIENT )
-          EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
-          //need an acoustic pressure formulation
-        if ( formulation_ != ACOU_PRESSURE )
-          EXCEPTION("Time domain equivalent fluid formulation needs acoustic pressure formulation");
-      }
-    }
-
-
     // === Primary result according to definition ===
     shared_ptr<ResultInfo> res1( new ResultInfo);
     if ( formulation_ ==  ACOU_PRESSURE) {
@@ -3040,7 +3040,56 @@ namespace CoupledField{
 
     // TODO introduce AUX variables for TDEF (see PML AUX parames above)
     // === TDEF AUX Variables ===
-
+    if(this->timeDomainEqFluidFormulation_){
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<ResultInfo> resTDEFPhiC ( new ResultInfo );
+        resTDEFPhiC->resultType = (SolutionType) (ACOU_TDEF_PHI_C_1 + i);
+        resTDEFPhiC->dofNames = "";
+        resTDEFPhiC->unit = "-";
+        resTDEFPhiC->definedOn = ResultInfo::NODE;
+        resTDEFPhiC->entryType = ResultInfo::SCALAR;
+        feFunctions_[(SolutionType) (ACOU_TDEF_PHI_C_1 + i)]->SetResultInfo(resTDEFPhiC);
+        results_.Push_back( resTDEFPhiC );
+        resTDEFPhiC->SetFeFunction(feFunctions_[(SolutionType) (ACOU_TDEF_PHI_C_1 + i)]);
+        DefineFieldResult( feFunctions_[(SolutionType) (ACOU_TDEF_PHI_C_1 + i)], resTDEFPhiC );
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<ResultInfo> resTDEFPsiC ( new ResultInfo );
+        resTDEFPsiC->resultType = (SolutionType) (ACOU_TDEF_PSI_C_1 + i);
+        resTDEFPsiC->dofNames = "";
+        resTDEFPsiC->unit = "-";
+        resTDEFPsiC->definedOn = ResultInfo::NODE;
+        resTDEFPsiC->entryType = ResultInfo::SCALAR;
+        feFunctions_[(SolutionType) (ACOU_TDEF_PSI_C_1 + i)]->SetResultInfo(resTDEFPsiC);
+        results_.Push_back( resTDEFPsiC );
+        resTDEFPsiC->SetFeFunction(feFunctions_[(SolutionType) (ACOU_TDEF_PSI_C_1 + i)]);
+        DefineFieldResult( feFunctions_[(SolutionType) (ACOU_TDEF_PSI_C_1 + i)], resTDEFPsiC );
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<ResultInfo> resTDEFPhiV ( new ResultInfo );
+        resTDEFPhiV->resultType = (SolutionType) (ACOU_TDEF_PHI_V_1 + i);
+        resTDEFPhiV->dofNames = "";
+        resTDEFPhiV->unit = "-";
+        resTDEFPhiV->definedOn = ResultInfo::NODE;
+        resTDEFPhiV->entryType = ResultInfo::SCALAR;
+        feFunctions_[(SolutionType) (ACOU_TDEF_PHI_V_1 + i)]->SetResultInfo(resTDEFPhiV);
+        results_.Push_back( resTDEFPhiV );
+        resTDEFPhiV->SetFeFunction(feFunctions_[(SolutionType) (ACOU_TDEF_PHI_V_1 + i)]);
+        DefineFieldResult( feFunctions_[(SolutionType) (ACOU_TDEF_PHI_V_1 + i)], resTDEFPhiV );
+      }
+      for(unsigned int i = 0; i < 15; i++){
+        shared_ptr<ResultInfo> resTDEFPsiV ( new ResultInfo );
+        resTDEFPsiV->resultType = (SolutionType) (ACOU_TDEF_PSI_V_1 + i);
+        resTDEFPsiV->dofNames = "";
+        resTDEFPsiV->unit = "-";
+        resTDEFPsiV->definedOn = ResultInfo::NODE;
+        resTDEFPsiV->entryType = ResultInfo::SCALAR;
+        feFunctions_[(SolutionType) (ACOU_TDEF_PSI_V_1 + i)]->SetResultInfo(resTDEFPsiV);
+        results_.Push_back( resTDEFPsiV );
+        resTDEFPsiV->SetFeFunction(feFunctions_[(SolutionType) (ACOU_TDEF_PSI_V_1 + i)]);
+        DefineFieldResult( feFunctions_[(SolutionType) (ACOU_TDEF_PSI_V_1 + i)], resTDEFPsiV );
+      }
+    }
   }
   
   void AcousticPDE::FinalizePostProcResults(){
