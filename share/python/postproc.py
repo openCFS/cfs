@@ -5,8 +5,6 @@ import argparse
 import collections
 import re
 from optimization_tools import *
-from lxml.etree import LxmlSyntaxError
-
 
 # try to convert a value to int or float, if it fails, leave it but make empty string to 0
 def interpret_value(val):
@@ -224,87 +222,87 @@ def label(query):
   return query  
 
 
-
-parser = argparse.ArgumentParser(description='General tool to analyze a bunch of .info.xml files')
-parser.add_argument("input", nargs='+', help="selection of .info.xml, .density.xml or .plot.dat files to process (with wildcards)")
-parser.add_argument("--query", nargs='+', help="xpath queries, e.g. //transferFunction/@param where the attribute becomes the key")
-parser.add_argument("--perf", help="selected data for benchmarking/ performance analysis", action='store_true')
-parser.add_argument("--extend", help="add more information for opt or perf", action='store_true')
-parser.add_argument("--issue", help="print reason for terminating optimization", action='store_true')
-parser.add_argument("--sort", help="sort for the key")
-parser.add_argument("--revsort", help="sort reversly for the key")
-parser.add_argument("--extract", help="extract only a single column. With sort, two columns are written")
-parser.add_argument("--first", help="extract first iteration data instead of default last", action='store_true')
-parser.add_argument('--failsafe', help="continue on errors", action='store_true')
-parser.add_argument('--skipaborted', help="skip .info.xml files which are aborted", action='store_true')
-parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
-args = parser.parse_args()
-
-input = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
- 
-res = []
-if input[0].endswith('.info.xml'):
-  res = read_info_xml_input(args, input)
-elif input[0].endswith('.density.xml'):
-  res = read_density_xml_input(args, input)  
-else:
-  res = read_dat_input(args, input)  
-
-do_sort = True if args.sort or args.revsort else False 
-sort_key = None if not do_sort else (args.sort if args.sort else args.revsort)
-
-# all keys
-keys = []
-size = {}
-for dic in res:
-  for k in dic:
-    if not k in keys:
-      keys.append(k)
-      size[k] = max(len(str(k)),len('(99)')) 
-    size[k] = max(size[k], len(str(dic[k])))  
-
-# enrich dict for missing keys such that we can sort anyway
-for dic in res:
-  for k in keys:
-    if not k in dic:
-      dic[k] = 0
-
-if do_sort:
-  res = sorted(res, key=lambda x: x[sort_key], reverse=True if args.revsort else False)
-
-# print header for gnuplot output
-if args.extract:
-  if do_sort:
-    print('#' + sort_key + ' ' + args.extract)
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='General tool to analyze a bunch of .info.xml files')
+  parser.add_argument("input", nargs='+', help="selection of .info.xml, .density.xml or .plot.dat files to process (with wildcards)")
+  parser.add_argument("--query", nargs='+', help="xpath queries, e.g. //transferFunction/@param where the attribute becomes the key")
+  parser.add_argument("--perf", help="selected data for benchmarking/ performance analysis", action='store_true')
+  parser.add_argument("--extend", help="add more information for opt or perf", action='store_true')
+  parser.add_argument("--issue", help="print reason for terminating optimization", action='store_true')
+  parser.add_argument("--sort", help="sort for the key")
+  parser.add_argument("--revsort", help="sort reversly for the key")
+  parser.add_argument("--extract", help="extract only a single column. With sort, two columns are written")
+  parser.add_argument("--first", help="extract first iteration data instead of default last", action='store_true')
+  parser.add_argument('--failsafe', help="continue on errors", action='store_true')
+  parser.add_argument('--skipaborted', help="skip .info.xml files which are aborted", action='store_true')
+  parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
+  args = parser.parse_args()
+  
+  input = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+   
+  res = []
+  if input[0].endswith('.info.xml'):
+    res = read_info_xml_input(args, input)
+  elif input[0].endswith('.density.xml'):
+    res = read_density_xml_input(args, input)  
   else:
-    print('#' + args.extract)
-else:    
-  if args.query:
-    for query in args.query:
-      print('#query:',query)
-
-  print('#',end='')
-  for idx, k in enumerate(keys):
-    s = '{:>' + str(size[k]) + '}'
-    print(s.format('(' + str(idx+1) + ')') + ' ',end='')
-  print()
-  print('#',end='')
-  for k in keys:
-    s = '{:>' + str(size[k]) + '}'
-    print(s.format(k) + ' ',end='')
-  print()
-
-# print result
-for dic in res:
+    res = read_dat_input(args, input)  
+  
+  do_sort = True if args.sort or args.revsort else False 
+  sort_key = None if not do_sort else (args.sort if args.sort else args.revsort)
+  
+  # all keys
+  keys = []
+  size = {}
+  for dic in res:
+    for k in dic:
+      if not k in keys:
+        keys.append(k)
+        size[k] = max(len(str(k)),len('(99)')) 
+      size[k] = max(size[k], len(str(dic[k])))  
+  
+  # enrich dict for missing keys such that we can sort anyway
+  for dic in res:
+    for k in keys:
+      if not k in dic:
+        dic[k] = 0
+  
+  if do_sort:
+    res = sorted(res, key=lambda x: x[sort_key], reverse=True if args.revsort else False)
+  
+  # print header for gnuplot output
   if args.extract:
     if do_sort:
-      print(str(dic[sort_key]) + " ", end='')
-    print(str(dic[args.extract]))
+      print('#' + sort_key + ' ' + args.extract)
+    else:
+      print('#' + args.extract)
   else:    
-    print(' ',end='')
+    if args.query:
+      for query in args.query:
+        print('#query:',query)
+  
+    print('#',end='')
+    for idx, k in enumerate(keys):
+      s = '{:>' + str(size[k]) + '}'
+      print(s.format('(' + str(idx+1) + ')') + ' ',end='')
+    print()
+    print('#',end='')
     for k in keys:
       s = '{:>' + str(size[k]) + '}'
-      print(s.format(dic[k]) + ' ',end='')
+      print(s.format(k) + ' ',end='')
     print()
+  
+  # print result
+  for dic in res:
+    if args.extract:
+      if do_sort:
+        print(str(dic[sort_key]) + " ", end='')
+      print(str(dic[args.extract]))
+    else:    
+      print(' ',end='')
+      for k in keys:
+        s = '{:>' + str(size[k]) + '}'
+        print(s.format(dic[k]) + ' ',end='')
+      print()
     
 

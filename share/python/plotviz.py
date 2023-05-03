@@ -592,7 +592,7 @@ if __name__ == '__main__':
   parser.add_argument("--dashed", help="cylce through different line styles. Use with --black for b/w",action='store_true')
   parser.add_argument("--black", help="change all line colors to black. Use with --dashed",action='store_true')
   parser.add_argument("--save", help='write to given filename using the extension')
-  parser.add_argument("--noautocomplete", help='supress searching only for beginning of key',action='store_true')
+  parser.add_argument("--noautocomplete", help='suppress searching only for beginning of key',action='store_true')
   parser.add_argument("--noshow", help='supress popping up the image window', action='store_true')
     
   args = parser.parse_args()
