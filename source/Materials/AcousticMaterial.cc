@@ -65,7 +65,8 @@ namespace CoupledField
       }
 
       // TODO: care about that for TDEF
-      ComputeTDEF();
+      //ComputeTDEF();
+      // not necessary at the time, remove in the future 
     }
   }
 

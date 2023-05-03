@@ -848,7 +848,8 @@ namespace CoupledField
       // ====================================================================
       // check for TDEF formulation
       // ====================================================================
-      if (timeDomainEqFluidFormulation_ && formulation_ == ACOU_PRESSURE)
+      if (timeDomainEqFluidFormulation_ && formulation_ == ACOU_PRESSURE &&
+          curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" )
       { // only available for the acou pressure formulation
         // additional terms in the wave equation
 
@@ -875,9 +876,26 @@ namespace CoupledField
         // TODO set up a vectorial coefFunction so that we can access the coefficient in each iteration of the loop
         // fnc =
         
-        std::string test_coef1, test_coef2;
-        PtrCoefFct vecA = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+        PtrCoefFct coefVecA = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+        PtrCoefFct coefVecB = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
+        LocPointMapped lpm;
+        Vector<Double> vecA;
+        Vector<Double> vecB;
+        coefVecA->GetVector(vecA, lpm);
+        coefVecA->GetVector(vecB, lpm);
+        fncAC = StdVector<PtrCoefFct>(vecA.size());
+        fncBC = StdVector<PtrCoefFct>(vecB.size());
+        
+        for (UInt ii = 0; ii < vecA.GetSize(); ii++) 
+        {
+          fncAC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecA[ii]));
+        }
 
+        for (UInt ii = 0; ii < vecB.GetSize(); ii++) 
+        {
+          fncBC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecB[ii]));
+        }
+        
 
         // materials_[actRegion]->GetVector(test_coef1,ACOU_TDEF_INVDENS_A, Global::REAL);
 
@@ -3319,8 +3337,12 @@ namespace CoupledField
       DefineFieldResult(feFunctions_[ACOU_PMLAUXVEC], pmlVec);
     }
 
-    // TODO introduce AUX variables for TDEF (see PML AUX parames above)
     // === TDEF AUX Variables ===
+
+    // TODO READ POLES, SET LENGTH AND ITERATE OVER ONLY THE REQUIRED NUMBER OF FEFUNTIONS
+
+    // loop over all materials and use largest number of poles (if multiple can be defined, which I think is the case atm)
+
     if (this->timeDomainEqFluidFormulation_)
     {
       for (unsigned int i = 0; i < 15; i++)
