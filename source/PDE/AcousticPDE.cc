@@ -348,9 +348,9 @@ namespace CoupledField
                                       CoefXprBinOp(mp_, constOne, densInvConst, CoefXpr::OP_DIV));
         blk = CoefFunction::Generate(mp_, Global::REAL,
                                      CoefXprBinOp(mp_, constOne, blkInvConst, CoefXpr::OP_DIV));
-
-        // TODO read all paramers for spec. volume and compressibility real+complex poles
-        // ATTENTION: c0 is computed from dens and blk -> what is it used for apart from ABC and PML?
+        // TODO: create a vector for real and complex poles, respectively, containing the number of poles
+        // and fill it here for each region
+        // then we have N for the loops over the poles (e.g. for establishing the primary results, FE functions, ect.)                             
       }
       else
       {
@@ -877,36 +877,41 @@ namespace CoupledField
         // fnc =
         
         PtrCoefFct coefVecA = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
-        PtrCoefFct coefVecB = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
+        PtrCoefFct coefVecAlpha = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+
+//        PtrCoefFct coefVecB = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
+        
+
+
         LocPointMapped lpm;
+
         Vector<Double> vecA;
+        Vector<Double> vecAlpha;
+ 
         Vector<Double> vecB;
+
+
+
         coefVecA->GetVector(vecA, lpm);
-        coefVecA->GetVector(vecB, lpm);
+        coefVecA->GetVector(vecAlpha, lpm);
+
+
         fncAC = StdVector<PtrCoefFct>(vecA.size());
-        fncBC = StdVector<PtrCoefFct>(vecB.size());
+        fncAlphaC = StdVector<PtrCoefFct>(vecAlpha.size());
+
         
         for (UInt ii = 0; ii < vecA.GetSize(); ii++) 
         {
           fncAC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecA[ii]));
         }
-
-        for (UInt ii = 0; ii < vecB.GetSize(); ii++) 
-        {
-          fncBC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecB[ii]));
-        }
         
-
-        // materials_[actRegion]->GetVector(test_coef1,ACOU_TDEF_INVDENS_A, Global::REAL);
-
-
-        // fncAV = materials_[actRegion]->GetScalCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL); // TODO get vector instead scalar??
-
-
-        // fncDV = ...
-        // fncBV = ...
+        for (UInt ii = 0; ii < vecAlpha.GetSize(); ii++) 
+        {
+          fncAlphaC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAlpha[ii]));
+        }
 
         // check if all coefFunctions vectors are smaller than 15
+        // TODO: do we still need that after knowing the number of poles??
         if (fncAC.GetSize() > 15 || fncDC.GetSize() > 15 || fncBC.GetSize() > 15 || fncGammaC.GetSize() > 15 ||
             fncAV.GetSize() > 15 || fncDV.GetSize() > 15 || fncBV.GetSize() > 15 || fncGammaV.GetSize() > 15)
         {

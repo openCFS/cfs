@@ -575,67 +575,69 @@ namespace CoupledField {
           // ###########################################
           //  Read the variable number of real poles
 
-          PtrParamNode invDensPoleRealNode;
-          ParamNodeList invDensPolesReal;
+          if (dens->Get("rationalFuncApproxInverse")->Get("timeDomainEqFluid")->Has("poleListReal")){
+            PtrParamNode invDensPoleRealNode;
+            ParamNodeList invDensPolesReal;
 
-          invDensPoleRealNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListReal", ParamNode::PASS);
-          invDensPolesReal = invDensPoleRealNode->GetChildren();
+            invDensPoleRealNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListReal", ParamNode::PASS);
+            invDensPolesReal = invDensPoleRealNode->GetChildren();
 
-          UInt numRealP = invDensPolesReal.GetSize();
-          Vector<Double> parNumerRe(numRealP);
-          Vector<Double> parDenomRe(numRealP);
-          for (UInt i = 0; i < numRealP; i++){
-            std::cout << std::endl << "Read real pole  " << i + 1 << ":" << std::endl;
+            UInt numRealP = invDensPolesReal.GetSize();
+            Vector<Double> parNumerRe(numRealP);
+            Vector<Double> parDenomRe(numRealP);
+            for (UInt i = 0; i < numRealP; i++){
+              std::cout << std::endl << "Read real pole  " << i + 1 << ":" << std::endl;
 
-            parDenomRe[i] = invDensPolesReal[i]->Get("pole")->Get("real")->As<Double>();
-            parNumerRe[i] = invDensPolesReal[i]->Get("residue")->Get("real")->As<Double>();
-            std::cout << "pole = " << parNumerRe[i] << std::endl;
-            std::cout << "residue = " << parDenomRe[i] << std::endl;
+              parDenomRe[i] = invDensPolesReal[i]->Get("pole")->Get("real")->As<Double>();
+              parNumerRe[i] = invDensPolesReal[i]->Get("residue")->Get("real")->As<Double>();
+              std::cout << "pole = " << parNumerRe[i] << std::endl;
+              std::cout << "residue = " << parDenomRe[i] << std::endl;
+            }
+
+            // set material params: Vector (see e.g. "pronyList")
+
+            // here is the problem: when using SetVector(), we have NO_MATERIAL as matType in the GetVectorCoefFnc (BaseMaterial.cc)
+            // However, when using SetCoefFct(), now we get ACOU_IMPEDANCE_VAL_REAL. Is this an indexing issue of a pointer??
+            // (when using SetCoefFct, we have to set a scalar variable (not a vector))
+            material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_A, Global::REAL);
+            material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
           }
 
-          // set material params: Vector (see e.g. "pronyList")
-
-          // here is the problem: when using SetVector(), we have NO_MATERIAL as matType in the GetVectorCoefFnc (BaseMaterial.cc)
-          // However, when using SetCoefFct(), now we get ACOU_IMPEDANCE_VAL_REAL. Is this an indexing issue of a pointer??
-          // (when using SetCoefFct, we have to set a scalar variable (not a vector))
-          material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_A, Global::REAL);
-          material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
-
-
-          
 
           // ###########################################
           //  read the variable number of complex-conj. poles
 
-          PtrParamNode invDensPoleComplNode;
-          ParamNodeList invDensPolesCompl;
+            if (dens->Get("rationalFuncApproxInverse")->Get("timeDomainEqFluid")->Has("poleListComplex")){
+              PtrParamNode invDensPoleComplNode;
+              ParamNodeList invDensPolesCompl;
 
-          invDensPoleComplNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListComplex", ParamNode::PASS);
-          invDensPolesCompl = invDensPoleComplNode->GetChildren();
+              invDensPoleComplNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListComplex", ParamNode::PASS);
+              invDensPolesCompl = invDensPoleComplNode->GetChildren();
 
-          UInt numComplP = invDensPolesCompl.GetSize();
-          // Vector<Double> parNumerRe(numComplP);  REDECLARATION -> TODO: make that clean
-          // Vector<Double> parDenomRe(numComplP);
-          Vector<Double> parNumerIm(numComplP);
-          Vector<Double> parDenomIm(numComplP);
-          for (UInt i = 0; i < numComplP; i++){
-            std::cout << std::endl
-                      << "Read complex pole  " << i + 1 << std::endl;
+              UInt numComplP = invDensPolesCompl.GetSize();
+              Vector<Double> parNumerRe(numComplP);
+              Vector<Double> parDenomRe(numComplP);
+              Vector<Double> parNumerIm(numComplP);
+              Vector<Double> parDenomIm(numComplP);
+              for (UInt i = 0; i < numComplP; i++){
+                std::cout << std::endl
+                          << "Read complex pole  " << i + 1 << std::endl;
 
-            parDenomRe[i] = invDensPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
-            parNumerRe[i] = invDensPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
-            parDenomIm[i] = invDensPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
-            parNumerIm[i] = invDensPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
+                parDenomRe[i] = invDensPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
+                parNumerRe[i] = invDensPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
+                parDenomIm[i] = invDensPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
+                parNumerIm[i] = invDensPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
 
-            std::cout << "pole = " << parNumerRe[i] << " + " << parNumerIm[i] << " i" << std::endl;
-            std::cout << "residue = " << parDenomRe[i] << " + " << parDenomIm[i] << " i" << std::endl;
+                std::cout << "pole = " << parNumerRe[i] << " + " << parNumerIm[i] << " i" << std::endl;
+                std::cout << "residue = " << parDenomRe[i] << " + " << parDenomIm[i] << " i" << std::endl;
+              }
+
+              // set material params: Vector (see e.g. "pronyList")
+              material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_B, Global::REAL);
+              material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_BETA, Global::REAL);
+              material->SetVector(parNumerIm, ACOU_TDEF_INVDENS_C, Global::REAL);
+              material->SetVector(parDenomIm, ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
           }
-
-          // set material params: Vector (see e.g. "pronyList")
-          material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_B, Global::REAL);
-          material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_BETA, Global::REAL);
-          material->SetVector(parNumerIm, ACOU_TDEF_INVDENS_C, Global::REAL);
-          material->SetVector(parDenomIm, ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
         }
       }
     }
@@ -670,61 +672,65 @@ namespace CoupledField {
         // ###########################################
         //  Read the variable number of real poles
 
-        PtrParamNode invBlkPoleRealNode;
-        ParamNodeList invBlkPolesReal;
+        if (blk->Get("rationalFuncApproxInverse")->Get("timeDomainEqFluid")->Has("poleListReal")){
+          PtrParamNode invBlkPoleRealNode;
+          ParamNodeList invBlkPolesReal;
 
-        invBlkPoleRealNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListReal", ParamNode::PASS);
-        invBlkPolesReal = invBlkPoleRealNode->GetChildren();
+          invBlkPoleRealNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListReal", ParamNode::PASS);
+          invBlkPolesReal = invBlkPoleRealNode->GetChildren();
 
-        UInt numRealP = invBlkPolesReal.GetSize();
-        Vector<Double> parNumerRe(numRealP);
-        Vector<Double> parDenomRe(numRealP);
-        for (UInt i = 0; i < numRealP; i++){
-          std::cout << std::endl
-                    << "Read real pole  " << i + 1 << ":" << std::endl;
+          UInt numRealP = invBlkPolesReal.GetSize();
+          Vector<Double> parNumerRe(numRealP);
+          Vector<Double> parDenomRe(numRealP);
+          for (UInt i = 0; i < numRealP; i++){
+            std::cout << std::endl
+                      << "Read real pole  " << i + 1 << ":" << std::endl;
 
-          parDenomRe[i] = invBlkPolesReal[i]->Get("pole")->Get("real")->As<Double>();
-          parNumerRe[i] = invBlkPolesReal[i]->Get("residue")->Get("real")->As<Double>();
-          std::cout << "pole = " << parNumerRe[i] << std::endl;
-          std::cout << "residue = " << parDenomRe[i] << std::endl;
+            parDenomRe[i] = invBlkPolesReal[i]->Get("pole")->Get("real")->As<Double>();
+            parNumerRe[i] = invBlkPolesReal[i]->Get("residue")->Get("real")->As<Double>();
+            std::cout << "pole = " << parNumerRe[i] << std::endl;
+            std::cout << "residue = " << parDenomRe[i] << std::endl;
+          }
+
+          // set material params: Vector (see e.g. "pronyList")
+          material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_A, Global::REAL);
+          material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
         }
-
-        // set material params: Vector (see e.g. "pronyList")
-        material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_A, Global::REAL);
-        material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
 
         // ###########################################
         //  read the variable number of complex-conj. poles
 
-        PtrParamNode invBLKPoleComplNode;
-        ParamNodeList invBLKPolesCompl;
+        if (blk->Get("rationalFuncApproxInverse")->Get("timeDomainEqFluid")->Has("poleListComplex")){
+          PtrParamNode invBLKPoleComplNode;
+          ParamNodeList invBLKPolesCompl;
 
-        invBLKPoleComplNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListComplex", ParamNode::PASS);
-        invBLKPolesCompl = invBLKPoleComplNode->GetChildren();
+          invBLKPoleComplNode = rationalInv->Get("timeDomainEqFluid")->Get("poleListComplex", ParamNode::PASS);
+          invBLKPolesCompl = invBLKPoleComplNode->GetChildren();
 
-        UInt numComplP = invBLKPolesCompl.GetSize();
-        // Vector<Double> parNumerRe(numComplP);  REDECLARATION -> TODO: make that clean
-        // Vector<Double> parDenomRe(numComplP);
-        Vector<Double> parNumerIm(numComplP);
-        Vector<Double> parDenomIm(numComplP);
-        for (UInt i = 0; i < numComplP; i++){
-          std::cout << std::endl
-                    << "Read complex pole  " << i + 1 << std::endl;
+          UInt numComplP = invBLKPolesCompl.GetSize();
+          Vector<Double> parNumerRe(numComplP);
+          Vector<Double> parDenomRe(numComplP);
+          Vector<Double> parNumerIm(numComplP);
+          Vector<Double> parDenomIm(numComplP);
+          for (UInt i = 0; i < numComplP; i++){
+            std::cout << std::endl
+                      << "Read complex pole  " << i + 1 << std::endl;
 
-          parDenomRe[i] = invBLKPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
-          parNumerRe[i] = invBLKPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
-          parDenomIm[i] = invBLKPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
-          parNumerIm[i] = invBLKPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
+            parDenomRe[i] = invBLKPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
+            parNumerRe[i] = invBLKPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
+            parDenomIm[i] = invBLKPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
+            parNumerIm[i] = invBLKPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
 
-          std::cout << "pole = " << parNumerRe[i] << " + " << parNumerIm[i] << " i" << std::endl;
-          std::cout << "residue = " << parDenomRe[i] << " + " << parDenomIm[i] << " i" << std::endl;
+            std::cout << "pole = " << parNumerRe[i] << " + " << parNumerIm[i] << " i" << std::endl;
+            std::cout << "residue = " << parDenomRe[i] << " + " << parDenomIm[i] << " i" << std::endl;
+          }
+
+          // set material params: Vector (see e.g. "pronyList")
+          material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_B, Global::REAL);
+          material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_BETA, Global::REAL);
+          material->SetVector(parNumerIm, ACOU_TDEF_INVBLK_C, Global::REAL);
+          material->SetVector(parDenomIm, ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
         }
-
-        // set material params: Vector (see e.g. "pronyList")
-        material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_B, Global::REAL);
-        material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_BETA, Global::REAL);
-        material->SetVector(parNumerIm, ACOU_TDEF_INVBLK_C, Global::REAL);
-        material->SetVector(parDenomIm, ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
       }
     }
     
