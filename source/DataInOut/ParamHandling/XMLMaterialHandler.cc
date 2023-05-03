@@ -594,8 +594,15 @@ namespace CoupledField {
           }
 
           // set material params: Vector (see e.g. "pronyList")
+
+          // here is the problem: when using SetVector(), we have NO_MATERIAL as matType in the GetVectorCoefFnc (BaseMaterial.cc)
+          // However, when using SetCoefFct(), now we get ACOU_IMPEDANCE_VAL_REAL. Is this an indexing issue of a pointer??
+          // (when using SetCoefFct, we have to set a scalar variable (not a vector))
           material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_A, Global::REAL);
           material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+
+
+          
 
           // ###########################################
           //  read the variable number of complex-conj. poles
