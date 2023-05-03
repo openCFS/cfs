@@ -876,7 +876,7 @@ namespace CoupledField
         // fnc =
         
         std::string test_coef1, test_coef2;
-        fncAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+        PtrCoefFct vecA = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
 
 
         // materials_[actRegion]->GetVector(test_coef1,ACOU_TDEF_INVDENS_A, Global::REAL);

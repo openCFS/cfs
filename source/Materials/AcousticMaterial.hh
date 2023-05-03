@@ -29,6 +29,9 @@ namespace CoupledField {
 
     //! Trigger finalization of material
     virtual void Finalize();
+
+    //! Compute TDEF material coefficients
+    void ComputeTDEF();
   };
 
 } // end of namespace

@@ -65,7 +65,32 @@ namespace CoupledField
       }
 
       // TODO: care about that for TDEF
+      ComputeTDEF();
     }
+  }
+
+  void AcousticMaterial::ComputeTDEF() {
+
+    if (vectorCoef_.find(ACOU_TDEF_INVDENS_A) == vectorCoef_.end())
+    {
+      return;
+    }
+
+    Vector<Double> vecA;
+    GetVector(vecA, ACOU_TDEF_INVDENS_A, Global::REAL);
+    
+    //assert(bulkTimes.GetSize() == bulkModuli.GetSize());
+
+    StdVector<std::string> strVecA;
+    UInt numEntries = vecA.GetSize();
+    strVecA.Resize( numEntries );
+    for( UInt i = 0; i < numEntries; ++i ) {
+      strVecA[i] = lexical_cast<std::string>( vecA[i] );
+    }
+
+    PtrCoefFct coefA = CoefFunction::Generate(mp_, Global::REAL, strVecA);
+    
+    SetCoefFct(ACOU_TDEF_INVDENS_A, coefA);
   }
 
 }
