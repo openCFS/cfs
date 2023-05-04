@@ -871,8 +871,6 @@ namespace CoupledField
         StdVector<PtrCoefFct> fncDeltaV;
         StdVector<PtrCoefFct> fncGammaV;
 
-        shared_ptr<CoefFunction > coefMech;
-
         // TODO set up a vectorial coefFunction so that we can access the coefficient in each iteration of the loop
         // fnc =
         
