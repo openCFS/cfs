@@ -412,7 +412,7 @@ namespace CoupledField
       if (formulation_ == ACOU_PRESSURE && sosAtLaplace_ == true)
       {
         if (complexFluidFormulation_ || timeDomainEqFluidFormulation_)
-          EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
+          EXCEPTION("A complex/equivalent fluid and sosAtLaplace-formulation not allowed!!");
 
         // pressure formulation with temperature depend speed of sound
         coeffM = constOne;
@@ -432,6 +432,16 @@ namespace CoupledField
           coeffK = CoefFunction::Generate(mp_, Global::COMPLEX,
                                           CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV));
         }
+        else if (timeDomainEqFluidFormulation_)
+        {
+          // Here, dens and blk are already the inverse of the high-frequency limit of the 
+          // rational function approximation.
+          // As density and blk modulus they occur in their inverse form, the inverse density
+          // comes to the stiffness matrix and the inverse blk modulus to the mass matrix
+          coeffK = dens;   
+          coeffM = blk;
+        }
+        
         else
         {
           coeffK = factor;
