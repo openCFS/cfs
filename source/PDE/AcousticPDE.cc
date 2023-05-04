@@ -924,6 +924,9 @@ namespace CoupledField
           // K_PPHI1 (TDEF): stiffness integrator, TDEF (A_j^C term)
           // \int_{Omega_1} A_j^C p^\prime \phi_j^C d\Omega
           // ====================================================================
+          shared_ptr<FeSpace> spacePhiC = feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]->GetFeSpace();
+          spacePhiC->SetRegionApproximation(actRegion, polyId, integId);
+
           BiLinearForm *stiffIntTDEFPPHI1 = NULL;
 
           if (dim_ == 2)
@@ -965,6 +968,9 @@ namespace CoupledField
           // K_PPSI1 (TDEF): stiffness integrator, TDEF (D_k^C term)
           // \int_{Omega_1} D_k^C p^\prime \psi_k^C d\Omega
           // ====================================================================
+          shared_ptr<FeSpace> spacePsiC = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]->GetFeSpace();
+          spacePsiC->SetRegionApproximation(actRegion, polyId, integId);
+
           BiLinearForm *stiffIntTDEFPPSI1 = NULL;
 
           if (dim_ == 2)
@@ -1046,6 +1052,9 @@ namespace CoupledField
           // K_PPHI2 (TDEF): stiffness integrator, TDEF (A_l^V term)
           // \int_{Omega_1} A_l^C \nabla p^\prime \nabla \phi_l^C d\Omega
           // ====================================================================
+          shared_ptr<FeSpace> spacePhiV = feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]->GetFeSpace();
+          spacePhiV->SetRegionApproximation(actRegion, polyId, integId);
+
           BiLinearForm *stiffIntTDEFPPHI2 = NULL;
 
           if (dim_ == 2)
@@ -1087,6 +1096,9 @@ namespace CoupledField
           // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^C term)
           // \int_{Omega_1} D_m^C \nabla p^\prime \nabla \psi_m^C d\Omega
           // ====================================================================
+          shared_ptr<FeSpace> spacePsiV = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->GetFeSpace();
+          spacePsiV->SetRegionApproximation(actRegion, polyId, integId);
+
           BiLinearForm *stiffIntTDEFPPSI2 = NULL;
 
           if (dim_ == 2)
