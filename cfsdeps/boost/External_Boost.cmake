@@ -33,6 +33,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") # Linux and Windows
   # https://www.boost.org/doc/libs/1_81_0/tools/build/doc/html/index.html
   set(TOOLSET_NAME clang) # this triggers to use zlib-toolset-config.jam.in instead of zlib-config.jam.in
   set(TOOLSET toolset=clang-cfs) # check zlib-toolset-config.jam.in, the cfs is hard coded there
+  set(B2_ARGS "cxxflags=-Wno-enum-constexpr-conversion") # disable compiler error on warning
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel") # no more IntelLLVM but Linux and Windows
   set(TOOLSET toolset=intel) # seems to first check for icpx (oneAPI LLVM based), then icpcp (classic)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -122,7 +123,7 @@ else()
     CONFIGURE_COMMAND ${BOOTSTRAP} 
     # on Windows calling b2 might result in security issues (access violation)
     # --threading=multi seems to work even with USE_OPENMP=OFF on all systems?!
-    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} link=static address-model=64 threading=multi runtime-link=shared variant=release install 
+    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=release install
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
     # Wrap build step in script to log output, since it's super long and clutters the pipeline
