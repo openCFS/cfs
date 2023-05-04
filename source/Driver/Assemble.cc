@@ -317,6 +317,10 @@ namespace CoupledField
       // Loop over all bilinearforms
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
+        std::cout << "bilinear form: " << iForm+1 << " from " << forms.GetSize() << std::endl;
+ 
+
+
         // get integrator
         BiLinFormContext & actContext = *forms[iForm];
 
