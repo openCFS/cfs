@@ -41,7 +41,7 @@ SET(patches
   "cgal-intmax_t.patch"
   )
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
   list(APPEND patches "cgal-intel-isfinite.patch")
 endif()
 

@@ -252,7 +252,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   MKL_VERSION_FROM_HEADER()
 
   # set include dir
-  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include" CACHE PATH "here we assume the mkl includes")
 
   if(USE_OPENMP)
     set(MKL_OMP_LIB "${MKL_LIB_DIR}/libiomp5.so")
@@ -276,9 +276,10 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   # see https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html
   # regarting the correct Fortran interface library (libmkl_gf_lp64):
   # see: https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/560573
+  # Select interface layer: Fortran API with 32 bit integer (lp64, not ilp64)
   set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_gf_lp64.a")
-  if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-    message(STATUS "Using intel Fortran compiler: use libmkl_intel_lp64.a")
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    message(STATUS "Using Intel Fortran compiler (ifort or ifx): use libmkl_intel_lp64.a")
     set(MKL_FORTRAN_INTERFACE_LIB "${MKL_LIB_DIR}/libmkl_intel_lp64.a")
   endif()
   set(MKL_BLAS_LIB
@@ -294,6 +295,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
      -lm
      -ldl)
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+  set(MKL_LIBS "${MKL_FORTRAN_INTERFACE_LIB},${MKL_THREADING_LIB},${MKL_LIB_DIR}/libmkl_core.a")
 else() # end UNIX
   message(FATAL_ERROR "unhandled system type")
 endif()  
@@ -327,3 +329,7 @@ message(STATUS "defining MKL link-line via MKL_BLAS_LIB=${MKL_BLAS_LIB}")# VERBO
 
 mark_as_advanced(MKL_LIB_DIR)
 mark_as_advanced(MKL_INCLUDE_DIR)
+
+# some debug output
+# cmake_print_variables(CMAKE_LINK_GROUP_USING_RESCAN)
+# cmake_print_variables(CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED)

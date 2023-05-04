@@ -921,7 +921,8 @@ bool LevelSet::SetSignedDistanceNodeStates()
   const unsigned int nodes_size(nodes_.size());
   
   // clear the old states first
-  std::for_each(nodes_.begin(), nodes_.end(), SetStateToNone());
+  for(LevelSetNode& node : nodes_)
+    node.state = LevelSetNode::LS_NONE;
   
   // find out if we have at least one node at the boundary
   bool one_accepted(false);

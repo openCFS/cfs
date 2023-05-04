@@ -184,6 +184,11 @@ DEFINE_LOG(intscheme, "intScheme")
    }
    
 
+inline std::size_t hash_value(const IntegOrder& p)
+{
+ return boost::hash_range(&(p.order_[0]), &(p.order_[2]));
+}
+
 IntScheme::IntScheme() {
 
 #pragma omp critical (IntegScheme)
