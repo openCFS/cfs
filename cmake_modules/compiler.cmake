@@ -359,7 +359,7 @@ ENDIF()
 #-------------------------------------------------------------------------------
 # Check for Intel Fortran compiler
 #-------------------------------------------------------------------------------
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   #-----------------------------------------------------------------------------
   # Set Intel Fortran library paths in dedicated variables
   #-----------------------------------------------------------------------------
@@ -375,7 +375,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
 
-#  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
+  SET(CFS_FORTRAN_DYNRT_LIBS "svml;ifcoremt;imf;dl")
 #  IF(NOT CFS_ARCH STREQUAL "IA64")
 #    SET(CFS_FORTRAN_DYNRT_LIBS
 #      "svml"
@@ -385,7 +385,6 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 #    "ifcoremt_pic"
 #    "irc"
 #    )
-
   IF(WIN32)
    
     # TODO: this block could be doubled with FindIntelMKL.cmake ! 
