@@ -44,6 +44,11 @@ endif()
 #message(STATUS "CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
 #message(STATUS "CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
 #message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+ if(USE_SUPERLU)
+   set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-function-declaration -Wno-implicit-int")
+ endif()
+endif()
 
 # handle gfortran flags depending on version
 # these flags allow an argument mismatch when building
