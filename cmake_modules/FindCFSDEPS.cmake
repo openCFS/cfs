@@ -50,6 +50,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
   endif()
   if(USE_VTK)
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -Wno-implicit-function-declaration")
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-function-declaration")
   endif()
 endif()
 
