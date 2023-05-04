@@ -876,8 +876,8 @@ namespace CoupledField
         // TODO set up a vectorial coefFunction so that we can access the coefficient in each iteration of the loop
         // fnc =
         
-        PtrCoefFct coefVecA = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
-        PtrCoefFct coefVecAlpha = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+        PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+        PtrCoefFct coefVecAlphaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
 
 //        PtrCoefFct coefVecB = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
         
@@ -885,29 +885,31 @@ namespace CoupledField
 
         LocPointMapped lpm;
 
-        Vector<Double> vecA;
-        Vector<Double> vecAlpha;
- 
-        Vector<Double> vecB;
+        Vector<Double> vecAC;
+        Vector<Double> vecAlphaC;
 
 
 
-        coefVecA->GetVector(vecA, lpm);
-        coefVecA->GetVector(vecAlpha, lpm);
+        coefVecAC->GetVector(vecAC, lpm);
+        coefVecAlphaC->GetVector(vecAlphaC, lpm);
 
 
-        fncAC = StdVector<PtrCoefFct>(vecA.size());
-        fncAlphaC = StdVector<PtrCoefFct>(vecAlpha.size());
+
+
+        fncAC = StdVector<PtrCoefFct>(vecAC.size());
+        fncAlphaC = StdVector<PtrCoefFct>(vecAlphaC.size());
 
         
-        for (UInt ii = 0; ii < vecA.GetSize(); ii++) 
+        for (UInt ii = 0; ii < vecAC.GetSize(); ii++) 
         {
-          fncAC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecA[ii]));
+          fncAC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAC[ii]));
+          std::cout << "Coef AC: " << std::to_string(vecAC[ii]) << std::endl;
         }
         
-        for (UInt ii = 0; ii < vecAlpha.GetSize(); ii++) 
+        for (UInt ii = 0; ii < vecAlphaC.GetSize(); ii++) 
         {
-          fncAlphaC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAlpha[ii]));
+          fncAlphaC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAlphaC[ii]));
+          std::cout << "Coef AlphaC: " << std::to_string(vecAlphaC[ii]) << std::endl;
         }
 
         // check if all coefFunctions vectors are smaller than 15
@@ -918,6 +920,7 @@ namespace CoupledField
           EXCEPTION("TDEF: Only 15 ples are allowed, please reduce the number of poles!");
         }
 
+        std::cout << std::endl;
         std::cout << "size fncAC: " << fncAC.GetSize() << std::endl;
         std::cout << "size fncAlphaC: " << fncAlphaC.GetSize() << std::endl;
         std::cout << "size fncBC: " << fncBC.GetSize() << std::endl;
@@ -934,10 +937,11 @@ namespace CoupledField
         std::cout << "size fncDeltav: " << fncDeltaV.GetSize() << std::endl;
         std::cout << "size fncGammav: " << fncGammaV.GetSize() << std::endl << std::endl;
 
+
         std::cout << "Establishing the TDEF integrators:" << std::endl << std::endl;
         for (UInt ii = 0; ii < fncAC.GetSize(); ii++)
         {
-          std::cout << "re Poles compressibility: " << ii+1 << " from " << vecA.GetSize() << std::endl;
+          std::cout << "re Poles compressibility: " << ii+1 << " from " << fncAC.GetSize() << std::endl;
           // ====================================================================
           // K_PPHI1 (TDEF): stiffness integrator, TDEF (A_j^C term)
           // \int_{Omega_1} A_j^C p^\prime \phi_j^C d\Omega
@@ -1067,7 +1071,7 @@ namespace CoupledField
 
         for (UInt ii = 0; ii < fncAV.GetSize(); ii++)
         {
-          std::cout << "re poles density: " << ii+1 << " from " << vecA.GetSize() << std::endl;
+          std::cout << "re poles density: " << ii+1 << " from " << fncAV.GetSize() << std::endl;
           // ====================================================================
           // K_PPHI2 (TDEF): stiffness integrator, TDEF (A_l^V term)
           // \int_{Omega_1} A_l^C \nabla p^\prime \nabla \phi_l^C d\Omega
@@ -1112,7 +1116,7 @@ namespace CoupledField
 
         for (UInt ii = 0; ii < fncDC.GetSize(); ii++)
         {
-          std::cout << "compl. poles density: " << ii+1 << " from " << vecA.GetSize() << std::endl;
+          std::cout << "compl. poles density: " << ii+1 << " from " << fncDC.GetSize() << std::endl;
           // ====================================================================
           // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^C term)
           // \int_{Omega_1} D_m^C \nabla p^\prime \nabla \psi_m^C d\Omega
@@ -1206,7 +1210,7 @@ namespace CoupledField
 
         for (UInt ii = 0; ii < fncAlphaC.GetSize(); ii++)
         {
-          std::cout << "re. ADE compress.: " << ii+1 << " from " << vecA.GetSize() << std::endl;
+          std::cout << "re. ADE compress.: " << ii+1 << " from " << fncAlphaC.GetSize() << std::endl;
           // ====================================================================
           // D_PHI1PHI1 (TDEF): damping integrator, TDEF
           // \int_{Omega_1} \phi_j^{C,\prime} \prime{\phi}_j^C d\Omega
@@ -1324,7 +1328,7 @@ namespace CoupledField
 
         for (UInt ii = 0; ii < fncGammaC.GetSize(); ii++)
         {
-          std::cout << "compl. ADE compress.: " << ii+1 << " from " << vecA.GetSize() << std::endl;
+          std::cout << "compl. ADE compress.: " << ii+1 << " from " << fncGammaC.GetSize() << std::endl;
           // ====================================================================
           // M_PSI1PSI1 (TDEF): mass integrator, TDEF (\frac{1,\gamma_k^C} term)
           // \int_{Omega_1} \frac{1,\gamma_k^C} \psi_k^{C,\prime} \prime{\psi}_k^C d\Omega
@@ -1489,7 +1493,7 @@ namespace CoupledField
 
         for (UInt ii = 0; ii < fncAlphaV.GetSize(); ii++)
         {
-          std::cout << "re. ADE density.: " << ii+1 << " from " << vecA.GetSize() << std::endl << std::endl;
+          std::cout << "re. ADE density.: " << ii+1 << " from " << fncAlphaV.GetSize() << std::endl << std::endl;
           // ====================================================================
           // D_PHI2PHI2 (TDEF): damping integrator, TDEF
           // \int_{Omega_1} \phi_l^{V,\prime} \prime{\phi}_l^V d\Omega
@@ -1607,7 +1611,7 @@ namespace CoupledField
 
         for (UInt ii = 0; ii < fncGammaV.GetSize(); ii++)
         {
-          std::cout << "compl. ADE density.: " << ii+1 << " from " << vecA.GetSize() << std::endl;
+          std::cout << "compl. ADE density.: " << ii+1 << " from " << fncGammaV.GetSize() << std::endl;
           // ====================================================================
           // M_PSI2PSI2 (TDEF): mass integrator, TDEF (\frac{1,\gamma_k^V} term)
           // \int_{Omega_1} \frac{1,\gamma_m^V} \psi_m^{V,\prime} \prime{\psi}_m^V d\Omega
