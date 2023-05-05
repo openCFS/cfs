@@ -251,7 +251,7 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
   MKL_VERSION_FROM_HEADER()
 
   # set include dir
-  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+  set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include" CACHE PATH "here we assume the mkl includes")
 
   if(USE_OPENMP)
     set(MKL_OMP_LIB "${MKL_LIB_DIR}/libiomp5.so")
@@ -294,6 +294,9 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
      -lm
      -ldl)
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+  set(MKL_LIBS "${MKL_FORTRAN_INTERFACE_LIB},${MKL_THREADING_LIB},${MKL_LIB_DIR}/libmkl_core.a")
+  set(CMAKE_LINK_GROUP_USING_RESCAN OFF)
+  set(CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED OFF)
 else() # end UNIX
   message(FATAL_ERROR "unhandled system type")
 endif()  
@@ -327,3 +330,6 @@ message(STATUS "defining MKL link-line via MKL_BLAS_LIB=${MKL_BLAS_LIB}")# VERBO
 
 mark_as_advanced(MKL_LIB_DIR)
 mark_as_advanced(MKL_INCLUDE_DIR)
+
+message("XXXX CMAKE_<LANG>_LINK_GROUP_USING_<FEATURE>_SUPPORTED = ${CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED}")
+message("CMAKE_LINK_GROUP_USING_RESCAN = ${CMAKE_LINK_GROUP_USING_RESCAN}"	)
