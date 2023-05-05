@@ -75,5 +75,6 @@ ENDIF()
 
 # Target link libraries for openCFS executable target.
 TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
+target_link_libraries(cfs "$<LINK_GROUP:RESCAN,${MKL_LIBS}>") # keept the group together
 
 SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
