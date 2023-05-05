@@ -990,6 +990,8 @@ namespace CoupledField
           stiffIntTDEFPPHI1Context->SetEntities(actSDList, actSDList);
           stiffIntTDEFPPHI1Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]);
           assemble_->AddBiLinearForm(stiffIntTDEFPPHI1Context);
+
+          feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]->AddEntityList(actSDList);
         } // end loop stiffIntTDEFPPHI1
 
         for (UInt ii = 0; ii < fncDC.GetSize(); ii++)
@@ -1035,6 +1037,8 @@ namespace CoupledField
           stiffIntTDEFPPSI1Context->SetEntities(actSDList, actSDList);
           stiffIntTDEFPPSI1Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
           assemble_->AddBiLinearForm(stiffIntTDEFPPSI1Context);
+
+          feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]->AddEntityList(actSDList);
 
           // ====================================================================
           // D_PPSI1 (TDEF): damping integrator, TDEF (\frac{B_k^C,\gamma_k^C} term)
@@ -1120,6 +1124,8 @@ namespace CoupledField
           stiffIntTDEFPPHI2Context->SetEntities(actSDList, actSDList);
           stiffIntTDEFPPHI2Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]);
           assemble_->AddBiLinearForm(stiffIntTDEFPPHI2Context);
+
+          feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]->AddEntityList(actSDList);
         } // end loop stiffIntTDEFPPHI2
 
         for (UInt ii = 0; ii < fncDC.GetSize(); ii++)
@@ -1165,6 +1171,8 @@ namespace CoupledField
           stiffIntTDEFPPSI2Context->SetEntities(actSDList, actSDList);
           stiffIntTDEFPPSI2Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
           assemble_->AddBiLinearForm(stiffIntTDEFPPSI2Context);
+
+          feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->AddEntityList(actSDList);
 
           // ====================================================================
           // D_PPSI2 (TDEF): damping integrator, TDEF (\frac{B_k^V,\gamma_k^V} term)
