@@ -139,7 +139,7 @@ endif(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
 #-----------------------------------------------------------------------------
 # Lets find the runtime libraries of the Intel Fortran compiler.
 #-----------------------------------------------------------------------------
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   message(STATUS "Intel Fortran compiler")
   #---------------------------------------------------------------------------
   # Search explicitely for implicitely defined Fortran libs
