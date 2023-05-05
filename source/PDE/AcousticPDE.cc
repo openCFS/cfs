@@ -904,8 +904,8 @@ namespace CoupledField
 
 
 
-        fncAC = StdVector<PtrCoefFct>(vecAC.size());
-        fncAlphaC = StdVector<PtrCoefFct>(vecAlphaC.size());
+        fncAC = StdVector<PtrCoefFct>(vecAC.GetSize());
+        fncAlphaC = StdVector<PtrCoefFct>(vecAlphaC.GetSize());
 
         
         for (UInt ii = 0; ii < vecAC.GetSize(); ii++) 
