@@ -295,6 +295,8 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
      -ldl)
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
   set(MKL_LIBS "${MKL_FORTRAN_INTERFACE_LIB},${MKL_THREADING_LIB},${MKL_LIB_DIR}/libmkl_core.a")
+  set(CMAKE_LINK_GROUP_USING_RESCAN OFF)
+  set(CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED OFF)
 else() # end UNIX
   message(FATAL_ERROR "unhandled system type")
 endif()  
@@ -329,6 +331,11 @@ message(STATUS "defining MKL link-line via MKL_BLAS_LIB=${MKL_BLAS_LIB}")# VERBO
 mark_as_advanced(MKL_LIB_DIR)
 mark_as_advanced(MKL_INCLUDE_DIR)
 
+<<<<<<< HEAD
 # some debug output
 cmake_print_variables(CMAKE_LINK_GROUP_USING_RESCAN)
 cmake_print_variables(CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED)
+=======
+message("XXXX CMAKE_<LANG>_LINK_GROUP_USING_<FEATURE>_SUPPORTED = ${CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED}")
+message("CMAKE_LINK_GROUP_USING_RESCAN = ${CMAKE_LINK_GROUP_USING_RESCAN}"	)
+>>>>>>> 7ea78647f (rudimentary fix for linking issue with cmake>3.24 where link line reordering was introduced)
