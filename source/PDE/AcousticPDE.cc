@@ -158,27 +158,60 @@ namespace CoupledField
     // ===================================
     if (this->analysistype_ == TRANSIENT && timeDomainEqFluidFormulation_ && this->formulation_ == ACOU_PRESSURE)
     {
+      // check for the actual size of the auxiliary variables
+      nAuxFncAC_.Resize(regions_.GetSize());
+      nAuxFncDC_.Resize(regions_.GetSize());
+      nAuxFncAV_.Resize(regions_.GetSize());
+      nAuxFncDV_.Resize(regions_.GetSize());
+
+      RegionIdType actRegion;
+      for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
+      {
+        actRegion = regions_[iRegion];
+        std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+        PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());
+
+        if (curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes")
+        {
+          LocPointMapped lpm;
+          PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+          
+          Vector<Double> vecAC;
+          coefVecAC->GetVector(vecAC, lpm);
+
+          // store the actual size
+          nAuxFncAC_[iRegion] = vecAC.GetSize();
+        } else {
+          // this region has no TDEF material defined, set size to 0
+          nAuxFncAC_[iRegion] = 0;
+        }
+
+        // TODO do this check for the rest (fncDC, fncAV, fncDV)
+
+        
+      }
+      
       // define the additional unknowns (phiC, psiC, phiV, psiV)
       PtrParamNode spaceNode;
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncAC_.Max(); i++)
       {
         spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType)(ACOU_TDEF_PHI_C_1 + i)));
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]->Init(solStrat_);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncDC_.Max(); i++)
       {
         spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType)(ACOU_TDEF_PSI_C_1 + i)));
         crSpaces[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
         crSpaces[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)]->Init(solStrat_);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncAV_.Max(); i++)
       {
         spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType)(ACOU_TDEF_PHI_V_1 + i)));
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]->Init(solStrat_);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncDV_.Max(); i++)
       {
         spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType)(ACOU_TDEF_PSI_V_1 + i)));
         crSpaces[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
@@ -890,6 +923,14 @@ namespace CoupledField
 //        PtrCoefFct coefVecB = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
         
 
+        // TODO
+        // write all loops only in terms of these vectors:
+        //fncAC
+        //fncDC
+        //fncAV
+        //fncDV
+        // also introduce checks so that the user can't define anything that is not matching regarding equation size
+
 
         LocPointMapped lpm;
 
@@ -1128,9 +1169,9 @@ namespace CoupledField
           feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]->AddEntityList(actSDList);
         } // end loop stiffIntTDEFPPHI2
 
-        for (UInt ii = 0; ii < fncDC.GetSize(); ii++)
+        for (UInt ii = 0; ii < fncDV.GetSize(); ii++)
         {
-          std::cout << "compl. poles density: " << ii+1 << " from " << fncDC.GetSize() << std::endl;
+          std::cout << "compl. poles density: " << ii+1 << " from " << fncDV.GetSize() << std::endl;
           // ====================================================================
           // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^C term)
           // \int_{Omega_1} D_m^C \nabla p^\prime \nabla \psi_m^C d\Omega
@@ -3407,7 +3448,7 @@ namespace CoupledField
 
     if (this->timeDomainEqFluidFormulation_)
     {
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncAC_.Max(); i++)
       {
         shared_ptr<ResultInfo> resTDEFPhiC(new ResultInfo);
         resTDEFPhiC->resultType = (SolutionType)(ACOU_TDEF_PHI_C_1 + i);
@@ -3420,7 +3461,7 @@ namespace CoupledField
         resTDEFPhiC->SetFeFunction(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]);
         DefineFieldResult(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)], resTDEFPhiC);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncDC_.Max(); i++)
       {
         shared_ptr<ResultInfo> resTDEFPsiC(new ResultInfo);
         resTDEFPsiC->resultType = (SolutionType)(ACOU_TDEF_PSI_C_1 + i);
@@ -3433,7 +3474,7 @@ namespace CoupledField
         resTDEFPsiC->SetFeFunction(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)]);
         DefineFieldResult(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)], resTDEFPsiC);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncAV_.Max(); i++)
       {
         shared_ptr<ResultInfo> resTDEFPhiV(new ResultInfo);
         resTDEFPhiV->resultType = (SolutionType)(ACOU_TDEF_PHI_V_1 + i);
@@ -3446,7 +3487,7 @@ namespace CoupledField
         resTDEFPhiV->SetFeFunction(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]);
         DefineFieldResult(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)], resTDEFPhiV);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncDV_.Max(); i++)
       {
         shared_ptr<ResultInfo> resTDEFPsiV(new ResultInfo);
         resTDEFPsiV->resultType = (SolutionType)(ACOU_TDEF_PSI_V_1 + i);
@@ -3951,22 +3992,22 @@ namespace CoupledField
 
     if (this->timeDomainEqFluidFormulation_)
     {
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncAC_.Max(); i++)
       {
         shared_ptr<BaseTimeScheme> schemePhiC(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]->SetTimeScheme(schemePhiC);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncDC_.Max(); i++)
       {
         shared_ptr<BaseTimeScheme> schemePsiC(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)]->SetTimeScheme(schemePsiC);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncAV_.Max(); i++)
       {
         shared_ptr<BaseTimeScheme> schemePhiV(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]->SetTimeScheme(schemePhiV);
       }
-      for (unsigned int i = 0; i < 15; i++)
+      for (unsigned int i = 0; i < nAuxFncDV_.Max(); i++)
       {
         shared_ptr<BaseTimeScheme> schemePsiV(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)]->SetTimeScheme(schemePsiV);

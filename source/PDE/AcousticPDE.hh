@@ -156,6 +156,12 @@ namespace CoupledField{
 
     //! flag indicating if we have a time domain equivalent fluid formulation
     bool timeDomainEqFluidFormulation_;
+
+    //! vectors storing the length of the auxiliary variables used for the init process of the FE functions
+    Vector<Double> nAuxFncAC_;
+    Vector<Double> nAuxFncDC_;
+    Vector<Double> nAuxFncAV_;
+    Vector<Double> nAuxFncDV_;
   };
 
 }
