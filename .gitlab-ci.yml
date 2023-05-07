@@ -616,7 +616,7 @@ linux:gcc7max-debug:
     - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
-    CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=ON $MAX_CONFIG_OPTIONS"
+    CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
   <<: *max_rules
   <<: *gcc_before
   <<: *cache_cfsdeps
@@ -944,7 +944,7 @@ all_par:gcc7:any-linux:
     - linux:gcc7
 
 # debug is compiled without openmp
-no-slow_par:gcc7max-debug:linux:
+no-slow_ser:gcc7max-debug:linux:
   tags:
     - docker
   stage: test
@@ -954,7 +954,7 @@ no-slow_par:gcc7max-debug:linux:
     - when: on_success
       allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
   variables:
-    BUILD_NAME: gcc maximal debug / no-slow parallel
+    BUILD_NAME: gcc maximal debug / no-slow serial
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"

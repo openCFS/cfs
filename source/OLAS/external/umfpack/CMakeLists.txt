@@ -11,6 +11,11 @@ set(TARGET_LL
   ${BLAS_LIBRARY}
   ${CFS_FORTRAN_LIBS})
 
+# we had the case on centos6/gcc7 that clock_gettime@@GLIBC_2.2.5 is missing
+if(UNIX AND NOT APPLE)
+  set(TARGET_LL ${TARGET_LL} rt)
+endif()
+
 TARGET_LINK_LIBRARIES(umfpack-olas ${TARGET_LL})
 
 ADD_DEPENDENCIES(umfpack-olas cfsdeps)

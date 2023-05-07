@@ -26,7 +26,7 @@ use_c_and_fortran(ON OFF)
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
 else()
-  set(DEPS_ID "NO_OPENMP")
+  set(DEPS_ID "NO-OPENMP")
 endif()
 
 set_precompiled_pckg_file()
