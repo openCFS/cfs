@@ -181,9 +181,19 @@ namespace CoupledField
 
           // store the actual size
           nAuxFncAC_[iRegion] = vecAC.GetSize();
+
+          // TODO
+          nAuxFncDC_[iRegion] = 0;
+          nAuxFncAV_[iRegion] = 0;
+          nAuxFncDV_[iRegion] = 0;
         } else {
           // this region has no TDEF material defined, set size to 0
           nAuxFncAC_[iRegion] = 0;
+
+          // TODO
+          nAuxFncDC_[iRegion] = 0;
+          nAuxFncAV_[iRegion] = 0;
+          nAuxFncDV_[iRegion] = 0;
         }
 
         // TODO do this check for the rest (fncDC, fncAV, fncDV)
