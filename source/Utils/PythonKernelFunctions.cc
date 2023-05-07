@@ -345,7 +345,7 @@ PyObject* single_pde_solutions(PyObject *self, PyObject *args)
   int pde;
   int ret = PyArg_ParseTuple(args, "i", &pde);
   PythonKernel::CheckPythonReturn(ret);
-  if(pde < 0 || pde >= pdes.GetSize())
+  if(pde < 0 || pde >= (int) pdes.GetSize())
     throw Exception("invalid pde idx for single_pde_solutions(), needs to be below " + std::to_string(domain->GetSinglePDEs().GetSize()));
 
   PyObject* list = PyList_New(pdes[pde]->GetFeFunctions().size());
@@ -453,7 +453,7 @@ PyObject* fe_function_nodal_solution(PyObject *self, PyObject *args)
   nodeList.SetNodes(nodeId);
   Vector<double> stateSol; // we get one scalar
 
-  if(pde_idx < 0 || pde_idx >= domain->GetSinglePDEs().GetSize())
+  if(pde_idx < 0 || pde_idx >= (int) domain->GetSinglePDEs().GetSize())
     EXCEPTION("invalid pde-idx " << pde_idx << " given. See single_pde_names()");
   SinglePDE* pde =  domain->GetSinglePDEs()[pde_idx];
 

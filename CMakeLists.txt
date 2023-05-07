@@ -41,9 +41,11 @@ else()
 project(CFS C CXX Fortran) 
 
 # most early identification of detected compilers with their variables to support coding cmake files
+# cmake prints this information also for the initial configure but not for following runs, therefore explicitly 
 message(STATUS "CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID} CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "CMAKE_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID} CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_Fortran_COMPILER_ID=${CMAKE_Fortran_COMPILER_ID} CMAKE_Fortran_COMPILER_VERSION=${CMAKE_Fortran_COMPILER_VERSION}")
+
 if(WIN32)
   cmake_print_variables(CMAKE_LINKER)	
 endif()

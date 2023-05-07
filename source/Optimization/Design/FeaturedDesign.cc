@@ -350,7 +350,7 @@ void FeaturedDesign::SetupMapping()
           int idx = Find(elem, false); // design index or -1
           int pos = LexicographicPos(x,y,z);
           LOG_DBG3(FD) << "(" << x << "," << y << "," << z << ") g=" << glob.ToString() << " l=" << loc.coord.ToString() << " e=" << elem->elemNum << " idx=" << idx << " pos=" << pos;
-          assert(pos < virt_size);
+          assert(pos < (int) virt_size);
           if(idx > -1)
             for(unsigned int d = 0; d < design.GetSize(); d++) // such that it also works for design/angle
               map_[d * elements + idx].lexicographic_pos = d * virt_size + pos;

@@ -414,6 +414,18 @@ rhel:9:
     - when: manual
       allow_failure: true
 
+.release_build_rules: &release_build_rules
+  rules:
+    # always activate this job for the default branch
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: on_success
+      allow_failure: false
+    # always activate this job for tags on the default branch (releases)
+    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+      allow_failure: false
+    - !reference [.build_rules, rules]
+
 .cfsdeps:default: &cfsdeps_default
   stage: cfsdeps
   tags:
@@ -433,32 +445,35 @@ rhel:9:
     - ls -l build/cfsdeps/cache/precompiled || ls # debug
     - *restore_Testsuite_ignore
   needs: []
-  <<: *build_rules
 
 cfsdeps:gcc7:
   image: opencfs/centos6-gcc7
   <<: *cfsdeps_default
   <<: *cache_cfsdeps
+  <<: *release_build_rules
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_7*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
-cfsdeps:gcc10:
-  image: opencfs/fedora32
+cfsdeps:gcc12:
+  image: opencfs/fedora37
   <<: *cfsdeps_default
   <<: *cache_cfsdeps
+  <<: *build_rules
   artifacts:
     paths:
-      - build/cfsdeps/cache/precompiled/*GNU_10*.zip
+      - build/cfsdeps/cache/precompiled/*GNU_12*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
+# intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
   image: opencfs/centos7-intel
   <<: *cfsdeps_default
   <<: *cache_cfsdeps-intel
+  <<: *build_rules
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*Intel*.zip
@@ -554,12 +569,15 @@ cfsdeps:intel:
 
 .intel_before: &intel_before
   before_script:
-    # debug output
+    # we assume CC, CXX and FC is set in the image properly (e.g. in the file bash_profile)
     - icc -v
     - icpc -v
     - ifort -v
-    # ensure the testsuite is not there (to save space)
+    - $CC -v
+    - $CXX -v
+    - $FC -v
     - git status # debug
+    # ensure the testsuite is not there (to save space)
     - rm -rf Testsuite
     - git checkout Testsuite
     # general build before script
@@ -598,7 +616,7 @@ linux:gcc7max-debug:
     - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
-    CFS_CONFIG_OPTIONS: "-DDEBUG=ON $MAX_CONFIG_OPTIONS"
+    CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=ON $MAX_CONFIG_OPTIONS"
   <<: *max_rules
   <<: *gcc_before
   <<: *cache_cfsdeps
@@ -619,29 +637,7 @@ linux:gcc7max:
   <<: *cache_cfsdeps
   needs: ["cfsdeps:gcc7"]
 
-# this is the build for Linux-releases
-linux:gcc5:
-  extends: .default_build_job
-  stage: build
-  image: opencfs/centos6-gcc5
-  tags:
-    - docker
-  variables:
-    BUILD_NAME: "GCC5"
-  rules:
-    # always activate this job for the default branch
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: on_success
-      allow_failure: false
-    # always activate this job for tags on the default branch (releases)
-    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: on_success
-      allow_failure: false
-    - !reference [.build_rules, rules]
-  <<: *gcc_before
-  <<: *cache_cfsdeps
-  needs: []
-
+# this is the offcial release buils
 linux:gcc7:
   extends: .default_build_job
   stage: build
@@ -650,7 +646,7 @@ linux:gcc7:
     - docker
   variables:
     BUILD_NAME: "GCC7"
-  <<: *build_rules
+  <<: *release_build_rules
   <<: *gcc_before
   <<: *cache_cfsdeps
   needs: ["cfsdeps:gcc7"]
@@ -669,18 +665,18 @@ linux:gcc7min:
   <<: *cache_cfsdeps
   needs: ["cfsdeps:gcc7"]
 
-linux:gcc10:
+linux:gcc12:
   extends: .default_build_job
   stage: build
-  image: opencfs/fedora32
+  image: opencfs/fedora37
   tags:
     - docker
   variables:
-    BUILD_NAME: "GCC10"
+    BUILD_NAME: "GCC12"
   <<: *build_rules
   <<: *gcc_before
   <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc10"]
+  needs: ["cfsdeps:gcc12"]
 
 # intel compiler builds
 linux:intel:
@@ -716,8 +712,6 @@ linux:clang-debug:
       allow_failure: true
     - !reference [.build_rules, rules]
   before_script:
-    # mitigate `detected dubious ownership in repository at ...` issue (see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/29022)
-    - git config --global --add safe.directory $CI_PROJECT_DIR # needed because gitlab runner checks out as root and container runs as user
     # ensure clang is installed
     - clang --version
     # general build before script
@@ -728,18 +722,18 @@ linux:clang-debug:
   needs: []
 
 # build with ninja
-linux:gcc10:ninja:
+linux:gcc12:ninja:
   stage: build
-  image: opencfs/fedora32
+  image: opencfs/fedora37
   tags:
     - docker
   before_script:
-    # general build before script
+     # general build before script
     - *before-script-build
   script:
     # configure with correct generator
     - cmake -G Ninja ..
-    # build - note that we depend on cfsdeps:gcc10, hence the dependencies might already be built with make
+    # build - note that we depend on cfsdeps:gcc12, hence the dependencies might already be built with make
     # e.g. suitesparse cannot be build in parallel with ninja
     - ninja -j1 cfsdeps
     # build cfs in parallel   
@@ -751,7 +745,7 @@ linux:gcc10:ninja:
   when: manual
   <<: *build_artifacs_short
   <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc10"]
+  needs: ["cfsdeps:gcc12"]
 
 #######################################################################
 # TEST STAGE
@@ -763,7 +757,7 @@ linux:gcc10:ninja:
 # * stable - runs the Testsuite on a single thread and disabling some unstable tests via -LE unstable (and python tests)
 # * testsuite - runs the Testsuite on all available cores (disabling python tests) with two threads (multicore_all)
 # * no-slow - run debug builds and skip unstable and slow (bow by label) and no python tests
-#             the tool tests.py supports in setting and checking the slow label for the tests.
+#             the tool tests.py in the Testsuite can be used for setting and checking the slow label for the tests.
 # * python - runs the Python-Tests of the testsuite, independent of the c++ build
 # Both _stable_ and _testsuite_ are run for all build configs (GCCx),
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
@@ -818,80 +812,75 @@ linux:gcc10:ninja:
     paths:
       - build/cmake
 
-# this is the config that has to pass (excludes PYTHON since they do not need to be tested for every GCCx)
-.test_stable: &test_stable
+# Generic testsuite execution job.
+# - will do junit submission to gitlab
+# - excludes PYTHON since they do not need to be tested for every compiler configuration
+# - the "Install" tests are always excluded
+# Behaviour can be changed with variables:
+# - TEST_CONFIG_OPTIONS: to set Testsuite configure options like threads
+# - CTEST_OPTIONS: to passed to ctest execution, e.g. -LE <label> tor exclude labels
+.test_generic: &test_generic
   <<: *ctest_default
-  # disable also if 'skip-stable-tests' is contained in commit message
   script:
-    # configure
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS -DTESTSUITE_THREADS=1 ..
-    # start the testing
+    # show variables for debug
+    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
+    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
+    # configure and run the testsuite
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    # ctest -LE "unstable|slow" works, ctest -LE unstable -LE slow disables both, -LE unstable|slow fails, -LE "unstable | slow" does not work
-    - ctest -D ExperimentalTest -LE "unstable$CTEST_EXTRA_LE" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
-# test everything (but python, which is tested seperately)
-.test_all_multicore: &test_all_multicore
+
+# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc7max-debug
+.test_no_slow: &test_no_slow
   <<: *ctest_default
-  # disable also if 'skip-testsuite-tests' is contained in commit message
   script:
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF $TEST_CONFIG_OPTIONS .. # multicore = default
+    # show variables for debug
+    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
+    # configure and run the testsuite
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml # exclude the install step
+    - ctest -D ExperimentalTest -LE "unstable|slow" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+
+
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
-stable:gcc5:linux:
+# Naming scheme for ci-jobs: <test-set_parallelism>:<build-name>:<system>
+# Naming scheme for BUILD_NAME: build config / test-set parallelism
+stable_ser:gcc7min:linux:
   tags:
     - linux
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: GCC5 / stable
-  retry: 1
-  <<: *test_stable
+    BUILD_NAME: gcc7 minimal / stable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-LE unstable"
+  <<: *test_generic
   needs:
-    - linux:gcc5
+    - linux:gcc7min
 
-testsuite:gcc5:linux:
-  tags:
-    - linux
-  stage: test
-  variables:
-    BUILD_NAME: GCC5 / all_multicore
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  needs:
-    - linux:gcc5
-
-stable:gcc7min:linux:
+unstable_ser:gcc7min:linux:
   tags:
     - linux
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: GCC7 minimal / stable
-  retry: 1
-  <<: *test_stable
+    # is built without opnemp  
+    BUILD_NAME: gcc7 minimal / unstable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
+  allow_failure: true
   needs:
     - linux:gcc7min
 
-testsuite:gcc7min:linux:
-  tags:
-    - linux
-  stage: test
-  variables:
-    BUILD_NAME: GCC7 minimal / all_multicore
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  needs:
-    - linux:gcc7min
-
-stable:gcc7max:linux:
+stable_par:gcc7max:linux:
   tags:
     - docker
   stage: test
@@ -900,12 +889,14 @@ stable:gcc7max:linux:
     - !reference [.max_never_external_rule, rules]
     - when: on_success
   variables:
-    BUILD_NAME: GCC7 maximal / stable
-  <<: *test_stable
+    BUILD_NAME: gcc7 maximal / stable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable"
+  <<: *test_generic
   needs:
     - linux:gcc7max
 
-testsuite:gcc7max:linux:
+unstable_ser:gcc7max:linux:
   tags:
     - docker
   stage: test
@@ -913,14 +904,47 @@ testsuite:gcc7max:linux:
   rules:
     - !reference [.max_never_external_rule, rules]
     - when: on_success
-      allow_failure: true # job level definition is ignored when rules are used
+      allow_failure: true
   variables:
-    BUILD_NAME: GCC7 maximal / all_multicore
-  <<: *test_all_multicore
+    BUILD_NAME: gcc7 maximal / unstable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
   needs:
     - linux:gcc7max
 
-no-slow:gcc7max-debug:linux:
+unstable_par:gcc7max:linux:
+  tags:
+    - docker
+  stage: test
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
+      allow_failure: true
+  variables:
+    BUILD_NAME: gcc7 maximal / unstable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"      
+  <<: *test_generic
+  needs:
+    - linux:gcc7max
+
+# this test has the speciality that it shall run at an unspecified image 
+all_par:gcc7:any-linux:
+  tags:
+    - linux
+  stage: test 
+  variables:
+    BUILD_NAME: gcc7 default / all parallel any-linux
+    # no special options - we take all default (should be all tests & in parallel if NCPU>1)
+  <<: *test_generic
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  needs:
+    - linux:gcc7
+
+# debug is compiled without openmp
+no-slow_par:gcc7max-debug:linux:
   tags:
     - docker
   stage: test
@@ -930,45 +954,51 @@ no-slow:gcc7max-debug:linux:
     - when: on_success
       allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
   variables:
-    BUILD_NAME: GCC7 maximal debug / no-slow
-    # see comment in .test_stable
-    CTEST_EXTRA_LE: "|slow"
-  <<: *test_stable
+    BUILD_NAME: gcc maximal debug / no-slow parallel
+    # debug is compiled without openmp, we could set the threads to anything and it would be ignored
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    # this special test_no_slow does -LE "unstable|slow"
+  <<: *test_no_slow
   needs:
     - linux:gcc7max-debug
 
-stable:gcc10:linux:
-  image: opencfs/fedora32
+stable_par:gcc12:linux:
+  image: opencfs/fedora37
   tags:
     - docker
   stage: test
   variables:
-    BUILD_NAME: GCC10 / stable
-  retry: 1
-  <<: *test_stable
+    BUILD_NAME: gcc12 default / stable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable"
+  <<: *test_generic
   needs:
-    - linux:gcc10
+    - linux:gcc12
 
-testsuite:gcc10:linux:
-  image: opencfs/fedora32
+unstable_ser:gcc12:linux:
+  image: opencfs/fedora37
   tags:
     - docker
   stage: test
   variables:
-    BUILD_NAME: GCC10 / all_multicore
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+    BUILD_NAME: gcc12 default / unstable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
+  allow_failure: true 
   needs:
-    - linux:gcc10
+    - linux:gcc12
 
-stable:intel:linux:
+stable_par:intel:linux:
   tags:
     - linux
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 / stable
-  <<: *test_stable
+    BUILD_NAME: Intel2021 default / stable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable"
+  <<: *test_generic
   except:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
@@ -976,13 +1006,16 @@ stable:intel:linux:
   needs:
     - linux:intel
 
-testsuite:intel:linux:
+unstable_ser:intel:linux:
   tags:
     - linux
+  image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 / all_multicore
-  <<: *test_all_multicore
+    BUILD_NAME: Intel2021 default / unstable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
   allow_failure: true
   except:
     variables:
@@ -1113,7 +1146,7 @@ pages:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
   dependencies:
-    - linux:gcc5
+    - linux:gcc7
     - doxygen
   script:
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
@@ -1154,7 +1187,7 @@ package:
   <<: *package-release_common
   image: curlimages/curl:latest
   needs:
-    - linux:gcc5
+    - linux:gcc7
   script:
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
@@ -1185,7 +1218,7 @@ release:
 
 copy_to_draco:
   dependencies:
-    - linux:gcc5
+    - linux:gcc7
   script:
     # copy over via scp
     - scp "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"

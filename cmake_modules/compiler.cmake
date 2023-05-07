@@ -262,8 +262,11 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx
    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D_WIN32_WINNT=0x0A00")
   endif()
 
-  # also ixc on Windows with MSVC command line interface seems to understand gcc style
-  set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment -Wno-enum-constexpr-conversion -Wno-deprecated-builtins")
+  # also icx on Windows with MSVC command line interface seems to understand gcc style
+  set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2023)
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion -Wno-deprecated-builtins ")
+  endif()
 
 # Check for Intel C++ compiler (classic compiler) - to be depreciated mid 2023
 ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
