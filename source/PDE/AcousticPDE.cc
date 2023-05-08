@@ -1258,13 +1258,17 @@ namespace CoupledField
           assemble_->AddBiLinearForm(dampIntTDEFPPSI2Context);
         } // end loop stiffIntTDEFPPSI2 and dampIntTDEFPPSI2
 
+
+
+        // ######################################################
         // ADE section
+        // ######################################################
 
         // check if all coefFunctions vectors are smaller than 15
         if (fncAlphaC.GetSize() > 15 || fncBetaC.GetSize() > 15 || fncDeltaC.GetSize() > 15 ||
             fncAlphaV.GetSize() > 15 || fncBetaV.GetSize() > 15 || fncDeltaV.GetSize() > 15)
         {
-          EXCEPTION("TDEF: Only 15 ples are allowed, please reduce the number of poles!");
+          EXCEPTION("TDEF: Only 15 poles are allowed, please reduce the number of poles!");
         }
 
         for (UInt ii = 0; ii < fncAlphaC.GetSize(); ii++)
@@ -1521,12 +1525,12 @@ namespace CoupledField
           stiffIntTDEFPHI2P->SetName("AcousticStiffIntTDEFPHI2P_" + std::to_string(ii));
 
           BiLinFormContext *stiffIntTDEFPHI2PContext = NULL;
-          stiffIntTDEFPHI2PContext = new BiLinFormContext(stiffIntTDEFPHI2P, MASS);
+          stiffIntTDEFPHI2PContext = new BiLinFormContext(stiffIntTDEFPHI2P, STIFFNESS);
 
           stiffIntTDEFPHI2PContext->SetEntities(actSDList, actSDList);
           stiffIntTDEFPHI2PContext->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)], feFunctions_[formulation_]);
           assemble_->AddBiLinearForm(stiffIntTDEFPHI2PContext);
-        } // end loop dampIntTDEFPHI2PHI2, stiffIntTDEFPHI2PHI2 and massInteTDEFPHI2P
+        } // end loop dampIntTDEFPHI2PHI2, stiffIntTDEFPHI2PHI2 and stiffIntTDEFPHI2P
 
         for (UInt ii = 0; ii < fncGammaV.GetSize(); ii++)
         {
