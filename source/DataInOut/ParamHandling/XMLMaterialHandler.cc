@@ -601,6 +601,11 @@ namespace CoupledField {
             // (when using SetCoefFct, we have to set a scalar variable (not a vector))
             material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_A, Global::REAL);
             material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+            }
+          else {
+            // set empty vector to avoid errors
+            Vector<Double> emptyVec;
+            material->SetVector(emptyVec, ACOU_TDEF_INVDENS_A, Global::REAL);
           }
 
 
@@ -637,7 +642,12 @@ namespace CoupledField {
               material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_BETA, Global::REAL);
               material->SetVector(parNumerIm, ACOU_TDEF_INVDENS_C, Global::REAL);
               material->SetVector(parDenomIm, ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
-          }
+            }
+            else {
+              // set empty vector to avoid errors
+              Vector<Double> emptyVec;
+              material->SetVector(emptyVec, ACOU_TDEF_INVDENS_B, Global::REAL);
+            }
         }
       }
     }
@@ -696,6 +706,11 @@ namespace CoupledField {
           material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_A, Global::REAL);
           material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
         }
+        else {
+          // set empty vector to avoid errors
+          Vector<Double> emptyVec;
+          material->SetVector(emptyVec, ACOU_TDEF_INVBLK_A, Global::REAL);
+        }
 
         // ###########################################
         //  read the variable number of complex-conj. poles
@@ -730,6 +745,11 @@ namespace CoupledField {
           material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_BETA, Global::REAL);
           material->SetVector(parNumerIm, ACOU_TDEF_INVBLK_C, Global::REAL);
           material->SetVector(parDenomIm, ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
+        }
+        else {
+          // set empty vector to avoid errors
+          Vector<Double> emptyVec;
+          material->SetVector(emptyVec, ACOU_TDEF_INVBLK_B, Global::REAL);
         }
       }
     }

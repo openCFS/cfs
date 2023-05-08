@@ -180,54 +180,22 @@ namespace CoupledField
           Vector<Double> vecAV;
           Vector<Double> vecBV;
 
-          // try to get the material of the poles and assign the size of the fnc vector
-          try {
-            PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
-            coefVecAC->GetVector(vecAC, lpm);
-            // store the actual size
-            nAuxFncAC_[iRegion] = vecAC.GetSize();
+          // get the vector of residues 
+          PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+          PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
+          PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+          PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
 
-            std::cout << "Coef AC: " << std::to_string(nAuxFncAC_[actRegion]) << std::endl;
-          } catch( Exception& ex ) {
-            // no material defined
-            nAuxFncAC_[iRegion] = 0;
-          }
+          coefVecAC->GetVector(vecAC, lpm);
+          coefVecBC->GetVector(vecBC, lpm);
+          coefVecAV->GetVector(vecAV, lpm);
+          coefVecBV->GetVector(vecBV, lpm);
 
-          try {
-            PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
-            coefVecBC->GetVector(vecBC, lpm);
-            // store the actual size
-            nAuxFncBC_[iRegion] = vecBC.GetSize();
-
-            std::cout << "Coef BC: " << std::to_string(nAuxFncBC_[actRegion]) << std::endl;
-          } catch( Exception& ex ) {
-            // no material defined
-            nAuxFncBC_[iRegion] = 0;
-          }
-
-          try {
-            PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
-            coefVecAV->GetVector(vecAV, lpm);
-            // store the actual size
-            nAuxFncAV_[iRegion] = vecAV.GetSize();
-
-            std::cout << "Coef AV: " << std::to_string(nAuxFncAV_[actRegion]) << std::endl;
-          } catch( Exception& ex ) {
-            // no material defined
-            nAuxFncAV_[iRegion] = 0;
-          }
-
-          try {
-            PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
-            coefVecBV->GetVector(vecBV, lpm);
-            // store the actual size
-            nAuxFncBV_[iRegion] = vecBV.GetSize();
-
-            std::cout << "Coef CV: " << std::to_string(nAuxFncBV_[actRegion]) << std::endl;
-          } catch( Exception& ex ) {
-            // no material defined
-            nAuxFncBV_[iRegion] = 0;
-          }
+          // assign the size of the parameter vector (no. real or complex poles)
+          nAuxFncAC_[iRegion] = vecAC.GetSize();
+          nAuxFncBC_[iRegion] = vecBC.GetSize();
+          nAuxFncAV_[iRegion] = vecAV.GetSize();
+          nAuxFncBV_[iRegion] = vecBV.GetSize();
 
         } else {
           // this region has no TDEF material defined, set size to 0
@@ -1120,25 +1088,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPHI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncAC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncAC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncAC[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPHI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncAC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncAC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncAC[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPPHI1->SetName("AcousticStiffIntTDEFPPHI1_" + std::to_string(ii));
@@ -1167,25 +1121,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPPSI1->SetName("AcousticStiffIntTDEFPPSI1_" + std::to_string(ii));
@@ -1209,25 +1149,11 @@ namespace CoupledField
                                                CoefXprBinOp(mp_, fncBC[ii], fncGammaC[ii], CoefXpr::OP_DIV));
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPPSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncBCgammaC, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncBCgammaC, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncBCgammaC, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPPSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncBCgammaC, 1.0, updatedGeo_);
-            }
-            else
-            {
               dampIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncBCgammaC, 1.0, updatedGeo_);
-            }
           }
 
           dampIntTDEFPPSI1->SetName("AcousticDampIntTDEFPPSI1_" + std::to_string(ii));
@@ -1245,7 +1171,7 @@ namespace CoupledField
           std::cout << "re poles density: " << ii+1 << " from " << fncAV.GetSize() << std::endl;
           // ====================================================================
           // K_PPHI2 (TDEF): stiffness integrator, TDEF (A_l^V term)
-          // \int_{Omega_1} A_l^C \nabla p^\prime \nabla \phi_l^C d\Omega
+          // \int_{Omega_1} A_l^V \nabla p^\prime \nabla \phi_l^V d\Omega
           // ====================================================================
           shared_ptr<FeSpace> spacePhiV = feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]->GetFeSpace();
           spacePhiV->SetRegionApproximation(actRegion, polyId, integId);
@@ -1254,25 +1180,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPHI2 = new BBInt<Complex>(new GradientOperator<FeH1, 2>(), fncAV[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPHI2 = new BBInt<Double>(new GradientOperator<FeH1, 2>(), fncAV[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPHI2 = new BBInt<Double>(new GradientOperator<FeH1, 2>(), fncAV[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPHI2 = new BBInt<Complex>(new GradientOperator<FeH1, 3>(), fncAV[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPHI2 = new BBInt<Double>(new GradientOperator<FeH1, 3>(), fncAV[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPHI2 = new BBInt<Double>(new GradientOperator<FeH1, 3>(), fncAV[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPPHI2->SetName("AcousticStiffIntTDEFPPHI2_" + std::to_string(ii));
@@ -1291,8 +1203,8 @@ namespace CoupledField
         {
           std::cout << "compl. poles density: " << ii+1 << " from " << fncDV.GetSize() << std::endl;
           // ====================================================================
-          // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^C term)
-          // \int_{Omega_1} D_m^C \nabla p^\prime \nabla \psi_m^C d\Omega
+          // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^V term)
+          // \int_{Omega_1} D_m^V \nabla p^\prime \nabla \psi_m^V d\Omega
           // ====================================================================
           shared_ptr<FeSpace> spacePsiV = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->GetFeSpace();
           spacePsiV->SetRegionApproximation(actRegion, polyId, integId);
@@ -1301,25 +1213,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPSI2 = new BBInt<Complex>(new GradientOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPPSI2 = new BBInt<Complex>(new GradientOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPPSI2->SetName("AcousticStiffIntTDEFPPSI2_" + std::to_string(ii));
@@ -1343,25 +1241,11 @@ namespace CoupledField
                                                CoefXprBinOp(mp_, fncBV[ii], fncGammaV[ii], CoefXpr::OP_DIV));
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPPSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncBVgammaV, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPPSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncBVgammaV, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPPSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncBVgammaV, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPPSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncBVgammaV, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPPSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncBVgammaV, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPPSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncBVgammaV, 1.0, updatedGeo_);
           }
 
           dampIntTDEFPPSI2->SetName("AcousticDampIntTDEFPPSI2_" + std::to_string(ii));
@@ -1394,25 +1278,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPHI1PHI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), constOne, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPHI1PHI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), constOne, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, 1.0, updatedGeo_);
           }
 
           dampIntTDEFPHI1PHI1->SetName("AcousticDampIntTDEFPHI1PHI1_" + std::to_string(ii));
@@ -1432,25 +1302,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPHI1PHI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncAlphaC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncAlphaC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncAlphaC[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPHI1PHI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncAlphaC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncAlphaC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPHI1PHI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncAlphaC[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPHI1PHI1->SetName("AcousticStiffIntTDEFPHI1PHI1_" + std::to_string(ii));
@@ -1470,25 +1326,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              massIntTDEFPHI1P = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPHI1P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
+            massIntTDEFPHI1P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              massIntTDEFPHI1P = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPHI1P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
+            massIntTDEFPHI1P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
           }
 
           massIntTDEFPHI1P->SetName("AcousticMassIntTDEFPHI1P_" + std::to_string(ii));
@@ -1515,25 +1357,11 @@ namespace CoupledField
                                                      CoefXprBinOp(mp_, constOne, fncGammaC[ii], CoefXpr::OP_DIV));
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI1PSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), coefOneOverGammaC, 1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefOneOverGammaC, 1.0, updatedGeo_);
-            }
+            massIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefOneOverGammaC, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI1PSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), coefOneOverGammaC, 1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefOneOverGammaC, 1.0, updatedGeo_);
-            }
+            massIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefOneOverGammaC, 1.0, updatedGeo_);
           }
 
           massIntTDEFPSI1PSI1->SetName("AcousticMassIntTDEFPSI1PSI1_" + std::to_string(ii));
@@ -1559,25 +1387,11 @@ namespace CoupledField
                                                           CoefXprBinOp(mp_, coefTwoBetaC, fncGammaC[ii], CoefXpr::OP_DIV));
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPSI1PSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), coefTwoBetaCOverGammaC, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefTwoBetaCOverGammaC, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefTwoBetaCOverGammaC, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPSI1PSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), coefTwoBetaCOverGammaC, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefTwoBetaCOverGammaC, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefTwoBetaCOverGammaC, 1.0, updatedGeo_);
           }
 
           dampIntTDEFPSI1PSI1->SetName("AcousticDampIntTDEFPSI1PSI1_" + std::to_string(ii));
@@ -1597,25 +1411,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPSI1PSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncGammaC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncGammaC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncGammaC[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPSI1PSI1 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncGammaC[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncGammaC[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncGammaC[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPSI1PSI1->SetName("AcousticStiffIntTDEFPSI1PSI1_" + std::to_string(ii));
@@ -1635,25 +1435,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI1P = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI1P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
+            massIntTDEFPSI1P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI1P = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI1P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
+            massIntTDEFPSI1P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
           }
 
           massIntTDEFPSI1P->SetName("AcousticMassIntTDEFPSI1P_" + std::to_string(ii));
@@ -1677,25 +1463,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPHI2PHI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), constOne, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPHI2PHI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), constOne, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, 1.0, updatedGeo_);
           }
 
           dampIntTDEFPHI2PHI2->SetName("AcousticDampIntTDEFPHI2PHI2_" + std::to_string(ii));
@@ -1704,7 +1476,7 @@ namespace CoupledField
           dampIntTDEFPHI2PHI2Context = new BiLinFormContext(dampIntTDEFPHI2PHI2, DAMPING);
 
           dampIntTDEFPHI2PHI2Context->SetEntities(actSDList, actSDList);
-          dampIntTDEFPHI2PHI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]);
+          dampIntTDEFPHI2PHI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]);
           assemble_->AddBiLinearForm(dampIntTDEFPHI2PHI2Context);
 
           // ====================================================================
@@ -1715,25 +1487,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPHI2PHI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncAlphaV[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncAlphaV[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncAlphaV[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPHI2PHI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncAlphaV[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncAlphaV[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPHI2PHI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncAlphaV[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPHI2PHI2->SetName("AcousticStiffIntTDEFPHI2PHI2_" + std::to_string(ii));
@@ -1742,46 +1500,32 @@ namespace CoupledField
           stiffIntTDEFPHI2PHI2Context = new BiLinFormContext(stiffIntTDEFPHI2PHI2, STIFFNESS);
 
           stiffIntTDEFPHI2PHI2Context->SetEntities(actSDList, actSDList);
-          stiffIntTDEFPHI2PHI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]);
+          stiffIntTDEFPHI2PHI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]);
           assemble_->AddBiLinearForm(stiffIntTDEFPHI2PHI2Context);
 
           // ====================================================================
-          // M_PHI2P (TDEF): mass integrator, TDEF
+          // K_PHI2P (TDEF): stiffness integrator, TDEF
           // -\int_{Omega_1} \phi_l^{V,\prime} \ddot{p}_a d\Omega
           // ====================================================================
-          BiLinearForm *massIntTDEFPHI2P = NULL;
+          BiLinearForm *stiffIntTDEFPHI2P = NULL;
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              massIntTDEFPHI2P = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPHI2P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
+            stiffIntTDEFPHI2P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              massIntTDEFPHI2P = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPHI2P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
+            stiffIntTDEFPHI2P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
           }
 
-          massIntTDEFPHI2P->SetName("AcousticMassIntTDEFPHI2P_" + std::to_string(ii));
+          stiffIntTDEFPHI2P->SetName("AcousticStiffIntTDEFPHI2P_" + std::to_string(ii));
 
-          BiLinFormContext *massIntTDEFPHI2PContext = NULL;
-          massIntTDEFPHI2PContext = new BiLinFormContext(massIntTDEFPHI2P, MASS);
+          BiLinFormContext *stiffIntTDEFPHI2PContext = NULL;
+          stiffIntTDEFPHI2PContext = new BiLinFormContext(stiffIntTDEFPHI2P, MASS);
 
-          massIntTDEFPHI2PContext->SetEntities(actSDList, actSDList);
-          massIntTDEFPHI2PContext->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)], feFunctions_[formulation_]);
-          assemble_->AddBiLinearForm(massIntTDEFPHI2PContext);
+          stiffIntTDEFPHI2PContext->SetEntities(actSDList, actSDList);
+          stiffIntTDEFPHI2PContext->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)], feFunctions_[formulation_]);
+          assemble_->AddBiLinearForm(stiffIntTDEFPHI2PContext);
         } // end loop dampIntTDEFPHI2PHI2, stiffIntTDEFPHI2PHI2 and massInteTDEFPHI2P
 
         for (UInt ii = 0; ii < fncGammaV.GetSize(); ii++)
@@ -1798,25 +1542,11 @@ namespace CoupledField
                                                      CoefXprBinOp(mp_, constOne, fncGammaV[ii], CoefXpr::OP_DIV));
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI2PSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), coefOneOverGammaV, 1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefOneOverGammaV, 1.0, updatedGeo_);
-            }
+            massIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefOneOverGammaV, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI2PSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), coefOneOverGammaV, 1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefOneOverGammaV, 1.0, updatedGeo_);
-            }
+            massIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefOneOverGammaV, 1.0, updatedGeo_);
           }
 
           massIntTDEFPSI2PSI2->SetName("AcousticMassIntTDEFPSI2PSI2_" + std::to_string(ii));
@@ -1825,7 +1555,7 @@ namespace CoupledField
           massIntTDEFPSI2PSI2Context = new BiLinFormContext(massIntTDEFPSI2PSI2, MASS);
 
           massIntTDEFPSI2PSI2Context->SetEntities(actSDList, actSDList);
-          massIntTDEFPSI2PSI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
+          massIntTDEFPSI2PSI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
           assemble_->AddBiLinearForm(massIntTDEFPSI2PSI2Context);
 
           // ====================================================================
@@ -1842,25 +1572,11 @@ namespace CoupledField
                                                           CoefXprBinOp(mp_, coefTwoBetaV, fncGammaV[ii], CoefXpr::OP_DIV));
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPSI2PSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), coefTwoBetaVOverGammaV, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefTwoBetaVOverGammaV, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), coefTwoBetaVOverGammaV, 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              dampIntTDEFPSI2PSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), coefTwoBetaVOverGammaV, 1.0, updatedGeo_);
-            }
-            else
-            {
-              dampIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefTwoBetaVOverGammaV, 1.0, updatedGeo_);
-            }
+            dampIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), coefTwoBetaVOverGammaV, 1.0, updatedGeo_);
           }
 
           dampIntTDEFPSI2PSI2->SetName("AcousticDampIntTDEFPSI2PSI2_" + std::to_string(ii));
@@ -1869,7 +1585,7 @@ namespace CoupledField
           dampIntTDEFPSI2PSI2Context = new BiLinFormContext(dampIntTDEFPSI2PSI2, DAMPING);
 
           dampIntTDEFPSI2PSI2Context->SetEntities(actSDList, actSDList);
-          dampIntTDEFPSI2PSI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
+          dampIntTDEFPSI2PSI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
           assemble_->AddBiLinearForm(dampIntTDEFPSI2PSI2Context);
 
           // ====================================================================
@@ -1880,25 +1596,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPSI2PSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), fncGammaV[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncGammaV[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncGammaV[ii], 1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              stiffIntTDEFPSI2PSI2 = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), fncGammaV[ii], 1.0, updatedGeo_);
-            }
-            else
-            {
-              stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncGammaV[ii], 1.0, updatedGeo_);
-            }
+            stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncGammaV[ii], 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPSI2PSI2->SetName("AcousticStiffIntTDEFPSI2PSI12_" + std::to_string(ii));
@@ -1907,7 +1609,7 @@ namespace CoupledField
           stiffIntTDEFPSI2PSI2Context = new BiLinFormContext(stiffIntTDEFPSI2PSI2, STIFFNESS);
 
           stiffIntTDEFPSI2PSI2Context->SetEntities(actSDList, actSDList);
-          stiffIntTDEFPSI2PSI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
+          stiffIntTDEFPSI2PSI2Context->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
           assemble_->AddBiLinearForm(stiffIntTDEFPSI2PSI2Context);
 
           // ====================================================================
@@ -1918,25 +1620,11 @@ namespace CoupledField
 
           if (dim_ == 2)
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI2P = new BBInt<Complex>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI2P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
-            }
+            massIntTDEFPSI2P = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), constOne, -1.0, updatedGeo_);
           }
           else
           {
-            if (isComplex_)
-            {
-              massIntTDEFPSI2P = new BBInt<Complex>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
-            else
-            {
-              massIntTDEFPSI2P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
-            }
+            massIntTDEFPSI2P = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), constOne, -1.0, updatedGeo_);
           }
 
           massIntTDEFPSI2P->SetName("AcousticMassIntTDEFPSI2P_" + std::to_string(ii));
@@ -1945,7 +1633,7 @@ namespace CoupledField
           massIntTDEFPSI2PContext = new BiLinFormContext(massIntTDEFPSI2P, MASS);
 
           massIntTDEFPSI2PContext->SetEntities(actSDList, actSDList);
-          massIntTDEFPSI2PContext->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)], feFunctions_[formulation_]);
+          massIntTDEFPSI2PContext->SetFeFunctions(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)], feFunctions_[formulation_]);
           assemble_->AddBiLinearForm(massIntTDEFPSI2PContext);
         } // end loop massIntTDEFPSI2PSI2, dampIntTDEFPSI2PSI2, stiffIntTDEFPSI2PSI2 and massInteTDEFPSI2P
       }
@@ -3559,8 +3247,6 @@ namespace CoupledField
     }
 
     // === TDEF AUX Variables ===
-
-    // TODO READ POLES, SET LENGTH AND ITERATE OVER ONLY THE REQUIRED NUMBER OF FEFUNTIONS
 
     // loop over all materials and use largest number of poles (if multiple can be defined, which I think is the case atm)
 
