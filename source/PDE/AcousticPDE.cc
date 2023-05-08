@@ -174,31 +174,60 @@ namespace CoupledField
         if (curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes")
         {
           LocPointMapped lpm;
-          PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
-          PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
-          PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
-          PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
           
           Vector<Double> vecAC;
           Vector<Double> vecBC;
           Vector<Double> vecAV;
           Vector<Double> vecBV;
 
-          coefVecAC->GetVector(vecAC, lpm);
-          coefVecBC->GetVector(vecBC, lpm);
-          coefVecAV->GetVector(vecAV, lpm);
-          coefVecBV->GetVector(vecBV, lpm);
+          // try to get the material of the poles and assign the size of the fnc vector
+          try {
+            PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+            coefVecAC->GetVector(vecAC, lpm);
+            // store the actual size
+            nAuxFncAC_[iRegion] = vecAC.GetSize();
 
-          // store the actual size
-          nAuxFncAC_[iRegion] = vecAC.GetSize();
-          nAuxFncBC_[iRegion] = vecBC.GetSize();
-          nAuxFncAV_[iRegion] = vecAV.GetSize();
-          nAuxFncBV_[iRegion] = vecBV.GetSize();
+            std::cout << "Coef AC: " << std::to_string(nAuxFncAC_[actRegion]) << std::endl;
+          } catch( Exception& ex ) {
+            // no material defined
+            nAuxFncAC_[iRegion] = 0;
+          }
 
-          std::cout << "Coef AC: " << std::to_string(nAuxFncAC_[actRegion]) << std::endl;
-          std::cout << "Coef BC: " << std::to_string(nAuxFncBC_[actRegion]) << std::endl;
-          std::cout << "Coef AV: " << std::to_string(nAuxFncAV_[actRegion]) << std::endl;
-          std::cout << "Coef CV: " << std::to_string(nAuxFncBV_[actRegion]) << std::endl;
+          try {
+            PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
+            coefVecBC->GetVector(vecBC, lpm);
+            // store the actual size
+            nAuxFncBC_[iRegion] = vecBC.GetSize();
+
+            std::cout << "Coef BC: " << std::to_string(nAuxFncBC_[actRegion]) << std::endl;
+          } catch( Exception& ex ) {
+            // no material defined
+            nAuxFncBC_[iRegion] = 0;
+          }
+
+          try {
+            PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+            coefVecAV->GetVector(vecAV, lpm);
+            // store the actual size
+            nAuxFncAV_[iRegion] = vecAV.GetSize();
+
+            std::cout << "Coef AV: " << std::to_string(nAuxFncAV_[actRegion]) << std::endl;
+          } catch( Exception& ex ) {
+            // no material defined
+            nAuxFncAV_[iRegion] = 0;
+          }
+
+          try {
+            PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
+            coefVecBV->GetVector(vecBV, lpm);
+            // store the actual size
+            nAuxFncBV_[iRegion] = vecBV.GetSize();
+
+            std::cout << "Coef CV: " << std::to_string(nAuxFncBV_[actRegion]) << std::endl;
+          } catch( Exception& ex ) {
+            // no material defined
+            nAuxFncBV_[iRegion] = 0;
+          }
 
         } else {
           // this region has no TDEF material defined, set size to 0
@@ -932,22 +961,6 @@ namespace CoupledField
         StdVector<PtrCoefFct> fncGammaV;
         StdVector<PtrCoefFct> fncDeltaV;
 
-        
-        PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
-        PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
-        PtrCoefFct coefVecCC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_C, Global::REAL);
-        PtrCoefFct coefVecAlphaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
-        PtrCoefFct coefVecBetaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_BETA, Global::REAL);
-        PtrCoefFct coefVecGammaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
-
-        PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
-        PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
-        PtrCoefFct coefVecCV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_C, Global::REAL);
-        PtrCoefFct coefVecAlphaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
-        PtrCoefFct coefVecBetaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_BETA, Global::REAL);
-        PtrCoefFct coefVecGammaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
-
-
         LocPointMapped lpm;
 
         Vector<Double> vecAC;
@@ -968,21 +981,61 @@ namespace CoupledField
         Vector<Double> vecGammaV;
         Vector<Double> vecDeltaV;
 
-        coefVecAC->GetVector(vecAC, lpm);
-        coefVecBC->GetVector(vecBC, lpm);
-        coefVecCC->GetVector(vecCC, lpm);
-
-        coefVecAlphaC->GetVector(vecAlphaC, lpm);
-        coefVecBetaC->GetVector(vecBetaC, lpm);
-        coefVecGammaC->GetVector(vecGammaC, lpm);
-
+        if (nAuxFncAC_[iRegion]>0) {
+          PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+          PtrCoefFct coefVecAlphaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
         
-        coefVecAV->GetVector(vecAV, lpm);
-        coefVecBV->GetVector(vecBV, lpm);
-        coefVecCV->GetVector(vecCV, lpm);
-        coefVecAlphaV->GetVector(vecAlphaV, lpm);
-        coefVecBetaV->GetVector(vecBetaV, lpm);
-        coefVecGammaV->GetVector(vecGammaV, lpm);
+          coefVecAC->GetVector(vecAC, lpm);
+          coefVecAlphaC->GetVector(vecAlphaC, lpm);
+        } else {
+          vecAC.Resize(0);
+          vecAlphaC.Resize(0);
+        }
+
+        if (nAuxFncBC_[iRegion]>0) {
+          PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
+          PtrCoefFct coefVecCC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_C, Global::REAL);
+          PtrCoefFct coefVecBetaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_BETA, Global::REAL);
+          PtrCoefFct coefVecGammaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
+
+          coefVecBC->GetVector(vecBC, lpm);
+          coefVecCC->GetVector(vecCC, lpm);          
+          coefVecBetaC->GetVector(vecBetaC, lpm);
+          coefVecGammaC->GetVector(vecGammaC, lpm);
+        } else {
+          vecBC.Resize(0);
+          vecCC.Resize(0);
+          vecBetaC.Resize(0);
+          vecGammaC.Resize(0);
+        }
+
+        if (nAuxFncAV_[iRegion]>0) {
+          PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+          PtrCoefFct coefVecAlphaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+
+          coefVecAV->GetVector(vecAV, lpm);
+          coefVecAlphaV->GetVector(vecAlphaV, lpm);
+        } else {
+          vecAV.Resize(0);
+          vecAlphaV.Resize(0);
+        }
+
+        if (nAuxFncBV_[iRegion]>0) {
+          PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
+          PtrCoefFct coefVecCV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_C, Global::REAL);
+          PtrCoefFct coefVecBetaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_BETA, Global::REAL);
+          PtrCoefFct coefVecGammaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
+
+          coefVecBV->GetVector(vecBV, lpm);
+          coefVecCV->GetVector(vecCV, lpm);
+          coefVecBetaV->GetVector(vecBetaV, lpm);
+          coefVecGammaV->GetVector(vecGammaV, lpm);
+        } else {
+          vecBV.Resize(0);
+          vecCV.Resize(0);
+          vecBetaV.Resize(0);
+          vecGammaV.Resize(0);
+        }
 
 
         fncAC = StdVector<PtrCoefFct>(vecAC.GetSize());

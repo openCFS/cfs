@@ -158,10 +158,10 @@ namespace CoupledField{
     bool timeDomainEqFluidFormulation_;
 
     //! vectors storing the length of the auxiliary variables used for the init process of the FE functions
-    Vector<Integer> nAuxFncAC_;
-    Vector<Integer> nAuxFncBC_;
-    Vector<Integer> nAuxFncAV_;
-    Vector<Integer> nAuxFncBV_;
+    Vector<unsigned int> nAuxFncAC_;
+    Vector<unsigned int> nAuxFncBC_;
+    Vector<unsigned int> nAuxFncAV_;
+    Vector<unsigned int> nAuxFncBV_;
   };
 
 }
