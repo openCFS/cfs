@@ -275,6 +275,7 @@ namespace CoupledField
     StdVector<PtrCoefFct> coef;
     LinearForm *lin2 = NULL;
     StdVector<std::string> dofNames;
+    //BaseMaterial *actSDMat = NULL;
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     ReadRhsExcitation("fieldIntensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
     for (UInt i = 0; i < ent.GetSize(); ++i)
@@ -288,6 +289,10 @@ namespace CoupledField
                           << "\n and has the spatial dimension "
                           << entDim;
 
+      actRegion = ptGrid_->GetRegionId(regName);
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+     
+
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST)
       {
@@ -299,19 +304,26 @@ namespace CoupledField
       }
       
 
-      // Here we store the Hs field for every region to have it ready for postprocessing
+            // Here we store the Hs field for every region to have it ready for postprocessing
       Hsmap_[ent[i]->GetRegion()] = coef[i];
 
-      lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, coef[i], volRegions, coefUpdateGeo);
-      
-      lin2->SetName("SourceMagFieldIntensityInt");
-      LinearFormContext *ctx = new LinearFormContext(lin2);
-      ctx->SetEntities(ent[i]);
-      ctx->SetFeFunction(feFunc_reduced);
-      assemble_->AddLinearForm(ctx);
+      if ( (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ == "nonlinearCurve") || (nonLinTypes.Find(PERMEABILITY) == -1) ){ 
+        PtrCoefFct mu_times_Hs = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp(mp_, coef[i], perm_, CoefXpr::OP_MULT));  
+        lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, mu_times_Hs, volRegions, coefUpdateGeo);
+        
+        lin2->SetName("SourceMagFieldIntensityInt");
+        LinearFormContext *ctx = new LinearFormContext(lin2);
+        ctx->SetEntities(ent[i]);
+        ctx->SetFeFunction(feFunc_reduced);
+        assemble_->AddLinearForm(ctx);
+      }
 
     } // end loop over entities
   }
+
+
+      
+
 
 
   // ****************************

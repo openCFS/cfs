@@ -320,10 +320,10 @@ namespace CoupledField
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
     gamma = 1.0;
-    Double sigma1 = 1.0e-4;
-    Double sigma2 = 1.0e-4;
-    Double rho = 0.01;
-    Double eta = 1.1;
+    Double sigma1 = 1.0e-8;
+    Double sigma2 = 1.0e-8;
+    Double rho = 0.001;
+    Double eta = 1.5;
     Double phi = 2.0;
     Integer i = (-1.0) * (iterationCounter-1);
     Double eta_k = std::pow(eta, i);

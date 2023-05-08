@@ -16,6 +16,7 @@ namespace CoupledField {
 
 DEFINE_LOG(eb, "EBHysteresis")
 
+
     EBHysteresis::EBHysteresis() : Model(),
     numElems_{0}, 
     Ps_{0}, A_{0}, mu0_{0}, numS_{0},chi_factor_{0},
@@ -166,34 +167,34 @@ DEFINE_LOG(eb, "EBHysteresis")
 
       Matrix<Double> mu(dim_,dim_);
       mu.InitValue(0.0);
+      Matrix<Double> mu_FD(dim_,dim_);
+      mu_FD.InitValue(0.0);
 
       LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
       if(timeStep_== 1 && globalIter_ == 1){
-        mu[0][0] = mu_0;
+        mu[0][0] = mu_0*1e6;
         mu[0][1] = 0.0;
         mu[1][0] = 0.0;
-        mu[1][1] = mu_0;
+        mu[1][1] = mu_0*1e6;
         if(dim_ == 3){
           mu[2][0] = 0.0;
           mu[2][1] = 0.0;
           mu[0][2] = 0.0;
           mu[1][2] = 0.0;
-          mu[2][2] = mu_0;
+          mu[2][2] = mu_0*1e6;
         }
         mu_[idx] = mu;
         return mu;
       }
 
-      Vector<Double> M, H;
-      M = Evaluate(HVec, true, idx);
+      Vector<Double> M, H, M_dummy;
+      M = Evaluate(HVec, false, idx);
 
       // get the values for H and M from the last timestep
       StdVector<Double>& H0 = H0_[idx];
       StdVector<Double>& M0 = M0_[idx];
       StdVector<Double> B_k(dim_);
       StdVector<Double> B_k_0(dim_);
-
-
       StdVector<Double> delta_H(dim_);
       StdVector<Double> delta_B(dim_);
       for(UInt i = 0; i < dim_; i++){
@@ -206,7 +207,13 @@ DEFINE_LOG(eb, "EBHysteresis")
       }
 
 
+      //mu = EvaluateLocalMu(delta_H, delta_B, idx);
+      //mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
+      mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+      //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
 
+
+      M_dummy = Evaluate(HVec, true, idx);
       LOG_DBG3(eb)<< "AFTER EVALUATION" 
                   << "\n\t HVec =  \t" << HVec.ToString()
                   << "\n\t H0_["<<idx<<"] = \t"<<H0_[idx].ToString()
@@ -217,11 +224,6 @@ DEFINE_LOG(eb, "EBHysteresis")
                   << "\n\t B_k_0 = \t"<<B_k_0.ToString()
                   << "\n\t delta_H = \t"<<delta_H.ToString()
                   << "\n\t delta_B = \t"<<delta_B.ToString();
-
-      //mu = EvaluateLocalMu(delta_H, delta_B);
-      //mu = EvaluateLocalMuDFP(delta_H, delta_B);
-      mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-
 
       LOG_DBG3(eb) << "\n\t mu = " << mu.ToString();
 
@@ -234,9 +236,85 @@ DEFINE_LOG(eb, "EBHysteresis")
       return mu;
     }
 
+    Matrix<Double> EBHysteresis::EvaluateLocalMuFiniteDifferences(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
+      Matrix<Double> mu;
+      mu.Resize(dim_,dim_);
+
+      Double h = 1*10^(-16);
+      Vector<Double> eh_x(dim_);
+      Vector<Double> eh_y(dim_);
+      Vector<Double> eh_z(dim_);
+      Vector<Double> H_incx(dim_);
+      Vector<Double> H_incy(dim_);
+      Vector<Double> H_incz(dim_);
+
+      Vector<Double> M_incx(dim_);
+      Vector<Double> M_incy(dim_);
+      Vector<Double> M_incz(dim_);
+      Vector<Double> B_incx(dim_);
+      Vector<Double> B_incy(dim_);
+      Vector<Double> B_incz(dim_);
+
+      // 2D case (x,y)
+      if (dim_ == 2){
+
+        eh_x[0] = h; eh_x[1] = 0;
+        eh_y[0] = 0; eh_y[1] = h;
+        for(UInt i = 0; i < dim_; i++){
+          H_incx[i] = HVec[i] + eh_x[i];
+          H_incy[i] = HVec[i] + eh_y[i];
+        }
+        // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
+        M_incx = Evaluate(H_incx, false, idx);
+        M_incy = Evaluate(H_incy, false, idx);
+        for(UInt i = 0; i < dim_; i++){
+          B_incx[i] = mu_0 * (H_incx[i] + M_incx[i]);
+          B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
+        }
+        // calculate the mu tesnor (dB/dH) for every entry
+        mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;
+        mu[1][0] = 0; mu[1][1] = (B_incy[1] - B_k[1]) / h;
+
+      }else{ // 3D case (x,y,z)
+
+          eh_x[0] = h; eh_x[1] = 0; eh_x[2] = 0;
+          eh_y[0] = 0; eh_y[1] = h; eh_y[2] = 0;
+          eh_z[0] = 0; eh_z[1] = 0; eh_z[1] = h;
+          for(UInt i = 0; i < dim_; i++){
+            H_incx[i] = HVec[i] + eh_x[i];
+            H_incy[i] = HVec[i] + eh_y[i];
+            H_incz[i] = HVec[i] + eh_z[i];
+          }
+          // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
+          M_incx = Evaluate(H_incx, false, idx);
+          M_incy = Evaluate(H_incy, false, idx);
+          M_incz = Evaluate(H_incz, false, idx);
+          for(UInt i = 0; i < dim_; i++){
+            B_incx[i] = mu_0 * (H_incx[i] + M_incx[i]);
+            B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
+            B_incz[i] = mu_0 * (H_incz[i] + M_incz[i]);
+          }
+          // calculate the mu tesnor (dB/dH) for every entry
+          mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;                        mu[0][2] = 0;
+          mu[1][0] = 0;                        mu[1][1] = (B_incy[1] - B_k[1]) / h; mu[1][2] = 0;
+          mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
+
+      } 
+      if (idx == 32){
+        printf("mu_FD = %f\n",mu[0][0]);
+      }  
+      return mu;
+    }
+
     Matrix<Double> EBHysteresis::EvaluateLocalMu(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
+      double offset = 1e-13;
+
+      if(dim_ == 2){
+        dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
+        dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
+      }
       mu[0][1] = 0.0; //dB[0]/dH[1];
       mu[1][1] = std::abs(dB[1])/std::abs(dH[1]);
       mu[1][0] = 0.0; //dB[1]/dH[0];
@@ -248,7 +326,9 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[1][2] = 0.0;
         mu[2][2] = std::abs(dB[2])/std::abs(dH[2]);
       }
-
+      if (idx == 32){
+        printf("mu_simpleFD = %f\n",mu[0][0]);
+      }
       return mu;
     }
 
@@ -325,6 +405,12 @@ DEFINE_LOG(eb, "EBHysteresis")
                 mu[i][i] = mu_0; //e[i][i]; //mu_0;
             } 
         }
+      if (idx == 32){
+        printf("mu_DFPxx = %f\n",mu[0][0]);
+        printf("mu_DFPxy = %f\n",mu[0][1]);
+        printf("mu_DFPyx = %f\n",mu[1][0]);
+        printf("mu_DFPyy = %f\n",mu[1][1]);
+      }
       }else{
         
         // 3D version
@@ -436,8 +522,11 @@ DEFINE_LOG(eb, "EBHysteresis")
       Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
       Vector<Double> dHvec(dim_);
       Matrix<Double> rightM(dim_,dim_);
+      double offset = 1e-13;
 
       if(dim_ == 2){
+        dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
+        dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
         dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1]);
         dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1]);
 
@@ -505,6 +594,9 @@ DEFINE_LOG(eb, "EBHysteresis")
             } 
         }
       }
+      if (idx == 32){
+        printf("mu_Broyden = %f\n",mu[0][0]);
+      }
       return mu;
     }
 
@@ -543,7 +635,9 @@ DEFINE_LOG(eb, "EBHysteresis")
 
       StdVector<Double> chi(numS_);
       for(UInt i = 0; i < numS_; i++){
+        chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
         chi[i] = chi_factor_ * i / (numS_ - 1) + 0.001;
+        chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
       }
 
       if(dim_ == 2){
@@ -645,14 +739,14 @@ DEFINE_LOG(eb, "EBHysteresis")
         ret.Push_back(Px);
         ret.Push_back(Py);
 
-      }else{   
-        // 3D Version
+      }else{   // 3D Version (VPM)
         // volumetric weight for each pseudo particle
+        EXCEPTION("NO 3D!!!")
         StdVector<Double> weight(numS_);
         weight.Init(1.0/numS_);
         // dissipation scalar parameter (can also be a tensor if anisotropy is needed) 
         StdVector<Double> chi(numS_);
-        Double offset = 1e-22;
+        Double offset = 1e-15;
         for(UInt i = 0; i < numS_; i++){
           chi[i] = chi_factor_ * i / (numS_ - 1) + offset;
         }
@@ -718,9 +812,6 @@ DEFINE_LOG(eb, "EBHysteresis")
             invCHI = inv3x3(CHI);
             if(k > 0){
               // use the direction of the vector play model as initial direction
-/*                 i_initial[0] = invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z) / std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2));
-                i_initial[1] = invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z) / std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2));
-                i_initial[2] = invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z) / std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2)); */
                 i_initial[0] = invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z);
                 i_initial[1] = invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z);
                 i_initial[2] = invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z);
@@ -741,84 +832,7 @@ DEFINE_LOG(eb, "EBHysteresis")
                 phi_initial = 0.0;
                 theta_initial = 0.0;
             }
-            
-            // NEWTON SCHEME
-            err = 1.0;
-            phi = phi_initial;
-            theta = theta_initial;
-            iter = 0;
-            while(err > 1e-3 && iter<10){
-                // calc all needed stuff for the Newton step: x_k+1 = x_k - inv(H)*f'(x_k)
-                // H ... Hessian, f' ... first derivative
-                ux = Hex_x + chi[k]*std::cos(phi)*std::sin(theta)+offset*std::sin(phi)*std::sin(theta)+offset*std::cos(theta);
-                uy = Hex_y + offset*std::cos(phi)*std::sin(theta)+chi[k]*std::sin(phi)*std::sin(theta)+offset*std::cos(theta);
-                uz = Hex_z + offset*std::cos(phi)*std::sin(theta)+offset*std::sin(phi)*std::sin(theta)+chi[k]*std::cos(theta);
-                uabs = std::sqrt( std::pow(ux, 2) + std::pow(uy, 2) + std::pow(uz, 2));
 
-                du_dphi_x = chi[k]*(-1)*std::sin(phi)*std::sin(theta)+offset*std::cos(phi)*std::sin(theta)+offset*0;
-                du_dphi_y = offset*(-1)*std::sin(phi)*std::sin(theta)+chi[k]*std::cos(phi)*std::sin(theta)+offset*0;
-                du_dphi_z = offset*(-1)*std::sin(phi)*std::sin(theta)+offset*std::cos(phi)*std::sin(theta)+chi[k]*0;
-                du_dtheta_x = chi[k]*std::cos(phi)*std::cos(theta)+offset*std::sin(phi)*std::cos(theta)+offset*(-1)*std::sin(theta);
-                du_dtheta_y = offset*std::cos(phi)*std::cos(theta)+chi[k]*std::sin(phi)*std::cos(theta)+offset*(-1)*std::sin(theta);
-                du_dtheta_z = offset*std::cos(phi)*std::cos(theta)+offset*std::sin(phi)*std::cos(theta)+chi[k]*(-1)*std::sin(theta);
-
-                d2u_dphi2_x = chi[k]*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+ offset*0;
-                d2u_dphi2_y = offset*(-1)*cos(phi)*sin(theta)+chi[k]*(-1)*sin(phi)*sin(theta)+ offset*0;
-                d2u_dphi2_z = offset*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+ chi[k]*0;
-                d2u_dtheta2_x = chi[k]*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+offset*(-1)*cos(theta);
-                d2u_dtheta2_y = offset*(-1)*cos(phi)*sin(theta)+chi[k]*(-1)*sin(phi)*sin(theta)+offset*(-1)*cos(theta);
-                d2u_dtheta2_z = offset*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+chi[k]*(-1)*cos(theta);
-
-                d2u_dthetadphi_x = chi[k]*(-1)*std::sin(phi)*std::cos(theta)+offset*std::cos(phi)*std::cos(theta)+offset*0;
-                d2u_dthetadphi_y = offset*(-1)*std::sin(phi)*std::cos(theta)+chi[k]*std::cos(phi)*std::cos(theta)+offset*0;
-                d2u_dthetadphi_z = offset*(-1)*std::sin(phi)*std::cos(theta)+offset*std::cos(phi)*std::cos(theta)+chi[k]*0;
-
-                //anhysteretic function + first derivative
-                Man = (2*Ps_/M_PI) * std::atan(uabs/A_);
-                Man_strich = (2*Ps_/(A_*M_PI)) * (1.0/(1.0+std::pow(uabs/A_, 2)));
-                // first derivative of objective function after phi and theta (now vector-valued)
-                c1 = Man/uabs;
-                c2 = (uabs*Man_strich-Man)/(std::pow(uabs,2));
-                g_strich_x = (c1*ux-MxSprev)*du_dphi_x + (c1*uy-MySprev)*du_dphi_y + (c1*uz-MzSprev)*du_dphi_z;
-                g_strich_y =  (c1*ux-MxSprev)*du_dtheta_x + (c1*uy-MySprev)*du_dtheta_y + (c1*uz-MzSprev)*du_dtheta_z; 
-                
-                
-                // second derivative (jacobi/hessian-matrix)
-                g_strich_strich_11 = c1*(ux*d2u_dphi2_x+uy*d2u_dphi2_y+uz*d2u_dphi2_z) + 
-                                            c1*(du_dphi_x*du_dphi_x+du_dphi_y*du_dphi_y+du_dphi_z*du_dphi_z) + 
-                                            c2*((ux/uabs)*du_dphi_x+(uy/uabs)*du_dphi_y+(uz/uabs)*du_dphi_z)*(ux*du_dphi_x+uy*du_dphi_y+uz*du_dphi_z) - 
-                                            (MxSprev*d2u_dphi2_x+MySprev*d2u_dphi2_y+MzSprev*d2u_dphi2_z); 
-                
-                g_strich_strich_12 = c1*(ux*d2u_dthetadphi_x+uy*d2u_dthetadphi_y+uz*d2u_dthetadphi_z) + 
-                                            c1*(du_dphi_x*du_dtheta_x+du_dphi_y*du_dtheta_y+du_dphi_z*du_dtheta_z) + 
-                                            c2*((ux/uabs)*du_dtheta_x+(uy/uabs)*du_dtheta_y+(uz/uabs)*du_dtheta_z)*(ux*du_dphi_x+uy*du_dphi_y+uz*du_dphi_z) - 
-                                            (MxSprev*d2u_dthetadphi_x+MySprev*d2u_dthetadphi_y+MzSprev*d2u_dthetadphi_z);
-                
-                g_strich_strich_21 = c1*(ux*d2u_dthetadphi_x+uy*d2u_dthetadphi_y+uz*d2u_dthetadphi_z) + 
-                                            c1*(du_dphi_x*du_dtheta_x+du_dphi_y*du_dtheta_y+du_dphi_z*du_dtheta_z) + 
-                                            c2*((ux/uabs)*du_dphi_x+(uy/uabs)*du_dphi_y+(uz/uabs)*du_dphi_z)*(ux*du_dtheta_x+uy*du_dtheta_y+uz*du_dtheta_z) - 
-                                            (MxSprev*d2u_dthetadphi_x+MySprev*d2u_dthetadphi_y+MzSprev*d2u_dthetadphi_z);
-                
-                g_strich_strich_22 = c1*(ux*d2u_dtheta2_x+uy*d2u_dtheta2_y+uz*d2u_dtheta2_z) + 
-                                            c1*(du_dtheta_x*du_dtheta_x+du_dtheta_y*du_dtheta_y+du_dtheta_z*du_dtheta_z) + 
-                                            c2*((ux/uabs)*du_dtheta_x+(uy/uabs)*du_dtheta_y+(uz/uabs)*du_dtheta_z)*(ux*du_dtheta_x+uy*du_dtheta_y+uz*du_dtheta_z) - 
-                                            (MxSprev*d2u_dtheta2_x+MySprev*d2u_dtheta2_y+MzSprev*d2u_dtheta2_z);
-                if( std::sqrt(std::pow(g_strich_x,2)+std::pow(g_strich_y,2)) < 1e-8){
-                    phiNew = phi;
-                    thetaNew = theta;
-                }else{
-                    // full Newton step
-                    det_g_strich_strich = (g_strich_strich_11 * g_strich_strich_22) - (g_strich_strich_12*g_strich_strich_21);
-                    inv_det_g_strich_strich = 1.0/det_g_strich_strich; // maybe check if det(J) is zero? --> error
-
-                    phiNew = phi - inv_det_g_strich_strich*(g_strich_strich_22*g_strich_x - g_strich_strich_12*g_strich_y);
-                    thetaNew = theta - inv_det_g_strich_strich*((-1)*g_strich_strich_21*g_strich_x + g_strich_strich_11*g_strich_y);
-                }
-                err = std::sqrt(std::pow(phiNew-phi,2)+std::pow(thetaNew-theta,2));
-                phi = phiNew;
-                theta = thetaNew;
-                iter++;
-            }
             i_correct_x = std::cos(phi)*std::sin(theta);
             i_correct_y = std::sin(phi)*std::sin(theta);
             i_correct_z = std::cos(theta);
