@@ -160,9 +160,9 @@ namespace CoupledField
     {
       // check for the actual size of the auxiliary variables
       nAuxFncAC_.Resize(regions_.GetSize());
-      nAuxFncDC_.Resize(regions_.GetSize());
+      nAuxFncBC_.Resize(regions_.GetSize());
       nAuxFncAV_.Resize(regions_.GetSize());
-      nAuxFncDV_.Resize(regions_.GetSize());
+      nAuxFncBV_.Resize(regions_.GetSize());
 
       RegionIdType actRegion;
       for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
@@ -175,30 +175,38 @@ namespace CoupledField
         {
           LocPointMapped lpm;
           PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+          PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
+          PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+          PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
           
           Vector<Double> vecAC;
+          Vector<Double> vecBC;
+          Vector<Double> vecAV;
+          Vector<Double> vecBV;
+
           coefVecAC->GetVector(vecAC, lpm);
+          coefVecBC->GetVector(vecBC, lpm);
+          coefVecAV->GetVector(vecAV, lpm);
+          coefVecBV->GetVector(vecBV, lpm);
 
           // store the actual size
           nAuxFncAC_[iRegion] = vecAC.GetSize();
+          nAuxFncBC_[iRegion] = vecBC.GetSize();
+          nAuxFncAV_[iRegion] = vecAV.GetSize();
+          nAuxFncBV_[iRegion] = vecBV.GetSize();
 
-          // TODO
-          nAuxFncDC_[iRegion] = 0;
-          nAuxFncAV_[iRegion] = 0;
-          nAuxFncDV_[iRegion] = 0;
+          std::cout << "Coef AC: " << std::to_string(nAuxFncAC_[actRegion]) << std::endl;
+          std::cout << "Coef BC: " << std::to_string(nAuxFncBC_[actRegion]) << std::endl;
+          std::cout << "Coef AV: " << std::to_string(nAuxFncAV_[actRegion]) << std::endl;
+          std::cout << "Coef CV: " << std::to_string(nAuxFncBV_[actRegion]) << std::endl;
+
         } else {
           // this region has no TDEF material defined, set size to 0
           nAuxFncAC_[iRegion] = 0;
-
-          // TODO
-          nAuxFncDC_[iRegion] = 0;
+          nAuxFncBC_[iRegion] = 0;
           nAuxFncAV_[iRegion] = 0;
-          nAuxFncDV_[iRegion] = 0;
+          nAuxFncBV_[iRegion] = 0;
         }
-
-        // TODO do this check for the rest (fncDC, fncAV, fncDV)
-
-        
       }
       
       // define the additional unknowns (phiC, psiC, phiV, psiV)
@@ -209,7 +217,7 @@ namespace CoupledField
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]->Init(solStrat_);
       }
-      for (unsigned int i = 0; i < nAuxFncDC_.Max(); i++)
+      for (unsigned int i = 0; i < nAuxFncBC_.Max(); i++)
       {
         spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType)(ACOU_TDEF_PSI_C_1 + i)));
         crSpaces[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
@@ -221,7 +229,7 @@ namespace CoupledField
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
         crSpaces[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]->Init(solStrat_);
       }
-      for (unsigned int i = 0; i < nAuxFncDV_.Max(); i++)
+      for (unsigned int i = 0; i < nAuxFncBV_.Max(); i++)
       {
         spaceNode = infoNode->Get(SolutionTypeEnum.ToString((SolutionType)(ACOU_TDEF_PSI_V_1 + i)));
         crSpaces[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)] = FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
@@ -907,56 +915,89 @@ namespace CoupledField
         // additional terms in the wave equation
 
         StdVector<PtrCoefFct> fncAC;
-        StdVector<PtrCoefFct> fncDC;
         StdVector<PtrCoefFct> fncBC;
-
-        StdVector<PtrCoefFct> fncAV;
-        StdVector<PtrCoefFct> fncDV;
-        StdVector<PtrCoefFct> fncBV;
-
+        StdVector<PtrCoefFct> fncCC;
+        StdVector<PtrCoefFct> fncDC;
         StdVector<PtrCoefFct> fncAlphaC;
         StdVector<PtrCoefFct> fncBetaC;
-        StdVector<PtrCoefFct> fncDeltaC;
         StdVector<PtrCoefFct> fncGammaC;
+        StdVector<PtrCoefFct> fncDeltaC;
 
+        StdVector<PtrCoefFct> fncAV;
+        StdVector<PtrCoefFct> fncBV;
+        StdVector<PtrCoefFct> fncCV;
+        StdVector<PtrCoefFct> fncDV;
         StdVector<PtrCoefFct> fncAlphaV;
         StdVector<PtrCoefFct> fncBetaV;
-        StdVector<PtrCoefFct> fncDeltaV;
         StdVector<PtrCoefFct> fncGammaV;
+        StdVector<PtrCoefFct> fncDeltaV;
 
-        // TODO set up a vectorial coefFunction so that we can access the coefficient in each iteration of the loop
-        // fnc =
         
         PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
+        PtrCoefFct coefVecBC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_B, Global::REAL);
+        PtrCoefFct coefVecCC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_C, Global::REAL);
         PtrCoefFct coefVecAlphaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
+        PtrCoefFct coefVecBetaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_BETA, Global::REAL);
+        PtrCoefFct coefVecGammaC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
 
-//        PtrCoefFct coefVecB = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
-        
-
-        // TODO
-        // write all loops only in terms of these vectors:
-        //fncAC
-        //fncDC
-        //fncAV
-        //fncDV
-        // also introduce checks so that the user can't define anything that is not matching regarding equation size
+        PtrCoefFct coefVecAV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_A, Global::REAL);
+        PtrCoefFct coefVecBV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_B, Global::REAL);
+        PtrCoefFct coefVecCV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_C, Global::REAL);
+        PtrCoefFct coefVecAlphaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+        PtrCoefFct coefVecBetaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_BETA, Global::REAL);
+        PtrCoefFct coefVecGammaV = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
 
 
         LocPointMapped lpm;
 
         Vector<Double> vecAC;
+        Vector<Double> vecBC;
+        Vector<Double> vecCC;
+        Vector<Double> vecDC;
         Vector<Double> vecAlphaC;
+        Vector<Double> vecBetaC;
+        Vector<Double> vecGammaC;
+        Vector<Double> vecDeltaC;
 
-
+        Vector<Double> vecAV;
+        Vector<Double> vecBV;
+        Vector<Double> vecCV;
+        Vector<Double> vecDV;
+        Vector<Double> vecAlphaV;
+        Vector<Double> vecBetaV;
+        Vector<Double> vecGammaV;
+        Vector<Double> vecDeltaV;
 
         coefVecAC->GetVector(vecAC, lpm);
+        coefVecBC->GetVector(vecBC, lpm);
+        coefVecCC->GetVector(vecCC, lpm);
+
         coefVecAlphaC->GetVector(vecAlphaC, lpm);
+        coefVecBetaC->GetVector(vecBetaC, lpm);
+        coefVecGammaC->GetVector(vecGammaC, lpm);
 
-
+        
+        coefVecAV->GetVector(vecAV, lpm);
+        coefVecBV->GetVector(vecBV, lpm);
+        coefVecCV->GetVector(vecCV, lpm);
+        coefVecAlphaV->GetVector(vecAlphaV, lpm);
+        coefVecBetaV->GetVector(vecBetaV, lpm);
+        coefVecGammaV->GetVector(vecGammaV, lpm);
 
 
         fncAC = StdVector<PtrCoefFct>(vecAC.GetSize());
+        fncBC = StdVector<PtrCoefFct>(vecBC.GetSize());
+        fncCC = StdVector<PtrCoefFct>(vecCC.GetSize());
         fncAlphaC = StdVector<PtrCoefFct>(vecAlphaC.GetSize());
+        fncBetaC = StdVector<PtrCoefFct>(vecBetaC.GetSize());
+        fncGammaC = StdVector<PtrCoefFct>(vecGammaC.GetSize());
+
+        fncAV = StdVector<PtrCoefFct>(vecAV.GetSize());
+        fncBV = StdVector<PtrCoefFct>(vecBV.GetSize());
+        fncCV = StdVector<PtrCoefFct>(vecCV.GetSize());
+        fncAlphaV = StdVector<PtrCoefFct>(vecAlphaV.GetSize());
+        fncBetaV = StdVector<PtrCoefFct>(vecBetaV.GetSize());
+        fncGammaV = StdVector<PtrCoefFct>(vecGammaV.GetSize());
 
         
         for (UInt ii = 0; ii < vecAC.GetSize(); ii++) 
@@ -971,8 +1012,21 @@ namespace CoupledField
           std::cout << "Coef AlphaC: " << std::to_string(vecAlphaC[ii]) << std::endl;
         }
 
+
+        for (UInt ii = 0; ii < vecAV.GetSize(); ii++) 
+        {
+          fncAV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAV[ii]));
+          std::cout << "Coef AV: " << std::to_string(vecAV[ii]) << std::endl;
+        }
+        
+        for (UInt ii = 0; ii < vecAlphaV.GetSize(); ii++) 
+        {
+          fncAlphaV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAlphaV[ii]));
+          std::cout << "Coef AlphaC: " << std::to_string(vecAlphaV[ii]) << std::endl;
+        }
+
         // check if all coefFunctions vectors are smaller than 15
-        // TODO: do we still need that after knowing the number of poles??
+
         if (fncAC.GetSize() > 15 || fncDC.GetSize() > 15 || fncBC.GetSize() > 15 || fncGammaC.GetSize() > 15 ||
             fncAV.GetSize() > 15 || fncDV.GetSize() > 15 || fncBV.GetSize() > 15 || fncGammaV.GetSize() > 15)
         {
@@ -980,21 +1034,22 @@ namespace CoupledField
         }
 
         std::cout << std::endl;
+        std::cout << "TDEF parameters: " << std::endl;
+        std::cout << "Rational model of compressibility (inverse bulk modulus): " << std::endl;
         std::cout << "size fncAC: " << fncAC.GetSize() << std::endl;
         std::cout << "size fncAlphaC: " << fncAlphaC.GetSize() << std::endl;
         std::cout << "size fncBC: " << fncBC.GetSize() << std::endl;
         std::cout << "size fncBetaC: " << fncBetaC.GetSize() << std::endl;
-        std::cout << "size fncDC: " << fncDC.GetSize() << std::endl;
-        std::cout << "size fncDeltaC: " << fncDeltaC.GetSize() << std::endl;
-        std::cout << "size fncGammaC: " << fncGammaC.GetSize() << std::endl;
+        std::cout << "size fncDC: " << fncCC.GetSize() << std::endl;
+        std::cout << "size fncDeltaC: " << fncGammaC.GetSize() << std::endl;
 
+        std::cout << "Rational model of specific volume (inverse density): " << std::endl;
         std::cout << "size fncAv: " << fncAV.GetSize() << std::endl;
         std::cout << "size fncAlphav: " << fncAlphaV.GetSize() << std::endl;
         std::cout << "size fncBv: " << fncBV.GetSize() << std::endl;
         std::cout << "size fncBetav: " << fncBetaV.GetSize() << std::endl;
-        std::cout << "size fncDv: " << fncDV.GetSize() << std::endl;
-        std::cout << "size fncDeltav: " << fncDeltaV.GetSize() << std::endl;
-        std::cout << "size fncGammav: " << fncGammaV.GetSize() << std::endl << std::endl;
+        std::cout << "size fncDv: " << fncCV.GetSize() << std::endl;
+        std::cout << "size fncDeltav: " << fncGammaV.GetSize() << std::endl;
 
 
         std::cout << "Establishing the TDEF integrators:" << std::endl << std::endl;
@@ -1045,9 +1100,9 @@ namespace CoupledField
           feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]->AddEntityList(actSDList);
         } // end loop stiffIntTDEFPPHI1
 
-        for (UInt ii = 0; ii < fncDC.GetSize(); ii++)
+        for (UInt ii = 0; ii < fncCC.GetSize(); ii++)
         {
-          std::cout << "compl. poles compressibility: " << ii+1 << " from " << fncDC.GetSize() << std::endl;
+          std::cout << "compl. poles compressibility: " << ii+1 << " from " << fncCC.GetSize() << std::endl;
           // ====================================================================
           // K_PPSI1 (TDEF): stiffness integrator, TDEF (D_k^C term)
           // \int_{Omega_1} D_k^C p^\prime \psi_k^C d\Omega
@@ -3471,7 +3526,7 @@ namespace CoupledField
         resTDEFPhiC->SetFeFunction(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]);
         DefineFieldResult(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)], resTDEFPhiC);
       }
-      for (unsigned int i = 0; i < nAuxFncDC_.Max(); i++)
+      for (unsigned int i = 0; i < nAuxFncBC_.Max(); i++)
       {
         shared_ptr<ResultInfo> resTDEFPsiC(new ResultInfo);
         resTDEFPsiC->resultType = (SolutionType)(ACOU_TDEF_PSI_C_1 + i);
@@ -3497,7 +3552,7 @@ namespace CoupledField
         resTDEFPhiV->SetFeFunction(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]);
         DefineFieldResult(feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)], resTDEFPhiV);
       }
-      for (unsigned int i = 0; i < nAuxFncDV_.Max(); i++)
+      for (unsigned int i = 0; i < nAuxFncBV_.Max(); i++)
       {
         shared_ptr<ResultInfo> resTDEFPsiV(new ResultInfo);
         resTDEFPsiV->resultType = (SolutionType)(ACOU_TDEF_PSI_V_1 + i);
@@ -4007,7 +4062,7 @@ namespace CoupledField
         shared_ptr<BaseTimeScheme> schemePhiC(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]->SetTimeScheme(schemePhiC);
       }
-      for (unsigned int i = 0; i < nAuxFncDC_.Max(); i++)
+      for (unsigned int i = 0; i < nAuxFncBC_.Max(); i++)
       {
         shared_ptr<BaseTimeScheme> schemePsiC(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)]->SetTimeScheme(schemePsiC);
@@ -4017,7 +4072,7 @@ namespace CoupledField
         shared_ptr<BaseTimeScheme> schemePhiV(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]->SetTimeScheme(schemePhiV);
       }
-      for (unsigned int i = 0; i < nAuxFncDV_.Max(); i++)
+      for (unsigned int i = 0; i < nAuxFncBV_.Max(); i++)
       {
         shared_ptr<BaseTimeScheme> schemePsiV(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
         feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)]->SetTimeScheme(schemePsiV);
