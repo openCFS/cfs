@@ -1,0 +1,11 @@
+Copyright (c) 2022 Verein zur Förderung der Software openCFS
+
+This binary package of openCFS contains GPLv3 software.
+See the individual licenses in the license folder and run cfs --version for more details.
+
+This build is only meant for internal pipeline tests.
+This build is not meant for distribution and usage.
+
+If you want to use openCFS with GPL dependencies you have to compile your own binary
+and check valid usage scenarios by yourself. 
+

@@ -96,5 +96,8 @@ else()
   endif()  
 endif()
 
+# copy the appropriate special license in the license folder
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/LICENSE.binary.GPL" DESTINATION "${CFS_BINARY_DIR}/license/")
+
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

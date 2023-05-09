@@ -1,0 +1,12 @@
+Copyright (c) 2022 Verein zur Förderung der Software openCFS
+
+This binary package of openCFS contains software with different license types, including non-public code. 
+
+See the individual licenses in the license folder and run cfs --version for more details.
+
+The software must not be used when no individual license agreement has been arranged with the copyright holders.
+
+This build is only meant for internal pipeline tests.
+This build is not meant for distribution and usage.
+
+If you want to use openCFS with these dependencies you have to obtain the required licenses, provide the closed source of the dependencies and compile your own binaries.
